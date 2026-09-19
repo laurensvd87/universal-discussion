@@ -1,0 +1,9 @@
+Read CLAUDE.md and every bootstrap document it references. Do not start product implementation yet.
+
+First create a lean Claude Code agent structure capable of carrying this project from product validation through architecture, implementation, semantic clustering, security/privacy, testing, hosting/DevOps, marketing/community, legal/platform-policy research and rollout. Avoid unnecessary agents and define clear ownership and handoffs.
+
+Then execute Phase 0 planning/research: challenge assumptions, identify the riskiest hypotheses, propose architecture options, define measurable MVP success criteria, create the initial ADRs, and turn Phase 1 into concrete technical spikes with acceptance tests. Keep plans/STATUS.md current.
+
+When choices depend on current APIs, prices, browser/mobile policies, AI provider terms or competitors, research current sources rather than relying on stale assumptions.
+
+The owner wants an inexpensive but serious validation path, semantic clustering in the early product, explicit human-vs-AI provenance, optional user-funded AI/API usage, and an eventual product that works across major desktop browsers plus Android and iOS.
