@@ -1,7 +1,7 @@
 # Owner Intent / Constraints
 
 - Goal is to give a capable coding LLM enough context to autonomously organize the work, not merely generate code.
-- Claude should first create its own appropriate agent structure for development and adjacent work such as marketing, hosting, security and rollout.
+- The active coding agent should first create an appropriate, lean agent structure for development and adjacent work such as marketing, hosting, security and rollout.
 - The owner is willing to use early adopters with their own AI API access to create useful initial AI content.
 - Semantic clustering is considered crucial to adoption because URL-by-URL discussions fragment network effects.
 - Early adopters should receive immediate utility from their own AI even when no human content exists.

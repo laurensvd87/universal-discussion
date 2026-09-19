@@ -4,7 +4,7 @@
 Bootstrap / not started
 
 ## Current objective
-Claude must read the project charter and create the agent structure + Phase 0 plan before implementation.
+The active agent must read the project charter and create the agent structure + Phase 0 plan before implementation.
 
 ## Active decisions
 None yet.

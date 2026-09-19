@@ -1,6 +1,6 @@
 # Development / Testing / Rollout Roadmap
 
-Claude must refine this after research. Do not skip gates.
+The active agent team must refine this after research. Do not skip gates.
 
 ## Phase 0 — Product & feasibility
 Deliverables:

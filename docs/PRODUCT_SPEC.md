@@ -107,7 +107,7 @@ The product must remain useful before a large human network exists. Candidate me
 People will install/use a client if it reliably reveals useful discussion/context about what they are already consuming, and semantic topic aggregation makes the network feel denser than URL-by-URL comments.
 
 ## Metrics to define before beta
-Claude/team must propose exact definitions, but consider:
+The product/agent team must propose exact definitions, but consider:
 - extension install -> retained active user;
 - pages where indicator is shown;
 - indicator click-through rate;

@@ -1,6 +1,6 @@
 # Agent Orchestration Brief
 
-Claude's first deliverable is to create a lean multi-agent structure for the project.
+The active coding agent's first deliverable is to create a lean multi-agent structure for the project. The same role contract must work across GitHub Copilot and Codex; use each tool's native delegation/customization mechanism without making the product plan depend on one vendor.
 
 ## Required capability areas
 Do not blindly create one agent per bullet. Combine roles intelligently.

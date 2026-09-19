@@ -1,6 +1,6 @@
-Read CLAUDE.md and every bootstrap document it references. Do not start product implementation yet.
+Read `PROJECT_CHARTER.md`, the active agent entry point (`.github/copilot-instructions.md` for GitHub Copilot or `AGENTS.md` for Codex), and every bootstrap document they reference. Do not start product implementation yet.
 
-First create a lean Claude Code agent structure capable of carrying this project from product validation through architecture, implementation, semantic clustering, security/privacy, testing, hosting/DevOps, marketing/community, legal/platform-policy research and rollout. Avoid unnecessary agents and define clear ownership and handoffs.
+First create a lean agent structure capable of carrying this project from product validation through architecture, implementation, semantic clustering, security/privacy, testing, hosting/DevOps, marketing/community, legal/platform-policy research and rollout. Avoid unnecessary agents and define clear ownership and handoffs. Use the active tool's native agent/custom-instruction mechanism where available, while keeping the shared role contract in this repository.
 
 Then execute Phase 0 planning/research: challenge assumptions, identify the riskiest hypotheses, propose architecture options, define measurable MVP success criteria, create the initial ADRs, and turn Phase 1 into concrete technical spikes with acceptance tests. Keep plans/STATUS.md current.
 
