@@ -13,6 +13,35 @@ All entry points converge on the same workflow: read the bootstrap documents, es
 
 The package intentionally does not lock in a programming language, cloud vendor, mobile UI mechanism, database vendor, AI provider or vector store. Those decisions should be researched and documented before implementation.
 
+## Current execution state
+
+Phase 0 is in progress with a limited go for one isolated implementation slice. Start with:
+
+- `plans/PHASE_0_FOUNDATION.md` — challenged assumptions, scope, metrics, cost envelope and open approvals;
+- `agents/TEAM.md` — lean ownership and review contract;
+- `plans/ROADMAP.md` and `plans/STATUS.md` — executable order and current gate;
+- `docs/PHASE_1_THREAT_MODEL.md` — privacy/security constraints;
+- `docs/BYO_AI_THREAT_MODEL.md` — a proposed, provider-neutral boundary for any later AI work; and
+- `decisions/ADR-001-offline-resolution-spike.md` — the proposed boundary used by the owner-authorized first experiment;
+- `decisions/ADR-002-browser-observation-privacy.md` — the accepted user-invoked browser direction and still-open connected-use gate; and
+- `decisions/ADR-004-initial-topic-granularity.md` — the accepted time-bounded editorial story-cluster definition.
+
+The first implementation is a dependency-free, offline topic-resolution kernel under `spikes/topic-resolution/`. It uses synthetic fixtures and performs no network or persistence I/O. Run it with Node.js 24 or newer:
+
+```sh
+cd spikes/topic-resolution
+npm test
+npm run test:restricted
+npm run evaluate:pilot
+```
+
+The Phase 0 pilot contains 24 project-created synthetic pair labels across 20
+story clusters. Six pairs received an independent blinded review. The evaluator
+reproduces the expected conservative baseline (TP=4, FP=0, TN=16, FN=4); this
+validates the labeling/evaluation path, not semantic model quality.
+
+Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
+
 ## Product in one sentence
 A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.
 

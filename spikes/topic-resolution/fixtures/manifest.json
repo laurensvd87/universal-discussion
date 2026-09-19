@@ -1,0 +1,26 @@
+{
+  "manifestVersion": "fixture-provenance/1.0.0",
+  "reviewedAt": "2026-09-19T18:08:59.459Z",
+  "entries": [
+    {
+      "path": "fixtures/observations.js",
+      "purpose": "Deterministic resolver observations and fingerprints",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    },
+    {
+      "path": "evaluation/pilot-pairs.json",
+      "purpose": "Phase 0 story-cluster labels and deterministic baseline inputs",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    }
+  ]
+}

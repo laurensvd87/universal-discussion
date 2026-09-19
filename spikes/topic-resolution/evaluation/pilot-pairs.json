@@ -1,0 +1,603 @@
+{
+  "datasetVersion": "phase0-story-cluster-pilot/1.0.0",
+  "topicDefinitionVersion": "editorial-story-cluster/1.0.0",
+  "scope": {
+    "contentClass": "editorial-article",
+    "language": "en",
+    "topicDefinition": "One time-bounded atomic factual development; syndication stays together, material later developments stay separate."
+  },
+  "provenance": {
+    "kind": "project-created-synthetic",
+    "createdAt": "2026-09-19T18:00:00.000Z",
+    "containsCopiedText": false,
+    "containsPersonalData": false
+  },
+  "expectedBaseline": {
+    "truePositive": 4,
+    "falsePositive": 0,
+    "trueNegative": 16,
+    "falseNegative": 4
+  },
+  "sources": [
+    {
+      "id": "bridge-wire",
+      "clusterId": "cluster-bridge-opening",
+      "url": "https://wire.example.com/eastport-harbor-bridge-opening",
+      "title": "Eastport Opens Harbor Bridge",
+      "factSummary": "Eastport opened the Harbor Bridge to traffic on Monday after a five-year construction project.",
+      "publishedAt": "2026-06-01T08:00:00.000Z",
+      "contentFingerprint": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "fingerprintEvidence": {
+        "kind": "synthetic-fixture",
+        "fixtureId": "bridge-wire"
+      }
+    },
+    {
+      "id": "bridge-syndicated",
+      "clusterId": "cluster-bridge-opening",
+      "url": "https://daily.example.com/infrastructure/harbor-bridge-opens",
+      "title": "Eastport Opens Harbor Bridge",
+      "factSummary": "A syndicated copy reports Eastport opening the Harbor Bridge to traffic on Monday.",
+      "publishedAt": "2026-06-01T08:20:00.000Z",
+      "contentFingerprint": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "fingerprintEvidence": {
+        "kind": "synthetic-fixture",
+        "fixtureId": "bridge-syndicated"
+      }
+    },
+    {
+      "id": "solar-press",
+      "clusterId": "cluster-solar-operations",
+      "url": "https://institute.example.com/news/aster-observatory-operations",
+      "title": "Aster Observatory Begins Operations",
+      "factSummary": "The Aster Observatory began routine scientific operations after completing calibration.",
+      "publishedAt": "2026-06-02T09:00:00.000Z",
+      "contentFingerprint": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "fingerprintEvidence": {
+        "kind": "synthetic-fixture",
+        "fixtureId": "solar-press"
+      }
+    },
+    {
+      "id": "solar-wire",
+      "clusterId": "cluster-solar-operations",
+      "url": "https://sciencewire.example.com/aster-starts-operations",
+      "title": "Aster Observatory Begins Operations",
+      "factSummary": "A wire copy reports that the Aster Observatory completed calibration and entered routine operations.",
+      "publishedAt": "2026-06-02T09:35:00.000Z",
+      "contentFingerprint": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "fingerprintEvidence": {
+        "kind": "synthetic-fixture",
+        "fixtureId": "solar-wire"
+      }
+    },
+    {
+      "id": "battery-publisher",
+      "clusterId": "cluster-battery-pilot-start",
+      "url": "https://energy.example.com/battery-pilot?id=17&utm_source=wire#details",
+      "title": "Northport Starts Harbor Battery Pilot",
+      "factSummary": "Northport activated a six-month harbor battery pilot serving two municipal piers.",
+      "publishedAt": "2026-06-03T10:00:00.000Z"
+    },
+    {
+      "id": "battery-url-variant",
+      "clusterId": "cluster-battery-pilot-start",
+      "url": "https://energy.example.com/battery-pilot?fbclid=synthetic&id=17",
+      "title": "Northport Starts Harbor Battery Pilot",
+      "factSummary": "A second URL variant describes activation of the same six-month harbor battery pilot.",
+      "publishedAt": "2026-06-03T10:05:00.000Z"
+    },
+    {
+      "id": "archive-wire",
+      "clusterId": "cluster-maritime-archive-release",
+      "url": "https://culturewire.example.com/central-library-maritime-archive",
+      "title": "Central Library Releases Maritime Archive",
+      "factSummary": "Central Library released a digitized collection of nineteenth-century harbor records.",
+      "publishedAt": "2026-06-04T11:00:00.000Z",
+      "contentFingerprint": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "fingerprintEvidence": {
+        "kind": "synthetic-fixture",
+        "fixtureId": "archive-wire"
+      }
+    },
+    {
+      "id": "archive-copy",
+      "clusterId": "cluster-maritime-archive-release",
+      "url": "https://artsdaily.example.com/library-releases-maritime-records",
+      "title": "Central Library Releases Maritime Archive",
+      "factSummary": "A licensed synthetic syndication copy reports release of the same digitized harbor-record collection.",
+      "publishedAt": "2026-06-04T11:40:00.000Z",
+      "contentFingerprint": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "fingerprintEvidence": {
+        "kind": "synthetic-fixture",
+        "fixtureId": "archive-copy"
+      }
+    },
+    {
+      "id": "river-daily",
+      "clusterId": "cluster-river-cleanup-grant",
+      "url": "https://countynews.example.com/river-cleanup-grant",
+      "title": "County Funds River Cleanup",
+      "factSummary": "The county approved a grant for removing waste from the Alder River during the summer.",
+      "publishedAt": "2026-06-05T08:00:00.000Z"
+    },
+    {
+      "id": "river-radio",
+      "clusterId": "cluster-river-cleanup-grant",
+      "url": "https://radio.example.com/local/alder-river-funding-approved",
+      "title": "Summer Cleanup Funding Approved for Alder River",
+      "factSummary": "A local report describes the same county grant for summer waste removal from the Alder River.",
+      "publishedAt": "2026-06-05T12:00:00.000Z"
+    },
+    {
+      "id": "transit-journal",
+      "clusterId": "cluster-fare-freeze-vote",
+      "url": "https://transitjournal.example.com/metro-fare-freeze-vote",
+      "title": "Metro Board Approves Fare Freeze",
+      "factSummary": "The Metro Board voted to keep standard fares unchanged for the next budget year.",
+      "publishedAt": "2026-06-06T15:00:00.000Z"
+    },
+    {
+      "id": "transit-news",
+      "clusterId": "cluster-fare-freeze-vote",
+      "url": "https://citynews.example.com/transport/fares-held-next-year",
+      "title": "Transit Fares Will Stay Flat Next Year",
+      "factSummary": "A city report covers the same Metro Board vote to hold fares for the next budget year.",
+      "publishedAt": "2026-06-06T17:00:00.000Z"
+    },
+    {
+      "id": "hospital-gazette",
+      "clusterId": "cluster-hospital-east-wing-opening",
+      "url": "https://gazette.example.com/health/north-general-east-wing",
+      "title": "North General Opens East Wing",
+      "factSummary": "North General Hospital opened a new east wing containing sixty inpatient rooms.",
+      "publishedAt": "2026-06-07T07:30:00.000Z"
+    },
+    {
+      "id": "hospital-local",
+      "clusterId": "cluster-hospital-east-wing-opening",
+      "url": "https://localnews.example.com/north-general-adds-sixty-rooms",
+      "title": "New Hospital Wing Adds Sixty Rooms",
+      "factSummary": "A local report describes the opening of North General Hospital's sixty-room east wing.",
+      "publishedAt": "2026-06-07T09:00:00.000Z"
+    },
+    {
+      "id": "lunar-science",
+      "clusterId": "cluster-lunar-sensor-deployment",
+      "url": "https://science.example.com/lunalab-crater-sensor-deployed",
+      "title": "LunaLab Deploys Crater Sensor",
+      "factSummary": "LunaLab deployed its Polar-3 temperature sensor at the rim of Nansen crater.",
+      "publishedAt": "2026-06-08T13:00:00.000Z"
+    },
+    {
+      "id": "lunar-wire",
+      "clusterId": "cluster-lunar-sensor-deployment",
+      "url": "https://spacewire.example.com/polar-3-now-operating",
+      "title": "Polar-3 Sensor Now Operating at Nansen Crater",
+      "factSummary": "A space report covers the same deployment of LunaLab's Polar-3 sensor at Nansen crater.",
+      "publishedAt": "2026-06-08T15:30:00.000Z"
+    },
+    {
+      "id": "bridge-contract",
+      "clusterId": "cluster-bridge-maintenance-contract",
+      "url": "https://daily.example.com/infrastructure/harbor-bridge-maintenance",
+      "title": "Eastport Opens Harbor Bridge",
+      "factSummary": "Despite the reused headline, this article concerns Eastport awarding a maintenance contract for an older bridge.",
+      "publishedAt": "2026-06-02T10:00:00.000Z"
+    },
+    {
+      "id": "solar-budget",
+      "clusterId": "cluster-solar-budget-approval",
+      "url": "https://sciencewire.example.com/aster-budget-approved",
+      "title": "Aster Observatory Begins Operations",
+      "factSummary": "Despite the reused headline, this article covers approval of next year's Aster Observatory operating budget.",
+      "publishedAt": "2026-06-03T09:00:00.000Z"
+    },
+    {
+      "id": "battery-extension",
+      "clusterId": "cluster-battery-pilot-extension",
+      "url": "https://energy.example.com/battery-pilot-extension?id=17",
+      "title": "Northport Starts Harbor Battery Pilot",
+      "factSummary": "Despite the reused headline, Northport extended an already running battery pilot for another year.",
+      "publishedAt": "2026-06-20T10:00:00.000Z"
+    },
+    {
+      "id": "archive-hours",
+      "clusterId": "cluster-library-hours-change",
+      "url": "https://artsdaily.example.com/central-library-hours",
+      "title": "Central Library Releases Maritime Archive",
+      "factSummary": "Despite the reused headline, this report announces longer weekend opening hours at Central Library.",
+      "publishedAt": "2026-06-05T11:00:00.000Z"
+    },
+    {
+      "id": "river-enforcement",
+      "clusterId": "cluster-river-dumping-enforcement",
+      "url": "https://countynews.example.com/alder-river-enforcement",
+      "title": "County Funds River Cleanup",
+      "factSummary": "Despite the reused headline, the county announced fines for illegal dumping near the Alder River.",
+      "publishedAt": "2026-06-06T08:00:00.000Z"
+    },
+    {
+      "id": "transit-accessibility",
+      "clusterId": "cluster-metro-accessibility-plan",
+      "url": "https://citynews.example.com/transport/accessibility-plan",
+      "title": "Metro Board Approves Fare Freeze",
+      "factSummary": "Despite the reused headline, the Metro Board approved a station accessibility construction plan.",
+      "publishedAt": "2026-06-07T15:00:00.000Z"
+    },
+    {
+      "id": "hospital-staffing",
+      "clusterId": "cluster-hospital-staffing-agreement",
+      "url": "https://gazette.example.com/health/north-general-staffing",
+      "title": "North General Opens East Wing",
+      "factSummary": "Despite the reused headline, the hospital signed a new nursing staffing agreement.",
+      "publishedAt": "2026-06-08T07:30:00.000Z"
+    },
+    {
+      "id": "lunar-data",
+      "clusterId": "cluster-lunar-data-release",
+      "url": "https://science.example.com/lunalab-polar-3-data-release",
+      "title": "LunaLab Deploys Crater Sensor",
+      "factSummary": "Despite the reused headline, LunaLab released the sensor's first processed temperature dataset.",
+      "publishedAt": "2026-06-28T13:00:00.000Z"
+    },
+    {
+      "id": "bridge-closure",
+      "clusterId": "cluster-bridge-emergency-closure",
+      "url": "https://wire.example.com/eastport-harbor-bridge-closed",
+      "title": "New Harbor Bridge Closes After Sensor Alert",
+      "factSummary": "The newly opened Harbor Bridge was closed after a structural sensor issued an alert.",
+      "publishedAt": "2026-06-01T18:00:00.000Z"
+    },
+    {
+      "id": "solar-first-light",
+      "clusterId": "cluster-solar-first-light-result",
+      "url": "https://institute.example.com/news/aster-first-light-result",
+      "title": "Aster Observatory Publishes First-light Image",
+      "factSummary": "After operations began, the observatory published its first calibrated solar image and measurements.",
+      "publishedAt": "2026-06-03T09:00:00.000Z"
+    },
+    {
+      "id": "battery-pause",
+      "clusterId": "cluster-battery-pilot-paused",
+      "url": "https://energy.example.com/battery-pilot-paused?id=17",
+      "title": "Northport Pauses Harbor Battery Pilot",
+      "factSummary": "Northport paused the battery pilot after overheating was detected at one pier.",
+      "publishedAt": "2026-06-03T16:00:00.000Z"
+    },
+    {
+      "id": "archive-suspension",
+      "clusterId": "cluster-archive-access-suspended",
+      "url": "https://culturewire.example.com/maritime-archive-access-suspended",
+      "title": "Library Suspends Maritime Archive Access",
+      "factSummary": "Central Library suspended access after discovering that several scans contained incorrect rights metadata.",
+      "publishedAt": "2026-06-05T11:00:00.000Z"
+    }
+  ],
+  "pairs": [
+    {
+      "id": "pair-dup-bridge",
+      "caseType": "duplicate-syndication-positive",
+      "sourceAId": "bridge-wire",
+      "sourceBId": "bridge-syndicated",
+      "primaryDecision": {
+        "label": "same-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Both sources report the same bridge-opening development; their exact synthetic fingerprints match."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-dup-solar",
+      "caseType": "duplicate-syndication-positive",
+      "sourceAId": "solar-press",
+      "sourceBId": "solar-wire",
+      "primaryDecision": {
+        "label": "same-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Both sources report the observatory entering operations; their exact synthetic fingerprints match."
+      },
+      "secondaryReview": {
+        "label": "same-topic",
+        "reviewerId": "quality-independent",
+        "reviewMethod": "blinded-source-metadata",
+        "reviewedAt": "2026-09-19T18:08:59.459Z",
+        "rationale": "Both report the observatory beginning routine operations after calibration."
+      }
+    },
+    {
+      "id": "pair-dup-battery-url",
+      "caseType": "duplicate-syndication-positive",
+      "sourceAId": "battery-publisher",
+      "sourceBId": "battery-url-variant",
+      "primaryDecision": {
+        "label": "same-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "These are tracking and fragment variants of the same publisher article about starting the pilot."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-dup-archive",
+      "caseType": "duplicate-syndication-positive",
+      "sourceAId": "archive-wire",
+      "sourceBId": "archive-copy",
+      "primaryDecision": {
+        "label": "same-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Both sources report release of the same archive; their exact synthetic fingerprints match."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-dup-river-rewrite",
+      "caseType": "duplicate-syndication-positive",
+      "sourceAId": "river-daily",
+      "sourceBId": "river-radio",
+      "primaryDecision": {
+        "label": "same-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "The differently worded reports center on the same county cleanup-grant approval."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-dup-transit-rewrite",
+      "caseType": "duplicate-syndication-positive",
+      "sourceAId": "transit-journal",
+      "sourceBId": "transit-news",
+      "primaryDecision": {
+        "label": "same-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Both reports center on the same Metro Board vote to freeze fares."
+      },
+      "secondaryReview": {
+        "label": "same-topic",
+        "reviewerId": "quality-independent",
+        "reviewMethod": "blinded-source-metadata",
+        "reviewedAt": "2026-09-19T18:08:59.459Z",
+        "rationale": "Both describe the same board vote to keep fares unchanged for the next budget year."
+      }
+    },
+    {
+      "id": "pair-dup-hospital-rewrite",
+      "caseType": "duplicate-syndication-positive",
+      "sourceAId": "hospital-gazette",
+      "sourceBId": "hospital-local",
+      "primaryDecision": {
+        "label": "same-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Both reports concern the same opening of North General's sixty-room east wing."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-dup-lunar-rewrite",
+      "caseType": "duplicate-syndication-positive",
+      "sourceAId": "lunar-science",
+      "sourceBId": "lunar-wire",
+      "primaryDecision": {
+        "label": "same-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Both reports concern deployment of the same Polar-3 sensor at Nansen crater."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-hard-bridge-title",
+      "caseType": "same-entity-title-hard-negative",
+      "sourceAId": "bridge-wire",
+      "sourceBId": "bridge-contract",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "The identical title masks distinct developments: opening a bridge versus awarding maintenance work."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-hard-solar-title",
+      "caseType": "same-entity-title-hard-negative",
+      "sourceAId": "solar-press",
+      "sourceBId": "solar-budget",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Starting scientific operations and approving a future budget are different developments despite the title."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-hard-battery-title",
+      "caseType": "same-entity-title-hard-negative",
+      "sourceAId": "battery-publisher",
+      "sourceBId": "battery-extension",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Starting the pilot and later extending its duration require separate chronology and discussion."
+      },
+      "secondaryReview": {
+        "label": "different-topic",
+        "reviewerId": "quality-independent",
+        "reviewMethod": "blinded-source-metadata",
+        "reviewedAt": "2026-09-19T18:08:59.459Z",
+        "rationale": "Activating the initial pilot and later extending it are separate factual developments."
+      }
+    },
+    {
+      "id": "pair-hard-archive-title",
+      "caseType": "same-entity-title-hard-negative",
+      "sourceAId": "archive-wire",
+      "sourceBId": "archive-hours",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Archive release and library opening-hour changes are unrelated developments at the same institution."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-hard-river-title",
+      "caseType": "same-entity-title-hard-negative",
+      "sourceAId": "river-daily",
+      "sourceBId": "river-enforcement",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Cleanup-grant funding and a dumping-enforcement action are distinct county decisions."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-hard-transit-title",
+      "caseType": "same-entity-title-hard-negative",
+      "sourceAId": "transit-journal",
+      "sourceBId": "transit-accessibility",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "A fare decision and an accessibility construction plan are different board actions."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-hard-hospital-title",
+      "caseType": "same-entity-title-hard-negative",
+      "sourceAId": "hospital-gazette",
+      "sourceBId": "hospital-staffing",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Opening a physical wing and signing a staffing agreement are separate hospital developments."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-hard-lunar-title",
+      "caseType": "same-entity-title-hard-negative",
+      "sourceAId": "lunar-science",
+      "sourceBId": "lunar-data",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Sensor deployment and a later processed-data release are different factual developments."
+      },
+      "secondaryReview": {
+        "label": "different-topic",
+        "reviewerId": "quality-independent",
+        "reviewMethod": "blinded-source-metadata",
+        "reviewedAt": "2026-09-19T18:08:59.459Z",
+        "rationale": "Sensor deployment and the later release of its first processed dataset are distinct developments."
+      }
+    },
+    {
+      "id": "pair-update-bridge-closure",
+      "caseType": "update-continuation-boundary",
+      "sourceAId": "bridge-wire",
+      "sourceBId": "bridge-closure",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "The emergency closure is a material state change after opening, even though it occurred the same day."
+      },
+      "secondaryReview": {
+        "label": "different-topic",
+        "reviewerId": "quality-independent",
+        "reviewMethod": "blinded-source-metadata",
+        "reviewedAt": "2026-09-19T18:08:59.459Z",
+        "rationale": "Opening the bridge and later closing it after an alert are separate state changes."
+      }
+    },
+    {
+      "id": "pair-update-solar-first-light",
+      "caseType": "update-continuation-boundary",
+      "sourceAId": "solar-press",
+      "sourceBId": "solar-first-light",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Beginning operations and publishing the first measured result are separate atomic developments."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-update-battery-pause",
+      "caseType": "update-continuation-boundary",
+      "sourceAId": "battery-publisher",
+      "sourceBId": "battery-pause",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Starting the pilot and pausing it for an overheating incident are separate states and discussions."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-update-archive-suspension",
+      "caseType": "update-continuation-boundary",
+      "sourceAId": "archive-wire",
+      "sourceBId": "archive-suspension",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "Release and later suspension for rights metadata are distinct material developments."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-control-bridge-hospital",
+      "caseType": "unrelated-control",
+      "sourceAId": "bridge-wire",
+      "sourceBId": "hospital-gazette",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "A bridge opening and a hospital-wing opening are unrelated despite sharing the word opens."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-control-solar-river",
+      "caseType": "unrelated-control",
+      "sourceAId": "solar-press",
+      "sourceBId": "river-daily",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "An observatory beginning operations and a county cleanup grant are unrelated."
+      },
+      "secondaryReview": {
+        "label": "different-topic",
+        "reviewerId": "quality-independent",
+        "reviewMethod": "blinded-source-metadata",
+        "reviewedAt": "2026-09-19T18:08:59.459Z",
+        "rationale": "The observatory launch and the river-cleanup grant are unrelated developments."
+      }
+    },
+    {
+      "id": "pair-control-battery-lunar",
+      "caseType": "unrelated-control",
+      "sourceAId": "battery-publisher",
+      "sourceBId": "lunar-science",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "A municipal battery pilot and a lunar sensor deployment are unrelated."
+      },
+      "secondaryReview": null
+    },
+    {
+      "id": "pair-control-archive-transit",
+      "caseType": "unrelated-control",
+      "sourceAId": "archive-wire",
+      "sourceBId": "transit-journal",
+      "primaryDecision": {
+        "label": "different-topic",
+        "reviewerId": "semantic-primary",
+        "rationale": "A library archive release and a transit fare vote are unrelated."
+      },
+      "secondaryReview": null
+    }
+  ]
+}

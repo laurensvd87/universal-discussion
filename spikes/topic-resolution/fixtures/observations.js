@@ -1,0 +1,36 @@
+export const FINGERPRINTS = Object.freeze({
+  ANNOUNCEMENT: `sha256:${"a".repeat(64)}`,
+  DIFFERENT_STORY: `sha256:${"b".repeat(64)}`,
+  SAME_TITLE_OTHER_STORY: `sha256:${"c".repeat(64)}`,
+});
+
+export const FIXED_TIME = "2026-09-19T10:15:30.000Z";
+
+export const OBSERVATIONS = Object.freeze({
+  wireStory: Object.freeze({
+    url: "https://news.example.com/releases/widget-2",
+    title: "Acme announces Widget 2",
+    contentFingerprint: FINGERPRINTS.ANNOUNCEMENT,
+    fingerprintEvidence: Object.freeze({
+      kind: "synthetic-fixture",
+      fixtureId: "wire-story",
+    }),
+  }),
+  companyStory: Object.freeze({
+    url: "https://news.acme.example.com/widget-2?utm_source=press-list#details",
+    title: "Acme announces Widget 2",
+    contentFingerprint: FINGERPRINTS.ANNOUNCEMENT,
+    fingerprintEvidence: Object.freeze({
+      kind: "synthetic-fixture",
+      fixtureId: "company-story",
+    }),
+  }),
+  ambiguousTitleOne: Object.freeze({
+    url: "https://one.example.com/story/shared-title",
+    title: "A shared but ambiguous title",
+  }),
+  ambiguousTitleTwo: Object.freeze({
+    url: "https://two.example.com/story/shared-title",
+    title: "A shared but ambiguous title",
+  }),
+});
