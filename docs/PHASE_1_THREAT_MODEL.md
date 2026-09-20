@@ -278,6 +278,19 @@ Every control relevant to the increment must have an automated check or document
 - **A-RESOLVE-02:** Verify below-threshold and conflicting evidence returns no-match/separate-topic and does not mutate another topic.
 - **A-SECRET-01:** Run secret scanning and verify the spike requires no environment credential or paid service.
 
+Current technical evidence (2026-09-20): all eight Increment A1 checks pass on
+Node 24.19.0. The restricted suite enforces process-level capability denial;
+fixture provenance is checked from its manifest; the parser tests cover deep,
+cyclic, mixed-encoding, hostile-text, duplicate, and exact-boundary cases; the
+URL tests include 216 bounded query combinations plus a 768-case origin and
+idempotence matrix; and the self-testing package scanner reports zero findings.
+One independent read-only audit issued Trust and Quality ACCEPT dispositions
+for this technical evidence at code commit `d33f010`, and the Lead marked
+offline P1.1 complete. The provenance and outcome are recorded in
+`research/P1_1_GATE_REVIEW.md`, ADR-001, and `plans/STATUS.md`; they do not
+authorize a browser, network, real-data, provider, correction-execution, or
+semantic-quality claim.
+
 ### Increment A2 evaluator check
 
 - **A-EVAL-01:** Before the P1.2/P1.4 evaluation gate, report false-merge and false-split rates on held-out labeled positive, near-duplicate, adversarial, and unrelated fixtures. Freeze the threshold and minimum evidence/coverage rules before reading held-out results. This check does not block completion of the smaller deterministic P1.1 kernel.

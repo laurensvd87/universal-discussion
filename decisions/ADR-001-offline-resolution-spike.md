@@ -1,6 +1,6 @@
 # ADR-001: Begin with an offline topic-resolution kernel
 
-Status: Proposed; implementation experiment authorized, review gate open
+Status: Accepted for offline P1.1 only
 
 Date: 2026-09-19
 
@@ -34,7 +34,11 @@ The spike performs no network requests, server-side fetches, persistence, authen
 
 ## Review state
 
-The owner's instruction to start implementation authorized this isolated, reversible experiment. It did not waive the repository rule that an ADR is accepted only after required reviewer sign-off. Trust review supports the offline boundary in principle. Independent review identified correctness and plan issues; after correction, a final consistency/code re-review found no remaining concrete blocker. A fixture inventory now records synthetic provenance, and the full suite passes under a process guard that actively denies network, DNS, HTTP, subprocess, fetch, and WebSocket capabilities. A package-local high-confidence credential scan self-tests its detectors and reports zero findings. Focused hostile-input cases cover empty values, Unicode-confusable origins, HTML/instruction-like titles that cannot affect resolution, unsupported nested evidence, cyclic observations, and overlong evidence identifiers; they do not establish downstream rendering or prompt safety. Formal Trust acceptance, broader generative/property fuzz review, and final gate acceptance remain open, so this ADR and P1.1 remain proposed/in progress.
+The owner's instruction to start implementation authorized this isolated, reversible experiment. Independent review identified correctness and plan issues and verified their corrections. A fixture inventory records synthetic provenance, and the full suite passes under a process guard that actively denies network, DNS, HTTP, subprocess, fetch, and WebSocket capabilities. A package-local high-confidence credential scan self-tests its detectors and reports zero findings. Hostile-input and boundary tests cover every A-PARSE-01 category, while a deterministic 768-case URL matrix establishes repeatability, idempotence, and origin preservation for A-URL-02. That work exposed and fixed normalized-output byte-limit behavior; the auditable resolver marker is consequently `topic-resolution-spike/1.0.1`.
+
+One independent read-only reviewer applied both the Trust and Quality lenses on 2026-09-20 and issued ACCEPT dispositions for P1.1 code commit `d33f010`; this was one reviewer serving two review roles, not two independent people. The durable review record is `research/P1_1_GATE_REVIEW.md`. On Node 24.19.0 all eight Increment A1 checks passed, the restricted suite passed 70/70, the ordinary suite passed 69 with the guard-only test skipped, the scanner checked 21 files with zero findings, and the pilot evaluator retained TP=4, FP=0, TN=16, FN=4. The Lead records the offline P1.1 gate complete.
+
+Accepted residuals for this disposable offline scope are: the capability guard is process-level rather than an OS network namespace; the scanner is package-local and format-limited; synthetic fingerprint evidence is a fixture assertion rather than production attestation; hostname checks make no DNS query and are not production SSRF/rebinding protection; finite matrices cannot prove every runtime/Unicode behavior; and provenance acceptance covers only the current project-created synthetic fixtures. Any code-bearing change reopens review. A-EVAL-01, public/licensed corpus provenance, automatic semantic joins, correction execution, browser/service B controls, rendering/prompt safety, connected behavior, and real data remain outside this acceptance.
 
 ## Security/privacy/cost impact
 
@@ -42,6 +46,6 @@ External spend and data egress are zero. Test inputs are synthetic fixtures. Uns
 
 ## Validation / rollback
 
-Run `npm test`, `npm run test:restricted`, and `npm run check:secrets` in `spikes/topic-resolution/`. Acceptance tests cover URL variants without reordering retained query data, exact-fingerprint joins across synthetic sources, fail-separate behavior, title non-merging, provenance, public count separation, input bounds, hostile metadata, and invalid/local URL forms. The restricted suite combines the static capability audit with an active process guard; repeat under an OS-level network sandbox in CI when available. The local secret scanner covers only its documented high-confidence formats, so repository-host scanning remains a release control.
+Run `npm test`, `npm run test:restricted`, and `npm run check:secrets` in `spikes/topic-resolution/`. Acceptance tests cover URL variants without reordering retained query data, exact-fingerprint joins across synthetic sources, fail-separate behavior, title non-merging, provenance, public count separation, exact and multibyte limits, deeply nested hostile data, mixed encodings, and invalid/local URL forms. The restricted suite combines the static capability audit with an active process guard; repeat under an OS-level network sandbox in CI when available. The local secret scanner covers only its documented high-confidence formats, so repository-host scanning remains a release control.
 
 Rollback is deletion of the isolated spike; it has no migration or external state.

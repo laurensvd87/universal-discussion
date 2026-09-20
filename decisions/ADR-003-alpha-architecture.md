@@ -18,6 +18,8 @@ This ADR does not choose an application language. Shared browser/API contracts a
 
 This ADR does not select a host, managed platform, auth provider, ORM, web framework, embedding provider, or deployment topology.
 
+`research/ALPHA_COST_MODEL.md` supplies an initial bottom-up paper comparison for managed and self-hosted shapes. Its provisional sizes are not load evidence and do not satisfy the P1.9 architecture gate.
+
 ## Alternatives considered
 
 - Managed backend suite: fastest auth/database setup; risks policy coupling and opaque authorization defaults.

@@ -1,6 +1,6 @@
 # Development / Testing / Rollout Roadmap
 
-This roadmap was refined on 2026-09-19. Do not skip gates. `plans/PHASE_0_FOUNDATION.md` contains the assumptions, metrics, cost envelope, and current limited-go decision.
+This roadmap was last refined on 2026-09-20. Do not skip gates. `plans/PHASE_0_FOUNDATION.md` contains the assumptions, metrics, cost envelope, and current limited-go decision.
 
 ## Phase 0 — Product and feasibility
 
@@ -32,7 +32,7 @@ Status: **In progress.** The owner accepted ADR-002's user-invoked direction and
 
 Acceptance: record owner disposition for every remaining item. An undecided or rejected proposal stays a visible blocker; silence is not approval.
 
-Phase 0 gate: **limited go only** until P0.2 passes. P0.1 is complete and the isolated P1.1 fixture-only experiment remains authorized, but that does not accept ADR-001 or any connected architecture. Phase 0 completes only when the remaining decisions are recorded.
+Phase 0 gate: **limited go only** until P0.2 passes. P0.1 is complete and ADR-001/P1.1 are accepted strictly for the frozen offline fixture-only kernel, but that accepts no connected architecture or broader product behavior. Phase 0 completes only when the remaining decisions are recorded.
 
 Stop conditions: no coherent topic boundary can be labeled; no privacy-safe discovery experiment can be designed; the cost envelope cannot be bounded; or owner/reviewer decisions invalidate the proposed sequence.
 
@@ -47,6 +47,13 @@ Owner: Semantic Resolution, reviewed by Trust and Quality.
 Dependencies: ADR-001 scope; synthetic fixtures only.
 
 Deliverable: `spikes/topic-resolution/`.
+
+Status: **Complete at code commit `d33f010`.** One independent read-only audit
+issued both Trust and Quality ACCEPT dispositions for the offline
+synthetic-fixture scope, with all eight Increment A1 checks passing. The review
+provenance, accepted residuals, and explicit exclusions are recorded in
+`research/P1_1_GATE_REVIEW.md` and ADR-001; any code-bearing change reopens this
+review.
 
 Acceptance:
 
@@ -140,7 +147,7 @@ Gate: Trust review, negative authorization tests, and integration tests pass. Th
 
 Owner: Platform and Client, with Semantic, Trust, and Quality review.
 
-Dependencies: P1.3, P1.5, P1.7, and a recorded P1.4 gate branch.
+Dependencies: P1.3, P1.5, P1.7, a recorded P1.4 gate branch, and an accepted ADR-005 correction contract (or an explicitly narrower local slice with no correction claim).
 
 Deliverable: a fully local, fixture-driven path from page observation to extraction/fingerprint, topic resolution, discussion lookup, and separate human/agent activity display. Use automatic semantic joins only in the AUTO branch; otherwise use deterministic or explicitly curated mappings.
 

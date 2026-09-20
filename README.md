@@ -21,10 +21,12 @@ Phase 0 is in progress with a limited go for one isolated implementation slice. 
 - `agents/TEAM.md` — lean ownership and review contract;
 - `plans/ROADMAP.md` and `plans/STATUS.md` — executable order and current gate;
 - `docs/PHASE_1_THREAT_MODEL.md` — privacy/security constraints;
-- `docs/BYO_AI_THREAT_MODEL.md` — a proposed, provider-neutral boundary for any later AI work; and
-- `decisions/ADR-001-offline-resolution-spike.md` — the proposed boundary used by the owner-authorized first experiment;
-- `decisions/ADR-002-browser-observation-privacy.md` — the accepted user-invoked browser direction and still-open connected-use gate; and
-- `decisions/ADR-004-initial-topic-granularity.md` — the accepted time-bounded editorial story-cluster definition.
+- `docs/BYO_AI_THREAT_MODEL.md` — a proposed, provider-neutral boundary for any later AI work;
+- `decisions/ADR-001-offline-resolution-spike.md` — the accepted boundary for the completed offline P1.1 experiment;
+- `decisions/ADR-002-browser-observation-privacy.md` — the accepted user-invoked browser direction and still-open connected-use gate;
+- `decisions/ADR-004-initial-topic-granularity.md` — the accepted time-bounded editorial story-cluster definition;
+- `decisions/ADR-005-topic-discussion-correction-history.md` — the proposed append-only merge/split and Discussion-history semantics;
+- `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
 The first implementation is a dependency-free, offline topic-resolution kernel under `spikes/topic-resolution/`. It uses synthetic fixtures and performs no network or persistence I/O. Run it with Node.js 24 or newer:
 

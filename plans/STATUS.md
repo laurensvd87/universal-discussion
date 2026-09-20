@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Phase 0 foundation in progress; P0.1 complete and Phase 1.1 offline spike under review.
+Phase 0 foundation in progress; P0.1 and the offline P1.1 kernel complete.
 
 ## Current objective
 
-Close the remaining offline P1.1 threat evidence and P0.2 decisions—especially architecture, browser egress/retention, and merge/split semantics—before connected implementation.
+Close the remaining P0.2 decisions—especially architecture, browser egress/retention, and proposed merge/split semantics—before connected implementation, while planning the license-safe P1.2 corpus.
 
 ## Completed on 2026-09-19
 
@@ -29,15 +29,19 @@ Close the remaining offline P1.1 threat evidence and P0.2 decisions—especially
 ## Completed on 2026-09-20
 
 - Added focused hostile-input checks for empty values, Unicode-confusable origins, HTML/instruction-like titles that cannot affect resolution, unsupported nested evidence, cyclic observations, and overlong evidence identifiers. Downstream rendering and prompt safety remain separate controls.
-- Added a dependency-free package scanner for a versioned set of high-confidence credential formats. It self-tests every detector using in-memory synthetic samples, reports no matched values, and `npm run check:secrets` scanned 20 JavaScript, JSON, and Markdown files with zero findings; this is package evidence, not a replacement for repository/host secret scanning.
-- Latest verification passed all 66 tests under the restricted process guard; the ordinary suite passed 65 with only the guard self-test skipped. The pilot evaluator, JavaScript syntax, JSON parsing, diff, and whitespace checks also pass.
+- Added a dependency-free package scanner for a versioned set of high-confidence credential formats. It self-tests every detector using in-memory synthetic samples, reports no matched values, and `npm run check:secrets` scanned 21 JavaScript, JSON, and Markdown files with zero findings; this is package evidence, not a replacement for repository/host secret scanning.
+- Closed the two technical partials from the P1.1 gate audit: deep/mixed-representation parser boundaries now pass, and a deterministic 768-case URL matrix preserves repeatability, idempotence, and security origins. The matrix exposed an over-limit normalized-output edge, which is fixed and versioned as resolver 1.0.1.
+- Latest verification passed all 70 tests under the restricted process guard; the ordinary suite passed 69 with only the guard self-test skipped. The pilot evaluator, JavaScript syntax, JSON parsing, diff, and whitespace checks also pass. One independent read-only audit issued both Trust and Quality ACCEPT dispositions for code commit `d33f010` at 8 PASS / 0 PARTIAL / 0 FAIL, and the Lead marked that offline gate complete. Review provenance and residuals are in `research/P1_1_GATE_REVIEW.md`.
+- Proposed append-only Topic/Discussion correction semantics in ADR-005: corrections never copy or reauthor Contributions, every active Topic has one writable Discussion, and legacy Discussions can appear only as provenance-preserving read-only projections.
+- Added `research/ALPHA_COST_MODEL.md`, a current bottom-up managed/self-hosted paper comparison with explicit workload, currency, service-level, and operational omissions. It does not replace P1.9 load/restore evidence or authorize a purchase.
 
 ## Active decisions
 
-- `ADR-001-offline-resolution-spike.md`: **Proposed; experiment authorized**. The isolated code exists under the owner's instruction; its evidence is assembled, but formal Trust/gate acceptance and broader fuzz review remain open.
+- `ADR-001-offline-resolution-spike.md`: **Accepted for offline P1.1 only** at code commit `d33f010`. It authorizes no connected behavior, real data, or semantic-quality claim.
 - `ADR-002-browser-observation-privacy.md`: **Accepted direction; connected-use gate open**. It approves user-invoked `activeTab`, not data egress or real-user collection.
-- `ADR-003-alpha-architecture.md`: **Proposed**; blocks production-stack commitment.
+- `ADR-003-alpha-architecture.md`: **Proposed**; its paper cost comparison exists, but measured load, recovery, security, and operations evidence still block a production-stack commitment.
 - `ADR-004-initial-topic-granularity.md`: **Accepted** for the initial English editorial corpus.
+- `ADR-005-topic-discussion-correction-history.md`: **Proposed**; owner, Trust, and Quality review are required before correction implementation.
 
 ## Blockers
 
@@ -46,14 +50,15 @@ Close the remaining offline P1.1 threat evidence and P0.2 decisions—especially
 - The auth/object-authorization/data-lifecycle threat model and identity/provenance/moderation state decisions required by P1.6 have not been produced or approved.
 - The alpha architecture and host/auth/provider choices are not accepted.
 - BYO AI remains blocked on provider terms, credential handling, content disclosure, retention, and explicit publication design.
-- P1.1 still needs formal Trust acceptance and broader generative/property fuzz review before calling its gate complete. Static capability, fixture inventory, bounded query-idempotence, focused hostile-input coverage, independent re-review, package secret scanning, and process-level network/DNS/subprocess denial checks now pass.
+- P1.1 is complete only for its frozen offline code at `d33f010`; a code-bearing change reopens review. The acceptance does not authorize connected or real-data behavior, automatic semantic joins, or browser/service controls.
+- ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate
 
-**GO:** local fixture-only resolver/evaluator work, closure of P1.1 evidence, and planning the larger license-safe labeled set under ADR-004.
+**GO:** local fixture-only resolver/evaluator work and planning the larger license-safe labeled set under ADR-004.
 
 **STOP:** real browsing capture/egress, live URL fetches, hosted embeddings, auth/public writes, AI credentials/inference, deployment, spending, announcements, recruitment, and store submission.
 
 ## Next owner approval required
 
-Review ADR-003's modular-monolith direction, decide Topic/Discussion merge-split history semantics, and approve or revise the remaining bottom-up cost and browser-egress/retention assumptions. No connected implementation starts from the approvals recorded so far.
+Approve or revise ADR-003's modular-monolith direction and ADR-005's append-only merge/split history semantics, then decide the browser-egress/retention assumptions and acceptable operational cost shape. No connected implementation starts from the approvals recorded so far.

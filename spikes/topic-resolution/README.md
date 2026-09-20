@@ -35,6 +35,12 @@ only pattern names and locations, never matched values. It complements the
 no-dependency/no-environment-access checks; it is not a substitute for host
 repository secret scanning or incident response.
 
+The URL property suite covers a deterministic 768-case matrix across schemes,
+public host forms, default and non-default ports, encoded paths, query shapes,
+and fragments. It checks determinism, idempotence, and security-origin
+preservation. Boundary tests also require both input and normalized URLs to fit
+the 8,192-byte limit.
+
 ## Phase 0 labeling pilot
 
 The `evaluation/` directory contains the owner-approved time-bounded

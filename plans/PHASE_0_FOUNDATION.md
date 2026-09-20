@@ -116,11 +116,11 @@ These are external infrastructure/API cash-spend scenarios for planning, not ven
 | 1,000 MAU | EUR 25 | EUR 75 | EUR 150 | Small Postgres/API, bounded jobs, backups, monitoring. |
 | 10,000 MAU | EUR 100 | EUR 350 | EUR 750 | Measured database/worker scaling, abuse controls, and operational coverage. |
 
-Before accepting an architecture, replace these hypotheses with low/base/high line items for compute, database/vector storage, backups, egress, observability, auth/email, embedding/moderation inference, and recovery. Embedding API prices are unlikely to dominate at early scale when processing is cached; moderation, operations, and abuse may dominate. Every semantic benchmark must report quality, wall time, tokens/CPU, and projected cost at the three user levels. See `research/PHASE_0_EVIDENCE.md` for current reference prices and caveats.
+`research/ALPHA_COST_MODEL.md` now provides a bottom-up paper comparison for managed and single-node self-hosted shapes with provider backup slots, including compute, backups, IP, egress assumptions, auth email, spend controls, and explicit omissions. Before accepting an architecture, P1.9 must replace its provisional sizes with measured low/base/high line items and add any required independent observability, redundancy, storage growth, recovery, embedding/moderation inference, and operational ownership. Embedding API prices are unlikely to dominate at early scale when processing is cached; moderation, operations, and abuse may dominate. Every semantic benchmark must report quality, wall time, tokens/CPU, and projected cost at the three user levels. See `research/PHASE_0_EVIDENCE.md` for current reference prices and caveats.
 
 ## Decisions and unresolved questions
 
-Authorized constraints for the current offline experiment (ADR review/implementation gate remains separate):
+Accepted constraints for the completed offline P1.1 boundary (all broader product and architecture gates remain separate):
 
 - deterministic, auditable resolution precedes probabilistic matching;
 - exact fingerprint equality may join separate sources in fixtures;
@@ -141,8 +141,8 @@ Owner/product decisions before probabilistic auto-joins:
 
 1. **Resolved:** use the versioned time-bounded atomic-development rule in ADR-004 for the initial editorial corpus.
 2. **Resolved for labeling:** substantial new outcomes/state changes are separate; minor copy corrections and syndication remain together.
-3. **Open:** what reviewer workflow and audit behavior govern real merge/split corrections?
-4. **Open:** does a Topic always retain exactly one Discussion through merges/splits?
+3. **Proposed in ADR-005:** authorized append-only correction events govern real merge/split corrections; automatic resolver output can recommend but not execute them initially.
+4. **Proposed in ADR-005:** every active Topic has one writable primary Discussion, while corrected views may project read-only predecessor Discussions without copying Contributions.
 
 Security/provider decision required before BYO AI:
 
@@ -158,10 +158,12 @@ Security/provider decision required before BYO AI:
 
 `P0.1 Topic definition and corpus pilot` is **complete**. ADR-004 and `spikes/topic-resolution/evaluation/LABEL_SCHEMA.md` define the initial boundary. The project-created synthetic pilot contains 24 pair decisions across 20 clusters with exactly eight duplicate/syndication positives, eight same-entity/title hard negatives, four update/continuation boundaries, and four unrelated controls. An independent reviewer checked six blinded pairs (25%); both labels are retained and there were no disagreements. `npm run evaluate:pilot` validates the schema and reproduces TP=4, FP=0, TN=16, FN=4.
 
-`P0.2 Decision review` is **partially complete** and owned by the Lead. ADR-002's user-invoked direction and ADR-004's topic definition are accepted. ADR-003, topic/discussion merge-split semantics, exact browser egress/retention, and the remaining threat-model/cost assumptions are still open. Unaccepted items remain explicit blockers rather than inferred approval.
+`P1.1 Offline resolution kernel` is **complete at code commit `d33f010`**. One independent read-only audit issued Trust and Quality ACCEPT dispositions for all eight Increment A1 controls in the synthetic, offline-only boundary recorded in ADR-001 and `research/P1_1_GATE_REVIEW.md`. This result validates deterministic contracts and isolation, not semantic clustering or connected use.
+
+`P0.2 Decision review` is **partially complete** and owned by the Lead. ADR-002's user-invoked direction and ADR-004's topic definition are accepted. ADR-005 now makes topic/discussion merge-split semantics reviewable, and the alpha cost worksheet replaces top-down price guesses with explicit paper assumptions. ADR-003, ADR-005, exact browser egress/retention, measured architecture costs, and the remaining threat-model assumptions are still open. Unaccepted items remain explicit blockers rather than inferred approval.
 
 **GO:** the dependency-free offline topic-resolution kernel and creation of the labeled evaluation method.
 
 **STOP:** real browsing-data capture, networked extension behavior, server-side fetching, production API/auth, embeddings that send content to a provider, BYO credentials, public posting, paid infrastructure, deployment, announcements, and store submission until their specific ADR and review gate is accepted.
 
-Phase 0 is complete only when the remaining browser-data, architecture, merge/split, threat-model, and cost decisions are reviewed. Topic granularity and the small synthetic labeling pilot are complete and demonstrate that the full Phase 1 evaluation is runnable. The 200-pair labeled set and model benchmark remain Phase 1 deliverables.
+Phase 0 is complete only when the remaining browser-data, architecture, merge/split, threat-model, and measured-cost decisions are reviewed. Topic granularity and the small synthetic labeling pilot are complete and demonstrate that the full Phase 1 evaluation is runnable. The 200-pair labeled set and model benchmark remain Phase 1 deliverables.

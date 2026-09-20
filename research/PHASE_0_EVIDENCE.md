@@ -1,6 +1,6 @@
 # Phase 0 Evidence Snapshot
 
-Checked: 2026-09-19
+Checked: 2026-09-20
 
 This is a decision-oriented snapshot, not an exhaustive market, legal, or vendor review. Prices and platform rules must be rechecked before a purchase, deployment, or store submission. Legal observations are planning inputs, not legal advice.
 
@@ -52,6 +52,8 @@ Report precision, recall/coverage, calibration by content class, latency, memory
 - Hetzner's June 2026 price table lists small shared EU cloud instances from EUR 6.53/month including German VAT but excluding IPv4 for the CX23 class ([current adjustment table](https://docs.hetzner.com/de/general/infrastructure-and-availability/price-adjustment/)). Self-hosting can reduce direct spend but transfers patching, backups, availability, and incident response to the team.
 
 Implication: both are candidates whose advertised entry price is below the planning cap; neither source establishes total system fit once database, backups, storage, egress, monitoring, auth, operations, and taxes are included. Choose only after a bottom-up comparison and measured prototype; do not purchase or deploy from this note.
+
+The dated line-item comparison and workload arithmetic are in `research/ALPHA_COST_MODEL.md`. It keeps provider bills separate by currency and makes the non-equivalence of managed and single-node self-hosted service levels explicit.
 
 ## Evidence gaps before private alpha
 
