@@ -79,6 +79,14 @@ Acceptance: duplicate, syndicated, updated, related-but-distinct, unrelated, and
 
 Gate: provenance is accepted, leakage checks pass, and another role can reproduce the deterministic baseline.
 
+Status (2026-09-20): **In progress.** The 24-pair synthetic pilot evaluator
+now reports tested Wilson intervals, coverage/abstentions, evidence sufficiency,
+CLI runtime metadata, and local external-cost/provider-call accounting. It
+explicitly fails the held-out and 60-decision/20-cluster evidence requirements.
+The 200-pair/50-cluster corpus, cluster-separated tuning/held-out split,
+story-cluster bootstrap, expanded case coverage, provenance review, and
+independent reproducibility gate remain open.
+
 ### P1.3 Extraction and fingerprint spike
 
 Owner: Platform and Client, with Semantic input and Trust/Quality review.

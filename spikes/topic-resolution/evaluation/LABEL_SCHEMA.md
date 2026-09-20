@@ -52,3 +52,33 @@ The 24 pairs must span at least eight gold clusters, and at least five pairs (20
 The dry-run baseline predicts `same-topic` only for an exact normalized URL or equal synthetic SHA-256 fingerprint. Conflicting fingerprints fail separate. Titles and summaries are never baseline merge signals.
 
 The expected pilot matrix is TP=4, FP=0, TN=16, FN=4: precision 1.0, recall 0.5, specificity 1.0, and accuracy 5/6. This checks the evaluator and demonstrates the conservative deterministic floor; it is not semantic-quality evidence and cannot satisfy the Phase 1 automatic-join gate.
+
+## Evaluation report contract
+
+The pure evaluator returns a versioned, deterministic report. It includes the
+confusion matrix; precision, recall, specificity, and accuracy; two-sided 95%
+Wilson score intervals for those binomial proportions; binary-classification
+coverage and abstentions; automatic-join evidence counts; and offline resource
+accounting. A metric and its interval are `null` when their denominator is zero
+rather than treating absence of evidence as a perfect result.
+
+The automatic-join evidence count is the number of pairs predicted
+`same-topic`. Gold clusters touched by those decisions are deduplicated, so
+multiple decisions within one story do not masquerade as independent story
+evidence. The report compares these counts with the predeclared P1.4 minimum of
+60 join decisions across 20 held-out clusters and records why this pilot is
+insufficient. It does not turn those thresholds into a quality claim.
+
+The command-line runner adds a separate `execution` object with monotonic
+in-process evaluation time, time per pair, Node version, platform, and
+architecture. File reading and JSON parsing are excluded. Runtime values are
+environment-dependent observations, not deterministic snapshots or a
+performance guarantee. `resourceAccounting` records zero provider calls and
+zero external cash cost for this local evaluator; developer time and machine
+cost are not estimated.
+
+This pilot has full binary coverage and no abstentions because the exact-signal
+baseline always returns one of the two labels. It is not a tuning/held-out
+split, and no story-cluster bootstrap is reported. Those require the larger
+P1.2 corpus and a predeclared cluster-separated split/resampling contract;
+naive pair resampling would understate within-story dependence.

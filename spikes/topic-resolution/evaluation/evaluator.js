@@ -1,6 +1,13 @@
 import { normalizePublicHttpUrl } from "../src/index.js";
 
 export const PILOT_BASELINE_VERSION = "exact-signals/1.0.0";
+export const PILOT_REPORT_VERSION = "pilot-evaluation-report/1.1.0";
+
+const AUTOMATIC_JOIN_GATE = Object.freeze({
+  minimumDecisions: 60,
+  minimumGoldClusters: 20,
+});
+const WILSON_95_Z = 1.959963984540054;
 
 const CASE_COUNTS = Object.freeze({
   "duplicate-syndication-positive": 8,
@@ -200,6 +207,37 @@ function metric(numerator, denominator) {
   return denominator === 0 ? null : numerator / denominator;
 }
 
+export function wilsonScoreInterval(successes, total) {
+  if (
+    !Number.isSafeInteger(successes) ||
+    !Number.isSafeInteger(total) ||
+    successes < 0 ||
+    total < 0 ||
+    successes > total
+  ) {
+    throw new TypeError("Wilson interval counts must be safe integers with 0 <= successes <= total");
+  }
+  if (total === 0) {
+    return null;
+  }
+
+  const proportion = successes / total;
+  const zSquared = WILSON_95_Z ** 2;
+  const denominator = 1 + zSquared / total;
+  const center = (proportion + zSquared / (2 * total)) / denominator;
+  const margin =
+    (WILSON_95_Z / denominator) *
+    Math.sqrt((proportion * (1 - proportion)) / total + zSquared / (4 * total ** 2));
+
+  return {
+    confidenceLevel: 0.95,
+    lower: Math.max(0, center - margin),
+    successes,
+    total,
+    upper: Math.min(1, center + margin),
+  };
+}
+
 function sameMatrix(actual, expected) {
   return ["truePositive", "falsePositive", "trueNegative", "falseNegative"].every(
     (field) => actual[field] === expected[field],
@@ -283,6 +321,7 @@ export function evaluatePilot(dataset) {
     falseNegative: 0,
   };
   const decisions = [];
+  const automaticJoinGoldClusterIds = new Set();
 
   for (const pair of dataset.pairs) {
     const label = `pair ${pair?.id ?? "<unknown>"}`;
@@ -343,6 +382,10 @@ export function evaluatePilot(dataset) {
     if (!goldSame && predictedSame) confusionMatrix.falsePositive += 1;
     if (!goldSame && !predictedSame) confusionMatrix.trueNegative += 1;
     if (goldSame && !predictedSame) confusionMatrix.falseNegative += 1;
+    if (predictedSame) {
+      automaticJoinGoldClusterIds.add(sourceA.clusterId);
+      automaticJoinGoldClusterIds.add(sourceB.clusterId);
+    }
     decisions.push({
       pairId: pair.id,
       caseType: pair.caseType,
@@ -385,8 +428,24 @@ export function evaluatePilot(dataset) {
   }
 
   const { truePositive, falsePositive, trueNegative, falseNegative } = confusionMatrix;
+  const automaticJoinDecisions = truePositive + falsePositive;
+  const automaticJoinEvidenceReasons = [
+    "pilot is not a cluster-separated held-out evaluation",
+  ];
+  if (automaticJoinDecisions < AUTOMATIC_JOIN_GATE.minimumDecisions) {
+    automaticJoinEvidenceReasons.push(
+      `automatic-join decisions ${automaticJoinDecisions} < ${AUTOMATIC_JOIN_GATE.minimumDecisions}`,
+    );
+  }
+  if (automaticJoinGoldClusterIds.size < AUTOMATIC_JOIN_GATE.minimumGoldClusters) {
+    automaticJoinEvidenceReasons.push(
+      `gold clusters touched ${automaticJoinGoldClusterIds.size} < ${AUTOMATIC_JOIN_GATE.minimumGoldClusters}`,
+    );
+  }
+
   return {
     baselineVersion: PILOT_BASELINE_VERSION,
+    reportVersion: PILOT_REPORT_VERSION,
     datasetVersion: dataset.datasetVersion,
     topicDefinitionVersion: dataset.topicDefinitionVersion,
     sample: {
@@ -404,6 +463,34 @@ export function evaluatePilot(dataset) {
       recall: metric(truePositive, truePositive + falseNegative),
       specificity: metric(trueNegative, trueNegative + falsePositive),
       accuracy: metric(truePositive + trueNegative, dataset.pairs.length),
+      confidenceIntervals95: {
+        precision: wilsonScoreInterval(truePositive, truePositive + falsePositive),
+        recall: wilsonScoreInterval(truePositive, truePositive + falseNegative),
+        specificity: wilsonScoreInterval(trueNegative, trueNegative + falsePositive),
+        accuracy: wilsonScoreInterval(truePositive + trueNegative, dataset.pairs.length),
+      },
+    },
+    classification: {
+      abstentions: 0,
+      coverage: 1,
+      evaluatedPairs: dataset.pairs.length,
+    },
+    automaticJoinEvidence: {
+      decisions: automaticJoinDecisions,
+      goldClustersTouched: automaticJoinGoldClusterIds.size,
+      heldOut: false,
+      minimumDecisions: AUTOMATIC_JOIN_GATE.minimumDecisions,
+      minimumGoldClusters: AUTOMATIC_JOIN_GATE.minimumGoldClusters,
+      sufficientForGate: automaticJoinEvidenceReasons.length === 0,
+      reasons: automaticJoinEvidenceReasons,
+    },
+    resourceAccounting: {
+      externalCashCost: {
+        amount: 0,
+        currency: "USD",
+      },
+      providerCalls: 0,
+      scope: "offline-local-evaluator",
     },
     decisions,
   };

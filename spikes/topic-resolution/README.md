@@ -60,6 +60,19 @@ negatives are deliberate rewritten reports without exact URL/fingerprint
 evidence. This demonstrates evaluator plumbing and the conservative baseline,
 not semantic quality or readiness for automatic joins.
 
+The versioned report also includes two-sided 95% Wilson intervals, binary
+coverage/abstentions, automatic-join evidence counts, and offline cost/provider
+accounting. The CLI adds environment-dependent in-process timing and runtime
+metadata separately from the deterministic evaluator result. On this pilot,
+the precision interval's lower bound is about 0.51 despite point precision of
+1.0, and only four predicted joins touch four gold clusters. The report marks
+the evidence insufficient because it is not held out and is below the
+predeclared 60-decision/20-cluster minimum.
+
+Story-cluster bootstrap sensitivity is deliberately not fabricated for this
+pilot: it has no cluster-separated tuning/held-out split. That analysis, the
+200-pair/50-cluster corpus, and its provenance/review gate remain P1.2 work.
+
 ## Contract
 
 ```js

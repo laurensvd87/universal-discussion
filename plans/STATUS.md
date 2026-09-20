@@ -2,11 +2,14 @@
 
 ## Current phase
 
-Phase 0 foundation in progress; P0.1 and the offline P1.1 kernel complete.
+Phase 0 foundation in progress; P0.1 and the frozen offline P1.1 kernel
+complete, with P1.2 evaluator work started.
 
 ## Current objective
 
-Close the remaining P0.2 decisions—especially architecture, browser egress/retention, and proposed merge/split semantics—before connected implementation, while planning the license-safe P1.2 corpus.
+Close the remaining P0.2 decisions—especially architecture, browser
+egress/retention, and proposed merge/split semantics—before connected
+implementation, while building the license-safe P1.2 corpus and evaluator.
 
 ## Completed on 2026-09-19
 
@@ -31,9 +34,20 @@ Close the remaining P0.2 decisions—especially architecture, browser egress/ret
 - Added focused hostile-input checks for empty values, Unicode-confusable origins, HTML/instruction-like titles that cannot affect resolution, unsupported nested evidence, cyclic observations, and overlong evidence identifiers. Downstream rendering and prompt safety remain separate controls.
 - Added a dependency-free package scanner for a versioned set of high-confidence credential formats. It self-tests every detector using in-memory synthetic samples, reports no matched values, and `npm run check:secrets` scanned 21 JavaScript, JSON, and Markdown files with zero findings; this is package evidence, not a replacement for repository/host secret scanning.
 - Closed the two technical partials from the P1.1 gate audit: deep/mixed-representation parser boundaries now pass, and a deterministic 768-case URL matrix preserves repeatability, idempotence, and security origins. The matrix exposed an over-limit normalized-output edge, which is fixed and versioned as resolver 1.0.1.
-- Latest verification passed all 70 tests under the restricted process guard; the ordinary suite passed 69 with only the guard self-test skipped. The pilot evaluator, JavaScript syntax, JSON parsing, diff, and whitespace checks also pass. One independent read-only audit issued both Trust and Quality ACCEPT dispositions for code commit `d33f010` at 8 PASS / 0 PARTIAL / 0 FAIL, and the Lead marked that offline gate complete. Review provenance and residuals are in `research/P1_1_GATE_REVIEW.md`.
+- The frozen P1.1 gate verification passed all 70 tests under the restricted process guard; the ordinary suite passed 69 with only the guard self-test skipped. One independent read-only audit issued both Trust and Quality ACCEPT dispositions for code commit `d33f010` at 8 PASS / 0 PARTIAL / 0 FAIL, and the Lead marked that offline gate complete. Review provenance and residuals are in `research/P1_1_GATE_REVIEW.md`.
 - Proposed append-only Topic/Discussion correction semantics in ADR-005: corrections never copy or reauthor Contributions, every active Topic has one writable Discussion, and legacy Discussions can appear only as provenance-preserving read-only projections.
 - Added `research/ALPHA_COST_MODEL.md`, a current bottom-up managed/self-hosted paper comparison with explicit workload, currency, service-level, and operational omissions. It does not replace P1.9 load/restore evidence or authorize a purchase.
+- Began P1.2 evaluator hardening without changing the exact-signal baseline:
+  the deterministic report now includes tested two-sided 95% Wilson intervals,
+  coverage/abstentions, automatic-join evidence sufficiency, and zero external
+  cash cost/provider calls. The CLI separately records scoped runtime metadata.
+  The report explicitly rejects gate sufficiency because this pilot is not held
+  out and has only 4 predicted joins across 4 gold clusters; the larger corpus,
+  cluster split, and bootstrap remain open.
+- Current verification passes all 73 tests under the restricted process guard;
+  the ordinary suite passes 72 with only the guard self-test skipped. The pilot
+  evaluator runs successfully, and the local secret scanner still finds zero
+  matches across 22 package files after all six detector self-tests pass.
 
 ## Active decisions
 
@@ -51,6 +65,11 @@ Close the remaining P0.2 decisions—especially architecture, browser egress/ret
 - The alpha architecture and host/auth/provider choices are not accepted.
 - BYO AI remains blocked on provider terms, credential handling, content disclosure, retention, and explicit publication design.
 - P1.1 is complete only for its frozen offline code at `d33f010`; a code-bearing change reopens review. The acceptance does not authorize connected or real-data behavior, automatic semantic joins, or browser/service controls.
+- P1.2 remains incomplete: the pilot is not a cluster-separated held-out set,
+  its precision Wilson lower bound is about 0.51, and it has 4 automatic-join
+  decisions across 4 clusters versus the predeclared 60/20 minimum. The
+  200-pair/50-cluster corpus, story-cluster bootstrap, expanded cases,
+  provenance review, and independent reproducibility review are still needed.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate

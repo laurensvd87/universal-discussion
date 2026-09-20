@@ -41,7 +41,11 @@ npm run evaluate:pilot
 The Phase 0 pilot contains 24 project-created synthetic pair labels across 20
 story clusters. Six pairs received an independent blinded review. The evaluator
 reproduces the expected conservative baseline (TP=4, FP=0, TN=16, FN=4); this
-validates the labeling/evaluation path, not semantic model quality.
+validates the labeling/evaluation path, not semantic model quality. Its
+versioned report now exposes Wilson intervals, coverage, abstentions, runtime,
+offline cost, and why the non-held-out 4-join/4-cluster sample cannot satisfy
+the automatic-join evidence gate. The larger P1.2 corpus and cluster-separated
+bootstrap remain open.
 
 Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
 
