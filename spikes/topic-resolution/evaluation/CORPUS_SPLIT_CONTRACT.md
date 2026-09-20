@@ -95,7 +95,11 @@ assignments, candidate version, threshold, minimum coverage, and bootstrap
 policy before the held-out evaluation is opened. Candidate retrieval/indexing
 for the final run must use held-out data only; tuning data must not become a
 candidate source. The schema and resolved-view implementation are now tested;
-the actual corpus and pre-result policy receipt remain open.
+`EVALUATION_POLICY_CONTRACT.md` also makes the future receipt schema executable,
+including exact corpus/projection/manifest/artifact bindings, fixed-point
+threshold and abstention semantics, normative gates, bootstrap settings, and
+offline scope. The actual corpus, externally committed pre-result receipt, and
+held-out run remain open.
 
 For the required sensitivity analysis, resample the held-out dependency blocks
 with replacement. If there are `B` held-out blocks, draw `B` blocks per

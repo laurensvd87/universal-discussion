@@ -97,6 +97,12 @@ resolved-label projection compatible with dependency-block splitting. No
 future corpus data is checked in, and the validator always remains
 gate-ineligible on its own.
 
+`evaluation/EVALUATION_POLICY_CONTRACT.md` adds the next pre-result boundary.
+It strictly binds a future corpus, resolved projection, split manifest, and
+offline candidate artifact to fixed-point join/abstention rules, the normative
+quality gate, and a seeded block-bootstrap policy. Generated tests evaluate the
+contract only; no receipt or held-out result has been created.
+
 ## Contract
 
 ```js

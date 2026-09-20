@@ -59,6 +59,11 @@ disagreement adjudication, provenance inventory, and resolved-label split
 projection. This is tooling only: no larger corpus or held-out result has been
 created.
 
+The pre-result policy schema is also executable and tested. It can bind a
+future corpus/split/system artifact to immutable threshold, abstention, gate,
+bootstrap, and offline-scope rules, but no externally frozen receipt or result
+exists yet.
+
 Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
 
 ## Product in one sentence

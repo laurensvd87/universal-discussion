@@ -9,160 +9,15 @@ import {
   validateLabeledCorpus,
 } from "../evaluation/corpus-contract.js";
 import {
-  SPLIT_CONTRACT_VERSION,
   SplitContractError,
   validateLabeledCorpusDependencyBlockSplit,
 } from "../evaluation/split-contract.js";
-
-const PRIMARY_REVIEWED_AT = "2026-09-20T10:00:00.000Z";
-const SECONDARY_REVIEWED_AT = "2026-09-20T11:00:00.000Z";
-const ADJUDICATED_AT = "2026-09-20T12:00:00.000Z";
-const NEGATIVE_CASE_TYPES = [
-  "adversarial-title",
-  "related-distinct",
-  "unrelated-control",
-  "update-continuation-boundary",
-];
-
-function sourceId(clusterIndex, suffix) {
-  return `source-${String(clusterIndex).padStart(3, "0")}-${suffix}`;
-}
-
-function decision(label, reviewerId, reviewedAt) {
-  return {
-    label,
-    rationale: `Generated ${label} contract-test decision.`,
-    reviewedAt,
-    reviewerId,
-  };
-}
-
-function buildCorpus({ clusterCount = 50, pairCount = 200, reviewedPairs = 40 } = {}) {
-  const sources = [];
-  for (let clusterIndex = 0; clusterIndex < clusterCount; clusterIndex += 1) {
-    for (const suffix of ["a", "b"]) {
-      const id = sourceId(clusterIndex, suffix);
-      sources.push({
-        clusterId: `cluster-${String(clusterIndex).padStart(3, "0")}`,
-        factSummary: `Synthetic development ${clusterIndex}, variant ${suffix}.`,
-        id,
-        provenance: {
-          containsCopiedArticleText: false,
-          containsPersonalData: false,
-          kind: "project-created-synthetic",
-          origin: null,
-          repositoryUseApproved: true,
-          rightsBasis: "project-created",
-        },
-        publishedAt: "2026-09-20T09:00:00.000Z",
-        title: `Synthetic story ${clusterIndex} ${suffix}`,
-        url: `https://publisher-${String(clusterIndex).padStart(3, "0")}.example.com/story-${suffix}`,
-      });
-    }
-  }
-
-  const pairSpecs = [];
-  for (let clusterIndex = 0; clusterIndex < clusterCount && pairSpecs.length < pairCount; clusterIndex += 1) {
-    pairSpecs.push({
-      caseType: clusterIndex % 2 === 0 ? "duplicate-positive" : "syndication-positive",
-      label: "same-topic",
-      sourceAId: sourceId(clusterIndex, "a"),
-      sourceBId: sourceId(clusterIndex, "b"),
-    });
-  }
-  const boundary = Math.ceil(clusterCount / 2);
-  const groups = [
-    [0, boundary],
-    [boundary, clusterCount],
-  ];
-  outer: for (const [start, end] of groups) {
-    for (let left = start; left < end; left += 1) {
-      for (let right = left + 1; right < end; right += 1) {
-        if (pairSpecs.length >= pairCount) break outer;
-        const negativeIndex = pairSpecs.length - Math.min(clusterCount, pairCount);
-        const endpoints = [sourceId(left, "a"), sourceId(right, "a")].sort();
-        pairSpecs.push({
-          caseType: NEGATIVE_CASE_TYPES[negativeIndex % NEGATIVE_CASE_TYPES.length],
-          label: "different-topic",
-          sourceAId: endpoints[0],
-          sourceBId: endpoints[1],
-        });
-      }
-    }
-  }
-  if (pairSpecs.length !== pairCount) {
-    throw new Error("Generated corpus parameters do not provide enough unique pairs");
-  }
-
-  const pairs = pairSpecs.map((spec, index) => ({
-    adjudication: null,
-    caseType: spec.caseType,
-    id: `pair-${String(index).padStart(4, "0")}`,
-    primaryDecision: decision(spec.label, "reviewer-primary", PRIMARY_REVIEWED_AT),
-    secondaryReview:
-      index < reviewedPairs
-        ? {
-            ...decision(spec.label, "reviewer-secondary", SECONDARY_REVIEWED_AT),
-            reviewMethod: "blinded-source-metadata",
-          }
-        : null,
-    sourceAId: spec.sourceAId,
-    sourceBId: spec.sourceBId,
-  }));
-
-  return {
-    corpusContractVersion: LABELED_CORPUS_CONTRACT_VERSION,
-    createdAt: "2026-09-20T08:00:00.000Z",
-    datasetVersion: "generated-corpus-contract-test/1.0.0",
-    pairs,
-    provenanceReview: {
-      reviewedAt: null,
-      reviewerId: null,
-      status: "pending",
-    },
-    scope: {
-      contentClass: "editorial-article",
-      language: "en",
-      topicDefinition: "One time-bounded independently reportable atomic factual development.",
-    },
-    sources,
-    topicDefinitionVersion: "editorial-story-cluster/1.0.0",
-  };
-}
-
-function buildSplitManifest(evaluationDataset) {
-  const clusterIds = [...new Set(evaluationDataset.sources.map((source) => source.clusterId))];
-  const boundary = Math.ceil(clusterIds.length / 2);
-  return {
-    assignmentAlgorithm: "explicit-predeclared/1.0.0",
-    assignmentSeed: null,
-    blocks: [
-      {
-        clusterIds: clusterIds.slice(0, boundary),
-        id: "block-heldout",
-        partitionId: "partition-heldout",
-      },
-      {
-        clusterIds: clusterIds.slice(boundary),
-        id: "block-tuning",
-        partitionId: "partition-tuning",
-      },
-    ],
-    contractVersion: SPLIT_CONTRACT_VERSION,
-    datasetDigest: canonicalJsonSha256(evaluationDataset),
-    datasetDigestAlgorithm: "canonical-json-sha256/1.0.0",
-    datasetVersion: evaluationDataset.datasetVersion,
-    demonstrationOnly: false,
-    frozenAt: "2026-09-20T13:00:00.000Z",
-    manifestVersion: "generated-split-contract-test/1.0.0",
-    partitions: [
-      { id: "partition-heldout", role: "heldout" },
-      { id: "partition-tuning", role: "tuning" },
-    ],
-    purpose: "frozen-evaluation",
-    topicDefinitionVersion: evaluationDataset.topicDefinitionVersion,
-  };
-}
+import {
+  ADJUDICATED_AT,
+  buildCorpus,
+  buildSplitManifest,
+  decision,
+} from "../support/generated-corpus.js";
 
 function hasReason(report, prefix) {
   return report.readiness.reasons.some((reason) => reason.startsWith(prefix));
@@ -179,11 +34,11 @@ test("minimum future corpus is structurally ready but remains gate-ineligible", 
   assert.equal(report.evaluationDatasetVersion, evaluationDataset.projectionVersion);
   assert.deepEqual(report.sample, {
     caseCounts: {
-      "adversarial-title": 38,
+      "adversarial-title": 37,
       "duplicate-positive": 25,
       "related-distinct": 38,
       "syndication-positive": 25,
-      "unrelated-control": 37,
+      "unrelated-control": 38,
       "update-continuation-boundary": 37,
     },
     eligibleClusters: 50,

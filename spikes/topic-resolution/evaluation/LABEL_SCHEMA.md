@@ -98,3 +98,5 @@ The larger set has a separate strict collection boundary in
 50-cluster, six-case, and 20% review minimums, preserves disagreements and
 adjudication, and emits a resolved-label projection for the split validator.
 It contains no corpus data and does not turn the pilot into P1.2 evidence.
+The separate `EVALUATION_POLICY_CONTRACT.md` defines what a future externally
+frozen candidate receipt must bind before held-out results are opened.

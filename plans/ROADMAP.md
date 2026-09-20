@@ -93,10 +93,14 @@ The future-corpus schema is also executable: generated boundary tests cover the
 200-pair/50-cluster/six-case/20%-review minimums, unresolved disagreement and
 independent adjudication, strict provenance inventory, bounded inputs, and a
 resolved-label split projection. It contains no collected corpus.
+The pre-result policy schema now binds future corpus/projection/split and system
+artifact digests to fixed-point join/abstention behavior, normative AUTO gate
+semantics, bootstrap settings, and offline scope. Generated tests make no
+receipt or result claim.
 The 200-pair/50-cluster corpus, cluster-separated tuning/held-out split,
-pre-result evaluation-policy freeze, held-out block-bootstrap sensitivity
-report, actual expanded case coverage, provenance review, and independent
-reproducibility gate remain open.
+externally committed pre-result policy receipt, held-out block-bootstrap
+sensitivity report, actual expanded case coverage, provenance review, and
+independent reproducibility gate remain open.
 
 ### P1.3 Extraction and fingerprint spike
 

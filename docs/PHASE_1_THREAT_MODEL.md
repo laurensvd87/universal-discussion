@@ -305,6 +305,12 @@ to the strict split wrapper. It contains generated test data only; the actual
 corpus, external provenance acceptance, pre-result policy freeze, and held-out
 evaluation remain open.
 
+The pre-result policy contract is now executable as generated test plumbing. It
+pins fixed-point join/abstention behavior, normative gate semantics, bootstrap
+settings, offline-only scope, and exact corpus/split/artifact digests. Its
+report always denies held-out and gate evidence; an external commit/receipt
+must still prove the policy predates result access.
+
 ### Increment B checks
 
 - **B-MANIFEST-01:** Inspect the built manifest/package and fail on unapproved permissions or origins, including browsing history, cookies, web-request interception, private-browsing support, broad all-site access, or remote code.

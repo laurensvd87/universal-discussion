@@ -91,8 +91,9 @@ report retains both digests:
 - `evaluationDatasetDigest` binds the exact resolved inputs used for split and
   evaluation.
 
-A future pre-result policy receipt must bind both the corpus and split-manifest
-evidence, plus candidate version, thresholds, coverage rules, bootstrap policy,
-and freeze time. Until that contract exists and an actual corpus passes Trust
-and independent reproducibility review, structural readiness is not P1.2
-completion and neither split role is held-out evidence.
+`EVALUATION_POLICY_CONTRACT.md` now defines and tests the future pre-result
+receipt that binds the corpus, split manifest, system artifact, threshold, gate
+semantics, bootstrap policy, and freeze declaration. No actual receipt exists.
+Until one is externally frozen before result access and an actual corpus passes
+Trust and independent reproducibility review, structural readiness is not P1.2
+completion and neither current pilot partition is held-out evidence.

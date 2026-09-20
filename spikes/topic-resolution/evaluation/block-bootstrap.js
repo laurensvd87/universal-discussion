@@ -20,6 +20,13 @@ const MIN_REPLICATES = 1_000;
 const MIN_VALID_REPLICATES_FOR_INTERVAL = 1_000;
 const MAX_REPLICATES = 100_000;
 
+export const BLOCK_BOOTSTRAP_LIMITS = Object.freeze({
+  maximumDraws: MAX_DRAWS,
+  maximumReplicates: MAX_REPLICATES,
+  minimumReplicates: MIN_REPLICATES,
+  minimumValidReplicatesForInterval: MIN_VALID_REPLICATES_FOR_INTERVAL,
+});
+
 const METRICS = Object.freeze({
   accuracy: ({ falseNegative, falsePositive, trueNegative, truePositive }) => [
     truePositive + trueNegative,

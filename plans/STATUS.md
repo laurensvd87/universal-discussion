@@ -66,10 +66,20 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   review found and verified fixes for full-corpus digest binding, truthful
   adjudicated-label naming, canonical reviewer identity, and bounded preflight
   diagnostics; its final disposition was PASS with no remaining blocker.
-- Current verification passes all 97 tests under the restricted process guard;
-  the ordinary suite passes 96 with only the guard self-test skipped. The pilot
-  evaluator runs successfully, and the local secret scanner still finds zero
-  matches across 33 package files after all six detector self-tests pass.
+- Added the strict pre-result evaluation-policy contract without creating a
+  receipt or evaluating predictions. It binds corpus/projection/split and
+  candidate-artifact digests; freezes integer join/abstention, normative gate,
+  true-positive cluster-evidence, seeded bootstrap, and offline-only scope
+  semantics; checks held-out feasibility separately from quality; and always
+  denies held-out/gate evidence pending external chronology and review. An
+  independent read-only review reproduced all 11 focused policy/bootstrap
+  tests in both normal and restricted modes and reported PASS with no
+  commit-blocking findings.
+- Current verification passes all 103 tests under the restricted process
+  guard; the ordinary suite passes 102 with only the guard self-test skipped.
+  The pilot evaluator runs successfully, and the local secret scanner still
+  finds zero matches across 37 package files after all six detector self-tests
+  pass.
 
 ## Active decisions
 
@@ -93,8 +103,9 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   200-pair/50-cluster corpus, held-out block-bootstrap sensitivity report,
   actual expanded cases, pre-result tuning/held-out policy freeze, provenance
   review, and independent reproducibility review are still needed. The strict
-  schema and retrospective dependency-block dry run validate tooling only and
-  cannot close any of these evidence gaps.
+  schema, policy contract, and retrospective dependency-block dry run validate
+  tooling only and cannot close any of these evidence gaps. No external policy
+  receipt has been frozen.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate
