@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { fail } from "./errors.js";
 import { normalizePublicHttpUrl } from "./url.js";
 
-export const RESOLVER_VERSION = "topic-resolution-spike/1.0.0";
+export const RESOLVER_VERSION = "topic-resolution-spike/1.0.1";
 
 export const RESOLUTION_METHOD = Object.freeze({
   EXACT_CONTENT_FINGERPRINT: "exact-content-fingerprint",

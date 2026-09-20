@@ -278,5 +278,13 @@ export function normalizePublicHttpUrl(input) {
   url.pathname = uppercasePercentEscapes(url.pathname);
   url.search = removeApprovedTrackingParameters(url.search);
 
-  return url.href;
+  const normalized = url.href;
+  if (Buffer.byteLength(normalized, "utf8") > MAX_URL_BYTES) {
+    fail(
+      "INPUT_TOO_LARGE",
+      `Normalized URL must be at most ${MAX_URL_BYTES} UTF-8 bytes`,
+    );
+  }
+
+  return normalized;
 }
