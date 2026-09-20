@@ -103,6 +103,12 @@ offline candidate artifact to fixed-point join/abstention rules, the normative
 quality gate, and a seeded block-bootstrap policy. Generated tests evaluate the
 contract only; no receipt or held-out result has been created.
 
+`evaluation/PREDICTION_CONTRACT.md` defines the unevaluated candidate-output
+boundary. It requires one sorted retrieval/score record for every declared
+held-out pair and transitively binds those records to the policy, split,
+dataset, and candidate artifact. It rejects labels and result-like fields and
+never thresholds scores or computes metrics. There is no real bundle or CLI.
+
 ## Contract
 
 ```js

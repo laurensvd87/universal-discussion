@@ -64,6 +64,11 @@ future corpus/split/system artifact to immutable threshold, abstention, gate,
 bootstrap, and offline-scope rules, but no externally frozen receipt or result
 exists yet.
 
+The next unevaluated-output boundary is executable too: a future candidate
+bundle must cover every declared held-out pair exactly once and bind its raw
+retrieval/score records to that policy and artifact. No bundle is checked in,
+and this validator never applies the threshold or computes quality.
+
 Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
 
 ## Product in one sentence

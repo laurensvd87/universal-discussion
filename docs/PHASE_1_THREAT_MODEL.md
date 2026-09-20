@@ -311,6 +311,13 @@ settings, offline-only scope, and exact corpus/split/artifact digests. Its
 report always denies held-out and gate evidence; an external commit/receipt
 must still prove the policy predates result access.
 
+The separate prediction-bundle contract accepts only complete, sorted records
+for the declared held-out pair inventory, with retrieval status and an integer
+score or explicit missing candidate. It rejects gold/result fields, binds the
+bundle to the policy and artifact, and computes no decisions or metrics. This
+schema does not prove that a future candidate process was isolated from labels;
+that remains required run evidence.
+
 ### Increment B checks
 
 - **B-MANIFEST-01:** Inspect the built manifest/package and fail on unapproved permissions or origins, including browsing history, cookies, web-request interception, private-browsing support, broad all-site access, or remote code.

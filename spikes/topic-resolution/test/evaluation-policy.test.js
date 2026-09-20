@@ -3,110 +3,16 @@ import test from "node:test";
 
 import {
   BLOCK_BOOTSTRAP_LIMITS,
-  BLOCK_BOOTSTRAP_VERSION,
 } from "../evaluation/block-bootstrap.js";
+import { canonicalJsonSha256 } from "../evaluation/canonical-json.js";
 import {
-  CANONICAL_JSON_DIGEST_ALGORITHM,
-  canonicalJsonSha256,
-} from "../evaluation/canonical-json.js";
-import {
-  createResolvedEvaluationDataset,
-  validateLabeledCorpus,
-} from "../evaluation/corpus-contract.js";
-import {
-  ARTIFACT_DIGEST_ALGORITHM,
-  DECISION_POLICY_VERSION,
   EVALUATION_POLICY_CONTRACT_VERSION,
   EvaluationPolicyError,
-  NORMATIVE_AUTOMATIC_JOIN_GATE,
-  SCOPE_POLICY_VERSION,
   validateEvaluationPolicy,
 } from "../evaluation/evaluation-policy.js";
-import { buildCorpus, buildSplitManifest } from "../support/generated-corpus.js";
+import { buildEvaluationScenario } from "../support/generated-evaluation.js";
 
-function acceptDeclaredProvenance(dataset) {
-  dataset.provenanceReview = {
-    reviewedAt: "2026-09-20T12:30:00.000Z",
-    reviewerId: "reviewer-provenance",
-    status: "accepted",
-  };
-}
-
-function buildInputs({ feasibleHeldout = true, provenanceAccepted = true } = {}) {
-  const dataset = feasibleHeldout
-    ? buildCorpus({
-        pairCount: 300,
-        positivePairCount: 150,
-        reviewedPairs: 60,
-        sourcesPerCluster: 4,
-      })
-    : buildCorpus();
-  if (provenanceAccepted) acceptDeclaredProvenance(dataset);
-  const corpusReport = validateLabeledCorpus(dataset);
-  const evaluationDataset = createResolvedEvaluationDataset(dataset);
-  const manifest = buildSplitManifest(evaluationDataset);
-  const policy = {
-    bindings: {
-      corpus: {
-        contractVersion: corpusReport.contractVersion,
-        datasetVersion: corpusReport.datasetVersion,
-        digest: corpusReport.corpusDigest,
-        digestAlgorithm: corpusReport.corpusDigestAlgorithm,
-      },
-      evaluationDataset: {
-        digest: corpusReport.evaluationDatasetDigest,
-        digestAlgorithm: corpusReport.evaluationDatasetDigestAlgorithm,
-        projectionVersion: corpusReport.evaluationDatasetVersion,
-      },
-      splitManifest: {
-        contractVersion: manifest.contractVersion,
-        digest: canonicalJsonSha256(manifest),
-        digestAlgorithm: CANONICAL_JSON_DIGEST_ALGORITHM,
-        heldoutPartitionId: "partition-heldout",
-        manifestVersion: manifest.manifestVersion,
-        tuningPartitionId: "partition-tuning",
-      },
-    },
-    bootstrapPolicy: {
-      methodVersion: BLOCK_BOOTSTRAP_VERSION,
-      replicates: 10_000,
-      seed: "heldout-bootstrap-v1",
-    },
-    contractVersion: EVALUATION_POLICY_CONTRACT_VERSION,
-    decisionPolicy: {
-      automaticJoinThresholdMicros: 920_000,
-      belowThreshold: "abstain",
-      invalidScore: "error",
-      missingCandidate: "abstain",
-      scoreScale: 1_000_000,
-      thresholdComparator: "greater-than-or-equal",
-      thresholdSelectionPartitionId: "partition-tuning",
-      version: DECISION_POLICY_VERSION,
-    },
-    frozenAt: "2026-09-20T14:00:00.000Z",
-    gatePolicy: { ...NORMATIVE_AUTOMATIC_JOIN_GATE },
-    policyVersion: "generated-heldout-policy-test/1.0.0",
-    purpose: "freeze-before-heldout-evaluation",
-    scope: {
-      candidateIndex: "heldout-partition-only",
-      contentClass: "editorial-article",
-      evaluationPartitionRole: "heldout",
-      executionMode: "offline-local",
-      language: "en",
-      networkAllowed: false,
-      providerCallsAllowed: false,
-      topicDefinitionVersion: dataset.topicDefinitionVersion,
-      version: SCOPE_POLICY_VERSION,
-    },
-    systemUnderTest: {
-      artifactDigest: `sha256:${"b".repeat(64)}`,
-      artifactDigestAlgorithm: ARTIFACT_DIGEST_ALGORITHM,
-      candidateVersion: "local-candidate/1.0.0",
-      resolverVersion: "candidate-resolver/1.0.0",
-    },
-  };
-  return { dataset, evaluationDataset, manifest, policy };
-}
+const buildInputs = buildEvaluationScenario;
 
 function policyError(code) {
   return (error) => error instanceof EvaluationPolicyError && error.code === code;

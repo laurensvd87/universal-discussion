@@ -75,10 +75,17 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   independent read-only review reproduced all 11 focused policy/bootstrap
   tests in both normal and restricted modes and reported PASS with no
   commit-blocking findings.
-- Current verification passes all 103 tests under the restricted process
-  guard; the ordinary suite passes 102 with only the guard self-test skipped.
+- Added a strict unevaluated prediction-bundle contract without adding a real
+  bundle or CLI. It requires complete sorted coverage of the declared held-out
+  pair inventory, distinguishes missing retrieval from an integer verification
+  score, transitively binds policy/dataset/split/artifact digests, rejects
+  gold/result fields, and never thresholds or evaluates scores. An independent
+  read-only review reproduced all 12 focused policy/prediction tests in normal
+  and restricted modes and reported PASS with no commit-blocking finding.
+- Current verification passes all 109 tests under the restricted process
+  guard; the ordinary suite passes 108 with only the guard self-test skipped.
   The pilot evaluator runs successfully, and the local secret scanner still
-  finds zero matches across 37 package files after all six detector self-tests
+  finds zero matches across 41 package files after all six detector self-tests
   pass.
 
 ## Active decisions
@@ -101,11 +108,12 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   its precision Wilson lower bound is about 0.51, and it has 4 automatic-join
   decisions across 4 clusters versus the predeclared 60/20 minimum. The
   200-pair/50-cluster corpus, held-out block-bootstrap sensitivity report,
-  actual expanded cases, pre-result tuning/held-out policy freeze, provenance
-  review, and independent reproducibility review are still needed. The strict
-  schema, policy contract, and retrospective dependency-block dry run validate
-  tooling only and cannot close any of these evidence gaps. No external policy
-  receipt has been frozen.
+  actual expanded cases, pre-result tuning/held-out policy freeze, isolated
+  candidate bundle, provenance review, and independent reproducibility review
+  are still needed. The strict schema, policy/prediction contracts, and
+  retrospective dependency-block dry run validate tooling only and cannot
+  close any of these evidence gaps. No external policy receipt has been frozen
+  and no prediction bundle exists.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate

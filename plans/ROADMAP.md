@@ -97,10 +97,14 @@ The pre-result policy schema now binds future corpus/projection/split and system
 artifact digests to fixed-point join/abstention behavior, normative AUTO gate
 semantics, bootstrap settings, and offline scope. Generated tests make no
 receipt or result claim.
+The unevaluated prediction-bundle schema now requires exactly one sorted raw
+retrieval/score record for every declared held-out pair and transitively binds
+the bundle to that policy and artifact. The repository contains no candidate
+output, and the contract performs no thresholding or quality evaluation.
 The 200-pair/50-cluster corpus, cluster-separated tuning/held-out split,
 externally committed pre-result policy receipt, held-out block-bootstrap
-sensitivity report, actual expanded case coverage, provenance review, and
-independent reproducibility gate remain open.
+sensitivity report, isolated candidate run and bundle, actual expanded case
+coverage, provenance review, and independent reproducibility gate remain open.
 
 ### P1.3 Extraction and fingerprint spike
 

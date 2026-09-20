@@ -113,3 +113,7 @@ policy digest and retain evidence that:
 Until those external conditions and the actual P1.2 corpus exist, this contract
 does not make either current pilot partition held out and does not authorize an
 automatic semantic-resolution claim.
+
+`PREDICTION_CONTRACT.md` defines the next boundary: a complete unevaluated
+retrieval/score bundle bound to this policy. That validator does not apply the
+threshold or compare scores with gold labels.
