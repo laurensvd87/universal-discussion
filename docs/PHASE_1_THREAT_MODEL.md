@@ -295,6 +295,11 @@ semantic-quality claim.
 
 - **A-EVAL-01:** Before the P1.2/P1.4 evaluation gate, report false-merge and false-split rates on held-out labeled positive, near-duplicate, adversarial, and unrelated fixtures. Freeze the threshold and minimum evidence/coverage rules before reading held-out results. This check does not block completion of the smaller deterministic P1.1 kernel.
 
+The dependency-block validator under `spikes/topic-resolution/evaluation/`
+tests corpus binding and rejects split leakage, but its current manifest is a
+retrospective structural dry run. It does not satisfy A-EVAL-01 and cannot be
+used to describe either pilot partition as held out.
+
 ### Increment B checks
 
 - **B-MANIFEST-01:** Inspect the built manifest/package and fail on unapproved permissions or origins, including browsing history, cookies, web-request interception, private-browsing support, broad all-site access, or remote code.

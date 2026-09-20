@@ -36,6 +36,7 @@ npm test
 npm run test:restricted
 npm run check:secrets
 npm run evaluate:pilot
+npm run validate:split
 ```
 
 The Phase 0 pilot contains 24 project-created synthetic pair labels across 20
@@ -46,6 +47,11 @@ versioned report now exposes Wilson intervals, coverage, abstentions, runtime,
 offline cost, and why the non-held-out 4-join/4-cluster sample cannot satisfy
 the automatic-join evidence gate. The larger P1.2 corpus and cluster-separated
 bootstrap remain open.
+
+The structural split dry run groups cross-cluster negatives into four bounded
+dependency blocks and rejects corpus changes or partition leakage. Its two
+partitions are explicitly not held out; the command validates future evaluator
+plumbing only.
 
 Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
 

@@ -82,3 +82,8 @@ baseline always returns one of the two labels. It is not a tuning/held-out
 split, and no story-cluster bootstrap is reported. Those require the larger
 P1.2 corpus and a predeclared cluster-separated split/resampling contract;
 naive pair resampling would understate within-story dependence.
+
+`CORPUS_SPLIT_CONTRACT.md` and `pilot-split-dry-run.json` now make that
+structural contract executable. The dry run groups the pilot into four
+dependency blocks and tests corpus binding and leakage rejection, but both
+partitions are deliberately role `dry-run`; neither is held out.

@@ -44,10 +44,15 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   The report explicitly rejects gate sufficiency because this pilot is not held
   out and has only 4 predicted joins across 4 gold clusters; the larger corpus,
   cluster split, and bootstrap remain open.
-- Current verification passes all 73 tests under the restricted process guard;
-  the ordinary suite passes 72 with only the guard self-test skipped. The pilot
+- Added a canonical-digest-bound dependency-block split contract and executable
+  dry run. It validates complete/exclusive cluster assignment, keeps every
+  negative pair in one block, rejects cross-partition exact URL/fingerprint
+  signals, and reports four connected pilot blocks. Both partitions and the
+  output are explicitly marked as non-held-out, gate-ineligible evidence.
+- Current verification passes all 85 tests under the restricted process guard;
+  the ordinary suite passes 84 with only the guard self-test skipped. The pilot
   evaluator runs successfully, and the local secret scanner still finds zero
-  matches across 22 package files after all six detector self-tests pass.
+  matches across 28 package files after all six detector self-tests pass.
 
 ## Active decisions
 
@@ -69,7 +74,9 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   its precision Wilson lower bound is about 0.51, and it has 4 automatic-join
   decisions across 4 clusters versus the predeclared 60/20 minimum. The
   200-pair/50-cluster corpus, story-cluster bootstrap, expanded cases,
-  provenance review, and independent reproducibility review are still needed.
+  pre-result tuning/held-out freeze, provenance review, and independent
+  reproducibility review are still needed. The retrospective dependency-block
+  dry run validates structure only and cannot close any of these gaps.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate

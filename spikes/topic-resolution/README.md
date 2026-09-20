@@ -55,6 +55,12 @@ Run the schema validation and deterministic exact-signal baseline with:
 npm run evaluate:pilot
 ```
 
+Validate the dependency-block split structure separately with:
+
+```sh
+npm run validate:split
+```
+
 The expected dry-run matrix is TP=4, FP=0, TN=16, FN=4. The four false
 negatives are deliberate rewritten reports without exact URL/fingerprint
 evidence. This demonstrates evaluator plumbing and the conservative baseline,
@@ -72,6 +78,11 @@ predeclared 60-decision/20-cluster minimum.
 Story-cluster bootstrap sensitivity is deliberately not fabricated for this
 pilot: it has no cluster-separated tuning/held-out split. That analysis, the
 200-pair/50-cluster corpus, and its provenance/review gate remain P1.2 work.
+The versioned dry-run split manifest binds the exact pilot and proves that all
+pairs stay within four disjoint dependency blocks, but both balanced partitions
+are marked `dry-run` and the report is always ineligible as quality evidence.
+See `evaluation/CORPUS_SPLIT_CONTRACT.md` for the leakage and future freeze
+rules.
 
 ## Contract
 

@@ -63,7 +63,11 @@ test("fixture inventory records synthetic provenance and minimum-data review", a
   assert.equal(new Date(manifest.reviewedAt).toISOString(), manifest.reviewedAt);
   assert.deepEqual(
     manifest.entries.map((entry) => entry.path).sort(),
-    ["evaluation/pilot-pairs.json", "fixtures/observations.js"],
+    [
+      "evaluation/pilot-pairs.json",
+      "evaluation/pilot-split-dry-run.json",
+      "fixtures/observations.js",
+    ],
   );
 
   for (const entry of manifest.entries) {

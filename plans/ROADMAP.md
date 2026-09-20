@@ -83,6 +83,9 @@ Status (2026-09-20): **In progress.** The 24-pair synthetic pilot evaluator
 now reports tested Wilson intervals, coverage/abstentions, evidence sufficiency,
 CLI runtime metadata, and local external-cost/provider-call accounting. It
 explicitly fails the held-out and 60-decision/20-cluster evidence requirements.
+An executable dry-run split contract now binds the corpus, keeps every negative
+pair inside a predeclared dependency block, and rejects cross-partition exact
+signals; both pilot partitions remain explicitly non-held-out.
 The 200-pair/50-cluster corpus, cluster-separated tuning/held-out split,
 story-cluster bootstrap, expanded case coverage, provenance review, and
 independent reproducibility gate remain open.

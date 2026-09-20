@@ -1,0 +1,69 @@
+{
+  "contractVersion": "story-dependency-block-split/1.0.0",
+  "manifestVersion": "phase0-pilot-split-dry-run/1.0.0",
+  "datasetVersion": "phase0-story-cluster-pilot/1.0.0",
+  "topicDefinitionVersion": "editorial-story-cluster/1.0.0",
+  "datasetDigestAlgorithm": "canonical-json-sha256/1.0.0",
+  "datasetDigest": "sha256:6f39795b32159f23461f3f6473e128b9c0acd3ecdfd8ecf617c6c0f3e4b6fa66",
+  "assignmentAlgorithm": "explicit-predeclared/1.0.0",
+  "assignmentSeed": null,
+  "frozenAt": "2026-09-20T07:47:30.196Z",
+  "purpose": "structural-validation-only",
+  "demonstrationOnly": true,
+  "partitions": [
+    {
+      "id": "dry-run-a",
+      "role": "dry-run"
+    },
+    {
+      "id": "dry-run-b",
+      "role": "dry-run"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "block-archive-transit",
+      "partitionId": "dry-run-a",
+      "clusterIds": [
+        "cluster-archive-access-suspended",
+        "cluster-fare-freeze-vote",
+        "cluster-library-hours-change",
+        "cluster-maritime-archive-release",
+        "cluster-metro-accessibility-plan"
+      ]
+    },
+    {
+      "id": "block-battery-lunar",
+      "partitionId": "dry-run-b",
+      "clusterIds": [
+        "cluster-battery-pilot-extension",
+        "cluster-battery-pilot-paused",
+        "cluster-battery-pilot-start",
+        "cluster-lunar-data-release",
+        "cluster-lunar-sensor-deployment"
+      ]
+    },
+    {
+      "id": "block-bridge-hospital",
+      "partitionId": "dry-run-a",
+      "clusterIds": [
+        "cluster-bridge-emergency-closure",
+        "cluster-bridge-maintenance-contract",
+        "cluster-bridge-opening",
+        "cluster-hospital-east-wing-opening",
+        "cluster-hospital-staffing-agreement"
+      ]
+    },
+    {
+      "id": "block-solar-river",
+      "partitionId": "dry-run-b",
+      "clusterIds": [
+        "cluster-river-cleanup-grant",
+        "cluster-river-dumping-enforcement",
+        "cluster-solar-budget-approval",
+        "cluster-solar-first-light-result",
+        "cluster-solar-operations"
+      ]
+    }
+  ]
+}
