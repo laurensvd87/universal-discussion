@@ -101,6 +101,10 @@ The unevaluated prediction-bundle schema now requires exactly one sorted raw
 retrieval/score record for every declared held-out pair and transitively binds
 the bundle to that policy and artifact. The repository contains no candidate
 output, and the contract performs no thresholding or quality evaluation.
+The generated-only result evaluator now tests the frozen decision, six metric,
+Wilson, coverage, per-case/per-block reconciliation, review-queue, and
+block-bootstrap path. It rejects non-synthetic Sources and cannot issue a gate
+branch or held-out claim.
 The 200-pair/50-cluster corpus, cluster-separated tuning/held-out split,
 externally committed pre-result policy receipt, held-out block-bootstrap
 sensitivity report, isolated candidate run and bundle, actual expanded case

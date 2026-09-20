@@ -83,10 +83,9 @@ unapproved local artifacts. This contract does not establish that isolation.
 
 ## Required next boundary
 
-A later result evaluator may consume a validated bundle only after external
-freeze chronology, Lead threshold/scope approval, Trust provenance acceptance,
-and artifact verification are recorded. That evaluator must apply the fixed
-integer decision rule, compute per-block confusion contributions, Wilson
-metrics, abstentions, and the block-bootstrap sensitivity report, then retain a
-separate systematic false-merge review. This contract intentionally does none
-of those steps and cannot select AUTO, ASSISTED, or NO-AUTO.
+`RESULT_EVALUATOR_CONTRACT.md` now exercises those calculations on generated
+synthetic fixtures only. A real result evaluator may consume a validated bundle
+only after external freeze chronology, Lead threshold/scope approval, Trust
+provenance acceptance, and artifact verification are recorded. It must retain a
+separate systematic false-merge review. This prediction contract intentionally
+does none of those steps and cannot select AUTO, ASSISTED, or NO-AUTO.

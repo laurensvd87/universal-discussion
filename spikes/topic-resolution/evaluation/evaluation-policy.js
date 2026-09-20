@@ -16,13 +16,15 @@ import {
   SPLIT_CONTRACT_VERSION,
   validateDependencyBlockSplit,
 } from "./split-contract.js";
+import { WILSON_METHOD_VERSION } from "./statistics.js";
+
+export { WILSON_METHOD_VERSION } from "./statistics.js";
 
 export const EVALUATION_POLICY_CONTRACT_VERSION =
   "pre-result-evaluation-policy/1.0.0";
 export const DECISION_POLICY_VERSION = "fixed-point-join-abstain/1.0.0";
 export const GATE_POLICY_VERSION = "automatic-join-gate/1.0.0";
 export const METRIC_POLICY_VERSION = "heldout-join-metrics/1.0.0";
-export const WILSON_METHOD_VERSION = "wilson-score-two-sided/1.0.0";
 export const BRANCH_POLICY_VERSION = "auto-assisted-no-auto/1.0.0";
 export const SCOPE_POLICY_VERSION = "offline-english-editorial/1.0.0";
 export const ARTIFACT_DIGEST_ALGORITHM = "sha256/1.0.0";

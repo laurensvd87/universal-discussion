@@ -69,6 +69,11 @@ bundle must cover every declared held-out pair exactly once and bind its raw
 retrieval/score records to that policy and artifact. No bundle is checked in,
 and this validator never applies the threshold or computes quality.
 
+A generated-fixture-only result evaluator now exercises the following step:
+frozen integer decisions, confusion/Wilson metrics, abstention coverage,
+per-case error queues, and dependency-block bootstrap sensitivity. It rejects
+non-synthetic Sources and always withholds held-out evidence and a gate branch.
+
 Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
 
 ## Product in one sentence

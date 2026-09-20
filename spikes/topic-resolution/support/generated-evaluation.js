@@ -31,6 +31,7 @@ export function acceptDeclaredProvenance(dataset) {
 export function buildEvaluationScenario({
   feasibleHeldout = true,
   provenanceAccepted = true,
+  sourceMode = "project-created-synthetic",
 } = {}) {
   const dataset = feasibleHeldout
     ? buildCorpus({
@@ -40,6 +41,18 @@ export function buildEvaluationScenario({
         sourcesPerCluster: 4,
       })
     : buildCorpus();
+  if (sourceMode === "reviewed-public-metadata") {
+    for (const source of dataset.sources) {
+      source.provenance = {
+        ...source.provenance,
+        kind: "reviewed-public-metadata",
+        origin: source.url,
+        rightsBasis: "reviewed-public-metadata-test-fixture",
+      };
+    }
+  } else if (sourceMode !== "project-created-synthetic") {
+    throw new Error("Unsupported generated evaluation source mode");
+  }
   if (provenanceAccepted) acceptDeclaredProvenance(dataset);
 
   const corpusReport = validateLabeledCorpus(dataset);

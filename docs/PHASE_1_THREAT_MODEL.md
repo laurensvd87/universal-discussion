@@ -318,6 +318,13 @@ bundle to the policy and artifact, and computes no decisions or metrics. This
 schema does not prove that a future candidate process was isolated from labels;
 that remains required run evidence.
 
+The generated result evaluator consumes that contract only for project-created
+synthetic Sources. It deterministically applies the frozen threshold, reconciles
+case/block/global matrices, and runs the frozen bootstrap, but emits no gate
+branch and always marks held-out evidence false. It cannot replace external
+chronology, candidate isolation, Trust review, systematic-error review, or
+independent reproduction.
+
 ### Increment B checks
 
 - **B-MANIFEST-01:** Inspect the built manifest/package and fail on unapproved permissions or origins, including browsing history, cookies, web-request interception, private-browsing support, broad all-site access, or remote code.

@@ -117,3 +117,7 @@ automatic semantic-resolution claim.
 `PREDICTION_CONTRACT.md` defines the next boundary: a complete unevaluated
 retrieval/score bundle bound to this policy. That validator does not apply the
 threshold or compare scores with gold labels.
+
+`RESULT_EVALUATOR_CONTRACT.md` applies the policy only to generated synthetic
+fixtures. Its calculations are test plumbing, never a held-out claim or final
+gate disposition.

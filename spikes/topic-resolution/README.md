@@ -109,6 +109,12 @@ held-out pair and transitively binds those records to the policy, split,
 dataset, and candidate artifact. It rejects labels and result-like fields and
 never thresholds scores or computes metrics. There is no real bundle or CLI.
 
+`evaluation/RESULT_EVALUATOR_CONTRACT.md` exercises thresholding and quality
+math only on project-created synthetic Sources. It reports reconciled global,
+per-case, and per-block matrices, Wilson intervals, coverage, error queues, and
+bootstrap sensitivity. It has no CLI or checked-in report, rejects real-source
+provenance, and cannot choose a gate branch.
+
 ## Contract
 
 ```js

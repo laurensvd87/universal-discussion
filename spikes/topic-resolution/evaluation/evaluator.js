@@ -1,4 +1,7 @@
 import { normalizePublicHttpUrl } from "../src/index.js";
+import { wilsonScoreInterval } from "./statistics.js";
+
+export { wilsonScoreInterval } from "./statistics.js";
 
 export const PILOT_BASELINE_VERSION = "exact-signals/1.0.0";
 export const PILOT_REPORT_VERSION = "pilot-evaluation-report/1.1.0";
@@ -7,8 +10,6 @@ const AUTOMATIC_JOIN_GATE = Object.freeze({
   minimumDecisions: 60,
   minimumGoldClusters: 20,
 });
-const WILSON_95_Z = 1.959963984540054;
-
 const CASE_COUNTS = Object.freeze({
   "duplicate-syndication-positive": 8,
   "same-entity-title-hard-negative": 8,
@@ -205,37 +206,6 @@ function predictPair(sourceA, sourceB) {
 
 function metric(numerator, denominator) {
   return denominator === 0 ? null : numerator / denominator;
-}
-
-export function wilsonScoreInterval(successes, total) {
-  if (
-    !Number.isSafeInteger(successes) ||
-    !Number.isSafeInteger(total) ||
-    successes < 0 ||
-    total < 0 ||
-    successes > total
-  ) {
-    throw new TypeError("Wilson interval counts must be safe integers with 0 <= successes <= total");
-  }
-  if (total === 0) {
-    return null;
-  }
-
-  const proportion = successes / total;
-  const zSquared = WILSON_95_Z ** 2;
-  const denominator = 1 + zSquared / total;
-  const center = (proportion + zSquared / (2 * total)) / denominator;
-  const margin =
-    (WILSON_95_Z / denominator) *
-    Math.sqrt((proportion * (1 - proportion)) / total + zSquared / (4 * total ** 2));
-
-  return {
-    confidenceLevel: 0.95,
-    lower: Math.max(0, center - margin),
-    successes,
-    total,
-    upper: Math.min(1, center + margin),
-  };
 }
 
 function sameMatrix(actual, expected) {

@@ -82,10 +82,17 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   gold/result fields, and never thresholds or evaluates scores. An independent
   read-only review reproduced all 12 focused policy/prediction tests in normal
   and restricted modes and reported PASS with no commit-blocking finding.
-- Current verification passes all 109 tests under the restricted process
-  guard; the ordinary suite passes 108 with only the guard self-test skipped.
+- Added a generated-fixture-only result evaluator without adding a bundle,
+  report, or CLI. It rejects non-synthetic Sources; applies only the frozen
+  integer decision and bootstrap policies; reconciles global, case, and block
+  matrices; reports six metrics, Wilson intervals, coverage, and bounded error
+  queues; and always withholds held-out evidence and a final gate branch. An
+  independent read-only review reproduced the complete normal/restricted
+  verification and secret scan and reported PASS with no commit blocker.
+- Current verification passes all 116 tests under the restricted process
+  guard; the ordinary suite passes 115 with only the guard self-test skipped.
   The pilot evaluator runs successfully, and the local secret scanner still
-  finds zero matches across 41 package files after all six detector self-tests
+  finds zero matches across 45 package files after all six detector self-tests
   pass.
 
 ## Active decisions
@@ -111,9 +118,10 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   actual expanded cases, pre-result tuning/held-out policy freeze, isolated
   candidate bundle, provenance review, and independent reproducibility review
   are still needed. The strict schema, policy/prediction contracts, and
-  retrospective dependency-block dry run validate tooling only and cannot
-  close any of these evidence gaps. No external policy receipt has been frozen
-  and no prediction bundle exists.
+  generated result evaluator plus retrospective dependency-block dry run
+  validate tooling only and cannot close any of these evidence gaps. No
+  external policy receipt has been frozen, and no prediction bundle or real
+  result exists.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate
