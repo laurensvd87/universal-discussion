@@ -19,16 +19,22 @@ Close the remaining offline P1.1 threat evidence and P0.2 decisions—especially
 - Turned Phase 1 into ordered tasks with owners, dependencies, acceptance criteria, and stop/go gates in `plans/ROADMAP.md`.
 - Implemented `spikes/topic-resolution/`: conservative URL normalization, exact-fingerprint topic resolution, fail-separate provisional topics, audit metadata, and separate public human/agent activity counts.
 - Reconciled later phases with explicit AUTO/ASSISTED/NO-AUTO and human-only/AI-enabled branches, correction and data-lifecycle dependencies, owners, evidence, and stop/go gates.
-- Final restricted verification passed 62 tests with 0 failures on Node 24.19.0; the ordinary suite passed 61 with only the restricted-harness self-test skipped. JavaScript syntax and whitespace checks also passed.
+- Initial restricted verification passed 62 tests with 0 failures on Node 24.19.0; the ordinary suite passed 61 with only the restricted-harness self-test skipped. JavaScript syntax and whitespace checks also passed.
 - An independent final consistency/code review reproduced the suite and found no remaining concrete blocker after its reported edge cases were corrected.
 - The owner accepted a time-bounded atomic-development Topic definition in ADR-004. The P0.1 pilot now contains 24 project-created synthetic pair decisions across 20 clusters with the required 8/8/4/4 case mix.
 - An independent reviewer labeled six blinded pilot pairs (25% coverage) with no disagreements. `npm run evaluate:pilot` validates the schema and reproduces TP=4, FP=0, TN=16, FN=4 without using review-only titles or summaries.
 - The owner accepted ADR-002's user-invoked `activeTab` direction, with passive discovery and all connected data use still outside the accepted boundary.
 - Added a checked fixture-provenance inventory and a process-level restricted harness that actively denies socket, DNS, HTTP, subprocess, fetch, and WebSocket access while running the full suite.
 
+## Completed on 2026-09-20
+
+- Added focused hostile-input checks for empty values, Unicode-confusable origins, HTML/instruction-like titles that cannot affect resolution, unsupported nested evidence, cyclic observations, and overlong evidence identifiers. Downstream rendering and prompt safety remain separate controls.
+- Added a dependency-free package scanner for a versioned set of high-confidence credential formats. It self-tests every detector using in-memory synthetic samples, reports no matched values, and `npm run check:secrets` scanned 20 JavaScript, JSON, and Markdown files with zero findings; this is package evidence, not a replacement for repository/host secret scanning.
+- Latest verification passed all 66 tests under the restricted process guard; the ordinary suite passed 65 with only the guard self-test skipped. The pilot evaluator, JavaScript syntax, JSON parsing, diff, and whitespace checks also pass.
+
 ## Active decisions
 
-- `ADR-001-offline-resolution-spike.md`: **Proposed; experiment authorized**. The isolated code exists under the owner's instruction, but final Trust/Quality evidence is still open.
+- `ADR-001-offline-resolution-spike.md`: **Proposed; experiment authorized**. The isolated code exists under the owner's instruction; its evidence is assembled, but formal Trust/gate acceptance and broader fuzz review remain open.
 - `ADR-002-browser-observation-privacy.md`: **Accepted direction; connected-use gate open**. It approves user-invoked `activeTab`, not data egress or real-user collection.
 - `ADR-003-alpha-architecture.md`: **Proposed**; blocks production-stack commitment.
 - `ADR-004-initial-topic-granularity.md`: **Accepted** for the initial English editorial corpus.
@@ -40,7 +46,7 @@ Close the remaining offline P1.1 threat evidence and P0.2 decisions—especially
 - The auth/object-authorization/data-lifecycle threat model and identity/provenance/moderation state decisions required by P1.6 have not been produced or approved.
 - The alpha architecture and host/auth/provider choices are not accepted.
 - BYO AI remains blocked on provider terms, credential handling, content disclosure, retention, and explicit publication design.
-- P1.1's remaining threat checklist (formal Trust acceptance of fixture provenance, a dedicated secret-scanner run, and remaining adversarial parsing/fuzz coverage) must be closed before calling its gate complete. Static capability, fixture inventory, bounded query-idempotence, independent re-review, and process-level network/DNS/subprocess denial checks now pass.
+- P1.1 still needs formal Trust acceptance and broader generative/property fuzz review before calling its gate complete. Static capability, fixture inventory, bounded query-idempotence, focused hostile-input coverage, independent re-review, package secret scanning, and process-level network/DNS/subprocess denial checks now pass.
 
 ## Current gate
 

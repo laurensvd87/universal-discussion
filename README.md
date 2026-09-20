@@ -32,6 +32,7 @@ The first implementation is a dependency-free, offline topic-resolution kernel u
 cd spikes/topic-resolution
 npm test
 npm run test:restricted
+npm run check:secrets
 npm run evaluate:pilot
 ```
 

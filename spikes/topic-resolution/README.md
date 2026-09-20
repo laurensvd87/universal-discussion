@@ -6,8 +6,9 @@ mapping:
 `Source -> Topic -> Discussion`
 
 It tests domain behavior before choosing a web framework, browser client,
-database, vector store, AI provider, or hosting platform. It performs no
-network, filesystem, or database I/O.
+database, vector store, AI provider, or hosting platform. The runtime kernel in
+`src/` performs no network, filesystem, or database I/O; the test, evaluation,
+and verification tooling reads only local package files.
 
 ## Run
 
@@ -16,6 +17,7 @@ From this directory with Node.js 24 or newer:
 ```sh
 npm test
 npm run test:restricted
+npm run check:secrets
 ```
 
 The tests use Node's built-in `node:test` runner in non-isolated mode, so the
@@ -25,6 +27,13 @@ guard that makes socket, DNS, HTTP, subprocess, global fetch, and WebSocket
 attempts throw, then runs the full suite and a guard self-test. This is stronger
 than an ordinary passing unit run, though it is still a process-level harness
 rather than an operating-system network namespace.
+
+The secret check first exercises every supported detector with an in-memory
+synthetic sample, then scans all JavaScript, JSON, and Markdown in this package
+for a small versioned set of high-confidence credential formats. It reports
+only pattern names and locations, never matched values. It complements the
+no-dependency/no-environment-access checks; it is not a substitute for host
+repository secret scanning or incident response.
 
 ## Phase 0 labeling pilot
 
