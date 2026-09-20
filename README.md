@@ -53,6 +53,12 @@ dependency blocks and rejects corpus changes or partition leakage. Its two
 partitions are explicitly not held out; the command validates future evaluator
 plumbing only.
 
+The future P1.2 collection path also has a strict, bounded corpus contract with
+generated tests for the 200-pair/50-cluster/six-case/20%-review minimums,
+disagreement adjudication, provenance inventory, and resolved-label split
+projection. This is tooling only: no larger corpus or held-out result has been
+created.
+
 Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
 
 ## Product in one sentence

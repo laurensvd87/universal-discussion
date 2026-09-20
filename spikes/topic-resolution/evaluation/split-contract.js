@@ -3,6 +3,7 @@ import {
   CANONICAL_JSON_DIGEST_ALGORITHM,
   canonicalJsonSha256,
 } from "./canonical-json.js";
+import { prepareLabeledCorpusEvaluation } from "./corpus-contract.js";
 import { evaluatePilot } from "./evaluator.js";
 
 export const SPLIT_CONTRACT_VERSION = "story-dependency-block-split/1.0.0";
@@ -242,7 +243,7 @@ function validateDataset(dataset) {
   for (const [index, pair] of dataset.pairs.entries()) {
     const label = `pairs[${index}]`;
     assertPlainObject(pair, label, "INVALID_DATASET");
-    for (const field of ["caseType", "id", "primaryDecision", "sourceAId", "sourceBId"]) {
+    for (const field of ["caseType", "id", "sourceAId", "sourceBId"]) {
       if (!Object.hasOwn(pair, field)) {
         fail("INVALID_DATASET", `${label}.${field} is required`);
       }
@@ -261,12 +262,27 @@ function validateDataset(dataset) {
     if (unorderedPairs.has(pairKey)) {
       fail("INVALID_DATASET", `${label} duplicates an unordered source pair`);
     }
-    assertPlainObject(pair.primaryDecision, `${label}.primaryDecision`, "INVALID_DATASET");
-    if (!LABELS.has(pair.primaryDecision.label)) {
-      fail("INVALID_DATASET", `${label}.primaryDecision.label is invalid`);
+    const hasPrimaryDecision = Object.hasOwn(pair, "primaryDecision");
+    const hasResolvedGoldDecision = Object.hasOwn(pair, "resolvedGoldDecision");
+    if (hasPrimaryDecision === hasResolvedGoldDecision) {
+      fail(
+        "INVALID_DATASET",
+        `${label} must contain exactly one primaryDecision or resolvedGoldDecision`,
+      );
+    }
+    const goldDecision = hasResolvedGoldDecision
+      ? pair.resolvedGoldDecision
+      : pair.primaryDecision;
+    assertPlainObject(
+      goldDecision,
+      `${label}.${hasResolvedGoldDecision ? "resolvedGoldDecision" : "primaryDecision"}`,
+      "INVALID_DATASET",
+    );
+    if (!LABELS.has(goldDecision.label)) {
+      fail("INVALID_DATASET", `${label} gold decision label is invalid`);
     }
     const sameCluster = sourceA.clusterId === sourceB.clusterId;
-    if ((pair.primaryDecision.label === "same-topic") !== sameCluster) {
+    if ((goldDecision.label === "same-topic") !== sameCluster) {
       fail("INVALID_DATASET", `${label} label contradicts its gold clusters`);
     }
     pairIds.add(pair.id);
@@ -276,7 +292,7 @@ function validateDataset(dataset) {
     pairs.push({
       caseType: pair.caseType,
       id: pair.id,
-      label: pair.primaryDecision.label,
+      label: goldDecision.label,
       sourceA,
       sourceB,
     });
@@ -500,4 +516,27 @@ export function validateDependencyBlockSplit(dataset, manifest) {
 export function validatePilotDependencyBlockSplit(dataset, manifest) {
   evaluatePilot(dataset);
   return validateDependencyBlockSplit(dataset, manifest);
+}
+
+export function validateLabeledCorpusDependencyBlockSplit(dataset, manifest) {
+  const { evaluationDataset, report: corpusReport } = prepareLabeledCorpusEvaluation(dataset);
+  if (!corpusReport.readiness.structurallyReadyForSplitFreeze) {
+    fail(
+      "CORPUS_NOT_READY",
+      `Corpus is not ready for split freeze: ${corpusReport.readiness.reasons.join("; ")}`,
+    );
+  }
+  const splitReport = validateDependencyBlockSplit(evaluationDataset, manifest);
+  return {
+    corpus: {
+      contractVersion: corpusReport.contractVersion,
+      corpusDigest: corpusReport.corpusDigest,
+      corpusDigestAlgorithm: corpusReport.corpusDigestAlgorithm,
+      evaluationDatasetDigest: corpusReport.evaluationDatasetDigest,
+      evaluationDatasetDigestAlgorithm: corpusReport.evaluationDatasetDigestAlgorithm,
+      evaluationDatasetVersion: corpusReport.evaluationDatasetVersion,
+      structurallyReadyForSplitFreeze: true,
+    },
+    split: splitReport,
+  };
 }

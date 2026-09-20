@@ -298,7 +298,12 @@ semantic-quality claim.
 The dependency-block validator under `spikes/topic-resolution/evaluation/`
 tests corpus binding and rejects split leakage, but its current manifest is a
 retrospective structural dry run. It does not satisfy A-EVAL-01 and cannot be
-used to describe either pilot partition as held out.
+used to describe either pilot partition as held out. The separate future-corpus
+contract now rejects unsafe shapes, excludes unresolved disagreements, checks
+the declared P1.2 collection minimums, and supplies a resolved-label projection
+to the strict split wrapper. It contains generated test data only; the actual
+corpus, external provenance acceptance, pre-result policy freeze, and held-out
+evaluation remain open.
 
 ### Increment B checks
 

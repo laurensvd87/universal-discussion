@@ -55,9 +55,13 @@ partition it is a contradictory-gold error.
 The pilot command first runs the strict pilot schema evaluator, so unknown
 fields, raw content, and unsupported decision data fail before structural split
 validation. The reusable structural validator is not a replacement for a
-versioned corpus-schema validator; a future corpus format must pair the two in
-its runner. Reports include canonical digests for both the dataset and the
-manifest, binding the output to the exact assignments as well as the labels.
+versioned corpus-schema validator. `corpus-contract.js` now supplies that
+future boundary, and `validateLabeledCorpusDependencyBlockSplit` is the strict
+wrapper for it. The wrapper refuses a corpus below the structural minimums and
+passes only its minimized, resolved-label projection into split validation.
+This prevents a disputed primary label from silently overriding independent
+adjudication. Reports retain canonical digests for the complete review corpus,
+the resolved evaluation projection, and the manifest.
 
 `explicit-predeclared/1.0.0` uses no random assignment, so its seed must be
 `null`. A future randomized or stratified algorithm requires a new version and
@@ -84,12 +88,14 @@ npm run validate:split
 
 ## Future freeze and bootstrap workflow
 
-The larger corpus must define bounded blocks during collection, assign whole
-blocks to tuning or held-out exactly once, and freeze the dataset digest,
+The larger corpus must pass the strict contract in `CORPUS_SCHEMA.md`, define
+bounded blocks during collection, assign whole blocks to tuning or held-out
+exactly once, and freeze the full corpus digest, resolved evaluation digest,
 assignments, candidate version, threshold, minimum coverage, and bootstrap
 policy before the held-out evaluation is opened. Candidate retrieval/indexing
 for the final run must use held-out data only; tuning data must not become a
-candidate source.
+candidate source. The schema and resolved-view implementation are now tested;
+the actual corpus and pre-result policy receipt remain open.
 
 For the required sensitivity analysis, resample the held-out dependency blocks
 with replacement. If there are `B` held-out blocks, draw `B` blocks per

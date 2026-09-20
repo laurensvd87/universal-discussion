@@ -56,10 +56,20 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   replicates, and explicitly conditional undefined-denominator handling. Every
   result is sensitivity-only and gate-ineligible, and the engine is
   intentionally not applied to the retrospective pilot.
-- Current verification passes all 90 tests under the restricted process guard;
-  the ordinary suite passes 89 with only the guard self-test skipped. The pilot
+- Added the strict future P1.2 corpus contract without adding corpus data.
+  Generated boundary tests cover the 200 eligible-pair/50-cluster/six-case/20%
+  review minimums, primary/secondary/adjudication history, unresolved-label
+  exclusion, reviewer independence, provenance inventory, bounded hostile
+  inputs, canonical corpus/evaluation digests, and a resolved-label wrapper for
+  dependency-block splitting. Structural readiness remains gate-ineligible and
+  requires external Trust review. An independent read-only implementation
+  review found and verified fixes for full-corpus digest binding, truthful
+  adjudicated-label naming, canonical reviewer identity, and bounded preflight
+  diagnostics; its final disposition was PASS with no remaining blocker.
+- Current verification passes all 97 tests under the restricted process guard;
+  the ordinary suite passes 96 with only the guard self-test skipped. The pilot
   evaluator runs successfully, and the local secret scanner still finds zero
-  matches across 30 package files after all six detector self-tests pass.
+  matches across 33 package files after all six detector self-tests pass.
 
 ## Active decisions
 
@@ -81,10 +91,10 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   its precision Wilson lower bound is about 0.51, and it has 4 automatic-join
   decisions across 4 clusters versus the predeclared 60/20 minimum. The
   200-pair/50-cluster corpus, held-out block-bootstrap sensitivity report,
-  expanded cases, pre-result tuning/held-out freeze, provenance review, and
-  independent reproducibility review are still needed. The retrospective
-  dependency-block dry run validates structure only and cannot close any of
-  these gaps.
+  actual expanded cases, pre-result tuning/held-out policy freeze, provenance
+  review, and independent reproducibility review are still needed. The strict
+  schema and retrospective dependency-block dry run validate tooling only and
+  cannot close any of these evidence gaps.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate

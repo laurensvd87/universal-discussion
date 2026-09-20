@@ -92,3 +92,9 @@ The deterministic whole-block bootstrap engine is covered by synthetic matrix
 tests but is intentionally not run as a pilot quality report. Its existence
 does not replace the larger corpus, a pre-result split/policy freeze, or the
 independent P1.2 gate.
+
+The larger set has a separate strict collection boundary in
+`CORPUS_SCHEMA.md`. That contract reports progress toward the 200-pair,
+50-cluster, six-case, and 20% review minimums, preserves disagreements and
+adjudication, and emits a resolved-label projection for the split validator.
+It contains no corpus data and does not turn the pilot into P1.2 evidence.

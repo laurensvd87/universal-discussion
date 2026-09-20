@@ -89,6 +89,14 @@ engine with synthetic matrix tests. It is not wired to the pilot command: doing
 so would create a precise-looking interval from four retrospective blocks, not
 held-out semantic evidence.
 
+`evaluation/CORPUS_SCHEMA.md` defines the strict boundary for the future P1.2
+set. Generated in-memory tests exercise the exact 200-pair/50-cluster/20%
+review boundary, all six required cases, unresolved-disagreement exclusion,
+independent adjudication, provenance inventory, bounded hostile inputs, and a
+resolved-label projection compatible with dependency-block splitting. No
+future corpus data is checked in, and the validator always remains
+gate-ineligible on its own.
+
 ## Contract
 
 ```js

@@ -89,9 +89,14 @@ signals; both pilot partitions remain explicitly non-held-out.
 The future whole-block bootstrap calculation is implemented with deterministic
 seeded tests, input/selection digests, undefined-replicate accounting, and
 resource bounds, but is deliberately not applied to the retrospective pilot.
+The future-corpus schema is also executable: generated boundary tests cover the
+200-pair/50-cluster/six-case/20%-review minimums, unresolved disagreement and
+independent adjudication, strict provenance inventory, bounded inputs, and a
+resolved-label split projection. It contains no collected corpus.
 The 200-pair/50-cluster corpus, cluster-separated tuning/held-out split,
-held-out block-bootstrap sensitivity report, expanded case coverage, provenance
-review, and independent reproducibility gate remain open.
+pre-result evaluation-policy freeze, held-out block-bootstrap sensitivity
+report, actual expanded case coverage, provenance review, and independent
+reproducibility gate remain open.
 
 ### P1.3 Extraction and fingerprint spike
 
