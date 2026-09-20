@@ -49,10 +49,17 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   negative pair in one block, rejects cross-partition exact URL/fingerprint
   signals, and reports four connected pilot blocks. Both partitions and the
   output are explicitly marked as non-held-out, gate-ineligible evidence.
-- Current verification passes all 85 tests under the restricted process guard;
-  the ordinary suite passes 84 with only the guard self-test skipped. The pilot
+- Added a deterministic, bounded whole-dependency-block bootstrap engine for a
+  future frozen held-out run. Synthetic matrix tests cover seeded selection,
+  full-block resampling, six metrics, percentile intervals, input/selection
+  digests, overlapping-cluster rejection, bounded inputs/work, minimum valid
+  replicates, and explicitly conditional undefined-denominator handling. Every
+  result is sensitivity-only and gate-ineligible, and the engine is
+  intentionally not applied to the retrospective pilot.
+- Current verification passes all 90 tests under the restricted process guard;
+  the ordinary suite passes 89 with only the guard self-test skipped. The pilot
   evaluator runs successfully, and the local secret scanner still finds zero
-  matches across 28 package files after all six detector self-tests pass.
+  matches across 30 package files after all six detector self-tests pass.
 
 ## Active decisions
 
@@ -73,10 +80,11 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
 - P1.2 remains incomplete: the pilot is not a cluster-separated held-out set,
   its precision Wilson lower bound is about 0.51, and it has 4 automatic-join
   decisions across 4 clusters versus the predeclared 60/20 minimum. The
-  200-pair/50-cluster corpus, story-cluster bootstrap, expanded cases,
-  pre-result tuning/held-out freeze, provenance review, and independent
-  reproducibility review are still needed. The retrospective dependency-block
-  dry run validates structure only and cannot close any of these gaps.
+  200-pair/50-cluster corpus, held-out block-bootstrap sensitivity report,
+  expanded cases, pre-result tuning/held-out freeze, provenance review, and
+  independent reproducibility review are still needed. The retrospective
+  dependency-block dry run validates structure only and cannot close any of
+  these gaps.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate

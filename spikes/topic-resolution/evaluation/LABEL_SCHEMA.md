@@ -87,3 +87,8 @@ naive pair resampling would understate within-story dependence.
 structural contract executable. The dry run groups the pilot into four
 dependency blocks and tests corpus binding and leakage rejection, but both
 partitions are deliberately role `dry-run`; neither is held out.
+
+The deterministic whole-block bootstrap engine is covered by synthetic matrix
+tests but is intentionally not run as a pilot quality report. Its existence
+does not replace the larger corpus, a pre-result split/policy freeze, or the
+independent P1.2 gate.

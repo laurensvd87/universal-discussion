@@ -84,6 +84,11 @@ are marked `dry-run` and the report is always ineligible as quality evidence.
 See `evaluation/CORPUS_SPLIT_CONTRACT.md` for the leakage and future freeze
 rules.
 
+The package also contains a deterministic whole-dependency-block bootstrap
+engine with synthetic matrix tests. It is not wired to the pilot command: doing
+so would create a precise-looking interval from four retrospective blocks, not
+held-out semantic evidence.
+
 ## Contract
 
 ```js

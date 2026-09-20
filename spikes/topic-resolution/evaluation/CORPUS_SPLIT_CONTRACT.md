@@ -99,9 +99,31 @@ seed, replicate count, percentile rule, valid/undefined replicate counts, and
 block/cluster coverage. A fixed implementation and policy must be committed
 before results are read.
 
+`block-bootstrap.js` implements and tests that future calculation as
+`dependency-block-percentile-bootstrap/1.0.0`. It requires sorted disjoint
+blocks, binds their complete contributions with a canonical digest, derives a
+SplitMix64 stream from the recorded seed, uses rejection sampling for unbiased
+block indexes, and reports a digest of every block selection. Its two-sided 95%
+interval uses the linear R-7 percentile rule. Precision, recall, specificity,
+accuracy, false-merge rate (`FP / (TP + FP)`), and false-split rate
+(`FN / (TP + FN)`) are recomputed for each replicate. Undefined denominators
+remain counted and excluded from the corresponding percentile calculation; any
+such interval is explicitly marked as conditional on defined replicates. The
+engine accepts at least 1,000 requested replicates and emits an interval only
+when at least 1,000 replicates define that metric. This is a computational
+reporting floor, not proof of statistical adequacy.
+
+The engine has no pilot CLI by design. Running a deterministic algorithm on
+already-inspected labels would not make them held out, and four homogeneous
+pilot blocks cannot provide credible sensitivity evidence. A future runner must
+pair the engine with its strict corpus validator and a policy frozen before
+held-out results are read.
+
 This block bootstrap is a design-specific sensitivity check, not a claim of a
 general multiway-bootstrap proof. Wilson precision remains the primary
 pair-level safety bound, and the 20-cluster evidence threshold continues to
 count unique held-out gold clusters touched by automatic joins—not dependency
 blocks. Replicates with a zero metric denominator must remain undefined rather
-than being converted to perfect scores.
+than being converted to perfect scores. Every engine result is marked
+`sensitivityOnly: true` and `gateEligible: false`; only the separate frozen
+held-out evaluation can apply the full gate.

@@ -86,9 +86,12 @@ explicitly fails the held-out and 60-decision/20-cluster evidence requirements.
 An executable dry-run split contract now binds the corpus, keeps every negative
 pair inside a predeclared dependency block, and rejects cross-partition exact
 signals; both pilot partitions remain explicitly non-held-out.
+The future whole-block bootstrap calculation is implemented with deterministic
+seeded tests, input/selection digests, undefined-replicate accounting, and
+resource bounds, but is deliberately not applied to the retrospective pilot.
 The 200-pair/50-cluster corpus, cluster-separated tuning/held-out split,
-story-cluster bootstrap, expanded case coverage, provenance review, and
-independent reproducibility gate remain open.
+held-out block-bootstrap sensitivity report, expanded case coverage, provenance
+review, and independent reproducibility gate remain open.
 
 ### P1.3 Extraction and fingerprint spike
 
