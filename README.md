@@ -29,6 +29,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-005-topic-discussion-correction-history.md` — the proposed append-only merge/split and Discussion-history semantics;
 - `decisions/ADR-006-synthetic-html-extraction-profile.md` — the proposed narrow offline profile for exact synthetic document-byte extraction;
 - `decisions/ADR-007-offline-owner-review-ledger.md` — the accepted offline digest-bound labeling workflow and its stop boundary;
+- `decisions/ADR-008-generated-review-resolution-journal.md` — the accepted generated-only single-journal design for uncertainty, later adjudication, and later fixed-point review coverage.
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
 The first implementation is a dependency-free, offline topic-resolution kernel under `spikes/topic-resolution/`. It uses synthetic fixtures and performs no network or persistence I/O. Run it with Node.js 24 or newer:
@@ -90,6 +91,12 @@ blocks presentation. This is interface allowlisting, not secrecy from the API
 caller. It credits no real independent review and cannot activate the reserve,
 rereview, adjudicate, materialize a corpus, freeze a split, evaluate, or issue
 gate evidence.
+
+ADR-008 now fixes the next generated-only path: one versioned successor journal
+will preserve supplements, same-role rereviews, deterministic exclusions,
+later adjudication, and later reserve activation in a single causal order. Its
+first implementation slice stops at adjudication or completion of the initial
+coverage set; it still cannot perform real review or produce corpus evidence.
 
 The pre-result policy schema is also executable and tested. It can bind a
 future corpus/split/system artifact to immutable threshold, abstention, gate,

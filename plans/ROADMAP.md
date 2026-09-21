@@ -128,6 +128,13 @@ ordered first synthetic secondary pass over the precommitted initial coverage
 IDs. It retains uncertainty/disagreement and credits zero independent-human
 decisions. It has no reserve activation, rereview, adjudication, real reviewer
 actions, corpus materialization, split, or evaluation capability.
+A follow-on generated-only design is accepted in ADR-008: one versioned
+successor journal will first add bounded evidence supplements, same-role
+rereview, deterministic unresolved exclusions, and continuation of the initial
+secondary queue. That slice must stop at the first adjudication need or initial
+resolution completion. Later reviewed versions may add adjudication and then
+fixed-point reserve activation only after a read-only eligibility projector;
+all versions preserve one causal head and credit zero independent-human review.
 A separate read-only AI engineering review reproduced the focused/full checks
 and issued Trust/Quality ACCEPT for commit `00372ec`; this is not human corpus
 review or independent labeling evidence. See

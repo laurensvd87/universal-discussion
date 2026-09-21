@@ -196,6 +196,7 @@ extraction boundary.
 - `ADR-005-topic-discussion-correction-history.md`: **Proposed**; owner, Trust, and Quality review are required before correction implementation.
 - `ADR-006-synthetic-html-extraction-profile.md`: **Proposed with offline implementation evidence and Trust/Quality ACCEPT**; the narrow synthetic profile is implemented, but owner acceptance remains open. It authorizes no live page or production fingerprint use.
 - `ADR-007-offline-owner-review-ledger.md`: **Accepted by the owner for the offline workflow and generated-only P1.2b-1 preflight**; the existing synthetic implementation has Trust/Quality ACCEPT, but the decision authorizes no real-data collection, real independent review, corpus finalization, split, or evaluation.
+- `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
 
 ## Blockers
 
@@ -253,6 +254,14 @@ extraction boundary.
   Reserve activation, supplements, rereview, adjudication,
   cluster/corpus/archive/receipt materialization, and receipt-bound downstream
   wrappers remain open.
+- Accepted ADR-008 for the next generated-only slice. It chooses one versioned
+  resolution journal after the frozen completion-ledger prefix, permits only a
+  bounded synthetic evidence supplement, same-role rereview, derived unresolved
+  exclusion, and continuation of the initial secondary queue, and requires the
+  first implementation to stop at adjudication or initial resolution
+  completion. Adjudication, eligibility projection, and fixed-point reserve
+  activation remain later separately reviewed code increments. The completed
+  6/6 synthetic owner run remains closed and is not repeated.
 - Verification for the completed-primary bridge passes 24/24 focused
   boundary/task/ledger tests, the full ordinary suite at 166 passes plus its
   one expected restricted-harness skip, the full restricted suite at 167/167,
