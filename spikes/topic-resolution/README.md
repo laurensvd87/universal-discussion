@@ -135,6 +135,10 @@ acquisition-plan/provenance digests,
 precommitted secondary coverage reserve, uncertainty archive, adjudication,
 and completion-receipt design is in
 `../../plans/P1_2_COLLECTION_AND_COMPLETION.md`; it authorizes no collection.
+The first generated-only preflight increment implements immutable
+acquisition-plan, provenance-inventory, and completion-task envelopes without
+changing the v1 owner workflow; see
+`evaluation/REVIEW_COMPLETION_CONTRACT.md`.
 
 An independent read-only reviewer applied both Trust and Quality lenses to
 final implementation tree `d3818ab` and issued ACCEPT / ACCEPT for this bounded

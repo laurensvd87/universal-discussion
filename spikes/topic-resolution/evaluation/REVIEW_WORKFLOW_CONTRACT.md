@@ -215,4 +215,7 @@ materialization wait for the prepared owner task and primary ledger. Every
 later stage must preserve all events, re-review or exclude every `uncertain`,
 resolve or exclude every disagreement without coercion, and stop again before
 any tuning/held-out split freeze or evaluation. See
-`../../../plans/P1_2_COLLECTION_AND_COMPLETION.md`.
+`../../../plans/P1_2_COLLECTION_AND_COMPLETION.md`. The first generated-only
+immutable plan/inventory/task increment is specified in
+`REVIEW_COMPLETION_CONTRACT.md`; it adds no secondary decision or completion
+capability.

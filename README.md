@@ -73,6 +73,14 @@ is only a dry run. It cannot finalize a corpus, freeze a split, evaluate a
 candidate, or make an automatic-join decision, so the real roadmap owner
 checkpoint remains ahead.
 
+The generated-only P1.2b preflight now also has a pure immutable artifact
+chain: an acquisition plan binds exact source/pair assignments and synthetic
+role identities, a provenance inventory retains every accepted, rejected, or
+pending Source declaration, and a completion task binds the exact accepted v1
+queue plus a precommitted coverage priority and reserve. These artifacts still
+contain no completed review, corpus, split, evaluation, or gate evidence; the
+completion journal and materializer are the next increments.
+
 The pre-result policy schema is also executable and tested. It can bind a
 future corpus/split/system artifact to immutable threshold, abstention, gate,
 bootstrap, and offline-scope rules, but no externally frozen receipt or result

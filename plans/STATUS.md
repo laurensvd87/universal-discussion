@@ -221,6 +221,25 @@ extraction boundary.
   Fixture identities can test role separation, but they are not evidence of
   real independent review; P1.2b-2 through P1.2b-4 remain blocked on explicit
   acquisition authority and distinct real reviewer staffing.
+- Implemented the first P1.2b-1 pure preflight slice without changing the v1
+  owner workflow. Canonically digested generated-only acquisition plans bind
+  exact strata/pair quotas and four explicitly synthetic role identities;
+  per-Source provenance inventories bind every owner-visible metadata field,
+  retain accepted/rejected/pending disposition and declaration history, and
+  permit only project-created reserved-domain fixtures; completion tasks bind
+  both artifacts plus the exact accepted v1 task subset while deriving the
+  full 30%-plus-reserve coverage priority. Every
+  scope denies real metadata authority, verified independent humans, completed
+  review, corpus, split, evaluation, and gate evidence. The completion journal,
+  cluster/corpus/archive/receipt materializer, and receipt-bound downstream
+  wrappers remain open.
+- Verified that preflight slice with 14/14 focused tests, the full ordinary
+  suite at 156 passes plus its one expected restricted-harness skip, the full
+  restricted suite at 157/157, and the secret scanner across 63 files with
+  zero findings. A separate read-only AI reviewer first identified a missing
+  full-Source binding and then issued ACCEPT after the correction and an
+  independent rerun. That engineering review is not a real corpus review,
+  Trust approval, or evidence of an independent human role.
 - P1.3 remains incomplete beyond the synthetic-only parser increment. The
   extractor does not verify caller-declared fixture provenance, parse general
   HTML, identify main content, establish semantic equivalence, observe a

@@ -101,6 +101,14 @@ test("package declares no runtime or development dependencies", async () => {
 test("review workflow keeps pure contracts separate from bounded local filesystem adapters", async () => {
   const expectedImports = new Map([
     [
+      "review-completion-task.js",
+      [
+        "../evaluation/canonical-json.js",
+        "../src/url.js",
+        "./review-workflow.js",
+      ],
+    ],
+    [
       "review-workflow.js",
       ["../evaluation/canonical-json.js", "../src/url.js"],
     ],
@@ -159,7 +167,11 @@ test("review workflow keeps pure contracts separate from bounded local filesyste
     );
   }
 
-  for (const pureFile of ["review-workflow.js", "review-tsv.js"]) {
+  for (const pureFile of [
+    "review-completion-task.js",
+    "review-workflow.js",
+    "review-tsv.js",
+  ]) {
     const source = await readFile(path.join(reviewDirectory, pureFile), "utf8");
     assert.doesNotMatch(source, /node:(?:fs|path|process|readline)/, pureFile);
     assert.doesNotMatch(source, /\bprocess\s*\./, pureFile);
