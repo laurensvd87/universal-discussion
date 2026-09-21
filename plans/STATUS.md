@@ -197,6 +197,7 @@ extraction boundary.
 - `ADR-006-synthetic-html-extraction-profile.md`: **Proposed with offline implementation evidence and Trust/Quality ACCEPT**; the narrow synthetic profile is implemented, but owner acceptance remains open. It authorizes no live page or production fingerprint use.
 - `ADR-007-offline-owner-review-ledger.md`: **Accepted by the owner for the offline workflow and generated-only P1.2b-1 preflight**; the existing synthetic implementation has Trust/Quality ACCEPT, but the decision authorizes no real-data collection, real independent review, corpus finalization, split, or evaluation.
 - `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
+- `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
 
 ## Blockers
 
