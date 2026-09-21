@@ -116,11 +116,13 @@ URL, credential, prompt execution, telemetry, or remote call belongs in this
 increment.
 
 Reviewer IDs and timestamps are declarations, not authentication or external
-attestation. Local administrators can delete files; the workflow detects
-changed retained state and middle gaps, but it cannot detect deletion of a
-valid event suffix without an external anchor. Such deletion can re-present a
-previously answered item. This is not a hardened audit service. There is no
-cash spend or provider account.
+attestation. Unkeyed hashes prove internal consistency, not authorship. The
+workflow rejects inconsistent edits and gaps, but a local administrator can
+replace the workspace with a fully recomputed alternative history or valid
+suffix truncation. Such replacement can re-present a previously answered item
+unless the result is compared with an independently retained digest. The
+workflow creates no automatic/general anchor and is not a hardened audit
+service. There is no cash spend or provider account.
 
 ## Validation / rollback
 
@@ -136,3 +138,25 @@ The checked-in TSV task is synthetic and reserved-domain only. Rollback is
 removal of the isolated review modules, scripts, fixtures, tests, contract, and
 ignored local workspaces. The frozen corpus/split/evaluator contracts require
 no migration because this increment writes none of their artifacts.
+
+## Implementation evidence recorded 2026-09-21
+
+The owner completed the checked-in synthetic dry run once. Local `status`
+validation reports 6/6 answers, six binary decisions, zero uncertainty, task
+digest
+`sha256:b734d983f3fcc9fece8ef6235ee7cac896e2dc7ab049313da637a72c157cb9ad`,
+and final session digest
+`sha256:d8ad7c504df9a52af041d676ef2368cc036a3ba4ac865e682fa30b1557af9698`.
+The fixture task and provenance-review dates are 2026-09-20 so the unattested
+2026-09-21 local event times do not predate the task. The ignored local ledger
+is not committed and no repeated owner run is required. Recording the final
+session digest in this version-controlled decision provides a manual anchor
+for this one run; it does not add automatic anchoring to the workflow.
+
+The generated-only successor preflight also includes a separate pure bridge
+that can bind a completed v1 primary ledger and exercise an ordered first
+synthetic secondary pass over the precommitted initial coverage set. This is
+schema and state-machine evidence only. It records zero eligible independent
+human decisions and does not expand this ADR's authorization to real metadata,
+real secondary review, reserve activation, rereview, adjudication, corpus
+materialization, split, evaluation, or a quality claim.

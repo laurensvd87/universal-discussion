@@ -325,6 +325,11 @@ checkpoint. Actual secondary decisions, adjudication, or corpus materialization
 must not be represented as completed before the primary ledger exists and the
 owner explicitly continues the review workflow.
 
+The six-pair synthetic owner exercise was completed on 2026-09-21 with 6/6
+binary answers and no uncertainty. It is a finished tooling dry run and must
+not be repeated or confused with Checkpoint A for the future provenance-approved
+200-to-250-pair task.
+
 ### Checkpoint B — completed review package
 
 After primary, secondary, adjudication, provenance reconciliation, cluster
@@ -344,6 +349,13 @@ predates or includes held-out results.
 - **Open:** name distinct real primary, secondary, adjudication, and provenance
   reviewers; the current solo-builder arrangement does not satisfy
   independence.
+
+Owner direction recorded 2026-09-21: continue generated-only P1.2b-1 work;
+before any provenance-approved 200-to-250-pair acquisition/review task, stop and
+request the exact source/field/retention approval and provide a bounded
+assignment for the independent person needed. Also stop separately at every
+later owner, security, privacy, provider, deployment, spending, or publication
+gate.
 
 Gate for P1.2b-1: satisfied. Gate for acquisition or real review: still blocked;
 silence and synthetic role identities are not approval or staffing.

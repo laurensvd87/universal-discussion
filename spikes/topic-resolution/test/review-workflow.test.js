@@ -60,7 +60,7 @@ test("synthetic TSV prepares one stable, precommitted review task", () => {
   const intake = fixtureIntake();
   const task = prepareReviewTask(intake);
 
-  assert.equal(task.taskDigest, "sha256:dc32d16a3e132bab54a03678245c51616a7736d1ef2bd7581039c7dbdac1c41a");
+  assert.equal(task.taskDigest, "sha256:b734d983f3fcc9fece8ef6235ee7cac896e2dc7ab049313da637a72c157cb9ad");
   assert.deepEqual(task.task.ordering.pairIds, [
     "review-item-002",
     "review-item-001",
@@ -186,7 +186,7 @@ test("primary answers form a task-bound append-only digest chain", () => {
         task,
         empty,
         decisionFor(task, empty, firstView, "same-topic"),
-        "2026-09-21T12:00:00.000Z",
+        "2026-09-20T12:00:00.000Z",
       ),
     workflowError("INVALID_TIMESTAMP"),
   );

@@ -46,8 +46,18 @@ function reviewer(id) {
   };
 }
 
+function completionPreflightIntake() {
+  const intake = parseReviewIntake(fixtureBytes);
+  // The local owner task/provenance timestamps moved to 2026-09-20 so its
+  // 2026-09-21 events use an honest local clock. This preflight keeps the separately
+  // accepted P1.2b chronology on 2026-09-21; it is not the owner's ledger.
+  intake.createdAt = "2026-09-21T12:30:00.000Z";
+  intake.provenanceReview.reviewedAt = "2026-09-21T12:00:00.000Z";
+  return intake;
+}
+
 function fixtureTask() {
-  return prepareReviewTask(parseReviewIntake(fixtureBytes));
+  return prepareReviewTask(completionPreflightIntake());
 }
 
 function buildPlanInput(task = fixtureTask()) {
@@ -148,7 +158,7 @@ function extraSyntheticSource(id, suffix) {
 }
 
 function buildAttritionInputs() {
-  const augmentedIntake = parseReviewIntake(fixtureBytes);
+  const augmentedIntake = completionPreflightIntake();
   augmentedIntake.sources.push(
     extraSyntheticSource("source-013", "a"),
     extraSyntheticSource("source-014", "b"),
@@ -443,7 +453,7 @@ test("completion task rejects cross-artifact Source, pair, reviewer, and time mi
     completionError("BINDING_MISMATCH"),
   );
 
-  const pendingIntake = parseReviewIntake(fixtureBytes);
+  const pendingIntake = completionPreflightIntake();
   pendingIntake.provenanceReview = { reviewedAt: null, reviewerId: null, status: "pending" };
   const pendingTask = prepareReviewTask(pendingIntake);
   assert.throws(
@@ -489,7 +499,7 @@ test("inventory binds every owner-visible Source field and exact safe provenance
   ];
 
   for (const mutate of mutations) {
-    const intake = parseReviewIntake(fixtureBytes);
+    const intake = completionPreflightIntake();
     mutate(intake);
     const driftedTask = prepareReviewTask(intake);
     assert.throws(
@@ -643,7 +653,7 @@ test("coverage prefix, reserve, raw digests, and maximum task IDs are exact", ()
     completionError("BINDING_MISMATCH"),
   );
 
-  const maximumIdIntake = parseReviewIntake(fixtureBytes);
+  const maximumIdIntake = completionPreflightIntake();
   maximumIdIntake.taskId = "a".repeat(128);
   const maximumIdTask = prepareReviewTask(maximumIdIntake);
   const maximumIdPlan = prepareAcquisitionPlanEnvelope(buildPlanInput(maximumIdTask));

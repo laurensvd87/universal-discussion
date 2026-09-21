@@ -144,8 +144,20 @@ extraction boundary.
   append/restart/concurrency, CLI, capability, fixture-inventory, and secret-scan
   checks. The default task is explicitly below the 200-pair target and is not
   the roadmap owner checkpoint. Reviewer IDs/times remain declarations, and a
-  valid ledger suffix can be deleted undetectably without an external anchor.
+  fully recomputed alternative history or valid ledger suffix requires
+  comparison with an independently retained digest to detect replacement.
   Proposed ADR-007 and the review-workflow contract record these boundaries.
+- The owner completed the local six-pair dry run: 6/6 answered, all six binary,
+  no uncertainty, task digest
+  `sha256:b734d983f3fcc9fece8ef6235ee7cac896e2dc7ab049313da637a72c157cb9ad`,
+  and final local session digest
+  `sha256:d8ad7c504df9a52af041d676ef2368cc036a3ba4ac865e682fa30b1557af9698`.
+  The fixture task/provenance dates were moved to 2026-09-20 so the 2026-09-21
+  local-clock events did not predate the task. This finishes the synthetic
+  owner exercise and will not be repeated; it still supplies no real corpus,
+  independent review, semantic-quality, or gate evidence. The recorded final
+  digest is a manual Git anchor for this run only, not an automatic/general
+  ledger-anchoring service.
 - Verification passes 25 focused workflow/capability tests, all 147 tests under
   the restricted capability guard, and the ordinary 147-test suite at 146 pass
   with only the guard self-test skipped. The expanded scanner covers checked-in
@@ -203,9 +215,9 @@ extraction boundary.
   are still needed. The strict schema, policy/prediction contracts, and
   generated result evaluator plus retrospective dependency-block dry run
   plus the synthetic six-pair primary-review workflow validate tooling only
-  and cannot close any of these evidence gaps. Secondary review, adjudication,
-  gold-cluster materialization, and an external latest-ledger anchor are not
-  implemented. No
+  and cannot close any of these evidence gaps. Real secondary review, reserve
+  activation, rereview, adjudication, gold-cluster materialization, and a
+  general automatic latest-ledger anchor are not implemented. No
   external policy receipt has been frozen, and no prediction bundle or real
   result exists. Once the review queue is ready, work must stop at the recorded
   owner checkpoint before any split freeze or held-out evaluation.
@@ -230,9 +242,23 @@ extraction boundary.
   both artifacts plus the exact accepted v1 task subset while deriving the
   full 30%-plus-reserve coverage priority. Every
   scope denies real metadata authority, verified independent humans, completed
-  review, corpus, split, evaluation, and gate evidence. The completion journal,
-  cluster/corpus/archive/receipt materializer, and receipt-bound downstream
+  review, corpus, split, evaluation, and gate evidence.
+- Implemented the next bounded P1.2b-1 generated-only slice without changing
+  the v1 workflow or CLI. A pure completion ledger now requires an exact
+  completed primary ledger, records the task-derived initial-coverage snapshot,
+  exposes a blinded secondary view, and appends only the next synthetic
+  secondary decision with exact task/session/primary-event/digest/chronology
+  bindings. Its state preserves primary/secondary uncertainty and binary
+  disagreement while always crediting zero eligible independent-human reviews.
+  Reserve activation, supplements, rereview, adjudication,
+  cluster/corpus/archive/receipt materialization, and receipt-bound downstream
   wrappers remain open.
+- Verification for the completed-primary bridge passes 24/24 focused
+  boundary/task/ledger tests, the full ordinary suite at 166 passes plus its
+  one expected restricted-harness skip, the full restricted suite at 167/167,
+  and the secret scanner across 65 files with zero findings after six detector
+  self-tests. No separate independent Trust/Quality review has yet been
+  completed for this slice, so no independent-review claim is made for it.
 - Verified that preflight slice with 14/14 focused tests, the full ordinary
   suite at 156 passes plus its one expected restricted-harness skip, the full
   restricted suite at 157/157, and the secret scanner across 63 files with
@@ -264,4 +290,8 @@ profile. For any P1.2 work beyond generated-only P1.2b-1, separately authorize
 the exact metadata origins/fields/acquisition/retention scope and name distinct
 real primary, secondary, adjudication, and provenance reviewers. Then decide
 the browser-egress/retention assumptions and acceptable operational cost
-shape. No connected implementation starts from the approvals recorded so far.
+shape. The owner is available to perform the owner/primary assignment but is
+currently working alone; when independent staffing becomes necessary, stop and
+provide a bounded reviewer assignment rather than treating role aliases or AI
+fixture labels as independence. No connected implementation starts from the
+approvals recorded so far.

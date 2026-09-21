@@ -122,9 +122,12 @@ completed-review stops. No acquisition or actual secondary/adjudication stage
 is authorized by that acceptance.
 The first generated-only P1.2b-1 slice now implements the immutable
 acquisition-plan -> provenance-inventory -> v1 primary-task -> completion-task
-digest chain and full deterministic coverage priority. It has no completion
-journal, real reviewer actions, corpus materialization, split, or evaluation
-capability.
+digest chain and full deterministic coverage priority. The next bounded slice
+adds a pure bridge from a completed v1 primary ledger and permits only the
+ordered first synthetic secondary pass over the precommitted initial coverage
+IDs. It retains uncertainty/disagreement and credits zero independent-human
+decisions. It has no reserve activation, rereview, adjudication, real reviewer
+actions, corpus materialization, split, or evaluation capability.
 The pre-result policy schema now binds future corpus/projection/split and system
 artifact digests to fixed-point join/abstention behavior, normative AUTO gate
 semantics, bootstrap settings, and offline scope. Generated tests make no

@@ -127,17 +127,25 @@ intentionally no reset, finalize, corpus-export, split, or evaluation command.
 The checked-in task has only six synthetic pairs. It demonstrates mechanics,
 not the actual roadmap owner checkpoint, 200-pair/50-cluster corpus, independent
 review, provenance gate, held-out split, semantic quality, or automatic joins.
-Reviewer identity and timestamps are caller/local declarations, and a local
-administrator can truncate a valid event suffix without detection because no
-external receipt anchors the latest session. See accepted ADR-007 for that
-boundary. The generated-preflight-approved headroom,
+Reviewer identity and timestamps are caller/local declarations, and unkeyed
+digests prove consistency rather than authenticity. A local administrator can
+fully recompute a replacement history or truncate a valid suffix unless the
+result is compared with an independently retained digest. The workflow has no
+automatic/general anchor; the completed six-pair run's final digest is now
+recorded in version-controlled project evidence as a manual anchor for that
+run only. See accepted ADR-007 for that boundary. The
+generated-preflight-approved headroom,
 acquisition-plan/provenance digests,
 precommitted secondary coverage reserve, uncertainty archive, adjudication,
 and completion-receipt design is in
 `../../plans/P1_2_COLLECTION_AND_COMPLETION.md`; it authorizes no collection.
 The first generated-only preflight increment implements immutable
 acquisition-plan, provenance-inventory, and completion-task envelopes without
-changing the v1 owner workflow; see
+changing the v1 owner workflow. A second pure increment binds a completed v1
+primary ledger, records the task-precommitted initial coverage snapshot, and
+can append the first ordered synthetic secondary pass through a blinded view.
+It preserves uncertainty and disagreement but deliberately has no reserve,
+rereview, adjudication, finalization, or real-independence path; see
 `evaluation/REVIEW_COMPLETION_CONTRACT.md`.
 
 An independent read-only reviewer applied both Trust and Quality lenses to

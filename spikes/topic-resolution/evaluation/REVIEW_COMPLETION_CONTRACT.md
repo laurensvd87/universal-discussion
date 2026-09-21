@@ -5,11 +5,16 @@ Versioned implementation boundary:
 - `story-acquisition-plan/1.0.0`
 - `story-source-provenance-inventory/1.0.0`
 - `story-review-completion-task/1.0.0`
+- `story-review-completion-ledger/1.0.0`
+- `story-review-completion-event/1.0.0`
+- `story-review-completion-state/1.0.0`
 
 Status: the immutable pre-review artifact chain is implemented for generated
-fixtures only. Completion journals, secondary/adjudication interfaces, cluster
-projection, corpus materialization, completion receipts, and downstream
-receipt-bound wrappers remain unimplemented.
+fixtures only. A pure bridge from a completed v1 primary ledger can record the
+first synthetic secondary pass over the task-precommitted initial coverage set.
+Reserve activation, re-review, adjudication, cluster projection, corpus
+materialization, completion receipts, and downstream receipt-bound wrappers
+remain unimplemented.
 
 Owner authorization: P1.2b-1 generated-fixture preflight only. Real/public
 metadata acquisition and real review activity remain unauthorized.
@@ -26,6 +31,8 @@ generated acquisition-plan envelope
         -> generated provenance-inventory envelope
         -> accepted v1 primary-task envelope
         -> generated completion-task envelope
+        -> completed v1 primary ledger
+        -> generated completion-ledger envelope
 ```
 
 Every arrow is checked by exact canonical SHA-256 bindings. The implementation
@@ -134,6 +141,55 @@ The completion-task scope explicitly reports all of the following as false:
 - evaluation or gate eligibility; and
 - real-metadata authorization.
 
+## Completed-primary bridge and initial secondary pass
+
+`story-review-completion-ledger/1.0.0` is a separate pure contract; it does not
+change the accepted v1 workflow, files, workspace, or CLI. Creating it requires
+the exact v1 primary queue to be complete, including any `uncertain` answers.
+The ledger binds the completion-task digest and a recomputed primary-ledger
+session digest, event count, last event digest, and completion time. It also
+records the task-derived initial-coverage IDs exactly and in order. Their
+logical activation time is the completion-task creation time, explicitly as a
+derived precommitment rather than an externally witnessed timestamp.
+
+This increment accepts only a first-pass `secondary-decision` event for the
+next initial-coverage ID. Each event:
+
+- follows an already completed binary primary event for that exact pair;
+- binds the exact primary event, primary session, completion task, predecessor,
+  generated secondary role, and unattested local timestamp;
+- accepts `same-topic`, `different-topic`, or `uncertain` with a generated
+  rationale; and
+- is appended only when the command's expected digest matches the supplied
+  completion-ledger envelope, rejecting a mismatched stale command.
+
+That last check is command/envelope consistency, not concurrency control. The
+contract is pure and stateless: two callers can append different answers to
+the same valid predecessor and create two valid forks. A later persistence
+adapter must serialize and atomically publish one successor. No such adapter
+or external latest-ledger anchor exists in this increment.
+
+The secondary view exposes only URL, title, fact summary, publication time,
+the topic definition, and the three choices. It withholds the primary answer
+and rationale, case type, provenance internals, coverage basis/rank, expected
+answer, and reviewer identifiers. A primary `uncertain` blocks secondary
+presentation in this increment rather than being skipped or coerced.
+
+The generated completion state retains primary and secondary uncertainties
+and binary disagreements as pending obligations. Synthetic binary answers
+remain explicitly separate from eligible independent-human-review decisions,
+whose count is always zero. Initial-pass completion cannot set secondary
+completion, adjudication, corpus, checkpoint, split, evaluation, or gate
+claims. Reserve IDs are reported, but no API can activate them.
+
+As with the v1 local ledger, unkeyed digest chaining detects inconsistent or
+partially recomputed mutation, gaps, and reordering. It is not a signature and
+does not authenticate the reviewer or history. A local actor can construct a
+fully recomputed alternative fork, rewrite, or suffix truncation that validates
+without an independently retained latest digest. The state reports absent
+concurrency control, unkeyed-digest authenticity, and unanchored history
+directly. No external anchor is created by this increment.
+
 ## Solo-builder and identity boundary
 
 The owner currently develops the project alone. Different strings used by one
@@ -148,7 +204,7 @@ any successor must remain explicitly typed and provenance-distinct.
 
 ## Safety and validation
 
-All three contracts reject unknown fields, inherited or accessor-bearing data,
+All contracts reject unknown fields, inherited or accessor-bearing data,
 sparse arrays, cycles, unsupported values, oversized structures, malformed
 identifiers/digests/timestamps, duplicate IDs/pairs, unsafe URLs, reviewer
 collisions, false target counts, digest rebinding, and cross-artifact drift.
@@ -156,7 +212,7 @@ collisions, false target counts, digest rebinding, and cross-artifact drift.
 Run the focused checks with:
 
 ```powershell
-node --test --test-isolation=none test/boundary.test.js test/review-completion-task.test.js
+node --test --test-isolation=none test/boundary.test.js test/review-completion-task.test.js test/review-completion-ledger.test.js
 ```
 
 The full ordinary and restricted suites plus the local secret scanner remain
@@ -166,8 +222,8 @@ required before this increment can pass its technical gate.
 
 This increment does not provide a CLI or write any artifact. It does not add:
 
-- append-only coverage activation, secondary, re-review, or adjudication;
-- uncertainty supplements or projected-decision chronology;
+- reserve coverage activation, secondary re-review, or adjudication;
+- evidence supplements or rereview-projection chronology;
 - fixed-point reserve activation;
 - exclusions, gold-cluster consistency, or corpus projection;
 - a review archive or completion receipt; or

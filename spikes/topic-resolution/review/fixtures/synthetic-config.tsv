@@ -1,7 +1,7 @@
 key	value
 workflowVersion	story-review-workflow/1.0.0
 taskId	p1.2-synthetic-owner-review
-createdAt	2026-09-21T12:30:00.000Z
+createdAt	2026-09-20T12:30:00.000Z
 datasetVersion	p1.2-review-synthetic/1.0.0
 topicDefinitionVersion	atomic-development/1.0.0
 topicDefinition	Two Sources share a Semantic Topic only when they describe the same time-bounded atomic development; related subjects or later distinct developments remain separate.
@@ -14,4 +14,4 @@ orderingSeed	p1.2-synthetic-primary-order-2026-09-21
 secondarySelectionSeed	p1.2-synthetic-secondary-selection-2026-09-21
 provenanceReviewStatus	accepted
 provenanceReviewerId	trust-synthetic-reviewer
-provenanceReviewedAt	2026-09-21T12:00:00.000Z
+provenanceReviewedAt	2026-09-20T12:00:00.000Z

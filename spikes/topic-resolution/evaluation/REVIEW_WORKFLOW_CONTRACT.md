@@ -159,12 +159,15 @@ state, task mutation, and event tampering. A filesystem without local hard-link
 support fails closed rather than weakening no-overwrite behavior.
 
 The append-only property is enforced by this software and its exclusive file
-operations. It is not protection against a local administrator deliberately
-editing or deleting the whole workspace. A changed retained event or a middle
-deletion is detected, but deleting a valid suffix (including every event)
-produces a valid earlier ledger and can cause items to be presented again.
-Detecting that rollback requires an externally anchored last-session digest or
-receipt, which this offline increment does not have.
+operations. Unkeyed digests prove internal consistency, not authenticity, and
+are not protection against a local administrator deliberately replacing or
+deleting the workspace. Inconsistent edits and gaps are rejected, but a fully
+recomputed alternative history or valid suffix truncation can validate and can
+cause items to be presented again. Detecting that replacement requires
+comparison with an independently retained last-session digest or receipt; the
+workflow creates no automatic/general anchor. The completed six-pair dry run's
+final session digest is now recorded in version-controlled project evidence,
+which provides a manual comparison point for that run only.
 
 ## Commands
 
@@ -216,6 +219,8 @@ later stage must preserve all events, re-review or exclude every `uncertain`,
 resolve or exclude every disagreement without coercion, and stop again before
 any tuning/held-out split freeze or evaluation. See
 `../../../plans/P1_2_COLLECTION_AND_COMPLETION.md`. The first generated-only
-immutable plan/inventory/task increment is specified in
-`REVIEW_COMPLETION_CONTRACT.md`; it adds no secondary decision or completion
-capability.
+immutable plan/inventory/task chain and completed-primary bridge are specified
+in `REVIEW_COMPLETION_CONTRACT.md`. That separate pure contract can exercise
+only an ordered first synthetic secondary pass over initial coverage; it adds
+no v1 CLI command, real independent review, reserve activation, rereview,
+adjudication, corpus, or completion capability.

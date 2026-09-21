@@ -73,13 +73,23 @@ is only a dry run. It cannot finalize a corpus, freeze a split, evaluate a
 candidate, or make an automatic-join decision, so the real roadmap owner
 checkpoint remains ahead.
 
+The owner has completed that six-pair synthetic dry run once: 6/6 binary
+answers with no uncertainty. It will not be repeated. This confirms the local
+interaction and persistence path only; it is not the later 200-to-250-pair
+provenance-approved task or independent-review evidence.
+
 The generated-only P1.2b preflight now also has a pure immutable artifact
 chain: an acquisition plan binds exact source/pair assignments and synthetic
 role identities, a provenance inventory retains every accepted, rejected, or
 pending Source declaration, and a completion task binds the exact accepted v1
-queue plus a precommitted coverage priority and reserve. These artifacts still
-contain no completed review, corpus, split, evaluation, or gate evidence; the
-completion journal and materializer are the next increments.
+queue plus a precommitted coverage priority and reserve. A pure successor can
+now bind a completed synthetic v1 primary ledger and append the ordered first
+synthetic secondary pass over the initial coverage IDs without including the
+binary primary label or rationale in the projected view; primary uncertainty
+blocks presentation. This is interface allowlisting, not secrecy from the API
+caller. It credits no real independent review and cannot activate the reserve,
+rereview, adjudicate, materialize a corpus, freeze a split, evaluate, or issue
+gate evidence.
 
 The pre-result policy schema is also executable and tested. It can bind a
 future corpus/split/system artifact to immutable threshold, abstention, gate,
