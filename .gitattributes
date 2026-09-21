@@ -1,1 +1,2 @@
 spikes/topic-resolution/fixtures/html/*.html text eol=lf
+spikes/topic-resolution/review/fixtures/*.tsv text eol=lf

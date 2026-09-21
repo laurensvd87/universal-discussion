@@ -1,6 +1,6 @@
 {
   "manifestVersion": "fixture-provenance/1.1.0",
-  "reviewedAt": "2026-09-20T18:14:30.927Z",
+  "reviewedAt": "2026-09-21T13:00:00.000Z",
   "entries": [
     {
       "path": "fixtures/observations.js",
@@ -35,6 +35,36 @@
     {
       "path": "fixtures/html/harbor-barrier.html",
       "purpose": "Reviewed bounded-head extraction and raw-byte fingerprint fixture",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    },
+    {
+      "path": "review/fixtures/synthetic-config.tsv",
+      "purpose": "Offline owner-review configuration without decisions",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    },
+    {
+      "path": "review/fixtures/synthetic-pairs.tsv",
+      "purpose": "Opaque review-pair inventory covering six internal case types",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    },
+    {
+      "path": "review/fixtures/synthetic-sources.tsv",
+      "purpose": "Bounded project-created Source metadata for review workflow tests",
       "provenance": "project-created-synthetic",
       "containsCopiedText": false,
       "containsPersonalData": false,

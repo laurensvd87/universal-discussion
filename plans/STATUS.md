@@ -3,7 +3,7 @@
 ## Current phase
 
 Phase 0 foundation in progress; P0.1 and the frozen offline P1.1 kernel are
-complete, P1.2 evaluation-contract work is in progress, and a bounded offline
+complete, P1.2 evaluation and owner-review workflow work is in progress, and a bounded offline
 P1.3a synthetic HTML extraction increment has passed independent offline
 Trust/Quality review pending owner disposition of proposed ADR-006.
 
@@ -130,6 +130,27 @@ extraction boundary.
   present `same-topic` / `different-topic` / `uncertain` decisions, and retain
   review/adjudication history. It must stop and present the prepared task to the
   owner before freezing a held-out split or making any automatic-join decision.
+- Implemented the first synthetic-only P1.2 owner-review workflow increment.
+  Exact bounded TSV metadata becomes a canonical task digest, seeded opaque
+  primary order, and separately seeded 20% secondary-review plan before labels.
+  The local CLI exposes only `prepare`, `owner`, and safe `status`; it blinds
+  case/cluster/provenance/selection internals, persists each primary answer as
+  a task-bound digest-chained event, retains `uncertain`, and refuses stale or
+  concurrent overwrite. The Source/provenance subset now matches the frozen
+  corpus bounds, but no corpus, cluster assignment, secondary review,
+  adjudication, split, evaluation, or gate decision is produced.
+- Added six project-created synthetic review pairs plus exact UTF-8/TSV,
+  presentation allowlist, terminal-control, chronology, task/event tamper,
+  append/restart/concurrency, CLI, capability, fixture-inventory, and secret-scan
+  checks. The default task is explicitly below the 200-pair target and is not
+  the roadmap owner checkpoint. Reviewer IDs/times remain declarations, and a
+  valid ledger suffix can be deleted undetectably without an external anchor.
+  Proposed ADR-007 and the review-workflow contract record these boundaries.
+- Verification passes 25 focused workflow/capability tests, all 147 tests under
+  the restricted capability guard, and the ordinary 147-test suite at 146 pass
+  with only the guard self-test skipped. The expanded scanner covers checked-in
+  TSV and reports zero findings across 60 files after six detector self-tests;
+  the pilot evaluator and structural split dry run remain unchanged and pass.
 - A separate independent read-only reviewer reproduced the focused and full
   verification, applied both Trust and Quality lenses, and issued ACCEPT / ACCEPT
   for the bounded offline P1.3a scope with no implementation, test, or security
@@ -146,6 +167,7 @@ extraction boundary.
 - `ADR-004-initial-topic-granularity.md`: **Accepted** for the initial English editorial corpus.
 - `ADR-005-topic-discussion-correction-history.md`: **Proposed**; owner, Trust, and Quality review are required before correction implementation.
 - `ADR-006-synthetic-html-extraction-profile.md`: **Proposed with offline implementation evidence and Trust/Quality ACCEPT**; the narrow synthetic profile is implemented, but owner acceptance remains open. It authorizes no live page or production fingerprint use.
+- `ADR-007-offline-owner-review-ledger.md`: **Proposed with synthetic-only implementation evidence**; it preserves append-only local primary decisions and the owner checkpoint but authorizes no real-data collection, corpus finalization, split, or evaluation.
 
 ## Blockers
 
@@ -158,13 +180,16 @@ extraction boundary.
 - P1.2 remains incomplete: the pilot is not a cluster-separated held-out set,
   its precision Wilson lower bound is about 0.51, and it has 4 automatic-join
   decisions across 4 clusters versus the predeclared 60/20 minimum. The
-  review-ready collection/labeling queue, 200-pair/50-cluster corpus, held-out
+  real provenance-approved 200-pair/50-cluster review task and corpus, held-out
   block-bootstrap sensitivity report,
   actual expanded cases, pre-result tuning/held-out policy freeze, isolated
   candidate bundle, provenance review, and independent reproducibility review
   are still needed. The strict schema, policy/prediction contracts, and
   generated result evaluator plus retrospective dependency-block dry run
-  validate tooling only and cannot close any of these evidence gaps. No
+  plus the synthetic six-pair primary-review workflow validate tooling only
+  and cannot close any of these evidence gaps. Secondary review, adjudication,
+  gold-cluster materialization, and an external latest-ledger anchor are not
+  implemented. No
   external policy receipt has been frozen, and no prediction bundle or real
   result exists. Once the review queue is ready, work must stop at the recorded
   owner checkpoint before any split freeze or held-out evaluation.
@@ -177,14 +202,14 @@ extraction boundary.
 
 ## Current gate
 
-**GO:** local fixture-only resolver/evaluator/extraction work and planning the larger license-safe labeled set under ADR-004.
+**GO:** local fixture-only resolver/evaluator/extraction/review-workflow work and planning the larger license-safe labeled set under ADR-004.
 
 **STOP:** real browsing capture/egress, live URL fetches, hosted embeddings, auth/public writes, AI credentials/inference, deployment, spending, announcements, recruitment, and store submission.
 
 ## Next owner approval required
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
-merge/split history semantics, and ADR-006's narrow synthetic extraction
-profile; then decide the browser-egress/retention assumptions and acceptable
+merge/split history semantics, ADR-006's narrow synthetic extraction profile,
+and ADR-007's offline owner-review ledger; then decide the browser-egress/retention assumptions and acceptable
 operational cost shape. No connected implementation starts from the approvals
 recorded so far.

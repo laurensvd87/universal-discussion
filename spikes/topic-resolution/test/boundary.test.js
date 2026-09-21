@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const packageDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceDirectory = path.join(packageDirectory, "src");
 const extractionDirectory = path.join(packageDirectory, "extraction");
+const reviewDirectory = path.join(packageDirectory, "review");
 const canonicalJsonPath = path.join(
   packageDirectory,
   "evaluation",
@@ -97,6 +98,84 @@ test("package declares no runtime or development dependencies", async () => {
   assert.equal(packageJson.peerDependencies, undefined);
 });
 
+test("review workflow keeps pure contracts separate from bounded local filesystem adapters", async () => {
+  const expectedImports = new Map([
+    [
+      "review-workflow.js",
+      ["../evaluation/canonical-json.js", "../src/url.js"],
+    ],
+    ["review-tsv.js", ["./review-workflow.js", "node:buffer"]],
+    [
+      "review-workspace.js",
+      ["./review-workflow.js", "node:crypto", "node:fs/promises", "node:path"],
+    ],
+    [
+      "run-review.js",
+      [
+        "./review-tsv.js",
+        "./review-workflow.js",
+        "./review-workspace.js",
+        "node:fs/promises",
+        "node:path",
+        "node:process",
+        "node:readline/promises",
+        "node:url",
+      ],
+    ],
+  ]);
+
+  const actualFiles = (await readdir(reviewDirectory))
+    .filter((name) => name.endsWith(".js"))
+    .sort();
+  assert.deepEqual(actualFiles, [...expectedImports.keys()].sort());
+
+  for (const file of actualFiles) {
+    const source = await readFile(path.join(reviewDirectory, file), "utf8");
+    const imports = [
+      ...source.matchAll(/\bfrom\s+["']([^"']+)["']/g),
+      ...source.matchAll(/\bimport\s+["']([^"']+)["']/g),
+    ]
+      .map((match) => match[1])
+      .sort();
+    assert.deepEqual(imports, [...expectedImports.get(file)].sort(), file);
+    assert.doesNotMatch(source, /\b(?:fetch|WebSocket|EventSource|XMLHttpRequest)\b/, file);
+    assert.doesNotMatch(source, /\bconsole\s*\./, file);
+    assert.doesNotMatch(source, /\b(?:require|eval|Function)\s*\(/, file);
+    assert.doesNotMatch(source, /\bimport\s*\(/, file);
+    assert.doesNotMatch(
+      source,
+      /node:(?:child_process|cluster|dgram|dns|http|https|tls|worker_threads)/,
+      file,
+    );
+    assert.doesNotMatch(
+      source,
+      /(?:corpus-contract|split-contract|evaluation-policy|prediction-contract|result-evaluator|evaluator)\.js/,
+      file,
+    );
+  }
+
+  for (const pureFile of ["review-workflow.js", "review-tsv.js"]) {
+    const source = await readFile(path.join(reviewDirectory, pureFile), "utf8");
+    assert.doesNotMatch(source, /node:(?:fs|path|process|readline)/, pureFile);
+    assert.doesNotMatch(source, /\bprocess\s*\./, pureFile);
+  }
+
+  const packageJson = JSON.parse(
+    await readFile(path.join(packageDirectory, "package.json"), "utf8"),
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(packageJson.scripts).filter(([name]) => name.startsWith("review")),
+    ),
+    {
+      review: "node review/run-review.js",
+      "review:owner": "node review/run-review.js owner",
+      "review:prepare": "node review/run-review.js prepare",
+      "review:status": "node review/run-review.js status",
+    },
+  );
+});
+
 test("fixture inventory records synthetic provenance and minimum-data review", async () => {
   const manifest = JSON.parse(await readFile(fixtureManifestPath, "utf8"));
   assert.equal(manifest.manifestVersion, "fixture-provenance/1.1.0");
@@ -108,6 +187,9 @@ test("fixture inventory records synthetic provenance and minimum-data review", a
       "evaluation/pilot-split-dry-run.json",
       "fixtures/html/harbor-barrier.html",
       "fixtures/observations.js",
+      "review/fixtures/synthetic-config.tsv",
+      "review/fixtures/synthetic-pairs.tsv",
+      "review/fixtures/synthetic-sources.tsv",
     ],
   );
 

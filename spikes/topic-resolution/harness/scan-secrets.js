@@ -3,8 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const scannedExtensions = new Set([".html", ".js", ".json", ".md"]);
+const scannedExtensions = new Set([".html", ".js", ".json", ".md", ".tsv"]);
 const excludedDirectories = new Set([".git", "node_modules"]);
+const excludedDirectoryPaths = new Set([
+  path.resolve(packageDirectory, "review", "work"),
+]);
 const scannerVersion = "high-confidence-local/1.0.0";
 const patterns = [
   {
@@ -77,12 +80,16 @@ async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      if (!excludedDirectories.has(entry.name)) {
-        files.push(...(await listFiles(path.join(directory, entry.name))));
+      if (
+        !excludedDirectories.has(entry.name) &&
+        !excludedDirectoryPaths.has(path.resolve(entryPath))
+      ) {
+        files.push(...(await listFiles(entryPath)));
       }
     } else if (entry.isFile() && scannedExtensions.has(path.extname(entry.name))) {
-      files.push(path.join(directory, entry.name));
+      files.push(entryPath);
     }
   }
   return files;

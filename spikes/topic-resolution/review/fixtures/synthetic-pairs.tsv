@@ -1,0 +1,7 @@
+id	sourceAId	sourceBId	caseType
+review-item-001	source-001	source-002	duplicate-positive
+review-item-002	source-003	source-004	syndication-positive
+review-item-003	source-005	source-006	update-continuation-boundary
+review-item-004	source-007	source-008	related-distinct
+review-item-005	source-009	source-010	unrelated-control
+review-item-006	source-011	source-012	adversarial-title

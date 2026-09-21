@@ -2,7 +2,7 @@
 
 Status: Proposed
 
-Last reviewed: 2026-09-20
+Last reviewed: 2026-09-21
 
 Owners: Orchestrator and trust/security reviewer
 
@@ -295,6 +295,19 @@ semantic-quality claim.
 ### Increment A2 evaluator check
 
 - **A-EVAL-01:** Before the P1.2/P1.4 evaluation gate, report false-merge and false-split rates on held-out labeled positive, near-duplicate, adversarial, and unrelated fixtures. Freeze the threshold and minimum evidence/coverage rules before reading held-out results. This check does not block completion of the smaller deterministic P1.1 kernel.
+- **A-REVIEW-01:** Build owner tasks only from fatal UTF-8, exact-schema, bounded TSV metadata that is a subset of the frozen corpus Source/provenance limits. Reject copied text, private/noncanonical URLs, behavioral byte inputs, duplicate pairs, post-task publication times, and provenance chronology contradictions.
+- **A-BLIND-01:** Show the primary reviewer only the opaque review-item ID, topic definition, normalized URL, title, fact summary, and publication time. Withhold case/cluster/fingerprint/provenance internals, selection seeds/membership, prior decisions, and expected labels; render terminal controls and bidirectional formatting inertly.
+- **A-LEDGER-01:** Commit deterministic order and at least 20% secondary-review selection before labels. Bind every primary answer to the immutable task and current session digest, append it under an exclusive sequence filename, and reject stale, reordered, modified, gapped, or rebound retained state. Preserve `uncertain` without coercion. Treat reviewer identity and local time as declarations, and disclose that suffix deletion is undetectable without an external anchor.
+- **A-REVIEW-STOP-01:** The first workflow increment may expose only prepare, primary-owner review, and status. It must not materialize a corpus, perform secondary review/adjudication, freeze a split, evaluate results, or choose an automatic-join branch. The six-pair synthetic dry run is not the roadmap owner checkpoint.
+
+The offline review workflow under `spikes/topic-resolution/review/` now
+exercises these collection mechanics with three inventoried project-created
+TSV fixtures. Task derivation is pure; the local adapter uses only bounded
+filesystem paths, and the complete suite runs under the process capability
+guard. The generated task commits a distinct primary-order seed and
+secondary-selection seed before any decision. This evidence authorizes no real
+metadata collection, authenticates no reviewer, externally attests no time or
+provenance claim, and cannot detect deletion of a valid event suffix.
 
 The dependency-block validator under `spikes/topic-resolution/evaluation/`
 tests corpus binding and rejects split leakage, but its current manifest is a

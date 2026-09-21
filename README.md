@@ -27,6 +27,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-004-initial-topic-granularity.md` — the accepted time-bounded editorial story-cluster definition;
 - `decisions/ADR-005-topic-discussion-correction-history.md` — the proposed append-only merge/split and Discussion-history semantics;
 - `decisions/ADR-006-synthetic-html-extraction-profile.md` — the proposed narrow offline profile for exact synthetic document-byte extraction;
+- `decisions/ADR-007-offline-owner-review-ledger.md` — the proposed digest-bound local labeling workflow and its stop boundary;
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
 The first implementation is a dependency-free, offline topic-resolution kernel under `spikes/topic-resolution/`. It uses synthetic fixtures and performs no network or persistence I/O. Run it with Node.js 24 or newer:
@@ -36,6 +37,8 @@ cd spikes/topic-resolution
 npm test
 npm run test:restricted
 npm run check:secrets
+npm run review:prepare
+npm run review:status
 npm run evaluate:pilot
 npm run validate:split
 ```
@@ -59,6 +62,15 @@ generated tests for the 200-pair/50-cluster/six-case/20%-review minimums,
 disagreement adjudication, provenance inventory, and resolved-label split
 projection. This is tooling only: no larger corpus or held-out result has been
 created.
+
+The first owner-review workflow increment is now executable without hand-built
+JSON. Strict TSV metadata becomes a digest-bound, deterministically ordered
+local queue with secondary-review items selected before labels; each owner
+answer is appended immediately with caller-declared identity and an unattested
+local timestamp. The default task contains six inventoried synthetic pairs and
+is only a dry run. It cannot finalize a corpus, freeze a split, evaluate a
+candidate, or make an automatic-join decision, so the real roadmap owner
+checkpoint remains ahead.
 
 The pre-result policy schema is also executable and tested. It can bind a
 future corpus/split/system artifact to immutable threshold, abstention, gate,

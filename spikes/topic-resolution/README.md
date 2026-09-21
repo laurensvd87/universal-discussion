@@ -29,11 +29,13 @@ than an ordinary passing unit run, though it is still a process-level harness
 rather than an operating-system network namespace.
 
 The secret check first exercises every supported detector with an in-memory
-synthetic sample, then scans all HTML, JavaScript, JSON, and Markdown in this
-package for a small versioned set of high-confidence credential formats. It
+synthetic sample, then scans all HTML, JavaScript, JSON, Markdown, and checked-in
+TSV in this package for a small versioned set of high-confidence credential formats. It
 reports only pattern names and locations, never matched values. It complements the
 no-dependency/no-environment-access checks; it is not a substitute for host
-repository secret scanning or incident response.
+repository secret scanning or incident response. Ignored local review state is
+excluded because it may contain owner work and must not affect repository scan
+evidence.
 
 The URL property suite covers a deterministic 768-case matrix across schemes,
 public host forms, default and non-default ports, encoded paths, query shapes,
@@ -96,6 +98,39 @@ independent adjudication, provenance inventory, bounded hostile inputs, and a
 resolved-label projection compatible with dependency-block splitting. No
 future corpus data is checked in, and the validator always remains
 gate-ineligible on its own.
+
+### Offline owner-review dry run
+
+`evaluation/REVIEW_WORKFLOW_CONTRACT.md` defines the separate workflow that
+precedes that corpus. It reads strict TSV metadata, commits an immutable task
+digest, deterministically orders opaque review items, and preselects 20% for a
+later secondary review before any labels exist. The reviewer sees only the
+topic definition plus normalized URL, title, fact summary, and publication time
+for each side. Case types, cluster/fingerprint/provenance internals, planned
+secondary membership, and prior answers stay out of the presentation.
+
+Try the inventoried six-pair project-created dry run with:
+
+```sh
+npm run review:prepare
+npm run review:status
+npm run review:owner
+```
+
+`prepare` creates ignored local state under `review/work/`, prints a digest and
+safe summary, then stops. `owner` asks only for same-topic, different-topic, or
+uncertain and durably appends each answer before showing the next item.
+`status` exposes counts, digests, blockers, and scope but no Source metadata or
+rationales. Preparation never overwrites an existing workspace, and there is
+intentionally no reset, finalize, corpus-export, split, or evaluation command.
+
+The checked-in task has only six synthetic pairs. It demonstrates mechanics,
+not the actual roadmap owner checkpoint, 200-pair/50-cluster corpus, independent
+review, provenance gate, held-out split, semantic quality, or automatic joins.
+Reviewer identity and timestamps are caller/local declarations, and a local
+administrator can truncate a valid event suffix without detection because no
+external receipt anchors the latest session. See proposed ADR-007 for that
+boundary and the later secondary/adjudication work.
 
 `evaluation/EVALUATION_POLICY_CONTRACT.md` adds the next pre-result boundary.
 It strictly binds a future corpus, resolved projection, split manifest, and

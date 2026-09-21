@@ -6,6 +6,10 @@
   "scripts": {
     "check:secrets": "node harness/scan-secrets.js",
     "evaluate:pilot": "node evaluation/run-pilot.js",
+    "review": "node review/run-review.js",
+    "review:owner": "node review/run-review.js owner",
+    "review:prepare": "node review/run-review.js prepare",
+    "review:status": "node review/run-review.js status",
     "validate:split": "node evaluation/run-split-dry-run.js",
     "test": "node --test --test-isolation=none",
     "test:restricted": "node --import ./harness/deny-external-capabilities.js --test --test-isolation=none",

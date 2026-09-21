@@ -101,6 +101,13 @@ The future-corpus schema is also executable: generated boundary tests cover the
 200-pair/50-cluster/six-case/20%-review minimums, unresolved disagreement and
 independent adjudication, strict provenance inventory, bounded inputs, and a
 resolved-label split projection. It contains no collected corpus.
+The first owner-review workflow increment now reads strict TSV metadata,
+commits a deterministic blinded queue and pre-label 20% secondary-review plan,
+and appends one primary answer at a time to a task-bound local digest chain.
+Its checked-in six-pair task is project-created synthetic data used only to
+exercise preparation, owner presentation, restart, concurrency, and truthful
+checkpoint behavior. It has no secondary/adjudication/finalization path and is
+not the real 200-pair task or the owner checkpoint above.
 The pre-result policy schema now binds future corpus/projection/split and system
 artifact digests to fixed-point join/abstention behavior, normative AUTO gate
 semantics, bootstrap settings, and offline scope. Generated tests make no
