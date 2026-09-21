@@ -48,6 +48,14 @@ state as false. Do not add secondary review, adjudication, finalization, corpus
 export, split freeze, or evaluation until the prepared real task reaches the
 recorded owner checkpoint and the next increment is separately reviewed.
 
+Generated-fixture design and pure preflight tests for those later stages may be
+prepared before a real task exists. Actual secondary decisions, adjudication,
+or corpus materialization cannot be claimed before the primary task is
+presented and its ledger exists. The real task also needs a precommitted ranked
+secondary coverage reserve plus accepted acquisition-plan and
+provenance-inventory digests; v1's exact 20% sample and declarations alone are
+intentionally insufficient for attrition-prone collection.
+
 ## Alternatives considered
 
 - Ask the owner to edit corpus JSON: rejected because it exposes implementation

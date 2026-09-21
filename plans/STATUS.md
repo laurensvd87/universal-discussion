@@ -157,6 +157,15 @@ extraction boundary.
   owner acceptance. The final hash, reproduction evidence, resolved findings,
   control matrix, residuals, and non-authorizations are recorded in
   `research/P1_2A_GATE_REVIEW.md`.
+- Added the proposed P1.2 collection/completion plan rather than manufacturing
+  a bare-minimum benchmark. It provisionally targets 250 candidate pairs/60
+  opaque acquisition strata, a 30% precommitted coverage set plus ranked
+  reserve, exact acquisition-plan/provenance digests, a separate
+  uncertainty-preserving archive/completion receipt, and deterministic
+  post-review cluster checks. It distinguishes generated design work from real
+  acquisition and records stops both when the primary task is presented and
+  before any split/evaluation. No data collection or additional review role
+  has been authorized or started.
 - A separate independent read-only reviewer reproduced the focused and full
   verification, applied both Trust and Quality lenses, and issued ACCEPT / ACCEPT
   for the bounded offline P1.3a scope with no implementation, test, or security
@@ -199,6 +208,13 @@ extraction boundary.
   external policy receipt has been frozen, and no prediction bundle or real
   result exists. Once the review queue is ready, work must stop at the recorded
   owner checkpoint before any split freeze or held-out evaluation.
+- The accepted synthetic workflow cannot safely be repurposed as the real
+  collection merely by supplying 200 rows: it has declarations rather than a
+  reviewed acquisition-plan/provenance-inventory digest, no attrition reserve
+  beyond exact 20%, and no completion artifact that retains `uncertain` history
+  while binding a binary corpus. ADR-007 disposition, exact acquisition
+  authority, Trust's provenance protocol/inventory acceptance, and named
+  distinct reviewers are required first.
 - P1.3 remains incomplete beyond the synthetic-only parser increment. The
   extractor does not verify caller-declared fixture provenance, parse general
   HTML, identify main content, establish semantic equivalence, observe a
@@ -210,12 +226,18 @@ extraction boundary.
 
 **GO:** local fixture-only resolver/evaluator/extraction/review-workflow work and planning the larger license-safe labeled set under ADR-004.
 
-**STOP:** real browsing capture/egress, live URL fetches, hosted embeddings, auth/public writes, AI credentials/inference, deployment, spending, announcements, recruitment, and store submission.
+**STOP:** unapproved real/public corpus acquisition or check-in, real browsing
+capture/egress, live URL fetches, hosted embeddings, auth/public writes, AI
+credentials/inference, deployment, spending, announcements, recruitment, and
+store submission.
 
 ## Next owner approval required
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
 merge/split history semantics, ADR-006's narrow synthetic extraction profile,
-and ADR-007's offline owner-review ledger; then decide the browser-egress/retention assumptions and acceptable
-operational cost shape. No connected implementation starts from the approvals
-recorded so far.
+ADR-007's offline owner-review ledger, and the P1.2 collection/completion plan.
+For P1.2, separately authorize the exact metadata origins/fields/acquisition/
+retention scope and name distinct primary, secondary, adjudication, and
+provenance reviewers. Then decide the browser-egress/retention assumptions and
+acceptable operational cost shape. No connected implementation starts from
+the approvals recorded so far.

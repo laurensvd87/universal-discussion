@@ -205,9 +205,14 @@ DNS, subprocess, browser, provider, credential, or AI operation. It does not
 authorize collection of real/public metadata; provenance/privacy/licensing
 review must precede any such checked-in or presented task.
 
-The next implementation increment may add blinded secondary review,
-independent adjudication, gold-cluster consistency, and explicit materializing
-of the already frozen `labeled-story-corpus/1.0.0` shape. It must preserve all
-events, resolve every `uncertain` or disagreement without coercion, and stop at
-the roadmap's owner checkpoint before any tuning/held-out split freeze or
-evaluation.
+The next design/generated-preflight increment may specify blinded secondary
+review, independent adjudication, gold-cluster consistency, and explicit
+materializing of the already frozen `labeled-story-corpus/1.0.0` shape. A real
+task first needs digested acquisition-plan/provenance artifacts and a
+precommitted ranked coverage reserve; v1's exact 20% selection is not
+sufficient under attrition. Actual secondary decisions or corpus
+materialization wait for the prepared owner task and primary ledger. Every
+later stage must preserve all events, re-review or exclude every `uncertain`,
+resolve or exclude every disagreement without coercion, and stop again before
+any tuning/held-out split freeze or evaluation. See
+`../../../plans/P1_2_COLLECTION_AND_COMPLETION.md`.

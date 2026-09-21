@@ -130,7 +130,10 @@ review, provenance gate, held-out split, semantic quality, or automatic joins.
 Reviewer identity and timestamps are caller/local declarations, and a local
 administrator can truncate a valid event suffix without detection because no
 external receipt anchors the latest session. See proposed ADR-007 for that
-boundary and the later secondary/adjudication work.
+boundary. The proposed headroom, acquisition-plan/provenance digests,
+precommitted secondary coverage reserve, uncertainty archive, adjudication,
+and completion-receipt design is in
+`../../plans/P1_2_COLLECTION_AND_COMPLETION.md`; it authorizes no collection.
 
 An independent read-only reviewer applied both Trust and Quality lenses to
 final implementation tree `d3818ab` and issued ACCEPT / ACCEPT for this bounded

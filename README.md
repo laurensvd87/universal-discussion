@@ -20,6 +20,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `plans/PHASE_0_FOUNDATION.md` — challenged assumptions, scope, metrics, cost envelope and open approvals;
 - `agents/TEAM.md` — lean ownership and review contract;
 - `plans/ROADMAP.md` and `plans/STATUS.md` — executable order and current gate;
+- `plans/P1_2_COLLECTION_AND_COMPLETION.md` — proposed corpus headroom, acquisition/provenance receipts, review reserve, completion receipt, and owner-stop design;
 - `docs/PHASE_1_THREAT_MODEL.md` — privacy/security constraints;
 - `docs/BYO_AI_THREAT_MODEL.md` — a proposed, provider-neutral boundary for any later AI work;
 - `decisions/ADR-001-offline-resolution-spike.md` — the accepted boundary for the completed offline P1.1 experiment;
