@@ -131,5 +131,6 @@ One independent read-only reviewer applied both Trust and Quality lenses and
 issued ACCEPT / ACCEPT for this bounded offline implementation on 2026-09-21;
 this was one reviewer, not two independent people. Owner acceptance is still
 unrecorded, so this ADR remains a proposal and the code remains an offline
-experiment. Rollback is deletion of the isolated extraction module, fixture,
-tests, contract, and manifest entry; there is no external state or migration.
+experiment. The review record is `research/P1_3A_GATE_REVIEW.md`. Rollback is
+deletion of the isolated extraction module, fixture, tests, contract, and
+manifest entry; there is no external state or migration.

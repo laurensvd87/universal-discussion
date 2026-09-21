@@ -131,7 +131,8 @@ runtime explicitly does not verify caller-declared fixture provenance. Proposed
 ADR-006 still needs owner disposition. One independent read-only reviewer
 applied both Trust and Quality lenses and issued ACCEPT / ACCEPT for this
 bounded offline increment; no live/general HTML or production fingerprint
-claim follows from that review.
+claim follows from that review. The durable evidence record is
+`research/P1_3A_GATE_REVIEW.md`.
 
 Dependencies: P0.1 corpus schema and an approved public/synthetic HTML fixture corpus.
 

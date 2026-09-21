@@ -135,7 +135,8 @@ extraction boundary.
   for the bounded offline P1.3a scope with no implementation, test, or security
   blocker. This is one reviewer applying two lenses, not two independent people;
   the accepted residuals remain explicit and ADR-006 still needs owner
-  disposition.
+  disposition. Review provenance and the control matrix are recorded in
+  `research/P1_3A_GATE_REVIEW.md`.
 
 ## Active decisions
 

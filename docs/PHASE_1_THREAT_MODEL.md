@@ -347,7 +347,8 @@ Current technical review (2026-09-21): one independent read-only reviewer
 reproduced the focused and complete verification and issued Trust ACCEPT and
 Quality ACCEPT for the bounded offline P1.3a scope. This was one reviewer
 applying two lenses, not two independent people. Owner disposition of proposed
-ADR-006 remains open, so the broader P1.3 gate is not closed.
+ADR-006 remains open, so the broader P1.3 gate is not closed. Review provenance
+and the control matrix are in `research/P1_3A_GATE_REVIEW.md`.
 
 ### Increment B checks
 
