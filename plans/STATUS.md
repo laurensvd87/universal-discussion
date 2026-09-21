@@ -2,14 +2,18 @@
 
 ## Current phase
 
-Phase 0 foundation in progress; P0.1 and the frozen offline P1.1 kernel
-complete, with P1.2 evaluator work started.
+Phase 0 foundation in progress; P0.1 and the frozen offline P1.1 kernel are
+complete, P1.2 evaluation-contract work is in progress, and a bounded offline
+P1.3a synthetic HTML extraction increment has passed independent offline
+Trust/Quality review pending owner disposition of proposed ADR-006.
 
 ## Current objective
 
 Close the remaining P0.2 decisions—especially architecture, browser
 egress/retention, and proposed merge/split semantics—before connected
-implementation, while building the license-safe P1.2 corpus and evaluator.
+implementation, while building the license-safe P1.2 corpus/evaluator and
+review-ready owner labeling workflow, and reviewing the synthetic-only P1.3
+extraction boundary.
 
 ## Completed on 2026-09-19
 
@@ -89,11 +93,49 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
   queues; and always withholds held-out evidence and a final gate branch. An
   independent read-only review reproduced the complete normal/restricted
   verification and secret scan and reported PASS with no commit blocker.
-- Current verification passes all 116 tests under the restricted process
-  guard; the ordinary suite passes 115 with only the guard self-test skipped.
-  The pilot evaluator runs successfully, and the local secret scanner still
-  finds zero matches across 45 package files after all six detector self-tests
-  pass.
+- Implemented the first P1.3 increment as a dependency-free in-memory
+  synthetic HTML profile. It requires fatal UTF-8 and an explicit bounded
+  head, extracts one normalized title, records canonical metadata only as an
+  absent/same-origin/rejected/ambiguous hint, preserves the observed URL, and
+  hashes the exact validated bytes. The Source projection passes the resolver,
+  and its fields integrate into a separately completed strict P1.2 Source
+  record; canonical hints alone cannot join Topics.
+- Added exact tests for all declared byte/head/tag/attribute/comment/name/value/
+  title/canonical/identifier limits; malformed and active content; deceptive
+  comments/meta/body data; one-pass entities; invalid UTF-8; exact-byte
+  sensitivity; and accessor/proxy/subclass/shared/resizable/decorated/non-owned
+  byte inputs. Runtime extraction has no filesystem, network, process, browser,
+  or logging capability, and raw document bytes are neither returned nor
+  persisted.
+- Inventoried and pinned one 580-byte project-created synthetic HTML fixture,
+  added HTML to the secret scanner, and recorded the parser/fingerprint
+  contract in proposed ADR-006 and `EXTRACTION_CONTRACT.md`. The report states
+  that `fixtureId` and `synthetic-fixture` evidence are caller declarations and
+  that runtime provenance is unverified; a connected path still needs trusted
+  observation/receipt design.
+- An independent read-only implementation audit found and verified fixes for
+  unterminated-head acceptance, proxy/backing-buffer leakage, oversized
+  typed-array preflight, and overclaimed fixture provenance. Its technical
+  disposition was PASS for the bounded offline scope.
+- Current verification passes all 125 tests under the restricted process
+  guard; the ordinary suite passes 124 with only the guard self-test skipped.
+  The pilot evaluator and split dry run still run successfully, and the local
+  secret scanner finds zero matches across 49 package files after all six
+  detector self-tests pass.
+
+## Updated on 2026-09-21
+
+- Refined P1.2 around an owner-ready review queue rather than manual corpus
+  JSON. The future workflow must assemble bounded provenance-checked metadata,
+  present `same-topic` / `different-topic` / `uncertain` decisions, and retain
+  review/adjudication history. It must stop and present the prepared task to the
+  owner before freezing a held-out split or making any automatic-join decision.
+- A separate independent read-only reviewer reproduced the focused and full
+  verification, applied both Trust and Quality lenses, and issued ACCEPT / ACCEPT
+  for the bounded offline P1.3a scope with no implementation, test, or security
+  blocker. This is one reviewer applying two lenses, not two independent people;
+  the accepted residuals remain explicit and ADR-006 still needs owner
+  disposition.
 
 ## Active decisions
 
@@ -102,6 +144,7 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
 - `ADR-003-alpha-architecture.md`: **Proposed**; its paper cost comparison exists, but measured load, recovery, security, and operations evidence still block a production-stack commitment.
 - `ADR-004-initial-topic-granularity.md`: **Accepted** for the initial English editorial corpus.
 - `ADR-005-topic-discussion-correction-history.md`: **Proposed**; owner, Trust, and Quality review are required before correction implementation.
+- `ADR-006-synthetic-html-extraction-profile.md`: **Proposed with offline implementation evidence and Trust/Quality ACCEPT**; the narrow synthetic profile is implemented, but owner acceptance remains open. It authorizes no live page or production fingerprint use.
 
 ## Blockers
 
@@ -114,22 +157,33 @@ implementation, while building the license-safe P1.2 corpus and evaluator.
 - P1.2 remains incomplete: the pilot is not a cluster-separated held-out set,
   its precision Wilson lower bound is about 0.51, and it has 4 automatic-join
   decisions across 4 clusters versus the predeclared 60/20 minimum. The
-  200-pair/50-cluster corpus, held-out block-bootstrap sensitivity report,
+  review-ready collection/labeling queue, 200-pair/50-cluster corpus, held-out
+  block-bootstrap sensitivity report,
   actual expanded cases, pre-result tuning/held-out policy freeze, isolated
   candidate bundle, provenance review, and independent reproducibility review
   are still needed. The strict schema, policy/prediction contracts, and
   generated result evaluator plus retrospective dependency-block dry run
   validate tooling only and cannot close any of these evidence gaps. No
   external policy receipt has been frozen, and no prediction bundle or real
-  result exists.
+  result exists. Once the review queue is ready, work must stop at the recorded
+  owner checkpoint before any split freeze or held-out evaluation.
+- P1.3 remains incomplete beyond the synthetic-only parser increment. The
+  extractor does not verify caller-declared fixture provenance, parse general
+  HTML, identify main content, establish semantic equivalence, observe a
+  browser, fetch a URL, or define production fingerprint attestation. ADR-006
+  still needs owner disposition.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate
 
-**GO:** local fixture-only resolver/evaluator work and planning the larger license-safe labeled set under ADR-004.
+**GO:** local fixture-only resolver/evaluator/extraction work and planning the larger license-safe labeled set under ADR-004.
 
 **STOP:** real browsing capture/egress, live URL fetches, hosted embeddings, auth/public writes, AI credentials/inference, deployment, spending, announcements, recruitment, and store submission.
 
 ## Next owner approval required
 
-Approve or revise ADR-003's modular-monolith direction and ADR-005's append-only merge/split history semantics, then decide the browser-egress/retention assumptions and acceptable operational cost shape. No connected implementation starts from the approvals recorded so far.
+Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
+merge/split history semantics, and ADR-006's narrow synthetic extraction
+profile; then decide the browser-egress/retention assumptions and acceptable
+operational cost shape. No connected implementation starts from the approvals
+recorded so far.

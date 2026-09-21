@@ -6,15 +6,47 @@ import { fileURLToPath } from "node:url";
 
 const packageDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceDirectory = path.join(packageDirectory, "src");
+const extractionDirectory = path.join(packageDirectory, "extraction");
+const canonicalJsonPath = path.join(
+  packageDirectory,
+  "evaluation",
+  "canonical-json.js",
+);
 const fixtureManifestPath = path.join(packageDirectory, "fixtures", "manifest.json");
 
-test("source has no network, DNS, process, filesystem, or dynamic-code capability", async () => {
-  const sourceFiles = (await readdir(sourceDirectory))
-    .filter((name) => name.endsWith(".js"))
-    .sort();
+test("runtime modules have no network, DNS, process, filesystem, logging, or dynamic-code capability", async () => {
+  const runtimeFiles = [
+    ...(
+    await Promise.all(
+      [sourceDirectory, extractionDirectory].map(async (directory) =>
+        (await readdir(directory))
+          .filter((name) => name.endsWith(".js"))
+          .map((name) => path.join(directory, name)),
+      ),
+    )
+    ).flat(),
+    canonicalJsonPath,
+  ].sort();
+  const runtimeFileSet = new Set(runtimeFiles.map((file) => path.resolve(file)));
+  assert.deepEqual(
+    runtimeFiles.map((file) =>
+      path.relative(packageDirectory, file).replaceAll("\\", "/"),
+    ),
+    [
+      "evaluation/canonical-json.js",
+      "extraction/html-extraction.js",
+      "src/errors.js",
+      "src/index.js",
+      "src/resolver.js",
+      "src/url.js",
+    ],
+  );
 
-  for (const sourceFile of sourceFiles) {
-    const source = await readFile(path.join(sourceDirectory, sourceFile), "utf8");
+  for (const runtimeFile of runtimeFiles) {
+    const source = await readFile(runtimeFile, "utf8");
+    const relativeFile = path
+      .relative(packageDirectory, runtimeFile)
+      .replaceAll("\\", "/");
     const imports = [
       ...source.matchAll(/\bfrom\s+["']([^"']+)["']/g),
       ...source.matchAll(/\bimport\s+["']([^"']+)["']/g),
@@ -23,12 +55,20 @@ test("source has no network, DNS, process, filesystem, or dynamic-code capabilit
     for (const importedModule of imports) {
       assert.match(
         importedModule,
-        /^(?:\.\/.+|node:(?:buffer|crypto|net))$/,
-        `${sourceFile} imports unexpected capability ${importedModule}`,
+        /^(?:\.\.?\/.+|node:(?:buffer|crypto|net|util))$/,
+        `${relativeFile} imports unexpected capability ${importedModule}`,
       );
+      if (importedModule.startsWith(".")) {
+        const resolvedImport = path.resolve(path.dirname(runtimeFile), importedModule);
+        assert.ok(
+          runtimeFileSet.has(resolvedImport),
+          `${relativeFile} imports unaudited runtime module ${importedModule}`,
+        );
+      }
     }
 
     assert.doesNotMatch(source, /\b(?:fetch|WebSocket|EventSource|XMLHttpRequest)\b/);
+    assert.doesNotMatch(source, /\bconsole\s*\./);
     assert.doesNotMatch(source, /\b(?:require|eval|Function)\s*\(/);
     assert.doesNotMatch(source, /\bimport\s*\(/);
     assert.doesNotMatch(source, /\bprocess\s*\./);
@@ -59,13 +99,14 @@ test("package declares no runtime or development dependencies", async () => {
 
 test("fixture inventory records synthetic provenance and minimum-data review", async () => {
   const manifest = JSON.parse(await readFile(fixtureManifestPath, "utf8"));
-  assert.equal(manifest.manifestVersion, "fixture-provenance/1.0.0");
+  assert.equal(manifest.manifestVersion, "fixture-provenance/1.1.0");
   assert.equal(new Date(manifest.reviewedAt).toISOString(), manifest.reviewedAt);
   assert.deepEqual(
     manifest.entries.map((entry) => entry.path).sort(),
     [
       "evaluation/pilot-pairs.json",
       "evaluation/pilot-split-dry-run.json",
+      "fixtures/html/harbor-barrier.html",
       "fixtures/observations.js",
     ],
   );

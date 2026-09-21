@@ -1,6 +1,6 @@
 {
-  "manifestVersion": "fixture-provenance/1.0.0",
-  "reviewedAt": "2026-09-20T07:47:30.196Z",
+  "manifestVersion": "fixture-provenance/1.1.0",
+  "reviewedAt": "2026-09-20T18:14:30.927Z",
   "entries": [
     {
       "path": "fixtures/observations.js",
@@ -25,6 +25,16 @@
     {
       "path": "evaluation/pilot-split-dry-run.json",
       "purpose": "Structural dependency-block split validation without quality claims",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    },
+    {
+      "path": "fixtures/html/harbor-barrier.html",
+      "purpose": "Reviewed bounded-head extraction and raw-byte fingerprint fixture",
       "provenance": "project-created-synthetic",
       "containsCopiedText": false,
       "containsPersonalData": false,

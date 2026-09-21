@@ -1,6 +1,6 @@
 # Development / Testing / Rollout Roadmap
 
-This roadmap was last refined on 2026-09-20. Do not skip gates. `plans/PHASE_0_FOUNDATION.md` contains the assumptions, metrics, cost envelope, and current limited-go decision.
+This roadmap was last refined on 2026-09-21. Do not skip gates. `plans/PHASE_0_FOUNDATION.md` contains the assumptions, metrics, cost envelope, and current limited-go decision.
 
 ## Phase 0 — Product and feasibility
 
@@ -73,9 +73,17 @@ Owner: Semantic Resolution, with Trust provenance/licensing review and Quality r
 
 Dependencies: P0.1 and P1.1 domain vocabulary.
 
-Deliverable: versioned, license-safe labels for at least 200 source-pair decisions across at least 50 story clusters, plus an evaluator that reports confusion matrix, precision, coverage/recall, Wilson interval, story-cluster bootstrap sensitivity, abstentions, latency, and cost.
+Deliverable: a review-ready workflow that assembles bounded, provenance-checked source metadata into a review queue, presents each pair with enough context to decide `same-topic`, `different-topic`, or `uncertain`, and records the owner's decisions, reviewer identity, timestamps, rationale, and adjudications without requiring manual JSON construction. It must produce versioned, license-safe labels for at least 200 source-pair decisions across at least 50 story clusters, plus an evaluator that reports confusion matrix, precision, coverage/recall, Wilson interval, story-cluster bootstrap sensitivity, abstentions, latency, and cost.
 
 Acceptance: duplicate, syndicated, updated, related-but-distinct, unrelated, and adversarial-title cases are represented; tuning and held-out splits are made by story cluster; a second reviewer checks at least 20% of labels; disagreements and provenance are retained; evaluator correctness has deterministic tests.
+
+Owner checkpoint: when the review queue is ready, stop before freezing the
+held-out split and explicitly present the owner with the prepared human-review
+task. The owner should only need to decide the relationship for each presented
+pair; the workflow must handle metadata, ordering, review coverage, timestamps,
+and corpus updates. Do not advance to the held-out evaluation, automatic
+semantic-join decision, or the P1.2 gate until the review coverage,
+adjudications, provenance, and owner disposition are recorded.
 
 Gate: provenance is accepted, leakage checks pass, and another role can reproduce the deterministic baseline.
 
@@ -113,6 +121,17 @@ coverage, provenance review, and independent reproducibility gate remain open.
 ### P1.3 Extraction and fingerprint spike
 
 Owner: Platform and Client, with Semantic input and Trust/Quality review.
+
+Status: **In progress.** P1.3a now provides a dependency-free, in-memory,
+synthetic-only bounded-head extractor, one inventoried fixture, exact raw-byte
+fingerprinting, non-authoritative canonical evidence, resolver projection and
+P1.2 Source-integration tests, hostile-input/resource-bound checks, and no
+connected capability. The
+runtime explicitly does not verify caller-declared fixture provenance. Proposed
+ADR-006 still needs owner disposition. One independent read-only reviewer
+applied both Trust and Quality lenses and issued ACCEPT / ACCEPT for this
+bounded offline increment; no live/general HTML or production fingerprint
+claim follows from that review.
 
 Dependencies: P0.1 corpus schema and an approved public/synthetic HTML fixture corpus.
 

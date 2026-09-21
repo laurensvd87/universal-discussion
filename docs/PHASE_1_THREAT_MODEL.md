@@ -1,17 +1,18 @@
-# Phase 1 Threat Model: Offline Resolver and Read-only Indicator
+# Phase 1 Threat Model: Offline Resolver, Synthetic Extraction, and Read-only Indicator
 
 Status: Proposed
 
-Last reviewed: 2026-09-19
+Last reviewed: 2026-09-20
 
 Owners: Orchestrator and trust/security reviewer
 
 ## Purpose
 
-This document defines the security and privacy boundary for two ordered Phase 1 increments:
+This document defines the security and privacy boundary for three ordered Phase 1 increments:
 
 1. an offline source-to-topic resolver spike using checked-in fixtures; and
-2. a read-only desktop-browser indicator that looks up an already-known source/topic and displays separately derived human and agent activity counts.
+2. an offline, synthetic-only extraction/fingerprint profile over caller-supplied fixture bytes; and
+3. a read-only desktop-browser indicator that looks up an already-known source/topic and displays separately derived human and agent activity counts.
 
 It is a gate for those increments, not approval for a beta, production deployment, extension-store submission, public writes, AI execution, or collection of real-user telemetry.
 
@@ -324,6 +325,29 @@ case/block/global matrices, and runs the frozen bootstrap, but emits no gate
 branch and always marks held-out evidence false. It cannot replace external
 chronology, candidate isolation, Trust review, systematic-error review, or
 independent reproduction.
+
+### Increment A3 synthetic extraction checks
+
+- **A-EXTRACT-01:** Require fatal UTF-8 and the explicit bounded synthetic head profile; exercise comments, quoting, case, one-pass entities, malformed structure, active/base elements, deceptive meta/comment/body content, and an unclosed head.
+- **A-BOUND-01:** Accept every declared byte, head, tag, attribute, comment, name, value, title, canonical-count, and fixture-ID limit exactly and reject the next unit. Reject a far-over-limit typed array before enumerating its indexed keys.
+- **A-FP-01:** Pin the reviewed fixture's exact byte digest and prove that one-byte, line-ending, and ignored-metadata changes alter the fingerprint. Describe it only as an exact synthetic document-byte fingerprint.
+- **A-CANON-01:** Preserve the normalized observed URL as Source identity. Test absent, valid same-origin, invalid, private/credentialed/non-HTTP, cross-origin, duplicate, and conflicting canonical declarations; canonical evidence must never merge Sources.
+- **A-INPUT-01:** Reject accessors, proxies, inherited behavior, symbols, typed-array subclasses, shared/resizable/decorated buffers, and non-owned views without executing attacker getters or echoing supplied content in errors.
+- **A-CAP-01:** Include extraction runtime code in static capability and logging checks and run the complete suite under the process guard. Retain no raw HTML or rejected href in output.
+- **A-PROV-01:** Inventory the checked-in HTML as minimum project-created synthetic data and pin its digest, while reporting that runtime `fixtureId` and `synthetic-fixture` evidence are caller declarations rather than manifest verification or attestation.
+
+The P1.3a implementation is an in-memory test profile, not browser DOM parity.
+It reads no fixture path and cannot prove that arbitrary supplied bytes match
+the inventory. Proposed ADR-006 and `EXTRACTION_CONTRACT.md` preserve that
+trust gap explicitly. Passing these checks cannot authorize live fetching,
+public-page collection, browser observation, or production fingerprint trust;
+the P1.3 gate also requires recorded Trust/Quality and owner disposition.
+
+Current technical review (2026-09-21): one independent read-only reviewer
+reproduced the focused and complete verification and issued Trust ACCEPT and
+Quality ACCEPT for the bounded offline P1.3a scope. This was one reviewer
+applying two lenses, not two independent people. Owner disposition of proposed
+ADR-006 remains open, so the broader P1.3 gate is not closed.
 
 ### Increment B checks
 

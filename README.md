@@ -15,7 +15,7 @@ The package intentionally does not lock in a programming language, cloud vendor,
 
 ## Current execution state
 
-Phase 0 is in progress with a limited go for one isolated implementation slice. Start with:
+Phase 0 is in progress with a limited go for isolated offline fixture-only implementation slices. Start with:
 
 - `plans/PHASE_0_FOUNDATION.md` — challenged assumptions, scope, metrics, cost envelope and open approvals;
 - `agents/TEAM.md` — lean ownership and review contract;
@@ -26,6 +26,7 @@ Phase 0 is in progress with a limited go for one isolated implementation slice. 
 - `decisions/ADR-002-browser-observation-privacy.md` — the accepted user-invoked browser direction and still-open connected-use gate;
 - `decisions/ADR-004-initial-topic-granularity.md` — the accepted time-bounded editorial story-cluster definition;
 - `decisions/ADR-005-topic-discussion-correction-history.md` — the proposed append-only merge/split and Discussion-history semantics;
+- `decisions/ADR-006-synthetic-html-extraction-profile.md` — the proposed narrow offline profile for exact synthetic document-byte extraction;
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
 The first implementation is a dependency-free, offline topic-resolution kernel under `spikes/topic-resolution/`. It uses synthetic fixtures and performs no network or persistence I/O. Run it with Node.js 24 or newer:
@@ -73,6 +74,15 @@ A generated-fixture-only result evaluator now exercises the following step:
 frozen integer decisions, confusion/Wilson metrics, abstention coverage,
 per-case error queues, and dependency-block bootstrap sensitivity. It rejects
 non-synthetic Sources and always withholds held-out evidence and a gate branch.
+
+The first P1.3 increment adds a bounded, in-memory parser for one inventoried
+project-created HTML fixture plus generated adversarial inputs. It extracts a
+title, treats same-origin canonical metadata only as a hint, preserves the
+observed URL, and hashes exact bytes into resolver-compatible Source fields
+that can be combined with separately reviewed P1.2 corpus metadata. It performs
+no file read or fetch at runtime. Fixture identity is
+caller-declared rather than attested, so this is not general page extraction or
+a production fingerprint trust boundary.
 
 Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
 

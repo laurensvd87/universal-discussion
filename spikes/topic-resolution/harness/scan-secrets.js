@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const scannedExtensions = new Set([".js", ".json", ".md"]);
+const scannedExtensions = new Set([".html", ".js", ".json", ".md"]);
 const excludedDirectories = new Set([".git", "node_modules"]);
 const scannerVersion = "high-confidence-local/1.0.0";
 const patterns = [

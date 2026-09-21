@@ -6,9 +6,9 @@ mapping:
 `Source -> Topic -> Discussion`
 
 It tests domain behavior before choosing a web framework, browser client,
-database, vector store, AI provider, or hosting platform. The runtime kernel in
-`src/` performs no network, filesystem, or database I/O; the test, evaluation,
-and verification tooling reads only local package files.
+database, vector store, AI provider, or hosting platform. Runtime modules in
+`src/` and `extraction/` perform no network, filesystem, or database I/O; the
+test, evaluation, and verification tooling reads only local package files.
 
 ## Run
 
@@ -29,9 +29,9 @@ than an ordinary passing unit run, though it is still a process-level harness
 rather than an operating-system network namespace.
 
 The secret check first exercises every supported detector with an in-memory
-synthetic sample, then scans all JavaScript, JSON, and Markdown in this package
-for a small versioned set of high-confidence credential formats. It reports
-only pattern names and locations, never matched values. It complements the
+synthetic sample, then scans all HTML, JavaScript, JSON, and Markdown in this
+package for a small versioned set of high-confidence credential formats. It
+reports only pattern names and locations, never matched values. It complements the
 no-dependency/no-environment-access checks; it is not a substitute for host
 repository secret scanning or incident response.
 
@@ -115,6 +115,42 @@ per-case, and per-block matrices, Wilson intervals, coverage, error queues, and
 bootstrap sensitivity. It has no CLI or checked-in report, rejects real-source
 provenance, and cannot choose a gate branch.
 
+## Synthetic HTML extraction experiment
+
+`extraction/html-extraction.js` begins P1.3 with a pure in-memory operation over
+caller-declared synthetic UTF-8 bytes. It recognizes only an explicit bounded
+HTML head, requires one plain title, records an optional canonical link as
+non-authoritative metadata, and computes a SHA-256 fingerprint over the exact
+input bytes. It does not fetch the observed URL or read the fixture path.
+
+```js
+import { extractSyntheticHtml } from "./extraction/html-extraction.js";
+import { createTopicResolver } from "./src/index.js";
+
+const output = extractSyntheticHtml({
+  fixtureId: "html/harbor-barrier",
+  observedUrl: "https://publisher.example.com/city/observed",
+  mediaType: "text/html; charset=utf-8",
+  htmlBytes,
+});
+
+const resolved = createTopicResolver().resolve(output.report.sourceProjection);
+```
+
+The parser rejects active/base/unknown head elements, malformed structures,
+invalid encodings, behavioral inputs, and explicit resource-limit violations.
+The content after `</head>` is opaque to extraction. The normalized observed
+URL always remains the Source URL; even an accepted same-origin canonical is a
+hint and never a merge signal.
+
+The fingerprint is an exact synthetic document-byte fingerprint, not a
+semantic content fingerprint. Line-ending, metadata, or other byte changes
+produce a different value. Its `synthetic-fixture` evidence and fixture ID are
+caller assertions: the runtime does not verify them against the fixture
+manifest. The checked-in fixture is separately inventoried and pinned by its
+test. See `EXTRACTION_CONTRACT.md` and proposed ADR-006 for the full grammar,
+limits, provenance boundary, and non-claims.
+
 ## Contract
 
 ```js
@@ -159,8 +195,9 @@ Resolution is intentionally conservative:
 The evidence field makes the test boundary auditable; it is an assertion, not
 cryptographic attestation or trusted proof suitable for a production/client
 boundary. All checked-in fixtures are synthetic and use reserved example
-domains. Extraction, attestation, collision policy, and resolver upgrades need
-separate design work.
+domains. The P1.3a extractor now exercises only exact synthetic document bytes;
+production observation, attestation, collision policy, semantic equivalence,
+and resolver upgrades still need separate design work.
 
 `fixtures/manifest.json` inventories the executable observation and evaluation
 fixtures, their project-created synthetic provenance, privacy/secret review,
@@ -191,8 +228,10 @@ are rejected; retained query order is not changed because duplicate parameter
 order can be meaningful. Trailing-dot hostnames are rejected rather than
 collapsed across browser origins.
 
-Observation and activity inputs use strict field allowlists. Raw bodies, HTML,
-prompts, and AI output are rejected instead of stored.
+Resolver observation and activity inputs use strict field allowlists. Raw
+bodies, HTML, prompts, and AI output are rejected instead of stored. The
+separate extractor accepts only bounded in-memory synthetic HTML bytes and
+returns no raw content.
 
 Out of scope: live fetching, browser APIs, persistence, authentication,
 posting, moderation workflows, AI calls, embeddings, probabilistic matching,
