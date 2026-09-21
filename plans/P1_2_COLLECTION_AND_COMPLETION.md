@@ -1,11 +1,17 @@
 # P1.2 Collection and Review-Completion Plan
 
-Status: Proposed design only; no real/public metadata collection is authorized
-or present.
+Status: Accepted for generated-fixture-only P1.2b-1 implementation; no
+real/public metadata collection is authorized or present.
 
 Date: 2026-09-21
 
 Owners: Semantic Resolution, Trust, Quality, and Lead / Product Orchestrator
+
+Owner disposition: ACCEPT on 2026-09-21 for P1.2b-1 only. The owner is
+currently the project's sole human builder. Generated fixtures may exercise
+distinct declared test identities, but they are not real reviewers and cannot
+establish independent corpus review. Real acquisition and P1.2b-2 through
+P1.2b-4 remain blocked on their separate gates.
 
 Dependencies: accepted topic definition in ADR-004; owner disposition of
 ADR-007; explicit acquisition authorization; Trust approval of the exact
@@ -331,13 +337,16 @@ predates or includes held-out results.
 
 ## Implementation sequence and gates
 
-### P1.2b-0 — decisions (blocked on owner/Trust)
+### P1.2b-0 — decisions (partially complete)
 
-- Dispose ADR-007 and this plan.
-- Authorize an exact acquisition/provenance scope.
-- Name four distinct review roles.
+- **Complete:** owner accepted ADR-007 and this plan for generated-only P1.2b-1.
+- **Open:** authorize an exact acquisition/provenance scope.
+- **Open:** name distinct real primary, secondary, adjudication, and provenance
+  reviewers; the current solo-builder arrangement does not satisfy
+  independence.
 
-Gate: written ACCEPT/REVISE decisions. Silence is not approval.
+Gate for P1.2b-1: satisfied. Gate for acquisition or real review: still blocked;
+silence and synthetic role identities are not approval or staffing.
 
 ### P1.2b-1 — generated completion preflight (locally allowed after plan review)
 

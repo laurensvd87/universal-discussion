@@ -1,10 +1,18 @@
 # ADR-007: Use a digest-bound local ledger for owner labeling
 
-Status: Proposed; synthetic-only implementation evidence exists
+Status: Accepted for the offline workflow and generated-only P1.2b-1 preflight;
+real/public acquisition and real review completion remain unauthorized
 
 Date: 2026-09-21
 
 Owners: Semantic Resolution, Trust, Quality, Lead / Product Orchestrator
+
+Owner disposition: ACCEPT on 2026-09-21. The owner authorized generated-fixture
+P1.2b-1 implementation only and disclosed that the project currently has one
+human builder. Synthetic tests may use clearly declared fixture identities,
+but one person changing role names is not independent review. No real/public
+metadata acquisition, real secondary review, adjudication, corpus
+materialization, split freeze, or evaluation is authorized by this decision.
 
 ## Context
 

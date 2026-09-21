@@ -20,7 +20,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `plans/PHASE_0_FOUNDATION.md` — challenged assumptions, scope, metrics, cost envelope and open approvals;
 - `agents/TEAM.md` — lean ownership and review contract;
 - `plans/ROADMAP.md` and `plans/STATUS.md` — executable order and current gate;
-- `plans/P1_2_COLLECTION_AND_COMPLETION.md` — proposed corpus headroom, acquisition/provenance receipts, review reserve, completion receipt, and owner-stop design;
+- `plans/P1_2_COLLECTION_AND_COMPLETION.md` — the generated-preflight-approved corpus headroom, acquisition/provenance receipt, review reserve, completion receipt, and owner-stop design;
 - `docs/PHASE_1_THREAT_MODEL.md` — privacy/security constraints;
 - `docs/BYO_AI_THREAT_MODEL.md` — a proposed, provider-neutral boundary for any later AI work;
 - `decisions/ADR-001-offline-resolution-spike.md` — the accepted boundary for the completed offline P1.1 experiment;
@@ -28,7 +28,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-004-initial-topic-granularity.md` — the accepted time-bounded editorial story-cluster definition;
 - `decisions/ADR-005-topic-discussion-correction-history.md` — the proposed append-only merge/split and Discussion-history semantics;
 - `decisions/ADR-006-synthetic-html-extraction-profile.md` — the proposed narrow offline profile for exact synthetic document-byte extraction;
-- `decisions/ADR-007-offline-owner-review-ledger.md` — the proposed digest-bound local labeling workflow and its stop boundary;
+- `decisions/ADR-007-offline-owner-review-ledger.md` — the accepted offline digest-bound labeling workflow and its stop boundary;
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
 The first implementation is a dependency-free, offline topic-resolution kernel under `spikes/topic-resolution/`. It uses synthetic fixtures and performs no network or persistence I/O. Run it with Node.js 24 or newer:

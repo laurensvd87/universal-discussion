@@ -129,8 +129,9 @@ not the actual roadmap owner checkpoint, 200-pair/50-cluster corpus, independent
 review, provenance gate, held-out split, semantic quality, or automatic joins.
 Reviewer identity and timestamps are caller/local declarations, and a local
 administrator can truncate a valid event suffix without detection because no
-external receipt anchors the latest session. See proposed ADR-007 for that
-boundary. The proposed headroom, acquisition-plan/provenance digests,
+external receipt anchors the latest session. See accepted ADR-007 for that
+boundary. The generated-preflight-approved headroom,
+acquisition-plan/provenance digests,
 precommitted secondary coverage reserve, uncertainty archive, adjudication,
 and completion-receipt design is in
 `../../plans/P1_2_COLLECTION_AND_COMPLETION.md`; it authorizes no collection.

@@ -112,13 +112,14 @@ One independent read-only reviewer applied both Trust and Quality lenses to
 final tree `d3818ab` and issued ACCEPT / ACCEPT for this synthetic-only scope;
 the accepted residuals and non-authorizations are recorded in
 `research/P1_2A_GATE_REVIEW.md` and do not advance the owner checkpoint.
-`plans/P1_2_COLLECTION_AND_COMPLETION.md` now defines the proposed next step:
+`plans/P1_2_COLLECTION_AND_COMPLETION.md` now defines the next step, accepted
+for generated-fixture preflight only:
 provisionally target 250 pairs and at least 60 opaque acquisition strata, bind
 accepted acquisition-plan and provenance-inventory digests, precommit a 30%
 coverage sample plus ranked reserve, preserve uncertain/disagreement history
 outside the binary corpus projection, and use separate prepared-task and
-completed-review stops. No acquisition or later review stage is authorized by
-that design.
+completed-review stops. No acquisition or actual secondary/adjudication stage
+is authorized by that acceptance.
 The pre-result policy schema now binds future corpus/projection/split and system
 artifact digests to fixed-point join/abstention behavior, normative AUTO gate
 semantics, bootstrap settings, and offline scope. Generated tests make no

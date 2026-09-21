@@ -157,7 +157,8 @@ extraction boundary.
   owner acceptance. The final hash, reproduction evidence, resolved findings,
   control matrix, residuals, and non-authorizations are recorded in
   `research/P1_2A_GATE_REVIEW.md`.
-- Added the proposed P1.2 collection/completion plan rather than manufacturing
+- Added the P1.2 collection/completion plan, now accepted for generated-only
+  preflight, rather than manufacturing
   a bare-minimum benchmark. It provisionally targets 250 candidate pairs/60
   opaque acquisition strata, a 30% precommitted coverage set plus ranked
   reserve, exact acquisition-plan/provenance digests, a separate
@@ -182,7 +183,7 @@ extraction boundary.
 - `ADR-004-initial-topic-granularity.md`: **Accepted** for the initial English editorial corpus.
 - `ADR-005-topic-discussion-correction-history.md`: **Proposed**; owner, Trust, and Quality review are required before correction implementation.
 - `ADR-006-synthetic-html-extraction-profile.md`: **Proposed with offline implementation evidence and Trust/Quality ACCEPT**; the narrow synthetic profile is implemented, but owner acceptance remains open. It authorizes no live page or production fingerprint use.
-- `ADR-007-offline-owner-review-ledger.md`: **Proposed with synthetic-only implementation evidence and Trust/Quality ACCEPT**; it preserves append-only local primary decisions and the owner checkpoint, but owner acceptance remains open and it authorizes no real-data collection, corpus finalization, split, or evaluation.
+- `ADR-007-offline-owner-review-ledger.md`: **Accepted by the owner for the offline workflow and generated-only P1.2b-1 preflight**; the existing synthetic implementation has Trust/Quality ACCEPT, but the decision authorizes no real-data collection, real independent review, corpus finalization, split, or evaluation.
 
 ## Blockers
 
@@ -212,9 +213,14 @@ extraction boundary.
   collection merely by supplying 200 rows: it has declarations rather than a
   reviewed acquisition-plan/provenance-inventory digest, no attrition reserve
   beyond exact 20%, and no completion artifact that retains `uncertain` history
-  while binding a binary corpus. ADR-007 disposition, exact acquisition
-  authority, Trust's provenance protocol/inventory acceptance, and named
-  distinct reviewers are required first.
+  while binding a binary corpus. Exact acquisition authority, Trust's
+  provenance protocol/inventory acceptance, and named distinct reviewers are
+  required before real acquisition or review.
+- The owner accepted ADR-007 and the P1.2 completion plan for generated-only
+  P1.2b-1 work and disclosed that the project currently has one human builder.
+  Fixture identities can test role separation, but they are not evidence of
+  real independent review; P1.2b-2 through P1.2b-4 remain blocked on explicit
+  acquisition authority and distinct real reviewer staffing.
 - P1.3 remains incomplete beyond the synthetic-only parser increment. The
   extractor does not verify caller-declared fixture provenance, parse general
   HTML, identify main content, establish semantic equivalence, observe a
@@ -234,10 +240,9 @@ store submission.
 ## Next owner approval required
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
-merge/split history semantics, ADR-006's narrow synthetic extraction profile,
-ADR-007's offline owner-review ledger, and the P1.2 collection/completion plan.
-For P1.2, separately authorize the exact metadata origins/fields/acquisition/
-retention scope and name distinct primary, secondary, adjudication, and
-provenance reviewers. Then decide the browser-egress/retention assumptions and
-acceptable operational cost shape. No connected implementation starts from
-the approvals recorded so far.
+merge/split history semantics, and ADR-006's narrow synthetic extraction
+profile. For any P1.2 work beyond generated-only P1.2b-1, separately authorize
+the exact metadata origins/fields/acquisition/retention scope and name distinct
+real primary, secondary, adjudication, and provenance reviewers. Then decide
+the browser-egress/retention assumptions and acceptable operational cost
+shape. No connected implementation starts from the approvals recorded so far.
