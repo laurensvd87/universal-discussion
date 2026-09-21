@@ -117,6 +117,14 @@ test("review workflow keeps pure contracts separate from bounded local filesyste
       ],
     ],
     [
+      "review-resolution-journal.js",
+      [
+        "../evaluation/canonical-json.js",
+        "./review-completion-ledger.js",
+        "./review-workflow.js",
+      ],
+    ],
+    [
       "review-workflow.js",
       ["../evaluation/canonical-json.js", "../src/url.js"],
     ],
@@ -178,6 +186,7 @@ test("review workflow keeps pure contracts separate from bounded local filesyste
   for (const pureFile of [
     "review-completion-ledger.js",
     "review-completion-task.js",
+    "review-resolution-journal.js",
     "review-workflow.js",
     "review-tsv.js",
   ]) {

@@ -144,8 +144,12 @@ acquisition-plan, provenance-inventory, and completion-task envelopes without
 changing the v1 owner workflow. A second pure increment binds a completed v1
 primary ledger, records the task-precommitted initial coverage snapshot, and
 can append the first ordered synthetic secondary pass through a blinded view.
-It preserves uncertainty and disagreement but deliberately has no reserve,
-rereview, adjudication, finalization, or real-independence path; see
+It preserves uncertainty and disagreement. A generated-only successor journal
+now freezes that prefix, adds one bounded synthetic evidence supplement and
+same-role rereview for each uncertainty, derives unresolved exclusions, and
+continues the initial secondary queue. It stops at the first adjudication need
+or initial-resolution completion and deliberately has no adjudication, reserve,
+finalization, persistence, or real-independence path; see
 `evaluation/REVIEW_COMPLETION_CONTRACT.md`.
 
 An independent read-only reviewer applied both Trust and Quality lenses to

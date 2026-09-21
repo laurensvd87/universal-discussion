@@ -251,9 +251,10 @@ extraction boundary.
   secondary decision with exact task/session/primary-event/digest/chronology
   bindings. Its state preserves primary/secondary uncertainty and binary
   disagreement while always crediting zero eligible independent-human reviews.
-  Reserve activation, supplements, rereview, adjudication,
-  cluster/corpus/archive/receipt materialization, and receipt-bound downstream
-  wrappers remain open.
+  The generated successor now covers supplements, rereview, and derived
+  unresolved-role exclusions. Reserve activation, adjudication, broader
+  provenance/graph exclusions, cluster/corpus/archive/receipt materialization,
+  and receipt-bound downstream wrappers remain open.
 - Accepted ADR-008 for the next generated-only slice. It chooses one versioned
   resolution journal after the frozen completion-ledger prefix, permits only a
   bounded synthetic evidence supplement, same-role rereview, derived unresolved
@@ -262,6 +263,30 @@ extraction boundary.
   completion. Adjudication, eligibility projection, and fixed-point reserve
   activation remain later separately reviewed code increments. The completed
   6/6 synthetic owner run remains closed and is not repeated.
+- Implemented the ADR-008 version 1 generated resolution journal. It freezes
+  the exact completion-ledger prefix and global predecessor, projects the sole
+  next action, resolves generated primary/secondary uncertainty through one
+  bounded provenance-reviewed synthetic supplement and same-role rereview,
+  derives rather than solicits unresolved exclusions, and continues the
+  remaining initial secondary queue. It stops at adjudication or initial
+  resolution completion and provides no adjudication, reserve activation,
+  corpus, split, evaluation, real-review, persistence, or gate capability.
+- Owner direction now prioritizes the shortest working local proof of concept
+  and defers corpus-scale semantic validation until matching logic can be
+  revisited from observed use. The 200-to-250-pair human review remains a later
+  prerequisite for a validated automatic-join claim, not for local fixture UI
+  and integration. Until such evidence exists, the PoC defaults to NO AUTO:
+  deterministic/curated mappings may resolve a Discussion and experimental
+  semantic candidates may only be local reviewer suggestions.
+- Verification for the generated resolution journal passes 39/39 focused
+  boundary/task/ledger/journal checks, the full ordinary suite at 181 passes
+  plus its one expected restricted-harness skip, the restricted suite at
+  182/182, and the secret scanner across 67 files with zero findings after six
+  detector self-tests. An independent read-only Trust/Quality engineering audit
+  issued ACCEPT / ACCEPT with no critical, high, or medium finding. Its one low
+  residual is superlinear prefix replay, bounded to 1,000 entries for the
+  250-pair generated target and requiring a benchmark/refactor before materially
+  larger use. This is engineering evidence, not human corpus review or labeling.
 - Verification for the completed-primary bridge passes 24/24 focused
   boundary/task/ledger tests, the full ordinary suite at 166 passes plus its
   one expected restricted-harness skip, the full restricted suite at 167/167,

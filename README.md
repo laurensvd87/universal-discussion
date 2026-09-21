@@ -97,6 +97,11 @@ will preserve supplements, same-role rereviews, deterministic exclusions,
 later adjudication, and later reserve activation in a single causal order. Its
 first implementation slice stops at adjudication or completion of the initial
 coverage set; it still cannot perform real review or produce corpus evidence.
+That slice is now implemented as a pure contract: it resolves generated
+uncertainty with a bounded provenance-reviewed supplement and same-role
+rereview, derives rather than solicits exclusion, and continues the remaining
+initial synthetic secondary decisions. Adjudication and reserve activation
+remain later increments.
 
 The pre-result policy schema is also executable and tested. It can bind a
 future corpus/split/system artifact to immutable threshold, abstention, gate,

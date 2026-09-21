@@ -40,6 +40,17 @@ Stop conditions: no coherent topic boundary can be labeled; no privacy-safe disc
 
 Build disposable or isolated prototypes in this dependency order. Completing a local spike never authorizes external data collection, a provider call, deployment, spending, recruitment, or publication.
 
+Owner direction recorded 2026-09-21: prioritize the shortest working local
+proof of concept, then revisit semantic-matching logic from observed use. The
+200-to-250-pair human-reviewed corpus remains necessary before a validated
+automatic-join quality claim, but it is not a prerequisite for fixture-driven
+UI/integration work. Until a P1.4 branch is supported by evidence, the proof of
+concept defaults to **NO AUTO**: only deterministic or explicitly curated
+mappings may choose a shared Discussion. Experimental semantic candidates may
+be visible to a local developer/reviewer as suggestions, never as an automatic
+join or product-quality claim. This sequencing change does not authorize real
+data, connected browsing, deployment, recruitment, spending, or publication.
+
 ### P1.1 Offline resolution kernel
 
 Owner: Semantic Resolution, reviewed by Trust and Quality.
@@ -135,6 +146,13 @@ secondary queue. That slice must stop at the first adjudication need or initial
 resolution completion. Later reviewed versions may add adjudication and then
 fixed-point reserve activation only after a read-only eligibility projector;
 all versions preserve one causal head and credit zero independent-human review.
+The first journal version is now implemented. It freezes an empty, partial, or
+complete base-secondary prefix; adds exactly one synthetic provenance-reviewed
+supplement and same-role rereview for an uncertainty; derives a role-specific
+exclusion after a second `uncertain`; continues missing initial-secondary
+decisions; and returns either `adjudication-required` or
+`initial-resolution-complete`. It adds no adjudication or reserve API and no
+real-review, corpus, split, evaluation, or gate claim.
 A separate read-only AI engineering review reproduced the focused/full checks
 and issued Trust/Quality ACCEPT for commit `00372ec`; this is not human corpus
 review or independent labeling evidence. See

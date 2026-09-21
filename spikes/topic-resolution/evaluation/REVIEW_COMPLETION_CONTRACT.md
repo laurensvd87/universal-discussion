@@ -8,13 +8,21 @@ Versioned implementation boundary:
 - `story-review-completion-ledger/1.0.0`
 - `story-review-completion-event/1.0.0`
 - `story-review-completion-state/1.0.0`
+- `story-review-resolution-journal/1.0.0`
+- `story-review-resolution-event/1.0.0`
+- `story-review-resolution-action/1.0.0`
+- `story-review-resolution-state/1.0.0`
+- `story-generated-review-presentation/1.0.0`
 
 Status: the immutable pre-review artifact chain is implemented for generated
 fixtures only. A pure bridge from a completed v1 primary ledger can record the
 first synthetic secondary pass over the task-precommitted initial coverage set.
-Reserve activation, re-review, adjudication, cluster projection, corpus
-materialization, completion receipts, and downstream receipt-bound wrappers
-remain unimplemented.
+A pure successor journal can now resolve generated primary or secondary
+uncertainty through one provenance-reviewed synthetic supplement and same-role
+rereview, derive unresolved exclusions, and finish the initial secondary queue.
+It stops at adjudication or initial-resolution completion. Adjudication,
+reserve activation, cluster projection, corpus materialization, completion
+receipts, and downstream receipt-bound wrappers remain unimplemented.
 
 Owner authorization: P1.2b-1 generated-fixture preflight only. Real/public
 metadata acquisition and real review activity remain unauthorized.
@@ -33,6 +41,7 @@ generated acquisition-plan envelope
         -> generated completion-task envelope
         -> completed v1 primary ledger
         -> generated completion-ledger envelope
+        -> generated resolution-journal envelope
 ```
 
 Every arrow is checked by exact canonical SHA-256 bindings. The implementation
@@ -190,6 +199,52 @@ without an independently retained latest digest. The state reports absent
 concurrency control, unkeyed-digest authenticity, and unanchored history
 directly. No external anchor is created by this increment.
 
+## Generated resolution journal
+
+`story-review-resolution-journal/1.0.0` freezes the exact completion-ledger
+prefix and continues its sequence and predecessor digest through one logical
+head. It binds the acquisition plan, provenance inventory, primary task and
+session, completion task, initial activation snapshot, and base ledger. Base
+events are neither copied nor reopened.
+
+The deterministic next-action projector permits only this order:
+
+1. resolve every primary `uncertain` answer in primary-task order, including
+   reserve pairs;
+2. finish the missing initial secondary decisions in activation order,
+   skipping only a pair with a causally derived primary exclusion;
+3. resolve secondary `uncertain` answers in activation order;
+4. return the first binary disagreement as `adjudication-required`; or
+5. return `initial-resolution-complete`.
+
+An uncertainty receives exactly one bounded evidence supplement and one
+same-role rereview. The supplement carries two Source-keyed, project-created
+synthetic addenda; explicit no-copied-text/no-personal-data declarations; the
+committed synthetic provenance role; and capture/review chronology. It cannot
+replace a Source, URL, task field, label, or earlier event. The rereview accepts
+the same three relationship choices. A second `uncertain` answer is preserved
+and deterministically projects a role-specific exclusion; a reviewer cannot
+choose exclusion directly.
+
+Every command binds the expected journal digest and exact next-action digest.
+Each event binds that action, the immutable journal inputs, global sequence,
+predecessor, actor, item, and unattested local time. This is invocation
+consistency, not atomic persistence: two valid successors can still fork, and
+a fully recomputed alternative history or suffix truncation can validate.
+
+Only the nested `reviewView` is reviewer-safe. It contains the topic definition,
+three choices, pair ID, and each Source's URL, title, fact summary, publication
+time, and ordered synthetic evidence addenda. The coordinator action around it
+also contains internal causal digests and coverage position and must not be
+rendered as a reviewer view. No earlier label, rationale, role identity, case
+type, provenance internals, or expected answer enters `reviewView`.
+
+The generated state always credits zero eligible independent-human decisions
+and keeps every real-metadata, checkpoint, secondary-completion, adjudication,
+corpus, split, evaluation, automatic-join, and gate claim false. This contract
+has no persistence adapter, authentication, signature, external latest-head
+anchor, CLI, real reviewer, or real data capability.
+
 ## Solo-builder and identity boundary
 
 The owner currently develops the project alone. Different strings used by one
@@ -212,7 +267,7 @@ collisions, false target counts, digest rebinding, and cross-artifact drift.
 Run the focused checks with:
 
 ```powershell
-node --test --test-isolation=none test/boundary.test.js test/review-completion-task.test.js test/review-completion-ledger.test.js
+node --test --test-isolation=none test/boundary.test.js test/review-completion-task.test.js test/review-completion-ledger.test.js test/review-resolution-journal.test.js
 ```
 
 The full ordinary and restricted suites plus the local secret scanner remain
@@ -222,10 +277,11 @@ required before this increment can pass its technical gate.
 
 This increment does not provide a CLI or write any artifact. It does not add:
 
-- reserve coverage activation, secondary re-review, or adjudication;
-- evidence supplements or rereview-projection chronology;
+- adjudication or its blinded presentation;
+- reserve coverage activation;
 - fixed-point reserve activation;
-- exclusions, gold-cluster consistency, or corpus projection;
+- provenance/graph-derived exclusions beyond the implemented unresolved-role
+  cases, gold-cluster consistency, or corpus projection;
 - a review archive or completion receipt; or
 - receipt-bound split or evaluation-policy successor wrappers.
 
