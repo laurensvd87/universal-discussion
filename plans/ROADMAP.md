@@ -128,6 +128,10 @@ ordered first synthetic secondary pass over the precommitted initial coverage
 IDs. It retains uncertainty/disagreement and credits zero independent-human
 decisions. It has no reserve activation, rereview, adjudication, real reviewer
 actions, corpus materialization, split, or evaluation capability.
+A separate read-only AI engineering review reproduced the focused/full checks
+and issued Trust/Quality ACCEPT for commit `00372ec`; this is not human corpus
+review or independent labeling evidence. See
+`research/P1_2B1B_ENGINEERING_REVIEW.md`.
 The pre-result policy schema now binds future corpus/projection/split and system
 artifact digests to fixed-point join/abstention behavior, normative AUTO gate
 semantics, bootstrap settings, and offline scope. Generated tests make no

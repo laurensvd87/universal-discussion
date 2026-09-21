@@ -257,8 +257,13 @@ extraction boundary.
   boundary/task/ledger tests, the full ordinary suite at 166 passes plus its
   one expected restricted-harness skip, the full restricted suite at 167/167,
   and the secret scanner across 65 files with zero findings after six detector
-  self-tests. No separate independent Trust/Quality review has yet been
-  completed for this slice, so no independent-review claim is made for it.
+  self-tests. A separate read-only AI reviewer applied Trust and Quality
+  engineering lenses to commit `00372ec`, reproduced the evidence, verified
+  corrections for concurrency, manual-anchor, unkeyed-history, blinding, and
+  timestamp-bound claims, and issued ACCEPT / ACCEPT with no open critical,
+  high, or medium finding. This is not a human corpus review or independent
+  labeling evidence; provenance and residuals are recorded in
+  `research/P1_2B1B_ENGINEERING_REVIEW.md`.
 - Verified that preflight slice with 14/14 focused tests, the full ordinary
   suite at 156 passes plus its one expected restricted-harness skip, the full
   restricted suite at 157/157, and the secret scanner across 63 files with
