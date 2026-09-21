@@ -108,6 +108,10 @@ Its checked-in six-pair task is project-created synthetic data used only to
 exercise preparation, owner presentation, restart, concurrency, and truthful
 checkpoint behavior. It has no secondary/adjudication/finalization path and is
 not the real 200-pair task or the owner checkpoint above.
+One independent read-only reviewer applied both Trust and Quality lenses to
+final tree `d3818ab` and issued ACCEPT / ACCEPT for this synthetic-only scope;
+the accepted residuals and non-authorizations are recorded in
+`research/P1_2A_GATE_REVIEW.md` and do not advance the owner checkpoint.
 The pre-result policy schema now binds future corpus/projection/split and system
 artifact digests to fixed-point join/abstention behavior, normative AUTO gate
 semantics, bootstrap settings, and offline scope. Generated tests make no

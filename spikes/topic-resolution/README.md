@@ -132,6 +132,12 @@ administrator can truncate a valid event suffix without detection because no
 external receipt anchors the latest session. See proposed ADR-007 for that
 boundary and the later secondary/adjudication work.
 
+An independent read-only reviewer applied both Trust and Quality lenses to
+final implementation tree `d3818ab` and issued ACCEPT / ACCEPT for this bounded
+synthetic-only workflow. This was one reviewer, not two independent people or
+owner acceptance. See `../../research/P1_2A_GATE_REVIEW.md` for reproduction
+evidence and accepted residuals.
+
 `evaluation/EVALUATION_POLICY_CONTRACT.md` adds the next pre-result boundary.
 It strictly binds a future corpus, resolved projection, split manifest, and
 offline candidate artifact to fixed-point join/abstention rules, the normative

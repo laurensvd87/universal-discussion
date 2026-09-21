@@ -151,6 +151,12 @@ extraction boundary.
   with only the guard self-test skipped. The expanded scanner covers checked-in
   TSV and reports zero findings across 60 files after six detector self-tests;
   the pilot evaluator and structural split dry run remain unchanged and pass.
+- An independent read-only reviewer applied both Trust and Quality lenses to
+  final tree `d3818ab` and issued ACCEPT / ACCEPT with no open critical, high,
+  or medium finding. This was one reviewer, not two independent people and not
+  owner acceptance. The final hash, reproduction evidence, resolved findings,
+  control matrix, residuals, and non-authorizations are recorded in
+  `research/P1_2A_GATE_REVIEW.md`.
 - A separate independent read-only reviewer reproduced the focused and full
   verification, applied both Trust and Quality lenses, and issued ACCEPT / ACCEPT
   for the bounded offline P1.3a scope with no implementation, test, or security
@@ -167,7 +173,7 @@ extraction boundary.
 - `ADR-004-initial-topic-granularity.md`: **Accepted** for the initial English editorial corpus.
 - `ADR-005-topic-discussion-correction-history.md`: **Proposed**; owner, Trust, and Quality review are required before correction implementation.
 - `ADR-006-synthetic-html-extraction-profile.md`: **Proposed with offline implementation evidence and Trust/Quality ACCEPT**; the narrow synthetic profile is implemented, but owner acceptance remains open. It authorizes no live page or production fingerprint use.
-- `ADR-007-offline-owner-review-ledger.md`: **Proposed with synthetic-only implementation evidence**; it preserves append-only local primary decisions and the owner checkpoint but authorizes no real-data collection, corpus finalization, split, or evaluation.
+- `ADR-007-offline-owner-review-ledger.md`: **Proposed with synthetic-only implementation evidence and Trust/Quality ACCEPT**; it preserves append-only local primary decisions and the owner checkpoint, but owner acceptance remains open and it authorizes no real-data collection, corpus finalization, split, or evaluation.
 
 ## Blockers
 
