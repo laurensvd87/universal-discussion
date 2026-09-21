@@ -157,3 +157,25 @@ That review is not human corpus labeling or a substitute for the future
 independent reviewer. Rollback removes only the new successor module, tests,
 and generated contract records; it does not change the completed synthetic
 owner ledger or any earlier artifact.
+
+## Implementation evidence recorded 2026-09-21
+
+Version 1 is implemented at commit `f71b7e2`. It freezes empty, partial, and
+complete base-secondary prefixes; preserves one global sequence/head; resolves
+generated primary and secondary uncertainty through one bounded
+provenance-reviewed supplement and same-role rereview; derives terminal
+unresolved exclusions; continues the remaining initial-secondary queue; and
+stops at adjudication or initial-resolution completion.
+
+Verification passed 39/39 focused checks, the full ordinary suite at 181
+passes plus one expected restricted-harness skip, the restricted suite at
+182/182, and the secret scanner across 67 files with zero findings after six
+self-tests. A separate read-only AI reviewer issued Trust/Quality ACCEPT with
+no critical, high, or medium finding. The accepted low residual is superlinear
+prefix replay, bounded to 1,000 entries for this generated target and requiring
+a benchmark/refactor before materially larger use. The durable review record is
+`research/P1_2B1C_ENGINEERING_REVIEW.md`.
+
+This implementation and review grant no real-data authority and no independent
+human, corpus, split, evaluation, semantic-quality, automatic-join, deployment,
+spending, or publication evidence.

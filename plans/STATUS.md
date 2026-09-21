@@ -287,6 +287,8 @@ extraction boundary.
   residual is superlinear prefix replay, bounded to 1,000 entries for the
   250-pair generated target and requiring a benchmark/refactor before materially
   larger use. This is engineering evidence, not human corpus review or labeling.
+  Review provenance, controls, and residuals are recorded in
+  `research/P1_2B1C_ENGINEERING_REVIEW.md` for implementation commit `f71b7e2`.
 - Verification for the completed-primary bridge passes 24/24 focused
   boundary/task/ledger tests, the full ordinary suite at 166 passes plus its
   one expected restricted-harness skip, the full restricted suite at 167/167,
