@@ -256,8 +256,10 @@ route. It keeps publication time context-only and requires one portable
 contract rather than per-site parser code. The separate implementation now
 exists with direct-head bounds, same-document attestation, no auth/paywall
 detection claim, no egress, and no semantic path. Automated checks pass;
-independent Trust/Quality review and the approved owner Chromium smoke remain
-pending. Every broader page/platform remains stopped.
+a separate read-only AI audit issued Trust/Security and Quality ACCEPT with no
+open finding; evidence is in `research/P1_5C_ENGINEERING_REVIEW.md`. The
+approved owner Chromium smoke remains pending. Every broader page/platform
+remains stopped.
 
 Deliverable: one Chromium prototype against bundled fixtures or a local mock, with a browser-neutral core, exact manifest/permission inventory, and documented Firefox adapter gap.
 

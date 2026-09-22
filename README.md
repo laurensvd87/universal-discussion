@@ -37,6 +37,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
 - `research/P1_5B_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review, checklist reconciliation, and residuals for the `activeTab`-only local URL slice.
 - `research/P1_5B_MANUAL_SMOKE.md` — the owner-reported Chromium permission, behavior, traffic, storage, console, and keyboard evidence completing the exact local P1.5b slice.
+- `research/P1_5C_ENGINEERING_REVIEW.md` — the Trust/Security and Quality engineering review, audit reconciliation, and residuals for the exact two-route bounded metadata slice.
 - `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` — current official-source evidence and alternatives for Chromium, Android, and iOS content signals without a per-site API foundation.
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
@@ -165,9 +166,9 @@ hosted semantic processing, and BYO AI remain gated decisions; this local slice
 is not a claim that semantic clustering or publication eligibility has been
 validated.
 
-P1.5c implementation and automated checks exist, but its independent
-Trust/Quality audit and separate owner browser smoke are still required before
-that exact slice is marked complete.
+P1.5c implementation and automated checks exist, and a separate read-only AI
+audit issued Trust/Security and Quality ACCEPT with no open finding. Its owner
+browser smoke is still required before that exact slice is marked complete.
 
 ## Product in one sentence
 A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.

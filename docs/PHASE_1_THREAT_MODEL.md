@@ -517,8 +517,8 @@ robots/TDM selectors and cannot see response headers or site-wide TDM files.
 `publishedAtHint` is context-only and automated tests prove that valid changes
 or absence add no Topic, join, split, rank, fingerprint, or resolver capability.
 Automated hostile-DOM, route, contract, race, package, and temporal checks are
-implemented; browser smoke and a fresh Trust/Quality review remain required
-before P1.5c is complete.
+implemented, and the separate AI Trust/Security and Quality engineering review
+passes. The owner Chromium smoke remains required before P1.5c is complete.
 
 The document-ID attestation and final active-tab read reject changes observed
 before their respective checks. They cannot eliminate the small asynchronous

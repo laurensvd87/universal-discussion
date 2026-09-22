@@ -1,8 +1,8 @@
 # P1.5c approved metadata scope and real-page policy
 
 Status: approved and implemented for one bounded local experiment and exactly
-one public real-page test; automated evidence passes, independent review and
-owner browser evidence pending
+one public real-page test; automated evidence and the separate AI engineering
+review pass, while owner browser evidence remains pending
 
 Decision date: 2026-09-22
 

@@ -2,8 +2,9 @@
 
 Status: the exact local P1.5b URL slice passes automated checks, Trust/Quality
 engineering review, and the owner-run Chromium smoke. The exact P1.5c bounded
-metadata slice is implemented and automated checks pass; independent
-Trust/Quality review and its separate owner-run Chromium smoke are pending.
+metadata slice is implemented and automated checks pass; its separate AI
+Trust/Security and Quality engineering review also passes, while its owner-run
+Chromium smoke remains pending.
 The broader P1.5 browser-observation and content-extraction gate remains open.
 
 ## What it demonstrates

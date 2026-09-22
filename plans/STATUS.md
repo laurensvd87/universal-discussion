@@ -5,12 +5,12 @@
 Phase 0 foundation in progress; P0.1 and the frozen offline P1.1 kernel are
 complete, P1.2 evaluation and owner-review workflow work is in progress, and a bounded offline
 P1.3a synthetic HTML extraction increment has passed independent offline
-Trust/Quality review pending owner disposition of proposed ADR-006. A
+Trust/Quality review pending owner disposition of proposed ADR-006.
 P1.5b is complete for the owner-approved `activeTab`-only local URL boundary:
 automated evidence, Trust/Quality engineering review, and the owner-run
 Chromium smoke pass. The exact approved P1.5c metadata implementation now
-exists and its automated verification passes; independent review and owner
-browser smoke are not yet recorded. General page/WebView extraction and full browser
+exists; its automated verification and separate AI Trust/Security and Quality
+review pass, while owner browser smoke is not yet recorded. General page/WebView extraction and full browser
 integration stay at a separate owner/security/privacy/rights/store-policy stop.
 
 ## Current objective
@@ -296,8 +296,11 @@ broader Chromium, Android, or iOS extraction implementation.
 - Focused browser checks pass 83/83. The full ordinary suite passes 264 tests
   with only its expected restricted-harness self-test skipped; the restricted
   suite passes 265/265. The scanner covers 95 files with zero findings after
-  six detector self-tests. Independent Trust/Quality review and the exact
-  owner-run local/MDN Chromium smoke remain open.
+  six detector self-tests. A separate read-only AI reviewer issued
+  Trust/Security and Quality ACCEPT after the audit findings were reconciled in
+  `db331de`; no engineering finding remains. Review provenance, controls, and
+  residuals are in `research/P1_5C_ENGINEERING_REVIEW.md`. The exact owner-run
+  local/MDN Chromium smoke remains open.
 - Recorded the owner's PoC assumption that public document-head metadata is
   locally processable and no generic paywall detector or per-site API is
   needed. The code makes no auth/paywall-detection claim. This is not a legal,
@@ -316,7 +319,7 @@ broader Chromium, Android, or iOS extraction implementation.
 - `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
 - `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
 - `ADR-010-local-active-tab-url-observation.md`: **Accepted and complete for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated, Trust/Quality engineering-review, and owner Chromium evidence pass.
-- `ADR-011-cross-platform-content-signal-boundary.md`: **Accepted and implemented for the exact P1.5c controlled-page plus one pinned MDN-page experiment; post-implementation review/manual evidence pending.** It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
+- `ADR-011-cross-platform-content-signal-boundary.md`: **Accepted, implemented, and AI engineering-reviewed for the exact P1.5c controlled-page plus one pinned MDN-page experiment; owner manual evidence pending.** It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
 
 ## Blockers
 
@@ -326,8 +329,8 @@ broader Chromium, Android, or iOS extraction implementation.
   evidence. It does not request broad `tabs`, inspect a title/DOM/body, invoke
   P1.3 extraction, or establish store eligibility. The owner approved only the
   exact ADR-011/P1.5c controlled-page plus pinned-MDN metadata experiment; its
-  implementation exists, while independent review and owner-browser evidence
-  are now the next local work. ADR-006 also
+  implementation and AI engineering review pass, while owner-browser evidence
+  is now the next local work. ADR-006 also
   still needs owner acceptance before its different synthetic byte-extraction
   profile is integrated anywhere.
 - Exact egress fields, account linkage, sensitive-site exclusions, log/backup retention, deletion, and telemetry are undecided.
@@ -456,7 +459,7 @@ broader Chromium, Android, or iOS extraction implementation.
 
 **GO:** local fixture-only resolver/evaluator/extraction/review-workflow work;
 continued local use of the completed, exact P1.5b `activeTab` URL-only slice;
-and implementation/review/manual-smoke work strictly inside the approved
+and manual-smoke work strictly inside the approved
 ADR-011/P1.5c two-route metadata boundary.
 
 **STOP:** any `scripting`, title/metadata/DOM/body/WebView extraction, field,
@@ -473,7 +476,8 @@ store submission.
 The exact ADR-011/P1.5c fields, contexts, `activeTab` plus `scripting`
 permission, ephemeral retention, temporal non-use, controlled fixture, and one
 pinned MDN test are approved. No additional owner input is required to
-implement and independently review that exact slice. General adapter code must
+run the documented manual smoke for the already implemented and reviewed exact
+slice. General adapter code must
 not be mistaken for universal authorization; every other third-party,
 authenticated/private/paywalled, unknown-rights, mobile, model, egress,
 provider, spending, deployment, or store/publication action returns to its own
