@@ -59,16 +59,25 @@ or privacy rules.
 5. Repeat on `https://example.org/#manual-fragment`. Confirm it resolves to a
    distinct Source but the same Topic and Discussion.
 6. Repeat on `https://example.com/?manual-probe=1`, a non-allowlisted public
-   page, and a restricted browser page such as `chrome://extensions/`. Confirm
-   each shows unsupported or unavailable and clears every prior Source, Topic,
-   Discussion, mapping, freshness, and count value.
-7. Exercise a bundled resolved scenario, the hostile-title scenario, and each
+   page, a safe local address such as `http://127.0.0.1/` with no local service
+   running, and a restricted browser page such as `chrome://extensions/`.
+   Confirm each shows unsupported or unavailable and clears every prior Source,
+   Topic, Discussion, mapping, freshness, and count value. Do not substitute a
+   private or authenticated page that contains real data.
+7. In popup DevTools, set a breakpoint immediately before the second
+   `readActiveTab()` call in `core/active-tab-controller.js`. Start a supported
+   check, navigate the source tab to the other supported URL while paused, and
+   resume. Repeat by closing the source tab while paused. Confirm navigation
+   produces unavailable with no stale resolved fields; closing the tab may
+   close the popup, but must never display the stale result. Remove the
+   breakpoint afterward.
+8. Exercise a bundled resolved scenario, the hostile-title scenario, and each
    non-resolved scenario. Confirm markup-like text stays inert and no
    non-resolved state displays misleading zero counts.
-8. Inspect the popup with DevTools while repeating supported, rejected, and
+9. Inspect the popup with DevTools while repeating supported, rejected, and
    repeated checks. Confirm the Network panel remains empty, Console has no
    output or error, and Application/extension storage remains empty.
-9. Use only the keyboard to reach and activate the current-tab button, open
+10. Use only the keyboard to reach and activate the current-tab button, open
    the bundled-scenario disclosure, choose a scenario, and submit it. Confirm
    focus is visible and each state change has visible status text.
 
