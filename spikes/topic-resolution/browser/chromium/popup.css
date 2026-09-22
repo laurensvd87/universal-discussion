@@ -13,7 +13,7 @@
 
 body {
   width: 380px;
-  min-height: 520px;
+  min-height: 580px;
   margin: 0;
   background:
     radial-gradient(circle at 100% 0%, rgba(33, 158, 188, 0.18), transparent 42%),
@@ -82,6 +82,44 @@ form {
   gap: 9px;
 }
 
+.action-panel,
+.fixture-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d4dee3;
+  border-radius: 13px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.action-panel p {
+  color: #667783;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.action-panel .privacy-warning {
+  color: #8a3d2d;
+  font-weight: 700;
+}
+
+code {
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+}
+
+summary {
+  color: #52606c;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.fixture-panel[open] summary {
+  margin-bottom: 2px;
+}
+
 label,
 dt {
   color: #52606c;
@@ -118,6 +156,11 @@ button {
 button:hover,
 button:focus-visible {
   background: #075b69;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 button:focus-visible,

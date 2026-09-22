@@ -7,11 +7,13 @@ import {
   INDICATOR_VIEW_CONTRACT_VERSION,
   IndicatorContractError,
   unavailableIndicatorView,
+  validateAndProjectActiveTabResponse,
   validateAndProjectIndicatorResponse,
 } from "../browser/core/indicator-contract.js";
 import {
   INDICATOR_SCENARIOS,
   lookupIndicatorFixture,
+  lookupIndicatorFixtureByNormalizedUrl,
 } from "../browser/fixtures/indicator-fixtures.js";
 import {
   FINGERPRINTS,
@@ -62,6 +64,11 @@ function validResolvedResponse(overrides = {}) {
         title: "Acme announces Widget 2",
         url: "https://news.example.com/releases/widget-2",
       },
+      sourceMatch: {
+        method: "bundled-scenario",
+        normalizedUrl: null,
+        sourceId: "source_f6eaedcc244bf5d2c228bca0",
+      },
       topicId: "topic_91f792a4341063f25757f6bd",
     },
     scenarioId: REQUEST.scenarioId,
@@ -100,6 +107,7 @@ test("resolved fixture response projects an immutable, independently cloned view
     "scenarioId",
     "scope",
     "source",
+    "sourceMatch",
     "topicId",
     "viewContractVersion",
   ]);
@@ -152,18 +160,23 @@ test("bundled Sources resolve to the same Topic and Discussion with separate ide
 
 test("browser fixtures remain pinned to resolver-derived identities and mappings", async () => {
   const selector = { contentFingerprint: FINGERPRINTS.ANNOUNCEMENT };
+  const activeSelector = { contentFingerprint: FINGERPRINTS.ACTIVE_TAB_DEMO };
   const resolver = createTopicResolver({
     clock: () => new Date(FIXED_TIME),
     activityRecords: [
       { ...selector, authorType: "human", visibility: "public", moderationState: "visible" },
       { ...selector, authorType: "human", visibility: "public", moderationState: "visible" },
       { ...selector, authorType: "agent", visibility: "public", moderationState: "visible" },
+      { ...activeSelector, authorType: "human", visibility: "public", moderationState: "visible" },
+      { ...activeSelector, authorType: "agent", visibility: "public", moderationState: "visible" },
     ],
   });
   const cases = [
     ["wire-story", OBSERVATIONS.wireStory],
     ["company-story", OBSERVATIONS.companyStory],
     ["hostile-title", OBSERVATIONS.hostileTitle],
+    ["active-tab-example-com", OBSERVATIONS.activeTabExampleCom],
+    ["active-tab-example-org", OBSERVATIONS.activeTabExampleOrg],
   ];
 
   let sequence = 20;
@@ -210,7 +223,98 @@ test("browser fixtures remain pinned to resolver-derived identities and mappings
     );
     assert.equal(view.activity.topicId, resolved.topic.id, scenarioId);
     assert.equal(view.activity.scope, "topic", scenarioId);
+    assert.equal(
+      view.sourceMatch.method,
+      scenarioId.startsWith("active-tab-")
+        ? "exact-normalized-url"
+        : "bundled-scenario",
+      scenarioId,
+    );
   }
+});
+
+test("exact URL lookup receipt is separately bound from Source-to-Topic mapping", async () => {
+  const cases = [
+    ["https://example.com/", "active-tab-example-com"],
+    ["https://example.org/", "active-tab-example-org"],
+  ];
+  const views = [];
+
+  let sequence = 40;
+  for (const [normalizedUrl, scenarioId] of cases) {
+    sequence += 1;
+    const request = {
+      normalizedUrl,
+      requestToken: `activation-${String(sequence).padStart(6, "0")}`,
+    };
+    const response = await lookupIndicatorFixtureByNormalizedUrl(request);
+    const view = validateAndProjectActiveTabResponse(response, {
+      normalizedUrl,
+      requestToken: request.requestToken,
+      scenarioId,
+    });
+    views.push(view);
+    assert.deepEqual(view.sourceMatch, {
+      method: "exact-normalized-url",
+      normalizedUrl,
+      sourceId: view.source.id,
+    });
+    assert.equal(view.mapping.method, "exact-content-fingerprint");
+    assert.equal(view.mapping.evidence.fixtureId, scenarioId);
+    assert.equal(view.activity.humanContributions, 1);
+    assert.equal(view.activity.agentContributions, 1);
+  }
+
+  assert.notEqual(views[0].source.id, views[1].source.id);
+  assert.equal(views[0].topicId, views[1].topicId);
+  assert.equal(views[0].discussionId, views[1].discussionId);
+});
+
+test("exact URL fixture lookup accepts only its two-field plain request", async () => {
+  const marker = "private-lookup-marker";
+  const invalidRequests = [
+    null,
+    [],
+    { normalizedUrl: "https://example.com/" },
+    {
+      normalizedUrl: "https://example.com/",
+      requestToken: "invalid-token",
+    },
+    {
+      extra: true,
+      normalizedUrl: "https://example.com/",
+      requestToken: "activation-000050",
+    },
+    {
+      normalizedUrl: `https://unsupported.example/${marker}`,
+      requestToken: "activation-000050",
+    },
+    Object.assign(Object.create({ inherited: true }), {
+      normalizedUrl: "https://example.com/",
+      requestToken: "activation-000050",
+    }),
+  ];
+
+  let getterInvoked = false;
+  const accessor = { requestToken: "activation-000050" };
+  Object.defineProperty(accessor, "normalizedUrl", {
+    enumerable: true,
+    get() {
+      getterInvoked = true;
+      return "https://example.com/";
+    },
+  });
+  invalidRequests.push(accessor);
+
+  for (const request of invalidRequests) {
+    await assert.rejects(
+      lookupIndicatorFixtureByNormalizedUrl(request),
+      (error) =>
+        error instanceof TypeError &&
+        !error.message.includes(marker),
+    );
+  }
+  assert.equal(getterInvoked, false);
 });
 
 test("all bundled scenarios are unique, frozen, and exercise the declared state", async () => {
@@ -266,7 +370,8 @@ test("unavailable view carries no result or misleading zero activity", () => {
   assert.equal(view.discussionId, null);
   assert.equal(view.topicId, null);
   assert.equal(view.asOf, null);
-  assert.equal(view.reasonCode, "fixture-lookup-unavailable");
+  assert.equal(view.sourceMatch, null);
+  assert.equal(view.reasonCode, "local-lookup-unavailable");
   assert.ok(Object.isFrozen(view));
   assert.deepEqual(view.scope, {
     fixtureOnly: true,
@@ -320,6 +425,7 @@ test("every nested allowlist and plain-data boundary rejects unsupported structu
     (value) => { value.result.activity.extra = true; },
     (value) => { value.result.discussion.extra = true; },
     (value) => { value.result.source.extra = true; },
+    (value) => { value.result.sourceMatch.extra = true; },
     (value) => { value.result.mapping.extra = true; },
     (value) => { value.result.mapping.evidence.extra = true; },
   ];
@@ -425,6 +531,7 @@ test("resolved mapping, Discussion, activity, and evidence must cross-bind to th
   const otherTopic = "topic_bbbbbbbbbbbbbbbbbbbbbbbb";
   const cases = [
     (value) => { value.result.mapping.sourceId = otherSource; },
+    (value) => { value.result.sourceMatch.sourceId = otherSource; },
     (value) => { value.result.mapping.topicId = otherTopic; },
     (value) => { value.result.discussion.topicId = otherTopic; },
     (value) => { value.result.activity.topicId = otherTopic; },
@@ -443,6 +550,57 @@ test("resolved mapping, Discussion, activity, and evidence must cross-bind to th
   wrongEvidence.result.mapping.evidence.fixtureId = "company-story";
   expectContractError("INVALID_MAPPING", () =>
     validateAndProjectIndicatorResponse(wrongEvidence, REQUEST),
+  );
+});
+
+test("Source lookup provenance and active URL bindings fail closed", async () => {
+  const bundledWithUrl = validResolvedResponse();
+  bundledWithUrl.result.sourceMatch.normalizedUrl = bundledWithUrl.result.source.url;
+  expectContractError("BINDING_MISMATCH", () =>
+    validateAndProjectIndicatorResponse(bundledWithUrl, REQUEST),
+  );
+
+  const exactWithoutUrl = validResolvedResponse();
+  exactWithoutUrl.result.sourceMatch.method = "exact-normalized-url";
+  expectContractError("BINDING_MISMATCH", () =>
+    validateAndProjectIndicatorResponse(exactWithoutUrl, REQUEST),
+  );
+
+  const lookupRequest = {
+    normalizedUrl: "https://example.com/",
+    requestToken: "activation-000090",
+  };
+  const response = await lookupIndicatorFixtureByNormalizedUrl(lookupRequest);
+  const expected = {
+    ...lookupRequest,
+    scenarioId: "active-tab-example-com",
+  };
+  const view = validateAndProjectActiveTabResponse(response, expected);
+  assert.equal(view.source.url, expected.normalizedUrl);
+
+  for (const mutateExpected of [
+    (value) => { value.normalizedUrl = "https://example.org/"; },
+    (value) => { value.scenarioId = "active-tab-example-org"; },
+    (value) => { value.requestToken = "activation-000091"; },
+  ]) {
+    const changed = { ...expected };
+    mutateExpected(changed);
+    expectContractError("BINDING_MISMATCH", () =>
+      validateAndProjectActiveTabResponse(response, changed),
+    );
+  }
+
+  const tamperedReceipt = structuredClone(response);
+  tamperedReceipt.result.sourceMatch.normalizedUrl = "https://example.org/";
+  expectContractError("BINDING_MISMATCH", () =>
+    validateAndProjectActiveTabResponse(tamperedReceipt, expected),
+  );
+
+  const bundledMethod = structuredClone(response);
+  bundledMethod.result.sourceMatch.method = "bundled-scenario";
+  bundledMethod.result.sourceMatch.normalizedUrl = null;
+  expectContractError("BINDING_MISMATCH", () =>
+    validateAndProjectActiveTabResponse(bundledMethod, expected),
   );
 });
 

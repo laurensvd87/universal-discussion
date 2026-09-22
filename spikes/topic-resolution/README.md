@@ -45,22 +45,31 @@ and fragments. It checks determinism, idempotence, and security-origin
 preservation. Boundary tests also require both input and normalized URLs to fit
 the 8,192-byte limit.
 
-## Bundled-fixture browser indicator
+## User-invoked browser indicator
 
-`browser/` is a zero-permission P1.5a Chromium popup backed only by checked-in
-synthetic fixtures. Load that directory as an unpacked extension or follow its
-own `browser/README.md`. The browser-neutral contract binds every Source,
-source-topic mapping, Topic, Discussion, topic-scoped activity count, and
-freshness timestamp before rendering. UI phases are separate from terminal
-lookup outcomes, and a later activation or reset invalidates stale work.
+`browser/` is the P1.5b Chromium popup backed only by checked-in synthetic
+fixtures and local lookup data. Load that directory as an unpacked extension
+or follow its own `browser/README.md`. Its manifest requests exactly
+`activeTab`. On an explicit click, the adapter projects only the active/current
+tab ID and address-bar URL, accepts exactly the queryless `example.com` and
+`example.org` demonstration roots after fragment removal, and performs a
+bundled exact-normalized-URL Source lookup. A second fresh tab read must match
+the same tab ID and normalized URL before rendering.
 
-The extension requests no permissions or host permissions, has no background
-or content script, reads no current tab, makes no network request, writes no
-storage, and renders fixture strings with text-only DOM operations. It supports
-only the pinned exact-fingerprint demo plus fail-closed fixture states; the
-curated and semantic-suggestion paths required by the full ADR-009 PoC remain
-future local work. Stop before adding `activeTab`, real page extraction, a
-service, persistence, deployment, or publication.
+The browser-neutral contracts separately bind URL-to-Source provenance and the
+exact-fingerprint Source-to-Topic mapping, plus Topic, Discussion,
+topic-scoped human/agent activity, and freshness. The package has no broad
+`tabs` or host permission, content/background script, title/DOM/body access,
+remote resource, network, storage, logging, telemetry, auth, or AI capability,
+and it renders only with text DOM operations. The P1.5a bundled scenarios remain
+available. Automated checks pass; the documented manual Chromium
+permission/traffic/storage/console/accessibility smoke is still required.
+
+The curated and semantic-suggestion paths required by the larger ADR-009 PoC
+remain future local work. Stop before broader URLs, page/WebView extraction,
+`scripting`, service egress, persistence, deployment, store submission, or
+publication. Those need separate platform-policy, rights, privacy, security,
+and owner decisions.
 
 ## Phase 0 labeling pilot
 

@@ -1,6 +1,6 @@
 {
-  "manifestVersion": "fixture-provenance/1.2.0",
-  "reviewedAt": "2026-09-21T21:30:00.000Z",
+  "manifestVersion": "fixture-provenance/1.3.0",
+  "reviewedAt": "2026-09-22T12:00:00.000Z",
   "entries": [
     {
       "path": "fixtures/observations.js",

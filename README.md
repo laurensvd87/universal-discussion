@@ -31,8 +31,10 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-007-offline-owner-review-ledger.md` — the accepted offline digest-bound labeling workflow and its stop boundary;
 - `decisions/ADR-008-generated-review-resolution-journal.md` — the accepted generated-only single-journal design for uncertainty, later adjudication, and later fixed-point review coverage.
 - `decisions/ADR-009-local-poc-before-semantic-validation.md` — the accepted local NO-AUTO proof-of-concept sequence that defers, but does not replace, human semantic validation.
-- `decisions/ADR-010-local-active-tab-url-observation.md` — the proposed field-level permission/privacy boundary for a queryless, user-invoked local URL adapter; implementation awaits explicit approval.
+- `decisions/ADR-010-local-active-tab-url-observation.md` — the accepted field-level permission/privacy boundary for the queryless, user-invoked local URL adapter now implemented in P1.5b.
+- `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the proposed generic standards-based metadata and on-device candidate path; live-page use remains behind owner, security/privacy, rights, and store-policy approval.
 - `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
+- `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` — current official-source evidence and alternatives for Chromium, Android, and iOS content signals without a per-site API foundation.
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
 The first implementation is a dependency-free, offline topic-resolution kernel under `spikes/topic-resolution/`. It uses synthetic fixtures and performs no network or persistence I/O. Run it with Node.js 24 or newer:
@@ -131,18 +133,21 @@ no file read or fetch at runtime. Fixture identity is
 caller-declared rather than attested, so this is not general page extraction or
 a production fingerprint trust boundary.
 
-The first P1.5a increment is testable as an unpacked Chromium extension from
-`spikes/topic-resolution/browser/`. It is a zero-permission, bundled-fixture
-popup: it reads no tab or page data, performs no request or storage, and shows
-resolver-derived resolved, unmapped, unsupported, malformed, and hostile-text
-states. Two synthetic Sources demonstrably reach the same Topic and Discussion,
-while human and agent counts remain separate. This is useful UI/contract
-plumbing, not real-page integration or evidence that semantic matching works.
+The P1.5b implementation is testable as an unpacked Chromium extension from
+`spikes/topic-resolution/browser/`. On an explicit click it uses only
+`activeTab` to project the current top-level tab ID and URL, accepts exactly
+the queryless reserved-domain demonstrations `https://example.com/` and
+`https://example.org/`, performs a bundled exact-URL Source lookup, and reads
+the active tab again before rendering. It has no title/content access,
+injection, network, storage, telemetry, background, host, broad-tab, auth, or
+AI capability. The earlier bundled-fixture scenarios remain available.
 
-Real-tab observation, connected browser behavior, production architecture,
-hosted semantic processing, and BYO AI remain gated decisions; the local spike
-is not a production foundation or a claim that semantic clustering has been
-validated.
+Automated contract, race, package, capability, and provenance checks pass, but
+the documented Chromium permission/traffic/storage/console/accessibility smoke
+is still required before P1.5b is complete. General page/WebView extraction,
+connected behavior, production architecture, store submission, hosted semantic
+processing, and BYO AI remain gated decisions; this local slice is not a claim
+that semantic clustering or publication eligibility has been validated.
 
 ## Product in one sentence
 A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.

@@ -1,7 +1,7 @@
 export const INDICATOR_LOOKUP_CONTRACT_VERSION =
-  "read-only-indicator-lookup/1.0.0";
+  "read-only-indicator-lookup/1.1.0";
 export const INDICATOR_VIEW_CONTRACT_VERSION =
-  "read-only-indicator-view/1.0.0";
+  "read-only-indicator-view/1.1.0";
 
 const MAX_DEPTH = 12;
 const MAX_NODES = 256;
@@ -14,17 +14,18 @@ const ENTITY_ID = /^(?:source|topic|discussion|source_topic_link)_[a-f0-9]{24}$/
 const REQUEST_TOKEN = /^activation-[0-9]{6}$/;
 const UNSAFE_TEXT = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const STATUS_SET = new Set(["resolved", "unavailable", "unmapped", "unsupported"]);
+const SOURCE_MATCH_METHODS = new Set(["bundled-scenario", "exact-normalized-url"]);
 const REASON_BY_STATUS = Object.freeze({
   resolved: null,
-  unavailable: "fixture-lookup-unavailable",
+  unavailable: "local-lookup-unavailable",
   unmapped: "no-deterministic-mapping",
-  unsupported: "fixture-context-unsupported",
+  unsupported: "local-context-unsupported",
 });
 const MESSAGE_BY_STATUS = Object.freeze({
-  resolved: "Discussion found in the bundled fixture.",
-  unavailable: "The bundled fixture could not be validated.",
-  unmapped: "No deterministic or curated mapping exists for this fixture.",
-  unsupported: "This fixture context is intentionally unsupported.",
+  resolved: "Discussion found in local data.",
+  unavailable: "The local result could not be validated.",
+  unmapped: "No deterministic or curated mapping exists for this source.",
+  unsupported: "This context is intentionally unsupported.",
 });
 const SCOPE = Object.freeze({
   fixtureOnly: true,
@@ -43,8 +44,20 @@ const RESPONSE_FIELDS = [
   "status",
 ];
 const EXPECTED_FIELDS = ["requestToken", "scenarioId"];
+const ACTIVE_TAB_EXPECTED_FIELDS = [
+  "normalizedUrl",
+  "requestToken",
+  "scenarioId",
+];
 const SCOPE_FIELDS = ["fixtureOnly", "noAutomaticSemanticJoin", "readOnly"];
-const RESULT_FIELDS = ["activity", "discussion", "mapping", "source", "topicId"];
+const RESULT_FIELDS = [
+  "activity",
+  "discussion",
+  "mapping",
+  "source",
+  "sourceMatch",
+  "topicId",
+];
 const ACTIVITY_FIELDS = [
   "agentContributions",
   "asOf",
@@ -54,6 +67,7 @@ const ACTIVITY_FIELDS = [
 ];
 const DISCUSSION_FIELDS = ["id", "topicId"];
 const SOURCE_FIELDS = ["id", "title", "url"];
+const SOURCE_MATCH_FIELDS = ["method", "normalizedUrl", "sourceId"];
 const MAPPING_FIELDS = [
   "auditedAt",
   "confidence",
@@ -279,6 +293,27 @@ function validateResolvedResult(result, generatedAt, scenarioId) {
   assertSafeTitle(result.source.title);
   assertSyntheticUrl(result.source.url);
 
+  assertExactFields(result.sourceMatch, SOURCE_MATCH_FIELDS, "response.result.sourceMatch");
+  assertEntityId(
+    result.sourceMatch.sourceId,
+    "source",
+    "response.result.sourceMatch.sourceId",
+  );
+  if (
+    result.sourceMatch.sourceId !== result.source.id ||
+    !SOURCE_MATCH_METHODS.has(result.sourceMatch.method)
+  ) {
+    fail("BINDING_MISMATCH", "Source match must identify the resolved Source");
+  }
+  if (
+    (result.sourceMatch.method === "bundled-scenario" &&
+      result.sourceMatch.normalizedUrl !== null) ||
+    (result.sourceMatch.method === "exact-normalized-url" &&
+      result.sourceMatch.normalizedUrl !== result.source.url)
+  ) {
+    fail("BINDING_MISMATCH", "Source match provenance is inconsistent");
+  }
+
   assertExactFields(result.mapping, MAPPING_FIELDS, "response.result.mapping");
   assertEntityId(result.mapping.id, "source_topic_link", "response.result.mapping.id");
   assertEntityId(result.mapping.sourceId, "source", "response.result.mapping.sourceId");
@@ -324,6 +359,7 @@ function projectView(response) {
     scenarioId: response.scenarioId,
     scope: SCOPE,
     source: result === null ? null : result.source,
+    sourceMatch: result === null ? null : result.sourceMatch,
     topicId: result === null ? null : result.topicId,
     viewContractVersion: INDICATOR_VIEW_CONTRACT_VERSION,
   });
@@ -361,24 +397,61 @@ export function validateAndProjectIndicatorResponse(response, expected) {
   return projectView(response);
 }
 
-export function unavailableIndicatorView({ requestToken, scenarioId }) {
+export function validateAndProjectActiveTabResponse(response, expected) {
+  preflight(expected, "active tab expected binding");
+  assertExactFields(
+    expected,
+    ACTIVE_TAB_EXPECTED_FIELDS,
+    "active tab expected binding",
+  );
+  validateExpected({
+    requestToken: expected.requestToken,
+    scenarioId: expected.scenarioId,
+  });
+  assertSyntheticUrl(expected.normalizedUrl);
+
+  const view = validateAndProjectIndicatorResponse(response, {
+    requestToken: expected.requestToken,
+    scenarioId: expected.scenarioId,
+  });
+  if (
+    view.outcome !== "resolved" ||
+    view.sourceMatch.method !== "exact-normalized-url" ||
+    view.sourceMatch.normalizedUrl !== expected.normalizedUrl ||
+    view.source.url !== expected.normalizedUrl
+  ) {
+    fail("BINDING_MISMATCH", "Active tab response is bound to another URL");
+  }
+  return view;
+}
+
+function terminalIndicatorView(status, { requestToken, scenarioId }) {
   validateExpected({ requestToken, scenarioId });
   return cloneAndFreeze({
     activity: null,
     asOf: null,
     discussionId: null,
     mapping: null,
-    message: MESSAGE_BY_STATUS.unavailable,
-    outcome: "unavailable",
+    message: MESSAGE_BY_STATUS[status],
+    outcome: status,
     phase: "ready",
-    reasonCode: REASON_BY_STATUS.unavailable,
+    reasonCode: REASON_BY_STATUS[status],
     requestToken,
     scenarioId,
     scope: SCOPE,
     source: null,
+    sourceMatch: null,
     topicId: null,
     viewContractVersion: INDICATOR_VIEW_CONTRACT_VERSION,
   });
+}
+
+export function unavailableIndicatorView({ requestToken, scenarioId }) {
+  return terminalIndicatorView("unavailable", { requestToken, scenarioId });
+}
+
+export function unsupportedIndicatorView({ requestToken, scenarioId }) {
+  return terminalIndicatorView("unsupported", { requestToken, scenarioId });
 }
 
 export const INDICATOR_CONTRACT_LIMITS = Object.freeze({

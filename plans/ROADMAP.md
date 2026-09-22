@@ -190,6 +190,14 @@ bounded offline increment; no live/general HTML or production fingerprint
 claim follows from that review. The durable evidence record is
 `research/P1_3A_GATE_REVIEW.md`.
 
+General Chromium/Android/iOS extraction is a later decision, not an extension
+of the synthetic parser approval. Technical DOM access does not establish
+website-terms, copyright, privacy, or app/extension-store permission. The
+preferred research direction is one standards-based, user-invoked metadata
+envelope across sites rather than per-site APIs, with authenticated, private,
+and paywalled contexts denied by default. No live adapter starts until that
+field-level policy is documented and explicitly approved.
+
 Dependencies: P0.1 corpus schema and an approved public/synthetic HTML fixture corpus.
 
 Deliverable: local extraction of reviewed fixtures, canonical-metadata candidates, versioned content fingerprints, size/type limits, and adversarial cases.
@@ -220,18 +228,26 @@ Owner: Platform and Client, reviewed by Trust and Quality.
 
 Dependencies: ADR-002 direction or an explicitly local-only exception; P1.1 contract; P1.3 fixture output; seeded local/mock data. Acceptance of ADR-002 does not authorize network egress.
 
-Status: **P1.5a bundled-fixture slice implemented; full P1.5 remains open.**
-The unpacked Chromium popup has a browser-neutral strict contract, an exact
-zero-permission package inventory, resolver-derived local fixtures, separate
-human/agent counts, inert hostile text, and fail-closed stale/malformed states.
-It intentionally reads no current tab or page, so it cannot yet satisfy the
-real-page eligibility, extraction, or navigation-binding checks. Stop before
-adding `activeTab`, `tabs`, content injection, or any real browsing-data access
-until the owner and Trust/privacy gate is explicitly reopened.
-ADR-010 now proposes a narrower P1.5b step: `activeTab` only, an explicitly
-invoked active-tab URL read, exact queryless reserved-domain allowlist, popup
-memory only, bundled exact-URL lookup, and no title, injection, extraction,
-storage, or egress. It remains unapproved and unimplemented.
+Status: **P1.5b implemented with automated evidence; manual Chromium smoke
+pending; full P1.5 remains open.** The owner accepted ADR-010's exact boundary.
+The unpacked Chromium popup now requests only `activeTab`, reads only the
+explicitly invoked active/current tab ID and address-bar URL, accepts exactly
+the queryless `https://example.com/` and `https://example.org/` demonstrations,
+performs a bundled exact-URL Source lookup, and confirms the same active tab ID
+and normalized URL with a second fresh read before rendering. URL-to-Source
+receipt provenance remains separate from the pinned exact-fingerprint
+Source-to-Topic mapping. The P1.5a scenarios remain available.
+
+Automated policy, adapter, contract, race, package, CSP, capability, and DOM
+clearing checks pass. The implementation has no broad `tabs` or host
+permission, title/DOM/body access, injection, background/content script,
+storage, network, telemetry, auth, write, or AI capability. A real Chromium
+permission/traffic/storage/console/keyboard smoke and final Trust/Quality
+engineering review are still required before P1.5b can be marked complete.
+Stop before a larger URL allowlist, `scripting`, page/WebView metadata or body
+extraction, egress, persistence, or store submission. Cross-platform general
+metadata extraction first requires the separate site-terms/copyright/store
+policy decision; per-site APIs are not the intended core architecture.
 
 Deliverable: one Chromium prototype against bundled fixtures or a local mock, with a browser-neutral core, exact manifest/permission inventory, and documented Firefox adapter gap.
 

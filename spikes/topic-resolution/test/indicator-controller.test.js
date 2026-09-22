@@ -75,7 +75,7 @@ test("malformed, rejected, and unknown fixture lookups fail closed as unavailabl
     assert.equal(result.state.activity, null, scenarioId);
     assert.equal(result.state.discussionId, null, scenarioId);
     assert.equal(result.state.topicId, null, scenarioId);
-    assert.equal(result.state.reasonCode, "fixture-lookup-unavailable", scenarioId);
+    assert.equal(result.state.reasonCode, "local-lookup-unavailable", scenarioId);
   }
 });
 

@@ -1,11 +1,15 @@
+import { createActiveTabReader } from "./active-tab-reader.js";
+import { createActiveTabController } from "../core/active-tab-controller.js";
 import { createIndicatorController } from "../core/indicator-controller.js";
 import {
   INDICATOR_SCENARIOS,
   lookupIndicatorFixture,
+  lookupIndicatorFixtureByNormalizedUrl,
 } from "../fixtures/indicator-fixtures.js";
 
 const elements = {
   agentCount: document.querySelector("#agent-count"),
+  currentTabButton: document.querySelector("#current-tab-button"),
   description: document.querySelector("#scenario-description"),
   discussionId: document.querySelector("#discussion-id"),
   evidence: document.querySelector("#mapping-evidence"),
@@ -17,11 +21,25 @@ const elements = {
   resolved: document.querySelector("#resolved-result"),
   scenario: document.querySelector("#scenario"),
   sourceTitle: document.querySelector("#source-title"),
+  sourceMatch: document.querySelector("#source-match"),
   sourceUrl: document.querySelector("#source-url"),
   stateChip: document.querySelector("#state-chip"),
   status: document.querySelector("#status-message"),
   topicId: document.querySelector("#topic-id"),
 };
+
+const resolvedTextElements = [
+  elements.agentCount,
+  elements.discussionId,
+  elements.evidence,
+  elements.freshness,
+  elements.humanCount,
+  elements.mappingMethod,
+  elements.sourceMatch,
+  elements.sourceTitle,
+  elements.sourceUrl,
+  elements.topicId,
+];
 
 function selectedScenario() {
   return INDICATOR_SCENARIOS.find(({ id }) => id === elements.scenario.value);
@@ -37,6 +55,7 @@ function render(state) {
   elements.reason.textContent =
     state.reasonCode === null ? "" : `Reason: ${state.reasonCode}`;
 
+  for (const element of resolvedTextElements) element.textContent = "";
   if (state.outcome !== "resolved") return;
   elements.sourceTitle.textContent = state.source.title;
   elements.sourceUrl.textContent = state.source.url;
@@ -44,6 +63,7 @@ function render(state) {
   elements.discussionId.textContent = state.discussionId;
   elements.humanCount.textContent = String(state.activity.humanContributions);
   elements.agentCount.textContent = String(state.activity.agentContributions);
+  elements.sourceMatch.textContent = state.sourceMatch.method;
   elements.mappingMethod.textContent =
     `${state.mapping.method} · confidence ${state.mapping.confidence}`;
   elements.evidence.textContent =
@@ -58,9 +78,15 @@ for (const scenario of INDICATOR_SCENARIOS) {
   elements.scenario.append(option);
 }
 
-const controller = createIndicatorController({
+const activeTabReader = createActiveTabReader(globalThis.chrome.tabs);
+const fixtureController = createIndicatorController({
   lookup: lookupIndicatorFixture,
   onStateChange: render,
+});
+const activeTabController = createActiveTabController({
+  lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
+  onStateChange: render,
+  readActiveTab: activeTabReader.read,
 });
 
 function renderScenarioDescription() {
@@ -69,14 +95,26 @@ function renderScenarioDescription() {
 }
 
 elements.scenario.addEventListener("change", () => {
-  controller.reset();
+  activeTabController.reset();
+  fixtureController.reset();
   renderScenarioDescription();
 });
 
 elements.form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  await controller.activate(elements.scenario.value);
+  activeTabController.reset();
+  await fixtureController.activate(elements.scenario.value);
 });
 
-render(controller.currentState());
+elements.currentTabButton.addEventListener("click", async () => {
+  fixtureController.reset();
+  elements.currentTabButton.disabled = true;
+  try {
+    await activeTabController.activate();
+  } finally {
+    elements.currentTabButton.disabled = false;
+  }
+});
+
+render(fixtureController.currentState());
 renderScenarioDescription();

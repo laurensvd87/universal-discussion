@@ -6,7 +6,7 @@
   "scripts": {
     "check:secrets": "node harness/scan-secrets.js",
     "evaluate:pilot": "node evaluation/run-pilot.js",
-    "indicator:test": "node --test --test-isolation=none test/indicator-contract.test.js test/indicator-controller.test.js test/indicator-package.test.js",
+    "indicator:test": "node --test --test-isolation=none test/active-tab-policy.test.js test/active-tab-reader.test.js test/active-tab-controller.test.js test/indicator-contract.test.js test/indicator-controller.test.js test/indicator-package.test.js",
     "review": "node review/run-review.js",
     "review:owner": "node review/run-review.js owner",
     "review:prepare": "node review/run-review.js prepare",

@@ -6,8 +6,10 @@ Phase 0 foundation in progress; P0.1 and the frozen offline P1.1 kernel are
 complete, P1.2 evaluation and owner-review workflow work is in progress, and a bounded offline
 P1.3a synthetic HTML extraction increment has passed independent offline
 Trust/Quality review pending owner disposition of proposed ADR-006. A
-zero-permission bundled-fixture P1.5a Chromium popup is implemented; full
-real-tab browser integration remains at the owner/Trust/privacy stop.
+P1.5b Chromium popup now implements the owner-approved `activeTab`-only local
+URL boundary; automated evidence passes and the required manual Chromium smoke
+remains open. General page/WebView extraction and full browser integration stay
+at a separate owner/security/privacy/rights/store-policy stop.
 
 ## Current objective
 
@@ -15,7 +17,10 @@ Close the remaining P0.2 decisions—especially architecture, browser
 egress/retention, and proposed merge/split semantics—before connected
 implementation, while building the license-safe P1.2 corpus/evaluator and
 review-ready owner labeling workflow, and advancing the shortest local
-NO-AUTO proof of concept without crossing into real-page observation.
+NO-AUTO proof of concept. Complete the bounded P1.5b manual evidence without
+crossing into page content, while defining a publishability-first,
+vendor-neutral cross-platform metadata boundary before any Chromium, Android,
+or iOS extraction implementation.
 
 ## Completed on 2026-09-19
 
@@ -218,6 +223,39 @@ NO-AUTO proof of concept without crossing into real-page observation.
   Firefox support, real-tab binding, and the full P1.5 gate remain open. The
   evidence and residuals are recorded in
   `research/P1_5A_ENGINEERING_REVIEW.md`.
+- The owner explicitly accepted ADR-010's exact P1.5b boundary on 2026-09-22.
+  The manifest now requests only `activeTab`. After the popup action, the
+  Chromium reader projects only current active top-level tab ID and URL; the
+  policy rejects all queries and every non-allowlisted context, strips only a
+  fragment, and accepts exactly `https://example.com/` and
+  `https://example.org/`. No title, DOM, canonical metadata, body, frame,
+  storage, network, background/content script, telemetry, auth, write, or AI
+  capability was added.
+- P1.5b performs a bundled exact-normalized-URL Source lookup, records that
+  lookup receipt separately from the pinned exact-content-fingerprint
+  Source-to-Topic mapping, and re-queries the active/current tab immediately
+  before rendering. A different tab, URL/navigation, closed tab, permission
+  loss, malformed or cross-bound result, reset, or newer activation fails
+  closed and clears all previously rendered fields. The package CSP explicitly
+  denies connections; the P1.5a fixture selector remains available.
+- The focused P1.5b policy/reader/controller/contract/package suite passes
+  46/46 checks. The full ordinary suite passes 227 tests with only its expected
+  restricted-harness self-test skipped; the restricted suite passes 228/228.
+  The expanded scanner covers 84 files with zero findings after six detector
+  self-tests. Static evidence cannot prove real browser permission, traffic,
+  storage, console, or keyboard behavior, so the bounded manual Chromium smoke
+  in `spikes/topic-resolution/browser/README.md` remains required before this
+  increment is complete.
+- Current official-source policy research now covers Chrome Web Store, Apple
+  App Store, Google Play, Android/iOS WebView feasibility, robots/meta signals,
+  paywalls, content rights, and search-provider lock-in. It rejects per-site
+  APIs as the core architecture and proposes one generic, standards-based,
+  user-invoked metadata envelope with local processing and URL fallback.
+  However, technical DOM access and metadata presence are not authorization;
+  authenticated/private/paywalled contexts remain default-denied, and no live
+  extraction starts before proposed ADR-011 receives explicit owner,
+  security/privacy, rights/store-policy, and Quality approval. Evidence and
+  alternatives are in `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md`.
 
 ## Active decisions
 
@@ -230,16 +268,20 @@ NO-AUTO proof of concept without crossing into real-page observation.
 - `ADR-007-offline-owner-review-ledger.md`: **Accepted by the owner for the offline workflow and generated-only P1.2b-1 preflight**; the existing synthetic implementation has Trust/Quality ACCEPT, but the decision authorizes no real-data collection, real independent review, corpus finalization, split, or evaluation.
 - `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
 - `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
-- `ADR-010-local-active-tab-url-observation.md`: **Proposed; explicit owner, Trust, and privacy disposition pending.** It would add only `activeTab` for an invoked, queryless, allowlisted URL read held in popup memory and authorizes no title/content extraction, storage, network, or general browsing observation.
+- `ADR-010-local-active-tab-url-observation.md`: **Accepted for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated implementation evidence exists; manual Chromium and final engineering review evidence remain open.
+- `ADR-011-cross-platform-content-signal-boundary.md`: **Proposed; owner, Security/Trust, Privacy, platform-policy/rights, and Quality approval pending.** It prefers one generic standards-based metadata envelope and on-device candidate operation over per-site APIs or a search-provider dependency, but authorizes no live metadata/body extraction, model, egress, storage, or store submission.
 
 ## Blockers
 
 - Passive discovery remains an untested, separately gated hypothesis; the accepted user-invoked design can measure panel utility but cannot produce a pre-click activity indicator.
-- P1.5a proves only a bundled-fixture popup. It does not request `activeTab` or
-  `tabs`, observe a navigation, inspect a page, invoke P1.3 extraction, perform
-  eligibility checks, or bind a response to a real tab/navigation. Adding any
-  such capability is the next owner/Trust/privacy checkpoint; ADR-006 also
-  needs owner acceptance before its extraction profile is integrated.
+- P1.5b now proves the exact `activeTab`-only URL observation and two-read
+  tab/navigation binding in code, but its real Chromium
+  permission/traffic/storage/console/accessibility smoke is pending. It does
+  not request broad `tabs`, inspect a title/DOM/body, invoke P1.3 extraction, or
+  establish store eligibility. Any live content signal is the proposed
+  ADR-011 owner/security/privacy/rights/store-policy checkpoint; ADR-006 also
+  still needs owner acceptance before its synthetic extraction profile is
+  integrated anywhere.
 - Exact egress fields, account linkage, sensitive-site exclusions, log/backup retention, deletion, and telemetry are undecided.
 - The auth/object-authorization/data-lifecycle threat model and identity/provenance/moderation state decisions required by P1.6 have not been produced or approved.
 - The alpha architecture and host/auth/provider choices are not accepted.
@@ -351,31 +393,44 @@ NO-AUTO proof of concept without crossing into real-page observation.
   HTML, identify main content, establish semantic equivalence, observe a
   browser, fetch a URL, or define production fingerprint attestation. ADR-006
   still needs owner disposition.
+- A technically general DOM/WebView extractor cannot presently be described as
+  universally publishable. Apple requires third-party-service permission under
+  applicable terms; Chrome treats local scraped and derived page data as user
+  data; Play rejects unauthorized WebView wrappers and copyright violations.
+  Robots/meta can supply negative policy signals but do not grant permission.
+  The generic metadata/on-device path in ADR-011 remains a proposal, and full
+  body, authenticated, private, paywalled, remote-fetch, and search-provider
+  paths remain disabled.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate
 
-**GO:** local fixture-only resolver/evaluator/extraction/review-workflow work,
-the zero-permission bundled-fixture browser popup, and planning the larger
-license-safe labeled set under ADR-004.
+**GO:** local fixture-only resolver/evaluator/extraction/review-workflow work;
+the accepted, exact P1.5b `activeTab` URL-only implementation and its bounded
+local manual smoke; and planning the larger license-safe labeled set and
+cross-platform metadata policy.
 
-**STOP:** adding real-tab/page access or integrating extraction into the
-extension before explicit owner/Trust/privacy approval; unapproved real/public
-corpus acquisition or check-in; real browsing capture/egress, live URL fetches,
-hosted embeddings, auth/public writes, AI
+**STOP:** adding `scripting`, title/metadata/DOM/body/WebView extraction,
+broader URL eligibility, or integrating P1.3 into a client before explicit
+ADR-011 owner/security/privacy/rights/store-policy approval; unapproved
+real/public corpus acquisition or check-in; real browsing capture/egress, live
+URL fetches, hosted embeddings, auth/public writes, AI
 credentials/inference, deployment, spending, announcements, recruitment, and
 store submission.
 
 ## Next owner approval required
 
-For the next browser increment, explicitly approve or revise ADR-010's narrow
-P1.5b boundary: manifest `activeTab` only; read an invoked active top-level tab
-ID/address-bar URL; immediately reject queries, credentials, private/special or
-non-allowlisted addresses; hold accepted queryless reserved-domain URLs only in
-popup memory; and perform a bundled exact-URL lookup. It excludes broad `tabs`
-permission, title/content/metadata, `scripting`, extraction, storage, network,
-telemetry, passive/incognito access, deployment, and publication. ADR-006 can
-remain pending until a later, separately approved extraction increment.
+No further owner approval is needed to finish the exact P1.5b local evidence;
+the next required input is the documented manual Chromium smoke by the owner.
+Before any following browser/mobile content increment, explicitly approve,
+revise, or reject proposed ADR-011's exact metadata fields, contexts,
+permissions, on-device model/licence, terms/rights method, raw/derived
+retention, and synthetic/owned-page test boundary. General adapter code must
+not be mistaken for universal authorization; authenticated/private/paywalled
+and unknown-rights contexts default deny. Any egress, provider, model service,
+spending, deployment, or store/publication action returns to its own explicit
+gate. ADR-006 can remain pending until that separately approved extraction
+increment.
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
 merge/split history semantics, and ADR-006's narrow synthetic extraction

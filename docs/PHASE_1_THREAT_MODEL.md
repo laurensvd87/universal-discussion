@@ -2,7 +2,7 @@
 
 Status: Proposed
 
-Last reviewed: 2026-09-21
+Last reviewed: 2026-09-22
 
 Owners: Orchestrator and trust/security reviewer
 
@@ -447,23 +447,37 @@ Proceed after the offline contracts are stable if:
 - it displays authoritative human and agent counts separately and fails closed; and
 - applicable manifest, eligibility, injection, rendering, navigation, and count checks pass.
 
-Current P1.5a implementation evidence is narrower than that complete gate.
-`spikes/topic-resolution/browser/` packages a bundled-fixture popup with an
-exact zero-permission Manifest V3 inventory, no background/content script, no
-browser API use, no network or storage API use, local-only module/resource
-closure, and a CSP that permits only self-hosted scripts and disables objects.
-Its strict contract binds the Source,
-source-topic mapping, Topic, Discussion, topic-scoped human/agent counts, and
-activity freshness; malformed or cross-wired records become unavailable. The
-controller separates UI phase from lookup outcome and prevents stale, reset,
-or superseded activations from changing the visible result. Package tests pin
-text-only rendering, including markup-like fixture text.
+Current P1.5b implementation evidence remains narrower than the complete gate.
+Under accepted ADR-010, `spikes/topic-resolution/browser/` has an exact
+`activeTab`-only Manifest V3 inventory, no broad `tabs` or host permission, no
+background/content script, no network or storage API use, local-only
+module/resource closure, and a CSP that permits local scripts/styles while
+explicitly disabling connections and objects. Only after the user's popup
+action, its Chromium adapter projects the active/current top-level tab ID and
+URL. The browser-neutral policy rejects every query, credential, non-HTTPS,
+non-allowlisted, malformed, and over-limit context without echoing it, removes
+the fragment, and accepts only the two reserved-domain demonstration roots.
 
-This evidence does not satisfy real-page eligibility, navigation/tab binding,
-injection, extraction, or privacy checks because the popup deliberately reads
-no current tab or page. Adding `activeTab`, `tabs`, a content script, page
-extraction, storage, or a service crosses the recorded owner/Trust stop and
-requires a new review of the applicable `B-*` controls.
+The local lookup contract records exact-normalized-URL Source-match provenance
+separately from the exact-fingerprint Source-to-Topic mapping. A second fresh
+active/current tab read must match the original tab ID and normalized URL
+before text-only rendering. Malformed, cross-wired, navigated, closed,
+permission-lost, stale, reset, or superseded operations publish no Source,
+Topic, Discussion, mapping, or count data. Automated policy, response, race,
+inventory, capability, CSP, and hidden-DOM-clearing checks pass. The manual
+Chromium permission, traffic, storage, console, and keyboard/visible-state
+smoke remains required, so P1.5b is not yet complete.
+
+This evidence authorizes no title, metadata, DOM, body, frame, cookie, or
+authentication-state read and no general page or WebView extraction. Android
+and iOS technically permit JavaScript evaluation in an app-controlled WebView,
+and Chromium can inject a packaged function with `activeTab` plus `scripting`,
+but technical reachability is not permission to collect or reuse third-party
+material. Any such increment must separately settle website terms, content
+rights, paywall/authenticated/private exclusions, publisher signals, store
+disclosures, exact fields, raw/derived retention and egress, and platform
+security. `robots.txt`, robots metadata, or structured metadata can contribute
+policy signals but cannot alone establish authorization or a content licence.
 
 ### Go: read-only indicator with remote lookup
 

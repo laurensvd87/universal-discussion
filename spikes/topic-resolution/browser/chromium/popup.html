@@ -9,25 +9,40 @@
   <body>
     <main>
       <div class="scope-row" aria-label="Prototype scope">
-        <span class="scope-badge">Bundled fixture</span>
-        <span class="scope-badge scope-badge--quiet">NO AUTO</span>
+        <span class="scope-badge">activeTab only</span>
+        <span class="scope-badge scope-badge--quiet">Local · NO AUTO</span>
       </div>
 
       <header>
         <p class="eyebrow">Content → Topic → Discussion</p>
         <h1>Discussion preview</h1>
         <p class="intro">
-          This zero-permission preview reads no page data. Choose a synthetic
-          scenario to exercise the local discussion state.
+          On your click, this local preview reads only the active tab's
+          address-bar URL. It never reads the title or page content.
         </p>
       </header>
 
-      <form id="scenario-form">
-        <label for="scenario">Bundled scenario</label>
-        <select id="scenario" name="scenario"></select>
-        <p id="scenario-description" class="scenario-description"></p>
-        <button type="submit">Show fixture state</button>
-      </form>
+      <section class="action-panel" aria-labelledby="current-tab-heading">
+        <h2 id="current-tab-heading">Current tab</h2>
+        <p>
+          Supports only queryless <code>https://example.com/</code> and
+          <code>https://example.org/</code>. Everything else fails closed.
+        </p>
+        <p class="privacy-warning">
+          Do not invoke this proof of concept on a signed-in or sensitive page.
+        </p>
+        <button id="current-tab-button" type="button">Check current tab URL</button>
+      </section>
+
+      <details class="fixture-panel">
+        <summary>Bundled test scenarios</summary>
+        <form id="scenario-form">
+          <label for="scenario">Bundled scenario</label>
+          <select id="scenario" name="scenario"></select>
+          <p id="scenario-description" class="scenario-description"></p>
+          <button type="submit">Show fixture state</button>
+        </form>
+      </details>
 
       <section class="result-card" aria-labelledby="result-heading" aria-live="polite">
         <div class="result-heading-row">
@@ -35,7 +50,7 @@
           <span id="state-chip" class="state-chip">Idle</span>
         </div>
         <p id="status-message" class="status-message">
-          Choose a bundled fixture scenario.
+          Check the current tab or choose a bundled fixture scenario.
         </p>
         <p id="reason" class="reason" hidden></p>
 
@@ -67,6 +82,10 @@
 
           <dl class="evidence-list">
             <div>
+              <dt>Source lookup</dt>
+              <dd id="source-match"></dd>
+            </div>
+            <div>
               <dt>Mapping</dt>
               <dd id="mapping-method"></dd>
             </div>
@@ -83,7 +102,7 @@
       </section>
 
       <footer>
-        Local fixture only · no tab access · no network · no storage
+        URL in popup memory only · no title/content · no network · no storage
       </footer>
     </main>
     <script type="module" src="popup.js"></script>

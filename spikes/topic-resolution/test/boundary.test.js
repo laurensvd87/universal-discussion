@@ -41,6 +41,8 @@ test("runtime modules have no network, DNS, process, filesystem, logging, or dyn
       path.relative(packageDirectory, file).replaceAll("\\", "/"),
     ),
     [
+      "browser/core/active-tab-controller.js",
+      "browser/core/active-tab-policy.js",
       "browser/core/indicator-contract.js",
       "browser/core/indicator-controller.js",
       "browser/fixtures/indicator-fixtures.js",
@@ -223,7 +225,8 @@ test("review workflow keeps pure contracts separate from bounded local filesyste
 
 test("fixture inventory records synthetic provenance and minimum-data review", async () => {
   const manifest = JSON.parse(await readFile(fixtureManifestPath, "utf8"));
-  assert.equal(manifest.manifestVersion, "fixture-provenance/1.2.0");
+  assert.equal(manifest.manifestVersion, "fixture-provenance/1.3.0");
+  assert.equal(manifest.reviewedAt, "2026-09-22T12:00:00.000Z");
   assert.equal(new Date(manifest.reviewedAt).toISOString(), manifest.reviewedAt);
   assert.deepEqual(
     manifest.entries.map((entry) => entry.path).sort(),

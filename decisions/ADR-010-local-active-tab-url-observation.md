@@ -1,11 +1,17 @@
 # ADR-010: Local user-invoked active-tab URL observation
 
-Status: Proposed — owner, Trust, and privacy approval required before code
+Status: Accepted for the exact local P1.5b boundary; implementation evidence
+and post-implementation Trust/Quality review still required
 
 Date: 2026-09-22
 
 Owners: Lead / Product Orchestrator, Platform and Client, Trust, Privacy,
 Quality
+
+Owner disposition: accepted explicitly on 2026-09-22. This authorizes only the
+field, permission, retention, and local lookup boundary below. It is not a
+provider, deployment, spending, publication, real-user study, extraction, or
+expanded browsing-data approval.
 
 ## Context
 
@@ -26,7 +32,7 @@ access:
 - <https://developer.chrome.com/docs/extensions/develop/concepts/activeTab>
 - <https://developer.chrome.com/docs/extensions/reference/api/tabs>
 
-## Proposed decision
+## Decision
 
 Authorize one local Chromium P1.5b experiment with this exact boundary:
 
@@ -47,7 +53,8 @@ Authorize one local Chromium P1.5b experiment with this exact boundary:
   current activation, with no storage, cache, background worker, telemetry,
   console logging, or external request;
 - perform only a bundled exact-normalized-URL lookup. Extend the strict
-  contract with a separately tested deterministic mapping method and keep
+  contract with a separately tested URL-to-Source receipt while keeping the
+  existing exact-fingerprint Source-to-Topic mapping distinct and
   `noAutomaticSemanticJoin: true`; do not add a semantic suggestion or join;
 - re-check the same tab and normalized URL immediately before rendering. A
   closed tab, permission loss, navigation, newer activation, malformed result,
@@ -120,6 +127,7 @@ needed because approved code must persist nothing.
 
 ## Owner / Trust / privacy disposition
 
-Pending. General instructions to continue do not count as approval for this
-permission and browsing-data boundary. Record the exact disposition and date
-here before implementation.
+Accepted on 2026-09-22 for implementation and local owner testing within the
+exact boundary above. Trust/Quality engineering review remains required on the
+finished code. Any broader permission, field, URL scope, retention, egress, or
+release action returns to an explicit stop.

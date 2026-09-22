@@ -26,15 +26,18 @@ function relativeBrowserPath(file) {
   return path.relative(browserDirectory, file).replaceAll("\\", "/");
 }
 
-test("unpacked extension inventory and zero-permission manifest are exact", async () => {
+test("unpacked extension inventory and activeTab-only manifest are exact", async () => {
   const files = (await listFiles(browserDirectory))
     .map(relativeBrowserPath)
     .sort();
   assert.deepEqual(files, [
     "README.md",
+    "chromium/active-tab-reader.js",
     "chromium/popup.css",
     "chromium/popup.html",
     "chromium/popup.js",
+    "core/active-tab-controller.js",
+    "core/active-tab-policy.js",
     "core/indicator-contract.js",
     "core/indicator-controller.js",
     "fixtures/indicator-fixtures.js",
@@ -45,19 +48,19 @@ test("unpacked extension inventory and zero-permission manifest are exact", asyn
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.1.0",
-    description: "Zero-permission bundled-fixture preview of a read-only discussion indicator.",
+    version: "0.2.0",
+    description: "User-invoked local URL lookup with bundled read-only discussion data.",
     incognito: "not_allowed",
+    permissions: ["activeTab"],
     action: {
       default_popup: "chromium/popup.html",
-      default_title: "Open bundled discussion fixture",
+      default_title: "Check local discussion state",
     },
     content_security_policy: {
-      extension_pages: "script-src 'self'; object-src 'none';",
+      extension_pages: "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';",
     },
   });
   for (const forbiddenKey of [
-    "permissions",
     "optional_permissions",
     "host_permissions",
     "optional_host_permissions",
@@ -76,6 +79,9 @@ test("unpacked extension inventory and zero-permission manifest are exact", asyn
 
 test("every runtime import and document resource remains inside the unpacked root", async () => {
   const runtimeFiles = [
+    path.join(browserDirectory, "chromium", "active-tab-reader.js"),
+    path.join(browserDirectory, "core", "active-tab-controller.js"),
+    path.join(browserDirectory, "core", "active-tab-policy.js"),
     path.join(browserDirectory, "core", "indicator-contract.js"),
     path.join(browserDirectory, "core", "indicator-controller.js"),
     path.join(browserDirectory, "fixtures", "indicator-fixtures.js"),
@@ -109,7 +115,7 @@ test("every runtime import and document resource remains inside the unpacked roo
   }
 });
 
-test("browser runtime has no page, network, storage, logging, or dynamic-code capability", async () => {
+test("browser runtime has only the audited active-tab read and no network, storage, logging, or dynamic-code capability", async () => {
   const runtimeFiles = (await listFiles(browserDirectory))
     .filter((file) => file.endsWith(".js"));
   const capabilityPattern = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|localStorage|sessionStorage|indexedDB|caches|cookieStore)\b/u;
@@ -120,13 +126,35 @@ test("browser runtime has no page, network, storage, logging, or dynamic-code ca
   for (const runtimeFile of runtimeFiles) {
     const source = await readFile(runtimeFile, "utf8");
     const label = relativeBrowserPath(runtimeFile);
+    const approvedBinding = "globalThis.chrome.tabs";
+    const bindingCount = source.split(approvedBinding).length - 1;
+    assert.equal(
+      bindingCount,
+      label === "chromium/popup.js" ? 1 : 0,
+      `${label} extension API binding`,
+    );
+    const sourceWithoutApprovedBinding = source.replace(
+      approvedBinding,
+      "approvedTabsApi",
+    );
     assert.doesNotMatch(source, capabilityPattern, label);
-    assert.doesNotMatch(source, extensionApiPattern, label);
+    assert.doesNotMatch(sourceWithoutApprovedBinding, extensionApiPattern, label);
     assert.doesNotMatch(source, unsafeCodePattern, label);
     assert.doesNotMatch(source, unsafeHtmlPattern, label);
     assert.doesNotMatch(source, /\bconsole\s*\./u, label);
     assert.doesNotMatch(source, /\bprocess\s*\.|node:/u, label);
+    assert.doesNotMatch(source, /\btabs(?:Api)?\.get\s*\(/u, label);
   }
+
+  const readerSource = await readFile(
+    path.join(browserDirectory, "chromium", "active-tab-reader.js"),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    readerSource,
+    /\btab\.(?:active|incognito|pendingUrl|title|windowId)\b|\.\.\.tab\b/u,
+  );
+  assert.match(readerSource, /tabsApi\.query\(ACTIVE_CURRENT_TAB_QUERY\)/u);
 
   const popupScript = await readFile(popupScriptPath, "utf8");
   assert.match(popupScript, /elements\.sourceTitle\.textContent = state\.source\.title;/u);
@@ -146,7 +174,10 @@ test("popup contains only local external assets and basic accessible bindings", 
   );
   assert.doesNotMatch(withoutExpectedScript, /<script\b/iu);
   assert.doesNotMatch(html, /\son[a-z]+\s*=/iu);
-  assert.doesNotMatch(html, /\b(?:https?:)?\/\//iu);
+  const withoutApprovedUrls = html
+    .replaceAll("https://example.com/", "")
+    .replaceAll("https://example.org/", "");
+  assert.doesNotMatch(withoutApprovedUrls, /\b(?:https?:)?\/\//iu);
   assert.doesNotMatch(css, /@import\b|url\s*\(/iu);
 
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
@@ -159,4 +190,16 @@ test("popup contains only local external assets and basic accessible bindings", 
   }
   assert.match(html, /aria-live="polite"/u);
   assert.match(html, /<label for="scenario">/u);
+  assert.match(html, /id="current-tab-button"/u);
+  assert.match(html, /Do not invoke this proof of concept on a signed-in or sensitive page\./u);
+
+  const clearIndex = script.indexOf(
+    "for (const element of resolvedTextElements) element.textContent = \"\";",
+  );
+  const earlyReturnIndex = script.indexOf(
+    'if (state.outcome !== "resolved") return;',
+  );
+  assert.ok(clearIndex >= 0 && clearIndex < earlyReturnIndex);
+  assert.match(script, /activeTabController\.reset\(\);\s*\n\s*await fixtureController\.activate/u);
+  assert.match(script, /fixtureController\.reset\(\);\s*\n\s*elements\.currentTabButton\.disabled/u);
 });

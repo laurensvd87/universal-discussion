@@ -33,6 +33,7 @@ function transitionView(phase, scenarioId, requestToken, message) {
       readOnly: true,
     },
     source: null,
+    sourceMatch: null,
     topicId: null,
     viewContractVersion: INDICATOR_VIEW_CONTRACT_VERSION,
   });
@@ -56,7 +57,12 @@ export function createIndicatorController({ lookup, onStateChange = () => {} }) 
   }
 
   let activation = 0;
-  let state = transitionView("idle", null, null, "Choose a bundled fixture scenario.");
+  let state = transitionView(
+    "idle",
+    null,
+    null,
+    "Check the current tab or choose a bundled fixture scenario.",
+  );
 
   function nextActivation() {
     if (activation >= 999_999) {
@@ -108,7 +114,14 @@ export function createIndicatorController({ lookup, onStateChange = () => {} }) 
 
   function reset() {
     nextActivation();
-    return publish(transitionView("idle", null, null, "Choose a bundled fixture scenario."));
+    return publish(
+      transitionView(
+        "idle",
+        null,
+        null,
+        "Check the current tab or choose a bundled fixture scenario.",
+      ),
+    );
   }
 
   function currentState() {
