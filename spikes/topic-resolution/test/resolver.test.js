@@ -151,6 +151,14 @@ test("observation and activity contracts reject raw content fields instead of st
   );
   assert.throws(
     () =>
+      resolver.resolve({
+        ...OBSERVATIONS.wireStory,
+        publishedAtHint: "2026-01-15T10:30:00Z",
+      }),
+    (error) => error instanceof ResolutionError && error.code === "UNSUPPORTED_FIELD",
+  );
+  assert.throws(
+    () =>
       createTopicResolver({
         activityRecords: [
           {

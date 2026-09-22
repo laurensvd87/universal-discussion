@@ -246,6 +246,7 @@ h2 {
 
 .field-note {
   color: #7b6d41;
+  display: block;
   font-size: 10px;
   font-weight: 700;
   line-height: 1.35;

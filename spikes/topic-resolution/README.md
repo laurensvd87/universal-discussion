@@ -47,30 +47,39 @@ the 8,192-byte limit.
 
 ## User-invoked browser indicator
 
-`browser/` is the P1.5b Chromium popup backed only by checked-in synthetic
-fixtures and local lookup data. Load that directory as an unpacked extension
-or follow its own `browser/README.md`. Its manifest requests exactly
-`activeTab`. On an explicit click, the adapter projects only the active/current
-tab ID and address-bar URL, accepts exactly the queryless `example.com` and
+`browser/` now contains the separate P1.5b and P1.5c Chromium popup paths.
+Load that directory as an unpacked extension or follow its own
+`browser/README.md`. Its current manifest requests exactly `activeTab` and
+`scripting`, requires Chrome 106+, and has no standing host permission.
+
+On the P1.5b URL action, the adapter projects only the active/current tab ID
+and address-bar URL, accepts exactly the queryless `example.com` and
 `example.org` demonstration roots after fragment removal, and performs a
 bundled exact-normalized-URL Source lookup. A second fresh tab read must match
 the same tab ID and normalized URL before rendering.
 
 The browser-neutral contracts separately bind URL-to-Source provenance and the
 exact-fingerprint Source-to-Topic mapping, plus Topic, Discussion,
-topic-scoped human/agent activity, and freshness. The package has no broad
-`tabs` or host permission, content/background script, title/DOM/body access,
-remote resource, network, storage, logging, telemetry, auth, or AI capability,
-and it renders only with text DOM operations. The P1.5a bundled scenarios remain
-available. Automated checks and the documented owner-run Chromium
-permission/traffic/storage/console/keyboard smoke pass for this exact local
+topic-scoped human/agent activity, and freshness. The P1.5a bundled scenarios
+remain available. Automated checks and the historical owner-run Chromium
+permission/traffic/storage/console/keyboard smoke pass for this exact URL-only
 slice; evidence is in `../../research/P1_5B_MANUAL_SMOKE.md`.
 
+On the separate P1.5c metadata action, the adapter accepts only the exact
+project loopback fixture and pinned MDN route, injects one packaged collector
+into isolated top-level frame 0, and projects only bounded direct-head title,
+description, canonical, publication, and supported control metadata. It binds
+the result to a Chrome document ID and final active-tab read. It reads no body,
+JSON-LD, frame, cookie, storage, authentication, or paywall state and has no
+network, logging, telemetry, model, fingerprint, resolver, Topic decision, or
+AI capability. Both paths render only with text DOM operations.
+
 The curated and semantic-suggestion paths required by the larger ADR-009 PoC
-remain future local work. Stop before broader URLs, page/WebView extraction,
-`scripting`, service egress, persistence, deployment, store submission, or
-publication. Those need separate platform-policy, rights, privacy, security,
-and owner decisions.
+remain future local work. `scripting` is authorized only for the exact P1.5c
+boundary. Stop before broader URLs/fields/selectors, body or WebView extraction,
+service egress, persistence, deployment, store submission, or publication.
+Those need separate platform-policy, rights, privacy, security, and owner
+decisions.
 
 ## Phase 0 labeling pilot
 

@@ -68,15 +68,17 @@ extension/mobile client will satisfy store, website-terms, copyright, or
 privacy rules. `publishedAtHint` is displayed as context only and is never sent
 to the resolver or used for Topic matching.
 
-## Reproducible manual Chromium smoke
+## Historical P1.5b manual Chromium smoke
 
-The owner completed this checklist on 2026-09-22. The reported observations,
-limitations, and disposition are recorded in
-`../../../research/P1_5B_MANUAL_SMOKE.md`.
+The owner completed this checklist on 2026-09-22 against extension version
+0.2.0 at commit `4be7a3b`, before P1.5c added `scripting`. It is retained as
+historical evidence, not as a permission description for the current 0.3.0
+package. The reported observations, limitations, and disposition are recorded
+in `../../../research/P1_5B_MANUAL_SMOKE.md`.
 
 1. Open Chromium's extension management page and enable developer mode.
-2. Choose **Load unpacked** and select this `browser` directory.
-3. Inspect the extension details. Confirm its only requested permission is
+2. Choose **Load unpacked** and select the version-0.2.0 `browser` directory.
+3. Inspect that historical extension's details. Confirm its only requested permission is
    `activeTab`, it is not allowed in incognito, and it has no site-access list,
    background worker, or other capability.
 4. Open `https://example.com/`, click the extension action, then choose

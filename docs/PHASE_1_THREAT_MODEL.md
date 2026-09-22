@@ -65,7 +65,7 @@ Passive observation of every visited page is not in scope. It would materially c
 | --- | --- | --- |
 | Address-bar URL, query, fragment, and navigation timing | Restricted browsing data; queries/fragments may contain secrets or personal data | Inspect locally only for eligibility. Never persist. Never send a fragment, URL credentials, or an unreviewed query. |
 | Page body, selection, form values, cookies, local storage, referrer, and authentication state | Highly sensitive page/user data | Do not read or transmit. The fixture-only resolver has no access to them. |
-| Page title, canonical link, metadata, and visible text | Untrusted and potentially sensitive/copyrighted | Fixture data only in Increment A. Not transmitted by Increment B without a later approved change. |
+| Page title, canonical link, metadata, and visible text | Untrusted and potentially sensitive/copyrighted | P1.5c may read only its bounded direct-head fields on two exact allowlisted routes and never transmits them. Visible text remains fixture-only. Any broader read or transmission needs a later approved change. |
 | Source lookup value | Pseudonymous browsing data even if hashed | Treat like a URL. Send only after explicit invocation and an approved egress/retention ADR. Do not log the request body. |
 | Source-topic mapping, confidence, method, and model/version | Integrity-critical resolution data | Record locally in the spike; do not mutate it from a read-only indicator request. |
 | Topic/source identifiers and activity counts | Public-intended but integrity-critical | Return through a strict schema; bind to the request and include freshness. Keep human/agent counts separate. |
@@ -408,7 +408,7 @@ Passing a test with a local mock does not establish that production infrastructu
 The following are not authorized by this threat model:
 
 - passive/background observation of browsing or a global browsing history;
-- operation on incognito/private, local, intranet, document, mail, banking, health, administration, or other deliberately excluded contexts; authenticated/sensitive use on an otherwise public allowlisted host remains a warned residual because it cannot be detected perfectly;
+- operation on incognito/private, intranet, document, mail, banking, health, administration, or other deliberately excluded contexts; local contexts are excluded except for P1.5c's exact project-owned loopback fixture route, and authenticated/sensitive use on an otherwise public allowlisted host remains a warned residual because it cannot be detected perfectly;
 - sending page body text, selections, form values, cookies, storage, referrers, or unreviewed URL queries;
 - server-side URL fetching, unfurling, crawling, screenshotting, DNS resolution, or source creation from a lookup;
 - accounts, authentication, user profiles, public comments, votes, reactions, reports, moderation actions, or any write endpoint;
@@ -519,6 +519,12 @@ or absence add no Topic, join, split, rank, fingerprint, or resolver capability.
 Automated hostile-DOM, route, contract, race, package, and temporal checks are
 implemented; browser smoke and a fresh Trust/Quality review remain required
 before P1.5c is complete.
+
+The document-ID attestation and final active-tab read reject changes observed
+before their respective checks. They cannot eliminate the small asynchronous
+check/use window after the last check and before synchronous text rendering; a
+same-URL reload or tab switch in that interval is a residual risk. No result is
+persisted, and every later click begins with a fresh tab observation.
 
 ### Go: read-only indicator with remote lookup
 

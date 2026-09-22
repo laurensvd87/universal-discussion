@@ -130,7 +130,9 @@ export function classifyPageSignalSnapshot(snapshot, nowEpochMilliseconds) {
   parsed.hash = "";
   const normalizedUrl = parsed.toString();
   const route = ROUTE_BY_URL.get(normalizedUrl);
-  if (route === undefined) {
+  const rawUrlWithoutFragment =
+    fragmentIndex === -1 ? snapshot.url : snapshot.url.slice(0, fragmentIndex);
+  if (route === undefined || rawUrlWithoutFragment !== normalizedUrl) {
     fail("UNSUPPORTED_CONTEXT", "The page-signal context is unsupported");
   }
   if (

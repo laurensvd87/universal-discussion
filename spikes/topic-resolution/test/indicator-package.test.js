@@ -183,6 +183,20 @@ test("browser runtime has only audited tab and scripting bindings and no network
     /document\.(?:body|cookie|forms|images|referrer|scripts)|querySelector|localStorage|sessionStorage/u,
   );
 
+  for (const metadataModule of [
+    path.join(browserDirectory, "chromium", "page-metadata-reader.js"),
+    path.join(browserDirectory, "core", "page-metadata-controller.js"),
+    path.join(browserDirectory, "core", "page-signal-contract.js"),
+    path.join(browserDirectory, "core", "page-signal-policy.js"),
+  ]) {
+    const source = await readFile(metadataModule, "utf8");
+    assert.doesNotMatch(
+      source,
+      /(?:\.\.\/)+(?:(?:src|evaluation|extraction|review)\/)|\b(?:createTopicResolver|RESOLUTION_METHOD|contentFingerprint)\b/u,
+      relativeBrowserPath(metadataModule),
+    );
+  }
+
   const popupScript = await readFile(popupScriptPath, "utf8");
   assert.match(popupScript, /elements\.sourceTitle\.textContent = state\.source\.title;/u);
   assert.match(popupScript, /elements\.sourceUrl\.textContent = state\.source\.url;/u);
@@ -227,6 +241,10 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(html, /id="metadata-button"/u);
   assert.match(html, /Do not invoke this proof of concept on a signed-in or sensitive page\./u);
   assert.match(html, /this prototype does not inspect\s*\n\s*login or paywall state\./u);
+  assert.match(
+    html,
+    /<dd>\s*<span id="metadata-published-at"><\/span>\s*<span class="field-note">/u,
+  );
 
   const clearIndex = script.indexOf(
     "for (const element of resolvedTextElements) element.textContent = \"\";",

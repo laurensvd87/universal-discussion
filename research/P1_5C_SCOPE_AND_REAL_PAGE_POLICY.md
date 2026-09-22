@@ -76,7 +76,8 @@ terms, and robots signal after the deadline or before changing the target.
 | `publishedAtHint` | 64 code units | `article:published_time` only | context only; ignored by Topic matching |
 | field provenance | bounded enums | exact selector category and contract version | audit only |
 
-Missing optional fields remain absent. Conflicting values at one precedence,
+Missing optional candidates are represented as `null` in the exact envelope.
+Conflicting values at one precedence,
 over-limit raw values, unsupported structure, negative robots/TDM signals, or
 an invalid date reject the operation generically. JSON-LD is deliberately
 excluded from this increment.
@@ -128,8 +129,12 @@ reject a Topic.
 - URL/document identity is checked before extraction, before the injected
   collector touches metadata, in the returned result, by a second
   `documentId`-targeted attestation, and by a final active-tab read. Navigation,
-  same-URL reload, tab replacement/closure, permission loss, timeout,
-  ambiguity, malformed data, or hostile input fails closed without echo.
+  a same-URL reload that invalidates the collected document before attestation,
+  tab replacement/closure, permission loss, timeout, ambiguity, malformed
+  data, or hostile input fails closed without echo. A reload or tab change in
+  the small interval after its corresponding final check and before synchronous
+  rendering remains a documented check/use race; the next invocation always
+  starts from fresh browser state.
 - Authentication and paywall state are neither read nor inferred. The exact
   allowlist and signed-out manual test replace any claim of generic detection.
 - No embedding, model, provider, fingerprint, Topic candidate, or automatic

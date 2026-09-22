@@ -120,8 +120,9 @@ deferred labeled-corpus evaluation and a new decision.
 - Store publication is not guaranteed. Apple in particular may require
   service-specific permission evidence; a universal technical adapter cannot
   erase that requirement.
-- The current URL-only extension remains valuable and should be completed and
-  smoke-tested independently of this proposal.
+- The URL-only P1.5b extension slice was completed and owner-smoke-tested on
+  2026-09-22. Its evidence remains independent of the separate P1.5c metadata
+  action now added to the same package.
 
 ## Required approval and validation
 
@@ -133,7 +134,7 @@ Before code reads live metadata, record approval of:
    not detect sensitive/paywall/authenticated/private presentation state;
 4. the terms/rights review method and expiry/re-review process;
 5. model identity, licence, redistribution, reproducibility, and local resource
-   bounds;
+   bounds (not applicable to P1.5c because this slice contains no model);
 6. raw/derived retention (initial proposal: none) and navigation binding; and
 7. synthetic/owned-page, hostile-DOM, privacy, and store-policy test evidence.
 

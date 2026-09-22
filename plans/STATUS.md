@@ -283,7 +283,9 @@ broader Chromium, Android, or iOS extraction implementation.
   precedence/limits/provenance, same-origin queryless canonical hints,
   supported in-head robots/TDM controls, safe text, valid publication
   timestamps, and no raw retention. A second `documentId`-targeted injection
-  plus a final active-tab read detects same-URL reloads and navigation races.
+  plus a final active-tab read rejects stale documents and navigation races
+  observed before those checks. A small post-check/pre-render same-URL reload
+  or tab-change window remains a documented TOCTOU residual.
   There is no body, JSON-LD, auth/paywall-state, model, fingerprint, resolver,
   Topic, storage, log, telemetry, or egress path.
 - Added a project-created script-free fixture and exact loopback-only server.
