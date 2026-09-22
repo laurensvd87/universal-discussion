@@ -239,11 +239,14 @@ receipt provenance remains separate from the pinned exact-fingerprint
 Source-to-Topic mapping. The P1.5a scenarios remain available.
 
 Automated policy, adapter, contract, race, package, CSP, capability, and DOM
-clearing checks pass. The implementation has no broad `tabs` or host
-permission, title/DOM/body access, injection, background/content script,
+clearing checks pass. A separate read-only AI reviewer issued Trust and Quality
+ACCEPT with no open engineering finding after a manual-checklist gap was
+reconciled; the evidence and residuals are in
+`research/P1_5B_ENGINEERING_REVIEW.md`. The implementation has no broad `tabs`
+or host permission, title/DOM/body access, injection, background/content script,
 storage, network, telemetry, auth, write, or AI capability. A real Chromium
-permission/traffic/storage/console/keyboard smoke and final Trust/Quality
-engineering review are still required before P1.5b can be marked complete.
+permission/traffic/storage/console/keyboard smoke is still required before
+P1.5b can be marked complete.
 Stop before a larger URL allowlist, `scripting`, page/WebView metadata or body
 extraction, egress, persistence, or store submission. Cross-platform general
 metadata extraction first requires the separate site-terms/copyright/store

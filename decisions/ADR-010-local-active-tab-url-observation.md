@@ -1,7 +1,7 @@
 # ADR-010: Local user-invoked active-tab URL observation
 
-Status: Accepted for the exact local P1.5b boundary; implementation evidence
-and post-implementation Trust/Quality review still required
+Status: Accepted for the exact local P1.5b boundary; automated implementation
+and Trust/Quality engineering evidence pass; manual Chromium evidence pending
 
 Date: 2026-09-22
 
@@ -128,6 +128,9 @@ needed because approved code must persist nothing.
 ## Owner / Trust / privacy disposition
 
 Accepted on 2026-09-22 for implementation and local owner testing within the
-exact boundary above. Trust/Quality engineering review remains required on the
-finished code. Any broader permission, field, URL scope, retention, egress, or
-release action returns to an explicit stop.
+exact boundary above. A separate read-only AI reviewer issued Trust and Quality
+ACCEPT for implementation commit `53c7e84`, with the checklist reconciled in
+`4e782e4`; `research/P1_5B_ENGINEERING_REVIEW.md` records the evidence and
+residuals. The owner-run manual Chromium smoke remains required. Any broader
+permission, field, URL scope, retention, egress, or release action returns to
+an explicit stop.

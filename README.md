@@ -34,6 +34,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-010-local-active-tab-url-observation.md` — the accepted field-level permission/privacy boundary for the queryless, user-invoked local URL adapter now implemented in P1.5b.
 - `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the proposed generic standards-based metadata and on-device candidate path; live-page use remains behind owner, security/privacy, rights, and store-policy approval.
 - `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
+- `research/P1_5B_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review, checklist reconciliation, and residuals for the `activeTab`-only local URL slice.
 - `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` — current official-source evidence and alternatives for Chromium, Android, and iOS content signals without a per-site API foundation.
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 

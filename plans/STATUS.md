@@ -246,6 +246,13 @@ or iOS extraction implementation.
   storage, console, or keyboard behavior, so the bounded manual Chromium smoke
   in `spikes/topic-resolution/browser/README.md` remains required before this
   increment is complete.
+- A separate read-only AI reviewer applied Trust and Quality engineering
+  lenses to implementation commit `53c7e84`, verified the documentation-only
+  smoke-checklist reconciliation in `4e782e4`, and issued ACCEPT / ACCEPT with
+  no open engineering finding. This is not an independent human, owner manual
+  smoke, legal/store-policy review, or release approval. The evidence,
+  resolved checklist gap, and residuals are recorded in
+  `research/P1_5B_ENGINEERING_REVIEW.md`.
 - Current official-source policy research now covers Chrome Web Store, Apple
   App Store, Google Play, Android/iOS WebView feasibility, robots/meta signals,
   paywalls, content rights, and search-provider lock-in. It rejects per-site
@@ -268,7 +275,7 @@ or iOS extraction implementation.
 - `ADR-007-offline-owner-review-ledger.md`: **Accepted by the owner for the offline workflow and generated-only P1.2b-1 preflight**; the existing synthetic implementation has Trust/Quality ACCEPT, but the decision authorizes no real-data collection, real independent review, corpus finalization, split, or evaluation.
 - `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
 - `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
-- `ADR-010-local-active-tab-url-observation.md`: **Accepted for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated implementation evidence exists; manual Chromium and final engineering review evidence remain open.
+- `ADR-010-local-active-tab-url-observation.md`: **Accepted for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated implementation and Trust/Quality engineering-review evidence pass; manual Chromium evidence remains open.
 - `ADR-011-cross-platform-content-signal-boundary.md`: **Proposed; owner, Security/Trust, Privacy, platform-policy/rights, and Quality approval pending.** It prefers one generic standards-based metadata envelope and on-device candidate operation over per-site APIs or a search-provider dependency, but authorizes no live metadata/body extraction, model, egress, storage, or store submission.
 
 ## Blockers
