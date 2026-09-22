@@ -233,13 +233,22 @@ h2 {
   color: #8a3d2d;
 }
 
+.resolved-result,
 #resolved-result {
   display: grid;
   gap: 13px;
 }
 
+.resolved-result[hidden],
 #resolved-result[hidden] {
   display: none;
+}
+
+.field-note {
+  color: #7b6d41;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .source-title {

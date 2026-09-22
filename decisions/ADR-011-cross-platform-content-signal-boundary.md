@@ -1,7 +1,7 @@
 # ADR-011: Cross-platform standards-based content-signal boundary
 
 Status: Accepted for the exact P1.5c controlled-page plus one pinned MDN-page
-experiment; implementation and post-implementation evidence pending
+experiment; implementation exists and post-implementation evidence is pending
 
 Date: 2026-09-22
 
@@ -33,6 +33,11 @@ Security/Trust, Privacy, Policy/Rights, and Quality for the bounded scope below,
 plus one real public-page test. This does not substitute for qualified legal or
 store review and authorizes no general third-party extraction.
 
+The owner additionally directed the PoC to treat public document-head metadata
+as available for local processing and not to build paywall detection or
+per-site APIs. This is a recorded product/risk assumption, not a legal finding
+or a generalized release/store authorization.
+
 ## Decision
 
 Use one portable, versioned page-signal contract and small platform adapters,
@@ -49,9 +54,9 @@ Any first live experiment would:
 - exclude images, body text, author identities, comments, forms, selections,
   accessibility/hidden text, frames, cookies, storage, authentication data,
   and page-provided executable behavior;
-- deny authenticated, private, paywalled, tokenized/query-bearing, restricted,
-  and otherwise sensitive contexts by default;
-- treat negative terms, robots/meta/TDM, or publisher signals as a hard stop,
+- restrict this experiment to two exact queryless routes and a signed-out MDN
+  manual test; do not claim that authentication or paywall state is detected;
+- treat the exact supported negative in-head robots/TDM signals as a hard stop,
   while never treating absent or positive signals alone as authorization;
 - validate origin/navigation binding before and after extraction;
 - immediately discard raw fields after the bounded operation;
@@ -73,8 +78,9 @@ domain/source policy record without requiring domain-specific parser code.
 For P1.5c, the Chromium manifest may contain exactly `activeTab` and
 `scripting`, with no host permissions. A packaged function may inspect only the
 active top-level document in an isolated world after an explicit popup click.
-The two eligible routes, field limits and precedence, MDN rights evidence,
-30-day re-review deadline, tests, and retention boundary are frozen in
+The two eligible routes, field limits and precedence, exact in-head control
+selectors, MDN rights evidence, expiry instant, tests, and retention boundary
+are frozen in
 `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`.
 
 Publication time is context, not Topic identity. Product descriptions and
@@ -123,8 +129,8 @@ Before code reads live metadata, record approval of:
 
 1. the exact metadata fields, length limits, precedence, and provenance;
 2. Chrome/Android/iOS permissions and user disclosures;
-3. sensitive/paywall/authenticated/private eligibility detection and its
-   fail-closed limitations;
+3. exact route controls and the documented limitation that the adapter does
+   not detect sensitive/paywall/authenticated/private presentation state;
 4. the terms/rights review method and expiry/re-review process;
 5. model identity, licence, redistribution, reproducibility, and local resource
    bounds;

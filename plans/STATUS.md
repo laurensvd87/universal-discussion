@@ -8,7 +8,9 @@ P1.3a synthetic HTML extraction increment has passed independent offline
 Trust/Quality review pending owner disposition of proposed ADR-006. A
 P1.5b is complete for the owner-approved `activeTab`-only local URL boundary:
 automated evidence, Trust/Quality engineering review, and the owner-run
-Chromium smoke pass. General page/WebView extraction and full browser
+Chromium smoke pass. The exact approved P1.5c metadata implementation now
+exists and its automated verification passes; independent review and owner
+browser smoke are not yet recorded. General page/WebView extraction and full browser
 integration stay at a separate owner/security/privacy/rights/store-policy stop.
 
 ## Current objective
@@ -18,8 +20,8 @@ egress/retention, and proposed merge/split semantics—before connected
 implementation, while building the license-safe P1.2 corpus/evaluator and
 review-ready owner labeling workflow, and advancing the shortest local
 NO-AUTO proof of concept. Preserve the completed P1.5b URL-only evidence while
-defining a publishability-first, vendor-neutral cross-platform metadata
-boundary before any Chromium, Android, or iOS extraction implementation.
+verifying the exact P1.5c vendor-neutral Chromium metadata boundary before any
+broader Chromium, Android, or iOS extraction implementation.
 
 ## Completed on 2026-09-19
 
@@ -260,12 +262,45 @@ boundary before any Chromium, Android, or iOS extraction implementation.
   paywalls, content rights, and search-provider lock-in. It rejects per-site
   APIs as the core architecture and defines one generic, standards-based,
   user-invoked metadata envelope with local processing and URL fallback.
-  However, technical DOM access and metadata presence are not authorization;
-  authenticated/private/paywalled contexts remain default-denied. The owner
+  Technical DOM access and metadata presence do not by themselves settle store
+  acceptance. The owner directs the PoC to assume public head metadata is
+  locally processable and not to build generic paywall detection or per-site
+  APIs; this is a product assumption, not a legal/release conclusion. The owner
   has approved only the exact P1.5c controlled route and pinned MDN page after
   explicit Security/Privacy/Policy detail; evidence and alternatives are in
   `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` and
   `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`.
+
+## Completed on 2026-09-22
+
+- Implemented the exact ADR-011/P1.5c Chromium metadata path as a separate
+  explicit popup action. The manifest is pinned to `activeTab` plus `scripting`
+  with Chrome 106+, no host/background/content/storage/network capability, and
+  the existing connection-denying CSP. The adapter accepts only the controlled
+  loopback fixture and pinned MDN route before the recorded expiry.
+- The isolated top-frame collector inspects at most 256 direct head children
+  and 32 exact-selector candidates. Strict local contracts enforce field
+  precedence/limits/provenance, same-origin queryless canonical hints,
+  supported in-head robots/TDM controls, safe text, valid publication
+  timestamps, and no raw retention. A second `documentId`-targeted injection
+  plus a final active-tab read detects same-URL reloads and navigation races.
+  There is no body, JSON-LD, auth/paywall-state, model, fingerprint, resolver,
+  Topic, storage, log, telemetry, or egress path.
+- Added a project-created script-free fixture and exact loopback-only server.
+  A live local harness probe returned 200 with `no-store`, `nosniff`, and the
+  expected synthetic fields; HEAD returned no body, while a query and wrong
+  Host were rejected with 404 and 400. Fixture provenance advanced to 1.4.0
+  and its intentional review-chain digest changes are pinned.
+- Focused browser checks pass 83/83. The full ordinary suite passes 264 tests
+  with only its expected restricted-harness self-test skipped; the restricted
+  suite passes 265/265. The scanner covers 95 files with zero findings after
+  six detector self-tests. Independent Trust/Quality review and the exact
+  owner-run local/MDN Chromium smoke remain open.
+- Recorded the owner's PoC assumption that public document-head metadata is
+  locally processable and no generic paywall detector or per-site API is
+  needed. The code makes no auth/paywall-detection claim. This is not a legal,
+  generalized-site, store, deployment, or publication approval; those gates
+  remain explicit.
 
 ## Active decisions
 
@@ -279,7 +314,7 @@ boundary before any Chromium, Android, or iOS extraction implementation.
 - `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
 - `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
 - `ADR-010-local-active-tab-url-observation.md`: **Accepted and complete for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated, Trust/Quality engineering-review, and owner Chromium evidence pass.
-- `ADR-011-cross-platform-content-signal-boundary.md`: **Accepted for the exact P1.5c controlled-page plus one pinned MDN-page experiment.** It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
+- `ADR-011-cross-platform-content-signal-boundary.md`: **Accepted and implemented for the exact P1.5c controlled-page plus one pinned MDN-page experiment; post-implementation review/manual evidence pending.** It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
 
 ## Blockers
 
@@ -289,7 +324,8 @@ boundary before any Chromium, Android, or iOS extraction implementation.
   evidence. It does not request broad `tabs`, inspect a title/DOM/body, invoke
   P1.3 extraction, or establish store eligibility. The owner approved only the
   exact ADR-011/P1.5c controlled-page plus pinned-MDN metadata experiment; its
-  implementation and review evidence are now the next local work. ADR-006 also
+  implementation exists, while independent review and owner-browser evidence
+  are now the next local work. ADR-006 also
   still needs owner acceptance before its different synthetic byte-extraction
   profile is integrated anywhere.
 - Exact egress fields, account linkage, sensitive-site exclusions, log/backup retention, deletion, and telemetry are undecided.
@@ -409,19 +445,21 @@ boundary before any Chromium, Android, or iOS extraction implementation.
   data; Play rejects unauthorized WebView wrappers and copyright violations.
   Robots/meta can supply negative policy signals but do not grant permission.
   The generic metadata path in ADR-011 is accepted only for the exact P1.5c
-  envelope and two routes. Full body, JSON-LD, authenticated, private,
-  paywalled, remote-fetch, model, and search-provider paths remain disabled.
+  envelope and two routes. It deliberately does not inspect auth/paywall state.
+  Full body, JSON-LD, private-data handling, remote-fetch, model, and
+  search-provider paths remain disabled.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate
 
 **GO:** local fixture-only resolver/evaluator/extraction/review-workflow work;
 continued local use of the completed, exact P1.5b `activeTab` URL-only slice;
-and planning the larger license-safe labeled set and cross-platform metadata
-policy.
+and implementation/review/manual-smoke work strictly inside the approved
+ADR-011/P1.5c two-route metadata boundary.
 
-**STOP:** any `scripting`, title/metadata/DOM/body/WebView extraction or URL
-eligibility beyond the exact accepted ADR-011/P1.5c envelope and two routes;
+**STOP:** any `scripting`, title/metadata/DOM/body/WebView extraction, field,
+selector, or URL eligibility beyond the exact accepted ADR-011/P1.5c envelope
+and two routes;
 integrating P1.3 into a client; unapproved
 real/public corpus acquisition or check-in; real browsing capture/egress, live
 URL fetches, hosted embeddings, auth/public writes, AI

@@ -124,6 +124,27 @@ trusted browser action/sidebar
 
 The remote shape is shown so its risks are explicit; it is not approved until the indicator gate below passes.
 
+The accepted P1.5c experiment has a separate local-only path and does not cross
+TB-B2, TB-B3, or TB-B4:
+
+```text
+explicit popup click
+       |
+       v
+active tab ID + URL -> exact route/expiry gate
+       |
+       v
+isolated top-frame packaged function -> strict bounded metadata envelope
+       |
+       v
+same-document ID attestation + final active-tab check -> popup textContent
+```
+
+There is no page-message channel, content script, background worker, lookup
+request, remote service, storage, or semantic resolver call in this path. The
+page controls its DOM and all returned values remain untrusted until the strict
+local contract projects a new immutable envelope.
+
 ## Threats and required controls
 
 ### T1. URL leakage and construction of browsing history
@@ -148,11 +169,11 @@ The remote shape is shown so its risks are explicit; it is not approved until th
 **Required controls:**
 
 - Reject all schemes except `http` and `https`, and reject URLs containing user information.
-- Reject loopback, unspecified, private, link-local, multicast, and unique-local IP ranges after parsing with a standards-compliant URL parser, including unusual numeric IPv4 forms and IPv4-mapped IPv6.
+- Reject loopback, unspecified, private, link-local, multicast, and unique-local IP ranges after parsing with a standards-compliant URL parser, including unusual numeric IPv4 forms and IPv4-mapped IPv6. The sole local-only P1.5c exception is the repository fixture at exactly `http://127.0.0.1:4173/p1-5c.html`; it is never a remote lookup/fetch target and every nearby address, port, path, or query remains rejected.
 - Reject `localhost`, `.localhost`, `.local`, and reviewed internal/special-use suffixes.
 - Do not operate in private/incognito browsing in this increment.
 - Do not operate inside frames. Bind a request to the active top-level tab and the exact navigation that the user invoked.
-- Use a public-domain allowlist for the first remote pilot. Authentication on a public hostname is not reliably detectable, so allowlisting and explicit invocation are necessary but leave a documented residual risk.
+- Use a public-domain allowlist for the first remote pilot. Authentication on a public hostname is not reliably detectable, so allowlisting and explicit invocation are necessary but leave a documented residual risk. P1.5c neither reads nor detects authentication/paywall state; its exact two-route allowlist, metadata-only boundary, and signed-out MDN smoke replace any such claim.
 - If eligibility is uncertain, show unsupported locally and make no request.
 
 ### T3. Prompt injection and instruction-bearing content
@@ -482,16 +503,22 @@ disclosures, exact fields, raw/derived retention and egress, and platform
 security. `robots.txt`, robots metadata, or structured metadata can contribute
 policy signals but cannot alone establish authorization or a content licence.
 
-Accepted ADR-011 reopens only the exact P1.5c experiment. Chromium may add
-`scripting` beside `activeTab` to run one packaged function in the isolated
-world of the active top-level document after an explicit click. Eligibility is
+Accepted ADR-011 reopens only the exact P1.5c experiment. The implemented
+Chromium package adds `scripting` beside `activeTab` and requires Chrome 106+
+for a same-document attestation. After an explicit click, a packaged function
+runs in the isolated world of the active top-level document. Eligibility is
 limited to the project-created loopback fixture and one pinned, rights-reviewed
 MDN documentation route in `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`.
-Only the bounded head-metadata envelope may be returned; body/JSON-LD/frame,
-authentication, storage, egress, model, and semantic-decision paths remain
-forbidden. `publishedAtHint` is context-only and must be proven unable to affect
-Topic matching. Implementation, hostile-DOM tests, browser smoke, and a fresh
-Trust/Quality review remain required before P1.5c is complete.
+Only bounded direct-head candidates may cross into the strict local envelope;
+body/JSON-LD/frame, authentication state, storage, egress, model, and
+semantic-decision paths remain forbidden. The implementation does not claim
+generic paywall or authentication detection. It checks only the frozen in-head
+robots/TDM selectors and cannot see response headers or site-wide TDM files.
+`publishedAtHint` is context-only and automated tests prove that valid changes
+or absence add no Topic, join, split, rank, fingerprint, or resolver capability.
+Automated hostile-DOM, route, contract, race, package, and temporal checks are
+implemented; browser smoke and a fresh Trust/Quality review remain required
+before P1.5c is complete.
 
 ### Go: read-only indicator with remote lookup
 

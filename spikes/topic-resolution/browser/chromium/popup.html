@@ -9,7 +9,7 @@
   <body>
     <main>
       <div class="scope-row" aria-label="Prototype scope">
-        <span class="scope-badge">activeTab only</span>
+        <span class="scope-badge">activeTab + scripting</span>
         <span class="scope-badge scope-badge--quiet">Local · NO AUTO</span>
       </div>
 
@@ -17,8 +17,9 @@
         <p class="eyebrow">Content → Topic → Discussion</p>
         <h1>Discussion preview</h1>
         <p class="intro">
-          On your click, this local preview reads only the active tab's
-          address-bar URL. It never reads the title or page content.
+          Two separate click-only paths demonstrate local URL lookup and a
+          tightly bounded head-metadata envelope. Neither path sends or stores
+          data or performs Topic matching.
         </p>
       </header>
 
@@ -32,6 +33,25 @@
           Do not invoke this proof of concept on a signed-in or sensitive page.
         </p>
         <button id="current-tab-button" type="button">Check current tab URL</button>
+      </section>
+
+      <section class="action-panel" aria-labelledby="metadata-heading">
+        <h2 id="metadata-heading">Bounded page metadata</h2>
+        <p>
+          On your click, reads only approved title, description, canonical,
+          publication, and in-head policy metadata from the top-level page.
+          It never reads the article body.
+        </p>
+        <p>
+          Supports only <code>http://127.0.0.1:4173/p1-5c.html</code> and the
+          exact reviewed MDN <code>/en-US/docs/Web/HTML/Reference/Elements/meta</code>
+          page. Queries and every other route fail closed.
+        </p>
+        <p class="privacy-warning">
+          Use the public, signed-out page only; this prototype does not inspect
+          login or paywall state.
+        </p>
+        <button id="metadata-button" type="button">Check bounded metadata</button>
       </section>
 
       <details class="fixture-panel">
@@ -101,8 +121,54 @@
         </div>
       </section>
 
+      <section class="result-card" aria-labelledby="metadata-result-heading" aria-live="polite">
+        <div class="result-heading-row">
+          <h2 id="metadata-result-heading">Metadata state</h2>
+          <span id="metadata-state-chip" class="state-chip">Idle</span>
+        </div>
+        <p id="metadata-status-message" class="status-message">
+          Read bounded metadata from an approved current page.
+        </p>
+        <p id="metadata-reason" class="reason" hidden></p>
+
+        <div id="metadata-resolved-result" class="resolved-result" hidden>
+          <p id="metadata-title" class="source-title"></p>
+          <dl class="evidence-list">
+            <div>
+              <dt>Observed URL</dt>
+              <dd id="metadata-observed-url"></dd>
+            </div>
+            <div>
+              <dt>Canonical hint</dt>
+              <dd id="metadata-canonical"></dd>
+            </div>
+            <div>
+              <dt>Description</dt>
+              <dd id="metadata-description"></dd>
+            </div>
+            <div>
+              <dt>Publication hint</dt>
+              <dd id="metadata-published-at"></dd>
+              <span class="field-note">Context only · never used for matching</span>
+            </div>
+            <div>
+              <dt>Field provenance</dt>
+              <dd id="metadata-provenance"></dd>
+            </div>
+            <div>
+              <dt>Rights record</dt>
+              <dd id="metadata-rights"></dd>
+            </div>
+            <div>
+              <dt>Policy review</dt>
+              <dd id="metadata-policy-review"></dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
       <footer>
-        URL in popup memory only · no title/content · no network · no storage
+        Popup memory only · bounded head fields · no body · no network · no storage
       </footer>
     </main>
     <script type="module" src="popup.js"></script>

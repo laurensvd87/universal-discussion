@@ -253,8 +253,11 @@ extraction outside accepted ADR-011, egress, persistence, or store submission.
 ADR-011 now permits the exact P1.5c `activeTab` plus `scripting` metadata
 experiment on one project-controlled route and one pinned, rights-reviewed MDN
 route. It keeps publication time context-only and requires one portable
-contract rather than per-site parser code. Implementation and review evidence
-are pending; every broader page/platform remains stopped.
+contract rather than per-site parser code. The separate implementation now
+exists with direct-head bounds, same-document attestation, no auth/paywall
+detection claim, no egress, and no semantic path. Automated checks pass;
+independent Trust/Quality review and the approved owner Chromium smoke remain
+pending. Every broader page/platform remains stopped.
 
 Deliverable: one Chromium prototype against bundled fixtures or a local mock, with a browser-neutral core, exact manifest/permission inventory, and documented Firefox adapter gap.
 

@@ -32,8 +32,8 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-008-generated-review-resolution-journal.md` — the accepted generated-only single-journal design for uncertainty, later adjudication, and later fixed-point review coverage.
 - `decisions/ADR-009-local-poc-before-semantic-validation.md` — the accepted local NO-AUTO proof-of-concept sequence that defers, but does not replace, human semantic validation.
 - `decisions/ADR-010-local-active-tab-url-observation.md` — the accepted field-level permission/privacy boundary for the queryless, user-invoked local URL adapter now implemented in P1.5b.
-- `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the accepted exact P1.5c generic metadata boundary for one controlled route and one pinned MDN page; every broader live-page use remains separately gated.
-- `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md` — the approved exact fields, temporal non-use, security/privacy boundary, and rights evidence for the controlled page plus one pinned MDN test.
+- `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the accepted and implemented exact P1.5c generic metadata boundary for one controlled route and one pinned MDN page; every broader live-page use remains separately gated.
+- `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md` — the approved exact fields/selectors, temporal non-use, owner metadata assumption, security/privacy boundary, and rights evidence for the controlled page plus one pinned MDN test.
 - `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
 - `research/P1_5B_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review, checklist reconciliation, and residuals for the `activeTab`-only local URL slice.
 - `research/P1_5B_MANUAL_SMOKE.md` — the owner-reported Chromium permission, behavior, traffic, storage, console, and keyboard evidence completing the exact local P1.5b slice.
@@ -145,6 +145,17 @@ the active tab again before rendering. It has no title/content access,
 injection, network, storage, telemetry, background, host, broad-tab, auth, or
 AI capability. The earlier bundled-fixture scenarios remain available.
 
+The separate P1.5c path adds exactly `scripting` and requires Chrome 106+. On a
+second explicit popup action, it accepts only the repository loopback fixture
+and one pinned MDN metadata-reference page, inspects only bounded direct
+children of the top-level document head in an isolated world, projects a
+strict local title/description/canonical/publication envelope, and verifies
+the same Chromium document ID plus a final active-tab read before rendering.
+It has no body/JSON-LD/authentication/paywall inspection, storage, network,
+model, fingerprint, resolver, or Topic-matching path. The owner directs the PoC
+to assume public head metadata is locally processable; generalized site/store
+support remains a later explicit Policy/Rights and Publication gate.
+
 Automated contract, race, package, capability, and provenance checks pass, a
 separate AI reviewer issued Trust/Quality ACCEPT, and the owner completed the
 documented Chromium permission/traffic/storage/console/keyboard smoke. P1.5b is
@@ -153,6 +164,10 @@ extraction, connected behavior, production architecture, store submission,
 hosted semantic processing, and BYO AI remain gated decisions; this local slice
 is not a claim that semantic clustering or publication eligibility has been
 validated.
+
+P1.5c implementation and automated checks exist, but its independent
+Trust/Quality audit and separate owner browser smoke are still required before
+that exact slice is marked complete.
 
 ## Product in one sentence
 A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.

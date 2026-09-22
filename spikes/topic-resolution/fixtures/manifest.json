@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "fixture-provenance/1.3.0",
+  "manifestVersion": "fixture-provenance/1.4.0",
   "reviewedAt": "2026-09-22T12:00:00.000Z",
   "entries": [
     {
@@ -45,6 +45,16 @@
     {
       "path": "fixtures/html/harbor-barrier.html",
       "purpose": "Reviewed bounded-head extraction and raw-byte fingerprint fixture",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    },
+    {
+      "path": "fixtures/html/p1-5c.html",
+      "purpose": "Project-controlled bounded head-metadata and body-decoy browser fixture",
       "provenance": "project-created-synthetic",
       "containsCopiedText": false,
       "containsPersonalData": false,

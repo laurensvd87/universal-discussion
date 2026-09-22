@@ -162,14 +162,14 @@ portable contract rather than per-site extraction code:
 ```text
 explicit user action
   -> platform adapter confirms the current top-level document
-  -> deny private/authenticated/paywalled/tokenized/restricted context
+  -> exact queryless route and dated policy gate
   -> read exact allowlisted standards-based metadata fields only
-  -> validate bounds, provenance, publisher signals, and navigation binding
+  -> validate bounds, provenance, supported in-head signals, and document binding
   -> discard raw metadata
   -> display the bounded local evidence without a semantic decision (NO AUTO)
 ```
 
-Initial candidate fields should omit body text, images, author identities,
+The implemented candidate fields omit body text, images, author identities,
 comments, form values, selections, cookies, storage, frames, and hidden or
 accessibility text. A proposed envelope may include only:
 
@@ -184,6 +184,19 @@ This envelope is approved only for the exact two P1.5c routes. The time hint is
 context-only and cannot affect Topic identity or matching in this increment.
 Open Graph metadata presence says what a publisher exposed to clients; it does
 not by itself say how this product may reuse it.
+
+The owner directs the local PoC to assume that public document-head metadata
+is available for local processing. Accordingly, P1.5c implements neither a
+generic paywall/authentication detector nor per-site APIs. The adapter could
+not reliably infer those states without reading excluded data. This product
+assumption is not a legal conclusion or release authorization; general site
+support still returns to the Policy/Rights and store-publication gates.
+
+P1.5c inspects only direct-head `meta[name="robots"]` and
+`meta[name="tdm-reservation"]` controls. It cannot observe HTTP policy headers,
+`robots.txt`, or site-wide TDM files without forbidden fetching or broader
+permissions, so the implementation makes no complete robots/TDM-detection
+claim.
 
 For cross-device/server matching, the privacy-safe order to investigate is:
 
@@ -206,8 +219,9 @@ Before adding `scripting`, a content script, `evaluateJavascript`,
 - Privacy approval for raw and derived in-memory data, retention, and UI
   disclosure;
 - a platform-policy/rights review of the intended generalized use, terms
-  handling, robots/meta/TDM signals, paywall/authenticated/private denial, and
-  model/data licences; and
+  handling, observable robots/meta/TDM signals, the limits of
+  authenticated/paywalled/private-context detection, and model/data licences;
+  and
 - synthetic/owned-page tests before any third-party-page test.
 
 Those approvals are recorded for the exact Chromium P1.5c slice only. The

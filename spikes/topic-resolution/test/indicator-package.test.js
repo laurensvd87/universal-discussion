@@ -26,13 +26,14 @@ function relativeBrowserPath(file) {
   return path.relative(browserDirectory, file).replaceAll("\\", "/");
 }
 
-test("unpacked extension inventory and activeTab-only manifest are exact", async () => {
+test("unpacked extension inventory and bounded metadata manifest are exact", async () => {
   const files = (await listFiles(browserDirectory))
     .map(relativeBrowserPath)
     .sort();
   assert.deepEqual(files, [
     "README.md",
     "chromium/active-tab-reader.js",
+    "chromium/page-metadata-reader.js",
     "chromium/popup.css",
     "chromium/popup.html",
     "chromium/popup.js",
@@ -40,6 +41,9 @@ test("unpacked extension inventory and activeTab-only manifest are exact", async
     "core/active-tab-policy.js",
     "core/indicator-contract.js",
     "core/indicator-controller.js",
+    "core/page-metadata-controller.js",
+    "core/page-signal-contract.js",
+    "core/page-signal-policy.js",
     "fixtures/indicator-fixtures.js",
     "manifest.json",
   ]);
@@ -48,10 +52,11 @@ test("unpacked extension inventory and activeTab-only manifest are exact", async
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.2.0",
-    description: "User-invoked local URL lookup with bundled read-only discussion data.",
+    version: "0.3.0",
+    description: "User-invoked local URL lookup and bounded head-metadata proof of concept.",
+    minimum_chrome_version: "106",
     incognito: "not_allowed",
-    permissions: ["activeTab"],
+    permissions: ["activeTab", "scripting"],
     action: {
       default_popup: "chromium/popup.html",
       default_title: "Check local discussion state",
@@ -80,10 +85,14 @@ test("unpacked extension inventory and activeTab-only manifest are exact", async
 test("every runtime import and document resource remains inside the unpacked root", async () => {
   const runtimeFiles = [
     path.join(browserDirectory, "chromium", "active-tab-reader.js"),
+    path.join(browserDirectory, "chromium", "page-metadata-reader.js"),
     path.join(browserDirectory, "core", "active-tab-controller.js"),
     path.join(browserDirectory, "core", "active-tab-policy.js"),
     path.join(browserDirectory, "core", "indicator-contract.js"),
     path.join(browserDirectory, "core", "indicator-controller.js"),
+    path.join(browserDirectory, "core", "page-metadata-controller.js"),
+    path.join(browserDirectory, "core", "page-signal-contract.js"),
+    path.join(browserDirectory, "core", "page-signal-policy.js"),
     path.join(browserDirectory, "fixtures", "indicator-fixtures.js"),
     popupScriptPath,
   ];
@@ -115,7 +124,7 @@ test("every runtime import and document resource remains inside the unpacked roo
   }
 });
 
-test("browser runtime has only the audited active-tab read and no network, storage, logging, or dynamic-code capability", async () => {
+test("browser runtime has only audited tab and scripting bindings and no network, storage, logging, or dynamic-code capability", async () => {
   const runtimeFiles = (await listFiles(browserDirectory))
     .filter((file) => file.endsWith(".js"));
   const capabilityPattern = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|localStorage|sessionStorage|indexedDB|caches|cookieStore)\b/u;
@@ -126,16 +135,21 @@ test("browser runtime has only the audited active-tab read and no network, stora
   for (const runtimeFile of runtimeFiles) {
     const source = await readFile(runtimeFile, "utf8");
     const label = relativeBrowserPath(runtimeFile);
-    const approvedBinding = "globalThis.chrome.tabs";
-    const bindingCount = source.split(approvedBinding).length - 1;
-    assert.equal(
-      bindingCount,
-      label === "chromium/popup.js" ? 1 : 0,
-      `${label} extension API binding`,
-    );
-    const sourceWithoutApprovedBinding = source.replace(
-      approvedBinding,
-      "approvedTabsApi",
+    const approvedBindings = [
+      "globalThis.chrome.tabs",
+      "globalThis.chrome.scripting",
+    ];
+    for (const approvedBinding of approvedBindings) {
+      const bindingCount = source.split(approvedBinding).length - 1;
+      assert.equal(
+        bindingCount,
+        label === "chromium/popup.js" ? 1 : 0,
+        `${label} ${approvedBinding} binding`,
+      );
+    }
+    const sourceWithoutApprovedBinding = approvedBindings.reduce(
+      (value, binding) => value.replace(binding, "approvedExtensionApi"),
+      source,
     );
     assert.doesNotMatch(source, capabilityPattern, label);
     assert.doesNotMatch(sourceWithoutApprovedBinding, extensionApiPattern, label);
@@ -156,9 +170,27 @@ test("browser runtime has only the audited active-tab read and no network, stora
   );
   assert.match(readerSource, /tabsApi\.query\(ACTIVE_CURRENT_TAB_QUERY\)/u);
 
+  const metadataReaderSource = await readFile(
+    path.join(browserDirectory, "chromium", "page-metadata-reader.js"),
+    "utf8",
+  );
+  assert.match(metadataReaderSource, /target: \{ frameIds: \[0\], tabId \}/u);
+  assert.match(metadataReaderSource, /target: \{ documentIds: \[documentId\], tabId \}/u);
+  assert.match(metadataReaderSource, /world: "ISOLATED"/u);
+  assert.doesNotMatch(metadataReaderSource, /allFrames|world:\s*"MAIN"|\bfiles:/u);
+  assert.doesNotMatch(
+    metadataReaderSource,
+    /document\.(?:body|cookie|forms|images|referrer|scripts)|querySelector|localStorage|sessionStorage/u,
+  );
+
   const popupScript = await readFile(popupScriptPath, "utf8");
   assert.match(popupScript, /elements\.sourceTitle\.textContent = state\.source\.title;/u);
   assert.match(popupScript, /elements\.sourceUrl\.textContent = state\.source\.url;/u);
+  assert.match(popupScript, /elements\.metadataTitle\.textContent = envelope\.title;/u);
+  assert.match(
+    popupScript,
+    /elements\.metadataDescription\.textContent =\s*\n\s*envelope\.description/u,
+  );
 });
 
 test("popup contains only local external assets and basic accessible bindings", async () => {
@@ -176,7 +208,8 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.doesNotMatch(html, /\son[a-z]+\s*=/iu);
   const withoutApprovedUrls = html
     .replaceAll("https://example.com/", "")
-    .replaceAll("https://example.org/", "");
+    .replaceAll("https://example.org/", "")
+    .replaceAll("http://127.0.0.1:4173/p1-5c.html", "");
   assert.doesNotMatch(withoutApprovedUrls, /\b(?:https?:)?\/\//iu);
   assert.doesNotMatch(css, /@import\b|url\s*\(/iu);
 
@@ -191,7 +224,9 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(html, /aria-live="polite"/u);
   assert.match(html, /<label for="scenario">/u);
   assert.match(html, /id="current-tab-button"/u);
+  assert.match(html, /id="metadata-button"/u);
   assert.match(html, /Do not invoke this proof of concept on a signed-in or sensitive page\./u);
+  assert.match(html, /this prototype does not inspect\s*\n\s*login or paywall state\./u);
 
   const clearIndex = script.indexOf(
     "for (const element of resolvedTextElements) element.textContent = \"\";",
@@ -200,6 +235,27 @@ test("popup contains only local external assets and basic accessible bindings", 
     'if (state.outcome !== "resolved") return;',
   );
   assert.ok(clearIndex >= 0 && clearIndex < earlyReturnIndex);
-  assert.match(script, /activeTabController\.reset\(\);\s*\n\s*await fixtureController\.activate/u);
-  assert.match(script, /fixtureController\.reset\(\);\s*\n\s*elements\.currentTabButton\.disabled/u);
+  const metadataClearIndex = script.indexOf(
+    "for (const element of metadataTextElements) element.textContent = \"\";",
+  );
+  const metadataEarlyReturnIndex = script.indexOf(
+    'if (state.outcome !== "resolved") return;',
+    earlyReturnIndex + 1,
+  );
+  assert.ok(
+    metadataClearIndex >= 0 && metadataClearIndex < metadataEarlyReturnIndex,
+  );
+  assert.match(
+    script,
+    /activeTabController\.reset\(\);\s*\n\s*pageMetadataController\.reset\(\);\s*\n\s*await fixtureController\.activate/u,
+  );
+  assert.match(
+    script,
+    /fixtureController\.reset\(\);\s*\n\s*pageMetadataController\.reset\(\);\s*\n\s*elements\.currentTabButton\.disabled/u,
+  );
+  assert.match(
+    script,
+    /activeTabController\.reset\(\);\s*\n\s*fixtureController\.reset\(\);\s*\n\s*elements\.metadataButton\.disabled/u,
+  );
+  assert.match(script, /pageMetadataController\.reset\(\);/u);
 });

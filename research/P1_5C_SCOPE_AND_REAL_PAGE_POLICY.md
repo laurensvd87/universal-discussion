@@ -1,13 +1,15 @@
 # P1.5c approved metadata scope and real-page policy
 
-Status: approved for one bounded local implementation and exactly one public
-real-page test; no general third-party extraction or publication approval
+Status: approved and implemented for one bounded local experiment and exactly
+one public real-page test; automated evidence passes, independent review and
+owner browser evidence pending
 
 Decision date: 2026-09-22
 
 Evidence checked: 2026-09-22
 
-Re-review deadline for the public-page test: 2026-10-22
+Public-page policy expiry: 2026-10-23T00:00:00.000Z (October 22 is the last
+approved UTC calendar day)
 
 ## Approved contexts
 
@@ -23,8 +25,21 @@ The local fixture is served by a repository test harness bound only to
 `127.0.0.1`. The MDN route is public, does not require an account or
 subscription, documents the metadata element being tested, and is the only
 approved non-project route. A redirect, query, different locale/path, different
-host, authentication prompt, paywall, negative policy signal, or expired review
-must fail closed rather than broaden the allowlist.
+host, negative in-head policy signal, or expired review must fail closed rather
+than broaden the allowlist. The adapter does not inspect or claim to detect
+authentication or paywall state. The exact-route restriction and a clean
+signed-out MDN manual test are the controls for this experiment.
+
+## Owner metadata assumption
+
+On 2026-09-22 the owner directed the proof of concept to assume that metadata
+delivered in the public document head is available for local processing. Under
+that product assumption, the PoC does not implement generic paywall detection
+or per-site API adapters. This is an owner risk assumption for local product
+development, not a legal conclusion, a licence grant, or evidence that an app
+store will accept generalized extraction. General third-party support and any
+store/public release therefore remain explicit Policy/Rights and Publication
+gates.
 
 ## Rights and policy basis for the MDN test
 
@@ -42,7 +57,9 @@ must fail closed rather than broaden the allowlist.
   not the rights basis.
 - The test reads only the allowlisted head metadata after the user has opened
   the page. It performs no crawler fetch, remote request, body extraction,
-  storage, transmission, republication, or brand/visual-design reuse.
+  storage, transmission, public redistribution, or brand/visual-design reuse.
+  Transient local display is still reuse, so the popup shows a fixed MDN,
+  Mozilla-contributor, and CC BY-SA review attribution.
 
 This is bounded product-policy evidence, not legal advice or a finding that all
 MDN or third-party pages may be processed. Recheck the exact page, licence,
@@ -64,6 +81,27 @@ over-limit raw values, unsupported structure, negative robots/TDM signals, or
 an invalid date reject the operation generically. JSON-LD is deliberately
 excluded from this increment.
 
+The implementation freezes the following selector and work boundary:
+
+- inspect at most 256 direct children of `document.head` and return at most 32
+  relevant candidates;
+- title selectors are exactly `meta[property="og:title"]`,
+  `meta[name="twitter:title"]`, and `title`;
+- description selectors are exactly `meta[property="og:description"]`,
+  `meta[name="description"]`, and `meta[name="twitter:description"]`;
+- publication metadata is exactly
+  `meta[property="article:published_time"]`;
+- canonical metadata is exactly a `link` whose `rel` token list contains
+  `canonical`; resolution uses the browser-observed URL, never a page `base`;
+- the only inspected control selectors are `meta[name="robots"]` and
+  `meta[name="tdm-reservation"]`; robots accepts only the non-restrictive
+  `all`, `index`, and `follow` tokens, TDM accepts only the exact value `0`,
+  and restrictive, unknown, malformed, empty, or conflicting values stop;
+- response headers such as `X-Robots-Tag`/`TDM-Reservation`, `robots.txt`, and
+  `/.well-known/tdmrep.json` are not observable without a forbidden fetch or
+  broader permission. The in-head check is deliberately not described as
+  complete robots/TDM or rights detection.
+
 ## Temporal-semantics decision
 
 Publication time is not Topic identity and is not a universal similarity
@@ -76,8 +114,9 @@ reject a Topic.
 
 ## Security, privacy, and quality boundary
 
-- Manifest permissions are exactly `activeTab` and `scripting`; there are no
-  standing host permissions or content/background scripts.
+- Manifest permissions are exactly `activeTab` and `scripting`, minimum Chrome
+  is 106, and there are no standing host permissions or content/background
+  scripts.
 - A packaged function executes in Chromium's isolated world against the active
   top-level frame only. It does not execute page-provided code.
 - Only allowlisted head elements/attributes are inspected. Body text, JSON-LD,
@@ -86,9 +125,13 @@ reject a Topic.
 - Raw candidates and the validated envelope remain in popup memory only and
   are cleared on every failure/reset and when the popup closes. There is no
   extension storage, logging, telemetry, service, remote fetch, or egress.
-- URL/document identity is checked before extraction, in the injected result,
-  and again afterward. Navigation, tab replacement/closure, permission loss,
+- URL/document identity is checked before extraction, before the injected
+  collector touches metadata, in the returned result, by a second
+  `documentId`-targeted attestation, and by a final active-tab read. Navigation,
+  same-URL reload, tab replacement/closure, permission loss, timeout,
   ambiguity, malformed data, or hostile input fails closed without echo.
+- Authentication and paywall state are neither read nor inferred. The exact
+  allowlist and signed-out manual test replace any claim of generic detection.
 - No embedding, model, provider, fingerprint, Topic candidate, or automatic
   semantic decision is part of this slice. `NO AUTO` remains mandatory.
 - Synthetic tests cover precedence, duplicates, bounds, negative signals,

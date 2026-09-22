@@ -223,9 +223,9 @@ test("generated artifacts form a deterministic plan -> inventory -> task digest 
     },
     {
       completionTaskDigest:
-        "sha256:8d1710c655c36a11245619161bb728ea0096514fed154affefc2392d6e81a1cf",
+        "sha256:5a56430c65b6d87e4ca1c810f2ec55deaa467ba3717476d9c7b11f0887f3f95c",
       inventoryDigest:
-        "sha256:8d5b606633b06e0039403c090956f1bed01cb978aa21ff15dd6825c8594c9825",
+        "sha256:a2a2603313286aa73ec53f6f4610706144e3636d37b011af5dcef424460e318f",
       planDigest:
         "sha256:ed1bfbc450e2680eac52e76481292fe039d48fa0f6b92b141970e2f4fcf29111",
       priority: [

@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Universal Discussion - Local PoC",
-  "version": "0.2.0",
-  "description": "User-invoked local URL lookup with bundled read-only discussion data.",
+  "version": "0.3.0",
+  "description": "User-invoked local URL lookup and bounded head-metadata proof of concept.",
+  "minimum_chrome_version": "106",
   "incognito": "not_allowed",
-  "permissions": ["activeTab"],
+  "permissions": ["activeTab", "scripting"],
   "action": {
     "default_popup": "chromium/popup.html",
     "default_title": "Check local discussion state"
