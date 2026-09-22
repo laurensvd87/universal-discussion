@@ -31,6 +31,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-007-offline-owner-review-ledger.md` — the accepted offline digest-bound labeling workflow and its stop boundary;
 - `decisions/ADR-008-generated-review-resolution-journal.md` — the accepted generated-only single-journal design for uncertainty, later adjudication, and later fixed-point review coverage.
 - `decisions/ADR-009-local-poc-before-semantic-validation.md` — the accepted local NO-AUTO proof-of-concept sequence that defers, but does not replace, human semantic validation.
+- `decisions/ADR-010-local-active-tab-url-observation.md` — the proposed field-level permission/privacy boundary for a queryless, user-invoked local URL adapter; implementation awaits explicit approval.
 - `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 

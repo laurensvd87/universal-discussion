@@ -230,6 +230,7 @@ NO-AUTO proof of concept without crossing into real-page observation.
 - `ADR-007-offline-owner-review-ledger.md`: **Accepted by the owner for the offline workflow and generated-only P1.2b-1 preflight**; the existing synthetic implementation has Trust/Quality ACCEPT, but the decision authorizes no real-data collection, real independent review, corpus finalization, split, or evaluation.
 - `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
 - `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
+- `ADR-010-local-active-tab-url-observation.md`: **Proposed; explicit owner, Trust, and privacy disposition pending.** It would add only `activeTab` for an invoked, queryless, allowlisted URL read held in popup memory and authorizes no title/content extraction, storage, network, or general browsing observation.
 
 ## Blockers
 
@@ -367,13 +368,14 @@ store submission.
 
 ## Next owner approval required
 
-For the next browser increment, explicitly approve or revise both (1)
-ADR-006's narrow synthetic extraction profile for integration and (2) a local,
-user-invoked `activeTab`/`tabs` adapter that reads only the active top-level
-page after the extension action. That proposed approval would still exclude
-network egress, persistence, telemetry, passive observation, private browsing,
-deployment, and publication, and it requires a fresh Trust/privacy review of
-the exact manifest and collected fields.
+For the next browser increment, explicitly approve or revise ADR-010's narrow
+P1.5b boundary: manifest `activeTab` only; read an invoked active top-level tab
+ID/address-bar URL; immediately reject queries, credentials, private/special or
+non-allowlisted addresses; hold accepted queryless reserved-domain URLs only in
+popup memory; and perform a bundled exact-URL lookup. It excludes broad `tabs`
+permission, title/content/metadata, `scripting`, extraction, storage, network,
+telemetry, passive/incognito access, deployment, and publication. ADR-006 can
+remain pending until a later, separately approved extraction increment.
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
 merge/split history semantics, and ADR-006's narrow synthetic extraction

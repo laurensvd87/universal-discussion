@@ -228,6 +228,10 @@ It intentionally reads no current tab or page, so it cannot yet satisfy the
 real-page eligibility, extraction, or navigation-binding checks. Stop before
 adding `activeTab`, `tabs`, content injection, or any real browsing-data access
 until the owner and Trust/privacy gate is explicitly reopened.
+ADR-010 now proposes a narrower P1.5b step: `activeTab` only, an explicitly
+invoked active-tab URL read, exact queryless reserved-domain allowlist, popup
+memory only, bundled exact-URL lookup, and no title, injection, extraction,
+storage, or egress. It remains unapproved and unimplemented.
 
 Deliverable: one Chromium prototype against bundled fixtures or a local mock, with a browser-neutral core, exact manifest/permission inventory, and documented Firefox adapter gap.
 
