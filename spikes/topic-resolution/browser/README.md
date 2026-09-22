@@ -1,8 +1,8 @@
 # User-invoked local discussion indicator
 
-Status: P1.5b implementation with automated checks passing. The required
-manual Chromium permission, traffic, storage, console, and accessibility smoke
-is still pending, so this is not the completed P1.5 browser-observation gate.
+Status: the exact local P1.5b slice passes automated checks, Trust/Quality
+engineering review, and the owner-run Chromium smoke. The broader P1.5
+browser-observation and content-extraction gate remains open.
 
 ## What it demonstrates
 
@@ -46,7 +46,11 @@ semantic matching on real content, authorize extraction, or establish that a
 future extension/mobile client will satisfy store, website-terms, copyright,
 or privacy rules.
 
-## Required manual Chromium smoke
+## Reproducible manual Chromium smoke
+
+The owner completed this checklist on 2026-09-22. The reported observations,
+limitations, and disposition are recorded in
+`../../../research/P1_5B_MANUAL_SMOKE.md`.
 
 1. Open Chromium's extension management page and enable developer mode.
 2. Choose **Load unpacked** and select this `browser` directory.
@@ -64,19 +68,24 @@ or privacy rules.
    Confirm each shows unsupported or unavailable and clears every prior Source,
    Topic, Discussion, mapping, freshness, and count value. Do not substitute a
    private or authenticated page that contains real data.
-7. In popup DevTools, set a breakpoint immediately before the second
-   `readActiveTab()` call in `core/active-tab-controller.js`. Start a supported
-   check, navigate the source tab to the other supported URL while paused, and
-   resume. Repeat by closing the source tab while paused. Confirm navigation
-   produces unavailable with no stale resolved fields; closing the tab may
-   close the popup, but must never display the stale result. Remove the
-   breakpoint afterward.
+7. Return the source tab to `https://example.com/`; a rejected page stops before
+   the required breakpoint. In popup DevTools, set a breakpoint immediately
+   before the second `readActiveTab()` call in
+   `core/active-tab-controller.js`. Start the supported check, navigate the
+   source tab to the other supported URL while paused, and resume. Repeat by
+   closing the source tab while paused. Confirm navigation produces unavailable
+   with no stale resolved fields; closing the tab may close the popup, but must
+   never display the stale result. Remove the breakpoint afterward.
 8. Exercise a bundled resolved scenario, the hostile-title scenario, and each
    non-resolved scenario. Confirm markup-like text stays inert and no
    non-resolved state displays misleading zero counts.
 9. Inspect the popup with DevTools while repeating supported, rejected, and
-   repeated checks. Confirm the Network panel remains empty, Console has no
-   output or error, and Application/extension storage remains empty.
+   repeated checks. Clear the Network panel first and confirm the interactions
+   add no external request; an initial or locally reloaded bundled
+   `chrome-extension://` resource such as `popup.css` is expected and is not
+   egress. Confirm Console has no output or error and Application/extension
+   storage remains empty. If Application is hidden, open it from the `>>`
+   overflow or **More tools** menu.
 10. Use only the keyboard to reach and activate the current-tab button, open
    the bundled-scenario disclosure, choose a scenario, and submit it. Confirm
    focus is visible and each state change has visible status text.

@@ -62,8 +62,9 @@ topic-scoped human/agent activity, and freshness. The package has no broad
 `tabs` or host permission, content/background script, title/DOM/body access,
 remote resource, network, storage, logging, telemetry, auth, or AI capability,
 and it renders only with text DOM operations. The P1.5a bundled scenarios remain
-available. Automated checks pass; the documented manual Chromium
-permission/traffic/storage/console/accessibility smoke is still required.
+available. Automated checks and the documented owner-run Chromium
+permission/traffic/storage/console/keyboard smoke pass for this exact local
+slice; evidence is in `../../research/P1_5B_MANUAL_SMOKE.md`.
 
 The curated and semantic-suggestion paths required by the larger ADR-009 PoC
 remain future local work. Stop before broader URLs, page/WebView extraction,

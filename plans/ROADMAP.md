@@ -228,8 +228,8 @@ Owner: Platform and Client, reviewed by Trust and Quality.
 
 Dependencies: ADR-002 direction or an explicitly local-only exception; P1.1 contract; P1.3 fixture output; seeded local/mock data. Acceptance of ADR-002 does not authorize network egress.
 
-Status: **P1.5b implemented with automated evidence; manual Chromium smoke
-pending; full P1.5 remains open.** The owner accepted ADR-010's exact boundary.
+Status: **P1.5b complete for its exact local URL-only boundary; full P1.5
+remains open.** The owner accepted ADR-010's exact boundary.
 The unpacked Chromium popup now requests only `activeTab`, reads only the
 explicitly invoked active/current tab ID and address-bar URL, accepts exactly
 the queryless `https://example.com/` and `https://example.org/` demonstrations,
@@ -245,8 +245,9 @@ reconciled; the evidence and residuals are in
 `research/P1_5B_ENGINEERING_REVIEW.md`. The implementation has no broad `tabs`
 or host permission, title/DOM/body access, injection, background/content script,
 storage, network, telemetry, auth, write, or AI capability. A real Chromium
-permission/traffic/storage/console/keyboard smoke is still required before
-P1.5b can be marked complete.
+permission/traffic/storage/console/keyboard smoke also passed on 2026-09-22;
+the owner-reported evidence and limitations are in
+`research/P1_5B_MANUAL_SMOKE.md`.
 Stop before a larger URL allowlist, `scripting`, page/WebView metadata or body
 extraction, egress, persistence, or store submission. Cross-platform general
 metadata extraction first requires the separate site-terms/copyright/store

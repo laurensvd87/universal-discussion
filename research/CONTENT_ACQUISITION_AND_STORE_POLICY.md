@@ -222,5 +222,5 @@ or body extraction, obtain an independent qualified IP/platform-terms review.
 Its bounded assignment is to examine the exact field envelope, transformations,
 retention/egress, excluded contexts, terms-handling method, store disclosures,
 and representative publisher terms, then identify which claims and domains
-have a defensible rights basis. That reviewer is not needed for the present
-P1.5b manual smoke.
+have a defensible rights basis. That reviewer was not needed for the now
+completed exact P1.5b local URL-only slice.

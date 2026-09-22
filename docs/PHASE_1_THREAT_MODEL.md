@@ -447,7 +447,8 @@ Proceed after the offline contracts are stable if:
 - it displays authoritative human and agent counts separately and fails closed; and
 - applicable manifest, eligibility, injection, rendering, navigation, and count checks pass.
 
-Current P1.5b implementation evidence remains narrower than the complete gate.
+Current P1.5b evidence closes only its exact local URL-only slice and remains
+narrower than the complete P1.5 gate.
 Under accepted ADR-010, `spikes/topic-resolution/browser/` has an exact
 `activeTab`-only Manifest V3 inventory, no broad `tabs` or host permission, no
 background/content script, no network or storage API use, local-only
@@ -464,9 +465,11 @@ active/current tab read must match the original tab ID and normalized URL
 before text-only rendering. Malformed, cross-wired, navigated, closed,
 permission-lost, stale, reset, or superseded operations publish no Source,
 Topic, Discussion, mapping, or count data. Automated policy, response, race,
-inventory, capability, CSP, and hidden-DOM-clearing checks pass. The manual
-Chromium permission, traffic, storage, console, and keyboard/visible-state
-smoke remains required, so P1.5b is not yet complete.
+inventory, capability, CSP, and hidden-DOM-clearing checks pass. The owner-run
+Chromium permission, traffic, storage, console, navigation/closed-tab, fixture,
+and keyboard/visible-state smoke also passes. The exact report and its limits
+are recorded in `research/P1_5B_MANUAL_SMOKE.md`; P1.5b is complete without
+closing the broader P1.5 or extraction gate.
 
 This evidence authorizes no title, metadata, DOM, body, frame, cookie, or
 authentication-state read and no general page or WebView extraction. Android

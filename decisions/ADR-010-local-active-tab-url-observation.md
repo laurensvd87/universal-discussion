@@ -1,7 +1,7 @@
 # ADR-010: Local user-invoked active-tab URL observation
 
-Status: Accepted for the exact local P1.5b boundary; automated implementation
-and Trust/Quality engineering evidence pass; manual Chromium evidence pending
+Status: Accepted and complete for the exact local P1.5b boundary; automated,
+Trust/Quality engineering, and owner-run Chromium evidence pass
 
 Date: 2026-09-22
 
@@ -131,6 +131,7 @@ Accepted on 2026-09-22 for implementation and local owner testing within the
 exact boundary above. A separate read-only AI reviewer issued Trust and Quality
 ACCEPT for implementation commit `53c7e84`, with the checklist reconciled in
 `4e782e4`; `research/P1_5B_ENGINEERING_REVIEW.md` records the evidence and
-residuals. The owner-run manual Chromium smoke remains required. Any broader
-permission, field, URL scope, retention, egress, or release action returns to
-an explicit stop.
+residuals. The owner completed the bounded manual Chromium smoke on 2026-09-22;
+`research/P1_5B_MANUAL_SMOKE.md` records the report and its limitations. Any
+broader permission, field, URL scope, retention, egress, or release action
+returns to an explicit stop.

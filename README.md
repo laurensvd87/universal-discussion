@@ -35,6 +35,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the proposed generic standards-based metadata and on-device candidate path; live-page use remains behind owner, security/privacy, rights, and store-policy approval.
 - `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
 - `research/P1_5B_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review, checklist reconciliation, and residuals for the `activeTab`-only local URL slice.
+- `research/P1_5B_MANUAL_SMOKE.md` — the owner-reported Chromium permission, behavior, traffic, storage, console, and keyboard evidence completing the exact local P1.5b slice.
 - `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` — current official-source evidence and alternatives for Chromium, Android, and iOS content signals without a per-site API foundation.
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
@@ -143,12 +144,14 @@ the active tab again before rendering. It has no title/content access,
 injection, network, storage, telemetry, background, host, broad-tab, auth, or
 AI capability. The earlier bundled-fixture scenarios remain available.
 
-Automated contract, race, package, capability, and provenance checks pass, but
-the documented Chromium permission/traffic/storage/console/accessibility smoke
-is still required before P1.5b is complete. General page/WebView extraction,
-connected behavior, production architecture, store submission, hosted semantic
-processing, and BYO AI remain gated decisions; this local slice is not a claim
-that semantic clustering or publication eligibility has been validated.
+Automated contract, race, package, capability, and provenance checks pass, a
+separate AI reviewer issued Trust/Quality ACCEPT, and the owner completed the
+documented Chromium permission/traffic/storage/console/keyboard smoke. P1.5b is
+therefore complete for its exact local URL-only scope. General page/WebView
+extraction, connected behavior, production architecture, store submission,
+hosted semantic processing, and BYO AI remain gated decisions; this local slice
+is not a claim that semantic clustering or publication eligibility has been
+validated.
 
 ## Product in one sentence
 A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.

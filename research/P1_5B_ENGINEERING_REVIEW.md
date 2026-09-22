@@ -78,13 +78,18 @@ finding remains inside the accepted local URL-only boundary.
 Quality: **ACCEPT - code/package contract at `53c7e84`, with the checklist
 reconciled by `4e782e4`.** Automated evidence reproduces without failure.
 
-These dispositions do not close P1.5b. The required owner-run manual Chromium
-smoke is still pending.
+At review time these dispositions did not close P1.5b because the owner-run
+manual Chromium smoke was still pending. The owner completed that smoke later
+on 2026-09-22; `P1_5B_MANUAL_SMOKE.md` records the reported evidence and
+limitations. Together, the engineering and manual evidence close the exact
+local P1.5b slice, not the broader P1.5 gate.
 
 ## Residuals and next stop
 
-- Browser-level permission, traffic, storage, console, CSP loading, and
-  keyboard/accessibility evidence remains mandatory.
+- The owner-run browser smoke now covers permission, traffic, storage, console,
+  local CSP/resource loading, navigation/closed-tab behavior, and basic
+  keyboard/visible-state behavior. It is not automated browser or formal
+  accessibility-conformance evidence.
 - Two reads cannot distinguish a same-tab/same-URL reload or document
   replacement and leave a small post-second-read time-of-check/time-of-use
   window. That is acceptable for this local exact-URL fixture lookup, not for
@@ -100,6 +105,7 @@ smoke is still pending.
 Stop before adding a larger URL set, `tabs`, `scripting`, host access,
 title/metadata/DOM/body/WebView extraction, storage, egress, telemetry, model or
 provider use, deployment, spending, or store/publication action. The next
-immediate input is only the bounded manual Chromium smoke documented in
-`spikes/topic-resolution/browser/README.md`. The 200-to-250-pair
-provenance-approved human review remains a separate later checkpoint.
+content increment requires explicit disposition of ADR-011 and its owner,
+Security/Trust, Privacy, rights/store-policy, and Quality gates. The
+200-to-250-pair provenance-approved human review remains a separate later
+checkpoint.
