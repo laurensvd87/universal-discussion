@@ -1,8 +1,8 @@
 # ADR-011: Cross-platform standards-based content-signal boundary
 
 Status: Accepted for the exact P1.5c controlled-page plus one pinned MDN-page
-experiment; implementation and AI engineering review pass, while owner browser
-evidence remains pending
+experiment; implementation, AI engineering review, and owner browser evidence
+pass for that exact boundary
 
 Date: 2026-09-22
 

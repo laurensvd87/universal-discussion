@@ -518,7 +518,8 @@ robots/TDM selectors and cannot see response headers or site-wide TDM files.
 or absence add no Topic, join, split, rank, fingerprint, or resolver capability.
 Automated hostile-DOM, route, contract, race, package, and temporal checks are
 implemented, and the separate AI Trust/Security and Quality engineering review
-passes. The owner Chromium smoke remains required before P1.5c is complete.
+passes. The owner completed the Chromium smoke on 2026-09-22; the exact P1.5c
+experiment is complete without authorizing a broader route or release.
 
 The document-ID attestation and final active-tab read reject changes observed
 before their respective checks. They cannot eliminate the small asynchronous

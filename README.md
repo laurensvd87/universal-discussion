@@ -15,7 +15,9 @@ The package intentionally does not lock in a programming language, cloud vendor,
 
 ## Current execution state
 
-Phase 0 is in progress with a limited go for isolated offline fixture-only implementation slices. Start with:
+Phase 0 is in progress with a limited go for isolated offline fixture-driven
+implementation and the exact completed P1.5b/P1.5c local-processing browser
+experiments. Start with:
 
 - `plans/PHASE_0_FOUNDATION.md` — challenged assumptions, scope, metrics, cost envelope and open approvals;
 - `agents/TEAM.md` — lean ownership and review contract;
@@ -38,6 +40,7 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `research/P1_5B_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review, checklist reconciliation, and residuals for the `activeTab`-only local URL slice.
 - `research/P1_5B_MANUAL_SMOKE.md` — the owner-reported Chromium permission, behavior, traffic, storage, console, and keyboard evidence completing the exact local P1.5b slice.
 - `research/P1_5C_ENGINEERING_REVIEW.md` — the Trust/Security and Quality engineering review, audit reconciliation, and residuals for the exact two-route bounded metadata slice.
+- `research/P1_5C_MANUAL_SMOKE.md` — the owner-reported permission, bounded-metadata, race, traffic, storage, console, and keyboard evidence completing the exact P1.5c experiment.
 - `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` — current official-source evidence and alternatives for Chromium, Android, and iOS content signals without a per-site API foundation.
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
@@ -167,8 +170,11 @@ is not a claim that semantic clustering or publication eligibility has been
 validated.
 
 P1.5c implementation and automated checks exist, and a separate read-only AI
-audit issued Trust/Security and Quality ACCEPT with no open finding. Its owner
-browser smoke is still required before that exact slice is marked complete.
+audit issued Trust/Security and Quality ACCEPT with no open finding. The owner
+also completed the documented Chromium smoke on 2026-09-22, so that exact
+two-route experiment is complete. The broader P1.5/browser-product flow and
+all wider route, platform, store, deployment, and publication gates remain
+open.
 
 ## Product in one sentence
 A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.

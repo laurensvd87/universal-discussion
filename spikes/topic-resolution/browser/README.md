@@ -3,9 +3,9 @@
 Status: the exact local P1.5b URL slice passes automated checks, Trust/Quality
 engineering review, and the owner-run Chromium smoke. The exact P1.5c bounded
 metadata slice is implemented and automated checks pass; its separate AI
-Trust/Security and Quality engineering review also passes, while its owner-run
-Chromium smoke remains pending.
-The broader P1.5 browser-observation and content-extraction gate remains open.
+Trust/Security and Quality engineering review and owner-run Chromium smoke also
+pass. Both exact local-processing slices are complete; the broader P1.5
+browser-observation and content-extraction gate remains open.
 
 ## What it demonstrates
 
@@ -119,10 +119,17 @@ Do not perform this smoke on a signed-in, private, paywalled, or otherwise
 sensitive page. Loading an unpacked extension is a local developer action, not
 deployment, publication, store submission, or approval for distribution.
 
-## P1.5c manual Chromium smoke (pending)
+## P1.5c manual Chromium smoke (completed 2026-09-22)
 
-Run this only after the implementation review is recorded. Do not substitute
-another public site for the one exact approved MDN route.
+The owner reported that every check below worked. The evidence provenance,
+explicitly unreported browser version/MDN values, limitations, and exact-scope
+disposition are recorded in
+`../../../research/P1_5C_MANUAL_SMOKE.md`. The checklist remains as historical
+procedure and for controlled-fixture reproduction. Do not repeat the public
+MDN invocation without fresh explicit owner and Policy/Rights approval.
+
+The completed run occurred only after the implementation review was recorded.
+No other public site was authorized.
 
 1. From `spikes/topic-resolution`, run `npm run serve:p1-5c` and leave the
    loopback fixture server open. It must print only

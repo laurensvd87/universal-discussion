@@ -1,8 +1,8 @@
 # P1.5c approved metadata scope and real-page policy
 
 Status: approved and implemented for one bounded local experiment and exactly
-one public real-page test; automated evidence and the separate AI engineering
-review pass, while owner browser evidence remains pending
+one public real-page test; automated evidence, the separate AI engineering
+review, and owner browser smoke pass for that exact experiment
 
 Decision date: 2026-09-22
 
@@ -151,7 +151,10 @@ downloaded test browser is also outside this approval.
 The owner explicitly approved Owner/Product, Security/Trust, Privacy,
 Policy/Rights, and Quality for this exact scope on 2026-09-22. The owner also
 approved one real-page test; this record narrows that permission to the exact
-MDN route above based on the documented evidence.
+MDN route above based on the documented evidence. That one approved live-page
+test campaign is now complete and its authority is consumed. The encoded route and
+rights-expiry date do not authorize another MDN invocation without fresh
+explicit owner and Policy/Rights approval.
 
 Provider/model use, off-device data, general third-party pages, mobile WebView
 access, deployment, spending, store submission, and publication remain

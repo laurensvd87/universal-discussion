@@ -91,17 +91,19 @@ Environment: Node 24 or newer under the dependency-free package.
 ## Dispositions
 
 Trust/Security: **ACCEPT - exact P1.5c engineering slice only.** No open
-engineering finding remains inside the accepted two-route, local-only
-metadata boundary.
+engineering finding remains inside the accepted two-route, locally processed,
+no-egress metadata boundary.
 
 Quality: **ACCEPT - implementation at `8b9eabf`, reconciled by `db331de`.**
 The contracts, package boundary, tests, accessibility markup, documentation,
 and non-claims are internally consistent.
 
-These dispositions do not complete P1.5c. The separate owner-run Chromium
-smoke remains required for actual permission presentation, controlled-fixture
-and signed-out MDN behavior, navigation/closure handling, traffic, storage,
-console, and keyboard evidence.
+At review time these dispositions did not complete P1.5c because the separate
+owner-run Chromium smoke was still required. The owner subsequently reported
+all documented permission-presentation, controlled-fixture, signed-out MDN,
+navigation/closure, traffic, storage, console, and keyboard checks passing on
+2026-09-22. `P1_5C_MANUAL_SMOKE.md` records that evidence and its limits.
+Together they close only the exact P1.5c experiment, not broader P1.5.
 
 ## Residuals and next stop
 

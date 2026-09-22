@@ -228,28 +228,31 @@ Owner: Platform and Client, reviewed by Trust and Quality.
 
 Dependencies: ADR-002 direction or an explicitly local-only exception; P1.1 contract; P1.3 fixture output; seeded local/mock data. Acceptance of ADR-002 does not authorize network egress.
 
-Status: **P1.5b complete for its exact local URL-only boundary; full P1.5
-remains open.** The owner accepted ADR-010's exact boundary.
-The unpacked Chromium popup now requests only `activeTab`, reads only the
-explicitly invoked active/current tab ID and address-bar URL, accepts exactly
-the queryless `https://example.com/` and `https://example.org/` demonstrations,
-performs a bundled exact-URL Source lookup, and confirms the same active tab ID
-and normalized URL with a second fresh read before rendering. URL-to-Source
-receipt provenance remains separate from the pinned exact-fingerprint
-Source-to-Topic mapping. The P1.5a scenarios remain available.
+Status: **P1.5b and P1.5c are complete for their exact local-processing
+boundaries; full P1.5 remains open.** The owner accepted ADR-010 and ADR-011's
+exact boundaries.
+The current unpacked Chromium package requests `activeTab` plus P1.5c's bounded
+`scripting` capability. The separate P1.5b action projects only the explicitly
+invoked active/current tab ID and address-bar URL, accepts exactly the queryless
+`https://example.com/` and `https://example.org/` demonstrations, performs a
+bundled exact-URL Source lookup, and confirms the same active tab ID and
+normalized URL with a second fresh read before rendering. URL-to-Source receipt
+provenance remains separate from the pinned exact-fingerprint Source-to-Topic
+mapping. The P1.5a scenarios remain available.
 
 Automated policy, adapter, contract, race, package, CSP, capability, and DOM
 clearing checks pass. A separate read-only AI reviewer issued Trust and Quality
 ACCEPT with no open engineering finding after a manual-checklist gap was
 reconciled; the evidence and residuals are in
-`research/P1_5B_ENGINEERING_REVIEW.md`. The implementation has no broad `tabs`
-or host permission, title/DOM/body access, injection, background/content script,
+`research/P1_5B_ENGINEERING_REVIEW.md`. The P1.5b path has no broad `tabs` or
+host permission, title/DOM/body access, injection, background/content script,
 storage, network, telemetry, auth, write, or AI capability. A real Chromium
 permission/traffic/storage/console/keyboard smoke also passed on 2026-09-22;
 the owner-reported evidence and limitations are in
 `research/P1_5B_MANUAL_SMOKE.md`.
-Stop before a larger URL allowlist, `scripting`, page/WebView metadata or body
-extraction outside accepted ADR-011, egress, persistence, or store submission.
+Stop before a larger URL allowlist, any `scripting` or page/WebView metadata or
+body extraction outside accepted ADR-011, egress, persistence, or store
+submission.
 ADR-011 now permits the exact P1.5c `activeTab` plus `scripting` metadata
 experiment on one project-controlled route and one pinned, rights-reviewed MDN
 route. It keeps publication time context-only and requires one portable
@@ -258,8 +261,10 @@ exists with direct-head bounds, same-document attestation, no auth/paywall
 detection claim, no egress, and no semantic path. Automated checks pass;
 a separate read-only AI audit issued Trust/Security and Quality ACCEPT with no
 open finding; evidence is in `research/P1_5C_ENGINEERING_REVIEW.md`. The
-approved owner Chromium smoke remains pending. Every broader page/platform
-remains stopped.
+owner completed the approved Chromium smoke on 2026-09-22; evidence and its
+limits are in `research/P1_5C_MANUAL_SMOKE.md`. The exact P1.5c experiment is
+complete. Full P1.5 and every broader page/platform remain open or stopped as
+applicable.
 
 Deliverable: one Chromium prototype against bundled fixtures or a local mock, with a browser-neutral core, exact manifest/permission inventory, and documented Firefox adapter gap.
 

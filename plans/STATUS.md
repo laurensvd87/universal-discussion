@@ -9,8 +9,8 @@ Trust/Quality review pending owner disposition of proposed ADR-006.
 P1.5b is complete for the owner-approved `activeTab`-only local URL boundary:
 automated evidence, Trust/Quality engineering review, and the owner-run
 Chromium smoke pass. The exact approved P1.5c metadata implementation now
-exists; its automated verification and separate AI Trust/Security and Quality
-review pass, while owner browser smoke is not yet recorded. General page/WebView extraction and full browser
+also has passing automated verification, separate AI Trust/Security and Quality
+review, and owner browser smoke. General page/WebView extraction and full browser
 integration stay at a separate owner/security/privacy/rights/store-policy stop.
 
 ## Current objective
@@ -19,9 +19,12 @@ Close the remaining P0.2 decisions—especially architecture, browser
 egress/retention, and proposed merge/split semantics—before connected
 implementation, while building the license-safe P1.2 corpus/evaluator and
 review-ready owner labeling workflow, and advancing the shortest local
-NO-AUTO proof of concept. Preserve the completed P1.5b URL-only evidence while
-verifying the exact P1.5c vendor-neutral Chromium metadata boundary before any
-broader Chromium, Android, or iOS extraction implementation.
+NO-AUTO proof of concept. Preserve the completed exact P1.5b URL-only and P1.5c
+two-route metadata evidence while stopping before any broader Chromium,
+Android, or iOS extraction implementation. The next critical-path task is the
+documentation-only P1.6 auth, identity, moderation, and data-lifecycle design;
+it must stop at its explicit owner/Trust/Security/Privacy/Policy/Quality gate
+before any P1.7 implementation.
 
 ## Completed on 2026-09-19
 
@@ -300,7 +303,9 @@ broader Chromium, Android, or iOS extraction implementation.
   Trust/Security and Quality ACCEPT after the audit findings were reconciled in
   `db331de`; no engineering finding remains. Review provenance, controls, and
   residuals are in `research/P1_5C_ENGINEERING_REVIEW.md`. The exact owner-run
-  local/MDN Chromium smoke remains open.
+  local/MDN Chromium smoke subsequently passed every documented check. Its
+  self-reported evidence and limits are recorded in
+  `research/P1_5C_MANUAL_SMOKE.md`; the exact P1.5c experiment is complete.
 - Recorded the owner's PoC assumption that public document-head metadata is
   locally processable and no generic paywall detector or per-site API is
   needed. The code makes no auth/paywall-detection claim. This is not a legal,
@@ -319,7 +324,7 @@ broader Chromium, Android, or iOS extraction implementation.
 - `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
 - `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
 - `ADR-010-local-active-tab-url-observation.md`: **Accepted and complete for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated, Trust/Quality engineering-review, and owner Chromium evidence pass.
-- `ADR-011-cross-platform-content-signal-boundary.md`: **Accepted, implemented, and AI engineering-reviewed for the exact P1.5c controlled-page plus one pinned MDN-page experiment; owner manual evidence pending.** It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
+- `ADR-011-cross-platform-content-signal-boundary.md`: **Accepted and complete for the exact P1.5c controlled-page plus one pinned MDN-page experiment.** Automated, AI Trust/Security and Quality engineering-review, and owner Chromium evidence pass. It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
 
 ## Blockers
 
@@ -329,8 +334,8 @@ broader Chromium, Android, or iOS extraction implementation.
   evidence. It does not request broad `tabs`, inspect a title/DOM/body, invoke
   P1.3 extraction, or establish store eligibility. The owner approved only the
   exact ADR-011/P1.5c controlled-page plus pinned-MDN metadata experiment; its
-  implementation and AI engineering review pass, while owner-browser evidence
-  is now the next local work. ADR-006 also
+  implementation, AI engineering review, and owner-browser evidence pass. The
+  broader P1.5 flow remains open. ADR-006 also
   still needs owner acceptance before its different synthetic byte-extraction
   profile is integrated anywhere.
 - Exact egress fields, account linkage, sensitive-site exclusions, log/backup retention, deletion, and telemetry are undecided.
@@ -459,12 +464,14 @@ broader Chromium, Android, or iOS extraction implementation.
 
 **GO:** local fixture-only resolver/evaluator/extraction/review-workflow work;
 continued local use of the completed, exact P1.5b `activeTab` URL-only slice;
-and manual-smoke work strictly inside the approved
-ADR-011/P1.5c two-route metadata boundary.
+preservation of the completed exact ADR-011/P1.5c evidence; and local reruns of
+its project-owned loopback fixture only.
 
 **STOP:** any `scripting`, title/metadata/DOM/body/WebView extraction, field,
 selector, or URL eligibility beyond the exact accepted ADR-011/P1.5c envelope
 and two routes;
+another public-page metadata invocation, including a repeat of the already
+completed MDN test, without fresh explicit owner and Policy/Rights approval;
 integrating P1.3 into a client; unapproved
 real/public corpus acquisition or check-in; real browsing capture/egress, live
 URL fetches, hosted embeddings, auth/public writes, AI
@@ -473,16 +480,26 @@ store submission.
 
 ## Next owner approval required
 
-The exact ADR-011/P1.5c fields, contexts, `activeTab` plus `scripting`
-permission, ephemeral retention, temporal non-use, controlled fixture, and one
-pinned MDN test are approved. No additional owner input is required to
-run the documented manual smoke for the already implemented and reviewed exact
-slice. General adapter code must
-not be mistaken for universal authorization; every other third-party,
+The exact ADR-011/P1.5c experiment is complete. General adapter code must not be
+mistaken for universal authorization; every other third-party,
 authenticated/private/paywalled, unknown-rights, mobile, model, egress,
 provider, spending, deployment, or store/publication action returns to its own
-explicit gate. ADR-006 can remain pending because P1.5c does not integrate its
-different byte-extraction profile.
+explicit gate. The single approved MDN test campaign is complete and consumed;
+another campaign returns to explicit owner and Policy/Rights review. ADR-006
+can remain pending because P1.5c does not integrate its different
+byte-extraction profile.
+
+The next critical-path owner checkpoint is the P1.6 design gate. After the
+local threat model and ADR-ready state model are drafted and independently
+reviewed, the owner must explicitly approve or revise the consequential
+identity, human/agent separation, private-to-public publication, retention,
+deletion/export/backup, report/block/moderation, operator-access, audit, and
+incident choices, together with the Security/Trust, Privacy, Policy, and
+Quality residuals. Drafting P1.6 uses synthetic identities and documentation
+only; it authorizes no account, external identity provider, real user data,
+network exposure, provider, deployment, spending, or publication. P1.7 cannot
+start until that disposition and its separate local-architecture authorization
+are recorded.
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
 merge/split history semantics, and ADR-006's narrow synthetic extraction
