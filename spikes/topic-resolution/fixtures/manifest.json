@@ -1,10 +1,20 @@
 {
-  "manifestVersion": "fixture-provenance/1.1.0",
-  "reviewedAt": "2026-09-21T13:00:00.000Z",
+  "manifestVersion": "fixture-provenance/1.2.0",
+  "reviewedAt": "2026-09-21T21:30:00.000Z",
   "entries": [
     {
       "path": "fixtures/observations.js",
       "purpose": "Deterministic resolver observations and fingerprints",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    },
+    {
+      "path": "browser/fixtures/indicator-fixtures.js",
+      "purpose": "Bundled resolver-derived Source, Topic, Discussion, mapping, and activity display fixtures",
       "provenance": "project-created-synthetic",
       "containsCopiedText": false,
       "containsPersonalData": false,

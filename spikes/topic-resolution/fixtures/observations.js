@@ -25,6 +25,15 @@ export const OBSERVATIONS = Object.freeze({
       fixtureId: "company-story",
     }),
   }),
+  hostileTitle: Object.freeze({
+    url: "https://hostile.example.com/widget-2",
+    title: "<img src=x onerror=alert(1)> remains inert fixture text",
+    contentFingerprint: FINGERPRINTS.ANNOUNCEMENT,
+    fingerprintEvidence: Object.freeze({
+      kind: "synthetic-fixture",
+      fixtureId: "hostile-title",
+    }),
+  }),
   ambiguousTitleOne: Object.freeze({
     url: "https://one.example.com/story/shared-title",
     title: "A shared but ambiguous title",

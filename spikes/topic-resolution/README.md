@@ -7,8 +7,9 @@ mapping:
 
 It tests domain behavior before choosing a web framework, browser client,
 database, vector store, AI provider, or hosting platform. Runtime modules in
-`src/` and `extraction/` perform no network, filesystem, or database I/O; the
-test, evaluation, and verification tooling reads only local package files.
+`src/`, `extraction/`, and the browser-neutral indicator core perform no
+network, filesystem, or database I/O; the test, evaluation, and verification
+tooling reads only local package files.
 
 ## Run
 
@@ -18,6 +19,7 @@ From this directory with Node.js 24 or newer:
 npm test
 npm run test:restricted
 npm run check:secrets
+npm run indicator:test
 ```
 
 The tests use Node's built-in `node:test` runner in non-isolated mode, so the
@@ -29,8 +31,8 @@ than an ordinary passing unit run, though it is still a process-level harness
 rather than an operating-system network namespace.
 
 The secret check first exercises every supported detector with an in-memory
-synthetic sample, then scans all HTML, JavaScript, JSON, Markdown, and checked-in
-TSV in this package for a small versioned set of high-confidence credential formats. It
+synthetic sample, then scans all CSS, HTML, JavaScript, JSON, Markdown, and
+checked-in TSV in this package for a small versioned set of high-confidence credential formats. It
 reports only pattern names and locations, never matched values. It complements the
 no-dependency/no-environment-access checks; it is not a substitute for host
 repository secret scanning or incident response. Ignored local review state is
@@ -42,6 +44,23 @@ public host forms, default and non-default ports, encoded paths, query shapes,
 and fragments. It checks determinism, idempotence, and security-origin
 preservation. Boundary tests also require both input and normalized URLs to fit
 the 8,192-byte limit.
+
+## Bundled-fixture browser indicator
+
+`browser/` is a zero-permission P1.5a Chromium popup backed only by checked-in
+synthetic fixtures. Load that directory as an unpacked extension or follow its
+own `browser/README.md`. The browser-neutral contract binds every Source,
+source-topic mapping, Topic, Discussion, topic-scoped activity count, and
+freshness timestamp before rendering. UI phases are separate from terminal
+lookup outcomes, and a later activation or reset invalidates stale work.
+
+The extension requests no permissions or host permissions, has no background
+or content script, reads no current tab, makes no network request, writes no
+storage, and renders fixture strings with text-only DOM operations. It supports
+only the pinned exact-fingerprint demo plus fail-closed fixture states; the
+curated and semantic-suggestion paths required by the full ADR-009 PoC remain
+future local work. Stop before adding `activeTab`, real page extraction, a
+service, persistence, deployment, or publication.
 
 ## Phase 0 labeling pilot
 

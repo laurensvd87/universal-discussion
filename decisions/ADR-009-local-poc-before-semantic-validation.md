@@ -99,6 +99,23 @@ Suggested matches and Source text remain untrusted input. A later UI must make
 the mapping mode and provenance visible, preserve abstention, and prevent a
 suggestion from becoming an automatic public routing decision.
 
+## Implementation evidence
+
+The first P1.5a increment implements only the safest leading edge of this
+decision: a zero-permission Chromium popup selects bundled synthetic scenarios
+and validates resolver-derived exact-fingerprint mappings through a
+browser-neutral contract. The view exposes mapping ID/method/evidence, binds
+Source, Topic, Discussion, and topic-scoped freshness/counts, preserves
+separate human/agent totals, renders hostile text inertly, and fails closed for
+unmapped, unsupported, malformed, stale, or superseded results. It has no tab,
+page, network, storage, write, AI, or telemetry capability.
+
+This is not the complete local PoC described below. Exact normalized-URL and
+curated/confirmed paths, reviewer-only semantic suggestions, real fixture page
+observation/extraction, correction behavior, and end-to-end local integration
+remain unimplemented or separately gated. No P1.4 evidence or semantic-quality
+claim follows from the popup.
+
 ## Validation / rollback
 
 The local PoC must test happy, exact-match, curated/confirmed, suggested,

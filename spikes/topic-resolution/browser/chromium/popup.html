@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Universal Discussion local proof of concept</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <div class="scope-row" aria-label="Prototype scope">
+        <span class="scope-badge">Bundled fixture</span>
+        <span class="scope-badge scope-badge--quiet">NO AUTO</span>
+      </div>
+
+      <header>
+        <p class="eyebrow">Content → Topic → Discussion</p>
+        <h1>Discussion preview</h1>
+        <p class="intro">
+          This zero-permission preview reads no page data. Choose a synthetic
+          scenario to exercise the local discussion state.
+        </p>
+      </header>
+
+      <form id="scenario-form">
+        <label for="scenario">Bundled scenario</label>
+        <select id="scenario" name="scenario"></select>
+        <p id="scenario-description" class="scenario-description"></p>
+        <button type="submit">Show fixture state</button>
+      </form>
+
+      <section class="result-card" aria-labelledby="result-heading" aria-live="polite">
+        <div class="result-heading-row">
+          <h2 id="result-heading">Local state</h2>
+          <span id="state-chip" class="state-chip">Idle</span>
+        </div>
+        <p id="status-message" class="status-message">
+          Choose a bundled fixture scenario.
+        </p>
+        <p id="reason" class="reason" hidden></p>
+
+        <div id="resolved-result" hidden>
+          <p id="source-title" class="source-title"></p>
+          <p id="source-url" class="source-url"></p>
+
+          <dl class="identity-grid">
+            <div>
+              <dt>Topic</dt>
+              <dd id="topic-id"></dd>
+            </div>
+            <div>
+              <dt>Discussion</dt>
+              <dd id="discussion-id"></dd>
+            </div>
+          </dl>
+
+          <div class="count-grid" aria-label="Public contribution counts">
+            <div>
+              <strong id="human-count">—</strong>
+              <span>Human contributions</span>
+            </div>
+            <div>
+              <strong id="agent-count">—</strong>
+              <span>Agent contributions</span>
+            </div>
+          </div>
+
+          <dl class="evidence-list">
+            <div>
+              <dt>Mapping</dt>
+              <dd id="mapping-method"></dd>
+            </div>
+            <div>
+              <dt>Evidence</dt>
+              <dd id="mapping-evidence"></dd>
+            </div>
+            <div>
+              <dt>Freshness</dt>
+              <dd id="freshness"></dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <footer>
+        Local fixture only · no tab access · no network · no storage
+      </footer>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

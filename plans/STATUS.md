@@ -5,15 +5,17 @@
 Phase 0 foundation in progress; P0.1 and the frozen offline P1.1 kernel are
 complete, P1.2 evaluation and owner-review workflow work is in progress, and a bounded offline
 P1.3a synthetic HTML extraction increment has passed independent offline
-Trust/Quality review pending owner disposition of proposed ADR-006.
+Trust/Quality review pending owner disposition of proposed ADR-006. A
+zero-permission bundled-fixture P1.5a Chromium popup is implemented; full
+real-tab browser integration remains at the owner/Trust/privacy stop.
 
 ## Current objective
 
 Close the remaining P0.2 decisions—especially architecture, browser
 egress/retention, and proposed merge/split semantics—before connected
 implementation, while building the license-safe P1.2 corpus/evaluator and
-review-ready owner labeling workflow, and reviewing the synthetic-only P1.3
-extraction boundary.
+review-ready owner labeling workflow, and advancing the shortest local
+NO-AUTO proof of concept without crossing into real-page observation.
 
 ## Completed on 2026-09-19
 
@@ -187,6 +189,27 @@ extraction boundary.
   disposition. Review provenance and the control matrix are recorded in
   `research/P1_3A_GATE_REVIEW.md`.
 
+## Updated on 2026-09-22
+
+- Implemented the bounded P1.5a browser slice under ADR-009. Loading
+  `spikes/topic-resolution/browser/` as an unpacked Chromium extension opens a
+  zero-permission bundled-fixture popup with resolved, unmapped, unsupported,
+  malformed, and hostile-text scenarios. It reads no tab/page data, has no
+  browser API, background/content script, request, storage, telemetry, write,
+  auth, or AI capability, and makes no real-page or semantic-quality claim.
+- The browser-neutral response contract now rejects unknown/behavioral or
+  resource-exhausting input and cross-binds Source, source-topic mapping,
+  Topic, Discussion, topic-scoped activity counts, and freshness. Resolver
+  parity tests pin three displayed Source/mapping records. UI phase is separate
+  from terminal outcome; reset, newer valid selection, and newer invalid
+  selection all prevent a late completion from replacing current state.
+- P1.5a verification passes 21/21 focused contract/controller/package checks,
+  the full ordinary suite at 202 passes plus its one expected restricted-guard
+  skip, the restricted suite at 203/203, and the expanded CSS-inclusive secret
+  scanner across 78 files with zero findings after six detector self-tests.
+  The fixture provenance manifest is now version 1.2.0; its intentional digest
+  change is propagated through the generated review-chain regression pins.
+
 ## Active decisions
 
 - `ADR-001-offline-resolution-spike.md`: **Accepted for offline P1.1 only** at code commit `d33f010`. It authorizes no connected behavior, real data, or semantic-quality claim.
@@ -202,6 +225,11 @@ extraction boundary.
 ## Blockers
 
 - Passive discovery remains an untested, separately gated hypothesis; the accepted user-invoked design can measure panel utility but cannot produce a pre-click activity indicator.
+- P1.5a proves only a bundled-fixture popup. It does not request `activeTab` or
+  `tabs`, observe a navigation, inspect a page, invoke P1.3 extraction, perform
+  eligibility checks, or bind a response to a real tab/navigation. Adding any
+  such capability is the next owner/Trust/privacy checkpoint; ADR-006 also
+  needs owner acceptance before its extraction profile is integrated.
 - Exact egress fields, account linkage, sensitive-site exclusions, log/backup retention, deletion, and telemetry are undecided.
 - The auth/object-authorization/data-lifecycle threat model and identity/provenance/moderation state decisions required by P1.6 have not been produced or approved.
 - The alpha architecture and host/auth/provider choices are not accepted.
@@ -317,14 +345,26 @@ extraction boundary.
 
 ## Current gate
 
-**GO:** local fixture-only resolver/evaluator/extraction/review-workflow work and planning the larger license-safe labeled set under ADR-004.
+**GO:** local fixture-only resolver/evaluator/extraction/review-workflow work,
+the zero-permission bundled-fixture browser popup, and planning the larger
+license-safe labeled set under ADR-004.
 
-**STOP:** unapproved real/public corpus acquisition or check-in, real browsing
-capture/egress, live URL fetches, hosted embeddings, auth/public writes, AI
+**STOP:** adding real-tab/page access or integrating extraction into the
+extension before explicit owner/Trust/privacy approval; unapproved real/public
+corpus acquisition or check-in; real browsing capture/egress, live URL fetches,
+hosted embeddings, auth/public writes, AI
 credentials/inference, deployment, spending, announcements, recruitment, and
 store submission.
 
 ## Next owner approval required
+
+For the next browser increment, explicitly approve or revise both (1)
+ADR-006's narrow synthetic extraction profile for integration and (2) a local,
+user-invoked `activeTab`/`tabs` adapter that reads only the active top-level
+page after the extension action. That proposed approval would still exclude
+network egress, persistence, telemetry, passive observation, private browsing,
+deployment, and publication, and it requires a fresh Trust/privacy review of
+the exact manifest and collected fields.
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
 merge/split history semantics, and ADR-006's narrow synthetic extraction

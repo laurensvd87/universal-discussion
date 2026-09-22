@@ -1,6 +1,6 @@
 # Development / Testing / Rollout Roadmap
 
-This roadmap was last refined on 2026-09-21. Do not skip gates. `plans/PHASE_0_FOUNDATION.md` contains the assumptions, metrics, cost envelope, and current limited-go decision.
+This roadmap was last refined on 2026-09-22. Do not skip gates. `plans/PHASE_0_FOUNDATION.md` contains the assumptions, metrics, cost envelope, and current limited-go decision.
 
 ## Phase 0 — Product and feasibility
 
@@ -219,6 +219,15 @@ Gate branches:
 Owner: Platform and Client, reviewed by Trust and Quality.
 
 Dependencies: ADR-002 direction or an explicitly local-only exception; P1.1 contract; P1.3 fixture output; seeded local/mock data. Acceptance of ADR-002 does not authorize network egress.
+
+Status: **P1.5a bundled-fixture slice implemented; full P1.5 remains open.**
+The unpacked Chromium popup has a browser-neutral strict contract, an exact
+zero-permission package inventory, resolver-derived local fixtures, separate
+human/agent counts, inert hostile text, and fail-closed stale/malformed states.
+It intentionally reads no current tab or page, so it cannot yet satisfy the
+real-page eligibility, extraction, or navigation-binding checks. Stop before
+adding `activeTab`, `tabs`, content injection, or any real browsing-data access
+until the owner and Trust/privacy gate is explicitly reopened.
 
 Deliverable: one Chromium prototype against bundled fixtures or a local mock, with a browser-neutral core, exact manifest/permission inventory, and documented Firefox adapter gap.
 

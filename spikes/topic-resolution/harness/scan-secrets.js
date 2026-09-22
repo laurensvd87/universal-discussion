@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const scannedExtensions = new Set([".html", ".js", ".json", ".md", ".tsv"]);
+const scannedExtensions = new Set([".css", ".html", ".js", ".json", ".md", ".tsv"]);
 const excludedDirectories = new Set([".git", "node_modules"]);
 const excludedDirectoryPaths = new Set([
   path.resolve(packageDirectory, "review", "work"),

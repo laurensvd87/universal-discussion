@@ -40,6 +40,7 @@ cd spikes/topic-resolution
 npm test
 npm run test:restricted
 npm run check:secrets
+npm run indicator:test
 npm run review:prepare
 npm run review:status
 npm run evaluate:pilot
@@ -128,7 +129,18 @@ no file read or fetch at runtime. Fixture identity is
 caller-declared rather than attested, so this is not general page extraction or
 a production fingerprint trust boundary.
 
-Connected browser behavior, production architecture, hosted semantic processing and BYO AI remain gated decisions; the local spike is not a production foundation or a claim that semantic clustering has been validated.
+The first P1.5a increment is testable as an unpacked Chromium extension from
+`spikes/topic-resolution/browser/`. It is a zero-permission, bundled-fixture
+popup: it reads no tab or page data, performs no request or storage, and shows
+resolver-derived resolved, unmapped, unsupported, malformed, and hostile-text
+states. Two synthetic Sources demonstrably reach the same Topic and Discussion,
+while human and agent counts remain separate. This is useful UI/contract
+plumbing, not real-page integration or evidence that semantic matching works.
+
+Real-tab observation, connected browser behavior, production architecture,
+hosted semantic processing, and BYO AI remain gated decisions; the local spike
+is not a production foundation or a claim that semantic clustering has been
+validated.
 
 ## Product in one sentence
 A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.

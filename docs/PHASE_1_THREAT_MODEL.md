@@ -447,6 +447,24 @@ Proceed after the offline contracts are stable if:
 - it displays authoritative human and agent counts separately and fails closed; and
 - applicable manifest, eligibility, injection, rendering, navigation, and count checks pass.
 
+Current P1.5a implementation evidence is narrower than that complete gate.
+`spikes/topic-resolution/browser/` packages a bundled-fixture popup with an
+exact zero-permission Manifest V3 inventory, no background/content script, no
+browser API use, no network or storage API use, local-only module/resource
+closure, and a CSP that permits only self-hosted scripts and disables objects.
+Its strict contract binds the Source,
+source-topic mapping, Topic, Discussion, topic-scoped human/agent counts, and
+activity freshness; malformed or cross-wired records become unavailable. The
+controller separates UI phase from lookup outcome and prevents stale, reset,
+or superseded activations from changing the visible result. Package tests pin
+text-only rendering, including markup-like fixture text.
+
+This evidence does not satisfy real-page eligibility, navigation/tab binding,
+injection, extraction, or privacy checks because the popup deliberately reads
+no current tab or page. Adding `activeTab`, `tabs`, a content script, page
+extraction, storage, or a service crosses the recorded owner/Trust stop and
+requires a new review of the applicable `B-*` controls.
+
 ### Go: read-only indicator with remote lookup
 
 Proceed only when all of the following are true:

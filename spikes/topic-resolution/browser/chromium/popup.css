@@ -1,0 +1,265 @@
+:root {
+  color-scheme: light;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #17202a;
+  background: #edf2f4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 380px;
+  min-height: 520px;
+  margin: 0;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(33, 158, 188, 0.18), transparent 42%),
+    linear-gradient(165deg, #f8fafb 0%, #edf2f4 100%);
+}
+
+main {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.scope-row {
+  display: flex;
+  gap: 7px;
+}
+
+.scope-badge {
+  padding: 5px 9px;
+  border: 1px solid #0b7285;
+  border-radius: 999px;
+  color: #0b5968;
+  background: #dff6fa;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scope-badge--quiet {
+  border-color: #7b6d41;
+  color: #66561f;
+  background: #fff4c2;
+}
+
+header,
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.eyebrow {
+  margin-bottom: 6px;
+  color: #0b7285;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+h1 {
+  font-size: 27px;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.intro {
+  margin-top: 9px;
+  color: #51606d;
+  font-size: 13px;
+  line-height: 1.48;
+}
+
+form {
+  display: grid;
+  gap: 9px;
+}
+
+label,
+dt {
+  color: #52606c;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+select,
+button {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 10px;
+  font: inherit;
+}
+
+select {
+  border: 1px solid #bcc8cf;
+  padding: 0 12px;
+  color: #17202a;
+  background: #ffffff;
+}
+
+button {
+  border: 0;
+  padding: 0 16px;
+  color: #ffffff;
+  background: #0b7285;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+button:hover,
+button:focus-visible {
+  background: #075b69;
+}
+
+button:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(33, 158, 188, 0.35);
+  outline-offset: 2px;
+}
+
+.scenario-description {
+  min-height: 38px;
+  color: #667783;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.result-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d4dee3;
+  border-radius: 15px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 28px rgba(27, 45, 54, 0.08);
+}
+
+.result-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+.state-chip {
+  max-width: 150px;
+  overflow: hidden;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #53636f;
+  background: #e7edf0;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.state-chip[data-state="resolved"] {
+  color: #17633a;
+  background: #ddf5e6;
+}
+
+.state-chip[data-state="unavailable"],
+.state-chip[data-state="unsupported"] {
+  color: #8a3d2d;
+  background: #fde8e2;
+}
+
+.status-message,
+.reason {
+  color: #52606c;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.reason {
+  color: #8a3d2d;
+}
+
+#resolved-result {
+  display: grid;
+  gap: 13px;
+}
+
+#resolved-result[hidden] {
+  display: none;
+}
+
+.source-title {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.source-url,
+dd {
+  overflow-wrap: anywhere;
+  color: #52606c;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.identity-grid,
+.evidence-list {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+}
+
+.identity-grid > div,
+.evidence-list > div {
+  display: grid;
+  gap: 3px;
+}
+
+dd {
+  margin: 0;
+}
+
+.count-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.count-grid > div {
+  display: grid;
+  gap: 2px;
+  border-radius: 10px;
+  padding: 11px;
+  background: #f1f6f7;
+}
+
+.count-grid strong {
+  color: #0b5968;
+  font-size: 22px;
+}
+
+.count-grid span {
+  color: #52606c;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+footer {
+  color: #72808a;
+  font-size: 10px;
+  line-height: 1.45;
+  text-align: center;
+}

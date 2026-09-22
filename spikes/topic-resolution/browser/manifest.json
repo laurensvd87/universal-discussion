@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Universal Discussion - Local PoC",
+  "version": "0.1.0",
+  "description": "Zero-permission bundled-fixture preview of a read-only discussion indicator.",
+  "incognito": "not_allowed",
+  "action": {
+    "default_popup": "chromium/popup.html",
+    "default_title": "Open bundled discussion fixture"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none';"
+  }
+}

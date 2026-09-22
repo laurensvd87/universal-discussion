@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const packageDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceDirectory = path.join(packageDirectory, "src");
 const extractionDirectory = path.join(packageDirectory, "extraction");
+const browserCoreDirectory = path.join(packageDirectory, "browser", "core");
+const browserFixtureDirectory = path.join(packageDirectory, "browser", "fixtures");
 const reviewDirectory = path.join(packageDirectory, "review");
 const canonicalJsonPath = path.join(
   packageDirectory,
@@ -19,7 +21,12 @@ test("runtime modules have no network, DNS, process, filesystem, logging, or dyn
   const runtimeFiles = [
     ...(
     await Promise.all(
-      [sourceDirectory, extractionDirectory].map(async (directory) =>
+      [
+        sourceDirectory,
+        extractionDirectory,
+        browserCoreDirectory,
+        browserFixtureDirectory,
+      ].map(async (directory) =>
         (await readdir(directory))
           .filter((name) => name.endsWith(".js"))
           .map((name) => path.join(directory, name)),
@@ -34,6 +41,9 @@ test("runtime modules have no network, DNS, process, filesystem, logging, or dyn
       path.relative(packageDirectory, file).replaceAll("\\", "/"),
     ),
     [
+      "browser/core/indicator-contract.js",
+      "browser/core/indicator-controller.js",
+      "browser/fixtures/indicator-fixtures.js",
       "evaluation/canonical-json.js",
       "extraction/html-extraction.js",
       "src/errors.js",
@@ -213,11 +223,12 @@ test("review workflow keeps pure contracts separate from bounded local filesyste
 
 test("fixture inventory records synthetic provenance and minimum-data review", async () => {
   const manifest = JSON.parse(await readFile(fixtureManifestPath, "utf8"));
-  assert.equal(manifest.manifestVersion, "fixture-provenance/1.1.0");
+  assert.equal(manifest.manifestVersion, "fixture-provenance/1.2.0");
   assert.equal(new Date(manifest.reviewedAt).toISOString(), manifest.reviewedAt);
   assert.deepEqual(
     manifest.entries.map((entry) => entry.path).sort(),
     [
+      "browser/fixtures/indicator-fixtures.js",
       "evaluation/pilot-pairs.json",
       "evaluation/pilot-split-dry-run.json",
       "fixtures/html/harbor-barrier.html",
