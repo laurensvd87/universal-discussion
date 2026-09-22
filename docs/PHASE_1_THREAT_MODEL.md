@@ -482,6 +482,17 @@ disclosures, exact fields, raw/derived retention and egress, and platform
 security. `robots.txt`, robots metadata, or structured metadata can contribute
 policy signals but cannot alone establish authorization or a content licence.
 
+Accepted ADR-011 reopens only the exact P1.5c experiment. Chromium may add
+`scripting` beside `activeTab` to run one packaged function in the isolated
+world of the active top-level document after an explicit click. Eligibility is
+limited to the project-created loopback fixture and one pinned, rights-reviewed
+MDN documentation route in `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`.
+Only the bounded head-metadata envelope may be returned; body/JSON-LD/frame,
+authentication, storage, egress, model, and semantic-decision paths remain
+forbidden. `publishedAtHint` is context-only and must be proven unable to affect
+Topic matching. Implementation, hostile-DOM tests, browser smoke, and a fresh
+Trust/Quality review remain required before P1.5c is complete.
+
 ### Go: read-only indicator with remote lookup
 
 Proceed only when all of the following are true:

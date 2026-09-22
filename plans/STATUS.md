@@ -258,13 +258,14 @@ boundary before any Chromium, Android, or iOS extraction implementation.
 - Current official-source policy research now covers Chrome Web Store, Apple
   App Store, Google Play, Android/iOS WebView feasibility, robots/meta signals,
   paywalls, content rights, and search-provider lock-in. It rejects per-site
-  APIs as the core architecture and proposes one generic, standards-based,
+  APIs as the core architecture and defines one generic, standards-based,
   user-invoked metadata envelope with local processing and URL fallback.
   However, technical DOM access and metadata presence are not authorization;
-  authenticated/private/paywalled contexts remain default-denied, and no live
-  extraction starts before proposed ADR-011 receives explicit owner,
-  security/privacy, rights/store-policy, and Quality approval. Evidence and
-  alternatives are in `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md`.
+  authenticated/private/paywalled contexts remain default-denied. The owner
+  has approved only the exact P1.5c controlled route and pinned MDN page after
+  explicit Security/Privacy/Policy detail; evidence and alternatives are in
+  `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` and
+  `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`.
 
 ## Active decisions
 
@@ -278,7 +279,7 @@ boundary before any Chromium, Android, or iOS extraction implementation.
 - `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
 - `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
 - `ADR-010-local-active-tab-url-observation.md`: **Accepted and complete for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated, Trust/Quality engineering-review, and owner Chromium evidence pass.
-- `ADR-011-cross-platform-content-signal-boundary.md`: **Proposed; owner, Security/Trust, Privacy, platform-policy/rights, and Quality approval pending.** It prefers one generic standards-based metadata envelope and on-device candidate operation over per-site APIs or a search-provider dependency, but authorizes no live metadata/body extraction, model, egress, storage, or store submission.
+- `ADR-011-cross-platform-content-signal-boundary.md`: **Accepted for the exact P1.5c controlled-page plus one pinned MDN-page experiment.** It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
 
 ## Blockers
 
@@ -286,9 +287,10 @@ boundary before any Chromium, Android, or iOS extraction implementation.
 - P1.5b now proves the exact `activeTab`-only URL observation and two-read
   tab/navigation binding with automated, engineering-review, and owner-browser
   evidence. It does not request broad `tabs`, inspect a title/DOM/body, invoke
-  P1.3 extraction, or establish store eligibility. Any live content signal is
-  the proposed ADR-011 owner/security/privacy/rights/store-policy checkpoint;
-  ADR-006 also still needs owner acceptance before its synthetic extraction
+  P1.3 extraction, or establish store eligibility. The owner approved only the
+  exact ADR-011/P1.5c controlled-page plus pinned-MDN metadata experiment; its
+  implementation and review evidence are now the next local work. ADR-006 also
+  still needs owner acceptance before its different synthetic byte-extraction
   profile is integrated anywhere.
 - Exact egress fields, account linkage, sensitive-site exclusions, log/backup retention, deletion, and telemetry are undecided.
 - The auth/object-authorization/data-lifecycle threat model and identity/provenance/moderation state decisions required by P1.6 have not been produced or approved.
@@ -406,9 +408,9 @@ boundary before any Chromium, Android, or iOS extraction implementation.
   applicable terms; Chrome treats local scraped and derived page data as user
   data; Play rejects unauthorized WebView wrappers and copyright violations.
   Robots/meta can supply negative policy signals but do not grant permission.
-  The generic metadata/on-device path in ADR-011 remains a proposal, and full
-  body, authenticated, private, paywalled, remote-fetch, and search-provider
-  paths remain disabled.
+  The generic metadata path in ADR-011 is accepted only for the exact P1.5c
+  envelope and two routes. Full body, JSON-LD, authenticated, private,
+  paywalled, remote-fetch, model, and search-provider paths remain disabled.
 - ADR-005's correction semantics and ADR-003's architecture remain proposed; the cost worksheet is not measured capacity or recovery evidence.
 
 ## Current gate
@@ -418,9 +420,9 @@ continued local use of the completed, exact P1.5b `activeTab` URL-only slice;
 and planning the larger license-safe labeled set and cross-platform metadata
 policy.
 
-**STOP:** adding `scripting`, title/metadata/DOM/body/WebView extraction,
-broader URL eligibility, or integrating P1.3 into a client before explicit
-ADR-011 owner/security/privacy/rights/store-policy approval; unapproved
+**STOP:** any `scripting`, title/metadata/DOM/body/WebView extraction or URL
+eligibility beyond the exact accepted ADR-011/P1.5c envelope and two routes;
+integrating P1.3 into a client; unapproved
 real/public corpus acquisition or check-in; real browsing capture/egress, live
 URL fetches, hosted embeddings, auth/public writes, AI
 credentials/inference, deployment, spending, announcements, recruitment, and
@@ -428,16 +430,15 @@ store submission.
 
 ## Next owner approval required
 
-The exact P1.5b local evidence is complete. Before any following browser/mobile
-content increment, explicitly approve,
-revise, or reject proposed ADR-011's exact metadata fields, contexts,
-permissions, on-device model/licence, terms/rights method, raw/derived
-retention, and synthetic/owned-page test boundary. General adapter code must
-not be mistaken for universal authorization; authenticated/private/paywalled
-and unknown-rights contexts default deny. Any egress, provider, model service,
-spending, deployment, or store/publication action returns to its own explicit
-gate. ADR-006 can remain pending until that separately approved extraction
-increment.
+The exact ADR-011/P1.5c fields, contexts, `activeTab` plus `scripting`
+permission, ephemeral retention, temporal non-use, controlled fixture, and one
+pinned MDN test are approved. No additional owner input is required to
+implement and independently review that exact slice. General adapter code must
+not be mistaken for universal authorization; every other third-party,
+authenticated/private/paywalled, unknown-rights, mobile, model, egress,
+provider, spending, deployment, or store/publication action returns to its own
+explicit gate. ADR-006 can remain pending because P1.5c does not integrate its
+different byte-extraction profile.
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
 merge/split history semantics, and ADR-006's narrow synthetic extraction

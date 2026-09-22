@@ -249,9 +249,12 @@ permission/traffic/storage/console/keyboard smoke also passed on 2026-09-22;
 the owner-reported evidence and limitations are in
 `research/P1_5B_MANUAL_SMOKE.md`.
 Stop before a larger URL allowlist, `scripting`, page/WebView metadata or body
-extraction, egress, persistence, or store submission. Cross-platform general
-metadata extraction first requires the separate site-terms/copyright/store
-policy decision; per-site APIs are not the intended core architecture.
+extraction outside accepted ADR-011, egress, persistence, or store submission.
+ADR-011 now permits the exact P1.5c `activeTab` plus `scripting` metadata
+experiment on one project-controlled route and one pinned, rights-reviewed MDN
+route. It keeps publication time context-only and requires one portable
+contract rather than per-site parser code. Implementation and review evidence
+are pending; every broader page/platform remains stopped.
 
 Deliverable: one Chromium prototype against bundled fixtures or a local mock, with a browser-neutral core, exact manifest/permission inventory, and documented Firefox adapter gap.
 

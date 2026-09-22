@@ -153,10 +153,11 @@ closed to new customers and existing customers must migrate by 2027-01-01; it
 also requires an API key and charges beyond the free quota:
 <https://developers.google.com/custom-search/v1/overview>.
 
-## Proposed generic metadata experiment
+## Approved bounded generic metadata experiment
 
-If the owner later approves a live-content increment, retain one portable
-contract rather than per-site extraction code:
+On 2026-09-22 the owner approved the exact P1.5c controlled-page plus pinned
+MDN-page increment in `P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`. It retains one
+portable contract rather than per-site extraction code:
 
 ```text
 explicit user action
@@ -164,9 +165,8 @@ explicit user action
   -> deny private/authenticated/paywalled/tokenized/restricted context
   -> read exact allowlisted standards-based metadata fields only
   -> validate bounds, provenance, publisher signals, and navigation binding
-  -> compute a local candidate embedding/fingerprint
   -> discard raw metadata
-  -> present a local Topic suggestion for user confirmation (NO AUTO)
+  -> display the bounded local evidence without a semantic decision (NO AUTO)
 ```
 
 Initial candidate fields should omit body text, images, author identities,
@@ -177,12 +177,13 @@ accessibility text. A proposed envelope may include only:
 - same-origin canonical URL as a non-authoritative hint;
 - one bounded page title/headline;
 - one bounded publisher-supplied description;
-- one bounded publication timestamp; and
+- one optional bounded `publishedAtHint`; and
 - field-level origin and extraction-version evidence.
 
-This envelope is a research starting point, not an approved collection list.
-Open Graph/Schema.org presence says what a publisher exposed to clients; it
-does not say how this product may reuse it.
+This envelope is approved only for the exact two P1.5c routes. The time hint is
+context-only and cannot affect Topic identity or matching in this increment.
+Open Graph metadata presence says what a publisher exposed to clients; it does
+not by itself say how this product may reuse it.
 
 For cross-device/server matching, the privacy-safe order to investigate is:
 
@@ -198,7 +199,7 @@ the egress/retention gate.
 ## Required decision and evidence gates
 
 Before adding `scripting`, a content script, `evaluateJavascript`,
-`WKWebView` inspection, or equivalent page access:
+`WKWebView` inspection, or equivalent page access beyond P1.5c:
 
 - owner approval of the exact fields and supported/excluded contexts;
 - Security/Trust review of frame/origin/navigation binding and hostile DOM;
@@ -208,6 +209,10 @@ Before adding `scripting`, a content script, `evaluateJavascript`,
   handling, robots/meta/TDM signals, paywall/authenticated/private denial, and
   model/data licences; and
 - synthetic/owned-page tests before any third-party-page test.
+
+Those approvals are recorded for the exact Chromium P1.5c slice only. The
+first external target is the rights-reviewed MDN metadata-reference page; all
+other sites and all Android/iOS adapters still require a new disposition.
 
 Before any raw or derived signal leaves the device, separately approve the
 exact payload, purpose, server/provider, correlation risk, logs, cache,

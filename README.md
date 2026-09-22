@@ -32,7 +32,8 @@ Phase 0 is in progress with a limited go for isolated offline fixture-only imple
 - `decisions/ADR-008-generated-review-resolution-journal.md` — the accepted generated-only single-journal design for uncertainty, later adjudication, and later fixed-point review coverage.
 - `decisions/ADR-009-local-poc-before-semantic-validation.md` — the accepted local NO-AUTO proof-of-concept sequence that defers, but does not replace, human semantic validation.
 - `decisions/ADR-010-local-active-tab-url-observation.md` — the accepted field-level permission/privacy boundary for the queryless, user-invoked local URL adapter now implemented in P1.5b.
-- `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the proposed generic standards-based metadata and on-device candidate path; live-page use remains behind owner, security/privacy, rights, and store-policy approval.
+- `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the accepted exact P1.5c generic metadata boundary for one controlled route and one pinned MDN page; every broader live-page use remains separately gated.
+- `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md` — the approved exact fields, temporal non-use, security/privacy boundary, and rights evidence for the controlled page plus one pinned MDN test.
 - `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
 - `research/P1_5B_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review, checklist reconciliation, and residuals for the `activeTab`-only local URL slice.
 - `research/P1_5B_MANUAL_SMOKE.md` — the owner-reported Chromium permission, behavior, traffic, storage, console, and keyboard evidence completing the exact local P1.5b slice.

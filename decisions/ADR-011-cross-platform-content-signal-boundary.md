@@ -1,7 +1,7 @@
 # ADR-011: Cross-platform standards-based content-signal boundary
 
-Status: Proposed — owner, Security/Trust, Privacy, platform-policy/rights, and
-Quality approval required before live-page implementation
+Status: Accepted for the exact P1.5c controlled-page plus one pinned MDN-page
+experiment; implementation and post-implementation evidence pending
 
 Date: 2026-09-22
 
@@ -28,7 +28,12 @@ content licence. The dated evidence and alternatives are in
 The current accepted ADR-010/P1.5b slice observes only a queryless allowlisted
 URL. It neither authorizes nor technically enables content extraction.
 
-## Proposed decision
+Owner disposition: on 2026-09-22 the owner explicitly approved Owner/Product,
+Security/Trust, Privacy, Policy/Rights, and Quality for the bounded scope below,
+plus one real public-page test. This does not substitute for qualified legal or
+store review and authorizes no general third-party extraction.
+
+## Decision
 
 Use one portable, versioned page-signal contract and small platform adapters,
 not per-site API code, as the preferred future extraction architecture.
@@ -39,8 +44,8 @@ Any first live experiment would:
 - keep exact URL as the universal fallback;
 - use a strict standards-based metadata envelope rather than article body:
   browser-observed URL, same-origin canonical hint, one bounded
-  title/headline, one bounded publisher description, one publication time, and
-  field-level provenance;
+  title/headline, one bounded publisher description, one optional
+  `publishedAtHint`, and field-level provenance;
 - exclude images, body text, author identities, comments, forms, selections,
   accessibility/hidden text, frames, cookies, storage, authentication data,
   and page-provided executable behavior;
@@ -49,10 +54,9 @@ Any first live experiment would:
 - treat negative terms, robots/meta/TDM, or publisher signals as a hard stop,
   while never treating absent or positive signals alone as authorization;
 - validate origin/navigation binding before and after extraction;
-- compute any candidate fingerprint or embedding on-device using an
-  independently reviewed, redistributable model; immediately discard raw
-  fields after the bounded operation;
-- produce only a local, user-confirmed Topic suggestion under `NO AUTO`; and
+- immediately discard raw fields after the bounded operation;
+- produce no fingerprint, embedding, Topic suggestion, join, split, ranking,
+  or other semantic decision in P1.5c; and
 - perform no storage, telemetry, remote fetch, raw/derived egress, publication,
   or store submission under this decision.
 
@@ -65,6 +69,20 @@ The adapter can be generic, but eligibility cannot honestly be universal.
 Where platform rules or service terms require a rights basis, the product must
 default deny until the policy/rights evidence is adequate. This may require a
 domain/source policy record without requiring domain-specific parser code.
+
+For P1.5c, the Chromium manifest may contain exactly `activeTab` and
+`scripting`, with no host permissions. A packaged function may inspect only the
+active top-level document in an isolated world after an explicit popup click.
+The two eligible routes, field limits and precedence, MDN rights evidence,
+30-day re-review deadline, tests, and retention boundary are frozen in
+`research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`.
+
+Publication time is context, not Topic identity. Product descriptions and
+evergreen material can remain same-topic across long intervals, while event
+news may later benefit from a temporal signal. P1.5c therefore exposes only an
+optional provenance-bound `publishedAtHint` and must ignore it for every Topic
+or matching decision. Any content-class-specific temporal logic requires the
+deferred labeled-corpus evaluation and a new decision.
 
 ## Alternatives considered
 
@@ -90,8 +108,9 @@ domain/source policy record without requiring domain-specific parser code.
 
 - The product can keep one cross-platform semantic input contract and avoid a
   per-publisher parser architecture.
-- A small local embedding over metadata is the preferred experiment, but model
-  selection/licensing and every raw/derived data flow remain unapproved.
+- A later small local embedding over metadata remains a possible experiment,
+  but P1.5c contains no model; model selection/licensing and every semantic or
+  off-device data flow remain unapproved.
 - Store publication is not guaranteed. Apple in particular may require
   service-specific permission evidence; a universal technical adapter cannot
   erase that requirement.
@@ -119,5 +138,8 @@ fresh policy/rights evidence and explicit owner publication approval.
 
 ## Owner / review disposition
 
-Pending. The request to investigate a general, vendor-neutral alternative to
-per-site APIs authorizes this research and proposal, not live-page extraction.
+Accepted on 2026-09-22 only for the exact P1.5c boundary recorded above and in
+`research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`. A broader URL, field, selector,
+permission, platform adapter, data lifetime, semantic use, provider, egress,
+deployment, store, spending, or publication action returns to an explicit
+owner and applicable Security/Privacy/Policy gate.
