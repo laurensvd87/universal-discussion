@@ -1,9 +1,10 @@
 # Cross-platform content signals and store-policy evidence
 
-Status: research only; no extraction, provider, spending, deployment,
-publication, or legal conclusion is authorized
+Status: research only; no model use, extraction, real-content test, egress,
+storage, provider, spending, deployment, publication, or legal conclusion is
+authorized
 
-Evidence checked: 2026-09-22
+Evidence checked: 2026-09-23
 
 Owners: Lead / Product Orchestrator, Platform and Client, Trust, Privacy,
 Security, Policy / legal, Quality
@@ -123,7 +124,7 @@ should be an entry context rather than the product value itself.
   rights reservation, and requires copies no longer needed to be deleted:
   <https://www.gesetze-im-internet.de/urhg/__44b.html>. EU Directive 2019/790
   Article 4 is the corresponding EU source:
-  <https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32019L0790>.
+  <https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019L0790>.
   Whether a particular site signal, transformation, or product use qualifies
   is a legal determination, not something the client should infer as granted.
 
@@ -141,6 +142,7 @@ republish it. Never bypass access controls.
 | URL host/path lexical features | Yes | Lower content risk; can still expose browsing activity | Weak cross-publisher signal | Safe local experiment after field review |
 | Standard metadata envelope (`title`, same-origin canonical hint, Open Graph/Schema.org headline/description/date) | One generic parser | Plausible only with explicit gesture, disclosure, terms/rights basis, sensitive-context denial, and no raw reuse | Best small general signal | Preferred next research/fixture experiment; not yet approved for live pages |
 | On-device embedding of that envelope | Yes after model packaging | Avoids raw content egress, but model licence/reproducibility and derived-user-data rules remain; a transmitted vector is still derived browsing data | Stronger semantic candidate | Preferred candidate, local-only and `NO AUTO`; separate model/provider approval |
+| Bounded body region to an on-device derived signal | Technically general | Raw content can stay local, but extraction rights, store policy, model licence, derived-data leakage, and false-link risk remain | Potentially strong cross-page signal | P1.11 research only; disabled until its exact synthetic-fixture gates approve it |
 | User-selected text or OS share sheet | Yes | Strong user intent but not a copyright/ToS waiver | Potentially strong, variable | Useful optional entry point; exact disclosure and bounds required |
 | Auto-discovered RSS/Atom/JSON Feed | Standards-based | Publisher intent is stronger but feed terms/licence still control | Good structured signal where available | Optional source, not required and not assumed licensed |
 | Licensed publisher feed/API | No generic integration | Strongest authorization when contract is clear | Usually good | Optional adapter for important publishers, not the core |
@@ -208,6 +210,135 @@ For cross-device/server matching, the privacy-safe order to investigate is:
 
 Even a Topic ID or vector can reveal reading interest and remains subject to
 the egress/retention gate.
+
+## Future on-device content-derived matching branch
+
+On 2026-09-23 the owner requested a future edition that can consider bounded
+page content, transform it locally into a fingerprint or embedding, keep that
+derived signal hidden from other users, and use it only inside a protected
+server-side matching service. A second motivating case is grouping similar
+phishing-campaign emails so recipients can discuss the campaign without
+exposing their individual messages.
+
+The intended product match is **semantic similarity**, not byte identity. An
+exact content hash is only a diagnostic duplicate/control baseline; it is not
+the proposed cross-page resolver. The owner directs planning to treat explicit,
+user-invoked on-device semantic derivation as permissible under the owner's ToS
+interpretation. That is a recorded product assumption for future PoC design,
+not independent legal advice, a representation about any particular site's
+terms, or approval to test real third-party/private content or submit a store
+build.
+
+This is a useful product direction, but local transformation is not a Terms of
+Service, copyright, privacy, or store safe harbor. Chrome's Limited Use rules
+apply to scraped data and to data aggregated, anonymized, de-identified, or
+derived from it:
+<https://developer.chrome.com/docs/webstore/program-policies/limited-use>.
+Chrome also classifies website content, browsing activity, and personal
+communications as user data even when processing stays local:
+<https://developer.chrome.com/docs/webstore/program-policies/user-data-faq>.
+Apple still requires the applicable third-party-service permission under
+Guideline 5.2.2:
+<https://developer.apple.com/app-store/review/guidelines/>. In the EU, the
+general text-and-data-mining rule depends on lawful access and the absence of an
+appropriate rights reservation; it is not a universal product authorization:
+<https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019L0790>.
+
+A fingerprint or vector is also not a secret or necessarily anonymous:
+
+- an exact unkeyed hash supports known-content/dictionary comparison and only
+  matches essentially identical canonical input, so it serves only as a control
+  baseline rather than the semantic product path;
+- a stable fuzzy fingerprint increases cross-user linkability and can leak
+  recognizable features;
+- a per-device salt frustrates cross-user matching, while a common key shipped
+  to clients is extractable and is not a durable server secret; and
+- dense embeddings can disclose source information. One primary study
+  reconstructed 92% of the tested 32-token inputs for the studied models and
+  recovered personal information in another dataset:
+  <https://aclanthology.org/2023.emnlp-main.765/>.
+
+Accordingly, every transmitted fingerprint/vector is **restricted derived
+content and browsing-interest data**, not anonymized data. Other users, page
+authors, ordinary moderators, logs, analytics, exports of other accounts, and
+public APIs must never receive vectors, nearest-neighbour lists, raw scores, or
+stable cross-user signal identifiers.
+
+The proposed future flow is:
+
+```text
+explicit user action in an approved context
+  -> locally select the exact bounded content region
+  -> locally remove disallowed/private/unique fields
+  -> locally derive a versioned fingerprint or embedding
+  -> immediately discard raw extracted content
+  -> send one authenticated, encrypted, purpose-bound derived signal
+  -> private server match with strict access/retention/deletion controls
+  -> return only an authorized Topic/Discussion result or no-match
+```
+
+The preferred minimization candidate is **ephemeral query, protected Topic
+representative**. The per-observation fingerprint/vector exists only in bounded
+server memory for one authenticated match transaction, is excluded from logs,
+analytics, queues, caches, exports, and backups, and is deleted immediately
+after the match/no-match outcome. The durable application result is the
+`TopicId` plus minimal algorithm/policy-version and decision provenance, not the
+query vector or neighbour scores.
+
+Future matching is impossible if every comparable representation is deleted.
+The service therefore needs either a protected per-Topic representative (for
+example a reviewed centroid/prototype), a privacy-preserving comparison
+protocol, or no ability to match later users. The first option is the practical
+research candidate, but the Topic representative is still restricted derived
+content: it is never returned to users, ordinary moderators, or public APIs;
+has separate access, rotation, retention, poisoning, and deletion controls; and
+cannot be used as a general query oracle. A no-match may create a provisional
+Topic representative only under a separately approved consent/provenance rule;
+otherwise it deletes the query and returns unmapped. Individual queries must
+not update a centroid automatically.
+
+The first experiment must remain network-denied and use only project-created or
+owner-authored synthetic fixtures; this excludes every real page, message,
+account, and browsing datum. Before a connected experiment, the design must fix
+and separately approve the content selectors, exclusions, transformation/model
+and licence, dimensionality/precision, payload, account linkage, similarity
+thresholds, minimum cohort protection, server/index access, encryption, logs,
+retention/deletion/backups, inversion/membership/linkability tests, false-match
+appeal/correction path, and kill switch. A private index must not expose a
+general similarity-search oracle.
+
+### Private-message/phishing campaign stress case
+
+The phishing-mail scenario is an illustrative upper-bound/privacy test, not a
+separate core product or current commitment. Webmail and messages are a
+distinct high-risk class, not an ordinary public page. The future branch must
+not scan an inbox, run passively, inspect
+attachments, or assume that being signed in authorizes product reuse. It may
+start only from an explicit per-message user action after separate qualified
+Security, Privacy, Policy/rights, and store review.
+
+Before derivation, the client must use a tested local minimizer to remove or
+generalize recipient/sender addresses and names, message and order IDs,
+timestamps finer than the approved bucket, signatures, quoted history,
+tracking pixels, unique URLs/query tokens, authentication/session material,
+and attachments. Useful campaign indicators such as registrable sender/link
+domains or template text require their own exact allowlist; redaction quality
+must be measured rather than assumed.
+
+The matcher may resolve the ephemeral query to a pseudonymous campaign
+candidate, but it deletes that query when the transaction finishes. Only a
+separately approved protected campaign representative may remain. No cross-user
+Discussion becomes visible until a reviewed minimum-cohort and anti-correlation
+rule passes; the exact threshold remains a future owner/Privacy decision.
+Replies reveal neither another recipient's message, identity, vector, score,
+provider, nor mailbox. Attackers may seed lookalike messages or discussions, so
+rate limits, provenance, moderation, cluster correction, and adversarial-
+poisoning tests are mandatory. The UI must state that community discussion such
+as “this looks like phishing” is unverified guidance, not a security verdict.
+
+`decisions/ADR-013-future-on-device-content-derived-matching.md` records this
+requested direction and its stop boundary. It does not authorize extraction,
+egress, model use, server storage, or testing on a real page or message.
 
 ## Required decision and evidence gates
 

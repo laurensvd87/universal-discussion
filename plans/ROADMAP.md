@@ -274,6 +274,13 @@ Gate: the applicable local manifest, eligibility, injection, rendering, navigati
 
 ### P1.6 Auth, identity, moderation, and data-lifecycle design
 
+Status: **AI design review ACCEPT; explicit owner gate open.** The first
+read-only audit rejected the incomplete draft; its authorization, lifecycle,
+race, provenance, retention, deletion, restore, and test-traceability findings
+were reconciled. Iterative and fresh final AI reviews separately returned
+Trust/Security, Privacy/Policy, and Quality ACCEPT. ADR-012 remains proposed and
+P1.7 remains blocked pending explicit owner decisions.
+
 Owner: Trust, Security, Privacy, and Policy, with Platform, Lead, and Quality review.
 
 Dependencies: the charter invariants, `docs/DOMAIN_MODEL.md`, and the proposed local architecture boundary. No real accounts or external identity provider are used.
@@ -282,7 +289,14 @@ Deliverable: `docs/PHASE_1_AUTH_AND_DATA_LIFECYCLE_THREAT_MODEL.md` plus an ADR-
 
 Acceptance: a deny-by-default authorization matrix and state-transition diagrams enumerate owner/non-owner, human/agent, public/private/removed, stale/replayed, moderator, deletion/export, and backup-expiry cases; each control maps to a test owner; unresolved legal/policy issues and residual risks are explicit.
 
-Gate: Trust and Quality approve the local test boundary and the Lead/owner records disposition of consequential identity, publication, retention, and moderation choices. This design does not authorize real identity or user data.
+Gate: separate Trust/Security, Privacy/Policy, and Quality dispositions accept
+the complete local test boundary, and the Lead/owner records ACCEPT, REVISE, or
+REJECT for every consequential identity, publication, provenance/filter,
+session/hold, report/block/appeal, retention, deletion/export/backup/restore,
+operator, audit, and incident default in ADR-012. Any open/revised item holds
+P1.7. This design does not authorize real identity or user data, and closing it
+still does not replace the separate owner authorization for the exact
+disposable-local P1.7 architecture.
 
 ### P1.7 Local auth and discussion contract
 
@@ -334,7 +348,49 @@ Acceptance: the fake path has a provider-neutral contract, deterministic labeled
 
 Gate: the fake adapter may pass only the applicable local controls in `docs/BYO_AI_THREAT_MODEL.md`. The complete minimum verification must pass before any real credential/provider call. If secure handling is not credible, defer this task without blocking a human-only MVP.
 
-Phase 1 gate: P1.8 demonstrates a reproducible local `page fixture -> observation/extraction -> topic -> discussion/counts` flow, and P1.9 records the architecture decision. The resolver branch controls product claims: AUTO enables automatic semantic joins in the approved scope; ASSISTED permits reviewer/curated mappings; NO AUTO permits deterministic/curated mappings only. A human-only path remains valid if P1.10 is deferred.
+### P1.11 On-device content-derived private matching (optional future branch)
+
+Status: **Requested direction; research only.** ADR-013 is proposed and does not
+broaden the completed URL/metadata experiment or authorize implementation.
+
+Owner: Semantic and Platform/Client, with Trust/Security/Privacy/Policy,
+Quality, and Lead review.
+
+Dependencies: P1.4 evidence branch, P1.6/P1.7 authorization and deletion
+contracts, P1.8 local end-to-end proof,
+`research/CONTENT_ACQUISITION_AND_STORE_POLICY.md`, proposed ADR-013, and
+explicit owner approval of one exact project-created or owner-authored
+synthetic experiment that excludes real pages, messages, accounts, and browsing
+data. It cannot bypass the later 200–250-pair provenance-approved semantic
+review.
+
+Deliverable: first, a network-denied comparison of bounded on-device
+canonicalization plus semantic fingerprints/local embeddings over project-
+created fixtures. An exact hash is only the duplicate/control baseline, not the
+resolver. Model the preferred `ephemeral per-observation query -> protected
+per-Topic representative -> TopicId -> immediate query deletion` contract
+entirely in disposable local state. A private-message/phishing sample is only a
+synthetic adversarial privacy case, not an inbox feature.
+
+Acceptance: raw content never leaves the local extractor; model and licence are
+pinned; fingerprints/vectors/scores are classified as restricted and never
+rendered; query deletion and absence from logs/caches/exports/backups are
+proved; Topic-representative access/poisoning/rotation/deletion is tested;
+collision, false-join, inversion, membership/linkability, adversarial-text,
+language, correction, and device resource evidence is reported; and the result
+records the owner's ToS interpretation but makes no independent ToS, copyright,
+anonymity, store, or semantic-quality claim.
+
+Gate: separate owner, Trust/Security, Privacy, Policy/rights/store, and Quality
+approval is required even for the exact local experiment. Stop again before a
+real public page or message, any derived-signal egress, reachable matcher,
+server/index retention, provider/model download, infrastructure/spending,
+deployment, store submission, or publication. Each connected step needs its
+exact payload/lifecycle threat model and the applicable provider, spending,
+deployment, and publication approvals. Generalized third-party/private-content
+use requires an independent qualified IP/platform-terms reviewer.
+
+Phase 1 gate: P1.8 demonstrates a reproducible local `page fixture -> observation/extraction -> topic -> discussion/counts` flow, and P1.9 records the architecture decision. The resolver branch controls product claims: AUTO enables automatic semantic joins in the approved scope; ASSISTED permits reviewer/curated mappings; NO AUTO permits deterministic/curated mappings only. A human-only path remains valid if P1.10 is deferred. P1.11 is an optional later branch and is not a Phase 1 exit dependency.
 
 Stop conditions: no safe deterministic/curated path can test the product; a systematic false-merge class or irreversible correction remains; private/public or human/agent boundaries cannot be enforced; a credible privacy-safe discovery experiment cannot be designed; or projected cost exceeds the approved cap without repeated-use evidence.
 

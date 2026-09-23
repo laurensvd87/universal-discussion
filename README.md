@@ -17,13 +17,18 @@ The package intentionally does not lock in a programming language, cloud vendor,
 
 Phase 0 is in progress with a limited go for isolated offline fixture-driven
 implementation and the exact completed P1.5b/P1.5c local-processing browser
-experiments. Start with:
+experiments. The documentation-only P1.6 identity/lifecycle package is drafted
+and its AI Trust/Security, Privacy/Policy, and Quality review lenses ACCEPT, but
+the explicit owner gate remains open; P1.7 has not started. Start with:
 
 - `plans/PHASE_0_FOUNDATION.md` — challenged assumptions, scope, metrics, cost envelope and open approvals;
 - `agents/TEAM.md` — lean ownership and review contract;
 - `plans/ROADMAP.md` and `plans/STATUS.md` — executable order and current gate;
 - `plans/P1_2_COLLECTION_AND_COMPLETION.md` — the generated-preflight-approved corpus headroom, acquisition/provenance receipt, review reserve, completion receipt, and owner-stop design;
 - `docs/PHASE_1_THREAT_MODEL.md` — privacy/security constraints;
+- `docs/PHASE_1_AUTH_AND_DATA_LIFECYCLE_THREAT_MODEL.md` — the proposed
+  synthetic-only P1.6 authorization, publication, moderation, deletion/export,
+  retention, and restore contract;
 - `docs/BYO_AI_THREAT_MODEL.md` — a proposed, provider-neutral boundary for any later AI work;
 - `decisions/ADR-001-offline-resolution-spike.md` — the accepted boundary for the completed offline P1.1 experiment;
 - `decisions/ADR-002-browser-observation-privacy.md` — the accepted user-invoked browser direction and still-open connected-use gate;
@@ -35,12 +40,21 @@ experiments. Start with:
 - `decisions/ADR-009-local-poc-before-semantic-validation.md` — the accepted local NO-AUTO proof-of-concept sequence that defers, but does not replace, human semantic validation.
 - `decisions/ADR-010-local-active-tab-url-observation.md` — the accepted field-level permission/privacy boundary for the queryless, user-invoked local URL adapter now implemented in P1.5b.
 - `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the accepted and implemented exact P1.5c generic metadata boundary for one controlled route and one pinned MDN page; every broader live-page use remains separately gated.
+- `decisions/ADR-012-local-identity-publication-moderation-lifecycle.md` — the
+  proposed decision-ready P1.6 defaults; AI multi-lens review ACCEPTS the
+  design, but it remains unaccepted until the explicit owner gate closes.
+- `decisions/ADR-013-future-on-device-content-derived-matching.md` — a proposed
+  research-only direction for local body-derived matching with ephemeral query
+  signals and protected Topic representatives; it authorizes no implementation.
 - `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md` — the approved exact fields/selectors, temporal non-use, owner metadata assumption, security/privacy boundary, and rights evidence for the controlled page plus one pinned MDN test.
 - `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
 - `research/P1_5B_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review, checklist reconciliation, and residuals for the `activeTab`-only local URL slice.
 - `research/P1_5B_MANUAL_SMOKE.md` — the owner-reported Chromium permission, behavior, traffic, storage, console, and keyboard evidence completing the exact local P1.5b slice.
 - `research/P1_5C_ENGINEERING_REVIEW.md` — the Trust/Security and Quality engineering review, audit reconciliation, and residuals for the exact two-route bounded metadata slice.
 - `research/P1_5C_MANUAL_SMOKE.md` — the owner-reported permission, bounded-metadata, race, traffic, storage, console, and keyboard evidence completing the exact P1.5c experiment.
+- `research/P1_6_DESIGN_REVIEW.md` — P1.6 reviewer provenance, initial findings,
+  remediation evidence, final dispositions, residuals, and the still-open
+  owner/architecture gates.
 - `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` — current official-source evidence and alternatives for Chromium, Android, and iOS content signals without a per-site API foundation.
 - `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
 
@@ -175,6 +189,25 @@ also completed the documented Chromium smoke on 2026-09-22, so that exact
 two-route experiment is complete. The broader P1.5/browser-product flow and
 all wider route, platform, store, deployment, and publication gates remain
 open.
+
+P1.6 now has a proposed synthetic-only, deny-by-default contract for immutable
+human/agent identity, explicit private-to-public agent publication, moderation
+and appeals, independent operator scopes, exact export/deletion treatment,
+fake-clock retention, and fenced snapshot restore. This is design evidence, not
+implementation or approval. P1.7 stays blocked until separate Trust/Security,
+Privacy/Policy, and Quality dispositions plus row-by-row owner acceptance are
+recorded. The three AI dispositions are now recorded as ACCEPT; owner acceptance
+remains open and must be followed by a distinct owner authorization for the
+exact disposable local architecture.
+
+The optional P1.11/ADR-013 direction records how a later edition might derive a
+restricted semantic fingerprint or embedding on-device, delete each server-
+side query after one match transaction, and retain at most a protected per-
+Topic representative. Exact hashes are only a duplicate/control baseline. The
+owner's ToS interpretation permits planning this direction, but it remains
+research only, is not the next critical-path task, and does not authorize body
+extraction, real-page/message testing, a model, egress, server retention,
+deployment, store submission, or publication.
 
 ## Product in one sentence
 A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.
