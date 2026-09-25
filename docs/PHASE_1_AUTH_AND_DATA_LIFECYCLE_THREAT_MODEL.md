@@ -1,10 +1,9 @@
-# Phase 1 auth, identity, moderation, and data-lifecycle threat model
+# Phase 1 auth, identity, discussion, moderation, and data-lifecycle threat model
 
-Status: Proposed P1.6 local/synthetic design; AI Trust/Security,
-Privacy/Policy, and Quality review ACCEPT; explicit owner gate open;
-implementation not authorized
+Status: Accepted P1.6 design; owner amendments and fresh AI Trust/Security,
+Privacy/Policy, and Quality reviews ACCEPT; P1.7 implementation not authorized
 
-Date: 2026-09-23
+Date: 2026-09-24
 
 Owners: Trust, Security, Privacy, and Policy, with Platform, Lead, and Quality
 review
@@ -12,871 +11,732 @@ review
 ## Scope and non-claims
 
 This document defines the minimum authorization and lifecycle contract needed
-before a disposable P1.7 local API experiment. It covers synthetic identities,
-object authorization, human/agent separation, private-to-public publication,
-reports, blocks, moderation, operator access, audit, account deletion/export,
-retention, backup expiry, and incident states.
+before one exact disposable P1.7 local experiment. It covers invoked active-tab
+context, synthetic identity, human/agent separation, public/private discussion,
+unpublished AI candidates, subthreads and revisions, reports, suspension, bans,
+moderation, operator access, retention, deletion, synthetic restore, Topic
+correction, and incident states.
 
-P1.6 is documentation only. It creates no account, authentication mechanism,
-identity-provider integration, database, network listener, real-user record,
-telemetry, provider call, public post, deployment, or legal-compliance claim.
-The first implementation may use only deterministic synthetic principals in a
-network-denied local process after both the P1.6 gate and the separate owner
-authorization for the exact disposable-local P1.7 architecture are accepted.
+P1.6 is documentation only. It creates no account, password, identity-provider
+integration, reachable listener, production database, provider call, public
+post, telemetry, deployment, store submission, or legal-compliance claim. The
+owner accepted the amended decisions on 2026-09-24. Material changes reopened
+the earlier AI review; fresh Trust/Security, Privacy/Policy, and Quality ACCEPT
+dispositions plus a separate exact P1.7 architecture authorization are still
+required before implementation.
 
-The broader product may eventually have a global public Topic/Discussion
-namespace. That does not make account-owned drafts, private agent results,
-block relationships, reports, exports, or operator notes public. “Tenant” in
-the authorization checks below means the owning security scope; it does not
-commit the product to a commercial multi-tenant model.
-`public` or `public_visible` in P1.7 means visible only to authorized synthetic
-principals inside the disposable, network-denied process; it is not Internet
-publication or a publicly reachable post.
+The owner-only local test direction may later observe a lawfully accessible
+public, authenticated, or private active page. That exception is narrow: opening
+the extension is the user gesture; only the active top-level document is in
+scope; no access control is bypassed; and raw page content has no persistence,
+logs, backup, telemetry, or egress. Real user accounts, other testers' browsing,
+hosted processing, content-derived vector transmission, and store distribution
+remain outside P1.7.
+
+The broader product may eventually have a globally public Topic/Discussion
+namespace. That does not make private discussions, drafts, AI candidates,
+reports, reporter explanations, or operator records public. `public_visible` in
+P1.7 means visible only to authorized synthetic principals inside a network-
+denied local process.
 
 ## Safety objectives and invariants
 
-1. Every request is denied unless an exact action is allowed for a
-   server-derived principal, object, lifecycle state, and current version.
-2. Human and agent actor types are immutable and disjoint. A client, page,
-   model, comment, or agent cannot select or upgrade its actor type.
-3. An agent cannot authenticate as a human, publish autonomously, moderate,
-   report, change permissions, or execute Topic corrections in the initial
-   design.
-4. Private agent input and output are owner-bound, excluded from public
-   search/counts/caches, and invisible to moderators during ordinary work.
-5. Publishing agent output is a separate human-owner action bound to the
-   current preview digest, target Topic, actor provenance, expiry, and a
-   single-use publication capability plus a separately replayable exact-command
-   idempotency key. It creates a distinct public agent-authored Contribution;
-   it never relabels the private result or a human actor.
-6. Public counts include only currently public and visible Contributions and
-   keep humans and agents separate. Reports, drafts, private results, removed
-   content, and deletion tombstones never count.
-7. Moderation, privacy deletion, and account deletion override Topic lineage,
-   correction history, projections, caches, exports, and restored backups.
-8. A report alone grants no authority and does not reveal private content or
-   automatically prove abuse. Moderator actions are explicit and auditable.
-9. Blocks are private account-owned controls. They are not public reputation
-   signals and cannot grant access to another object. A distinct mute feature
-   is deferred rather than conflated with block semantics in P1.7.
-10. No ordinary role is a universal administrator. Moderation, privacy,
-    correction, and security/restore authorities are separate scopes even if
-    synthetic tests are currently operated by one project owner.
-11. The first local contract has no in-place public Contribution edit. A later
-    edit feature requires append-only revision semantics and a new reviewed
-    action; clients cannot overwrite author text or provenance.
-12. Human and agent actions use separate rate classes. An agent produces at
-    most one bounded private result per invocation and cannot invoke another
-    agent or retry recursively.
-13. Every relationship action authorizes all participating objects and their
-    versions atomically. A readable global-public object never lends write
-    authority to a private or cross-partition object.
-14. One immutable private-result version can create at most one public
-    Contribution. Idempotent retries may return that same Contribution, but no
-    new preview or token can publish it twice or retarget it.
-15. Public queries and counts implement explicit `human`, `agent`, and `all`
-    modes. Agent content cannot enter a human-only result and separate counts
-    are derived from immutable actor types rather than client labels.
+1. Every request denies unless an exact action is allowed for a trusted-derived
+   principal, every participating object, relationship, state, version, scope,
+   policy, and current global-security epoch.
+2. Opening the extension popup authorizes one automatic observation of the
+   current active top-level document. It does not authorize background scanning,
+   other tabs/frames, body extraction, AI execution, publication, or egress.
+3. Tab navigation, document replacement, closure, unsupported context, or stale
+   attestation clears all previous values and prevents rendering mixed-document
+   URL, metadata, mapping, or discussion state.
+4. Raw authenticated/private page content, if a later exact local flow is
+   approved, exists only for the duration of that operation. Cookies, tokens,
+   form fields, attachments, and inbox/background enumeration are never inputs.
+5. Human and agent actor types are immutable and disjoint. A client, page,
+   model, contribution, or agent definition cannot select or upgrade actor type.
+6. Private discussion content, drafts, prompts, and AI candidates are owner-
+   bound, excluded from public search/counts/caches, and invisible to moderators.
+   Shared private discussions are not supported in P1.7.
+7. Public Discussion is the default destination, but private history and AI
+   output never become public without an exact owner preview and publish action.
+   Switching public/private mode affects future messages only.
+8. A fake agent produces one bounded owner result per invocation and cannot
+   publish, moderate, report, change permissions, invoke another agent, or use a
+   provider/network. Human editing never changes `author_type=agent`.
+9. Root contributions define movable subthreads. Replies stay grouped under
+   their root and retain conversational order. `Summary` is root-only.
+10. A public edit appends a revision and exposes `Edited`; no body, author,
+    provenance, parent, Topic, or visibility boundary is silently overwritten.
+11. Public ranking uses only public/non-sensitive inputs, stable tie-breaking,
+    and an explainable deterministic formula in the first implementation.
+12. Reports are signals, not proof. Report counts never remove content, ban an
+    account, or remap a Topic automatically.
+13. There is no user mute or user block. Moderation is scoped, auditable, and
+    unable to read or bulk-remove private content.
+14. A ban-time `remove all public contributions` action binds an exact,
+    confirmed account-owned set, includes owned-agent public contributions, and
+    has an idempotent result. It never expands by discovery after confirmation.
+15. Withdrawal, account deletion, and privacy erasure override moderation
+    reversal, revisions, Topic history, ranking, counts, caches, and restore.
+16. User content is retained until a manual lifecycle action; raw observed page
+    content is not user content storage. Bounded moderation/security records use
+    the approved separate deadlines below.
+17. No ordinary role is a universal administrator. Moderator, correction,
+    privacy, security/operations, browser bridge, agent runtime, and worker
+    scopes remain structurally distinct even when one owner runs the fixtures.
+18. A delete-only safety worker can complete an exact authorized purge during
+    suspension, ban, or containment, but it cannot read bodies, disclose,
+    create, publish, export, moderate, or restore.
+19. Global containment stops new content, AI work, publication, ordinary jobs,
+    future exports, and restore promotion while preserving public reading,
+    exact public-content hiding, lifecycle status, and delete-only cleanup.
+20. P1.7 contains no export generator and no real backup. A future centralized
+    web privacy center and any real recovery system each require new gates.
+21. Agent definitions and language packs are inert untrusted data. They cannot
+    contain executable code, introduce a network/tool capability, or bypass
+    safe rendering and platform authorization.
 
 ## Assets and classification
 
 | Asset | Classification | Minimum handling |
 | --- | --- | --- |
-| Session/authentication material | Secret | Never accept through page content, URLs, logs, analytics, or fixtures; revoke on suspension/deletion; no real secret in P1.6/P1.7. |
-| Human account identifiers/profile | Restricted personal data | Owner and narrowly scoped operators only; minimize, export, and delete under an accepted policy. |
-| Agent identity/provenance | Public when attached to a public Contribution; otherwise restricted | Actor class is immutable; owner/operator and model/provider fields follow explicit disclosure/minimization rules. |
-| Public Contribution and revision history | Public-intended, integrity-critical | Safe rendering, stable author type, revision/moderation state, deletion override, and no silent reauthoring. |
-| Private prompt/result/draft | Highly restricted owner content | Owner-only; no public count/search/shared cache; no ordinary moderator access; memory or disposable synthetic state for at most 24 hours. |
-| Block relationship | Restricted social graph | Visible only to the blocker and authorization service; never exposed to the blocked actor as a list. |
-| Report and reporter identity | Restricted abuse data | Reporter and scoped moderation roles only; protect against retaliation and report brigading. |
-| Moderator note/action | Restricted operational data | Scoped moderators; bounded structured reason/evidence codes only in P1.7; free text is deferred. |
-| TopicCorrection event | Integrity-critical audit data | Correction operator only; retain non-personal topology history while deletion/redaction overrides personal payloads. |
-| Security/auth audit event | Restricted security data | Allowlisted metadata only; no content, tokens, raw browsing URLs, or private prompts/results. |
-| Export bundle | Highly restricted temporary copy | Owner-bound, encrypted where persisted, single-purpose, short expiry, no other users’ private/moderator data. |
-| Deletion ledger and backup inventory | Restricted operational data | Privacy/security operator only; restoration must reapply deletions before service. |
+| Invoked current-context envelope | Restricted browsing context | Popup-lifetime URL/approved metadata/local mapping only; bind active tab and document; clear on stale/unsupported; no log, sync storage, telemetry, or egress. |
+| Raw page text from a later approved operation | Highly restricted ephemeral input | Active top-level document only; memory-only; no tokens/forms/attachments; discard after local operation; never persist, back up, export, or log. |
+| Future semantic fingerprint/vector/score | Restricted derived content | Outside P1.7; not anonymous by default; never render to users; transmission/retention needs ADR-013 gates. |
+| Synthetic session/identity selector | Security-sensitive test state | Trusted adapter derives immutable identity/type/roles; no real credential; persist until explicit lifecycle event, not a timed logout. |
+| Human account/profile | Restricted personal data in a future real system | Synthetic only in P1.7; owner-scoped; delete under the accepted inventory. |
+| Agent identity/provenance | Public when attached to a public contribution; otherwise restricted | Immutable agent type; disclose minimized fake-provider provenance; never expose private input. |
+| Public contribution and revisions | Public-intended, integrity-critical | Safe render; immutable author type; append-only revisions; moderation/withdrawal/deletion override every body. |
+| Private Discussion contribution/draft | Highly restricted owner content | Owner-only, manually retained, non-sync local state; no moderator access, public count/search, or snapshot. |
+| Unpublished AI prompt/result/candidate | Highly restricted owner content | Owner-only, editable candidate, manually retained; derived output may repeat sensitive source text; no ordinary moderator access. |
+| Agent definition | Restricted owner configuration | Declarative text/allowlisted references only; safe render; no executable code, secret, provider call, or permission expansion. |
+| Report and reporter identity | Restricted abuse data | Reporter and assigned moderator workflow only; no subject disclosure or automatic guilt. |
+| Exact reported revision evidence | Highly restricted case evidence | Revision that was public when reported; bind ID/version/digest; assigned moderator only; edit cannot replace it; withdrawal/account/privacy deletion purges it; retain only through case/appeal. |
+| Optional report explanation | Highly restricted free text | Separate from audit; safe render; assigned moderator only; immediate removal on reporter deletion; bounded case retention. |
+| Moderation action/batch manifest | Restricted operational data | Exact target/version/account-owned set, reason, count, state, role, time; no private bodies or ambient discovery. |
+| TopicCorrection event | Integrity-critical audit data | Opaque topology and reason/version only; no private URL/title/body; actor mapping expires. |
+| Security/auth audit event | Restricted security data | Exact allowlisted metadata only; no content, token, report text, prompt/result, or complete browsing URL. |
+| Future export | Highly restricted temporary copy | Not implemented in P1.7; centralized website and a new exact schema/security review required. |
+| Synthetic restore fixture/safety ledger | Restricted test data | Synthetic discussion fixtures only; never raw or derived real-page/private-browser state; reset removes it. |
+
+Retained local private state must use application-local, non-sync storage. P1.7
+does not claim control over workstation backup software, memory paging, crash
+dumps, antivirus capture, or host indexing; owner-only testing is the boundary
+until those risks have a real-client design.
 
 ## Principals and authority scopes
 
 | Principal | Intended authority | Explicit denial |
 | --- | --- | --- |
-| Anonymous reader | Read public, visible Topic/Discussion/Contribution data if the owner later approves unauthenticated reading | Every mutation, private data, reports, blocks, exports, audit, operator data |
-| Human account | Act as itself; read public data; own private results; explicitly submit human Contributions; preview/publish its agent result; manage its block list; request export/deletion | Choosing another actor/owner, self-assigning roles, autonomous agent publication, moderation/correction/restore |
-| Scoped agent runtime | An internal-job principal, not a direct agent credential; read only the invocation’s approved input and write one bounded private result for its owning human | Human authorship, general object listing, public posting, reports, moderation, correction, export/deletion, tools/network unless separately approved |
-| Moderator | Read public content and assigned reports; quarantine/remove/restore under policy; record bounded actions | Routine private-result access, human/agent impersonation, account export, backup restore, Topic correction unless separately scoped |
-| Correction operator | Execute reviewed TopicCorrection commands under ADR-005 conditions | Contribution reauthoring/publication/deletion, private-result access, backup restore |
-| Privacy operator | Execute verified export/deletion workflow and inspect its status | Reading unrelated content bodies, moderation merits, public posting, Topic correction |
-| Security/operations operator | Revoke sessions, contain incidents, run authorized backup/restore, and use the narrow incident-control session described below | Routine content browsing, publication, moderation merits, changing audit history |
-| System worker | Perform one exact queued ordinary or delete-only safety-cleanup action over an allowlisted object set under the bound policy/epoch | Ambient role authority, object discovery, inventing authority, changing actor type/owner/target, expanding scope, replay after expiry/revocation |
+| Anonymous reader | None in P1.7; future public reading remains a separate product decision | Every read/mutation in the local synthetic contract |
+| Synthetic human | Read local public state; own private state; create/reply/edit/withdraw as self; invoke fake agent; preview/publish owned candidate; report; appeal; request deletion | Choosing another owner/type/role; moderator/correction/security actions; autonomous publication |
+| Restricted synthetic human | During suspension/ban, perform the exact read/status/appeal/withdraw/logout/deletion actions below; during containment, use only the intersection with the narrower global allowlist | New contribution/reply/reaction, public edit, AI invocation/publication, agent-definition changes, ordinary jobs; any action outside the contained intersection |
+| Scoped fake-agent runtime | Read one invocation's allowlisted synthetic input and write one owner-bound candidate | Human authorship, direct public post, general listing, report/moderation/correction/deletion, tools/network |
+| Invoked browser bridge | For one popup invocation, read the active top-level URL and approved metadata and perform local lookup | Background/other-tab/frame/body/form/token/attachment access, persistence, AI/provider use, publication, network |
+| Moderator | Read public content and assigned report context; suspend/lift, ban/unban, remove/restore under policy | Private discussions/drafts/AI candidates, human/agent impersonation, Topic correction unless separately scoped, future export/restore |
+| Correction operator | Apply an approved Source/Topic correction and move one complete root subthread | Reauthoring, partial reply move, private content, publication, moderation merits, restore |
+| Privacy lifecycle | Commit verified deletion and inspect exact lifecycle status | Reading unrelated bodies, moderation merits, public posting, correction |
+| Security/operations | Enter/leave containment, inspect exact incident state, approve/abort isolated synthetic restore | Routine content browsing, publication, moderation merits, private-content break glass |
+| System worker | Perform one exact queued action or delete-only cleanup over a bound object/version set | Ambient authority, discovery, scope expansion, body disclosure, actor/owner/target changes, stale replay |
 
-Role aliases in a local fixture are not evidence of independent people,
-separation of duties, or production staffing. A qualified independent human
-security/privacy/policy review becomes necessary before real accounts, real
-personal data, network exposure, or a public alpha; it is not needed merely to
-draft or test the synthetic contract.
+Role aliases in a local fixture are not evidence of independent people or
+production staffing. A qualified independent human security/privacy/legal/store
+review becomes necessary before external testers, real accounts, persisted or
+egressed real personal data, network exposure, or publication. It is not needed
+to implement or exercise an owner-only network-denied synthetic contract.
+
+## Invoked active-context authorization
+
+The future automatic flow is one canonical operation:
+
+```text
+popup_open(invocation_id)
+  -> capture(active_tab_id, initial_url, top_level_document_id)
+  -> validate(scheme, context, field and byte limits)
+  -> project(approved_url_fields, approved_head_metadata)
+  -> local_topic_discussion_lookup()
+  -> recapture(active_tab_id, final_url, top_level_document_id)
+  -> render_only_if_all_bindings_match()
+```
+
+Opening the popup, including through an accessible keyboard action, is the
+gesture. Popup reload may restart the operation, but deduplication prevents a
+concurrent prior result from winning. No result renders until final attestation.
+Navigation, closure, document replacement, permission failure, unsupported
+scheme/context, over-limit field, malformed metadata, or lookup error produces
+one clean terminal state and clears all previous URL, metadata, Topic,
+Discussion, count, and evidence fields.
+
+P1.7's exact architecture gate must freeze allowed schemes/origins and the
+metadata field/byte envelope. The completed P1.5c experiment remains historical;
+its second-button behavior is not evidence that automatic-on-open is already
+implemented. Automatic popup acquisition is limited to URL, approved metadata,
+and local mapping. It does not itself authorize raw body extraction or an AI
+call. A later content operation must separately disclose its input and remain
+inside the raw-content rules above.
+
+All page data is untrusted. Rendering uses text nodes or equivalently safe
+escaping, allowlisted link schemes, no HTML execution, and no instruction
+authority. The bridge never records full URLs, metadata, or private-page
+presence in audit/error output.
 
 ## Deny-by-default authorization decision
 
-Every boundary evaluates an immutable canonical command equivalent to:
+Every state-changing boundary evaluates a canonical command equivalent to:
 
 ```text
 authorize(
-  principal_id, principal_type, authenticated_session_version,
-  session_class, global_security_state, global_capability_epoch,
+  principal_id, principal_type, role_scopes,
+  selected_identity_version, account_state, account_state_version,
+  global_security_state, global_capability_epoch,
   action,
   participants[(relationship_role, object_type, object_id,
-    authorization_partition_id, owner_scope_id, object_state, object_version)],
-  policy_version, request_nonce?, idempotency_key?, capability_digest?,
-  expires_at?
+    owner_scope_id, visibility, object_state, object_version)],
+  collection_fences[(collection_kind, collection_id, membership_version)],
+  policy_version, idempotency_key?, capability_digest?
 )
 ```
 
-The trusted adapter derives principal identity, type, roles, session class and
-version, global security state/capability epoch, participant relationships, and authorization partitions. Client-supplied
-actor, owner, visibility, moderator, model, Topic, parent, report target, block
-target, or tenant fields are untrusted requested values, never authority.
-Every action has an exact participant schema. Unknown fields, actions, roles,
-object states, extra/missing participants, cross-scope identifiers, stale
-versions, expired capabilities, and missing context deny before mutation.
-Parent/child, reply, report, block, publication, correction, export, and worker
-commands validate every participant; any required same-partition relation must
-hold atomically. A global-public participant grants read context only.
-Existence-sensitive failures use a generic response so object IDs cannot be
-enumerated.
+The trusted adapter derives identity, immutable actor type, role scopes,
+account/global state, relationships, and ownership. Client-supplied actor,
+owner, visibility, moderator, model, Topic, parent, report target, batch scope,
+or tenant fields are requested values, never authority. Unknown fields,
+actions, states, relationships, extra/missing participants, stale versions,
+cross-owner identifiers, invalid destinations, or expired/consumed capabilities
+deny before mutation.
 
 Authorization and mutation occur in one transaction or one pure local state
-transition. Every commit revalidates the global security state/capability epoch
-plus every participant/session/lifecycle/policy version. A successful check
-cannot be reused for a later version or epoch. Ordinary workers carry a receipt
-bound to exactly one action, object set, partition, participant versions,
-global epoch, policy version, and expiry; either account hold, global
-containment, deletion commitment, or session-version change revokes it.
-They do not inherit the queue producer's privileges and cannot list or discover
-objects. Logs record only event ID, time, action, object classes, pseudonymous
-principal reference, decision/reason code, policy version, and correlation ID.
-They never record bodies, prompts, results, credentials, unreviewed URLs,
-export payloads, block graphs, or free-text evidence.
+transition. Every commit revalidates account state/version, global state/epoch,
+policy, and all participant versions. Exact idempotent retry may return its
+recorded outcome; reuse of the key for any different canonical command denies.
+Existence-sensitive failure is generic.
 
-Two narrow safety capabilities prevent containment from blocking recovery or
-privacy deadlines:
+The selected synthetic identity has no wall-clock session expiry. Logout, actor
+switch, reset, suspension, ban, containment, or deletion increments the
+identity/account version and revokes outstanding ordinary publication and worker
+capabilities. Suspension, ban, and containment may issue or preserve only the
+restricted account view described here. A later real login system must define
+token rotation, recovery, and reauthentication separately.
 
-- A `safety_cleanup` worker receipt is issued by the trusted lifecycle engine,
-  not by a user session. It permits only an already-authorized delete/expire
-  step for the exact lifecycle classes declared below: expired sessions,
-  previews, and capability/worker/publication receipts; private results;
-  disposable-campaign primary/derived/cache/index state; exports; block edges;
-  committed account deletion; post-withdrawal or privacy-erasure payloads/
-  projections; snapshots; restore/deletion ledgers and non-linkable outcomes;
-  closed-report evidence; moderation actions; security/auth and incident
-  events; and TopicCorrection evidence/operator mappings. It may read
-  identifiers, state, and enumerated outcome fields needed for that exact purge,
-  but no content body, and it cannot create, disclose, export, publish, restore,
-  change a moderation outcome, or broaden a target/deadline. Account holds and
-  global containment do not pause it. The receipt records the current global
-  capability epoch. Every
-  global-security transition atomically consumes each outstanding cleanup
-  receipt and, for every still-current pending step, issues a replacement with
-  the same target/action/deadline plus current object/stage versions in the new
-  epoch. A stale or completed step gets no replacement. If that replacement set
-  cannot commit, the security transition does not commit. Reset or completion
-  consumes it without replacement.
-- Opening containment with an ordinary current Security session atomically
-  issues one `incident_control` session bound to the incident ID/version,
-  containment epoch, policy, and non-sliding campaign deadline. It survives
-  that containment only to read the exact incident state, close it, or abort
-  its isolated restore. It has no user/content/list/export/moderation power and
-  expires on incident closure or reset. Losing/expiring it leaves the local
-  fixture safely contained until visible reset; no production recovery claim
-  follows.
-
-A separate hold-scoped export capability does not survive containment. A
-moderation hold first revokes every pre-hold session, export job, and ordinary
-worker. The owner may then obtain the purpose-limited session described below
-and request a new export. Its serializer receives a `moderation_hold_export`
-receipt bound to that owner request, immutable export snapshot/schema,
-moderation-hold ID/version, clear security-hold state, account lifecycle/session
-versions, global clear state/epoch, policy, and expiry. It has no list/discovery
-or unrelated-object authority. A moderation-hold change, security hold,
-containment, deletion, session-version change, or expiry revokes it. It is not a
-safety-cleanup capability.
-
-All mutations serialize under a monotonic transition sequence and revalidate
-every participant version, account lifecycle epoch, and global security state/
-capability epoch at commit. A stale or losing command returns a conflict with
-zero mutation. If privacy/deletion
-and another transition race, committed sequence—not wall-clock comparison—is
-the tie rule, and a committed privacy/deletion transition prevents any later
-visibility restoration. An exact retry with the same idempotency key and
-identical canonical command returns the recorded outcome; reuse of that key
-with any differing byte, participant, version, or policy value denies.
+Ordinary workers carry a receipt for one action, exact object/version set,
+policy, global epoch, and technical expiry chosen at the P1.7 architecture gate.
+They cannot list or discover targets. A `safety_cleanup` receipt is issued only
+by the lifecycle engine for an already-committed delete/expire operation. It may
+read target identifiers, states, and enumerated outcomes needed for that purge,
+but no body, and it cannot disclose, create, publish, export, moderate, or
+restore. A global-security transition consumes stale ordinary receipts and
+rebinds only still-current cleanup steps to the new epoch or fails atomically.
 
 ## Authorization matrix
 
-`C` means allowed only with the stated condition. `D` means deny. `BG` means a
-separately approved, time-bounded break-glass incident/legal path; it is not an
-ordinary moderator permission.
+`C` means allowed only under the stated condition; `D` means deny. Unlisted
+combinations deny.
 
-| Action | Anonymous | Owning human | Other human | Scoped agent | System worker | Moderator | Privacy operator | Correction operator | Security/ops |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Read public visible content/counts | D initially | C | C | C: invocation allowlist only | C: exact receipt only | C | C: workflow need only | C | C: incident need only |
-| Read one private agent result | D | C: exact owner | D | C: current invocation readback only | C: exact invocation or export receipt only | D | D | D | BG |
-| List owned private agent results | D | C: bounded exact-owner list | D | D | D | D | D | D | D |
-| Submit a human-authored Contribution | D | C: explicit submit as self | C: as self | D | D | D | D | D | D |
-| Authorize one bounded fake-agent invocation | D | C: exact owner/agent/input/rate class, global clear | D | D | D | D | D | D | D |
-| Produce a private agent result | D | D | D | C: one owner-bound invocation | D | D | D | D | D |
-| Edit a private agent result | D | D: immutable in P1.7 | D | D | D | D | D | D | D |
-| Delete a private agent result | D | C: exact owner/current version | D | D | C: exact `safety_cleanup` receipt | D | D | D | D |
-| Expire a private agent result | D | D | D | D | C: exact `safety_cleanup` version/deadline | D | D | D | D |
-| Bind an initial unpublished preview | D | C: exact owner/current canonical digest | D | D | D | D | D | D | D |
-| Replace an unpublished preview | D | C: exact owner/current digest; revoke prior capability | D | D | D | D | D | D | D |
-| Publish a root-level agent Contribution | D | C: current preview/capability, null parent, and all participant versions | D | D | D | D | D | D | D |
-| Edit a public Contribution | D | D: unsupported in P1.7 | D | D | D | D | D | D | D |
-| Withdraw an owned Contribution | D | C: exact owner/current version | D | D | C: exact committed-deletion receipt only | D | C: committed-deletion workflow only | D | D |
-| Report a public Contribution | D | C: authenticated human, rate-limited | C: as self | D | D | D | D | D | D |
-| Triage an open report | D | D | D | D | D | C: assigned scope, open -> triaged | D | D | D |
-| Dismiss a triaged report | D | D | D | D | D | C: assigned scope, triaged -> closed_dismissed | D | D | D |
-| Submit an appeal | D | C: affected human or owner of affected agent Contribution | D | D | D | D | D | D | D |
-| Uphold an appeal | D | D | D | D | D | C: appeal_open/current action -> upheld_final | D | D | D |
-| Reverse an appeal and restore content | D | D | D | D | D | C: atomic current appeal+Contribution transition | D | D | D |
-| Create a block | D | C: blocker is self | C: blocker is self | D | D | D | D | D | D |
-| Revoke a block | D | C: exact blocker/current version | C: exact blocker/current version | D | C: endpoint `safety_cleanup` only | D | D | D | D |
-| View reporter identity or moderation notes | D | D | D | D | D | C: assigned scope | C: deletion-relevant mapping/status only | D | BG |
-| Read retained body of moderation-removed content | D | D | D | D | D | C: assigned appeal/policy need only | D | D | BG |
-| Action a triaged report and quarantine content | D | D | D | D | D | C: atomic triaged+visible -> closed_actioned+quarantined | D | D | D |
-| Remove quarantined public content | D | D | D | D | D | C: quarantined -> removed, policy/version/reason | D | D | D |
-| Place a moderation account hold | D | D | D | D | D | C: clear -> held, exact reason/version | D | D | D |
-| Clear a moderation account hold | D | D | D | D | D | C: own held -> clear, current version | D | D | D |
-| Place a security account hold | D | D | D | D | D | D | D | D | C: clear -> held, exact reason/version |
-| Clear a security account hold | D | D | D | D | D | D | D | D | C: own held -> clear, current version |
-| Open a security incident and enter global containment | D | D | D | D | D | D | D | D | C: ordinary current session; atomically issue incident control |
-| Read exact contained-incident state | D | D | D | D | D | D | D | D | C: matching `incident_control` session only |
-| Close a security incident and clear global containment | D | D | D | D | D | D | D | D | C: matching `incident_control` session/current version |
-| Execute Topic merge/split/reversal | D | D | D | D | D | D | D | C: accepted ADR-005 command | D |
-| Request an owner export | D | C: fresh ordinary or held-purpose reauthentication; security hold/global containment clear | D | D | D | D | D | D | D |
-| Generate an export | D | D | D | D | C: exact ordinary or `moderation_hold_export` receipt/schema/snapshot; security hold/global containment clear | D | D | D | D |
-| Expire/purge a session, preview, or capability/worker/publication receipt | D | D | D | D | C: exact `safety_cleanup` class/version/deadline receipt | D | D | D | D |
-| Purge due disposable-campaign primary/derived/cache/index state | D | D | D | D | C: exact `safety_cleanup` class/version/deadline receipt | D | D | D | D |
-| Purge an export | D | D | D | D | C: exact `safety_cleanup` for downloaded/expired/revoked/failed job | D | D | D | D |
-| Expire/purge a synthetic snapshot | D | D | D | D | C: exact `safety_cleanup` snapshot/deadline receipt | D | D | D | D |
-| Reduce or purge a lifecycle ledger | D | D | D | D | C: exact `safety_cleanup` stage/schema/deadline receipt | D | D | D | D |
-| Purge due report evidence or moderation action | D | D | D | D | C: exact `safety_cleanup` class/state/deadline receipt | D | D | D | D |
-| Purge due security/auth or incident event | D | D | D | D | C: exact `safety_cleanup` class/state/deadline receipt | D | D | D | D |
-| Purge due TopicCorrection evidence/operator mapping | D | D | D | D | C: exact `safety_cleanup` class/state/deadline receipt | D | D | D | D |
-| Advance committed withdrawal/privacy-erasure cleanup | D | D | D | D | C: exact `safety_cleanup` object/state/deadline receipt | D | D | D | D |
-| Download an owner export | D | C: same owner/fresh ordinary or held-purpose reauthentication; security hold/global containment clear; single use | D | D | D | D | D | D | D |
-| Request account deletion | D | C: exact owner/current lifecycle epoch | D | D | D | D | D | D | D |
-| Cancel uncommitted account deletion | D | C: exact owner/current `deletion_requested` | D | D | D | D | D | D | D |
-| Confirm irreversible account deletion | D | C: fresh ordinary or held-purpose reauthentication/current lifecycle epoch | D | D | D | D | D | D | D |
-| Advance committed deletion cleanup | D | D | D | D | C: exact `safety_cleanup` stage/version/deadline receipt | D | D | D | D |
-| Inspect own lifecycle status | D | C | D | D | D | D | C: exact assigned case/status only | D | D |
-| Read security audit | D | D | D | D | D | D | C: deletion-relevant subset | D | C: scoped incident |
-| Build an isolated restore | D | D | D | D | C: exact approved snapshot/receipt, global clear | D | D | D | C: ordinary session approves exact plan |
-| Swap an isolated restore into the local read model | D | D | D | D | C: current safety watermark/receipt, global clear | D | D | D | C: ordinary session approves exact local-only swap |
-| Abort an isolated restore | D | D | D | D | C: revoked receipt stops work | D | D | D | C: matching `incident_control` session/current attempt |
-| Change actor type, owner, or provenance | D | D | D | D | D | D | D | D | D |
+| Action | Owning/acting human | Other human | Fake agent | Browser bridge | Worker | Moderator | Correction | Security/ops |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Read public visible content/counts | C | C | C: invocation input only | C: local lookup result only | C: exact projection job only | C | C | C: incident need only |
+| Read/list owner-private discussion, draft, candidate, prior revision | C: exact owner | D | C: current invocation subset only | D | D | D | D | D |
+| Read exact revision reported while public | C: own revision | D | D | D | D | C: assigned live case only | D | D |
+| Create/edit/delete a private owner item | C: exact owner/current version | D | C: produce one candidate only | D | C: committed cleanup only | D | D | D |
+| Submit public human root/reply | C: explicit as self, active account | C: explicit as self | D | D | D | D | D | D |
+| Publish one private human item as a new public root | C: exact current item/preview/destination, active account | D | D | D | D | D | D | D |
+| Append revision to owned public contribution | C: active owner/current version | D | D | D | D | D | D | D |
+| Withdraw owned public contribution | C: owner, including suspended/banned | D | D | D | C: committed cleanup | D | D | D |
+| Authorize one fake-agent invocation | C: exact owner/definition/input/destination, active account/global clear | D | D | D | D | D | D | D |
+| Produce one private AI candidate | D | D | C: exact invocation only | D | D | D | D | D |
+| Bind/rebind an unpublished publication preview | C: exact owner/current candidate revision | D | D | D | D | D | D | D |
+| Publish an agent root contribution | C: exact current preview/capability, active/global clear | D | D | D | D | D | D | D |
+| Report a public contribution or wrong Topic | C: rate-limited as self | C: as self | D | D | D | D | D | D |
+| Triage/dismiss/action a report | D | D | D | D | D | C: assigned report/public context | D | D |
+| Hide one exact public contribution | D | D | D | D | C: exact committed moderation batch only | C: including contained state | D | D |
+| Place/lift temporary suspension | D | D | D | D | D | C: exact account/reason/version | D | D |
+| Ban/unban account | D | D | D | D | D | C: exact account/reason/version | D | D |
+| Confirm reported-only/all-public removal batch | D | D | D | D | D | C: exact previewed set/count/version | D | D |
+| Submit one appeal | C: affected account/owned agent, including restricted | D | D | D | D | D | D | D |
+| Uphold/reverse appeal | D | D | D | D | C: exact restoration batch only | C: assigned current case | D | D |
+| Inspect own account/moderation/deletion status | C: including restricted | D | D | D | D | D | D | D |
+| Request/cancel/confirm account deletion | C: exact owner; second confirmation for commit | D | D | D | D | D | D | D |
+| Execute Source reassignment/Topic merge-split | D | D | D | D | D | D | C: accepted command | D |
+| Move complete root subthread | D | D | D | D | D | D | C: exact root plus reply set | D |
+| Observe invoked active context | D | D | D | C: exact popup invocation/top document | D | D | D | D |
+| Open/close containment; read exact incident | D | D | D | D | D | D | D | C: current security scope |
+| Build/abort/promote isolated synthetic restore | D | D | D | D | C: exact approved fixture receipt | D | D | C: exact plan/control |
+| Purge due lifecycle object | D | D | D | D | C: exact `safety_cleanup` only | D | D | D |
+| Change actor type, owner, or existing provenance | D | D | D | D | D | D | D | D |
+| Generate/download user export | D: deferred | D | D | D | D | D | D | D |
+| Create/revoke user block or mute | D: unsupported | D | D | D | D | D | D | D |
 
-Every `BG` cell is denied in P1.7. A future break-glass capability requires a
-new owner-approved ADR with a declared incident/legal purpose, exact objects,
-short expiry, non-self approval, immutable access event, post-use review, and
-user notice where safe and legally appropriate. The one-person PoC cannot
-claim that production separation exists.
+There is no break-glass cell in P1.7. Any future private-content emergency
+access needs a new owner-approved ADR with exact purpose, objects, expiry,
+independent approval, immutable access event, post-review, and notice rules.
 
 ## State transitions
 
-### Session, holds, and account lifecycle
+### Identity, account state, and deletion
 
 ```text
-session: issued -> active -> logged_out | expired | revoked
-reauth_receipt: issued -> used | expired | revoked
+selected_identity: selected -> logged_out | actor_switched | reset | deleted
 
-moderation_hold: clear -> held -> clear       (moderator's scope only)
-security_hold:   clear -> held -> clear       (security scope only)
+account: active -> moderation_suspended -> active | banned
+         active -> banned
+         banned -> active                         (successful appeal/unban)
 
-deletion_active -> deletion_requested -> deletion_active  (owner cancel)
-deletion_requested --fresh reauthentication + confirm-->
-  deletion_committed -> identity_disabled -> primary_tombstoned
-  -> service_erasure_complete -> snapshot_suppression_pending
-  -> physical_expiry_complete
+deletion: active|moderation_suspended|banned
+  -> deletion_requested -> prior_account_state   (owner cancel)
+deletion_requested --second explicit confirmation-->
+  deletion_committed -> identity_disabled -> service_erasure_complete
+  -> physical_purge_complete
+
+global_security: clear -> contained -> clear
 ```
 
-Every ordinary session, reauthentication receipt, preview capability, worker
-receipt, export job, and restore attempt records the global capability epoch at
-issue and denies when it differs at authorization or commit. The sole
-containment-surviving exception is the exact `incident_control` session issued
-atomically for that new epoch. Each global-security transition atomically
-replaces outstanding delete-only `safety_cleanup` receipts with otherwise
-identical receipts bound to the new epoch; old-epoch cleanup receipts deny, and
-their replacements are permitted by the contained-state policy.
+The local identity remains selected without automatic timeout while active. A
+suspension, ban, or containment revokes ordinary capabilities and exposes only
+the restricted-action intersection. Suspension permits public read, status,
+appeal, owned-content withdrawal, logout, account deletion, and a future link to
+the centralized export website. A ban permits the same non-publishing actions.
+No state permits a new contribution, public edit, reaction, AI invocation, AI
+publication, or agent-definition change while restricted.
 
-The operational account state is active only while both independent hold fields
-and global containment are clear and deletion has not committed. Each authority
-may clear only the hold type it placed; a moderator cannot clear a security
-hold and Security cannot reverse a moderation hold. Privacy uses deletion
-states, never a generic hold. Entering either hold revokes ordinary sessions
-and ordinary delegated work and denies new Contributions, invocations,
-publication, blocks, votes, and ordinary jobs. It never stops an authorized
-delete-only `safety_cleanup` receipt. A moderation-hold export is the only
-data-producing exception: it must be requested after the hold through the
-purpose-limited session and uses a newly issued `moderation_hold_export`
-receipt. A security hold or global containment denies that exception.
-Existing public Contributions remain visible unless a separate, scoped content
-quarantine/removal, withdrawal, or privacy-erasure event changes visibility.
-Under a hold, the owner may receive a purpose-limited fresh session only for
-the exact actions below. `C` means conditionally allowed; `D` means denied:
+`deletion_requested` has no erasure effect and is cancellable. The passwordless
+PoC uses a clear second confirmation as the atomic irreversible commit. A later
+real login must replace that safeguard with a reviewed fresh-authentication
+flow. Commit immediately denies ordinary access, revokes jobs/capabilities, and
+makes all account-owned public bodies unavailable. Cleanup is idempotent and
+retryable without restoring access.
 
-| Exact authorization-matrix action | Moderation hold only | Security hold only | Both holds | `held_purpose_reauth` required |
-| --- | --- | --- | --- | --- |
-| `Submit an appeal` | C | C | C | No |
-| `Request an owner export` | C | D | D | Yes |
-| `Download an owner export` | C | D | D | Yes |
-| `Request account deletion` | C | C | C | No |
-| `Cancel uncommitted account deletion` | C | C | C | No |
-| `Confirm irreversible account deletion` | C | C | C | Yes |
-| `Inspect own lifecycle status` | C | C | C | No |
+`service_erasure_complete` means every declared active store, cache, index,
+count, and local projection denies the payload. `physical_purge_complete` also
+requires every eligible isolated synthetic snapshot and safety record to be
+gone. The exact local cleanup deadline, if not same-transaction, is an explicit
+P1.7 architecture choice and must not be inferred from the superseded 24-hour
+proposal.
 
-Every other owner action, including private-result deletion, Contribution
-withdrawal, ordinary reads, and content/publication mutations, is denied while
-either hold is set. System cleanup follows its separate exact receipt. Global
-containment denies all owner sessions; it does not pause already committed
-privacy/expiry cleanup. Ordinary public reads through a held account remain
-denied.
-
-Every pre-hold reauthentication receipt remains revoked. A purpose-limited
-session may issue a new single-use `held_purpose_reauth` only for the three
-table actions marked `Yes`. The receipt binds owner, that exact action, both
-hold IDs/versions, account lifecycle/session versions, global clear state/
-epoch, policy, and five-minute deadline. Any hold-vector change, containment,
-deletion, session-version change, use, or expiry revokes it; it cannot authorize
-another table action or an ordinary read, Contribution, invocation,
-publication, block, vote, or job.
-
-`deletion_requested` has no erasure effect and is the only cancellable deletion
-state. Fresh reauthentication plus explicit confirmation is the atomic commit
-point. Commitment immediately revokes all sessions, reauthentication receipts,
-ordinary worker receipts, preview capabilities, ready exports, and visibility,
-then issues exact delete-only `safety_cleanup` receipts. There is no grace or
-cancellation afterward. Cleanup remains retryable without restoring access.
-`service_erasure_complete` means every declared serving store, derived
-view, index, cache, and count denies the account's payloads; it does not claim
-that an isolated unexpired snapshot has physically disappeared.
-`physical_expiry_complete` is reached only after the last affected snapshot and
-safety-ledger record expire. The UI/status contract reports these two milestones
-separately. A committed deletion is irreversible, and an identity is never
-recycled.
-
-### Public Contribution
-
-Human drafts remain client-local and outside P1.7. An explicit submission
-creates an immutable public human Contribution; the publication path below
-creates an immutable public agent Contribution. Each has orthogonal state
-fields rather than one misleading chain:
+### Discussion, contributions, and publication
 
 ```text
-moderation: visible -> quarantined -> moderation_removed
-            quarantined/moderation_removed -> visible  (appeal reversal)
-owner:      retained -> author_withdrawn                 (terminal in P1.7)
-privacy:    retained -> privacy_erased                   (terminal)
-payload:    present -> tombstone -> purged
+discussion_destination: public | private_owner_only
+mode switch: affects next item only
+
+private human item: draft <-> edited -> publication_preview -> retained | deleted
+publication_preview --owner + exact current revision--> distinct public human root revision 1
+AI candidate: draft <-> edited -> publication_preview -> retained | deleted
+publication_preview --owner + current exact capability--> public root revision 1
+
+public contribution:
+  revision 1 -> revision 2 -> ...                 (same actor/provenance)
+  owner: retained -> author_withdrawn              (terminal body state)
+  privacy: retained -> privacy_erased              (terminal body state)
+  moderation: visible -> quarantined -> removed
+              quarantined|removed -> visible       (appeal reversal only)
+  payload: present -> inaccessible -> purged
 ```
 
-The effective-state precedence is `privacy_erased`, then `author_withdrawn`,
-then moderation, then visible. A moderator may reverse only its moderation
-field; reversal cannot undo withdrawal or privacy erasure. Either terminal
-owner/privacy state immediately denies the body and derives a reply-safe
-tombstone, followed by bounded payload purge. Public bodies are immutable after
-submission, and author-withdrawal restoration is denied in P1.7. No transition
-changes human to agent authorship, changes owner, or silently moves content.
-Reply-tree placeholders may preserve structure but reveal no deleted body or
-direct identifier.
+The effective body precedence is `privacy_erased`, then account deletion, then
+`author_withdrawn`, then moderation, then visible. Moderator reversal cannot
+undo a higher-precedence state. Withdrawal/deletion removes every revision body
+and retains only reply-safe non-linkable topology. Public counts include only
+currently public visible contributions and remain split by immutable human/
+agent type.
 
-### Private agent result and publication
+A root contribution owns the subthread identifier. Replies may identify a
+direct target for context, but presentation keeps them under the same root and
+primarily chronological. Moving a subthread moves its root plus complete reply
+set atomically or not at all. `Summary` and every initial P1.7 fake-agent
+publication are root-only; users may reply to them.
 
-```text
-retention:   retained -> expired | owner_deleted
-publication: unpublished -> preview_bound -> published
-preview_bound --human owner + current single-use capability
-  + exact-command idempotency key--> published
-published + exact idempotent retry -> original Contribution ID
-```
+A quotation stores only an exact target/revision reference, not a copied body.
+Rendering resolves the target's currently eligible text. Withdrawal,
+moderation purge, or account/privacy deletion makes every quotation resolve to
+the neutral `Deleted` state, so no copied excerpt can outlive its source body.
 
-Private results are immutable in P1.7. A different body or target requires a
-new bounded fake-agent invocation and result ID; rebinding an unpublished
-preview invalidates its prior capability. Publication does not mutate the
-private result into public data. The commit atomically consumes the capability,
-sets the independent publication field to `published`, stores a minimized
-retry receipt, and creates exactly one structurally agent-authored public
-Contribution. The retention field can still move from `retained` to `expired`
-or `owner_deleted` after publication without affecting that separate public
-Contribution. A later token or preview cannot create a second Contribution
-from that result version.
+Public edits append a new body/version, mark the contribution `Edited`, and do
+not change owner, actor type, agent provenance, root/parent, Topic, or public/
+private origin. P1.7 exposes only the current public body; the owner may inspect
+prior bodies until withdrawal/deletion. A later public revision-history viewer
+needs its own product/privacy decision.
 
-The canonical UTF-8 publication digest binds the result ID, version, and exact
-body; owner and agent IDs/types; public provenance version; target Topic and
-Discussion IDs plus correction revisions; account lifecycle/session/policy
-versions; global security state/capability epoch; `reply_mode=root`;
-`parent_contribution_id=null`; capability expiry; and idempotency key. Agent
-replies are deliberately unsupported in P1.7, so a
-non-null parent or any other reply mode denies. Same key plus the identical
-canonical command returns the original Contribution ID; the same key with a
-different command denies. Neither the agent runtime nor a worker may cross the
-publication edge. The minimized receipt retains invocation/result IDs and
-versions, fake-adapter and policy versions, agent actor, target revisions,
-digest, consent time, and resulting Contribution ID, never the private prompt
-or result body. After private-body expiry/deletion, an identical command digest
-can still return the recorded ID; no retry reconstructs or reveals the body.
+Publishing a private human item is a copy-by-authorized-transition, not a
+visibility mutation. The command binds the private owner/item/current revision,
+preview digest, human actor type, target Topic/Discussion versions, `root` mode,
+null parent, account/global state, policy, and one idempotency key. The private
+item remains private and no private parent, history, URL, or source label enters
+the public Contribution.
 
-### Public authorship and provenance
+The initial sort contract orders roots only and offers deterministic modes.
+`Newest` uses root creation time plus a stable ID tie-break. `Popular` and
+`Relevant` may use only versioned public reaction/activity, Topic-match
+confidence, and other declared public signals. No private-page text, private
+discussion activity, report volume, reporter identity, or private AI content is
+a ranking feature.
 
-Every public Contribution exposes immutable `author_type` as `human` or
-`agent`. A local human Contribution also exposes only its generated public
-author label. A local agent Contribution additionally exposes an opaque agent
-ID, `agent_class=user_owned_fake`, generated owner/operator public labels,
-`adapter_id` and version, `provider=none`, `model=synthetic`, provenance-policy
-version, and publication-receipt ID/time. Internal owner IDs, session data,
-private prompt/result bodies, and unpublished provenance never appear.
+Publishing an AI candidate creates a distinct public agent contribution rather
+than mutating private data. The publication command binds owner, candidate ID
+and revision digest, fake-agent ID/type, disclosed fake provenance, target
+Topic/Discussion revisions, `reply_mode=root`, null parent, account/global
+state versions, policy, and one exact idempotency key. A technical capability
+may expire without deleting the candidate; the owner can create a new preview.
+Its duration is chosen only at the separate P1.7 architecture gate.
 
-The query contract requires an explicit `human`, `agent`, or `all` filter and
-returns separate human/agent counts in every mode. `human` is enforced from the
-immutable actor record and can never contain an agent Contribution. A missing,
-unknown, or client-forged filter/author type fails closed. Account deletion
-removes direct owner/operator mappings and bodies while retaining only the
-non-identifying `human` versus `agent` type where needed for reply/correction
-topology.
+Public agent provenance contains an opaque agent ID, built-in/custom definition
+class, public owner/operator label, fake adapter/version, `provider=none`,
+`model=synthetic`, policy version, publication time, and `human_edited` boolean.
+It never exposes private prompt/result, internal account/session ID, private URL
+or title, raw source body, or undisclosed tool input.
 
-### Report, moderation, and appeal
+### Reports, suspension, bans, and appeals
 
 ```text
 report: open -> triaged -> closed_dismissed
-        triaged --atomic content quarantine--> closed_actioned
-        open/triaged/closed_actioned -> subject_erased_closed
-        open/triaged/closed_actioned -> content_withdrawn_closed
-        open/triaged/closed_actioned -> content_privacy_erased_closed
-appeal: closed_actioned -> appeal_eligible -> appeal_open -> upheld_final
-        appeal_open --atomic content restoration--> reversed_final
+        triaged -> closed_actioned
+        any nonterminal -> subject_deleted_closed | content_deleted_closed
+
+appeal: closed_actioned -> appeal_eligible -> appeal_open
+        appeal_open -> upheld_final | reversed_final
         appeal_eligible -> appeal_expired
-        appeal_eligible/appeal_open -> subject_erased_closed
-        appeal_eligible/appeal_open -> content_withdrawn_closed
-        appeal_eligible/appeal_open -> content_privacy_erased_closed
+
+removal batch: previewed -> confirmed -> visibility_denied
+               -> cleanup_complete | reversed_where_eligible
 ```
 
-Report volume alone does not create a moderation action. Reports contain only
-bounded enumerated `reason_code` and optional project-created `evidence_code`;
-P1.7 stores no reporter free text. Actioning the report and quarantining its
-current Contribution version is one atomic multi-object transition. The
-affected human—or the
-owning human for an agent Contribution—may file one appeal against a current
-action within seven fake-clock days of `closed_actioned`. The assigned scoped
-moderator either upholds it or atomically records `reversed_final` and restores
-the Contribution moderation field. A failure or stale participant version
-changes neither object and is exactly retryable. If privacy erasure, owner
-withdrawal, or subject deletion commits first, it atomically reaches the
-corresponding `content_privacy_erased_closed`, `content_withdrawn_closed`, or
-`subject_erased_closed` terminal, makes the reversal stale, and prevents
-restoration; if reversal commits first, a later erasure still wins by sequence.
-Reporter identity and internal notes are never shown to the affected
-actor. A reporter sees only receipt plus coarse `open`/`closed` status, not
-internal evidence or the affected actor's private data. The affected actor
-sees the action, public reason code, appeal deadline, and outcome, never the
-reporter. An appeal cannot reverse author withdrawal or privacy erasure.
+Reports contain reporter ID separately from enumerated `reason_code` and an
+optional explanation. Allowed reason codes are spam/scam, harassment, personal
+data, copyright, dangerous/illegal content, off-topic, and other. Every field is
+untrusted and safely rendered. The explanation is not copied into audit logs or
+shown to the subject. The moderator sees the public target and bounded relevant
+public thread context, never private content. At report commit, the case binds
+the exact target contribution/revision ID, version, and body digest that was
+public. An edit appends a new revision but cannot replace this evidence. Only
+the assigned moderator may resolve the case-bound revision body, and only while
+the case or appeal requires it.
 
-On reporter-account deletion, the direct reporter mapping is removed at
-deletion commit. Only the enumerated reason/evidence codes for an already-open
-case may remain through final closure plus 30 days; they cannot identify or be
-revealed as the reporter. On subject-account deletion, `subject_erased_closed`
-is reached atomically from every nonterminal report/appeal state; direct
-Contribution privacy erasure and author withdrawal similarly reach their named
-terminals. In every case the effective visibility state wins and the content
-body/direct subject mapping are purged as applicable.
-Already-terminal dismissed/upheld/reversed/expired cases keep their terminal
-status but lose those same mappings and payloads.
+The moderator may dismiss; remove the reported item; suspend; ban without
+removing prior content; ban and remove the reported item; or ban and remove all
+public human and owned-agent contributions/replies from that account. For a
+bulk action, preview binds account/version, target IDs/versions, exact count,
+reason/policy, the `account_owned_public_set_version`, and expiration chosen at
+the architecture gate. Every public-set membership change increments that
+version. If the account, set, or any target version changes before confirmation,
+confirmation fails and requires a new preview. Under serializable commit, a
+concurrent contribution either commits first and invalidates the preview or
+sees the ban and denies. Confirmation atomically commits the ban and immutable
+batch manifest and immediately denies selected public bodies; an exact
+idempotent worker may purge them later.
 
-### Block
+The public placeholder is the neutral platform string `Deleted`. The affected
+account sees reason, scope, count, deadline, and outcome, never reporter
+identity. It has one appeal within seven days. One appeal covers a ban plus its
+associated removal batch. Reversal restores only bodies retained for that
+appeal and still eligible; withdrawal, account/privacy deletion, later valid
+moderation, or a purged body cannot be reversed. Moderation-hidden bodies are
+retained only as long as needed for the open appeal path, not for the later
+metadata-only moderation record. Withdrawal or account/privacy deletion also
+purges exact reported-revision evidence immediately and closes or limits the
+case under the terminal precedence rules.
+
+On reporter-account deletion, direct reporter mapping and optional explanation
+are removed immediately. An already-open case may retain only non-identifying
+reason/status codes needed to close. On subject deletion, every nonterminal case
+reaches a deletion terminal, direct mappings and all subject bodies disappear,
+and no appeal can resurrect them.
+
+### Incident and containment
 
 ```text
-active -> revoked
-account deletion -> deleted
+incident: clear --security open--> contained --security close--> clear
+restore: planned -> isolated -> rebuilding -> verified -> eligible_local
+         isolated|rebuilding|verified -> aborted
 ```
 
-The proposed minimum block hides the blocked actor's Contribution bodies from
-the blocker, renders only a neutral reply-shape placeholder for existing
-context with no reveal control, and denies new direct reply/mention interactions
-targeting the blocker. It does not globally remove content, reveal the block
-list, or change Topic resolution. Deletion of either endpoint removes the
-relationship and its derived enforcement/cache entries.
+Opening containment increments the global capability epoch and revokes ordinary
+sessions, previews, agent invocations, publication capabilities, ordinary
+workers, future export jobs, and restore promotion. It issues one narrowly
+scoped incident-control capability for exact incident-state read, close, or
+isolated-restore abort. It has no user/content/list/moderation/export authority.
+Loss of that capability leaves the fixture contained until a conspicuous local
+reset; no production recovery claim follows.
 
-### Export, deletion, backup, and restore
+Containment allows public reading, own lifecycle-status inspection, logout,
+owned-public-contribution withdrawal, a delete-account request/confirmation,
+exact moderator hiding of a named public item, and already-authorized delete-
+only cleanup. The effective user rights are the intersection of account-state
+rights and this global allowlist. New appeals are denied while contained and
+their seven-day deadline is paused for the contained interval; appeal reversal
+and content restoration remain denied. It does not enable public edits, AI work,
+publication, new ordinary jobs, Topic correction, or restore promotion. Closing
+containment does not revive any revoked capability or session; the selected
+synthetic identity must obtain new ordinary authority under the current state.
 
-```text
-export_requested -> generating -> ready -> downloaded -> purged
-export_requested/generating/ready -> cancelled | revoked | expired -> purged
-generating -> failed -> purged
+The incident record contains only incident ID, state, enumerated reason, times,
+security role class, capability epoch, policy version, and lifecycle status. It
+contains no free text, content, URL, affected-user list, report explanation, or
+private evidence.
 
-snapshot_capture -> atomic(state image + transition sequence)
-backup_restore -> isolated_restore(snapshot sequence)
-  -> replay_safety_events_through_watermark -> rebuild_and_verify
-  -> atomic_safety_watermark_fence -> eligible_for_local_read_model
-atomic_safety_watermark_fence(stale) -> replay_safety_events_through_watermark
-```
+## Data lifecycle and retention
 
-An export job is bound to one owner, immutable data snapshot, exact schema,
-account lifecycle version, and worker receipt. The worker rechecks all bindings
-when committing the archive and again at download. Download is atomic and
-single-use: first success moves it to `downloaded` and immediately queues purge;
-concurrent attempts lose with no bytes. Deletion commit revokes every pending
-or ready export. A copy already downloaded to the user's device cannot be
-recalled, which the download UI must state.
+The approved defaults distinguish user content from technical safety records.
+Manual retention is not authority to keep a deleted body. Expiry is inclusive
+when a bounded record has `expires_at`: access denies and cleanup becomes due at
+`now >= expires_at`. Read/retry does not extend a deadline.
 
-The export schema rejects unknown fields and uses explicit `null` for an absent
-optional value. Arrays contain only records owned by or directly submitted to
-the requester and are deterministically ordered. The complete P1.7 field
-allowlist is:
-
-| Record | Exact allowed fields |
-| --- | --- |
-| Top level | `schema_version`, `export_id`, `account_lifecycle_version`, `snapshot_sequence`, `generated_at`, `expires_at`, `account`, `agents`, `contributions`, `private_agent_results`, `reports_submitted`, `blocks`, `moderation_decisions`, `publication_receipts`, `topic_context`, `source_context` |
-| `account` | `account_id`, `public_label`, `locale`, `content_view` |
-| `agents[]` | `agent_id`, `public_label`, `agent_class`, `adapter_id`, `adapter_version`, `provider`, `model`, `created_at` |
-| `contributions[]` | `contribution_id`, `author_type`, `agent_id`, `topic_id`, `discussion_id`, `parent_export_ref`, `body`, `created_at`, `moderation_state`, `owner_state`, `privacy_state` |
-| `private_agent_results[]` | `result_id`, `agent_id`, `invocation_at`, `expires_at`, `prompt`, `body`, `publication_state`, `published_contribution_id` |
-| `reports_submitted[]` | `report_id`, `target_export_ref`, `reason_code`, `evidence_code`, `status`, `created_at`, `closed_at` |
-| `blocks[]` | `block_id`, `blocked_actor_export_ref`, `blocked_actor_type`, `created_at` |
-| `moderation_decisions[]` | `action_id`, `target_contribution_id`, `public_reason_code`, `state`, `created_at`, `appeal_deadline`, `appeal_outcome` |
-| `publication_receipts[]` | `receipt_id`, `result_id`, `agent_id`, `topic_id`, `discussion_id`, `command_digest`, `consent_at`, `contribution_id` |
-| `topic_context[]` | `topic_id`, `public_label` |
-| `source_context[]` | `source_id`, `fixture_label` |
-
-`target_contribution_id` appears only in a decision about the requester's own
-Contribution. `parent_export_ref`, `target_export_ref`, and
-`blocked_actor_export_ref` are freshly generated, bundle-local, non-linkable
-aliases; they cannot equal or be resolved to an internal ID, public actor ID,
-Contribution ID, or label. Thus a parent/report/block relationship can be
-represented without exporting a third party's direct identifier. No
-other preference, profile, context, URL, body, note, evidence, security, audit,
-or correction field is allowed. A delegated worker serializes the schema;
-human operators may inspect lifecycle status but not the body or bundle.
-
-Value inclusion is also exact. An owned Contribution's `body` is a string only
-when moderation, owner, and privacy states are respectively `visible`,
-`retained`, and `retained`; otherwise it is `null`, while the state fields and
-user-facing decision explain why. A private-result record exists only while its
-retention state is `retained`; expired/owner-deleted results are absent. A
-`reports_submitted[]` record exists only while its structured-evidence retention
-deadline is current. Within an included report record, `reason_code` is the
-retained enumerated string and an unused optional `evidence_code` is explicit
-`null`; at expiry the entire report record is omitted, rather than retaining a
-shell with null codes. Context arrays contain only the opaque fixture IDs/labels
-referenced by another included owner record. Account deletion revokes the whole
-export rather than producing a post-deletion bundle.
-
-Snapshot capture atomically records the complete eligible state image and the
-global committed transition sequence. If that pair cannot be captured in one
-pure transition/transaction, snapshot creation fails; a deletion racing capture
-is therefore either already reflected in the image or has a later sequence that
-must replay. Each snapshot also declares the exact local recovery point:
-`RPO = snapshot_sequence`. New non-safety data after that point (for example a
-new Contribution or reaction) is deliberately absent and listed in the test's
-expected-data-loss manifest. This is synthetic restore behavior, not acceptable
-production recovery evidence.
-
-Restore replays every later privacy erasure, account deletion, author
-withdrawal, moderation quarantine/removal, block create/revoke, account or
-global security hold, ready-export revocation, and policy migration through the
-current safety watermark; rebuilds indexes, caches, counts, and account-specific
-projections; and runs negative visibility checks. The final local read-model
-swap succeeds atomically only if that safety watermark is unchanged. A
-concurrent safety event makes the attempt stale and forces replay. P1.7 never
-promotes a restore to a reachable service; `eligible_for_local_read_model`
-means only that the isolated fixture may be queried by its contract test.
-
-Deletion is idempotent after commitment. Cleanup failure stays retryable without
-restoring access. Completion cannot be reported while a declared snapshot could
-be locally swapped without current safety-ledger replay. An owner may
-separately finish a single export before confirming deletion, but export never
-delays commitment;
-confirmation revokes it immediately.
-
-### Audit redaction
-
-Append-only integrity does not mean personal data forever. Audit events use
-opaque references, enumerated reason codes, bounded structured fields, and no
-free text in the minimum slice. Account/profile mappings, evidence blobs, and
-internal notes are separate lifecycle objects that can expire or be
-pseudonymized without changing non-personal event topology. An accidentally
-logged body, prompt/result, token, raw URL, or direct identifier is a security
-incident requiring purge; adding a redaction marker alone is insufficient.
-
-A stable opaque actor reference remains pseudonymous, not anonymous. The
-privacy-minimizing local default removes the actor mapping after its 90-day
-limit and retains only the role class in non-personal correction topology; it
-does not retain a domain-scoped actor pseudonym for the test lifetime.
-
-### Topic correction interaction
-
-ADR-005 correction history may retain event ID, operation type, input/output
-Topic and Source identifiers, policy version, outcome, timestamps, and role
-class. It may not use “append-only” to preserve deleted bodies, private agent
-content, raw personal identifiers, IP/user-agent data, or unbounded free-text
-evidence. On account deletion, direct actor identifiers and personal evidence
-must be removed or pseudonymized under the accepted policy while non-personal
-topology remains reconstructable. Moderation/deletion tombstones override all
-historical projections and counts.
-
-## Proposed `local-synthetic-v1` lifecycle policy
-
-P1.7, if separately authorized, should keep only generated identities,
-reserved-domain fixtures, opaque domain IDs, and deterministic fake output in
-process memory or an explicitly disposable temporary store. It should make no
-network listener externally reachable, use no real account identifiers, write
-no content logs, create no analytics, and create no real infrastructure
-backup. “Backup” below means a synthetic application snapshot used only to
-exercise restore safety. A visible reset operation clears the local campaign.
-
-A fake clock drives every deadline. Expiry is inclusive: access denies and
-cleanup becomes due when `now >= expires_at`. Deadlines never slide on read,
-retry, preview, export generation, or restore; the shortest applicable limit
-wins. A visible reset atomically denies access and clears every declared
-primary, derived, snapshot, export, log, receipt, and safety-ledger object
-for that local campaign. These are test-policy constants, not approved
-real-data or legally validated retention periods:
-
-| Data class/state | `local-synthetic-v1` limit | Required behavior |
+| Data class/state | Approved local policy | Required behavior |
 | --- | --- | --- |
-| Synthetic ordinary session | 30 minutes from `issued_at` | Logout, expiry, either hold, global containment/epoch change, session-version change, or deletion commitment revokes it; no refresh extends the original session |
-| Held-purpose session | 30 minutes from `issued_at`, never beyond the campaign deadline | Issued only after a hold; bound to the full hold vector, account lifecycle/session/global epochs, policy, and the action intersection allowed by the current holds; any bound-state change revokes it and no refresh extends it |
-| Incident-control session | Incident closure, visible reset, or non-sliding campaign deadline, whichever comes first | Issued atomically on containment; bound to exact incident/version/epoch; only incident-state read, close, and restore-abort actions |
-| Fresh-reauthentication receipt | Five minutes from `issued_at`, single use | Bound to owner, action, lifecycle epoch, global epoch, and session version; logout/hold/containment/deletion revokes it |
-| Held-purpose reauthentication receipt | Five minutes from `issued_at`, single use | Issued only from a purpose-limited post-hold session; bound to exact action, full hold vector, lifecycle/session/global epochs, and policy; any bound-state change revokes it |
-| Moderation-hold export receipt | 15 minutes from `issued_at`, never beyond the purpose session or campaign deadline | Issued only after the hold from a purpose-limited owner session; exact owner/request/snapshot/schema/moderation-hold version plus clear security/global state; any bound-state change revokes it |
-| Delete-only safety-cleanup receipt | Exact stage completion, reset, or bound cleanup deadline, whichever comes first | Lifecycle-engine issued for an enumerated retention class; survives holds/containment only for the exact expire/purge action; no body/disclosure/create/export/publish/moderation/restore authority |
-| Private fake-agent prompt/result | 24 hours from original `invocation_at` | Owner-only while retained; no edit extends it; publishing creates a separate public agent Contribution; exclude from logs, shared cache, search, counts, clustering, and every synthetic backup |
-| Publication preview/capability | 15 minutes from `bound_at`, never beyond result expiry | One active preview per unpublished result version; rebind revokes prior capability; publish consumes it |
-| Publication/idempotency receipt | Through the non-sliding campaign deadline, at most 24 hours | Exact retry only; minimized fields, no private body; owner deletion of the private result does not remove it; account deletion or reset does |
-| Disposable manual-demo primary store | 24 hours from `campaign_created_at` | Non-sliding; visible reset clears all declared campaign data; no claim about undeclared workstation backup/indexing |
-| Generated export archive | One hour from `ready_at`, or immediately after first successful download/deletion | Owner-bound, exact allowlist; atomic single download; exclude from snapshots |
-| Primary deletion/cache/index cleanup | 24 hours from irreversible `deletion_committed_at` | Access and display deny at commit; cleanup is retryable/idempotent; service-erasure completion requires every declared derived copy to deny |
-| Synthetic application snapshot | Seven days from atomic `snapshot_created_at` | State image and transition sequence captured atomically; private fake-agent content and exports absent; restore stays isolated through safety replay/fence; RPO is the captured sequence |
-| Restore-safety/deletion ledger | Later of `effect_verified_at + 24 hours` or every affected snapshot's `expires_at + 24 hours`; with no affected snapshot, the first anchor applies | Exact fields are `event_id`, `event_type`, `subject_tombstone_id`, `committed_sequence`, `participant_refs`, `state_after_code`, `snapshot_ids`, `policy_version`, `effect_verified_at`, `expires_at`, `stage`, `outcome`; no profile/direct account field or free text. Opaque refs remain restricted pseudonymous data only to this expiry |
-| Non-linkable lifecycle outcome | 30 days from `ledger_expired_at` | Exact fields are `event_id`, `event_type`, `committed_sequence`, `policy_version`, `completed_at`, `outcome_code`, `purge_at`; no subject/object/snapshot reference, payload, or free text; purge at deadline |
-| Closed report structured evidence | 30 days from final appeal/case `closed_at` | Only enumerated reason/evidence codes; direct reporter mapping is removed earlier on reporter deletion; purge codes/direct mappings at expiry |
-| Minimal moderation action | 90 days from final action/reversal/appeal `closed_at` | Structured action, target tombstone, policy/reason code, time, role class, and reversal/appeal link only |
-| Ordinary security/auth decision event | 30 days from `event_at` | Allowlisted metadata only; no bodies, prompts/results, tokens, block graph, report evidence, or raw browsing URL |
-| Incident-linked security event | 90 days from synthetic incident `closed_at` | Purpose/scoped incident record; fixtures must close; no automatic indefinite extension |
-| TopicCorrection evidence/operator mapping | 90 days from correction `event_at` | Separate from topology; structured/redactable; no raw URL/title/body/private output/free text |
-| Non-personal TopicCorrection topology | System/test-fixture lifetime | Event/operation type, opaque Topic/Source IDs, versions/partition, policy/resolver version, outcome, time, role class, and reversal link only |
-| Active block | Until owner revokes it or either synthetic account is deleted | Blocker/enforcement visibility only; no public or moderator list and no unbounded history |
+| Selected synthetic identity | Until logout, actor switch, reset, deletion, or an explicitly defined process-restart boundary | No automatic timed logout; suspension/ban preserves selection but restricts authority; state/version change revokes ordinary capabilities. |
+| Popup current-context envelope | Popup invocation lifetime only | No storage/log/egress; stale/unsupported clears every derived display field. |
+| Raw page text from later approved local operation | Operation lifetime only | Memory-only; immediately discard; never enter discussion storage or snapshot. |
+| Public contribution and all revisions | Until withdrawal, moderation purge, account/privacy deletion, or reset | Only current eligible body is public; terminal action removes every revision body and counts. |
+| Owner-private discussion/draft | Until manual deletion, account deletion, or reset | Owner-only, non-sync local storage; no public cache/count/search or moderator access. |
+| AI prompt/result/candidate | Until manual deletion, account deletion, or reset | Same isolation; publication creates a separate public record; candidate edits do not change agent type. |
+| Agent definition | Until owner deletes it, account deletion, or reset | Inert declarative data; removing a definition does not relabel existing public provenance. |
+| Publication/worker capability | Technical duration chosen at exact P1.7 architecture gate | Expiry revokes authority but never deletes the retained draft/candidate. |
+| Open report/explanation and exact reported revision evidence | Through case review and appeal | Reporter mapping/explanation immediately removed on reporter deletion; exact reported body is assigned-case-only and edit-stable; withdrawal/account/privacy deletion purges it immediately. |
+| Closed report evidence | No later than 30 days after final closure | Bounded reason/status fields only; no body, reporter explanation, or direct deleted-account mapping. |
+| Minimal moderation action | 90 days after final action/reversal/appeal closure | Structured action/batch scope, reason, time, role, and outcome only; no retained removed body after appeal need ends. |
+| Ordinary security/auth event | 30 days after event | Allowlisted metadata only; no content, tokens, report text, prompt/result, or full URL. |
+| Incident-linked security event | 90 days after incident closure | Enumerated incident fields only; no automatic indefinite extension. |
+| TopicCorrection actor/evidence mapping | At most 90 days after correction | Restricted event pseudonym and structured reason/version only; then role class only. |
+| Non-personal TopicCorrection topology | Local fixture/discussion lifetime | Opaque old/new Topic/Source topology, versions, outcome, time, role; no personal/free-text source material. |
+| Synthetic snapshot and safety ledger | Isolated test run until verified cleanup/reset; exact duration is an architecture-gate choice | Synthetic fixture data only; never owner real-page/private-browser-derived state; safety events override restore. |
+| Future semantic query/representative | Outside P1.7 | ADR-013 and separate retention/privacy/security approval required. |
+| Future export archive | Outside P1.7 | Central web privacy center and exact schema/security lifecycle required before real accounts. |
 
-`participant_refs` is an ordered array of exact
-`(relationship_role, object_type, opaque_object_id, object_version)` records;
-it is not an open map. `state_after_code`, `stage`, `outcome`, and every event
-type are enumerated. At ledger expiry the transition to the non-linkable outcome
-atomically drops `subject_tombstone_id`, `participant_refs`, `state_after_code`,
-and `snapshot_ids`. Visible reset or a shorter campaign limit wins over both
-deadlines.
+`Reset all local data` is development-only, explicitly confirmed, and clears
+every declared local identity, content body/revision, private item, report,
+moderation/correction record, mapping, log, capability, snapshot, projection,
+and safety record. It is not a production data-lifecycle substitute.
 
-Fixtures must include at least two authorization partitions plus global-public
-objects so cross-partition private, parent/child, reply, report, block, list,
-count, search, cache, export, and worker paths can be denied explicitly. Public Contribution
-bodies use the privacy-first local default: immediate visibility denial and a
-reply-safe tombstone after account/privacy erasure. Privacy erasure is
-irreversible; moderation reversal cannot restore it.
+## Account-deletion inventory
 
-The owner must explicitly accept or revise every logical duration and the
-public-Contribution tombstone rule. Any private-alpha/production retention,
-real backup, legal hold, statutory retention, age/identity verification, or
-jurisdiction-specific rule requires a new qualified Policy/legal review.
+An unlisted account-linked class is a test failure, not permission to retain it.
+The exact P1.7 architecture must assign each implemented class a same-
+transaction purge or a named measurable cleanup deadline.
 
-### Account-deletion inventory
+| Asset | Immediate effect at commit | Required retained minimum | Restore rule |
+| --- | --- | --- | --- |
+| Selected identity, sessions, previews, agent/worker capabilities | Revoke and deny | Non-linkable completion outcome only if needed for current cleanup | Never revive; stale version denies. |
+| Profile, preferences, direct account mapping | Hide and deny | Non-recycled tombstone only where integrity requires it | Deletion event overrides snapshot. |
+| Private discussions, drafts, prompts, AI results/candidates | Deny every read/list/cache | None after cleanup | Ineligible for snapshots; never restore. |
+| Agent definitions and private agent configuration | Disable and deny | Public contribution may retain non-identifying agent type/fake provenance | Direct mapping never restores. |
+| Public human contribution and every revision | Hide every body immediately | `Deleted` topology, non-identifying author type only if needed | Erasure event overrides snapshot, counts, search, and correction. |
+| Public owned-agent contribution and every revision | Hide every body immediately | `Deleted` topology and non-identifying agent type only | Same; no owner/operator link restores. |
+| Reactions/votes | Remove account-owned effect | Recomputed public aggregate without account link | Suppression event precedes rebuild. |
+| Report submitted by account | Remove reporter link/explanation immediately | For open case, non-identifying reason/status only; otherwise none | No reporter mapping restores. |
+| Exact reported revision evidence authored by account | Hide and purge immediately | Target ID/version/digest only if a still-open case needs a non-content terminal outcome | No edit, appeal, or restore recovers the body. |
+| Report/action against account | Hide erased target body and close deletion terminal | Minimal bounded action/outcome under its 90-day rule | Cannot restore body or reopen appeal. |
+| Suspension/ban/removal batch | Stop account enforcement after identity deletion; body deletion still wins | Non-identifying action outcome only to moderation deadline | No account/body link restores. |
+| Publication/idempotency receipt | Revoke unpublished action and remove owner/private digest | Non-identifying public topology only if integrity needs it | No retry reconstructs private body. |
+| Security/auth direct mapping | Restrict immediately | Non-linkable decision/outcome until approved event deadline | Direct mapping never restores. |
+| TopicCorrection actor mapping | Remove direct link | Event pseudonym up to 90 days, then role-only topology | Redact before projection rebuild. |
+| Synthetic restore-safety/deletion record | Restrict to lifecycle/security test | Exact opaque suppression fields until all affected synthetic snapshots cannot restore the subject | Mandatory safety replay; reset purges. |
 
-The generated deletion oracle covers every declared subject-linked class; an
-unlisted class is a test failure, not permission to retain it.
+`Account inaccessible` is reported at commit. `Service data deleted` is reported
+only after every declared serving/projection copy denies the data. `Fully
+purged` is reported only after every eligible synthetic snapshot and safety
+record that can link the subject is gone. The local PoC makes no claim about
+undeclared workstation backups.
 
-| Asset | Immediate effect at commit | Primary/derived treatment and retained minimum | Deadline | Snapshot/restore rule | P1.7 oracle owner |
-| --- | --- | --- | --- | --- | --- |
-| Sessions, reauth receipts, worker receipts, previews | Revoke/deny | Purge secret/capability material; retain only non-linkable outcome | Immediate, verified within cleanup window | Never present in snapshot; stale receipt denies | Platform implementation; Trust negative cases; Quality matrix |
-| Pending/ready export | Revoke/deny download | Purge archive/job payload; retain non-linkable outcome | Immediate queue, at most 24 hours from deletion commit | Excluded; revocation event replays | Platform; Privacy/Policy field oracle; Quality race test |
-| Profile, preferences, direct account mapping | Hide/deny | Purge values and direct mapping; tombstone non-recycled opaque ID only where integrity requires | At most 24 hours from commit | Safety-ledger replay before local swap | Platform; Privacy/Policy oracle; Quality fake clock |
-| Public human Contribution | Hide body | Reply-safe tombstone; retain non-identifying human type and topology only | Serving/derived body and direct ID at most 24 hours; an isolated pre-deletion snapshot may retain suppressed synthetic bytes only to its seven-day expiry | Erasure event overrides snapshot and fence; snapshot never serves | Platform; Privacy/Policy fields; Quality restore/count tests |
-| Public owned-agent Contribution and agent record | Hide body | Tombstone; remove owner/operator mapping; retain non-identifying agent type plus synthetic adapter/provenance minimum needed for topology | Serving/derived body/direct mapping at most 24 hours; isolated suppressed snapshot bytes only to snapshot expiry | Erasure event overrides snapshot and fence; snapshot never serves | Platform; Trust provenance oracle; Quality filter/count/restore tests |
-| Private fake-agent input/result | Revoke/deny | Purge body, index/cache, invocation capability, and owner mapping | Immediate queue, at most 24 hours from commit or original TTL, whichever is earlier | Never included | Platform; Privacy/Policy exact-field oracle; Quality negative query |
-| Votes/reactions | Remove effect | Purge subject-owned record and recompute aggregate without revealing identity | At most 24 hours | Suppression event plus aggregate rebuild | Platform; Quality aggregate/restore test |
-| Report submitted by subject | Remove reporter mapping | If already open, retain only enumerated non-identifying `reason_code`/`evidence_code` needed to close; otherwise purge them; never reveal reporter | Mapping at most 24 hours; retained codes 30 days from final closure | Safety replay; no direct mapping | Platform; Privacy/Policy case oracle; Quality field diff |
-| Report/action against subject | Hide erased target body | Close `subject_erased_closed`; retain structured action/reason/topology only, no direct subject mapping or reporter disclosure | Body/mapping at most 24 hours; minimal action 90 days from closure | Safety replay prevents body restoration | Platform/Moderation; Privacy/Policy oracle; Quality appeal/restore test |
-| Block with subject at either endpoint | Stop enforcement/listing | Purge relationship and derived cache entries | At most 24 hours | Suppression event plus projection rebuild | Platform; Trust bypass cases; Quality both-endpoint test |
-| Publication receipt | Revoke unpublished intent | Purge private digest/session/owner mapping; public tombstone may retain non-identifying receipt ID/time and agent type | Private mapping at most 24 hours; campaign deadline for minimum | Suppression replay | Platform; Trust provenance oracle; Quality replay test |
-| Moderator evidence/note | Restrict immediately | Purge subject-linked free text/direct mapping; retain bounded structured action fields | At most 24 hours for direct mapping; action limit above | Suppression replay; no erased body | Moderation/Platform; Privacy/Policy oracle; Quality field diff |
-| Security/auth event mapping | Restrict immediately | Remove direct account mapping; retain only non-linkable decision/outcome to event deadline | At most 24 hours for direct mapping | Replay suppression; never restore mapping | Security/Platform; Privacy review; Quality log scan |
-| TopicCorrection evidence/operator mapping | Deny direct lookup after cleanup | Replace direct actor link with event-scoped pseudonym until its 90-day limit, then role class only; retain non-personal topology | Direct mapping at most 24 hours; pseudonym at most 90 days from event | Redaction/suppression replay before topology rebuild | Correction/Platform; Privacy/Policy oracle; Quality history test |
-| Restore-safety/deletion ledger and deletion receipt | Restrict to Privacy/Security workflow | Remove direct account/profile mapping; retain exact ledger fields/stage receipt needed for snapshot suppression and service/physical completion, then atomically reduce to the exact non-linkable outcome schema | Direct mapping at most 24 hours; opaque refs to later of verified-effect+24 hours or affected-snapshot expiry+24 hours; non-linkable outcome 30 further days | Mandatory replay source; local swap cannot bypass it | Platform; Privacy/Security field oracle; Quality no-snapshot/snapshot/post-expiry tests |
+## Centralized future export
 
-The public/non-personal remainder never contains a body, direct account ID,
-private agent material, report evidence, block edge, or free-text evidence.
-Platform owns transition/unit implementation; Trust owns abuse and negative
-oracles; Privacy/Policy owns exact field, deletion, export, and retention
-oracles; Quality owns generated coverage, fake-clock, concurrency, and recovery
-evidence; Operations owns the isolated-restore procedure. One builder may run
-these fixtures under role aliases but cannot claim reviewer independence.
+No P1.7 endpoint, archive, worker, or download capability generates user data.
+The model nevertheless records owner, actor type, visibility, revision,
+moderation, deletion, and lifecycle state explicitly so a future central web
+privacy center can be designed without reconstructing ownership from logs.
+
+Before real accounts or public operation, the central website must provide a
+usable data-access route and receive an exact field/value schema, third-party
+data treatment, authentication, expiry, encryption, operator-access, deletion,
+and store-policy review. Extensions/mobile clients link to the website rather
+than implementing separate archives. Suspension/ban cannot remove the future
+right to access that route. Account-deletion UI must offer the link before final
+confirmation. None of these requirements authorizes implementation now.
+
+## Synthetic snapshot and restore
+
+Snapshot/restore exists only to prove that safety events cannot be lost. An
+eligible snapshot contains generated accounts and discussion fixtures only and
+atomically captures its state plus committed transition sequence. It excludes
+raw/derived owner real-page context, private browser state, exports, secrets,
+and provider material.
+
+An isolated restore declares `RPO = snapshot_sequence` and lists expected loss
+of later non-safety synthetic data. Before any local read-model swap it replays
+every later withdrawal, account/privacy deletion, moderation removal/reversal,
+suspension, ban/batch, Topic correction, containment, and policy migration;
+rebuilds counts, indexes, and projections; and runs negative visibility checks.
+The final atomic safety-watermark fence must still equal the replayed watermark.
+A concurrent safety event makes the attempt stale and forces replay or abort.
+
+Containment remains active during recovery. `eligible_local` means only that
+the isolated synthetic fixture may be queried by its test; it is never a
+reachable service or evidence of production backup/recovery. Real backup scope,
+encryption, provider, region, RPO/RTO, retention, deletion, restore access,
+cost, and drills require explicit later owner, provider, Security, Privacy,
+Deployment, Spending, and Publication gates.
+
+## Audit, rendering, agent-definition, and language safety
+
+Audit events allow only event ID, time, action, object classes, event-scoped
+pseudonymous principal reference, decision/reason code, policy/version, batch or
+correlation ID, and enumerated outcome. They never contain bodies, prompts,
+results, report explanations, credentials, full URLs, page metadata, private
+source labels, export payloads, or free-form operator notes.
+
+Append-only integrity is not authority to keep personal data. Direct mappings
+and evidence are separate lifecycle objects. An accidentally logged body,
+private URL, metadata value, prompt/result, report explanation, token, or direct
+identifier is a security incident requiring purge; a redaction marker alone is
+insufficient. A stable hash or opaque actor ID remains pseudonymous when it can
+be linked and is not described as anonymous.
+
+Every contribution, explanation, agent definition/name, language-pack string,
+Topic label, and page-derived field is untrusted. Safe text rendering and
+allowlisted URL schemes are mandatory. Language packs and agent definitions are
+data-only signed/bundled or owner-local resources in P1.7; they cannot import
+script, HTML, executable templates, prompts with platform authority, or network
+tool declarations. Built-in labels use stable message keys and English fallback.
+
+## Topic correction interaction
+
+`Not the same topic` creates a correction signal, not a remap. Only a correction
+operator may commit Source reassignment, Topic merge/split/reversal, or a whole-
+subthread move under ADR-005. New lookups use a committed mapping immediately.
+Automatic matchers may generate candidates but have no correction capability.
+
+Existing public conversation is not silently moved. The operator binds an exact
+root ID/version, complete reply ID/version set, and subthread-membership version.
+Every reply membership change increments the fence. The atomic command
+revalidates it and moves all or none; a concurrent reply makes the preview stale
+and an individual reply cannot be detached. Alternatively, the subthread stays
+at its old Topic with a neutral `Source mapping corrected` notice. A private
+subthread remains private and never supplies public correction evidence.
+
+History may retain event ID, operation/reason, opaque input/output Topic and
+Source IDs, mapping/matcher/policy versions, outcome, time, role class, and
+reversal link. It may not preserve raw URL/title/body, private AI material,
+report text, IP/user-agent, or free-text evidence. Direct actor linkage is
+removed on account deletion; an event-scoped pseudonym expires within 90 days,
+after which role-only topology remains. Deletion tombstones override all
+historical projections.
 
 ## Threats, controls, and required evidence
 
-| Threat | Required control | P1.7/P1.8 evidence owner |
+| Threat | Required control | Evidence owner |
 | --- | --- | --- |
-| IDOR/cross-owner private read | Server-derived principal, ownership/scope check on every get/list/cache/export path, generic not-found denial | Platform implements; Trust supplies cases; Quality reproduces |
-| Cross-object authority laundering | Exact participant schema, all-object version/partition/lifecycle checks, atomic same-partition relationships, global-public read never lends write | Platform; Trust relationship cases; Quality generated coverage |
-| Human/agent impersonation or filter leakage | Immutable server actor type and provenance; separate constructors; client fields rejected; explicit human/agent/all filters and counts | Platform; Trust review; Privacy field review; Quality negative/filter tests |
-| Confused-deputy or duplicate publication | Owner-only canonical digest/capability, all participant revisions, one result/one Contribution, exact idempotent outcome | Platform; Trust adversarial tests; Quality concurrency/replay |
-| Stale/replayed mutation | All participant/session/lifecycle/policy versions, monotonic sequence, capability consumption, exact-command idempotency | Platform and Quality |
-| Overpowered background worker | Single action/object-set/partition/version/policy/expiry receipt, no discovery, lifecycle revocation; exact `moderation_hold_export` and retention-only `safety_cleanup` classes cannot broaden their named authority | Platform; Trust abuse cases; Quality receipt matrix |
-| Moderator/correction privilege escalation | Separate scopes, exact action matrix, no wildcard administrator, reason/version bounds | Trust matrix; Platform enforcement; Quality all-role negatives |
-| Report brigading and retaliation | Authenticated human reporters, rate class, duplicate/coordinated signals, no automatic guilt, reporter confidentiality | Trust/Moderation design; Quality abuse cases |
-| Block bypass | Check target interaction and presentation paths; prevent alternate actor/agent delegation from bypassing owner block | Platform; Trust abuse cases; Quality integration |
-| Removed/deleted content resurrection | Tombstone/deletion ledger overrides lineage, cache, counts, export, search, and restore | Platform; Quality fake-clock/restore tests; Trust review |
-| Export data leak | Reauthentication, owner-bound job/download, exact schema, short expiry, one-user fixtures, no moderator notes/other private data | Platform; Privacy review; Quality fixture diff |
-| Audit/log privacy leak | Structured allowlist, bounded reason codes, redaction, access scopes, no raw content/secrets/URLs | Trust/Privacy; Quality static/runtime log tests |
-| Insider/break-glass misuse | Deny break-glass entirely in P1.7; a future design needs a new ADR, narrow scope, exact-object/time approval, immutable access event, post-review, and kill switch | Security/Privacy owner; Quality incident drill before real data |
-| Malicious content/link/XSS | Treat all text as data, safe rendering, allowlisted link schemes, no instruction authority | Platform; Trust payloads; Quality rendering tests |
-| Race/double publication or deletion | Atomic state transition, expected versions, single-use publication capability, replayable exact-command idempotency outcome, conflict/no-mutation result | Platform; Quality concurrency tests |
-| Conflicting account holds | Independent versioned moderation/security fields; each scope clears only its own; content visibility changes separately | Platform; Trust/Security; Quality composition tests |
-| Backup capture/restore loses or resurrects state | Atomic image/sequence capture, declared snapshot-sequence RPO, full safety replay, rebuild, current watermark fence, stale retry, local-only eligibility | Quality/Operations with Privacy and Platform review |
-| Incident control silently changes content/authority | Exact global containment states/capability epoch; deny sessions/publication/workers/swap without content visibility or moderation authority | Security/Platform; Quality transition tests; Privacy field review |
-| Account deletion leaves sessions/jobs alive | Immediate session/delegation revocation, queue cancellation/version check, staged deletion receipt | Platform; Privacy test plan; Quality fake-clock tests |
-| Enumeration and excessive access | Generic denials, bounded pagination, rate classes, no cross-scope counts/list endpoints | Platform; Trust abuse review; Quality boundary/load tests |
-
-## Incident and operator rules
-
-```text
-global_security: clear --open incident--> contained
-global_security: contained --close incident--> clear
-restore_attempt: planned -> isolated -> rebuilding
-restore_attempt: isolated/rebuilding -> restore_aborted
-```
-
-- Every global-security transition increments the global capability epoch and
-  atomically performs the cleanup-receipt replacement defined above. Opening a
-  synthetic incident also creates the incident record. `contained` denies
-  ordinary session issuance, publication, export generation, ordinary/data-
-  producing worker execution, and local restore swap; it revokes ordinary
-  sessions, previews, and ordinary worker receipts. Exact delete-only
-  `safety_cleanup` continues so privacy/retention deadlines cannot be suspended.
-  The atomic open also issues the narrow `incident_control` session.
-  Containment does not hide/remove existing content or grant content ownership
-  or moderation authority.
-- Closing requires that incident-control session plus current incident,
-  containment, and epoch versions. Its atomic epoch change consumes the control
-  session and replaces only still-current cleanup receipts; it does not revive
-  any revoked ordinary capability or session. Aborting an isolated restore uses
-  the same control session and makes that attempt terminal; a new attempt needs
-  a new ordinary recovery approval after containment clears.
-- The incident record allows exactly `incident_id`, `state`, `reason_code`,
-  `opened_at`, `contained_at`, `closed_at`, `security_role_class`,
-  `capability_epoch`, `policy_version`, and `expires_at`. Codes are enumerated;
-  there is no free text, content, affected-user list, or private evidence. Only
-  Security/operations can read it. “Keep everything” is not an incident policy.
-- A compromised moderator cannot change actor type, publish private output,
-  export an account, restore backups, or erase its own action history.
-- A compromised worker receipt expires and is bound to one action/object set,
-  global epoch, participant versions, and worker class; replay or target/class
-  substitution denies. A safety-cleanup receipt cannot read a body or mutate a
-  non-deletion field.
-- Notification, regulator, law-enforcement, takedown, and legal-hold procedures
-  require qualified Policy/legal review before real data. This document makes
-  no jurisdiction-specific timing promise.
-- Legal hold and real takedown/disclosure handling are disabled in P1.7. A
-  synthetic state fixture may test denial, but cannot contact anyone, create a
-  real hold, or extend retention.
+| Silent/background browsing collection | Popup-open gesture, one active top-level document, no background/list/all-tabs permission or loop | Platform; Trust; Quality capability tests |
+| Stale/mixed-document render | Initial/final tab, URL, document/version attestation; clear all fields on mismatch/close/error | Platform; Quality navigation/concurrency tests |
+| Authenticated/private-page leakage | No tokens/forms/attachments, raw memory-only, no storage/log/egress; body/AI separate from auto-load | Privacy/Trust; Quality storage/network/log tests |
+| Derived AI output repeats secrets | Explicit private-content input decision, sensitive-output warning, unpublished candidate, no auto-publication | Trust/Privacy; Quality disclosure/publication tests |
+| Cross-owner private read | Trusted owner scope on get/list/cache/revision paths; generic denial | Platform; Trust negative matrix; Quality generated coverage |
+| Human/agent impersonation | Immutable actor type/provenance, separate constructors/filters/counts, client fields rejected | Platform; Trust; Quality provenance tests |
+| Custom agent or language pack expands authority | Data-only schema, safe rendering, allowlisted definitions, platform-owned capability intersection | Platform; Trust; Quality hostile-input tests |
+| Accidental/private-to-public publication | Current-revision preview, exact owner capability, root target, explicit publish, idempotent commit | Platform; Trust concurrency tests |
+| Silent edit or revision resurrection | Append-only revisions; visible marker; terminal states hide/purge every revision and override restore | Platform; Privacy; Quality revision/deletion tests |
+| Reply corruption during Topic correction | Root plus complete reply-set atomic move; no isolated reply move; stale versions deny | Correction/Platform; Quality topology tests |
+| Opaque/manipulated ranking | Versioned public-only features, stable ties, selectable modes, no report/private signal | Product/Trust/Quality formula tests |
+| Report brigading/retaliation or edit-to-evade review | No report-count action, rate class, reporter separation, exact reported-revision binding, moderator decision and appeal; withdrawal/deletion precedence | Trust/Moderation; Quality abuse/race tests |
+| Bulk-ban overreach or race | Preview exact set/count/versions, confirmation, atomic visibility deny, idempotent batch, one appeal | Platform/Moderation; Quality race/rollback tests |
+| Moderator private-data access | Public report context only; matrix denial; no break glass | Trust/Privacy; Quality role negatives |
+| Overpowered worker | Exact receipt, no discovery, body denial, state/epoch/version binding | Platform; Trust abuse tests; Quality receipt matrix |
+| Cleanup blocked by suspension/incident | Separate exact delete-only capability survives only for committed due purge | Platform; Privacy; Quality containment tests |
+| Removed/deleted content restored | Terminal precedence, safety ledger, complete replay/rebuild, current watermark fence | Platform/Operations; Quality restore tests |
+| Deferred-export ambiguity | No generator now; explicit owner/lifecycle fields; real-account gate requires central route | Privacy/Product; schema-readiness review |
+| Audit/log privacy leak | Exact field allowlist; explanations/content separate; no full URL; retention and purge tests | Trust/Privacy; Quality static/runtime scans |
+| Incident control becomes admin | Exact incident-only capability; no content/list/moderation/export authority | Security; Trust; Quality transition tests |
+| XSS/link/prompt instruction injection | Treat all strings as data; safe rendering; allowlisted links; no text grants authority | Platform; Trust payloads; Quality rendering tests |
+| One-person role confusion | Structural role separation and event role class; no claim of independent staffing | Lead; later independent review gate |
 
 ## Required P1.7 contract tests
 
-P1.7 must generate a coverage manifest that references every matrix cell,
-state-transition edge, expiry boundary, and deletion-inventory row exactly once
-or more. An absent reference fails the gate. Planned evidence ownership is:
+The exact P1.7 architecture must map every implemented authorization cell,
+state edge, retention deadline, and deletion row to a named test. An absent
+reference fails the architecture gate.
 
-| Test ID | Required coverage | Implementation/test owner | Review oracle | Expected gate artifact |
-| --- | --- | --- | --- | --- |
-| `P17-AUTH-MATRIX` | Every explicit cell and every unspecified principal/action/object/state combination; generic zero-mutation denial | Platform implements/unit-tests; Quality generates matrix | Trust validates negative/abuse cases | Machine-readable matrix coverage plus denial report |
-| `P17-RELATIONSHIP` | Parent/child, reply, report, block, publication, correction, export, and worker participant sets; all versions/lifecycle epochs; global-public read cannot lend write; cross-partition failures; agent reply/parent retargeting denies | Platform and Quality | Trust | Relationship/partition report with stale conflicts |
-| `P17-WORKER-SESSION-HOLD` | Exact ordinary-worker, `moderation_hold_export`, and delete-only `safety_cleanup` issuance/scope; discovery/body/disclosure denial; expiry/revocation, completion/reset consumption, and atomic same-target cleanup epoch replacement; every declared safety-cleanup target maps to one matrix action; ordinary and held-purpose session/reauth issue/logout/use/expiry, full-hold-vector binding, and freshness; every cell and unlisted-action denial in the exact held-purpose action table, including the three actions requiring reauth; global containment denies all owner/export sessions while exact safety cleanup continues | Platform and Quality fake clock | Trust/Security plus Privacy/Policy cleanup oracle | Receipt/session/hold/containment transition report |
-| `P17-PRIVATE-PUBLISH` | Owner-authorized bounded fake-agent invocation; owner/non-owner read/list/cache/delete/expiry; immutable edit denial; preview rebind/expiry; one-result-one-Contribution; same-key same-command outcome; differing-command denial; retained private body expiry/deletion after publication while receipt retry works; deletion/publication and incident-open/global-epoch races against invocation, preview binding, and publication commit | Platform and Quality concurrency harness | Trust/Security | Invocation/publication/retention state, digest, idempotency, and race report |
-| `P17-PROVENANCE-VIEWS` | Required human/agent public fields, immutable provenance, `human`/`agent`/`all` filtering, separate counts, separate rate-class limits, no private field disclosure | Platform and Quality | Trust plus Privacy/Policy field oracle | Schema/filter/count/rate report |
-| `P17-MODERATION-APPEAL` | Report triage/closure, atomic action+quarantine, removal, atomic appeal reversal+restore with zero-mutation failure, one appeal within seven days, every `subject_erased_closed`, `content_withdrawn_closed`, and `content_privacy_erased_closed` edge; subject-deletion, withdrawal, privacy-erasure, and reversal races; actor/status visibility | Platform; Quality transition/concurrency generator | Trust/Moderation and Privacy/Policy | Complete state-edge, atomicity, race, and field-visibility report |
-| `P17-BLOCK` | Create/revoke, private list, existing placeholder, new reply/mention denial, alternate actor/agent bypass, both-endpoint deletion; mute unsupported | Platform and Quality | Trust | Interaction/projection report |
-| `P17-EXPORT` | Every named field and unknown-field rejection; owner receipt worker; freshly generated bundle-local aliases, including `parent_export_ref`; Contribution-body string versus explicit `null` for every moderation/owner/privacy state; omission of expired/deleted private-result records and whole expired report records; retained report reason string plus explicit `null` for an unused optional evidence code; immutable snapshot/lifecycle/hold/containment rechecks; moderation-hold allow versus security-hold/containment deny; atomic single download, expiry/revocation/purge, concurrent deletion | Platform; Quality fixture diff/concurrency | Privacy/Policy | Field/value-level bundle manifest and lifecycle report |
-| `P17-DELETION` | Every deletion-inventory row including cleanup receipt and safety ledger; cancellable request versus irreversible commit; immediate revocation; service versus physical completion; snapshot and no-snapshot ledger anchors; transition to the exact non-linkable outcome schema and its 30-day purge; pseudonymous-ref expiry; derived count/cache/index cleanup | Platform; Quality generated inventory/fake clock | Privacy/Policy and Trust | Asset-by-asset deletion coverage and negative-query report |
-| `P17-RETENTION` | Every anchor at one unit before, exactly at, and after expiry; every physical purge due during a hold/containment maps to an exact no-body `safety_cleanup` matrix action, while visible reset consumes all receipts/state without replacement; no-snapshot and affected-snapshot safety-ledger anchors; atomic reduction to the exact post-expiry non-linkable schema and purge 30 days later; non-sliding deadlines; shortest-limit/reset precedence; incident closure requirement | Platform and Quality fake clock | Privacy/Policy | Boundary report for every lifecycle-table row and post-expiry schema |
-| `P17-RESTORE` | Atomic state-image/sequence capture including capture races; declared snapshot-sequence RPO and expected data-loss manifest; every safety event; rebuilds; concurrent safety events during local swap; stale-fence retry; never reachable service | Platform; Operations isolated procedure; Quality concurrency harness | Privacy/Policy and Trust | Restore transcript, capture/fence trace, RPO manifest, and visibility/count report |
-| `P17-INCIDENT` | Atomic open/contain plus `incident_control` issuance and its incident-read/close/restore-abort-only scope; lost/expired control leaves contained until visible reset; global-capability-epoch binding/revalidation and open races against active/issuing sessions, invocation/preview/publication, ordinary-worker/export commit, and restore swap; denied ordinary session/export/publication/worker/swap; atomic old-to-new-epoch `safety_cleanup` replacement and continued cleanup; no content visibility change; exact incident fields/retention | Platform and Quality concurrency harness | Trust/Security plus Privacy/Policy field oracle | Incident/containment transition, race, cleanup, and field report |
-| `P17-RENDER-LOG-CAPABILITY` | Safe rendering/link schemes; hostile inputs; log/error exact allowlist; no secrets/content/private URLs; network/DNS/process/provider denial; clean-checkout reproduction | Platform and Quality | Trust/Security | Rendering/log scan, restricted-run, and reproduction report |
+| Test ID | Required coverage | Implementation/test owner | Review oracle |
+| --- | --- | --- | --- |
+| `P17-CONTEXT-AUTOLOAD` | Popup open starts URL/approved-metadata/local lookup without second button; active top-level only; exact scheme/origin/field/byte eligibility; authenticated/private envelope handling; frames, body, cookies, tokens, forms, and attachments denied; stale navigation/closure/unsupported/error clears all fields; no AI/storage/network | Platform/Client and Quality | Trust/Security plus Privacy |
+| `P17-AUTH-MATRIX` | Every explicit cell and unlisted denial; owner/cross-owner, state/version/global epoch, generic zero-mutation failures | Platform and Quality | Trust/Security |
+| `P17-IDENTITY-SESSION` | Immutable human/agent type; persistent selected identity; logout/switch/reset; suspension/ban/containment restriction; no timed logout | Platform and Quality | Trust plus Privacy |
+| `P17-DISCUSSION-VISIBILITY` | Public/private next-message destination, owner-only private lists, no retroactive switch, exact-current-revision preview that publishes one private human item as a distinct public root without private parent/history, manual deletion, no moderator/private cache/search/count access | Platform and Quality | Privacy/Policy plus Trust |
+| `P17-AGENT-PREVIEW` | Built-in/custom definition schema, fixed deterministic fixture producer, editable retained candidate, source/tool disclosure, human-edited marker, explicit root publication, idempotency and races, no adapter/provider/network | Platform and Quality | Trust/Security plus Privacy |
+| `P17-THREAD-REVISION-SORT` | Root/reply grouping, Summary root-only, chronological replies, reference-only quotations that follow target visibility, deterministic public-only sorting, append revisions, Edited marker, all-revision withdrawal/deletion | Platform and Quality | Product, Trust, Privacy |
+| `P17-MODERATION-BAN` | Report reasons/explanation isolation, exact reported-revision binding and report-vs-edit/withdraw/deletion races, no count auto-action, dismiss/remove/suspend/ban, reported-only/all-public preview with account-owned-public-set fence, concurrent-create ordering, exact batch, owned-agent inclusion, one seven-day appeal, terminal deletion races | Platform and Quality | Trust/Moderation plus Privacy |
+| `P17-WORKER-INCIDENT` | Exact ordinary/cleanup receipts; worker denial on account-deletion request/confirm; discovery/body denial; containment revocation and account/global-right intersection; public read/status/logout/withdraw/delete and exact-hide allowlist; appeal-deadline pause and restore denial; close/abort scope; no capability revival | Platform and Quality | Trust/Security plus Privacy |
+| `P17-DELETION` | Second-confirmation commit, every inventory row and revision, immediate deny, service/physical milestones, reporter-text removal, reference-only quotations resolving to `Deleted`, tombstone non-linkability, negative queries | Platform and Quality | Privacy/Policy plus Trust |
+| `P17-RETENTION-RESET` | Manual content retention; report 30-day, moderation 90-day, security 30/90-day, correction-pseudonym 90-day boundaries; cleanup during containment; full confirmed reset | Platform and Quality fake clock | Privacy/Policy |
+| `P17-RESTORE` | Synthetic-only capture, real-page/private-browser exclusion, safety replay, rebuild, watermark races, containment, abort, never-reachable assertion | Platform/Operations and Quality | Trust/Security plus Privacy |
+| `P17-CORRECTION` | Not-same signal only; Source reassignment/merge/split candidates; whole-root move with subthread-membership fence and concurrent-reply rejection, or notice; no isolated reply or automatic commit; actor-deletion redaction | Correction/Platform and Quality | Trust plus Privacy |
+| `P17-EXPORT-READINESS` | Every persisted class has owner, visibility, lifecycle, and future-export classification; prove no export endpoint/archive/download exists | Platform and Quality | Privacy/Policy |
+| `P17-RENDER-I18N-LOG` | Hostile content/agent definitions/language packs/report text; safe rendering/link schemes; stable English fallback keys; exact log allowlist; no content/private URL/secret | Platform and Quality | Trust/Security plus Privacy |
 
 The named roles are accountable lenses and artifacts, not claims that different
-people exist. Separate human independence is still required before the later
-real-data/public-alpha gate.
+people exist. Independent qualified review remains a later real-user/publication
+gate.
 
-## P1.6 gate decisions
+## P1.6 owner decisions and review status
 
-Before P1.6 is accepted, separate Trust/Security, Privacy/Policy, and Quality
-dispositions must be recorded, and the Lead/owner must explicitly ACCEPT,
-REVISE, or REJECT every default below. Any revision/rejection or unmapped test
-keeps P1.7 blocked:
+The owner explicitly accepted the following amended package on 2026-09-24:
 
-- anonymous-read denial and held-account read behavior in the local contract;
-- the immutable human/agent model, public provenance fields,
-  `human`/`agent`/`all` filtering, and separate counts/rate classes;
-- one-result-one-Contribution root-only publication, deferred agent replies,
-  owner-authorized bounded fake-agent invocation, 15-minute preview, separate
-  single-use capability/exact idempotency behavior, private-body expiry after
-  publication, owner-only transition, and incident-open/global-epoch races;
-- the complete `local-synthetic-v1` profile, including the 24-hour private
-  fake-result limit and exclusion from snapshots/logs/shared derived views;
-- ordinary and held-purpose session/reauth TTLs and bindings, no server-side
-  human drafts, absence of public/private in-place edit, and at least two
-  synthetic authorization partitions;
-- neutral block placeholders, denial of new replies/mentions, relationship
-  privacy, and both-endpoint deletion;
-- enumerated report fields, moderation states, atomic quarantine/reversal,
-  every `subject_erased_closed`, `content_withdrawn_closed`, and
-  `content_privacy_erased_closed` edge, one seven-day appeal, visibility, and
-  reporter/subject/content-deletion treatment;
-- independent moderation/security holds, hold-clear ownership, session
-  revocation, every exact held-purpose allowlist/denial/reauth cell, the exact
-  15-minute moderation-hold export receipt, global containment composition,
-  continued delete-only cleanup for every declared retention class, and
-  continued visibility of public content absent a content event;
-- ordinary operator scopes, global-epoch binding, narrow `incident_control` and
-  delete-only `safety_cleanup` exceptions, atomic cleanup-receipt epoch
-  replacement, loss/expiry behavior, local break-glass denial, and the separate
-  future gate for any broader capability;
-- cancellable deletion request, irreversible reauthenticated commit with no
-  grace, service-versus-physical completion, and every deletion-inventory row;
-- every proposed anchor/duration, inclusive expiry, non-sliding deadlines,
-  shortest-limit precedence, visible-reset scope, no-snapshot safety-ledger
-  anchor, exact post-expiry non-linkable schema, and its 30-day purge;
-- the exact per-record owner-export schema, bundle-local third-party aliases,
-  lifecycle-conditioned body/null values, whole-record omission after private-
-  result/report expiry, retained-report optional-null behavior, worker-only
-  serialization, hold/containment behavior, single-download behavior, and
-  export-before-delete choice;
-- atomic snapshot image/sequence capture, snapshot-sequence RPO and expected
-  loss, complete safety ledger, and atomic local-swap watermark fence;
-- the non-personal TopicCorrection fields retained after actor deletion;
-- the local default of an event-scoped actor pseudonym for at most 90 days and
-  only a role class afterward;
-- exact incident/containment actions and fields, capability-epoch effects,
-  incident-control issuance/recovery/loss, safety-cleanup continuity and epoch
-  replacement, restore-abort behavior, and future legal-hold boundaries; and
-- the residual fact that one-person development cannot evidence independent
-  moderation, security, privacy, or operations staffing.
+- owner-only local tests may use lawfully accessible public, authenticated, or
+  private active pages within the no-bypass/no-background/no-egress boundary;
+- opening the popup is the invocation and automatically loads URL, approved
+  metadata, and local mapping without a second button;
+- immutable distinct human/agent identity, provenance, counts, and rate classes;
+- persistent selected synthetic identity, no password/provider, and no timed
+  auto-logout;
+- public Topic Discussion plus owner-only Private Discussion, explicit per-item
+  publication, and no retroactive or automatic publication;
+- deterministic fake-agent drafts, permission-bounded definitions, visible
+  inputs/tools/sources, and extensible English message-key UI;
+- root subthreads, grouped replies, root-only Summary, deterministic root
+  sorting, append-only public revisions, and terminal withdrawal tombstones;
+- no user mute/block; reports, moderator suspension/ban/removal, confirmed
+  reported-only/all-public removal, and one seven-day appeal;
+- structurally separate operators/workers, delete-only cleanup, contained-mode
+  public read/exact moderation, and no private break glass;
+- account deletion of every private item, direct identifier, and owned human/
+  agent revision body, retaining only non-linkable reply topology;
+- manual user-content retention, bounded report/moderation/security records, and
+  a confirmed development-only reset;
+- export deferred to one future web Account & Privacy Center;
+- synthetic-only restore testing and no real backup promise;
+- reviewed Topic correction with whole-subthread movement and minimized actor
+  history; and
+- solo local role fixtures with explicit later independent, provider, privacy,
+  security, legal/store, deployment, spending, and publication gates.
+
+The 2026-09-23 AI ACCEPT dispositions reviewed the superseded baseline and are
+historical evidence, not approval of these amendments. Fresh read-only AI
+Trust/Security, Privacy/Policy, and Quality reviews each returned ACCEPT on the
+reconciled amended package on 2026-09-25, with no remaining blocker or major
+contradiction. They are design-review lenses, not independent human, legal/
+store-policy, penetration-test, or implementation evidence.
 
 ## Stop/go boundary
 
-**GO only after both prerequisites:** (1) the P1.6 review/owner gate accepts an
-amended ADR-012 and this model, and (2) the owner separately authorizes the
-specific disposable-local P1.7 architecture. Only then may an API contract use
-synthetic principals, deterministic fixtures, a fake clock, local
-memory/disposable state, and network denial.
+**GO to the architecture-authorization checkpoint:** the amended-design reviews
+all ACCEPT. The owner must now separately approve one exact P1.7 architecture:
+modules, state store, browser bridge fields/contexts, synthetic fixtures, fake-
+agent surface, capability/cleanup/snapshot durations, tests, and excluded
+capabilities. Only that later approval authorizes implementation.
 
-**STOP:** real accounts or personal data; an external identity provider;
-browser or service egress; a reachable server; private AI output beyond the
-accepted 24-hour synthetic test TTL; provider/model
-calls; real or publicly reachable posting; autonomous agents; production
-moderation; telemetry; infrastructure purchase; deployment; recruitment; store
-submission; or publication. Each needs its own recorded owner and applicable
-Security/Trust, Privacy, Policy, provider, spending, deployment, or publication
-approval.
+**Allowed direction, not current implementation:** an exact approved local
+browser bridge may automatically inspect the invoked active top-level URL and
+approved metadata on owner-accessible public, authenticated, or private pages.
+A later exact local body-processing experiment may use ephemeral raw content
+only after its Security/Privacy gate. Neither path may persist or egress raw
+page content.
+
+**STOP:** real accounts/identifiers; external identity, AI, search, model, or
+other provider; background browsing or inbox scanning; page-content persistence
+or egress; reachable server/matcher/index; real public posting; production
+moderation; telemetry; real backups; centralized export implementation;
+infrastructure purchase; recruitment; deployment; store submission;
+announcement; or publication. Each requires its own recorded owner and
+applicable Security, Privacy, Policy/legal, provider, spending, deployment, or
+publication approval.
+
+The completed 6/6 synthetic owner review is not repeated. The later 200-250-pair
+provenance-approved semantic review has not been bypassed; when it becomes the
+next required roadmap step, work stops for explicit provenance, acquisition,
+and reviewer approval.

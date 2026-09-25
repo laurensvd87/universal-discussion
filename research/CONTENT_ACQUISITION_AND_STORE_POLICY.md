@@ -1,10 +1,10 @@
 # Cross-platform content signals and store-policy evidence
 
-Status: research only; no model use, extraction, real-content test, egress,
-storage, provider, spending, deployment, publication, or legal conclusion is
-authorized
+Status: research evidence plus an owner-approved local-test direction; exact
+implementation, model, egress, server storage, provider, spending, deployment,
+store submission, publication, and legal conclusions remain unauthorized
 
-Evidence checked: 2026-09-23
+Evidence checked: 2026-09-23; owner decision updated 2026-09-24
 
 Owners: Lead / Product Orchestrator, Platform and Client, Trust, Privacy,
 Security, Policy / legal, Quality
@@ -38,6 +38,12 @@ No robots, metadata, hashing, or embedding technique by itself creates a
 content licence or guarantees store acceptance. This is product/platform
 research, not legal advice; a qualified review is required before public
 distribution with third-party content extraction.
+
+The conservative release posture above is distinct from the owner-only local
+PoC direction accepted on 2026-09-24. That direction permits a later exact,
+network-denied implementation to operate on a lawfully accessible public,
+authenticated, or private active page without claiming generalized store or
+publisher approval. Its constraints are recorded below.
 
 ## Current official evidence
 
@@ -158,7 +164,7 @@ also requires an API key and charges beyond the free quota:
 ## Approved bounded generic metadata experiment
 
 On 2026-09-22 the owner approved the exact P1.5c controlled-page plus pinned
-MDN-page increment in `P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`. It retains one
+MDN-page increment in `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md`. It retains one
 portable contract rather than per-site extraction code:
 
 ```text
@@ -211,6 +217,40 @@ For cross-device/server matching, the privacy-safe order to investigate is:
 Even a Topic ID or vector can reveal reading interest and remains subject to
 the egress/retention gate.
 
+## Owner-approved successor local interaction boundary
+
+The completed P1.5c implementation and evidence remain unchanged: today it uses
+a separate metadata button and only the two frozen routes. For a successor
+local PoC, the owner accepted these product requirements:
+
+```text
+open extension popup
+  -> capture the active top-level document
+  -> automatically read URL plus the exact approved metadata envelope
+  -> run only the local mapping/discussion lookup
+  -> attest the same tab and document again
+  -> render or clear every prior value and fail closed
+```
+
+Opening the popup is the explicit gesture; no additional `Check current tab`
+button is required. The automatic action does not read a page body, invoke an
+AI, publish, persist a browsing record, or make a network request. Navigation,
+tab closure, document replacement, unsupported context, or permission failure
+invalidates the result.
+
+After the exact browser-bridge architecture and its Security/Privacy review are
+accepted, the solo owner may test lawfully accessible public, authenticated, or
+private pages locally. The bridge does not bypass login, paywall, or other
+access controls and does not collect cookies, tokens, form fields, attachments,
+frames, or background/inbox content. Any later separately approved body-derived
+operation keeps raw content in memory only and excludes it from persistence,
+sync, logs, telemetry, backups, and egress. Private-page material is never an
+automatic AI input or publication.
+
+This is not generalized extraction authorization, a legal conclusion, or store
+eligibility evidence. External testers, connected matching, and distribution
+return to the qualified rights/store and publication gates.
+
 ## Future on-device content-derived matching branch
 
 On 2026-09-23 the owner requested a future edition that can consider bounded
@@ -226,8 +266,9 @@ the proposed cross-page resolver. The owner directs planning to treat explicit,
 user-invoked on-device semantic derivation as permissible under the owner's ToS
 interpretation. That is a recorded product assumption for future PoC design,
 not independent legal advice, a representation about any particular site's
-terms, or approval to test real third-party/private content or submit a store
-build.
+terms, or approval for external testing or a store build. The owner has approved
+the bounded local real-page direction above in principle; its exact extractor,
+redaction, and model still require the later Security/Privacy checkpoint.
 
 This is a useful product direction, but local transformation is not a Terms of
 Service, copyright, privacy, or store safe harbor. Chrome's Limited Use rules
@@ -297,9 +338,11 @@ Topic representative only under a separately approved consent/provenance rule;
 otherwise it deletes the query and returns unmapped. Individual queries must
 not update a centroid automatically.
 
-The first experiment must remain network-denied and use only project-created or
-owner-authored synthetic fixtures; this excludes every real page, message,
-account, and browsing datum. Before a connected experiment, the design must fix
+The first model/transformation experiment remains network-denied and uses only
+project-created or owner-authored synthetic fixtures. After that evidence and
+the exact later Security/Privacy checkpoint, the approved owner-only local
+scope may add one bounded real active-page case without egress. Before a
+connected experiment, the design must fix
 and separately approve the content selectors, exclusions, transformation/model
 and licence, dimensionality/precision, payload, account linkage, similarity
 thresholds, minimum cohort protection, server/index access, encryption, logs,
@@ -313,9 +356,10 @@ The phishing-mail scenario is an illustrative upper-bound/privacy test, not a
 separate core product or current commitment. Webmail and messages are a
 distinct high-risk class, not an ordinary public page. The future branch must
 not scan an inbox, run passively, inspect
-attachments, or assume that being signed in authorizes product reuse. It may
-start only from an explicit per-message user action after separate qualified
-Security, Privacy, Policy/rights, and store review.
+attachments, or assume that being signed in authorizes product reuse. Synthetic
+validation comes first. A manually opened real owner-accessible message may be
+tested locally only after the exact Security, Privacy, and Policy checkpoint;
+external support and distribution still require qualified rights/store review.
 
 Before derivation, the client must use a tested local minimizer to remove or
 generalize recipient/sender addresses and names, message and order IDs,
@@ -338,7 +382,8 @@ as “this looks like phishing” is unverified guidance, not a security verdict
 
 `decisions/ADR-013-future-on-device-content-derived-matching.md` records this
 requested direction and its stop boundary. It does not authorize extraction,
-egress, model use, server storage, or testing on a real page or message.
+egress, model use, or server storage. The owner-only real-page scope is approved
+in principle but has no implementation until its exact gate closes.
 
 ## Required decision and evidence gates
 
@@ -353,11 +398,12 @@ Before adding `scripting`, a content script, `evaluateJavascript`,
   handling, observable robots/meta/TDM signals, the limits of
   authenticated/paywalled/private-context detection, and model/data licences;
   and
-- synthetic/owned-page tests before any third-party-page test.
+- synthetic/owned-page tests before the approved owner-only real-page case.
 
-Those approvals are recorded for the exact Chromium P1.5c slice only. The
-first external target is the rights-reviewed MDN metadata-reference page; all
-other sites and all Android/iOS adapters still require a new disposition.
+Those approvals are recorded for the exact Chromium P1.5c slice only. Its first
+external target was the rights-reviewed MDN metadata-reference page; all other
+sites and all Android/iOS adapters still require the exact later disposition
+described here.
 
 Before any raw or derived signal leaves the device, separately approve the
 exact payload, purpose, server/provider, correlation risk, logs, cache,
@@ -366,9 +412,11 @@ Store, or Play submission, stop for explicit publication approval and repeat a
 current-policy audit with accurate privacy/store declarations and rights
 evidence.
 
-The current solo owner can continue the local URL-only PoC and synthetic
-metadata research. Before public shipment of generalized third-party metadata
-or body extraction, obtain an independent qualified IP/platform-terms review.
+The current solo owner may continue the local URL/metadata PoC and, after the
+exact architecture/Security/Privacy checkpoint, the bounded real active-page
+test above. Before external testing or public shipment of generalized third-
+party metadata or body extraction, obtain an independent qualified IP/platform-
+terms review.
 Its bounded assignment is to examine the exact field envelope, transformations,
 retention/egress, excluded contexts, terms-handling method, store disclosures,
 and representative publisher terms, then identify which claims and domains

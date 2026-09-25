@@ -1,9 +1,10 @@
 # ADR-013: Future on-device content-derived private matching
 
-Status: Proposed research direction only; no extraction, model, egress,
-retention, provider, deployment, spending, store, or publication approval
+Status: Owner-approved future local-test direction; exact architecture and
+implementation remain proposed; no model, egress, retention, provider,
+deployment, spending, store, or publication approval
 
-Date: 2026-09-23
+Date: 2026-09-24
 
 Owners: Lead/Product, Semantic, Platform and Client, Trust/Security/Privacy/
 Policy, and Quality
@@ -27,9 +28,12 @@ anonymous merely because a human cannot read it directly.
 The owner has directed planning to assume that an explicit, user-invoked local
 semantic derivation is permitted under the owner's interpretation of website
 terms. The desired match is semantic similarity across different content, not
-byte identity; an exact hash is only a duplicate/control baseline. This owner
-assumption informs research but is not an independent legal/store conclusion or
-authorization for a real-page/private-message test.
+byte identity; an exact hash is only a duplicate/control baseline. On
+2026-09-24 the owner approved, in principle, an owner-only local test on
+lawfully accessible public, authenticated, or private active pages, including a
+manually opened webmail page. That approval has no implementation until an
+exact Security/Privacy architecture gate passes, and it is not an independent
+legal/store conclusion or approval for external testers.
 
 `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` records the current official
 store/rights evidence, embedding-inversion evidence, design constraints, and
@@ -40,10 +44,15 @@ qualified-review boundary.
 For a separately approved future branch:
 
 1. Require an explicit user action and an exact approved content/context
-   contract. Extract and minimize locally; never send raw page/message content.
+   contract. Opening the extension may be that gesture for URL/approved
+   metadata/local lookup; raw-body derivation remains a separately disclosed
+   local operation. Extract and minimize locally; never send raw page/message
+   content.
 2. Version the local canonicalization, redaction, model/fingerprint, and output
-   schema. Reject unsupported, private, sensitive, ambiguous, oversized, or
-   negatively signalled contexts before derivation or egress.
+   schema. Reject unsupported, ambiguous, oversized, or negatively signalled
+   contexts. Authenticated/private input is not rejected merely for being
+   private in the owner-only experiment, but it receives the stricter controls
+   below and can never flow into automatic publication or provider egress.
 3. Classify every fingerprint, embedding, centroid, similarity score, and
    derived identifier as restricted content/browsing-interest data. Encryption
    and access control protect it; they do not make it anonymous.
@@ -72,12 +81,15 @@ implementation authorization.
 
 ## High-risk private-message stress case
 
-Private messages/webmail require a later, stricter gate. No passive inbox scan,
-attachment inspection, or automatic background derivation is proposed. An
-experiment would start from one explicit user-selected synthetic message and
-locally remove or generalize addresses, names, signatures, quoted history,
-message/order IDs, unique/tracking URLs, fine timestamps, tokens, and other
-recipient-specific values before derivation.
+Private messages/webmail require a later, stricter exact gate. No passive inbox
+scan, attachment inspection, or automatic background derivation is proposed.
+Model and transformation validation starts with one project-created synthetic
+message. After that evidence and an explicit Security/Privacy checkpoint, the
+owner-approved local scope may use one manually opened real message that the
+owner may lawfully access. The operation locally removes or generalizes
+addresses, names, signatures, quoted history, message/order IDs, unique/tracking
+URLs, fine timestamps, tokens, and other recipient-specific values before
+derivation. No raw or derived value leaves the device in that experiment.
 
 A resulting Topic may represent a suspected campaign, but no Discussion is
 shown across accounts until an approved minimum-cohort/anti-correlation rule
@@ -87,7 +99,8 @@ phishing” remain unverified guidance, and the design needs poisoning, attacker
 participation, rate-limit, provenance, moderation, and correction tests.
 
 The example demonstrates how far the generic mechanism might later extend; it
-does not make private communications part of the initial public-page scope.
+does not authorize inbox enumeration, a multi-user private-message feature,
+remote matching, or publication of message-derived material.
 
 ## Consequences
 
@@ -130,8 +143,7 @@ Before even a local implementation:
 
 - owner approval of the exact project-created or owner-authored synthetic
   fixtures, content region, redaction, transformation, model/licence, and
-  success/stop metrics; real pages, messages, accounts, and browsing data are
-  excluded;
+  success/stop metrics; synthetic evidence comes first;
 - Trust/Security and Privacy review of local extraction, derived-data leakage,
   malicious input/model files, device isolation, and deletion verification;
 - Policy/rights/store review that explicitly rejects any claim that local
@@ -143,20 +155,25 @@ Before any signal leaves a device, separately approve the exact payload,
 purpose, authentication/account linkage, matcher/index design, Topic
 representative lifecycle, minimum-cohort rule, logs, retention/deletion/
 backups, security response, provider/model, cost, deployment, and rollback.
-Testing on any real public page or private message, operating a reachable
-matcher, purchasing resources, store submission, and publication each remain
-their own explicit owner and applicable Security/Privacy/Policy/provider/
-spending/deployment/publication gate.
+Before exercising the already approved owner-only real-page direction, stop for
+the exact extractor/model/redaction Security, Privacy, and Policy checkpoint.
+No new generic owner-scope permission is needed, but the exact technical design
+must be accepted. Operating a reachable matcher, purchasing resources, store
+submission, and publication each remain their own explicit owner and applicable
+Security/Privacy/Policy/provider/spending/deployment/publication gate.
 
-An independent qualified IP/platform-terms reviewer is required before any
-generalized third-party content or private-message experiment. The solo owner
-and AI review can prepare synthetic evidence but cannot substitute for that
-assignment.
+An independent qualified IP/platform-terms reviewer is required before external
+testing, generalized product support for third-party/private content, store
+submission, or publication. It is not required for the approved owner-only,
+network-denied local experiment. The solo owner and AI review cannot substitute
+for that later assignment.
 
 ## Relationship to the current roadmap
 
 ADR-011/P1.5c remains the completed two-route metadata experiment. ADR-013 does
-not broaden it. P1.6 and P1.7 remain focused on synthetic identity/lifecycle
-contracts. The future content-derived branch begins only at the separately
-listed roadmap task after the local end-to-end proof and never bypasses the
-later 200–250-pair provenance-approved semantic review gate.
+not broaden its completed evidence. The owner-approved automatic-on-popup URL/
+metadata lookup and owner-only active-page direction are successor requirements
+in ADR-012, not retroactive evidence for ADR-011 or authorization for this
+semantic branch. P1.6/P1.7 remain local identity/lifecycle contracts. The
+content-derived branch begins only at its separately listed roadmap task and
+never bypasses the later 200-250-pair provenance-approved semantic review gate.

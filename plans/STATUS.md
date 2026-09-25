@@ -12,11 +12,11 @@ Chromium smoke pass. The exact approved P1.5c metadata implementation now
 also has passing automated verification, separate AI Trust/Security and Quality
 review, and owner browser smoke. General page/WebView extraction and full browser
 integration stay at a separate owner/security/privacy/rights/store-policy stop.
-The documentation-only P1.6 auth/identity/moderation/data-lifecycle package is
-now drafted and remediated after an initial read-only rejection. Iterative and
-fresh final AI reviews returned Trust/Security, Privacy/Policy, and Quality
-ACCEPT. Explicit owner decisions remain open; no P1.7 implementation is
-authorized.
+The owner accepted the materially amended P1.6 identity/discussion/moderation/
+lifecycle package on 2026-09-24. The prior Trust/Security, Privacy/Policy, and
+Quality ACCEPT reviews apply to the superseded baseline. Fresh read-only AI
+reviews of the reconciled amended package each returned ACCEPT on 2026-09-25,
+so P1.6's design gate is complete. No P1.7 implementation is authorized.
 
 ## Current objective
 
@@ -27,9 +27,7 @@ review-ready owner labeling workflow, and advancing the shortest local
 NO-AUTO proof of concept. Preserve the completed exact P1.5b URL-only and P1.5c
 two-route metadata evidence while stopping before any broader Chromium,
 Android, or iOS extraction implementation. The next critical-path checkpoint is
-the explicit P1.6 owner design gate over the AI-accepted package; P1.7 must not
-start before that gate and a second, separately recorded disposable-local-
-architecture authorization.
+the separately recorded exact disposable-local P1.7 architecture authorization.
 
 ## Completed on 2026-09-19
 
@@ -125,7 +123,8 @@ architecture authorization.
   persisted.
 - Inventoried and pinned one 580-byte project-created synthetic HTML fixture,
   added HTML to the secret scanner, and recorded the parser/fingerprint
-  contract in proposed ADR-006 and `EXTRACTION_CONTRACT.md`. The report states
+  contract in proposed ADR-006 and
+  `spikes/topic-resolution/EXTRACTION_CONTRACT.md`. The report states
   that `fixtureId` and `synthetic-fixture` evidence are caller declarations and
   that runtime provenance is unverified; a connected path still needs trusted
   observation/receipt design.
@@ -324,8 +323,9 @@ architecture authorization.
   contract plus ADR-012. After multiple REVISE cycles, iterative and fresh final
   read-only AI reviews each returned Trust/Security, Privacy/Policy, and Quality
   ACCEPT with no remaining blocker. `research/P1_6_DESIGN_REVIEW.md` records
-  reviewer provenance, remediations, and residual gates. This is design evidence
-  only; explicit owner acceptance remains open and P1.7 has not started.
+  reviewer provenance, remediations, and residual gates. At that 2026-09-23
+  baseline, explicit owner acceptance remained open and P1.7 had not started;
+  the following day's amendment record supersedes that status.
 - Recorded ADR-013 and optional P1.11 as a future research direction for
   on-device semantic content-derived matching. Exact hashes are a control only;
   the preferred candidate uses an ephemeral per-observation semantic query and
@@ -334,21 +334,75 @@ architecture authorization.
   This authorizes no implementation, real content, model, egress, server
   retention, provider, spending, deployment, store submission, or publication.
 
+## Completed on 2026-09-24
+
+- Completed the ADR-012 owner gate point by point. The owner accepted all 16
+  amended dispositions plus the final interaction amendment. The completed 6/6
+  synthetic review remains closed and will not be repeated.
+- Accepted the successor interaction requirement that opening the extension is
+  the explicit gesture and should automatically load the active top-level URL,
+  exact approved metadata, and local discussion mapping without a second
+  button. This is not yet implemented and does not auto-read a body, invoke AI,
+  publish, persist browsing state, or make a network request.
+- Accepted an owner-only local-test direction for lawfully accessible public,
+  authenticated, and private active pages after the exact architecture and
+  Security/Privacy checkpoint. It forbids access-control bypass, background/
+  inbox scanning, cookies/tokens/form fields/attachments, raw-content storage,
+  logs, backups, and egress. It is not external-test, legal/store, or publication
+  approval.
+- Accepted immutable human/agent identity; persistent selected synthetic
+  identity without password or timed logout; public and owner-only private
+  discussion destinations; unpublished editable AI candidates; permission-
+  bounded agent definitions; English message-key localization; root subthreads,
+  grouped replies, root-only Summary, deterministic root sorting, public
+  revisions, and withdrawal tombstones.
+- Chose reports and moderator action instead of user mute/block. Moderators may
+  suspend or ban and, with an exact count confirmation, leave prior content,
+  remove only the reported public item, or remove every public human and owned-
+  agent contribution; one seven-day appeal remains. Moderators never receive
+  private content.
+- Accepted least-privilege operators/workers, contained-mode public reading and
+  exact public hiding, no private break glass, account deletion of every owned
+  private item and human/agent revision body, manual user-content retention,
+  bounded moderation/security records, and a confirmed development-only reset.
+- Deferred user export to one future web Account & Privacy Center and real
+  backup/recovery to later provider/security/privacy/deployment/spending gates.
+  Restore evidence remains isolated and synthetic-only. Topic corrections may
+  move complete root subthreads but never detach one reply.
+- Owner acceptance materially superseded the prior P1.6 baseline. At that
+  point, fresh AI Trust/Security, Privacy/Policy, and Quality review was still
+  required before P1.6 could close; the 2026-09-25 section records its outcome.
+
+## Completed on 2026-09-25
+
+- Reconciled the owner-amended ADR-012, lifecycle threat model, domain/AI model,
+  acquisition-policy boundary, roadmap, status, README, and review record.
+- Added exact private-human copy-to-public semantics, report-revision evidence,
+  membership-version fences for bulk moderation and subthread moves, an exact
+  containment-right intersection, reference-only quotation deletion, and the
+  fixed-fixture-versus-adapter boundary.
+- Fresh read-only AI Trust/Security, Privacy/Policy, and Quality lenses each
+  returned ACCEPT on the final amended design with no remaining blocker or
+  major contradiction. These are design lenses, not independent human, legal,
+  store-policy, penetration-test, or implementation evidence.
+- Closed the P1.6 design gate. P1.7 remains unimplemented and blocked until the
+  owner separately approves one exact disposable-local architecture.
+
 ## Active decisions
 
-- `ADR-001-offline-resolution-spike.md`: **Accepted for offline P1.1 only** at code commit `d33f010`. It authorizes no connected behavior, real data, or semantic-quality claim.
-- `ADR-002-browser-observation-privacy.md`: **Accepted direction; connected-use gate open**. It approves user-invoked `activeTab`, not data egress or real-user collection.
-- `ADR-003-alpha-architecture.md`: **Proposed**; its paper cost comparison exists, but measured load, recovery, security, and operations evidence still block a production-stack commitment.
-- `ADR-004-initial-topic-granularity.md`: **Accepted** for the initial English editorial corpus.
-- `ADR-005-topic-discussion-correction-history.md`: **Proposed**; owner, Trust, and Quality review are required before correction implementation.
-- `ADR-006-synthetic-html-extraction-profile.md`: **Proposed with offline implementation evidence and Trust/Quality ACCEPT**; the narrow synthetic profile is implemented, but owner acceptance remains open. It authorizes no live page or production fingerprint use.
-- `ADR-007-offline-owner-review-ledger.md`: **Accepted by the owner for the offline workflow and generated-only P1.2b-1 preflight**; the existing synthetic implementation has Trust/Quality ACCEPT, but the decision authorizes no real-data collection, real independent review, corpus finalization, split, or evaluation.
-- `ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
-- `ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
-- `ADR-010-local-active-tab-url-observation.md`: **Accepted and complete for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated, Trust/Quality engineering-review, and owner Chromium evidence pass.
-- `ADR-011-cross-platform-content-signal-boundary.md`: **Accepted and complete for the exact P1.5c controlled-page plus one pinned MDN-page experiment.** Automated, AI Trust/Security and Quality engineering-review, and owner Chromium evidence pass. It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
-- `ADR-012-local-identity-publication-moderation-lifecycle.md`: **Proposed; AI review ACCEPT, owner gate open, and P1.7 blocked.** The synthetic-only design now enumerates exact multi-object authorization, immutable human/agent provenance, one-result/one-publication consent, reports/appeals/blocks, scoped operators/workers, asset-level deletion/export, anchored retention, and fenced restore. Iterative and fresh final AI reviews returned Trust/Security, Privacy/Policy, and Quality ACCEPT after the initial rejection findings were reconciled. It authorizes no implementation, real identity/data, network, provider, deployment, spending, or publication.
-- `ADR-013-future-on-device-content-derived-matching.md`: **Proposed research direction only.** It records a later optional ephemeral-query/protected-Topic-representative architecture and a high-risk synthetic phishing-message stress case. It is not the next task and authorizes no body extraction, real page/message/account data, model, egress, matcher/index retention, provider, spending, deployment, store submission, or publication.
+- `decisions/ADR-001-offline-resolution-spike.md`: **Accepted for offline P1.1 only** at code commit `d33f010`. It authorizes no connected behavior, real data, or semantic-quality claim.
+- `decisions/ADR-002-browser-observation-privacy.md`: **Accepted direction; connected-use gate open**. It approves user-invoked `activeTab`, not data egress or real-user collection.
+- `decisions/ADR-003-alpha-architecture.md`: **Proposed**; its paper cost comparison exists, but measured load, recovery, security, and operations evidence still block a production-stack commitment.
+- `decisions/ADR-004-initial-topic-granularity.md`: **Accepted** for the initial English editorial corpus.
+- `decisions/ADR-005-topic-discussion-correction-history.md`: **Proposed**; owner, Trust, and Quality review are required before correction implementation.
+- `decisions/ADR-006-synthetic-html-extraction-profile.md`: **Proposed with offline implementation evidence and Trust/Quality ACCEPT**; the narrow synthetic profile is implemented, but owner acceptance remains open. It authorizes no live page or production fingerprint use.
+- `decisions/ADR-007-offline-owner-review-ledger.md`: **Accepted by the owner for the offline workflow and generated-only P1.2b-1 preflight**; the existing synthetic implementation has Trust/Quality ACCEPT, but the decision authorizes no real-data collection, real independent review, corpus finalization, split, or evaluation.
+- `decisions/ADR-008-generated-review-resolution-journal.md`: **Accepted for generated-only P1.2b-1 implementation under the owner's continuation direction**; it requires one versioned causal head and derived exclusions, and authorizes no real review, adjudication completion, reserve activation, corpus, split, or evaluation claim.
+- `decisions/ADR-009-local-poc-before-semantic-validation.md`: **Accepted for local fixture-driven PoC sequencing**; it defaults semantic resolution to NO AUTO, permits candidates only as local suggestions, and defers rather than satisfies the real human-review requirement. It authorizes no connected use, collection, deployment, spending, or publication.
+- `decisions/ADR-010-local-active-tab-url-observation.md`: **Accepted and complete for the exact local P1.5b boundary.** It adds only `activeTab` for an invoked, queryless, two-URL allowlisted read held in popup memory and authorizes no title/content extraction, storage, network, broader browsing observation, deployment, or publication. Automated, Trust/Quality engineering-review, and owner Chromium evidence pass.
+- `decisions/ADR-011-cross-platform-content-signal-boundary.md`: **Accepted and complete for the exact P1.5c controlled-page plus one pinned MDN-page experiment.** Automated, AI Trust/Security and Quality engineering-review, and owner Chromium evidence pass. It authorizes only the frozen generic metadata envelope under `activeTab` plus `scripting`, ephemeral local processing, and temporal-hint non-use. It authorizes no body/JSON-LD extraction, model, semantic decision, egress, storage, mobile adapter, general third-party page, deployment, or store submission.
+- `decisions/ADR-012-local-identity-publication-moderation-lifecycle.md`: **Accepted P1.6 design; fresh amended-design AI reviews ACCEPT; P1.7 blocked.** It records the automatic current-context lookup boundary, persistent synthetic identity, immutable human/agent provenance, public and owner-only private Discussions, unpublished AI candidates, threaded replies and append-only revisions, reports and moderator suspension/ban/removal, manual content retention, content-removing account deletion, future centralized web export, and synthetic-only restore. The 2026-09-23 AI ACCEPT reviews cover the superseded baseline; the 2026-09-25 fresh Trust/Security, Privacy/Policy, and Quality reviews cover the final amended design. It authorizes no P1.7 implementation, real account, network, provider, deployment, spending, store submission, or publication.
+- `decisions/ADR-013-future-on-device-content-derived-matching.md`: **Owner-approved future local-test direction; exact implementation remains gated.** It records a later optional ephemeral-query/protected-Topic-representative architecture and a high-risk synthetic phishing-message stress case. Owner-only use of a lawfully accessible public, authenticated, or private active page is acceptable in principle only after the exact extractor, redaction, model/licence, Security, Privacy, and Policy gate. It is not the next task and authorizes no model, egress, reachable matcher/index, provider, spending, deployment, store submission, or publication.
 
 ## Blockers
 
@@ -364,11 +418,11 @@ architecture authorization.
   profile is integrated anywhere.
 - Exact connected/production egress fields, account linkage, sensitive-site
   exclusions, log/backup retention, deletion, and telemetry remain undecided.
-- The P1.6 auth/object-authorization/data-lifecycle threat model and ADR-012
-  have been drafted and remediated after their initial read-only audit. Final AI
-  Trust/Security, Privacy/Policy, and Quality dispositions are ACCEPT; explicit
-  row-by-row owner disposition remains open. P1.7 also requires a separate
-  exact disposable-local-architecture authorization after this gate.
+- The owner accepted the amended P1.6 auth/object-authorization/data-lifecycle
+  threat model and ADR-012 on 2026-09-24. Those amendments supersede the prior
+  AI review baseline. Fresh Trust/Security, Privacy/Policy, and Quality reviews
+  each ACCEPT the reconciled package. P1.7 still requires a separate exact
+  disposable-local-architecture authorization.
 - The alpha architecture and host/auth/provider choices are not accepted.
 - BYO AI remains blocked on provider terms, credential handling, content disclosure, retention, and explicit publication design.
 - P1.1 is complete only for its frozen offline code at `d33f010`; a code-bearing change reopens review. The acceptance does not authorize connected or real-data behavior, automatic semantic joins, or browser/service controls.
@@ -495,11 +549,11 @@ architecture authorization.
 continued local use of the completed, exact P1.5b `activeTab` URL-only slice;
 preservation of the completed exact ADR-011/P1.5c evidence; and local reruns of
 its project-owned loopback fixture only; plus documentation/review of the
-synthetic-only P1.6 design without creating accounts, state, or a service; plus
+owner-accepted P1.6 design without creating accounts, state, or a service; plus
 documentation/research for ADR-013/P1.11 without implementing extraction,
 models, matching, or retention.
 
-**STOP:** any `scripting`, title/metadata/DOM/body/WebView extraction, field,
+**STOP:** any new `scripting`, title/metadata/DOM/body/WebView extraction, field,
 selector, or URL eligibility beyond the exact accepted ADR-011/P1.5c envelope
 and two routes;
 another public-page metadata invocation, including a repeat of the already
@@ -508,8 +562,8 @@ integrating P1.3 into a client; unapproved
 real/public corpus acquisition or check-in; real browsing capture/egress, live
 URL fetches, hosted embeddings, auth/public writes, AI
 credentials/inference, deployment, spending, announcements, recruitment, and
-store submission; or any P1.7 implementation before both its P1.6 gate and
-separate exact disposable-local-architecture authorization close; or any P1.11
+store submission; or any P1.7 implementation before its separate exact
+disposable-local-architecture authorization closes; or any P1.11
 implementation, real-content test, model execution/download, derived-signal
 egress, reachable matcher/index, Topic-representative retention, or private-
 message experiment before its separately recorded owner, Security, Privacy,
@@ -527,19 +581,15 @@ another campaign returns to explicit owner and Policy/Rights review. ADR-006
 can remain pending because P1.5c does not integrate its different
 byte-extraction profile.
 
-The next critical-path owner checkpoint is the P1.6 design gate. The threat
-model and ADR-ready state model are drafted and the initial rejection findings
-have been remediated. Iterative and fresh final AI reviews separately returned
-Trust/Security, Privacy/Policy, and Quality ACCEPT; those are review lenses, not
-independent human staffing or legal advice. The owner must now ACCEPT, REVISE,
-or REJECT every ADR-012 row covering identity/provenance/views, publication/
-idempotency, sessions/holds, reports/blocks/appeals, operator and worker access,
-exact retention anchors, asset-level deletion/export, snapshot/restore fencing,
-audit, and incidents. P1.6 is synthetic documentation only; it authorizes no
-account, external identity provider, real user data, network exposure, provider,
-deployment, spending, or publication. P1.7 cannot start until that disposition
-and its separate exact disposable-local architecture authorization are both
-recorded.
+The P1.6 owner gate is complete: on 2026-09-24 the owner accepted all 16
+amended dispositions and the automatic-current-context amendment. Fresh AI
+Trust/Security, Privacy/Policy, and Quality reviews each returned ACCEPT on the
+reconciled package on 2026-09-25; these are review lenses, not independent human
+staffing or legal advice. The next critical-path owner checkpoint is a separate
+exact P1.7 disposable-local architecture authorization. That request must name
+the precise modules, persisted classes, role fixtures, bridge/acquisition
+behavior, fake-agent boundary, tests, and excluded capabilities. Until the owner
+explicitly approves that exact package, no P1.7 implementation may start.
 
 Approve or revise ADR-003's modular-monolith direction, ADR-005's append-only
 merge/split history semantics, and ADR-006's narrow synthetic extraction
