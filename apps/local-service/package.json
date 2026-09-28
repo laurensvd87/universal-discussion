@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none test/*.test.js",
-    "test:integration": "node --test --test-isolation=none test/integration/*.test.js",
+    "test:integration": "node harness/integration-gate.js",
     "check:secrets": "node harness/scan-secrets.js"
   },
   "engines": {

@@ -9,6 +9,9 @@ data transmission, deployment, spending, recruitment, or publication.
 ADR-016 now defines the service-first architecture and a pending exact loopback/
 token/storage/permission approval package. Local HTTP is a data transfer; earlier
 "no network" evidence describes the offline spike, not future service integration.
+The S1/S2 handler is currently exercised only in-process under the same capability-
+denial harness. Its Host/token/Origin checks are implementation evidence, not an
+authorization to bind the listener or connect the extension.
 
 ## Trust
 - Never disguise AI as human.

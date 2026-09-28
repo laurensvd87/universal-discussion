@@ -16,6 +16,9 @@ export function createDemoState({ generation, createdAt, sources, topicSeeds }) 
   const sourceLinks = sources
     .filter((source) => source.topicId !== null)
     .map((source) => ({ sourceId: source.id, topicId: source.topicId, method: "fixture-confirmed" }));
+  const sourceRecords = sources.map(({ id, url, title, embedding, provenance }) => ({
+    id, url, title, embedding, provenance,
+  }));
   return {
     schema: STATE_SCHEMA,
     generation,
@@ -23,7 +26,7 @@ export function createDemoState({ generation, createdAt, sources, topicSeeds }) 
     topics,
     discussions,
     contributions: [],
-    sources: clone(sources),
+    sources: clone(sourceRecords),
     sourceLinks,
   };
 }
@@ -56,6 +59,7 @@ export function applyCommand(state, command, actor, { nextId, now }) {
   const type = readText(typeDescriptor.value, 64);
   const next = clone(state);
   const timestamp = now();
+  let result;
 
   if (type === "create-topic") {
     const input = commandRecord(command, ["title", "kind"]);
@@ -64,18 +68,23 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     if (next.topics.length >= LIMITS.topics) fail("capacity", "Capacity reached");
     const topicId = readId(nextId("topic"));
     const discussionId = readId(nextId("discussion"));
+    ensureUnused(next, topicId, discussionId);
     next.topics.push({ id: topicId, title, kind: input.kind, createdAt: timestamp });
     next.discussions.push({ id: discussionId, topicId });
+    result = { topicId, discussionId };
   } else if (type === "create-root") {
     const input = commandRecord(command, ["topicId", "body"]);
     const topicId = readId(input.topicId);
     const discussion = next.discussions.find((entry) => entry.topicId === topicId);
     if (!discussion) fail("not-found", "Object unavailable");
+    const contributionId = readId(nextId("contribution"));
+    ensureUnused(next, contributionId);
     addContribution(next, {
-      id: readId(nextId("contribution")), discussionId: discussion.id,
+      id: contributionId, discussionId: discussion.id,
       rootId: null, replyToId: null, authorId: actor.id,
       body: readText(input.body, 8_000), timestamp,
     });
+    result = { contributionId };
   } else if (type === "reply") {
     const input = commandRecord(command, ["discussionId", "rootId", "replyToId", "body"]);
     const discussion = findDiscussion(next, readId(input.discussionId));
@@ -92,17 +101,21 @@ export function applyCommand(state, command, actor, { nextId, now }) {
       }
       replyToId = target.id;
     }
+    const contributionId = readId(nextId("contribution"));
+    ensureUnused(next, contributionId);
     addContribution(next, {
-      id: readId(nextId("contribution")), discussionId: discussion.id,
+      id: contributionId, discussionId: discussion.id,
       rootId: root.id, replyToId, authorId: actor.id,
       body: readText(input.body, 8_000), timestamp,
     });
+    result = { contributionId };
   } else if (type === "edit") {
     const input = commandRecord(command, ["contributionId", "body"]);
     const contribution = findContribution(next, readId(input.contributionId));
     if (contribution.withdrawn || contribution.authorId !== actor.id) fail("forbidden", "Action unavailable");
     if (contribution.revisions.length >= LIMITS.revisions) fail("capacity", "Capacity reached");
     contribution.revisions.push({ body: readText(input.body, 8_000), createdAt: timestamp });
+    result = { contributionId: contribution.id };
   } else if (type === "withdraw") {
     const input = commandRecord(command, ["contributionId"]);
     const contribution = findContribution(next, readId(input.contributionId));
@@ -110,11 +123,22 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     contribution.withdrawn = true;
     contribution.authorId = null;
     contribution.revisions = [];
+    result = { contributionId: contribution.id };
   } else {
     fail("forbidden", "Action unavailable");
   }
   next.revision += 1;
-  return next;
+  return { state: next, result };
+}
+
+function ensureUnused(state, ...ids) {
+  const existing = new Set([
+    ...state.topics.map((entry) => entry.id),
+    ...state.discussions.map((entry) => entry.id),
+    ...state.contributions.map((entry) => entry.id),
+    ...state.sources.map((entry) => entry.id),
+  ]);
+  if (new Set(ids).size !== ids.length || ids.some((id) => existing.has(id))) fail("conflict", "Identifier collision");
 }
 
 function addContribution(state, input) {

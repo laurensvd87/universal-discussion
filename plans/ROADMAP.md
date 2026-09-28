@@ -8,8 +8,8 @@ The [historical roadmap](archive/ROADMAP_2026-09-25.md) preserves the old sequen
 This is the active execution order. Do not restart Phase 0 or the completed 6/6
 owner review. More synthetic review machinery is not on the critical path.
 
-The next coding block is specified in [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md):
-S1/S2 service core and persistence first, then an explicit local-connection gate.
+The completed S1/S2 block is specified in [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md).
+Execution is now stopped at its explicit Astra/owner local-connection gate.
 External search/provider selection is deferred by the owner, not an R1 dependency.
 
 ## Evidence already available
@@ -20,8 +20,9 @@ External search/provider selection is deferred by the owner, not an R1 dependenc
   Owner smoke covers those routes, not arbitrary sites or continuous freshness.
 - P1.6 lifecycle design and AI-review history, qualified by ADR-014's policy
   corrections. Most of that design is not implemented.
-- No backend, real accounts, discussion posting, AI provider, embeddings,
-  mobile app, public release or store approval.
+- Offline local-service S1/S2 exist; no listener/client integration, real accounts,
+  UI discussion posting, AI provider, learned embeddings, mobile app, public
+  release or store approval.
 - R2's offline candidate ranker and extension 0.4.0 related-page panel are built.
   Six synthetic Sources and hand-authored vectors prove wiring, not learned
   semantic matching or live discovery. Real-browser panel smoke remains pending.
@@ -43,12 +44,12 @@ Dependencies: R0, ADR-014's local envelope and ADR-016's service-first decision.
 
 Deliver small tested increments:
 
-1. S1: service-owned Topic/Discussion/Contribution domain, memory repository,
-   synthetic Source catalog and candidate-ranking adapter. Pure tests, no I/O.
-2. S2: SQLite persistence and secured in-process API handler; reset, deletion,
+1. S1 complete: service-owned Topic/Discussion/Contribution domain, memory
+   repository, synthetic Source catalog and candidate-ranking adapter.
+2. S2 complete: SQLite persistence and secured in-process API handler; reset, deletion,
    conflict and corruption/version tests. No bound listener or new permissions.
    No canonical extension IndexedDB; no captured URLs/metadata/bodies stored.
-3. STOP for Astra review and explicit owner approval of ADR-016's exact listener,
+3. Current STOP: Astra review and explicit owner approval of ADR-016's exact listener,
    pairing, permissions, payload and retention package. Then S3: activate the
    loopback service and thin extension UI; choose/create Topic, human root,
    reply/edit/delete, English keys. Paired popup opening auto-loads the catalog
@@ -68,7 +69,7 @@ separate; hostile text inert; private output excluded from public counts; reset
 clears local demo assets; keyboard/status coverage and no Internet/provider I/O.
 Approved loopback HTTP is separately disclosed data transfer, not zero network I/O.
 Test applicable authorization rules without claiming real authentication.
-Gate: S1/S2 need no per-module owner questions; listener/client activation needs
+Gate: completed S1/S2 needed no per-module owner questions; listener/client activation needs
 the ADR-016 approval. Follow handoff return-to-Astra checkpoints. No general page
 capture or captured-context persistence is implied by the service or demo UI.
 

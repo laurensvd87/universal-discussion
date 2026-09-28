@@ -24,7 +24,9 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
         model: ranking.model,
         actors: DEMO_ACTORS.map(({ id, displayName, type }) => ({ id, displayName, type })),
         topics: state.topics.map(({ id, title, kind }) => ({ id, title, kind })),
-        sources: state.sources.map(({ id, url, title, topicId }) => ({ id, url, title, topicId })),
+        sources: state.sources.map(({ id, url, title, provenance }) => ({
+          id, url, title, provenance, topicId: topicIdFor(state, id),
+        })),
       });
     },
     related(sourceId, limit = 5) {
@@ -33,7 +35,12 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const state = repository.load();
       const source = state.sources.find((entry) => entry.id === sourceId);
       if (!source) fail("not-found", "Object unavailable");
-      const results = ranking.rank(source, state.sources, limit).map(
+      const rankable = state.sources.map((entry) => ({
+        id: entry.id, url: entry.url, title: entry.title,
+        topicId: topicIdFor(state, entry.id), embedding: entry.embedding,
+      }));
+      const rankableSource = rankable.find((entry) => entry.id === sourceId);
+      const results = ranking.rank(rankableSource, rankable, limit).map(
         ({ id, url, title, topicId, relationship, method }) =>
           ({ id, url, title, topicId, relationship, method }),
       );
@@ -56,8 +63,11 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const expected = readExpectedVersion(expectedValue);
       const state = repository.load();
       if (state.generation !== expected.generation || state.revision !== expected.revision) fail("conflict", "State changed");
-      const next = applyCommand(state, command, this.actor(actorId), { nextId, now });
-      return repository.save(expected, next);
+      const actor = actors.get(actorId);
+      if (!actor) fail("forbidden", "Actor unavailable");
+      const outcome = applyCommand(state, command, actor, { nextId, now });
+      const saved = repository.save(expected, outcome.state);
+      return frozenClone({ state: saved, result: outcome.result });
     },
     reset(expectedValue, confirmation) {
       const expected = readExpectedVersion(expectedValue);
@@ -78,6 +88,10 @@ function projectContribution(entry) {
     state: "visible", authorId: entry.authorId, actorType: entry.actorType,
     body: latest.body, createdAt: entry.createdAt, edited: entry.revisions.length > 1,
   };
+}
+
+function topicIdFor(state, sourceId) {
+  return state.sourceLinks.find((link) => link.sourceId === sourceId)?.topicId ?? null;
 }
 
 function newestFirst(left, right) {

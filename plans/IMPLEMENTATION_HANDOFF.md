@@ -2,7 +2,8 @@
 
 Prepared: 2026-09-28. **Orchestration complete for the next coding block.**
 Code baseline: `9e48916`, offline extension 0.4.0. Inspect current git state first.
-Next task: **S1**. No server/product implementation occurred in this handoff.
+Implementation status: **S1/S2 complete; stop at the Astra/owner gate.** No
+listener/client activation, extension permission or real model/input occurred.
 
 ## Authority and reading
 
@@ -46,14 +47,14 @@ Do not restart Phase 0, the P1.7 questionnaire or the finished 6/6 owner review.
 
 | Slice | Deliverable | Evidence / gate |
 | --- | --- | --- |
-| S1 — start here | Pure service/domain, memory repository, API DTOs, synthetic catalog/ranking | Deterministic tests, no I/O |
-| S2 — first block | SQLite adapter + in-process secured HTTP handler; listener code dormant | Persistence/conflict/reset and handler rejection tests; no bound socket |
-| STOP → Astra + owner | Review S1/S2 and ADR-016 activation package | Explicit permission before listener/client networking or new extension capabilities |
+| S1 — complete | Pure service/domain, memory repository, API DTOs, synthetic catalog/ranking | Deterministic network-denied tests pass |
+| S2 — complete | SQLite adapter + in-process secured HTTP handler; composition remains dormant | Persistence/conflict/reset and handler rejection tests pass; no bound socket |
+| STOP → Astra + owner — current | Review S1/S2 and ADR-016 activation package | Explicit permission before listener/client networking or new extension capabilities |
 | S3 — after approval | Loopback listener, pairing, thin extension and human discussion UI | Service-to-extension post/reply/edit/reopen/delete loop and real-browser smoke |
 | STOP → Astra + owner | Review working local loop; choose exact real model/runtime/license/input experiment | No silent model acquisition/activation or real-page input |
 | Later S4 | Private destination, fixture AI preview, filters, local report/block/moderation | Focused lifecycle/publication tests before each control is enabled |
 
-S1/S2 are the immediately executable cheaper-model block, not all of roadmap R1.
+S1/S2 were the cheaper-model block and are now complete, not all of roadmap R1.
 Routine naming/CSS/focused fixes do not need owner votes. New capabilities do.
 Use one implementation owner and a bounded separate Trust/Quality review, not a
 large standing agent team. AI review is not independent-human/legal/store approval.
@@ -225,7 +226,9 @@ Luna can handle smaller fully specified subtasks. Availability is whatever the
 owner's picker offers; no model/account/permission setting was changed here.
 [Official model guidance](https://learn.chatgpt.com/docs/models).
 
-## Copyable owner prompt
+## Historical cheaper-model prompt (completed; do not rerun)
+
+This prompt produced S1/S2. Returning agents stop at the current gate above.
 
 > Lies AGENTS.md, plans/STATUS.md und plans/IMPLEMENTATION_HANDOFF.md sowie die
 > dort genannten aktuellen Entscheidungen. Implementiere zuerst S1 und S2:

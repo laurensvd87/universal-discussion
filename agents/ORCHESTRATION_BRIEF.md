@@ -1,9 +1,9 @@
 # Agent Orchestration Brief
 
 Current continuation (2026-09-28): the initial organization/foundation is complete.
-Use `agents/TEAM.md` and `plans/IMPLEMENTATION_HANDOFF.md`. Execute the next bounded
-service-first slice; do not recreate roles or reopen completed reviews. The
-handoff specifies when a coding model must stop for Astra review/owner approval.
+Use `agents/TEAM.md` and `plans/IMPLEMENTATION_HANDOFF.md`. S1/S2 are complete;
+stop for Astra review and the explicit ADR-016 owner approval before S3. Do not
+recreate roles or reopen completed reviews.
 
 The active coding agent's first deliverable is to create a lean multi-agent structure for the project. The same role contract must work across GitHub Copilot and Codex; use each tool's native delegation/customization mechanism without making the product plan depend on one vendor.
 

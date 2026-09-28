@@ -3,7 +3,7 @@ import test from "node:test";
 import { ServiceError } from "../src/domain/errors.js";
 import { createUnavailableRankingAdapter } from "../src/adapters/fixture-ranking.js";
 import { createDiscussionService } from "../src/application/discussion-service.js";
-import { createDemoState } from "../src/domain/demo-state.js";
+import { applyCommand, createDemoState } from "../src/domain/demo-state.js";
 import { createMemoryRepository } from "../src/adapters/memory-repository.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../src/adapters/fixture-catalog.js";
 import { demoService, deterministicDependencies } from "./helpers.js";
@@ -112,4 +112,37 @@ test("returned views are deeply frozen and cannot mutate repository state", () =
   assert.equal(Object.isFrozen(catalog.sources), true);
   assert.throws(() => { catalog.sources[0].title = "Changed"; }, TypeError);
   assert.notEqual(service.catalog().sources[0].title, "Changed");
+});
+
+test("prototype topic, revision and body limits reject without mutation", () => {
+  const service = demoService();
+  for (let index = 0; index < 97; index += 1) {
+    service.command(service.catalog().version, { type: "create-topic", title: `Topic ${index}`, kind: "general" }, "demo-alex");
+  }
+  const fullVersion = service.catalog().version;
+  errorCode(() => service.command(fullVersion, { type: "create-topic", title: "One too many", kind: "general" }, "demo-alex"), "capacity");
+  assert.deepEqual(service.catalog().version, fullVersion);
+  errorCode(() => service.command(fullVersion, { type: "create-root", topicId: "harbor-s2", body: "x".repeat(8_001) }, "demo-alex"), "invalid");
+
+  service.command(fullVersion, { type: "create-root", topicId: "harbor-s2", body: "Revision 1" }, "demo-alex");
+  const contributionId = service.discussion("harbor-s2").roots[0].id;
+  for (let revision = 2; revision <= 50; revision += 1) {
+    service.command(service.catalog().version, { type: "edit", contributionId, body: `Revision ${revision}` }, "demo-alex");
+  }
+  const revisionLimit = service.catalog().version;
+  errorCode(() => service.command(revisionLimit, { type: "edit", contributionId, body: "Revision 51" }, "demo-alex"), "capacity");
+  assert.deepEqual(service.catalog().version, revisionLimit);
+});
+
+test("prototype contribution limit rejects before allocating another item", () => {
+  const deps = deterministicDependencies();
+  const state = createDemoState({ generation: deps.nextId("generation"), createdAt: deps.now(), sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
+  state.contributions = Array.from({ length: 1_000 }, (_, index) => ({ id: `existing-${index}` }));
+  errorCode(() => applyCommand(
+    state,
+    { type: "create-root", topicId: "harbor-s2", body: "No allocation" },
+    { id: "demo-alex", type: "human", demo: true },
+    deps,
+  ), "capacity");
+  assert.equal(state.contributions.length, 1_000);
 });

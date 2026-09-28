@@ -19,10 +19,12 @@ build the local discussion loop and early related-source/embedding utility.
 | Review/evaluation tooling | Implemented mechanics; no real larger corpus or held-out model results |
 | Synthetic owner review | Finished: 6/6. Do not repeat |
 | Related-page discovery | Offline ranker and extension 0.4.0 demo implemented; six synthetic Sources, hand-authored vectors, no current-tab input or web search |
-| Discussions, replies, local persistence, current-tab auto-load | Design only; R1 service-first S1/S2 is next |
+| Discussions and replies | Service domain/API implemented for local human roots/replies/edit/withdraw; no extension UI |
+| Local persistence | Memory and SQLite adapters implemented; app-owned database ignored; no client persistence |
+| Current-tab auto-load | Not implemented; belongs to approved S3 client integration |
 | Learned embeddings/general same-Topic matching | Not implemented; early R2 model experiment before R5 AUTO validation |
 | AI handoff/import/provider | Planned; no inference or real credentials |
-| Local backend | Architecture and executable handoff ready; no service/database implemented or activated |
+| Local backend | S1/S2 core, SQLite and in-process `/v1` handler implemented; no listener/client activation |
 | Real accounts/mobile/hosting/stores | Not implemented, deployed or submitted |
 
 ## Reassessment completed 2026-09-27–28
@@ -76,7 +78,7 @@ Evidence: `research/RELATED_PAGE_DISCOVERY_2026-09-28.md`; ADR-015.
   server now to simplify later hosting. ADR-016 supersedes the canonical
   extension IndexedDB plan: one Node service, replaceable repository/embedding
   adapters, SQLite locally, versioned API and a thin extension client.
-- [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md) freezes the next S1/S2 block:
+- [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md) froze the now-completed S1/S2 block:
   pure domain/catalog, memory/SQLite repository and secured in-process handler.
   No listener, new extension permission, model asset or real input is activated.
 - The first stop is Astra review and explicit owner approval of the exact
@@ -87,7 +89,33 @@ Evidence: `research/RELATED_PAGE_DISCOVERY_2026-09-28.md`; ADR-015.
   No disk database or socket was created. The built-in module has release-candidate
   stability; the adapter isolates it and hosting requires revalidation.
 
-Product code remains at baseline `9e48916`; this handoff changes documentation only.
+The orchestration-only baseline was `9e48916`; S1 was committed as `324163e`.
+
+## Local-service S1/S2 completed 2026-09-28
+
+- Added `apps/local-service` with no external dependencies. Its pure domain owns
+  separate Sources, confirmed Source links, Topics, Discussions and Contributions.
+  The catalog reuses six project-created fixtures and the existing pure ranker;
+  vectors remain labelled hand-authored demo coordinates, not learned embeddings.
+- Implemented create Topic, human root/reply/edit/withdraw, grouped deterministic
+  views, ownership checks, revision purge on withdrawal, synthetic actor registry,
+  resource bounds and generation/revision compare-and-swap. Related suggestions
+  never create Topic links; API DTOs expose neither vectors nor similarity scores.
+- Added interchangeable memory and built-in `node:sqlite` repositories. SQLite
+  uses prepared statements, transactions and one bounded `demo-state/v1` record.
+  Reopen, concurrent stale writes, rollback, reset, unknown schema, malformed and
+  structurally manipulated state are covered. Logical deletion is not claimed as
+  forensic erasure; unknown/corrupt databases are never silently overwritten.
+- Added a transport-neutral `/v1` handler and dormant composition point. Exact
+  Host and bearer are mandatory; supplied Origin must match, preflight is narrow,
+  request/response shapes and sizes are bounded, errors are generic, and arbitrary
+  URL/path/model/provider operations do not exist. The handler was tested only
+  in-process under the existing socket/DNS/fetch/subprocess denial harness.
+- No HTTP server implementation or `.listen()` call exists. `test:integration`
+  is an intentional failing approval gate. No extension file/permission, real
+  page input, model asset, external request or disk database in the repository
+  was added. The current stop is Astra/Trust review plus explicit ADR-016 owner
+  approval before any S3 listener/client integration.
 
 ## Verification and residuals
 
@@ -99,7 +127,18 @@ Documentation-only service handoff checks (2026-09-28):
   missing-Origin handling and requiring the existing network-denial harness for
   service tests. ADR-016, handoff and active documents agree on placement and gates.
   This accepts the plan, not service security, durability, browser interoperability,
-  learned matching or store readiness. S1/S2 still need their executable evidence.
+  learned matching or store readiness. The later implementation evidence follows.
+
+S1/S2 implementation checks (2026-09-28):
+
+- Local service `npm test`: 28/28 pass under the external-capability denial harness.
+- Local service `npm run check:secrets`: 22 files, zero findings, six scanner self-tests.
+- Existing spike `npm test`: 294 total, 293 pass and one expected restricted-only skip.
+- Existing spike `npm run test:restricted`: 294/294 pass.
+- Existing spike `npm run indicator:test`: 112/112 pass.
+- Existing spike `npm run check:secrets`: 101 files, zero findings, six self-tests.
+- Syntax checks pass for every local-service JavaScript file; `git diff --check`
+  passes. No loopback integration or browser smoke was run because S3 is gated.
 
 2026-09-28 post-discovery-increment checks:
 
@@ -129,9 +168,10 @@ the metadata and may require retry. The MDN experiment expires on 2026-10-23.
 ## Next work and authority
 
 R0 reassessment/hardening and documentation reconciliation are complete.
-R2's first fixture-only related-source increment is complete. Next: implement
-handoff S1/S2, the service-owned domain/catalog and SQLite/in-process API handler.
-No new owner interview is needed for these reversible, no-network code steps.
+R2's first fixture-only related-source increment and R1 handoff S1/S2 are complete.
+Stop now for GPT-6 Astra review of the implementation and Trust boundary. Before
+binding the listener or enabling client networking/storage, ask the owner for the
+exact ADR-016 activation package; do not continue into S3 on prior local authority.
 Synthetic identity is a testing device, not real login/security isolation.
 
 Before binding the listener or enabling extension networking/storage permissions,

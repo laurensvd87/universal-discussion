@@ -11,8 +11,9 @@ These instructions are the shared contract for Codex and other agents that disco
 Phase 0 and the synthetic 6/6 owner review are complete. Returning agents read
 `plans/STATUS.md` and `plans/IMPLEMENTATION_HANDOFF.md` before choosing work.
 ADR-016 makes the local service the state/matching owner; it supersedes the old
-IndexedDB-first plan. External web search is deferred. Start the next handoff
-slice, not another foundation review. Its explicit owner/model-switch gates apply.
+IndexedDB-first plan. External web search is deferred. S1/S2 are implemented;
+do not begin listener/client activation. Return to Astra review and obtain the
+explicit ADR-016 owner approval before S3. Do not restart foundation work.
 
 ## Original bootstrap task (completed; retained as history)
 

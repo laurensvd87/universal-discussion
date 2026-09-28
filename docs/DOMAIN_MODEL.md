@@ -3,6 +3,8 @@
 Do not treat this as a final database schema. ADR-016 places canonical Source,
 embedding, Topic and discussion state in a local service behind a versioned API;
 the first repository is local SQLite, not an extension-owned IndexedDB database.
+S1/S2 implement these entities as a bounded `demo-state/v1` aggregate behind a
+repository contract; confirmed Source links remain separate from Source records.
 
 The local R1-R3 implementation order in `plans/ROADMAP.md` and
 `decisions/ADR-014-product-first-rebaseline.md` supersedes earlier module-by-module

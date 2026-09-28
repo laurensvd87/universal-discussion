@@ -7,7 +7,7 @@ contributions clearly distinguished. Android and iOS follow.
 
 ## Current state
 
-This is a local prototype, not yet a usable shared discussion service.
+This is a local prototype, not yet a usable connected discussion app.
 
 - The offline kernel resolves synthetic Sources by exact URL or content
   fingerprint. It does **not** perform semantic similarity matching.
@@ -18,10 +18,15 @@ This is a local prototype, not yet a usable shared discussion service.
   separates confirmed same-Topic pages from related reading, even with no posts.
   Its six synthetic pages use hand-authored vectors, not a trained model or web
   search. No active-tab data enters this demo.
+- Local-service S1/S2 now implement the service-owned synthetic Source catalog,
+  fixture-vector ranking, Topics, Discussions and human root/reply/edit/withdraw
+  commands with in-memory and SQLite persistence. A secured transport-neutral
+  `/v1` handler is tested in-process. There is deliberately no listening server
+  and the extension is not connected to it.
 - Review/evaluation tooling exists; the owner's synthetic 6/6 review is finished.
-- Posting/replies, current-tab auto-loading on popup opening, local discussion persistence,
-  general websites, embeddings, AI integration, real accounts and mobile are
-  not implemented yet.
+- The extension UI for posting/replies and current-tab auto-loading, learned
+  embeddings, general websites, AI integration, real accounts and mobile are not
+  implemented yet.
 
 The 2026-09-27–28 reassessment found that validation tooling had overtaken the
 usable product. The active plan now prioritizes a local discussion loop,
@@ -53,6 +58,17 @@ npm run indicator:test
 npm run check:secrets
 ```
 
+The offline local-service S1/S2 checks also need no package installation:
+
+```sh
+cd apps/local-service
+npm test
+npm run check:secrets
+```
+
+Do not run `npm run test:integration`: it is an intentional gate until the
+ADR-016 loopback activation package is reviewed and explicitly approved.
+
 For the unpacked extension and fixture-server/manual checks, follow the
 [browser README](spikes/topic-resolution/browser/README.md). Load the
 `spikes/topic-resolution/browser/` directory. The pinned MDN experiment expires
@@ -77,10 +93,11 @@ provenance-approved task requires explicit approval before acquisition/review.
 
 ## Next product increment
 
-A local backend owns the Source catalog, vectors/matching, Topics and discussion
-state. First build its pure domain, SQLite repository and in-process API handler;
-then stop for review and explicit approval of the loopback/client activation
-package. No listener or new extension permissions are active yet. The extension
+A local backend now owns the synthetic Source catalog, fixture vectors/matching,
+Topics and discussion state. Its pure domain, SQLite repository and in-process
+API handler are implemented and tested. Work is stopped for Astra review and
+explicit approval of the loopback/client activation package. No listener or new
+extension permissions are active. After approval, the extension
 will become a thin client with English message keys and an open -> choose/create
 Topic -> post -> reply -> reopen -> delete loop. Synthetic identities are not
 real authentication. Captured browsing context is not sent or saved in this block.

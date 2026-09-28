@@ -2,7 +2,8 @@
 
 Status: Adopted architecture under the owner's 2026-09-28 instruction. Exact
 listener/client activation remains a security/privacy owner gate below.
-Planning only in this change; no server, database, model or permission activated.
+S1/S2 are implemented offline: domain, SQLite and an in-process request handler.
+No listening server, client networking, model or permission is activated.
 
 Date: 2026-09-28
 
@@ -95,3 +96,5 @@ reported 3.53.3. No disk database/server was created.
 [Official Node 24 docs](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html)
 mark the module release-candidate. This proves availability, not durability,
 security or hosting readiness. The current extension remains offline 0.4.0.
+S1/S2 evidence is recorded in `plans/STATUS.md`; listener/client activation still
+awaits the explicit gate.
