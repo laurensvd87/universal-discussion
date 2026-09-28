@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createActiveTabReader } from "../browser/chromium/active-tab-reader.js";
+import {
+  createActiveTabReader,
+  createTabLifecycleObserver,
+} from "../browser/chromium/active-tab-reader.js";
 
 test("reader issues the exact active/current-window query and projects only tabId and URL", async () => {
   const queries = [];
@@ -125,4 +128,60 @@ test("reader leaves value validation to the policy without retaining browser obj
   sourceTab.url = "https://changed.example/";
   assert.deepEqual(snapshot, { tabId: -1, url: undefined });
   assert.notEqual(snapshot, sourceTab);
+});
+
+function lifecycleEvent() {
+  const listeners = new Set();
+  return {
+    addListener: (listener) => listeners.add(listener),
+    removeListener: (listener) => listeners.delete(listener),
+    emit: (...args) => [...listeners].forEach((listener) => listener(...args)),
+    count: () => listeners.size,
+  };
+}
+
+test("lifecycle observation only inspects source tab IDs and releases all listeners", () => {
+  const tabsApi = {
+    onUpdated: lifecycleEvent(),
+    onRemoved: lifecycleEvent(),
+    onReplaced: lifecycleEvent(),
+  };
+  const forbiddenPayload = new Proxy({}, {
+    get() { throw new Error("Event payload must not be inspected"); },
+    ownKeys() { throw new Error("Event payload must not be enumerated"); },
+  });
+  let invalidations = 0;
+  const observer = createTabLifecycleObserver(tabsApi);
+  assert.ok(Object.isFrozen(observer));
+  const dispose = observer.observe(7, () => { invalidations += 1; });
+  tabsApi.onUpdated.emit(8, forbiddenPayload, forbiddenPayload);
+  tabsApi.onRemoved.emit(8, forbiddenPayload);
+  tabsApi.onReplaced.emit(7, 8);
+  assert.equal(invalidations, 0);
+  tabsApi.onUpdated.emit(7, forbiddenPayload, forbiddenPayload);
+  tabsApi.onRemoved.emit(7, forbiddenPayload);
+  assert.equal(invalidations, 1);
+  for (const event of Object.values(tabsApi)) assert.equal(event.count(), 0);
+  dispose();
+  dispose();
+});
+
+test("lifecycle observer rejects missing adapters and cleans up partial registration", () => {
+  for (const tabsApi of [undefined, null, {}, { onUpdated: {} }]) {
+    assert.throws(() => createTabLifecycleObserver(tabsApi), TypeError);
+  }
+  const tabsApi = {
+    onUpdated: lifecycleEvent(),
+    onRemoved: lifecycleEvent(),
+    onReplaced: lifecycleEvent(),
+  };
+  const observer = createTabLifecycleObserver(tabsApi);
+  assert.throws(() => observer.observe(-1, () => {}), TypeError);
+  assert.throws(() => observer.observe(7, null), TypeError);
+  tabsApi.onRemoved.addListener = () => { throw new Error("secret details"); };
+  assert.throws(
+    () => observer.observe(7, () => {}),
+    { message: "Tab lifecycle observation failed" },
+  );
+  for (const event of Object.values(tabsApi)) assert.equal(event.count(), 0);
 });

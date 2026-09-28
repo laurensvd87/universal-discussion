@@ -1,4 +1,7 @@
-import { createActiveTabReader } from "./active-tab-reader.js";
+import {
+  createActiveTabReader,
+  createTabLifecycleObserver,
+} from "./active-tab-reader.js";
 import { createPageMetadataReader } from "./page-metadata-reader.js";
 import { createActiveTabController } from "../core/active-tab-controller.js";
 import { createIndicatorController } from "../core/indicator-controller.js";
@@ -147,7 +150,9 @@ for (const scenario of INDICATOR_SCENARIOS) {
   elements.scenario.append(option);
 }
 
-const activeTabReader = createActiveTabReader(globalThis.chrome.tabs);
+const tabsApi = globalThis.chrome.tabs;
+const activeTabReader = createActiveTabReader(tabsApi);
+const tabLifecycleObserver = createTabLifecycleObserver(tabsApi);
 const pageMetadataReader = createPageMetadataReader(globalThis.chrome.scripting);
 const fixtureController = createIndicatorController({
   lookup: lookupIndicatorFixture,
@@ -160,10 +165,17 @@ const activeTabController = createActiveTabController({
 });
 const pageMetadataController = createPageMetadataController({
   attestPageDocument: pageMetadataReader.attest,
+  observeTabLifecycle: tabLifecycleObserver.observe,
   onStateChange: renderMetadata,
   readActiveTab: activeTabReader.read,
   readPageMetadata: pageMetadataReader.read,
 });
+
+globalThis.addEventListener("pagehide", () => {
+  pageMetadataController.dispose();
+  activeTabController.reset();
+  fixtureController.reset();
+}, { once: true });
 
 function renderScenarioDescription() {
   const scenario = selectedScenario();

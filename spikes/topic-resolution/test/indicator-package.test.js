@@ -276,4 +276,9 @@ test("popup contains only local external assets and basic accessible bindings", 
     /activeTabController\.reset\(\);\s*\n\s*fixtureController\.reset\(\);\s*\n\s*elements\.metadataButton\.disabled/u,
   );
   assert.match(script, /pageMetadataController\.reset\(\);/u);
+  assert.match(script, /observeTabLifecycle: tabLifecycleObserver\.observe/u);
+  assert.match(
+    script,
+    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*pageMetadataController\.dispose\(\);/u,
+  );
 });

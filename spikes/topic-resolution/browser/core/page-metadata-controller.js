@@ -127,6 +127,7 @@ function metadataReceipt(receipt) {
 export function createPageMetadataController({
   attestPageDocument,
   now = Date.now,
+  observeTabLifecycle,
   onStateChange = () => {},
   readActiveTab,
   readPageMetadata,
@@ -134,6 +135,7 @@ export function createPageMetadataController({
   if (
     typeof attestPageDocument !== "function" ||
     typeof now !== "function" ||
+    typeof observeTabLifecycle !== "function" ||
     typeof onStateChange !== "function" ||
     typeof readActiveTab !== "function" ||
     typeof readPageMetadata !== "function"
@@ -142,6 +144,8 @@ export function createPageMetadataController({
   }
 
   let activation = 0;
+  let disposed = false;
+  let stopObserving = null;
   let state = transitionState(
     "idle",
     null,
@@ -166,12 +170,21 @@ export function createPageMetadataController({
     return deepFreeze({ applied: false, state });
   }
 
+  function stopObservation() {
+    const stop = stopObserving;
+    stopObserving = null;
+    if (stop !== null) stop();
+  }
+
   function terminalResult(next) {
+    if (next.outcome !== "resolved") stopObservation();
     return deepFreeze({ applied: true, state: publish(next) });
   }
 
   async function activate() {
+    if (disposed) return staleResult();
     const ownActivation = nextActivation();
+    stopObservation();
     const requestToken =
       `metadata-${String(ownActivation).padStart(6, "0")}`;
     publish(
@@ -199,6 +212,20 @@ export function createPageMetadataController({
     let envelope;
     let documentId;
     try {
+      const stop = observeTabLifecycle(firstObservation.tabId, () => {
+        if (disposed || ownActivation !== activation) return;
+        nextActivation();
+        stopObservation();
+        publish(unavailableState(requestToken));
+      });
+      if (typeof stop !== "function") {
+        throw new TypeError("Tab lifecycle observation requires cleanup");
+      }
+      if (ownActivation !== activation) {
+        stop();
+        return staleResult();
+      }
+      stopObserving = stop;
       let receipt = metadataReceipt(
         await withScriptingTimeout(() =>
           readPageMetadata(
@@ -257,6 +284,7 @@ export function createPageMetadataController({
 
   function reset() {
     nextActivation();
+    stopObservation();
     return publish(
       transitionState(
         "idle",
@@ -270,7 +298,13 @@ export function createPageMetadataController({
     return state;
   }
 
-  return Object.freeze({ activate, currentState, reset });
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    reset();
+  }
+
+  return Object.freeze({ activate, currentState, dispose, reset });
 }
 
 export const PAGE_METADATA_CONTROLLER_LIMITS = Object.freeze({

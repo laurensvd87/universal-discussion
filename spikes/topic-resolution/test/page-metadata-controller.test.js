@@ -3,8 +3,26 @@ import test from "node:test";
 
 import {
   PAGE_METADATA_CONTROLLER_LIMITS,
-  createPageMetadataController,
+  createPageMetadataController as createController,
 } from "../browser/core/page-metadata-controller.js";
+import { createTabLifecycleObserver } from "../browser/chromium/active-tab-reader.js";
+
+function createPageMetadataController(options) {
+  return createController({ observeTabLifecycle: () => () => {}, ...options });
+}
+
+function lifecycleEvents() {
+  function event() {
+    const listeners = new Set();
+    return {
+      addListener: (listener) => listeners.add(listener),
+      removeListener: (listener) => listeners.delete(listener),
+      emit: (...args) => [...listeners].forEach((listener) => listener(...args)),
+      count: () => listeners.size,
+    };
+  }
+  return { onUpdated: event(), onRemoved: event(), onReplaced: event() };
+}
 
 const NOW = Date.parse("2026-09-22T12:00:00.000Z");
 const EXPIRY = Date.parse("2026-10-23T00:00:00.000Z");
@@ -384,6 +402,196 @@ test("reset during the final tab read suppresses a resolved envelope", async () 
   assert.equal(reads, 2);
 });
 
+test("same-URL reload after document attestation invalidates the pending snapshot", async () => {
+  const events = lifecycleEvents();
+  const pending = deferred();
+  const finalReadStarted = deferred();
+  let reads = 0;
+  const controller = createPageMetadataController({
+    attestPageDocument: async () => attestation(),
+    observeTabLifecycle: createTabLifecycleObserver(events).observe,
+    now: () => NOW,
+    readActiveTab() {
+      if (++reads === 1) return Promise.resolve(LOCAL_TAB);
+      finalReadStarted.resolve();
+      return pending.promise;
+    },
+    readPageMetadata: async () => receipt(),
+  });
+  const activation = controller.activate();
+  await finalReadStarted.promise;
+  events.onUpdated.emit(LOCAL_TAB.tabId, { status: "loading" });
+  assertEmptyTerminal(controller.currentState(), "unavailable");
+  pending.resolve(LOCAL_TAB);
+  const late = await activation;
+  assert.equal(late.applied, false);
+  assertEmptyTerminal(late.state, "unavailable");
+  for (const event of Object.values(events)) assert.equal(event.count(), 0);
+});
+
+test("source invalidation during collection or attestation stops the remaining pipeline", async () => {
+  for (const stage of ["collection", "attestation"]) {
+    const events = lifecycleEvents();
+    const pending = deferred();
+    const started = deferred();
+    let reads = 0;
+    let attestations = 0;
+    const transitions = [];
+    const controller = createPageMetadataController({
+      attestPageDocument() {
+        attestations += 1;
+        started.resolve();
+        return pending.promise;
+      },
+      observeTabLifecycle: createTabLifecycleObserver(events).observe,
+      now: () => NOW,
+      onStateChange: (state) => transitions.push(state),
+      readActiveTab: async () => { reads += 1; return LOCAL_TAB; },
+      readPageMetadata() {
+        if (stage === "attestation") return Promise.resolve(receipt());
+        started.resolve();
+        return pending.promise;
+      },
+    });
+    const activation = controller.activate();
+    await started.promise;
+    events.onRemoved.emit(LOCAL_TAB.tabId);
+    pending.resolve(stage === "collection" ? receipt() : attestation());
+    assert.equal((await activation).applied, false);
+    assertEmptyTerminal(controller.currentState(), "unavailable");
+    assert.equal(reads, 1);
+    assert.equal(attestations, stage === "collection" ? 0 : 1);
+    assert.deepEqual(
+      transitions.map(({ outcome, phase }) => outcome ?? phase),
+      ["loading", "unavailable"],
+    );
+    for (const event of Object.values(events)) assert.equal(event.count(), 0);
+  }
+});
+
+test("an obsolete lifecycle callback cannot invalidate a newer resolved activation", async () => {
+  const callbacks = [];
+  const cleanupCalls = [];
+  const controller = createPageMetadataController({
+    attestPageDocument: async () => attestation(),
+    observeTabLifecycle(tabId, invalidate) {
+      assert.equal(tabId, LOCAL_TAB.tabId);
+      const index = callbacks.push(invalidate) - 1;
+      cleanupCalls[index] = 0;
+      return () => { cleanupCalls[index] += 1; };
+    },
+    now: () => NOW,
+    readActiveTab: async () => LOCAL_TAB,
+    readPageMetadata: async () => receipt(),
+  });
+  await controller.activate();
+  const current = (await controller.activate()).state;
+  callbacks[0]();
+  assert.equal(controller.currentState(), current);
+  assert.deepEqual(cleanupCalls, [1, 0]);
+  callbacks[1]();
+  assertEmptyTerminal(controller.currentState(), "unavailable");
+  callbacks[1]();
+  assert.deepEqual(cleanupCalls, [1, 1]);
+});
+
+test("immediate observation invalidation cleans up without starting collection", async () => {
+  let cleanupCalls = 0;
+  let scriptingCalls = 0;
+  const controller = createPageMetadataController({
+    attestPageDocument: async () => { scriptingCalls += 1; },
+    observeTabLifecycle(tabId, invalidate) {
+      invalidate();
+      return () => { cleanupCalls += 1; };
+    },
+    now: () => NOW,
+    readActiveTab: async () => LOCAL_TAB,
+    readPageMetadata: async () => { scriptingCalls += 1; },
+  });
+  assert.equal((await controller.activate()).applied, false);
+  assertEmptyTerminal(controller.currentState(), "unavailable");
+  assert.equal(scriptingCalls, 0);
+  assert.equal(cleanupCalls, 1);
+});
+
+test("source updates, closure and replacement clear already resolved metadata", async () => {
+  for (const kind of ["onUpdated", "onRemoved", "onReplaced"]) {
+    const events = lifecycleEvents();
+    const controller = createPageMetadataController({
+      attestPageDocument: async () => attestation(),
+      observeTabLifecycle: createTabLifecycleObserver(events).observe,
+      now: () => NOW,
+      readActiveTab: async () => LOCAL_TAB,
+      readPageMetadata: async () => receipt(),
+    });
+    assert.equal((await controller.activate()).state.outcome, "resolved");
+    events.onUpdated.emit(LOCAL_TAB.tabId + 1);
+    assert.equal(controller.currentState().outcome, "resolved");
+    if (kind === "onReplaced") events[kind].emit(99, LOCAL_TAB.tabId);
+    else events[kind].emit(LOCAL_TAB.tabId);
+    assertEmptyTerminal(controller.currentState(), "unavailable");
+    for (const event of Object.values(events)) assert.equal(event.count(), 0);
+  }
+});
+
+test("retry, reset, failure and disposal release lifecycle listeners", async () => {
+  const events = lifecycleEvents();
+  let failRead = false;
+  let reads = 0;
+  const controller = createPageMetadataController({
+    attestPageDocument: async () => attestation(),
+    observeTabLifecycle: createTabLifecycleObserver(events).observe,
+    now: () => NOW,
+    readActiveTab: async () => { reads += 1; return LOCAL_TAB; },
+    readPageMetadata: async () => {
+      if (failRead) throw new Error("test failure");
+      return receipt();
+    },
+  });
+  await controller.activate();
+  await controller.activate();
+  for (const event of Object.values(events)) assert.equal(event.count(), 1);
+  controller.reset();
+  for (const event of Object.values(events)) assert.equal(event.count(), 0);
+  failRead = true;
+  assertEmptyTerminal((await controller.activate()).state, "unavailable");
+  for (const event of Object.values(events)) assert.equal(event.count(), 0);
+  failRead = false;
+  await controller.activate();
+  controller.dispose();
+  controller.dispose();
+  const readsBeforeDisposedActivation = reads;
+  assert.equal((await controller.activate()).applied, false);
+  assert.equal(reads, readsBeforeDisposedActivation);
+  assert.equal(controller.currentState().envelope, null);
+  for (const event of Object.values(events)) assert.equal(event.count(), 0);
+});
+
+test("disposal during the final tab read prevents later publication", async () => {
+  const events = lifecycleEvents();
+  const pending = deferred();
+  const started = deferred();
+  let reads = 0;
+  const controller = createPageMetadataController({
+    attestPageDocument: async () => attestation(),
+    observeTabLifecycle: createTabLifecycleObserver(events).observe,
+    now: () => NOW,
+    readActiveTab() {
+      if (++reads === 1) return Promise.resolve(LOCAL_TAB);
+      started.resolve();
+      return pending.promise;
+    },
+    readPageMetadata: async () => receipt(),
+  });
+  const activation = controller.activate();
+  await started.promise;
+  controller.dispose();
+  pending.resolve(LOCAL_TAB);
+  assert.equal((await activation).applied, false);
+  assert.equal(controller.currentState().envelope, null);
+  for (const event of Object.values(events)) assert.equal(event.count(), 0);
+});
+
 test("a newer activation wins with fresh document IDs and request tokens", async () => {
   const firstRead = deferred();
   let activeReads = 0;
@@ -454,6 +662,7 @@ test("controller constructor and fixed scripting timeout are explicit", () => {
     {},
     { ...valid, attestPageDocument: null },
     { ...valid, now: null },
+    { ...valid, observeTabLifecycle: null },
     { ...valid, onStateChange: "not-a-function" },
     { ...valid, readActiveTab: null },
     { ...valid, readPageMetadata: null },
