@@ -17,6 +17,13 @@ relevant invariants; restore, incident, and worker machinery need not precede
 the first useful discussion UI. The latest owner direction permits reversible
 local work, not broader capture, providers, egress, or publication.
 
+ADR-016 now places canonical demo state in a local service. Its exact loopback
+activation package remains pending owner approval. After that approval only the
+specified fixture-only extension/service bridge supersedes this document's old
+blanket network-denied-process boundary. S1/S2 tests remain network-denied;
+identity, privacy, deletion and publication invariants still apply. No historical
+P1.6 acceptance is evidence that the new service has been implemented or secured.
+
 The design covers invoked active-tab
 context, synthetic identity, human/agent separation, public/private discussion,
 unpublished AI candidates, subthreads and revisions, reports, suspension, bans,

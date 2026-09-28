@@ -6,6 +6,10 @@ real-page processing is activated by this decision.
 
 Date: 2026-09-28
 
+Continuation: ADR-016 moves future catalog/embedding/matching state into a local
+service and keeps the existing offline demo as historical evidence. The owner
+has deferred external web search; no provider selection is needed for this block.
+
 Owners: Lead/Product, Semantic, Platform/Client, Trust/Quality
 
 ## Context

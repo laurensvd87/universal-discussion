@@ -4,6 +4,10 @@ You are the lead orchestrator for a new product: a universal discussion layer fo
 
 ## First instruction
 
+Continuation note (2026-09-28): the bootstrap below is completed history.
+Returning agents follow `plans/STATUS.md`, `plans/IMPLEMENTATION_HANDOFF.md`
+and active ADRs; do not restart Phase 0 or the finished 6/6 owner review.
+
 DO NOT start by implementing the product. Read every file in this bootstrap package first. Then:
 
 1. Challenge product and technical assumptions and record unresolved decisions.

@@ -1,6 +1,6 @@
 # Product specification
 
-Updated: 2026-09-28. Direction: ADR-014/015; implemented state is in
+Updated: 2026-09-28. Direction: ADR-014/015/016; implemented state is in
 `plans/STATUS.md`. This document defines intended product behavior.
 
 ## Vision and core abstraction
@@ -26,9 +26,15 @@ First: Chromium desktop extension. Later: Android and iOS, plus other browsers
 when justified. Reuse the domain/API and suitable UI components, not identical
 capture mechanisms.
 
+The planned local service owns Sources, embedding records/ranking, Topic links
+and discussions; the extension is a thin API client (ADR-016). Start on the
+developer's loopback interface after its explicit activation approval. Hosting
+later needs real auth/TLS/privacy/operations approval, not merely a URL change.
+External web search is deferred, not required for the first implementation block.
+
 Opening the extension is the initial explicit gesture: load the approved
 current context and relevant local discussion without another button. No
-background history scan, AI invocation, silent publication or new data egress.
+background history scan, AI invocation, silent publication or unapproved data egress.
 A future connected lookup requires its own disclosed/approved boundary.
 
 On mobile, prefer share-target/Share extension and Safari integration prototypes.
@@ -96,7 +102,7 @@ Use a layered, versioned pipeline:
 2. Build permitted descriptors from invoked/shared context; retain functional
    URL query parameters, treat canonical URLs as untrusted hints.
 3. Retrieve candidates using identifiers/entities/lexical signals and early
-   on-device embeddings. Lexical/manual fallback remains when a model is absent.
+   local-service embeddings. Lexical/manual fallback remains when a model is absent.
    Exact vector search is sufficient until scale measurements say otherwise.
 4. Check Topic/event/version compatibility and present suggestions with abstention.
 5. Save an explicit reversible association in the approved scope. A single user's
@@ -112,6 +118,8 @@ Unseen pages with no adequate permitted signal may stay unmatched.
 Body-derived/private-context matching is an optional separately approved branch
 (ADR-013). Local transforms are not automatically anonymous or rights-cleared.
 No raw-body crawler, search-provider dependency or per-site API is required.
+That later private-input branch can still compute on the end-user device. Local
+development-server placement never implies permission for cloud body/vector upload.
 External search is an optional candidate source, not the semantic authority.
 Approve exact query disclosure, result retention/derivation rights and budget
 before integration; a paid search result is not automatically a reusable index.

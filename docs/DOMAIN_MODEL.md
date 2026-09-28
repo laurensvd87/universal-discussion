@@ -1,6 +1,8 @@
 # Domain Model — Conceptual
 
-Do not treat this as a final database schema.
+Do not treat this as a final database schema. ADR-016 places canonical Source,
+embedding, Topic and discussion state in a local service behind a versioned API;
+the first repository is local SQLite, not an extension-owned IndexedDB database.
 
 The local R1-R3 implementation order in `plans/ROADMAP.md` and
 `decisions/ADR-014-product-first-rebaseline.md` supersedes earlier module-by-module

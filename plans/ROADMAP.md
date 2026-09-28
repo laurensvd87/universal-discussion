@@ -1,12 +1,16 @@
 # Product-first roadmap
 
-Updated: 2026-09-28. Governing decisions: ADR-014/015. Browser extension first;
+Updated: 2026-09-28. Governing decisions: ADR-014/015/016. Browser extension first;
 Android and iOS follow with shared Topic/discussion contracts. Core model:
 `Content -> Semantic Topic -> Discussion`.
 
 The [historical roadmap](archive/ROADMAP_2026-09-25.md) preserves the old sequence.
 This is the active execution order. Do not restart Phase 0 or the completed 6/6
 owner review. More synthetic review machinery is not on the critical path.
+
+The next coding block is specified in [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md):
+S1/S2 service core and persistence first, then an explicit local-connection gate.
+External search/provider selection is deferred by the owner, not an R1 dependency.
 
 ## Evidence already available
 
@@ -32,35 +36,41 @@ claims and no permission/egress expansion. Historical smoke stays completed;
 new code cannot inherit an unperformed browser smoke.
 Gate: no new owner approval for an in-scope correction. See `STATUS.md`.
 
-## R1 — A usable local discussion
+## R1 — Local service and a usable discussion client
 
 Owner: Platform/Client; Lead product acceptance and Trust/Quality review.
-Dependencies: R0 and ADR-014's local envelope.
+Dependencies: R0, ADR-014's local envelope and ADR-016's service-first decision.
 
 Deliver small tested increments:
 
-1. Browser-neutral Topic/Discussion/Contribution repository and demo UI: choose
-   or create a Topic, write a root, reply, edit and delete. English message keys.
-2. Persist synthetic/demo state with a replaceable IndexedDB adapter; reset,
-   deletion and corruption/version handling. Label synthetic identity as testing.
-   Save no automatically observed URLs/metadata/bodies.
-3. Popup opening automatically loads the existing approved context observation,
-   then local discussion. Offer manual Topic search when capture is unavailable.
-   Preserve the narrow experiment tests; no second check button required.
+1. S1: service-owned Topic/Discussion/Contribution domain, memory repository,
+   synthetic Source catalog and candidate-ranking adapter. Pure tests, no I/O.
+2. S2: SQLite persistence and secured in-process API handler; reset, deletion,
+   conflict and corruption/version tests. No bound listener or new permissions.
+   No canonical extension IndexedDB; no captured URLs/metadata/bodies stored.
+3. STOP for Astra review and explicit owner approval of ADR-016's exact listener,
+   pairing, permissions, payload and retention package. Then S3: activate the
+   loopback service and thin extension UI; choose/create Topic, human root,
+   reply/edit/delete, English keys. Paired popup opening auto-loads the catalog
+   and existing reserved-domain lookup, sending only a known fixture Source ID.
+   Unsupported context permits manual choice; metadata remains manual and local.
 4. Private destination and unpublished AI fixture/preview; separate human/AI
    identities/counts, Humans-only filter, grouped replies and Summary roots.
    Toggle affects future messages only; publication is explicit.
 5. Minimum local report/block/moderator removal and ownership/deletion rules
    before calling the demo complete. Defer production workers/account providers,
-   backup infrastructure and complex ranking.
+   backup infrastructure and complex ranking. Items 4/5 are later S4, not
+   prerequisites for completing the first S1/S2 handoff block.
 
 Acceptance: executable open -> choose -> post -> reply -> reopen -> delete;
 two distinct synthetic Sources reach one confirmed Topic; unrelated Sources stay
 separate; hostile text inert; private output excluded from public counts; reset
-clears local demo assets; keyboard/status coverage and zero external I/O.
+clears local demo assets; keyboard/status coverage and no Internet/provider I/O.
+Approved loopback HTTP is separately disclosed data transfer, not zero network I/O.
 Test applicable authorization rules without claiming real authentication.
-Gate: implement within ADR-014 without per-module questions. No general page
-capture or captured-context persistence is implied by the demo UI.
+Gate: S1/S2 need no per-module owner questions; listener/client activation needs
+the ADR-016 approval. Follow handoff return-to-Astra checkpoints. No general page
+capture or captured-context persistence is implied by the service or demo UI.
 
 ## R2 — Useful related pages, early embeddings and same-Topic suggestions
 
@@ -82,17 +92,19 @@ reversible local Source associations, candidate list and abstain. Keep functiona
 query parameters, canonicals as hints, independent optional-field degradation.
 No crawler or per-site API foundation.
 
-Run a small pinned on-device embedding experiment on project-owned text early
+Run a small pinned local-service embedding experiment on project-owned text early
 in this slice, after exact model/license/assets approval. Compare lexical-only
 and embedding retrieval on paraphrases, related-but-distinct events, product
 versions and time-separated cases. Record memory/startup/CPU latency, language
 limits and model version. Synthetic results guide code, not AUTO quality claims.
-Never silently download runtime/model assets.
+Never silently download runtime/model assets. Server-owned vectors/ranking stay
+behind an adapter. Future sensitive-body embeddings may still be computed on the
+client under ADR-013; hosting does not authorize uploading private bodies/vectors.
 
 Treat learned embeddings as early MVP work, before claiming meaningful semantic
 usefulness to external testers. A missing model can still degrade to lexical/manual
-selection. Use known permitted Sources first; optionally propose a user-reviewed
-normal-search handoff, then an interchangeable API for integrated results. Search
+selection. Use known permitted Sources first. External search is parked; a later
+user-reviewed normal-search handoff or interchangeable API is optional. Search
 finds candidates; embeddings rank them. Do not silently build a history index,
 generate URLs with an LLM or assume API results may be permanently cached/embedded.
 Provider/privacy/security, query fields, retention/derivation rights and spending
@@ -138,9 +150,10 @@ approval. Hosting, spending and publication approvals remain separate.
 Owner: Platform; Trust/Privacy/Policy and Quality/Operations review.
 Dependencies: R1 loop, R2 Source contracts; R3 optional (human-only works).
 
-Build local service contracts with fake identities first. Propose one modular
-service, a relational store and replaceable matcher; PostgreSQL is a candidate,
-not a purchased deployment. No vector service/microservices without measurements.
+Extend R1's existing local service, not a second backend. Keep one modular service,
+a repository boundary and replaceable matcher; SQLite is the local prototype
+store and PostgreSQL remains a hosting candidate, not a purchased deployment.
+No vector service/microservices without measurements.
 Stable IDs and a provider-neutral discussion API serve all clients.
 Provide readable, shareable public Topic pages without requiring an extension;
 private discussions remain inaccessible. This supports discovery and invitations,

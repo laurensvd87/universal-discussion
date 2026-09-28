@@ -20,3 +20,10 @@
 - Synthetic owner review is finished (6/6). Stop and ask before the later
   200–250-pair provenance-approved task; independent-human work is needed then,
   not for each local implementation increment.
+- On 2026-09-28 the owner deferred external search and requested completed
+  orchestration plus a copyable implementation-model handoff. Say when to switch
+  to a cheaper model and require it to flag when GPT-6 Astra review is needed.
+- The local server should own embeddings, linked Sources and matching/discussion
+  state now, behind an API that can serve hosted/mobile clients later (ADR-016).
+  This changes placement, not permission to upload real private inputs or host
+  publicly. Exact loopback/client activation is a documented approval checkpoint.

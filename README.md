@@ -31,7 +31,11 @@ preserved; local implementation does not wait for another per-module interview.
 Start with [current status](plans/STATUS.md),
 [active roadmap](plans/ROADMAP.md) and
 [ADR-014](decisions/ADR-014-product-first-rebaseline.md), extended by
-[ADR-015](decisions/ADR-015-related-pages-first-utility.md).
+[ADR-015](decisions/ADR-015-related-pages-first-utility.md) and
+[ADR-016](decisions/ADR-016-loopback-service-first.md).
+For implementation, use the [concrete handoff](plans/IMPLEMENTATION_HANDOFF.md):
+local service first, extension as API client. This architecture is planned, not
+implemented in extension 0.4.0. External web search is deferred by the owner.
 The [product reassessment](research/PRODUCT_RESET_2026-09-27.md) and
 [store/legal findings](research/PRODUCT_RESET_POLICY_2026-09-27.md) explain the
 corrections and options. These are research and engineering evidence, not store
@@ -73,15 +77,18 @@ provenance-approved task requires explicit approval before acquisition/review.
 
 ## Next product increment
 
-A clearly local demo: open -> choose/create Topic -> post -> reply -> reopen ->
-delete. It will use synthetic identities and explicit demo state, English
-message-key language packs, human/AI separation and private drafts with an
-explicit publication preview. Automatically captured context will not be saved.
+A local backend owns the Source catalog, vectors/matching, Topics and discussion
+state. First build its pure domain, SQLite repository and in-process API handler;
+then stop for review and explicit approval of the loopback/client activation
+package. No listener or new extension permissions are active yet. The extension
+will become a thin client with English message keys and an open -> choose/create
+Topic -> post -> reply -> reopen -> delete loop. Synthetic identities are not
+real authentication. Captured browsing context is not sent or saved in this block.
 
-Alongside that loop: a pinned local embedding experiment after exact model/input
-approval, then genuine semantic candidates and useful source discovery. Known
-permitted Sources come first; optional explicit search fills coverage gaps after
-its provider/data/cost approval. See the
+After the initial service/client loop: a pinned local-service embedding experiment
+after exact model/input approval. The adapter is prepared early; no trained model
+is installed yet. Known permitted Sources come first; external web search is
+parked and is not a prerequisite. The recorded options remain in the
 [discovery options and costs](research/RELATED_PAGE_DISCOVERY_2026-09-28.md).
 AI handoff/import and a shared service follow their data/security approvals.
 The design avoids a crawler, a mandatory per-site API and a mandatory AI vendor.
@@ -90,7 +97,7 @@ can observe content in other apps.
 
 No provider integration, general page acquisition, browsing-data upload,
 deployment, purchase, recruitment/publication or store submission is authorized
-by a successful local test. Relevant gates remain explicit in ADR-014.
+by a successful local test. Relevant gates remain explicit in ADR-014/016.
 
 ## Project documents
 

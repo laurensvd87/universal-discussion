@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-09-28. Active direction: ADR-014/015 and the product-first roadmap.
+Updated: 2026-09-28. Active direction: ADR-014/015/016 and the product-first roadmap.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -19,10 +19,11 @@ build the local discussion loop and early related-source/embedding utility.
 | Review/evaluation tooling | Implemented mechanics; no real larger corpus or held-out model results |
 | Synthetic owner review | Finished: 6/6. Do not repeat |
 | Related-page discovery | Offline ranker and extension 0.4.0 demo implemented; six synthetic Sources, hand-authored vectors, no current-tab input or web search |
-| Discussions, replies, local persistence, current-tab auto-load | Design only; R1 is next |
+| Discussions, replies, local persistence, current-tab auto-load | Design only; R1 service-first S1/S2 is next |
 | Learned embeddings/general same-Topic matching | Not implemented; early R2 model experiment before R5 AUTO validation |
 | AI handoff/import/provider | Planned; no inference or real credentials |
-| Backend/accounts/mobile/stores | Not implemented, deployed or submitted |
+| Local backend | Architecture and executable handoff ready; no service/database implemented or activated |
+| Real accounts/mobile/hosting/stores | Not implemented, deployed or submitted |
 
 ## Reassessment completed 2026-09-27–28
 
@@ -67,7 +68,38 @@ Research: `research/PRODUCT_RESET_2026-09-27.md` and
 
 Evidence: `research/RELATED_PAGE_DISCOVERY_2026-09-28.md`; ADR-015.
 
+## Service-first orchestration completed 2026-09-28
+
+- Owner deferred external search and requested a cheaper-model implementation
+  handoff with explicit return-to-GPT-6-Astra checkpoints.
+- Owner requested embeddings, linked pages and application state on a local
+  server now to simplify later hosting. ADR-016 supersedes the canonical
+  extension IndexedDB plan: one Node service, replaceable repository/embedding
+  adapters, SQLite locally, versioned API and a thin extension client.
+- [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md) freezes the next S1/S2 block:
+  pure domain/catalog, memory/SQLite repository and secured in-process handler.
+  No listener, new extension permission, model asset or real input is activated.
+- The first stop is Astra review and explicit owner approval of the exact
+  loopback/pairing/permissions/payload/retention package before S3 integration.
+  Later model, data, provider and deployment gates remain explicit. Returning to
+  Astra is a review checkpoint, never a substitute for owner approval.
+- Checked Node 24.19.0 and an in-memory `node:sqlite` probe (SQLite 3.53.3).
+  No disk database or socket was created. The built-in module has release-candidate
+  stability; the adapter isolates it and hosting requires revalidation.
+
+Product code remains at baseline `9e48916`; this handoff changes documentation only.
+
 ## Verification and residuals
+
+Documentation-only service handoff checks (2026-09-28):
+
+- `git diff --check` passes; all 37 local Markdown links across 16 changed/new
+  documents resolve. No product test rerun is claimed for this documentation change.
+- Separate AI Trust/Quality review returns qualified ACCEPT after correcting
+  missing-Origin handling and requiring the existing network-denial harness for
+  service tests. ADR-016, handoff and active documents agree on placement and gates.
+  This accepts the plan, not service security, durability, browser interoperability,
+  learned matching or store readiness. S1/S2 still need their executable evidence.
 
 2026-09-28 post-discovery-increment checks:
 
@@ -97,22 +129,23 @@ the metadata and may require retry. The MDN experiment expires on 2026-10-23.
 ## Next work and authority
 
 R0 reassessment/hardening and documentation reconciliation are complete.
-R2's first fixture-only related-source increment is complete. R1 local discussion
-remains next: browser-neutral demo repository/UI, explicit local
-state, roots/replies, deletion, English message keys and existing-route auto-load.
-No new owner interview is needed for these reversible in-scope engineering steps.
+R2's first fixture-only related-source increment is complete. Next: implement
+handoff S1/S2, the service-owned domain/catalog and SQLite/in-process API handler.
+No new owner interview is needed for these reversible, no-network code steps.
 Synthetic identity is a testing device, not real login/security isolation.
 
-In parallel, prepare the early R2 model experiment. The next expanded boundary
-is real-page capture/model acquisition or activation:
-present one concrete fields/contexts/permissions/assets/retention package and
-ask explicitly before activating it. R1 does not store captured browsing data.
+Before binding the listener or enabling extension networking/storage permissions,
+stop for Astra review and ask explicitly for ADR-016's activation package. After
+approved S3 and its browser smoke, review the first real embedding experiment;
+model acquisition/activation and broader real-page capture remain separate exact
+fields/contexts/permissions/assets/retention gates. R1 stores no captured browsing
+data. External search is deferred, not a blocker for these steps.
 Provider/data egress, real accounts/testers, deployment, purchases, public posts,
 recruitment and store submission each retain explicit applicable approvals.
 
 The 200–250-pair provenance-approved review is deferred to R5. Stop and ask before
 acquisition/review becomes required; give the owner a concrete assignment for an
-independent person then. No independent person is needed for the next local UI
+independent person then. No independent person is needed for the next local code
 increment. Completed synthetic labeling is not real-world accuracy evidence.
 
 ## Important decision status
@@ -120,6 +153,8 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-014: active sequencing and local engineering envelope.
 - ADR-015: related pages as first-user utility, early embeddings, provider-neutral
   discovery with explicit coverage/rights/cost limits; no provider activated.
+- ADR-016: active local-service-first architecture and S1/S2 handoff; exact
+  listener/client activation awaits owner approval. Supersedes IndexedDB placement.
 - ADR-001/004: frozen baseline/editorial evaluation evidence; unchanged.
 - ADR-009: local-first NO-AUTO direction retained and made executable.
 - ADR-010/011: existing exact URL/metadata boundaries unchanged by this reset.

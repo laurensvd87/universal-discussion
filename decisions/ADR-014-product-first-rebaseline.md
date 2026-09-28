@@ -6,6 +6,10 @@ and expanded data boundaries remain unapproved.
 
 Date: 2026-09-28
 
+Continuation: ADR-016 supersedes the IndexedDB-first placement below with a
+local service/SQLite repository and thin API client. The local engineering and
+external approval principles remain; its loopback activation package is explicit.
+
 Owners: Lead/Product, Platform/Client, Semantic, Trust/Privacy/Policy, Quality
 
 ## Context and authority

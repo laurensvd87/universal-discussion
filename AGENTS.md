@@ -6,9 +6,17 @@ This repository is a planning and implementation bootstrap for a cross-platform 
 
 These instructions are the shared contract for Codex and other agents that discover `AGENTS.md`. GitHub Copilot uses the equivalent `.github/copilot-instructions.md`. `PROJECT_CHARTER.md` contains the provider-neutral product charter.
 
-## First task
+## Continuing the current project
 
-Do not start product implementation immediately. Read `PROJECT_CHARTER.md`, `README.md`, and the referenced files under `docs/`, `agents/`, `plans/`, `research/`, and `decisions/`. Then complete Phase 0:
+Phase 0 and the synthetic 6/6 owner review are complete. Returning agents read
+`plans/STATUS.md` and `plans/IMPLEMENTATION_HANDOFF.md` before choosing work.
+ADR-016 makes the local service the state/matching owner; it supersedes the old
+IndexedDB-first plan. External web search is deferred. Start the next handoff
+slice, not another foundation review. Its explicit owner/model-switch gates apply.
+
+## Original bootstrap task (completed; retained as history)
+
+For a new bootstrap, first read `PROJECT_CHARTER.md`, `README.md`, and the referenced files under `docs/`, `agents/`, `plans/`, `research/`, and `decisions/`, then complete Phase 0. Do not repeat these completed steps on continuation:
 
 1. Challenge product and technical assumptions and record unresolved decisions.
 2. Define a lean multi-agent structure with clear ownership and handoffs.

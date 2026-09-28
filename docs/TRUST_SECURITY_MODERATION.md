@@ -6,6 +6,9 @@ slice. The 2026-09-27 product rebaseline in
 precedence over earlier module-by-module P1.7 approval prerequisites. The latest
 owner instruction permits reversible local fixture work; this does not authorize external providers,
 data transmission, deployment, spending, recruitment, or publication.
+ADR-016 now defines the service-first architecture and a pending exact loopback/
+token/storage/permission approval package. Local HTTP is a data transfer; earlier
+"no network" evidence describes the offline spike, not future service integration.
 
 ## Trust
 - Never disguise AI as human.
