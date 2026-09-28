@@ -13,9 +13,10 @@ Phase 0 and the synthetic 6/6 owner review are complete. Returning agents read
 ADR-016 makes the local service the state/matching owner; it supersedes the old
 IndexedDB-first plan. External web search is deferred. S1/S2 are implemented;
 reviewed corrections are recorded in plans/STATUS.md. The owner approved ADR-016's
-exact local S3 activation package on 2026-09-28. Implement S3 within that scope;
-do not ask again for the same approval or restart foundation work. Return to
-Astra at S3 completion or an earlier new approval/architecture/security boundary.
+exact local S3 activation package on 2026-09-28. S3 is now implemented with actual
+loopback/Chrome evidence. Do not repeat S3, its approval or foundation work. The
+next checkpoint is the exact real embedding model/input experiment approval;
+do not silently start S4/R2 or download a model. The lead handles review here.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
 Medium coding subagents (2026-09-28). Delegate bounded coding/test slices with

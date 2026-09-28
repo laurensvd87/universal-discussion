@@ -7,27 +7,31 @@ contributions clearly distinguished. Android and iOS follow.
 
 ## Current state
 
-This is a local prototype, not yet a usable connected discussion app.
+This is a usable local discussion prototype, not a hosted or general-web product.
 
 - The offline kernel resolves synthetic Sources by exact URL or content
   fingerprint. It does **not** perform semantic similarity matching.
 - The unpacked Chromium popup looks up bundled example.com/example.org mappings.
 - A separate metadata button reads only a controlled local fixture and one
   approved MDN route. No body capture, network, persistence or AI.
-- Extension 0.4.0 adds a **Related pages · demo** panel: a local candidate ranker
-  separates confirmed same-Topic pages from related reading, even with no posts.
-  Its six synthetic pages use hand-authored vectors, not a trained model or web
-  search. No active-tab data enters this demo.
+- Extension 0.5.0 connects to the local service with session-only manual pairing.
+  Create/select Topics, post roots and replies, edit/withdraw your demo posts and
+  reopen persisted discussions. Human/AI counts remain distinct; no AI is running.
+- A paired popup loads automatically. The two exact reserved-domain URL fixtures
+  can select one shared demo discussion; all other tabs offer manual selection.
+  No observed URL, metadata or page body is sent to the service.
+- Service-ranked related pages distinguish confirmed same-Topic pages from
+  related reading. Six synthetic Harbor Sources use hand-authored vectors, not a
+  trained model or web search. The older offline panel remains diagnostic.
 - Local-service S1/S2 now implement the service-owned synthetic Source catalog,
   fixture-vector ranking, Topics, Discussions and human root/reply/edit/withdraw
   commands with in-memory and SQLite persistence. A secured transport-neutral
   `/v1` handler is tested in-process. S3a now adds an explicitly started, bounded
   `127.0.0.1:4174` listener and terminal-only manual pairing token. Actual loopback
-  tests pass; extension integration is still in progress.
+  and actual-Chrome extension integration tests pass.
 - Review/evaluation tooling exists; the owner's synthetic 6/6 review is finished.
-- The extension UI for posting/replies and current-tab auto-loading, learned
-  embeddings, general websites, AI integration, real accounts and mobile are not
-  implemented yet.
+- Learned embeddings, general website matching, AI integration, private
+  discussions, moderation, real accounts and mobile are not implemented yet.
 
 The 2026-09-27–28 reassessment found that validation tooling had overtaken the
 usable product. The active plan now prioritizes a local discussion loop,
@@ -40,8 +44,8 @@ Start with [current status](plans/STATUS.md),
 [ADR-015](decisions/ADR-015-related-pages-first-utility.md) and
 [ADR-016](decisions/ADR-016-loopback-service-first.md).
 For implementation, use the [concrete handoff](plans/IMPLEMENTATION_HANDOFF.md):
-local service first, extension as API client. This architecture is planned, not
-implemented in extension 0.4.0. External web search is deferred by the owner.
+local service first, extension as API client. S1–S3 are implemented and reviewed;
+later model/input work remains gated. External web search is deferred by the owner.
 The [product reassessment](research/PRODUCT_RESET_2026-09-27.md) and
 [store/legal findings](research/PRODUCT_RESET_POLICY_2026-09-27.md) explain the
 corrections and options. These are research and engineering evidence, not store
@@ -59,7 +63,7 @@ npm run indicator:test
 npm run check:secrets
 ```
 
-The offline local-service S1/S2 checks also need no package installation:
+The socket-denied local-service checks also need no package installation:
 
 ```sh
 cd apps/local-service
@@ -71,25 +75,41 @@ From `apps/local-service`, `npm run test:integration` runs the separately guarde
 loopback suite. Port 4174 must be free; tests close only their own listener and use
 temporary SQLite state. The default suite remains socket-denied. For interactive
 startup and pairing instructions, see the [service README](apps/local-service/README.md).
-The owner approved this exact local package; browser integration is still pending.
+The owner approved this exact local package. `npm run test:browser` from
+`spikes/topic-resolution` runs the separate real-Chrome smoke with a temporary
+profile/database, injected test pairing, pipe debugging and intercepted synthetic
+pages. It requires installed Chrome and free port 4174; it closes its own resources.
+No browser/dependency download or existing browser profile is used.
 
 For the unpacked extension and fixture-server/manual checks, follow the
 [browser README](spikes/topic-resolution/browser/README.md). Load the
 `spikes/topic-resolution/browser/` directory. The pinned MDN experiment expires
 on 2026-10-23; that is a narrow experiment limit, not the future site architecture.
 
-To try the new panel, reload the unpacked extension and open it. Select the
-Harbor S2 overview to see two same-Topic examples and two related-reading
-examples. Select the community-garden example to see the limited-catalog empty
-state. These addresses are non-clickable examples, not discovered websites.
-No fixture server or current-tab check is needed for this panel.
+To try the discussion loop:
+
+1. Load/reload the unpacked extension; copy its ID from `chrome://extensions`.
+2. In your terminal, run `npm start -- --origin chrome-extension://YOUR_EXTENSION_ID`
+   from `apps/local-service` (replace `YOUR_EXTENSION_ID` with the actual ID).
+3. Open the extension, paste the terminal's token into **Session pairing token**
+   and pair. Never paste that token into chat or logs.
+4. Choose/create a Topic; use the two clearly synthetic actors to post, reply,
+   edit and withdraw. Reopen the popup to verify persistence. Select a Harbor
+   Source for related-page examples. Only use deliberate non-sensitive demo text.
+5. Ctrl+C stops the service. Its next start has a new token. To remove demo
+   state, use the popup's explicit `RESET DEMO STATE` confirmation.
+
+Demo posts persist in ignored local SQLite state until withdrawal/reset/removal.
+Unsent drafts stay only in popup memory. These are local test discussions, not
+Internet publication, real accounts or production security isolation.
 
 The navigation hardening clears metadata on source-tab updates, removal or
 replacement. Automated race tests pass; a fresh real-browser smoke of this
 change is not yet recorded. Browser events are asynchronous and do not prove
 an atomic, continuously fresh page snapshot.
-The related-page panel has automated DOM/contract coverage; its real-browser
-smoke is also still pending. Earlier owner checks remain completed evidence.
+The new service discussion flow has actual-Chrome smoke evidence in the
+[S3 review](research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md). This does not repeat
+or replace earlier owner checks or certify the metadata capture paths.
 
 Do not rerun `review:owner` or prepare a replacement owner queue as a routine
 setup step: the synthetic 6/6 task is complete. The later 200–250-pair
@@ -101,10 +121,10 @@ A local backend now owns the synthetic Source catalog, fixture vectors/matching,
 Topics and discussion state. Its pure domain, SQLite repository and in-process
 API handler are implemented, tested and corrected following Astra review. The
 owner has explicitly approved the exact local S3 connection and test package.
-S3a's listener and actual socket tests are complete. The client work in progress
-makes the extension a thin client with English message keys and an open -> choose/create
-Topic -> post -> reply -> reopen -> delete loop. Synthetic identities are not
-real authentication. Captured browsing context is not sent or saved in this block.
+S3's listener, session-paired thin client and English message-key UI now complete
+the open -> choose/create Topic -> post -> reply -> reopen -> delete loop.
+Synthetic identities are not real authentication. Captured browsing context is
+not sent or saved in this block. R1's private/AI/moderation work is still later S4.
 
 After the initial service/client loop: a pinned local-service embedding experiment
 after exact model/input approval. The adapter is prepared early; no trained model

@@ -6,10 +6,11 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
-We have a tested local resolver/metadata prototype, not yet a discussion app.
+We have a tested local service and usable synthetic human-discussion extension.
 The core product hypotheses—semantic concentration, personal AI utility and
 community adoption—remain unvalidated. Stop expanding review infrastructure;
-build the local discussion loop and early related-source/embedding utility.
+The first local discussion loop is built; next prioritize real embedding utility
+after its exact model/input approval, then the remaining private/AI/moderation UX.
 
 | Capability | Actual state |
 | --- | --- |
@@ -18,13 +19,13 @@ build the local discussion loop and early related-source/embedding utility.
 | Metadata capture | Controlled loopback fixture and one pinned MDN route only; explicit button, no body/egress/storage |
 | Review/evaluation tooling | Implemented mechanics; no real larger corpus or held-out model results |
 | Synthetic owner review | Finished: 6/6. Do not repeat |
-| Related-page discovery | Offline ranker and extension 0.4.0 demo implemented; six synthetic Sources, hand-authored vectors, no current-tab input or web search |
-| Discussions and replies | Service domain/API implemented for local human roots/replies/edit/withdraw; no extension UI |
-| Local persistence | Memory and SQLite adapters implemented; app-owned database ignored; no client persistence |
-| Current-tab auto-load | Not implemented; belongs to approved S3 client integration |
+| Related-page discovery | Service-ranked fixture recommendations in extension 0.5.0; six synthetic Harbor Sources/hand-authored vectors, no web search |
+| Discussions and replies | Local human Topic create/select, roots/replies/edit/withdraw implemented in service and extension; no private/AI/moderation controls yet |
+| Local persistence | Memory and SQLite adapters; app DB ignored. Pairing token only in trusted session storage; drafts only popup memory |
+| Current-tab auto-load | Paired popup loads catalog and exact reserved-domain fixture mapping automatically; only known Source ID sent, all other tabs manual |
 | Learned embeddings/general same-Topic matching | Not implemented; early R2 model experiment before R5 AUTO validation |
 | AI handoff/import/provider | Planned; no inference or real credentials |
-| Local backend | S1/S2 plus S3a fixed loopback listener/CLI implemented and tested; extension integration in progress |
+| Local backend | S1–S3 fixed loopback service, SQLite, session-paired thin client; actual socket and Chrome checks pass |
 | Real accounts/mobile/hosting/stores | Not implemented, deployed or submitted |
 
 ## Reassessment completed 2026-09-27–28
@@ -130,8 +131,8 @@ The orchestration-only baseline was `9e48916`; S1 was committed as `324163e`.
 - The next cheaper-model block is S3: listener, pairing, thin extension and
   human discussion UI. Do not repeat the same owner approval or completed 6/6
   review. The handoff provides S3a/b/c increments and the next Astra checkpoint.
-- This continuation changes documentation only. The implemented baseline is
-  `818dd6e`; there is still no listener, connected client or new permission.
+- That approval-recording continuation changed documentation only. Its baseline was
+  `818dd6e`; it had no listener, connected client or new permission.
   New transport/permission changes need focused Trust/Quality review and actual
   loopback/browser evidence. Return to Astra after S3, or earlier if an unresolved
   architecture/security issue or a new approval boundary is reached.
@@ -152,10 +153,42 @@ bridge the old URL fixture IDs to a separate shared Topic, with null embeddings.
 Pre-bridge databases stay unchanged until deliberate reset. Service tests:
 51/51 offline; 2/2 actual loopback integration; secret scan 30 files, zero findings,
 six self-tests. The lead reproduced the socket suite after transport review;
-all test listeners are closed. S3b/c and real-browser checks remain in progress.
+all test listeners are closed. S3b/c and real-browser evidence follows below.
 Details: [S3 implementation review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md).
 
-S3 approval/handoff documentation checks (2026-09-28): `git diff --check` passes;
+S3b/c completed and accepted (2026-09-28): extension 0.5.0 is a session-paired
+thin client with automatic fixture-only lookup, Topic create/select, human roots,
+replies, edit/withdraw/reset and service-ranked related Sources. English message
+keys, inert rendering and actual human/AI counts are separate from old diagnostic
+fixtures. Drafts remain memory-only; navigation detaches rather than retargets
+them. Focused review corrected async pairing/lifecycle races and keeps writes
+blocked after uncertain outcomes until a fresh service reload. A separate
+read-only Trust pass accepts the corrected scope, not production security.
+
+Final lead-reproduced verification after all corrections:
+
+- Spike: 330 normal tests (329 pass, one expected skip), 330/330 restricted,
+  148/148 indicator. Service: 51/51 offline, 2/2 actual loopback.
+- Actual Chrome 153.0.8010.53: PASS across 19 UI/integration categories, including
+  pairing, service Source ranking, CRUD/reopen/restart, shared fixture Topic,
+  inert markup, keyboard and session-only storage. Zero JavaScript exceptions or
+  unapproved extension requests observed. Two reserved-domain pages were served
+  entirely from intercepted project-created HTML, not fetched from real websites.
+- Secret scans: 113 spike files and 30 service files; zero findings, six scanner
+  self-tests each. Syntax/inventory/capability checks and `git diff --check` pass.
+- Test-owned profiles/databases/listeners are cleaned up; no demo service is left
+  running. The interactive CLI token is shown only in the user's own terminal.
+- S3a is committed as `9bfe9d5`. The S3b/c completion commit contains this record;
+  inspect git history for its hash. README/startup and active decisions agree.
+- Separate documentation consistency review found and corrected a stale blanket
+  server STOP line; only ADR-016's already approved fixed-loopback exception is
+  permitted. All later expansion gates remain. No completed review was repeated.
+
+S3 completion is the current stop: no R2 model acquisition or S4 activation yet.
+Next prepare the exact model/runtime/license/assets/input approval proposal for
+the owner. No manual model switch or independent human reviewer is needed now.
+
+Historical S3 approval/handoff documentation checks (2026-09-28): `git diff --check` passes;
 all 41 local Markdown links across the 12 changed documents resolve. Approval,
 implemented capability and later gates were reconciled across active documents.
 No product tests, loopback listener or browser smoke were run for this docs-only
@@ -224,15 +257,15 @@ the metadata and may require retry. The MDN experiment expires on 2026-10-23.
 ## Next work and authority
 
 R0 reassessment/hardening and documentation reconciliation are complete.
-R2's first fixture-only related-source increment and R1 handoff S1/S2 are complete.
+R2's first fixture-only related-source increment and R1 handoff S1–S3 are complete.
 Astra review and explicit owner approval of ADR-016's exact activation package
-are complete. Implement S3 and its local integration tests within that package;
-do not request the unchanged approval again. Keep the default offline test guard.
+are complete. The listener and paired extension loop are implemented and locally
+tested; do not repeat S3 or its unchanged approval. Keep the default offline guard.
 Synthetic identity is a testing device, not real login/security isolation.
 
-After S3 and its browser smoke, return to Astra to review the usable local loop
-and the first real embedding experiment;
-model acquisition/activation and broader real-page capture remain separate exact
+The next boundary is choosing and explicitly approving the first real embedding
+experiment; no model is chosen/downloaded by S3 completion. The lead handles the
+review here, without a manual model switch. Model acquisition/activation and broader real-page capture remain separate exact
 fields/contexts/permissions/assets/retention gates. R1 stores no captured browsing
 data. External search is deferred, not a blocker for these steps.
 Provider/data egress, real accounts/testers, deployment, purchases, public posts,
@@ -249,7 +282,7 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-015: related pages as first-user utility, early embeddings, provider-neutral
   discovery with explicit coverage/rights/cost limits; no provider activated.
 - ADR-016: active local-service-first architecture; S1/S2 reviewed, exact local
-  S3 activation package owner-approved; S3a implemented, client work in progress. Supersedes IndexedDB
+  S3 activation package owner-approved; listener/client/UI implemented. Supersedes IndexedDB
   placement; no wider data/network permission follows from the approval.
 - ADR-001/004: frozen baseline/editorial evaluation evidence; unchanged.
 - ADR-009: local-first NO-AUTO direction retained and made executable.

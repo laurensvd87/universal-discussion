@@ -17,7 +17,7 @@ const canonicalJsonPath = path.join(
 );
 const fixtureManifestPath = path.join(packageDirectory, "fixtures", "manifest.json");
 
-test("runtime modules have no network, DNS, process, filesystem, logging, or dynamic-code capability", async () => {
+test("runtime modules have no ambient network, DNS, process, filesystem, logging, or dynamic-code capability", async () => {
   const runtimeFiles = [
     ...(
     await Promise.all(
@@ -45,11 +45,16 @@ test("runtime modules have no network, DNS, process, filesystem, logging, or dyn
       "browser/core/active-tab-policy.js",
       "browser/core/indicator-contract.js",
       "browser/core/indicator-controller.js",
+      "browser/core/local-discussion-controller.js",
+      "browser/core/local-service-client.js",
+      "browser/core/local-service-contract.js",
+      "browser/core/local-service-session.js",
       "browser/core/page-metadata-controller.js",
       "browser/core/page-signal-contract.js",
       "browser/core/page-signal-policy.js",
       "browser/core/related-sources.js",
       "browser/fixtures/indicator-fixtures.js",
+      "browser/fixtures/local-service-fixture-bridge.js",
       "browser/fixtures/related-source-fixtures.js",
       "evaluation/canonical-json.js",
       "extraction/html-extraction.js",
@@ -85,7 +90,10 @@ test("runtime modules have no network, DNS, process, filesystem, logging, or dyn
       }
     }
 
-    assert.doesNotMatch(source, /\b(?:fetch|WebSocket|EventSource|XMLHttpRequest)\b/);
+    // Full-line explanatory comments may name the injected capability. Executable
+    // code must still have no ambient fetch; the popup binding is audited separately.
+    const executable = source.replace(/^\s*\/\/.*$/gm, "");
+    assert.doesNotMatch(executable, /\b(?:fetch|WebSocket|EventSource|XMLHttpRequest)\b/);
     assert.doesNotMatch(source, /\bconsole\s*\./);
     assert.doesNotMatch(source, /\b(?:require|eval|Function)\s*\(/);
     assert.doesNotMatch(source, /\bimport\s*\(/);

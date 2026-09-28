@@ -9,20 +9,20 @@
   <body>
     <main>
       <div class="scope-row" aria-label="Prototype scope">
-        <span class="scope-badge">activeTab + scripting</span>
+        <span id="product-capabilities" class="scope-badge"></span>
         <span class="scope-badge scope-badge--quiet">Local · NO AUTO</span>
       </div>
 
       <header>
         <p class="eyebrow">Content → Topic → Discussion</p>
-        <h1>Discussion preview</h1>
-        <p class="intro">
-          Two separate click-only paths demonstrate local URL lookup and a
-          tightly bounded head-metadata envelope. Neither path sends or stores
-          data or performs Topic matching.
-        </p>
+        <h1 id="product-title"></h1>
+        <p id="product-intro" class="intro"></p>
       </header>
 
+      <section id="local-discussion" class="action-panel"></section>
+
+      <details class="fixture-panel">
+      <summary id="diagnostic-heading"></summary>
       <section id="related-pages-demo" class="action-panel"></section>
 
       <section class="action-panel" aria-labelledby="current-tab-heading">
@@ -171,9 +171,8 @@
         </div>
       </section>
 
-      <footer>
-        Popup memory only · bounded head fields · no body · no network · no storage
-      </footer>
+      </details>
+      <footer id="product-footer"></footer>
     </main>
     <script type="module" src="popup.js"></script>
   </body>

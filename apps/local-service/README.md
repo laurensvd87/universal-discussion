@@ -5,7 +5,9 @@ Topics, Discussions and human Contributions. S3a adds a deliberately started
 loopback listener around the reviewed S1/S2 application. Imports have no listener
 or database side effects. Default tests deny sockets, DNS, fetch and subprocesses.
 The owner approved ADR-016's exact local S3 activation package on 2026-09-28.
-The extension integration belongs to the remaining S3 slices. See
+Extension 0.5.0 now pairs with this service and exposes the local human discussion
+loop; see the [browser instructions](../../spikes/topic-resolution/browser/README.md).
+See
 [the S1/S2 review](../../research/S1_S2_REVIEW_2026-09-28.md) and
 [current handoff](../../plans/IMPLEMENTATION_HANDOFF.md).
 
@@ -101,4 +103,5 @@ fixed/chunked body caps, the absolute deadline, CRUD/conflict/persistence, occup
 port failure, restart pairing invalidation, withdrawal and reset. Node's numeric
 bind calls `dns.lookup`; the integration guard supplies only `127.0.0.1` directly
 without invoking DNS. The suite closed its own listener and removed its temporary
-databases. No browser integration claim follows from this transport evidence.
+databases. Separate actual-Chrome evidence covers the client integration;
+see the [S3 review](../../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md).

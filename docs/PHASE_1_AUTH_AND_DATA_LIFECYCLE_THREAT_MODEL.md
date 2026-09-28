@@ -795,7 +795,8 @@ page content.
 
 **STOP:** real accounts/identifiers; external identity, AI, search, model, or
 other provider; background browsing or inbox scanning; page-content persistence
-or egress; reachable server/matcher/index; real public posting; production
+or egress; a reachable server/matcher/index beyond ADR-016's approved fixed-loopback
+synthetic S3 package; real public posting; production
 moderation; telemetry; real backups; centralized export implementation;
 infrastructure purchase; recruitment; deployment; store submission;
 announcement; or publication. Each requires its own recorded owner and

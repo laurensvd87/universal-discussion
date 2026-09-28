@@ -1,5 +1,62 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Local service discussion loop (0.5.0)
+
+The approved S3 package adds session pairing and a service-owned discussion UI.
+Start the local service using `apps/local-service/README.md`, configure the exact
+unpacked-extension Origin, reload this unpacked `browser/` package and copy the
+startup token into **Session pairing token**. The password field clears on submit;
+only trusted extension `storage.session` retains the token. Restarting the browser
+or service requires pairing again. Do not paste a token into chat or logs.
+
+A paired popup loads the service catalog automatically. Only the existing validated
+example.com/example.org mappings can auto-select their bridged synthetic service
+Sources; observed URL/title/head/body fields never enter service requests. Other
+tabs offer manual Topic or synthetic Source selection. Selecting a known Harbor
+Source obtains service-ranked recommendations; unlinked Sources do not imply a
+Topic. The catalog uses hand-authored vectors, with no real inference or search.
+
+Select a synthetic actor, create/select a Topic and submit deliberate demo roots,
+replies or own edits/withdrawals. These are local developer identities, not real
+accounts. Contribution counts come from visible service data. Text persists in
+the app-owned ignored SQLite database until withdrawal or explicit reset; reset
+requires typing `RESET DEMO STATE`. Logical deletion is not forensic erasure.
+Unsent contribution drafts remain in popup memory and disappear when it closes.
+Do not enter secrets or private page material.
+
+Topic/actor/source changes or source-tab update/removal/replacement detach unsent
+text and cancel stale loads. Review the new selection and explicitly attach the
+text before submitting. A failed write is never retried automatically: reload
+service state first because the write may already have succeeded. A 401 clears
+pairing and projections. Offline failure disables writes without a browser DB.
+
+The manifest adds only `storage` and `http://127.0.0.1/*` host permission to the
+existing `activeTab`/`scripting` set. CSP and the audited client restrict requests
+to `http://127.0.0.1:4174`. The host grant itself cannot restrict ports. There is
+no background/content script, captured-data transfer, provider, model download,
+general host permission or external search. Metadata remains manual and unchanged.
+The old 1-human/1-agent and related-page fixture panels are visibly diagnostic.
+
+Controller/service-domain and inert-rendering checks pass under the restricted
+network denial harness. The explicitly invoked real loopback suite and installed
+Chrome 153.0.8010.53 smoke also pass after lead review of permissions/transport.
+From `spikes/topic-resolution`, run `npm run test:browser` with port 4174 free.
+The default path is the installed Windows Chrome path; optionally append
+`-- "C:\path\to\chrome.exe"`. No download or package installation is required.
+It uses pipe debugging (no debug TCP port), a fresh temporary profile/database,
+synthetic test pairing and actual extension action popups. The reserved-domain
+documents are fulfilled with project-created HTML before any website request.
+All test-owned browser/profile/database/listener resources are closed/removed.
+
+The smoke covers pairing, keyboard activation, Source ranking/clearing, Topic
+create, root/reply/edit, popup reopen, disconnect, unavailable service, changed
+restart token, withdrawal with surviving replies, reset, fixture auto-load/shared
+Topic, inert markup, session-only storage and bounded extension requests. No
+JavaScript exceptions or unapproved extension requests were observed. Browser
+background suppression and interception are not a whole-browser firewall claim.
+See [the S3 review](../../../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md).
+The earlier 0.2–0.4 evidence and procedures below are historical.
+
 Status: the exact local P1.5b URL slice passes automated checks, Trust/Quality
 engineering review, and the owner-run Chromium smoke. The exact P1.5c bounded
 metadata slice is implemented and automated checks pass; its separate AI
@@ -15,14 +72,16 @@ browser smoke; earlier completed owner checks are historical evidence.
 Extension 0.4.0 also adds an isolated related-page demo (ADR-015). Automated
 ranker, rendering, package and restricted-I/O tests pass; separate AI Trust/Quality
 review accepts this offline scope. This panel has not had a real-browser smoke.
-It does not implement a real embedding model, live search or discussion posting.
+That isolated panel does not implement a real embedding model, live search or
+discussion posting; the new service discussion panel above is separate.
 
 ## Try the related-page demo
 
 Reload the unpacked `browser/` extension and open its popup. No fixture server,
 page capture or DevTools breakpoint is needed for this panel.
 
-1. In **Related pages · demo**, select **Harbor S2 sensor: product overview**.
+1. Expand **Offline fixture diagnostics**. In **Related pages · demo**,
+   select **Harbor S2 sensor: product overview**.
    Expect four recommendations: two already associated with the same demo Topic,
    plus the S3 successor and a monitoring guide as related reading only.
 2. Select **Starting seedlings in a community garden**. Expect an empty result
@@ -79,8 +138,9 @@ Discussion. Their URL-to-Source receipt is explicitly
 pinned `exact-content-fingerprint` method. Human and agent contribution counts
 remain separate and `NO AUTO` remains in force.
 
-The package requests exactly `activeTab` and `scripting`: no `tabs`, host,
-storage, history, cookie, web-request, identity, or incognito permission. It
+The earlier capture-only package requested `activeTab` and `scripting`. Its
+capture adapters still have no `tabs`, history, cookie, web-request, identity,
+or incognito permission. The current session/loopback additions are above. It
 has no content/background script. The P1.5b path still reads only the tab ID
 and URL. The separate P1.5c path can inspect at most 256 direct children of
 `document.head` and return at most 32 allowlisted candidates for title,
@@ -88,8 +148,8 @@ description, canonical, publication-time, and two in-head control selectors.
 It never reads body, JSON-LD, images, authors, comments, forms, selections,
 hidden/accessibility text, frames, cookies, storage, authentication, or paywall
 state. It makes no network request, writes no storage or log, and keeps only a
-validated envelope in popup memory. The restrictive extension-page CSP also
-disables connections.
+validated envelope in popup memory. Only the new audited local-service client
+may use the exact-port connection; no metadata enters that client.
 
 P1.5c supports only `http://127.0.0.1:4173/p1-5c.html` and the exact reviewed
 MDN metadata-reference route. It does not implement a general auth/paywall
@@ -250,7 +310,7 @@ any such adapter or public release.
 
 ## Stop boundary
 
-This package still has no general capture, storage, writes or network. ADR-014
+The diagnostic capture paths still have no general capture or persistence. ADR-014
 now permits the successor R1 local discussion demo, fixture state and tests
 without a per-module questionnaire. Such code must not silently weaken the old
 capture/package boundary; it needs separately explicit capability tests.
@@ -258,7 +318,7 @@ ADR-015 adds the implemented fixture-only recommendation path within that local
 envelope; neither its HTTP(S) data validator nor its vectors authorize live inputs.
 
 Stop before broader real-page fields/selectors/routes, body/JSON-LD processing,
-new capture permissions, captured-context retention, network/telemetry,
+new capture permissions, captured-context retention, expanded network/telemetry,
 provider/model activation, deployment, store submission or public posting.
 Present the relevant exact approval package. `scripting` still authorizes only
 the exact P1.5c routes. ADR-009/014 retain NO AUTO; ADR-010/011 remain the capture

@@ -7,6 +7,11 @@ import { createActiveTabController } from "../core/active-tab-controller.js";
 import { createIndicatorController } from "../core/indicator-controller.js";
 import { createPageMetadataController } from "../core/page-metadata-controller.js";
 import { mountRelatedPagesDemo } from "./related-pages-panel.js";
+import { mountDiscussionPanel } from "./discussion-panel.js";
+import { createLocalDiscussionController } from "../core/local-discussion-controller.js";
+import { createLocalServiceClient } from "../core/local-service-client.js";
+import { createLocalServiceSession } from "../core/local-service-session.js";
+import { EN } from "../locales/en.js";
 import {
   INDICATOR_SCENARIOS,
   lookupIndicatorFixture,
@@ -159,6 +164,24 @@ const relatedPagesDemo = mountRelatedPagesDemo(
 const tabsApi = globalThis.chrome.tabs;
 const activeTabReader = createActiveTabReader(tabsApi);
 const tabLifecycleObserver = createTabLifecycleObserver(tabsApi);
+const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"));
+const localSession = createLocalServiceSession({ storageSession: globalThis.chrome.storage.session });
+const localClient = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: localSession.getToken });
+const localDiscussion = createLocalDiscussionController({
+  client: localClient,
+  session: localSession,
+  readActiveTab: activeTabReader.read,
+  observeTabLifecycle: tabLifecycleObserver.observe,
+  lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
+  onStateChange: discussionPanel.render,
+});
+discussionPanel.bind(localDiscussion);
+document.querySelector("#product-title").textContent = EN.discussionPageTitle;
+document.querySelector("#product-capabilities").textContent = EN.discussionCapabilities;
+document.querySelector("#product-intro").textContent = EN.discussionIntro;
+document.querySelector("#diagnostic-heading").textContent = EN.discussionDiagnostic;
+document.querySelector("#product-footer").textContent = EN.discussionFooter;
+void localDiscussion.open();
 const pageMetadataReader = createPageMetadataReader(globalThis.chrome.scripting);
 const fixtureController = createIndicatorController({
   lookup: lookupIndicatorFixture,
@@ -178,6 +201,8 @@ const pageMetadataController = createPageMetadataController({
 });
 
 globalThis.addEventListener("pagehide", () => {
+  localDiscussion.dispose();
+  discussionPanel.dispose();
   pageMetadataController.dispose();
   relatedPagesDemo.dispose();
   activeTabController.reset();

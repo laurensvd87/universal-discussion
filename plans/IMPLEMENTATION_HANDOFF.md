@@ -1,11 +1,11 @@
 # Implementation handoff: local-service discussion MVP
 
-Prepared: 2026-09-28. **Orchestration complete for the next coding block.**
-Code baseline: `818dd6e`, reviewed S1/S2 and offline extension 0.4.0. Inspect current
-git state first. Implementation status: **S1/S2 and reviewed S3a complete; S3b/c
-in progress under the approved package.** A fixed listener has passed local
-integration tests; no real model/input has been activated. See STATUS for current
-client/browser evidence; do not inherit S3a transport evidence as a UI pass.
+Updated: 2026-09-28. **S1–S3 implemented; next model/input approval boundary.**
+Historical starting baseline: `818dd6e`, reviewed S1/S2 and offline extension 0.4.0.
+Inspect current git state first. The fixed listener and session-paired extension
+0.5.0 now provide the local human discussion loop. Socket and actual-Chrome
+integration checks pass; no real model/input has been activated. See STATUS and
+the [S3 review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md) for exact evidence.
 Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md).
 
 The owner answered **"ja"** on 2026-09-28 to ADR-016's explicit local connection,
@@ -65,12 +65,12 @@ Do not restart Phase 0, the P1.7 questionnaire or the finished 6/6 owner review.
 | S1 — complete | Pure service/domain, memory repository, API DTOs, synthetic catalog/ranking | Deterministic network-denied tests pass |
 | S2 — complete | SQLite adapter + in-process secured HTTP handler; composition remains dormant | Persistence/conflict/reset and handler rejection tests pass; no bound socket |
 | Review + owner gate — complete | Corrected S1/S2 accepted; ADR-016 activation package approved 2026-09-28 | Explicit owner answer recorded; no need to repeat |
-| S3 — current approved block | S3a transport complete; client pairing and discussion UI in progress | Socket tests pass; service-to-extension loop and real-browser smoke still required |
+| S3 — complete | Fixed listener, session pairing, thin client and human discussion UI | Reviewed code, socket-denied regressions, actual loopback and Chrome smoke |
 | STOP → Astra + owner | Review working local loop; choose exact real model/runtime/license/input experiment | No silent model acquisition/activation or real-page input |
 | Later S4 | Private destination, fixture AI preview, filters, local report/block/moderation | Focused lifecycle/publication tests before each control is enabled |
 
 S1/S2 were the first cheaper-model block and are now complete, not all of roadmap
-R1. S3 is the next approved cheaper-model block. Routine naming/CSS/focused fixes
+R1. S3 is also complete; do not rerun its implementation handoff. Routine naming/CSS/focused fixes
 and the approved capabilities do not need more votes; expansion beyond them does.
 Use one implementation owner and a bounded separate Trust/Quality review, not a
 large standing agent team. AI review is not independent-human/legal/store approval.
@@ -168,9 +168,9 @@ unknown schema and reset. In-process handlers run without sockets. Preserve the
 old spike's fully network-denied suite. Document a separate loopback integration
 suite to run only after the owner gate; never globally weaken the existing guard.
 
-### S3: current approved implementation block
+### S3: completed implementation contract
 
-Implement in small independently checked commits:
+Delivered in independently checked slices (retained specification):
 
 1. **S3a — transport:** bounded listener/startup around the reviewed handler,
    fixed app-owned SQLite path, random IDs/token, shutdown and separate local
@@ -182,9 +182,9 @@ Implement in small independently checked commits:
    root/reply/edit/withdraw UI, lifecycle/error handling and real-browser smoke.
 
 Apply the concrete transport and fixture-namespace requirements in the S1/S2
-review. Default suites stay socket-denied. Replace the currently failing
+review. Default suites stay socket-denied. S3 replaced the formerly failing
 `test:integration` placeholder with a separately invoked bounded loopback suite;
-the owner has approved running it. Tests use temporary app-owned databases and
+the owner approved running it. Tests use temporary app-owned databases and
 injected test tokens, suppress token output and close their own listeners. An
 occupied port fails closed; do not kill unrelated processes or choose another
 port. Document user startup, extension-Origin configuration, manual pairing,
@@ -229,8 +229,8 @@ pass. No repeat of finished 6/6 review or the one-off real MDN exercise.
 
 ## Completion and return-to-Astra rules
 
-Keep service scripts `test` (no sockets), `test:integration` (approved loopback,
-replace the placeholder in S3), `check:secrets`. The service `test` command uses
+Keep service scripts `test` (no sockets), `test:integration` (approved loopback),
+`check:secrets`. The service `test` command uses
 `node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none`;
 SQLite/filesystem remain available while accidental HTTP/DNS/subprocess use fails.
 Keep later loopback cases out of the default test discovery and invoke them only
@@ -241,7 +241,10 @@ spike commands remain: `npm test`, `npm run test:restricted`,
 `npm run indicator:test`, `npm run check:secrets`. Baseline counts: 294 normal
 (293 pass/one intentional skip), 294 restricted, 112 indicator, 101 scanned files.
 Reviewed service baseline: 39/39 tests; 25 scanned files, zero findings and six
-scanner self-tests. No loopback/browser result exists yet for S3.
+scanner self-tests. These are historical baselines; current S3 counts and actual
+loopback/browser evidence are in STATUS and the S3 review. The separate spike
+`test:browser` uses installed Chrome, a temporary profile/database and intercepted
+project-created pages; it is never part of the socket-denied default suite.
 New legitimate fixtures may change generated test hashes; never alter the actual
 owner ledger. After each slice: focused checks, separate risk review, diff check,
 STATUS/README evidence, then commit/push verified in-scope work.
@@ -270,7 +273,7 @@ Luna can handle smaller fully specified subtasks. Availability is whatever the
 owner's picker offers; no model/account/permission setting was changed here.
 [Official model guidance](https://learn.chatgpt.com/docs/models).
 
-## Standalone cheaper-model fallback prompt — S3
+## Historical standalone cheaper-model fallback prompt — S3 (complete; do not rerun)
 
 > Lies AGENTS.md, plans/STATUS.md, plans/IMPLEMENTATION_HANDOFF.md, ADR-016 und
 > research/S1_S2_REVIEW_2026-09-28.md. Implementiere S3 in kleinen getesteten
@@ -291,7 +294,8 @@ owner's picker offers; no model/account/permission setting was changed here.
 
 ## Historical cheaper-model prompt (completed; do not rerun)
 
-This prompt produced S1/S2. Returning agents use the current S3 prompt above.
+This prompt produced S1/S2. Both historical prompts are complete. Returning agents
+review STATUS and wait for the next exact model/input package approval.
 
 > Lies AGENTS.md, plans/STATUS.md und plans/IMPLEMENTATION_HANDOFF.md sowie die
 > dort genannten aktuellen Entscheidungen. Implementiere zuerst S1 und S2:

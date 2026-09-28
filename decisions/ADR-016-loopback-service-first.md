@@ -2,9 +2,9 @@
 
 Status: Adopted architecture under the owner's 2026-09-28 instruction. The exact
 local S3 activation package below is explicitly owner-approved on 2026-09-28.
-S1/S2 implement domain, SQLite and an in-process request handler. S3a adds the
-bounded fixed loopback listener and passes its separate integration suite; client
-integration is in progress. No real model/input/provider is activated.
+S1/S2 implement domain, SQLite and an in-process request handler. S3 adds the
+bounded fixed loopback listener, session-paired thin client and human discussion
+UI. Separate loopback and real-Chrome checks pass. No real model/input/provider is activated.
 Continuation: the 2026-09-28 implementation review accepted the corrected offline
 core. See
 [the review record](../research/S1_S2_REVIEW_2026-09-28.md). The correction keeps
@@ -106,8 +106,9 @@ not a dependency for the local service or embedding experiment.
 Execution, API defaults, tests and model-switch rules are in
 [the implementation handoff](../plans/IMPLEMENTATION_HANDOFF.md). The first
 cheaper-model block, Astra review and owner activation approval are complete.
-The next cheaper-model block is S3: listener, pairing, thin client and human
-discussion UI. After integration, return again before real model/input decisions.
+S3's listener, pairing, thin client and human discussion UI are now implemented.
+Its review checkpoint is handled by the lead here; exact real model/input
+decisions still require owner approval before the next activation.
 
 ## Evidence and residuals
 
@@ -115,7 +116,8 @@ Read-only probe: Node v24.19.0 opened/closed an in-memory `DatabaseSync`; SQLite
 reported 3.53.3. No disk database/server was created.
 [Official Node 24 docs](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html)
 mark the module release-candidate. This proves availability, not durability,
-security or hosting readiness. The current extension remains offline 0.4.0.
-S1/S2/S3a evidence is recorded in `plans/STATUS.md`. The reviewed listener has
-51 offline checks and two actual loopback checks; client/browser evidence is
-still required. See [S3 review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md).
+security or hosting readiness. The current extension is the local-service client
+0.5.0. S1–S3 evidence is recorded in `plans/STATUS.md`. The reviewed listener has
+51 offline checks and two actual loopback checks; client/controller regressions
+and real-Chrome smoke separately exercise integration. See
+[S3 review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md).

@@ -11,12 +11,12 @@ ADR-016 defines the service-first architecture and exact local loopback/token/
 storage/permission/test package, explicitly owner-approved on 2026-09-28.
 This narrow exception does not authorize broader data transmission. Local HTTP
 is a data transfer; earlier "no network" evidence describes the offline spike,
-not future service integration.
-The S1/S2 handler is currently exercised only in-process under the same capability-
-denial harness. Its Host/token/Origin checks are implementation evidence, not
-evidence for the unbuilt transport. The recorded owner approval authorizes S3;
-the new listener/client/permission changes still require focused engineering
-review and actual local integration tests before claiming a verified connection.
+not the approved service integration.
+S3's listener/client/permission changes received focused engineering review,
+socket-denied regression tests, separate actual loopback tests and a real-Chrome
+smoke. See `research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md` for scope/residuals.
+Session pairing is a local developer capability; the synthetic actor selector
+is not real authentication. No real page payload or model/provider was activated.
 
 ## Trust
 - Never disguise AI as human.

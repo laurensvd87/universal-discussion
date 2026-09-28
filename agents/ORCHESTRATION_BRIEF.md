@@ -3,8 +3,9 @@
 Current continuation (2026-09-28): the initial organization/foundation is complete.
 Use `agents/TEAM.md` and `plans/IMPLEMENTATION_HANDOFF.md`. S1/S2 are reviewed;
 the owner approved ADR-016's exact local S3 activation package on 2026-09-28.
-S3 is the next coding block; return to Astra at completion or an earlier new
-boundary. Do not repeat that approval, recreate roles or reopen completed reviews.
+S3 is implemented with actual loopback/Chrome evidence; the next boundary is the
+exact real embedding model/input experiment approval. Do not repeat S3 or that
+approval, recreate roles or reopen completed reviews.
 
 Owner-selected execution: the lead stays on Astra and delegates bounded coding
 work to GPT-6 Sol with Medium reasoning. Use distinct file ownership for parallel

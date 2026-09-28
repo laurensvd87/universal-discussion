@@ -10,7 +10,9 @@ owner review. More synthetic review machinery is not on the critical path.
 
 The completed S1/S2 block is specified in [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md).
 S1/S2 Astra review is complete with corrections. On 2026-09-28 the owner explicitly
-approved ADR-016's local-connection package; S3 is the next implementation block.
+approved ADR-016's local-connection package; S3 is now implemented and locally
+tested. Next stop is the exact real embedding experiment decision, not silent
+model activation. S4's private/AI/moderation UX is still later work.
 External search/provider selection is deferred by the owner, not an R1 dependency.
 
 ## Evidence already available
@@ -21,12 +23,13 @@ External search/provider selection is deferred by the owner, not an R1 dependenc
   Owner smoke covers those routes, not arbitrary sites or continuous freshness.
 - P1.6 lifecycle design and AI-review history, qualified by ADR-014's policy
   corrections. Most of that design is not implemented.
-- Offline local-service S1/S2 exist; no listener/client integration, real accounts,
-  UI discussion posting, AI provider, learned embeddings, mobile app, public
-  release or store approval.
-- R2's offline candidate ranker and extension 0.4.0 related-page panel are built.
+- Local-service S1–S3 and extension 0.5.0 provide a session-paired, persistent
+  synthetic human discussion loop, with actual loopback/Chrome evidence. No real
+  accounts, AI provider, learned embeddings, mobile, public release or store approval.
+- R2's candidate ranker and service-backed related-page UI are built.
   Six synthetic Sources and hand-authored vectors prove wiring, not learned
-  semantic matching or live discovery. Real-browser panel smoke remains pending.
+  semantic matching or live discovery. The service-backed panel has Chrome smoke
+  evidence; old metadata paths retain their own separately scoped evidence.
 
 ## R0 — Reassessment and current-boundary hardening
 
@@ -50,9 +53,9 @@ Deliver small tested increments:
 2. S2 complete: SQLite persistence and secured in-process API handler; reset, deletion,
    conflict and corruption/version tests. No bound listener or new permissions.
    No canonical extension IndexedDB; no captured URLs/metadata/bodies stored.
-3. Current block: S3, owner-approved on 2026-09-28 under ADR-016's exact listener,
-   pairing, permissions, payload, retention and test package. Implement the
-   loopback service and thin extension UI; choose/create Topic, human root,
+3. S3 complete, owner-approved on 2026-09-28 under ADR-016's exact listener,
+   pairing, permissions, payload, retention and test package. Implemented the
+   loopback service and thin extension UI: choose/create Topic, human root,
    reply/edit/delete, English keys. Paired popup opening auto-loads the catalog
    and existing reserved-domain lookup, sending only a known fixture Source ID.
    Unsupported context permits manual choice; metadata remains manual and local.

@@ -1,16 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Universal Discussion - Local PoC",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Local related-page recommendations and bounded metadata proof of concept.",
   "minimum_chrome_version": "106",
   "incognito": "not_allowed",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://127.0.0.1/*"],
   "action": {
     "default_popup": "chromium/popup.html",
     "default_title": "Check local discussion state"
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';"
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src http://127.0.0.1:4174; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';"
   }
 }

@@ -26,13 +26,14 @@ function relativeBrowserPath(file) {
   return path.relative(browserDirectory, file).replaceAll("\\", "/");
 }
 
-test("unpacked extension inventory and bounded metadata manifest are exact", async () => {
+test("unpacked extension inventory and approved loopback-only manifest are exact", async () => {
   const files = (await listFiles(browserDirectory))
     .map(relativeBrowserPath)
     .sort();
   assert.deepEqual(files, [
     "README.md",
     "chromium/active-tab-reader.js",
+    "chromium/discussion-panel.js",
     "chromium/page-metadata-reader.js",
     "chromium/popup.css",
     "chromium/popup.html",
@@ -42,11 +43,16 @@ test("unpacked extension inventory and bounded metadata manifest are exact", asy
     "core/active-tab-policy.js",
     "core/indicator-contract.js",
     "core/indicator-controller.js",
+    "core/local-discussion-controller.js",
+    "core/local-service-client.js",
+    "core/local-service-contract.js",
+    "core/local-service-session.js",
     "core/page-metadata-controller.js",
     "core/page-signal-contract.js",
     "core/page-signal-policy.js",
     "core/related-sources.js",
     "fixtures/indicator-fixtures.js",
+    "fixtures/local-service-fixture-bridge.js",
     "fixtures/related-source-fixtures.js",
     "locales/en.js",
     "manifest.json",
@@ -56,22 +62,22 @@ test("unpacked extension inventory and bounded metadata manifest are exact", asy
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.4.0",
+    version: "0.5.0",
     description: "Local related-page recommendations and bounded metadata proof of concept.",
     minimum_chrome_version: "106",
     incognito: "not_allowed",
-    permissions: ["activeTab", "scripting"],
+    permissions: ["activeTab", "scripting", "storage"],
+    host_permissions: ["http://127.0.0.1/*"],
     action: {
       default_popup: "chromium/popup.html",
       default_title: "Check local discussion state",
     },
     content_security_policy: {
-      extension_pages: "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';",
+      extension_pages: "default-src 'none'; script-src 'self'; style-src 'self'; connect-src http://127.0.0.1:4174; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';",
     },
   });
   for (const forbiddenKey of [
     "optional_permissions",
-    "host_permissions",
     "optional_host_permissions",
     "background",
     "content_scripts",
@@ -89,15 +95,21 @@ test("unpacked extension inventory and bounded metadata manifest are exact", asy
 test("every runtime import and document resource remains inside the unpacked root", async () => {
   const runtimeFiles = [
     path.join(browserDirectory, "chromium", "active-tab-reader.js"),
+    path.join(browserDirectory, "chromium", "discussion-panel.js"),
     path.join(browserDirectory, "chromium", "page-metadata-reader.js"),
     path.join(browserDirectory, "core", "active-tab-controller.js"),
     path.join(browserDirectory, "core", "active-tab-policy.js"),
     path.join(browserDirectory, "core", "indicator-contract.js"),
     path.join(browserDirectory, "core", "indicator-controller.js"),
+    path.join(browserDirectory, "core", "local-discussion-controller.js"),
+    path.join(browserDirectory, "core", "local-service-client.js"),
+    path.join(browserDirectory, "core", "local-service-contract.js"),
+    path.join(browserDirectory, "core", "local-service-session.js"),
     path.join(browserDirectory, "core", "page-metadata-controller.js"),
     path.join(browserDirectory, "core", "page-signal-contract.js"),
     path.join(browserDirectory, "core", "page-signal-policy.js"),
     path.join(browserDirectory, "fixtures", "indicator-fixtures.js"),
+    path.join(browserDirectory, "fixtures", "local-service-fixture-bridge.js"),
     path.join(browserDirectory, "fixtures", "related-source-fixtures.js"),
     path.join(browserDirectory, "core", "related-sources.js"),
     path.join(browserDirectory, "chromium", "related-pages-panel.js"),
@@ -132,7 +144,7 @@ test("every runtime import and document resource remains inside the unpacked roo
   }
 });
 
-test("browser runtime has only audited tab and scripting bindings and no network, storage, logging, or dynamic-code capability", async () => {
+test("browser runtime has only audited tab, scripting, session and loopback adapter bindings", async () => {
   const runtimeFiles = (await listFiles(browserDirectory))
     .filter((file) => file.endsWith(".js"));
   const capabilityPattern = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|localStorage|sessionStorage|indexedDB|caches|cookieStore)\b/u;
@@ -146,6 +158,8 @@ test("browser runtime has only audited tab and scripting bindings and no network
     const approvedBindings = [
       "globalThis.chrome.tabs",
       "globalThis.chrome.scripting",
+      "globalThis.chrome.storage.session",
+      "globalThis.fetch",
     ];
     for (const approvedBinding of approvedBindings) {
       const bindingCount = source.split(approvedBinding).length - 1;
@@ -159,8 +173,11 @@ test("browser runtime has only audited tab and scripting bindings and no network
       (value, binding) => value.replace(binding, "approvedExtensionApi"),
       source,
     );
-    assert.doesNotMatch(source, capabilityPattern, label);
-    assert.doesNotMatch(sourceWithoutApprovedBinding, extensionApiPattern, label);
+    // Comments can describe the injected capability; only the exact binding
+    // above is permitted in executable code. Readers/controllers stay no-I/O.
+    const executableSource = sourceWithoutApprovedBinding.replace(/^\s*\/\/.*$/gmu, "");
+    assert.doesNotMatch(executableSource, capabilityPattern, label);
+    assert.doesNotMatch(executableSource, extensionApiPattern, label);
     assert.doesNotMatch(source, unsafeCodePattern, label);
     assert.doesNotMatch(source, unsafeHtmlPattern, label);
     assert.doesNotMatch(source, /\bconsole\s*\./u, label);
@@ -206,6 +223,12 @@ test("browser runtime has only audited tab and scripting bindings and no network
   }
 
   const popupScript = await readFile(popupScriptPath, "utf8");
+  assert.match(popupScript, /createLocalServiceSession\(\{ storageSession: globalThis\.chrome\.storage\.session \}\)/u);
+  assert.match(popupScript, /createLocalServiceClient\(\{ fetchImpl: globalThis\.fetch\.bind\(globalThis\), getToken: localSession\.getToken \}\)/u);
+  assert.match(popupScript, /void localDiscussion\.open\(\);/u);
+  for (const boundary of ["active-tab-reader.js", "page-metadata-reader.js"]) {
+    assert.doesNotMatch(await readFile(path.join(browserDirectory, "chromium", boundary), "utf8"), /local-service|storageSession|fetchImpl/u);
+  }
   assert.match(popupScript, /elements\.sourceTitle\.textContent = state\.source\.title;/u);
   assert.match(popupScript, /elements\.sourceUrl\.textContent = state\.source\.url;/u);
   assert.match(popupScript, /elements\.metadataTitle\.textContent = envelope\.title;/u);
@@ -290,6 +313,6 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(script, /observeTabLifecycle: tabLifecycleObserver\.observe/u);
   assert.match(
     script,
-    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*pageMetadataController\.dispose\(\);/u,
+    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
   );
 });

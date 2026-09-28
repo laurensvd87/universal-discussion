@@ -130,12 +130,24 @@ dt {
 }
 
 select,
-button {
+button,
+input,
+textarea {
   width: 100%;
   min-height: 42px;
   border-radius: 10px;
   font: inherit;
 }
+
+input, textarea { border: 1px solid #bcc8cf; padding: 9px; background: #fff; }
+textarea { resize: vertical; }
+.discussion-thread { display: grid; gap: 12px; }
+.discussion-contribution { display: grid; gap: 7px; padding: 10px; border: 1px solid #d4dee3; border-radius: 8px; }
+.discussion-thread section { display: grid; gap: 5px; }
+.discussion-thread section article + article { margin-left: 12px; }
+.discussion-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+#local-discussion [hidden] { display: none; }
+input:focus-visible, textarea:focus-visible { outline: 3px solid #0b7285; outline-offset: 2px; }
 
 select {
   border: 1px solid #bcc8cf;

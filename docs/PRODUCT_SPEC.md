@@ -26,11 +26,11 @@ First: Chromium desktop extension. Later: Android and iOS, plus other browsers
 when justified. Reuse the domain/API and suitable UI components, not identical
 capture mechanisms.
 
-The implemented offline local-service core owns Sources, fixture embedding
-records/ranking, Topic links and discussions; its in-process API handler exists,
-but no listener/client connection is active. The extension becomes a thin API
-client only after ADR-016 approval. Hosting
-later needs real auth/TLS/privacy/operations approval, not merely a URL change.
+The implemented local service owns Sources, fixture embedding records/ranking,
+Topic links and discussions. Under ADR-016's explicit approval, extension 0.5.0
+is now a session-paired thin client of the fixed loopback listener. This local
+developer demo uses synthetic IDs and deliberate demo contributions only.
+Hosting later needs real auth/TLS/privacy/operations approval, not merely a URL change.
 External web search is deferred, not required for the first implementation block.
 
 Opening the extension is the initial explicit gesture: load the approved
