@@ -1,245 +1,89 @@
-# Universal Discussion Layer — Agent Bootstrap
+# Universal Discussion Layer
 
-This repository is a planning/bootstrap package for handing the concept to GitHub Copilot or Codex.
+A browser-first discussion app built around
+`Content -> Semantic Topic -> Discussion`: different sources about the same
+underlying topic should lead to one conversation, with human and AI
+contributions clearly distinguished. Android and iOS follow.
 
-## What to do
-Open this directory in your coding agent and start with the shared charter plus the provider-specific entry point:
+## Current state
 
-- Shared charter: `PROJECT_CHARTER.md`
-- GitHub Copilot: `.github/copilot-instructions.md`
-- Codex: `AGENTS.md`
+This is a local prototype, not yet a usable shared discussion service.
 
-All entry points converge on the same workflow: read the bootstrap documents, establish the lean agent structure, complete Phase 0 planning/research, and do not jump directly into product implementation.
+- The offline kernel resolves synthetic Sources by exact URL or content
+  fingerprint. It does **not** perform semantic similarity matching.
+- The unpacked Chromium popup looks up bundled example.com/example.org mappings.
+- A separate metadata button reads only a controlled local fixture and one
+  approved MDN route. No body capture, network, persistence or AI.
+- Review/evaluation tooling exists; the owner's synthetic 6/6 review is finished.
+- Posting/replies, auto-loading on popup opening, local discussion persistence,
+  general websites, embeddings, AI integration, real accounts and mobile are
+  not implemented yet.
 
-The package intentionally does not lock in a programming language, cloud vendor, mobile UI mechanism, database vendor, AI provider or vector store. Those decisions should be researched and documented before implementation.
+The 2026-09-27–28 reassessment found that validation tooling had overtaken the
+usable product. The active plan now prioritizes a local discussion loop,
+same-Topic suggestions and an explicit AI-draft flow. Completed evidence is
+preserved; local implementation does not wait for another per-module interview.
 
-## Current execution state
+Start with [current status](plans/STATUS.md),
+[active roadmap](plans/ROADMAP.md) and
+[ADR-014](decisions/ADR-014-product-first-rebaseline.md).
+The [product reassessment](research/PRODUCT_RESET_2026-09-27.md) and
+[store/legal findings](research/PRODUCT_RESET_POLICY_2026-09-27.md) explain the
+corrections and options. These are research and engineering evidence, not store
+approval or legal certification.
 
-Phase 0 is in progress with a limited go for isolated offline fixture-driven
-implementation and the exact completed P1.5b/P1.5c local-processing browser
-experiments. The owner accepted the amended documentation-only P1.6 identity/
-lifecycle package on 2026-09-24. Because those amendments materially supersede
-the earlier package, fresh AI Trust/Security, Privacy/Policy, and Quality
-reviews re-read the reconciled design and each returned ACCEPT on 2026-09-25.
-P1.6's design gate is complete; P1.7 has not started and still needs a separate
-exact architecture authorization. Start with:
+## Run and test
 
-- `plans/PHASE_0_FOUNDATION.md` — challenged assumptions, scope, metrics, cost envelope and open approvals;
-- `agents/TEAM.md` — lean ownership and review contract;
-- `plans/ROADMAP.md` and `plans/STATUS.md` — executable order and current gate;
-- `plans/P1_2_COLLECTION_AND_COMPLETION.md` — the generated-preflight-approved corpus headroom, acquisition/provenance receipt, review reserve, completion receipt, and owner-stop design;
-- `docs/PHASE_1_THREAT_MODEL.md` — privacy/security constraints;
-- `docs/PHASE_1_AUTH_AND_DATA_LIFECYCLE_THREAT_MODEL.md` — the owner-accepted
-  amended P1.6 authorization, discussion, moderation, deletion, retention, and
-  synthetic-restore contract accepted by the fresh design reviews;
-- `docs/BYO_AI_THREAT_MODEL.md` — a proposed, provider-neutral boundary for any later AI work;
-- `decisions/ADR-001-offline-resolution-spike.md` — the accepted boundary for the completed offline P1.1 experiment;
-- `decisions/ADR-002-browser-observation-privacy.md` — the accepted user-invoked browser direction and still-open connected-use gate;
-- `decisions/ADR-004-initial-topic-granularity.md` — the accepted time-bounded editorial story-cluster definition;
-- `decisions/ADR-005-topic-discussion-correction-history.md` — the proposed append-only merge/split and Discussion-history semantics;
-- `decisions/ADR-006-synthetic-html-extraction-profile.md` — the proposed narrow offline profile for exact synthetic document-byte extraction;
-- `decisions/ADR-007-offline-owner-review-ledger.md` — the accepted offline digest-bound labeling workflow and its stop boundary;
-- `decisions/ADR-008-generated-review-resolution-journal.md` — the accepted generated-only single-journal design for uncertainty, later adjudication, and later fixed-point review coverage.
-- `decisions/ADR-009-local-poc-before-semantic-validation.md` — the accepted local NO-AUTO proof-of-concept sequence that defers, but does not replace, human semantic validation.
-- `decisions/ADR-010-local-active-tab-url-observation.md` — the accepted field-level permission/privacy boundary for the queryless, user-invoked local URL adapter now implemented in P1.5b.
-- `decisions/ADR-011-cross-platform-content-signal-boundary.md` — the accepted and implemented exact P1.5c generic metadata boundary for one controlled route and one pinned MDN page; every broader live-page use remains separately gated.
-- `decisions/ADR-012-local-identity-publication-moderation-lifecycle.md` — the
-  accepted amended P1.6 lifecycle decision; the superseded review is historical
-  and fresh amended-design reviews ACCEPT the reconciled package.
-- `decisions/ADR-013-future-on-device-content-derived-matching.md` — the
-  owner-approved future local-test direction for body-derived matching with
-  ephemeral query signals and protected Topic representatives; exact
-  architecture, model, real-content exercise, egress, and publication remain
-  separately gated.
-- `research/P1_5C_SCOPE_AND_REAL_PAGE_POLICY.md` — the approved exact fields/selectors, temporal non-use, owner metadata assumption, security/privacy boundary, and rights evidence for the controlled page plus one pinned MDN test.
-- `research/P1_5A_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review and residuals for the zero-permission bundled-fixture browser slice.
-- `research/P1_5B_ENGINEERING_REVIEW.md` — the Trust/Quality engineering review, checklist reconciliation, and residuals for the `activeTab`-only local URL slice.
-- `research/P1_5B_MANUAL_SMOKE.md` — the owner-reported Chromium permission, behavior, traffic, storage, console, and keyboard evidence completing the exact local P1.5b slice.
-- `research/P1_5C_ENGINEERING_REVIEW.md` — the Trust/Security and Quality engineering review, audit reconciliation, and residuals for the exact two-route bounded metadata slice.
-- `research/P1_5C_MANUAL_SMOKE.md` — the owner-reported permission, bounded-metadata, race, traffic, storage, console, and keyboard evidence completing the exact P1.5c experiment.
-- `research/P1_6_DESIGN_REVIEW.md` — P1.6 reviewer provenance, historical
-  findings, the accepted owner amendments, fresh ACCEPT reviews, residuals, and
-  the still-open P1.7 architecture gate.
-- `research/CONTENT_ACQUISITION_AND_STORE_POLICY.md` — current official-source evidence and alternatives for Chromium, Android, and iOS content signals without a per-site API foundation.
-- `research/ALPHA_COST_MODEL.md` — a dated paper cost comparison that authorizes no purchase or deployment.
-
-The first implementation is a dependency-free, offline topic-resolution kernel under `spikes/topic-resolution/`. It uses synthetic fixtures and performs no network or persistence I/O. Run it with Node.js 24 or newer:
+Node.js 24 or newer; the existing spike needs no package installation:
 
 ```sh
 cd spikes/topic-resolution
 npm test
 npm run test:restricted
-npm run check:secrets
 npm run indicator:test
-npm run review:prepare
-npm run review:status
-npm run evaluate:pilot
-npm run validate:split
+npm run check:secrets
 ```
 
-The Phase 0 pilot contains 24 project-created synthetic pair labels across 20
-story clusters. Six pairs received an independent blinded review. The evaluator
-reproduces the expected conservative baseline (TP=4, FP=0, TN=16, FN=4); this
-validates the labeling/evaluation path, not semantic model quality. Its
-versioned report now exposes Wilson intervals, coverage, abstentions, runtime,
-offline cost, and why the non-held-out 4-join/4-cluster sample cannot satisfy
-the automatic-join evidence gate. The larger P1.2 corpus and cluster-separated
-bootstrap remain open.
+For the unpacked extension and fixture-server/manual checks, follow the
+[browser README](spikes/topic-resolution/browser/README.md). Load the
+`spikes/topic-resolution/browser/` directory. The pinned MDN experiment expires
+on 2026-10-23; that is a narrow experiment limit, not the future site architecture.
 
-The structural split dry run groups cross-cluster negatives into four bounded
-dependency blocks and rejects corpus changes or partition leakage. Its two
-partitions are explicitly not held out; the command validates future evaluator
-plumbing only.
+The navigation hardening clears metadata on source-tab updates, removal or
+replacement. Automated race tests pass; a fresh real-browser smoke of this
+change is not yet recorded. Browser events are asynchronous and do not prove
+an atomic, continuously fresh page snapshot.
 
-The future P1.2 collection path also has a strict, bounded corpus contract with
-generated tests for the 200-pair/50-cluster/six-case/20%-review minimums,
-disagreement adjudication, provenance inventory, and resolved-label split
-projection. This is tooling only: no larger corpus or held-out result has been
-created.
+Do not rerun `review:owner` or prepare a replacement owner queue as a routine
+setup step: the synthetic 6/6 task is complete. The later 200–250-pair
+provenance-approved task requires explicit approval before acquisition/review.
 
-The first owner-review workflow increment is now executable without hand-built
-JSON. Strict TSV metadata becomes a digest-bound, deterministically ordered
-local queue with secondary-review items selected before labels; each owner
-answer is appended immediately with caller-declared identity and an unattested
-local timestamp. The default task contains six inventoried synthetic pairs and
-is only a dry run. It cannot finalize a corpus, freeze a split, evaluate a
-candidate, or make an automatic-join decision, so the real roadmap owner
-checkpoint remains ahead.
+## Next product increment
 
-The owner has completed that six-pair synthetic dry run once: 6/6 binary
-answers with no uncertainty. It will not be repeated. This confirms the local
-interaction and persistence path only; it is not the later 200-to-250-pair
-provenance-approved task or independent-review evidence.
+A clearly local demo: open -> choose/create Topic -> post -> reply -> reopen ->
+delete. It will use synthetic identities and explicit demo state, English
+message-key language packs, human/AI separation and private drafts with an
+explicit publication preview. Automatically captured context will not be saved.
 
-The generated-only P1.2b preflight now also has a pure immutable artifact
-chain: an acquisition plan binds exact source/pair assignments and synthetic
-role identities, a provenance inventory retains every accepted, rejected, or
-pending Source declaration, and a completion task binds the exact accepted v1
-queue plus a precommitted coverage priority and reserve. A pure successor can
-now bind a completed synthetic v1 primary ledger and append the ordered first
-synthetic secondary pass over the initial coverage IDs without including the
-binary primary label or rationale in the projected view; primary uncertainty
-blocks presentation. This is interface allowlisting, not secrecy from the API
-caller. It credits no real independent review and cannot activate the reserve,
-rereview, adjudicate, materialize a corpus, freeze a split, evaluate, or issue
-gate evidence.
+Then: generic permitted context, local semantic candidates with confirmation,
+optional AI handoff/import and a shared service after its data/security approvals.
+The design avoids a crawler, a mandatory per-site API and a mandatory AI vendor.
+For mobile, investigate sharing and Safari integration before assuming a WebView
+can observe content in other apps.
 
-ADR-008 now fixes the next generated-only path: one versioned successor journal
-will preserve supplements, same-role rereviews, deterministic exclusions,
-later adjudication, and later reserve activation in a single causal order. Its
-first implementation slice stops at adjudication or completion of the initial
-coverage set; it still cannot perform real review or produce corpus evidence.
-That slice is now implemented as a pure contract: it resolves generated
-uncertainty with a bounded provenance-reviewed supplement and same-role
-rereview, derives rather than solicits exclusion, and continues the remaining
-initial synthetic secondary decisions. Adjudication and reserve activation
-remain later increments.
+No provider integration, general page acquisition, browsing-data upload,
+deployment, purchase, recruitment/publication or store submission is authorized
+by a successful local test. Relevant gates remain explicit in ADR-014.
 
-The pre-result policy schema is also executable and tested. It can bind a
-future corpus/split/system artifact to immutable threshold, abstention, gate,
-bootstrap, and offline-scope rules, but no externally frozen receipt or result
-exists yet.
+## Project documents
 
-The next unevaluated-output boundary is executable too: a future candidate
-bundle must cover every declared held-out pair exactly once and bind its raw
-retrieval/score records to that policy and artifact. No bundle is checked in,
-and this validator never applies the threshold or computes quality.
-
-A generated-fixture-only result evaluator now exercises the following step:
-frozen integer decisions, confusion/Wilson metrics, abstention coverage,
-per-case error queues, and dependency-block bootstrap sensitivity. It rejects
-non-synthetic Sources and always withholds held-out evidence and a gate branch.
-
-The first P1.3 increment adds a bounded, in-memory parser for one inventoried
-project-created HTML fixture plus generated adversarial inputs. It extracts a
-title, treats same-origin canonical metadata only as a hint, preserves the
-observed URL, and hashes exact bytes into resolver-compatible Source fields
-that can be combined with separately reviewed P1.2 corpus metadata. It performs
-no file read or fetch at runtime. Fixture identity is
-caller-declared rather than attested, so this is not general page extraction or
-a production fingerprint trust boundary.
-
-The P1.5b implementation is testable as an unpacked Chromium extension from
-`spikes/topic-resolution/browser/`. On an explicit click it uses only
-`activeTab` to project the current top-level tab ID and URL, accepts exactly
-the queryless reserved-domain demonstrations `https://example.com/` and
-`https://example.org/`, performs a bundled exact-URL Source lookup, and reads
-the active tab again before rendering. It has no title/content access,
-injection, network, storage, telemetry, background, host, broad-tab, auth, or
-AI capability. The earlier bundled-fixture scenarios remain available.
-
-The separate P1.5c path adds exactly `scripting` and requires Chrome 106+. On a
-second explicit popup action, it accepts only the repository loopback fixture
-and one pinned MDN metadata-reference page, inspects only bounded direct
-children of the top-level document head in an isolated world, projects a
-strict local title/description/canonical/publication envelope, and verifies
-the same Chromium document ID plus a final active-tab read before rendering.
-It has no body/JSON-LD/authentication/paywall inspection, storage, network,
-model, fingerprint, resolver, or Topic-matching path. The owner directs the PoC
-to assume public head metadata is locally processable; generalized site/store
-support remains a later explicit Policy/Rights and Publication gate.
-
-Automated contract, race, package, capability, and provenance checks pass, a
-separate AI reviewer issued Trust/Quality ACCEPT, and the owner completed the
-documented Chromium permission/traffic/storage/console/keyboard smoke. P1.5b is
-therefore complete for its exact local URL-only scope. General page/WebView
-extraction, connected behavior, production architecture, store submission,
-hosted semantic processing, and BYO AI remain gated decisions; this local slice
-is not a claim that semantic clustering or publication eligibility has been
-validated.
-
-P1.5c implementation and automated checks exist, and a separate read-only AI
-audit issued Trust/Security and Quality ACCEPT with no open finding. The owner
-also completed the documented Chromium smoke on 2026-09-22, so that exact
-two-route experiment is complete. The broader P1.5/browser-product flow and
-all wider route, platform, store, deployment, and publication gates remain
-open.
-
-P1.6 now has an owner-accepted amended, deny-by-default design contract. It
-uses a persistent selected synthetic identity without a password or provider;
-keeps human and agent provenance immutable; supports public and owner-only
-private Discussions; and treats agent output as an unpublished, editable
-candidate until an explicit publication action. Root Contributions can have
-grouped chronological replies, while Summary output is always a root that can
-receive replies. Reports and moderator suspension, ban, removal, and appeal
-replace user mute/block. User content is retained until an explicit lifecycle
-action, account deletion removes owned private material and all owned public
-revision bodies, export is deferred to a future central web Account & Privacy
-Center, and restore tests remain isolated and synthetic-only.
-
-The accepted successor interaction makes opening the extension the explicit
-gesture: it should automatically load the active top-level URL, approved
-metadata, and local discussion mapping without a second button. Opening does
-not automatically read the page body, invoke AI, publish, persist browsing
-state, or make a network request. These are design requirements, not current
-implementation claims. The prior AI ACCEPT reviews cover the superseded
-baseline; fresh amended-design reviews now also ACCEPT the reconciled package.
-P1.6's design gate is complete, but P1.7 remains blocked until the owner
-separately authorizes one exact disposable local architecture. No
-real account, provider call, egress, deployment, spending, store submission, or
-publication is authorized.
-
-The optional P1.11/ADR-013 direction records how a later edition might derive a
-restricted semantic fingerprint or embedding on-device, delete each server-
-side query after one match transaction, and retain at most a protected per-
-Topic representative. Exact hashes are only a duplicate/control baseline. The
-owner approved the general owner-only local-test direction, including a later
-lawfully accessible authenticated/private active-page case, but it remains a
-future branch and is not the next critical-path task. Before any body-derived
-exercise, the exact extractor, redaction, model/licence, Security, Privacy, and
-Policy boundary must be approved. No model, egress, reachable matcher, server
-retention, deployment, store submission, or publication is authorized.
-
-## Product in one sentence
-A cross-platform discussion layer that maps the content a person is viewing to a semantic topic and exposes a shared human + explicitly identified AI discussion around that topic.
-
-## Repository map
-- `AGENTS.md` — shared instructions for Codex and compatible agents.
-- `PROJECT_CHARTER.md` — provider-neutral product and planning charter.
-- `.github/copilot-instructions.md` — GitHub Copilot workspace instructions.
-- `docs/` — product/domain/AI/security requirements.
-- `agents/` — instructions for creating the development and business agent structure.
-- `plans/` — phased roadmap and status template.
-- `research/` — questions requiring current research before decisions.
-- `decisions/` — ADR location.
-- `prompts/` — initial owner prompts.
+- [Charter](PROJECT_CHARTER.md), [agent instructions](AGENTS.md) and
+  [lean team](agents/TEAM.md): product invariants and ownership.
+- [Product](docs/PRODUCT_SPEC.md), [domain](docs/DOMAIN_MODEL.md) and
+  [AI economics](docs/AI_AGENTS_AND_ECONOMICS.md): intended behavior.
+- [Trust/moderation](docs/TRUST_SECURITY_MODERATION.md),
+  [lifecycle design](docs/PHASE_1_AUTH_AND_DATA_LIFECYCLE_THREAT_MODEL.md) and
+  [BYO-AI threats](docs/BYO_AI_THREAT_MODEL.md): feature-specific boundaries.
+- [Historical roadmap](plans/archive/ROADMAP_2026-09-25.md) and
+  [historical status](plans/archive/STATUS_2026-09-25.md): preserved prior work.
+- `decisions/` and `research/`: scoped decisions and dated supporting evidence.

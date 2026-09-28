@@ -1,12 +1,28 @@
 # ADR-012: Local identity, discussion, moderation, and lifecycle contract
 
-Status: Accepted P1.6 design; owner amendments and fresh AI Trust/Security,
-Privacy/Policy, and Quality reviews ACCEPT; P1.7 implementation not authorized
+Status: Accepted P1.6 design with historical reviews; qualified by the
+2026-09-27 product/policy rebaseline in ADR-014 and the current ROADMAP
 
 Date: 2026-09-24
 
 Owners: Lead/Product, Platform and Client, Trust/Security/Privacy/Policy, and
 Quality
+
+## Current precedence (reviewed 2026-09-28)
+
+The owner's latest critical-review/implementation direction replaces the
+per-module P1.7 architecture questionnaire with reversible local fixture
+slices. ADR-014 and `plans/ROADMAP.md` define their order and acceptance checks.
+This lifecycle design is a reference for the features a slice actually ships,
+not a requirement to finish every worker, restore, and incident subsystem before
+showing a local discussion UI. Broader page capture, providers, data egress,
+real accounts, deployment, spending, and publication remain explicit gates.
+
+Policy review corrects the previous no-user-block choice and qualifies appeal,
+retention, and rights-handling defaults below. The original owner answers and
+2026-09-25 AI reviews remain historical evidence, not proof of store/legal
+compliance or acceptance of these later corrections. See
+`research/PRODUCT_RESET_POLICY_2026-09-27.md` for dated primary sources.
 
 ## Context
 
@@ -135,11 +151,15 @@ key and an English fallback language pack. Language packs are inert declarative
 data and translate UI text, not human or AI contributions. User-supplied agent
 names are user content and are not silently translated.
 
-### 5. Reports and moderation; no user block or mute
+### 5. Reports, personal blocking, and moderation
 
-There is no user mute and no user-to-user block. Public content is only shown
-when the panel is deliberately opened, and user safety actions are reports and
-moderator review rather than per-user relationship state.
+Personal user blocking is a public-release requirement alongside reporting and
+moderator bans. The earlier no-block choice is superseded because Play's public
+UGC policy explicitly requires user blocking, and Apple also requires blocking
+abusive users. Opening the panel deliberately does not remove those duties.
+Mute remains optional. Blocking hides the target account's human/agent content
+for the blocker, prevents directed interaction, applies to quotations and
+projections, and has an unblock control. It is not a global ban or deletion.
 
 Every public contribution and reply can be reported with an enumerated reason:
 spam/scam, harassment, personal data, copyright, dangerous/illegal content,
@@ -148,7 +168,15 @@ data. The report binds the exact public target revision/version and body digest
 so a later edit cannot replace the evidence under review. Only the assigned
 case moderator can read that revision, and only until case/appeal retention
 ends. Withdrawal or account/privacy deletion purges it and wins the race. Report
-volume never proves abuse or causes automatic removal.
+volume never proves abuse or causes automatic removal. Users can also report
+an account; a post is not a prerequisite for that report surface.
+
+Before real in-app generative AI, the owner can preview and submit selected
+offensive AI output or an excerpt as separate restricted report evidence. The
+report never grants access to its original private discussion, prompt, source
+page, or other drafts. Only the assigned case handler sees the submitted copy;
+its retention, withdrawal, deletion, and disclosure are explicit. This covers
+private output reporting without making private histories moderator-readable.
 
 A scoped moderator can dismiss a report, remove the reported contribution, put
 the account into temporary suspension, or ban it. When banning, the moderator
@@ -161,16 +189,21 @@ change invalidates it; a contribution transaction either commits before that
 fence and forces a new preview or observes the committed ban and denies.
 Removed bodies render as the neutral `Deleted` placeholder; reply topology
 remains. Private discussions and drafts are never exposed to moderators or
-included in bulk removal.
+included in bulk removal. An explicitly submitted private-output report is
+case evidence only and never a route into private storage.
 
-The affected account sees the action and reason and may submit one appeal
-within seven days. One bulk-action appeal covers the ban and its removal batch.
+The local prototype lets the affected account see the action/reason and submit
+one appeal within seven days. One bulk-action appeal covers the ban and removal
+batch. This is not the public legal deadline: where DSA Article 20 applies,
+internal complaints must remain available for at least six months. Assess the
+Article 19 micro/small-enterprise exemption and other applicable obligations
+before public operation; do not copy the local restriction into production.
 A reversal may restore only moderation-removed bodies that still exist and only
 while the author has not withdrawn them and account/privacy deletion has not
 erased them. Reporter identity is never disclosed to the subject.
 
 Temporary suspension is not a ban. It allows public reading, status inspection,
-one appeal, withdrawal of owned public content, logout, account deletion, and a
+one local appeal, personal block management, withdrawal of owned public content, logout, account deletion, and a
 future centralized export request. It denies new contributions, replies,
 reactions, AI invocations/publications, and edits to retained public bodies. The
 moderator must lift the suspension or convert it to a ban. A banned account has
@@ -180,8 +213,9 @@ the same non-publishing rights until deletion or successful appeal.
 
 Moderator, Topic-correction, privacy, and security/operations scopes are
 structurally separate even though the solo owner exercises every local fixture.
-A moderator can see only public reported content and relevant public thread
-context. There is no routine or break-glass access to private discussions,
+A moderator can see only public reported content, relevant public thread
+context, and the exact owner-submitted private-output report payload. There is
+no routine or break-glass access to original private discussions,
 drafts, prompts, or AI candidates.
 
 Ordinary workers receive one exact action, object set, version, policy, and
@@ -195,7 +229,7 @@ Global containment stops new contributions, AI work, publication, export,
 ordinary jobs, and restore promotion. Existing public content remains readable.
 A moderator may still hide one exact public contribution through the audited
 moderation path, and exact delete-only safety cleanup continues. A restricted
-account may inspect status, log out, withdraw an owned public contribution, and
+account may inspect status, manage personal blocks, log out, withdraw an owned public contribution, and
 request or confirm account deletion during containment. The account-state
 allowlist is intersected with this global allowlist; no new appeal is accepted
 while contained, and the appeal deadline is paused for the contained interval.
@@ -229,6 +263,13 @@ Public contributions, private discussions, drafts, and AI candidates otherwise
 remain until manual deletion, withdrawal, moderation, or account deletion.
 There is no 24-hour campaign or private-result expiry and no automatic inactive-
 account deletion. Raw observed page content is never in this retained set.
+Manual retention is a local product default, not an indefinite legal entitlement.
+Real operation must justify each data class's purpose and necessity, review
+retention, and apply lawful-basis/erasure rules and any justified exceptions.
+Likewise, this prototype's unconditional purge is not a claim that law forbids
+every limited preservation duty or legal-claims hold; no hold is implemented or
+authorized here. Any real exception needs documented scope, access, expiry, and
+an accurate user notice before relying on it.
 Retained local user state must use non-sync application storage; workstation
 backups, crash dumps, and host indexing remain outside the PoC guarantee and
 must be addressed before external testing.
@@ -255,7 +296,11 @@ client links to it. The data model must retain exact owner scoping and lifecycle
 states so a future export can be correct, but archive generation, download,
 reauthentication, and format are deferred. A usable access-request route is a
 prerequisite for real accounts/public operation and requires a fresh privacy,
-security, legal, and store-policy review.
+security, legal, and store-policy review. Rights requests cannot wait for the
+website's automation. Mobile clients must let users initiate account deletion
+in-app; the centralized service may complete it, and Play additionally requires
+a usable external web deletion route. An account suspension cannot remove a
+person's applicable rights-request route.
 
 There is no backup or recovery promise for owner browsing-derived PoC data.
 Restore logic is tested only against an isolated synthetic fixture store. A
@@ -289,7 +334,9 @@ pseudonym may remain for at most 90 days and then becomes role-only topology.
 
 ## Owner-approved disposition record
 
-The owner accepted all rows on 2026-09-24 after a point-by-point review:
+Historical record: the owner accepted all rows on 2026-09-24 after a point-by-
+point review. Row 7 is superseded; rows 8, 12, and 13 now carry the policy
+qualifications above. This table records the answers, not current policy law:
 
 | # | Disposition |
 | --- | --- |
@@ -311,12 +358,14 @@ The owner accepted all rows on 2026-09-24 after a point-by-point review:
 | 16 | Solo-role fixtures are acceptable locally; every provider, real-account, deployment, spending, store, publication, and later independent-review gate remains explicit. |
 | Amendment | Opening the extension is the invocation and automatically starts active-tab URL/approved-metadata/local-mapping lookup; no second check button is required. |
 
-## P1.7 boundary
+## Local implementation boundary (supersedes P1.7 questionnaire)
 
-Owner acceptance of this design does not authorize implementation. Before P1.7
-starts, the owner must separately accept one exact disposable-local architecture,
-including its modules, state store, test fixtures, browser bridge, fake-agent
-surface, and excluded capabilities.
+The latest owner direction authorizes reversible local implementation and fixes
+within the current ROADMAP. Engineers document module/store/test choices and
+verify the capabilities they implement without another per-module owner vote.
+The first discussion fixtures remain synthetic and network-denied. The browser
+bridge keeps its currently approved field/context boundary until a broader
+real-page flow receives an explicit decision.
 
 That architecture may use only synthetic principals and discussion data,
 deterministic fake-agent output, local/disposable state, a fake clock where
@@ -341,11 +390,11 @@ semantic vectors and any server matcher remain under ADR-013 and later gates.
   action for private and AI-generated material.
 - Thread grouping makes discussion readable and lets corrections move complete
   conversational units without detaching replies.
-- Removing user block/mute reduces MVP state but makes report/moderator response
-  the only abuse intervention after opening the panel.
+- Personal blocking adds a small relationship/filtering surface required for
+  the intended public/mobile product; it complements reports and moderator bans.
 - Deferring export avoids implementing the same sensitive archive path in every
-  client, but blocks real-account/public operation until the centralized route
-  exists.
+  client, but real-account/public operation needs a usable rights-request route
+  even before the automated web center exists.
 - One builder may exercise every role fixture but cannot claim independent
   staffing, legal review, a penetration test, or production readiness.
 
@@ -360,8 +409,8 @@ semantic vectors and any server matcher remain under ADR-013 and later gates.
   candidate plus one-click publication preserves control.
 - **Render Summary inside reply chronology:** rejected; summaries are independent
   root contributions and can receive their own replies.
-- **User mute/block:** rejected for the initial product; opening is deliberate
-  and reports plus scoped moderation are the accepted controls.
+- **Omit user mute/block:** historical owner choice; no-block is now superseded
+  by public-release store requirements. A separate mute feature remains optional.
 - **Keep deleted bodies under an anonymous label:** rejected because body text
   can itself identify the author; retain only a non-linkable tombstone.
 - **Implement exports in every client:** rejected in favor of one later web
@@ -378,8 +427,9 @@ amended design. They found no remaining blocker or major contradiction. These
 are design-review lenses, not independent human, legal/store-policy,
 penetration-test, or implementation evidence.
 
-P1.6's design gate is complete. P1.7 remains blocked until the separate exact
-architecture authorization. The later
+P1.6's historical design gate is complete. The later policy corrections are
+recorded above, and local implementation follows ADR-014/current ROADMAP without
+the superseded architecture questionnaire. The later
 200-250-pair provenance-approved semantic review remains separate; when it
 becomes the next required task, work stops for explicit provenance, acquisition,
 and reviewer approval. The completed 6/6 synthetic owner dry run is not repeated.

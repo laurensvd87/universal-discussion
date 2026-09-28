@@ -1,5 +1,39 @@
 # P1.5c bounded page-metadata engineering review
 
+## Follow-up correction — 2026-09-28
+
+Correction commit: `f8947a2`.
+
+The earlier review below is preserved as historical evidence. A later read-only
+audit reproduced a same-URL reload after document attestation but during the
+final tab lookup: the old implementation could return the old title as resolved.
+The old tests checked rejection during attestation, not that subsequent interval.
+
+The correction watches source-tab update/removal/replacement IDs while a metadata
+snapshot is pending or displayed, advances the activation generation, clears the
+view and releases listeners on invalidation/reset/retry/disposal. No new manifest
+permissions, routes, fields, storage, network or frozen-resolver behavior.
+[Chrome Tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs)
+supports basic lifecycle events without the broad `tabs` permission; the listener
+does not inspect event URL/title payloads.
+
+AI task `reset_code_review` reviewed the unfinished implementation and added
+three further race/cleanup regressions. It returned Trust/Quality ACCEPT for
+this bounded correction; the Lead also inspected the production diff. This is
+AI engineering review, not independent-human, legal or browser-smoke evidence.
+
+Post-change: `npm test` 273 pass / one expected skip (274 total);
+`test:restricted` 274/274; `indicator:test` 92/92; secret scan 95 package files,
+zero findings, six scanner self-tests. Counts overlap across suites. Whitespace
+check passed. Owner review commands were not rerun.
+
+Residuals: event delivery is asynchronous, not atomic document freshness. All
+source updates invalidate conservatively, including harmless changes; same-
+document DOM changes may not emit these events. A fresh real-browser smoke of
+the new wiring is not recorded. The completed 2026-09-22 smoke is unchanged.
+
+## Historical review — 2026-09-22
+
 Date: 2026-09-22
 
 Reviewed implementation commit: `8b9eabf46f5cd715029b2a86df06d61e093a83d8`

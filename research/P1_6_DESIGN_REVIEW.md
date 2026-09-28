@@ -1,5 +1,12 @@
 # P1.6 identity, discussion, moderation, and lifecycle design review
 
+Historical design evidence. The 2026-09-27–28 policy audit found missing
+public-UGC blocking and private generated-output reporting requirements after
+these reviews. ADR-014, the corrected ADR-012/lifecycle contract and the current
+roadmap supersede the no-block choice and per-module P1.7 approval sequence.
+Earlier ACCEPT dispositions are not legal/store approval and do not establish
+that the product is implemented. See `PRODUCT_RESET_POLICY_2026-09-27.md`.
+
 Status: 2026-09-23 baseline AI reviews ACCEPT; owner accepted a materially
 amended package on 2026-09-24; fresh amended-design Trust/Security,
 Privacy/Policy, and Quality AI reviews ACCEPT on 2026-09-25; P1.7 remains

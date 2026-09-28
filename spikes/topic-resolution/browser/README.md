@@ -7,6 +7,11 @@ Trust/Security and Quality engineering review and owner-run Chromium smoke also
 pass. Both exact local-processing slices are complete; the broader P1.5
 browser-observation and content-extraction gate remains open.
 
+2026-09-28 correction: the original checks missed a same-URL reload after
+document attestation. The current package adds source-tab lifecycle invalidation
+and passing regressions. The new event wiring has not received a fresh real-
+browser smoke; earlier completed owner checks are historical evidence.
+
 ## What it demonstrates
 
 The Chromium action popup has three separate local paths:
@@ -30,11 +35,13 @@ explicit bundled-scenario choice
 explicit bounded-metadata click
   -> fresh active/current-window tab ID + URL
   -> exact two-route and dated policy gate
+  -> observe only source-tab lifecycle IDs while the popup lives
   -> isolated-world packaged function in top frame 0
   -> bounded direct-head candidates only
   -> strict immutable metadata envelope, with no semantic decision
   -> same-document-ID attestation + fresh final tab read
   -> text-only resolved / unsupported / unavailable metadata view
+  -> clear pending/resolved metadata on source-tab update/removal/replacement
 ```
 
 The current-tab path supports only `https://example.com/` and
@@ -68,6 +75,11 @@ semantic matching on real content or establish that a future generalized
 extension/mobile client will satisfy store, website-terms, copyright, or
 privacy rules. `publishedAtHint` is displayed as context only and is never sent
 to the resolver or used for Topic matching.
+
+Every source-tab update conservatively invalidates the displayed metadata,
+including non-navigation updates. Retry if needed. Event delivery is asynchronous;
+this does not prove an atomic browser snapshot or detect every same-document DOM
+mutation. Listeners are released on reset, retry, terminal failure or popup exit.
 
 ## Historical P1.5b manual Chromium smoke
 
@@ -165,6 +177,18 @@ No other public site was authorized.
 
 ## Automated verification
 
+The 2026-09-28 navigation correction adds mocked-browser regressions for changes
+during collection/attestation/final tab lookup, already rendered metadata,
+obsolete callbacks and listener cleanup. See
+`../../../research/P1_5C_ENGINEERING_REVIEW.md` for the follow-up evidence.
+
+A future controlled-fixture smoke should additionally keep the inspected popup
+open after a successful metadata read, reload/close the source tab, and confirm
+the values clear. Also pause before the final active-tab read, reload the same
+fixture URL, resume, and check that no old resolved result survives the event.
+This is a pending check, not another request to repeat the completed owner review
+or the one-off real MDN exercise.
+
 From `spikes/topic-resolution` run:
 
 ```powershell
@@ -194,11 +218,15 @@ any such adapter or public release.
 
 ## Stop boundary
 
-Stop before adding `tabs`, host permissions, content/background scripts,
-another field/selector/route, body or JSON-LD extraction, a mobile adapter,
-storage, network/service egress, telemetry, semantic matching, writes,
-deployment, store submission, or publication. `scripting` is approved only for
-the exact P1.5c path above. Each broader capability changes an accepted
-security/privacy/policy/provider or release boundary and requires a new
-explicit owner review. ADR-009 keeps the PoC on the `NO AUTO` path; ADR-010 and
-ADR-011 authorize only the exact two slices implemented here.
+This package still has no general capture, storage, writes or network. ADR-014
+now permits the successor R1 local discussion demo, fixture state and tests
+without a per-module questionnaire. Such code must not silently weaken the old
+capture/package boundary; it needs separately explicit capability tests.
+
+Stop before broader real-page fields/selectors/routes, body/JSON-LD processing,
+new capture permissions, captured-context retention, network/telemetry,
+provider/model activation, deployment, store submission or public posting.
+Present the relevant exact approval package. `scripting` still authorizes only
+the exact P1.5c routes. ADR-009/014 retain NO AUTO; ADR-010/011 remain the capture
+boundary. Local fixture mobile/domain work follows the active roadmap, not this
+historical experiment's former blanket stop on all future implementation.

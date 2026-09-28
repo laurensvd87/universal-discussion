@@ -1,555 +1,202 @@
-# Development / Testing / Rollout Roadmap
-
-This roadmap was last refined on 2026-09-25. Do not skip gates. `plans/PHASE_0_FOUNDATION.md` contains the assumptions, metrics, cost envelope, and current limited-go decision.
-
-## Phase 0 — Product and feasibility
-
-Owner: Lead / Product Orchestrator, with Platform, Semantic, Trust, and Quality review.
-
-Deliverables:
-
-- lean agent structure and handoff rules;
-- challenged product and technical assumptions;
-- current competitor, browser-policy, semantic, privacy, and cost evidence;
-- architecture and browser-data-flow options;
-- measurable resolver and discovery experiments;
-- threat models and ADRs for consequential choices; and
-- a small corpus/evaluator pilot proving that the planned evaluation can run.
-
-### P0.1 Topic definition and corpus pilot
-
-Owner: Semantic Resolution, with Lead adjudication and Trust/Quality review.
-
-Status: **Complete on 2026-09-19.** The owner accepted ADR-004's time-bounded atomic-development rule.
-
-Evidence: `spikes/topic-resolution/evaluation/` contains the schema, 24 synthetic pair decisions across 20 clusters, six independently reviewed pairs (25%), evaluator tests, and a reproducible TP=4/FP=0/TN=16/FN=4 baseline report. No disagreements occurred; the schema/report retain the field and count.
-
-### P0.2 Decision review
-
-Owner: Lead / Product Orchestrator.
-
-Status: **In progress.** The owner accepted ADR-002's user-invoked direction and ADR-004's topic definition. ADR-003, merge/split semantics, exact browser egress/retention, and bottom-up architecture costs remain open.
-
-Acceptance: record owner disposition for every remaining item. An undecided or rejected proposal stays a visible blocker; silence is not approval.
-
-Phase 0 gate: **limited go only** until P0.2 passes. P0.1 is complete and ADR-001/P1.1 are accepted strictly for the frozen offline fixture-only kernel, but that accepts no connected architecture or broader product behavior. Phase 0 completes only when the remaining decisions are recorded.
-
-Stop conditions: no coherent topic boundary can be labeled; no privacy-safe discovery experiment can be designed; the cost envelope cannot be bounded; or owner/reviewer decisions invalidate the proposed sequence.
-
-## Phase 1 — Technical spikes
-
-Build disposable or isolated prototypes in this dependency order. Completing a local spike never authorizes external data collection, a provider call, deployment, spending, recruitment, or publication.
-
-Owner direction recorded 2026-09-21: prioritize the shortest working local
-proof of concept, then revisit semantic-matching logic from observed use. The
-200-to-250-pair human-reviewed corpus remains necessary before a validated
-automatic-join quality claim, but it is not a prerequisite for fixture-driven
-UI/integration work. Until a P1.4 branch is supported by evidence, the proof of
-concept defaults to **NO AUTO**: only deterministic or explicitly curated
-mappings may choose a shared Discussion. Experimental semantic candidates may
-be visible to a local developer/reviewer as suggestions, never as an automatic
-join or product-quality claim. This sequencing change does not authorize real
-data, connected browsing, deployment, recruitment, spending, or publication.
-
-### P1.1 Offline resolution kernel
-
-Owner: Semantic Resolution, reviewed by Trust and Quality.
-
-Dependencies: ADR-001 scope; synthetic fixtures only.
-
-Deliverable: `spikes/topic-resolution/`.
-
-Status: **Complete at code commit `d33f010`.** One independent read-only audit
-issued both Trust and Quality ACCEPT dispositions for the offline
-synthetic-fixture scope, with all eight Increment A1 checks passing. The review
-provenance, accepted residuals, and explicit exclusions are recorded in
-`research/P1_1_GATE_REVIEW.md` and ADR-001; any code-bearing change reopens this
-review.
-
-Acceptance:
-
-- conservative URL normalization and deterministic invalid/private-target rejection;
-- exact URL and exact trusted-fixture-fingerprint resolution;
-- ambiguous/title-only observations create separate provisional topics;
-- one auditable source-topic link per resolution with method, confidence, version, time, and evidence;
-- human/agent public counts remain separate and private invocations are excluded;
-- no network, persistence, secret, raw-body, browser, or provider dependency; and
-- all Increment A1 checks in `docs/PHASE_1_THREAT_MODEL.md` pass on the documented Node version.
-
-Gate: focused tests, a static capability audit, a network/DNS-denied execution, fixture provenance review, and independent Trust/Quality review pass. Ordinary unit-test success alone does not close this gate.
-
-### P1.2 Labeled clustering corpus and evaluator
-
-Owner: Semantic Resolution, with Trust provenance/licensing review and Quality reproducibility review.
-
-Dependencies: P0.1 and P1.1 domain vocabulary.
-
-Deliverable: a review-ready workflow that assembles bounded, provenance-checked source metadata into a review queue, presents each pair with enough context to decide `same-topic`, `different-topic`, or `uncertain`, and records the owner's decisions, reviewer identity, timestamps, rationale, and adjudications without requiring manual JSON construction. It must produce versioned, license-safe labels for at least 200 source-pair decisions across at least 50 story clusters, plus an evaluator that reports confusion matrix, precision, coverage/recall, Wilson interval, story-cluster bootstrap sensitivity, abstentions, latency, and cost.
-
-Acceptance: duplicate, syndicated, updated, related-but-distinct, unrelated, and adversarial-title cases are represented; tuning and held-out splits are made by story cluster; a second reviewer checks at least 20% of labels; disagreements and provenance are retained; evaluator correctness has deterministic tests.
-
-Owner checkpoint: when the review queue is ready, stop before freezing the
-held-out split and explicitly present the owner with the prepared human-review
-task. The owner should only need to decide the relationship for each presented
-pair; the workflow must handle metadata, ordering, review coverage, timestamps,
-and corpus updates. Do not advance to the held-out evaluation, automatic
-semantic-join decision, or the P1.2 gate until the review coverage,
-adjudications, provenance, and owner disposition are recorded.
-
-Gate: provenance is accepted, leakage checks pass, and another role can reproduce the deterministic baseline.
-
-Status (2026-09-20): **In progress.** The 24-pair synthetic pilot evaluator
-now reports tested Wilson intervals, coverage/abstentions, evidence sufficiency,
-CLI runtime metadata, and local external-cost/provider-call accounting. It
-explicitly fails the held-out and 60-decision/20-cluster evidence requirements.
-An executable dry-run split contract now binds the corpus, keeps every negative
-pair inside a predeclared dependency block, and rejects cross-partition exact
-signals; both pilot partitions remain explicitly non-held-out.
-The future whole-block bootstrap calculation is implemented with deterministic
-seeded tests, input/selection digests, undefined-replicate accounting, and
-resource bounds, but is deliberately not applied to the retrospective pilot.
-The future-corpus schema is also executable: generated boundary tests cover the
-200-pair/50-cluster/six-case/20%-review minimums, unresolved disagreement and
-independent adjudication, strict provenance inventory, bounded inputs, and a
-resolved-label split projection. It contains no collected corpus.
-The first owner-review workflow increment now reads strict TSV metadata,
-commits a deterministic blinded queue and pre-label 20% secondary-review plan,
-and appends one primary answer at a time to a task-bound local digest chain.
-Its checked-in six-pair task is project-created synthetic data used only to
-exercise preparation, owner presentation, restart, concurrency, and truthful
-checkpoint behavior. It has no secondary/adjudication/finalization path and is
-not the real 200-pair task or the owner checkpoint above.
-The owner completed that dry run with 6/6 binary answers. Treat it as finished
-and do not repeat it. When the later 200-250-pair provenance-approved review
-becomes the next required task, stop before acquisition/review and request the
-exact provenance, source-use, and reviewer approvals.
-One independent read-only reviewer applied both Trust and Quality lenses to
-final tree `d3818ab` and issued ACCEPT / ACCEPT for this synthetic-only scope;
-the accepted residuals and non-authorizations are recorded in
-`research/P1_2A_GATE_REVIEW.md` and do not advance the owner checkpoint.
-`plans/P1_2_COLLECTION_AND_COMPLETION.md` now defines the next step, accepted
-for generated-fixture preflight only:
-provisionally target 250 pairs and at least 60 opaque acquisition strata, bind
-accepted acquisition-plan and provenance-inventory digests, precommit a 30%
-coverage sample plus ranked reserve, preserve uncertain/disagreement history
-outside the binary corpus projection, and use separate prepared-task and
-completed-review stops. No acquisition or actual secondary/adjudication stage
-is authorized by that acceptance.
-The first generated-only P1.2b-1 slice now implements the immutable
-acquisition-plan -> provenance-inventory -> v1 primary-task -> completion-task
-digest chain and full deterministic coverage priority. The next bounded slice
-adds a pure bridge from a completed v1 primary ledger and permits only the
-ordered first synthetic secondary pass over the precommitted initial coverage
-IDs. It retains uncertainty/disagreement and credits zero independent-human
-decisions. It has no reserve activation, rereview, adjudication, real reviewer
-actions, corpus materialization, split, or evaluation capability.
-A follow-on generated-only design is accepted in ADR-008: one versioned
-successor journal will first add bounded evidence supplements, same-role
-rereview, deterministic unresolved exclusions, and continuation of the initial
-secondary queue. That slice must stop at the first adjudication need or initial
-resolution completion. Later reviewed versions may add adjudication and then
-fixed-point reserve activation only after a read-only eligibility projector;
-all versions preserve one causal head and credit zero independent-human review.
-The first journal version is now implemented. It freezes an empty, partial, or
-complete base-secondary prefix; adds exactly one synthetic provenance-reviewed
-supplement and same-role rereview for an uncertainty; derives a role-specific
-exclusion after a second `uncertain`; continues missing initial-secondary
-decisions; and returns either `adjudication-required` or
-`initial-resolution-complete`. It adds no adjudication or reserve API and no
-real-review, corpus, split, evaluation, or gate claim.
-A separate read-only AI engineering review reproduced the focused/full checks
-and issued Trust/Quality ACCEPT for commit `00372ec`; this is not human corpus
-review or independent labeling evidence. See
-`research/P1_2B1B_ENGINEERING_REVIEW.md`.
-The pre-result policy schema now binds future corpus/projection/split and system
-artifact digests to fixed-point join/abstention behavior, normative AUTO gate
-semantics, bootstrap settings, and offline scope. Generated tests make no
-receipt or result claim.
-The unevaluated prediction-bundle schema now requires exactly one sorted raw
-retrieval/score record for every declared held-out pair and transitively binds
-the bundle to that policy and artifact. The repository contains no candidate
-output, and the contract performs no thresholding or quality evaluation.
-The generated-only result evaluator now tests the frozen decision, six metric,
-Wilson, coverage, per-case/per-block reconciliation, review-queue, and
-block-bootstrap path. It rejects non-synthetic Sources and cannot issue a gate
-branch or held-out claim.
-The 200-pair/50-cluster corpus, cluster-separated tuning/held-out split,
-externally committed pre-result policy receipt, held-out block-bootstrap
-sensitivity report, isolated candidate run and bundle, actual expanded case
-coverage, provenance review, and independent reproducibility gate remain open.
-
-### P1.3 Extraction and fingerprint spike
-
-Owner: Platform and Client, with Semantic input and Trust/Quality review.
-
-Status: **In progress.** P1.3a now provides a dependency-free, in-memory,
-synthetic-only bounded-head extractor, one inventoried fixture, exact raw-byte
-fingerprinting, non-authoritative canonical evidence, resolver projection and
-P1.2 Source-integration tests, hostile-input/resource-bound checks, and no
-connected capability. The
-runtime explicitly does not verify caller-declared fixture provenance. Proposed
-ADR-006 still needs owner disposition. One independent read-only reviewer
-applied both Trust and Quality lenses and issued ACCEPT / ACCEPT for this
-bounded offline increment; no live/general HTML or production fingerprint
-claim follows from that review. The durable evidence record is
-`research/P1_3A_GATE_REVIEW.md`.
-
-General Chromium/Android/iOS extraction is a later decision, not an extension
-of the synthetic parser approval. Technical DOM access does not establish
-website-terms, copyright, privacy, or app/extension-store permission. The
-preferred research direction is one standards-based, user-invoked metadata
-envelope across sites rather than per-site APIs, with authenticated, private,
-and paywalled contexts denied by default. No live adapter starts until that
-field-level policy is documented and explicitly approved.
-
-Dependencies: P0.1 corpus schema and an approved public/synthetic HTML fixture corpus.
-
-Deliverable: local extraction of reviewed fixtures, canonical-metadata candidates, versioned content fingerprints, size/type limits, and adversarial cases.
-
-Acceptance: no live fetch; canonical metadata is evidence rather than authority; raw fixtures never enter logs; malformed, encoded, deceptive, and oversized inputs fail safely; extraction/fingerprint outputs are reproducible and conform to the P1.2 evaluator schema.
-
-Gate: fixture provenance, parsing tests, resource limits, and Trust/Quality review pass. Any live-fetch or client-egress proposal requires a separate threat model and owner approval.
-
-### P1.4 Semantic candidate and verification benchmark
-
-Owner: Semantic Resolution, with Lead threshold approval and Trust/Quality review.
-
-Dependencies: P1.2 and P1.3.
-
-Deliverable: compare the deterministic baseline with at least one local English candidate; compare a multilingual candidate only if it addresses an observed scope risk; test a hosted candidate only after explicit egress/provider approval. Exact search precedes ANN, and candidate retrieval is measured separately from merge verification.
-
-Acceptance: every run pins dataset/split, model/resolver version, frozen threshold, and hardware; reports the Phase 0 quality metrics, wall time, and projected cash cost at 100/1,000/10,000 MAU; and preserves source-topic evidence and reversible correction semantics.
-
-Gate branches:
-
-- **AUTO:** held-out automatic joins have precision at least 0.97, Wilson 95% lower bound at least 0.93, recall at least 0.50, at least 60 join decisions across at least 20 held-out clusters, and no systematic cross-event merge class.
-- **ASSISTED:** the safety evidence threshold passes but held-out recall is below 0.50; results may be reviewer suggestions or curated mappings, but no automatic semantic-resolution claim is allowed.
-- **NO AUTO:** safety fails or the minimum safety evidence is insufficient; semantic auto-joins remain disabled. Deterministic or curated mappings may continue only with audit and correction controls.
-
-### P1.5 Read-only browser flow
-
-Owner: Platform and Client, reviewed by Trust and Quality.
-
-Dependencies: ADR-002 direction or an explicitly local-only exception; P1.1 contract; P1.3 fixture output; seeded local/mock data. Acceptance of ADR-002 does not authorize network egress.
-
-Status: **P1.5b and P1.5c are complete for their exact local-processing
-boundaries; full P1.5 remains open.** The owner accepted ADR-010 and ADR-011's
-exact boundaries.
-The current unpacked Chromium package requests `activeTab` plus P1.5c's bounded
-`scripting` capability. The separate P1.5b action projects only the explicitly
-invoked active/current tab ID and address-bar URL, accepts exactly the queryless
-`https://example.com/` and `https://example.org/` demonstrations, performs a
-bundled exact-URL Source lookup, and confirms the same active tab ID and
-normalized URL with a second fresh read before rendering. URL-to-Source receipt
-provenance remains separate from the pinned exact-fingerprint Source-to-Topic
-mapping. The P1.5a scenarios remain available.
-
-Automated policy, adapter, contract, race, package, CSP, capability, and DOM
-clearing checks pass. A separate read-only AI reviewer issued Trust and Quality
-ACCEPT with no open engineering finding after a manual-checklist gap was
-reconciled; the evidence and residuals are in
-`research/P1_5B_ENGINEERING_REVIEW.md`. The P1.5b path has no broad `tabs` or
-host permission, title/DOM/body access, injection, background/content script,
-storage, network, telemetry, auth, write, or AI capability. A real Chromium
-permission/traffic/storage/console/keyboard smoke also passed on 2026-09-22;
-the owner-reported evidence and limitations are in
-`research/P1_5B_MANUAL_SMOKE.md`.
-Stop before a larger URL allowlist, any `scripting` or page/WebView metadata or
-body extraction outside accepted ADR-011, egress, persistence, or store
-submission.
-ADR-011 now permits the exact P1.5c `activeTab` plus `scripting` metadata
-experiment on one project-controlled route and one pinned, rights-reviewed MDN
-route. It keeps publication time context-only and requires one portable
-contract rather than per-site parser code. The separate implementation now
-exists with direct-head bounds, same-document attestation, no auth/paywall
-detection claim, no egress, and no semantic path. Automated checks pass;
-a separate read-only AI audit issued Trust/Security and Quality ACCEPT with no
-open finding; evidence is in `research/P1_5C_ENGINEERING_REVIEW.md`. The
-owner completed the approved Chromium smoke on 2026-09-22; evidence and its
-limits are in `research/P1_5C_MANUAL_SMOKE.md`. The exact P1.5c experiment is
-complete. Full P1.5 and every broader page/platform remain open or stopped as
-applicable.
-
-Deliverable: one Chromium prototype against bundled fixtures or a local mock, with a browser-neutral core, exact manifest/permission inventory, and documented Firefox adapter gap.
-
-Acceptance: minimum permissions, supported/excluded contexts, no remote requests, separate human/agent counts, navigation-race and fail-closed behavior, accessibility smoke test, and no posting, auth, AI, or telemetry. Manifest, data-flow, and egress-test artifacts feed the separate remote-lookup gate.
-
-Gate: the applicable local manifest, eligibility, injection, rendering, navigation, and count checks in `docs/PHASE_1_THREAT_MODEL.md` pass. Owner and Trust must separately approve any connected follow-up. This slice tests user-invoked panel behavior, not passive discovery.
-
-### P1.6 Auth, identity, moderation, and data-lifecycle design
-
-Status: **Complete design gate.** The
-owner accepted all 16 dispositions plus automatic active-context loading on
-2026-09-24. The earlier Trust/Security, Privacy/Policy, and Quality ACCEPT
-reviews apply only to the superseded 2026-09-23 proposal. Fresh read-only AI
-Trust/Security, Privacy/Policy, and Quality reviews each returned ACCEPT on the
-reconciled amended package on 2026-09-25. P1.7 remains blocked on its separate
-exact architecture authorization.
-
-Owner: Trust, Security, Privacy, and Policy, with Platform, Lead, and Quality review.
-
-Dependencies: the charter invariants, `docs/DOMAIN_MODEL.md`, and the proposed
-local architecture boundary. No real accounts or external identity provider
-are used. Owner-only active-page tests may later cover lawfully accessible
-public, authenticated, or private pages inside the accepted no-bypass/no-
-storage/no-egress boundary.
-
-Deliverable: `docs/PHASE_1_AUTH_AND_DATA_LIFECYCLE_THREAT_MODEL.md` plus an
-ADR-ready identity/provenance and moderation-state model. Cover invoked popup
-context, persistent synthetic identity, public/private discussion, human/agent
-separation, unpublished AI publication candidates, root/reply structure,
-revisions, reports, moderator suspension/ban/removal and appeals, operator
-access, audit, manual retention, deletion, future centralized-export readiness,
-synthetic-only restore, Topic correction, localization, and incidents.
-
-Acceptance: a deny-by-default authorization matrix and state-transition diagrams
-enumerate owner/non-owner, human/agent, public/private/removed/revised, stale
-page and replay cases, moderator suspension/ban/bulk removal, deletion,
-retention, containment, and synthetic restore; each control maps to a test
-owner; deferred export, login, provider, legal/store, and real-backup risks are
-explicit.
-
-Gate: **PASS for P1.6 design.** The owner disposition and fresh amended-design
-Trust/Security, Privacy/Policy, and Quality ACCEPT reviews are recorded. This
-does not replace the separate owner authorization for the exact disposable-
-local P1.7 architecture.
-
-### P1.7 Local auth and discussion contract
-
-Status: **Blocked on exact owner architecture authorization.** P1.6's amended-
-design reviews pass; do not implement until the owner approves one exact
-architecture.
-
-Owner: Platform and Client, reviewed by Trust and Quality.
-
-Dependencies: P1.6 and owner authorization for a disposable local architecture experiment.
-
-Deliverable: one local-only, network-denied contract using a persistent selected
-synthetic actor, owner-only private state, public root Contributions and grouped
-replies, append-only revisions/withdrawal, reports and moderator suspension/
-ban/removal, one fixed deterministic fake-agent fixture and explicit candidate
-publication to exercise provenance/authorization, deletion/retention/incident behavior, and
-synthetic restore safety. There is no password/provider, user block/mute, or
-client-side export generator.
-
-Acceptance: deny-by-default authorization; private material cannot be read or
-published cross-user; an agent cannot impersonate a human; separate human/agent
-views/counts/rate classes; public/private destination and publication consent;
-thread/revision integrity; report/suspension/ban/batch/appeal transitions; safe
-rendering, language-key fallback, deletion/manual-retention/containment tests;
-and proof that export generation, external identity, providers, and network
-exposure are absent. If the browser bridge is in the approved slice, popup open
-automatically loads only the current top-level URL, approved metadata, and local
-mapping, discards stale state, and performs no background monitoring, body/AI
-action, storage, or egress.
-
-Gate: Trust/Security, Privacy, and Quality review plus negative authorization
-and integration tests pass. The evidence informs ADR-003; neither this
-experiment nor ADR acceptance authorizes network exposure, real accounts,
-external users, provider calls, spending, deployment, stores, or publication.
-
-### P1.8 Local end-to-end integration
-
-Owner: Platform and Client, with Semantic, Trust, and Quality review.
-
-Dependencies: P1.3, P1.5, P1.7, a recorded P1.4 gate branch, and an accepted ADR-005 correction contract (or an explicitly narrower local slice with no correction claim).
-
-Deliverable: a fully local path from invoked page observation to extraction/
-fingerprint, topic resolution, discussion lookup, and separate human/agent
-activity display. Opening the extension starts the approved current-context
-lookup without a second button. Use automatic semantic joins only in the AUTO
-branch; otherwise use deterministic or explicitly curated mappings.
-
-Acceptance: happy, abstain/unmapped, malformed, ambiguous, unauthorized,
-private-output, removed-content, tab close/document replacement/stale-navigation,
-and popup-reopen cases have end-to-end tests; every failure clears old values,
-every mapping is traceable, corrections preserve whole subthreads, and the
-entire slice runs with network/DNS denied.
-
-Gate: another role reproduces the flow from a clean checkout and verifies that no unsupported quality, browser, privacy, or AI claim is presented.
-
-### P1.9 Alpha architecture decision package
-
-Owner: Platform and Client, with Semantic, Trust, Quality, and Lead review.
-
-Dependencies: P1.2, P1.4, P1.7, P1.8, and approved local tooling. No external service, deployment, or purchase is implied.
-
-Deliverable: the evidence package required by ADR-003: a measured runtime/language comparison using the local slices; exact PostgreSQL/pgvector search benchmark on the approved labeled set; managed-versus-self-hosted security/operations comparison; bottom-up low/base/high cost line items; backup/restore and deletion test plan; and reconciled auth/data-flow review.
-
-Acceptance: commands, hardware, versions, dataset, workload assumptions, latency/resource results, costs, operational ownership, portability, failure/rollback behavior, and unresolved risks are reproducible and explicit. Hosted candidates remain paper comparisons unless separately approved.
-
-Gate: update ADR-003 with reviewer evidence and record ACCEPT, REVISE, or REJECT. Only ACCEPT satisfies the Phase 2 architecture dependency; it still does not authorize deployment, spending, or real data.
-
-### P1.10 BYO-AI proof of concept (optional)
-
-Owner: Platform and Client, with Trust and Quality review.
-
-Fake-adapter dependencies: `docs/BYO_AI_THREAT_MODEL.md`, P1.6, P1.7's local publication workflow and fixed fixture producer, and explicit owner approval for the optional spike. Provider terms, credentials, and egress approval are not required because this increment has no provider, secret, or network.
-
-Real-adapter dependencies: a passed fake-adapter gate; current provider terms/auth/data-handling research; accepted credential architecture and content-egress ADR; and separate owner approval for a real call.
-
-Deliverable: first extend P1.7's fixed fixture producer into a provider-neutral,
-deterministic fake local adapter with explicit request/response, limits, errors,
-and retry behavior. P1.7's fixture proves publication authorization only and
-does not satisfy this adapter task. A real provider adapter is a separate gated
-increment.
-
-Acceptance: the fake path has a provider-neutral contract, deterministic labeled
-output, an unpublished editable candidate, explicit preview/confirm publication
-with agent provenance, deny-by-default object authorization, bounded input/
-output/retry behavior, and prompt-injection/malicious-response tests. It makes
-no provider-feasibility claim.
-
-Gate: the fake adapter may pass only the applicable local controls in `docs/BYO_AI_THREAT_MODEL.md`. The complete minimum verification must pass before any real credential/provider call. If secure handling is not credible, defer this task without blocking a human-only MVP.
-
-### P1.11 On-device content-derived private matching (optional future branch)
-
-Status: **Owner-approved future local-test direction; implementation still
-gated.** ADR-013 records the intended semantic path. It does not retroactively
-broaden the completed P1.5c evidence or authorize a model, connected matcher,
-provider, deployment, store submission, or publication.
-
-Owner: Semantic and Platform/Client, with Trust/Security/Privacy/Policy,
-Quality, and Lead review.
-
-Dependencies: P1.4 evidence branch, P1.6/P1.7 authorization and deletion
-contracts, P1.8 local end-to-end proof,
-`research/CONTENT_ACQUISITION_AND_STORE_POLICY.md`, the owner-approved future
-direction in ADR-013, and
-explicit approval of one exact model/transformation experiment. Synthetic
-fixtures come first. The owner has already approved in principle a later
-owner-only, network-denied case on a lawfully accessible public, authenticated,
-or private active page; before exercising it, stop for the exact extractor,
-redaction, model/licence, Security, Privacy, and Policy checkpoint. This branch
-cannot bypass the later 200-250-pair provenance-approved semantic review.
-
-Deliverable: first, a network-denied comparison of bounded on-device
-canonicalization plus semantic fingerprints/local embeddings over project-
-created fixtures. An exact hash is only the duplicate/control baseline, not the
-resolver. Model the preferred `ephemeral per-observation query -> protected
-per-Topic representative -> TopicId -> immediate query deletion` contract
-entirely in disposable local state. After the exact later gate, one manually
-opened owner-accessible page/message may exercise the same no-egress path. It is
-not an inbox feature and never scans in the background or inspects attachments.
-
-Acceptance: raw content never leaves the local extractor; model and licence are
-pinned; fingerprints/vectors/scores are classified as restricted and never
-rendered; query deletion and absence from logs/caches/exports/backups are
-proved; Topic-representative access/poisoning/rotation/deletion is tested;
-collision, false-join, inversion, membership/linkability, adversarial-text,
-language, correction, and device resource evidence is reported; and the result
-records the owner's ToS interpretation but makes no independent ToS, copyright,
-anonymity, store, or semantic-quality claim.
-
-Gate: separate owner, Trust/Security, Privacy, Policy/rights/store, and Quality
-approval is required for the exact model/transformation experiment. The generic
-owner-only real-page scope is already approved, but its exact technical and
-data-handling checkpoint is not. Stop again before any derived-signal egress,
-reachable matcher, server/index retention, provider/model download,
-infrastructure/spending, external testing, deployment, store submission, or
-publication. Each connected step needs its exact payload/lifecycle threat model
-and applicable approvals. External/generalized third-party/private-content use
-requires an independent qualified IP/platform-terms reviewer.
-
-Phase 1 gate: P1.8 demonstrates a reproducible local `page fixture -> observation/extraction -> topic -> discussion/counts` flow, and P1.9 records the architecture decision. The resolver branch controls product claims: AUTO enables automatic semantic joins in the approved scope; ASSISTED permits reviewer/curated mappings; NO AUTO permits deterministic/curated mappings only. A human-only path remains valid if P1.10 is deferred. P1.11 is an optional later branch and is not a Phase 1 exit dependency.
-
-Stop conditions: no safe deterministic/curated path can test the product; a systematic false-merge class or irreversible correction remains; private/public or human/agent boundaries cannot be enforced; a credible privacy-safe discovery experiment cannot be designed; or projected cost exceeds the approved cap without repeated-use evidence.
-
-## Phase 2 — Private alpha MVP
-
-Objective: test the narrow product with 10–50 invited testers while preserving a human-only and curated-resolution fallback.
-
-Owners: Lead coordinates; Platform implements; Semantic owns resolution policy; Trust owns pre-release risk review; Quality owns reproducibility and operations evidence.
-
-Dependencies: Phase 1 gate; accepted ADR-002 connected-use gate and ADR-003
-architecture; accepted exact egress, retention, logging, deletion,
-authentication, and moderation decisions; tested account deletion and retention
-design; a central web Account & Privacy Center with a usable access/export and
-deletion route; a bottom-up cost model; and explicit owner approval before
-deployment, recruitment, real-user data collection, telemetry, or spending.
-
-Deliverables:
-
-- accounts and deny-by-default authorization;
-- source, topic, public/private discussion, root subthreads/replies, reports,
-  suspensions, bans, moderator removals/appeals, and audit records;
-- one approved browser client;
-- reversible operator-only source-link correction and topic merge/split tools before tester access;
-- human/agent provenance and separate counts/rate classes;
-- privacy controls, central-web account/data access/export and deletion
-  workflow, retention jobs, logs, monitoring, backup/restore, and CI;
-- privacy-reviewed minimal experiment instrumentation; and
-- human-only alpha by default. Enable user-invoked AI only if the applicable P1.10 real-adapter gate passes; otherwise make no AI-product claim.
-
-Acceptance: authorization and tenant/object-isolation matrices deny all negative cases; merge/split/source-link correction preserves an audit trail and discussion integrity; account export/deletion and retention/backup expiry are exercised; restore, incident-response, and rollback drills pass; supported load stays inside an owner-accepted cash cap; and no unresolved critical/high release risk remains. Run the 14-day discovery protocol and seeding rules in `plans/PHASE_0_FOUNDATION.md` only if a separately approved observation design can produce legitimate eligible views and indicator impressions. With a user-invoked `activeTab` design, pre-register panel-utility/read/contribution measures instead and record the passive discovery hypothesis as untested.
-
-Gate: Trust and Quality sign off, the owner accepts residual risks, and experiment evidence meets the applicable pre-registered usefulness criterion without material privacy complaints or confirmed automatic false merges above the stated limit. The discovery criterion applies only to an approved impression-capable design; panel-utility evidence must not be relabeled as discovery evidence. A result may be GO, REWORK, or STOP; tester count alone is not success.
-
-Stop conditions: cross-user/private-data exposure; irreversible discussion corruption; uncontrolled browsing collection; unsafe moderation load; unbounded spend; failed backup/restore or deletion; or lack of repeated usefulness after an adequately exposed test.
-
-## Phase 3 — Closed beta
-
-Objective: test operation with hundreds of invited users, not merely add features.
-
-Owners: Lead and Platform, with Semantic, Trust, and Quality release review.
-
-Dependencies: Phase 2 gate; explicit owner approval for the beta cohort; central
-web account access/export and deletion operating successfully; and an accepted
-pre-beta trust/moderation plan defining reports, automated spam/abuse detection,
-separate human/agent rate limits, reputation consequences, moderator suspension/
-ban/removal and appeals, legal/takedown handling, moderator access, transparent
-action logs, and incident escalation.
-
-Deliverables: onboarding; correction/merge/split workflow; moderation and appeals operations; measured ranking/reputation experiment; bounded cost controls; justified cross-browser expansion; early-community program; landing/docs; and support/incident process.
-
-Acceptance: before recruitment, pre-register numerical retention/usefulness, abuse-queue, response-time, false-merge, reliability, and cost thresholds. During beta, measure them at participant/account level where repeated observations are correlated; audit moderator and automated actions; test abuse, appeal, takedown, rollback, deletion, and recovery scenarios; keep AI disabled or explicitly scoped to a previously passed gate.
-
-Gate: evidence meets the pre-registered usefulness and operating thresholds, moderation and support remain manageable, resolver behavior matches its approved branch, and Trust/Quality/owner approve expansion.
-
-Stop conditions: abuse or appeal queues exceed the operating limit; moderation cannot be explained/audited; data rights or incidents miss the approved service level; false merges exceed the approved threshold; retention is absent; or the hard cost cap is exceeded.
-
-## Phase 4 — Mobile validation
-
-Objective: validate whether Android and iOS can offer a useful, policy-compatible entry mechanism while reusing the same topic graph and service contracts; identical UX is not required.
-
-Owners: Platform and Client, with Product experiment design, Trust policy/privacy review, and Quality device evidence.
-
-Dependencies: Phase 3 evidence justifies mobile work; current official platform-policy/capability research; accepted mobile permission/data-flow ADR; and owner approval before external distribution or store submission.
-
-Deliverables: compared entry mechanisms for each platform, minimal local or invited-test prototype for the best feasible option, accessibility and compatibility matrix, and measured discovery friction.
-
-Acceptance: exact permissions and data egress are documented and tested; supported OS/device claims have device evidence; the prototype preserves topic/discussion, provenance, privacy, and correction semantics; and the experiment compares discovery/open/engagement friction with desktop using pre-registered definitions.
-
-Gate: choose GO for a platform only if usefulness and policy/permission burden fit the approved envelope. A platform-specific NO-GO is an acceptable result and must not weaken the shared model.
-
-Stop conditions: required permissions or store policy are incompatible with the privacy posture; background observation is required without approval; accessibility or reliability is inadequate; or measured value does not justify platform cost.
-
-## Phase 5 — Public launch
-
-Objective: perform a reversible, progressively exposed release after private evidence—not a one-step unrestricted launch.
-
-Owners: Lead owns the decision package; Platform and Quality own release/operations; Trust owns security/privacy/moderation readiness; owner gives the final launch authorization.
-
-Dependencies: applicable Phase 3/4 gates; current security and dependency review; privacy notice/terms and qualified legal review where needed; moderation/takedown and support staffing; store-policy review; production observability; tested backups/restores and incident response; abuse defenses; cost alarms; capacity evidence; and rollout/rollback plan.
-
-Acceptance: release candidate is reproducible; migration, backup restore, deletion/export, security incident, moderation escalation, and rollback drills pass; dashboards and hard cost/rate limits are exercised; public claims match measured platform/resolver/AI capabilities; staged cohorts have explicit pause/rollback thresholds. Unrestricted third-party agent posting is off.
-
-Gate: Trust and Quality provide evidence, the Lead reconciles residual risks, and the owner explicitly approves each production deployment, store submission, public announcement, and paid commitment.
-
-Stop conditions: unresolved critical/high security or privacy risk; untested recovery; unclear takedown/incident ownership; insufficient moderation/support capacity; cost cap breach; misleading capability claims; or rollback cannot protect data integrity.
-
-## Phase 6 — Platform and agent ecosystem
-
-Objective: expose bounded third-party capabilities only after the core human product has durable usefulness and operational evidence.
-
-Owners: Platform/API with Trust, Quality, Semantic, and Lead review.
-
-Dependencies: stable post-launch operations; accepted agent identity/permission/monetization ADRs and threat model; developer abuse and support model; owner approval for any marketplace, billing, or external developer program.
-
-Deliverables: versioned SDK/API; agent registration and narrow scopes; operator/agent provenance; quotas, budgets, revocation, reputation, moderation, and audit; sandbox/test environment; developer documentation; and measured multi-provider adapters only where justified.
-
-Acceptance: contract and compatibility tests pass; agents cannot impersonate humans, access private material, silently publish, recursively invoke, or evade rate/cost controls; compromised agents can be disabled without corrupting discussions; marketplace/billing and provider claims have current policy, security, and operations evidence.
-
-Gate: staged developer access begins only after adversarial review, incident/kill-switch drills, support readiness, and explicit owner approval. Expand scopes individually from evidence.
-
-Stop conditions: identity/provenance ambiguity; uncontrolled autonomous posting or spend; inadequate revocation/moderation; ecosystem abuse harms the human product; or operating/legal burden exceeds the accepted envelope.
+# Product-first roadmap
+
+Updated: 2026-09-28. Governing decision: ADR-014. Browser extension first;
+Android and iOS follow with shared Topic/discussion contracts. Core model:
+`Content -> Semantic Topic -> Discussion`.
+
+The [historical roadmap](archive/ROADMAP_2026-09-25.md) preserves the old sequence.
+This is the active execution order. Do not restart Phase 0 or the completed 6/6
+owner review. More synthetic review machinery is not on the critical path.
+
+## Evidence already available
+
+- Offline exact-URL/fingerprint resolver, synthetic extractor and evaluator.
+- Review/preflight plumbing; no real larger corpus or semantic model validation.
+- Chromium popup with reserved-domain URL fixtures and two metadata routes.
+  Owner smoke covers those routes, not arbitrary sites or continuous freshness.
+- P1.6 lifecycle design and AI-review history, qualified by ADR-014's policy
+  corrections. Most of that design is not implemented.
+- No backend, real accounts, discussion posting, AI provider, embeddings,
+  mobile app, public release or store approval.
+
+## R0 — Reassessment and current-boundary hardening
+
+Owner: Lead; Platform/Client and Trust/Quality review. Depends on current tree.
+Deliver: dated code/product/provider/policy findings, corrected active docs,
+and source-tab invalidation for the post-attestation stale-metadata window.
+Acceptance: focused regression, normal/restricted suites, secret scan, honest
+claims and no permission/egress expansion. Historical smoke stays completed;
+new code cannot inherit an unperformed browser smoke.
+Gate: no new owner approval for an in-scope correction. See `STATUS.md`.
+
+## R1 — A usable local discussion
+
+Owner: Platform/Client; Lead product acceptance and Trust/Quality review.
+Dependencies: R0 and ADR-014's local envelope.
+
+Deliver small tested increments:
+
+1. Browser-neutral Topic/Discussion/Contribution repository and demo UI: choose
+   or create a Topic, write a root, reply, edit and delete. English message keys.
+2. Persist synthetic/demo state with a replaceable IndexedDB adapter; reset,
+   deletion and corruption/version handling. Label synthetic identity as testing.
+   Save no automatically observed URLs/metadata/bodies.
+3. Popup opening automatically loads the existing approved context observation,
+   then local discussion. Offer manual Topic search when capture is unavailable.
+   Preserve the narrow experiment tests; no second check button required.
+4. Private destination and unpublished AI fixture/preview; separate human/AI
+   identities/counts, Humans-only filter, grouped replies and Summary roots.
+   Toggle affects future messages only; publication is explicit.
+5. Minimum local report/block/moderator removal and ownership/deletion rules
+   before calling the demo complete. Defer production workers/account providers,
+   backup infrastructure and complex ranking.
+
+Acceptance: executable open -> choose -> post -> reply -> reopen -> delete;
+two distinct synthetic Sources reach one confirmed Topic; unrelated Sources stay
+separate; hostile text inert; private output excluded from public counts; reset
+clears local demo assets; keyboard/status coverage and zero external I/O.
+Test applicable authorization rules without claiming real authentication.
+Gate: implement within ADR-014 without per-module questions. No general page
+capture or captured-context persistence is implied by the demo UI.
+
+## R2 — General context and useful same-Topic suggestions
+
+Owner: Platform/Client + Semantic; Trust/Privacy/Policy and Quality review.
+Dependencies: R1 repository/UI. Contract/fixture work may run alongside R1.
+
+Deliver a shared `ContextEnvelope`: optional URL/title/description/identifiers,
+capture provenance and capability limits. Add event/product/claim Topic cards,
+reversible local Source associations, candidate list and abstain. Keep functional
+query parameters, canonicals as hints, independent optional-field degradation.
+No crawler or per-site API foundation.
+
+Run a small pinned on-device embedding experiment on project-owned text early
+in this slice, after exact model/license/assets approval. Compare lexical-only
+and embedding retrieval on paraphrases, related-but-distinct events, product
+versions and time-separated cases. Record memory/startup/CPU latency, language
+limits and model version. Synthetic results guide code, not AUTO quality claims.
+Never silently download runtime/model assets.
+
+Before general live-page tests, ask once for exact fields, contexts, permissions,
+local retention and rights-policy approach. Do not generalize the current
+queryless/robots allowlist. Body/private-message processing remains ADR-013;
+manual Topic selection is a fallback. No provider or upload on popup opening.
+
+Acceptance: genuinely computed candidates (mock results labeled); paraphrase
+candidates appear, distinct developments can stay separate; local confirmation
+does not merge global Topics; query identity, bad hints, navigation, model absence
+and no-match tested. Versioned Source links and subthread-preserving correction.
+Gate: broader capture/model approval before activation. The 200-pair task is
+not needed for experimental local suggestions. No automatic semantic joins.
+
+## R3 — AI participation without requiring API keys
+
+Owner: Platform/Client; Lead/Trust/Privacy/Policy review.
+Dependencies: R1 draft/publication flow; R2 is not required for draft UX.
+
+Start with prompt preview and plain-text AI response import using synthetic data.
+General Analysis, Opinion and Summary are declarative modes. Imported content
+has user-declared AI provenance, never an invented verified model label. Show
+citations, uncertainty and an editable publication preview; never post on import.
+Reserve explicit reporting of offensive generated output.
+
+Later: user-initiated handoff to their AI application, and a narrow AI-host
+connector/API to read permitted Topics and submit an owner-private draft. The AI
+calls our service; we do not reverse-engineer a subscription API. Manual handoff
+survives connector/provider failure. Agent definitions cannot expand permissions.
+
+Acceptance: disclosure before handoff; inert bounded import; no accidental
+publication; immutable AI identity after edits; private-output reports contain
+only explicit user selection; private data excluded from counts/search.
+Gate: fixture import needs no provider key. Real connectors, automated handoff,
+private-context export or direct inference require exact provider/data-flow
+approval. Hosting, spending and publication approvals remain separate.
+
+## R4 — Shared private alpha with an operable service
+
+Owner: Platform; Trust/Privacy/Policy and Quality/Operations review.
+Dependencies: R1 loop, R2 Source contracts; R3 optional (human-only works).
+
+Build local service contracts with fake identities first. Propose one modular
+service, a relational store and replaceable matcher; PostgreSQL is a candidate,
+not a purchased deployment. No vector service/microservices without measurements.
+Stable IDs and a provider-neutral discussion API serve all clients.
+
+Before real connected tests, explicitly approve host/region/budget, account/auth
+choice, transmitted fields (including IP/logs), retention/deletion, launch
+audience/territories, moderation capacity and tester scope. Implement real object
+authorization, report/block, limits, rights handling, contacts/terms, deletion/
+export and backup/incident controls for hosted features. Central web privacy
+tools may serve all clients but must work when real accounts operate.
+
+Acceptance: cross-user isolation, provenance, curated mapping, poisoning defenses,
+rate limits, deletion/restore tests, budget and operations evidence. Owner approves
+deployment/invitations/public content. No raw-body upload or browsing-history
+index; one user's association cannot silently reroute everyone's discussions.
+
+## R5 — Validate automatic semantic resolution
+
+Owner: Semantic; independent human labels plus Trust/Quality review.
+Dependencies: useful R2 candidate and versioned Topic policy. May precede or run
+alongside curated-only R4 after its own approval; R4 does not require AUTO.
+
+STOP before the 200–250-pair provenance-approved acquisition/review task. Ask for
+sources/provenance/retention approval and give the solo owner a bounded assignment
+for an independent reviewer. The 6/6 synthetic task stays finished. Reuse existing
+tooling as needed; add no speculative machinery.
+
+Freeze model/preprocessing, dataset/split and thresholds before held-out results.
+Measure retrieval separately from verification, false joins and abstention; test
+drift, language/domain gaps and corrections. ADR-004 news labels are unchanged;
+new domains need their own policy/evidence. Historical AUTO minimums remain:
+precision >= .97, Wilson lower bound >= .93, recall >= .50, >=60 joins over
+>=20 held-out clusters, block-bootstrap sensitivity and no systematic cross-event
+merge class. These are gates, not results or guarantees for other content types.
+Gate: reviewed AUTO/ASSISTED/NO-AUTO decision. Insufficient evidence retains
+suggestions/curated links without blocking the human discussion product.
+
+## R6 — Android and iOS entry points
+
+Owner: Platform/Client; Trust/Policy and device QA review.
+Dependencies: stable R1/R2 contracts; shared network requires approved R4.
+Early fixture prototypes may precede R4/R5 without external services.
+
+Prototype Android receive-share, iOS Share extension and Safari Web Extension
+reuse. Share discussion UI/domain contracts where practical. Receive only what
+the source app shares; accept URL-only/manual context. WebView is optional for
+in-app browsing, not an assumption about access to other apps' private data.
+
+Acceptance: same Topic reachable from desktop/Android/iOS input; graceful missing
+fields, cold start, keyboard/accessibility and identity/privacy behavior on real
+target devices. Verify deletion/report/block requirements and model constraints.
+Gate: review each new permission/data flow; real accounts and store submission
+need explicit approval, not a rewritten backend.
+
+## R7 — Controlled release and sustainable growth
+
+Owner: Lead/Growth; Trust/Policy and Quality/Operations evidence.
+Dependencies: useful alpha, applicable R5 branch, per-platform release scope.
+
+Start with one reachable community while retaining general content support.
+Seed labeled owner/participant-curated contributions only after approval.
+Measure repeat useful opens, existing-Topic matches, false joins, human/AI
+participation separately, voluntary draft publication and cost. Popup use cannot
+be reported as passive-indicator discovery. Define experiments before collecting
+minimal approved telemetry.
+
+Ship contacts/notice-action/moderation, privacy disclosures, blocking, AI reporting/
+labels and account rights before public UGC. Recheck policies/law for actual
+territories/ages/features; no blanket guarantee. Registered operators authorize
+and fund agents under narrow quotas/scopes. Reward useful sourced work, not volume.
+
+Gate: owner approves public deployment, spending, recruitment/publication and
+each store submission. Paid agents/affiliate links need business/payment/
+disclosure review. Expand automation and monetization from evidence.
+
+## Historical task mapping
+
+P1.1/P1.3a/P1.5b/c remain regression evidence. P1.6 is a corrected reference.
+P1.7/P1.8 -> R1; general P1.3/P1.4 suggestions -> R2; P1.10 -> R3;
+P1.9/Phase 2 -> R4; P1.2/P1.4 AUTO -> R5; Phase 4 -> R6; Phases 3/5/6 -> R7
+and later expansion. P1.11/ADR-013 remains an optional separately approved
+sensitive-content branch rather than MVP work.

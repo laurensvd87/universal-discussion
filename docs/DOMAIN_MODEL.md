@@ -2,6 +2,11 @@
 
 Do not treat this as a final database schema.
 
+The local R1-R3 implementation order in `plans/ROADMAP.md` and
+`decisions/ADR-014-product-first-rebaseline.md` supersedes earlier module-by-module
+P1.7 approval prerequisites. This model describes the destination; lifecycle
+and moderation details are not all prerequisites for the first local UI.
+
 ## Principal entities
 
 ### User
@@ -21,8 +26,9 @@ An explicitly non-human identity. Fields/concepts should distinguish:
 ### Source
 A concrete web/content source: URL, canonical URL, content fingerprint, title, publisher/domain, timestamps, extracted metadata, language and embedding references.
 These are possible future product fields, not authority to persist observed
-active-page data. P1.7 uses only synthetic/opaque Source state unless an exact
-later acquisition, retention, Security, and Privacy gate says otherwise.
+active-page data. Initial local discussion slices use synthetic/opaque Source
+state. Broader real-page acquisition and retention need an explicit data-flow
+decision; new engineering slices do not silently expand the approved capture.
 
 ### Topic
 Semantic discussion object representing the underlying story/item/event/content cluster. Must support merge/split/version/history because clustering will make mistakes.
@@ -59,12 +65,29 @@ private content and report volume are never ranking signals.
 ### Vote/Reaction
 User feedback used for ranking/reputation. Design against brigading and bot manipulation.
 
+### UserBlock
+Owner-scoped relationship that hides a blocked account's human/agent
+contributions from the blocker and prevents directed interaction in the app.
+It is reversible and does not remove public contributions or suspend accounts.
+Apply it to lists, quotations, and rendered projections; it is not a guarantee
+against reading public content outside the authenticated app.
+
 ### Report/ModerationAction
-Audit trail for abuse reports and moderation decisions. Users report rather than
-mute or block. Moderators may dismiss, remove a reported public Contribution,
+Restricted case data and audit trail for reports of public contributions or
+users and moderation decisions. Reporting, personal blocking, and moderator
+bans are separate actions. Moderators may dismiss, remove a reported public Contribution,
 temporarily suspend, or ban an account; a confirmed ban action may remove only
 the reported item or the exact set of all public human and owned-agent
-Contributions. Private content is outside moderator authority.
+Contributions. Private content is outside ordinary moderator authority. An
+owner may explicitly preview and submit a chosen private AI output/excerpt as
+a separate case payload; this grants access only to that submitted evidence,
+never its private conversation, prompt, source page, or other drafts. Deletion
+and case retention apply to the submitted copy as well.
+
+Local appeal periods and retention deadlines are prototype defaults, subject
+to applicable law and store rules before real operation. A central web privacy
+center can serve all clients; access/erasure handling must exist when required,
+and mobile clients must offer an account-deletion entry point.
 
 ### AIInvocation
 Tracks private/public invocation metadata, cost attribution, provider, user
@@ -83,10 +106,12 @@ code. Initial built-ins include General Analysis, Opinion, and Summary.
 - AI-authored content can never be represented as human-authored.
 - A contribution cannot become public without the appropriate actor/owner authorization.
 - Switching public/private discussion mode affects future messages only.
-- Private discussion content is never available to ordinary moderators.
-- No user mute or block relationship exists in the initial product contract.
+- Private discussion content is never browsable by ordinary moderators; only an
+  exact owner-submitted report payload becomes restricted case evidence.
+- Personal blocking and in-app reports of users/content are public-release requirements.
 - Topic clustering decisions must be traceable to algorithm/model versions.
 - Topic merge/split and Source reassignment must preserve whole-subthread
   integrity and auditability; an individual reply is never detached.
-- URL tracking parameters should not create duplicate sources.
+- Proven tracking parameters should not create duplicate sources; identity-
+  bearing or unknown parameters must not be dropped merely to force a match.
 - Deleting/account/privacy workflows must be designed before public beta.

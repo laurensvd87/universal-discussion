@@ -2,6 +2,13 @@
 
 Research current information at the time work is performed. Cite sources in research notes.
 
+Priorities reset on 2026-09-28 by ADR-014. Start from the completed findings in
+`PRODUCT_RESET_2026-09-27.md` and `PRODUCT_RESET_POLICY_2026-09-27.md` rather than
+repeating broad research. Next: exact general-context boundary and one small
+licensed local embedding candidate; then provider-specific connector feasibility,
+launch audience/territories and operations. Deferred research is not a blocker
+for the R1 fixture discussion loop.
+
 ## Market
 - Current universal web-comment/annotation competitors and adoption.
 - Historical attempts (e.g. universal annotation/comment systems) and failure modes.

@@ -2,7 +2,7 @@
 
 Status: Proposed; no provider integration authorized
 
-Last reviewed: 2026-09-19
+Last reviewed: 2026-09-28
 
 Owners: Trust/security/privacy with Platform, Product, and Quality review
 
@@ -19,6 +19,33 @@ user invocation -> approved provider payload -> private result
 ```
 
 There is no implicit transition from private to public. Closing a dialog, accepting provider terms, or invoking an agent is not publication consent.
+
+ADR-014/R3 adds local draft import and a future AI-host connector as alternatives
+to credential custody. A synthetic fixture can test import/preview without a
+provider gate; real handoff/connector disclosure still requires its exact approved
+boundary. This does not authorize general page capture or public posting.
+
+## Handoff and AI-host connector boundaries
+
+- Manual import treats response text/links and claimed provenance as untrusted.
+  Mark provider/model provenance user-declared when not verifiable; never upgrade
+  it to an attested invocation or human-authored content. No clipboard polling,
+  chat-history scraping, extracted cookies or invented subscription API.
+- Preview the outbound prompt/context before copying or handing it off; copying
+  private context into another app is still disclosure. No raw source body is
+  implicitly included. The user can remove details before leaving this device.
+- In a supported connector the AI host calls our service. Authenticate the human
+  principal via supported resource authorization; bind draft ownership server-side,
+  never trust a model-supplied user/actor ID. Start with public read and private
+  draft scopes, no publish tool. Apply quotas, idempotency, revocation and bounded
+  rendering. Do not collect the AI subscription token.
+- The provider receives tool results and the conversation the user supplies.
+  MCP does not make data local/private or remove provider retention obligations.
+  A remote endpoint is deployment and requires that separate approval.
+- Generated output can be reported before publication. The user previews and
+  selects the exact report material; moderators gain no access to private history.
+
+See `research/PRODUCT_RESET_2026-09-27.md` for supported mechanisms and limits.
 
 ## Assets and trust boundaries
 
@@ -88,7 +115,13 @@ Do not invent an OAuth flow, treat a consumer chat subscription as API authoriza
 
 - Current provider-specific terms/auth/data-handling research with dated primary sources and an accepted adapter/credential ADR.
 - Data-flow inventory showing every credential and content copy, encryption boundary, log field, retention, deletion, and operator access.
-- Tests proving raw secrets/private prompts/results are absent from extension persistence, sync, logs, traces, crash reports, analytics, URLs, and ordinary backups.
+- Tests proving raw provider secrets and automatically captured source context
+  are absent from extension persistence. Only explicitly approved owner-private
+  contributions/drafts/candidates may persist under the scoped lifecycle,
+  ownership and deletion controls. R1 permits deliberately entered demo state,
+  not real captured context or credentials. Private prompts/results remain
+  excluded from sync, logs, traces, crash reports, analytics, URLs and ordinary
+  backups; a synthetic actor selector is not secure real-user isolation.
 - Authorization matrix covering owner/non-owner reads, publish, edit/delete, replay, stale preview, actor impersonation, and scope escalation; all negative cases deny.
 - Prompt-injection tests proving hostile content cannot reach secrets, tools, network destinations, publication, or policy controls.
 - Provider-response rendering tests for HTML/script, malicious links, oversized output, malformed structured data, and instruction text.
@@ -100,4 +133,8 @@ Do not invent an OAuth flow, treat a consumer chat subscription as API authoriza
 
 **STOP** while provider auth/terms are unverified, raw keys would need persistent extension storage, exact page-data disclosure is undefined, object authorization is untested, private output can affect public state/counts without a separate action, provenance can be omitted, or spend cannot be hard-capped.
 
-**GO only for a fake local adapter** before those decisions. A fake adapter uses no secret/network/provider, returns labeled deterministic test data, and can validate private/public state transitions without implying provider feasibility.
+**GO for a fake local adapter or fixture-only import/preview** before those
+decisions. Both use no secret/network/provider and validate private/public
+transitions without implying provider feasibility. A real connector or automated
+handoff must satisfy applicable controls before activation; direct inference
+must additionally satisfy the selected provider credential/cost controls.

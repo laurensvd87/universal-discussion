@@ -4,7 +4,10 @@ Date: 2026-09-19
 
 Owner: Lead/orchestrator
 
-Status: In progress; topic/corpus pilot complete, connected work still gated
+Status: Historical foundation and benchmark criteria; active sequence and local
+authority superseded by ADR-014 and `plans/ROADMAP.md` on 2026-09-28. The corpus
+pilot is complete. Connected/external work remains gated. Do not restart Phase 0
+or require every proposed decision here before the authorized local UI.
 
 ## Decision summary
 
