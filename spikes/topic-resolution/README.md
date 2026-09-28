@@ -47,7 +47,8 @@ the 8,192-byte limit.
 
 ## User-invoked browser indicator
 
-`browser/` now contains the separate P1.5b and P1.5c Chromium popup paths.
+`browser/` contains the separate P1.5b/P1.5c Chromium popup paths plus an
+isolated related-page demo in extension 0.4.0.
 Load that directory as an unpacked extension or follow its own
 `browser/README.md`. Its current manifest requests exactly `activeTab` and
 `scripting`, requires Chrome 106+, and has no standing host permission.
@@ -74,10 +75,19 @@ JSON-LD, frame, cookie, storage, authentication, or paywall state and has no
 network, logging, telemetry, model, fingerprint, resolver, Topic decision, or
 AI capability. Both paths render only with text DOM operations.
 
-The curated and semantic-suggestion paths required by the larger ADR-009 PoC
-remain future local work. `scripting` is authorized only for the exact P1.5c
+The related-page panel ranks only six synthetic Sources with hand-authored
+vectors. It distinguishes existing same-Topic associations from related-reading
+suggestions and demonstrates an empty-contribution state. Its reusable pure
+ranker computes cosine similarity but does not create embeddings, infer Topic
+equality or discover websites. New UI text uses the English message pack.
+No active-tab data enters this panel; real-browser smoke remains pending.
+
+Learned semantic suggestions and real Source association workflows remain future
+work. ADR-014/015 permit ordinary local fixture UI/domain implementation;
+model activation and broader real-input processing remain gated. `scripting` is
+authorized only for the exact P1.5c
 boundary. Stop before broader URLs/fields/selectors, body or WebView extraction,
-service egress, persistence, deployment, store submission, or publication.
+service egress, captured-context persistence, deployment, store submission, or publication.
 Those need separate platform-policy, rights, privacy, security, and owner
 decisions.
 
@@ -332,9 +342,11 @@ bodies, HTML, prompts, and AI output are rejected instead of stored. The
 separate extractor accepts only bounded in-memory synthetic HTML bytes and
 returns no raw content.
 
-Out of scope: live fetching, browser APIs, persistence, authentication,
-posting, moderation workflows, AI calls, embeddings, probabilistic matching,
-and Topic merge/split operations. A Source resolved without a fingerprint is
+Out of scope for the resolver kernel: live fetching, browser APIs, persistence,
+authentication, posting, moderation workflows, AI calls, learned embeddings,
+probabilistic Topic assignment and Topic merge/split operations. The separate
+related-source ranker consumes already-supplied vectors without changing this
+resolver's decisions. A Source resolved without a fingerprint is
 not silently remapped later; doing so requires the future audited merge/split
 model.
 

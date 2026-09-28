@@ -316,3 +316,17 @@ footer {
   line-height: 1.45;
   text-align: center;
 }
+
+.related-pages-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.related-pages-list li {
+  display: grid;
+  gap: 5px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #d4dee3;
+}

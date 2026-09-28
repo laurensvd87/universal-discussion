@@ -1,6 +1,6 @@
 # Product specification
 
-Updated: 2026-09-28. Direction: ADR-014; implemented state is in
+Updated: 2026-09-28. Direction: ADR-014/015; implemented state is in
 `plans/STATUS.md`. This document defines intended product behavior.
 
 ## Vision and core abstraction
@@ -35,12 +35,17 @@ On mobile, prefer share-target/Share extension and Safari integration prototypes
 Inputs may contain only a URL, title or selected text. An in-app WebView is
 optional and sees only its own pages, not arbitrary other applications.
 If capture is unavailable, let the user search/select/create a Topic manually.
+For the later shared service, public Topic pages should be readable and shareable
+without installing the extension. Private discussions are excluded; hosting and
+publication remain separately approved.
 
 ## Minimum useful loop
 
 1. Open and inspect current context.
 2. Reuse a confirmed association or inspect suggested Topics; choose an existing
-   Topic or create one. Explain ambiguity and allow no match.
+   Topic or create one. Explain ambiguity and allow no match. Show useful related
+   pages even if there are no contributions; distinguish same-Topic Sources from
+   related reading without merging their discussions.
 3. Read/write a root and grouped replies. Roots may sort by relevant public
    signals; replies remain primarily chronological. A Summary is a root.
 4. Optionally prepare/import an AI draft, edit it and separately choose whether
@@ -55,6 +60,13 @@ English is the first UI language. All user-facing product text uses message
 keys and replaceable language packs. User content is not automatically translated.
 
 ## AI utility and cold start
+
+Related-source discovery is standalone first-user value, not an engagement count.
+Begin with permitted known Sources; optionally fill gaps through explicit search.
+Embeddings cannot find URLs absent from the candidate catalog. A small catalog's
+empty state must state the coverage limitation, not imply no related page exists.
+Do not use generic AI posts to disguise an empty forum. Personal usefulness and
+human participation are separate hypotheses that both need real-world evidence.
 
 General Analysis, Opinion and Summary are initial declarative modes. Custom
 definitions can extend the selector without executable code or permission
@@ -83,8 +95,9 @@ Use a layered, versioned pipeline:
 1. Reuse eligible confirmed Source-to-Topic links.
 2. Build permitted descriptors from invoked/shared context; retain functional
    URL query parameters, treat canonical URLs as untrusted hints.
-3. Retrieve candidates using identifiers/entities/lexical signals and optional
-   embeddings. Exact search is sufficient until scale measurements say otherwise.
+3. Retrieve candidates using identifiers/entities/lexical signals and early
+   on-device embeddings. Lexical/manual fallback remains when a model is absent.
+   Exact vector search is sufficient until scale measurements say otherwise.
 4. Check Topic/event/version compatibility and present suggestions with abstention.
 5. Save an explicit reversible association in the approved scope. A single user's
    local confirmation is not permission for a global merge.
@@ -99,6 +112,9 @@ Unseen pages with no adequate permitted signal may stay unmatched.
 Body-derived/private-context matching is an optional separately approved branch
 (ADR-013). Local transforms are not automatically anonymous or rights-cleared.
 No raw-body crawler, search-provider dependency or per-site API is required.
+External search is an optional candidate source, not the semantic authority.
+Approve exact query disclosure, result retention/derivation rights and budget
+before integration; a paid search result is not automatically a reusable index.
 
 ## Trust and release requirements
 

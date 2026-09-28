@@ -14,19 +14,24 @@ This is a local prototype, not yet a usable shared discussion service.
 - The unpacked Chromium popup looks up bundled example.com/example.org mappings.
 - A separate metadata button reads only a controlled local fixture and one
   approved MDN route. No body capture, network, persistence or AI.
+- Extension 0.4.0 adds a **Related pages · demo** panel: a local candidate ranker
+  separates confirmed same-Topic pages from related reading, even with no posts.
+  Its six synthetic pages use hand-authored vectors, not a trained model or web
+  search. No active-tab data enters this demo.
 - Review/evaluation tooling exists; the owner's synthetic 6/6 review is finished.
-- Posting/replies, auto-loading on popup opening, local discussion persistence,
+- Posting/replies, current-tab auto-loading on popup opening, local discussion persistence,
   general websites, embeddings, AI integration, real accounts and mobile are
   not implemented yet.
 
 The 2026-09-27–28 reassessment found that validation tooling had overtaken the
 usable product. The active plan now prioritizes a local discussion loop,
-same-Topic suggestions and an explicit AI-draft flow. Completed evidence is
+useful related sources, early embeddings and an explicit AI-draft flow. Completed evidence is
 preserved; local implementation does not wait for another per-module interview.
 
 Start with [current status](plans/STATUS.md),
 [active roadmap](plans/ROADMAP.md) and
-[ADR-014](decisions/ADR-014-product-first-rebaseline.md).
+[ADR-014](decisions/ADR-014-product-first-rebaseline.md), extended by
+[ADR-015](decisions/ADR-015-related-pages-first-utility.md).
 The [product reassessment](research/PRODUCT_RESET_2026-09-27.md) and
 [store/legal findings](research/PRODUCT_RESET_POLICY_2026-09-27.md) explain the
 corrections and options. These are research and engineering evidence, not store
@@ -49,10 +54,18 @@ For the unpacked extension and fixture-server/manual checks, follow the
 `spikes/topic-resolution/browser/` directory. The pinned MDN experiment expires
 on 2026-10-23; that is a narrow experiment limit, not the future site architecture.
 
+To try the new panel, reload the unpacked extension and open it. Select the
+Harbor S2 overview to see two same-Topic examples and two related-reading
+examples. Select the community-garden example to see the limited-catalog empty
+state. These addresses are non-clickable examples, not discovered websites.
+No fixture server or current-tab check is needed for this panel.
+
 The navigation hardening clears metadata on source-tab updates, removal or
 replacement. Automated race tests pass; a fresh real-browser smoke of this
 change is not yet recorded. Browser events are asynchronous and do not prove
 an atomic, continuously fresh page snapshot.
+The related-page panel has automated DOM/contract coverage; its real-browser
+smoke is also still pending. Earlier owner checks remain completed evidence.
 
 Do not rerun `review:owner` or prepare a replacement owner queue as a routine
 setup step: the synthetic 6/6 task is complete. The later 200–250-pair
@@ -65,8 +78,12 @@ delete. It will use synthetic identities and explicit demo state, English
 message-key language packs, human/AI separation and private drafts with an
 explicit publication preview. Automatically captured context will not be saved.
 
-Then: generic permitted context, local semantic candidates with confirmation,
-optional AI handoff/import and a shared service after its data/security approvals.
+Alongside that loop: a pinned local embedding experiment after exact model/input
+approval, then genuine semantic candidates and useful source discovery. Known
+permitted Sources come first; optional explicit search fills coverage gaps after
+its provider/data/cost approval. See the
+[discovery options and costs](research/RELATED_PAGE_DISCOVERY_2026-09-28.md).
+AI handoff/import and a shared service follow their data/security approvals.
 The design avoids a crawler, a mandatory per-site API and a mandatory AI vendor.
 For mobile, investigate sharing and Safari integration before assuming a WebView
 can observe content in other apps.

@@ -1,6 +1,6 @@
 # Product-first roadmap
 
-Updated: 2026-09-28. Governing decision: ADR-014. Browser extension first;
+Updated: 2026-09-28. Governing decisions: ADR-014/015. Browser extension first;
 Android and iOS follow with shared Topic/discussion contracts. Core model:
 `Content -> Semantic Topic -> Discussion`.
 
@@ -18,6 +18,9 @@ owner review. More synthetic review machinery is not on the critical path.
   corrections. Most of that design is not implemented.
 - No backend, real accounts, discussion posting, AI provider, embeddings,
   mobile app, public release or store approval.
+- R2's offline candidate ranker and extension 0.4.0 related-page panel are built.
+  Six synthetic Sources and hand-authored vectors prove wiring, not learned
+  semantic matching or live discovery. Real-browser panel smoke remains pending.
 
 ## R0 — Reassessment and current-boundary hardening
 
@@ -59,10 +62,19 @@ Test applicable authorization rules without claiming real authentication.
 Gate: implement within ADR-014 without per-module questions. No general page
 capture or captured-context persistence is implied by the demo UI.
 
-## R2 — General context and useful same-Topic suggestions
+## R2 — Useful related pages, early embeddings and same-Topic suggestions
 
 Owner: Platform/Client + Semantic; Trust/Privacy/Policy and Quality review.
-Dependencies: R1 repository/UI. Contract/fixture work may run alongside R1.
+Dependencies: R1 repository for saved Topic associations, not for standalone
+source recommendations. Build retrieval/fixture UI alongside R1; actual model
+and broader input activation retain their exact gates.
+
+First increment complete: bounded pure vector ranker and a clearly labelled
+synthetic related-page panel with no active-tab input, posts or network. Next,
+replace hand-authored vectors in an approved experiment with a real model.
+Source discovery must be useful even when discussions are empty. Clearly separate
+confirmed same-Topic pages from related reading; never convert proximity into
+an automatic merge. No-match means limited catalog coverage, not an empty web.
 
 Deliver a shared `ContextEnvelope`: optional URL/title/description/identifiers,
 capture provenance and capability limits. Add event/product/claim Topic cards,
@@ -76,6 +88,15 @@ and embedding retrieval on paraphrases, related-but-distinct events, product
 versions and time-separated cases. Record memory/startup/CPU latency, language
 limits and model version. Synthetic results guide code, not AUTO quality claims.
 Never silently download runtime/model assets.
+
+Treat learned embeddings as early MVP work, before claiming meaningful semantic
+usefulness to external testers. A missing model can still degrade to lexical/manual
+selection. Use known permitted Sources first; optionally propose a user-reviewed
+normal-search handoff, then an interchangeable API for integrated results. Search
+finds candidates; embeddings rank them. Do not silently build a history index,
+generate URLs with an LLM or assume API results may be permanently cached/embedded.
+Provider/privacy/security, query fields, retention/derivation rights and spending
+need explicit approval before external activation; see ADR-015 and its research.
 
 Before general live-page tests, ask once for exact fields, contexts, permissions,
 local retention and rights-policy approach. Do not generalize the current
@@ -121,6 +142,9 @@ Build local service contracts with fake identities first. Propose one modular
 service, a relational store and replaceable matcher; PostgreSQL is a candidate,
 not a purchased deployment. No vector service/microservices without measurements.
 Stable IDs and a provider-neutral discussion API serve all clients.
+Provide readable, shareable public Topic pages without requiring an extension;
+private discussions remain inaccessible. This supports discovery and invitations,
+but does not authorize hosting or public publication before their gates.
 
 Before real connected tests, explicitly approve host/region/budget, account/auth
 choice, transmitted fields (including IP/logs), retention/deletion, launch
@@ -183,6 +207,9 @@ Measure repeat useful opens, existing-Topic matches, false joins, human/AI
 participation separately, voluntary draft publication and cost. Popup use cannot
 be reported as passive-indicator discovery. Define experiments before collecting
 minimal approved telemetry.
+Measure whether people voluntarily return for useful sources and whether humans
+reply to other humans. Related-page clicks and generated post volume alone do
+not validate a discussion community. Test one reachable audience before expansion.
 
 Ship contacts/notice-action/moderation, privacy disclosures, blocking, AI reporting/
 labels and account rights before public UGC. Recheck policies/law for actual

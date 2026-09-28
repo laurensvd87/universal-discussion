@@ -37,6 +37,7 @@ test("unpacked extension inventory and bounded metadata manifest are exact", asy
     "chromium/popup.css",
     "chromium/popup.html",
     "chromium/popup.js",
+    "chromium/related-pages-panel.js",
     "core/active-tab-controller.js",
     "core/active-tab-policy.js",
     "core/indicator-contract.js",
@@ -44,7 +45,10 @@ test("unpacked extension inventory and bounded metadata manifest are exact", asy
     "core/page-metadata-controller.js",
     "core/page-signal-contract.js",
     "core/page-signal-policy.js",
+    "core/related-sources.js",
     "fixtures/indicator-fixtures.js",
+    "fixtures/related-source-fixtures.js",
+    "locales/en.js",
     "manifest.json",
   ]);
 
@@ -52,8 +56,8 @@ test("unpacked extension inventory and bounded metadata manifest are exact", asy
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.3.0",
-    description: "User-invoked local URL lookup and bounded head-metadata proof of concept.",
+    version: "0.4.0",
+    description: "Local related-page recommendations and bounded metadata proof of concept.",
     minimum_chrome_version: "106",
     incognito: "not_allowed",
     permissions: ["activeTab", "scripting"],
@@ -94,6 +98,10 @@ test("every runtime import and document resource remains inside the unpacked roo
     path.join(browserDirectory, "core", "page-signal-contract.js"),
     path.join(browserDirectory, "core", "page-signal-policy.js"),
     path.join(browserDirectory, "fixtures", "indicator-fixtures.js"),
+    path.join(browserDirectory, "fixtures", "related-source-fixtures.js"),
+    path.join(browserDirectory, "core", "related-sources.js"),
+    path.join(browserDirectory, "chromium", "related-pages-panel.js"),
+    path.join(browserDirectory, "locales", "en.js"),
     popupScriptPath,
   ];
   const packagedFiles = new Set((await listFiles(browserDirectory)).map((file) => path.resolve(file)));
@@ -239,6 +247,9 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(html, /<label for="scenario">/u);
   assert.match(html, /id="current-tab-button"/u);
   assert.match(html, /id="metadata-button"/u);
+  assert.match(html, /id="related-pages-demo"/u);
+  assert.match(script, /mountRelatedPagesDemo\(/u);
+  assert.match(script, /relatedPagesDemo\.dispose\(\);/u);
   assert.match(html, /Do not invoke this proof of concept on a signed-in or sensitive page\./u);
   assert.match(html, /this prototype does not inspect\s*\n\s*login or paywall state\./u);
   assert.match(

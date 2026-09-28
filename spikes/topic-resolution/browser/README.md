@@ -1,4 +1,4 @@
-# User-invoked local discussion and metadata proof of concept
+# Local related-page, discussion-preview and metadata proof of concept
 
 Status: the exact local P1.5b URL slice passes automated checks, Trust/Quality
 engineering review, and the owner-run Chromium smoke. The exact P1.5c bounded
@@ -12,9 +12,36 @@ document attestation. The current package adds source-tab lifecycle invalidation
 and passing regressions. The new event wiring has not received a fresh real-
 browser smoke; earlier completed owner checks are historical evidence.
 
+Extension 0.4.0 also adds an isolated related-page demo (ADR-015). Automated
+ranker, rendering, package and restricted-I/O tests pass; separate AI Trust/Quality
+review accepts this offline scope. This panel has not had a real-browser smoke.
+It does not implement a real embedding model, live search or discussion posting.
+
+## Try the related-page demo
+
+Reload the unpacked `browser/` extension and open its popup. No fixture server,
+page capture or DevTools breakpoint is needed for this panel.
+
+1. In **Related pages · demo**, select **Harbor S2 sensor: product overview**.
+   Expect four recommendations: two already associated with the same demo Topic,
+   plus the S3 successor and a monitoring guide as related reading only.
+2. Select **Starting seedlings in a community garden**. Expect an empty result
+   with a small-catalog explanation and no stale Harbor recommendations.
+3. Use Tab and arrow keys to change the selector. Check visible focus and status.
+   URLs are example text, not links. No page opens and nothing is saved.
+
+The six Sources and their vectors are hand-authored synthetic fixtures. The
+ranker really computes cosine similarity over compatible vectors but does not
+generate embeddings or infer confirmed Topics. The source selector is separate
+from the active tab and never receives captured metadata. Showing zero posts
+illustrates source-discovery utility; it does not establish real usefulness.
+These optional checks are not a repeat of the owner's completed 6/6 review or
+earlier URL/metadata checklist.
+
 ## What it demonstrates
 
-The Chromium action popup has three separate local paths:
+Alongside the new fixture-only recommendations, the Chromium action popup
+preserves its three existing separate local paths:
 
 ```text
 explicit current-tab click
@@ -85,7 +112,7 @@ mutation. Listeners are released on reset, retry, terminal failure or popup exit
 
 The owner completed this checklist on 2026-09-22 against extension version
 0.2.0 at commit `4be7a3b`, before P1.5c added `scripting`. It is retained as
-historical evidence, not as a permission description for the current 0.3.0
+historical evidence, not as a permission description for the current 0.4.0
 package. The reported observations, limitations, and disposition are recorded
 in `../../../research/P1_5B_MANUAL_SMOKE.md`.
 
@@ -206,6 +233,11 @@ same-document attestation, navigation/reload races, timeouts, temporal non-use,
 and hidden-DOM clearing; and forbid network, storage, logging, dynamic code,
 unsafe HTML, content scripts, and broad permissions.
 
+Related-source checks additionally cover model/dimension compatibility, bounded
+and extreme vectors, query-preserving deduplication, deterministic ordering,
+same-versus-related separation, inert rendering, language-pack fallback and
+empty/error cleanup. All new runtime files are included in the package audit.
+
 ## Platform gaps
 
 No Firefox, Android, or iOS package or compatibility result exists yet. The
@@ -222,6 +254,8 @@ This package still has no general capture, storage, writes or network. ADR-014
 now permits the successor R1 local discussion demo, fixture state and tests
 without a per-module questionnaire. Such code must not silently weaken the old
 capture/package boundary; it needs separately explicit capability tests.
+ADR-015 adds the implemented fixture-only recommendation path within that local
+envelope; neither its HTTP(S) data validator nor its vectors authorize live inputs.
 
 Stop before broader real-page fields/selectors/routes, body/JSON-LD processing,
 new capture permissions, captured-context retention, network/telemetry,

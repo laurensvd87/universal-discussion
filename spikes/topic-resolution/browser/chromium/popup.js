@@ -6,6 +6,7 @@ import { createPageMetadataReader } from "./page-metadata-reader.js";
 import { createActiveTabController } from "../core/active-tab-controller.js";
 import { createIndicatorController } from "../core/indicator-controller.js";
 import { createPageMetadataController } from "../core/page-metadata-controller.js";
+import { mountRelatedPagesDemo } from "./related-pages-panel.js";
 import {
   INDICATOR_SCENARIOS,
   lookupIndicatorFixture,
@@ -150,6 +151,11 @@ for (const scenario of INDICATOR_SCENARIOS) {
   elements.scenario.append(option);
 }
 
+const relatedPagesDemo = mountRelatedPagesDemo(
+  document,
+  document.querySelector("#related-pages-demo"),
+);
+
 const tabsApi = globalThis.chrome.tabs;
 const activeTabReader = createActiveTabReader(tabsApi);
 const tabLifecycleObserver = createTabLifecycleObserver(tabsApi);
@@ -173,6 +179,7 @@ const pageMetadataController = createPageMetadataController({
 
 globalThis.addEventListener("pagehide", () => {
   pageMetadataController.dispose();
+  relatedPagesDemo.dispose();
   activeTabController.reset();
   fixtureController.reset();
 }, { once: true });

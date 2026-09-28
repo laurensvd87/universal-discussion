@@ -1,6 +1,6 @@
 {
-  "manifestVersion": "fixture-provenance/1.4.0",
-  "reviewedAt": "2026-09-22T12:00:00.000Z",
+  "manifestVersion": "fixture-provenance/1.5.0",
+  "reviewedAt": "2026-09-28T12:00:00.000Z",
   "entries": [
     {
       "path": "fixtures/observations.js",
@@ -15,6 +15,16 @@
     {
       "path": "browser/fixtures/indicator-fixtures.js",
       "purpose": "Bundled resolver-derived Source, Topic, Discussion, mapping, and activity display fixtures",
+      "provenance": "project-created-synthetic",
+      "containsCopiedText": false,
+      "containsPersonalData": false,
+      "containsPrivateUrl": false,
+      "containsSecret": false,
+      "minimumDataForTest": true
+    },
+    {
+      "path": "browser/fixtures/related-source-fixtures.js",
+      "purpose": "Synthetic related-page catalog with hand-authored vectors; no learned embeddings or semantic-quality evidence",
       "provenance": "project-created-synthetic",
       "containsCopiedText": false,
       "containsPersonalData": false,

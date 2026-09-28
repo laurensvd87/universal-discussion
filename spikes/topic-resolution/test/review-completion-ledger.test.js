@@ -226,7 +226,7 @@ test("completed primary review deterministically creates the bounded bridge", ()
   assert.equal(ledger.completionLedger.primaryLedgerBinding.eventCount, 6);
   assert.equal(
     ledger.completionLedgerDigest,
-    "sha256:bbefee28b199233d07e03b7b164e932ed5133403eb8a36d5b76782ddf5acb9fa",
+    "sha256:1f40756e2bf88c25ebbd20e74166e388fa31726271201997c3bdfc4c8c872776",
   );
   assert.equal(state.completionStateContractVersion, REVIEW_COMPLETION_STATE_CONTRACT_VERSION);
   assert.deepEqual(state.counts, {

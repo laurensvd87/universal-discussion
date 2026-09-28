@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Universal Discussion - Local PoC",
-  "version": "0.3.0",
-  "description": "User-invoked local URL lookup and bounded head-metadata proof of concept.",
+  "version": "0.4.0",
+  "description": "Local related-page recommendations and bounded metadata proof of concept.",
   "minimum_chrome_version": "106",
   "incognito": "not_allowed",
   "permissions": ["activeTab", "scripting"],
