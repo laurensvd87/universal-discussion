@@ -3,7 +3,7 @@ import { ServiceError, fail } from "../domain/errors.js";
 import { readRecord } from "../domain/validation.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 
-const MAX_BODY_BYTES = 65_536;
+export const MAX_BODY_BYTES = 65_536;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
 
 export function createRequestHandler({ service, config }) {

@@ -2,8 +2,9 @@
 
 Status: Adopted architecture under the owner's 2026-09-28 instruction. The exact
 local S3 activation package below is explicitly owner-approved on 2026-09-28.
-S1/S2 are implemented offline: domain, SQLite and an in-process request handler.
-No listening server, client networking, model or permission is activated.
+S1/S2 implement domain, SQLite and an in-process request handler. S3a adds the
+bounded fixed loopback listener and passes its separate integration suite; client
+integration is in progress. No real model/input/provider is activated.
 Continuation: the 2026-09-28 implementation review accepted the corrected offline
 core. See
 [the review record](../research/S1_S2_REVIEW_2026-09-28.md). The correction keeps
@@ -17,6 +18,11 @@ tests, synthetic/demo payload and retention until manual deletion. This satisfie
 the S3 owner gate below; it is not evidence that S3 is implemented or tested. Do
 not request the unchanged package again. Later expanded-data/model/provider/
 deployment/spending/publication gates remain in force.
+
+Execution update (2026-09-28): the owner chose GPT-6 Sol Medium coding subagents
+under the Astra lead. The handoff checkpoints return to the lead for review in
+this conversation; no manual owner model switch is needed. This supersedes only
+the handoff mechanism, not architecture, approvals or required test evidence.
 
 Date: 2026-09-28
 
@@ -110,5 +116,6 @@ reported 3.53.3. No disk database/server was created.
 [Official Node 24 docs](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html)
 mark the module release-candidate. This proves availability, not durability,
 security or hosting readiness. The current extension remains offline 0.4.0.
-S1/S2 evidence is recorded in `plans/STATUS.md`; listener/client activation is
-approved but not yet implemented. S3 needs its own transport/browser evidence.
+S1/S2/S3a evidence is recorded in `plans/STATUS.md`. The reviewed listener has
+51 offline checks and two actual loopback checks; client/browser evidence is
+still required. See [S3 review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md).

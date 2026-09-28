@@ -24,7 +24,7 @@ build the local discussion loop and early related-source/embedding utility.
 | Current-tab auto-load | Not implemented; belongs to approved S3 client integration |
 | Learned embeddings/general same-Topic matching | Not implemented; early R2 model experiment before R5 AUTO validation |
 | AI handoff/import/provider | Planned; no inference or real credentials |
-| Local backend | S1/S2 core, SQLite and in-process `/v1` handler implemented; no listener/client activation |
+| Local backend | S1/S2 plus S3a fixed loopback listener/CLI implemented and tested; extension integration in progress |
 | Real accounts/mobile/hosting/stores | Not implemented, deployed or submitted |
 
 ## Reassessment completed 2026-09-27–28
@@ -138,6 +138,23 @@ The orchestration-only baseline was `9e48916`; S1 was committed as `324163e`.
 
 ## Verification and residuals
 
+S3 execution started (2026-09-28): the owner selected GPT-6 Sol Medium coding
+subagents with Astra orchestration/review in the same conversation. Independent
+transport, client-adapter and UI slices have explicit file owners. The lead owns
+integration/security review, shared documentation and verified commits; manual
+model-switch handoffs are no longer required. No wider capability is authorized.
+
+S3a completed and reviewed (2026-09-28): fixed `127.0.0.1:4174` transport, manual
+terminal-only random pairing token, random persistent IDs, bounded raw headers/
+stream/deadlines, shutdown and separate local integration guard. The six Harbor
+Sources are unchanged; two explicitly project-created reserved-domain Sources
+bridge the old URL fixture IDs to a separate shared Topic, with null embeddings.
+Pre-bridge databases stay unchanged until deliberate reset. Service tests:
+51/51 offline; 2/2 actual loopback integration; secret scan 30 files, zero findings,
+six self-tests. The lead reproduced the socket suite after transport review;
+all test listeners are closed. S3b/c and real-browser checks remain in progress.
+Details: [S3 implementation review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md).
+
 S3 approval/handoff documentation checks (2026-09-28): `git diff --check` passes;
 all 41 local Markdown links across the 12 changed documents resolve. Approval,
 implemented capability and later gates were reconciled across active documents.
@@ -232,7 +249,7 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-015: related pages as first-user utility, early embeddings, provider-neutral
   discovery with explicit coverage/rights/cost limits; no provider activated.
 - ADR-016: active local-service-first architecture; S1/S2 reviewed, exact local
-  S3 activation package owner-approved, not yet implemented. Supersedes IndexedDB
+  S3 activation package owner-approved; S3a implemented, client work in progress. Supersedes IndexedDB
   placement; no wider data/network permission follows from the approval.
 - ADR-001/004: frozen baseline/editorial evaluation evidence; unchanged.
 - ADR-009: local-first NO-AUTO direction retained and made executable.

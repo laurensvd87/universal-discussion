@@ -2,14 +2,23 @@
 
 Prepared: 2026-09-28. **Orchestration complete for the next coding block.**
 Code baseline: `818dd6e`, reviewed S1/S2 and offline extension 0.4.0. Inspect current
-git state first. Implementation status: **S1/S2 complete; S3 owner-approved and
-ready for implementation.** No listener/client activation, new extension
-permission or real model/input has occurred yet.
+git state first. Implementation status: **S1/S2 and reviewed S3a complete; S3b/c
+in progress under the approved package.** A fixed listener has passed local
+integration tests; no real model/input has been activated. See STATUS for current
+client/browser evidence; do not inherit S3a transport evidence as a UI pass.
 Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md).
 
 The owner answered **"ja"** on 2026-09-28 to ADR-016's explicit local connection,
 pairing, permissions and test package. Do not ask again for that unchanged scope.
 This approval authorizes S3, not later real-page/model/provider/hosting work.
+
+**Current execution workflow:** the owner has now requested GPT-6 Sol Medium
+coding subagents under the Astra lead. Pass bounded assignments with explicit
+file ownership; the lead reviews security/integration, maintains shared docs and
+commits/pushes checked slices. Return checkpoint results to that lead in this
+conversation. The manual model-switch prompts below are fallback/historical
+instructions only; do not ask the owner to switch while the Astra lead is already
+handling the review. Owner consent is still required at every new approval gate.
 
 ## Authority and reading
 
@@ -56,7 +65,7 @@ Do not restart Phase 0, the P1.7 questionnaire or the finished 6/6 owner review.
 | S1 — complete | Pure service/domain, memory repository, API DTOs, synthetic catalog/ranking | Deterministic network-denied tests pass |
 | S2 — complete | SQLite adapter + in-process secured HTTP handler; composition remains dormant | Persistence/conflict/reset and handler rejection tests pass; no bound socket |
 | Review + owner gate — complete | Corrected S1/S2 accepted; ADR-016 activation package approved 2026-09-28 | Explicit owner answer recorded; no need to repeat |
-| S3 — current approved block | Loopback listener, pairing, thin extension and human discussion UI | Service-to-extension post/reply/edit/reopen/delete loop and real-browser smoke |
+| S3 — current approved block | S3a transport complete; client pairing and discussion UI in progress | Socket tests pass; service-to-extension loop and real-browser smoke still required |
 | STOP → Astra + owner | Review working local loop; choose exact real model/runtime/license/input experiment | No silent model acquisition/activation or real-page input |
 | Later S4 | Private destination, fixture AI preview, filters, local report/block/moderation | Focused lifecycle/publication tests before each control is enabled |
 
@@ -237,7 +246,7 @@ New legitimate fixtures may change generated test hashes; never alter the actual
 owner ledger. After each slice: focused checks, separate risk review, diff check,
 STATUS/README evidence, then commit/push verified in-scope work.
 
-**Stop and tell the owner to switch back to GPT-6 Astra at the first of:**
+**Stop the coding slice and return to the Astra lead at the first of:**
 
 1. S3 is complete: review the usable local loop and propose the exact real
    embedding model/runtime/license/assets/inputs. Do not download/activate it yet.
@@ -248,9 +257,10 @@ STATUS/README evidence, then commit/push verified in-scope work.
 3. Any provider/account/tester/hosting/spending/publication/store approval gate,
    including the later 200–250-pair provenance-approved review, becomes necessary.
 
-The S1/S2 review and S3 owner-activation gate are already complete. At the next
-checkpoint say explicitly: **"Bitte jetzt zu GPT-6 Astra wechseln."** Summarize
-results, tests, remaining gaps and the next decision; do not silently start S4/R2.
+The S1/S2 review and S3 owner-activation gate are already complete. Summarize
+results, tests, remaining gaps and the next decision to the lead; do not silently
+start S4/R2. Only if using a standalone cheaper-model session without the Astra
+lead, say explicitly: **"Bitte jetzt zu GPT-6 Astra wechseln."**
 Astra review does not replace owner approval. No independent person is needed
 for these local code increments; give a concrete assignment at the later real
 evaluation gate. Do not ask the owner to decide every routine engineering step.
@@ -260,7 +270,7 @@ Luna can handle smaller fully specified subtasks. Availability is whatever the
 owner's picker offers; no model/account/permission setting was changed here.
 [Official model guidance](https://learn.chatgpt.com/docs/models).
 
-## Current cheaper-model prompt — S3
+## Standalone cheaper-model fallback prompt — S3
 
 > Lies AGENTS.md, plans/STATUS.md, plans/IMPLEMENTATION_HANDOFF.md, ADR-016 und
 > research/S1_S2_REVIEW_2026-09-28.md. Implementiere S3 in kleinen getesteten

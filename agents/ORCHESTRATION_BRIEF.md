@@ -6,6 +6,11 @@ the owner approved ADR-016's exact local S3 activation package on 2026-09-28.
 S3 is the next coding block; return to Astra at completion or an earlier new
 boundary. Do not repeat that approval, recreate roles or reopen completed reviews.
 
+Owner-selected execution: the lead stays on Astra and delegates bounded coding
+work to GPT-6 Sol with Medium reasoning. Use distinct file ownership for parallel
+slices; the lead owns risk review, integration, status and commits. A return-to-
+Astra checkpoint is handled by the lead here, not a manual switch by the owner.
+
 The active coding agent's first deliverable is to create a lean multi-agent structure for the project. The same role contract must work across GitHub Copilot and Codex; use each tool's native delegation/customization mechanism without making the product plan depend on one vendor.
 
 ## Required capability areas

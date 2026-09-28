@@ -1,10 +1,22 @@
-// Dormant composition entry point. It validates configuration and constructs an
-// application when called, but deliberately imports no HTTP server and binds no socket.
+// Importing this module never opens a database or binds a socket.
+import { randomBytes, randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createSqliteDemoService } from "./application/create-sqlite-demo-service.js";
 import { createRequestHandler } from "./http/request-handler.js";
 import { validateStartupConfig } from "./http/startup-config.js";
+import { startLoopbackListener } from "./http/loopback-listener.js";
+
+export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
+
+export function createProcessDependencies() {
+  return Object.freeze({
+    capability: randomBytes(32).toString("base64url"),
+    nextId: (prefix) => `${prefix}-${randomUUID()}`,
+    now: () => new Date().toISOString(),
+  });
+}
 
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now }) {
   const config = validateStartupConfig(input);
@@ -15,4 +27,24 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
     handle: createRequestHandler({ service: database.service, config }),
     close: database.close,
   });
+}
+
+// databasePath/config are trusted composition seams for tests, never HTTP input.
+// The CLI below this adapter always uses APP_DATABASE_PATH and random dependencies.
+export async function startLocalApplication(options) {
+  const application = openDormantLocalApplication(options);
+  try {
+    const listener = await startLoopbackListener({ handle: application.handle });
+    let closed = false;
+    return Object.freeze({
+      async close() {
+        if (closed) return;
+        closed = true;
+        try { await listener.close(); } finally { application.close(); }
+      },
+    });
+  } catch (error) {
+    application.close();
+    throw error;
+  }
 }

@@ -13,6 +13,11 @@ within that scope without repeating the approval request. Follow the handoff's
 return-to-Astra and later approval gates. Keep STATUS current and record
 consequential choices in `decisions/`.
 
+The owner's current workflow is Astra orchestration/review with GPT-6 Sol Medium
+coding subagents where supported. Assign bounded, non-overlapping work; return
+checkpoint results to the lead without asking the owner to switch models. Do
+not silently substitute an unavailable model or bypass an approval boundary.
+
 Preserve these invariants: semantic topics sit between content and discussions; AI identity and provenance are explicit; private AI output never becomes public silently; browsing data and provider credentials are minimized and protected; and irreversible external actions require owner approval.
 
 Prefer small, testable changes with focused validation. Do not invent a stack or provider before the relevant research and ADR exist.

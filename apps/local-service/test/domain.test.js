@@ -15,7 +15,7 @@ function errorCode(fn, code) {
 test("catalog keeps confirmed same-topic links distinct from related ranking", () => {
   const service = demoService();
   const catalog = service.catalog();
-  assert.equal(catalog.sources.length, 6);
+  assert.equal(catalog.sources.length, 8);
   assert.equal(catalog.sources.find((source) => source.id === "harbor-overview").topicId, "harbor-s2");
   assert.equal(Object.hasOwn(catalog.sources[0], "embedding"), false);
   const related = service.related("harbor-overview", 10);
@@ -116,7 +116,7 @@ test("returned views are deeply frozen and cannot mutate repository state", () =
 
 test("prototype topic, revision and body limits reject without mutation", () => {
   const service = demoService();
-  for (let index = 0; index < 97; index += 1) {
+  for (let index = 0; index < 100 - SYNTHETIC_TOPIC_SEEDS.length; index += 1) {
     service.command(service.catalog().version, { type: "create-topic", title: `Topic ${index}`, kind: "general" }, "demo-alex");
   }
   const fullVersion = service.catalog().version;

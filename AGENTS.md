@@ -17,6 +17,13 @@ exact local S3 activation package on 2026-09-28. Implement S3 within that scope;
 do not ask again for the same approval or restart foundation work. Return to
 Astra at S3 completion or an earlier new approval/architecture/security boundary.
 
+The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
+Medium coding subagents (2026-09-28). Delegate bounded coding/test slices with
+clear file ownership; the lead reviews and integrates the results. Checkpoints
+return to the lead in this conversation, not a manual user model switch. If
+that configuration is unavailable, report it instead of silently substituting.
+This workflow does not change any owner approval or data/security boundary.
+
 ## Original bootstrap task (completed; retained as history)
 
 For a new bootstrap, first read `PROJECT_CHARTER.md`, `README.md`, and the referenced files under `docs/`, `agents/`, `plans/`, `research/`, and `decisions/`, then complete Phase 0. Do not repeat these completed steps on continuation:

@@ -18,7 +18,7 @@ the first useful discussion UI. The latest owner direction permits reversible
 local work, not broader capture, providers, egress, or publication.
 
 ADR-016 now places canonical demo state in a local service. Its exact loopback
-activation package remains pending owner approval. After that approval only the
+activation package was explicitly owner-approved on 2026-09-28. Only the
 specified fixture-only extension/service bridge supersedes this document's old
 blanket network-denied-process boundary. S1/S2 tests remain network-denied;
 identity, privacy, deletion and publication invariants still apply. No historical

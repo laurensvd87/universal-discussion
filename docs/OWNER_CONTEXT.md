@@ -33,3 +33,8 @@
   Implement S3 without repeating that approval, then return to Astra before
   real model/input work. Broader data, provider, deployment, spending and
   publication gates remain explicit; changing models is not consent.
+- The owner then requested and activated Astra orchestration with GPT-6 Sol
+  Medium coding subagents. The lead supplies bounded assignments, reviews and
+  integrates code, and handles checkpoint reviews in the same conversation.
+  Manual model switching/copying prompts is no longer the default workflow;
+  approval gates remain owner decisions, not decisions delegated to coding agents.

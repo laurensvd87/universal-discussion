@@ -21,8 +21,9 @@ This is a local prototype, not yet a usable connected discussion app.
 - Local-service S1/S2 now implement the service-owned synthetic Source catalog,
   fixture-vector ranking, Topics, Discussions and human root/reply/edit/withdraw
   commands with in-memory and SQLite persistence. A secured transport-neutral
-  `/v1` handler is tested in-process. There is deliberately no listening server
-  and the extension is not connected to it.
+  `/v1` handler is tested in-process. S3a now adds an explicitly started, bounded
+  `127.0.0.1:4174` listener and terminal-only manual pairing token. Actual loopback
+  tests pass; extension integration is still in progress.
 - Review/evaluation tooling exists; the owner's synthetic 6/6 review is finished.
 - The extension UI for posting/replies and current-tab auto-loading, learned
   embeddings, general websites, AI integration, real accounts and mobile are not
@@ -66,10 +67,11 @@ npm test
 npm run check:secrets
 ```
 
-`npm run test:integration` is still a deliberately failing placeholder, not a
-working integration suite. The owner approved ADR-016's exact local S3 package
-on 2026-09-28; S3 may replace it with the separate loopback tests and run them.
-There is no listener/start command to use yet.
+From `apps/local-service`, `npm run test:integration` runs the separately guarded
+loopback suite. Port 4174 must be free; tests close only their own listener and use
+temporary SQLite state. The default suite remains socket-denied. For interactive
+startup and pairing instructions, see the [service README](apps/local-service/README.md).
+The owner approved this exact local package; browser integration is still pending.
 
 For the unpacked extension and fixture-server/manual checks, follow the
 [browser README](spikes/topic-resolution/browser/README.md). Load the
@@ -99,8 +101,8 @@ A local backend now owns the synthetic Source catalog, fixture vectors/matching,
 Topics and discussion state. Its pure domain, SQLite repository and in-process
 API handler are implemented, tested and corrected following Astra review. The
 owner has explicitly approved the exact local S3 connection and test package.
-No listener or new extension permissions are active yet. The next implementation
-block makes the extension a thin client with English message keys and an open -> choose/create
+S3a's listener and actual socket tests are complete. The client work in progress
+makes the extension a thin client with English message keys and an open -> choose/create
 Topic -> post -> reply -> reopen -> delete loop. Synthetic identities are not
 real authentication. Captured browsing context is not sent or saved in this block.
 
