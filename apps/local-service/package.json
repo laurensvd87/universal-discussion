@@ -1,0 +1,14 @@
+{
+  "name": "@universal-discussion/local-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none test/*.test.js",
+    "test:integration": "node --test --test-isolation=none test/integration/*.test.js",
+    "check:secrets": "node harness/scan-secrets.js"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
