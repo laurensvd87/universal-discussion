@@ -12,8 +12,10 @@ Phase 0 and the synthetic 6/6 owner review are complete. Returning agents read
 `plans/STATUS.md` and `plans/IMPLEMENTATION_HANDOFF.md` before choosing work.
 ADR-016 makes the local service the state/matching owner; it supersedes the old
 IndexedDB-first plan. External web search is deferred. S1/S2 are implemented;
-reviewed corrections are recorded in plans/STATUS.md. Obtain the explicit ADR-016
-owner activation approval before S3. Do not restart foundation work.
+reviewed corrections are recorded in plans/STATUS.md. The owner approved ADR-016's
+exact local S3 activation package on 2026-09-28. Implement S3 within that scope;
+do not ask again for the same approval or restart foundation work. Return to
+Astra at S3 completion or an earlier new approval/architecture/security boundary.
 
 ## Original bootstrap task (completed; retained as history)
 

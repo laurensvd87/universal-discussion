@@ -1,10 +1,15 @@
 # Implementation handoff: local-service discussion MVP
 
 Prepared: 2026-09-28. **Orchestration complete for the next coding block.**
-Code baseline: `9e48916`, offline extension 0.4.0. Inspect current git state first.
-Implementation status: **S1/S2 reviewed and corrected; owner activation approval pending.** No
-listener/client activation, extension permission or real model/input occurred.
+Code baseline: `818dd6e`, reviewed S1/S2 and offline extension 0.4.0. Inspect current
+git state first. Implementation status: **S1/S2 complete; S3 owner-approved and
+ready for implementation.** No listener/client activation, new extension
+permission or real model/input has occurred yet.
 Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md).
+
+The owner answered **"ja"** on 2026-09-28 to ADR-016's explicit local connection,
+pairing, permissions and test package. Do not ask again for that unchanged scope.
+This approval authorizes S3, not later real-page/model/provider/hosting work.
 
 ## Authority and reading
 
@@ -50,13 +55,14 @@ Do not restart Phase 0, the P1.7 questionnaire or the finished 6/6 owner review.
 | --- | --- | --- |
 | S1 — complete | Pure service/domain, memory repository, API DTOs, synthetic catalog/ranking | Deterministic network-denied tests pass |
 | S2 — complete | SQLite adapter + in-process secured HTTP handler; composition remains dormant | Persistence/conflict/reset and handler rejection tests pass; no bound socket |
-| STOP → owner — current | S1/S2 Astra review complete; approve ADR-016 activation package | Explicit permission before listener/client networking or new extension capabilities |
-| S3 — after approval | Loopback listener, pairing, thin extension and human discussion UI | Service-to-extension post/reply/edit/reopen/delete loop and real-browser smoke |
+| Review + owner gate — complete | Corrected S1/S2 accepted; ADR-016 activation package approved 2026-09-28 | Explicit owner answer recorded; no need to repeat |
+| S3 — current approved block | Loopback listener, pairing, thin extension and human discussion UI | Service-to-extension post/reply/edit/reopen/delete loop and real-browser smoke |
 | STOP → Astra + owner | Review working local loop; choose exact real model/runtime/license/input experiment | No silent model acquisition/activation or real-page input |
 | Later S4 | Private destination, fixture AI preview, filters, local report/block/moderation | Focused lifecycle/publication tests before each control is enabled |
 
-S1/S2 were the cheaper-model block and are now complete, not all of roadmap R1.
-Routine naming/CSS/focused fixes do not need owner votes. New capabilities do.
+S1/S2 were the first cheaper-model block and are now complete, not all of roadmap
+R1. S3 is the next approved cheaper-model block. Routine naming/CSS/focused fixes
+and the approved capabilities do not need more votes; expansion beyond them does.
 Use one implementation owner and a bounded separate Trust/Quality review, not a
 large standing agent team. AI review is not independent-human/legal/store approval.
 
@@ -153,7 +159,27 @@ unknown schema and reset. In-process handlers run without sockets. Preserve the
 old spike's fully network-denied suite. Document a separate loopback integration
 suite to run only after the owner gate; never globally weaken the existing guard.
 
-### S3: after explicit loopback/client activation approval
+### S3: current approved implementation block
+
+Implement in small independently checked commits:
+
+1. **S3a — transport:** bounded listener/startup around the reviewed handler,
+   fixed app-owned SQLite path, random IDs/token, shutdown and separate local
+   integration tests. Review the transport before exercising its listener.
+2. **S3b — client:** fixed-endpoint DTO adapter, trusted session-only pairing,
+   exact permission/CSP diff and tested synthetic fixture bridge. Preserve the
+   existing readers' no-I/O boundary and the completed owner review ledger.
+3. **S3c — usable loop:** popup auto-load, Topic selection/creation and human
+   root/reply/edit/withdraw UI, lifecycle/error handling and real-browser smoke.
+
+Apply the concrete transport and fixture-namespace requirements in the S1/S2
+review. Default suites stay socket-denied. Replace the currently failing
+`test:integration` placeholder with a separately invoked bounded loopback suite;
+the owner has approved running it. Tests use temporary app-owned databases and
+injected test tokens, suppress token output and close their own listeners. An
+occupied port fails closed; do not kill unrelated processes or choose another
+port. Document user startup, extension-Origin configuration, manual pairing,
+shutdown and explicit reset. Never print a real pairing token in tool/chat logs.
 
 One audited `local-service-client.js` fetches only the fixed endpoint, rejects
 redirects, omits cookies and validates DTOs. One `local-service-session.js` uses
@@ -162,10 +188,11 @@ contexts. No local/sync token storage or client canonical discussion/vector DB.
 Pair once per browser/service session; no idle logout. On token rejection clear
 pairing/private views and show disconnected status, not repeated automatic retries.
 
-Only after review/approval add `storage`, narrow loopback host permission and
+The owner has approved adding `storage`, narrow loopback host permission and
 `connect-src http://127.0.0.1:4174`. Host permission can cover more ports than the
 intended one: enforce exact port in client and CSP. Replace the old blanket fetch/
 storage ban only for those audited adapters, preserving no-I/O in readers/core.
+Review the actual permission and adapter diff before activating it in tests.
 
 Opening a paired popup loads catalog/discussion without a second button. Auto-run
 the existing exact reserved-domain URL lookup; send only its known fixture Source
@@ -193,8 +220,8 @@ pass. No repeat of finished 6/6 review or the one-off real MDN exercise.
 
 ## Completion and return-to-Astra rules
 
-Create service scripts `test` (no sockets), `test:integration` (gated loopback),
-`check:secrets`. The service `test` command uses
+Keep service scripts `test` (no sockets), `test:integration` (approved loopback,
+replace the placeholder in S3), `check:secrets`. The service `test` command uses
 `node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none`;
 SQLite/filesystem remain available while accidental HTTP/DNS/subprocess use fails.
 Keep later loopback cases out of the default test discovery and invoke them only
@@ -204,23 +231,26 @@ ignores and test-token handling. Existing
 spike commands remain: `npm test`, `npm run test:restricted`,
 `npm run indicator:test`, `npm run check:secrets`. Baseline counts: 294 normal
 (293 pass/one intentional skip), 294 restricted, 112 indicator, 101 scanned files.
+Reviewed service baseline: 39/39 tests; 25 scanned files, zero findings and six
+scanner self-tests. No loopback/browser result exists yet for S3.
 New legitimate fixtures may change generated test hashes; never alter the actual
 owner ledger. After each slice: focused checks, separate risk review, diff check,
 STATUS/README evidence, then commit/push verified in-scope work.
 
 **Stop and tell the owner to switch back to GPT-6 Astra at the first of:**
 
-1. S1/S2 are ready: review handler/security/storage and ask the owner explicitly
-   for ADR-016's exact activation package. Do not silently begin socket/client tests.
-2. After approved S3: review the usable local loop and propose the exact real
+1. S3 is complete: review the usable local loop and propose the exact real
    embedding model/runtime/license/assets/inputs. Do not download/activate it yet.
-3. An unresolved architecture/security/privacy issue requires new decisions or
+2. An unresolved architecture/security/privacy issue requires new decisions or
    wider permissions, real inputs, vector transmission, external I/O, dependency/
    database/runtime replacement or weakened isolation/purge tests. Provide a
    failing reproduction and options; stop speculative patch loops.
-4. Any provider/account/tester/hosting/spending/publication/store approval gate,
+3. Any provider/account/tester/hosting/spending/publication/store approval gate,
    including the later 200–250-pair provenance-approved review, becomes necessary.
 
+The S1/S2 review and S3 owner-activation gate are already complete. At the next
+checkpoint say explicitly: **"Bitte jetzt zu GPT-6 Astra wechseln."** Summarize
+results, tests, remaining gaps and the next decision; do not silently start S4/R2.
 Astra review does not replace owner approval. No independent person is needed
 for these local code increments; give a concrete assignment at the later real
 evaluation gate. Do not ask the owner to decide every routine engineering step.
@@ -230,9 +260,28 @@ Luna can handle smaller fully specified subtasks. Availability is whatever the
 owner's picker offers; no model/account/permission setting was changed here.
 [Official model guidance](https://learn.chatgpt.com/docs/models).
 
+## Current cheaper-model prompt — S3
+
+> Lies AGENTS.md, plans/STATUS.md, plans/IMPLEMENTATION_HANDOFF.md, ADR-016 und
+> research/S1_S2_REVIEW_2026-09-28.md. Implementiere S3 in kleinen getesteten
+> Schritten: lokalen Listener, Kopplung, schlanken Extension-Client und die
+> menschliche Diskussionsoberfläche. S1/S2 samt Astra-Review sind fertig. Die
+> exakte lokale Verbindung auf 127.0.0.1:4174 inklusive Session-Kopplung,
+> begrenzter Berechtigungen und Loopback-/Browser-Tests ist bereits ausdrücklich
+> genehmigt; frage das unveränderte Paket nicht erneut ab. Verwende nur
+> synthetische IDs/Daten und bewusst eingegebene Demo-Beiträge. Keine echten
+> Seiteninhalte übertragen, keine Modelle laden, keine externe Suche oder
+> Provider aktivieren. Wiederhole weder Phase 0 noch den fertigen 6/6-Review.
+> Halte Status/README aktuell, prüfe die Sicherheitsgrenzen und committe/pushe
+> abgeschlossene geprüfte Schritte. Nach S3 oder bei einer früheren neuen
+> Architektur-/Sicherheits-/Freigabegrenze: anhalten und ausdrücklich sagen
+> „Bitte jetzt zu GPT-6 Astra wechseln.“ Ergebnis, Tests, offene Punkte und
+> nächste Entscheidung nennen. Nicht mit S4 oder echten Embeddings fortfahren;
+> spätere Freigaben werden durch einen Modellwechsel nicht ersetzt.
+
 ## Historical cheaper-model prompt (completed; do not rerun)
 
-This prompt produced S1/S2. Returning agents stop at the current gate above.
+This prompt produced S1/S2. Returning agents use the current S3 prompt above.
 
 > Lies AGENTS.md, plans/STATUS.md und plans/IMPLEMENTATION_HANDOFF.md sowie die
 > dort genannten aktuellen Entscheidungen. Implementiere zuerst S1 und S2:

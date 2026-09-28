@@ -9,8 +9,8 @@ This is the active execution order. Do not restart Phase 0 or the completed 6/6
 owner review. More synthetic review machinery is not on the critical path.
 
 The completed S1/S2 block is specified in [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md).
-S1/S2 Astra review is complete with corrections; execution is stopped at the
-explicit owner local-connection gate.
+S1/S2 Astra review is complete with corrections. On 2026-09-28 the owner explicitly
+approved ADR-016's local-connection package; S3 is the next implementation block.
 External search/provider selection is deferred by the owner, not an R1 dependency.
 
 ## Evidence already available
@@ -50,8 +50,8 @@ Deliver small tested increments:
 2. S2 complete: SQLite persistence and secured in-process API handler; reset, deletion,
    conflict and corruption/version tests. No bound listener or new permissions.
    No canonical extension IndexedDB; no captured URLs/metadata/bodies stored.
-3. Current STOP: explicit owner approval of ADR-016's exact listener,
-   pairing, permissions, payload and retention package. Then S3: activate the
+3. Current block: S3, owner-approved on 2026-09-28 under ADR-016's exact listener,
+   pairing, permissions, payload, retention and test package. Implement the
    loopback service and thin extension UI; choose/create Topic, human root,
    reply/edit/delete, English keys. Paired popup opening auto-loads the catalog
    and existing reserved-domain lookup, sending only a known fixture Source ID.
@@ -70,8 +70,9 @@ separate; hostile text inert; private output excluded from public counts; reset
 clears local demo assets; keyboard/status coverage and no Internet/provider I/O.
 Approved loopback HTTP is separately disclosed data transfer, not zero network I/O.
 Test applicable authorization rules without claiming real authentication.
-Gate: completed S1/S2 needed no per-module owner questions; listener/client activation needs
-the ADR-016 approval. Follow handoff return-to-Astra checkpoints. No general page
+Gate: completed S1/S2 needed no per-module owner questions; ADR-016's exact local
+listener/client activation is now explicitly approved. Follow handoff
+return-to-Astra checkpoints and ask before any expanded scope. No general page
 capture or captured-context persistence is implied by the service or demo UI.
 
 ## R2 — Useful related pages, early embeddings and same-Topic suggestions

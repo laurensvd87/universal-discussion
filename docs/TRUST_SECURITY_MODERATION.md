@@ -4,14 +4,19 @@ These are product and release requirements, implemented in proportion to each
 slice. The 2026-09-27 product rebaseline in
 `decisions/ADR-014-product-first-rebaseline.md` and `plans/ROADMAP.md` takes
 precedence over earlier module-by-module P1.7 approval prerequisites. The latest
-owner instruction permits reversible local fixture work; this does not authorize external providers,
-data transmission, deployment, spending, recruitment, or publication.
-ADR-016 now defines the service-first architecture and a pending exact loopback/
-token/storage/permission approval package. Local HTTP is a data transfer; earlier
-"no network" evidence describes the offline spike, not future service integration.
+local engineering envelope permits reversible fixture work; it does not itself
+authorize external providers, data transmission, deployment, spending, recruitment
+or publication.
+ADR-016 defines the service-first architecture and exact local loopback/token/
+storage/permission/test package, explicitly owner-approved on 2026-09-28.
+This narrow exception does not authorize broader data transmission. Local HTTP
+is a data transfer; earlier "no network" evidence describes the offline spike,
+not future service integration.
 The S1/S2 handler is currently exercised only in-process under the same capability-
-denial harness. Its Host/token/Origin checks are implementation evidence, not an
-authorization to bind the listener or connect the extension.
+denial harness. Its Host/token/Origin checks are implementation evidence, not
+evidence for the unbuilt transport. The recorded owner approval authorizes S3;
+the new listener/client/permission changes still require focused engineering
+review and actual local integration tests before claiming a verified connection.
 
 ## Trust
 - Never disguise AI as human.

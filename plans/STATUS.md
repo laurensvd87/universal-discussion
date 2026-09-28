@@ -81,8 +81,9 @@ Evidence: `research/RELATED_PAGE_DISCOVERY_2026-09-28.md`; ADR-015.
 - [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md) froze the now-completed S1/S2 block:
   pure domain/catalog, memory/SQLite repository and secured in-process handler.
   No listener, new extension permission, model asset or real input is activated.
-- The first stop is Astra review and explicit owner approval of the exact
+- The first stop was Astra review and explicit owner approval of the exact
   loopback/pairing/permissions/payload/retention package before S3 integration.
+  Both checkpoints are now complete; see the S3 approval record below.
   Later model, data, provider and deployment gates remain explicit. Returning to
   Astra is a review checkpoint, never a substitute for owner approval.
 - Checked Node 24.19.0 and an in-memory `node:sqlite` probe (SQLite 3.53.3).
@@ -114,13 +115,37 @@ The orchestration-only baseline was `9e48916`; S1 was committed as `324163e`.
 - No HTTP server implementation or `.listen()` call exists. `test:integration`
   is an intentional failing approval gate. No extension file/permission, real
   page input, model asset, external request or disk database in the repository
-  was added. The current stop is Astra/Trust review plus explicit ADR-016 owner
-  approval before any S3 listener/client integration.
+  was added. At completion the stop was Astra/Trust review plus explicit ADR-016
+  owner approval; both are now complete, as recorded below.
+
+## S3 owner approval recorded 2026-09-28
+
+- After the corrected S1/S2 review, the owner answered **"ja"** to the explicit
+  local-connection approval request. The exact approved package is in ADR-016:
+  `127.0.0.1:4174`, random manual pairing in trusted `storage.session`, narrow
+  loopback/storage permissions and exact-port CSP, synthetic IDs/actors and
+  deliberate demo contributions retained in the local DB until manual deletion.
+  Loopback and browser integration tests are included. No cloud, cost, real
+  captured page data or model acquisition is authorized by this approval.
+- The next cheaper-model block is S3: listener, pairing, thin extension and
+  human discussion UI. Do not repeat the same owner approval or completed 6/6
+  review. The handoff provides S3a/b/c increments and the next Astra checkpoint.
+- This continuation changes documentation only. The implemented baseline is
+  `818dd6e`; there is still no listener, connected client or new permission.
+  New transport/permission changes need focused Trust/Quality review and actual
+  loopback/browser evidence. Return to Astra after S3, or earlier if an unresolved
+  architecture/security issue or a new approval boundary is reached.
 
 ## Verification and residuals
 
+S3 approval/handoff documentation checks (2026-09-28): `git diff --check` passes;
+all 41 local Markdown links across the 12 changed documents resolve. Approval,
+implemented capability and later gates were reconciled across active documents.
+No product tests, loopback listener or browser smoke were run for this docs-only
+continuation; the S1/S2 results below remain the last executed code evidence.
+
 Astra/Trust review of S1/S2 (2026-09-28): qualified ACCEPT of the corrected offline
-core; explicit ADR-016 activation approval is now the next step. The
+core; the owner subsequently approved ADR-016's local S3 activation package. The
 [review record](../research/S1_S2_REVIEW_2026-09-28.md) lists reproduced failures,
 fixes and the concrete S3 transport/client requirements.
 
@@ -130,8 +155,8 @@ fixes and the concrete S3 transport/client requirements.
 - Service suite: 39/39 pass; secret scan: 25 files, zero findings, six self-tests.
   The prior 28-test result below describes the implementation before this review.
 - Existing extension/spike code is unchanged; no fresh browser/loopback claim.
-  The review accepts the offline core only. Newly implemented S3 transport and
-  permissions still need their focused checks/review after owner approval.
+  The review accepts the offline core only. New S3 transport and
+  permissions still need their focused checks/review during S3 implementation.
 
 Documentation-only service handoff checks (2026-09-28):
 
@@ -183,14 +208,13 @@ the metadata and may require retry. The MDN experiment expires on 2026-10-23.
 
 R0 reassessment/hardening and documentation reconciliation are complete.
 R2's first fixture-only related-source increment and R1 handoff S1/S2 are complete.
-Astra review is complete with the corrections above. Ask the owner for the exact
-ADR-016 activation package before binding the listener or enabling client
-networking/storage; do not continue into S3 on prior local authority.
+Astra review and explicit owner approval of ADR-016's exact activation package
+are complete. Implement S3 and its local integration tests within that package;
+do not request the unchanged approval again. Keep the default offline test guard.
 Synthetic identity is a testing device, not real login/security isolation.
 
-Before binding the listener or enabling extension networking/storage permissions,
-ask explicitly for ADR-016's activation package. After
-approved S3 and its browser smoke, review the first real embedding experiment;
+After S3 and its browser smoke, return to Astra to review the usable local loop
+and the first real embedding experiment;
 model acquisition/activation and broader real-page capture remain separate exact
 fields/contexts/permissions/assets/retention gates. R1 stores no captured browsing
 data. External search is deferred, not a blocker for these steps.
@@ -207,8 +231,9 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-014: active sequencing and local engineering envelope.
 - ADR-015: related pages as first-user utility, early embeddings, provider-neutral
   discovery with explicit coverage/rights/cost limits; no provider activated.
-- ADR-016: active local-service-first architecture and S1/S2 handoff; exact
-  listener/client activation awaits owner approval. Supersedes IndexedDB placement.
+- ADR-016: active local-service-first architecture; S1/S2 reviewed, exact local
+  S3 activation package owner-approved, not yet implemented. Supersedes IndexedDB
+  placement; no wider data/network permission follows from the approval.
 - ADR-001/004: frozen baseline/editorial evaluation evidence; unchanged.
 - ADR-009: local-first NO-AUTO direction retained and made executable.
 - ADR-010/011: existing exact URL/metadata boundaries unchanged by this reset.

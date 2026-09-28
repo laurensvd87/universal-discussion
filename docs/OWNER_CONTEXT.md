@@ -27,3 +27,9 @@
   state now, behind an API that can serve hosted/mobile clients later (ADR-016).
   This changes placement, not permission to upload real private inputs or host
   publicly. Exact loopback/client activation is a documented approval checkpoint.
+- After the corrected S1/S2 Astra review on 2026-09-28, the owner answered "ja"
+  to ADR-016's exact local S3 connection, session-pairing, permission and test
+  package: synthetic/demo data only, retained locally until manual deletion.
+  Implement S3 without repeating that approval, then return to Astra before
+  real model/input work. Broader data, provider, deployment, spending and
+  publication gates remain explicit; changing models is not consent.

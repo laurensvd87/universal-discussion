@@ -4,8 +4,10 @@ Local, service-owned prototype state for Sources, fixture vectors, Topic links,
 Topics, Discussions and human Contributions. It is deliberately not a reachable
 server yet. S1/S2 tests run in a process that denies sockets, DNS, fetch and
 subprocesses.
-The implementation review is complete; the ADR-016 owner activation approval is
-pending before S3. See [the review](../../research/S1_S2_REVIEW_2026-09-28.md).
+The implementation review is complete; the owner approved ADR-016's exact local
+S3 activation package on 2026-09-28. S3 is ready for implementation, not already
+connected. See [the review](../../research/S1_S2_REVIEW_2026-09-28.md) and
+[current handoff](../../plans/IMPLEMENTATION_HANDOFF.md).
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
@@ -45,6 +47,7 @@ failure. The app-owned `data/` directory is ignored. Removing its database while
 the app is stopped is the explicit recovery for an unknown/corrupt local schema;
 the service never silently overwrites one.
 
-`npm run test:integration` is an intentional failing gate reserved for actual
-loopback tests after the ADR-016 activation package is reviewed and explicitly
-approved. There is currently no listener to start.
+`npm run test:integration` is still an intentional failing placeholder. The
+approved S3 block may replace it with actual bounded loopback tests, separately
+invoked from the socket-denied default suite. There is currently no listener to
+start; approval alone has not changed runtime capabilities.

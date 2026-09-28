@@ -1,15 +1,22 @@
 # ADR-016: Local service first, thin extension client
 
-Status: Adopted architecture under the owner's 2026-09-28 instruction. Exact
-listener/client activation remains a security/privacy owner gate below.
+Status: Adopted architecture under the owner's 2026-09-28 instruction. The exact
+local S3 activation package below is explicitly owner-approved on 2026-09-28.
 S1/S2 are implemented offline: domain, SQLite and an in-process request handler.
 No listening server, client networking, model or permission is activated.
 Continuation: the 2026-09-28 implementation review accepted the corrected offline
-core; owner activation approval remains pending. See
+core. See
 [the review record](../research/S1_S2_REVIEW_2026-09-28.md). The correction keeps
 the existing 1 MiB response budget by rejecting growth before commit and shares
 the 8 MiB snapshot/version contract across both repositories. It grants no new
 data, network or permission scope.
+
+Approval record: after the review, the owner answered **"ja"** to the explicit
+request for the local connection, session-only pairing, required permissions and
+tests, synthetic/demo payload and retention until manual deletion. This satisfies
+the S3 owner gate below; it is not evidence that S3 is implemented or tested. Do
+not request the unchanged package again. Later expanded-data/model/provider/
+deployment/spending/publication gates remain in force.
 
 Date: 2026-09-28
 
@@ -52,13 +59,12 @@ matching does not authorize uploading private bodies/vectors when hosting begins
   it is not merely changing the server URL. Phone `127.0.0.1` is the phone itself,
   not the developer's PC; LAN/tunnel/mobile-connected tests need a later boundary.
 
-## Proposed activation package — pending explicit owner approval
+## Activation package — owner-approved 2026-09-28
 
-Offline domain, handler, repository and mock-client implementation may proceed.
-Before the first listener/client integration run, return to Astra for review and
-ask the owner explicitly to approve this exact package:
+S1/S2 implementation and Astra review are complete. S3 implementation and its
+bounded loopback/browser tests may now proceed within this approved package:
 
-| Item | Proposed local-only scope |
+| Item | Approved local-only scope |
 | --- | --- |
 | Listener | `127.0.0.1:4174` only; no wildcard/LAN/tunnel/proxy; fail if occupied. Fixture server stays 4173. |
 | Client identity | Exact Host and per-process random bearer token on every actual endpoint. Validate any supplied Origin against one configured unpacked extension; reject null/web/other. Absent Origin still needs the token; preflight needs the configured Origin. No cookies or Origin-only authentication. |
@@ -76,11 +82,13 @@ git or errors. Integration tests inject in-memory test tokens and suppress
 startup output. No listener side effect on import. Unknown/corrupt schemas fail
 closed instead of being overwritten automatically.
 
-Approval plus separate Trust/Quality engineering review are required before
-activation. The owner need not repeat unchanged approved boundaries afterward.
-Any real input, wider permission, remote recipient or hosted deployment needs
-a new explicit decision. No request to approve these actions is implied by
-merely reading this ADR; the implementing agent must actually ask at the gate.
+Owner approval is recorded above. Review the new transport/permission changes
+with a separate Trust/Quality engineering pass before activation and verify them
+in the approved tests; the S1/S2 review does not certify unbuilt S3 code. This is
+an engineering checkpoint, not another vote on the unchanged approved package.
+Real captured page data, wider permissions, remote recipients or hosted
+deployment need a new explicit decision. At those later gates the implementing
+agent must stop and ask; neither this approval nor a model switch grants them.
 
 ## Supersession and handoff
 
@@ -90,10 +98,10 @@ publication/provider and evaluation gates remain. External web search is parked,
 not a dependency for the local service or embedding experiment.
 
 Execution, API defaults, tests and model-switch rules are in
-[the implementation handoff](../plans/IMPLEMENTATION_HANDOFF.md). First cheaper-
-model block: pure service/domain, SQLite adapter and in-process HTTP handler,
-then stop for Astra review and the activation approval above. After approved
-integration, return again before real model/input decisions.
+[the implementation handoff](../plans/IMPLEMENTATION_HANDOFF.md). The first
+cheaper-model block, Astra review and owner activation approval are complete.
+The next cheaper-model block is S3: listener, pairing, thin client and human
+discussion UI. After integration, return again before real model/input decisions.
 
 ## Evidence and residuals
 
@@ -102,5 +110,5 @@ reported 3.53.3. No disk database/server was created.
 [Official Node 24 docs](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html)
 mark the module release-candidate. This proves availability, not durability,
 security or hosting readiness. The current extension remains offline 0.4.0.
-S1/S2 evidence is recorded in `plans/STATUS.md`; listener/client activation still
-awaits the explicit gate.
+S1/S2 evidence is recorded in `plans/STATUS.md`; listener/client activation is
+approved but not yet implemented. S3 needs its own transport/browser evidence.

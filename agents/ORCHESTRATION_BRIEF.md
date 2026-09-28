@@ -2,8 +2,9 @@
 
 Current continuation (2026-09-28): the initial organization/foundation is complete.
 Use `agents/TEAM.md` and `plans/IMPLEMENTATION_HANDOFF.md`. S1/S2 are reviewed;
-stop for the explicit ADR-016 owner approval before S3. Do not
-recreate roles or reopen completed reviews.
+the owner approved ADR-016's exact local S3 activation package on 2026-09-28.
+S3 is the next coding block; return to Astra at completion or an earlier new
+boundary. Do not repeat that approval, recreate roles or reopen completed reviews.
 
 The active coding agent's first deliverable is to create a lean multi-agent structure for the project. The same role contract must work across GitHub Copilot and Codex; use each tool's native delegation/customization mechanism without making the product plan depend on one vendor.
 

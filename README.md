@@ -66,8 +66,10 @@ npm test
 npm run check:secrets
 ```
 
-Do not run `npm run test:integration`: it is an intentional gate until the
-ADR-016 loopback activation package is reviewed and explicitly approved.
+`npm run test:integration` is still a deliberately failing placeholder, not a
+working integration suite. The owner approved ADR-016's exact local S3 package
+on 2026-09-28; S3 may replace it with the separate loopback tests and run them.
+There is no listener/start command to use yet.
 
 For the unpacked extension and fixture-server/manual checks, follow the
 [browser README](spikes/topic-resolution/browser/README.md). Load the
@@ -96,9 +98,9 @@ provenance-approved task requires explicit approval before acquisition/review.
 A local backend now owns the synthetic Source catalog, fixture vectors/matching,
 Topics and discussion state. Its pure domain, SQLite repository and in-process
 API handler are implemented, tested and corrected following Astra review. The
-next gate is explicit approval of the loopback/client activation package. No listener or new
-extension permissions are active. After approval, the extension
-will become a thin client with English message keys and an open -> choose/create
+owner has explicitly approved the exact local S3 connection and test package.
+No listener or new extension permissions are active yet. The next implementation
+block makes the extension a thin client with English message keys and an open -> choose/create
 Topic -> post -> reply -> reopen -> delete loop. Synthetic identities are not
 real authentication. Captured browsing context is not sent or saved in this block.
 
