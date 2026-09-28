@@ -1,4 +1,5 @@
 import { applyCommand, createDemoState } from "../domain/demo-state.js";
+import { discussionView } from "../domain/discussion-view.js";
 import { fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId } from "../domain/validation.js";
 
@@ -49,15 +50,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     discussion(topicId) {
       topicId = readId(topicId);
       const state = repository.load();
-      const topic = state.topics.find((entry) => entry.id === topicId);
-      const discussion = state.discussions.find((entry) => entry.topicId === topicId);
-      if (!topic || !discussion) fail("not-found", "Object unavailable");
-      const contributions = state.contributions.filter((entry) => entry.discussionId === discussion.id);
-      const roots = contributions.filter((entry) => entry.rootId === null).sort(newestFirst).map((root) => ({
-        ...projectContribution(root),
-        replies: contributions.filter((entry) => entry.rootId === root.id).sort(oldestFirst).map(projectContribution),
-      }));
-      return frozenClone({ version: version(state), topic: { id: topic.id, title: topic.title, kind: topic.kind }, discussionId: discussion.id, roots });
+      return frozenClone(discussionView(state, topicId));
     },
     command(expectedValue, command, actorId) {
       const expected = readExpectedVersion(expectedValue);
@@ -67,7 +60,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       if (!actor) fail("forbidden", "Actor unavailable");
       const outcome = applyCommand(state, command, actor, { nextId, now });
       const saved = repository.save(expected, outcome.state);
-      return frozenClone({ state: saved, result: outcome.result });
+      return frozenClone({ version: version(saved), result: outcome.result });
     },
     reset(expectedValue, confirmation) {
       const expected = readExpectedVersion(expectedValue);
@@ -75,29 +68,11 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const current = repository.load();
       if (current.generation !== expected.generation || current.revision !== expected.revision) fail("conflict", "State changed");
       const next = createDemoState({ generation: nextId("generation"), createdAt: now(), sources, topicSeeds });
-      return repository.replace(expected, next);
+      return frozenClone(version(repository.replace(expected, next)));
     },
   });
 }
 
-function projectContribution(entry) {
-  if (entry.withdrawn) return { id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId, state: "deleted", label: "Deleted" };
-  const latest = entry.revisions.at(-1);
-  return {
-    id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId,
-    state: "visible", authorId: entry.authorId, actorType: entry.actorType,
-    body: latest.body, createdAt: entry.createdAt, edited: entry.revisions.length > 1,
-  };
-}
-
 function topicIdFor(state, sourceId) {
   return state.sourceLinks.find((link) => link.sourceId === sourceId)?.topicId ?? null;
-}
-
-function newestFirst(left, right) {
-  return right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id);
-}
-
-function oldestFirst(left, right) {
-  return left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id);
 }

@@ -1,5 +1,5 @@
 import { fail } from "./errors.js";
-import { clone, readId, readRecord, readText } from "./validation.js";
+import { clone, readBody, readId, readRecord, readText } from "./validation.js";
 
 export const STATE_SCHEMA = "demo-state/v1";
 export const LIMITS = Object.freeze({ topics: 100, contributions: 1_000, revisions: 50 });
@@ -82,7 +82,7 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     addContribution(next, {
       id: contributionId, discussionId: discussion.id,
       rootId: null, replyToId: null, authorId: actor.id,
-      body: readText(input.body, 8_000), timestamp,
+      body: readBody(input.body), timestamp,
     });
     result = { contributionId };
   } else if (type === "reply") {
@@ -106,7 +106,7 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     addContribution(next, {
       id: contributionId, discussionId: discussion.id,
       rootId: root.id, replyToId, authorId: actor.id,
-      body: readText(input.body, 8_000), timestamp,
+      body: readBody(input.body), timestamp,
     });
     result = { contributionId };
   } else if (type === "edit") {
@@ -114,7 +114,7 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     const contribution = findContribution(next, readId(input.contributionId));
     if (contribution.withdrawn || contribution.authorId !== actor.id) fail("forbidden", "Action unavailable");
     if (contribution.revisions.length >= LIMITS.revisions) fail("capacity", "Capacity reached");
-    contribution.revisions.push({ body: readText(input.body, 8_000), createdAt: timestamp });
+    contribution.revisions.push({ body: readBody(input.body), createdAt: timestamp });
     result = { contributionId: contribution.id };
   } else if (type === "withdraw") {
     const input = commandRecord(command, ["contributionId"]);

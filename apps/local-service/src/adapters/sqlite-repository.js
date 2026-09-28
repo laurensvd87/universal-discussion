@@ -3,43 +3,44 @@ import { ServiceError, fail } from "../domain/errors.js";
 import { STATE_SCHEMA } from "../domain/demo-state.js";
 import { assertValidPersistedState } from "../domain/persisted-state.js";
 import { clone, frozenClone } from "../domain/validation.js";
+import { assertExpected, assertTransition, MAX_DOCUMENT_BYTES, serializeSnapshot } from "../domain/repository-contract.js";
 
 const TABLE = "demo_state";
-const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 
 export function createSqliteRepository(databasePath, initialState, options = {}) {
-  const database = new DatabaseSync(databasePath);
+  let database;
   const serialize = options.serialize ?? JSON.stringify;
   try {
-    configure(database);
+    database = new DatabaseSync(databasePath);
     initialize(database, initialState, serialize);
+    configure(database);
   } catch (error) {
-    database.close();
+    database?.close();
     throw normalizeStorageError(error);
   }
 
-  function write(expected, nextState) {
-    database.exec("BEGIN IMMEDIATE");
+  function write(expectedValue, nextState, reset) {
+    let transaction = false;
     try {
+      database.exec("BEGIN IMMEDIATE");
+      transaction = true;
       const current = readRow(database);
       const currentState = parseRow(current);
-      if (currentState.generation !== expected.generation || currentState.revision !== expected.revision) {
-        fail("conflict", "State changed");
-      }
-      assertValidPersistedState(nextState);
-      const document = serialize(nextState);
-      if (typeof document !== "string" || Buffer.byteLength(document, "utf8") > MAX_DOCUMENT_BYTES) {
-        fail("capacity", "Capacity reached");
-      }
+      const expected = assertExpected(currentState, expectedValue);
+      const document = serializeSnapshot(nextState, serialize);
+      assertTransition(currentState, nextState, reset);
       const result = database.prepare(
         `UPDATE ${TABLE} SET schema = ?, generation = ?, revision = ?, document = ?
          WHERE singleton = 1 AND generation = ? AND revision = ?`,
       ).run(nextState.schema, nextState.generation, nextState.revision, document, expected.generation, expected.revision);
       if (result.changes !== 1) fail("conflict", "State changed");
       database.exec("COMMIT");
+      transaction = false;
       return frozenClone(nextState);
     } catch (error) {
-      try { database.exec("ROLLBACK"); } catch { /* Preserve the original failure. */ }
+      if (transaction) {
+        try { database.exec("ROLLBACK"); } catch { /* Preserve the original failure. */ }
+      }
       throw normalizeStorageError(error);
     }
   }
@@ -49,8 +50,8 @@ export function createSqliteRepository(databasePath, initialState, options = {})
       try { return frozenClone(parseRow(readRow(database))); }
       catch (error) { throw normalizeStorageError(error); }
     },
-    save: write,
-    replace: write,
+    save(expected, nextState) { return write(expected, nextState, false); },
+    replace(expected, nextState) { return write(expected, nextState, true); },
     close() { database.close(); },
   });
 }
@@ -60,11 +61,22 @@ function configure(database) {
 }
 
 function initialize(database, initialState, serialize) {
+  database.exec("BEGIN IMMEDIATE");
+  try {
+    initializeTransaction(database, initialState, serialize);
+    database.exec("COMMIT");
+  } catch (error) {
+    try { database.exec("ROLLBACK"); } catch { /* Preserve the original failure. */ }
+    throw error;
+  }
+}
+
+function initializeTransaction(database, initialState, serialize) {
   const objects = database.prepare(
     "SELECT name, type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name",
   ).all();
   if (objects.length === 0) {
-    assertValidPersistedState(initialState);
+    const document = serializeSnapshot(initialState, serialize);
     database.exec(
       `CREATE TABLE ${TABLE} (
         singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
@@ -76,7 +88,7 @@ function initialize(database, initialState, serialize) {
     );
     database.prepare(
       `INSERT INTO ${TABLE} (singleton, schema, generation, revision, document) VALUES (1, ?, ?, ?, ?)`,
-    ).run(initialState.schema, initialState.generation, initialState.revision, serialize(initialState));
+    ).run(initialState.schema, initialState.generation, initialState.revision, document);
     return;
   }
   if (objects.length !== 1 || objects[0].name !== TABLE || objects[0].type !== "table") {
@@ -107,7 +119,7 @@ function parseRow(row) {
   let state;
   try { state = JSON.parse(row.document); }
   catch { fail("storage-corrupt", "Local database is unreadable"); }
-  if (state.schema !== row.schema || state.generation !== row.generation || state.revision !== row.revision) {
+  if (!state || state.schema !== row.schema || state.generation !== row.generation || state.revision !== row.revision) {
     fail("storage-corrupt", "Local database is inconsistent");
   }
   try { assertValidPersistedState(state); }

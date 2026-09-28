@@ -119,6 +119,20 @@ The orchestration-only baseline was `9e48916`; S1 was committed as `324163e`.
 
 ## Verification and residuals
 
+Astra/Trust review of S1/S2 (2026-09-28): qualified ACCEPT of the corrected offline
+core; explicit ADR-016 activation approval is now the next step. The
+[review record](../research/S1_S2_REVIEW_2026-09-28.md) lists reproduced failures,
+fixes and the concrete S3 transport/client requirements.
+
+- Fixed multiline bodies, write-before-response overflow, repository successor/
+  reset version checks, non-atomic initial database creation and full-state
+  application mutation returns. Memory and SQLite share these contract checks.
+- Service suite: 39/39 pass; secret scan: 25 files, zero findings, six self-tests.
+  The prior 28-test result below describes the implementation before this review.
+- Existing extension/spike code is unchanged; no fresh browser/loopback claim.
+  The review accepts the offline core only. Newly implemented S3 transport and
+  permissions still need their focused checks/review after owner approval.
+
 Documentation-only service handoff checks (2026-09-28):
 
 - `git diff --check` passes; all 37 local Markdown links across 16 changed/new
@@ -169,13 +183,13 @@ the metadata and may require retry. The MDN experiment expires on 2026-10-23.
 
 R0 reassessment/hardening and documentation reconciliation are complete.
 R2's first fixture-only related-source increment and R1 handoff S1/S2 are complete.
-Stop now for GPT-6 Astra review of the implementation and Trust boundary. Before
-binding the listener or enabling client networking/storage, ask the owner for the
-exact ADR-016 activation package; do not continue into S3 on prior local authority.
+Astra review is complete with the corrections above. Ask the owner for the exact
+ADR-016 activation package before binding the listener or enabling client
+networking/storage; do not continue into S3 on prior local authority.
 Synthetic identity is a testing device, not real login/security isolation.
 
 Before binding the listener or enabling extension networking/storage permissions,
-stop for Astra review and ask explicitly for ADR-016's activation package. After
+ask explicitly for ADR-016's activation package. After
 approved S3 and its browser smoke, review the first real embedding experiment;
 model acquisition/activation and broader real-page capture remain separate exact
 fields/contexts/permissions/assets/retention gates. R1 stores no captured browsing

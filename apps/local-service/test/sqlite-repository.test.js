@@ -73,8 +73,21 @@ test("failed serialization rolls back and cannot report success", (t) => {
   const current = repository.load();
   const next = structuredClone(current);
   next.revision += 1;
-  assert.throws(() => repository.save(current, next), isCode("storage-failure"));
+  assert.throws(() => repository.save({ generation: current.generation, revision: current.revision }, next), isCode("storage-failure"));
   assert.equal(repository.load().revision, current.revision);
+  repository.close();
+});
+
+test("failed first initialization rolls back the schema and allows a clean retry", (t) => {
+  const databasePath = temporaryDatabase(t);
+  assert.throws(() => createSqliteRepository(databasePath, initialState(), {
+    serialize() { throw new Error("synthetic first-write failure"); },
+  }), isCode("storage-failure"));
+  const inspection = new DatabaseSync(databasePath);
+  assert.deepEqual(inspection.prepare("SELECT name FROM sqlite_master WHERE name = 'demo_state'").all(), []);
+  inspection.close();
+  const repository = createSqliteRepository(databasePath, initialState());
+  assert.equal(repository.load().revision, 0);
   repository.close();
 });
 
@@ -117,7 +130,7 @@ test("an open repository cannot overwrite externally corrupted state", (t) => {
   external.close();
   const next = structuredClone(current);
   next.revision += 1;
-  assert.throws(() => repository.save(current, next), isCode("storage-corrupt"));
+  assert.throws(() => repository.save({ generation: current.generation, revision: current.revision }, next), isCode("storage-corrupt"));
   repository.close();
 });
 

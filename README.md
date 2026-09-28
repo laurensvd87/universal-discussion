@@ -95,8 +95,8 @@ provenance-approved task requires explicit approval before acquisition/review.
 
 A local backend now owns the synthetic Source catalog, fixture vectors/matching,
 Topics and discussion state. Its pure domain, SQLite repository and in-process
-API handler are implemented and tested. Work is stopped for Astra review and
-explicit approval of the loopback/client activation package. No listener or new
+API handler are implemented, tested and corrected following Astra review. The
+next gate is explicit approval of the loopback/client activation package. No listener or new
 extension permissions are active. After approval, the extension
 will become a thin client with English message keys and an open -> choose/create
 Topic -> post -> reply -> reopen -> delete loop. Synthetic identities are not

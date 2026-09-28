@@ -1,9 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import { ServiceError, fail } from "../domain/errors.js";
 import { readRecord } from "../domain/validation.js";
+import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 
 const MAX_BODY_BYTES = 65_536;
-const MAX_RESPONSE_BYTES = 1_048_576;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
 
 export function createRequestHandler({ service, config }) {
@@ -114,7 +114,7 @@ function route(request, service) {
       if (!actorId) fail("forbidden", "Actor unavailable");
       const outcome = service.command(body.expected, body.command, actorId);
       return { status: 200, value: {
-        version: { generation: outcome.state.generation, revision: outcome.state.revision },
+        version: outcome.version,
         result: outcome.result,
       } };
     }

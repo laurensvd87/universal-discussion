@@ -4,6 +4,12 @@ Status: Adopted architecture under the owner's 2026-09-28 instruction. Exact
 listener/client activation remains a security/privacy owner gate below.
 S1/S2 are implemented offline: domain, SQLite and an in-process request handler.
 No listening server, client networking, model or permission is activated.
+Continuation: the 2026-09-28 implementation review accepted the corrected offline
+core; owner activation approval remains pending. See
+[the review record](../research/S1_S2_REVIEW_2026-09-28.md). The correction keeps
+the existing 1 MiB response budget by rejecting growth before commit and shares
+the 8 MiB snapshot/version contract across both repositories. It grants no new
+data, network or permission scope.
 
 Date: 2026-09-28
 

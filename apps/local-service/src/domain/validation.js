@@ -23,13 +23,17 @@ export function readRecord(value, allowed, required = allowed) {
   return result;
 }
 
-export function readText(value, maximum, { optional = false } = {}) {
+export function readText(value, maximum, { optional = false, multiline = false } = {}) {
   if (optional && value === undefined) return undefined;
   if (
     typeof value !== "string" || value.length === 0 || value.length > maximum ||
-    value.trim() === "" || UNSAFE_TEXT.test(value)
+    value.trim() === "" || UNSAFE_TEXT.test(multiline ? value.replace(/[\t\r\n]/gu, "") : value)
   ) fail("invalid", "Invalid request");
   return value;
+}
+
+export function readBody(value) {
+  return readText(value, 8_000, { multiline: true });
 }
 
 export function readId(value) {

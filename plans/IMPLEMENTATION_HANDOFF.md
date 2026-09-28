@@ -2,8 +2,9 @@
 
 Prepared: 2026-09-28. **Orchestration complete for the next coding block.**
 Code baseline: `9e48916`, offline extension 0.4.0. Inspect current git state first.
-Implementation status: **S1/S2 complete; stop at the Astra/owner gate.** No
+Implementation status: **S1/S2 reviewed and corrected; owner activation approval pending.** No
 listener/client activation, extension permission or real model/input occurred.
+Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md).
 
 ## Authority and reading
 
@@ -49,7 +50,7 @@ Do not restart Phase 0, the P1.7 questionnaire or the finished 6/6 owner review.
 | --- | --- | --- |
 | S1 — complete | Pure service/domain, memory repository, API DTOs, synthetic catalog/ranking | Deterministic network-denied tests pass |
 | S2 — complete | SQLite adapter + in-process secured HTTP handler; composition remains dormant | Persistence/conflict/reset and handler rejection tests pass; no bound socket |
-| STOP → Astra + owner — current | Review S1/S2 and ADR-016 activation package | Explicit permission before listener/client networking or new extension capabilities |
+| STOP → owner — current | S1/S2 Astra review complete; approve ADR-016 activation package | Explicit permission before listener/client networking or new extension capabilities |
 | S3 — after approval | Loopback listener, pairing, thin extension and human discussion UI | Service-to-extension post/reply/edit/reopen/delete loop and real-browser smoke |
 | STOP → Astra + owner | Review working local loop; choose exact real model/runtime/license/input experiment | No silent model acquisition/activation or real-page input |
 | Later S4 | Private destination, fixture AI preview, filters, local report/block/moderation | Focused lifecycle/publication tests before each control is enabled |
@@ -90,6 +91,9 @@ Contract defaults:
   No old response/receipt cache may resurrect removed text.
 - Prototype caps: ID 128 UTF-16 units, title 200, body 8,000, 100 Topics,
   1,000 Contributions, 50 revisions/item. Reject excess, no silent eviction.
+  Body text permits ordinary line breaks/tabs; titles and IDs remain single-line.
+  Snapshots are capped at 8 MiB. Until pagination, reject growth before commit
+  if a discussion view exceeds the 1 MiB response cap; preserve existing reads.
   Validate exact fields, enums, references and versions without sensitive echo.
 - Expected generation/revision on every mutation; invalid/conflict commands do
   nothing. Reset rotates generation so old commands cannot target a fresh empty

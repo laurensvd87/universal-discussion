@@ -1,4 +1,5 @@
 import { LIMITS, STATE_SCHEMA } from "./demo-state.js";
+import { readBody } from "./validation.js";
 
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 const ACTORS = new Set(["demo-alex", "demo-blair"]);
@@ -54,7 +55,7 @@ export function assertValidPersistedState(state) {
     } else {
       if (!ACTORS.has(contribution.authorId) || contribution.revisions.length === 0) invalid();
       for (const revision of contribution.revisions) {
-        record(revision, ["body", "createdAt"]); text(revision.body, 8_000); text(revision.createdAt, 64);
+        record(revision, ["body", "createdAt"]); readBody(revision.body); text(revision.createdAt, 64);
       }
     }
     return contribution.id;
