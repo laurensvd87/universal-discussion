@@ -31,7 +31,21 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Latest owner feedback: similar pages blocked by the competing-member rule
+## Latest request: whole-concept review before choosing overlap behavior
+
+The owner requests a candid product reassessment before the next architectural
+decision. [Concept review](../research/CONCEPT_REVIEW_2026-09-29.md) records the
+lead's recommendation and two independent Sol critiques: retain cross-site
+semantic conversations, but separate automatic relevance retrieval from stable
+conversation identity. Reconsider automatic historical routing and defer the
+primary-Topic dropdown/many-to-many migration until its user-facing purpose is
+clear. The recommendation is **not adopted or implemented**; 0.11.0 remains intact.
+Cold-start Sources and cold-start participation are separate problems; favor a
+small useful, permitted reading/discussion collection for one reachable audience.
+No new owner data, capture, model, provider, recruitment, migration or release.
+Current primary sources rechecked; review is not user research or policy clearance.
+
+## Previous owner feedback: similar pages blocked by the competing-member rule
 
 - A pair-scoped read-only/query-only diagnostic confirms current v2 state and
   adaptive policy, compatible vectors above the .90 floor, no manual pin or

@@ -2,6 +2,14 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Owner asks for a whole-concept review before choosing the next architecture.
+Read `research/CONCEPT_REVIEW_2026-09-29.md`: advisory recommendation is automatic
+relevance retrieval around stable semantic conversations, not authoritative dynamic
+page partitions or an immediate Topic-dropdown/many-to-many migration. No change
+is adopted/implemented, and no existing automatic behavior is disabled by this
+review. Await direction on the product/routing contract before the next code slice;
+preserve current data, cross-site conversations and all existing approval gates.
+
 Latest feedback is diagnosed, not fixed: current adaptive grouping can keep an
 above-floor pair separate because other similar Sources veto every pairwise
 merge. A pure synthetic .92/.92/.92 triple remains three singletons if all start
