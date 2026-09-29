@@ -178,3 +178,74 @@ test("source/Topic changes clear correction/destructive intent; same-context pol
   assert.equal(deletion.value, ""); assert.equal(correct.checked, false);
   assert.equal(ui.byId("discussion-delete").disabled, true);
 });
+
+test("display-mode toggles preserve draft/control nodes and actions while hiding opaque composer IDs", () => {
+  const ui = harness();
+  const snapshot = state({ draft: { body: "Unsent words", detached: false, mode: "reply", targetId: "root-1" } });
+  ui.panel.render(snapshot);
+  const body = ui.byId("discussion-body"), topic = ui.byId("discussion-topic");
+  const options = [...topic.children]; const calls = [...ui.calls];
+  assert.equal(body.value, "Unsent words");
+  assert.ok(ui.created.some((item) => item.textContent === EN.uiReplyMode));
+  ui.panel.setMode("developer");
+  assert.ok(ui.created.some((item) => item.textContent === "Reply to root-1"));
+  ui.panel.setMode("user");
+  assert.equal(ui.byId("discussion-connection-settings").open, false);
+  assert.equal(ui.byId("discussion-advanced").open, false);
+  assert.equal(ui.byId("discussion-body"), body); assert.equal(body.value, "Unsent words");
+  options.forEach((option, index) => assert.equal(topic.children[index], option));
+  assert.deepEqual(ui.calls, calls);
+  assert.equal(ui.byId("selected-topic-title").textContent, "<script>hostile topic</script>");
+  assert.match(ui.byId("discussion-demo-identity").textContent, /demo identity/);
+  ui.panel.render({ ...snapshot, phase: "error", error: "unavailable" });
+  assert.equal(ui.byId("selected-topic-title").textContent, EN.uiTopicUnavailable);
+  assert.equal(ui.byId("discussion-connection-settings").open, true);
+});
+
+test("User details stay compact through transient choose-topic; connection collapses on success but permits inspection", () => {
+  const ui = harness();
+  const connection = ui.byId("discussion-connection-settings");
+  const advanced = ui.byId("discussion-advanced");
+  ui.panel.setMode("user");
+  ui.panel.render(state({ phase: "disconnected", catalog: null, discussion: null }));
+  assert.equal(connection.open, true);
+  ui.panel.render(state({ phase: "connecting", catalog: null, discussion: null }));
+  ui.panel.render(state({ phase: "choose-topic", topicId: null, discussion: null }));
+  assert.equal(connection.open, false); assert.equal(advanced.open, false);
+  connection.open = true;
+  ui.panel.render(state());
+  assert.equal(connection.open, true);
+  ui.panel.render(state({ draft: { body: "Draft survives", detached: false, mode: "root", targetId: null } }));
+  assert.equal(connection.open, true);
+  ui.byId("discussion-new-title").value = "Unsent new title";
+  ui.byId("discussion-token").value = "unsubmitted local value";
+  ui.panel.setMode("developer");
+  assert.equal(connection.open, true); assert.equal(advanced.open, true);
+  ui.panel.render(state({ phase: "choose-topic", draft: { body: "Draft survives", detached: false, mode: "root", targetId: null } }));
+  assert.equal(connection.open, true); assert.equal(advanced.open, true);
+  ui.panel.setMode("user");
+  assert.equal(connection.open, false); assert.equal(advanced.open, false);
+  assert.equal(ui.byId("discussion-body").value, "Draft survives");
+  assert.equal(ui.byId("discussion-new-title").value, "Unsent new title");
+  assert.equal(ui.byId("discussion-token").value, "unsubmitted local value");
+});
+
+test("unpaired User view hides redundant buttons/empty composer while retained drafts and error retry remain reachable", () => {
+  const ui = harness();
+  const composer = ui.created.find((item) => item.tag === "form" && item.children.includes(ui.byId("discussion-body")));
+  const disconnected = state({ phase: "disconnected", catalog: null, discussion: null, related: null });
+  ui.panel.render(disconnected);
+  assert.equal(ui.byId("discussion-disconnect").hidden, true);
+  assert.equal(ui.byId("discussion-reload").hidden, true);
+  assert.equal(composer.hidden, true);
+  assert.equal(ui.byId("discussion-connection-settings").open, true);
+  ui.panel.render({ ...disconnected, draft: { body: "Retained disconnected draft", detached: true, mode: "root", targetId: null } });
+  assert.equal(composer.hidden, false);
+  assert.equal(ui.byId("discussion-body").value, "Retained disconnected draft");
+  ui.panel.render({ ...disconnected, phase: "error", error: "unavailable" });
+  assert.equal(ui.byId("discussion-reload").hidden, false);
+  ui.panel.render(disconnected); ui.panel.setMode("developer");
+  assert.equal(ui.byId("discussion-disconnect").hidden, false);
+  assert.equal(ui.byId("discussion-reload").hidden, false);
+  assert.equal(composer.hidden, false);
+});

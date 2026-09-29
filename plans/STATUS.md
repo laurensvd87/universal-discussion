@@ -31,7 +31,57 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current increment: ADR-019 B session-wide browsing — implemented/reviewed; full-loop checks pass
+## Current increment: User/Developer UI and blue same-Topic icon — 0.8.0
+
+- Owner requests a compact mode switch, Topic-first User view, clear connection
+  status and blue toolbar icon when another page belongs to the same Topic.
+  [ADR-020](../decisions/ADR-020-user-mode-and-topic-indicator.md) records this
+  presentation scope. Two Sol Medium slices implement it; the lead integrates
+  and a separate Sol Medium Trust reviewer checks the resulting boundaries.
+- User is the default. One shared controller preserves drafts, selection and
+  actions between modes. English locale keys cover the new UI; visible state,
+  keyboard controls and manual/provisional/synthetic cues avoid color-only or
+  unqualified matching claims. Connection reflects the last service observation,
+  not a token or an always-live heartbeat. Start/Stop/disclosure, blocking,
+  native access removal, connection and correction/deletion stay accessible.
+- Only an inert display enum is added to local storage. A single trusted-session
+  tab ID supports clearing a previous per-tab icon after worker reconstruction.
+  No URL/content/history, new permission, input/threshold change, token persistence
+  or backend change. Fresh catalog evidence must bind the ready Source ID/URL/
+  Topic to another distinct learned Source in that Topic. Related suggestions
+  and fixture-only peers never make the icon blue. Invalidations cancel reads
+  and serialize icon writes; an API failure retains the cleanup marker and
+  prevents new blue, but cannot promise Chrome cleared an existing override.
+- Independent scoped Trust review initially reproduced 118 focused checks and
+  found no material blocker. Lead visual/integration review caught a transient
+  unpaired "Finding Topic" heading and a hash-link shortcut incompatible with
+  exact popup sender authentication; both are corrected. Independent follow-up
+  accepts the fixes (21 focused checks); actual Chrome confirms the shortcut
+  preserves the exact popup URL, keyboard focus and capture eligibility.
+- Final checkpoint evidence: full restricted **624/624**;
+  normal **623 pass / one intentional guard-only skip**; indicator **436/436**; backend
+  socket-denied 67/67; secret scanner 153 files, zero findings. Actual Chrome
+  session smoke passes **15 checks**, eligibility/reader **32**. The eligibility harness
+  now waits for actual native popup focus before its injected parent-window test;
+  immediate assertion failed twice, diagnostic/awaited runs passed. No production
+  focus rule or deadline was relaxed. The final unpaired User layout was also
+  visually checked in Chrome; no external requests or runtime errors occurred.
+- **Full User-mode shared-comment/native-blue-icon verification is pending:**
+  the owned temporary backend could not bind 4174 because a listener is present.
+  Asked the owner to stop their service; did not contact/reset/stop it or read its
+  data. The harness now checks visible controls, mode/draft preservation, Topic/
+  connection text, and successful native 16/32px bitmap writes, not only tooltips.
+  The historical S3 smoke explicitly uses Developer mode. These updated full-
+  service paths still need to run once the port is free. Unpaired User UI has
+  been visually inspected with the no-backend Chrome eligibility harness.
+
+Checkpoint is ready to commit/push with the above full-service verification gap
+explicitly retained. Next: owner stops their backend; run the updated matching
+and legacy S3 Chrome smokes, inspect the connected discussion screenshot, and
+record exact evidence. ADR-019 A/C and all later external gates remain pending; completed
+foundation/owner reviews are not reopened.
+
+## Previous increment: ADR-019 B session-wide browsing — implemented/reviewed; full-loop checks pass
 
 - Owner requests implementation of improved viewpoint-independent matching,
   automatic vectorization on visits, and connection credentials across sessions.

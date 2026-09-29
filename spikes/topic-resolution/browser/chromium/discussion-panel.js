@@ -1,4 +1,5 @@
 import { EN } from "../locales/en.js";
+import { projectDiscussionShell } from "./popup-shell.js";
 
 export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -6,15 +7,16 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let controller;
   let lastState;
   let disposed = false;
+  let uiMode = "user";
   function node(tag, key) {
     const item = document.createElement(tag);
     if (key) item.textContent = text(key);
     return item;
   }
-  function label(control, key, id) {
+  function label(control, key, id, parent = root) {
     control.id = id;
     const item = node("label", key); item.htmlFor = id;
-    root.append(item, control);
+    parent.append(item, control);
   }
   function listen(item, event, callback) {
     item.addEventListener(event, callback); handlers.push([item, event, callback]);
@@ -25,29 +27,38 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     listen(item, "click", callback); parent.append(item); return item;
   }
   const heading = node("h2", "discussionHeading"); heading.id = "discussion-heading";
+  const topicLabel = node("p", "uiTopicLabel"); topicLabel.className = "topic-eyebrow user-only";
+  const topicTitle = node("h1"); topicTitle.id = "selected-topic-title"; topicTitle.className = "user-only";
+  const selectionCue = node("p"); selectionCue.id = "selected-topic-provenance"; selectionCue.className = "user-only topic-selection-cue";
   root.setAttribute("aria-labelledby", heading.id);
-  root.append(heading, node("p", "discussionScope"));
+  const scope = node("p", "discussionScope"); scope.className = "developer-only";
+  root.append(topicLabel, topicTitle, selectionCue, heading, scope);
   const status = node("p"); status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); root.append(status);
+  const connectionSettings = node("details"); connectionSettings.id = "discussion-connection-settings";
+  connectionSettings.className = "compact-details";
+  connectionSettings.append(node("summary", "uiConnectionSetup")); root.append(connectionSettings);
+  const advanced = node("details"); advanced.id = "discussion-advanced"; advanced.className = "compact-details";
+  advanced.append(node("summary", "uiAdvanced"), node("p", "discussionScope"));
   const token = node("input"); token.type = "password"; token.autocomplete = "off";
   token.spellcheck = false; token.maxLength = 512;
-  label(token, "discussionToken", "discussion-token");
+  label(token, "discussionToken", "discussion-token", connectionSettings);
   const pairForm = node("form"); const pair = node("button", "discussionPair"); pair.type = "submit";
   pair.id = "discussion-pair";
   // The input is intentionally outside the form: no native form serialization.
-  pairForm.append(pair); root.append(pairForm);
+  pairForm.append(pair); connectionSettings.append(pairForm);
   listen(pairForm, "submit", (event) => {
     event.preventDefault(); const value = token.value; token.value = "";
     void controller?.pair(value);
   });
-  const disconnect = button("discussionDisconnect", () => { token.value = ""; void controller?.disconnect(); });
-  const reload = button("discussionReload", () => void controller?.open());
-  const topic = node("select"); label(topic, "discussionTopic", "discussion-topic");
+  const disconnect = button("discussionDisconnect", () => { token.value = ""; void controller?.disconnect(); }, connectionSettings);
+  const reload = button("discussionReload", () => void controller?.open(), connectionSettings);
+  const topic = node("select"); label(topic, "discussionTopic", "discussion-topic", advanced);
   listen(topic, "change", () => void controller?.selectTopic(topic.value));
-  const source = node("select"); label(source, "discussionSource", "discussion-source");
+  const source = node("select"); label(source, "discussionSource", "discussion-source", advanced);
   listen(source, "change", () => void controller?.selectSource(source.value));
-  const actor = node("select"); label(actor, "discussionActor", "discussion-actor");
+  const actor = node("select"); label(actor, "discussionActor", "discussion-actor", advanced);
   listen(actor, "change", () => void controller?.selectActor(actor.value));
-  const createForm = node("form"); root.append(createForm);
+  const createForm = node("form"); advanced.append(createForm);
   const title = node("input"); title.maxLength = 200; title.required = true; title.id = "discussion-new-title";
   const titleLabel = node("label", "discussionNewTitle"); titleLabel.htmlFor = title.id;
   const kind = node("select"); kind.id = "discussion-kind";
@@ -66,6 +77,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const counts = node("p"); const thread = node("div"); thread.className = "discussion-thread";
   root.append(counts, thread);
   const composer = node("form"); const mode = node("p"); root.append(composer);
+  const identity = node("p"); identity.id = "discussion-demo-identity"; composer.append(identity);
   const body = node("textarea"); body.id = "discussion-body"; body.maxLength = 8000;
   body.rows = 5;
   const bodyLabel = node("label", "discussionBody"); bodyLabel.htmlFor = body.id;
@@ -78,10 +90,11 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const reattach = button("discussionReattach", () => { controller?.reattachDraft(); body.focus(); }, composer);
   button("discussionDiscard", () => { controller?.discardDraft(); body.focus(); }, composer);
   const relatedHeading = node("h3", "discussionRelated"); const model = node("p");
+  model.className = "developer-only";
   const related = node("ul"); root.append(relatedHeading, model, related);
-  const provenance = node("p"); provenance.id = "discussion-provenance"; root.append(provenance);
+  const provenance = node("p"); provenance.id = "discussion-provenance"; provenance.className = "developer-only"; root.append(provenance);
   const learnedControls = node("section"); learnedControls.id = "discussion-learned-controls";
-  learnedControls.append(node("h3", "discussionCorrectionHeading"), node("p", "discussionCorrectionIntro")); root.append(learnedControls);
+  learnedControls.append(node("h3", "discussionCorrectionHeading"), node("p", "discussionCorrectionIntro")); advanced.append(learnedControls);
   const correctionTarget = node("select"); correctionTarget.id = "discussion-correction-topic";
   const correctionLabel = node("label", "discussionCorrectionTarget"); correctionLabel.htmlFor = correctionTarget.id;
   const correctConfirm = node("input"); correctConfirm.id = "discussion-correction-confirm"; correctConfirm.type = "checkbox";
@@ -114,7 +127,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     clear.disabled = !usable || clearInput.value !== "CLEAR LEARNED DATA";
   }
   listen(correctConfirm, "change", learnedActions); listen(deleteInput, "input", learnedActions); listen(clearInput, "input", learnedActions);
-  const resetForm = node("form"); root.append(resetForm);
+  const resetForm = node("form"); advanced.append(resetForm); root.append(advanced);
   const confirmation = node("input"); confirmation.id = "discussion-reset-confirmation";
   confirmation.autocomplete = "off";
   const resetLabel = node("label", "discussionResetLabel"); resetLabel.htmlFor = confirmation.id;
@@ -172,7 +185,20 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let confirmationContext;
   function render(state) {
     if (disposed) return;
+    const previousState = lastState;
     lastState = state;
+    const shellView = projectDiscussionShell(state, messages);
+    topicTitle.textContent = shellView.topicTitle;
+    selectionCue.textContent = shellView.selectionCue; selectionCue.hidden = !shellView.selectionCue;
+    heading.textContent = text(uiMode === "user" ? "uiDiscussions" : "discussionHeading");
+    relatedHeading.textContent = text(uiMode === "user" ? "uiRelated" : "discussionRelated");
+    identity.textContent = !state.catalog ? "" : text("uiDemoIdentity").replace("{actor}",
+      state.catalog.actors.find((entry) => entry.id === state.actorId)?.displayName ?? text("discussionChoose"));
+    const arrivedCatalog = state.catalog && !previousState?.catalog;
+    const reachedConnected = ["ready", "choose-topic"].includes(state.phase) &&
+      !["ready", "choose-topic", "loading"].includes(previousState?.phase);
+    if (uiMode === "user" && (arrivedCatalog || reachedConnected)) connectionSettings.open = false;
+    if (["disconnected", "error"].includes(state.phase) && previousState?.phase !== state.phase) connectionSettings.open = true;
     const nextConfirmationContext = JSON.stringify([state.sourceId ?? null, state.topicId ?? null]);
     if (confirmationContext !== undefined && confirmationContext !== nextConfirmationContext) {
       correctConfirm.checked = false;
@@ -191,6 +217,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const usable = ["ready", "choose-topic"].includes(state.phase) && !state.busy && !state.needsFreshRead;
     pair.disabled = state.busy || state.phase === "connecting";
     token.disabled = pair.disabled; disconnect.disabled = state.busy;
+    disconnect.hidden = reload.hidden = uiMode === "user" && state.phase === "disconnected";
     reload.disabled = state.busy || state.phase === "connecting";
     topic.disabled = !state.catalog || state.busy; actor.disabled = topic.disabled;
     source.disabled = topic.disabled;
@@ -200,11 +227,13 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     title.disabled = kind.disabled = create.disabled = !state.catalog || !usable;
     const ready = state.phase === "ready" && !state.busy && !state.needsFreshRead;
     if (body.value !== state.draft.body) body.value = state.draft.body;
+    composer.hidden = uiMode === "user" && !state.catalog && !state.draft.body;
     body.disabled = !ready;
     detached.hidden = !state.draft.detached;
     reattach.hidden = !state.draft.detached; reattach.disabled = !ready;
     submit.disabled = !ready || state.draft.detached || !state.draft.body.trim();
-    mode.textContent = text({ root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" }[state.draft.mode])
+    mode.textContent = text((uiMode === "user" ? { root: "discussionComposerRoot", reply: "uiReplyMode", edit: "uiEditMode" }
+      : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])
       .replace("{id}", state.draft.targetId ?? "");
     const entries = state.discussion?.roots.flatMap((entry) => [entry, ...entry.replies]) ?? [];
     counts.textContent = state.discussion ? text("discussionCounts")
@@ -239,13 +268,22 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     });
     if (state.related && !suggestions.length) suggestions.push(node("li", "discussionRelatedEmpty"));
     related.replaceChildren(...suggestions);
+    relatedHeading.hidden = related.hidden = !state.related;
     reset.disabled = !state.catalog || !usable || confirmation.value !== "RESET DEMO STATE";
   }
   function bind(value) { controller = value; render(controller.currentState()); }
+  function setMode(value) {
+    if (!["user", "developer"].includes(value) || disposed) return;
+    uiMode = value;
+    if (value === "developer") { connectionSettings.open = true; advanced.open = true; }
+    else { connectionSettings.open = false; advanced.open = false; }
+    // Never rebuild controls or call the controller on a display-only change.
+    if (lastState) render(lastState);
+  }
   function dispose() {
     if (disposed) return; disposed = true; token.value = ""; body.value = ""; clearThreadHandlers();
     for (const [item, event, callback] of handlers) item.removeEventListener(event, callback);
     root.replaceChildren();
   }
-  return Object.freeze({ bind, render, dispose });
+  return Object.freeze({ bind, render, setMode, dispose });
 }

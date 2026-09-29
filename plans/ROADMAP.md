@@ -30,6 +30,12 @@ separate. Version 0.7.0 implementation/verification is recorded in STATUS. A's
 matching/input changes and C's durable pairing are separate pending decisions,
 not implicitly approved by B. No private/remote/provider/store expansion follows.
 
+Owner feedback increment [ADR-020](../decisions/ADR-020-user-mode-and-topic-indicator.md)
+adds the 0.8.0 User/Developer popup, connection state and same-Topic toolbar icon.
+It changes presentation only; STATUS records completed tests and the remaining
+full-service Chrome verification, which needs the owner's port 4174 to be free.
+It does not reorder the pending matching, pairing or external approval gates.
+
 ## Evidence already available
 
 - Offline exact-URL/fingerprint resolver, synthetic extractor and evaluator.

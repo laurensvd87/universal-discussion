@@ -1,6 +1,35 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## On-device background matching (0.7.0)
+## User-facing discussion popup (0.8.0)
+
+The small **User / Developer** switch is at the top; User is the default. The
+selection is remembered on this device, without saving the connection token.
+User mode puts the selected Topic and discussion first. A visible cue distinguishes
+manual selection, provisional matching and synthetic diagnostics. Changing mode
+preserves the current draft and never enables capture or sends a comment.
+
+The top connection label reports the latest observed service state, not just a
+stored credential or a continuous heartbeat. Open **Connection settings** to pair,
+reconnect, refresh or disconnect. **Browsing session · Start / Stop** jumps to the
+unchanged capture disclosure, consent and controls without changing the popup URL.
+**Choose Topic, demo identity & data controls** contains manual selection, wrong-
+Topic correction, Forget and confirmed deletion. These are available in User mode.
+
+The toolbar speech bubble turns blue only after a fresh local catalog check finds
+another distinct retained learned page in the current page's exact Topic. Related
+recommendations or demo fixtures alone do not qualify. Comments need not exist.
+This is still a provisional local association, not validated semantic accuracy.
+During navigation, stopped/unpaired capture or unavailable evidence it is neutral.
+The indicator operates within the approved active-window session; it does not
+inspect all tabs. Chrome API/storage failures can prevent clearing a previous
+icon; the cleanup marker is retained and further blue updates are blocked.
+
+Local storage adds only `discussionUiModeV1` (`user`/`developer`). Trusted session
+storage may hold one inert `pageMatchingToolbarTabId` integer, allowing a restarted
+worker to clear its previous per-tab icon without scanning tabs. Neither setting
+grants capture, stores content or makes pairing persistent. No new permissions.
+
+## On-device background matching
 
 The owner approved ADR-018's local-only package and ADR-019 B's window-scoped
 browsing session. Capture defaults off. Text is embedded inside the extension; only URL, short
@@ -17,7 +46,9 @@ local SQLite database is not encrypted. No web search or crawler is included.
    replacement automatically. The unpacked model/runtime payload is about 150 MB.
 2. Reload `browser/` at `chrome://extensions` (Chrome 116+), then start the local
    service with your extension Origin as described in the service README. Pair
-   using the terminal token. A service/browser restart requires a new pairing.
+   using the terminal token under **Connection settings**. A service/browser restart
+   requires a new pairing. The popup's Developer switch is unrelated to Chrome's
+   **Developer mode**, which must remain enabled for an unpacked extension.
 3. Use a dedicated non-sensitive browser profile. Visit an eligible public HTTPS
    article/product page. Open the popup, review the cross-site session disclosure,
    tick the consent checkbox and select **Start browsing session**.

@@ -7,6 +7,39 @@
   background: #edf2f4;
 }
 
+body[data-ui-mode="user"] .developer-only,
+body[data-ui-mode="developer"] .user-only { display: none; }
+.popup-topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.connection-status { display: flex; align-items: center; gap: 6px; color: #586676; font-size: 11px; line-height: 1.4; }
+.connection-status::before { content: ""; flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: #8390a0; }
+.connection-status[data-state="connected"] { color: #17633a; }
+.connection-status[data-state="connected"]::before { background: #239257; }
+.connection-status[data-state="connecting"]::before { background: #2679ca; }
+.connection-status[data-state="unavailable"]::before { background: #b84a38; }
+.ui-mode-switch { display: flex; flex-shrink: 0; border: 1px solid #d4dee3; border-radius: 8px; padding: 2px; background: #eef2f7; }
+.ui-mode-switch button { width: auto; min-height: 27px; padding: 0 9px; border-radius: 6px; font-size: 10px; color: #556376; background: transparent; }
+.ui-mode-switch button[aria-pressed="true"] { color: #17578d; background: #fff; box-shadow: 0 1px 4px #26394c18; }
+.capture-controls-link { justify-self: start; width: auto; min-height: 24px; padding: 0; color: #2167a2; background: transparent; font-size: 12px; text-decoration: none; }
+.capture-controls-link:hover, .capture-controls-link:focus-visible { color: #17578d; background: transparent; }
+.capture-controls-link:hover { text-decoration: underline; }
+.capture-controls-link:focus-visible, summary:focus-visible { outline: 3px solid #0b7285; outline-offset: 3px; }
+.compact-details { border-top: 1px solid #e1e7ed; padding-top: 10px; }
+.compact-details[open] { display: block; }
+.compact-details > :not(summary) { margin-top: 10px; }
+.compact-details > label { display: block; }
+.topic-eyebrow { color: #3675b2 !important; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
+#selected-topic-title { font-size: 25px; line-height: 1.25; overflow-wrap: anywhere; }
+body[data-ui-mode="user"] { width: 410px; background: linear-gradient(160deg, #f0f5ff, #f8fafc 48%, #edf3fa); }
+body[data-ui-mode="user"] main { gap: 12px; padding: 18px; }
+body[data-ui-mode="user"] #local-discussion { padding: 20px; border-color: #dce6f1; background: #fff; box-shadow: 0 10px 30px #233a5910; gap: 13px; }
+body[data-ui-mode="user"] #discussion-heading { font-size: 16px; margin-top: 7px; }
+body[data-ui-mode="user"] .discussion-contribution { padding: 12px; border-color: #e0e7f0; background: #f7faff; }
+body[data-ui-mode="user"] .discussion-contribution .discussion-body { font-size: 14px; color: #233247; line-height: 1.55; }
+body[data-ui-mode="user"] .discussion-contribution button { min-height: 30px; width: auto; justify-self: start; font-size: 11px; color: #2467a2; background: #e8f1fb; }
+body[data-ui-mode="user"] #discussion-submit { background: #2469ad; }
+body[data-ui-mode="user"] #discussion-demo-identity { font-size: 11px; color: #637389; }
+body[data-ui-mode="user"] #page-matching { box-shadow: none; background: #f8fafc; }
+
 * {
   box-sizing: border-box;
 }

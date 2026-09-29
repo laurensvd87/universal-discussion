@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { lstat, mkdtemp, rm } from 'node:fs/promises';
+import { lstat, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -181,7 +181,9 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     })()`, workerSession);
     try {
       stage = 'actual popup focus under simulated parent flag';
-      assert.equal(await evaluate('document.hasFocus() && document.visibilityState === "visible"'), true);
+      // Popup creation and native focus are separate Chrome events. Wait for
+      // the real witness before injecting tests; never fabricate focus.
+      await wait(() => evaluate('document.hasFocus() && document.visibilityState === "visible"'), 'actual action popup gains native focus');
       await wait(async () => {
         const value = await status(); return value.currentOrigin === ORIGIN && value.contextReason === null;
       }, 'focused action popup remains eligible');
@@ -529,6 +531,12 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.equal(before.currentUrl, ARTICLE);
     assert.equal(before.enabled, false);
     assert.deepEqual(before.blockedOrigins, []);
+    if (process.env.UDL_UI_SCREENSHOT_DIR) {
+      const destination = process.env.UDL_UI_SCREENSHOT_DIR;
+      assert.ok(path.isAbsolute(destination) && (await lstat(destination)).isDirectory());
+      const image = await browser.send('Page.captureScreenshot', { format: 'png' }, popupSession);
+      await writeFile(path.join(destination, 'user-disconnected-eligibility.png'), Buffer.from(image.data, 'base64'), { flag: 'wx' });
+    }
     const worker = await wait(() => [...targets.values()].find(item => item.ready && item.type === 'service_worker' &&
       item.url === `chrome-extension://${extensionId}/chromium/background.js`), 'real background worker');
     workerSession = worker.sessionId;

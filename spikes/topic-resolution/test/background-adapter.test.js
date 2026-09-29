@@ -24,12 +24,12 @@ function event() {
 function embedding() { const values = Array(384).fill(0); values[0] = 1; return { modelId: "e5-small-q8-browser-main-prefix-v1", values }; }
 
 async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) {
-  const descriptors = new Map(["chrome", "fetch"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  const descriptors = new Map(["chrome", "fetch", "OffscreenCanvas"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "windowRemoved", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
   const gates = [];
   const pendingControls = [];
-  const calls = { reads: 0, windowQueries: 0, tabQueries: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [] };
+  const calls = { reads: 0, windowQueries: 0, tabQueries: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [], icons: [], titles: [] };
   const state = {
     local: { enabled, origins: [ORIGIN] }, token: paired ? `synthetic-test-token-${"x".repeat(40)}` : undefined,
     capture: { schema: "capture-session/1", revision: "synthetic-control-revision-0001", windowId: enabled ? 1 : null }, blocked,
@@ -39,10 +39,12 @@ async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) 
     windowError: false, tabQueryError: false,
     popupContexts: [], popupAnswer: null,
     now: 0, windowQueryHook: null, tabQueryHook: null,
+    toolbarTabId: undefined, catalog: null,
   };
   t.mock.method(globalThis.performance, "now", () => state.now);
   const createGate = () => { const gate = deferred(); gates.push(gate); return gate; };
   const api = {
+    action: { setIcon: async (value) => calls.icons.push(value), setTitle: async (value) => calls.titles.push(value) },
     runtime: { id: EXTENSION_ID, getURL: (filename) => `chrome-extension://${EXTENSION_ID}/${filename}`, onMessage: events.message, onConnect: events.connect,
       getContexts: async (filter) => filter.contextTypes?.includes("POPUP") ? structuredClone(state.popupContexts) : state.exists ? [{}] : [],
       async sendMessage(message) {
@@ -62,16 +64,19 @@ async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) 
           events.storageChanged.emit({ [BLOCKED_KEY]: { oldValue, newValue: state.blocked } }, "local");
         } },
       session: { setAccessLevel: async (value) => assert.equal(value.accessLevel, "TRUSTED_CONTEXTS"),
-        get: async (key) => key === CAPTURE_KEY ? { [CAPTURE_KEY]: structuredClone(state.capture) } : state.token ? { [TOKEN_KEY]: state.token } : {},
+        get: async (key) => key === "pageMatchingToolbarTabId" ? { [key]: state.toolbarTabId }
+          : key === CAPTURE_KEY ? { [CAPTURE_KEY]: structuredClone(state.capture) } : state.token ? { [TOKEN_KEY]: state.token } : {},
         set: async (value) => {
           if (Object.hasOwn(value, CAPTURE_KEY)) {
             calls.storageWrites.push(structuredClone(value));
             if (state.writeGate) await state.writeGate.promise;
             state.capture = structuredClone(value[CAPTURE_KEY]);
-          } else state.token = value[TOKEN_KEY];
+          } else if (Object.hasOwn(value, "pageMatchingToolbarTabId")) state.toolbarTabId = value.pageMatchingToolbarTabId;
+          else state.token = value[TOKEN_KEY];
         },
         remove: async (key) => {
           if (key === CAPTURE_KEY) { state.capture = undefined; return; }
+          if (key === "pageMatchingToolbarTabId") { state.toolbarTabId = undefined; return; }
           assert.equal(key, TOKEN_KEY); const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session");
         } },
       onChanged: events.storageChanged,
@@ -109,13 +114,19 @@ async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) 
     calls.fetches.push({ url, body: options.body });
     const headers = { "content-type": "application/json" };
     if (state.unauthorized) return new Response('{"error":"unauthorized"}', { status: 401, headers });
-    if (url.endsWith("/catalog")) return new Response(JSON.stringify({ version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] }), { headers });
+    if (url.endsWith("/catalog")) return new Response(JSON.stringify(state.catalog ?? { version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] }), { headers });
     assert.ok(url.endsWith("/sources/ingest"));
     assert.ok(!options.body.includes("bounded public article sample"));
     return new Response(JSON.stringify({ version: { generation: "generation-a", revision: 1 }, sourceId: "source-a", topicId: "topic-a", assignment: "provisional", policyVersion: "provisional-all-source-cosine/v1" }), { headers });
   };
   Object.defineProperty(globalThis, "chrome", { configurable: true, value: api });
   Object.defineProperty(globalThis, "fetch", { configurable: true, value: fakeFetch });
+  Object.defineProperty(globalThis, "OffscreenCanvas", { configurable: true, value: class {
+    constructor(width, height) { this.width = width; this.height = height; }
+    getContext() { const colors = []; return { scale() {}, clearRect() {}, beginPath() {}, moveTo() {}, lineTo() {},
+      quadraticCurveTo() {}, closePath() {}, arc() {}, fill() { colors.push(this.fillStyle); },
+      getImageData: () => ({ width: this.width, height: this.height, colors }) }; }
+  } });
   const sender = { id: EXTENSION_ID, url: api.runtime.getURL("chromium/popup.html") };
   async function send(type, extra = {}, from = sender) {
     const work = new Promise((resolve) => {
@@ -306,6 +317,56 @@ test("backend 401 clears session pairing and prevents further automatic captures
   const count = h.calls.fetches.length;
   h.events.activated.emit({ tabId: 7, windowId: 1 }); await h.advance();
   assert.equal(h.calls.fetches.length, count); assert.equal((await h.send("status")).phase, "unpaired");
+});
+
+function sharedToolbarCatalog() {
+  return { version: { generation: "generation-a", revision: 1 },
+    model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [],
+    topics: [{ id: "topic-a", title: "Synthetic shared event", kind: "general", learned: true }],
+    sources: [{ id: "source-a", url: PAGE, title: "A", provenance: "owner-local-page-embedding/v1", topicId: "topic-a" },
+      { id: "source-b", url: "https://example.org/peer", title: "B", provenance: "owner-local-page-embedding/v1", topicId: "topic-a" }] };
+}
+
+test("ready same-Topic peer colors only the current tab with one additional bounded catalog read", async (t) => {
+  const h = await harness(t); h.state.catalog = sharedToolbarCatalog(); await h.advance();
+  assert.equal((await h.send("status")).phase, "ready");
+  const last = h.calls.icons.at(-1);
+  assert.equal(last.tabId, 7); assert.equal(last.imageData[16].colors[0], "#1479e8");
+  assert.equal(h.state.toolbarTabId, 7);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/catalog")).length, 2);
+  assert.equal(h.calls.reads, 1); assert.equal(h.calls.embeddings, 1);
+  const count = h.calls.fetches.length;
+  await h.send("status"); await h.send("status"); assert.equal(h.calls.fetches.length, count);
+});
+
+for (const change of ["stop", "block", "permission", "navigation", "same-url-reload", "unpair", "other-window", "bound-window-close", "tab-removal"]) {
+  test(`actual background scheduling clears blue on ${change}`, async (t) => {
+    const h = await harness(t); h.state.catalog = sharedToolbarCatalog(); await h.advance();
+    assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#1479e8");
+    if (change === "stop") await h.send("stop-session");
+    if (change === "block") await h.send("block-site", { origin: ORIGIN });
+    if (change === "permission") { h.state.permitted = false; h.events.permissionRemoved.emit({ origins: ["https://*/*"] }); }
+    if (change === "navigation") { h.state.tab.url = "https://example.org/unrelated"; h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab); }
+    if (change === "same-url-reload") h.events.updated.emit(7, { status: "loading" }, h.state.tab);
+    if (change === "unpair") await h.unpair();
+    if (change === "other-window") { h.state.window.id = 2; h.events.focus.emit(2); }
+    if (change === "bound-window-close") h.events.windowRemoved.emit(1);
+    if (change === "tab-removal") h.events.removed.emit(7);
+    await flush();
+    assert.equal(h.state.toolbarTabId, undefined);
+    if (change !== "tab-removal") assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#64748b");
+  });
+}
+
+test("ready pages in distinct Topics or with only demo peers leave toolbar neutral", async (t) => {
+  const h = await harness(t); h.state.catalog = sharedToolbarCatalog();
+  h.state.catalog.sources[1].provenance = "project-created-hand-authored-demo/1";
+  await h.advance(); assert.equal(h.state.toolbarTabId, undefined);
+  assert.ok(h.calls.icons.every((call) => call.imageData[16].colors[0] === "#64748b"));
+  h.state.catalog.sources[1].provenance = "owner-local-page-embedding/v1";
+  h.state.catalog.sources[1].topicId = null;
+  await h.send("retry"); await h.advance(); assert.equal(h.state.toolbarTabId, undefined);
+  assert.ok(h.calls.icons.every((call) => call.imageData[16].colors[0] === "#64748b"));
 });
 
 test("foreground adapter excludes unfocused/incognito pages and retains only preference settings", async (t) => {

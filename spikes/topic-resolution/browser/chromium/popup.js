@@ -9,6 +9,7 @@ import { createPageMetadataController } from "../core/page-metadata-controller.j
 import { mountRelatedPagesDemo } from "./related-pages-panel.js";
 import { mountDiscussionPanel } from "./discussion-panel.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
+import { mountPopupShell } from "./popup-shell.js";
 import { connectPopupFocusResponder } from "./popup-focus.js";
 import { createLocalDiscussionController } from "../core/local-discussion-controller.js";
 import { createLocalServiceClient } from "../core/local-service-client.js";
@@ -171,6 +172,10 @@ const tabsApi = globalThis.chrome.tabs;
 const activeTabReader = createActiveTabReader(tabsApi);
 const tabLifecycleObserver = createTabLifecycleObserver(tabsApi);
 const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"));
+const popupShell = mountPopupShell(document, {
+  storageLocal: globalThis.chrome.storage.local,
+  onModeChange: discussionPanel.setMode,
+});
 const localSession = createLocalServiceSession({ storageSession: globalThis.chrome.storage.session });
 const localClient = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: localSession.getToken });
 let matchingPanel;
@@ -182,7 +187,7 @@ const localDiscussion = createLocalDiscussionController({
   lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
   readPageResolution: () => matchingPanel.readResolution(),
   pausePageMatching: () => matchingPanel.pauseMatching(),
-  onStateChange: discussionPanel.render,
+  onStateChange: (state) => { discussionPanel.render(state); popupShell.render(state); },
 });
 matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-matching"), {
   sendMessage: (message) => runtime.sendMessage(message),
@@ -219,6 +224,7 @@ globalThis.addEventListener("pagehide", () => {
   matchingPanel.dispose();
   localDiscussion.dispose();
   discussionPanel.dispose();
+  popupShell.dispose();
   pageMetadataController.dispose();
   relatedPagesDemo.dispose();
   activeTabController.reset();

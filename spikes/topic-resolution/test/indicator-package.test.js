@@ -42,10 +42,13 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/page-matching-panel.js",
     "chromium/page-metadata-reader.js",
     "chromium/popup-focus.js",
+    "chromium/popup-shell.js",
     "chromium/popup.css",
     "chromium/popup.html",
     "chromium/popup.js",
     "chromium/related-pages-panel.js",
+    "chromium/topic-toolbar-icon.js",
+    "chromium/ui-mode.js",
     "core/active-tab-controller.js",
     "core/active-tab-policy.js",
     "core/background-matcher.js",
@@ -62,6 +65,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/page-signal-contract.js",
     "core/page-signal-policy.js",
     "core/related-sources.js",
+    "core/topic-toolbar-controller.js",
     "embedding/.gitignore",
     "embedding/THIRD_PARTY.md",
     "embedding/e5-browser.js",
@@ -82,7 +86,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.7.0",
+    version: "0.8.0",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -132,8 +136,10 @@ test("every runtime import and document resource remains inside the unpacked roo
   }
 
   const html = await readFile(popupHtmlPath, "utf8");
-  const documentResources = [...html.matchAll(/\b(?:href|src)="([^"]+)"/g)]
+  const documentReferences = [...html.matchAll(/\b(?:href|src)="([^"]+)"/g)]
     .map((match) => match[1]);
+  assert.deepEqual(documentReferences.filter(value => value.startsWith("#")), []);
+  const documentResources = documentReferences.filter(value => !value.startsWith("#"));
   assert.deepEqual(documentResources.sort(), ["popup.css", "popup.js"]);
   for (const resource of documentResources) {
     const resolved = path.resolve(path.dirname(popupHtmlPath), resource);
@@ -156,7 +162,7 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
     const approvedBindings = label === "chromium/background.js" ? ["globalThis.chrome", "globalThis.fetch"] :
       label === "embedding/offscreen.js" ? ["globalThis.chrome.runtime"] :
       label === "chromium/popup.js" ? ["globalThis.chrome.tabs", "globalThis.chrome.scripting", "globalThis.chrome.storage.session",
-        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows"] : [];
+        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows", "globalThis.chrome.storage.local"] : [];
     for (const approvedBinding of approvedBindings) {
       const bindingCount = source.split(approvedBinding).length - 1;
       assert.equal(
@@ -319,6 +325,6 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(script, /observeTabLifecycle: tabLifecycleObserver\.observe/u);
   assert.match(
     script,
-    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
+    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*popupShell\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
   );
 });

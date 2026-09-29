@@ -177,6 +177,12 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     finally { preparedTargetResolve(null); permissionPreparationTarget = null; }
     stage = 'native access alone';
     await openPopup(); await eligible('https://example.com');
+    const exactPopupUrl = await evaluate('location.href');
+    await uiClick('capture-controls-link');
+    assert.equal(await evaluate('location.href'), exactPopupUrl, 'Capture shortcut must preserve the authenticated popup URL');
+    assert.equal(await evaluate("document.activeElement.id"), 'page-matching');
+    await eligible('https://example.com');
+    check('capture-shortcut-preserves-popup-identity-and-eligibility');
     assert.equal((await status()).enabled, false);
     check('native-permission-preparation-does-not-start-capture');
     stage = 'real session UI Start';

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { lstat, mkdtemp, rm } from 'node:fs/promises';
+import { lstat, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,7 +51,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   const databasePath = path.join(directory, 'demo.sqlite');
   const targets = new Map(), sessionTargets = new Map(), tasks = new Set(), workers = [], requests = [], errors = [], ingestions = [];
   const checks = [];
-  let browser, application, extensionId, pageSession, popupSession, popupTarget, deadline, progress;
+  let browser, application, extensionId, pageSession, popupSession, popupTarget, deadline, progress, toolbarSession;
   let capability = FIRST_TOKEN;
   let stage = 'initializing';
   let permissionPreparationTarget;
@@ -105,14 +105,26 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   }
   const waitExpression = (expression, label, timeout = 15000) => wait(() => evaluate(expression), label, timeout);
   const waitStatus = message => waitExpression(`${STATUS} === ${JSON.stringify(message)}`, 'discussion UI status');
+  async function reveal(selector) {
+    assert.ok(await evaluate(`(() => {
+      const item=document.querySelector(${JSON.stringify(selector)}); if(!item)return false;
+      const parents=[]; for(let p=item.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')parents.unshift(p);
+      for(const parent of parents)if(!parent.open)parent.querySelector(':scope > summary').click();
+      item.scrollIntoView({block:'nearest'});
+      return item.getClientRects().length>0 && getComputedStyle(item).visibility!=='hidden';
+    })()`), `Visible User-mode control required: ${selector}`);
+  }
   async function click(selector) {
+    await reveal(selector);
     assert.ok(await evaluate(`(() => { const item=document.querySelector(${JSON.stringify(selector)}); if(!item || item.disabled)return false; item.click();return true; })()`), `Enabled control required: ${selector}`);
   }
   async function input(selector, value) {
+    await reveal(selector);
     await evaluate(`(() => {const item=document.querySelector(${JSON.stringify(selector)});item.focus();item.value='';item.dispatchEvent(new Event('input',{bubbles:true}));})()`);
     await browser.send('Input.insertText', { text: value }, popupSession);
   }
   async function select(selector, value) {
+    await reveal(selector);
     await evaluate(`(() => {const item=document.querySelector(${JSON.stringify(selector)});item.value=${JSON.stringify(value)};item.dispatchEvent(new Event('change',{bubbles:true}));})()`);
   }
   async function closePopup() {
@@ -131,6 +143,50 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       const popup = [...targets.values()].find(item => item.ready && item.url === `chrome-extension://${extensionId}/chromium/popup.html`);
       if (!popup) return false; popupTarget = popup.targetId; popupSession = popup.sessionId; return true;
     }, 'actual extension action popup');
+    await waitExpression("!!document.querySelector('#ui-mode-toggle')", 'user presentation mounted');
+  }
+  async function screenshot(name) {
+    // Optional generated evidence of owned synthetic UI only, never an owner profile.
+    const destination = process.env.UDL_UI_SCREENSHOT_DIR;
+    if (!destination) return;
+    assert.ok(path.isAbsolute(destination) && (await lstat(destination)).isDirectory());
+    await evaluate('window.scrollTo(0,0)');
+    const result = await browser.send('Page.captureScreenshot', { format: 'png' }, popupSession);
+    await writeFile(path.join(destination, `${name}.png`), Buffer.from(result.data, 'base64'), { flag: 'wx' });
+  }
+  async function toolbar(shared) {
+    const expected = shared ? EN.toolbarTopicShared : EN.toolbarTopicNeutral;
+    await waitExpression(`(async () => {
+      const state=await chrome.runtime.sendMessage({target:'page-matching',type:'status'});
+      return Number.isSafeInteger(state.currentTabId) &&
+        await chrome.action.getTitle({tabId:state.currentTabId})===${JSON.stringify(expected)};
+    })()`, shared ? 'same-Topic toolbar indication' : 'neutral toolbar indication');
+    if (shared) {
+      const currentTab = await evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'status'}).then(state=>state.currentTabId)");
+      await wait(() => evaluate(`globalThis.__toolbarNativeEvidence?.some(item=>item.tabId===${JSON.stringify(currentTab)} && item.shared===true)`, toolbarSession), 'successful native blue icon bitmap');
+    } else {
+      await wait(() => evaluate('globalThis.__toolbarNativeEvidence?.at(-1)?.shared !== true', toolbarSession),
+        'native neutral successor after any preceding blue icon');
+    }
+  }
+  async function observeNativeIcons() {
+    const worker = await wait(() => [...targets.values()].find(item => item.ready && item.type === 'service_worker' &&
+      item.url === `chrome-extension://${extensionId}/chromium/background.js`), 'toolbar background worker');
+    toolbarSession = worker.sessionId;
+    await evaluate(`(() => {
+      const nativeSetIcon=chrome.action.setIcon;
+      globalThis.__toolbarNativeEvidence=[];
+      chrome.action.setIcon=async function(details) {
+        const records=[16,32].map(size=>details.imageData?.[size]);
+        if(records.some((item,index)=>!item || item.width!==[16,32][index] || item.height!==[16,32][index] || item.data.length!==item.width*item.height*4))throw Error('Invalid test bitmap');
+        const blue=records.every(item=>Array.from(item.data).some((value,index)=>index%4===0 && value===20 && item.data[index+1]===121 && item.data[index+2]===232 && item.data[index+3]===255));
+        const gray=records.every(item=>Array.from(item.data).some((value,index)=>index%4===0 && value===100 && item.data[index+1]===116 && item.data[index+2]===139 && item.data[index+3]===255));
+        if(blue===gray)throw Error('Unexpected test palette');
+        const result=await nativeSetIcon.call(chrome.action,details);
+        globalThis.__toolbarNativeEvidence.push({tabId:details.tabId??null,shared:blue});
+        return result;
+      };
+    })()`, toolbarSession);
   }
   async function navigate(name) {
     await closePopup(); await browser.send('Page.bringToFront', {}, pageSession);
@@ -259,31 +315,49 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await startService(FIRST_TOKEN);
     const page = await wait(() => [...targets.values()].find(item => item.ready && item.url === 'about:blank'), 'owned foreground page');
     pageSession = page.sessionId;
+    await observeNativeIcons();
     stage = 'prepare-native-session-permission';
     let resolvePreparation;
     permissionPreparationTarget = new Promise(resolve => { resolvePreparation = resolve; });
     try { await prepareSessionPermission(browser, extensionId, { onTargetCreated: resolvePreparation }); }
     finally { resolvePreparation(null); permissionPreparationTarget = null; }
     stage = 'pairing-and-session-consent';
-    await navigate('a'); await openPopup(); await waitStatus(EN.discussionDisconnected); await pair(FIRST_TOKEN);
+    await navigate('a'); await openPopup(); await waitStatus(EN.discussionDisconnected);
+    assert.equal(await evaluate("document.body.dataset.uiMode"), 'user');
+    assert.equal(await evaluate("document.querySelector('#connection-status').dataset.state"), 'disconnected');
+    await screenshot('user-disconnected');
+    await pair(FIRST_TOKEN);
+    await waitExpression("document.querySelector('#connection-status').dataset.state==='connected'", 'honest paired connection indicator');
     await waitExpression(`document.querySelector('#matching-origin').textContent===${JSON.stringify(ORIGIN)}`, 'eligible disclosed origin');
     await click('#matching-consent'); await click('#matching-enable'); await confirmStart(); await closePopup();
     stage = 'popup-closed-first-inference';
     const a = await automatic('a');
     assert.equal(a.provenance, 'owner-local-page-embedding/v1');
+    await toolbar(false);
+    assert.equal(await evaluate("document.querySelector('#selected-topic-title').textContent"), (await catalog()).topics.find(topic => topic.id === a.topicId).title);
+    await input('#discussion-body', COMMENT);
+    await click('#ui-mode-developer'); await click('#ui-mode-user');
+    assert.equal(await evaluate("document.querySelector('#discussion-body').value"), COMMENT);
+    assert.equal(await evaluate("document.querySelector('#ui-mode-user').getAttribute('aria-pressed')"), 'true');
+    checks.push('default-user-connection-topic-and-draft-preserving-mode-switch');
     await postComment(); checks.push('actual-pairing-session-consent', 'popup-closed-capture-inference-ingestion', 'comment-on-page-a');
     stage = 'shared-topic-on-paraphrase';
     await navigate('b'); const b = await automatic('b');
     assert.equal(b.topicId, a.topicId);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
+    await toolbar(true);
+    await screenshot('user-shared-topic');
+    checks.push('toolbar-shared-topic-after-distinct-learned-peer');
     checks.push('second-HTTPS-origin-shares-topic-and-comment-without-new-grant');
     stage = 'unrelated-page-separation';
     await navigate('c'); const c = await automatic('c');
     assert.notEqual(c.topicId, a.topicId);
     assert.ok(await evaluate(`!${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
+    await toolbar(false);
     checks.push('page-c-stays-separate');
     stage = 'stop-and-new-explicit-session';
     await click('#matching-pause'); await waitMatching(EN.matchingOff);
+    await toolbar(false);
     const pausedCount = ingestions.length;
     await navigate('d'); await openPopup(); await waitMatching(EN.matchingOff);
     // Longer than the production debounce, without supplying a capture/retry command.
@@ -310,6 +384,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await chooseSource(b.id);
     await application.close(); application = null; await startService(SECOND_TOKEN);
     await click('#discussion-reload'); await waitStatus(EN.discussionUnauthorized);
+    assert.equal(await evaluate("document.querySelector('#connection-status').dataset.state"), 'disconnected');
     await pair(SECOND_TOKEN); await chooseSource(b.id);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     assert.equal((await source('b')).topicId, a.topicId);

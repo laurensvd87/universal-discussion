@@ -16,7 +16,15 @@ grant is separate: Stop retains it; **Remove broad HTTPS access** revokes it.
 Use a dedicated non-sensitive profile; private-page detection is not reliable.
 Improved matching and persistent pairing remain separate pending decisions.
 
-- Extension 0.7.0 connects to the local SQLite service using session-only pairing.
+- Extension 0.8.0 adds a **User / Developer** switch at the top. User mode opens
+  with the Topic title, discussion and visible connection state; diagnostic
+  details remain in Developer mode. The display choice is remembered locally.
+  Connection, Start/Stop and data controls remain available in both modes.
+- The toolbar speech bubble turns **blue** when the current authorized page and
+  another retained learned page share one Topic. A merely similar recommendation
+  does not qualify. Neutral means no current verified shared-Topic indication,
+  not proof that no related page exists. Matching is still experimental.
+- It connects to the local SQLite service using session-only pairing.
   Create/select Topics, post roots and replies, edit/withdraw local comments and
   reopen persisted discussions. Human/AI counts stay distinct; no AI posts run.
 - Session opt-in background matching samples rendered main content on eligible sites,

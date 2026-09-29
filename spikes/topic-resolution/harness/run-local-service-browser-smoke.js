@@ -75,6 +75,9 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     assert.ok(available, "Expected UI control must be enabled");
   }
   async function input(selector, value) {
+    await evaluate(`(() => {const item=document.querySelector(${JSON.stringify(selector)});const parents=[];
+      for(let p=item.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')parents.unshift(p);
+      for(const parent of parents)if(!parent.open)parent.querySelector(':scope > summary').click();})()`);
     await evaluate(`(() => { const item=document.querySelector(${JSON.stringify(selector)}); item.focus(); item.value=''; item.dispatchEvent(new Event('input',{bubbles:true})); })()`);
     await browser.send("Input.insertText", { text: value }, popupSession);
   }
@@ -102,10 +105,10 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
       const inactiveLease=lease && lease.schema==='capture-session/1' && lease.windowId===null &&
         typeof lease.revision==='string' && Object.keys(lease).length===3;
       const keys=Object.keys(session).filter(key=>key!=='pageMatchingCaptureSession');
-      return {localEmpty:Object.keys(local).length===0,syncEmpty:Object.keys(sync).length===0,
+      return {localUiOnly:Object.keys(local).length===1 && local.discussionUiModeV1==='developer',syncEmpty:Object.keys(sync).length===0,
         sessionEmpty:inactiveLease && keys.length===0,onlyPairing:inactiveLease && keys.length===1 && keys[0]==='localServicePairingToken' && typeof session[keys[0]]==='string'};
     })()`);
-    assert.ok(shape.localEmpty && shape.syncEmpty);
+    assert.ok(shape.localUiOnly && shape.syncEmpty);
     assert.ok(paired ? shape.onlyPairing : shape.sessionEmpty);
   }
   async function bringPageForward() {
@@ -124,6 +127,8 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
       popupTarget = popup.targetId; popupSession = popup.sessionId; return true;
     }, "actual extension action popup");
     await waitExpression("!!document.querySelector('#discussion-pair')", "discussion panel mount");
+    await evaluate("document.querySelector('#ui-mode-developer').click()");
+    await waitExpression("document.body.dataset.uiMode==='developer'", "explicit legacy Developer view");
   }
   async function closePopup() {
     if (!popupTarget) return;

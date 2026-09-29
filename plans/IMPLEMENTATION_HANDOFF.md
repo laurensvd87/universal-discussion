@@ -2,7 +2,16 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Latest request: implement matching-quality improvements, automatic visits across
+Latest request: a User/Developer popup switch, Topic-first discussion, visible
+connection and blue toolbar icon for another learned page in the same Topic.
+[ADR-020](../decisions/ADR-020-user-mode-and-topic-indicator.md) defines this
+presentation-only increment, implemented as 0.8.0. Check STATUS for final browser
+verification and the current port-4174 test blocker. User is the default; persist
+only the inert display enum and one trusted-session toolbar tab ID for cleanup.
+Capture/permissions/matching/token retention are unchanged. Do not repeat S3/B or
+approve A/C by inference. The new User view uses the existing controller/drafts.
+
+Previous request: implement matching-quality improvements, automatic visits across
 sites and pairing across sessions. Read [ADR-019](../decisions/ADR-019-automatic-browsing-and-durable-pairing.md)
 first: **B alone is explicitly approved on 2026-09-29**, following the question
 about an app-enforced window session and underlying broad Chrome permission.

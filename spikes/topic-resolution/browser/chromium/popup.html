@@ -6,23 +6,31 @@
     <title>Universal Discussion local proof of concept</title>
     <link rel="stylesheet" href="popup.css">
   </head>
-  <body>
+  <body data-ui-mode="user">
     <main>
-      <div class="scope-row" aria-label="Prototype scope">
+      <div class="popup-topbar">
+        <span id="connection-status" class="connection-status" role="status" aria-live="polite"></span>
+        <div id="ui-mode-toggle" class="ui-mode-switch" role="group">
+          <button id="ui-mode-user" type="button" aria-pressed="true"></button>
+          <button id="ui-mode-developer" type="button" aria-pressed="false"></button>
+        </div>
+      </div>
+      <button id="capture-controls-link" class="capture-controls-link" type="button"></button>
+      <div class="scope-row developer-only" aria-label="Prototype scope">
         <span id="product-capabilities" class="scope-badge"></span>
         <span id="product-matching-badge" class="scope-badge scope-badge--quiet"></span>
       </div>
 
-      <header>
+      <header class="developer-only">
         <p class="eyebrow">Content → Topic → Discussion</p>
         <h1 id="product-title"></h1>
         <p id="product-intro" class="intro"></p>
       </header>
 
-      <section id="page-matching" class="action-panel"></section>
       <section id="local-discussion" class="action-panel"></section>
+      <section id="page-matching" class="action-panel" tabindex="-1"></section>
 
-      <details class="fixture-panel">
+      <details class="fixture-panel developer-only">
       <summary id="diagnostic-heading"></summary>
       <section id="related-pages-demo" class="action-panel"></section>
 

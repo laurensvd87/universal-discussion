@@ -6,10 +6,19 @@ import { createPageContentReader } from "./page-content-reader.js";
 import { createInferenceHost } from "./inference-host.js";
 import { createPopupFocusWitness } from "./popup-focus.js";
 import { createCaptureSession, HTTPS_ACCESS } from "../core/capture-session.js";
+import { createTopicToolbarController, TOOLBAR_TAB_KEY } from "../core/topic-toolbar-controller.js";
+import { createTopicToolbarPainter } from "./topic-toolbar-icon.js";
 
 const api = globalThis.chrome;
 const session = createLocalServiceSession({ storageSession: api.storage.session });
 const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: session.getToken });
+const toolbar = createTopicToolbarController({ catalog: client.catalog, paint: createTopicToolbarPainter(api.action),
+  readMarker: async () => {
+    await api.storage.session.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
+    return (await api.storage.session.get(TOOLBAR_TAB_KEY))[TOOLBAR_TAB_KEY];
+  },
+  writeMarker: (id) => api.storage.session.set({ [TOOLBAR_TAB_KEY]: id }),
+  removeMarker: () => api.storage.session.remove(TOOLBAR_TAB_KEY) });
 const inference = createInferenceHost({ runtime: api.runtime, offscreen: api.offscreen });
 const popupFocus = createPopupFocusWitness({ runtime: api.runtime, onChange: () => schedule() });
 let timer;
@@ -77,6 +86,7 @@ async function permission() { return api.permissions.contains({ origins: [HTTPS_
 const matcher = createBackgroundMatcher({ getPreferences: preferences, readForeground,
   hasPermission: permission, isPaired: session.isPaired, reader: createPageContentReader(api.scripting),
   embed: inference.embed, client, nextOperationId: () => crypto.randomUUID(),
+  onStateChange: (state) => { void toolbar.update(state); },
   onUnauthorized: async () => { await session.clear(); void inference.close().catch(() => {}); } });
 function schedule() {
   matcher.invalidate(); clearTimeout(timer);
@@ -144,7 +154,10 @@ api.tabs.onActivated.addListener(schedule);
 api.tabs.onUpdated.addListener((tabId, changes, tab) => {
   if ((tab.active || tabId === matcher.currentState().tabId) && (changes.status || changes.url)) schedule();
 });
-api.tabs.onRemoved.addListener((tabId) => { if (tabId === matcher.currentState().tabId) schedule(); });
+api.tabs.onRemoved.addListener((tabId) => {
+  void toolbar.tabRemoved(tabId);
+  if (tabId === matcher.currentState().tabId) schedule();
+});
 api.tabs.onReplaced.addListener(schedule);
 api.windows.onFocusChanged.addListener(schedule);
 api.windows.onRemoved.addListener((id) => { void captureSession.closeWindow(id).then(schedule).catch(() => {}); });
