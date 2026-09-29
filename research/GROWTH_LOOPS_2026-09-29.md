@@ -11,6 +11,43 @@ Android/iOS. This does not approve a hosted service, shared browsing index, publ
 content, provider, recruitment, telemetry or a new migration. The current
 implementation remains owner-local 0.11.0.
 
+## Owner clarification: broad coverage without a few platform gatekeepers
+
+The owner rejects friend-invitation sharing as the missing public-conversation
+hook, and rejects a single narrow source such as Hacker News as the starting
+answer. They want multiple broad sources without dependence on a few large
+operators, while preserving implementation simplicity. These requirements do not
+select a provider or approve collection.
+
+The refined hypothesis is many independent source operators through a small number
+of standard ingestion formats, not one bespoke adapter per website. Discourse
+documents public topic/category RSS; Lemmy documents public RSS/Atom and a common
+API across instances. Lemmy's federation documentation describes interoperability
+with community-based Piefed/Mbin, but explicitly does not promise every server
+already contains every conversation. No full federation server is necessary to
+evaluate a bounded public-feed approach.
+[Discourse feeds](https://meta.discourse.org/t/finding-discourse-rss-feeds/264134?tl=en),
+[Lemmy feeds/API](https://join-lemmy.org/docs/contributors/04-api.html),
+[Federation limits](https://join-lemmy.org/docs/administration/federation_getting_started.html).
+
+This reduces connector duplication, not source selection, access/rights checks,
+language/topic bias, deduplication, deletion/freshness or abuse work. A public feed
+is neither a blanket reuse license nor proof of broad active discussion coverage.
+News feeds can supply related articles without supplying any conversation at all.
+Do not misrepresent article counts as discussion supply or metadata embeddings as
+captured-page vectors. Large proprietary platforms could be optional supplements,
+not the sole source of useful results. Shared voluntary public-link contributions
+could diversify the catalog later, under a separately approved data contract;
+there is no authorization for a shared browsing history or private-page index.
+
+Next evidence needed before recommending implementation: useful external discussion
+coverage across ordinary subjects/languages, permitted minimal metadata access,
+ongoing operating cost, and whether results remain useful when the largest source
+operator is removed. No corpus acquisition or such benchmark was run. There is
+currently no demonstrated solution that combines broad immediate coverage,
+low complexity/cost and low dependency; do not present federation as a shortcut
+that establishes all three. The growth strategy remains unresolved.
+
 ## Objective and the important distinction
 
 Increase useful conversation discovery and returning participation, not the number

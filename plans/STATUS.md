@@ -33,6 +33,14 @@ private/remote/AI/moderation work and all external release gates remain separate
 
 ## Latest request: first-use coverage and discussion growth; AI remains optional
 
+Newest constraints: a friend-invitation conversation is not the required public
+cold-start benefit; neither a narrow Hacker News launch nor dependence on a few
+large platforms is acceptable. Explore many independent operators via common
+feed formats rather than bespoke website connectors. Discourse/Lemmy docs support
+that technical possibility, not broad coverage or reuse permission. Need coverage,
+cost and largest-source-removal evidence before adopting it. No integration,
+corpus acquisition, provider choice or extra capture is approved or implemented.
+
 Latest follow-up asks about Reddit/other systems. The discussion-finder hypothesis
 links existing canonical external conversations to relevant Sources, keeping native
 posts distinct; no mirroring or presumed API access. Primary docs confirm Reddit

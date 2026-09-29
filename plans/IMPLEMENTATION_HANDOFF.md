@@ -2,6 +2,13 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Latest clarification: public first-use value, broad subjects and independence
+from a few large source operators are required; private friend sharing and a
+Hacker News-only start do not solve this. Many independent sources via common
+feeds is a hypothesis awaiting coverage/rights/cost evidence, not a selected
+integration or collection approval. See the opening owner-clarification section
+of `research/GROWTH_LOOPS_2026-09-29.md`; growth strategy remains unresolved.
+
 Newest idea: Reddit/other-community discussion discovery as first-user utility.
 Read the external-conversation section of `research/GROWTH_LOOPS_2026-09-29.md`.
 Investigate link-first, provenance-labeled external destinations, not comment
