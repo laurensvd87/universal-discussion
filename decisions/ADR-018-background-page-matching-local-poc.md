@@ -213,6 +213,42 @@ guidance. The reader, rights checks, resource limits, collection, storage and
 permissions remain unchanged. A restriction code describes prototype behavior,
 not legal permission or prohibition. The owner's actual rejection is still unknown.
 
+## Pending owner-policy decision: preview declarations — 2026-09-29
+
+The owner reports `rights-restricted` on a public article. The exact page tag
+could not be verified through the research browser; do not treat a synthetic
+reproduction as observed publisher policy. The actual collector rejects every
+`robots`/`googlebot` token except `all`, `index`, `follow`. A read-only, capability-
+denied 32-assertion probe confirmed that it also rejects these declarations:
+
+- `max-image-preview:large`: allows a larger Search image preview.
+- `max-snippet:-1`: no specified Search text-snippet character limit.
+- `max-video-preview:-1`: no Search video-preview duration limit.
+
+Technical meanings verified against [Google's official robots metadata reference](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag)
+on 2026-09-29. This describes Google's indexing/serving behavior, not permission
+for our product's content processing, a publisher contract or store acceptance.
+No inference that these directives grant a reuse licence is authorized.
+
+**Proposed, not yet approved or implemented:** add only these three explicit
+declarations to the existing positive allowlist, with bounded parsing and tests.
+Keep the existing `noindex`, `nofollow`, `nosnippet`, `noai` and all other negative,
+unknown, empty or malformed values blocked. A negative/unknown value mixed with
+an allowed value or present in another relevant meta tag still blocks; preserve
+the current `tdm-reservation` behavior (only exact normalized `0` is accepted).
+Do not switch to a permissive denylist or add a site-specific exception. All
+foreground, public-site consent, region/visibility/resource, inference, payload
+and retention rules stay unchanged. The frozen older metadata-only experiment
+is not widened by this proposal. New parser tests should cover positive preview
+values, whitespace/case variants, conflicts, unknowns, negatives and TDM controls.
+
+This changes which pages the prototype accepts, so ask the owner explicitly
+before implementing. Approval is only a project-policy decision, not a legal
+clearance. Do not promise the reported article will work: its trigger may be an
+actual restriction that remains blocked. Until approval, leave 0.6.4 and the
+existing gate intact. No new browser permissions, endpoint, model, raw-content
+transfer or stored fields are proposed.
+
 ## Planning findings (before implementation) and policy evidence
 
 The following baseline inventory records what was missing when this package was

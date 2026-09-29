@@ -101,6 +101,12 @@ auto-retry and now show a specific message and fixed diagnostic code. Reload to
 The owner's exact page outcome remains unconfirmed. No token, storage dump or
 page content is needed; the backend/data do not need a restart or reset.
 
+Latest owner feedback identifies `[rights-restricted]`, the prototype's metadata
+gate, not proof of a legal prohibition. The parser also rejects documented
+positive/unbounded Search preview directives. A narrow correction is proposed in
+[ADR-018](decisions/ADR-018-background-page-matching-local-poc.md), awaiting explicit
+owner policy approval; 0.6.4 and its reader remain unchanged for now.
+
 To try the discussion loop:
 
 1. Load/reload the unpacked extension; copy its ID from `chrome://extensions`.

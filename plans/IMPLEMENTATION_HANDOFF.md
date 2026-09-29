@@ -38,9 +38,14 @@ The owner now confirms Enable is clickable, but the page remains unsupported.
 unsupported reason codes. A fresh eligible status on a previously enabled site
 schedules one ordinary fenced refresh; it never retries actual reader rejections.
 Full restricted suite 523/523, indicator suite 341/341, actual Chrome 21 checks;
-separate AI Trust review accepts the slice. The owner's page cause is still unknown:
-next obtain the unsupported message/code after reload to 0.6.4, not another Enable
-or focus suggestion. Leave the owner's backend, database and profile untouched.
+separate AI Trust review accepts the slice. The owner has now supplied
+`rights-restricted`: the head-metadata gate is identified, but the exact tag is
+not. Read-only synthetic reproduction proves the parser also rejects positive/
+unbounded preview declarations. ADR-018 now proposes a narrow three-declaration
+allowlist extension, **pending explicit owner policy approval before coding**;
+do not silently bypass the current gate or promise this fixes the specific site.
+No new reload/Enable/focus test is needed while awaiting that decision. Leave the
+owner's backend, database and profile untouched.
 Known separate follow-up: a failed `authorized()` observation after reading can
 strand `processing/reading` without a new event. It remains safely non-ingesting
 but is not fixed by this initial-foreground recovery; see STATUS before changing it.

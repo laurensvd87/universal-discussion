@@ -8,8 +8,11 @@ the exact expanded Security/Privacy/Policy package explicitly approved by the
 owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**,
 with capture default-off and site-by-site enablement. The owner now confirms Enable
 is clickable but the page remains unsupported. Extension 0.6.4 fixes a reproduced
-stale foreground-failure state and exposes the actual unsupported reason; the
-owner's page outcome is still unconfirmed. Matching quality remains unvalidated.
+stale foreground-failure state and exposes the actual unsupported reason. The
+owner now reports `rights-restricted`: the current stop is the reader's metadata
+filter. Its exact triggering tag is unknown; a narrow correction to the overbroad
+filter is proposed below, awaiting explicit owner policy approval. Matching
+quality remains unvalidated.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -24,9 +27,30 @@ private/remote/AI/moderation work and all external release gates remain separate
 
 ## Owner feedback: disabled site controls — 2026-09-29
 
-- Latest owner report: the public site's origin is displayed and **Enable is
+- Current owner evidence: **`rights-restricted`** on a public news article.
+  This identifies the reader's head-metadata gate before main text is sampled,
+  not a legal determination or proof of a paywall. Do not repeat Enable/focus
+  diagnostics. The article could not be accessed with the research browser;
+  its exact robots/googlebot/TDM value remains unverified. No bypass attempted.
+- Read-only Sol Medium diagnosis reproduced **32 synthetic assertions** against
+  the actual collector under the external-capability guard; existing reader tests
+  pass **7/7**. `robots`/`googlebot` currently reject every token except `all`,
+  `index`, `follow`, including `max-image-preview:large`, `max-snippet:-1` and
+  `max-video-preview:-1`. Official Google documentation describes those as larger
+  or unbounded Search previews, not extraction permission or a blanket reuse ban.
+- Pending narrow policy correction: explicitly accept only those three additional
+  documented preview declarations in the existing parser, with negative/unknown/
+  empty/malformed values, mixed contradictory tags and TDM handling still denied.
+  No broader denylist, per-site exception, permission, input, payload, model or
+  retention change. See the [ADR proposal](../decisions/ADR-018-background-page-matching-local-poc.md).
+  **Stop before implementation and ask for this exact owner policy approval.**
+  This proposal may correct a false positive but does not establish the owner's
+  exact page will pass. No product code, extension version or data changed.
+
+- Previous owner report: the public site's origin is displayed and **Enable is
   clickable**, but its activation leaves "No eligible public main-region context".
-  Do not ask the owner to repeat the checkbox/Enable instructions again.
+  That generic report has now been superseded by the specific restriction code.
+- Historical 0.6.4 implementation evidence follows.
 - Confirmed code bug, independently reproduced with capability-denied mocks:
   null foreground published `unsupported/invalid-url` before any content read;
   a later status showed an eligible origin but never restarted matching.
@@ -47,7 +71,7 @@ private/remote/AI/moderation work and all external release gates remain separate
   the retained real host-permission gate. Only disposable synthetic preferences
   were seeded/removed. No external requests, exceptions, model loads, content
   capture or backend access. No owner browser/profile/service/data touched.
-- Next owner action: reload **0.6.4**, reopen on the enabled public article, and
+- Completed owner action: reload **0.6.4**, reopen on the enabled public article, and
   report the specific unsupported message/code if it remains. No backend restart,
   data reset or repeated owner-review task. Successful matching is still unconfirmed.
 - Separate reproduced follow-up, not fixed by this slice: a transient failed
