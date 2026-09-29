@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## On-device background matching (0.6.0)
+## On-device background matching (0.6.1)
 
 The owner approved ADR-018's local-only package. Background matching defaults
 off. Page text is sampled and embedded inside the extension; only URL, short
@@ -56,9 +56,28 @@ model fetch. The extra CSP permission is WASM-only, not JavaScript `unsafe-eval`
 Site preferences persist in trusted local extension storage; the token is still
 session-only, and raw text/vectors are not stored in extension storage.
 
+### If the matching controls are disabled
+
+Open the extension from its toolbar icon on a fully loaded public HTTPS article,
+not from `chrome://extensions` or a tab containing `popup.html`. Read the context
+message near **Enable matching for displayed site**. Version 0.6.1 distinguishes
+unfocused/unsupported windows, loading or unavailable tabs, missing URL access,
+incognito/unsupported URLs and worker failure. A checked retention checkbox alone
+cannot enable an ineligible site. Keep the article's normal Chrome window focused;
+close detached DevTools if the message reports lost focus, then reopen the popup.
+Before the first enabled site, disabled Pause/Resume/Retry controls are expected.
+Disabled controls no longer use a loading cursor unless an action is pending.
+
+Pairing and page eligibility are separate. **Choose a topic** means the local
+catalog has loaded, and clearing the token input after Connect is intentional.
+Never share that token or paste extension storage into a bug report. If the page
+is still ineligible, report only the displayed context message and public domain.
+No raw article content is needed to diagnose the Enable control.
+
 From `spikes/topic-resolution`, separate real-Chrome checks are:
 
 ```sh
+npm run test:browser:eligibility
 npm run test:browser:embedding
 npm run test:browser:matching
 ```
@@ -67,6 +86,9 @@ They use a fresh temporary browser profile, installed Chrome, project-created
 intercepted documents and temporary SQLite state; no real site acquisition or
 existing profile. Port 4174 must be free for the full matching check. Do not
 repeat the finished owner 6/6 review or the older metadata manual checklist.
+The eligibility check needs no service, pairing, model execution or free port:
+it exercises the HTTPS action popup before an optional site grant. It does not
+automate Chrome's permission confirmation or validate any real site's content.
 Actual current test evidence is in [STATUS](../../../plans/STATUS.md); the paragraphs below retain
 the earlier feature-specific evidence, not current global capability limits.
 

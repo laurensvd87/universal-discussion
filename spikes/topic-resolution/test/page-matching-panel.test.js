@@ -8,7 +8,7 @@ const turn = () => new Promise((resolve) => setImmediate(resolve));
 function resolution(patch = {}) {
   return { phase: "not-enabled", reason: null, tabId: 7, url: "https://public.example.com/article", documentId: null,
     sourceId: null, topicId: null, assignment: null, sequence: 1, enabled: true, origins: [],
-    currentOrigin: "https://public.example.com", currentTabId: 7, currentUrl: "https://public.example.com/article", ...patch };
+    currentOrigin: "https://public.example.com", currentTabId: 7, currentUrl: "https://public.example.com/article", contextReason: null, ...patch };
 }
 function harness(overrides = {}) {
   const created = [], calls = [], scheduled = [], canceled = [], states = [];
@@ -31,9 +31,14 @@ function harness(overrides = {}) {
 test("matching status DTO rejects raw bodies/vectors/accessors and readiness needs current foreground", () => {
   assert.ok(Object.isFrozen(projectPageResolution(resolution())));
   for (const hostile of [{ ...resolution(), text: "secret" }, { ...resolution(), vectors: [1, 2] },
-    { ...resolution(), get phase() { throw new Error("hostile"); } }, { ...resolution(), origins: ["https://private.invalid"] }]) {
+    { ...resolution(), get phase() { throw new Error("hostile"); } }, { ...resolution(), origins: ["https://private.invalid"] },
+    { ...resolution(), contextReason: "secret-url-or-error" },
+    { ...resolution(), currentOrigin: null, currentTabId: null, currentUrl: null },
+    { ...resolution(), contextReason: "window-unfocused" }]) {
     assert.throws(() => projectPageResolution(hostile), /Page matching unavailable/);
   }
+  assert.equal(projectPageResolution(resolution({ currentOrigin: null, currentTabId: null, currentUrl: null,
+    contextReason: "window-unfocused" })).contextReason, "window-unfocused");
   const ready = resolution({ phase: "ready", documentId: "doc-1", sourceId: "source-1", topicId: "topic-1", assignment: "provisional", origins: ["https://public.example.com"] });
   assert.equal(isReadyPageResolution(ready), true);
   assert.equal(isReadyPageResolution({ ...ready, currentTabId: 8 }), false);
@@ -79,7 +84,42 @@ test("pause/resume/retry/remove use exact bounded controls and denied permission
 test("worker errors clear cached origin/enable and never render hostile content as HTML", async () => {
   const ui = harness({ sendMessage: async () => ({ error: "unavailable", text: "<img src=x>" }) }); await turn();
   assert.equal(ui.byId("matching-enable").disabled, true); assert.equal(ui.byId("matching-status").textContent, EN.matchingUnavailable);
+  assert.equal(ui.byId("matching-origin").textContent, "");
+  assert.equal(ui.byId("matching-context").textContent, EN.matchingContextWorkerUnavailable);
   assert.equal(ui.states.at(-1), null); assert.equal(ui.created.some((item) => ["script", "img", "iframe", "a"].includes(item.tag)), false);
+});
+
+test("context reason remains visible while matching is off and stale context clears on worker failure", async () => {
+  let fails = false;
+  const ui = harness({ async sendMessage() { if (fails) throw new Error("private URL must not render");
+    return resolution({ phase: "off", enabled: false, currentOrigin: null, currentTabId: null,
+      currentUrl: null, contextReason: "window-unfocused" }); } });
+  await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingOff);
+  assert.equal(ui.byId("matching-context").textContent, EN.matchingContextUnfocused);
+  assert.equal(ui.byId("matching-context").attributes.role, "status");
+  assert.equal(ui.byId("matching-enable").disabled, true);
+  assert.equal(ui.byId("matching-enable").attributes["data-busy"], "false");
+  fails = true; ui.scheduled[0].fn(); await turn();
+  assert.equal(ui.byId("matching-context").textContent, EN.matchingContextWorkerUnavailable);
+  assert.equal(ui.byId("matching-origin").textContent, "");
+  ui.panel.dispose();
+  assert.equal(ui.byId("matching-context").textContent, "");
+});
+
+test("only an in-flight matching action marks disabled controls busy", async () => {
+  let release;
+  const pending = new Promise((resolve) => { release = resolve; });
+  const ui = harness({ sendMessage(message) { return message.type === "pause" ? pending : Promise.resolve(resolution()); } });
+  await turn();
+  assert.equal(ui.byId("matching-enable").disabled, true);
+  assert.equal(ui.byId("matching-enable").attributes["data-busy"], "false");
+  ui.byId("matching-pause").listeners.get("click")();
+  assert.equal(ui.byId("matching-pause").disabled, true);
+  assert.equal(ui.byId("matching-pause").attributes["data-busy"], "true");
+  release(resolution({ phase: "off", enabled: false })); await turn();
+  assert.equal(ui.byId("matching-pause").attributes["data-busy"], "false");
+  ui.panel.dispose();
 });
 
 test("hung status times out within8seconds, frees queued Pause, and clears request timers", async () => {

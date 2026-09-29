@@ -147,6 +147,13 @@ worker paths; the current runtime works without new assets or substitutions.
 Browser vectors still use a separate model-space identity: one synthetic smoke
 does not certify numeric/ranking parity across Node, browsers or mobile devices.
 
+Owner-feedback refinement (0.6.1): expose only a fixed foreground-context reason
+in the existing worker-to-popup status contract when Enable is unavailable.
+This adds no history, page content, logs, storage, backend fields or permissions.
+Do not weaken the focused-window/active-tab/complete-document and site-consent
+requirements to hide a UI failure. A successful synthetic HTTPS eligibility test
+does not identify the cause of a failed owner-page attempt.
+
 ## Planning findings (before implementation) and policy evidence
 
 The following baseline inventory records what was missing when this package was

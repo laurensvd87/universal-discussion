@@ -48,6 +48,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   const consent = node("input"); consent.type = "checkbox"; consent.id = "matching-consent";
   const consentLabel = node("label", "matchingConsent"); consentLabel.htmlFor = consent.id; root.append(consentLabel, consent);
   const origin = node("p"); origin.id = "matching-origin"; root.append(origin);
+  const context = node("p"); context.id = "matching-context"; context.setAttribute("role", "status"); root.append(context);
   const enable = button("matching-enable", "matchingEnable", () => {
     if (acting || !state?.currentOrigin || !consent.checked) return;
     // Initiate Chrome's prompt in the click's user gesture, using only the cached
@@ -74,10 +75,19 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     enable.disabled = acting || !state?.currentOrigin || !consent.checked;
     pause.disabled = acting || !state?.enabled; resume.disabled = acting || !state || state.enabled || !state.origins.length;
     retry.disabled = acting || !state?.enabled;
-    for (const [remove] of siteHandlers) remove.disabled = acting;
+    for (const item of [enable, pause, resume, retry]) item.setAttribute("data-busy", acting ? "true" : "false");
+    for (const [remove] of siteHandlers) {
+      remove.disabled = acting;
+      remove.setAttribute("data-busy", acting ? "true" : "false");
+    }
   }
   const changed = () => controls(); consent.addEventListener("change", changed);
-  function unavailable() { status.textContent = message("matchingUnavailable"); state = null; controls(); }
+  function unavailable() {
+    status.textContent = message("matchingUnavailable");
+    origin.textContent = "";
+    context.textContent = message("matchingContextWorkerUnavailable");
+    state = null; controls();
+  }
   async function deliver(payload) {
     const result = await request(payload);
     if (disposed) return;
@@ -85,6 +95,12 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     status.textContent = message({ off: "matchingOff", checking: "matchingChecking", "not-enabled": "matchingNotEnabled", unpaired: "matchingUnpaired",
       processing: "matchingProcessing", ready: "matchingReady", unsupported: "matchingUnsupported", error: "matchingUnavailable" }[result.phase]);
     origin.textContent = result.currentOrigin ?? "";
+    context.textContent = result.contextReason ? message({
+      "context-unavailable": "matchingContextUnavailable", "window-unfocused": "matchingContextUnfocused",
+      "unsupported-window": "matchingContextWindow", "tab-unavailable": "matchingContextTab",
+      "page-loading": "matchingContextLoading", "url-unavailable": "matchingContextUrlUnavailable",
+      incognito: "matchingContextIncognito", "unsupported-url": "matchingContextUnsupportedUrl",
+    }[result.contextReason]) : "";
     const signature = JSON.stringify(result.origins);
     if (signature !== siteSignature) {
       clearSiteHandlers(); const rows = [];
@@ -121,6 +137,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   controls(); void poll();
   function dispose() {
     disposed = true; cancelSchedule(timer); clearSiteHandlers();
+    state = null; origin.textContent = ""; context.textContent = "";
     for (const cancel of [...pendingRequests]) cancel();
     for (const [item, callback] of listeners) item.removeEventListener("click", callback);
     consent.removeEventListener("change", changed); root.replaceChildren();

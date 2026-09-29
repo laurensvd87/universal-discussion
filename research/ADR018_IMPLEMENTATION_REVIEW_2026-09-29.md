@@ -78,6 +78,21 @@ with Ctrl+C. Tests never used its token/database or stopped that process.
 
 ## Remaining limits and next step
 
+Owner-feedback follow-up, extension 0.6.1: a disabled Enable report on a public
+HTTPS address is not yet reproduced. The address passes syntactic policy; a new
+fixed-enum context reason explains focus/window/tab/loading/URL eligibility in
+the popup without weakening the gate. Stale context clears on worker failure,
+and disabled controls no longer falsely imply pending work. Separate AI Trust
+review found no material defect. Focused tests pass 45/45, restricted suite
+399/399, normal suite with its intentional guard-only skip, indicator suite
+217/217; secret scan 138 files with zero findings. Seven actual Chrome 154
+eligibility checks pass on a fresh profile with an intercepted synthetic HTTPS
+article and favicon, before any optional host grant. No external requests,
+runtime exceptions, inference contexts or model-asset loads. This test needs no
+backend, listener or pairing; it does not automate the host-permission prompt or
+establish why the owner's Chrome rejected the public page. Next obtain only the
+new displayed context message after the owner reloads, not tokens/storage dumps.
+
 The owner can now test real lawful public pages under the approved per-site
 scope. The actual HTTPS permission prompt and real-page usefulness are manual
 owner checks; intercepted fixtures do not establish either. The reader requires

@@ -29,15 +29,26 @@ function validOrigin(origin) {
   const inspected = inspectPageUrl(typeof origin === "string" ? `${origin}/` : null);
   return inspected.supported && inspected.origin === origin;
 }
-async function readForeground() {
-  const window = await api.windows.getLastFocused({ populate: false });
-  if (!window?.focused || window.type !== "normal") return null;
-  const tabs = await api.tabs.query({ active: true, windowId: window.id });
-  const tab = tabs[0];
-  if (tabs.length !== 1 || !Number.isSafeInteger(tab?.id) || tab.incognito || tab.pendingUrl || tab.status !== "complete") return null;
-  const inspected = inspectPageUrl(tab.url);
-  return inspected.supported ? { tabId: tab.id, url: inspected.url, origin: inspected.origin } : null;
+async function inspectForeground() {
+  try {
+    const window = await api.windows.getLastFocused({ populate: false });
+    if (!window) return { foreground: null, contextReason: "context-unavailable" };
+    if (!window.focused) return { foreground: null, contextReason: "window-unfocused" };
+    if (window.type !== "normal") return { foreground: null, contextReason: "unsupported-window" };
+    const tabs = await api.tabs.query({ active: true, windowId: window.id });
+    if (tabs.length !== 1 || !Number.isSafeInteger(tabs[0]?.id)) return { foreground: null, contextReason: "tab-unavailable" };
+    const tab = tabs[0];
+    if (tab.incognito) return { foreground: null, contextReason: "incognito" };
+    if (tab.pendingUrl || tab.status !== "complete") return { foreground: null, contextReason: "page-loading" };
+    if (!tab.url) return { foreground: null, contextReason: "url-unavailable" };
+    const inspected = inspectPageUrl(tab.url);
+    if (!inspected.supported) return { foreground: null, contextReason: "unsupported-url" };
+    return { foreground: { tabId: tab.id, url: inspected.url, origin: inspected.origin }, contextReason: null };
+  } catch {
+    return { foreground: null, contextReason: "context-unavailable" };
+  }
 }
+async function readForeground() { return (await inspectForeground()).foreground; }
 async function permission(origin) { return api.permissions.contains({ origins: [`${origin}/*`] }); }
 const matcher = createBackgroundMatcher({ getPreferences: preferences, readForeground,
   hasPermission: permission, isPaired: session.isPaired, reader: createPageContentReader(api.scripting),
@@ -57,10 +68,11 @@ function updatePreferences(operation) {
   return work;
 }
 async function status() {
-  const [settings, foreground] = await Promise.all([preferences(), readForeground()]);
+  const [settings, context] = await Promise.all([preferences(), inspectForeground()]);
+  const { foreground, contextReason } = context;
   return { ...matcher.currentState(), enabled: settings.enabled, origins: settings.origins,
     currentOrigin: foreground?.origin ?? null, currentTabId: foreground?.tabId ?? null,
-    currentUrl: foreground?.url ?? null };
+    currentUrl: foreground?.url ?? null, contextReason };
 }
 async function handle(message) {
   if (!message || typeof message !== "object" || Array.isArray(message)) throw new Error("invalid");

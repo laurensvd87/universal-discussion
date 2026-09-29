@@ -17,6 +17,7 @@
     "test": "node --test --test-isolation=none",
     "test:browser": "node harness/run-local-service-browser-smoke.js",
     "test:browser:embedding": "node harness/run-browser-embedding-smoke.js",
+    "test:browser:eligibility": "node harness/run-page-eligibility-browser-smoke.js",
     "test:browser:matching": "node harness/run-local-service-browser-smoke.js --matching",
     "test:restricted": "node --import ./harness/deny-external-capabilities.js --test --test-isolation=none",
     "test:watch": "node --test --test-isolation=none --watch"

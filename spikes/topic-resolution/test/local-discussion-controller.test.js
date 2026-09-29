@@ -284,7 +284,7 @@ test("settled ambiguous write latch survives later navigation and selections unt
 function backgroundHarness(overrides = {}) {
   const url = "http://127.0.0.1:4173/background-fixture/page-a.html";
   let resolution = { phase: "processing", reason: "embedding", tabId: 7, url, documentId: "doc-1", sourceId: null, topicId: null,
-    assignment: null, sequence: 1, enabled: true, origins: ["http://127.0.0.1:4173"], currentOrigin: "http://127.0.0.1:4173", currentTabId: 7, currentUrl: url };
+    assignment: null, sequence: 1, enabled: true, origins: ["http://127.0.0.1:4173"], currentOrigin: "http://127.0.0.1:4173", currentTabId: 7, currentUrl: url, contextReason: null };
   const pauses = [];
   const ui = harness({ readPageResolution: async () => resolution,
     readActiveTab: async () => ({ tabId: resolution.currentTabId, url: resolution.currentUrl }),

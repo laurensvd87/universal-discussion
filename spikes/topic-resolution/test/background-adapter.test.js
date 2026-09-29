@@ -32,6 +32,7 @@ async function harness(t, { enabled = true, paired = true } = {}) {
     tab: { id: 7, active: true, incognito: false, status: "complete", url: PAGE },
     window: { id: 1, focused: true, type: "normal" }, permitted: true, exists: false,
     writeGate: null, permissionGate: null, embedGate: null, unauthorized: false,
+    windowError: false, tabQueryError: false,
   };
   const createGate = () => { const gate = deferred(); gates.push(gate); return gate; };
   const api = {
@@ -59,8 +60,10 @@ async function harness(t, { enabled = true, paired = true } = {}) {
         remove: async (key) => { assert.equal(key, TOKEN_KEY); const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session"); } },
       onChanged: events.storageChanged,
     },
-    windows: { getLastFocused: async (options) => { assert.deepEqual(options, { populate: false }); return structuredClone(state.window); }, onFocusChanged: events.focus },
-    tabs: { query: async (options) => { assert.deepEqual(options, { active: true, windowId: 1 }); return state.tab ? [structuredClone(state.tab)] : []; },
+    windows: { getLastFocused: async (options) => { assert.deepEqual(options, { populate: false });
+      if (state.windowError) throw new Error("private window detail"); return structuredClone(state.window); }, onFocusChanged: events.focus },
+    tabs: { query: async (options) => { assert.deepEqual(options, { active: true, windowId: 1 });
+      if (state.tabQueryError) throw new Error("private tab detail"); return state.tab ? [structuredClone(state.tab)] : []; },
       onActivated: events.activated, onUpdated: events.updated, onRemoved: events.removed, onReplaced: events.replaced },
     permissions: {
       async contains(value) { assert.ok(value.origins.length === 1); const gate = state.permissionGate; state.permissionGate = null; return gate ? gate.promise : state.permitted; },
@@ -204,5 +207,33 @@ test("foreground adapter excludes unfocused/incognito pages and retains only pre
   h.state.window.focused = true; h.state.tab.incognito = true;
   h.events.focus.emit(1); await h.advance(); assert.equal(h.calls.reads, 0);
   assert.deepEqual(Object.keys(h.state.local).sort(), ["enabled", "origins"]);
+  assert.equal(h.calls.fetches.length, 0);
+});
+
+test("foreground status reports only bounded eligibility reasons without relaxing capture checks", async (t) => {
+  const h = await harness(t, { enabled: false });
+  const status = async () => h.send("status");
+  assert.equal((await status()).contextReason, null);
+  h.state.window.focused = false; assert.equal((await status()).contextReason, "window-unfocused");
+  h.state.window.focused = true; h.state.window.type = "popup";
+  assert.equal((await status()).contextReason, "unsupported-window");
+  h.state.window.type = "normal"; h.state.tab = null;
+  assert.equal((await status()).contextReason, "tab-unavailable");
+  h.state.tab = { id: 7, active: true, incognito: false, status: "loading", url: PAGE };
+  assert.equal((await status()).contextReason, "page-loading");
+  h.state.tab.status = "complete"; h.state.tab.url = undefined;
+  assert.equal((await status()).contextReason, "url-unavailable");
+  h.state.tab.url = "chrome://extensions/";
+  assert.equal((await status()).contextReason, "unsupported-url");
+  h.state.tab.incognito = true; assert.equal((await status()).contextReason, "incognito");
+  h.state.tab.incognito = false; h.state.tab.url = PAGE;
+  h.state.windowError = true;
+  const windowFailure = await status();
+  assert.equal(windowFailure.contextReason, "context-unavailable");
+  assert.equal(windowFailure.currentOrigin, null);
+  assert.ok(!JSON.stringify(windowFailure).includes("private"));
+  h.state.windowError = false; h.state.tabQueryError = true;
+  assert.equal((await status()).contextReason, "context-unavailable");
+  assert.equal(h.calls.reads, 0);
   assert.equal(h.calls.fetches.length, 0);
 });

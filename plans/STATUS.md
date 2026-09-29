@@ -6,7 +6,7 @@ now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
 the exact expanded Security/Privacy/Policy package explicitly approved by the
 owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**,
-with capture default-off and site-by-site enablement. Extension 0.6.0 is ready for
+with capture default-off and site-by-site enablement. Extension 0.6.1 is ready for
 the approved owner-local public-page test; matching quality remains unvalidated.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
@@ -19,6 +19,32 @@ community adoption—remain unvalidated. Stop expanding review infrastructure.
 The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
+
+## Owner feedback: disabled site controls — 2026-09-29
+
+- The owner reports all four matching controls disabled with checked consent,
+  first on an internal Chrome page and then on a public HTTPS article. The
+  supplied HTTPS address passes the syntactic URL policy; article extraction
+  happens later and cannot explain a missing eligible origin at this stage.
+- A fresh-profile actual-Chrome probe confirms temporary action-popup access
+  supplies the HTTPS URL to the worker before an optional host grant. Enable
+  becomes available with consent on the owned synthetic article. This does not
+  reproduce or establish the cause of the owner's public-site failure.
+- Patch 0.6.1 exposes a bounded foreground-context reason beside Enable, clears
+  stale site details on worker failure and replaces the misleading disabled
+  wait cursor. Focus, active-tab, URL, completion, permission and consent gates
+  remain unchanged; no wider capture, logging, persistence or permissions.
+- Focused tests pass 45/45; complete restricted suite 399/399; normal suite
+  passes with its intentional guard-only skip; indicator/client suite 217/217.
+  Secret scan: 138 files, zero findings; 57 local documentation links resolve.
+  Separate AI Trust review found no material defect. Actual Chrome 154 passes
+  the seven-check HTTPS eligibility regression, including visible rejection
+  guidance, disabled cursor and consent-before-grant behavior. One owned article
+  and its favicon were fulfilled locally; no external requests, exceptions,
+  inference contexts, model loads, service listener or owner data access.
+- Next owner evidence: reload the unpacked extension to 0.6.1, open it on the
+  public article, and report only the new context message if Enable remains
+  disabled. Do not request tokens, storage dumps or private page material.
 
 ## New owner direction and next gate — 2026-09-29
 

@@ -145,6 +145,7 @@ input[type="checkbox"] { width: 24px; min-height: 24px; accent-color: #0b7285; }
 #discussion-learned-controls { display: grid; gap: 9px; padding-top: 12px; border-top: 1px solid #bcc8cf; }
 #discussion-learned-controls[hidden] { display: none; }
 #matching-sites { display: grid; gap: 8px; }
+#matching-context { color: #8a3d2d; }
 textarea { resize: vertical; }
 .discussion-thread { display: grid; gap: 12px; }
 .discussion-contribution { display: grid; gap: 7px; padding: 10px; border: 1px solid #d4dee3; border-radius: 8px; }
@@ -176,9 +177,11 @@ button:focus-visible {
 }
 
 button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.68;
 }
+
+button:disabled[data-busy="true"] { cursor: progress; }
 
 button:focus-visible,
 select:focus-visible {

@@ -19,6 +19,12 @@ Do not restart B1–B5; owner-local public-site feedback is next. Historical S3 
 the [S3 review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md) for exact evidence.
 Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md).
 
+Owner-feedback patch **0.6.1** adds bounded eligibility diagnostics for disabled
+site controls and corrects the misleading busy cursor. A public-site report is
+still under diagnosis: an isolated synthetic HTTPS action-popup probe works
+before any optional site grant. Do not claim the owner's root cause is fixed or
+relax foreground/consent constraints; use the new context message to narrow it.
+
 2026-09-29 continuation: [model options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
 and [ADR-017's exact experiment proposal](../decisions/ADR-017-local-embedding-experiment.md)
 were explicitly **owner-approved on 2026-09-29**. The owner's global-language/download-size
