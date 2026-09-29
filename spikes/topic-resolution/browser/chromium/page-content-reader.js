@@ -41,17 +41,6 @@ export function collectPageContent(expectedUrl) {
     let headCount = 0;
     for (let child = document.head.firstElementChild; child; child = child.nextElementSibling) {
       budget(); if (++headCount > 256) return unsupported("capture-budget");
-      if (child.tagName === "META") {
-        const name = attribute(child, "name").trim().toLowerCase();
-        if (["robots", "googlebot", "tdm-reservation"].includes(name)) {
-          const value = attribute(child, "content").toLowerCase();
-          const policyTokens = value.split(/[\s,;]+/u).filter(Boolean);
-          if ((name === "tdm-reservation" && value.trim() !== "0") ||
-              (name !== "tdm-reservation" && (!policyTokens.length || policyTokens.some((token) => !["all", "follow", "index"].includes(token))))) {
-            return unsupported("rights-restricted");
-          }
-        }
-      }
       if (child.tagName === "TITLE" && !title) {
         let raw = "";
         boundedChildren(child, (textNode) => {

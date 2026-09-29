@@ -6,14 +6,14 @@ now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
 the exact expanded Security/Privacy/Policy package explicitly approved by the
 owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**,
-with capture default-off and site-by-site enablement. The owner now confirms Enable
-is clickable but the page remains unsupported. Extension 0.6.4 fixes a reproduced
-stale foreground-failure state and exposes the actual unsupported reason. The
-owner now reports `rights-restricted`: the current stop is the reader's metadata
-filter. Its exact triggering tag is unknown. The owner now wants all freely
-accessible pages supported; the treatment of explicit processing reservations
-still needs clarification before changing the filter. Matching quality remains
-unvalidated.
+with capture default-off and site-by-site enablement. The owner's `rights-restricted`
+report identified the reader's metadata gate; its exact triggering tag remains
+unknown. In response to the explicit-reservation question the owner now directs
+proceeding with local vectors under a permission working assumption. Extension
+**0.6.5** removes that metadata veto only, preserving the public-only per-site
+scope and other guards. This is owner policy/risk acceptance, not established
+legal or store clearance. Matching quality and the owner's exact page outcome
+remain unvalidated.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -26,7 +26,46 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Owner feedback: disabled site controls — 2026-09-29
+## Current owner feedback: local vector-processing assumption — 2026-09-29
+
+- Owner explicitly directs assuming permission for the core local vector-matching
+  experiment after the earlier question about freely readable pages with explicit
+  reservations. The [ADR-018 amendment](../decisions/ADR-018-background-page-matching-local-poc.md)
+  supersedes the proposed three-preview allowlist. Do not ask the same question
+  again or mistake the working assumption for legal/store clearance.
+- **0.6.5** removes only robots/googlebot/tdm-reservation parsing/veto from the
+  current real-page reader, including negative/unknown/malformed declarations.
+  No per-page advisory field, metadata egress or new retained state. Head/title
+  bounds, visible main-region exclusions, focus/document fences, consent,
+  permissions, exact payload and deletion remain unchanged. The frozen metadata-
+  only experiment and legacy unsupported-reason projection remain unchanged.
+- The English disclosure states the owner-only assumption. Already enabled sites
+  remain enabled under this expressly requested amendment; new sites still need
+  consent. No private-page capture, access-control bypass, automatic grant,
+  external tester, provider, remote processing, download or publication approval.
+- Verification: restricted suite **525/525**, normal suite **524 pass / one
+  intentional guard-only skip**, indicator suite **343/343**. Separate Sol Medium
+  Trust review accepts product/tests/docs and both harness changes; independently
+  passes **86/86** focused checks. Secret scan: 140 files, zero findings.
+- Actual Chrome 154 passes **32 eligibility/reader checks**: the existing 21 plus
+  seven exact synthetic captures and four retained exclusions. Only owned DOM in
+  a disposable profile was sampled using the packaged isolated-world reader via
+  action access. Zero external requests, runtime exceptions, inference or model
+  asset loads; no optional host grant, backend or owner profile/data access.
+- The full matching smoke now expects metadata-bearing pages to ingest vectors
+  without raw text, while forms remain excluded. It was syntax/code reviewed but
+  **not rerun this slice**: port 4174 is occupied. The existing listener was neither
+  used nor stopped. Earlier full-loop evidence remains historical, not a pass for
+  this amended harness. No model acquisition or asset change was needed.
+- Owner next step: reload **0.6.5**, reopen on the enabled public article and retry
+  if needed. The metadata gate alone can no longer reject it, but other structural,
+  identity or resource checks may. No backend restart or data reset. No claim of
+  all-public-site support, legal permission or confirmed success on this article.
+
+## Historical owner feedback: disabled site controls — 2026-09-29
+
+The pending policy questions/proposals below are historical and superseded by the
+explicit 0.6.5 local amendment above. Earlier test counts retain their dated scope.
 
 - Latest owner direction: **all freely accessible pages should be allowed**.
   Treat this as the product coverage goal, not an unambiguous instruction to ignore

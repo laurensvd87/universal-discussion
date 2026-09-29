@@ -21,20 +21,21 @@ const TEXTS = {
   a: 'Cedar Slate 2 launches in September 2026. The tablet has an ink screen and a removable battery.',
   b: 'September 2026 brings Cedar Slate 2, a tablet with an electronic paper display and replaceable battery.',
   c: 'Riverbank gardeners start tomato seedlings indoors and transplant them into community garden beds in spring.',
+  metadata: 'Cedar Slate 2 launches in September 2026 with an ink screen and removable battery. Owned metadata-bearing article content.',
 };
 const PRIVATE_SENTINEL = 'owned-form-field-must-never-leave';
-const RIGHTS_SENTINEL = 'owned-rights-blocked-text-must-never-leave';
+const METADATA_TAGS = '<meta name="robots" content="noai, noindex, max-snippet:0"><meta name="googlebot" content="nosnippet"><meta name="tdm-reservation" content="1">';
 const FIXTURES = new Map(Object.entries({
   a: `<title>Owned Cedar launch A</title><article><p>${TEXTS.a}</p></article>`,
   b: `<title>Owned Cedar launch B</title><main><p>${TEXTS.b}</p></main>`,
   c: `<title>Owned Riverbank gardening C</title><article><p>${TEXTS.c}</p></article>`,
   d: `<title>Owned paused Cedar D</title><main><p>${TEXTS.a}</p></main>`,
-  rights: `<title>Owned restricted article</title><meta name="robots" content="noai"><article><p>${RIGHTS_SENTINEL}</p></article>`,
+  metadata: `<title>Owned metadata-bearing article</title><article><p>${TEXTS.metadata}</p></article>`,
   forms: `<title>Owned excluded form</title><main><form><input value="${PRIVATE_SENTINEL}"><textarea>${PRIVATE_SENTINEL}</textarea></form></main>`,
 }).map(([key, html]) => {
   const split = html.indexOf('</title>') + 8;
-  const body = html.slice(split).replace('<meta name="robots" content="noai">', '');
-  return [`${ORIGIN}/background-fixture/${key}`, `<!doctype html><html><head><meta charset="utf-8">${html.slice(0, split)}${key === 'rights' ? '<meta name="robots" content="noai">' : ''}</head><body>${body}</body></html>`];
+  const body = html.slice(split);
+  return [`${ORIGIN}/background-fixture/${key}`, `<!doctype html><html><head><meta charset="utf-8">${html.slice(0, split)}${key === 'metadata' ? METADATA_TAGS : ''}</head><body>${body}</body></html>`];
 }));
 const ROOT_FILTER = ['page', 'iframe', 'other', 'worker', 'service_worker', 'shared_worker']
   .map(type => ({ type, exclude: false })).concat({ exclude: true });
@@ -151,7 +152,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   function inspectApiPayload(request) {
     if (request.method !== 'POST') return;
     assert.equal(typeof request.postData, 'string', 'Inspectable bounded JSON API body required');
-    for (const forbidden of [...Object.values(TEXTS), PRIVATE_SENTINEL, RIGHTS_SENTINEL]) assert.ok(!request.postData.includes(forbidden), 'Captured text must never enter a backend request');
+    for (const forbidden of [...Object.values(TEXTS), PRIVATE_SENTINEL]) assert.ok(!request.postData.includes(forbidden), 'Captured text must never enter a backend request');
     const payload = JSON.parse(request.postData);
     const url = new URL(request.url);
     if (url.pathname === '/v1/sources/ingest') {
@@ -162,7 +163,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       assert.ok(payload.embedding.values.every(Number.isFinite));
       assert.ok(Math.abs(Math.hypot(...payload.embedding.values) - 1) < 1e-6);
       assert.equal(payload.extractorVersion, 'main-text-prefix/v1');
-      assert.ok(['a', 'b', 'c', 'd'].some(name => fixtureUrl(name) === payload.url), 'Only eligible owned articles may ingest');
+      assert.ok(['a', 'b', 'c', 'd', 'metadata'].some(name => fixtureUrl(name) === payload.url), 'Only eligible owned articles may ingest');
       assert.ok(typeof payload.title === 'string' && payload.title.length <= 200);
       ingestions.push({ url: payload.url, fields: Object.keys(payload).sort(), dimensions: 384 });
     }
@@ -237,14 +238,18 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     checks.push('pause-prevents-new-capture');
     await click('#matching-resume'); await closePopup(); const d = await automatic('d');
     assert.equal(d.topicId, a.topicId); checks.push('resume-captures-current-page');
-    stage = 'unsupported-contexts';
-    for (const name of ['rights', 'forms']) {
-      const count = ingestions.length;
-      await navigate(name); await openPopup(); await waitMatching(EN.matchingUnsupported);
-      assert.ok(!(await catalog()).sources.some(item => item.url === fixtureUrl(name)));
-      assert.equal(ingestions.length, count);
-    }
-    checks.push('rights-and-form-pages-have-no-ingestion');
+    stage = 'metadata-bearing-page-accepted';
+    await navigate('metadata'); const metadata = await automatic('metadata');
+    assert.equal(metadata.provenance, 'owner-local-page-embedding/v1');
+    assert.ok(ingestions.some(item => item.url === fixtureUrl('metadata')));
+    checks.push('metadata-bearing-page-captures-and-ingests-without-raw-text');
+    stage = 'form-context-excluded';
+    const count = ingestions.length;
+    await navigate('forms'); await openPopup(); await waitMatching(EN.matchingUnsupportedRegion);
+    await waitExpression("document.querySelector('#matching-detail')?.textContent==='[missing-region]'", 'specific form exclusion diagnostic');
+    assert.ok(!(await catalog()).sources.some(item => item.url === fixtureUrl('forms')));
+    assert.equal(ingestions.length, count);
+    checks.push('form-page-has-no-ingestion-and-shows-missing-region');
     stage = 'sqlite-restart-and-new-pairing';
     await click('#matching-pause'); await waitMatching(EN.matchingOff);
     await chooseSource(b.id);
@@ -297,7 +302,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     checks.push('remove-site-consent');
     const externalExtensionRequests = requests.filter(request => selfUrl(request.context) && !selfUrl(request.url) && !apiUrl(request.url)).length;
     assert.equal(externalExtensionRequests, 0); assert.equal(runtimeExceptions, 0);
-    assert.ok(ingestions.length >= 3);
+    assert.ok(ingestions.length >= 5);
     assert.ok(workers.some(worker => selfUrl(worker.url) && worker.type === 'worker'));
     return { browser: version.product, result: 'PASS', actualActionPopup: true, checks,
       vectorsSent: ingestions.length, vectorDimensions: 384, rawTextApiRequests: 0,

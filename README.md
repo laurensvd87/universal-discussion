@@ -9,7 +9,7 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-- Extension 0.6.4 connects to the local SQLite service using session-only pairing.
+- Extension 0.6.5 connects to the local SQLite service using session-only pairing.
   Create/select Topics, post roots and replies, edit/withdraw local comments and
   reopen persisted discussions. Human/AI counts stay distinct; no AI posts run.
 - Opt-in background matching samples rendered main content on enabled sites,
@@ -97,15 +97,20 @@ but the page still reports unsupported. **0.6.4** fixes a reproduced stale
 foreground-failure state: a fresh eligible observation on an enabled site schedules
 the ordinary matching checks again. Actual content-reader rejections do not
 auto-retry and now show a specific message and fixed diagnostic code. Reload to
-0.6.4 and reopen on the article; if still unsupported, report only that message/code.
+0.6.5 and reopen on the article; if still unsupported, report only that message/code.
 The owner's exact page outcome remains unconfirmed. No token, storage dump or
 page content is needed; the backend/data do not need a restart or reset.
 
-Latest owner feedback identifies `[rights-restricted]`, the prototype's metadata
-gate, not proof of a legal prohibition. The parser also rejects documented
-positive/unbounded Search preview directives. A narrow correction is proposed in
-[ADR-018](decisions/ADR-018-background-page-matching-local-poc.md), awaiting explicit
-owner policy approval; 0.6.4 and its reader remain unchanged for now.
+The owner identified `[rights-restricted]` and explicitly directed proceeding
+under a local vector-processing permission assumption. **0.6.5** removes the
+real-page reader's robots/googlebot/TDM metadata veto, including explicit and
+unknown declarations. [ADR-018](decisions/ADR-018-background-page-matching-local-poc.md)
+records this owner-only working assumption, **not legal or store clearance**.
+Per-site consent, public-only scope, visible-region exclusions, resource limits
+and local data boundaries remain. The older metadata-only experiment is unchanged.
+Reload the extension and retry the enabled article; no backend restart or data
+reset is needed. Other checks can still reject pages; all-public-site coverage
+and the owner's exact page outcome are not established.
 
 To try the discussion loop:
 

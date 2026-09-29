@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## On-device background matching (0.6.4)
+## On-device background matching (0.6.5)
 
 The owner approved ADR-018's local-only package. Background matching defaults
 off. Page text is sampled and embedded inside the extension; only URL, short
@@ -23,7 +23,7 @@ local SQLite database is not encrypted. No web search or crawler is included.
    tick the consent checkbox and select **Enable matching for displayed site**.
    Accept Chrome's site-access prompt. Do not enable mail, banking, health/account
    dashboards or confidential sites. This uses one generic reader, not per-site
-   integrations; missing structure or rights restrictions can make a page unsupported.
+   integrations; missing structure or resource limits can make a page unsupported.
 4. Browse normally on enabled sites, even with the popup closed. Only the active
    tab in the focused window is processed. Enable each additional site once.
    Reopen the popup: it shows processing, then selects the experimental Topic
@@ -49,6 +49,15 @@ to the whole document. E5 uses a versioned prefix of at most 512 tokens. This is
 limited coverage, not full-page analysis. The exclusions are structural checks,
 not reliable authentication/private-data/paywall detection or a website-rights
 grant. Only process pages you may lawfully process.
+
+For this owner-only prototype, 0.6.5 implements the owner's permission working
+assumption: robots/googlebot/TDM metadata does not block matching, including
+negative, unknown or malformed declarations. This is not legal/store clearance,
+and vectors do not establish permission. The [ADR-018 amendment](../../../decisions/ADR-018-background-page-matching-local-poc.md)
+records the unresolved legal/policy assessment before any external tester,
+distribution or remote use. No private-page scope, access-control bypass, new
+permission or automatic site grant is introduced. The frozen older metadata-only
+experiment remains unchanged.
 
 The manifest adds an offscreen worker and optional HTTPS host grants. Requests
 remain fixed loopback API or packaged extension assets, with no remote script or
@@ -87,11 +96,14 @@ status sees the previously enabled site again, the normal matching checks restar
 once; ongoing polling does not keep resetting that timer. This is not a bypass of
 consent, permissions, pairing or page eligibility. Genuine reader rejections do
 not automatically retry. They now show specific English guidance and a bounded
-code, for example `[missing-region]`, `[rights-restricted]` or `[capture-budget]`.
-The restriction code describes the prototype's metadata check, not a legal ruling;
-the capture-budget code can also mean a guarded extraction failure. The reader
-and its rights/region/resource limits are unchanged. After reloading to 0.6.4,
-reopen on the enabled article and, if still unsupported, report the message/code.
+code, for example `[missing-region]` or `[capture-budget]`. The capture-budget
+code can also mean a guarded extraction failure. The owner's later
+`[rights-restricted]` report identified the metadata veto, not a legal ruling.
+Version 0.6.5 removes that veto under the explicit local working assumption
+above; the legacy reason remains accepted for compatibility. Region/resource,
+identity and privacy guards stay unchanged. After reloading to 0.6.5, reopen on
+the enabled article and select **Retry current page** if needed. If another
+unsupported reason remains, report only that message/code, not private data.
 Do not repeat the checkbox/Enable sequence as a presumed fix.
 
 Pairing and page eligibility are separate. **Choose a topic** means the local
@@ -123,6 +135,10 @@ An additional test seeds then removes synthetic site preferences only in its
 disposable profile. A failed foreground query recovers without a new browser
 event, but the real absent host grant still stops the flow before any capture,
 pairing request or model load. No owner preferences or backend state are touched.
+The 0.6.5 regression additionally invokes the packaged real-page reader on owned
+synthetic content through temporary action access. It checks metadata acceptance
+and retained content exclusions without enabling background capture, loading a
+model or accessing a backend. This is not a real-site or matching-quality test.
 Actual current test evidence is in [STATUS](../../../plans/STATUS.md); the paragraphs below retain
 the earlier feature-specific evidence, not current global capability limits.
 

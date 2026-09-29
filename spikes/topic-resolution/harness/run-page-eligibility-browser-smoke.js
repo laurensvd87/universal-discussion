@@ -11,6 +11,22 @@ const DEFAULT_CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.e
 const ORIGIN = 'https://example.com';
 const ARTICLE = `${ORIGIN}/owned-article`;
 const HTML = '<!doctype html><html><head><meta charset="utf-8"><title>Owned eligibility article</title></head><body><main><p>Owned synthetic article for the permission gate.</p></main></body></html>';
+const COLLECTOR_TITLE = 'Owned collector fixture';
+const COLLECTOR_TEXT = 'Owned synthetic article for bounded collector regression.';
+const EXCLUDED_TEXT = 'Owned excluded content must not be collected.';
+const COLLECTOR_CASES = [
+  { name: 'robots-negative', head: '<meta name="robots" content="noai, noindex, nosnippet, nofollow, max-snippet:0">' },
+  { name: 'robots-positive', head: '<meta name="robots" content="all, index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">' },
+  { name: 'googlebot-negative', head: '<meta name="googlebot" content="none, nosnippet, noarchive">' },
+  { name: 'googlebot-positive', head: '<meta name="googlebot" content="index, follow, max-snippet:-1">' },
+  { name: 'tdm-zero', head: '<meta name="tdm-reservation" content="0">' },
+  { name: 'tdm-one', head: '<meta name="tdm-reservation" content="1">' },
+  { name: 'excluded-subtrees', body: `<main><p>${COLLECTOR_TEXT}</p><form><input value="${EXCLUDED_TEXT}"><textarea>${EXCLUDED_TEXT}</textarea></form><div hidden>${EXCLUDED_TEXT}</div><section class="paywall">${EXCLUDED_TEXT}</section></main>` },
+  { name: 'forms-only', unsupported: true, body: `<main><form><input value="${EXCLUDED_TEXT}"><textarea>${EXCLUDED_TEXT}</textarea></form></main>` },
+  { name: 'hidden-region', unsupported: true, body: `<main hidden><p>${EXCLUDED_TEXT}</p></main>` },
+  { name: 'paywall-region', unsupported: true, body: `<article class="paywall"><p>${EXCLUDED_TEXT}</p></article>` },
+  { name: 'missing-region', unsupported: true, body: `<div><p>${EXCLUDED_TEXT}</p></div>` },
+];
 const FILTER = ['page', 'iframe', 'other', 'worker', 'service_worker', 'shared_worker']
   .map(type => ({ type, exclude: false })).concat({ exclude: true });
 const CHILD_FILTER = FILTER.filter(item => item.type !== 'service_worker');
@@ -30,6 +46,8 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
   let focusDiagnostics;
   let focusFailureDiagnostics;
   let evaluationFailureKind;
+  const collectorChecks = [];
+  let syntheticContentCaptures = 0;
   let closing = false;
   let resolveIdentity;
   const identityReady = new Promise(resolve => { resolveIdentity = resolve; });
@@ -348,6 +366,50 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     await wait(async () => (await status()).phase === 'off', 'default-off state restored');
     assert.equal(await evaluate("chrome.storage.local.get('pageMatchingPreferences').then(v => v.pageMatchingPreferences ?? null)", workerSession), null);
   }
+  async function checkPackagedCollector() {
+    // The action popup supplies temporary activeTab access to this owned page.
+    // Matching remains off and the optional host grant absent. Only the packaged
+    // collector is serialized into Chrome's actual isolated execution world.
+    assert.equal((await status()).enabled, false);
+    assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, workerSession), false);
+    try {
+      for (const fixture of COLLECTOR_CASES) {
+        stage = `packaged collector ${fixture.name}`;
+        const head = `<meta charset="utf-8"><title>${COLLECTOR_TITLE}</title>${fixture.head ?? ''}`;
+        const body = fixture.body ?? `<main><p>${COLLECTOR_TEXT}</p></main>`;
+        await evaluate(`(() => {
+          document.head.innerHTML = ${JSON.stringify(head)};
+          document.body.innerHTML = ${JSON.stringify(body)};
+        })()`, pageSession);
+        const injections = await evaluate(`(async () => {
+          const { collectPageContent } = await import('./page-content-reader.js');
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (tabs.length !== 1 || tabs[0].url !== ${JSON.stringify(ARTICLE)}) throw new Error('Owned active tab required');
+          return chrome.scripting.executeScript({ target: { tabId: tabs[0].id, frameIds: [0] },
+            world: 'ISOLATED', func: collectPageContent, args: [${JSON.stringify(ARTICLE)}] });
+        })()`);
+        assert.equal(injections.length, 1);
+        assert.equal(injections[0].frameId, 0);
+        assert.match(injections[0].documentId, /^[A-Za-z0-9._:-]{1,128}$/u);
+        const expected = fixture.unsupported
+          ? { contractVersion: 'page-content/1', status: 'unsupported', reason: 'missing-region' }
+          : { contractVersion: 'page-content/1', status: 'collected', url: ARTICLE, title: COLLECTOR_TITLE,
+            text: COLLECTOR_TEXT, extractorVersion: 'main-text-prefix/v1' };
+        assert.deepEqual(injections[0].result, expected);
+        if (!fixture.unsupported) syntheticContentCaptures++;
+        collectorChecks.push(`${fixture.name}-${fixture.unsupported ? 'excluded' : 'collected-exact-shape'}`);
+      }
+    } finally {
+      await evaluate(`(() => {
+        document.head.innerHTML = '<meta charset="utf-8"><title>Owned eligibility article</title>';
+        document.body.innerHTML = '<main><p>Owned synthetic article for the permission gate.</p></main>';
+      })()`, pageSession);
+    }
+    stage = 'collector leaves matching off and permissions unchanged';
+    assert.equal((await status()).enabled, false);
+    assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, workerSession), false);
+    assert.equal(await evaluate("chrome.storage.local.get('pageMatchingPreferences').then(v => v.pageMatchingPreferences ?? null)", workerSession), null);
+  }
   async function closePopup() {
     if (!popupTarget) return;
     const targetId = popupTarget; popupTarget = null; popupSession = null;
@@ -502,6 +564,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     stage = 'preferences remain absent';
     assert.equal(await evaluate("chrome.storage.local.get('pageMatchingPreferences').then(v => v.pageMatchingPreferences ?? null)", worker.sessionId), null);
     await checkForegroundRecovery();
+    await checkPackagedCollector();
     stage = 'runtime exceptions';
     assert.equal(runtimeExceptions, 0);
     stage = 'offscreen and inference worker targets';
@@ -515,20 +578,22 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     if (popupFocusDiagnostics) focusDiagnostics.ports = await evaluate('globalThis.__eligibilityFocusPortRecords ?? []', workerSession);
     return { result: 'PASS', browser: version.product, checks: ['blank-page-ineligible', 'owned-https-origin-eligible',
       'optional-host-permission-ungranted', 'default-off-and-no-consent-disabled', 'consent-enables-action-only',
-      'pause-resume-retry-disabled', 'no-pre-grant-storage-or-network', 'focused-popup-with-simulated-parent-unfocused',
+      'pause-resume-retry-disabled', 'no-persisted-pre-grant-preferences-or-network', 'focused-popup-with-simulated-parent-unfocused',
       'injected-unfocused-popup-rejected', 'restored-popup-focus-accepted', 'injected-popup-window-mismatch-rejected',
       'injected-tabs-loading-status-rejected', 'restored-tabs-after-loading-status-accepted',
       'injected-tabs-pending-url-rejected', 'restored-tabs-after-pending-url-accepted',
       'injected-tabs-url-unavailable-rejected', 'restored-tabs-after-url-unavailable-accepted',
       'injected-tabs-query-rejected', 'restored-tabs-after-query-rejection-accepted',
-      'stale-foreground-status-recovers-without-browser-event', 'recovery-retains-real-host-permission-gate'], interceptedDocuments,
+      'stale-foreground-status-recovers-without-browser-event', 'recovery-retains-real-host-permission-gate',
+      ...collectorChecks], interceptedDocuments,
       ownedFaviconRequests, blockedRequests, runtimeExceptions, inferenceTargets: inferenceTargets.size, embeddingRequests,
       simulatedParentFocusFlag: true, injectedNegativeFocusChecks: ['document-hasFocus-false-and-blur', 'current-window-id-mismatch'],
       injectedTabQueryChecks: ['loading-status', 'pending-url', 'url-unavailable', 'query-rejected'],
       syntheticPreferenceRecoveryCheck: true,
+      packagedCollectorWorld: 'ISOLATED', syntheticContentCaptures,
       ...(popupFocusDiagnostics ? { popupFocusDiagnostics: focusDiagnostics } : {}),
       elapsedMs: performance.now() - started,
-      scope: 'Fresh temporary profile, owned intercepted HTTPS article, synthetic preferences removed after recovery test; no grant, capture, inference, backend, or real webpage fetch' };
+      scope: 'Fresh temporary profile, owned intercepted HTTPS article, synthetic preferences removed after recovery test; bounded synthetic content captured with the packaged isolated-world collector under action activeTab; no optional host grant, inference, model asset load, backend access, or real webpage fetch' };
   } catch {
     // Do not print CDP expressions, page URLs, protocol payloads or popup data.
     const detail = stage === 'external request attempts' ? ` (${JSON.stringify({ blockedClasses, blockedOtherKinds })})` : '';

@@ -54,12 +54,31 @@ test("article and main role supported, whole-body fallback forbidden, hidden anc
   assert.equal(collect(element("MAIN", { class: "paywall" }, [text("Restricted article")])).status, "unsupported");
 });
 
-test("negative head rights, mismatched navigation, subframes and malformed controls fail closed", () => {
-  for (const attributes of [{ name: "robots", content: "noai" }, { name: "robots", content: "noindex, follow" },
-    { name: "robots", content: "nosnippet" }, { name: "robots", content: "" },
-    { name: "tdm-reservation", content: "1" }, { name: "tdm-reservation", content: "unknown" }]) {
-    assert.equal(collect(element("MAIN", {}, [text("Public sample")]), { head: [element("META", attributes)] }).reason, "rights-restricted");
+test("head metadata alone never vetoes otherwise eligible owned public main text", () => {
+  const values = ["all, index, follow", "max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+    "noindex, nofollow, nosnippet, noarchive", "noai, noimageai", "0", "1", "unknown-directive",
+    "", " , ; ", "max-snippet:invalid", "noai\u0000malformed", "x".repeat(2048)];
+  for (const name of ["robots", "googlebot", "tdm-reservation", " ROBOTS ", "unrecognized-policy"]) {
+    for (const content of values) {
+      const result = collect(element("MAIN", {}, [text("Owned public sample")]), { head: [element("META", { name, content })] });
+      assert.deepEqual(result, { contractVersion: "page-content/1", status: "collected", url: URL,
+        title: "Synthetic public sensor article", text: "Owned public sample", extractorVersion: "main-text-prefix/v1" });
+      assert.deepEqual(Object.keys(result).sort(), ["contractVersion", "extractorVersion", "status", "text", "title", "url"]);
+    }
   }
+  const metadata = [{ name: "robots", content: "all, follow" }, { name: "googlebot", content: "noai, nosnippet" },
+    { name: "tdm-reservation", content: "1" }, { name: "robots" }, { content: "unknown" }].map((attributes) => element("META", attributes));
+  for (const node of metadata) {
+    const getAttribute = node.getAttribute;
+    node.getAttribute = (name) => {
+      if (["name", "content"].includes(name)) throw new Error("Head metadata must not be read");
+      return getAttribute(name);
+    };
+  }
+  assert.equal(collect(element("MAIN", {}, [text("Owned public sample")]), { head: metadata }).status, "collected");
+});
+
+test("mismatched navigation, subframes and malformed controls fail closed", () => {
   assert.equal(collect(element("MAIN", {}, [text("Public sample")]), { url: URL + "&changed=1" }).reason, "document-mismatch");
   assert.equal(collect(element("MAIN", {}, [text("Bad\u0000control")])).reason, "invalid-content");
   const setup = dom(element("MAIN", {}, [text("Public sample")]));
@@ -73,6 +92,9 @@ test("text/title sample, DOM node and elapsed-time budgets remain bounded", () =
   const result = collect(element("MAIN", {}, [text("x".repeat(1_000_000))]));
   assert.equal(result.text.length, 4096);
   assert.equal(collect(element("MAIN", {}, Array.from({ length: 1600 }, () => element("P", {}, [text("one")])))).reason, "capture-budget");
+  assert.equal(collect(element("MAIN", {}, [text("Public sample")]), {
+    head: Array.from({ length: 256 }, () => element("META", { name: "robots", content: "noai" })),
+  }).reason, "capture-budget");
   let clock = 0;
   assert.equal(collect(element("MAIN", {}, [text("Public sample")]), { clock: () => clock += 50 }).reason, "capture-budget");
   const setup = dom(element("MAIN", {}, [text("Public sample")]));
@@ -112,6 +134,7 @@ test("reader rejects injected malformed/projection extras, wrong frame/document,
   const good = { contractVersion: "page-content/1", status: "collected", url: URL, title: "Title", text: "Public sample", extractorVersion: "main-text-prefix/v1" };
   for (const entry of [{ documentId: "doc-1", frameId: 1, result: good }, { documentId: "", frameId: 0, result: good },
     { documentId: "doc-1", frameId: 0, result: { ...good, documentId: "page-claimed" } },
+    { documentId: "doc-1", frameId: 0, result: { ...good, metadata: { robots: "noai" } } },
     { documentId: "doc-1", frameId: 0, result: { ...good, text: "x".repeat(4097) } },
     { documentId: "doc-1", frameId: 0, result: { ...good, url: URL + "&changed=1" } },
     { documentId: "doc-1", frameId: 0, result: { ...good, get title() { throw new Error("Page-defined getter"); } } }]) {
@@ -121,4 +144,12 @@ test("reader rejects injected malformed/projection extras, wrong frame/document,
   const reader = createPageContentReader({ executeScript: async () => [{ documentId: "other-doc", frameId: 0, result: { contractVersion: "page-content-attestation/1", status: "attested", url: URL } }] });
   await assert.rejects(reader.attest(7, "doc-1", URL), /Page content unavailable/);
   await assert.rejects(reader.read(7, "https://private.invalid/"), /Page content unavailable/);
+});
+
+test("reader retains the legacy rights-restricted unsupported projection", async () => {
+  const legacy = { contractVersion: "page-content/1", status: "unsupported", reason: "rights-restricted" };
+  const reader = createPageContentReader({ executeScript: async () => [{ documentId: "doc-1", frameId: 0, result: legacy }] });
+  const observed = await reader.read(7, URL);
+  assert.deepEqual(observed.result, legacy);
+  assert.ok(Object.isFrozen(observed.result));
 });

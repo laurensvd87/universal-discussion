@@ -55,6 +55,8 @@ test("site permission prompt starts synchronously in gesture after disclosed che
   assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "enable-site", origin: "https://public.example.com" });
   assert.equal(ui.byId("matching-consent").checked, false);
   assert.ok(ui.created.some((item) => item.textContent === EN.matchingDisclosure));
+  assert.match(EN.matchingDisclosure, /owner-only prototype, publisher metadata does not block matching/);
+  assert.match(EN.matchingDisclosure, /unverified working assumption, not legal or store clearance/);
   assert.ok(ui.created.some((item) => item.textContent === EN.matchingPartial));
 });
 test("polling is one-flight, every500ms, shared read; disposal cancels and ignores late work", async () => {

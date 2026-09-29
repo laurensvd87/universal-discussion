@@ -40,18 +40,22 @@ schedules one ordinary fenced refresh; it never retries actual reader rejections
 Full restricted suite 523/523, indicator suite 341/341, actual Chrome 21 checks;
 separate AI Trust review accepts the slice. The owner has now supplied
 `rights-restricted`: the head-metadata gate is identified, but the exact tag is
-not. Read-only synthetic reproduction proves the parser also rejects positive/
-unbounded preview declarations. ADR-018 now proposes a narrow three-declaration
-allowlist extension, **pending explicit owner policy approval before coding**;
-do not silently bypass the current gate or promise this fixes the specific site.
-No new reload/Enable/focus test is needed while awaiting that decision. Leave the
-owner's backend, database and profile untouched.
-Latest owner response: all freely accessible pages should be allowed. Record
-this as a broader coverage goal, not approval to override explicit processing
-reservations. Clarify just that boundary with the owner: documented Search-only
-directives versus explicit TDM/AI objections. Preserve per-site consent/public-only
-scope and unknown/malformed-signal handling; no automatic grant or private-page
-expansion follows. See the ADR's owner-follow-up note before implementing.
+not. Read-only synthetic reproduction proved the parser also rejected positive/
+unbounded preview declarations. The owner then explicitly directed proceeding
+with vector matching under a permission assumption in answer to the reservation
+question. **0.6.5** implements the ADR-018 owner-only working-assumption amendment:
+remove the current real-page reader's robots/googlebot/TDM metadata veto, including
+negative/unknown/malformed signals. No metadata advisory field or backend change.
+Retain bounded head/title traversal, public-only per-site consent, visible-region
+exclusions, document/focus guards, payload and retention. Existing granted sites
+are not reset; new sites are not automatically enabled. The frozen metadata-only
+experiment is unchanged. UI states that this is not legal/store clearance.
+Do not ask the same policy question again. Broader private/remote/tester/release
+gates and applicable policy/legal assessment remain separate. Owner next step:
+reload 0.6.5 and retry the enabled public article; another rejection may still
+occur. Do not promise all public sites or the particular article will resolve.
+Leave the owner's backend, database and profile untouched; no reset/restart is
+required. Verification results are recorded in STATUS and the ADR-018 review.
 Known separate follow-up: a failed `authorized()` observation after reading can
 strand `processing/reading` without a new event. It remains safely non-ingesting
 but is not fixed by this initial-foreground recovery; see STATUS before changing it.

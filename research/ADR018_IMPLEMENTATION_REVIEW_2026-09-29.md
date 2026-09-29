@@ -78,6 +78,51 @@ with Ctrl+C. Tests never used its token/database or stopped that process.
 
 ## Remaining limits and next step
 
+Metadata-policy amendment, extension **0.6.5**: the owner's `rights-restricted`
+report identified the metadata gate, though the exact publisher tag was not
+verified. After the explicit-reservation question, the owner directed continuing
+with local vector matching under a permission assumption. The lead and separate
+Sol Medium Trust review interpret this as the local project-policy amendment in
+ADR-018, not legal/store clearance. No repeat of the same approval question.
+
+The runtime change removes only the 11-line robots/googlebot/TDM parsing/veto
+branch. The English disclosure states the unverified owner-only assumption.
+Exact output, title/head/text/DOM/time limits, visible-region exclusions, consent,
+foreground/document binding, payloads and retention are unchanged. No new field,
+permission, remote input, model or stored state. The frozen metadata-only reader
+is unchanged; the legacy `rights-restricted` projection remains accepted.
+
+New pure tests cover 60 metadata combinations, mixed/throwing metadata getters,
+exact output, rejection of added metadata DTO fields and retained head budgets.
+Restricted suite **525/525**, normal **524 pass / one intentional guard-only
+skip**, indicator **343/343**. Separate AI Trust review accepts the scope and
+both harness diffs, independently passing **86/86** focused restricted checks.
+Secret scan: 140 files, zero findings. Review is not legal certification.
+
+Actual Chrome **154.0.8037.58** passes **32 eligibility/reader checks** in about
+7.5 seconds: existing 21 checks plus six metadata cases, one mixed-exclusion
+capture and four excluded-region cases. The packaged collector runs in Chrome's
+isolated world via temporary action access to project-owned synthetic DOM.
+Seven exact bounded captures; forms, hidden/paywall containers and absent main
+structure stay excluded. DOM restored, matching off, synthetic preferences
+removed, no optional host grant, external requests, runtime exceptions, inference
+or model asset loads. Temporary profile cleaned; no owner profile/backend/data
+access. This is not third-party-page or matching-quality evidence.
+
+The full matching smoke is updated to require ingestion of the metadata-bearing
+owned page with no raw text in requests, and the specific missing-region form
+rejection. Syntax and code review pass. **It was not rerun for 0.6.5** because
+port 4174 is occupied; the existing listener was neither used nor stopped.
+The earlier 14-check run above tested the old metadata policy and is historical.
+Rerun the amended full flow when that port is available; do not claim it passed.
+
+Owner next step: reload 0.6.5 and retry the enabled public article without a
+backend restart or reset. Other structure/resource/identity checks may still
+reject it. All-public-site coverage and this article's successful matching remain
+unconfirmed. External testers/distribution/remote use still require separate
+policy/legal assessment and explicit approvals. The historical notes below keep
+their version-specific scope; they are not new outstanding owner review tasks.
+
 Unsupported-state follow-up, extension 0.6.4: owner confirms Enable is clickable
 but the generic unsupported message remains. Baseline pure mocks independently
 reproduce a stale initial foreground failure before any read, followed by an

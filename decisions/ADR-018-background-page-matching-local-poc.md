@@ -46,8 +46,9 @@ Phase 0 and the 6/6 owner review remain complete. The R5 provenance-approved
    from an `article`, `main` or main-role region (maximum 4,096 characters).
    Exclude forms/editable fields, scripts, navigation, comments, hidden text and
    frames; no unrestricted whole-document fallback, cookies or storage reads.
-   Respect supported explicit negative in-head rights signals without claiming
-   they establish complete permission. If no eligible region remains, display
+   The original negative in-head metadata veto is superseded for this owner-only
+   PoC by the 0.6.5 working-assumption amendment below; metadata is neither a
+   permission grant nor a matching veto here. If no eligible region remains, display
    unsupported/manual Topic choice. E5 consumes a deterministic prefix sample
    of at most 512 tokens including prefix/special tokens; disclose limited
    coverage in the UI. Sampling is versioned, never presented as a full-page
@@ -213,7 +214,59 @@ guidance. The reader, rights checks, resource limits, collection, storage and
 permissions remain unchanged. A restriction code describes prototype behavior,
 not legal permission or prohibition. The owner's actual rejection is still unknown.
 
-## Pending owner-policy decision: preview declarations — 2026-09-29
+## Owner-approved local working assumption (0.6.5) — 2026-09-29
+
+After being asked specifically whether freely readable pages with an explicit
+processing reservation should still be blocked, the owner answered:
+"wir machen vectoren daraus zum matchen. wir müssen davon ausgehen dass das
+erlaubt ist, sonst geht das ganze konzept in die tonne". In that context this is
+the owner's explicit direction to proceed with local vector matching under a
+permission assumption, including that reservation case. Do not repeat the same
+approval question or present the earlier three-preview proposal as the decision.
+
+For this single-owner, unpacked, local-only PoC, remove the real-page collector's
+`robots`, `googlebot` and `tdm-reservation` metadata veto entirely. These values
+are not parsed, transmitted or stored; there is no per-page rights/advisory DTO.
+Unknown, empty, malformed or conflicting values also do not veto collection by
+themselves. The bounded head traversal and title extraction remain. Keep the
+legacy `rights-restricted` projection for compatibility; the new collector does
+not emit it solely from these tags. The frozen metadata-only experiment stays
+unchanged. English UI disclosure must state the working assumption and absence
+of legal/store clearance.
+
+This supersedes only the metadata stop in package item 3. All per-site grants,
+default-off/Pause/revocation, foreground/document binding, URL/private-context
+policy, visible main-region/form/comment/hidden/paywall-container exclusions,
+resource bounds, inference, exact loopback payload and retention/deletion rules
+remain. No whole-body fallback, access-control bypass, authentication/private-page
+expansion, automatic site grant, new field, permission, endpoint, model download
+or data migration. Existing owner-granted sites stay granted under this expressly
+requested amendment; no new grant-reset workflow is necessary for this one-owner
+test. Structural exclusions are not reliable private/paywall detection.
+
+This records product-owner risk acceptance, **not a finding that vectors make
+processing lawful**. Copyright, contract, privacy and platform applicability
+remain unresolved; the necessity of a feature does not prove permission. Public
+visibility, local processing and withholding raw text do not independently
+establish blanket clearance. The primary sources below remain relevant, including
+[Directive 2019/790](https://eur-lex.europa.eu/legal-content/EN-FR/TXT/?uri=CELEX%3A32019L0790)
+and the [Chrome Web Store IP policy](https://developer.chrome.com/docs/webstore/program-policies/impersonation-and-intellectual-property).
+No claim that this app definitely falls inside or outside a legal exception is
+made. Before external testers, distribution, store submission or remote use,
+reassess the applicable law/terms/platform policy and obtain the separate owner
+approval; neither this amendment nor an AI code review provides that clearance.
+
+Focused tests use only project-created public-page fixtures: formerly rejected
+metadata now passes, while content/identity/budget exclusions and payload shape
+remain protected. The exact publisher tag that triggered the owner's report is
+still unverified. Removing this gate does not guarantee that the particular page
+passes other checks or that all freely accessible sites are supported.
+
+## Historical preview proposal — superseded by the 0.6.5 amendment
+
+The following records the earlier investigation and unanswered question at that
+time, not a current stop instruction. The owner's response above resolves the
+local project-policy choice, not the legal uncertainty.
 
 The owner reports `rights-restricted` on a public article. The exact page tag
 could not be verified through the research browser; do not treat a synthetic
