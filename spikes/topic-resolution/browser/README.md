@@ -29,6 +29,13 @@ storage may hold one inert `pageMatchingToolbarTabId` integer, allowing a restar
 worker to clear its previous per-tab icon without scanning tabs. Neither setting
 grants capture, stores content or makes pairing persistent. No new permissions.
 
+Verified in actual Chrome on owned synthetic pages: 17 full matching/User-mode
+checks, including shared comments and successful native blue/neutral bitmap
+updates; 19 Developer discussion regression areas; 15 session and 32 eligibility/
+reader checks. The connected User popup was visually inspected. These tests use
+temporary profiles/databases, not the owner's data, and do not validate general
+matching accuracy or replace the manual first-dialog/reload/restart checks below.
+
 ## On-device background matching
 
 The owner approved ADR-018's local-only package and ADR-019 B's window-scoped
@@ -150,7 +157,7 @@ code can also mean a guarded extraction failure. The owner's later
 `[rights-restricted]` report identified the metadata veto, not a legal ruling.
 Version 0.6.5 removes that veto under the explicit local working assumption
 above; the legacy reason remains accepted for compatibility. Region/resource,
-identity and privacy guards stay unchanged. After reloading to 0.7.0, start a
+identity and privacy guards stay unchanged. After reloading to 0.8.0, start a
 session on the public article and select **Retry current page** if needed. If another
 unsupported reason remains, report only that message/code, not private data.
 Do not repeat the checkbox/Enable sequence as a presumed fix.
@@ -195,8 +202,9 @@ native permission-confirmation dialog; first-time acceptance is a manual check.
 The session smoke verifies forced worker reconstruction, not natural idle or
 crash cleanup. Actual reload/restart headless attempts lost the CDP-loaded
 worker/action connection; they are reported as gaps, not passes.
-The 0.7.0 full matching check now passes 15 checks across two intercepted HTTPS
-origins with actual packaged E5 inference and a shared comment. The separate
+The 0.8.0 full matching check now passes 17 checks across two intercepted HTTPS
+origins with actual packaged E5 inference, a shared comment, User-mode state and
+successful native toolbar bitmap updates. The separate
 discussion regression and loopback transport checks also pass. A test-only fix
 cancels debug setup for sessions Chrome has actually detached; live-target and
 network/payload failures remain fatal. This is not real-news accuracy evidence.

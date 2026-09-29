@@ -32,9 +32,10 @@ Improved matching and persistent pairing remain separate pending decisions.
   versions to the backend on this PC. It stores current Sources and provisional
   Topic associations, not raw page text or a per-visit timeline.
 - The popup loads automatically and updates after matching finishes. A real
-  Chrome synthetic-page check on 0.7.0 verifies cross-domain shared comments,
-  unrelated-page separation, Stop, persistence, correction and deletion: 15 full-
-  loop checks plus the existing discussion regression pass. The separate 14 session
+  Chrome synthetic-page check on 0.8.0 verifies User-mode connection/Topic/drafts,
+  native blue/neutral icons, cross-domain shared comments, unrelated-page separation,
+  Stop, persistence, correction and deletion: 17 full-loop checks and the 19-area
+  discussion regression pass. The separate 15 session
   and 32 eligibility/reader checks also pass. Native first-grant and browser/
   extension reload/restart checks remain manual; real-news accuracy is unvalidated.
 - Wrong-topic correction, Stop/site blocking, Forget page and confirmed learned
@@ -114,7 +115,7 @@ but the page still reports unsupported. **0.6.4** fixes a reproduced stale
 foreground-failure state: a fresh eligible observation on an enabled site schedules
 the ordinary matching checks again. Actual content-reader rejections do not
 auto-retry and now show a specific message and fixed diagnostic code. Reload to
-0.7.0, start a session on the article; if still unsupported, report only that message/code.
+0.8.0, start a session on the article; if still unsupported, report only that message/code.
 The owner's exact page outcome remains unconfirmed. No token, storage dump or
 page content is needed; the backend/data do not need a restart or reset.
 

@@ -31,7 +31,7 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current increment: User/Developer UI and blue same-Topic icon — 0.8.0
+## Current increment: User/Developer UI and blue same-Topic icon — 0.8.0 verified
 
 - Owner requests a compact mode switch, Topic-first User view, clear connection
   status and blue toolbar icon when another page belongs to the same Topic.
@@ -66,20 +66,37 @@ private/remote/AI/moderation work and all external release gates remain separate
   immediate assertion failed twice, diagnostic/awaited runs passed. No production
   focus rule or deadline was relaxed. The final unpaired User layout was also
   visually checked in Chrome; no external requests or runtime errors occurred.
-- **Full User-mode shared-comment/native-blue-icon verification is pending:**
-  the owned temporary backend could not bind 4174 because a listener is present.
-  Asked the owner to stop their service; did not contact/reset/stop it or read its
-  data. The harness now checks visible controls, mode/draft preservation, Topic/
-  connection text, and successful native 16/32px bitmap writes, not only tooltips.
-  The historical S3 smoke explicitly uses Developer mode. These updated full-
-  service paths still need to run once the port is free. Unpaired User UI has
-  been visually inspected with the no-backend Chrome eligibility harness.
+- The implementation checkpoint was committed/pushed as `b49970a` with the
+  full-service test gap explicitly recorded. Owner then confirmed their backend
+  stopped. **The unchanged 0.8.0 passes all 17 full matching Chrome checks**:
+  User-default connection/Topic/draft-preserving mode switch, actual native blue
+  icon after a second learned page joins the Topic, shared comments across two
+  HTTPS origins, neutral on an unrelated page and still neutral after Stop,
+  persistence/re-pairing and the
+  existing correction/Forget/deletion controls. Six owned intercepted documents,
+  ten real 384D vector requests, zero runtime errors/external extension requests
+  or fixture raw-text matches in inspected request bodies; no abandoned setup.
+- **The Developer-mode discussion regression passes all 19 covered areas**,
+  including keyboard, root/reply/edit/withdraw, restart, inert markup and exact
+  storage boundaries. Loopback transport integration also passes **2/2**. All
+  tests used owned temporary profiles/databases, never the owner's data/service.
+  No production or harness correction was needed after freeing the port.
+- The lead visually inspected the connected User popup on the second page: the
+  Topic title and original comment, green connected text, provisional association
+  cue and synthetic identity are visible. Native icon evidence observes successful
+  real `setIcon` completion with 16/32px blue/neutral pixels plus tooltip checks;
+  it is not an OS-toolbar screenshot. Startup neutral remains default/tooltip and
+  unit evidence because instrumentation attaches after startup. This verifies
+  owned-page wiring, not real-news matching accuracy or store/legal clearance.
+  Separate Sol Medium QA closure review accepts these bounded claims. This run
+  did not exercise Stop while blue; clearing active blue on Stop has focused
+  adapter-test evidence, not an additional Chrome claim here.
 
-Checkpoint is ready to commit/push with the above full-service verification gap
-explicitly retained. Next: owner stops their backend; run the updated matching
-and legacy S3 Chrome smokes, inspect the connected discussion screenshot, and
-record exact evidence. ADR-019 A/C and all later external gates remain pending; completed
-foundation/owner reviews are not reopened.
+Next: owner can restart their service, reload extension 0.8.0, re-pair and Start
+a fresh browsing session to try the User view. Existing first-native-dialog and
+installed-extension reload/browser-restart manual checks remain; the new UI's
+full-service verification blocker is resolved. ADR-019 A/C and all later external
+gates remain pending; completed foundation/owner reviews are not reopened.
 
 ## Previous increment: ADR-019 B session-wide browsing — implemented/reviewed; full-loop checks pass
 

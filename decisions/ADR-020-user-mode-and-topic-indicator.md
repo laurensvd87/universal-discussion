@@ -1,8 +1,8 @@
 # ADR-020: User-facing popup and same-Topic toolbar indicator
 
 Date: 2026-09-29.
-Status: Owner-requested presentation increment implemented/reviewed in 0.8.0;
-full-service Chrome verification awaits a free test port. See STATUS.
+Status: Owner-requested presentation increment implemented/reviewed and
+full-service Chrome verified in 0.8.0. See STATUS for evidence and limitations.
 
 ## Decision
 
@@ -70,12 +70,19 @@ Record exact results and limitations in STATUS before committing.
 Checkpoint results: restricted 624/624, normal 623 plus one intentional skip,
 indicator 436/436, backend 67/67; actual Chrome session 15 and eligibility/reader
 32 checks pass. Separate AI Trust reviews accept the implementation and shortcut
-correction. Native icon unit/lifecycle evidence passes; the updated real-backend
-User/comment/native-bitmap smoke is not yet verified because port 4174 is occupied.
+correction. After the owner stopped their backend, the unchanged implementation
+passed all 17 real-backend User/comment/native-bitmap Chrome checks, the 19-area
+Developer discussion regression and 2/2 loopback transport tests. Six owned
+intercepted documents produced ten real 384D vectors with no external extension
+requests, runtime exceptions or fixture raw-text matches in inspected API bodies.
+Owner data/profile/service were not used. The connected User discussion screenshot
+was visually inspected; no product/harness correction was needed for these runs.
 The harness observes completed native setIcon calls and exact 16/32px colors for
 shared and subsequent neutral states; startup-neutral is default/tooltip plus
-unit evidence, since instrumentation attaches after startup. Do not claim a
-passed full-service test or visual inspection of connected discussions yet.
+unit evidence, since instrumentation attaches after startup. Native API completion
+is not a screenshot of Chrome's OS toolbar. Owned synthetic-page success does
+not establish real-news matching accuracy, first native-dialog acceptance,
+installed-extension reload/browser restart behavior, or store/legal clearance.
 
 ADR-019 A/C remain pending. No change to private-input, provider, remote service,
 deployment, spending, external tester/publication or provenance-review gates.

@@ -1,6 +1,6 @@
 # Product-first roadmap
 
-Updated: 2026-09-28. Governing decisions: ADR-014/015/016. Browser extension first;
+Updated: 2026-09-29. Governing decisions: ADR-014/015/016. Browser extension first;
 Android and iOS follow with shared Topic/discussion contracts. Core model:
 `Content -> Semantic Topic -> Discussion`.
 
@@ -32,8 +32,8 @@ not implicitly approved by B. No private/remote/provider/store expansion follows
 
 Owner feedback increment [ADR-020](../decisions/ADR-020-user-mode-and-topic-indicator.md)
 adds the 0.8.0 User/Developer popup, connection state and same-Topic toolbar icon.
-It changes presentation only; STATUS records completed tests and the remaining
-full-service Chrome verification, which needs the owner's port 4174 to be free.
+It changes presentation only; STATUS records completed full-service Chrome
+verification (17 matching/User/native-icon checks and 19 discussion areas).
 It does not reorder the pending matching, pairing or external approval gates.
 
 ## Evidence already available

@@ -5,11 +5,16 @@ Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 Latest request: a User/Developer popup switch, Topic-first discussion, visible
 connection and blue toolbar icon for another learned page in the same Topic.
 [ADR-020](../decisions/ADR-020-user-mode-and-topic-indicator.md) defines this
-presentation-only increment, implemented as 0.8.0. Check STATUS for final browser
-verification and the current port-4174 test blocker. User is the default; persist
+presentation-only increment, implemented and browser-verified as 0.8.0. The owner
+freed port 4174: full matching/User/native-icon Chrome checks pass 17/17; Developer
+discussion regression passes 19 covered areas and loopback integration 2/2. No
+production/harness fix was needed after the implementation checkpoint `b49970a`.
+The lead inspected the connected discussion screenshot. See STATUS for exact
+evidence and unchanged manual lifecycle/first-dialog gaps. User is the default; persist
 only the inert display enum and one trusted-session toolbar tab ID for cleanup.
 Capture/permissions/matching/token retention are unchanged. Do not repeat S3/B or
 approve A/C by inference. The new User view uses the existing controller/drafts.
+Next is owner feedback on 0.8.0, not further UI foundation work or a repeated gate.
 
 Previous request: implement matching-quality improvements, automatic visits across
 sites and pairing across sessions. Read [ADR-019](../decisions/ADR-019-automatic-browsing-and-durable-pairing.md)
@@ -20,10 +25,10 @@ starting normal window. Popup closure/worker suspension retain it; Stop/window
 closure/browser restart/reload ends it. Stop retains native access; Remove broad
 HTTPS access stops then removes it. A native grant and legacy enabled preferences
 never create a lease. Blocked origins persist and override that broad grant.
-The implementation is 0.7.0; see STATUS for current verification and remaining
-work: owner freed port 4174; full vector/shared-comment Chrome smoke now passes
+The B implementation checkpoint was 0.7.0 (current UI version/evidence above).
+Its verification: owner freed port 4174; full vector/shared-comment Chrome smoke passed
 15 checks, S3 passes 19 areas, and loopback integration passes 2/2. A test-only
-detached-target setup fix was independently reviewed; production remains 0.7.0.
+detached-target setup fix was independently reviewed; it did not change production.
 Actual first-grant/reload/restart manual checks remain. Session Chrome smoke
 passes 14 checks including forced worker reconstruction; eligibility passes 32.
 **A matching/input changes and C durable pairing remain pending.** B does
