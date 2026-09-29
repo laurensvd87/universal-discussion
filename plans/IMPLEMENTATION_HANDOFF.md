@@ -46,6 +46,12 @@ allowlist extension, **pending explicit owner policy approval before coding**;
 do not silently bypass the current gate or promise this fixes the specific site.
 No new reload/Enable/focus test is needed while awaiting that decision. Leave the
 owner's backend, database and profile untouched.
+Latest owner response: all freely accessible pages should be allowed. Record
+this as a broader coverage goal, not approval to override explicit processing
+reservations. Clarify just that boundary with the owner: documented Search-only
+directives versus explicit TDM/AI objections. Preserve per-site consent/public-only
+scope and unknown/malformed-signal handling; no automatic grant or private-page
+expansion follows. See the ADR's owner-follow-up note before implementing.
 Known separate follow-up: a failed `authorized()` observation after reading can
 strand `processing/reading` without a new event. It remains safely non-ingesting
 but is not fixed by this initial-foreground recovery; see STATUS before changing it.

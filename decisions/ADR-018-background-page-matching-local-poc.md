@@ -249,6 +249,33 @@ actual restriction that remains blocked. Until approval, leave 0.6.4 and the
 existing gate intact. No new browser permissions, endpoint, model, raw-content
 transfer or stored fields are proposed.
 
+Owner follow-up: **"frei zugängliche seiten sollten alle erlaubt sein"**.
+This states the desired general public-page coverage but leaves an important
+exception unresolved: a freely readable article can still carry an express
+processing reservation. Do not silently interpret the statement as either exact
+acceptance of the three-token package above or permission to ignore TDM/AI signals.
+The recommended revised direction is to distinguish documented Search-only
+controls from explicit supported processing objections, preserving per-site
+consent, public-only operating scope and bounded unknown/malformed handling.
+Ask one concrete question about the explicit-objection case before implementation;
+other implementation details remain delegated to engineering after the boundary
+is settled. Manual Topic choice remains available when capture is unavailable.
+
+Checked 2026-09-29: Google's reference describes `noindex`/`nofollow` and preview
+controls as Search indexing/serving controls, not a general processing licence.
+[Directive 2019/790, Article 4](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32019L0790)
+conditions its general TDM exception on the absence of an appropriate express
+reservation; this is not a conclusion about which exception covers this app.
+The [TDMRep Community Group specification](https://www.w3.org/community/reports/tdmrep/CG-FINAL-tdmrep-20240510/)
+defines a machine-readable reservation mechanism, but is explicitly not a W3C
+Standard or a universal legal test. The [Chrome Web Store IP policy](https://developer.chrome.com/docs/webstore/program-policies/impersonation-and-intellectual-property)
+requires respect for intellectual-property rights; it does not certify a metadata
+algorithm. These sources support keeping access, Search directives, processing
+policy and store readiness distinct. No conclusion that every public page is
+legally processable or that the owner's specific page is restricted follows.
+No product code, version, collection, retention or permission changes are made
+while this policy boundary remains unresolved.
+
 ## Planning findings (before implementation) and policy evidence
 
 The following baseline inventory records what was missing when this package was

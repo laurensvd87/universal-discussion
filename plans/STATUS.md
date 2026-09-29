@@ -10,9 +10,10 @@ with capture default-off and site-by-site enablement. The owner now confirms Ena
 is clickable but the page remains unsupported. Extension 0.6.4 fixes a reproduced
 stale foreground-failure state and exposes the actual unsupported reason. The
 owner now reports `rights-restricted`: the current stop is the reader's metadata
-filter. Its exact triggering tag is unknown; a narrow correction to the overbroad
-filter is proposed below, awaiting explicit owner policy approval. Matching
-quality remains unvalidated.
+filter. Its exact triggering tag is unknown. The owner now wants all freely
+accessible pages supported; the treatment of explicit processing reservations
+still needs clarification before changing the filter. Matching quality remains
+unvalidated.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -27,6 +28,17 @@ private/remote/AI/moderation work and all external release gates remain separate
 
 ## Owner feedback: disabled site controls — 2026-09-29
 
+- Latest owner direction: **all freely accessible pages should be allowed**.
+  Treat this as the product coverage goal, not an unambiguous instruction to ignore
+  explicit TDM/AI reservations or to grant sites automatically. Recommended split:
+  documented Search-only directives do not by themselves prohibit local matching;
+  explicit supported processing objections and unknown/malformed signals retain
+  conservative handling. Clarify the explicit-objection case with one concrete
+  example before implementation. No code or permission change this turn.
+  Public URL syntax is not reliable public/private/authentication detection.
+  [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
+  primary-source evidence and the unresolved policy boundary. The earlier narrow
+  three-preview proposal is not silently recorded as exact package approval.
 - Current owner evidence: **`rights-restricted`** on a public news article.
   This identifies the reader's head-metadata gate before main text is sampled,
   not a legal determination or proof of a paywall. Do not repeat Enable/focus
