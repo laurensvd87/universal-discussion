@@ -1,7 +1,8 @@
 import { DatabaseSync } from "node:sqlite";
 import { ServiceError, fail } from "../domain/errors.js";
 import { STATE_SCHEMA } from "../domain/demo-state.js";
-import { assertValidPersistedState } from "../domain/persisted-state.js";
+import { assertValidLegacyPersistedState, assertValidPersistedState } from "../domain/persisted-state.js";
+import { migrateLegacyState } from "../domain/state-migration.js";
 import { clone, frozenClone } from "../domain/validation.js";
 import { assertExpected, assertTransition, MAX_DOCUMENT_BYTES, serializeSnapshot } from "../domain/repository-contract.js";
 
@@ -99,7 +100,16 @@ function initializeTransaction(database, initialState, serialize) {
     fail("storage-schema", "Unsupported local database schema");
   }
   const row = readRow(database);
-  parseRow(row);
+  const state = parseRow(row, true);
+  if (row.schema === "demo-state/v1") {
+    const migrated = migrateLegacyState(state);
+    const document = serializeSnapshot(migrated, serialize);
+    assertTransition(state, migrated, false);
+    const outcome = database.prepare(`UPDATE ${TABLE} SET schema = ?, revision = ?, document = ?
+      WHERE singleton = 1 AND schema = ? AND generation = ? AND revision = ?`).run(
+      migrated.schema, migrated.revision, document, row.schema, row.generation, row.revision);
+    if (outcome.changes !== 1) fail("conflict", "State changed");
+  }
 }
 
 function readRow(database) {
@@ -110,9 +120,9 @@ function readRow(database) {
   return row;
 }
 
-function parseRow(row) {
+function parseRow(row, allowLegacy = false) {
   if (
-    row.schema !== STATE_SCHEMA || typeof row.generation !== "string" ||
+    (row.schema !== STATE_SCHEMA && !(allowLegacy && row.schema === "demo-state/v1")) || typeof row.generation !== "string" ||
     !Number.isSafeInteger(row.revision) || typeof row.document !== "string"
   ) fail("storage-schema", "Unsupported local database schema");
   if (Buffer.byteLength(row.document, "utf8") > MAX_DOCUMENT_BYTES) fail("storage-corrupt", "Local database is oversized");
@@ -122,7 +132,7 @@ function parseRow(row) {
   if (!state || state.schema !== row.schema || state.generation !== row.generation || state.revision !== row.revision) {
     fail("storage-corrupt", "Local database is inconsistent");
   }
-  try { assertValidPersistedState(state); }
+  try { (row.schema === "demo-state/v1" ? assertValidLegacyPersistedState : assertValidPersistedState)(state); }
   catch { fail("storage-corrupt", "Local database is inconsistent"); }
   return clone(state);
 }

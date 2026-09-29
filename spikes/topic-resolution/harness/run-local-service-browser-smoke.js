@@ -7,6 +7,7 @@ import { startLocalApplication, createProcessDependencies } from "../../../apps/
 import { EN } from "../browser/locales/en.js";
 import { TOOLBAR_TAB_KEY } from "../browser/core/topic-toolbar-controller.js";
 import { launchChromiumPipe } from "./chromium-pipe.js";
+import { createTargetSetupLifetime, isTargetSetupCanceled } from "./target-setup-lifetime.js";
 
 const BROWSER_ROOT = fileURLToPath(new URL("../browser/", import.meta.url));
 const DEFAULT_CHROME = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
@@ -48,9 +49,15 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
   const errors = [];
   const tasks = new Set();
   let deadline;
+  let stage = "initializing";
   const stop = () => { void browser?.close(); };
-  function schedule(operation) {
-    const task = Promise.resolve().then(operation).catch(() => errors.push("CDP target/interception setup failed"));
+  function schedule(operation, target) {
+    const task = Promise.resolve().then(operation).catch(error => {
+      if (target?.detached && isTargetSetupCanceled(error)) return;
+      const method = /(?:during |for |rejected |timeout: )([A-Za-z]+\.[A-Za-z]+)/u.exec(error?.message ?? "")?.[1] ?? "unknown";
+      const code = /\(code (-?\d+)\)/u.exec(error?.message ?? "")?.[1] ?? "none";
+      errors.push(`CDP target/interception setup failed (${stage}; method ${method}; code ${code}; target ${target?.type ?? 'request'}; detached ${target?.detached === true})`);
+    });
     tasks.add(task); task.finally(() => tasks.delete(task));
   }
   async function evaluate(expression, sessionId = popupSession) {
@@ -67,7 +74,12 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
       if (await check()) return;
       await delay(50);
     }
-    throw new Error(`Browser smoke timeout: ${label}`);
+    const context = stage === "source-link-activation" ? [...targets.values()].map(target => ({
+      type: target.type, ready: target.ready, setup: target.setupMethod, waiting: target.waiting, kind: target.url === "https://example.com/" ? "source" :
+        target.url === "https://example.org/" ? "origin-tab" : target.url === "about:blank" ? "blank" :
+        target.url === "" ? "empty" : target.url.startsWith(`chrome-extension://${extensionId}/`) ? "extension" : "other",
+    })) : [];
+    throw new Error(`Browser smoke timeout: ${label}${context.length ? ` ${JSON.stringify(context)}` : ""}`);
   }
   const waitExpression = (expression, label) => waitFor(() => evaluate(expression), label);
   const waitStatus = (message) => waitExpression(`${STATUS} === ${JSON.stringify(message)}`, "expected discussion status");
@@ -162,6 +174,9 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     process.once("SIGINT", stop); process.once("SIGTERM", stop);
     browser.on("Runtime.exceptionThrown", () => { runtimeExceptions += 1; });
     browser.on("Target.detachedFromTarget", ({ targetId, sessionId }) => {
+      for (const target of targets.values()) if (target.targetId === targetId || target.sessionId === sessionId) {
+        target.detached = true; target.setupLifetime.detach();
+      }
       if (targetId) targets.delete(targetId);
       else for (const [id, target] of targets) if (target.sessionId === sessionId) targets.delete(id);
     });
@@ -169,18 +184,23 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
       const target = targets.get(targetInfo.targetId);
       if (target) target.url = targetInfo.url;
     });
-    browser.on("Target.attachedToTarget", ({ sessionId, targetInfo }) => {
-      const target = { targetId: targetInfo.targetId, sessionId, url: targetInfo.url, ready: false };
+    browser.on("Target.attachedToTarget", ({ sessionId, targetInfo, waitingForDebugger }) => {
+      const target = { targetId: targetInfo.targetId, sessionId, url: targetInfo.url, type: targetInfo.type, waiting: waitingForDebugger, ready: false, setupLifetime: createTargetSetupLifetime() };
       targets.set(target.targetId, target);
       schedule(async () => {
-        await browser.send("Runtime.enable", {}, sessionId);
+        const setup = (method, params) => { target.setupMethod = method; return target.setupLifetime.step(() => browser.send(method, params, sessionId)); };
+        // Newly opened paused pages can stall renderer Network/Runtime setup.
+        // Install the Fetch guard before resuming, then enable telemetry. The
+        // Network counter alone does not cover the pre-enable interval.
         if (["page", "iframe", "other"].includes(targetInfo.type)) {
-          await browser.send("Network.enable", {}, sessionId);
-          await browser.send("Fetch.enable", { patterns: [{ urlPattern: "*" }] }, sessionId);
+          await setup("Fetch.enable", { patterns: [{ urlPattern: "*" }] });
         }
-        await browser.send("Runtime.runIfWaitingForDebugger", {}, sessionId);
+        await setup("Runtime.runIfWaitingForDebugger", {});
+        if (["page", "iframe", "other"].includes(targetInfo.type)) await setup("Network.enable", {});
+        await setup("Runtime.enable", {});
+        target.setupLifetime.complete();
         target.ready = true;
-      });
+      }, target);
     });
     browser.on("Network.requestWillBeSent", ({ request }, sessionId) => {
       const target = [...targets.values()].find((item) => item.sessionId === sessionId);
@@ -317,11 +337,33 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await evaluate("document.querySelector('#discussion-token').focus()");
     await key("Tab", "Tab", 9);
     assert.ok(await evaluate("document.activeElement.id === 'discussion-pair'"));
+    const existingTargets = new Set(targets.keys());
+    stage = "source-link-activation";
+    assert.ok(await evaluate(`(() => {
+      const link=${THREAD}.querySelector('a.discussion-source-link');
+      if(!link)return false;
+      link.focus();
+      return link.href==='https://example.com/' && link.target==='_blank' &&
+        link.rel==='noopener noreferrer' && link.referrerPolicy==='no-referrer' &&
+        link.getAttribute('aria-label').includes('https://example.com/') && document.activeElement===link;
+    })()`));
+    // A deliberate keyboard activation must open the real link in a new tab;
+    // that document is still intercepted synthetic HTML, never a live site.
+    await key("Enter", "Enter", 13);
+    let openedSource;
+    await waitFor(() => {
+      openedSource = [...targets.values()].find(target => !existingTargets.has(target.targetId) && target.ready && target.url === 'https://example.com/');
+      return openedSource;
+    }, 'source icon opens a new tab');
+    await waitFor(() => evaluate("document.readyState==='complete'", openedSource.sessionId), 'source link document ready');
+    assert.ok(await evaluate("window.opener===null && document.referrer===''", openedSource.sessionId));
+    await waitFor(() => tasks.size === 0, 'source-link interception and target setup drained');
+    if (errors.length) throw new Error(errors[0]);
     assert.equal(runtimeExceptions, 0, "No browser JavaScript exception is expected; intentional network failures are separate");
     assert.equal(externalExtensionRequests, 0);
-    assert.ok(extensionRequests > 0 && interceptedFixtureDocuments === 2);
+    assert.ok(extensionRequests > 0 && interceptedFixtureDocuments === 3);
     return { browser: version.product, result: "PASS", actualActionPopup: true,
-      covered: ["pairing", "keyboard", "service-source-ranking", "source-selection-invalidation", "topic-create", "root", "reply", "edit", "popup-reopen", "disconnect", "unavailable", "service-restart-token", "withdraw", "reset", "fixture-auto-load", "shared-topic", "inert-markup", "session-only-storage", "bounded-extension-network"],
+      covered: ["pairing", "keyboard", "service-source-ranking", "source-selection-invalidation", "topic-create", "root", "reply", "edit", "popup-reopen", "disconnect", "unavailable", "service-restart-token", "withdraw", "reset", "fixture-auto-load", "shared-topic", "inert-markup", "session-only-storage", "bounded-extension-network", "source-icon-keyboard-opens-new-tab-without-opener-or-referrer"],
       runtimeExceptions, externalExtensionRequests, interceptedFixtureDocuments,
       scope: "Fresh profile; actual extension action popup; synthetic intercepted pages; no global browser firewall claim" };
   } finally {

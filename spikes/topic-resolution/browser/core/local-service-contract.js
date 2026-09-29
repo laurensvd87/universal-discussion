@@ -3,6 +3,7 @@ import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "./page-content-
 const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const KINDS = ["general", "event", "product", "claim"];
 const ACTORS = ["demo-alex", "demo-blair"];
+const LEARNED_POLICIES = ["provisional-all-source-cosine/v1", "adaptive-supported-partitions/v1"];
 function invalid() { throw new TypeError("Invalid local service value"); }
 
 export function record(value, fields) {
@@ -59,6 +60,19 @@ function sourceUrl(value) {
       !(url.hostname.endsWith(".example") || ["example.com", "example.org"].includes(url.hostname))) invalid();
   return value;
 }
+export function readPostOrigin(value) {
+  const item = record(value, ["sourceId", "url", "title"]);
+  const url = sourceUrl(item.url);
+  const parsed = new URL(url);
+  if (parsed.hash || parsed.toString() !== url) invalid();
+  if (!inspectPageUrl(url).supported) {
+    // Reserved fixture hosts retain compatibility, but never bypass the same
+    // private-path and credential-query checks applied to public Sources.
+    parsed.hostname = "example.com";
+    if (!inspectPageUrl(parsed.toString()).supported) invalid();
+  }
+  return { sourceId: readId(item.sourceId), url, title: text(item.title, 512) };
+}
 function model(value) {
   const item = record(value, ["id", "status"]);
   if (item.status === "fixture-only" && item.id === "hand-authored-demo-vectors/1") return item;
@@ -86,11 +100,13 @@ export function readCommand(value) {
       item = record(value, ["type", "title", "kind"]);
       return { type: item.type, title: text(item.title, 200), kind: oneOf(item.kind, KINDS) };
     case "create-root":
-      item = record(value, ["type", "topicId", "body"]);
-      return { type: item.type, topicId: readId(item.topicId), body: text(item.body, 8000, true) };
+      item = record(value, ["type", "topicId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : [])]);
+      return { type: item.type, topicId: readId(item.topicId), body: text(item.body, 8000, true),
+        ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}) };
     case "reply":
-      item = record(value, ["type", "discussionId", "rootId", "replyToId", "body"]);
-      return { type: item.type, discussionId: readId(item.discussionId), rootId: readId(item.rootId), replyToId: nullableId(item.replyToId), body: text(item.body, 8000, true) };
+      item = record(value, ["type", "discussionId", "rootId", "replyToId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : [])]);
+      return { type: item.type, discussionId: readId(item.discussionId), rootId: readId(item.rootId), replyToId: nullableId(item.replyToId), body: text(item.body, 8000, true),
+        ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}) };
     case "edit":
       item = record(value, ["type", "contributionId", "body"]);
       return { type: item.type, contributionId: readId(item.contributionId), body: text(item.body, 8000, true) };
@@ -157,6 +173,8 @@ function contribution(value, rootId, isRoot) {
   const state = Object.getOwnPropertyDescriptor(value ?? {}, "state")?.value;
   const fields = state === "deleted" ? ["id", "rootId", "replyToId", "state", "label"] :
     ["id", "rootId", "replyToId", "state", "authorId", "actorType", "body", "createdAt", "edited"];
+  if (state === "visible" && Object.hasOwn(value ?? {}, "origin")) fields.push("origin");
+  if (state === "visible" && isRoot && Object.hasOwn(value ?? {}, "regrouped")) fields.push("regrouped");
   const item = record(value, isRoot ? [...fields, "replies"] : fields);
   const projected = { id: readId(item.id), rootId: nullableId(item.rootId), replyToId: nullableId(item.replyToId), state: oneOf(item.state, ["deleted", "visible"]) };
   if (projected.rootId !== rootId || (isRoot && projected.replyToId !== null)) invalid();
@@ -165,6 +183,11 @@ function contribution(value, rootId, isRoot) {
     if (typeof item.edited !== "boolean" || typeof item.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(item.createdAt) || !Number.isFinite(Date.parse(item.createdAt))) invalid();
     Object.assign(projected, { authorId: readActorId(item.authorId), actorType: oneOf(item.actorType, ["human"]),
       body: text(item.body, 8000, true), createdAt: item.createdAt, edited: item.edited });
+    if (Object.hasOwn(item, "origin")) projected.origin = readPostOrigin(item.origin);
+  }
+  if (Object.hasOwn(item, "regrouped")) {
+    if (item.regrouped !== true) invalid();
+    projected.regrouped = true;
   }
   if (isRoot) projected.replies = array(item.replies, 1000, (reply) => contribution(reply, projected.id, false));
   return projected;
@@ -189,7 +212,7 @@ export function readOutcome(value, commandType) {
     const result = record(item.result, ["sourceId", "topicId", "previousTopicId", "assignment", "policyVersion"]);
     return { version: readVersion(item.version), result: { sourceId: readId(result.sourceId), topicId: readId(result.topicId),
       previousTopicId: nullableId(result.previousTopicId), assignment: oneOf(result.assignment, ["confirmed"]),
-      policyVersion: oneOf(result.policyVersion, ["provisional-all-source-cosine/v1"]) } };
+      policyVersion: oneOf(result.policyVersion, LEARNED_POLICIES) } };
   }
   if (["forget-source", "delete-learned-topic", "clear-learned-data"].includes(commandType)) {
     const fields = commandType === "forget-source" ? ["sourceId"] : commandType === "delete-learned-topic" ? ["topicId", "forgottenSourceIds"] : ["forgottenSourceIds", "deletedTopicIds"];
@@ -221,7 +244,7 @@ export function readIngestionOutcome(value) {
   const item = record(value, ["version", "sourceId", "topicId", "assignment", "policyVersion"]);
   return { version: readVersion(item.version), sourceId: readId(item.sourceId), topicId: readId(item.topicId),
     assignment: oneOf(item.assignment, ["provisional", "confirmed"]),
-    policyVersion: oneOf(item.policyVersion, ["provisional-all-source-cosine/v1"]) };
+    policyVersion: oneOf(item.policyVersion, LEARNED_POLICIES) };
 }
 export function readReset(value) { const item = record(value, ["version"]); return { version: readVersion(item.version) }; }
 export function freeze(value) {

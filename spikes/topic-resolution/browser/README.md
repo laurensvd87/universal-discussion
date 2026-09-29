@@ -1,5 +1,36 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Source icons and adaptive Topics (0.11.0)
+
+New page-linked posts have a small **↗** icon: click it (or focus it and press
+Enter) to open that post's source in a new tab. Hover shows the destination;
+the link sends no referrer and grants no opener access. No page is fetched until
+you activate it. Replies can link a different source from their root. The composer
+names the linked page; Topic-only and legacy posts have no invented origin.
+These are live pages, not archived copies, and the association is local-only.
+
+The experimental adaptive rule uses the existing one-vector E5 representation:
+0.90 for sparse grouping, tightening to 0.94 only with supported subgroups, with
+all-member and 0.04 competing-group guards. It uses structure, not raw page counts;
+duplicates cannot supply independent split support. Tightened groups stay tight
+when support is removed, limiting split/merge oscillation. Automatic changes or
+manual correction move a page-anchored root and its entire reply tree together.
+Reply origins never control routing. Manual Source pins override automatic grouping.
+Legacy/manual Topic-only threads stay fixed. Changed page vectors pin old threads
+conservatively; merely changing the display title does not.
+
+Stop/restart the backend and reload the extension, then pair and Start once.
+First open migrates SQLite atomically without guessing old post origins or resetting
+comments. Forget removes every post link to that Source, keeps comments and pins
+its threads. Withdrawal removes the withdrawn post's link; other replies survive.
+Clear learned data includes learned-source threads later moved to manual/fixture
+Topics. Deleted data cannot be resurrected by regrouping.
+
+Invented-vector and lifecycle tests verify mechanics, not general news/event or
+opposing-viewpoint accuracy. No new model, capture permission or remote scope.
+See [ADR-023](../../../decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md)
+and [STATUS](../../../plans/STATUS.md) for measured evidence and limits.
+
 ## Connection, Topic and posts at a glance (0.10.0)
 
 | Icon | Meaning |
@@ -27,10 +58,11 @@ red/gray across test-service restart/re-pairing. The legacy discussion smoke and
 were used. See [STATUS](../../../plans/STATUS.md) for evidence limitations.
 
 The title/article-lead matching proposal remains **experiment-only** after
-synthetic tests found false joins. Active reader/input/grouping are unchanged;
+synthetic tests found false joins. Active reader/input remain unchanged;
 new experimental tags are not accepted by the production backend. Existing
 Topics/comments are preserved. [Results](../../../apps/local-service/experiments/topic-identity/RESULTS.md)
-explain why a separate subject/event verifier is being considered.
+explain the limitations. The owner declined the extra local verifier model;
+0.11.0 changes grouping only under ADR-023, as described above.
 
 ## One session across tabs (0.9.1)
 
@@ -161,7 +193,8 @@ local SQLite database is not encrypted. No web search or crawler is included.
    Topic, that comment appears on both. Similar subject matter alone need not
    mean the same Topic; this is a fallible local heuristic, not validated accuracy.
 6. Use **Wrong topic or retained page controls** to confirm another Topic or
-   create a separate one. Existing comments stay in their original discussion.
+   create a separate one. Source-anchored roots and all replies follow the source;
+   legacy/manual Topic-only threads remain in their original discussion.
    Navigation/re-resolution detaches unsent text; attach it explicitly after
    checking its destination. Unsent text disappears when the popup closes.
 7. Test **Stop session**, a new explicit Start, and **Never process this site**.

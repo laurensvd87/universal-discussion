@@ -4,6 +4,13 @@ Status: **Owner approved the exact Security/Privacy/Policy package below on
 2026-09-29 ("approved"). B1–B5 implemented and browser-tested; capture defaults off.**
 Date: 2026-09-29.
 
+Later scoped amendment: owner-approved [ADR-023](ADR-023-adaptive-topics-source-anchored-subthreads.md)
+supersedes this ADR's stable provisional assignment/no-comment-movement rule in
+0.11.0. It adds adaptive regrouping and new Source-anchored whole subthreads;
+legacy/Topic-only roots stay pinned. Capture scope, one-vector/local-only payload
+and the other approval boundaries remain unchanged. Earlier measurements below
+describe their original checkpoints.
+
 ## Owner direction and boundary
 
 The owner approved connecting learned embeddings and explicitly expanded the

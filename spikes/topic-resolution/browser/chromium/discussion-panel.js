@@ -1,5 +1,7 @@
 import { EN } from "../locales/en.js";
 import { projectDiscussionShell } from "./popup-shell.js";
+import { readPostOrigin } from "../core/local-service-contract.js";
+import { selectedPostingSource } from "../core/local-discussion-controller.js";
 
 export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -78,6 +80,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   root.append(counts, thread);
   const composer = node("form"); const mode = node("p"); root.append(composer);
   const identity = node("p"); identity.id = "discussion-demo-identity"; composer.append(identity);
+  const originDisclosure = node("p"); originDisclosure.id = "discussion-origin-disclosure"; composer.append(originDisclosure);
   const body = node("textarea"); body.id = "discussion-body"; body.maxLength = 8000;
   body.rows = 5;
   const bodyLabel = node("label", "discussionBody"); bodyLabel.htmlFor = body.id;
@@ -164,6 +167,19 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const author = node("p"); author.textContent = state.catalog.actors.find((item) => item.id === entry.authorId)?.displayName ?? entry.authorId;
     const content = node("p"); content.className = "discussion-body"; content.textContent = entry.body;
     card.append(author, content);
+    if (entry.origin) {
+      try {
+        const origin = readPostOrigin(entry.origin);
+        const link = node("a"); link.className = "discussion-source-link";
+        link.textContent = "↗";
+        link.href = origin.url; link.target = "_blank"; link.rel = "noopener noreferrer";
+        link.referrerPolicy = "no-referrer";
+        const destination = text("discussionOriginOpen").replace("{title}", origin.title.slice(0, 160)).replace("{url}", origin.url.slice(0, 240));
+        link.setAttribute("aria-label", destination); link.title = destination;
+        card.append(link);
+      } catch { /* Invalid projections never become navigable links. */ }
+    }
+    if (entry === rootEntry && entry.regrouped === true) card.append(node("p", "discussionRegrouped"));
     if (entry.edited) card.append(node("span", "discussionEdited"));
     function action(key, callback) {
       const item = node("button", key); item.type = "button"; item.disabled = state.busy || state.needsFreshRead || state.phase !== "ready";
@@ -235,6 +251,10 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     mode.textContent = text((uiMode === "user" ? { root: "discussionComposerRoot", reply: "uiReplyMode", edit: "uiEditMode" }
       : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])
       .replace("{id}", state.draft.targetId ?? "");
+    const postingSource = selectedPostingSource(state);
+    originDisclosure.textContent = state.draft.mode === "edit" ? text("discussionOriginEdit") : postingSource
+      ? text("discussionOriginDisclosure").replace("{title}", postingSource.title)
+      : text("discussionOriginNone");
     const entries = state.discussion?.roots.flatMap((entry) => [entry, ...entry.replies]) ?? [];
     counts.textContent = state.discussion ? text("discussionCounts")
       .replace("{human}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "human").length))

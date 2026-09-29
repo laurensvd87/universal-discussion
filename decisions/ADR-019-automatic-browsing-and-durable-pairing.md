@@ -6,6 +6,11 @@ matching upgrade separately explicitly approved on 2026-09-29; measured proposal
 retained experiment-only after false joins. C remains pending.**
 No durable credential change is authorized by A or B.
 
+Later amendment: owner-approved [ADR-023](ADR-023-adaptive-topics-source-anchored-subthreads.md)
+implements experimental adaptive grouping/source-anchored subthreads in 0.11.0.
+It supersedes the historical stable-assignment/no-regrouping boundary only;
+the measured input proposal remains inactive, and C is still pending.
+
 ## Request and current behavior
 
 The owner requests implementation of the viewpoint-independent matching direction,

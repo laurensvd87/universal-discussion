@@ -9,7 +9,14 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.10.0** adds five toolbar states: red disconnected/unverified, gray
+Extension **0.11.0** adds a clickable ↗ source icon to new page-linked posts:
+it opens that post's source in a new tab. Replies can link their own page while
+staying with their root conversation. Legacy/Topic-only posts have no guessed link.
+New page-anchored roots and all their replies follow the page during regrouping;
+manual Topic-only and legacy threads stay pinned. See
+[ADR-023](decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md).
+
+The five toolbar states remain: red disconnected/unverified, gray
 connected without a current Topic, green Topic, light blue another learned page
 shares the Topic, dark blue that shared Topic also has visible posts. Tooltips
 explain the state; connection is last-observed, not continuous monitoring.
@@ -18,14 +25,15 @@ pass, including all five native icon colors and re-pairing after a test backend
 restart. See [STATUS](plans/STATUS.md) for evidence and remaining limitations.
 
 The approved article/title matching experiment did **not** establish a reliable
-automatic join rule. Its code is preserved outside the extension; production
-capture, vectors, Topic assignments and thresholds remain unchanged. See the
+automatic join rule. Its input code stays outside the extension; capture/model
+and the one-vector payload are unchanged. See the
 [measured findings](apps/local-service/experiments/topic-identity/RESULTS.md) and
 [deferred subject-verifier proposal](decisions/ADR-022-subject-verifier-experiment.md).
-The owner declines an additional local LLM. The latest proposal is
-[adaptive grouping with page-anchored subthreads](decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md),
-so a root and all its replies can follow their originating page when grouping
-changes. Its data/migration package is not activated; the active cutoff remains 0.94.
+The owner declines an additional local LLM. The approved experimental adaptive
+rule now starts at 0.90, tightening to 0.94 for independently supported subgroups,
+with all-member, competing-group and stability guards. It can change existing
+provisional associations. This is not validated event/viewpoint recognition;
+invented-vector tests prove mechanics, not general semantic accuracy.
 
 Popup **0.9.1** made the existing window-scoped session clear: Start once covers
 eligible active tabs in that window, including new tabs. Active sessions no longer
@@ -165,15 +173,25 @@ Reload the extension and retry the enabled article; no backend restart or data
 reset is needed. Other checks can still reject pages; all-public-site coverage
 and the owner's exact page outcome are not established.
 
-If similar pages get separate Topics, the experimental policy currently requires
-cosine similarity of at least 0.94 against every member of a candidate Topic,
-plus a 0.04 margin over competing Topics. These are uncalibrated heuristics, not
-probabilities. Input is only a bounded main-region prefix, not necessarily the
-complete article. Existing page-to-Topic links stay fixed on revisit: Retry does
-not regroup them. For a deliberate correction, use **Wrong topic or retained page
-controls**, select the other existing Topic, tick the confirmation and choose
-**Confirm source topic**. Existing comments stay in their original discussion;
-this does not merge discussions. Resume matching explicitly afterward.
+If similar pages get separate Topics, related does not necessarily mean same Topic.
+The experimental 0.90–0.94 rule still requires all-member coherence and a 0.04
+competing-group margin. Tightening needs two cohesive groups with two nonduplicate
+representatives each; copying a page does not manufacture support. A tightened
+group does not immediately loosen when support is removed. These are uncalibrated
+heuristics, not probabilities; opposing opinions can still split incorrectly.
+Input remains a bounded article prefix, not necessarily the complete article.
+For deliberate correction, use **Wrong topic or retained page controls**, select
+the other Topic, confirm, then **Confirm source topic**. Source-anchored roots and
+their complete replies follow; legacy/manual Topic threads stay put. Manual
+Source assignments override automatic regrouping. Start matching again afterward.
+
+When upgrading to **0.11.0**, stop/restart the backend and reload the extension,
+then pair and Start a new browsing session. First backend open transactionally
+migrates old SQLite state; old comments remain, without invented page origins.
+No reset is needed. A changed stored page vector conservatively pins its old
+threads, rather than assuming they describe the changed page. Forget removes all
+post links to that page and keeps comments. Clear learned data also removes
+learned-source threads manually moved to another Topic; read the confirmation.
 
 To try the discussion loop:
 

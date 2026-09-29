@@ -40,6 +40,7 @@ function storedRoot(id, body) {
     id, discussionId: "discussion-harbor-s2", rootId: null, replyToId: null,
     authorId: "demo-alex", actorType: "human", visibility: "local-public", withdrawn: false,
     createdAt: timestamp, revisions: [{ body, createdAt: timestamp }],
+    anchor: { kind: "topic", topicId: "harbor-s2" }, originalTopicId: "harbor-s2", learnedOrigin: false,
   };
 }
 function request(method, url, value) {

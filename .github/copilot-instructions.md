@@ -20,13 +20,15 @@ Stop/window closure/browser restart ends capture, independently of retained
 native HTTPS access. Legacy enabled preferences cannot start capture. A's bounded
 article-first/title-plus-lead single-vector upgrade was separately explicitly
 approved on 2026-09-29; see ADR-019. Measured false joins keep the input proposal
-experiment-only; active reader/input/grouping remain unchanged. The owner declined
+experiment-only; active reader/input remain unchanged. The owner declined
 ADR-022's extra Qwen model experiment because of size/latency; defer it. Lightweight
-embedding options and a fallback 0.90 threshold are under discussion, not deployed.
+embedding alternatives remain proposals; ADR-023 now implements experimental
+0.90 sparse grouping with supported 0.94 refinement, not validated semantic identity.
 C remains pending; do not implement durable pairing or extra retained vectors/facts.
-The owner now requests adaptive grouping/source-anchored root threads; ADR-023's
-exact persistent-link/migration package needs approval before implementation.
-Existing roots lack source lineage; do not guess historical page associations.
+The owner approved ADR-023's local source-link/migration/whole-thread regrouping
+package, with clickable per-post source icons. Version 0.11.0 is implemented and
+reviewed; read STATUS for tests. SQLite v2 pins legacy roots; do not guess their
+historical page associations.
 Do not start S4 or acquire
 another model. Keep STATUS current and
 record consequential choices in `decisions/`.

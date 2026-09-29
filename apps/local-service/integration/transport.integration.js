@@ -123,7 +123,7 @@ test("approved fixed loopback transport, rejection bounds, persistence and resta
     let catalog = JSON.parse((await request("/v1/catalog")).body);
     assert.equal(catalog.sources.length, 8);
     response = await request("/v1/commands", { method: "POST", headers: { "x-demo-actor": "demo-alex" }, body: {
-      expected: catalog.version, command: { type: "create-root", topicId: "reserved-domain-demo", body: "Synthetic integration root\nSecond paragraph" },
+      expected: catalog.version, command: { type: "create-root", topicId: "reserved-domain-demo", body: "Synthetic integration root\nSecond paragraph", originSourceId: "reserved-example-com" },
     } });
     assert.equal(response.status, 200);
     const contributionId = JSON.parse(response.body).result.contributionId;
@@ -132,8 +132,10 @@ test("approved fixed loopback transport, rejection bounds, persistence and resta
     } })).status, 409);
     const discussionPath = "/v1/topics/reserved-domain-demo/discussion";
     let view = JSON.parse((await request(discussionPath)).body);
+    assert.equal(view.roots[0].origin.sourceId, "reserved-example-com");
+    assert.equal(view.roots[0].origin.url, "https://example.com/");
     response = await request("/v1/commands", { method: "POST", headers: { "x-demo-actor": "demo-blair" }, body: {
-      expected: view.version, command: { type: "reply", discussionId: view.discussionId, rootId: contributionId, replyToId: null, body: "Synthetic reply" },
+      expected: view.version, command: { type: "reply", discussionId: view.discussionId, rootId: contributionId, replyToId: null, body: "Synthetic reply", originSourceId: "reserved-example-org" },
     } });
     assert.equal(response.status, 200);
     view = JSON.parse((await request(discussionPath)).body);
@@ -151,12 +153,16 @@ test("approved fixed loopback transport, rejection bounds, persistence and resta
     view = JSON.parse((await request(discussionPath, { token: SECOND_TOKEN })).body);
     assert.equal(view.roots[0].body, "Synthetic edited root");
     assert.equal(view.roots[0].replies[0].body, "Synthetic reply");
+    assert.equal(view.roots[0].origin.sourceId, "reserved-example-com");
+    assert.equal(view.roots[0].replies[0].origin.sourceId, "reserved-example-org");
     response = await request("/v1/commands", { token: SECOND_TOKEN, method: "POST", headers: { "x-demo-actor": "demo-alex" }, body: {
       expected: view.version, command: { type: "withdraw", contributionId },
     } });
     assert.equal(response.status, 200);
     view = JSON.parse((await request(discussionPath, { token: SECOND_TOKEN })).body);
     assert.equal(view.roots[0].state, "deleted");
+    assert.equal(Object.hasOwn(view.roots[0], "origin"), false);
+    assert.equal(view.roots[0].replies[0].origin.sourceId, "reserved-example-org");
     assert.equal(JSON.stringify(view).includes("Synthetic edited root"), false);
     assert.equal(view.roots[0].replies[0].body, "Synthetic reply");
     response = await request("/v1/demo/reset", { token: SECOND_TOKEN, method: "POST", body: { expected: view.version, confirmation: "RESET DEMO STATE" } });

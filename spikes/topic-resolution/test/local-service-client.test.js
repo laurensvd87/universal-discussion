@@ -3,10 +3,54 @@ import test from "node:test";
 import { createLocalServiceClient, LocalServiceClientError } from "../browser/core/local-service-client.js";
 import { createRequestHandler } from "../../../apps/local-service/src/http/request-handler.js";
 import { demoService } from "../../../apps/local-service/test/helpers.js";
+import { readCommand, readDiscussion, readPostOrigin, readOutcome, readIngestionOutcome } from "../browser/core/local-service-contract.js";
 
 const TOKEN = "synthetic-test-capability-for-client-only";
 const VERSION = { generation: "generation-test", revision: 0 };
 const HEALTH = { protocol: "local-service/v1", capability: "paired-demo" };
+const origin = (sourceId = "source-a", url = "https://example.com/article-a") => ({ sourceId, url, title: "<script>Plain title</script>" });
+const visiblePost = (id, rootId = null) => ({ id, rootId, replyToId: null, state: "visible", authorId: "demo-alex", actorType: "human", body: "Synthetic post", createdAt: "2026-09-29T00:00:00.000Z", edited: false });
+test("learned receipt and correction accept only the two reviewed policy tags", () => {
+  const receipt = { version: VERSION, sourceId: "source-a", topicId: "topic-a", assignment: "provisional", policyVersion: "provisional-all-source-cosine/v1" };
+  const correction = { version: VERSION, result: { sourceId: "source-a", topicId: "topic-a", previousTopicId: "topic-b", assignment: "confirmed", policyVersion: receipt.policyVersion } };
+  for (const policyVersion of ["provisional-all-source-cosine/v1", "adaptive-supported-partitions/v1"]) {
+    assert.equal(readIngestionOutcome({ ...receipt, policyVersion }).policyVersion, policyVersion);
+    assert.equal(readOutcome({ ...correction, result: { ...correction.result, policyVersion } }, "correct-source").result.policyVersion, policyVersion);
+  }
+  for (const policyVersion of ["adaptive-supported-partitions/v2", "adaptive-supported-partitions/v1-extra", "provisional-all-source-cosine/v2", "unknown", null, 1]) {
+    assert.throws(() => readIngestionOutcome({ ...receipt, policyVersion }));
+    assert.throws(() => readOutcome({ ...correction, result: { ...correction.result, policyVersion } }, "correct-source"));
+  }
+});
+test("origin DTO preserves distinct root/reply links and visible-root regrouping only", () => {
+  const root = { ...visiblePost("root-a"), origin: origin(), regrouped: true,
+    replies: [{ ...visiblePost("reply-b", "root-a"), origin: origin("source-b", "https://example.org/article-b") }] };
+  const value = { version: VERSION, topic: { id: "topic-a", title: "A", kind: "general" }, discussionId: "discussion-a", roots: [root] };
+  assert.deepEqual(readDiscussion(value, "topic-a").roots[0], root);
+  for (const bad of [{ ...root, origin: { ...origin(), token: "secret" } }, { ...root, origin: null },
+    { ...root, regrouped: "true" }, { ...root, regrouped: false }, { ...root, replies: [{ ...root.replies[0], regrouped: true }] },
+    { id: "root-a", rootId: null, replyToId: null, state: "deleted", label: "Deleted", replies: [], origin: origin() },
+    { id: "root-a", rootId: null, replyToId: null, state: "deleted", label: "Deleted", replies: [], regrouped: true }]) {
+    assert.throws(() => readDiscussion({ ...value, roots: [bad] }, "topic-a"));
+  }
+  delete root.origin; delete root.regrouped; delete root.replies[0].origin;
+  assert.deepEqual(readDiscussion(value, "topic-a").roots[0], root);
+});
+test("post-origin policy rejects executable, local, private and credential-bearing URLs without getter access", () => {
+  assert.deepEqual(readPostOrigin(origin()), origin());
+  assert.doesNotThrow(() => readPostOrigin(origin("source-a", "https://synthetic.example/article")));
+  for (const url of ["javascript:alert(1)", "data:text/html,hi", "http://127.0.0.1:4174/", "https://localhost/article", "https://127.0.0.1/article", "https://example.com/account", "https://synthetic.example/private", "https://synthetic.example/article?secret=value", "https://example.com/article?token=value", "https://user:secret@example.com/article", "https://example.com/article#private"]) assert.throws(() => readPostOrigin(origin("source-a", url)));
+  const getter = { ...origin() }; Object.defineProperty(getter, "url", { enumerable: true, get() { assert.fail("Origin getter must not run"); } });
+  assert.throws(() => readPostOrigin(getter));
+});
+test("posting origin command is optional opaque ID/null only; edits cannot overwrite it", () => {
+  const root = { type: "create-root", topicId: "topic-a", body: "Post" };
+  assert.deepEqual(readCommand(root), root);
+  for (const originSourceId of [null, "source-a"]) assert.equal(readCommand({ ...root, originSourceId }).originSourceId, originSourceId);
+  for (const originSourceId of [undefined, "https://example.com/article", {}, 7]) assert.throws(() => readCommand({ ...root, originSourceId }));
+  assert.throws(() => readCommand({ type: "edit", contributionId: "root-a", body: "Edit", originSourceId: "source-a" }));
+  assert.throws(() => readCommand({ ...root, origin: origin() }));
+});
 function json(value, status = 200, headers = {}) {
   return new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 }

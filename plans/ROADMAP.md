@@ -51,14 +51,17 @@ lease no longer shows fresh consent/Start controls. New actual Chrome coverage
 verifies new-tab navigation, switchback and non-last-tab closure; this is a UI/
 coverage correction, not expanded capture authority. See STATUS for final tests.
 
-Current 0.10.0 checkpoint: five-color toolbar, full matching/comment browser 20,
+Previous 0.10.0 checkpoint: five-color toolbar, full matching/comment browser 20,
 legacy discussion 19 and loopback 2/2 checks pass. ADR-022's additional Qwen model
 is declined/deferred by the owner. [ADR-023](../decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md)
-proposes the latest owner direction: adaptive grouping plus whole subthreads
-following their originating pages. First approve the concrete source-link/local
-migration package, then test pure bounded clustering and source-anchor/lifecycle
-contracts before activating regrouping. Existing roots have no source lineage
-and stay pinned rather than guessed. No schema/threshold changes are active yet.
+is explicitly owner-approved and implemented in 0.11.0: adaptive grouping plus
+whole subthreads following their originating pages, and clickable per-post source
+icons. Existing roots have no source lineage and migrate pinned, never guessed.
+The active experimental .90–.94 rule uses bounded structural support, duplicate
+discounting, competing-group checks and hysteresis; it is not calibrated semantic
+identity. SQLite v2, source drift/pins, deletion, stale writes and actual-browser
+checks are recorded in STATUS. Next: owner feedback on the testable local app,
+not another model or larger-corpus review without its separate approval.
 
 ## Evidence already available
 

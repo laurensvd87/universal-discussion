@@ -27,13 +27,15 @@ HTTPS access is separate and may remain; legacy enabled preferences are inert.
 ADR-019 A's bounded article-first/title-plus-lead single-vector matching upgrade
 was separately explicitly approved on 2026-09-29. Its tested proposal is preserved
 outside the extension, not activated: the frozen synthetic experiment found false
-joins. Production reader/input/grouping remain unchanged. The owner declined
+joins. Production reader/input remain unchanged. The owner declined
 ADR-022's extra Qwen experiment because of size/latency; defer it, do not download
-or infer. Lightweight embedding options and a fallback 0.90 threshold are under
-discussion; production remains 0.94 until an implementation decision is made.
-The owner now requests adaptive grouping with root/reply threads following their
-originating page; ADR-023 proposes the new source-anchor/migration package and
-requires explicit approval before implementation. Existing roots have no source
+or infer. ADR-023's separately approved experimental grouping now uses a 0.90
+floor with supported 0.94 refinement; it is not calibrated semantic identity.
+The owner explicitly approved ADR-023's local source-anchor/migration and whole-
+subthread regrouping package, adding clickable source-page links on each post.
+Version 0.11.0 is implemented/reviewed; see STATUS for tests. Do not repeat the gate.
+Root origin controls grouping; a reply's optional origin supplies its own link only.
+SQLite v2 migration pins existing roots without inventing their source
 lineage: never guess it. Do not infer approval for second vectors, structured
 retained facts or an unreviewed historical migration. ADR-019 C durable pairing remains pending. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.

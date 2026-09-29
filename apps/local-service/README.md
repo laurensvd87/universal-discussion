@@ -16,8 +16,9 @@ Extension 0.9.0 adds the owner-approved bounded generic article fallback (ADR-02
 Restart this service as well as reloading the extension: ingestion/persistence
 now explicitly accept `main-text-prefix/v1` and `article-container-prefix/v1`
 under the same unchanged E5 transform. Unknown extractors/models stay rejected.
-Existing SQLite data, Topic links, comments and manual corrections are preserved;
-no reset, migration, model installation or additional listener is required.
+That 0.9.0 change preserved existing SQLite data, Topic links, comments and
+manual corrections without a reset, model installation or additional listener.
+ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
@@ -42,8 +43,9 @@ The service provides:
   aggregate contract;
 - human root/reply/edit/withdraw commands with ownership and stale-write checks;
 - catalog, separate fixture/learned related ranking and projected discussion DTOs;
-- ADR-018 ingestion of URL/title/384D browser-derived vectors, experimental local
-  Topic grouping and explicit correction/forget/deletion commands;
+- ADR-018 ingestion of URL/title/384D browser-derived vectors, ADR-023 adaptive
+  experimental Topic grouping, source-anchored subthreads and explicit
+  correction/forget/deletion commands;
 - a transport-neutral `/v1` request handler with exact Host, bearer, optional
   exact Origin, CORS preflight, size and route validation;
 - dormant composition plus a bounded, explicitly started HTTP transport.
@@ -68,22 +70,56 @@ in SQLite until deletion. There is no visit history. The catalog is capped at
 100 Sources including fixtures, 100 Topics and the existing 8 MiB aggregate.
 At capacity, writes fail visibly; nothing is silently evicted.
 
-The versioned experimental local policy requires cosine >=0.94 against every
-member of a candidate Topic and a >=0.04 margin over every competing Topic's
-nearest compatible Source. Related-reading suggestions use >=0.85. These are
-unvalidated heuristics, not confidence or production accuracy claims. Ambiguity
-creates a separate Topic. Existing Source links stay stable on revisit; manual
-correction does not move comments or merge discussions. Model scores/vectors
-never appear in display DTOs.
+ADR-023's `adaptive-supported-partitions/v1` policy is an experimental local
+heuristic: sparse candidate joins require complete-link cosine >=0.90 and a
+>=0.04 advantage over the closest outside member. A supported split requires
+two independent, internally cohesive groups; duplicate-like pages do not count
+as independent support. Such a split keeps a tighter >=0.94 boundary through a
+bounded `retainTight` flag on its learned Topics, including after support is
+removed. Incoherent old provisional groups may split. Explicit manual Source
+links stay pinned and cannot expand automatically. Related-reading suggestions
+still use >=0.85. These cutoffs are not semantic equivalence, event/stance
+verification, confidence or real-page matching-quality evidence. The earlier
+`provisional-all-source-cosine/v1` receipts and stored records remain valid.
+Unknown extractor/model/policy versions remain rejected; scores/vectors never
+appear in display DTOs.
 
-New versioned `/v1/commands` types: `correct-source`, `forget-source`,
+New `create-root` and `reply` commands may include `originSourceId` (omitted or
+`null` means no page origin). The server accepts only an existing Source linked
+to the command's current Topic/Discussion. A root started from that Source keeps
+a local Source anchor; replies can name their own page but always follow their
+root's destination. A Topic-only root stays pinned. A visible post's discussion
+DTO includes optional `origin: {sourceId, url, title}` from its still-retained
+Source; a moved visible root also has `regrouped: true`. Deleted, legacy and
+unlinked posts have no invented origin. The link points to the current live page,
+not an archived copy. The service does not fetch it.
+
+Grouping, Source links and whole root/reply routing update together in one
+versioned SQLite transaction. A changed stored URL/vector/extractor representation
+pins older anchored roots at their last Topic before the Source is regrouped;
+the short display title alone does not freeze them. The stable Source stamp
+cannot reconstruct earlier page content. Manual correction moves still-anchored
+roots and replies; stale expected revisions reject writes aimed at an old
+destination. IDs, authors, bodies and reply topology remain stable.
+
+Versioned `/v1/commands` types: `correct-source`, `forget-source`,
 `delete-learned-topic` and `clear-learned-data`. Forget removes a Source and its
-vector/receipt/link, keeping comments. Deleting a learned Topic removes its
-linked learned Sources and entire discussion. Clear learned data also removes
-orphan learned Topics and their comments; fixture/manual Topics and comments on
-them remain. Both destructive discussion actions require exact visible
+vector/receipt/link, removes every post-origin reference to it, and pins dependent
+roots at their current Topic while keeping comments. Root withdrawal purges its
+origin and pins the surviving reply tree. Deleting a learned Topic removes its
+linked learned Sources and currently projected discussion. Clear learned data
+also removes learned-origin roots that were manually moved into a fixture/manual
+Topic; unrelated fixture/manual comments remain. Both destructive discussion
+actions require exact visible
 confirmation. The extension pauses processing first; version checks fence late
 ingestion. None of this encrypts the local database or promises forensic erasure.
+
+On first open, a strict `demo-state/v1` SQLite aggregate is atomically migrated
+to `demo-state/v2` with revision +1. Old roots and all their replies remain pinned
+to their existing Topic; the migration does not guess a Source from text or
+membership. A corrupt/unknown old record or failed migration rolls back and
+fails closed, without reset, reseeding or dropped posts. Use a current expected
+version after migration before posting.
 
 This approval covers one owner and public enabled sites on this PC, not private
 messages, a remote service, real accounts, external testers or publication.

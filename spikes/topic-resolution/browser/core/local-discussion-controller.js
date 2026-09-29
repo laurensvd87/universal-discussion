@@ -10,6 +10,11 @@ function freeze(value) {
   }
   return value;
 }
+export function selectedPostingSource(state) {
+  const source = state.catalog?.sources.find((entry) => entry.id === state.sourceId);
+  return state.phase === "ready" && source?.topicId === state.topicId &&
+    ["automatic", "background", "manual"].includes(state.selection) ? source : null;
+}
 
 // Owns transient selection/drafts only; the service owns all canonical data.
 export function createLocalDiscussionController({ client, session, readActiveTab,
@@ -162,6 +167,13 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (ownEpoch !== epoch || disposed) return;
       const actorId = catalog.actors.some((entry) => entry.id === state.actorId)
         ? state.actorId : catalog.actors[0]?.id ?? null;
+      if (state.selection === "manual" && state.sourceId) {
+        const refreshedSource = catalog.sources.find((entry) => entry.id === state.sourceId);
+        if (!refreshedSource || refreshedSource.topicId !== state.topicId) {
+          detach();
+          publish({ sourceId: refreshedSource?.id ?? null, topicId: refreshedSource?.topicId ?? null });
+        }
+      }
       publish({ catalog, actorId, phase: "choose-topic" });
       if ((state.selection === "manual" && state.topicId && catalog.topics.some((entry) => entry.id === state.topicId)) ||
           (state.selection === "manual" && state.sourceId && catalog.sources.some((entry) => entry.id === state.sourceId))) {
@@ -307,6 +319,9 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       command = { type: "reply", discussionId: state.discussion.discussionId,
         rootId: target.rootId ?? target.id, replyToId: target.id, body: draft.body };
     } else command = { type: "create-root", topicId: state.topicId, body: draft.body };
+    if (["create-root", "reply"].includes(command.type)) {
+      command.originSourceId = selectedPostingSource(state)?.id ?? null;
+    }
     return mutate(command);
   }
   function withdraw(contributionId) {

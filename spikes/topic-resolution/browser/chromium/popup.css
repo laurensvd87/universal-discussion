@@ -182,6 +182,10 @@ input[type="checkbox"] { width: 24px; min-height: 24px; accent-color: #0b7285; }
 textarea { resize: vertical; }
 .discussion-thread { display: grid; gap: 12px; }
 .discussion-contribution { display: grid; gap: 7px; padding: 10px; border: 1px solid #d4dee3; border-radius: 8px; }
+.discussion-source-link { display: inline-flex; justify-self: end; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; border-radius: 5px; color: #17578d; text-decoration: none; font-size: 17px; }
+.discussion-source-link:hover { background: #e8f1fb; }
+.discussion-source-link:focus-visible { outline: 3px solid #0b7285; outline-offset: 2px; }
+#discussion-origin-disclosure { font-size: 11px; color: #52606c; line-height: 1.45; }
 .discussion-thread section { display: grid; gap: 5px; }
 .discussion-thread section article + article { margin-left: 12px; }
 .discussion-body { white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -56,6 +56,43 @@ test("paired popup automatically loads bridged service discussion and sends IDs 
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
 });
 
+test("root and reply link their own deliberately selected Sources; manual Topic has no origin", async () => {
+  const ui = harness(); await ui.controller.open();
+  ui.controller.setDraft("Root from first Source"); assert.equal(await ui.controller.submitDraft(), true);
+  const root = ui.controller.currentState().discussion.roots[0];
+  assert.equal(ui.requests.find((entry) => entry[0] === "command")[1].originSourceId, "reserved-example-com");
+  assert.equal(root.origin.sourceId, "reserved-example-com");
+  await ui.controller.selectSource("reserved-example-org");
+  assert.equal(ui.controller.begin("reply", root.id), true);
+  ui.controller.setDraft("Reply from second Source"); assert.equal(await ui.controller.submitDraft(), true);
+  const replied = ui.controller.currentState().discussion.roots[0];
+  assert.equal(replied.replies[0].rootId, replied.id);
+  assert.equal(replied.replies[0].origin.sourceId, "reserved-example-org");
+  assert.equal(ui.requests.filter((entry) => entry[0] === "command")[1][1].originSourceId, "reserved-example-org");
+  assert.equal(ui.controller.begin("edit", replied.replies[0].id), true);
+  ui.controller.setDraft("Edited reply"); assert.equal(await ui.controller.submitDraft(), true);
+  assert.equal(ui.controller.currentState().discussion.roots[0].replies[0].origin.sourceId, "reserved-example-org");
+  assert.equal(Object.hasOwn(ui.requests.filter((entry) => entry[0] === "command")[2][1], "originSourceId"), false);
+  await ui.controller.selectTopic("reserved-domain-demo");
+  ui.controller.setDraft("Manual Topic root"); assert.equal(await ui.controller.submitDraft(), true);
+  assert.equal(ui.requests.filter((entry) => entry[0] === "command").at(-1)[1].originSourceId, null);
+  assert.equal(Object.hasOwn(ui.controller.currentState().discussion.roots.find((entry) => entry.body === "Manual Topic root"), "origin"), false);
+});
+
+test("changed manual Source Topic detaches unsent draft before a fresh read", async () => {
+  let moved = false;
+  const ui = harness({ client: { async catalog() {
+    const value = structuredClone(ui.service.catalog());
+    if (moved) value.sources.find((entry) => entry.id === "reserved-example-com").topicId = "harbor-s2";
+    return value;
+  } } });
+  await ui.controller.open(); await ui.controller.selectSource("reserved-example-com");
+  ui.controller.setDraft("Never silently retarget"); moved = true; await ui.controller.open();
+  assert.equal(ui.controller.currentState().topicId, "harbor-s2");
+  assert.equal(ui.controller.currentState().draft.detached, true);
+  assert.equal(await ui.controller.submitDraft(), false);
+});
+
 test("unsupported observed private-like URL offers manual choice without transmitting it", async () => {
   const ui = harness({ readActiveTab: async () => ({ tabId: 7, url: "https://private.invalid/account?secret=private-title" }) });
   await ui.controller.open(); assert.equal(ui.controller.currentState().topicId, null);
@@ -327,7 +364,7 @@ test("background document/processing changes detach drafts without retargeting, 
   assert.equal(ui.controller.currentState().draft.detached, true);
 });
 
-test("correction pauses before fresh-version write, preserves detached text and never moves comments", async () => {
+test("correction pauses before fresh-version write, detaches unsent text and moves source-anchored root with its Topic", async () => {
   const ui = backgroundHarness(); await ui.controller.open(); const learned = ui.ingest(); await ui.publish();
   ui.controller.setDraft("Old shared comment"); await ui.controller.submitDraft();
   ui.controller.setDraft("Unsent must not move with correction");
@@ -335,8 +372,10 @@ test("correction pauses before fresh-version write, preserves detached text and 
   assert.equal(await ui.controller.correctSource(null, "CONFIRM SOURCE TOPIC"), true);
   assert.equal(ui.pauses.length, 1); assert.notEqual(ui.controller.currentState().topicId, learned.topicId);
   assert.equal(ui.controller.currentState().draft.detached, true);
-  assert.equal(ui.service.discussion(learned.topicId).roots[0].body, "Old shared comment");
-  assert.equal(ui.controller.currentState().discussion.roots.length, 0);
+  assert.equal(ui.service.discussion(learned.topicId).roots.length, 0);
+  assert.equal(ui.controller.currentState().discussion.roots[0].body, "Old shared comment");
+  assert.equal(ui.controller.currentState().discussion.roots[0].regrouped, true);
+  assert.equal(ui.controller.currentState().discussion.roots[0].origin.sourceId, learned.sourceId);
 });
 
 test("Forget retains shared comments; learned deletion/clear require exact confirmation and pause", async () => {

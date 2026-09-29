@@ -17,6 +17,7 @@ const FIRST_TOKEN = 'owned-background-smoke-first-pairing';
 const SECOND_TOKEN = 'owned-background-smoke-second-pairing';
 const COMMENT = 'Owned browser test: the replaceable Cedar battery is useful.';
 const DEMO_COMMENT = 'Owned browser test: retained demo discussion contribution.';
+const CROSS_PAGE_REPLY = 'Owned browser reply from A follows the root created on B.';
 const STATUS = "document.querySelector('#local-discussion [role=status]')?.textContent";
 const THREAD = "document.querySelector('#local-discussion .discussion-thread')";
 const TEXTS = {
@@ -231,6 +232,14 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await waitExpression(`${THREAD}.textContent.includes(${JSON.stringify(body)}) && document.querySelector('#discussion-body').value===''`, 'committed shared comment');
     await waitStatus(EN.discussionReady);
   }
+  async function postOrigin(body, expectedUrl) {
+    assert.ok(await evaluate(`(() => {
+      const card=[...document.querySelectorAll('#local-discussion .discussion-contribution')]
+        .find(item=>item.querySelector(':scope > .discussion-body')?.textContent===${JSON.stringify(body)});
+      const link=card?.querySelector(':scope > a.discussion-source-link');
+      return ${expectedUrl === null ? '!link' : `link?.href===${JSON.stringify(expectedUrl)} && link.target==='_blank' && link.rel==='noopener noreferrer' && link.referrerPolicy==='no-referrer'`};
+    })()`), 'Post origin matches its own publication context');
+  }
   const waitMatching = message => waitExpression(`document.querySelector('#matching-status')?.textContent===${JSON.stringify(message)}`, 'matching UI status');
   async function confirmStart() {
     await waitExpression(`(async () => {
@@ -348,6 +357,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.equal(await evaluate("document.querySelector('#ui-mode-user').getAttribute('aria-pressed')"), 'true');
     checks.push('default-user-connection-topic-and-draft-preserving-mode-switch');
     await postComment(); checks.push('actual-pairing-session-consent', 'popup-closed-capture-inference-ingestion', 'comment-on-page-a');
+    await postOrigin(COMMENT, fixtureUrl('a'));
     await toolbar('topic'); // A lone learned page remains green even with posts.
     stage = 'shared-topic-on-paraphrase';
     await navigate('b'); const b = await automatic('b');
@@ -363,6 +373,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await toolbar('shared');
     assert.equal(ingestions.length, capturesBeforeWithdraw);
     await postComment();
+    await postOrigin(COMMENT, fixtureUrl('b'));
     await toolbar('posts');
     assert.equal(ingestions.length, capturesBeforeWithdraw);
     checks.push('toolbar-light-blue-on-deleted-only-and-dark-blue-on-new-post-without-recapture');
@@ -419,6 +430,19 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     assert.equal((await source('b')).topicId, a.topicId);
     checks.push('sqlite-comment-survives-restart-and-new-pairing');
+    await postOrigin(COMMENT, fixtureUrl('b'));
+    await chooseSource(a.id);
+    const rootedOnB = await evaluate(`(() => {
+      const card=[...document.querySelectorAll('#local-discussion .discussion-contribution')]
+        .find(item=>item.querySelector(':scope > .discussion-body')?.textContent===${JSON.stringify(COMMENT)});
+      return card?.querySelector('[data-action=reply]')?.dataset.contributionId;
+    })()`);
+    assert.ok(rootedOnB);
+    await click(`[data-action=reply][data-contribution-id="${rootedOnB}"]`);
+    await postComment(CROSS_PAGE_REPLY);
+    await postOrigin(COMMENT, fixtureUrl('b'));
+    await postOrigin(CROSS_PAGE_REPLY, fixtureUrl('a'));
+    checks.push('each-post-has-own-source-link-while-reply-follows-root');
     await chooseSource(generic.id);
     assert.equal((await source('generic')).topicId, semantic.topicId);
     assert.equal((await source('semantic')).topicId, semantic.topicId);
@@ -435,16 +459,20 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       return item && item.topicId !== a.topicId ? item : false;
     }, 'confirmed separate Topic correction');
     await waitStatus(EN.discussionReady);
-    assert.ok(await evaluate(`!${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
+    assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)}) && ${THREAD}.textContent.includes(${JSON.stringify(CROSS_PAGE_REPLY)}) && ${THREAD}.textContent.includes(${JSON.stringify(EN.discussionRegrouped)})`));
+    await postOrigin(COMMENT, fixtureUrl('b'));
+    await postOrigin(CROSS_PAGE_REPLY, fixtureUrl('a'));
     await chooseSource(a.id);
-    assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
+    assert.ok(await evaluate(`!${THREAD}.textContent.includes(${JSON.stringify(COMMENT)}) && !${THREAD}.textContent.includes(${JSON.stringify(CROSS_PAGE_REPLY)})`));
     await chooseSource(b.id); await click('#discussion-forget');
     await wait(async () => !(await catalog()).sources.some(item => item.id === b.id), 'forgotten learned Source');
     assert.ok((await catalog()).topics.some(item => item.id === corrected.topicId));
     await wait(() => evaluate(`[${JSON.stringify(EN.discussionReady)},${JSON.stringify(EN.discussionChooseStatus)}].includes(${STATUS})`), 'fresh catalog after Forget');
-    await chooseSource(a.id);
+    await select('#discussion-topic', corrected.topicId); await waitStatus(EN.discussionReady);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
-    checks.push('confirmed-correction-preserves-old-discussion', 'forget-preserves-topics-and-comments');
+    await postOrigin(COMMENT, null);
+    await postOrigin(CROSS_PAGE_REPLY, fixtureUrl('a'));
+    checks.push('confirmed-correction-moves-complete-source-anchored-thread', 'forget-pins-thread-and-purges-only-forgotten-source-links');
     stage = 'confirmed-topic-delete-and-clear';
     await chooseSource(c.id);
     assert.ok(await evaluate("document.querySelector('#discussion-delete').disabled"));

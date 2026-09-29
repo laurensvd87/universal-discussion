@@ -1,7 +1,8 @@
 import { fail } from "./errors.js";
 import { clone, readBody, readId, readRecord, readText } from "./validation.js";
+import { contributionOrigin, rootAssociation, withdrawAssociation } from "./source-threads.js";
 
-export const STATE_SCHEMA = "demo-state/v1";
+export const STATE_SCHEMA = "demo-state/v2";
 export const LIMITS = Object.freeze({ topics: 100, contributions: 1_000, revisions: 50 });
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 
@@ -43,8 +44,12 @@ function findContribution(state, contributionId) {
   return contribution;
 }
 
-function commandRecord(command, fields) {
-  return readRecord(command, ["type", ...fields]);
+function commandRecord(command, fields, optional = []) {
+  const input = readRecord(command, ["type", ...fields, ...optional], ["type", ...fields]);
+  if (optional.includes("originSourceId") && Object.hasOwn(input, "originSourceId") && input.originSourceId !== null) {
+    readId(input.originSourceId);
+  }
+  return input;
 }
 
 export function applyCommand(state, command, actor, { nextId, now }) {
@@ -73,25 +78,28 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     next.discussions.push({ id: discussionId, topicId });
     result = { topicId, discussionId };
   } else if (type === "create-root") {
-    const input = commandRecord(command, ["topicId", "body"]);
+    const input = commandRecord(command, ["topicId", "body"], ["originSourceId"]);
     const topicId = readId(input.topicId);
     const discussion = next.discussions.find((entry) => entry.topicId === topicId);
     if (!discussion) fail("not-found", "Object unavailable");
+    const origin = contributionOrigin(next, input.originSourceId, topicId);
     const contributionId = readId(nextId("contribution"));
     ensureUnused(next, contributionId);
     addContribution(next, {
       id: contributionId, discussionId: discussion.id,
       rootId: null, replyToId: null, authorId: actor.id,
-      body: readBody(input.body), timestamp,
+      body: readBody(input.body), timestamp, originSourceId: origin?.id,
+      association: rootAssociation(topicId, origin),
     });
     result = { contributionId };
   } else if (type === "reply") {
-    const input = commandRecord(command, ["discussionId", "rootId", "replyToId", "body"]);
+    const input = commandRecord(command, ["discussionId", "rootId", "replyToId", "body"], ["originSourceId"]);
     const discussion = findDiscussion(next, readId(input.discussionId));
     const root = findContribution(next, readId(input.rootId));
     if (root.discussionId !== discussion.id || root.rootId !== null || root.withdrawn) {
       fail("invalid", "Invalid request");
     }
+    const origin = contributionOrigin(next, input.originSourceId, discussion.topicId);
     let replyToId = null;
     if (input.replyToId !== null) {
       const target = findContribution(next, readId(input.replyToId));
@@ -106,7 +114,7 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     addContribution(next, {
       id: contributionId, discussionId: discussion.id,
       rootId: root.id, replyToId, authorId: actor.id,
-      body: readBody(input.body), timestamp,
+      body: readBody(input.body), timestamp, originSourceId: origin?.id,
     });
     result = { contributionId };
   } else if (type === "edit") {
@@ -123,6 +131,7 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     contribution.withdrawn = true;
     contribution.authorId = null;
     contribution.revisions = [];
+    withdrawAssociation(next, contribution);
     result = { contributionId: contribution.id };
   } else {
     fail("forbidden", "Action unavailable");
@@ -154,5 +163,7 @@ function addContribution(state, input) {
     withdrawn: false,
     createdAt: input.timestamp,
     revisions: [{ body: input.body, createdAt: input.timestamp }],
+    ...(input.originSourceId ? { originSourceId: input.originSourceId } : {}),
+    ...(input.association ?? {}),
   });
 }

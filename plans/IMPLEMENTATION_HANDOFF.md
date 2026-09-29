@@ -2,20 +2,34 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Latest direction: owner proposes adaptive sparse/dense grouping and moving whole
-root/reply subthreads with their originating pages. Read proposed ADR-023 before
-coding: new roots need explicit source anchoring; current roots have no saved
-source and must not be guessed. Stable identities with derived Topic projections,
-manual/legacy pins, page-content drift, deletion and transactional regrouping are
-the proposed design. The concrete persistent-link/migration package needs owner
-approval; no production/data changes yet. Density/popularity is not semantic truth.
+Latest checkpoint **0.11.0** implements owner-approved ADR-023: adaptive grouping,
+source-anchored whole subthreads and directly clickable per-post source-page icons.
+Root origin controls grouping; reply origin only controls its own link. SQLite v2
+migration pins legacy roots without guessing a source. Changed representations
+pin old threads; manual Source links override automatic grouping. Forget purges
+Source references but preserves comments; Clear also removes learned-origin root
+sets moved to fixture/manual Topics. New thread IDs and reply topology stay stable.
+
+Active policy `adaptive-supported-partitions/v1`: .90 floor, .94 supported/sticky
+refinement, .04 competing-member margin, .995 duplicate discount and two independent
+representatives per supported subgroup. Invented geometry tests are not learned
+event/viewpoint accuracy; see experiment README and prior E5 limitations. No new
+model/input/payload/permission/provider. Existing owner data was not accessed.
+Independent Sol Trust review passes; restricted 763/763, indicator 501/501,
+backend 93/93, loopback 2/2 and actual Chrome matching 21 / discussion 20 covered
+areas pass. See STATUS for scope, migration/cancellation corrections and gaps.
+
+Next: owner restarts backend, reloads extension, pairs and starts a session to try
+the local app. No reset or repeated owner review. Additional model, durable pairing,
+private/provider/remote/publication work and the larger corpus retain their gates.
 
 Previous direction: owner declines ADR-022's additional Qwen model because of
 size/latency. Defer it; do not download, infer or repeatedly ask for that package.
 They ask for lightweight embedding options or a fallback 0.90 threshold. Existing
 synthetic pair counts quantify the recall/false-match trade-off (STATUS/ADR-022),
-not validation of 0.90 sequential grouping. No production change yet: 0.94 and
-0.04 margin, stable existing assignments and one-vector payload remain. A short
+not validation of 0.90 sequential grouping. At that advisory checkpoint 0.94 and
+0.04 margin/stable assignments remained; ADR-023 above later supersedes grouping.
+The one-vector payload remains. A short
 title-focused input test and later same-architecture fine-tuning are proposals,
 not completed work or new model/data authority. Future connected-user AI stays gated.
 

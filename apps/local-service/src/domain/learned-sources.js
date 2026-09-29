@@ -2,6 +2,9 @@ import { fail } from "./errors.js";
 import { clone, readExpectedVersion, readId, readRecord, readText } from "./validation.js";
 import { LIMITS } from "./demo-state.js";
 import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
+import { pinSourceRoots, purgeLearnedThreads, removeSourceOrigins, sourceStamp } from "./source-threads.js";
+import { applyAdaptiveTopicPlan } from "./adaptive-topic-integration.js";
+import { ADAPTIVE_TOPIC_POLICY } from "./adaptive-topics.js";
 
 export const LEARNED_SOURCE_PROVENANCE = "owner-local-page-embedding/v1";
 export const LEARNED_TOPIC_PROVENANCE = "owner-local-learned-topic/v1";
@@ -11,7 +14,6 @@ export const EXTRACTOR_VERSION = "main-text-prefix/v1";
 // This is an exact allowlist, not general compatibility by vector dimension.
 export function compatibleExtractor(version) { return PAGE_CONTENT_EXTRACTOR_VERSIONS.includes(version); }
 export const MATCH_POLICY_VERSION = "provisional-all-source-cosine/v1";
-export const MATCH_POLICY = Object.freeze({ minSimilarity: 0.94, distinctTopicMargin: 0.04 });
 export const LEARNED_COMMANDS = new Set(["correct-source", "forget-source", "delete-learned-topic", "clear-learned-data"]);
 
 export function readLearnedUrl(value) {
@@ -65,35 +67,11 @@ function freshId(state, nextId, kind) {
 function createLearnedTopic(state, title, { nextId, now }) {
   if (state.topics.length >= LIMITS.topics) fail("capacity", "Capacity reached");
   const topicId = freshId(state, nextId, "topic");
-  state.topics.push({ id: topicId, kind: "general", title, createdAt: now(), provenance: LEARNED_TOPIC_PROVENANCE });
+  state.topics.push({ id: topicId, kind: "general", title, createdAt: now(), provenance: LEARNED_TOPIC_PROVENANCE, retainTight: false });
   const discussionId = freshId(state, nextId, "discussion");
   state.discussions.push({ id: discussionId, topicId });
   return topicId;
 }
-function cosine(left, right) {
-  return Math.max(-1, Math.min(1, left.reduce((sum, value, index) => sum + value * right[index], 0)));
-}
-function provisionalTopic(state, embedding) {
-  const scores = [];
-  for (const topic of state.topics.filter((item) => item.provenance === LEARNED_TOPIC_PROVENANCE)) {
-    const sourceIds = new Set(state.sourceLinks.filter((link) => link.topicId === topic.id).map((link) => link.sourceId));
-    const members = state.sources.filter((source) => sourceIds.has(source.id));
-    // Never expand a Topic via a single neighbor or a mixed vector space.
-    if (!members.length || members.some((source) => source.provenance !== LEARNED_SOURCE_PROVENANCE || source.embedding.modelId !== embedding.modelId || !compatibleExtractor(source.extractorVersion))) continue;
-    const similarities = members.map((source) => cosine(embedding.values, source.embedding.values));
-    scores.push({ topicId: topic.id, score: Math.min(...similarities) });
-  }
-  scores.sort((left, right) => right.score - left.score || (left.topicId < right.topicId ? -1 : 1));
-  const first = scores[0];
-  if (!first || first.score < MATCH_POLICY.minSimilarity) return null;
-  // Ambiguity uses the closest compatible member of every other Topic, even
-  // a Topic whose other members made it ineligible for automatic expansion.
-  // A low cluster minimum must not hide a competing near-identical Source.
-  const competing = state.sources.filter((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && source.embedding.modelId === embedding.modelId && compatibleExtractor(source.extractorVersion) && state.sourceLinks.some((link) => link.sourceId === source.id && link.topicId !== first.topicId));
-  if (competing.some((source) => first.score - cosine(embedding.values, source.embedding.values) < MATCH_POLICY.distinctTopicMargin)) return null;
-  return first.topicId;
-}
-
 export function ingestionResult(state, source) {
   const link = state.sourceLinks.find((item) => item.sourceId === source.id);
   if (!link) fail("not-found", "Object unavailable");
@@ -106,18 +84,22 @@ export function applyLearnedIngest(state, input, operationDigest, dependencies) 
   if (source && source.provenance !== LEARNED_SOURCE_PROVENANCE) fail("forbidden", "Source unavailable for ingestion");
   if (!source && next.sources.length >= 100) fail("capacity", "Capacity reached");
   if (!source) {
-    const topicId = provisionalTopic(next, input.embedding) ?? createLearnedTopic(next, input.title, dependencies);
     source = { id: freshId(next, dependencies.nextId, "source"), url: input.url, title: input.title,
       embedding: input.embedding, provenance: LEARNED_SOURCE_PROVENANCE,
-      extractorVersion: input.extractorVersion, operationId: input.operationId, operationDigest, policyVersion: MATCH_POLICY_VERSION };
+      extractorVersion: input.extractorVersion, operationId: input.operationId, operationDigest, policyVersion: ADAPTIVE_TOPIC_POLICY.version };
     next.sources.push(source);
-    next.sourceLinks.push({ sourceId: source.id, topicId, method: "learned-provisional" });
   } else {
-    // Stable assignment on revisit/update: content drift cannot move a comment
-    // destination or override an owner's confirmed association automatically.
+    // A changed current representation cannot retarget historical subthreads.
+    const changed = sourceStamp(source) !== sourceStamp({ url: source.url, embedding: input.embedding, extractorVersion: input.extractorVersion });
+    if (changed) {
+      pinSourceRoots(next, source.id);
+      const link = next.sourceLinks.find((entry) => entry.sourceId === source.id);
+      if (link.method === "learned-provisional") next.sourceLinks = next.sourceLinks.filter((entry) => entry.sourceId !== source.id);
+    }
     Object.assign(source, { title: input.title, embedding: input.embedding, extractorVersion: input.extractorVersion,
-      operationId: input.operationId, operationDigest });
+      operationId: input.operationId, operationDigest, policyVersion: ADAPTIVE_TOPIC_POLICY.version });
   }
+  applyAdaptiveTopicPlan(next, dependencies);
   next.revision += 1;
   return { state: next, result: ingestionResult(next, source) };
 }
@@ -129,6 +111,7 @@ function learnedSource(state, sourceId) {
 }
 function removeSources(state, ids) {
   const removed = new Set(ids);
+  removeSourceOrigins(state, ids);
   state.sources = state.sources.filter((source) => !removed.has(source.id));
   state.sourceLinks = state.sourceLinks.filter((link) => !removed.has(link.sourceId));
 }
@@ -152,11 +135,13 @@ export function applyLearnedCommand(state, value, dependencies) {
     const topicId = input.topicId === null ? createLearnedTopic(next, source.title, dependencies) : readId(input.topicId);
     if (!next.topics.some((topic) => topic.id === topicId)) fail("not-found", "Object unavailable");
     link.topicId = topicId; link.method = "manual-confirmed";
+    applyAdaptiveTopicPlan(next, dependencies);
     result = { ...ingestionResult(next, source), previousTopicId };
   } else if (type === "forget-source") {
     const input = readRecord(value, ["type", "sourceId"]);
     const source = learnedSource(next, input.sourceId);
     removeSources(next, [source.id]);
+    applyAdaptiveTopicPlan(next, dependencies);
     result = { sourceId: source.id };
   } else if (type === "delete-learned-topic") {
     const input = readRecord(value, ["type", "topicId", "confirmation"]);
@@ -166,12 +151,14 @@ export function applyLearnedCommand(state, value, dependencies) {
     const forgottenSourceIds = next.sourceLinks.filter((link) => link.topicId === topicId).map((link) => link.sourceId);
     if (forgottenSourceIds.some((id) => next.sources.find((source) => source.id === id)?.provenance !== LEARNED_SOURCE_PROVENANCE)) fail("forbidden", "Topic unavailable for deletion");
     removeSources(next, forgottenSourceIds); removeTopics(next, [topicId]);
+    applyAdaptiveTopicPlan(next, dependencies);
     result = { topicId, forgottenSourceIds };
   } else if (type === "clear-learned-data") {
     const input = readRecord(value, ["type", "confirmation"]);
     if (input.confirmation !== "CLEAR LEARNED DATA") fail("invalid", "Invalid request");
     const forgottenSourceIds = next.sources.filter((source) => source.provenance === LEARNED_SOURCE_PROVENANCE).map((source) => source.id);
     const deletedTopicIds = next.topics.filter((topic) => topic.provenance === LEARNED_TOPIC_PROVENANCE).map((topic) => topic.id);
+    purgeLearnedThreads(next);
     removeSources(next, forgottenSourceIds); removeTopics(next, deletedTopicIds);
     result = { forgottenSourceIds, deletedTopicIds };
   } else fail("forbidden", "Action unavailable");

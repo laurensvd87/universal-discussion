@@ -1,14 +1,24 @@
 import { LIMITS, STATE_SCHEMA } from "./demo-state.js";
 import { readBody } from "./validation.js";
+import { operationDigestFor, sourceStamp } from "./source-threads.js";
 import { BROWSER_MODEL_ID, compatibleExtractor, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, MATCH_POLICY_VERSION, readLearnedEmbedding, readLearnedUrl } from "./learned-sources.js";
+import { ADAPTIVE_TOPIC_POLICY } from "./adaptive-topics.js";
 
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 const ACTORS = new Set(["demo-alex", "demo-blair"]);
 const UNSAFE_TEXT = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 
 export function assertValidPersistedState(state) {
+  return assertState(state, false);
+}
+
+export function assertValidLegacyPersistedState(state) {
+  return assertState(state, true);
+}
+
+function assertState(state, legacy) {
   record(state, ["schema", "generation", "revision", "topics", "discussions", "contributions", "sources", "sourceLinks"]);
-  if (state.schema !== STATE_SCHEMA || !integer(state.revision, 0)) invalid();
+  if (state.schema !== (legacy ? "demo-state/v1" : STATE_SCHEMA) || !integer(state.revision, 0)) invalid();
   text(state.generation, 128);
   array(state.topics, LIMITS.topics);
   array(state.discussions, LIMITS.topics);
@@ -17,9 +27,10 @@ export function assertValidPersistedState(state) {
   array(state.sourceLinks, 100);
 
   const topicIds = unique(state.topics, (topic) => {
-    record(topic, ["id", "kind", "title", "createdAt", ...(topic.provenance === LEARNED_TOPIC_PROVENANCE ? ["provenance"] : [])]);
+    record(topic, ["id", "kind", "title", "createdAt", ...(topic.provenance === LEARNED_TOPIC_PROVENANCE ? ["provenance", ...(!legacy ? ["retainTight"] : [])] : [])]);
     text(topic.id, 128); text(topic.title, 200); text(topic.createdAt, 64);
     if (!TOPIC_KINDS.has(topic.kind)) invalid();
+    if (!legacy && topic.provenance === LEARNED_TOPIC_PROVENANCE && typeof topic.retainTight !== "boolean") invalid();
     return topic.id;
   });
   const discussionIds = unique(state.discussions, (discussion) => {
@@ -37,9 +48,12 @@ export function assertValidPersistedState(state) {
     validEmbedding(source.embedding);
     if (learned) {
       text(source.title, 200); text(source.operationId, 128);
-      if (!compatibleExtractor(source.extractorVersion) || source.policyVersion !== MATCH_POLICY_VERSION || !/^[a-f0-9]{64}$/u.test(source.operationDigest) || source.embedding?.modelId !== BROWSER_MODEL_ID) invalid();
+      if (!compatibleExtractor(source.extractorVersion) || !(legacy ? source.policyVersion === MATCH_POLICY_VERSION :
+          [MATCH_POLICY_VERSION, ADAPTIVE_TOPIC_POLICY.version].includes(source.policyVersion)) ||
+          !/^[a-f0-9]{64}$/u.test(source.operationDigest) || source.embedding?.modelId !== BROWSER_MODEL_ID) invalid();
       if (readLearnedUrl(source.url) !== source.url) invalid();
       readLearnedEmbedding(source.embedding);
+      if (source.operationDigest !== operationDigestFor(source)) invalid();
     }
     return source.id;
   });
@@ -55,11 +69,36 @@ export function assertValidPersistedState(state) {
   if (state.sources.some((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && !linkedSources.has(source.id))) invalid();
 
   const contributionIds = unique(state.contributions, (contribution) => {
-    record(contribution, ["id", "discussionId", "rootId", "replyToId", "authorId", "actorType", "visibility", "withdrawn", "createdAt", "revisions"]);
+    record(contribution, ["id", "discussionId", "rootId", "replyToId", "authorId", "actorType", "visibility", "withdrawn", "createdAt", "revisions",
+      ...(!legacy && contribution.rootId === null ? ["anchor", "originalTopicId", "learnedOrigin"] : []),
+      ...(!legacy && Object.hasOwn(contribution, "originSourceId") ? ["originSourceId"] : [])]);
     text(contribution.id, 128); text(contribution.discussionId, 128); text(contribution.createdAt, 64);
     if (!discussionIds.has(contribution.discussionId) || contribution.actorType !== "human" || contribution.visibility !== "local-public" || typeof contribution.withdrawn !== "boolean") invalid();
     if (contribution.rootId !== null) text(contribution.rootId, 128);
     if (contribution.replyToId !== null) text(contribution.replyToId, 128);
+    if (!legacy) {
+      if (Object.hasOwn(contribution, "originSourceId")) {
+        text(contribution.originSourceId, 128);
+        if (contribution.withdrawn || !sourceIds.has(contribution.originSourceId)) invalid();
+      }
+      if (contribution.rootId === null) {
+        text(contribution.originalTopicId, 128);
+        if (typeof contribution.learnedOrigin !== "boolean") invalid();
+        const anchor = contribution.anchor;
+        const currentTopic = state.discussions.find((entry) => entry.id === contribution.discussionId)?.topicId;
+        if (anchor?.kind === "topic") {
+          record(anchor, ["kind", "topicId"]); text(anchor.topicId, 128);
+          if (anchor.topicId !== currentTopic) invalid();
+        } else if (anchor?.kind === "source") {
+          record(anchor, ["kind", "sourceId", "stamp"]); text(anchor.sourceId, 128);
+          const source = state.sources.find((entry) => entry.id === anchor.sourceId);
+          if (contribution.withdrawn || contribution.originSourceId !== anchor.sourceId || !source ||
+              contribution.learnedOrigin !== (source.provenance === LEARNED_SOURCE_PROVENANCE) ||
+              !/^[a-f0-9]{64}$/u.test(anchor.stamp) || anchor.stamp !== sourceStamp(source) ||
+              state.sourceLinks.find((entry) => entry.sourceId === source.id)?.topicId !== currentTopic) invalid();
+        } else invalid();
+      }
+    }
     array(contribution.revisions, LIMITS.revisions);
     if (contribution.withdrawn) {
       if (contribution.authorId !== null || contribution.revisions.length !== 0) invalid();

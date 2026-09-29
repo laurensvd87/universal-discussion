@@ -2,7 +2,7 @@ import { applyCommand, createDemoState } from "../domain/demo-state.js";
 import { discussionView } from "../domain/discussion-view.js";
 import { fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId } from "../domain/validation.js";
-import { createHash } from "node:crypto";
+import { operationDigestFor } from "../domain/source-threads.js";
 import { rankRelatedSources } from "../../../../spikes/topic-resolution/browser/core/related-sources.js";
 import { applyLearnedCommand, applyLearnedIngest, BROWSER_MODEL_ID, compatibleExtractor, ingestionResult, LEARNED_COMMANDS, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, readLearnedIngest } from "../domain/learned-sources.js";
 
@@ -71,7 +71,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const input = readLearnedIngest(value);
       const state = repository.load();
       if (state.generation !== input.expected.generation) fail("conflict", "State changed");
-      const operationDigest = createHash("sha256").update(JSON.stringify({ url: input.url, title: input.title, embedding: input.embedding, extractorVersion: input.extractorVersion })).digest("hex");
+      const operationDigest = operationDigestFor(input);
       const receipt = state.sources.find((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && source.operationId === input.operationId);
       if (receipt) {
         if (receipt.url !== input.url || receipt.operationDigest !== operationDigest) fail("conflict", "Operation changed");

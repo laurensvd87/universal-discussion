@@ -9,8 +9,8 @@ export function discussionView(state, topicId) {
   if (!topic || !discussion) fail("not-found", "Object unavailable");
   const contributions = state.contributions.filter((entry) => entry.discussionId === discussion.id);
   const roots = contributions.filter((entry) => entry.rootId === null).sort(newestFirst).map((root) => ({
-    ...projectContribution(root),
-    replies: contributions.filter((entry) => entry.rootId === root.id).sort(oldestFirst).map(projectContribution),
+    ...projectContribution(root, state),
+    replies: contributions.filter((entry) => entry.rootId === root.id).sort(oldestFirst).map((entry) => projectContribution(entry, state)),
   }));
   return {
     version: { generation: state.generation, revision: state.revision },
@@ -30,12 +30,16 @@ export function assertReadableDiscussions(state) {
   }
 }
 
-function projectContribution(entry) {
+function projectContribution(entry, state) {
   if (entry.withdrawn) return { id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId, state: "deleted", label: "Deleted" };
+  const source = state.sources.find((item) => item.id === entry.originSourceId);
+  const currentTopicId = state.discussions.find((item) => item.id === entry.discussionId)?.topicId;
   return {
     id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId,
     state: "visible", authorId: entry.authorId, actorType: entry.actorType,
     body: entry.revisions.at(-1).body, createdAt: entry.createdAt, edited: entry.revisions.length > 1,
+    ...(source ? { origin: { sourceId: source.id, url: source.url, title: source.title } } : {}),
+    ...(entry.rootId === null && entry.originalTopicId !== currentTopicId ? { regrouped: true } : {}),
   };
 }
 

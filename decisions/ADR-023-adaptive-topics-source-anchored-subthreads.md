@@ -1,10 +1,44 @@
 # ADR-023: Adaptive Topic grouping and source-anchored subthreads
 
 Date: 2026-09-29.
-Status: **Owner-requested direction; concrete local data/migration package proposed,
-not activated.** No threshold, schema or existing discussion changes in this turn.
+Status: **Local source-association/migration and whole-subthread regrouping package
+explicitly owner-approved on 2026-09-29; implemented/reviewed in 0.11.0.**
 
-## Request and current gap
+The owner answered "yes" to the explicit local source-link, automatic whole-thread
+regrouping, fixed legacy threads and removal-lifecycle package. They additionally
+request a small clickable icon on each post, directly opening its originating
+page in a new tab. This approves the following post-origin extension, not private
+inputs, a provider, another model or an external deployment.
+
+## Approved clickable source provenance
+
+- New roots and replies may retain an opaque reference to the deliberately
+  selected, already known public Source at publication. Root provenance determines
+  its grouping anchor; reply provenance is only the reply's link and never changes
+  its root/destination. Manual Topic-only posts and legacy posts have no invented
+  origin. No new tab read, arbitrary URL submission, screenshot or vector is needed.
+- Visible posts expose only that retained Source's existing URL/title through the
+  authenticated local discussion DTO. This makes the post-to-page association
+  visible in the same local discussion audience. The composer discloses the source.
+  Deleted/forgotten/unknown origins have no link; editing does not rewrite origin.
+- A small keyboard-accessible link uses a localized accessible name and destination
+  tooltip, validated HTTP(S) URL, `_blank`, `noopener noreferrer` and no-referrer.
+  Nothing navigates, prefetches or loads favicons until the user clicks. The target
+  is the current live page, not an archived copy or a promise of unchanged content.
+- Forget removes all root/reply references to that Source and pins dependent
+  subthreads at their current Topic. Withdrawal removes that post's source reference;
+  root withdrawal pins surviving replies. Logical deletion is not forensic erasure.
+- First migration is versioned/transactional, validates exact legacy shape, and
+  leaves existing roots Topic-pinned. No owner database is used in agent tests.
+  A root may keep a non-identifying learned-origin flag so Clear can remove learned
+  threads even after an explicit move to a manual Topic or Source removal. Legacy
+  manual/fixture contributions remain outside that learned cleanup scope.
+- Root/reply IDs and original publication reference remain stable. A cached
+  `discussionId` routing field may be updated atomically across the subtree as the
+  materialized current projection; bodies, authorship and reply identity never move
+  through copy/delete/recreation. Every client read/count uses the same revision.
+
+## Request and pre-implementation gap
 
 The owner proposes a looser same-Topic threshold when few similar pages exist,
 tightening as similar pages accumulate, with dynamic regrouping. Every root post
@@ -14,16 +48,15 @@ written while viewing another page still belongs to its root's conversation.
 This deliberately revisits ADR-018/019's stable-assignment/no-comment-movement
 boundary. It does not revive ADR-022's declined Qwen experiment. Capture scope,
 model, one current vector per Source, pairing and local-only service stay unchanged.
-The user's direction is not authority to guess missing historical provenance or
-silently migrate the owner's database before the concrete package is approved.
+Approval is not authority to guess missing historical provenance or reset data.
 
-Current `create-root` accepts only Topic ID and body. Contributions retain
+Before this change, `create-root` accepted only Topic ID and body. Contributions retained
 Discussion/root/reply IDs, but no originating Source. `discussionView` filters by
 Discussion ID; Source correction and ordinary revisits deliberately leave comments
 in their old discussion. SQLite validators require these exact existing shapes.
 This therefore requires a versioned domain/API/persistence change, not just a cutoff.
 
-## Proposed model
+## Approved model
 
 `Source -> current Topic <- source-anchored root -> all replies`
 
@@ -77,7 +110,7 @@ opposing views of one event. A denser corpus may separate opinions rather than
 events. Adaptive grouping manages granularity and reversible mistakes; it does
 not by itself solve viewpoint-independent Topic identity.
 
-## Proposed local migration and lifecycle boundary
+## Approved local migration and lifecycle boundary
 
 - Old roots have no reliable Source lineage: migrate as pinned legacy Topic
   roots with all replies, never infer a source from text or present membership.
@@ -96,29 +129,63 @@ not by itself solve viewpoint-independent Topic identity.
   thread set, with expected-version checks. They purge associated lineage/receipts
   and cannot resurrect moved/deleted bodies. Reversal restores mappings only for
   still-existing allowed records, never deleted content or removed Source links.
-  Before implementation, define Clear's exact treatment of learned-source threads
-  explicitly linked to manual/fixture Topics; neither their learned origin nor
-  deliberate manual destination can be silently ignored by the purge contract.
+  Clear also purges learned-origin root sets explicitly moved to manual/fixture
+  Topics, while unrelated manual/fixture comments remain. A non-identifying root
+  flag preserves this classification after Source removal; the UI discloses it.
 - Change Source membership and root projection in one SQLite transaction. Reject
   stale drafts/replies/mutations with a fresh-read requirement; never retarget an
   unsent draft automatically. Derive counts/icons/catalog/discussion from one
   coherent revision. Apply existing size/capacity limits before committing.
 
-## Gate and bounded next slice
+## Implemented rule, verification and limits
 
-Before implementation, ask the owner to approve: the added persistent post-to-page
-association, versioned local migration leaving old unanchored roots fixed, and
-automatic whole-subthread reclassification under an evaluated bounded rule.
-Explain that comments may appear under a different current Topic, within the same
-local audience, and how Forget/withdrawal removes the new association. No existing
-owner database migration/reset/regrouping occurs in this advisory turn.
+`adaptive-supported-partitions/v1` runs over the retained bounded compatible
+one-vector Source catalog on normal ingestion, correction, Forget and Topic
+deletion. Opening/migrating a database alone does not run regrouping. It uses:
 
-After approval, stage a pure synthetic partition experiment and source-anchor
-contract tests before activation: singleton/sparse/dense cases; opposing views;
-distinct recurring events; duplicate flooding; arrival order; split/merge stability;
-manual pins; legacy roots; changed page representations; replies from another page;
-withdrawn roots; Forget/Clear/deletion; stale drafts and restart/transaction failure.
-Freeze rule constants before judging hold-out results. Preserve separate fixture
-and learned spaces. Lead Trust/Quality review precedes app activation. If the rule
-cannot improve useful grouping without unacceptable churn/false joins, report it
-rather than claim increasing density establishes correctness.
+- 0.90 complete-link sparse floor; 0.94 cohesive subgroups, with 0.04 minimum
+  separation and two nonduplicate representatives in each supported subgroup.
+  Identical URLs or cosine >=0.995 cannot manufacture independent support.
+- Candidate merging must satisfy all cross-pairs, internal cohesion and a 0.04
+  margin over the nearest outside member. Manually pinned Topics never expand
+  automatically. Previously incoherent provisional groups can split below 0.90.
+- A bounded `retainTight` boolean on learned Topics makes supported tightening
+  sticky: deleting support does not immediately remerge groups at the looser floor.
+  This deliberately favors stability over automatic loosening at lower density.
+- Deterministic overlap-based Topic-ID reuse, never reuse of an unrelated orphan
+  container. Topic-only/legacy roots stay put; source-root routing updates all
+  replies in the same repository revision. Capacity failure rolls back, not eviction.
+- `demo-state/v2` first-open migration validates exact v1 state, increments its
+  revision once and pins old roots. Representation stamps cover URL/vector/
+  extractor, not display title; even small vector drift conservatively pins old
+  threads. One current vector cannot reconstruct old content or certify identity.
+
+Four frozen invented-vector cases plus 11 planner tests prove structural mechanics
+and stability, not semantic quality. The duplicate-flooding fixture deliberately
+retains four false joined pairs in an already incorrect group: repeated copies
+provide insufficient independent evidence to split it. The earlier learned E5
+synthetic experiment still shows overlapping event/opinion scores. This owner-local
+activation accepts a reversible experimental grouping rule, **not** a validated
+viewpoint-independent classifier. No additional inference/model package is added.
+
+Backend 93/93, extension restricted 763/763, indicator 501/501 and loopback 2/2 pass.
+Actual Chrome checks cover 21 full matching/comment areas and 20 legacy discussion
+areas, including real keyboard source-icon navigation, whole-thread correction,
+per-reply origin, Forget and SQLite restart. Independent Trust review fixes stored
+receipt/learned-origin corruption checks and then reports no material finding.
+See [STATUS](../plans/STATUS.md) for evidence scope and remaining manual boundaries.
+
+## Completed gate and future boundaries
+
+The owner approved the added persistent post-to-page association, versioned local
+migration leaving old unanchored roots fixed, and whole-subthread reclassification.
+Do not repeat this approval. Mechanics measurement and Trust review precede activation;
+new privacy/provider/model scopes still require separate approval. No owner data
+is used for implementation tests or silently regrouped by an agent tool call.
+
+The staged mechanics and lifecycle work above is complete. No owner database was
+used by agent tests. Next is owner feedback after restart/reload, not another
+synthetic review or additional model. New real training/provenance corpora,
+private content, remote audiences, durable credentials and publication retain
+their separate gates. Report wrong joins/splits; increasing density alone does
+not establish correctness or justify an undisclosed representation change.

@@ -32,5 +32,13 @@ export function assertTransition(current, next, reset) {
   ) {
     fail("conflict", "Invalid successor version");
   }
+  if (!reset && current.schema === next.schema) {
+    for (const root of next.contributions.filter((entry) => entry.rootId === null)) {
+      const previous = current.contributions.find((entry) => entry.id === root.id);
+      if (previous && (previous.originalTopicId !== root.originalTopicId || previous.learnedOrigin !== root.learnedOrigin)) {
+        fail("conflict", "Original publication context changed");
+      }
+    }
+  }
   assertReadableDiscussions(next);
 }

@@ -31,7 +31,73 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Latest direction: adaptive grouping with page-anchored subthreads
+## Verified checkpoint: adaptive Topics and clickable post sources — 0.11.0
+
+Owner **explicitly approves ADR-023's local association/migration/regrouping package**
+and adds directly clickable source-page icons for individual posts, including
+reply-specific provenance independent of the root's grouping anchor. Sol Medium
+implements bounded backend, planner and UI slices; lead integrates/reviews and
+runs actual Chrome. The following is implemented and verified:
+
+- Strict transactional `demo-state/v1` -> `v2` first-open migration, revision +1,
+  preserving legacy/manual Topic roots without guessed page provenance. Corrupt
+  old records or serialization failure roll back without reset. Source anchors
+  move entire root/reply sets atomically while preserving IDs, text and authors.
+- New posts expose the retained Source URL/title through an authenticated local
+  DTO. The small native ↗ link opens a new tab only on deliberate activation;
+  English language keys, keyboard name/focus, `noopener noreferrer` and no-referrer.
+  Replies may have their own origin independent of the root's routing. Changed
+  page representation pins old roots; title-only updates do not. Links are live,
+  not archived content. Manual Topic-only and legacy posts have no link.
+- Forget removes every root/reply association to the Source, preserves comments
+  and pins threads; withdrawal removes that post's link. Clear also purges learned-
+  origin roots manually moved to fixture/manual Topics. Expected-version fences
+  reject stale commands; a refreshed moved selection detaches the unsent draft.
+- Active `adaptive-supported-partitions/v1`: .90 floor, .94 refinement, .04
+  competing-member margin, .995 duplicate discount, at least two independent
+  representatives in each supported subgroup. All-member coherence, manual pins,
+  stable Topic reuse and retained tighter boundaries prevent simple chaining and
+  immediate split/remerge after support removal. Planning uses at most 100 Sources.
+  Orphan/legacy Topic containers are not reused for unrelated new pages.
+- The frozen four-case invented-vector mechanics report and 11 planner tests pass.
+  The duplicate-flooding case intentionally leaves four false joined pairs in an
+  already wrong group: copies cannot fabricate independent split support. These
+  are **not learned E5, real event or viewpoint-quality measurements**. Prior E5
+  opinion/event overlap remains unresolved; .90 increases false-match risk. There
+  is no new model, extraction/input change, second vector, permission or remote scope.
+- Independent Sol Trust review identifies and fixes reopened-state corruption
+  gaps for the learned-origin purge flag and Source receipt digest. Final read-only
+  integration review has no material finding; 22 focused socket-denied checks pass.
+  Lead inspects migration, projection, mapper, contract and stale-selection paths.
+
+Final verification (Node 24.19.0, installed Chrome 154.0.8037.58):
+
+- Extension restricted **763/763**, normal **762 passed + 1 intentional skip**,
+  focused indicator **501/501**; backend socket-denied **93/93**; loopback **2/2**.
+  Offline embedding helpers **54/54** (no model inference/download); both local
+  secret scans report zero findings and `git diff --check` is clean.
+- Actual Chrome full matching **21 covered areas**: 14 local 384D vectors, eight
+  owned intercepted documents, zero fixture raw-text payload matches, extension
+  external requests or runtime exceptions. Own-source root/reply links, whole-tree
+  correction, Forget link purge, restart/pairing and all five toolbar colors pass.
+- Actual Chrome legacy discussion **20 covered areas**, including keyboard
+  activation opening the source in a real new tab with null opener/empty referrer;
+  three intercepted fixture documents, zero runtime exceptions/external extension
+  requests. Native new-tab setup initially stalled because renderer Network/Runtime
+  setup preceded resume. The harness now registers Fetch interception first, resumes,
+  then enables telemetry; only truly detached setup is canceled, live failures fail.
+  Final scheduled work is drained before claiming PASS. Independent review verifies
+  the request guard, not a global browser firewall guarantee.
+
+Only temporary profiles/databases and project-created pages were used; owner data
+was not accessed/reset. First native permission prompt and browser/extension
+restart remain manual boundaries. No new general-web or publication claim.
+Owner next step: stop/restart backend, reload 0.11.0, pair and Start once; no reset.
+Observe the experimental matching and new links. Existing roots stay pinned;
+later normal ingestion/correction/removal may regroup provisional Source links.
+All later private/provider/durable-pairing/remote/release and large-corpus gates remain.
+
+### Prior proposal context (superseded by the approved implementation above)
 
 - Owner proposes sparse-to-dense threshold adaptation and regrouping, with each
   whole root/reply thread following the page where its root was started. This is
@@ -47,10 +113,12 @@ private/remote/AI/moderation work and all external release gates remain separate
   not raw site counts/popularity. Opposing opinions can themselves form distinct
   vector groups; density does not guarantee event identity. No production
   algorithm or adaptive range has been validated.
-- Stop before the new persistence/migration boundary: request approval for the
+- The original proposal stopped before the new persistence/migration boundary:
+  it requested approval for the
   locally retained post-to-page association and whole-subthread reclassification,
   keeping old unanchored threads fixed. No database/service/page access, new
-  inference, schema/cutoff/input changes or regrouping in this advisory turn.
+  inference, schema/cutoff/input changes or regrouping in that advisory turn.
+  The subsequent approval above now authorizes the bounded implementation.
 
 ## Previous direction: no additional local language model
 

@@ -9,7 +9,8 @@ import { createSqliteDemoService } from "../src/application/create-sqlite-demo-s
 import { createDemoState } from "../src/domain/demo-state.js";
 import { ServiceError } from "../src/domain/errors.js";
 import { assertValidPersistedState } from "../src/domain/persisted-state.js";
-import { BROWSER_MODEL_ID, EXTRACTOR_VERSION, MATCH_POLICY_VERSION, readLearnedIngest } from "../src/domain/learned-sources.js";
+import { BROWSER_MODEL_ID, EXTRACTOR_VERSION, readLearnedIngest } from "../src/domain/learned-sources.js";
+import { ADAPTIVE_TOPIC_POLICY } from "../src/domain/adaptive-topics.js";
 import { createMemoryRepository } from "../src/adapters/memory-repository.js";
 import { createFixtureRankingAdapter } from "../src/adapters/fixture-ranking.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../src/adapters/fixture-catalog.js";
@@ -69,7 +70,7 @@ test("learned pages share a provisional Topic and existing comments without movi
   const { service, repository } = setup();
   const first = service.ingest(input(service, "first"));
   assert.equal(first.assignment, "provisional");
-  assert.equal(first.policyVersion, MATCH_POLICY_VERSION);
+  assert.equal(first.policyVersion, ADAPTIVE_TOPIC_POLICY.version);
   command(service, { type: "create-root", topicId: first.topicId, body: "Project-created comment on this subject" });
   const second = service.ingest(input(service, "second", 0.1));
   assert.equal(second.topicId, first.topicId);
@@ -98,7 +99,7 @@ test("ingestion retains one current source/receipt, repeats idempotently and fen
   const update = input(service, "repeat", Math.PI / 2, { operationId: "operation-revised", title: "Current title" });
   const revised = service.ingest(update);
   assert.equal(revised.sourceId, first.sourceId);
-  assert.equal(revised.topicId, first.topicId);
+  assert.notEqual(revised.topicId, first.topicId);
   const persisted = repository.load().sources.find((source) => source.id === first.sourceId);
   assert.equal(persisted.title, "Current title");
   assert.equal(persisted.operationId, "operation-revised");

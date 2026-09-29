@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mountDiscussionPanel } from "../browser/chromium/discussion-panel.js";
 import { EN } from "../browser/locales/en.js";
+import { readFileSync } from "node:fs";
 
 function harness(messages) {
   const created = [];
@@ -31,6 +32,64 @@ function state(patch = {}) {
       ] }] }, related: { results: [{ title: "<iframe>inert source</iframe>", url: "https://synthetic.example/", relationship: "related" }] },
     draft: { body: "", detached: false, mode: "root", targetId: null }, ...patch };
 }
+const descendants = (node) => [node, ...node.children.flatMap(descendants)];
+test("English disclosures describe adaptive regrouping, source links and the bounded Clear scope", () => {
+  assert.match(EN.matchingPartial, /0\.90 and 0\.94/u);
+  assert.match(EN.matchingPartial, /move whole Source-anchored conversations with their replies/u);
+  assert.match(EN.matchingPartial, /Manual Topic and legacy threads stay pinned/u);
+  assert.match(EN.discussionCorrectionIntro, /move posts started on it and all their replies/u);
+  assert.match(EN.discussionCorrectionIntro, /removes its links from all posts but preserves comments/u);
+  assert.match(EN.discussionClearLabel, /even if moved to manual or fixture Topics/u);
+  assert.match(EN.discussionOriginDisclosure, /local demo/u);
+  assert.doesNotMatch(EN.discussionOriginDisclosure, /publicly/u);
+  assert.doesNotMatch(EN.discussionCorrectConfirm, /does not move comments/u);
+  assert.doesNotMatch(EN.matchingPartial, /never merges/u);
+});
+
+test("each visible post links its own validated source with safe new-tab native navigation", () => {
+  const ui = harness(); const current = state();
+  const root = current.discussion.roots[0];
+  root.origin = { sourceId: "source-a", url: "https://example.com/article-a", title: "<img src=x> Root source" };
+  root.regrouped = true;
+  root.replies.push({ id: "reply-visible", rootId: root.id, state: "visible", authorId: "demo-alex", actorType: "human", body: "Reply", edited: false,
+    origin: { sourceId: "source-b", url: "https://example.org/article-b", title: "Reply source" } });
+  ui.panel.render(current);
+  const links = descendants(ui.root).filter((item) => item.tag === "a");
+  assert.equal(links.length, 2);
+  assert.deepEqual(links.map((item) => item.href), [root.origin.url, root.replies[1].origin.url]);
+  for (const link of links) {
+    assert.equal(link.target, "_blank"); assert.equal(link.rel, "noopener noreferrer"); assert.equal(link.referrerPolicy, "no-referrer");
+    assert.equal(link.textContent, "↗"); assert.equal(link.title, link.attributes["aria-label"]);
+    assert.ok(link.title.includes(link.href)); assert.equal(link.listeners.size, 0); link.focus(); assert.equal(link.focused, true);
+  }
+  assert.ok(links[0].title.includes("<img src=x> Root source"));
+  assert.ok(descendants(ui.root).some((item) => item.textContent === EN.discussionRegrouped));
+  assert.equal(descendants(ui.root).some((item) => ["img", "script", "iframe"].includes(item.tag)), false);
+  assert.deepEqual(ui.calls, []);
+  assert.match(readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8"), /\.discussion-source-link:focus-visible\s*\{/u);
+});
+
+test("legacy, forgotten, deleted and malicious origin projections never leave a clickable icon", () => {
+  const ui = harness(); const current = state(); const root = current.discussion.roots[0];
+  root.origin = { sourceId: "source-a", url: "https://example.com/article", title: "Source" };
+  ui.panel.render(current); assert.equal(descendants(ui.root).filter((item) => item.tag === "a").length, 1);
+  delete root.origin; ui.panel.render(current); assert.equal(descendants(ui.root).filter((item) => item.tag === "a").length, 0);
+  for (const url of ["javascript:alert(1)", "https://127.0.0.1/article", "https://example.com/account", "https://example.com/article?token=secret"]) {
+    root.origin = { sourceId: "source-a", url, title: "Unsafe" }; ui.panel.render(current);
+    assert.equal(descendants(ui.root).filter((item) => item.tag === "a").length, 0);
+  }
+  root.state = "deleted"; root.origin = { sourceId: "source-a", url: "https://example.com/article", title: "Source" };
+  ui.panel.render(current); assert.equal(descendants(ui.root).filter((item) => item.tag === "a").length, 0);
+});
+
+test("composer discloses deliberate selected-source association and honest manual Topic absence", () => {
+  const ui = harness(); const current = state({ sourceId: "source-demo", selection: "manual" });
+  current.catalog.sources[0].topicId = current.topicId;
+  ui.panel.render(current);
+  assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.discussionOriginDisclosure.replace("{title}", "Synthetic source"));
+  current.sourceId = null; ui.panel.render(current); assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.discussionOriginNone);
+  current.draft.mode = "edit"; ui.panel.render(current); assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.discussionOriginEdit);
+});
 test("panel renders hostile service text inertly, actual distinct counts, fixture model labels", () => {
   const ui = harness();
   assert.ok(ui.created.some((item) => item.textContent === "<script>hostile topic</script>"));
