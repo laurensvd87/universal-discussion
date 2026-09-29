@@ -5,27 +5,19 @@ import { inspectPageUrl } from "../core/page-content-policy.js";
 import { createPageContentReader } from "./page-content-reader.js";
 import { createInferenceHost } from "./inference-host.js";
 import { createPopupFocusWitness } from "./popup-focus.js";
+import { createCaptureSession, HTTPS_ACCESS } from "../core/capture-session.js";
 
 const api = globalThis.chrome;
-const KEY = "pageMatchingPreferences";
 const session = createLocalServiceSession({ storageSession: api.storage.session });
 const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: session.getToken });
 const inference = createInferenceHost({ runtime: api.runtime, offscreen: api.offscreen });
 const popupFocus = createPopupFocusWitness({ runtime: api.runtime, onChange: () => schedule() });
 let timer;
-let preferenceOperations = Promise.resolve();
-let pendingPause = false;
-const pendingRevocations = new Set();
-let consentGeneration = 0;
-const defaults = () => ({ enabled: false, origins: [] });
-async function preferences() {
-  await api.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
-  const value = (await api.storage.local.get(KEY))[KEY];
-  if (!value || typeof value.enabled !== "boolean" || !Array.isArray(value.origins) || value.origins.length > 100 ||
-      value.origins.some((origin) => !validOrigin(origin))) return defaults();
-  return { enabled: value.enabled && !pendingPause,
-    origins: [...new Set(value.origins)].filter((origin) => !pendingRevocations.has(origin)) };
-}
+let removingAccess = false;
+const captureSession = createCaptureSession({ storageSession: api.storage.session, storageLocal: api.storage.local,
+  getWindow: (id) => api.windows.get(id), hasAccess: permission, readForeground, validOrigin,
+  onInvalidate: () => { matcher.invalidate(); clearTimeout(timer); void inference.close().catch(() => {}); } });
+async function preferences() { return captureSession.snapshot(); }
 function validOrigin(origin) {
   if (origin === "http://127.0.0.1:4173") return true;
   const inspected = inspectPageUrl(typeof origin === "string" ? `${origin}/` : null);
@@ -46,6 +38,7 @@ async function inspectForeground() {
     let window;
     try { window = await queryWindow(); } catch { return rejected("window-query-failed"); }
     if (!window) return rejected("window-unavailable");
+    if (!Number.isSafeInteger(window.id) || window.id < 0) return rejected("window-unavailable");
     if (window.type !== "normal") return { foreground: null, contextReason: "unsupported-window" };
     if (window.incognito) return { foreground: null, contextReason: "incognito" };
     const witness = window.focused ? null : await popupFocus.check(window.id);
@@ -74,13 +67,13 @@ async function inspectForeground() {
       if (focusReason) return rejected(focusReason);
     }
     const inspected = inspectPageUrl(tab.url);
-    return { foreground: { tabId: tab.id, url: inspected.url, origin: inspected.origin }, contextReason: null };
+    return { foreground: { tabId: tab.id, windowId: window.id, url: inspected.url, origin: inspected.origin }, contextReason: null };
   } catch {
     return { foreground: null, contextReason: "context-unavailable" };
   }
 }
 async function readForeground() { return (await inspectForeground()).foreground; }
-async function permission(origin) { return api.permissions.contains({ origins: [`${origin}/*`] }); }
+async function permission() { return api.permissions.contains({ origins: [HTTPS_ACCESS] }); }
 const matcher = createBackgroundMatcher({ getPreferences: preferences, readForeground,
   hasPermission: permission, isPaired: session.isPaired, reader: createPageContentReader(api.scripting),
   embed: inference.embed, client, nextOperationId: () => crypto.randomUUID(),
@@ -89,15 +82,6 @@ function schedule() {
   matcher.invalidate(); clearTimeout(timer);
   timer = setTimeout(() => { void matcher.refresh(); }, 400);
 }
-function updatePreferences(operation) {
-  const work = preferenceOperations.then(async () => {
-    const value = await operation(await preferences());
-    await api.storage.local.set({ [KEY]: value });
-    return value;
-  });
-  preferenceOperations = work.catch(() => {});
-  return work;
-}
 async function status() {
   const [settings, context] = await Promise.all([preferences(), inspectForeground()]);
   const { foreground, contextReason } = context;
@@ -105,59 +89,45 @@ async function status() {
   // A failed foreground observation can recover without a Chrome lifecycle
   // event. Fresh eligibility only schedules the ordinary fully fenced refresh.
   // Invalidation changes the phase immediately, so polling cannot defer it.
-  if (settings.enabled && foreground && settings.origins.includes(foreground.origin) &&
+  if (settings.enabled && foreground && settings.sessionWindowId === foreground.windowId && !settings.blockedOrigins.includes(foreground.origin) &&
       observed.phase === "unsupported" && observed.reason === "no-focused-page" &&
       observed.tabId === null && observed.url === null) schedule();
-  return { ...matcher.currentState(), enabled: settings.enabled, origins: settings.origins,
+  const hostAccess = await permission().catch(() => false);
+  return { ...matcher.currentState(), ...settings, hostAccess,
+    currentWindowId: foreground?.windowId ?? null,
     currentOrigin: foreground?.origin ?? null, currentTabId: foreground?.tabId ?? null,
     currentUrl: foreground?.url ?? null, contextReason };
 }
 async function handle(message) {
   if (!message || typeof message !== "object" || Array.isArray(message)) throw new Error("invalid");
-  const allowed = ["remove-site", "enable-site"].includes(message.type) ? ["target", "type", "origin"] : ["target", "type"];
+  const allowed = ["block-site", "unblock-site", "remove-site"].includes(message.type) ? ["target", "type", "origin"]
+    : message.type === "start-session" ? ["target", "type", "windowId", "expectedRevision"] : ["target", "type"];
   if (Object.keys(message).some((key) => !allowed.includes(key))) throw new Error("invalid");
   switch (message.type) {
     case "status": return status();
-    case "enable-site": {
-      const ticket = consentGeneration;
-      if (pendingPause || pendingRevocations.has(message.origin)) throw new Error("busy");
-      const foreground = await readForeground();
-      if (!foreground || foreground.origin !== message.origin || !await permission(foreground.origin)) throw new Error("permission");
-      await updatePreferences(async (value) => {
-        const current = await readForeground();
-        if (!current || current.origin !== message.origin || !await permission(message.origin) ||
-            ticket !== consentGeneration || pendingPause || pendingRevocations.has(message.origin)) throw new Error("changed");
-        const origins = [...new Set([...value.origins, foreground.origin])];
-        if (origins.length > 100) throw new Error("capacity");
-        return { enabled: true, origins };
-      });
+    case "start-session": {
+      if (removingAccess) throw new Error("busy");
+      await captureSession.start(message.windowId, message.expectedRevision);
       schedule(); return status();
     }
     case "pause":
-      consentGeneration++;
-      pendingPause = true;
-      matcher.invalidate(); clearTimeout(timer);
-      await updatePreferences(async (value) => ({ ...value, enabled: false }));
-      pendingPause = false;
+    case "stop-session":
+      await captureSession.stop();
       await inference.close(); await matcher.refresh(); return status();
-    case "resume": {
-      const ticket = consentGeneration;
-      if (pendingPause) throw new Error("busy");
-      await updatePreferences(async (value) => {
-        if (ticket !== consentGeneration || pendingPause) throw new Error("changed");
-        return { ...value, enabled: true };
-      });
-      schedule(); return status();
-    }
+    case "block-site":
     case "remove-site":
-      if (!validOrigin(message.origin)) throw new Error("invalid");
-      consentGeneration++;
-      pendingRevocations.add(message.origin);
-      matcher.invalidate(); clearTimeout(timer);
-      await updatePreferences(async (value) => ({ ...value, origins: value.origins.filter((origin) => origin !== message.origin) }));
-      if (message.origin !== "http://127.0.0.1:4173") await api.permissions.remove({ origins: [`${message.origin}/*`] });
-      pendingRevocations.delete(message.origin);
-      await inference.close(); schedule(); return status();
+      await captureSession.setBlocked(message.origin, true);
+      schedule(); return status();
+    case "unblock-site":
+      await captureSession.setBlocked(message.origin, false);
+      schedule(); return status();
+    case "remove-access":
+      removingAccess = true;
+      try {
+        await captureSession.stop();
+        await api.permissions.remove({ origins: [HTTPS_ACCESS] });
+        await inference.close(); await matcher.refresh(); return await status();
+      } finally { removingAccess = false; }
     case "retry": schedule(); return status();
     default: throw new Error("invalid");
   }
@@ -177,8 +147,22 @@ api.tabs.onUpdated.addListener((tabId, changes, tab) => {
 api.tabs.onRemoved.addListener((tabId) => { if (tabId === matcher.currentState().tabId) schedule(); });
 api.tabs.onReplaced.addListener(schedule);
 api.windows.onFocusChanged.addListener(schedule);
-api.permissions.onRemoved.addListener(() => { schedule(); void inference.close().catch(() => {}); });
+api.windows.onRemoved.addListener((id) => { void captureSession.closeWindow(id).then(schedule).catch(() => {}); });
+api.permissions.onRemoved.addListener((removed) => {
+  matcher.invalidate(); clearTimeout(timer); void inference.close().catch(() => {});
+  // Fence before any asynchronous contains() observation: a fast regrant must
+  // not revive a Start ticket that predates native access removal.
+  if (removed?.origins?.length) {
+    void captureSession.stop().then(schedule).catch(() => {});
+    return;
+  }
+  void permission().then((access) => access ? undefined : captureSession.stop()).then(schedule).catch(() => {});
+});
 api.storage.onChanged.addListener((changes, area) => {
-  if ((area === "session" && changes.localServicePairingToken) || (area === "local" && changes[KEY])) schedule();
+  if (area === "session" && changes.localServicePairingToken) {
+    schedule(); void inference.close().catch(() => {});
+  }
+  // Capture control writes fence synchronously in their trusted owner. Never
+  // restore authority from storage events (or legacy local preferences).
 });
 schedule();

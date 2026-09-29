@@ -284,11 +284,11 @@ test("settled ambiguous write latch survives later navigation and selections unt
 function backgroundHarness(overrides = {}) {
   const url = "http://127.0.0.1:4173/background-fixture/page-a.html";
   let resolution = { phase: "processing", reason: "embedding", tabId: 7, url, documentId: "doc-1", sourceId: null, topicId: null,
-    assignment: null, sequence: 1, enabled: true, origins: ["http://127.0.0.1:4173"], currentOrigin: "http://127.0.0.1:4173", currentTabId: 7, currentUrl: url, contextReason: null };
+    assignment: null, sequence: 1, enabled: true, blockedOrigins: [], sessionWindowId: 2, currentWindowId: 2, sessionRevision: "fixture-revision", hostAccess: true, currentOrigin: "http://127.0.0.1:4173", currentTabId: 7, currentUrl: url, contextReason: null };
   const pauses = [];
   const ui = harness({ readPageResolution: async () => resolution,
     readActiveTab: async () => ({ tabId: resolution.currentTabId, url: resolution.currentUrl }),
-    async pausePageMatching() { pauses.push("pause"); resolution = { ...resolution, enabled: false, phase: "off", sequence: resolution.sequence + 1 }; return resolution; }, ...overrides });
+    async pausePageMatching() { pauses.push("pause"); resolution = { ...resolution, enabled: false, sessionWindowId: null, phase: "off", sequence: resolution.sequence + 1 }; return resolution; }, ...overrides });
   function ingest() {
     const vector = Array.from({ length: 384 }, (_, index) => index === 0 ? 1 : 0);
     const result = ui.service.ingest({ expected: ui.service.catalog().version, operationId: "owned-operation-1", url,

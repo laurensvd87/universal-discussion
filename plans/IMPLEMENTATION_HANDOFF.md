@@ -4,19 +4,20 @@ Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
 Latest request: implement matching-quality improvements, automatic visits across
 sites and pairing across sessions. Read [ADR-019](../decisions/ADR-019-automatic-browsing-and-durable-pairing.md)
-first: the exact expanded permission/credential/version package is **proposed,
-awaiting explicit owner privacy/security approval**. Do not activate it from the
-general outcome request alone. Existing matching already automates visits after
-each site's initial grant; the proposed global mode and durable bearer change
-ADR-018/016 boundaries. The owner now clarifies session-wide consent rather than
-per-site grants: ADR-019 B proposes Start/Stop with an in-memory capture lease
-bound to the starting browser window, not capture automatically resumed across
-browser sessions. Chrome's broad grant is not natively session-expiring and may
-remain after a crash; capture must require a fresh lease regardless. Persistent
-pairing is independent and still pending its explicit security approval.
-No runtime/data changes were made in this planning turn.
-Once approved, use its bounded implementation/review sequence and preserve all
-existing discussions, manual links and later gates. Do not restart completed work.
+first: **B alone is explicitly approved on 2026-09-29**, following the question
+about an app-enforced window session and underlying broad Chrome permission.
+Implement/review Start/Stop with trusted session-memory authority bound to the
+starting normal window. Popup closure/worker suspension retain it; Stop/window
+closure/browser restart/reload ends it. Stop retains native access; Remove broad
+HTTPS access stops then removes it. A native grant and legacy enabled preferences
+never create a lease. Blocked origins persist and override that broad grant.
+The implementation is 0.7.0; see STATUS for current verification and remaining
+work: full vector/shared-comment and S3 browser smoke await a free port 4174;
+actual first-grant/reload/restart manual checks remain. Session Chrome smoke
+passes 14 checks including forced worker reconstruction; eligibility passes 32.
+**A matching/input changes and C durable pairing remain pending.** B does
+not authorize them. Preserve all discussions, manual links and later gates;
+do not repeat approved B consent or completed foundation work.
 
 Latest owner direction supersedes the synthetic-only interactive proposal below:
 build the actual real-page background-vector/grouping/shared-comment loop, with
@@ -25,7 +26,8 @@ defines the approved one-time Security/Privacy/Policy package and executable
 B1–B5 slices. Do not interpret direction alone as consent to undisclosed broad
 permissions or retained URL/title fields. The owner explicitly approved that exact
 package on 2026-09-29; work autonomously within it using parallel Sol Medium agents.
-Do not repeat its approval. Capture must default off with per-site enablement.
+Do not repeat its approval. Its historical per-site consent is superseded only
+by the approved ADR-019 B session scope above; capture still defaults off.
 Historical starting baseline: `818dd6e`, reviewed S1/S2 and offline extension 0.4.0.
 Inspect current git state first. Extension 0.6.0 adds browser-local E5 and
 selected-site provisional Topic resolution to the existing paired human loop.
@@ -81,9 +83,8 @@ sampling is a plausible general weakness, not a confirmed fault on these pages.
 Assess bounded article-focused input and positive/hard-negative calibration next;
 do not lower the global cutoff from one pair or silently merge existing threads.
 Manual Source correction is available; comments stay in their original Topic.
-Known separate follow-up: a failed `authorized()` observation after reading can
-strand `processing/reading` without a new event. It remains safely non-ingesting
-but is not fixed by this initial-foreground recovery; see STATUS before changing it.
+The 0.7.0 matcher also gives failed post-read authorization an honest terminal
+off/not-enabled state, without another content read or a relaxed capture fence.
 
 2026-09-29 continuation: [model options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
 and [ADR-017's exact experiment proposal](../decisions/ADR-017-local-embedding-experiment.md)

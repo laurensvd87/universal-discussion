@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mountPageMatchingPanel } from "../browser/chromium/page-matching-panel.js";
-import { projectPageResolution, isReadyPageResolution } from "../browser/core/page-resolution-contract.js";
+import { projectPageResolution, isReadyPageResolution, samePageResolution } from "../browser/core/page-resolution-contract.js";
 import { EN } from "../browser/locales/en.js";
 
 const turn = () => new Promise((resolve) => setImmediate(resolve));
 function resolution(patch = {}) {
   return { phase: "not-enabled", reason: null, tabId: 7, url: "https://public.example.com/article", documentId: null,
-    sourceId: null, topicId: null, assignment: null, sequence: 1, enabled: true, origins: [],
-    currentOrigin: "https://public.example.com", currentTabId: 7, currentUrl: "https://public.example.com/article", contextReason: null, ...patch };
+    sourceId: null, topicId: null, assignment: null, sequence: 1, enabled: true, blockedOrigins: [], sessionWindowId: 2, currentWindowId: 2, sessionRevision: "revision-1", hostAccess: true,
+    currentOrigin: "https://public.example.com", currentTabId: 7, currentUrl: "https://public.example.com/article", contextReason: null, ...patch,
+    sessionWindowId: Object.hasOwn(patch, "sessionWindowId") ? patch.sessionWindowId : patch.enabled === false ? null : 2,
+    currentWindowId: Object.hasOwn(patch, "currentWindowId") ? patch.currentWindowId : patch.currentOrigin === null ? null : 2 };
 }
 function harness(overrides = {}) {
   const created = [], calls = [], scheduled = [], canceled = [], states = [];
@@ -31,7 +33,7 @@ function harness(overrides = {}) {
 test("matching status DTO rejects raw bodies/vectors/accessors and readiness needs current foreground", () => {
   assert.ok(Object.isFrozen(projectPageResolution(resolution())));
   for (const hostile of [{ ...resolution(), text: "secret" }, { ...resolution(), vectors: [1, 2] },
-    { ...resolution(), get phase() { throw new Error("hostile"); } }, { ...resolution(), origins: ["https://private.invalid"] },
+    { ...resolution(), get phase() { throw new Error("hostile"); } }, { ...resolution(), blockedOrigins: ["https://private.invalid"] },
     { ...resolution(), contextReason: "secret-url-or-error" },
     { ...resolution(), currentOrigin: null, currentTabId: null, currentUrl: null },
     { ...resolution(), contextReason: "window-unfocused" }]) {
@@ -39,20 +41,20 @@ test("matching status DTO rejects raw bodies/vectors/accessors and readiness nee
   }
   assert.equal(projectPageResolution(resolution({ currentOrigin: null, currentTabId: null, currentUrl: null,
     contextReason: "window-unfocused" })).contextReason, "window-unfocused");
-  const ready = resolution({ phase: "ready", documentId: "doc-1", sourceId: "source-1", topicId: "topic-1", assignment: "provisional", origins: ["https://public.example.com"] });
+  const ready = resolution({ phase: "ready", documentId: "doc-1", sourceId: "source-1", topicId: "topic-1", assignment: "provisional", blockedOrigins: [] });
   assert.equal(isReadyPageResolution(ready), true);
   assert.equal(isReadyPageResolution({ ...ready, currentTabId: 8 }), false);
-  assert.equal(isReadyPageResolution({ ...ready, origins: [] }), false);
+  assert.equal(isReadyPageResolution({ ...ready, blockedOrigins: ["https://public.example.com"] }), false);
 });
-test("site permission prompt starts synchronously in gesture after disclosed checkbox consent", async () => {
+test("broad permission prompt starts synchronously in gesture after disclosed checkbox consent", async () => {
   const ui = harness(); await turn();
   assert.equal(ui.byId("matching-enable").disabled, true);
   ui.byId("matching-consent").checked = true; ui.byId("matching-consent").listeners.get("change")();
   assert.equal(ui.byId("matching-enable").disabled, false);
   ui.byId("matching-enable").listeners.get("click")();
-  assert.deepEqual(ui.calls.at(-1), { permission: { origins: ["https://public.example.com/*"] } });
+  assert.deepEqual(ui.calls.at(-1), { permission: { origins: ["https://*/*"] } });
   await turn();
-  assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "enable-site", origin: "https://public.example.com" });
+  assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "start-session", windowId: 2, expectedRevision: "revision-1" });
   assert.equal(ui.byId("matching-consent").checked, false);
   assert.ok(ui.created.some((item) => item.textContent === EN.matchingDisclosure));
   assert.match(EN.matchingDisclosure, /owner-only prototype, publisher metadata does not block matching/);
@@ -72,17 +74,28 @@ test("polling is one-flight, every500ms, shared read; disposal cancels and ignor
   assert.equal(stable.calls.length, 2); stable.panel.dispose();
   assert.equal(stable.created.some((item) => item.listeners.size), false);
 });
-test("pause/resume/retry/remove use exact bounded controls and denied permission never enables", async () => {
-  const ui = harness({ async sendMessage(message) { ui.calls.push(message); return resolution({ origins: ["https://public.example.com"] }); }, requestPermission: () => Promise.resolve(false) });
+test("session controls send bounded stop/retry/block/unblock/remove-access messages", async () => {
+  const ui = harness({ async sendMessage(message) { ui.calls.push(message); return resolution({ blockedOrigins: ["https://other.example.com"] }); } });
   await turn();
-  for (const [id, type] of [["matching-pause", "pause"], ["matching-resume", "resume"], ["matching-retry", "retry"]]) {
-    ui.byId(id).listeners.get("click")(); await turn(); assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type });
+  for (const [control, type] of [["matching-retry", "retry"], ["matching-remove-access", "remove-access"], ["matching-pause", "stop-session"]]) {
+    ui.byId(control).listeners.get("click")(); await turn();
+    assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type });
   }
-  ui.created.find((item) => item.attributes["data-remove-origin"] && item.listeners.has("click")).listeners.get("click")(); await turn();
-  assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "remove-site", origin: "https://public.example.com" });
-  const before = ui.calls.length; ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")(); await turn();
-  assert.equal(ui.calls.length, before); assert.equal(ui.byId("matching-status").textContent, EN.matchingPermissionDenied);
+  ui.byId("matching-block").listeners.get("click")(); await turn();
+  assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "block-site", origin: "https://public.example.com" });
+  ui.created.find((item) => item.attributes["data-unblock-origin"] && item.listeners.has("click")).listeners.get("click")(); await turn();
+  assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "unblock-site", origin: "https://other.example.com" });
+  assert.equal(ui.byId("matching-resume"), undefined);
+  ui.panel.dispose();
 });
+test("denied native permission never starts a session", async () => {
+  const ui = harness({ requestPermission: () => Promise.resolve(false) }); await turn();
+  const before = ui.calls.length;
+  ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.equal(ui.calls.length, before); assert.equal(ui.byId("matching-status").textContent, EN.matchingPermissionDenied);
+  ui.panel.dispose();
+});
+
 test("worker errors clear cached origin/enable and never render hostile content as HTML", async () => {
   const ui = harness({ sendMessage: async () => ({ error: "unavailable", text: "<img src=x>" }) }); await turn();
   assert.equal(ui.byId("matching-enable").disabled, true); assert.equal(ui.byId("matching-status").textContent, EN.matchingUnavailable);
@@ -112,14 +125,16 @@ test("context reason remains visible while matching is off and stale context cle
 test("only an in-flight matching action marks disabled controls busy", async () => {
   let release;
   const pending = new Promise((resolve) => { release = resolve; });
-  const ui = harness({ sendMessage(message) { return message.type === "pause" ? pending : Promise.resolve(resolution()); } });
+  const ui = harness({ sendMessage(message) { return message.type === "stop-session" ? pending : Promise.resolve(resolution()); } });
   await turn();
   assert.equal(ui.byId("matching-enable").disabled, true);
   assert.equal(ui.byId("matching-enable").attributes["data-busy"], "false");
   ui.byId("matching-pause").listeners.get("click")();
   assert.equal(ui.byId("matching-pause").disabled, true);
   assert.equal(ui.byId("matching-pause").attributes["data-busy"], "true");
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingStopping);
   release(resolution({ phase: "off", enabled: false })); await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingOff);
   assert.equal(ui.byId("matching-pause").attributes["data-busy"], "false");
   ui.panel.dispose();
 });
@@ -138,7 +153,7 @@ for (const [reason, key] of Object.entries(contextMessages)) {
   test(`bounded context diagnostic ${reason} has visible guidance and clears on recovery`, async () => {
     let recovered = false;
     const ui = harness({ messages: {}, async sendMessage() {
-      return recovered ? resolution() : resolution({ phase: "off", enabled: false,
+      return recovered ? resolution({ enabled: false }) : resolution({ phase: "off", enabled: false,
         currentOrigin: null, currentTabId: null, currentUrl: null, contextReason: reason });
     } });
     await turn();
@@ -179,9 +194,9 @@ test("hung status times out within8seconds, frees queued Pause, and clears reque
     }, timeoutSchedule(fn, delay) { timers.push({ fn, delay }); return timers.length; }, timeoutCancel(id) { canceled.push(id); },
   }); await turn();
   const status = assert.rejects(ui.panel.readResolution(), /Page matching unavailable/);
-  const pausing = ui.panel.pauseMatching(); assert.equal(messages.length, 1);
+  const pausing = ui.panel.pauseMatching(); await turn(); assert.equal(messages.length, 2);
   assert.equal(timers[0].delay, 8000); timers[0].fn(); await status; await pausing;
-  assert.equal(messages.at(-1).type, "pause"); assert.ok(canceled.includes(1)); assert.ok(canceled.includes(2));
+  assert.equal(messages.at(-1).type, "stop-session"); assert.ok(canceled.includes(1)); assert.ok(canceled.includes(2));
   ui.panel.dispose();
 });
 
@@ -191,11 +206,11 @@ test("popup disposal during permission prompt does not enable after permission r
   const ui = harness({ requestPermission: () => granted }); await turn();
   ui.byId("matching-consent").checked = true;
   ui.byId("matching-enable").listeners.get("click")(); ui.panel.dispose(); resolve(true); await turn();
-  assert.equal(ui.calls.some((message) => message.type === "enable-site"), false);
+  assert.equal(ui.calls.some((message) => message.type === "start-session"), false);
 });
 
-test("unchanged enabled-site polling preserves focused Remove node and handler", async () => {
-  const ui = harness({ async sendMessage() { return resolution({ origins: ["https://public.example.com"] }); } });
+test("unchanged blocked-site polling preserves focused Allow node and handler", async () => {
+  const ui = harness({ async sendMessage() { return resolution({ blockedOrigins: ["https://public.example.com"] }); } });
   await turn();
   const sites = ui.byId("matching-sites"); const row = sites.children[0]; const remove = row.children[1];
   const callback = remove.listeners.get("click"); remove.focus();
@@ -306,5 +321,188 @@ test("unsupported diagnostic clears on worker failure and permission denial", as
   assert.equal(ui.byId("matching-status").textContent, EN.matchingUnavailable);
   assert.equal(ui.byId("matching-detail").textContent, "");
   assert.ok(!ui.created.some((item) => item.textContent.includes("body-secret")));
+  ui.panel.dispose();
+});
+
+test("session DTO is exact, accessor-free and couples enabled and current context to window identity", () => {
+  let executed = false;
+  const getterList = [];
+  Object.defineProperty(getterList, "0", { enumerable: true, get() { executed = true; return "https://public.example.com"; } });
+  const sparse = new Array(1);
+  for (const patch of [
+    { sessionWindowId: -1 }, { currentWindowId: 0.5 }, { currentWindowId: null },
+    { sessionRevision: "" }, { sessionRevision: "x".repeat(129) }, { sessionRevision: "<secret>" },
+    { hostAccess: "true" }, { enabled: false, sessionWindowId: 2 },
+    { enabled: true, sessionWindowId: null }, { blockedOrigins: getterList }, { blockedOrigins: sparse },
+    { origins: [] }, { blockedOrigins: ["<img src=x>"] },
+  ]) assert.throws(() => projectPageResolution(resolution(patch)), /Page matching unavailable/);
+  const accessor = resolution();
+  Object.defineProperty(accessor, "sessionRevision", { enumerable: true, get() { executed = true; return "revision-1"; } });
+  assert.throws(() => projectPageResolution(accessor), /Page matching unavailable/);
+  assert.equal(executed, false);
+  const stopped = projectPageResolution(resolution({ enabled: false, hostAccess: true }));
+  assert.equal(stopped.sessionWindowId, null);
+  assert.equal(stopped.hostAccess, true);
+  assert.ok(Object.isFrozen(stopped.blockedOrigins));
+});
+
+test("ready binding requires lease, native access, bound window and unblocked foreground", () => {
+  const ready = projectPageResolution(resolution({ phase: "ready", documentId: "doc", sourceId: "source", topicId: "topic" }));
+  assert.equal(isReadyPageResolution(ready), true);
+  for (const patch of [{ enabled: false, sessionWindowId: null }, { currentWindowId: 3 }, { hostAccess: false },
+    { blockedOrigins: [ready.currentOrigin] }]) assert.equal(isReadyPageResolution({ ...ready, ...patch }), false);
+  for (const patch of [{ sessionWindowId: 3 }, { currentWindowId: 3 }, { sessionRevision: "revision-2" },
+    { hostAccess: false }, { blockedOrigins: [ready.currentOrigin] }]) assert.equal(samePageResolution(ready, { ...ready, ...patch }), false);
+  assert.equal(samePageResolution(ready, { ...ready, blockedOrigins: [] }), true);
+});
+
+test("stopped lease and retained Chrome access are displayed independently", async () => {
+  const ui = harness({ sendMessage: async () => resolution({ phase: "off", enabled: false, hostAccess: true }) });
+  await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingOff);
+  assert.equal(ui.byId("matching-access").textContent, EN.matchingAccessGranted);
+  assert.equal(ui.byId("matching-pause").disabled, true);
+  assert.equal(ui.byId("matching-remove-access").disabled, false);
+  ui.byId("matching-consent").checked = true; ui.byId("matching-consent").listeners.get("change")();
+  assert.equal(ui.byId("matching-enable").disabled, false);
+  ui.panel.dispose(); assert.equal(ui.byId("matching-access").textContent, "");
+});
+
+test("other window has fixed guidance and cannot retry or claim automatic readiness", async () => {
+  const ui = harness({ sendMessage: async () => resolution({ phase: "ready", currentWindowId: 3,
+    documentId: "doc", sourceId: "source", topicId: "topic" }) });
+  await turn();
+  assert.equal(ui.byId("matching-context").textContent, EN.matchingOtherWindow);
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingNotEnabled);
+  assert.equal(ui.byId("matching-retry").disabled, true);
+  assert.equal(isReadyPageResolution(ui.states.at(-1)), false);
+  assert.equal(ui.byId("matching-pause").disabled, false);
+  ui.panel.dispose();
+});
+
+test("Stop during native prompt invalidates its ticket and late grant cannot restart or clear new status", async () => {
+  let grant;
+  const prompt = new Promise((resolve) => { grant = resolve; });
+  const ui = harness({ requestPermission: () => prompt,
+    async sendMessage(message) { ui.calls.push(message); return resolution({ phase: "off", enabled: false, sessionRevision: "stopped-revision" }); } });
+  await turn();
+  ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")();
+  assert.equal(ui.byId("matching-enable").disabled, true);
+  assert.equal(ui.byId("matching-pause").disabled, false);
+  ui.byId("matching-pause").listeners.get("click")(); await turn();
+  assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "stop-session" });
+  const before = ui.calls.length;
+  grant(true); await turn();
+  assert.equal(ui.calls.length, before);
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingOff);
+  assert.equal(ui.byId("matching-access").textContent, EN.matchingAccessGranted);
+  assert.equal(ui.byId("matching-consent").checked, false);
+  assert.equal(ui.calls.some((call) => call.type === "start-session"), false);
+  ui.panel.dispose();
+});
+
+for (const succeeds of [true, false]) {
+  test(`Stop overtakes delayed Start ${succeeds ? "success" : "failure"} and ignores its stale UI outcome`, async () => {
+    let complete, reject;
+    const delayed = new Promise((resolve, no) => { complete = resolve; reject = no; });
+    const ui = harness({ async sendMessage(message) {
+      ui.calls.push(message);
+      if (message.type === "start-session") return delayed;
+      return resolution({ phase: "off", enabled: false, sessionRevision: message.type === "stop-session" ? "stopped" : "revision-1" });
+    } });
+    await turn();
+    ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")(); await turn();
+    assert.equal(ui.calls.at(-1).type, "start-session");
+    assert.equal(ui.byId("matching-pause").disabled, false);
+    ui.byId("matching-pause").listeners.get("click")(); await turn();
+    assert.equal(ui.calls.at(-1).type, "stop-session");
+    assert.equal(ui.byId("matching-status").textContent, EN.matchingOff);
+    const statesBefore = ui.states.length;
+    if (succeeds) complete(resolution({ phase: "processing" })); else reject(new Error("secret"));
+    await turn();
+    assert.equal(ui.states.length, statesBefore);
+    assert.equal(ui.byId("matching-status").textContent, EN.matchingOff);
+    assert.equal(ui.byId("matching-access").textContent, EN.matchingAccessGranted);
+    ui.panel.dispose();
+  });
+}
+
+test("delayed permission from an older Start cannot override a newly started session", async () => {
+  let grant;
+  const delayed = new Promise((resolve) => { grant = resolve; }); let prompts = 0;
+  let current = resolution({ phase: "off", enabled: false });
+  const ui = harness({ requestPermission() { return ++prompts === 1 ? delayed : Promise.resolve(true); },
+    async sendMessage(message) {
+      ui.calls.push(message);
+      if (message.type === "stop-session") current = resolution({ phase: "off", enabled: false, sessionRevision: "revision-2" });
+      if (message.type === "start-session") current = resolution({ phase: "processing", sessionRevision: "revision-3" });
+      return current;
+    } });
+  await turn();
+  ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")();
+  ui.byId("matching-pause").listeners.get("click")(); await turn();
+  ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "start-session", windowId: 2, expectedRevision: "revision-2" });
+  const before = ui.calls.length; grant(false); await turn();
+  assert.equal(ui.calls.length, before);
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingProcessing);
+  ui.panel.dispose();
+});
+
+test("blocked site stays blocked despite native access; allowing site is explicit", async () => {
+  const ui = harness({ sendMessage: async () => resolution({ phase: "not-enabled", blockedOrigins: ["https://public.example.com"] }) });
+  await turn();
+  assert.equal(ui.byId("matching-block").disabled, true);
+  assert.equal(ui.byId("matching-retry").disabled, true);
+  assert.equal(ui.byId("matching-access").textContent, EN.matchingAccessGranted);
+  const allow = ui.byId("matching-sites").children[0].children[1];
+  assert.equal(allow.textContent, EN.matchingUnblockSite);
+  assert.equal(allow.attributes["data-unblock-origin"], "https://public.example.com");
+  ui.panel.dispose();
+});
+
+test("native access removal projects no grant; worker failure clears native access text", async () => {
+  let fails = false;
+  const ui = harness({ async sendMessage(message) {
+    if (fails) throw new Error("private-url");
+    return resolution({ phase: "off", enabled: false, hostAccess: message.type !== "remove-access" });
+  } }); await turn();
+  ui.byId("matching-remove-access").listeners.get("click")(); await turn();
+  assert.equal(ui.byId("matching-access").textContent, EN.matchingAccessAbsent);
+  assert.equal(ui.byId("matching-remove-access").disabled, true);
+  fails = true; ui.scheduled[0].fn(); await turn();
+  assert.equal(ui.byId("matching-access").textContent, "");
+  assert.equal(ui.byId("matching-origin").textContent, "");
+  ui.panel.dispose();
+});
+
+test("stale worker Start rejection clears cached state without echoing worker details", async () => {
+  const ui = harness({ async sendMessage(message) {
+    return message.type === "start-session" ? { error: "stale-ticket", secret: "private-url" } : resolution({ phase: "off", enabled: false });
+  } }); await turn();
+  ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingUnavailable);
+  assert.equal(ui.byId("matching-access").textContent, "");
+  assert.equal(ui.byId("matching-enable").disabled, true);
+  assert.ok(ui.created.every((item) => !item.textContent.includes("private-url")));
+  ui.panel.dispose();
+});
+
+test("Stop invalidates a shared stale status read and it cannot revive session display", async () => {
+  let release;
+  const delayed = new Promise((resolve) => { release = resolve; });
+  const ui = harness({ async sendMessage(message) {
+    ui.calls.push(message);
+    return message.type === "status" ? delayed : resolution({ phase: "off", enabled: false, sessionRevision: "stopped" });
+  } }); await turn();
+  const stale = assert.rejects(ui.panel.readResolution(), /Page matching unavailable/);
+  const stopping = ui.panel.pauseMatching(); await turn();
+  assert.equal(ui.calls.at(-1).type, "stop-session");
+  await stopping;
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingOff);
+  release(resolution({ phase: "ready", documentId: "doc", sourceId: "source", topicId: "topic" }));
+  await stale; await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingOff);
+  assert.equal(ui.states.at(-1).sessionRevision, "stopped");
   ui.panel.dispose();
 });

@@ -1,9 +1,9 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## On-device background matching (0.6.5)
+## On-device background matching (0.7.0)
 
-The owner approved ADR-018's local-only package. Background matching defaults
-off. Page text is sampled and embedded inside the extension; only URL, short
+The owner approved ADR-018's local-only package and ADR-019 B's window-scoped
+browsing session. Capture defaults off. Text is embedded inside the extension; only URL, short
 title, vector and versions go to the paired backend on this PC. It never sends
 raw page text to a server/provider. URL/title/vectors remain sensitive and the
 local SQLite database is not encrypted. No web search or crawler is included.
@@ -19,13 +19,17 @@ local SQLite database is not encrypted. No web search or crawler is included.
    service with your extension Origin as described in the service README. Pair
    using the terminal token. A service/browser restart requires a new pairing.
 3. Use a dedicated non-sensitive browser profile. Visit an eligible public HTTPS
-   article/product page. Open the popup, review its displayed site and disclosure,
-   tick the consent checkbox and select **Enable matching for displayed site**.
-   Accept Chrome's site-access prompt. Do not enable mail, banking, health/account
-   dashboards or confidential sites. This uses one generic reader, not per-site
+   article/product page. Open the popup, review the cross-site session disclosure,
+   tick the consent checkbox and select **Start browsing session**.
+   Accept Chrome's broad HTTPS-access prompt if shown. Do not browse mail,
+   banking, health/account dashboards or confidential pages in this profile:
+   private/authenticated pages cannot be reliably identified. This uses one generic reader, not per-site
    integrations; missing structure or resource limits can make a page unsupported.
-4. Browse normally on enabled sites, even with the popup closed. Only the active
-   tab in the focused window is processed. Enable each additional site once.
+4. Browse eligible sites in that same window, even with the popup closed. Only
+   its active tab while focused is processed. No additional domain grant is
+   needed. Other windows are excluded. Popup closure/worker suspension keep the
+   session; Stop, closing its window, browser restart or extension reload ends it.
+   Start a new session explicitly after that; stored Chrome access is not consent.
    Reopen the popup: it shows processing, then selects the experimental Topic
    when ready. First model startup takes longer; it is not an instant lookup.
 5. Visit two pages about the same specific topic and an unrelated page. Add a
@@ -36,12 +40,23 @@ local SQLite database is not encrypted. No web search or crawler is included.
    create a separate one. Existing comments stay in their original discussion.
    Navigation/re-resolution detaches unsent text; attach it explicitly after
    checking its destination. Unsent text disappears when the popup closes.
-7. Test Pause/Resume and site removal. Pause stops new processing but retains data.
+7. Test **Stop session**, a new explicit Start, and **Never process this site**.
+   Blocks survive browser restart; **Allow site again** removes a block. Stop
+   stops processing but retains data, pairing and Chrome's native grant. The
+   separate **Remove broad HTTPS access** action stops then removes that grant
+   (overlapping old individual grants can also be affected). Chrome has no native
+   session-expiring all-sites grant; the app enforces the session boundary.
    **Forget retained page** removes its vector/link and preserves shared comments.
    Confirmed **Delete learned topic** / **Clear learned data** remove the described
-   learned discussions and comments too. Processing pauses before those actions;
-   resume explicitly. Revisiting afterward may recreate a page. Deletion is
+   learned discussions and comments too. Processing stops before those actions;
+   Start explicitly afterward. Revisiting may recreate a page. Deletion is
    logical, not a promise about SQLite/OS forensic remnants or backups.
+8. Check the session boundary: while a session is active, reload the extension
+   from `chrome://extensions`; reopen on the public article. Matching must be off
+   until a fresh Start, even if Chrome's HTTPS grant remains. Repeat with a full
+   Chrome restart. Pairing is still session-only and may need reconnecting.
+   These reload/restart checks and first native-dialog acceptance remain manual;
+   the headless test harness could not verify them reliably.
 
 The reader samples at most 4,096 characters from rendered article/main content,
 excludes forms/editables/navigation/comments/hidden regions and never falls back
@@ -55,21 +70,23 @@ assumption: robots/googlebot/TDM metadata does not block matching, including
 negative, unknown or malformed declarations. This is not legal/store clearance,
 and vectors do not establish permission. The [ADR-018 amendment](../../../decisions/ADR-018-background-page-matching-local-poc.md)
 records the unresolved legal/policy assessment before any external tester,
-distribution or remote use. No private-page scope, access-control bypass, new
-permission or automatic site grant is introduced. The frozen older metadata-only
+distribution or remote use. ADR-019 B changes only the explicit capture session
+and use of the existing optional broad grant, not private-page scope or access
+controls. The frozen older metadata-only
 experiment remains unchanged.
 
 The manifest adds an offscreen worker and optional HTTPS host grants. Requests
 remain fixed loopback API or packaged extension assets, with no remote script or
 model fetch. The extra CSP permission is WASM-only, not JavaScript `unsafe-eval`.
-Site preferences persist in trusted local extension storage; the token is still
-session-only, and raw text/vectors are not stored in extension storage.
+Blocked sites persist in trusted local extension storage; the live window lease
+and token are session-only. Legacy enabled-site preferences remain inert and do
+not start a session. Raw text/vectors are not stored in extension storage.
 
 ### If the matching controls are disabled
 
 Open the extension from its toolbar icon on a fully loaded public HTTPS article,
 not from `chrome://extensions` or a tab containing `popup.html`. Read the context
-message near **Enable matching for displayed site**. Version 0.6.1 distinguishes
+message near **Start browsing session**. Version 0.6.1 distinguishes
 unfocused/unsupported windows, loading or unavailable tabs, missing URL access,
 incognito/unsupported URLs and worker failure. A checked retention checkbox alone
 cannot enable an ineligible site. Keep the article's normal Chrome window focused;
@@ -79,7 +96,8 @@ popup associated with that normal window if Chrome reports its parent unfocused.
 Closing or blurring the popup invalidates that witness; an old last-focused
 window alone never permits capture. Keep Chrome's **Developer mode** enabled
 for the unpacked extension: that switch is unrelated to the DevTools window.
-Before the first enabled site, disabled Pause/Resume/Retry controls are expected.
+Before Start, disabled Stop/Retry controls are expected. Stop remains available
+while a Start or permission request is pending.
 Disabled controls no longer use a loading cursor unless an action is pending.
 
 Version 0.6.3 separates window/tab API failures, missing window, changed tab/window
@@ -101,8 +119,8 @@ code can also mean a guarded extraction failure. The owner's later
 `[rights-restricted]` report identified the metadata veto, not a legal ruling.
 Version 0.6.5 removes that veto under the explicit local working assumption
 above; the legacy reason remains accepted for compatibility. Region/resource,
-identity and privacy guards stay unchanged. After reloading to 0.6.5, reopen on
-the enabled article and select **Retry current page** if needed. If another
+identity and privacy guards stay unchanged. After reloading to 0.7.0, start a
+session on the public article and select **Retry current page** if needed. If another
 unsupported reason remains, report only that message/code, not private data.
 Do not repeat the checkbox/Enable sequence as a presumed fix.
 
@@ -116,6 +134,7 @@ From `spikes/topic-resolution`, separate real-Chrome checks are:
 
 ```sh
 npm run test:browser:eligibility
+npm run test:browser:session
 npm run test:browser:embedding
 npm run test:browser:matching
 ```
@@ -131,14 +150,20 @@ Its popup-focus regression explicitly simulates a false parent-window focus
 flag in headless Chrome; this does not reproduce the owner's OS focus behavior.
 It also injects loading, pending-navigation, unavailable-URL and rejected-tab-query
 results, verifying precise rejection guidance and recovery after each restoration.
-An additional test seeds then removes synthetic site preferences only in its
-disposable profile. A failed foreground query recovers without a new browser
-event, but the real absent host grant still stops the flow before any capture,
-pairing request or model load. No owner preferences or backend state are touched.
+An additional test seeds then removes legacy enabled-site preferences only in its
+disposable profile. They cannot start a session, even after failed foreground
+queries recover. No owner preferences or backend state are touched.
 The 0.6.5 regression additionally invokes the packaged real-page reader on owned
 synthetic content through temporary action access. It checks metadata acceptance
 and retained content exclusions without enabling background capture, loading a
 model or accessing a backend. This is not a real-site or matching-quality test.
+The session/matching harnesses prepare Chrome's native site-access setting in
+their own disposable profile through its internal extension-management API,
+then exercise the real product permission request. They do not automate the
+native permission-confirmation dialog; first-time acceptance is a manual check.
+The session smoke verifies forced worker reconstruction, not natural idle or
+crash cleanup. Actual reload/restart headless attempts lost the CDP-loaded
+worker/action connection; they are reported as gaps, not passes.
 Actual current test evidence is in [STATUS](../../../plans/STATUS.md); the paragraphs below retain
 the earlier feature-specific evidence, not current global capability limits.
 

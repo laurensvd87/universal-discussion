@@ -24,9 +24,16 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
   async function authorized(tab, own) {
     if (!alive(own)) return false;
     const [preferences, foreground, paired] = await Promise.all([getPreferences(), readForeground(), isPaired()]);
-    if (!alive(own) || !preferences.enabled || !paired || !foreground || foreground.tabId !== tab.tabId ||
-        foreground.url !== tab.url || !preferences.origins.includes(tab.origin)) return false;
-    return await hasPermission(tab.origin) && alive(own);
+    if (!alive(own)) return false;
+    if (!preferences.enabled || preferences.sessionWindowId !== tab.windowId || !paired || !foreground ||
+        foreground.windowId !== tab.windowId || foreground.tabId !== tab.tabId || foreground.url !== tab.url ||
+        !Array.isArray(preferences.blockedOrigins) || preferences.blockedOrigins.includes(tab.origin) ||
+        !await hasPermission(tab.origin)) {
+      if (alive(own)) publish({ phase: preferences.enabled ? "not-enabled" : "off", reason: null,
+        sourceId: null, topicId: null, assignment: null });
+      return false;
+    }
+    return alive(own);
   }
   async function refresh() {
     invalidate(); const own = epoch;
@@ -41,9 +48,10 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
       if (!foreground) { publish({ phase: "unsupported", reason: "no-focused-page" }); return; }
       const url = inspectPageUrl(foreground.url);
       if (!url.supported) { publish({ phase: "unsupported", reason: url.reason }); return; }
-      const tab = { tabId: foreground.tabId, url: url.url, origin: url.origin };
+      const tab = { tabId: foreground.tabId, windowId: foreground.windowId, url: url.url, origin: url.origin };
       publish({ tabId: tab.tabId, url: tab.url });
-      if (!preferences.origins.includes(tab.origin) || !await hasPermission(tab.origin)) {
+      if (!Number.isSafeInteger(tab.windowId) || tab.windowId < 0 || preferences.sessionWindowId !== tab.windowId ||
+          !Array.isArray(preferences.blockedOrigins) || preferences.blockedOrigins.includes(tab.origin) || !await hasPermission(tab.origin)) {
         if (alive(own)) publish({ phase: "not-enabled" }); return;
       }
       if (!await isPaired()) { if (alive(own)) publish({ phase: "unpaired" }); return; }

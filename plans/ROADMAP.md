@@ -23,6 +23,13 @@ Its exact capture/permissions/payload/retention and provisional local-auto polic
 were explicitly owner-approved on 2026-09-29; B1–B5 are implemented and browser-tested. This does not
 begin R5 production AUTO or repeat 6/6.
 
+ADR-019 B was explicitly approved on 2026-09-29: replace per-site capture grants
+with one explicit, window-bound browsing session and persistent site blocks.
+Stop/window closure/browser restart ends capture; native broad HTTPS access is
+separate. Version 0.7.0 implementation/verification is recorded in STATUS. A's
+matching/input changes and C's durable pairing are separate pending decisions,
+not implicitly approved by B. No private/remote/provider/store expansion follows.
+
 ## Evidence already available
 
 - Offline exact-URL/fingerprint resolver, synthetic extractor and evaluator.

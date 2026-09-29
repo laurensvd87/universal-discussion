@@ -5,8 +5,10 @@ ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
 the exact expanded Security/Privacy/Policy package explicitly approved by the
-owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**,
-with capture default-off and site-by-site enablement. The owner's `rights-restricted`
+owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**.
+ADR-019 B now replaces their site-by-site enablement with an explicitly approved
+window-scoped session in **0.7.0**; capture still defaults off. Current verification
+and remaining gaps are recorded below. The owner's earlier `rights-restricted`
 report identified the reader's metadata gate; its exact triggering tag remains
 unknown. In response to the explicit-reservation question the owner now directs
 proceeding with local vectors under a permission working assumption. Extension
@@ -29,7 +31,7 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current request: session-wide browsing and durable pairing — awaiting approval
+## Current increment: ADR-019 B session-wide browsing — implemented/reviewed; full-loop test blocked
 
 - Owner requests implementation of improved viewpoint-independent matching,
   automatic vectorization on visits, and connection credentials across sessions.
@@ -45,20 +47,56 @@ private/remote/AI/moderation work and all external release gates remain separate
   boundaries, wildcard/block-list semantics, version compatibility and stale-401
   race. Broad grants cannot reliably distinguish private pages. Persistent bearer
   storage is not an OS keychain; browser-profile compromise can expose demo access.
-- Owner clarifies session-wide consent, not per-website consent. The revised B
-  proposal replaces persistent automatic capture with a trusted session-memory
+- Owner clarifies session-wide consent, not per-website consent, then explicitly
+  answers "approved" to the app-enforced window session/broad Chrome permission
+  question. **Only B is approved; A matching/input and C durable pairing remain
+  pending.** B replaces persistent automatic capture with a trusted session-memory
   lease bound to the browser window where Start was pressed. Stop/window closure/
   browser restart/reload ends capture; popup closure and worker suspension do not.
-  Other windows are outside the proposed session. Chrome has no native expiring
+  Other windows are outside the session. Chrome has no native expiring
   wildcard grant: an underlying grant may remain after a crash, but a fresh app
-  session is required to capture. Keep saved pairing independent. This is a
-  proposed concrete lifetime, not yet approved or tested implementation, and the
-  clarification does not approve durable credential storage on its own.
-- **Stop for explicit approval of this disclosed package before activation or
-  implementation across the new boundaries.** The owner's requested outcomes
-  are recorded, not substituted for informed acceptance of these concrete risks.
-  No code, credentials, permission grants, database state or model assets changed.
+  session is required to capture. Stop retains native access; the separate Remove
+  broad HTTPS access action stops first then removes it. Saved pairing is
+  independent and remains session-only in this slice.
+- 0.7.0 implements B with Sol Medium core/UI slices and a separate Trust review.
+  Trust identified and reproduced two defects, both now fixed: block-list overflow
+  could invalidate status while capture remained active; a worker interruption
+  between live-lease and block writes could lose the new block. Overflow now
+  stops and preserves the bounded list. Block transactions persist an inactive
+  lease first, gate concurrent Start, commit configuration, then restore only a
+  still-valid unchanged session. Stop shows pending until worker confirmation.
+- Final production review accepts B; independently **191/191** focused restricted
+  checks pass. Full restricted **571/571**, normal **570 pass / one intentional
+  guard-only skip**, indicator **389/389**, service **67/67**; secret scan 144 files,
+  zero findings. Actual Chrome's **32 eligibility/reader checks** pass, including
+  inert legacy enabled preferences. The separate session smoke passes **14 actual
+  Chrome checks**: real Start/native grant, cross-domain routing without another
+  Start, popup retention, blocks, other-window exclusion, bound-window closure,
+  Stop retaining access, explicit access removal, and forced worker reconstruction.
+  Three owned intercepted documents; zero blocked requests, runtime exceptions,
+  model loads or inference targets. It stops at the real unpaired gate, not a
+  vector/ingestion claim. The native dialog is not automated: test setup prepares
+  only the exact Chrome-management target before the real product request.
+- Actual extension reload/browser restart remain **unverified by this headless
+  harness**: action reopening after runtime.reload ended the pipe/process, and
+  same-profile restart did not restore the CDP-loaded worker/action registration.
+  No production lifecycle/permission guard was weakened to work around it.
+  Unit reconstruction with empty session storage passes; natural idle suspension
+  and crashed-process cleanup are not claimed. Owner manual check: start in the
+  dedicated test profile, reload the extension, then separately restart Chrome;
+  each must show capture off until fresh Start. Native HTTPS access may remain.
+- The full updated two-domain vector/shared-comment smoke was attempted but
+  **blocked at bind because 4174 is occupied**. No owner service was used/stopped
+  and no owner database was accessed. Asked owner to stop their listener manually
+  for this test. Both matching and historical S3 harnesses are adapted and syntax
+  checked, not counted as current-version full-loop passes. No owner data,
+  model assets, pairing credentials or matching policy changed.
   Phase 0 and the 6/6 review stay complete; broader gates remain unchanged.
+
+See [the ADR-019 B review](../research/ADR019_SESSION_REVIEW_2026-09-29.md) for
+scope, corrections, exact evidence and storage-failure limitations. Next: finish
+full-loop/S3 Chrome checks when the owner frees 4174; obtain manual first-grant and
+reload/restart evidence. No renewed B approval is needed. A/C remain separate.
 
 ## Current owner feedback: similar pages split into Topics — 2026-09-29
 

@@ -9,12 +9,12 @@ const deferred = () => { let resolve; const promise = new Promise((done) => { re
 const tick = () => new Promise((done) => setImmediate(done));
 function fixture(overrides = {}) {
   const calls = [];
-  const state = { enabled: true, origins: [origin], tab: { tabId: 1, url }, paired: true, permitted: true };
+  const state = { enabled: true, sessionWindowId: 1, blockedOrigins: [], tab: { tabId: 1, windowId: 1, url }, paired: true, permitted: true };
   const capture = { documentId: "document-a", result: { status: "collected", url, title: "Synthetic article",
     text: "Project-created bounded article text.", extractorVersion: "main-text-prefix/v1" } };
   const result = { sourceId: "source-a", topicId: "topic-a", assignment: "provisional" };
   const dependencies = {
-    getPreferences: async () => ({ enabled: state.enabled, origins: [...state.origins] }),
+    getPreferences: async () => ({ enabled: state.enabled, sessionWindowId: state.sessionWindowId, blockedOrigins: [...state.blockedOrigins] }),
     readForeground: async () => state.tab, hasPermission: async () => state.permitted,
     isPaired: async () => state.paired,
     reader: { read: async () => { calls.push("read"); return capture; }, attest: async () => ({ status: "attested", url }) },
@@ -39,7 +39,9 @@ test("background matching sends only explicit fields and resolves delayed Topic"
 });
 for (const [label, setup, phase] of [
   ["off", s => { s.enabled = false; }, "off"],
-  ["site not selected", s => { s.origins = []; }, "not-enabled"],
+  ["site blocked", s => { s.blockedOrigins = [origin]; }, "not-enabled"],
+  ["different window", s => { s.tab.windowId = 2; }, "not-enabled"],
+  ["no lease", s => { s.sessionWindowId = null; }, "not-enabled"],
   ["permission removed", s => { s.permitted = false; }, "not-enabled"],
   ["unpaired", s => { s.paired = false; }, "unpaired"],
   ["no focused page", s => { s.tab = null; }, "unsupported"],
@@ -48,7 +50,7 @@ for (const [label, setup, phase] of [
   const { matcher, state, calls } = fixture(); setup(state); await matcher.refresh();
   assert.equal(matcher.currentState().phase, phase); assert.deepEqual(calls, []);
 });
-for (const label of ["navigate", "pause", "permission", "close", "invalidate"]) {
+for (const label of ["navigate", "pause", "permission", "close", "invalidate", "other-window", "block"]) {
   test(`${label} during inference never ingests or renders stale output`, async () => {
     const pending = deferred();
     const { matcher, state, calls } = fixture({ embed: () => pending.promise });
@@ -59,6 +61,8 @@ for (const label of ["navigate", "pause", "permission", "close", "invalidate"]) 
     if (label === "permission") state.permitted = false;
     if (label === "close") state.tab = null;
     if (label === "invalidate") matcher.invalidate();
+    if (label === "other-window") state.tab = { ...state.tab, windowId: 2 };
+    if (label === "block") state.blockedOrigins = [origin];
     pending.resolve({ modelId: "browser", values: [1] }); await work;
     assert.deepEqual(calls, ["read"]); assert.notEqual(matcher.currentState().phase, "ready");
   });
@@ -69,6 +73,17 @@ test("document attestation rejects same-URL replacement before ingestion", async
   await base.matcher.refresh();
   assert.equal(base.matcher.currentState().phase, "unsupported");
   assert.deepEqual(base.calls, ["read", "embed"]);
+});
+
+test("failed post-read foreground check leaves a bounded unavailable state without rereading", async () => {
+  const h = fixture();
+  h.dependencies.reader.read = async () => {
+    h.calls.push("read"); h.state.tab = null;
+    return { documentId: "document-a", result: { status: "collected", title: "Synthetic", text: "Synthetic bounded text", extractorVersion: "main-text-prefix/v1" } };
+  };
+  await h.matcher.refresh();
+  assert.equal(h.matcher.currentState().phase, "not-enabled");
+  assert.deepEqual(h.calls, ["read"]);
 });
 
 test("missing foreground has a precise reason before any page read", async () => {

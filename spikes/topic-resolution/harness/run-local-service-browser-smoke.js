@@ -98,9 +98,12 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
   async function storage(paired) {
     const shape = await evaluate(`(async () => {
       const [local,sync,session]=await Promise.all([chrome.storage.local.get(null),chrome.storage.sync.get(null),chrome.storage.session.get(null)]);
-      const keys=Object.keys(session);
+      const lease=session.pageMatchingCaptureSession;
+      const inactiveLease=lease && lease.schema==='capture-session/1' && lease.windowId===null &&
+        typeof lease.revision==='string' && Object.keys(lease).length===3;
+      const keys=Object.keys(session).filter(key=>key!=='pageMatchingCaptureSession');
       return {localEmpty:Object.keys(local).length===0,syncEmpty:Object.keys(sync).length===0,
-        sessionEmpty:keys.length===0,onlyPairing:keys.length===1 && keys[0]==='localServicePairingToken' && typeof session[keys[0]]==='string'};
+        sessionEmpty:inactiveLease && keys.length===0,onlyPairing:inactiveLease && keys.length===1 && keys[0]==='localServicePairingToken' && typeof session[keys[0]]==='string'};
     })()`);
     assert.ok(shape.localEmpty && shape.syncEmpty);
     assert.ok(paired ? shape.onlyPairing : shape.sessionEmpty);
@@ -272,7 +275,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await startService(SECOND_TOKEN);
     await click("#discussion-reload");
     await waitStatus(EN.discussionUnauthorized);
-    await waitFor(async () => evaluate("chrome.storage.session.get(null).then(value => Object.keys(value).length === 0)"), "rejected pairing session removal");
+    await waitFor(async () => evaluate("chrome.storage.session.get(null).then(value => value.localServicePairingToken === undefined && value.pageMatchingCaptureSession?.windowId === null)"), "rejected pairing session removal with inactive capture lease retained");
     await storage(false);
     assert.ok(await evaluate(`${THREAD}.querySelectorAll('.discussion-body').length === 0`));
     await pair(SECOND_TOKEN);

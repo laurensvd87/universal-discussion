@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { projectPageResolution } from "../browser/core/page-resolution-contract.js";
 
 const KEY = "pageMatchingPreferences";
+const CAPTURE_KEY = "pageMatchingCaptureSession";
+const BLOCKED_KEY = "pageMatchingBlockedOrigins";
 const TOKEN_KEY = "localServicePairingToken";
 const ORIGIN = "https://example.com";
 const EXTENSION_ID = "a".repeat(32);
@@ -20,15 +23,16 @@ function event() {
 }
 function embedding() { const values = Array(384).fill(0); values[0] = 1; return { modelId: "e5-small-q8-browser-main-prefix-v1", values }; }
 
-async function harness(t, { enabled = true, paired = true } = {}) {
+async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) {
   const descriptors = new Map(["chrome", "fetch"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   t.mock.timers.enable({ apis: ["setTimeout"] });
-  const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
+  const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "windowRemoved", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
   const gates = [];
   const pendingControls = [];
   const calls = { reads: 0, windowQueries: 0, tabQueries: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [] };
   const state = {
     local: { enabled, origins: [ORIGIN] }, token: paired ? `synthetic-test-token-${"x".repeat(40)}` : undefined,
+    capture: { schema: "capture-session/1", revision: "synthetic-control-revision-0001", windowId: enabled ? 1 : null }, blocked,
     tab: { id: 7, active: true, incognito: false, status: "complete", url: PAGE },
     window: { id: 1, focused: true, type: "normal" }, permitted: true, exists: false,
     writeGate: null, permissionGate: null, embedGate: null, unauthorized: false,
@@ -50,30 +54,40 @@ async function harness(t, { enabled = true, paired = true } = {}) {
       } },
     storage: {
       local: { setAccessLevel: async (value) => assert.equal(value.accessLevel, "TRUSTED_CONTEXTS"),
-        get: async (key) => { assert.equal(key, KEY); return { [KEY]: structuredClone(state.local) }; },
+        get: async (key) => { assert.equal(key, BLOCKED_KEY); return { [BLOCKED_KEY]: structuredClone(state.blocked) }; },
         async set(value) {
           calls.storageWrites.push(structuredClone(value));
           if (state.writeGate) await state.writeGate.promise;
-          const oldValue = state.local; state.local = structuredClone(value[KEY]);
-          events.storageChanged.emit({ [KEY]: { oldValue, newValue: state.local } }, "local");
+          const oldValue = state.blocked; state.blocked = structuredClone(value[BLOCKED_KEY]);
+          events.storageChanged.emit({ [BLOCKED_KEY]: { oldValue, newValue: state.blocked } }, "local");
         } },
       session: { setAccessLevel: async (value) => assert.equal(value.accessLevel, "TRUSTED_CONTEXTS"),
-        get: async (key) => { assert.equal(key, TOKEN_KEY); return state.token ? { [TOKEN_KEY]: state.token } : {}; },
-        set: async (value) => { state.token = value[TOKEN_KEY]; },
-        remove: async (key) => { assert.equal(key, TOKEN_KEY); const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session"); } },
+        get: async (key) => key === CAPTURE_KEY ? { [CAPTURE_KEY]: structuredClone(state.capture) } : state.token ? { [TOKEN_KEY]: state.token } : {},
+        set: async (value) => {
+          if (Object.hasOwn(value, CAPTURE_KEY)) {
+            calls.storageWrites.push(structuredClone(value));
+            if (state.writeGate) await state.writeGate.promise;
+            state.capture = structuredClone(value[CAPTURE_KEY]);
+          } else state.token = value[TOKEN_KEY];
+        },
+        remove: async (key) => {
+          if (key === CAPTURE_KEY) { state.capture = undefined; return; }
+          assert.equal(key, TOKEN_KEY); const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session");
+        } },
       onChanged: events.storageChanged,
     },
-    windows: { getLastFocused: async (options) => { assert.deepEqual(options, { populate: false });
+    windows: { get: async (id) => state.window?.id === id ? structuredClone(state.window) : null, onRemoved: events.windowRemoved,
+      getLastFocused: async (options) => { assert.deepEqual(options, { populate: false });
       calls.windowQueries++;
       if (state.windowQueryHook) return state.windowQueryHook(calls.windowQueries);
       if (state.windowError) throw new Error("private window detail"); return structuredClone(state.window); }, onFocusChanged: events.focus },
-    tabs: { query: async (options) => { assert.deepEqual(options, { active: true, windowId: 1 });
+    tabs: { query: async (options) => { assert.deepEqual(options, { active: true, windowId: state.window.id });
       calls.tabQueries++;
       if (state.tabQueryHook) return state.tabQueryHook(calls.tabQueries);
       if (state.tabQueryError) throw new Error("private tab detail"); return state.tab ? [structuredClone(state.tab)] : []; },
       onActivated: events.activated, onUpdated: events.updated, onRemoved: events.removed, onReplaced: events.replaced },
     permissions: {
-      async contains(value) { assert.ok(value.origins.length === 1); const gate = state.permissionGate; state.permissionGate = null; return gate ? gate.promise : state.permitted; },
+      async contains(value) { assert.deepEqual(value.origins, ["https://*/*"]); const gate = state.permissionGate; state.permissionGate = null; return gate ? gate.promise : state.permitted; },
       async remove(value) { calls.permissionRemovals.push(value); state.permitted = false; events.permissionRemoved.emit(value); return true; },
       onRemoved: events.permissionRemoved,
     },
@@ -114,7 +128,7 @@ async function harness(t, { enabled = true, paired = true } = {}) {
   async function advance() { t.mock.timers.tick(400); await flush(); }
   async function unpair() { const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session"); await flush(); }
   t.after(async () => {
-    state.local.enabled = false; state.token = undefined;
+    state.local.enabled = false; state.capture.windowId = null; state.token = undefined;
     for (const gate of gates) gate.resolve(false);
     events.storageChanged.emit({ [KEY]: { newValue: state.local } }, "local");
     await flush(); await Promise.allSettled(pendingControls); await advance();
@@ -149,20 +163,25 @@ test("adapter pause remains fail-closed across delayed storage and navigation", 
   assert.equal(h.calls.reads, 0); assert.equal(h.calls.fetches.length, 0);
   h.state.writeGate.resolve(); h.state.writeGate = null;
   await pause; await h.advance();
-  assert.equal(h.state.local.enabled, false); assert.equal(h.calls.reads, 0);
+  assert.equal(h.state.capture.windowId, null); assert.equal(h.state.local.enabled, true); assert.equal(h.calls.reads, 0);
 });
 
-test("adapter remove-site masks consent while preference writes and permission removal are pending", async (t) => {
+test("adapter block masks capture while control and blocked-origin writes are pending", async (t) => {
   const h = await harness(t);
+  assert.equal((await h.send("status")).enabled, true);
   h.state.writeGate = h.createGate();
   const removal = h.send("remove-site", { origin: ORIGIN }); await flush();
   h.events.updated.emit(7, { url: PAGE }, h.state.tab); await h.advance();
-  assert.deepEqual((await h.send("status")).origins, []);
+  assert.deepEqual((await h.send("status")).blockedOrigins, [ORIGIN]);
   assert.equal(h.calls.reads, 0); assert.equal(h.calls.fetches.length, 0);
   h.state.writeGate.resolve(); h.state.writeGate = null;
   await removal; await h.advance();
-  assert.equal(h.state.permitted, false); assert.deepEqual(h.state.local.origins, []);
+  assert.equal(h.state.permitted, true); assert.deepEqual(h.state.blocked, [ORIGIN]);
   assert.equal(h.calls.reads, 0);
+  assert.equal((await h.send("status")).enabled, true);
+  h.state.tab.url = "https://example.org/other";
+  h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab); await h.advance();
+  assert.equal(h.calls.reads, 1);
 });
 
 test("adapter accepts commands only from the packaged popup without a tab sender", async (t) => {
@@ -178,27 +197,95 @@ test("adapter accepts commands only from the packaged popup without a tab sender
   assert.equal(h.calls.reads, 0);
 });
 
-test("enable-site reattests expected origin after a delayed permission check", async (t) => {
+test("legacy enable-site and resume cannot create a capture lease", async (t) => {
   const h = await harness(t, { enabled: false });
-  h.state.permissionGate = h.createGate(); const gate = h.state.permissionGate;
-  const enabling = h.send("enable-site", { origin: ORIGIN }); await flush();
-  h.state.tab.url = "https://example.org/other";
-  h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab);
-  gate.resolve(true);
-  assert.deepEqual(await enabling, { error: "unavailable" });
+  assert.deepEqual(await h.send("enable-site", { origin: ORIGIN }), { error: "unavailable" });
+  assert.deepEqual(await h.send("resume"), { error: "unavailable" });
   await h.advance(); assert.equal(h.state.local.enabled, false); assert.equal(h.calls.reads, 0);
 });
 
-for (const action of ["pause", "remove-site"]) test(`late enable-site cannot undo completed ${action}`, async (t) => {
+test("full blocked list overflow keeps status DTO valid and Stop usable while ending capture", async (t) => {
+  const blocked = Array.from({ length: 100 }, (_, index) => `https://site${index}.example.com`);
+  const h = await harness(t, { blocked });
+  assert.equal(projectPageResolution(await h.send("status")).enabled, true);
+  h.state.writeGate = h.createGate();
+  const overflow = h.send("block-site", { origin: ORIGIN }); await flush();
+  const pending = projectPageResolution(await h.send("status"));
+  assert.equal(pending.enabled, false); assert.deepEqual(pending.blockedOrigins, blocked);
+  h.events.activated.emit({ tabId: 7, windowId: 1 }); await h.advance(); assert.equal(h.calls.reads, 0);
+  h.state.writeGate.resolve(); h.state.writeGate = null;
+  assert.deepEqual(await overflow, { error: "unavailable" });
+  const stopped = projectPageResolution(await h.send("stop-session"));
+  assert.equal(stopped.enabled, false); assert.deepEqual(stopped.blockedOrigins, blocked);
+  assert.equal(h.state.capture.windowId, null); assert.deepEqual(h.state.blocked, blocked);
+});
+
+test("wildcard plus legacy enabled preferences stays off until fresh Start", async (t) => {
+  const h = await harness(t, { enabled: false }); h.state.local.enabled = true;
+  const before = await h.send("status"); await h.advance();
+  assert.equal(before.enabled, false); assert.equal(before.hostAccess, true); assert.equal(h.calls.reads, 0);
+  const started = await h.send("start-session", { windowId: before.currentWindowId, expectedRevision: before.sessionRevision });
+  assert.equal(started.enabled, true); assert.equal(started.sessionWindowId, 1); await h.advance();
+  assert.equal(h.calls.reads, 1); assert.equal(h.state.local.enabled, true);
+});
+
+test("same bound window automatically processes a new eligible HTTPS origin", async (t) => {
+  const h = await harness(t); await h.advance();
+  h.state.tab.url = "https://example.org/other";
+  h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab); await h.advance();
+  assert.equal(h.calls.reads, 2);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 2);
+  assert.deepEqual(h.state.local.origins, [ORIGIN]);
+});
+
+test("other focused window pauses matching without binding that window", async (t) => {
+  const h = await harness(t); const bound = structuredClone(h.state.window);
+  h.api.windows.get = async (id) => id === 1 ? bound : structuredClone(h.state.window);
+  h.state.window.id = 2; h.events.focus.emit(2); await h.advance();
+  const status = await h.send("status");
+  assert.equal(status.enabled, true); assert.equal(status.sessionWindowId, 1); assert.equal(status.currentWindowId, 2);
+  assert.equal(h.calls.reads, 0); assert.equal(h.calls.fetches.length, 0);
+  h.state.window.id = 1; h.events.focus.emit(1); await h.advance(); assert.equal(h.calls.reads, 1);
+});
+
+test("Stop retains pairing/native access; explicit remove-access removes only broad HTTPS", async (t) => {
+  const h = await harness(t); const token = h.state.token;
+  const stopped = await h.send("stop-session");
+  assert.equal(stopped.enabled, false); assert.equal(stopped.hostAccess, true); assert.equal(h.state.token, token);
+  assert.deepEqual(h.calls.permissionRemovals, []);
+  const removed = await h.send("remove-access");
+  assert.equal(removed.enabled, false); assert.equal(removed.hostAccess, false); assert.equal(h.state.token, token);
+  assert.deepEqual(h.calls.permissionRemovals, [{ origins: ["https://*/*"] }]);
+});
+
+test("bound window removal and native permission revocation cancel late inference", async (t) => {
+  const h = await harness(t); h.state.embedGate = h.createGate(); await h.advance();
+  assert.equal(h.calls.embeddings, 1);
+  h.events.windowRemoved.emit(1); await flush();
+  h.state.embedGate.resolve({ embedding: embedding() }); h.state.embedGate = null; await flush();
+  assert.equal((await h.send("status")).enabled, false);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
+  // A genuinely new window gets its own fresh Start; a closed ID never rebinds.
+  h.state.window.id = 2;
+  const before = await h.send("status"); await h.send("start-session", { windowId: 2, expectedRevision: before.sessionRevision });
+  h.state.embedGate = h.createGate(); await h.advance();
+  h.state.permitted = false; h.events.permissionRemoved.emit({ origins: ["https://*/*"] }); await flush();
+  h.state.permitted = true; h.state.embedGate.resolve({ embedding: embedding() }); await flush();
+  assert.equal((await h.send("status")).enabled, false);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
+});
+
+for (const action of ["stop-session", "block-site"]) test(`late start cannot undo completed ${action}`, async (t) => {
   const h = await harness(t, { enabled: false });
+  const before = await h.send("status");
   h.state.permissionGate = h.createGate(); const gate = h.state.permissionGate;
-  const enabling = h.send("enable-site", { origin: ORIGIN }); await flush();
-  await h.send(action, action === "remove-site" ? { origin: ORIGIN } : {});
+  const enabling = h.send("start-session", { windowId: 1, expectedRevision: before.sessionRevision }); await flush();
+  await h.send(action, action === "block-site" ? { origin: ORIGIN } : {});
   gate.resolve(true);
   assert.deepEqual(await enabling, { error: "unavailable" });
   await h.advance();
-  if (action === "pause") assert.equal(h.state.local.enabled, false);
-  else assert.deepEqual(h.state.local.origins, []);
+  assert.equal(h.state.capture.windowId, null);
+  if (action === "block-site") assert.deepEqual(h.state.blocked, [ORIGIN]);
   assert.equal(h.calls.reads, 0);
 });
 
@@ -358,11 +445,14 @@ for (const condition of ["disabled", "site-not-enabled", "no-current-context"]) 
     const h = await harness(t);
     h.state.tabQueryError = true; await h.advance();
     if (condition !== "no-current-context") h.state.tabQueryError = false;
-    if (condition === "disabled") h.state.local.enabled = false;
-    if (condition === "site-not-enabled") h.state.local.origins = [];
+    if (condition === "disabled") await h.send("stop-session");
+    if (condition === "site-not-enabled") await h.send("block-site", { origin: ORIGIN });
+    if (condition === "site-not-enabled") await h.advance();
     const before = await h.send("status");
-    assert.equal(before.phase, "unsupported");
-    assert.equal(before.reason, "no-focused-page");
+    if (condition === "no-current-context") {
+      assert.equal(before.phase, "unsupported");
+      assert.equal(before.reason, "no-focused-page");
+    }
     await h.advance();
     assert.equal((await h.send("status")).sequence, before.sequence);
     assert.equal(h.calls.reads, 0);
@@ -401,7 +491,7 @@ for (const change of ["pause", "permission", "remove-site", "navigation", "unpai
     if (change === "permission") h.state.permitted = false;
     if (change === "remove-site") await h.send("remove-site", { origin: ORIGIN });
     if (change === "navigation") {
-      h.state.tab.url = "https://example.org/other";
+      h.state.tab.url = "chrome://extensions/";
       h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab);
     }
     if (change === "unpair") await h.unpair();

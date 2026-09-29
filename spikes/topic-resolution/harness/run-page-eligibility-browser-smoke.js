@@ -83,14 +83,14 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
   async function status() {
     return evaluate(`(async () => {
       const result = await chrome.runtime.sendMessage({ target: 'page-matching', type: 'status' });
-      return { phase: result?.phase, reason: result?.reason, enabled: result?.enabled, origins: result?.origins,
+      return { phase: result?.phase, reason: result?.reason, enabled: result?.enabled, blockedOrigins: result?.blockedOrigins,
         currentOrigin: result?.currentOrigin, currentUrl: result?.currentUrl,
         contextReason: result?.contextReason };
     })()`);
   }
   async function controls() {
     return evaluate(`(() => {
-      const ids = ['matching-enable', 'matching-pause', 'matching-resume', 'matching-retry'];
+      const ids = ['matching-enable', 'matching-pause', 'matching-block', 'matching-remove-access', 'matching-retry'];
       const buttons = Object.fromEntries(ids.map(id => [id, document.getElementById(id)?.disabled]));
       return { ...buttons, origin: document.getElementById('matching-origin')?.textContent,
         context: document.getElementById('matching-context')?.textContent,
@@ -322,8 +322,8 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     await wait(() => evaluate("document.getElementById('matching-enable')?.disabled !== undefined"), 'matching controls');
   }
   async function checkForegroundRecovery() {
-    // Only this disposable profile gets synthetic enabled preferences. Keep the
-    // real optional host grant absent: recovery must stop before any page read.
+    // Legacy persistent enabled preferences must never create a session lease.
+    // Keep real host permission absent; diagnostics recover without processing.
     stage = 'injected failed foreground with synthetic preferences';
     await evaluate(`(() => {
       globalThis.__eligibilityRecoveryTabsQuery = chrome.tabs.query;
@@ -334,9 +334,8 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         enabled: true, origins: [${JSON.stringify(ORIGIN)}] } })`, workerSession);
       await wait(async () => {
         const value = await status();
-        return value.phase === 'unsupported' && value.reason === 'no-focused-page' && value.currentOrigin === null;
-      }, 'foreground failure is distinguished from content rejection');
-      await wait(async () => (await controls()).detail === '[no-focused-page]', 'bounded foreground diagnostic is visible');
+        return value.phase === 'off' && !value.enabled && value.contextReason === 'tab-query-failed' && value.currentOrigin === null;
+      }, 'legacy preference cannot enable matching during foreground failure');
       stage = 'status-driven recovery without a new browser event';
       await evaluate(`(() => {
         chrome.tabs.query = globalThis.__eligibilityRecoveryTabsQuery;
@@ -344,12 +343,12 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
       })()`, workerSession);
       const recovered = await wait(async () => {
         const value = await status();
-        return value.phase === 'not-enabled' && value.currentOrigin === ORIGIN ? value : false;
-      }, 'restored foreground resumes only as far as the real host-permission gate');
+        return value.phase === 'off' && !value.enabled && value.currentOrigin === ORIGIN ? value : false;
+      }, 'restored foreground remains off despite legacy enabled preference');
       assert.equal(recovered.reason, null);
       assert.equal(recovered.currentUrl, ARTICLE);
       const ui = await wait(async () => {
-        const value = await controls(); return value.status === EN.matchingNotEnabled ? value : false;
+        const value = await controls(); return value.status === EN.matchingOff ? value : false;
       }, 'recovery clears old unsupported guidance');
       assert.equal(ui.detail, '');
       assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, workerSession), false);
@@ -529,7 +528,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     const before = await status();
     assert.equal(before.currentUrl, ARTICLE);
     assert.equal(before.enabled, false);
-    assert.deepEqual(before.origins, []);
+    assert.deepEqual(before.blockedOrigins, []);
     const worker = await wait(() => [...targets.values()].find(item => item.ready && item.type === 'service_worker' &&
       item.url === `chrome-extension://${extensionId}/chromium/background.js`), 'real background worker');
     workerSession = worker.sessionId;
@@ -545,7 +544,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.equal(initial.consent, false);
     assert.equal(initial.enableCursor, 'not-allowed');
     assert.equal(initial['matching-pause'], true);
-    assert.equal(initial['matching-resume'], true);
+    assert.equal(initial['matching-remove-access'], true);
     assert.equal(initial['matching-retry'], true);
     stage = 'consent control state';
     await evaluate(`(() => { const input = document.getElementById('matching-consent');
@@ -556,7 +555,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     stage = 'consented origin and controls';
     assert.equal(consented.origin, ORIGIN);
     assert.equal(consented['matching-pause'], true);
-    assert.equal(consented['matching-resume'], true);
+    assert.equal(consented['matching-remove-access'], true);
     assert.equal(consented['matching-retry'], true);
     await checkSimulatedParentFocus(worker.sessionId);
     stage = 'permission remains absent';
@@ -578,13 +577,13 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     if (popupFocusDiagnostics) focusDiagnostics.ports = await evaluate('globalThis.__eligibilityFocusPortRecords ?? []', workerSession);
     return { result: 'PASS', browser: version.product, checks: ['blank-page-ineligible', 'owned-https-origin-eligible',
       'optional-host-permission-ungranted', 'default-off-and-no-consent-disabled', 'consent-enables-action-only',
-      'pause-resume-retry-disabled', 'no-persisted-pre-grant-preferences-or-network', 'focused-popup-with-simulated-parent-unfocused',
+      'stop-remove-access-retry-disabled', 'no-persisted-pre-grant-preferences-or-network', 'focused-popup-with-simulated-parent-unfocused',
       'injected-unfocused-popup-rejected', 'restored-popup-focus-accepted', 'injected-popup-window-mismatch-rejected',
       'injected-tabs-loading-status-rejected', 'restored-tabs-after-loading-status-accepted',
       'injected-tabs-pending-url-rejected', 'restored-tabs-after-pending-url-accepted',
       'injected-tabs-url-unavailable-rejected', 'restored-tabs-after-url-unavailable-accepted',
       'injected-tabs-query-rejected', 'restored-tabs-after-query-rejection-accepted',
-      'stale-foreground-status-recovers-without-browser-event', 'recovery-retains-real-host-permission-gate',
+      'legacy-enabled-preference-cannot-start-session', 'foreground-recovery-retains-default-off-and-host-permission-gate',
       ...collectorChecks], interceptedDocuments,
       ownedFaviconRequests, blockedRequests, runtimeExceptions, inferenceTargets: inferenceTargets.size, embeddingRequests,
       simulatedParentFocusFlag: true, injectedNegativeFocusChecks: ['document-hasFocus-false-and-blur', 'current-window-id-mismatch'],

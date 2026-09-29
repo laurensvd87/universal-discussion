@@ -1,8 +1,8 @@
 # ADR-019: Session-scoped browsing and durable local pairing
 
 Date: 2026-09-29.
-Status: **Proposed exact owner package; awaiting explicit privacy/security approval.**
-No runtime, permission, credential, owner-data or matching-policy change yet.
+Status: **B explicitly approved on 2026-09-29; implemented in 0.7.0, verification recorded in STATUS. A/C remain pending.**
+No durable credential, model/input or matching-policy change is authorized by B.
 
 ## Request and current behavior
 
@@ -18,8 +18,10 @@ for every website". This replaces the prior persistent automatic-mode proposal
 with the session-scoped proposal in B. It is not blanket approval of persistent
 credentials or the exact Chrome permission/security package below.
 
-The owner has requested these outcomes. The following concrete expansion still
-requires their explicit approval under the standing security/privacy gates.
+The owner answered **"approved"** to the lead's explicit question about the
+app-enforced window session including the underlying broad Chrome permission.
+That question expressly left persistent token storage pending. This approves B
+only; do not interpret it as approval of C or of a new matching/input policy in A.
 Do not infer a private-page, remote-service, publication or spending approval.
 
 ## A. Bounded matching-quality implementation
@@ -53,7 +55,7 @@ Do not infer a private-page, remote-service, publication or spending approval.
   Once granted, no per-page or per-domain button is required during the session.
   Native permission alone never starts processing; subsequent Start remains an
   explicit app action even if Chrome no longer displays a permission prompt.
-- Recommended session scope is the normal browser window where Start was pressed:
+- The approved session scope is the normal browser window where Start was pressed:
   follow its active tab across eligible HTTPS sites and new tabs, only while that
   window is focused (including the existing attested-popup focus path). Other
   windows are outside that session. This is narrower than the earlier profile-wide
@@ -70,11 +72,13 @@ Do not infer a private-page, remote-service, publication or spending approval.
 - Chrome's documented optional host grant has no session-expiry parameter;
   `activeTab` expires on cross-origin navigation, so it cannot supply this flow.
   **The session boundary is enforced by the app, not a native expiring all-sites
-  permission.** Stop invalidates the lease/start ticket and cancels work before
-  any best-effort permission removal. Browser permission may remain after a crash
-  or failed cleanup. On restart, session storage is empty and capture remains off;
-  do not claim the native grant was revoked. Surface remaining access honestly and
-  offer an explicit Chrome-access removal action. Do not promise that removing a
+  permission.** Stop invalidates the lease/start ticket and cancels work. Ordinary
+  Stop retains the native grant; a separate **Remove broad HTTPS access** action
+  stops first, then removes it. This avoids asynchronous Stop cleanup revoking a
+  newly started session. Browser permission may also remain after a crash or
+  failed removal. On restart, session storage is empty and capture remains off;
+  do not claim the native grant was revoked. Surface remaining access honestly.
+  Do not promise that removing a
   wildcard leaves overlapping old individual grants untouched.
 - Keep existing URL/DOM exclusions and public article/product operating scope.
   **These checks cannot reliably detect authenticated or private pages.** Broad
@@ -96,6 +100,15 @@ Do not infer a private-page, remote-service, publication or spending approval.
   completion against the current start ticket; a stopped session must not revive.
   Persistent legacy `enabled:true` must not authorize capture after migration.
   Preserve old configuration, grants and data without promoting them to a lease.
+- Block-list changes first persist a stopped lease, then configuration, then may
+  restore only the unchanged still-live session. Starts are gated during this
+  transaction. Capacity failure stops capture and preserves the existing bounded
+  list. A completed Stop requires successful stopped-lease persistence; the UI
+  shows pending until confirmation. Storage failure keeps the running worker
+  off and attempts session-key removal. If storage both rejects writes and cannot
+  remove the old key, durable cleanup cannot be guaranteed; do not claim atomic
+  cancellation across abrupt process/storage failure. Browser restart clears
+  this session-only authority; native access remains independently removable.
 - Ending capture does not delete stored Sources/comments or end backend pairing.
   Session-scoped capture and durable authentication are independent controls;
   approval of B alone does not approve C.
@@ -139,10 +152,10 @@ Do not infer a private-page, remote-service, publication or spending approval.
 
 ## Execution and verification after approval
 
-Use bounded Sol Medium implementation slices and a separate Trust review. Start
-with matching fixtures/design evidence, then compatible extraction; persistent
-pairing and automatic-mode modules can proceed in parallel with distinct file
-ownership. Lead integrates cross-cutting contracts, documentation and release.
+Use bounded Sol Medium implementation slices and a separate Trust review. For
+the B-only approval, implement the session core and controls in parallel with
+distinct ownership. Leave matching and pairing unchanged. Lead integrates
+cross-cutting contracts, documentation and release; A/C require later decisions.
 
 Required checks include input bounds/ancestry/version compatibility; default-off
 before Start and no silent lease migration; same-window active-only/Stop/block/

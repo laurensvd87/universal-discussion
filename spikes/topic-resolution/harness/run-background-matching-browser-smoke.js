@@ -6,10 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { createProcessDependencies, startLocalApplication } from '../../../apps/local-service/src/startup.js';
 import { EN } from '../browser/locales/en.js';
 import { launchChromiumPipe } from './chromium-pipe.js';
+import { prepareSessionPermission } from './prepare-session-permission.js';
 
 const BROWSER_ROOT = fileURLToPath(new URL('../browser/', import.meta.url));
 const DEFAULT_CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const ORIGIN = 'http://127.0.0.1:4173';
+const ORIGIN = 'https://example.com';
 const API = 'http://127.0.0.1:4174/v1';
 const FIRST_TOKEN = 'owned-background-smoke-first-pairing';
 const SECOND_TOKEN = 'owned-background-smoke-second-pairing';
@@ -35,13 +36,13 @@ const FIXTURES = new Map(Object.entries({
 }).map(([key, html]) => {
   const split = html.indexOf('</title>') + 8;
   const body = html.slice(split);
-  return [`${ORIGIN}/background-fixture/${key}`, `<!doctype html><html><head><meta charset="utf-8">${html.slice(0, split)}${key === 'metadata' ? METADATA_TAGS : ''}</head><body>${body}</body></html>`];
+  return [fixtureUrl(key), `<!doctype html><html><head><meta charset="utf-8"><link rel="icon" href="data:,">${html.slice(0, split)}${key === 'metadata' ? METADATA_TAGS : ''}</head><body>${body}</body></html>`];
 }));
 const ROOT_FILTER = ['page', 'iframe', 'other', 'worker', 'service_worker', 'shared_worker']
   .map(type => ({ type, exclude: false })).concat({ exclude: true });
 const CHILD_FILTER = ROOT_FILTER.filter(item => item.type !== 'service_worker');
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-const fixtureUrl = name => `${ORIGIN}/background-fixture/${name}`;
+function fixtureUrl(name) { return `${name === 'b' ? 'https://example.org' : ORIGIN}/background-fixture/${name}`; }
 
 export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME) {
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
@@ -52,6 +53,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   let browser, application, extensionId, pageSession, popupSession, popupTarget, deadline, progress;
   let capability = FIRST_TOKEN;
   let stage = 'initializing';
+  let permissionPreparationTarget;
   let closing = false, runtimeExceptions = 0, interceptedDocuments = 0;
   let resolveIdentity;
   const identityReady = new Promise(resolve => { resolveIdentity = resolve; });
@@ -177,6 +179,10 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       const target = { ...targetInfo, sessionId, ready: false }; targets.set(targetInfo.targetId, target);
       if (['worker', 'service_worker', 'shared_worker'].includes(targetInfo.type)) workers.push(target);
       schedule(async () => {
+        if (stage === 'prepare-native-session-permission' && permissionPreparationTarget &&
+            targetInfo.targetId === await permissionPreparationTarget) {
+          await browser.send('Runtime.runIfWaitingForDebugger', {}, sessionId); target.ready = true; return;
+        }
         await browser.send('Runtime.enable', {}, sessionId); await browser.send('Network.enable', {}, sessionId);
         if (['worker', 'shared_worker'].includes(targetInfo.type)) await browser.send('Network.setBlockedURLs', { urls: ['http://*', 'https://*', 'ws://*', 'wss://*', 'ftp://*', 'file://*'] }, sessionId);
         try { await browser.send('Fetch.enable', { patterns: [{ urlPattern: '*' }] }, sessionId); }
@@ -209,25 +215,30 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await startService(FIRST_TOKEN);
     const page = await wait(() => [...targets.values()].find(item => item.ready && item.url === 'about:blank'), 'owned foreground page');
     pageSession = page.sessionId;
-    stage = 'pairing-and-site-consent';
+    stage = 'prepare-native-session-permission';
+    let resolvePreparation;
+    permissionPreparationTarget = new Promise(resolve => { resolvePreparation = resolve; });
+    try { await prepareSessionPermission(browser, extensionId, { onTargetCreated: resolvePreparation }); }
+    finally { resolvePreparation(null); permissionPreparationTarget = null; }
+    stage = 'pairing-and-session-consent';
     await navigate('a'); await openPopup(); await waitStatus(EN.discussionDisconnected); await pair(FIRST_TOKEN);
     await waitExpression(`document.querySelector('#matching-origin').textContent===${JSON.stringify(ORIGIN)}`, 'eligible disclosed origin');
     await click('#matching-consent'); await click('#matching-enable'); await closePopup();
     stage = 'popup-closed-first-inference';
     const a = await automatic('a');
     assert.equal(a.provenance, 'owner-local-page-embedding/v1');
-    await postComment(); checks.push('actual-pairing-site-consent', 'popup-closed-capture-inference-ingestion', 'comment-on-page-a');
+    await postComment(); checks.push('actual-pairing-session-consent', 'popup-closed-capture-inference-ingestion', 'comment-on-page-a');
     stage = 'shared-topic-on-paraphrase';
     await navigate('b'); const b = await automatic('b');
     assert.equal(b.topicId, a.topicId);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
-    checks.push('page-b-shares-topic-and-comment');
+    checks.push('second-HTTPS-origin-shares-topic-and-comment-without-new-grant');
     stage = 'unrelated-page-separation';
     await navigate('c'); const c = await automatic('c');
     assert.notEqual(c.topicId, a.topicId);
     assert.ok(await evaluate(`!${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     checks.push('page-c-stays-separate');
-    stage = 'pause-and-resume';
+    stage = 'stop-and-new-explicit-session';
     await click('#matching-pause'); await waitMatching(EN.matchingOff);
     const pausedCount = ingestions.length;
     await navigate('d'); await openPopup(); await waitMatching(EN.matchingOff);
@@ -235,9 +246,9 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await sleep(800);
     assert.ok(!(await catalog()).sources.some(item => item.url === fixtureUrl('d')));
     assert.equal(ingestions.length, pausedCount);
-    checks.push('pause-prevents-new-capture');
-    await click('#matching-resume'); await closePopup(); const d = await automatic('d');
-    assert.equal(d.topicId, a.topicId); checks.push('resume-captures-current-page');
+    checks.push('stop-prevents-new-capture');
+    await click('#matching-consent'); await click('#matching-enable'); await closePopup(); const d = await automatic('d');
+    assert.equal(d.topicId, a.topicId); checks.push('new-explicit-session-captures-current-page');
     stage = 'metadata-bearing-page-accepted';
     await navigate('metadata'); const metadata = await automatic('metadata');
     assert.equal(metadata.provenance, 'owner-local-page-embedding/v1');
@@ -297,9 +308,14 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.ok(!(await catalog()).topics.some(item => item.learned === true));
     assert.ok(!(await catalog()).topics.some(item => [a.topicId, c.topicId, corrected.topicId].includes(item.id)));
     checks.push('confirmed-delete-removes-learned-topic-and-sources', 'confirmed-clear-preserves-demo-comment');
-    await click(`[data-remove-origin="${ORIGIN}"]`);
-    await waitExpression("document.querySelectorAll('[data-remove-origin]').length===0", 'removed site consent');
-    checks.push('remove-site-consent');
+    await click('#matching-block');
+    await waitExpression("document.querySelectorAll('[data-unblock-origin]').length===1", 'blocked site retained');
+    await click(`[data-unblock-origin="${ORIGIN}"]`);
+    await waitExpression("document.querySelectorAll('[data-unblock-origin]').length===0", 'site unblocked');
+    await click('#matching-remove-access');
+    await waitExpression("document.querySelector('#matching-remove-access').disabled", 'broad access removed');
+    assert.equal(await evaluate("chrome.permissions.contains({origins:['https://*/*']})"), false);
+    checks.push('block-unblock-site-and-remove-native-access');
     const externalExtensionRequests = requests.filter(request => selfUrl(request.context) && !selfUrl(request.url) && !apiUrl(request.url)).length;
     assert.equal(externalExtensionRequests, 0); assert.equal(runtimeExceptions, 0);
     assert.ok(ingestions.length >= 5);

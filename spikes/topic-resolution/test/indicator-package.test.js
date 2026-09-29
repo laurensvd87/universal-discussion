@@ -49,6 +49,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/active-tab-controller.js",
     "core/active-tab-policy.js",
     "core/background-matcher.js",
+    "core/capture-session.js",
     "core/indicator-contract.js",
     "core/indicator-controller.js",
     "core/local-discussion-controller.js",
@@ -81,7 +82,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.6.5",
+    version: "0.7.0",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",

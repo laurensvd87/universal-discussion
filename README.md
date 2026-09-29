@@ -9,24 +9,26 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Requested next: improved matching, one Start per browsing session for automatic
-matching across eligible HTTPS sites, and pairing remembered across browser/service restarts.
-The exact privacy/security package is [proposed in ADR-019](decisions/ADR-019-automatic-browsing-and-durable-pairing.md)
-and awaits owner approval; these changes are not implemented yet. Current behavior
-below remains per-site opt-in and session-only pairing.
+The owner approved [ADR-019 B](decisions/ADR-019-automatic-browsing-and-durable-pairing.md):
+Start once per browsing session to match eligible HTTPS sites in that normal
+browser window. Stop/window closure/browser restart ends capture. Chrome's broad
+grant is separate: Stop retains it; **Remove broad HTTPS access** revokes it.
+Use a dedicated non-sensitive profile; private-page detection is not reliable.
+Improved matching and persistent pairing remain separate pending decisions.
 
-- Extension 0.6.5 connects to the local SQLite service using session-only pairing.
+- Extension 0.7.0 connects to the local SQLite service using session-only pairing.
   Create/select Topics, post roots and replies, edit/withdraw local comments and
   reopen persisted discussions. Human/AI counts stay distinct; no AI posts run.
-- Opt-in background matching samples rendered main content on enabled sites,
+- Session opt-in background matching samples rendered main content on eligible sites,
   derives E5 embeddings inside the extension and sends only URL/title/vector and
   versions to the backend on this PC. It stores current Sources and provisional
   Topic associations, not raw page text or a per-visit timeline.
 - The popup loads automatically and updates after matching finishes. A real
-  Chrome synthetic-page check verified two related pages sharing a comment and
-  an unrelated page remaining separate. Restart, correction, Pause and deletion
-  checks also pass. It is ready for the approved owner-local public-site test.
-- Wrong-topic correction, Pause/site revocation, Forget page and confirmed learned
+  Chrome synthetic-page check on the earlier flow verified related pages sharing
+  a comment, unrelated-page separation, correction and deletion. Version 0.7.0
+  passes 14 session and 32 eligibility/reader browser checks. Its full-loop rerun
+  awaits free port 4174; native first-grant and reload/restart checks remain manual.
+- Wrong-topic correction, Stop/site blocking, Forget page and confirmed learned
   Topic/data deletion are implemented. Matching defaults off; manual Topic choice
   remains available. There is no external search or crawler.
 - Older exact-URL/fingerprint fixtures, metadata-only MDN/loopback checks and six
@@ -92,7 +94,7 @@ For the unpacked extension and fixture-server/manual checks, follow the
 `spikes/topic-resolution/browser/` directory. The pinned MDN experiment expires
 on 2026-10-23; that is a narrow experiment limit, not the future site architecture.
 
-If **Enable matching for displayed site** stays disabled, check the eligibility
+If **Start browsing session** stays disabled, check the eligibility
 message beside the site control. It distinguishes an unfocused/loading page,
 unavailable tab access and an unsupported context; disabled does not mean loading.
 Version **0.6.2** additionally checks the actual focused action popup when its
@@ -103,7 +105,7 @@ but the page still reports unsupported. **0.6.4** fixes a reproduced stale
 foreground-failure state: a fresh eligible observation on an enabled site schedules
 the ordinary matching checks again. Actual content-reader rejections do not
 auto-retry and now show a specific message and fixed diagnostic code. Reload to
-0.6.5 and reopen on the article; if still unsupported, report only that message/code.
+0.7.0, start a session on the article; if still unsupported, report only that message/code.
 The owner's exact page outcome remains unconfirmed. No token, storage dump or
 page content is needed; the backend/data do not need a restart or reset.
 
@@ -164,8 +166,9 @@ by shared comments across matched Topics. The
 [next approval package and implementation slices](decisions/ADR-018-background-page-matching-local-poc.md)
 specify browser-side embeddings, selected-site access, local retention and
 experimental provisional grouping. The owner approved this exact local-only
-package on 2026-09-29; extension 0.6.0 implements and browser-tests it. Matching
-defaults off and requires per-site enablement. Follow the
+package on 2026-09-29; extension 0.6.0 implemented and browser-tested it. Version
+0.7.0 replaces per-site enablement with ADR-019 B's approved explicit window
+session. Matching still defaults off. Follow the
 [browsing-flow setup](spikes/topic-resolution/browser/README.md#try-the-new-browsing-flow).
 
 A local backend now owns the synthetic Source catalog, fixture vectors/matching,

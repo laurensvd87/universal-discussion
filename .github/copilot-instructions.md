@@ -14,8 +14,11 @@ ADR-017's approved synthetic embedding experiment is complete. The owner now
 requests the real-page background matching/shared-comment loop; ADR-018 defines
 its exact permissions/payload/retention/provisional-grouping package, explicitly
 approved on 2026-09-29. B1–B5 are implemented and actual-Chrome tested; next is
-owner feedback within that local-only scope. Capture defaults off and sites need
-an in-app grant. Do not start S4 or acquire
+owner feedback within that local-only scope. ADR-019 B's window-scoped session
+was explicitly approved on 2026-09-29: Start once per normal browser window;
+Stop/window closure/browser restart ends capture, independently of retained
+native HTTPS access. Legacy enabled preferences cannot start capture. A/C remain
+pending; do not implement durable pairing from B approval. Do not start S4 or acquire
 another model. Keep STATUS current and
 record consequential choices in `decisions/`.
 

@@ -20,8 +20,11 @@ owner approved ADR-017's revised synthetic-only local embedding comparison on
 real-page background matching/shared-comment loop. ADR-018 defines its exact
 permission/data/retention/provisional-grouping package, explicitly approved on
 2026-09-29. B1–B5 are implemented and actual-Chrome tested; do not repeat them.
-Owner feedback within that local-only scope is next; capture defaults off and
-sites need an in-app grant. No S4 or expanded private/remote
+ADR-019 B's window-scoped browsing session was explicitly approved on 2026-09-29.
+It replaces per-site capture grants: capture defaults off, Start binds one normal
+window, and Stop/window closure/browser restart ends that lease. Native broad
+HTTPS access is separate and may remain; legacy enabled preferences are inert.
+ADR-019 A/C matching changes and durable pairing remain pending. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
