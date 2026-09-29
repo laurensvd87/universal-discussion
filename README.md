@@ -128,7 +128,12 @@ not sent or saved in this block. R1's private/AI/moderation work is still later 
 
 After the initial service/client loop: a pinned local-service embedding experiment
 after exact model/input approval. The adapter is prepared early; no trained model
-is installed yet. Known permitted Sources come first; external web search is
+is installed yet. The [model options](research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
+and [proposed experiment](decisions/ADR-017-local-embedding-experiment.md) are ready
+for owner selection/approval. The current service is on the user's PC; future
+hosting must not move raw website-content processing off-device by default.
+Remote vectors are sensitive too and require a separate approval.
+Known permitted Sources come first; external web search is
 parked and is not a prerequisite. The recorded options remain in the
 [discovery options and costs](research/RELATED_PAGE_DISCOVERY_2026-09-28.md).
 AI handoff/import and a shared service follow their data/security approvals.

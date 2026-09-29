@@ -8,6 +8,13 @@ integration checks pass; no real model/input has been activated. See STATUS and
 the [S3 review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md) for exact evidence.
 Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md).
 
+2026-09-29 continuation: [model options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
+and [ADR-017's exact experiment proposal](../decisions/ADR-017-local-embedding-experiment.md)
+are ready, **not owner-approved**. Do not install/download or infer yet. The local
+Node process is on-device; future hosting must not silently move raw-content
+embedding there. Browser/mobile inference and remote-vector transfer have not
+been validated or approved by the synthetic comparison proposal.
+
 The owner answered **"ja"** on 2026-09-28 to ADR-016's explicit local connection,
 pairing, permissions and test package. Do not ask again for that unchanged scope.
 This approval authorizes S3, not later real-page/model/provider/hosting work.

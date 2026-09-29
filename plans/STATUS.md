@@ -1,6 +1,7 @@
 # Project status
 
-Updated: 2026-09-28. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-09-29. Active direction: ADR-014/015/016 and the product-first roadmap.
+ADR-017 is a proposed experiment, not an approved activation.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -8,7 +9,7 @@ Previous detailed chronology is preserved in
 
 We have a tested local service and usable synthetic human-discussion extension.
 The core product hypotheses—semantic concentration, personal AI utility and
-community adoption—remain unvalidated. Stop expanding review infrastructure;
+community adoption—remain unvalidated. Stop expanding review infrastructure.
 The first local discussion loop is built; next prioritize real embedding utility
 after its exact model/input approval, then the remaining private/AI/moderation UX.
 
@@ -27,6 +28,31 @@ after its exact model/input approval, then the remaining private/AI/moderation U
 | AI handoff/import/provider | Planned; no inference or real credentials |
 | Local backend | S1–S3 fixed loopback service, SQLite, session-paired thin client; actual socket and Chrome checks pass |
 | Real accounts/mobile/hosting/stores | Not implemented, deployed or submitted |
+
+## Embedding options investigated 2026-09-29 — awaiting approval
+
+- Researched official model cards, licenses, ONNX artifact sizes and runtime
+  releases. Recommend a small Granite 97M Multilingual R2 / multilingual-e5-small
+  comparison with a lexical baseline; Gemma and Qwen remain alternatives.
+- [Research and options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md) and
+  [proposed exact package](../decisions/ADR-017-local-embedding-experiment.md)
+  describe assets/runtime, download bounds, 48 synthetic EN/DE/NL descriptors,
+  local-only inference, retained local artifacts and later review gates.
+- The owner's privacy question prompted an explicit deployment distinction:
+  today's PC-local process is on-device; future hosting must not silently move
+  raw-content processing there. Separate local derivation from remote matching;
+  sensitive vector transfer still requires its own approval (ADR-013).
+- Read-only code review and synthetic 384/768/1,024-dimensional ranker/state
+  probes passed. This is structural compatibility only, not actual model quality,
+  speed, memory use or browser/mobile inference evidence.
+- No model/package installation, inference, listener, real-page capture or new
+  permission. Product suites were not rerun for this research/documentation work.
+  The next action is owner model/input selection and explicit approval, not S4.
+- Documentation checks: `git diff --check` passes; all 47 local Markdown links
+  across the five changed/new documents resolve.
+- Separate AI Trust/architecture review returned qualified ACCEPT of the proposal;
+  clarified total-token accounting and public-catalog local matching. This is not
+  owner activation approval, a dependency audit or independent legal/store review.
 
 ## Reassessment completed 2026-09-27–28
 
@@ -185,8 +211,9 @@ Final lead-reproduced verification after all corrections:
   permitted. All later expansion gates remain. No completed review was repeated.
 
 S3 completion is the current stop: no R2 model acquisition or S4 activation yet.
-Next prepare the exact model/runtime/license/assets/input approval proposal for
-the owner. No manual model switch or independent human reviewer is needed now.
+The exact model/runtime/license/assets/input proposal is now prepared in ADR-017
+and awaits the owner. No manual model switch or independent human reviewer is
+needed now.
 
 Historical S3 approval/handoff documentation checks (2026-09-28): `git diff --check` passes;
 all 41 local Markdown links across the 12 changed documents resolve. Approval,
@@ -284,6 +311,8 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-016: active local-service-first architecture; S1/S2 reviewed, exact local
   S3 activation package owner-approved; listener/client/UI implemented. Supersedes IndexedDB
   placement; no wider data/network permission follows from the approval.
+- ADR-017: proposed local learned-embedding comparison; no model/runtime/input
+  activation approved. Hosting does not inherit permission for raw content or vectors.
 - ADR-001/004: frozen baseline/editorial evaluation evidence; unchanged.
 - ADR-009: local-first NO-AUTO direction retained and made executable.
 - ADR-010/011: existing exact URL/metadata boundaries unchanged by this reset.
