@@ -29,6 +29,28 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
+## Current request: automatic browsing and durable pairing — awaiting approval
+
+- Owner requests implementation of improved viewpoint-independent matching,
+  automatic vectorization on visits, and connection credentials across sessions.
+  Current matching already runs automatically on individually enabled sites;
+  a global mode removes the first grant per new domain, not a per-page requirement.
+- [ADR-019](../decisions/ADR-019-automatic-browsing-and-durable-pairing.md) proposes
+  the exact package: bounded article-focused matching work with existing assets;
+  one-time all-eligible-HTTPS setup with Pause/site blocks and dedicated non-sensitive
+  profile; durable trusted-local browser bearer plus backend verifier and explicit
+  revocation. Existing links/comments stay intact. No additional event fields,
+  model, raw-text upload, private scope or automatic discussion merges.
+- Two Sol Medium read-only reviews identified the permission and credential
+  boundaries, wildcard/block-list semantics, version compatibility and stale-401
+  race. Broad grants cannot reliably distinguish private pages. Persistent bearer
+  storage is not an OS keychain; browser-profile compromise can expose demo access.
+- **Stop for explicit approval of this disclosed package before activation or
+  implementation across the new boundaries.** The owner's requested outcomes
+  are recorded, not substituted for informed acceptance of these concrete risks.
+  No code, credentials, permission grants, database state or model assets changed.
+  Phase 0 and the 6/6 review stay complete; broader gates remain unchanged.
+
 ## Current owner feedback: similar pages split into Topics — 2026-09-29
 
 - Owner reports two public news pages receiving separate Topics. Read-only local

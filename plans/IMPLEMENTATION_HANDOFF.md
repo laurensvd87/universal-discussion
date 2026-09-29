@@ -2,6 +2,16 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Latest request: implement matching-quality improvements, automatic visits across
+sites and pairing across sessions. Read [ADR-019](../decisions/ADR-019-automatic-browsing-and-durable-pairing.md)
+first: the exact expanded permission/credential/version package is **proposed,
+awaiting explicit owner privacy/security approval**. Do not activate it from the
+general outcome request alone. Existing matching already automates visits after
+each site's initial grant; the proposed global mode and durable bearer change
+ADR-018/016 boundaries. No runtime/data changes were made in this planning turn.
+Once approved, use its bounded implementation/review sequence and preserve all
+existing discussions, manual links and later gates. Do not restart completed work.
+
 Latest owner direction supersedes the synthetic-only interactive proposal below:
 build the actual real-page background-vector/grouping/shared-comment loop, with
 asynchronous resolution. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md)

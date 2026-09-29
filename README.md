@@ -9,6 +9,12 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Requested next: improved matching, one-time setup for automatic matching across
+eligible HTTPS sites, and pairing remembered across browser/service restarts.
+The exact privacy/security package is [proposed in ADR-019](decisions/ADR-019-automatic-browsing-and-durable-pairing.md)
+and awaits owner approval; these changes are not implemented yet. Current behavior
+below remains per-site opt-in and session-only pairing.
+
 - Extension 0.6.5 connects to the local SQLite service using session-only pairing.
   Create/select Topics, post roots and replies, edit/withdraw local comments and
   reopen persisted discussions. Human/AI counts stay distinct; no AI posts run.
