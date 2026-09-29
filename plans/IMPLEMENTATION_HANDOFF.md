@@ -2,7 +2,18 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Latest request: session consent appears required again on new tabs. ADR-019 B
+Latest request: diagnose a specific pair of related news articles that have
+different Topics. Read-only/query-only SQLite projection confirms both exact
+URLs have compatible vectors and distinct provisional links. Current similarity
+is above the related cutoff but below the automatic-grouping cutoff. Revisit
+preserves assignments; historical inputs/decisions cannot be reconstructed.
+No product/data changes, service contact, page fetch or wider corpus inspection.
+See STATUS; pair-derived numeric details/identities are not retained in git.
+ADR-019 A/C and later gates remain unchanged; diagnosis is not merge authority.
+The owner confirms restarting the backend restored the displayed Topic title;
+this is not replacement evidence for the still-pending full 0.9.x browser suite.
+
+Previous request: session consent appears required again on new tabs. ADR-019 B
 already covers new active tabs in the same window. No lease bug was found; the
 popup always showed an unchecked checkbox/Start despite an active lease. 0.9.1
 adds separate localized session status, hides/disables redundant Start/consent,

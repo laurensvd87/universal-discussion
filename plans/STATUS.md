@@ -31,6 +31,31 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
+## Latest diagnosis: another owner-supplied news pair - 2026-09-29
+
+- After restarting the backend, the owner confirms a Topic title appears and
+  asks why two specific related articles still have separate Topics. A new
+  pair-scoped SQLite read-only/query-only snapshot finds both exact supplied
+  URLs, compatible normalized 384D vectors in the same model/extractor space,
+  and distinct provisional Topic links. Their current similarity exceeds the
+  related cutoff but is below the automatic-grouping cutoff; this alone prevents
+  either from automatically joining a Topic containing the other under current
+  inputs. This is a real stored split, not merely a related-results label.
+- Revisit preserves the existing assignment. No historical vectors, original
+  captured text or decision ledger exist, so this does not reconstruct the
+  first ingestion or establish why the sampled texts produced that distance.
+  All-member and competing-Topic safeguards remain additional conditions; they
+  are not needed to establish this pair's present cutoff failure.
+- Independent Sol Medium code review and six focused socket-denied synthetic
+  regressions confirm policy, related labeling, compatibility and revisit
+  behavior. No application/data change, page fetch, inference, model download,
+  service request, comment access or other browsing-history projection. Raw
+  vectors, article identities and pair-derived numeric reports are not committed.
+  Existing owner-approved diagnostics do not approve ADR-019 A/C or a regrouping.
+- Next: assess input quality and calibrated grouping under the existing gates;
+  do not globally lower the cutoff from this single positive example. Manual
+  Source correction remains available and does not move existing comments.
+
 ## Current increment: same-window tab session clarity — 0.9.1
 
 - Owner reports new tabs appear to need consent again. ADR-019 B already covers
