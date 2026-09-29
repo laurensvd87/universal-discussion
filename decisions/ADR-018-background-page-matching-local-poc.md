@@ -150,9 +150,43 @@ does not certify numeric/ranking parity across Node, browsers or mobile devices.
 Owner-feedback refinement (0.6.1): expose only a fixed foreground-context reason
 in the existing worker-to-popup status contract when Enable is unavailable.
 This adds no history, page content, logs, storage, backend fields or permissions.
-Do not weaken the focused-window/active-tab/complete-document and site-consent
+Do not weaken the foreground/active-tab/complete-document and site-consent
 requirements to hide a UI failure. A successful synthetic HTTPS eligibility test
 does not identify the cause of a failed owner-page attempt.
+
+Popup-focus correction (0.6.2): the owner reports the `window-unfocused`
+diagnostic while using the action popup. Treat a freshly attested focused,
+visible packaged action popup as foreground interaction with its own normal
+browser window, even if that window's `focused` flag is false. The ordinary
+focused-window path remains; never accept merely the last-focused window.
+Authenticate the popup's live runtime port using Chrome-supplied own-extension
+ID, exact packaged popup URL and absence of a tab sender. When Chrome supplies
+the optional sender document ID, require its exact live `POPUP` context. Real
+Chrome 154 action-popup ports omit that ID: in that case a compatible live
+`POPUP` context corroborates existence, not a same-document identity join. The
+authenticated port and trusted packaged responder are the authority. This relies
+on the current package having no other tabless focusable `popup.html` surface:
+no web-accessible resources, side panel, DevTools page or overrides, and offscreen
+inference has a different fixed HTML path. Re-review before adding such surfaces.
+A bounded fresh challenge
+checks popup focus/visibility and its current parent window; no cached positive
+focus, grace period, arbitrary window ID, tab-hosted popup or background lease.
+Blur, close, unavailable/mismatched context and late replies must fail closed.
+Preserve all active-tab, navigation, permissions, site-consent, pairing and
+document-attestation fences. This changes the foreground witness, not the
+approved capture/retention scope; no new permission, backend field or storage.
+
+Chrome's [window API](https://developer.chrome.com/docs/extensions/reference/api/windows)
+distinguishes the current associated window from its focus flag. Its
+[runtime API](https://developer.chrome.com/docs/extensions/reference/api/runtime)
+provides port sender document identity and live extension contexts. A local
+Chrome 154 probe found the optional port document ID absent and action-popup
+context `windowId = -1`, so those fields
+cannot bind the parent; obtain it freshly from the trusted popup. Do not join
+`WindowClient.id` to extension `documentId`: they differ in the probe. The
+headless probe does not reproduce the owner's OS-focus behavior; regression
+tests must explicitly label an injected false parent-focus flag, and owner
+confirmation is still needed after the correction.
 
 ## Planning findings (before implementation) and policy evidence
 

@@ -78,6 +78,23 @@ with Ctrl+C. Tests never used its token/database or stopped that process.
 
 ## Remaining limits and next step
 
+Popup-focus follow-up, extension 0.6.2: owner supplied `window-unfocused` while
+using the action popup. Added a fresh bounded focused/visible popup witness for
+its own normal window; no background last-focused bypass, cached authority,
+extra permission or wider capture. Actual Chrome 154 ports omit sender document
+IDs and popup contexts report `windowId=-1`; the reviewed implementation keeps
+the exact own-ID/packaged-URL/tabless native-port trust boundary, checks a fresh
+trusted responder and corroborates live POPUP existence. Present document IDs
+are still bound exactly. See ADR-018 for the package assumptions and future
+alternate-surface review requirement. Separate AI Trust review accepts this
+scope; focused restricted checks pass 46/46 and indicator checks 253/253.
+Full restricted suite passes 435/435; normal suite 434 pass / one intentional skip.
+All 11 actual Chrome eligibility checks pass, including an explicitly simulated
+false parent-focus flag, fresh real popup focus, injected blur and wrong-window
+negatives, with no external requests, exceptions, inference, model or backend.
+Owner OS-focus behavior is not reproduced by headless injection; owner reload
+and confirmation remain necessary. The service/database were untouched.
+
 Owner-feedback follow-up, extension 0.6.1: a disabled Enable report on a public
 HTTPS address is not yet reproduced. The address passes syntactic policy; a new
 fixed-enum context reason explains focus/window/tab/loading/URL eligibility in

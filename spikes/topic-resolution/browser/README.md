@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## On-device background matching (0.6.1)
+## On-device background matching (0.6.2)
 
 The owner approved ADR-018's local-only package. Background matching defaults
 off. Page text is sampled and embedded inside the extension; only URL, short
@@ -65,6 +65,11 @@ unfocused/unsupported windows, loading or unavailable tabs, missing URL access,
 incognito/unsupported URLs and worker failure. A checked retention checkbox alone
 cannot enable an ineligible site. Keep the article's normal Chrome window focused;
 close detached DevTools if the message reports lost focus, then reopen the popup.
+Version 0.6.2 also accepts a freshly authenticated, visible and focused action
+popup associated with that normal window if Chrome reports its parent unfocused.
+Closing or blurring the popup invalidates that witness; an old last-focused
+window alone never permits capture. Keep Chrome's **Developer mode** enabled
+for the unpacked extension: that switch is unrelated to the DevTools window.
 Before the first enabled site, disabled Pause/Resume/Retry controls are expected.
 Disabled controls no longer use a loading cursor unless an action is pending.
 
@@ -89,6 +94,8 @@ repeat the finished owner 6/6 review or the older metadata manual checklist.
 The eligibility check needs no service, pairing, model execution or free port:
 it exercises the HTTPS action popup before an optional site grant. It does not
 automate Chrome's permission confirmation or validate any real site's content.
+Its popup-focus regression explicitly simulates a false parent-window focus
+flag in headless Chrome; this does not reproduce the owner's OS focus behavior.
 Actual current test evidence is in [STATUS](../../../plans/STATUS.md); the paragraphs below retain
 the earlier feature-specific evidence, not current global capability limits.
 

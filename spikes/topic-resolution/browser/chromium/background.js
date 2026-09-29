@@ -4,12 +4,14 @@ import { createBackgroundMatcher } from "../core/background-matcher.js";
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { createPageContentReader } from "./page-content-reader.js";
 import { createInferenceHost } from "./inference-host.js";
+import { createPopupFocusWitness } from "./popup-focus.js";
 
 const api = globalThis.chrome;
 const KEY = "pageMatchingPreferences";
 const session = createLocalServiceSession({ storageSession: api.storage.session });
 const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: session.getToken });
 const inference = createInferenceHost({ runtime: api.runtime, offscreen: api.offscreen });
+const popupFocus = createPopupFocusWitness({ runtime: api.runtime, onChange: () => schedule() });
 let timer;
 let preferenceOperations = Promise.resolve();
 let pendingPause = false;
@@ -33,11 +35,23 @@ async function inspectForeground() {
   try {
     const window = await api.windows.getLastFocused({ populate: false });
     if (!window) return { foreground: null, contextReason: "context-unavailable" };
-    if (!window.focused) return { foreground: null, contextReason: "window-unfocused" };
     if (window.type !== "normal") return { foreground: null, contextReason: "unsupported-window" };
+    if (window.incognito) return { foreground: null, contextReason: "incognito" };
+    const witness = window.focused ? null : await popupFocus.check(window.id);
+    if (!window.focused && !witness?.isCurrent()) return { foreground: null, contextReason: "window-unfocused" };
     const tabs = await api.tabs.query({ active: true, windowId: window.id });
     if (tabs.length !== 1 || !Number.isSafeInteger(tabs[0]?.id)) return { foreground: null, contextReason: "tab-unavailable" };
     const tab = tabs[0];
+    if (!window.focused) {
+      const currentWindow = await api.windows.getLastFocused({ populate: false });
+      const currentTabs = await api.tabs.query({ active: true, windowId: window.id });
+      const current = currentTabs[0];
+      if (!witness.isCurrent() || currentWindow?.id !== window.id || currentWindow.type !== "normal" ||
+          currentWindow.incognito || currentTabs.length !== 1 || current?.id !== tab.id || current.url !== tab.url ||
+          current.pendingUrl || current.status !== "complete" || current.incognito) {
+        return { foreground: null, contextReason: "context-unavailable" };
+      }
+    }
     if (tab.incognito) return { foreground: null, contextReason: "incognito" };
     if (tab.pendingUrl || tab.status !== "complete") return { foreground: null, contextReason: "page-loading" };
     if (!tab.url) return { foreground: null, contextReason: "url-unavailable" };

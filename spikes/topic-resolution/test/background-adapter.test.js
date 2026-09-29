@@ -23,21 +23,22 @@ function embedding() { const values = Array(384).fill(0); values[0] = 1; return 
 async function harness(t, { enabled = true, paired = true } = {}) {
   const descriptors = new Map(["chrome", "fetch"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   t.mock.timers.enable({ apis: ["setTimeout"] });
-  const events = Object.fromEntries(["message", "activated", "updated", "removed", "replaced", "focus", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
+  const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
   const gates = [];
   const pendingControls = [];
-  const calls = { reads: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [] };
+  const calls = { reads: 0, tabQueries: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [] };
   const state = {
     local: { enabled, origins: [ORIGIN] }, token: paired ? `synthetic-test-token-${"x".repeat(40)}` : undefined,
     tab: { id: 7, active: true, incognito: false, status: "complete", url: PAGE },
     window: { id: 1, focused: true, type: "normal" }, permitted: true, exists: false,
     writeGate: null, permissionGate: null, embedGate: null, unauthorized: false,
     windowError: false, tabQueryError: false,
+    popupContexts: [], popupAnswer: null,
   };
   const createGate = () => { const gate = deferred(); gates.push(gate); return gate; };
   const api = {
-    runtime: { id: EXTENSION_ID, getURL: (filename) => `chrome-extension://${EXTENSION_ID}/${filename}`, onMessage: events.message,
-      getContexts: async () => state.exists ? [{}] : [],
+    runtime: { id: EXTENSION_ID, getURL: (filename) => `chrome-extension://${EXTENSION_ID}/${filename}`, onMessage: events.message, onConnect: events.connect,
+      getContexts: async (filter) => filter.contextTypes?.includes("POPUP") ? structuredClone(state.popupContexts) : state.exists ? [{}] : [],
       async sendMessage(message) {
         assert.equal(message.target, "embedding"); assert.equal(message.type, "embed");
         assert.equal(message.text, "Project-created bounded public article sample.");
@@ -63,6 +64,7 @@ async function harness(t, { enabled = true, paired = true } = {}) {
     windows: { getLastFocused: async (options) => { assert.deepEqual(options, { populate: false });
       if (state.windowError) throw new Error("private window detail"); return structuredClone(state.window); }, onFocusChanged: events.focus },
     tabs: { query: async (options) => { assert.deepEqual(options, { active: true, windowId: 1 });
+      calls.tabQueries++;
       if (state.tabQueryError) throw new Error("private tab detail"); return state.tab ? [structuredClone(state.tab)] : []; },
       onActivated: events.activated, onUpdated: events.updated, onRemoved: events.removed, onReplaced: events.replaced },
     permissions: {
@@ -116,7 +118,20 @@ async function harness(t, { enabled = true, paired = true } = {}) {
     for (const [key, descriptor] of descriptors) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
   });
   await import(`../browser/chromium/background.js?adapter-test=${++moduleSequence}`);
-  return { state, calls, events, api, send, advance, createGate, unpair };
+  function connectPopup({ includeDocumentId = true } = {}) {
+    const popupUrl = api.runtime.getURL("chromium/popup.html");
+    state.popupContexts = [{ contextType: "POPUP", documentId: "popup-a", documentUrl: popupUrl, tabId: -1, windowId: -1, incognito: false }];
+    const port = { name: "page-matching-popup-focus/1", sender: { id: EXTENSION_ID, url: popupUrl,
+      ...(includeDocumentId ? { documentId: "popup-a" } : {}) },
+      onMessage: event(), onDisconnect: event(),
+      postMessage(message) {
+        if (state.popupAnswer) state.popupAnswer(message, port);
+        else port.onMessage.emit({ type: "focus-response", sequence: message.sequence, focused: true, windowId: 1 });
+      }, disconnect() { port.onDisconnect.emit(); } };
+    events.connect.emit(port);
+    return port;
+  }
+  return { state, calls, events, api, send, advance, createGate, unpair, connectPopup };
 }
 
 test("adapter pause remains fail-closed across delayed storage and navigation", async (t) => {
@@ -204,6 +219,7 @@ test("backend 401 clears session pairing and prevents further automatic captures
 test("foreground adapter excludes unfocused/incognito pages and retains only preference settings", async (t) => {
   const h = await harness(t);
   h.state.window.focused = false; await h.advance(); assert.equal(h.calls.reads, 0);
+  assert.equal(h.calls.tabQueries, 0);
   h.state.window.focused = true; h.state.tab.incognito = true;
   h.events.focus.emit(1); await h.advance(); assert.equal(h.calls.reads, 0);
   assert.deepEqual(Object.keys(h.state.local).sort(), ["enabled", "origins"]);
@@ -236,4 +252,64 @@ test("foreground status reports only bounded eligibility reasons without relaxin
   assert.equal((await status()).contextReason, "context-unavailable");
   assert.equal(h.calls.reads, 0);
   assert.equal(h.calls.fetches.length, 0);
+});
+
+test("fresh popup witness permits the containing active page while its window flag is false", async (t) => {
+  const h = await harness(t);
+  h.state.window.focused = false; h.connectPopup({ includeDocumentId: false }); await flush();
+  assert.equal((await h.send("status")).currentOrigin, ORIGIN);
+  await h.advance();
+  assert.equal(h.calls.reads, 1);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 1);
+});
+
+test("popup fallback rejects navigation during the active-tab recheck", async (t) => {
+  const h = await harness(t, { enabled: false });
+  h.state.window.focused = false;
+  h.connectPopup(); await flush();
+  const query = h.api.tabs.query;
+  let count = 0;
+  h.api.tabs.query = async (options) => {
+    if (++count === 2) h.state.tab.url = "https://example.org/other";
+    return query(options);
+  };
+  const status = await h.send("status");
+  assert.equal(status.currentOrigin, null); assert.equal(status.contextReason, "context-unavailable");
+  assert.equal(h.calls.reads, 0);
+});
+
+test("ordinary focused browser path never challenges a popup", async (t) => {
+  const h = await harness(t, { enabled: false });
+  h.state.popupAnswer = () => assert.fail("Focused browser needs no popup witness");
+  h.connectPopup(); await flush();
+  assert.equal((await h.send("status")).currentOrigin, ORIGIN);
+});
+
+test("popup blur between witness and active-tab recheck rejects foreground", async (t) => {
+  const h = await harness(t, { enabled: false });
+  h.state.window.focused = false;
+  const port = h.connectPopup(); await flush();
+  const query = h.api.tabs.query;
+  let count = 0;
+  h.api.tabs.query = async (options) => {
+    const result = await query(options);
+    if (++count === 2) port.onMessage.emit({ type: "focus-change" });
+    return result;
+  };
+  assert.equal((await h.send("status")).currentOrigin, null);
+  assert.equal(h.calls.reads, 0);
+});
+
+test("popup closure cancels a late vector, then restored browser focus resumes background capture", async (t) => {
+  const h = await harness(t);
+  h.state.window.focused = false;
+  const port = h.connectPopup(); await flush();
+  h.state.embedGate = h.createGate(); await h.advance();
+  assert.equal(h.calls.embeddings, 1);
+  port.disconnect(); h.state.popupContexts = [];
+  h.state.embedGate.resolve({ embedding: embedding() }); h.state.embedGate = null;
+  await flush(); await h.advance();
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
+  h.state.window.focused = true; h.events.focus.emit(1); await h.advance();
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 1);
 });

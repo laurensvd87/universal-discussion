@@ -19,11 +19,15 @@ Do not restart B1–B5; owner-local public-site feedback is next. Historical S3 
 the [S3 review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md) for exact evidence.
 Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md).
 
-Owner-feedback patch **0.6.1** adds bounded eligibility diagnostics for disabled
-site controls and corrects the misleading busy cursor. A public-site report is
-still under diagnosis: an isolated synthetic HTTPS action-popup probe works
-before any optional site grant. Do not claim the owner's root cause is fixed or
-relax foreground/consent constraints; use the new context message to narrow it.
+Owner-feedback patch **0.6.1** added bounded eligibility diagnostics; the owner
+confirmed the parent-window focus gate rejects their action-popup interaction.
+**0.6.2** adds fresh authenticated popup focus as an alternative foreground
+witness, keeping the site/window/navigation/consent restrictions. Actual Chrome
+passes 11 checks including an explicitly injected false parent-focus flag.
+Real popup ports omit optional sender document IDs; use the reviewed exact-port
+identity and trusted-responder invariant in ADR-018, not a fabricated document
+join. No new permissions. Owner reload/confirmation is next; do not claim the
+headless regression reproduced their exact OS focus behavior.
 
 2026-09-29 continuation: [model options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
 and [ADR-017's exact experiment proposal](../decisions/ADR-017-local-embedding-experiment.md)

@@ -6,7 +6,7 @@ now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
 the exact expanded Security/Privacy/Policy package explicitly approved by the
 owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**,
-with capture default-off and site-by-site enablement. Extension 0.6.1 is ready for
+with capture default-off and site-by-site enablement. Extension 0.6.2 is ready for
 the approved owner-local public-page test; matching quality remains unvalidated.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
@@ -21,6 +21,30 @@ loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
 ## Owner feedback: disabled site controls — 2026-09-29
+
+- Follow-up: owner confirms **window-unfocused** while using the action popup.
+  The extension must account for foreground interaction with its own focused
+  popup, not equate the parent-window flag with all browser interaction. The
+  0.6.2 correction is implemented: fresh bounded authenticated popup focus,
+  visibility and parent-window checks; no positive focus cache or wider scope.
+  Real Chrome 154 testing found popup port sender document IDs are optional and
+  absent here; retain exact-ID validation when available, otherwise authenticate
+  the live own-extension/exact-popup/no-tab port and trusted responder. The
+  [ADR refinement](../decisions/ADR-018-background-page-matching-local-poc.md)
+  states the exact package assumptions. Do not claim headful reproduction or
+  owner success from an injected parent-focus flag in headless Chrome.
+- Actual Chrome 154 passes all **11 eligibility/focus checks** after the fix,
+  including the injected false parent flag with real popup focus, injected blur,
+  focus restoration and wrong-window rejection. No external requests, runtime
+  exceptions, model loads or backend access; temporary profile cleaned. The
+  focused restricted suite passes 46/46 and the indicator suite 253/253; separate
+  AI Trust review accepts the scoped correction. Full restricted suite 435/435;
+  normal suite 434 pass / one intentional guard-only skip. Secret scan: 140 files, zero
+  findings. The earlier 0.6.1 diagnostic commit is now committed and pushed.
+- Next owner action: reload to **0.6.2**, revisit the public article, reopen the
+  popup and try Enable. Keep Developer mode enabled; the DevTools window is a
+  separate thing. This is a tested handling of the reported focus condition,
+  not confirmation that the owner's exact browser behavior is already resolved.
 
 - The owner reports all four matching controls disabled with checked consent,
   first on an internal Chrome page and then on a public HTTPS article. The
@@ -42,9 +66,8 @@ private/remote/AI/moderation work and all external release gates remain separate
   guidance, disabled cursor and consent-before-grant behavior. One owned article
   and its favicon were fulfilled locally; no external requests, exceptions,
   inference contexts, model loads, service listener or owner data access.
-- Next owner evidence: reload the unpacked extension to 0.6.1, open it on the
-  public article, and report only the new context message if Enable remains
-  disabled. Do not request tokens, storage dumps or private page material.
+- The 0.6.1 diagnostic request is complete: owner supplied `window-unfocused`.
+  Do not repeat it or request tokens, storage dumps or private page material.
 
 ## New owner direction and next gate — 2026-09-29
 

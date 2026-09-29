@@ -9,6 +9,7 @@ import { createPageMetadataController } from "../core/page-metadata-controller.j
 import { mountRelatedPagesDemo } from "./related-pages-panel.js";
 import { mountDiscussionPanel } from "./discussion-panel.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
+import { connectPopupFocusResponder } from "./popup-focus.js";
 import { createLocalDiscussionController } from "../core/local-discussion-controller.js";
 import { createLocalServiceClient } from "../core/local-service-client.js";
 import { createLocalServiceSession } from "../core/local-service-session.js";
@@ -18,6 +19,10 @@ import {
   lookupIndicatorFixture,
   lookupIndicatorFixtureByNormalizedUrl,
 } from "../fixtures/indicator-fixtures.js";
+
+const runtime = globalThis.chrome.runtime;
+const windows = globalThis.chrome.windows;
+connectPopupFocusResponder({ runtime, windows, document, window: globalThis.window });
 
 const elements = {
   agentCount: document.querySelector("#agent-count"),
@@ -180,7 +185,7 @@ const localDiscussion = createLocalDiscussionController({
   onStateChange: discussionPanel.render,
 });
 matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-matching"), {
-  sendMessage: (message) => globalThis.chrome.runtime.sendMessage(message),
+  sendMessage: (message) => runtime.sendMessage(message),
   requestPermission: (request) => globalThis.chrome.permissions.request(request),
   onResolution: localDiscussion.updatePageResolution,
 });

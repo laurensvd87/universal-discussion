@@ -18,15 +18,18 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // Run only on an explicit browser-smoke command. The page is fulfilled locally;
 // every other non-extension request is failed before the browser can fetch it.
-export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME) {
+export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME, { popupFocusDiagnostics = false } = {}) {
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
   const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-eligibility-smoke-'));
   const targets = new Map(), tasks = new Set(), errors = [], inferenceTargets = new Set();
-  let browser, extensionId, pageSession, popupTarget, popupSession, deadline;
+  let browser, extensionId, pageSession, popupTarget, popupSession, deadline, workerSession;
   let interceptedDocuments = 0, ownedFaviconRequests = 0, blockedRequests = 0, runtimeExceptions = 0, embeddingRequests = 0;
   const blockedClasses = { extensionInitiated: 0, ownedPageFavicon: 0, other: 0 };
   const blockedOtherKinds = [];
   let stage = 'startup';
+  let focusDiagnostics;
+  let focusFailureDiagnostics;
+  let evaluationFailureKind;
   let closing = false;
   let resolveIdentity;
   const identityReady = new Promise(resolve => { resolveIdentity = resolve; });
@@ -52,7 +55,11 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
   async function evaluate(expression, sessionId = popupSession) {
     const result = await browser.send('Runtime.evaluate',
       { expression, awaitPromise: true, returnByValue: true }, sessionId);
-    if (result.exceptionDetails) throw new Error('Eligibility browser evaluation failed');
+    if (result.exceptionDetails) {
+      const kind = result.exceptionDetails.exception?.className;
+      evaluationFailureKind ??= typeof kind === 'string' && /^[A-Za-z]{1,40}$/u.test(kind) ? kind : 'RuntimeException';
+      throw new Error('Eligibility browser evaluation failed');
+    }
     return result.result.value;
   }
   async function status() {
@@ -72,6 +79,156 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         enableCursor: getComputedStyle(document.getElementById('matching-enable')).cursor,
         consent: document.getElementById('matching-consent')?.checked };
     })()`);
+  }
+  async function capturePopupFocusDiagnostics(workerSession) {
+    const popup = await evaluate(`(async () => {
+      const window = await chrome.windows.getCurrent();
+      return { hasFocus: document.hasFocus(), visibilityState: document.visibilityState,
+        currentWindow: { id: window.id, type: window.type, focused: window.focused } };
+    })()`);
+    const worker = await evaluate(`(async () => {
+      const popupUrl = chrome.runtime.getURL('chromium/popup.html');
+      const contexts = await chrome.runtime.getContexts({ contextTypes: ['POPUP'], documentUrls: [popupUrl] });
+      const clients = await globalThis.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const window = await chrome.windows.getLastFocused();
+      return { popupContexts: contexts.filter(context => context.contextType === 'POPUP' && context.documentUrl === popupUrl)
+        .map(context => ({ contextType: context.contextType, windowId: context.windowId,
+          tabId: context.tabId, contextId: context.contextId, documentId: context.documentId,
+          documentIdPresent: typeof context.documentId === 'string' && context.documentId.length > 0 })),
+        popupClients: clients.filter(client => client.url === popupUrl)
+          .map(client => ({ id: client.id, focused: client.focused, visibilityState: client.visibilityState, type: client.type })),
+        lastFocusedWindow: { id: window.id, type: window.type, focused: window.focused } };
+    })()`, workerSession);
+    return { popup, worker };
+  }
+  async function installFocusPortObserver() {
+    await evaluate(`(() => {
+      const records = [];
+      globalThis.__eligibilityFocusPortRecords = records;
+      chrome.runtime.onConnect.addListener(port => {
+        if (records.length >= 4) return;
+        const sender = port.sender;
+        const popupUrl = chrome.runtime.getURL('chromium/popup.html');
+        const record = { expectedName: port.name === 'page-matching-popup-focus/1',
+          ownId: sender?.id === chrome.runtime.id, exactPopupUrl: sender?.url === popupUrl,
+          hasTab: Boolean(sender?.tab), documentIdPresent: typeof sender?.documentId === 'string' && sender.documentId.length > 0,
+          documentIdMatchesLivePopupContext: false, contextQueryFailed: false,
+          challenges: 0, responses: 0, focused: null, windowIdMatch: null, disconnected: false };
+        records.push(record);
+        void chrome.runtime.getContexts({ contextTypes: ['POPUP'], documentUrls: [popupUrl] }).then(contexts => {
+          record.documentIdMatchesLivePopupContext = record.documentIdPresent && contexts.some(context =>
+            context.contextType === 'POPUP' && context.documentUrl === popupUrl && context.documentId === sender.documentId);
+        }).catch(() => { record.contextQueryFailed = true; });
+        if (!record.expectedName) return;
+        const originalPostMessage = port.postMessage;
+        // Observe the outgoing fixed challenge type; preserve the message and
+        // original method invocation. Production response listeners are untouched.
+        port.postMessage = function(message) {
+          if (message?.type === 'focus-challenge') record.challenges++;
+          return originalPostMessage.call(port, message);
+        };
+        port.onDisconnect.addListener(() => { record.disconnected = true; port.postMessage = originalPostMessage; });
+        port.onMessage.addListener(message => {
+          if (message?.type !== 'focus-response') return;
+          record.responses++; record.focused = message.focused === true;
+          void chrome.windows.getLastFocused({ populate: false }).then(window => {
+            record.windowIdMatch = Number.isSafeInteger(message.windowId) && message.windowId === window?.id;
+          }).catch(() => { record.windowIdMatch = false; });
+        });
+      });
+    })()`, workerSession);
+  }
+  async function captureFocusFailure() {
+    const popup = await evaluate(`(async () => {
+      const window = await chrome.windows.getCurrent({ populate: false });
+      const result = await chrome.runtime.sendMessage({ target: 'page-matching', type: 'status' });
+      return { hasFocus: document.hasFocus(), visibilityState: document.visibilityState,
+        currentWindowIncognito: window.incognito === true,
+        contextReason: typeof result?.contextReason === 'string' ? result.contextReason : null };
+    })()`).catch(() => ({ unavailable: true }));
+    const ports = await evaluate('globalThis.__eligibilityFocusPortRecords ?? []', workerSession).catch(() => []);
+    return { popup, ports };
+  }
+  async function checkSimulatedParentFocus(workerSession) {
+    // Deliberately inject only the parent-window API flag. This is an actual
+    // action popup in headless Chrome, not a reproduction of headful OS focus.
+    await evaluate(`(() => {
+      globalThis.__eligibilityOriginalLastFocused = chrome.windows.getLastFocused;
+      chrome.windows.getLastFocused = async (...args) => {
+        const window = await globalThis.__eligibilityOriginalLastFocused.apply(chrome.windows, args);
+        return { ...window, focused: false };
+      };
+    })()`, workerSession);
+    try {
+      stage = 'actual popup focus under simulated parent flag';
+      assert.equal(await evaluate('document.hasFocus() && document.visibilityState === "visible"'), true);
+      await wait(async () => {
+        const value = await status(); return value.currentOrigin === ORIGIN && value.contextReason === null;
+      }, 'focused action popup remains eligible');
+      await wait(async () => {
+        const value = await controls(); return value.origin === ORIGIN && value['matching-enable'] === false;
+      }, 'focused popup keeps consented Enable usable');
+
+      stage = 'injected unfocused popup rejection';
+      await evaluate(`(() => {
+        globalThis.__eligibilityHasFocusDescriptor = Object.getOwnPropertyDescriptor(document, 'hasFocus');
+        Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => false });
+        window.dispatchEvent(new Event('blur'));
+      })()`);
+      await wait(async () => {
+        const value = await status(); return value.currentOrigin === null && value.contextReason === 'window-unfocused';
+      }, 'injected unfocused document rejects fallback');
+      await wait(async () => {
+        const value = await controls(); return value['matching-enable'] === true && value.context === EN.matchingContextUnfocused;
+      }, 'unfocused popup disables Enable');
+
+      stage = 'actual popup focus restored';
+      await evaluate(`(() => {
+        const descriptor = globalThis.__eligibilityHasFocusDescriptor;
+        if (descriptor) Object.defineProperty(document, 'hasFocus', descriptor); else delete document.hasFocus;
+        delete globalThis.__eligibilityHasFocusDescriptor;
+        window.dispatchEvent(new Event('focus'));
+      })()`);
+      assert.equal(await evaluate('document.hasFocus()'), true);
+      await wait(async () => {
+        const value = await status(); return value.currentOrigin === ORIGIN && value.contextReason === null;
+      }, 'restored actual document focus is freshly accepted');
+
+      stage = 'injected popup window mismatch rejection';
+      await evaluate(`(() => {
+        globalThis.__eligibilityOriginalCurrentWindow = chrome.windows.getCurrent;
+        chrome.windows.getCurrent = async (...args) => {
+          const window = await globalThis.__eligibilityOriginalCurrentWindow.apply(chrome.windows, args);
+          return { ...window, id: window.id + 1000000 };
+        };
+      })()`);
+      await wait(async () => {
+        const value = await status(); return value.currentOrigin === null && value.contextReason === 'window-unfocused';
+      }, 'popup associated with another window cannot authorize fallback');
+      await wait(async () => (await controls())['matching-enable'] === true, 'mismatched popup disables Enable');
+    } catch (error) {
+      if (popupFocusDiagnostics) focusFailureDiagnostics = await captureFocusFailure();
+      throw error;
+    } finally {
+      await evaluate(`(() => {
+        if ('__eligibilityHasFocusDescriptor' in globalThis) {
+          const descriptor = globalThis.__eligibilityHasFocusDescriptor;
+          if (descriptor) Object.defineProperty(document, 'hasFocus', descriptor); else delete document.hasFocus;
+          delete globalThis.__eligibilityHasFocusDescriptor;
+        }
+        if (globalThis.__eligibilityOriginalCurrentWindow) {
+          chrome.windows.getCurrent = globalThis.__eligibilityOriginalCurrentWindow;
+          delete globalThis.__eligibilityOriginalCurrentWindow;
+        }
+        window.dispatchEvent(new Event('focus'));
+      })()`);
+      await evaluate(`(() => {
+        chrome.windows.getLastFocused = globalThis.__eligibilityOriginalLastFocused;
+        delete globalThis.__eligibilityOriginalLastFocused;
+      })()`, workerSession);
+    }
+    stage = 'original foreground APIs restored';
+    await wait(async () => (await status()).currentOrigin === ORIGIN, 'original foreground API eligibility restored');
   }
   async function openPopup() {
     await browser.send('Page.bringToFront', {}, pageSession);
@@ -167,6 +324,16 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
       { autoAttach: true, waitForDebuggerOnStart: true, flatten: true, filter: FILTER });
     extensionId = (await browser.send('Extensions.loadUnpacked', { path: BROWSER_ROOT })).id;
     resolveIdentity(); assert.match(extensionId, /^[a-p]{32}$/u);
+    if (popupFocusDiagnostics) {
+      const worker = await wait(() => [...targets.values()].find(item => item.ready && item.type === 'service_worker' &&
+        item.url === `chrome-extension://${extensionId}/chromium/background.js`), 'diagnostic background worker');
+      workerSession = worker.sessionId;
+      stage = 'focus port diagnostic API readiness';
+      await wait(() => evaluate("typeof globalThis.chrome?.runtime?.onConnect?.addListener === 'function' && typeof globalThis.chrome?.runtime?.getContexts === 'function'", workerSession),
+        'worker diagnostic APIs ready');
+      stage = 'install focus port diagnostic';
+      await installFocusPortObserver();
+    }
     const page = await wait(() => [...targets.values()].find(item => item.ready &&
       item.type === 'page' && item.url === 'about:blank'), 'initial blank page');
     pageSession = page.sessionId;
@@ -197,6 +364,11 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.deepEqual(before.origins, []);
     const worker = await wait(() => [...targets.values()].find(item => item.ready && item.type === 'service_worker' &&
       item.url === `chrome-extension://${extensionId}/chromium/background.js`), 'real background worker');
+    workerSession = worker.sessionId;
+    if (popupFocusDiagnostics) {
+      stage = 'sanitized popup focus diagnostic';
+      focusDiagnostics = await capturePopupFocusDiagnostics(worker.sessionId);
+    }
     assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, worker.sessionId), false);
     const initial = await wait(async () => {
       const value = await controls();
@@ -218,6 +390,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.equal(consented['matching-pause'], true);
     assert.equal(consented['matching-resume'], true);
     assert.equal(consented['matching-retry'], true);
+    await checkSimulatedParentFocus(worker.sessionId);
     stage = 'permission remains absent';
     assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, worker.sessionId), false);
     stage = 'preferences remain absent';
@@ -232,16 +405,23 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.equal(interceptedDocuments, 1);
     stage = 'external request attempts';
     assert.equal(blockedRequests, 0, 'No network request outside packaged extension and owned fixture');
+    if (popupFocusDiagnostics) focusDiagnostics.ports = await evaluate('globalThis.__eligibilityFocusPortRecords ?? []', workerSession);
     return { result: 'PASS', browser: version.product, checks: ['blank-page-ineligible', 'owned-https-origin-eligible',
       'optional-host-permission-ungranted', 'default-off-and-no-consent-disabled', 'consent-enables-action-only',
-      'pause-resume-retry-disabled', 'no-pre-grant-storage-or-network'], interceptedDocuments,
+      'pause-resume-retry-disabled', 'no-pre-grant-storage-or-network', 'focused-popup-with-simulated-parent-unfocused',
+      'injected-unfocused-popup-rejected', 'restored-popup-focus-accepted', 'injected-popup-window-mismatch-rejected'], interceptedDocuments,
       ownedFaviconRequests, blockedRequests, runtimeExceptions, inferenceTargets: inferenceTargets.size, embeddingRequests,
+      simulatedParentFocusFlag: true, injectedNegativeFocusChecks: ['document-hasFocus-false-and-blur', 'current-window-id-mismatch'],
+      ...(popupFocusDiagnostics ? { popupFocusDiagnostics: focusDiagnostics } : {}),
       elapsedMs: performance.now() - started,
       scope: 'Fresh temporary profile, owned intercepted HTTPS article; no grant, capture, inference, backend, or real webpage fetch' };
   } catch {
     // Do not print CDP expressions, page URLs, protocol payloads or popup data.
     const detail = stage === 'external request attempts' ? ` (${JSON.stringify({ blockedClasses, blockedOtherKinds })})` : '';
-    throw new Error(`Eligibility browser smoke failed during ${stage}${detail}`);
+    const focusDetail = popupFocusDiagnostics ? ` (${JSON.stringify({
+      ...(focusFailureDiagnostics ?? await captureFocusFailure()),
+      ...(evaluationFailureKind ? { evaluationFailureKind } : {}) })})` : '';
+    throw new Error(`Eligibility browser smoke failed during ${stage}${detail}${focusDetail}`);
   } finally {
     closing = true; resolveIdentity(); clearTimeout(deadline);
     process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop);
