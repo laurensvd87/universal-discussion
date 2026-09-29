@@ -29,7 +29,7 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current request: automatic browsing and durable pairing — awaiting approval
+## Current request: session-wide browsing and durable pairing — awaiting approval
 
 - Owner requests implementation of improved viewpoint-independent matching,
   automatic vectorization on visits, and connection credentials across sessions.
@@ -37,14 +37,23 @@ private/remote/AI/moderation work and all external release gates remain separate
   a global mode removes the first grant per new domain, not a per-page requirement.
 - [ADR-019](../decisions/ADR-019-automatic-browsing-and-durable-pairing.md) proposes
   the exact package: bounded article-focused matching work with existing assets;
-  one-time all-eligible-HTTPS setup with Pause/site blocks and dedicated non-sensitive
-  profile; durable trusted-local browser bearer plus backend verifier and explicit
+  one Start per browsing session across eligible HTTPS sites with Stop/site blocks
+  and dedicated non-sensitive profile; durable trusted-local browser bearer plus backend verifier and explicit
   revocation. Existing links/comments stay intact. No additional event fields,
   model, raw-text upload, private scope or automatic discussion merges.
 - Two Sol Medium read-only reviews identified the permission and credential
   boundaries, wildcard/block-list semantics, version compatibility and stale-401
   race. Broad grants cannot reliably distinguish private pages. Persistent bearer
   storage is not an OS keychain; browser-profile compromise can expose demo access.
+- Owner clarifies session-wide consent, not per-website consent. The revised B
+  proposal replaces persistent automatic capture with a trusted session-memory
+  lease bound to the browser window where Start was pressed. Stop/window closure/
+  browser restart/reload ends capture; popup closure and worker suspension do not.
+  Other windows are outside the proposed session. Chrome has no native expiring
+  wildcard grant: an underlying grant may remain after a crash, but a fresh app
+  session is required to capture. Keep saved pairing independent. This is a
+  proposed concrete lifetime, not yet approved or tested implementation, and the
+  clarification does not approve durable credential storage on its own.
 - **Stop for explicit approval of this disclosed package before activation or
   implementation across the new boundaries.** The owner's requested outcomes
   are recorded, not substituted for informed acceptance of these concrete risks.

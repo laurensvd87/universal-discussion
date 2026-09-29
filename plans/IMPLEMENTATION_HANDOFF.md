@@ -8,7 +8,13 @@ first: the exact expanded permission/credential/version package is **proposed,
 awaiting explicit owner privacy/security approval**. Do not activate it from the
 general outcome request alone. Existing matching already automates visits after
 each site's initial grant; the proposed global mode and durable bearer change
-ADR-018/016 boundaries. No runtime/data changes were made in this planning turn.
+ADR-018/016 boundaries. The owner now clarifies session-wide consent rather than
+per-site grants: ADR-019 B proposes Start/Stop with an in-memory capture lease
+bound to the starting browser window, not capture automatically resumed across
+browser sessions. Chrome's broad grant is not natively session-expiring and may
+remain after a crash; capture must require a fresh lease regardless. Persistent
+pairing is independent and still pending its explicit security approval.
+No runtime/data changes were made in this planning turn.
 Once approved, use its bounded implementation/review sequence and preserve all
 existing discussions, manual links and later gates. Do not restart completed work.
 

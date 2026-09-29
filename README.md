@@ -9,8 +9,8 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Requested next: improved matching, one-time setup for automatic matching across
-eligible HTTPS sites, and pairing remembered across browser/service restarts.
+Requested next: improved matching, one Start per browsing session for automatic
+matching across eligible HTTPS sites, and pairing remembered across browser/service restarts.
 The exact privacy/security package is [proposed in ADR-019](decisions/ADR-019-automatic-browsing-and-durable-pairing.md)
 and awaits owner approval; these changes are not implemented yet. Current behavior
 below remains per-site opt-in and session-only pairing.
