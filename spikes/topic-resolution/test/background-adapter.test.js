@@ -332,6 +332,87 @@ function assertRejected(status, reason, calls) {
   assert.ok(!JSON.stringify(status).includes("private"));
 }
 
+test("fresh popup foreground recovers a missed observation without resetting the timer on polling", async (t) => {
+  const h = await harness(t);
+  h.state.window.focused = false;
+  h.connectPopup({ includeDocumentId: false }); await flush();
+  h.state.tabQueryError = true; await h.advance();
+  h.state.tabQueryError = false;
+  const recovering = await h.send("status");
+  assert.equal(recovering.currentOrigin, ORIGIN);
+  assert.equal(recovering.contextReason, null);
+  assert.equal(recovering.phase, "checking");
+  assert.equal(h.calls.reads, 0);
+  t.mock.timers.tick(200); await flush();
+  assert.equal((await h.send("status")).sequence, recovering.sequence);
+  t.mock.timers.tick(200); await flush();
+  const ready = await h.send("status");
+  assert.equal(ready.phase, "ready");
+  assert.equal(h.calls.reads, 1);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 1);
+  assert.equal((await h.send("status")).sequence, ready.sequence);
+});
+
+for (const condition of ["disabled", "site-not-enabled", "no-current-context"]) {
+  test(`status does not recover a missed observation while ${condition}`, async (t) => {
+    const h = await harness(t);
+    h.state.tabQueryError = true; await h.advance();
+    if (condition !== "no-current-context") h.state.tabQueryError = false;
+    if (condition === "disabled") h.state.local.enabled = false;
+    if (condition === "site-not-enabled") h.state.local.origins = [];
+    const before = await h.send("status");
+    assert.equal(before.phase, "unsupported");
+    assert.equal(before.reason, "no-focused-page");
+    await h.advance();
+    assert.equal((await h.send("status")).sequence, before.sequence);
+    assert.equal(h.calls.reads, 0);
+    assert.equal(h.calls.fetches.length, 0);
+  });
+}
+
+for (const reason of ["missing-region", "rights-restricted", "capture-budget", "document-mismatch", "invalid-content"]) {
+  test(`status never retries a reader rejection: ${reason}`, async (t) => {
+    const h = await harness(t);
+    let reads = 0;
+    h.api.scripting.executeScript = async () => {
+      reads++;
+      return [{ frameId: 0, documentId: "document-a", result: { contractVersion: "page-content/1", status: "unsupported", reason } }];
+    };
+    await h.advance();
+    const before = await h.send("status");
+    assert.equal(before.phase, "unsupported");
+    assert.equal(before.reason, reason);
+    assert.equal(before.currentOrigin, ORIGIN);
+    await h.advance();
+    assert.equal((await h.send("status")).sequence, before.sequence);
+    assert.equal(reads, 1);
+    assert.equal(h.calls.embeddings, 0);
+    assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
+  });
+}
+
+for (const change of ["pause", "permission", "remove-site", "navigation", "unpair"]) {
+  test(`scheduled foreground recovery remains fenced across ${change}`, async (t) => {
+    const h = await harness(t);
+    h.state.tabQueryError = true; await h.advance();
+    h.state.tabQueryError = false;
+    assert.equal((await h.send("status")).phase, "checking");
+    if (change === "pause") await h.send("pause");
+    if (change === "permission") h.state.permitted = false;
+    if (change === "remove-site") await h.send("remove-site", { origin: ORIGIN });
+    if (change === "navigation") {
+      h.state.tab.url = "https://example.org/other";
+      h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab);
+    }
+    if (change === "unpair") await h.unpair();
+    await h.advance();
+    await h.send("status");
+    assert.equal(h.calls.reads, 0);
+    assert.equal(h.calls.embeddings, 0);
+    assert.equal(h.calls.fetches.length, 0);
+  });
+}
+
 for (const [reason, setup] of [
   ["window-unavailable", (h) => { h.state.window = null; }],
   ["window-query-failed", (h) => { h.state.windowError = true; }],

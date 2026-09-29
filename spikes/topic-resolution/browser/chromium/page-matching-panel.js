@@ -1,6 +1,24 @@
 import { EN } from "../locales/en.js";
 import { projectPageResolution } from "../core/page-resolution-contract.js";
 
+// Only fixed reader/coordinator policy codes may become visible diagnostics.
+// Unknown reasons retain generic guidance and never echo worker-supplied text.
+const UNSUPPORTED_MESSAGES = Object.freeze({
+  "missing-region": ["matchingUnsupportedRegion", "[missing-region]"],
+  "rights-restricted": ["matchingUnsupportedRestriction", "[rights-restricted]"],
+  "capture-budget": ["matchingUnsupportedCapture", "[capture-budget]"],
+  "invalid-content": ["matchingUnsupportedContent", "[invalid-content]"],
+  "document-mismatch": ["matchingUnsupportedDocument", "[document-mismatch]"],
+  "document-changed": ["matchingUnsupportedDocument", "[document-changed]"],
+  "no-focused-page": ["matchingUnsupportedForeground", "[no-focused-page]"],
+  "invalid-url": ["matchingUnsupportedUrl", "[invalid-url]"],
+  credentials: ["matchingUnsupportedSensitiveUrl", "[credentials]"],
+  "sensitive-context": ["matchingUnsupportedSensitiveUrl", "[sensitive-context]"],
+  "credential-query": ["matchingUnsupportedSensitiveUrl", "[credential-query]"],
+  "unsupported-scheme-or-port": ["matchingUnsupportedUrlScope", "[unsupported-scheme-or-port]"],
+  "unsupported-host": ["matchingUnsupportedUrlScope", "[unsupported-host]"],
+});
+
 export function mountPageMatchingPanel(document, root, { sendMessage, requestPermission,
   onResolution = () => {}, messages = EN, schedule = setTimeout, cancelSchedule = clearTimeout,
   timeoutSchedule = setTimeout, timeoutCancel = clearTimeout, requestTimeoutMs = 8000 } = {}) {
@@ -44,6 +62,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   const heading = node("h2", "matchingHeading"); heading.id = "matching-heading";
   root.setAttribute("aria-labelledby", heading.id); root.append(heading, node("p", "matchingDisclosure"));
   const status = node("p"); status.id = "matching-status"; status.setAttribute("role", "status"); root.append(status);
+  const detail = node("p"); detail.id = "matching-detail"; detail.setAttribute("role", "status"); root.append(detail);
   const sample = node("p", "matchingPartial"); root.append(sample);
   const consent = node("input"); consent.type = "checkbox"; consent.id = "matching-consent";
   const consentLabel = node("label", "matchingConsent"); consentLabel.htmlFor = consent.id; root.append(consentLabel, consent);
@@ -58,7 +77,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     try { permission = requestPermission({ origins: [`${selectedOrigin}/*`] }); }
     catch { unavailable(); return; }
     void action(async () => {
-      if (!await permission) { status.textContent = message("matchingPermissionDenied"); return; }
+      if (!await permission) { status.textContent = message("matchingPermissionDenied"); detail.textContent = ""; return; }
       if (disposed) return;
       await deliver({ target: "page-matching", type: "enable-site", origin: selectedOrigin });
       consent.checked = false;
@@ -84,6 +103,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   const changed = () => controls(); consent.addEventListener("change", changed);
   function unavailable() {
     status.textContent = message("matchingUnavailable");
+    detail.textContent = "";
     origin.textContent = "";
     context.textContent = message("matchingContextWorkerUnavailable");
     state = null; controls();
@@ -94,6 +114,12 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     state = result;
     status.textContent = message({ off: "matchingOff", checking: "matchingChecking", "not-enabled": "matchingNotEnabled", unpaired: "matchingUnpaired",
       processing: "matchingProcessing", ready: "matchingReady", unsupported: "matchingUnsupported", error: "matchingUnavailable" }[result.phase]);
+    detail.textContent = "";
+    if (result.phase === "unsupported" && Object.hasOwn(UNSUPPORTED_MESSAGES, result.reason)) {
+      const [key, code] = UNSUPPORTED_MESSAGES[result.reason];
+      status.textContent = message(key);
+      detail.textContent = code;
+    }
     origin.textContent = result.currentOrigin ?? "";
     context.textContent = result.contextReason ? message({
       "context-unavailable": "matchingContextUnavailable", "window-unfocused": "matchingContextUnfocused",
@@ -141,7 +167,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   controls(); void poll();
   function dispose() {
     disposed = true; cancelSchedule(timer); clearSiteHandlers();
-    state = null; origin.textContent = ""; context.textContent = "";
+    state = null; status.textContent = ""; detail.textContent = ""; origin.textContent = ""; context.textContent = "";
     for (const cancel of [...pendingRequests]) cancel();
     for (const [item, callback] of listeners) item.removeEventListener("click", callback);
     consent.removeEventListener("change", changed); root.replaceChildren();

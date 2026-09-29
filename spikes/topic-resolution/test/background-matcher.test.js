@@ -70,6 +70,17 @@ test("document attestation rejects same-URL replacement before ingestion", async
   assert.equal(base.matcher.currentState().phase, "unsupported");
   assert.deepEqual(base.calls, ["read", "embed"]);
 });
+
+test("missing foreground has a precise reason before any page read", async () => {
+  const { matcher, state, calls } = fixture();
+  state.tab = null;
+  await matcher.refresh();
+  assert.equal(matcher.currentState().phase, "unsupported");
+  assert.equal(matcher.currentState().reason, "no-focused-page");
+  assert.equal(matcher.currentState().tabId, null);
+  assert.equal(matcher.currentState().url, null);
+  assert.deepEqual(calls, []);
+});
 test("stale backend response cannot appear after invalidation", async () => {
   const pending = deferred(); const base = fixture();
   base.dependencies.client.ingest = () => pending.promise;

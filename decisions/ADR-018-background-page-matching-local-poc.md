@@ -200,6 +200,19 @@ hypothesis, not a measured cause or authority to widen the bound. No new collect
 logs, storage, permissions or eligibility bypass. Fault-injection/recovery evidence
 must remain distinct from confirmation of the owner's actual browser behavior.
 
+Unsupported-state recovery (0.6.4): a missing foreground observation must be
+distinguished from invalid page URLs and reader rejection. An enabled, selected
+site with a fresh eligible foreground may schedule the existing fully fenced
+refresh when the previous state is exactly `unsupported/no-focused-page` with no
+tab/URL. This is recovery of approved ongoing matching, not authority granted by
+a status request. Re-read consent, permission, pairing and foreground before
+capture; immediate invalidation prevents status polling from postponing work.
+Never auto-retry actual reader restrictions/missing-region/budget/document errors
+through this path. Expose only fixed allowlisted unsupported codes and localized
+guidance. The reader, rights checks, resource limits, collection, storage and
+permissions remain unchanged. A restriction code describes prototype behavior,
+not legal permission or prohibition. The owner's actual rejection is still unknown.
+
 ## Planning findings (before implementation) and policy evidence
 
 The following baseline inventory records what was missing when this package was

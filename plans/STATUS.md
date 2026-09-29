@@ -6,9 +6,10 @@ now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
 the exact expanded Security/Privacy/Policy package explicitly approved by the
 owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**,
-with capture default-off and site-by-site enablement. Extension 0.6.3 corrects
-foreground diagnostics; the owner's public-page test is still blocked at Enable
-pending identification of their exact failure. Matching quality remains unvalidated.
+with capture default-off and site-by-site enablement. The owner now confirms Enable
+is clickable but the page remains unsupported. Extension 0.6.4 fixes a reproduced
+stale foreground-failure state and exposes the actual unsupported reason; the
+owner's page outcome is still unconfirmed. Matching quality remains unvalidated.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -23,7 +24,39 @@ private/remote/AI/moderation work and all external release gates remain separate
 
 ## Owner feedback: disabled site controls — 2026-09-29
 
-- Latest owner report on 0.6.2: **context-unavailable** ("Chrome could not identify
+- Latest owner report: the public site's origin is displayed and **Enable is
+  clickable**, but its activation leaves "No eligible public main-region context".
+  Do not ask the owner to repeat the checkbox/Enable instructions again.
+- Confirmed code bug, independently reproduced with capability-denied mocks:
+  null foreground published `unsupported/invalid-url` before any content read;
+  a later status showed an eligible origin but never restarted matching.
+  **0.6.4** reports `no-focused-page` accurately and schedules the existing fenced
+  400 ms refresh only when fresh foreground, enabled preferences and selected
+  origin agree and the prior failure has no tab/URL. Immediate invalidation means
+  repeated polling cannot defer the refresh. Reader rejections never trigger it.
+- The popup now displays allowlisted unsupported guidance and fixed diagnostic
+  codes instead of claiming every failure means no main region. Unknown reasons
+  are not echoed. Extraction, rights rules, the 500 ms focus bound, permissions,
+  backend payloads and retention are unchanged. The owner's actual reason is not
+  yet known; a confirmed generic recovery bug is not a confirmed site diagnosis.
+- Full restricted suite **523/523**, indicator suite **341/341**; separate AI Trust
+  review accepts the slice and independently passes **177/177** focused checks.
+  Normal suite: 522 pass / one intentional guard-only skip. Secret scan: 140 files,
+  zero findings. Actual Chrome 154 passes **21 eligibility
+  checks**, now including stale foreground recovery without a browser event and
+  the retained real host-permission gate. Only disposable synthetic preferences
+  were seeded/removed. No external requests, exceptions, model loads, content
+  capture or backend access. No owner browser/profile/service/data touched.
+- Next owner action: reload **0.6.4**, reopen on the enabled public article, and
+  report the specific unsupported message/code if it remains. No backend restart,
+  data reset or repeated owner-review task. Successful matching is still unconfirmed.
+- Separate reproduced follow-up, not fixed by this slice: a transient failed
+  `authorized()` observation after a successful read can leave `processing/reading`
+  without recovery if no lifecycle event follows. It prevents ingestion but may
+  strand the UI. Address with a separately tested cancellation/state transition;
+  do not broaden this limited initial-foreground retry into repeated content reads.
+
+- Previous owner report on 0.6.2: **context-unavailable** ("Chrome could not identify
   the current browser window"). This did not isolate a window failure: mock
   reproduction showed valid focused popups with loading/pending/incognito tabs,
   navigation and an expired focus witness could all produce that generic text.
@@ -41,7 +74,7 @@ private/remote/AI/moderation work and all external release gates remain separate
   Trust review's focused suite **109/109**. Normal suite: 483 pass / one intentional
   guard-only skip. Secret scan: 140 files, zero findings.
   These are regression results, not reproduction of the owner's OS/site failure.
-- Next owner action: reload to **0.6.3**, reopen on the public article and report
+- Previous owner action: reload to **0.6.3**, reopen on the public article and report
   the exact message still shown after a few seconds. Do not repeat the old focus
   instructions as a presumed fix. Keep the existing backend/data; no restart or
   reset is needed for this diagnosis. Owner success remains unconfirmed.

@@ -33,9 +33,17 @@ tab query/identity failures, focus expiry/lifecycle changes and page eligibility
 are distinct fixed reasons. All capture gates and the 500 ms deadline remain.
 Actual Chrome passes 19 injected eligibility/recovery checks, restricted suite
 484/484 and indicator suite 302/302. Separate AI Trust review accepts the slice.
-The owner's exact cause and successful recovery remain unknown: next obtain the
-message after reload to 0.6.3, not another blanket focus suggestion. Leave the
-owner's running backend, database and profile untouched.
+The owner now confirms Enable is clickable, but the page remains unsupported.
+**0.6.4** fixes a reproduced stale initial-foreground failure and exposes fixed
+unsupported reason codes. A fresh eligible status on a previously enabled site
+schedules one ordinary fenced refresh; it never retries actual reader rejections.
+Full restricted suite 523/523, indicator suite 341/341, actual Chrome 21 checks;
+separate AI Trust review accepts the slice. The owner's page cause is still unknown:
+next obtain the unsupported message/code after reload to 0.6.4, not another Enable
+or focus suggestion. Leave the owner's backend, database and profile untouched.
+Known separate follow-up: a failed `authorized()` observation after reading can
+strand `processing/reading` without a new event. It remains safely non-ingesting
+but is not fixed by this initial-foreground recovery; see STATUS before changing it.
 
 2026-09-29 continuation: [model options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
 and [ADR-017's exact experiment proposal](../decisions/ADR-017-local-embedding-experiment.md)

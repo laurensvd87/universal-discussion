@@ -205,3 +205,104 @@ test("unchanged enabled-site polling preserves focused Remove node and handler",
   assert.equal(sites.children[0].children[1], remove); assert.equal(remove.disabled, false);
   ui.panel.dispose(); assert.equal(remove.listeners.size, 0);
 });
+
+const unsupportedMessages = {
+  "missing-region": "matchingUnsupportedRegion", "rights-restricted": "matchingUnsupportedRestriction",
+  "capture-budget": "matchingUnsupportedCapture", "invalid-content": "matchingUnsupportedContent",
+  "document-mismatch": "matchingUnsupportedDocument", "document-changed": "matchingUnsupportedDocument",
+  "no-focused-page": "matchingUnsupportedForeground", "invalid-url": "matchingUnsupportedUrl",
+  credentials: "matchingUnsupportedSensitiveUrl", "sensitive-context": "matchingUnsupportedSensitiveUrl",
+  "credential-query": "matchingUnsupportedSensitiveUrl", "unsupported-scheme-or-port": "matchingUnsupportedUrlScope",
+  "unsupported-host": "matchingUnsupportedUrlScope",
+};
+for (const [reason, key] of Object.entries(unsupportedMessages)) {
+  test(`unsupported reason ${reason} renders fixed guidance/code with English fallback`, async () => {
+    const ui = harness({ messages: {}, async sendMessage() { return resolution({ phase: "unsupported", reason }); } });
+    await turn();
+    assert.equal(ui.byId("matching-status").textContent, EN[key]);
+    assert.equal(ui.byId("matching-detail").textContent, `[${reason}]`);
+    assert.equal(ui.byId("matching-detail").attributes.role, "status");
+    assert.equal(ui.byId("matching-retry").disabled, false);
+    assert.equal(ui.states.at(-1).reason, reason);
+    ui.panel.dispose();
+    assert.equal(ui.byId("matching-detail").textContent, "");
+  });
+}
+
+test("unknown and null unsupported reasons use honest generic guidance without echo", async () => {
+  for (const reason of [null, "private-page-secret", "constructor", "tostring", "toString", "__proto__"]) {
+    const ui = harness({ async sendMessage() { return resolution({ phase: "unsupported", reason }); } });
+    await turn();
+    // Uppercase/underscore values violate the DTO reason syntax; their generic
+    // worker failure must likewise expose no untrusted diagnostic.
+    assert.equal(ui.byId("matching-status").textContent, ["toString", "__proto__"].includes(reason) ? EN.matchingUnavailable : EN.matchingUnsupported);
+    assert.equal(ui.byId("matching-detail").textContent, "");
+    assert.ok(!ui.created.some((item) => item.textContent.includes("private-page-secret")));
+    assert.ok(!ui.byId("matching-status").textContent.includes("main-region"));
+    ui.panel.dispose();
+  }
+});
+
+test("unknown unsupported reason clears an earlier known diagnostic", async () => {
+  let reason = "missing-region";
+  const ui = harness({ async sendMessage() { return resolution({ phase: "unsupported", reason }); } });
+  await turn();
+  assert.equal(ui.byId("matching-detail").textContent, "[missing-region]");
+  reason = "private-page-secret"; ui.scheduled[0].fn(); await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingUnsupported);
+  assert.equal(ui.byId("matching-detail").textContent, "");
+  reason = null; ui.scheduled[1].fn(); await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingUnsupported);
+  assert.equal(ui.byId("matching-detail").textContent, "");
+  ui.panel.dispose();
+});
+
+test("unsupported guidance uses supplied language pack while diagnostic code stays fixed", async () => {
+  const translated = "Translated bounded capture message";
+  const ui = harness({ messages: { matchingUnsupportedCapture: translated }, async sendMessage() {
+    return resolution({ phase: "unsupported", reason: "capture-budget" });
+  } });
+  await turn();
+  assert.equal(ui.byId("matching-status").textContent, translated);
+  assert.equal(ui.byId("matching-detail").textContent, "[capture-budget]");
+  ui.panel.dispose();
+});
+
+for (const phase of ["off", "checking", "not-enabled", "unpaired", "processing", "ready", "error"]) {
+  test(`unsupported diagnostic clears when the phase becomes ${phase}`, async () => {
+    let recovering = false;
+    const ui = harness({ async sendMessage() {
+      return resolution({ phase: recovering ? phase : "unsupported", reason: "missing-region" });
+    } });
+    await turn();
+    assert.equal(ui.byId("matching-detail").textContent, "[missing-region]");
+    recovering = true; ui.scheduled[0].fn(); await turn();
+    assert.equal(ui.byId("matching-detail").textContent, "");
+    assert.equal(ui.byId("matching-status").textContent, EN[{
+      off: "matchingOff", checking: "matchingChecking", "not-enabled": "matchingNotEnabled", unpaired: "matchingUnpaired",
+      processing: "matchingProcessing", ready: "matchingReady", error: "matchingUnavailable",
+    }[phase]]);
+    ui.panel.dispose();
+  });
+}
+
+test("unsupported diagnostic clears on worker failure and permission denial", async () => {
+  let failure = false;
+  const ui = harness({ requestPermission: () => Promise.resolve(false), async sendMessage() {
+    if (failure) throw new Error("https://private.invalid/body-secret");
+    return resolution({ phase: "unsupported", reason: "missing-region" });
+  } });
+  await turn();
+  assert.equal(ui.byId("matching-detail").textContent, "[missing-region]");
+  ui.byId("matching-consent").checked = true;
+  ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingPermissionDenied);
+  assert.equal(ui.byId("matching-detail").textContent, "");
+  ui.scheduled[0].fn(); await turn();
+  assert.equal(ui.byId("matching-detail").textContent, "[missing-region]");
+  failure = true; ui.scheduled[1].fn(); await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingUnavailable);
+  assert.equal(ui.byId("matching-detail").textContent, "");
+  assert.ok(!ui.created.some((item) => item.textContent.includes("body-secret")));
+  ui.panel.dispose();
+});

@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## On-device background matching (0.6.3)
+## On-device background matching (0.6.4)
 
 The owner approved ADR-018's local-only package. Background matching defaults
 off. Page text is sampled and embedded inside the extension; only URL, short
@@ -77,10 +77,22 @@ Version 0.6.3 separates window/tab API failures, missing window, changed tab/win
 and expired/changed popup focus. The former "Chrome could not identify the
 current browser window" message also covered a loading page or expiring focus
 proof; it did not establish a window failure. Loading guidance now reflects the
-existing automatic retry. No deadline or capture rule was relaxed. Reload to
-0.6.3, reopen on the article and report the exact message still present after a
-few seconds. The owner's failing condition and successful recovery remain
-unconfirmed; the synthetic regression does not prove this issue resolved.
+existing automatic retry. No deadline or capture rule was relaxed. Those
+synthetic diagnostics did not establish the owner's exact failing condition;
+the latest owner follow-up and instructions are below.
+
+The owner now confirms Enable is clickable, but the unsupported status persists.
+Version 0.6.4 fixes a reproduced stale foreground-failure state: if a fresh popup
+status sees the previously enabled site again, the normal matching checks restart
+once; ongoing polling does not keep resetting that timer. This is not a bypass of
+consent, permissions, pairing or page eligibility. Genuine reader rejections do
+not automatically retry. They now show specific English guidance and a bounded
+code, for example `[missing-region]`, `[rights-restricted]` or `[capture-budget]`.
+The restriction code describes the prototype's metadata check, not a legal ruling;
+the capture-budget code can also mean a guarded extraction failure. The reader
+and its rights/region/resource limits are unchanged. After reloading to 0.6.4,
+reopen on the enabled article and, if still unsupported, report the message/code.
+Do not repeat the checkbox/Enable sequence as a presumed fix.
 
 Pairing and page eligibility are separate. **Choose a topic** means the local
 catalog has loaded, and clearing the token input after Connect is intentional.
@@ -107,6 +119,10 @@ Its popup-focus regression explicitly simulates a false parent-window focus
 flag in headless Chrome; this does not reproduce the owner's OS focus behavior.
 It also injects loading, pending-navigation, unavailable-URL and rejected-tab-query
 results, verifying precise rejection guidance and recovery after each restoration.
+An additional test seeds then removes synthetic site preferences only in its
+disposable profile. A failed foreground query recovers without a new browser
+event, but the real absent host grant still stops the flow before any capture,
+pairing request or model load. No owner preferences or backend state are touched.
 Actual current test evidence is in [STATUS](../../../plans/STATUS.md); the paragraphs below retain
 the earlier feature-specific evidence, not current global capability limits.
 

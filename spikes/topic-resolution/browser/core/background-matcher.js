@@ -38,8 +38,9 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
       if (!preferences.enabled) { publish({ phase: "off" }); return; }
       const foreground = await readForeground();
       if (!alive(own)) return;
-      const url = inspectPageUrl(foreground?.url);
-      if (!foreground || !url.supported) { publish({ phase: "unsupported", reason: url.reason ?? "no-focused-page" }); return; }
+      if (!foreground) { publish({ phase: "unsupported", reason: "no-focused-page" }); return; }
+      const url = inspectPageUrl(foreground.url);
+      if (!url.supported) { publish({ phase: "unsupported", reason: url.reason }); return; }
       const tab = { tabId: foreground.tabId, url: url.url, origin: url.origin };
       publish({ tabId: tab.tabId, url: tab.url });
       if (!preferences.origins.includes(tab.origin) || !await hasPermission(tab.origin)) {

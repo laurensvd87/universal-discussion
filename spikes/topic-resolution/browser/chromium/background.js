@@ -101,6 +101,13 @@ function updatePreferences(operation) {
 async function status() {
   const [settings, context] = await Promise.all([preferences(), inspectForeground()]);
   const { foreground, contextReason } = context;
+  const observed = matcher.currentState();
+  // A failed foreground observation can recover without a Chrome lifecycle
+  // event. Fresh eligibility only schedules the ordinary fully fenced refresh.
+  // Invalidation changes the phase immediately, so polling cannot defer it.
+  if (settings.enabled && foreground && settings.origins.includes(foreground.origin) &&
+      observed.phase === "unsupported" && observed.reason === "no-focused-page" &&
+      observed.tabId === null && observed.url === null) schedule();
   return { ...matcher.currentState(), enabled: settings.enabled, origins: settings.origins,
     currentOrigin: foreground?.origin ?? null, currentTabId: foreground?.tabId ?? null,
     currentUrl: foreground?.url ?? null, contextReason };

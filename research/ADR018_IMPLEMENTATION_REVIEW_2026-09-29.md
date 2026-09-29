@@ -78,6 +78,28 @@ with Ctrl+C. Tests never used its token/database or stopped that process.
 
 ## Remaining limits and next step
 
+Unsupported-state follow-up, extension 0.6.4: owner confirms Enable is clickable
+but the generic unsupported message remains. Baseline pure mocks independently
+reproduce a stale initial foreground failure before any read, followed by an
+eligible status that never resumes matching. Null foreground now has the precise
+`no-focused-page` reason; fresh status on an enabled/selected site schedules one
+normal fenced refresh, without resetting it on each poll. Actual reader rejections
+remain terminal. The UI maps existing reasons to fixed English guidance and
+allowlisted diagnostic codes; unknown input is never echoed. No reader/policy,
+permissions, deadline, payload or retention expansion. Separate AI Trust review
+accepts the slice and runs 177/177 focused restricted checks. Full restricted
+suite 523/523; normal suite 522 pass / one intentional guard-only skip; indicator
+suite 341/341; secret scan 140 files with zero findings.
+Actual Chrome 154 passes 21 checks. The added recovery test deliberately seeds
+synthetic preferences only in its temporary profile, injects a foreground query
+failure and restores it without a browser event. Fresh status resumes to the real
+absent host-permission gate, not capture or backend use; preferences are removed
+and default-off restored. Zero external requests, runtime exceptions, inference
+or model loads. Owner-site cause and successful real-page matching remain unknown.
+Separate known limitation: failed `authorized()` observation after reading can
+leave processing/reading indefinitely without an event; no ingestion occurs in
+that reproduction. This slice intentionally fixes only initial-foreground recovery.
+
 Context-diagnostic follow-up, extension 0.6.3: owner reported the generic window
 error after 0.6.2. Read-only mocks reproduced that misleading text for loading,
 pending/incognito and expiring-witness cases; none is yet confirmed as the owner

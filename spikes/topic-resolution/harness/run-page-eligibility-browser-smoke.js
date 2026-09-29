@@ -65,7 +65,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
   async function status() {
     return evaluate(`(async () => {
       const result = await chrome.runtime.sendMessage({ target: 'page-matching', type: 'status' });
-      return { enabled: result?.enabled, origins: result?.origins,
+      return { phase: result?.phase, reason: result?.reason, enabled: result?.enabled, origins: result?.origins,
         currentOrigin: result?.currentOrigin, currentUrl: result?.currentUrl,
         contextReason: result?.contextReason };
     })()`);
@@ -76,6 +76,8 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
       const buttons = Object.fromEntries(ids.map(id => [id, document.getElementById(id)?.disabled]));
       return { ...buttons, origin: document.getElementById('matching-origin')?.textContent,
         context: document.getElementById('matching-context')?.textContent,
+        status: document.getElementById('matching-status')?.textContent,
+        detail: document.getElementById('matching-detail')?.textContent,
         enableCursor: getComputedStyle(document.getElementById('matching-enable')).cursor,
         consent: document.getElementById('matching-consent')?.checked };
     })()`);
@@ -301,6 +303,51 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     popupTarget = popup.targetId; popupSession = popup.sessionId;
     await wait(() => evaluate("document.getElementById('matching-enable')?.disabled !== undefined"), 'matching controls');
   }
+  async function checkForegroundRecovery() {
+    // Only this disposable profile gets synthetic enabled preferences. Keep the
+    // real optional host grant absent: recovery must stop before any page read.
+    stage = 'injected failed foreground with synthetic preferences';
+    await evaluate(`(() => {
+      globalThis.__eligibilityRecoveryTabsQuery = chrome.tabs.query;
+      chrome.tabs.query = async () => { throw new Error('Injected foreground failure'); };
+    })()`, workerSession);
+    try {
+      await evaluate(`chrome.storage.local.set({ pageMatchingPreferences: {
+        enabled: true, origins: [${JSON.stringify(ORIGIN)}] } })`, workerSession);
+      await wait(async () => {
+        const value = await status();
+        return value.phase === 'unsupported' && value.reason === 'no-focused-page' && value.currentOrigin === null;
+      }, 'foreground failure is distinguished from content rejection');
+      await wait(async () => (await controls()).detail === '[no-focused-page]', 'bounded foreground diagnostic is visible');
+      stage = 'status-driven recovery without a new browser event';
+      await evaluate(`(() => {
+        chrome.tabs.query = globalThis.__eligibilityRecoveryTabsQuery;
+        delete globalThis.__eligibilityRecoveryTabsQuery;
+      })()`, workerSession);
+      const recovered = await wait(async () => {
+        const value = await status();
+        return value.phase === 'not-enabled' && value.currentOrigin === ORIGIN ? value : false;
+      }, 'restored foreground resumes only as far as the real host-permission gate');
+      assert.equal(recovered.reason, null);
+      assert.equal(recovered.currentUrl, ARTICLE);
+      const ui = await wait(async () => {
+        const value = await controls(); return value.status === EN.matchingNotEnabled ? value : false;
+      }, 'recovery clears old unsupported guidance');
+      assert.equal(ui.detail, '');
+      assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, workerSession), false);
+    } finally {
+      await evaluate(`(() => {
+        if (globalThis.__eligibilityRecoveryTabsQuery) {
+          chrome.tabs.query = globalThis.__eligibilityRecoveryTabsQuery;
+          delete globalThis.__eligibilityRecoveryTabsQuery;
+        }
+        return chrome.storage.local.remove('pageMatchingPreferences');
+      })()`, workerSession);
+    }
+    stage = 'synthetic recovery preferences removed';
+    await wait(async () => (await status()).phase === 'off', 'default-off state restored');
+    assert.equal(await evaluate("chrome.storage.local.get('pageMatchingPreferences').then(v => v.pageMatchingPreferences ?? null)", workerSession), null);
+  }
   async function closePopup() {
     if (!popupTarget) return;
     const targetId = popupTarget; popupTarget = null; popupSession = null;
@@ -454,6 +501,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, worker.sessionId), false);
     stage = 'preferences remain absent';
     assert.equal(await evaluate("chrome.storage.local.get('pageMatchingPreferences').then(v => v.pageMatchingPreferences ?? null)", worker.sessionId), null);
+    await checkForegroundRecovery();
     stage = 'runtime exceptions';
     assert.equal(runtimeExceptions, 0);
     stage = 'offscreen and inference worker targets';
@@ -472,13 +520,15 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
       'injected-tabs-loading-status-rejected', 'restored-tabs-after-loading-status-accepted',
       'injected-tabs-pending-url-rejected', 'restored-tabs-after-pending-url-accepted',
       'injected-tabs-url-unavailable-rejected', 'restored-tabs-after-url-unavailable-accepted',
-      'injected-tabs-query-rejected', 'restored-tabs-after-query-rejection-accepted'], interceptedDocuments,
+      'injected-tabs-query-rejected', 'restored-tabs-after-query-rejection-accepted',
+      'stale-foreground-status-recovers-without-browser-event', 'recovery-retains-real-host-permission-gate'], interceptedDocuments,
       ownedFaviconRequests, blockedRequests, runtimeExceptions, inferenceTargets: inferenceTargets.size, embeddingRequests,
       simulatedParentFocusFlag: true, injectedNegativeFocusChecks: ['document-hasFocus-false-and-blur', 'current-window-id-mismatch'],
       injectedTabQueryChecks: ['loading-status', 'pending-url', 'url-unavailable', 'query-rejected'],
+      syntheticPreferenceRecoveryCheck: true,
       ...(popupFocusDiagnostics ? { popupFocusDiagnostics: focusDiagnostics } : {}),
       elapsedMs: performance.now() - started,
-      scope: 'Fresh temporary profile, owned intercepted HTTPS article; no grant, capture, inference, backend, or real webpage fetch' };
+      scope: 'Fresh temporary profile, owned intercepted HTTPS article, synthetic preferences removed after recovery test; no grant, capture, inference, backend, or real webpage fetch' };
   } catch {
     // Do not print CDP expressions, page URLs, protocol payloads or popup data.
     const detail = stage === 'external request attempts' ? ` (${JSON.stringify({ blockedClasses, blockedOtherKinds })})` : '';
