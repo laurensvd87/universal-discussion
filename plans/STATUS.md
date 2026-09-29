@@ -33,6 +33,32 @@ private/remote/AI/moderation work and all external release gates remain separate
 
 ## Latest request: first-use coverage and discussion growth; AI remains optional
 
+Newest owner clarification after the probe: many specialist sources are too much
+onboarding/complexity, and comments must be readable **inside the extension**.
+An outbound discussion-link panel alone is not the requested benefit. Do not turn
+the feed probe into the next product connector. Need broad relevant discussion
+supply plus permitted inline comment access; a common discussion-network API is
+only a candidate, not a chosen provider or proven solution. No inline fetch/cache,
+mirroring, cross-posting, new permissions or publication is approved.
+
+Follow-up feasibility research is complete; see
+[independent discussion sources](../research/DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md).
+Primary sources and three bounded Sol reviews support testing common RSS/Atom
+formats across several subjects, not a claim of broad useful coverage. Concrete
+advertised feeds, dated/unverified candidates, authenticated-feed exclusions,
+optional RSS article/comment linkage, costs and access/rights limits are recorded.
+The owner subsequently approved testing a few pages. The transient, capped probe
+is complete: three public RSS feeds parsed (MacRumors, unknowns, Discourse Meta),
+two reads each and ten entries inspected per read. Titles/links/date/description
+fields were present; this is not validated article relevance or broad coverage.
+Cyclingnews was excluded after terms review; Kretaforum discovery accepted no URL
+and no feed was fetched. Ambiguous comments/host counters were excluded after an
+offline parser correction; raw responses were discarded, so no corrected live
+claim or extra retrieval. The standalone probe and offline checks are recorded.
+It is neither the 200–250-pair review nor an owner rating assignment. No API search,
+retained discussion corpus or owner browsing data was involved.
+No app connector, model, schema, runtime or source-provider decision changed (0.11.0).
+
 Newest constraints: a friend-invitation conversation is not the required public
 cold-start benefit; neither a narrow Hacker News launch nor dependence on a few
 large platforms is acceptable. Explore many independent operators via common

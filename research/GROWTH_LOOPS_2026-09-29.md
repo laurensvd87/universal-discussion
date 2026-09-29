@@ -13,6 +13,21 @@ implementation remains owner-local 0.11.0.
 
 ## Owner clarification: broad coverage without a few platform gatekeepers
 
+Latest after the source probe: the owner wants actual comments **inside the
+extension**, not merely links out, and rejects a growing list of specialized
+forum integrations as the solution. The [feasibility note](DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md)
+records this higher acceptance bar. A common parser is useful technical evidence,
+not a selected source strategy. Permitted inline comment access and broad relevance
+remain unproven; no external comment acquisition/cache or cross-posting is approved.
+
+Follow-up: [independent-source feasibility](DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md)
+now records primary evidence, advertised versus untested feeds, field/linkage
+limits and the owner's subsequent approval for a bounded transient format/linkage
+probe, now completed on three live public RSS feeds. Common-format parsing works;
+useful article-to-discussion coverage remains untested. No ongoing collection or
+product integration was activated. Standards reduce adapter duplication, not the
+coverage problem.
+
 The owner rejects friend-invitation sharing as the missing public-conversation
 hook, and rejects a single narrow source such as Hacker News as the starting
 answer. They want multiple broad sources without dependence on a few large

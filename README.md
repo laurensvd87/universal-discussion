@@ -3,11 +3,17 @@
 A browser-first discussion app built around
 `Content -> Semantic Topic -> Discussion`: different sources about the same
 underlying topic should lead to one conversation, with human and AI
-contributions clearly distinguished. Android and iOS follow.
+contributions clearly distinguished. The planned sequence is extension, readable
+web conversations, then Android and iOS; public hosting is not yet approved.
 
 ## Current state
 
 This is a usable local discussion prototype, not a hosted or general-web product.
+
+Exploratory [independent-source research](research/DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md)
+evaluates public discussion discovery through common feeds. No external source is
+connected. The desired experience includes comments readable inside the extension,
+not just outbound links; broad first-use coverage and growth remain unvalidated.
 
 Extension **0.11.0** adds a clickable ↗ source icon to new page-linked posts:
 it opens that post's source in a new tab. Replies can link their own page while

@@ -92,3 +92,19 @@ store and 200–250-pair review gates remain. The completed 6/6 owner review is
 unchanged and must not be repeated.
 
 Research: [Related-page discovery](../research/RELATED_PAGE_DISCOVERY_2026-09-28.md).
+
+2026-09-29 research follow-up:
+[Independent discussion sources](../research/DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md)
+investigates the common-format hypothesis through documentation and a subsequently
+approved transient three-feed probe. Concrete feed
+advertisements do not establish useful coverage, independent ownership or reuse
+rights. The owner subsequently approved its small transient live format/linkage
+probe, not product ingestion. This does not select an adapter or amend the adopted
+ranking/data contract; ongoing collection and app integration remain gated.
+The probe parsed public metadata but did not establish article relevance or broad
+coverage. Ambiguous comment/host measurements were excluded, not used as evidence
+for adopting an acquisition strategy. No raw post corpus was retained.
+The owner's latest clarification requires comments readable inside the extension
+and rejects many specialist-source integrations as the core answer. This records
+the UX requirement, not approval to retrieve/cache/mirror external comments or
+select a provider. Outbound-link discovery alone is not sufficient acceptance.

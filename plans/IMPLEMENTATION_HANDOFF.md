@@ -2,6 +2,24 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Newest requirement: actual comments readable inside the extension; external
+links alone and onboarding many specialist forums do not meet the owner's needs.
+The completed feed probe is not a selected product build. Read the opening
+clarification in `research/DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md` before
+choosing next work. No provider/inline comment acquisition/cache/mirroring or
+cross-posting is approved; broad first-user coverage remains unresolved.
+
+Latest research checkpoint:
+`research/DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md` evaluates common public feeds
+with concrete evidence/confidence levels. Feed presence is not coverage, article
+linkage, independent ownership or reuse clearance. The owner has now approved a
+small transient format/linkage test, now complete: three public feeds parsed,
+ten entries each, two reads/feed. Field presence is established; relevant matches
+to visited pages are not. See the note for excluded sources/counters and the
+offline-only instrument correction. No API search or retained corpus; do not
+start new collection, a scheduler, feed embeddings or app integration from this.
+This is not the completed 6/6 or the gated 200–250-pair review. 0.11.0 is unchanged.
+
 Latest clarification: public first-use value, broad subjects and independence
 from a few large source operators are required; private friend sharing and a
 Hacker News-only start do not solve this. Many independent sources via common
