@@ -31,8 +31,11 @@ joins. Production reader/input/grouping remain unchanged. The owner declined
 ADR-022's extra Qwen experiment because of size/latency; defer it, do not download
 or infer. Lightweight embedding options and a fallback 0.90 threshold are under
 discussion; production remains 0.94 until an implementation decision is made.
-Do not infer approval for second vectors, structured retained facts or automatic
-historical discussion merging. ADR-019 C durable pairing remains pending. No S4 or expanded private/remote
+The owner now requests adaptive grouping with root/reply threads following their
+originating page; ADR-023 proposes the new source-anchor/migration package and
+requires explicit approval before implementation. Existing roots have no source
+lineage: never guess it. Do not infer approval for second vectors, structured
+retained facts or an unreviewed historical migration. ADR-019 C durable pairing remains pending. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol

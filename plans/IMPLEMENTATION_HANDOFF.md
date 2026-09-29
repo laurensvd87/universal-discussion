@@ -2,7 +2,15 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Latest direction: owner declines ADR-022's additional Qwen model because of
+Latest direction: owner proposes adaptive sparse/dense grouping and moving whole
+root/reply subthreads with their originating pages. Read proposed ADR-023 before
+coding: new roots need explicit source anchoring; current roots have no saved
+source and must not be guessed. Stable identities with derived Topic projections,
+manual/legacy pins, page-content drift, deletion and transactional regrouping are
+the proposed design. The concrete persistent-link/migration package needs owner
+approval; no production/data changes yet. Density/popularity is not semantic truth.
+
+Previous direction: owner declines ADR-022's additional Qwen model because of
 size/latency. Defer it; do not download, infer or repeatedly ask for that package.
 They ask for lightweight embedding options or a fallback 0.90 threshold. Existing
 synthetic pair counts quantify the recall/false-match trade-off (STATUS/ADR-022),

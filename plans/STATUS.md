@@ -31,7 +31,28 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Latest direction: no additional local language model
+## Latest direction: adaptive grouping with page-anchored subthreads
+
+- Owner proposes sparse-to-dense threshold adaptation and regrouping, with each
+  whole root/reply thread following the page where its root was started. This is
+  a requested revision of stable assignment, not a Qwen/provider expansion.
+- Lead/independent Sol Medium code inspection finds no saved originating Source
+  on current roots: the command has only Topic/body. Existing roots cannot safely
+  be attributed to pages retroactively; proposed migration pins them in place.
+- [ADR-023](../decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md)
+  proposes stable root identity, Source-or-Topic anchors and a derived current
+  Topic view, with entire replies intact. Source-version drift, manual pins,
+  deletion/Forget, stale writes and rollback need explicit lifecycle contracts.
+- Nearby embedding structure, support and stability should govern refinement,
+  not raw site counts/popularity. Opposing opinions can themselves form distinct
+  vector groups; density does not guarantee event identity. No production
+  algorithm or adaptive range has been validated.
+- Stop before the new persistence/migration boundary: request approval for the
+  locally retained post-to-page association and whole-subthread reclassification,
+  keeping old unanchored threads fixed. No database/service/page access, new
+  inference, schema/cutoff/input changes or regrouping in this advisory turn.
+
+## Previous direction: no additional local language model
 
 - Owner declines ADR-022's Qwen experiment because of download size/latency;
   defer it rather than repeatedly seek approval. No new model/assets/inference.

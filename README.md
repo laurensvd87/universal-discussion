@@ -22,8 +22,10 @@ automatic join rule. Its code is preserved outside the extension; production
 capture, vectors, Topic assignments and thresholds remain unchanged. See the
 [measured findings](apps/local-service/experiments/topic-identity/RESULTS.md) and
 [deferred subject-verifier proposal](decisions/ADR-022-subject-verifier-experiment.md).
-The owner declines an additional local LLM; lighter embedding options and a
-0.90 prototype cutoff are under discussion. The active cutoff remains 0.94.
+The owner declines an additional local LLM. The latest proposal is
+[adaptive grouping with page-anchored subthreads](decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md),
+so a root and all its replies can follow their originating page when grouping
+changes. Its data/migration package is not activated; the active cutoff remains 0.94.
 
 Popup **0.9.1** made the existing window-scoped session clear: Start once covers
 eligible active tabs in that window, including new tabs. Active sessions no longer

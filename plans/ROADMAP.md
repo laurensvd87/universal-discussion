@@ -27,8 +27,9 @@ ADR-019 B was explicitly approved on 2026-09-29: replace per-site capture grants
 with one explicit, window-bound browsing session and persistent site blocks.
 Stop/window closure/browser restart ends capture; native broad HTTPS access is
 separate. Version 0.7.0 implementation/verification is recorded in STATUS. A's
-matching/input changes and C's durable pairing are separate pending decisions,
-not implicitly approved by B. No private/remote/provider/store expansion follows.
+matching/input changes were subsequently separately approved and measured, but
+the proposed input remains dormant after false joins; C durable pairing is pending.
+No private/remote/provider/store expansion follows.
 
 Owner feedback increment [ADR-020](../decisions/ADR-020-user-mode-and-topic-indicator.md)
 adds the 0.8.0 User/Developer popup, connection state and same-Topic toolbar icon.
@@ -41,7 +42,7 @@ limits. The owner explicitly approved [ADR-021](../decisions/ADR-021-bounded-art
 on 2026-09-29: 0.9.0 adds bounded generic article-container detection and up to
 10,000 work steps, retaining 40 ms, 4,096 characters and local-only processing.
 Implementation, offline/reader/session tests and Trust review are complete; the
-full-service browser regression awaits the free owner test port. Distinct capture provenance shares
+full-service browser regression subsequently passes in 0.10.0. Distinct capture provenance shares
 the unchanged E5 transform; preserve links/comments and reject unknown versions.
 This is not approval of wider ADR-019 A/C or later external/private/release gates.
 
@@ -49,6 +50,15 @@ Follow-up 0.9.1 clarifies ADR-019 B's existing same-window tab session: an activ
 lease no longer shows fresh consent/Start controls. New actual Chrome coverage
 verifies new-tab navigation, switchback and non-last-tab closure; this is a UI/
 coverage correction, not expanded capture authority. See STATUS for final tests.
+
+Current 0.10.0 checkpoint: five-color toolbar, full matching/comment browser 20,
+legacy discussion 19 and loopback 2/2 checks pass. ADR-022's additional Qwen model
+is declined/deferred by the owner. [ADR-023](../decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md)
+proposes the latest owner direction: adaptive grouping plus whole subthreads
+following their originating pages. First approve the concrete source-link/local
+migration package, then test pure bounded clustering and source-anchor/lifecycle
+contracts before activating regrouping. Existing roots have no source lineage
+and stay pinned rather than guessed. No schema/threshold changes are active yet.
 
 ## Evidence already available
 

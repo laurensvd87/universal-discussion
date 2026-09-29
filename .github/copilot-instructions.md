@@ -23,8 +23,10 @@ approved on 2026-09-29; see ADR-019. Measured false joins keep the input proposa
 experiment-only; active reader/input/grouping remain unchanged. The owner declined
 ADR-022's extra Qwen model experiment because of size/latency; defer it. Lightweight
 embedding options and a fallback 0.90 threshold are under discussion, not deployed.
-C remains pending; do not implement durable
-pairing, extra retained vectors/facts or historical discussion merges from A/B.
+C remains pending; do not implement durable pairing or extra retained vectors/facts.
+The owner now requests adaptive grouping/source-anchored root threads; ADR-023's
+exact persistent-link/migration package needs approval before implementation.
+Existing roots lack source lineage; do not guess historical page associations.
 Do not start S4 or acquire
 another model. Keep STATUS current and
 record consequential choices in `decisions/`.
