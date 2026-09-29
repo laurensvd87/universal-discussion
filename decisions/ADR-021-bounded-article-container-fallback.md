@@ -133,5 +133,6 @@ preserves prior full-loop evidence as historical, not current verification.
 No GameStar success is promised before a faithful check. If the new candidate rule
 needs larger time/text budgets, private scope, another dependency/provider/model
 or a materially broader fallback, stop and ask rather than treating this proposal
-as blanket authority. ADR-019 A's wider matching improvements and C durable pairing
-remain pending, as do every later external/privacy/release gate.
+as blanket authority. ADR-019 A was subsequently separately approved and measured;
+its title/lead proposal remains experiment-only after false joins. C durable pairing
+and every later external/privacy/release gate remain pending.

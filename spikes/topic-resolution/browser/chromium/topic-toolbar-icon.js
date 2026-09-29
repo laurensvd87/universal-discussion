@@ -1,7 +1,12 @@
 import { EN } from "../locales/en.js";
+import { TOOLBAR_STATES } from "../core/topic-toolbar-controller.js";
+
+export const TOOLBAR_COLORS = Object.freeze({ disconnected: "#dc2626", connected: "#64748b", topic: "#16a34a", shared: "#38bdf8", posts: "#1d4ed8" });
+const TITLES = { disconnected: "toolbarDisconnected", connected: "toolbarConnected", topic: "toolbarTopic", shared: "toolbarShared", posts: "toolbarPosts" };
 
 // Code-native bitmap art: no remote assets, DOM/offscreen document or permission.
-export function drawTopicToolbarIcon(shared, Canvas = globalThis.OffscreenCanvas) {
+export function drawTopicToolbarIcon(state, Canvas = globalThis.OffscreenCanvas) {
+  if (!TOOLBAR_STATES.includes(state)) throw new Error("Invalid toolbar state");
   const imageData = {};
   for (const size of [16, 32]) {
     const canvas = new Canvas(size, size);
@@ -9,7 +14,7 @@ export function drawTopicToolbarIcon(shared, Canvas = globalThis.OffscreenCanvas
     if (!context) throw new Error("Toolbar icon unavailable");
     context.scale(size / 16, size / 16);
     context.clearRect(0, 0, 16, 16);
-    context.fillStyle = shared ? "#1479e8" : "#64748b";
+    context.fillStyle = TOOLBAR_COLORS[state];
     context.beginPath();
     context.moveTo(4, 2); context.lineTo(12, 2);
     context.quadraticCurveTo(14, 2, 14, 4); context.lineTo(14, 10);
@@ -25,15 +30,14 @@ export function drawTopicToolbarIcon(shared, Canvas = globalThis.OffscreenCanvas
 }
 
 export function createTopicToolbarPainter(action, Canvas = globalThis.OffscreenCanvas) {
-  let neutral;
-  let shared;
-  return async (tabId, isShared, isCurrent = () => true) => {
-    if (isShared && !isCurrent()) return;
-    neutral ??= drawTopicToolbarIcon(false, Canvas);
-    if (isShared) shared ??= drawTopicToolbarIcon(true, Canvas);
+  const images = new Map();
+  return async (tabId, state, isCurrent = () => true) => {
+    if (!TOOLBAR_STATES.includes(state)) throw new Error("Invalid toolbar state");
+    if (!isCurrent()) return;
+    if (!images.has(state)) images.set(state, drawTopicToolbarIcon(state, Canvas));
     const target = tabId === null ? {} : { tabId };
-    await action.setTitle({ ...target, title: isShared ? EN.toolbarTopicShared : EN.toolbarTopicNeutral });
-    if (isShared && !isCurrent()) return;
-    await action.setIcon({ ...target, imageData: isShared ? shared : neutral });
+    await action.setTitle({ ...target, title: EN[TITLES[state]] });
+    if (!isCurrent()) return;
+    await action.setIcon({ ...target, imageData: images.get(state) });
   };
 }

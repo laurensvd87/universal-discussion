@@ -1,6 +1,9 @@
 export const EN = Object.freeze({
-  toolbarTopicNeutral: "Universal Discussion — no current shared local Topic",
-  toolbarTopicShared: "Universal Discussion — another learned page shares this local Topic (provisional)",
+  toolbarDisconnected: "Universal Discussion — disconnected or connection not yet verified",
+  toolbarConnected: "Universal Discussion — last verified connection; no current page Topic",
+  toolbarTopic: "Universal Discussion — current page has a local Topic; no other learned page (experimental)",
+  toolbarShared: "Universal Discussion — other learned page shares this Topic; no published posts (experimental)",
+  toolbarPosts: "Universal Discussion — other learned page shares this Topic with published posts (experimental)",
   uiModeLabel: "Display mode",
   uiUser: "User",
   uiDeveloper: "Developer",

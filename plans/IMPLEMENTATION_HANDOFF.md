@@ -2,7 +2,26 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Latest request: diagnose a specific pair of related news articles that have
+Latest request: implement viewpoint-independent underlying-subject matching and
+five toolbar colors. Owner explicitly approved bounded ADR-019 A on 2026-09-29:
+article-first/title-plus-leading-text inputs, same installed model and existing
+limits, new synthetic opposite-opinion/hard-negative measurements, one retained
+vector and unchanged historical links/comments. The experiment found false joins:
+the tested reader/input proposal is preserved outside the extension, not activated.
+Production reader/input/policy/backend match the preceding checkpoint. See results
+under `apps/local-service/experiments/topic-identity/`; no useful safe cutoff found.
+Toolbar: red disconnected; gray connected/no current Topic; green Topic; light
+blue another learned page shares Topic; dark blue shared Topic with visible posts.
+Colors are implemented in 0.10.0. Restricted753/753, indicator491/491, backend69/69,
+evaluator6/6, independent Trust149; actual Chrome session19/19 and reader47/47 pass.
+Full matching/comment/native-color Chrome test could not bind occupied4174; ask
+owner to stop their backend, never stop/contact it or claim that test passed.
+ADR-022's extra local-model synthetic-only experiment was proposed and approval
+requested; no download/new-model inference yet. Read ADR-019 A and ADR-020 follow-up.
+No durable pairing, second vector/facts,
+historical merging, private/provider/download scope or later gate is approved.
+
+Previous request: diagnose a specific pair of related news articles that have
 different Topics. Read-only/query-only SQLite projection confirms both exact
 URLs have compatible vectors and distinct provisional links. Current similarity
 is above the related cutoff but below the automatic-grouping cutoff. Revisit

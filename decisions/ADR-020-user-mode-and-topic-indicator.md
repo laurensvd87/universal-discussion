@@ -4,6 +4,27 @@ Date: 2026-09-29.
 Status: Owner-requested presentation increment implemented/reviewed and
 full-service Chrome verified in 0.8.0. See STATUS for evidence and limitations.
 
+2026-09-29 follow-up: the owner requests five toolbar states. Implemented in
+0.10.0 with independent Trust/offline checks; actual Chrome session/reader checks
+pass, while the full comments/native-color smoke awaits a free port 4174. This
+supersedes the old two-color meaning below:
+
+- Red: disconnected/unverified or the last relevant service read failed.
+- Gray: last verified connection, no currently attested page Topic.
+- Green: current page has a verified retained Topic but no distinct learned peer.
+- Light blue: another distinct retained learned page shares that Topic.
+- Dark blue: that shared Topic also contains a visible contribution or reply.
+
+A singleton Topic stays green even when it has posts. Deleted tombstones and
+unsent drafts do not count as posts; a visible reply under a Deleted root does.
+No new AI identity or posting capability is introduced. Localized text tooltips
+must explain the colors. Connection is last-observed, not a continuous health
+guarantee. Reuse fixed authenticated catalog/discussion reads; no heartbeat,
+new permission, endpoint, background capture or caller-supplied status assertion.
+Popup connection/discussion changes may request a trusted background refresh;
+only freshly validated Source/URL/Topic and coherent versioned read evidence may
+paint a page-specific Topic state. All original invalidation/marker fences apply.
+
 ## Decision
 
 The owner requests a small User/Developer switch, a Topic-first discussion view,
@@ -84,6 +105,7 @@ is not a screenshot of Chrome's OS toolbar. Owned synthetic-page success does
 not establish real-news matching accuracy, first native-dialog acceptance,
 installed-extension reload/browser restart behavior, or store/legal clearance.
 
-ADR-019 A/C remain pending. No change to private-input, provider, remote service,
+At the original 0.8.0 checkpoint ADR-019 A/C were pending. A was subsequently
+approved and measured without input rollout; C remains pending. No change to private-input, provider, remote service,
 deployment, spending, external tester/publication or provenance-review gates.
 Completed Phase 0 and the 6/6 owner review remain complete.

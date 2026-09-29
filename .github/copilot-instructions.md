@@ -17,8 +17,13 @@ approved on 2026-09-29. B1–B5 are implemented and actual-Chrome tested; next i
 owner feedback within that local-only scope. ADR-019 B's window-scoped session
 was explicitly approved on 2026-09-29: Start once per normal browser window;
 Stop/window closure/browser restart ends capture, independently of retained
-native HTTPS access. Legacy enabled preferences cannot start capture. A/C remain
-pending; do not implement durable pairing from B approval. Do not start S4 or acquire
+native HTTPS access. Legacy enabled preferences cannot start capture. A's bounded
+article-first/title-plus-lead single-vector upgrade was separately explicitly
+approved on 2026-09-29; see ADR-019. Measured false joins keep the input proposal
+experiment-only; active reader/input/grouping remain unchanged. ADR-022's new
+model experiment still needs approval. C remains pending; do not implement durable
+pairing, extra retained vectors/facts or historical discussion merges from A/B.
+Do not start S4 or acquire
 another model. Keep STATUS current and
 record consequential choices in `decisions/`.
 

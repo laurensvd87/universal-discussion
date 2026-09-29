@@ -12,7 +12,7 @@ import { createTopicToolbarPainter } from "./topic-toolbar-icon.js";
 const api = globalThis.chrome;
 const session = createLocalServiceSession({ storageSession: api.storage.session });
 const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: session.getToken });
-const toolbar = createTopicToolbarController({ catalog: client.catalog, paint: createTopicToolbarPainter(api.action),
+const toolbar = createTopicToolbarController({ catalog: client.catalog, discussion: client.discussion, paint: createTopicToolbarPainter(api.action),
   readMarker: async () => {
     await api.storage.session.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
     return (await api.storage.session.get(TOOLBAR_TAB_KEY))[TOOLBAR_TAB_KEY];
@@ -22,6 +22,8 @@ const toolbar = createTopicToolbarController({ catalog: client.catalog, paint: c
 const inference = createInferenceHost({ runtime: api.runtime, offscreen: api.offscreen });
 const popupFocus = createPopupFocusWitness({ runtime: api.runtime, onChange: () => schedule() });
 let timer;
+let presentationTabId = null;
+let presentationEpoch = 0;
 let removingAccess = false;
 const captureSession = createCaptureSession({ storageSession: api.storage.session, storageLocal: api.storage.local,
   getWindow: (id) => api.windows.get(id), hasAccess: permission, readForeground, validOrigin,
@@ -33,6 +35,7 @@ function validOrigin(origin) {
   return inspected.supported && inspected.origin === origin;
 }
 async function inspectForeground() {
+  const ownPresentation = presentationEpoch;
   const rejected = (contextReason) => ({ foreground: null, contextReason });
   const tabReason = (tab) => {
     if (tab.incognito) return "incognito";
@@ -56,6 +59,10 @@ async function inspectForeground() {
     try { tabs = await queryTabs(window.id); } catch { return rejected("tab-query-failed"); }
     if (tabs.length !== 1 || !Number.isSafeInteger(tabs[0]?.id)) return { foreground: null, contextReason: "tab-unavailable" };
     const tab = tabs[0];
+    if (ownPresentation === presentationEpoch && presentationTabId !== tab.id) {
+      presentationTabId = tab.id;
+      void toolbar.update({ ...matcher.currentState(), presentationTabId });
+    }
     const initialReason = tabReason(tab);
     if (initialReason) return rejected(initialReason);
     if (!window.focused) {
@@ -86,11 +93,30 @@ async function permission() { return api.permissions.contains({ origins: [HTTPS_
 const matcher = createBackgroundMatcher({ getPreferences: preferences, readForeground,
   hasPermission: permission, isPaired: session.isPaired, reader: createPageContentReader(api.scripting),
   embed: inference.embed, client, nextOperationId: () => crypto.randomUUID(),
-  onStateChange: (state) => { void toolbar.update(state); },
+  onStateChange: (state) => { void toolbar.update({ ...state, presentationTabId }); },
   onUnauthorized: async () => { await session.clear(); void inference.close().catch(() => {}); } });
-function schedule() {
+function schedule(observation) {
+  presentationEpoch++;
+  if (Number.isSafeInteger(observation?.tabId) && observation.tabId >= 0) presentationTabId = observation.tabId;
   matcher.invalidate(); clearTimeout(timer);
   timer = setTimeout(() => { void matcher.refresh(); }, 400);
+}
+async function observePresentation(windowId, own = presentationEpoch) {
+  // Only the focused normal window's single active tab is observed. This can
+  // repaint an off-session icon but conveys no capture or Topic authority.
+  let next = null;
+  try {
+    const window = windowId === undefined ? await api.windows.getLastFocused({ populate: false }) : await api.windows.get(windowId);
+    if (window?.focused && window.type === "normal" && !window.incognito) {
+      const tabs = await api.tabs.query({ active: true, windowId: window.id });
+      const current = await api.windows.get(window.id);
+      if (current?.focused && current.id === window.id && current.type === "normal" && !current.incognito &&
+          tabs.length === 1 && !tabs[0].incognito && Number.isSafeInteger(tabs[0].id) && tabs[0].id >= 0) next = tabs[0].id;
+    }
+  } catch { /* Failed observations clear current presentation authority. */ }
+  if (own !== presentationEpoch) return;
+  presentationTabId = next;
+  void toolbar.update({ ...matcher.currentState(), presentationTabId });
 }
 async function status() {
   const [settings, context] = await Promise.all([preferences(), inspectForeground()]);
@@ -115,6 +141,8 @@ async function handle(message) {
   if (Object.keys(message).some((key) => !allowed.includes(key))) throw new Error("invalid");
   switch (message.type) {
     case "status": return status();
+    case "toolbar-refresh":
+      await toolbar.update({ ...matcher.currentState(), presentationTabId }, { verify: true }); return { refreshed: true };
     case "start-session": {
       if (removingAccess) throw new Error("busy");
       await captureSession.start(message.windowId, message.expectedRevision);
@@ -155,11 +183,16 @@ api.tabs.onUpdated.addListener((tabId, changes, tab) => {
   if ((tab.active || tabId === matcher.currentState().tabId) && (changes.status || changes.url)) schedule();
 });
 api.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === presentationTabId) presentationTabId = null;
   void toolbar.tabRemoved(tabId);
   if (tabId === matcher.currentState().tabId) schedule();
 });
 api.tabs.onReplaced.addListener(schedule);
-api.windows.onFocusChanged.addListener(schedule);
+api.windows.onFocusChanged.addListener((id) => {
+  schedule();
+  const own = presentationEpoch;
+  void preferences().then((settings) => settings.enabled ? undefined : observePresentation(id, own)).catch(() => {});
+});
 api.windows.onRemoved.addListener((id) => { void captureSession.closeWindow(id).then(schedule).catch(() => {}); });
 api.permissions.onRemoved.addListener((removed) => {
   matcher.invalidate(); clearTimeout(timer); void inference.close().catch(() => {});
@@ -173,9 +206,12 @@ api.permissions.onRemoved.addListener((removed) => {
 });
 api.storage.onChanged.addListener((changes, area) => {
   if (area === "session" && changes.localServicePairingToken) {
+    void toolbar.update({ phase: "unpaired", presentationTabId }, { pairingChanged: true });
     schedule(); void inference.close().catch(() => {});
   }
   // Capture control writes fence synchronously in their trusted owner. Never
   // restore authority from storage events (or legacy local preferences).
 });
 schedule();
+const startupPresentation = presentationEpoch;
+void preferences().then((settings) => settings.enabled ? undefined : observePresentation(undefined, startupPresentation)).catch(() => {});

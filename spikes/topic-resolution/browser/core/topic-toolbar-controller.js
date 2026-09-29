@@ -1,34 +1,41 @@
-import { readCatalog } from "./local-service-contract.js";
+import { readCatalog, readDiscussion } from "./local-service-contract.js";
 
 export const TOOLBAR_TAB_KEY = "pageMatchingToolbarTabId";
+export const TOOLBAR_STATES = Object.freeze(["disconnected", "connected", "topic", "shared", "posts"]);
 const LEARNED = "owner-local-page-embedding/v1";
 const tabId = (value) => Number.isSafeInteger(value) && value >= 0;
-
-// Catalog links, not similarity suggestions, establish this presentational fact.
+function hasCurrentTopic(state, value) {
+  if (state?.phase !== "ready" || !tabId(state.tabId) || typeof state.url !== "string" ||
+      typeof state.sourceId !== "string" || typeof state.topicId !== "string" ||
+      !Number.isSafeInteger(state.sequence) || typeof state.documentId !== "string") return false;
+  const source = value.sources.find((item) => item.id === state.sourceId);
+  return source?.provenance === LEARNED && source.url === state.url && source.topicId === state.topicId;
+}
 export function hasSharedLearnedTopic(state, value) {
   try {
-    if (state?.phase !== "ready" || !tabId(state.tabId) || typeof state.url !== "string" ||
-        typeof state.sourceId !== "string" || typeof state.topicId !== "string" ||
-        !Number.isSafeInteger(state.sequence) || typeof state.documentId !== "string") return false;
     const catalog = readCatalog(value);
-    const source = catalog.sources.find((item) => item.id === state.sourceId);
-    return source?.provenance === LEARNED && source.url === state.url && source.topicId === state.topicId &&
-      catalog.sources.some((peer) => peer.provenance === LEARNED && peer.id !== source.id &&
-        peer.url !== source.url && peer.topicId === source.topicId);
+    return hasCurrentTopic(state, catalog) && catalog.sources.some((peer) =>
+      peer.provenance === LEARNED && peer.id !== state.sourceId && peer.url !== state.url && peer.topicId === state.topicId);
   } catch { return false; }
 }
+export function hasPublishedPosts(value, topicId) {
+  const projection = readDiscussion(value, topicId);
+  return projection.roots.some((root) => root.state === "visible" || root.replies.some((reply) => reply.state === "visible"));
+}
 
-// Only one inert tab integer survives worker suspension, so reconstruction can
-// remove Chrome's surviving override without enumerating tabs or retaining URLs.
-export function createTopicToolbarController({ catalog, paint, readMarker, writeMarker, removeMarker }) {
+// One inert tab integer survives worker suspension, allowing reconstruction to
+// clear Chrome's override. Connection means a last verified read, never a token.
+export function createTopicToolbarController({ catalog, discussion, paint, readMarker, writeMarker, removeMarker }) {
   let epoch = 0;
   let abort = new AbortController();
   let pending = Promise.resolve();
   let marked = null;
   let candidate = null;
+  let connected = false;
   let initialized = false;
   let initializationFailed = false;
   const removed = new Set();
+  const base = () => connected ? "connected" : "disconnected";
   function serial(operation) {
     const result = pending.then(operation);
     pending = result.catch(() => {});
@@ -37,10 +44,8 @@ export function createTopicToolbarController({ catalog, paint, readMarker, write
   async function neutralize() {
     if (marked === null) return;
     if (!removed.has(marked)) {
-      try { await paint(marked, false); }
+      try { await paint(marked, base()); }
       catch (error) {
-        // Chrome may discard a tab while the worker is suspended. Only its
-        // exact missing-tab error proves that this override no longer exists.
         if (error?.message !== `No tab with id: ${marked}.`) throw error;
       }
     }
@@ -54,47 +59,74 @@ export function createTopicToolbarController({ catalog, paint, readMarker, write
       if (previous !== undefined && previous !== null && !tabId(previous)) throw new Error("invalid-marker");
       marked = previous ?? null;
       await neutralize();
-      await paint(null, false);
+      await paint(null, base());
       initialized = true;
     } catch {
       initializationFailed = true;
-      // Even when storage or a surviving tab override fails, set a safe default.
-      try { await paint(null, false); } catch { /* Chrome may be unavailable. */ }
+      try { await paint(null, "disconnected"); } catch { /* Chrome may be unavailable. */ }
     }
   });
-  function update(state) {
+  function update(state, { verify = false, pairingChanged = false } = {}) {
     const own = ++epoch;
     abort.abort(); abort = new AbortController();
     const signal = abort.signal;
     const snapshot = { ...state };
-    candidate = snapshot.phase === "ready" && tabId(snapshot.tabId) ? snapshot.tabId : null;
-    const clearing = serial(async () => { if (initialized) await neutralize(); });
-    // All phases clear immediately; only a ready observation gets one read.
-    if (snapshot.phase !== "ready") return clearing.catch(() => {});
+    const presentationTabId = tabId(snapshot.presentationTabId) ? snapshot.presentationTabId : null;
+    if (pairingChanged || ["unpaired", "error"].includes(snapshot.phase)) connected = false;
+    candidate = presentationTabId ?? (snapshot.phase === "ready" && tabId(snapshot.tabId) ? snapshot.tabId : null);
+    async function paintBase() {
+      await paint(null, base());
+      if (epoch !== own || presentationTabId === null || removed.has(presentationTabId)) return;
+      await writeMarker(presentationTabId);
+      marked = presentationTabId;
+      if (epoch !== own) { await neutralize(); return; }
+      await paint(presentationTabId, base(), () => epoch === own);
+      if (epoch !== own) await neutralize();
+    }
+    const clearing = serial(async () => {
+      if (initialized) { await neutralize(); if (epoch === own) await paintBase(); }
+    });
+    if (snapshot.phase !== "ready" && !verify) return clearing.catch(() => {});
     return (async () => {
       try {
         await clearing;
         if (!initialized || initializationFailed || epoch !== own) return;
-        const value = await catalog({ signal });
-        if (epoch !== own || !hasSharedLearnedTopic(snapshot, value)) return;
+        let value = readCatalog(await catalog({ signal }));
+        if (epoch !== own) return;
+        connected = true;
+        await serial(async () => { if (epoch === own) await paintBase(); });
+        if (presentationTabId !== null && presentationTabId !== snapshot.tabId) return;
+        if (epoch !== own || !hasCurrentTopic(snapshot, value)) return;
+        // Read only the current page's Topic. One bounded reconciliation read
+        // handles a mutation between catalog and discussion without a retry loop.
+        const projection = readDiscussion(await discussion(snapshot.topicId, { signal }), snapshot.topicId);
+        if (epoch !== own) return;
+        if (projection.version.generation !== value.version.generation || projection.version.revision !== value.version.revision) {
+          value = readCatalog(await catalog({ signal }));
+          if (epoch !== own) return;
+          if (projection.version.generation !== value.version.generation || projection.version.revision !== value.version.revision) throw new Error("incoherent-read");
+          if (!hasCurrentTopic(snapshot, value)) return;
+        }
+        const shared = hasSharedLearnedTopic(snapshot, value);
+        const color = shared ? (hasPublishedPosts(projection, snapshot.topicId) ? "posts" : "shared") : "topic";
         await serial(async () => {
           if (epoch !== own || removed.has(snapshot.tabId)) return;
-          // Persist before painting: an interrupted worker can always clean up.
           await writeMarker(snapshot.tabId);
           marked = snapshot.tabId;
           if (epoch !== own) { await neutralize(); return; }
-          await paint(snapshot.tabId, true, () => epoch === own);
+          await paint(snapshot.tabId, color, () => epoch === own);
           if (epoch !== own) await neutralize();
         });
       } catch {
-        // Added read failures never clear pairing: its credential may be newer.
-        if (epoch === own) await serial(neutralize).catch(() => {});
+        // A failed old credential must never clear a newer pairing.
+        if (epoch === own) {
+          connected = false;
+          await serial(async () => { await neutralize(); if (epoch === own) await paintBase(); }).catch(() => {});
+        }
       }
     })();
   }
   function tabRemoved(id) {
-    // A removed tab has no surviving icon; do not treat other Chrome failures as
-    // proof of removal. Keep at most the one recorded/current tab identifier.
     if (id !== marked && id !== candidate) return;
     if (id === candidate) { epoch++; abort.abort(); candidate = null; }
     removed.add(id);

@@ -39,7 +39,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) 
     windowError: false, tabQueryError: false,
     popupContexts: [], popupAnswer: null,
     now: 0, windowQueryHook: null, tabQueryHook: null,
-    toolbarTabId: undefined, catalog: null,
+    toolbarTabId: undefined, catalog: null, roots: [],
   };
   t.mock.method(globalThis.performance, "now", () => state.now);
   const createGate = () => { const gate = deferred(); gates.push(gate); return gate; };
@@ -115,6 +115,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) 
     const headers = { "content-type": "application/json" };
     if (state.unauthorized) return new Response('{"error":"unauthorized"}', { status: 401, headers });
     if (url.endsWith("/catalog")) return new Response(JSON.stringify(state.catalog ?? { version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] }), { headers });
+    if (url.endsWith("/topics/topic-a/discussion")) return new Response(JSON.stringify({ version: state.catalog.version, topic: { id: "topic-a", title: "Synthetic Topic", kind: "general" }, discussionId: "discussion-a", roots: state.roots }), { headers });
     assert.ok(url.endsWith("/sources/ingest"));
     assert.ok(!options.body.includes("bounded public article sample"));
     return new Response(JSON.stringify({ version: { generation: "generation-a", revision: 1 }, sourceId: "source-a", topicId: "topic-a", assignment: "provisional", policyVersion: "provisional-all-source-cosine/v1" }), { headers });
@@ -393,11 +394,11 @@ function sharedToolbarCatalog() {
       { id: "source-b", url: "https://example.org/peer", title: "B", provenance: "owner-local-page-embedding/v1", topicId: "topic-a" }] };
 }
 
-test("ready same-Topic peer colors only the current tab with one additional bounded catalog read", async (t) => {
+test("ready same-Topic peer colors only the current tab with bounded catalog and discussion reads", async (t) => {
   const h = await harness(t); h.state.catalog = sharedToolbarCatalog(); await h.advance();
   assert.equal((await h.send("status")).phase, "ready");
   const last = h.calls.icons.at(-1);
-  assert.equal(last.tabId, 7); assert.equal(last.imageData[16].colors[0], "#1479e8");
+  assert.equal(last.tabId, 7); assert.equal(last.imageData[16].colors[0], "#38bdf8");
   assert.equal(h.state.toolbarTabId, 7);
   assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/catalog")).length, 2);
   assert.equal(h.calls.reads, 1); assert.equal(h.calls.embeddings, 1);
@@ -405,10 +406,72 @@ test("ready same-Topic peer colors only the current tab with one additional boun
   await h.send("status"); await h.send("status"); assert.equal(h.calls.fetches.length, count);
 });
 
+test("trusted popup refresh updates posts and withdrawals without capture; status is read-free", async (t) => {
+  const h = await harness(t); h.state.catalog = sharedToolbarCatalog(); await h.advance();
+  const captures = h.calls.reads; const embeddings = h.calls.embeddings;
+  h.state.roots = [{ id: "post-a", rootId: null, replyToId: null, state: "visible", authorId: "demo-alex", actorType: "human", body: "Synthetic published post", createdAt: "2026-09-29T00:00:00.000Z", edited: false, replies: [] }];
+  assert.deepEqual(await h.send("toolbar-refresh"), { refreshed: true });
+  assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#1d4ed8");
+  h.state.roots = [{ id: "post-a", rootId: null, replyToId: null, state: "deleted", label: "Deleted", replies: [] }];
+  await h.send("toolbar-refresh"); assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#38bdf8");
+  const reads = h.calls.fetches.length; await h.send("status"); await h.send("status");
+  assert.equal(h.calls.fetches.length, reads); assert.equal(h.calls.reads, captures); assert.equal(h.calls.embeddings, embeddings);
+  assert.deepEqual(await h.send("toolbar-refresh", { posts: true }), { error: "unavailable" });
+  assert.deepEqual(await h.send("toolbar-refresh", {}, { id: EXTENSION_ID, url: "https://example.com/" }), { error: "forbidden" });
+});
+
+test("paired but capture off verifies connection only on trusted refresh and fails red", async (t) => {
+  const h = await harness(t, { enabled: false }); await h.advance();
+  assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#dc2626");
+  await h.send("toolbar-refresh"); assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#64748b");
+  assert.equal(h.calls.reads, 0); assert.equal(h.calls.embeddings, 0);
+  h.state.unauthorized = true; await h.send("toolbar-refresh"); assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#dc2626");
+});
+
+test("activation repaints surviving per-tab gray override red after unpair, even when capture off", async (t) => {
+  const h = await harness(t); h.state.catalog = sharedToolbarCatalog(); await h.advance();
+  h.state.tab.id = 8; h.events.activated.emit({ tabId: 8, windowId: 1 }); await flush();
+  assert.equal(h.calls.icons.filter((call) => call.tabId === 7).at(-1).imageData[16].colors[0], "#64748b");
+  await h.send("stop-session"); await h.unpair();
+  h.state.tab.id = 7; h.events.activated.emit({ tabId: 7, windowId: 1 }); await flush();
+  assert.equal(h.calls.icons.filter((call) => call.tabId === 7).at(-1).imageData[16].colors[0], "#dc2626");
+  assert.equal(h.state.toolbarTabId, 7);
+});
+
+test("off-session startup and normal-window focus repaint only the active tab without service reads", async (t) => {
+  const h = await harness(t, { enabled: false }); await flush();
+  assert.equal(h.state.toolbarTabId, 7);
+  assert.equal(h.calls.icons.filter((call) => call.tabId === 7).at(-1).imageData[16].colors[0], "#dc2626");
+  await h.send("toolbar-refresh"); const requests = h.calls.fetches.length;
+  h.state.window.id = 2; h.state.tab.id = 8; h.state.tab.url = "chrome://newtab/";
+  h.events.focus.emit(2); await flush();
+  assert.equal(h.state.toolbarTabId, 8);
+  assert.equal(h.calls.icons.filter((call) => call.tabId === 8).at(-1).imageData[16].colors[0], "#64748b");
+  assert.equal(h.calls.fetches.length, requests); assert.equal(h.calls.reads, 0); assert.equal(h.calls.embeddings, 0);
+});
+
+test("off-session focus query failure clears presentation authority without capture or service reads", async (t) => {
+  const h = await harness(t, { enabled: false }); await flush();
+  h.state.tabQueryError = true; h.events.focus.emit(1); await flush();
+  assert.equal(h.state.toolbarTabId, undefined); assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#dc2626");
+  assert.equal(h.calls.fetches.length, 0); assert.equal(h.calls.reads, 0);
+});
+
+test("delayed old off-session focus observation cannot repaint after newer activation", async (t) => {
+  const h = await harness(t, { enabled: false }); await flush();
+  const gate = h.createGate(); h.state.window.id = 2; h.state.tab.id = 8;
+  h.state.tabQueryHook = () => gate.promise; h.events.focus.emit(2); await flush();
+  h.state.tab.id = 9; h.events.activated.emit({ tabId: 9, windowId: 2 }); await flush();
+  h.state.tabQueryHook = null; gate.resolve([{ id: 8, active: true, incognito: false }]); await flush();
+  assert.equal(h.state.toolbarTabId, 9);
+  assert.ok(!h.calls.icons.some((call) => call.tabId === 8));
+  assert.equal(h.calls.fetches.length, 0); assert.equal(h.calls.reads, 0);
+});
+
 for (const change of ["stop", "block", "permission", "navigation", "same-url-reload", "unpair", "other-window", "bound-window-close", "tab-removal"]) {
   test(`actual background scheduling clears blue on ${change}`, async (t) => {
     const h = await harness(t); h.state.catalog = sharedToolbarCatalog(); await h.advance();
-    assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#1479e8");
+    assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#38bdf8");
     if (change === "stop") await h.send("stop-session");
     if (change === "block") await h.send("block-site", { origin: ORIGIN });
     if (change === "permission") { h.state.permitted = false; h.events.permissionRemoved.emit({ origins: ["https://*/*"] }); }
@@ -419,20 +482,20 @@ for (const change of ["stop", "block", "permission", "navigation", "same-url-rel
     if (change === "bound-window-close") h.events.windowRemoved.emit(1);
     if (change === "tab-removal") h.events.removed.emit(7);
     await flush();
-    assert.equal(h.state.toolbarTabId, undefined);
-    if (change !== "tab-removal") assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#64748b");
+    assert.equal(h.state.toolbarTabId, change === "tab-removal" ? undefined : 7);
+    if (change !== "tab-removal") assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], change === "unpair" ? "#dc2626" : "#64748b");
   });
 }
 
-test("ready pages in distinct Topics or with only demo peers leave toolbar neutral", async (t) => {
+test("ready pages with only demo or unassigned peers remain green", async (t) => {
   const h = await harness(t); h.state.catalog = sharedToolbarCatalog();
   h.state.catalog.sources[1].provenance = "project-created-hand-authored-demo/1";
-  await h.advance(); assert.equal(h.state.toolbarTabId, undefined);
-  assert.ok(h.calls.icons.every((call) => call.imageData[16].colors[0] === "#64748b"));
+  await h.advance(); assert.equal(h.state.toolbarTabId, 7);
+  assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#16a34a");
   h.state.catalog.sources[1].provenance = "owner-local-page-embedding/v1";
   h.state.catalog.sources[1].topicId = null;
-  await h.send("retry"); await h.advance(); assert.equal(h.state.toolbarTabId, undefined);
-  assert.ok(h.calls.icons.every((call) => call.imageData[16].colors[0] === "#64748b"));
+  await h.send("retry"); await h.advance(); assert.equal(h.state.toolbarTabId, 7);
+  assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#16a34a");
 });
 
 test("foreground adapter excludes unfocused/incognito pages and retains only preference settings", async (t) => {
@@ -502,7 +565,8 @@ test("ordinary focused browser path never challenges a popup", async (t) => {
   h.state.popupAnswer = () => assert.fail("Focused browser needs no popup witness");
   h.connectPopup(); await flush();
   assert.equal((await h.send("status")).currentOrigin, ORIGIN);
-  assert.equal(h.calls.windowQueries, 1); assert.equal(h.calls.tabQueries, 1);
+  // Startup presentation observes the focused tab once, independently of capture.
+  assert.equal(h.calls.windowQueries, 2); assert.equal(h.calls.tabQueries, 2);
 });
 
 test("popup blur between witness and active-tab recheck rejects foreground", async (t) => {

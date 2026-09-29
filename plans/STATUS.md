@@ -31,6 +31,50 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
+## Current checkpoint: five toolbar states and matching experiment - 0.10.0
+
+- Owner explicitly approved ADR-019 A's bounded article-first/title-plus-lead,
+  same-model, single-vector upgrade and new synthetic opposing-opinion/hard-
+  negative measurements. No raw text, additional retained vector/fact, provider,
+  permission or private scope; existing links/comments remain unchanged.
+- Sol Medium implements a tested article-first/title-input proposal and freezes
+  32 invented documents before 96 offline E5 inferences. Title/lead held-out
+  retrieval gets 12/12 partners in top five, but just 3/12 first. Same-Topic and
+  hard-negative scores overlap; the current rule makes 1-4 false joined pairs
+  across three arrival orders. No useful safe cutoff was established. See
+  [results](../apps/local-service/experiments/topic-identity/RESULTS.md), including
+  the lack of a pre-inference git checkpoint and narrow synthetic limitations.
+- Lead stops activation on this adverse evidence. Proposed reader/input/tests
+  remain outside the extension under `experiments/topic-input`; active collector,
+  matching input, policy, backend and tags match the preceding checkpoint. No
+  old Source/Topic/comment data was changed. The restored backend rejects the
+  proposed new tags. Token-only parity against the preserved helper is 32/32.
+- Toolbar request is red disconnected, gray connected/no current Topic, green
+  current Topic, light blue shared Topic, dark blue shared Topic with visible
+  posts. Implemented with fresh version-coherent catalog/discussion evidence,
+  authenticated deduplicated popup refresh, stale-response/paint fences and one
+  cleanup marker. No new permissions/capture/token retention. Review catches and
+  fixes stale Chrome per-tab base colors on off-session startup/focus/activation;
+  only the focused normal window's active tab is observed, never a tab scan.
+- Final offline checks: restricted **753/753** (includes 74 archived experiment
+  checks), normal **752 plus one intentional skip**, indicator **491/491**,
+  backend **69/69**, evaluator **6/6**, scans **162 + 56 files, zero findings**.
+  Independent Sol Medium icon review passes **149** scoped checks with no blocker.
+  Actual Chrome session **19/19** and reader/eligibility **47/47** pass with zero
+  external requests/runtime exceptions/model loads/backend contact.
+- **Full 0.10.0 matching/comment/native-color browser test is pending**. Its own
+  disposable service could not bind port 4174, so it stopped without accessing
+  the owner's service/data. Lead's initial listener filter missed Windows'
+  localized status label; a locale-independent endpoint check confirmed the
+  occupied port. Asked owner for Ctrl+C. New five-state/native-bitmap and post-
+  withdrawal/repost assertions exist but are not yet claimed as browser evidence.
+- Next matching boundary: [ADR-022](../decisions/ADR-022-subject-verifier-experiment.md)
+  proposes one additional quantized local model, at most 750 MiB, synthetic-only
+  subject-verification measurements and no production/data-flow changes. Explicit
+  approval requested; **no download or new model inference performed**.
+- ADR-019 C durable pairing and all later gates remain pending. Phase 0 and the
+  completed 6/6 review are not reopened.
+
 ## Latest diagnosis: another owner-supplied news pair - 2026-09-29
 
 - After restarting the backend, the owner confirms a Topic title appears and

@@ -9,7 +9,20 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Popup **0.9.1** makes the existing window-scoped session clear: Start once covers
+Extension **0.10.0** adds five toolbar states: red disconnected/unverified, gray
+connected without a current Topic, green Topic, light blue another learned page
+shares the Topic, dark blue that shared Topic also has visible posts. Tooltips
+explain the state; connection is last-observed, not continuous monitoring.
+Offline and isolated Chrome session/reader checks pass; the full comments/icon
+browser test awaits a free local test port. See [STATUS](plans/STATUS.md).
+
+The approved article/title matching experiment did **not** establish a reliable
+automatic join rule. Its code is preserved outside the extension; production
+capture, vectors, Topic assignments and thresholds remain unchanged. See the
+[measured findings](apps/local-service/experiments/topic-identity/RESULTS.md) and
+[proposed separate subject-verifier experiment](decisions/ADR-022-subject-verifier-experiment.md).
+
+Popup **0.9.1** made the existing window-scoped session clear: Start once covers
 eligible active tabs in that window, including new tabs. Active sessions no longer
 show another unchecked consent/Start prompt. Blank/loading tabs do not end the
 session; another window or extension/browser restart still needs explicit Start.
@@ -29,16 +42,17 @@ Start once per browsing session to match eligible HTTPS sites in that normal
 browser window. Stop/window closure/browser restart ends capture. Chrome's broad
 grant is separate: Stop retains it; **Remove broad HTTPS access** revokes it.
 Use a dedicated non-sensitive profile; private-page detection is not reliable.
-Improved matching and persistent pairing remain separate pending decisions.
+Bounded matching work is approved but the measured input proposal is not active;
+the additional verifier experiment and persistent pairing remain separate gates.
 
 - Extension 0.8.0 adds a **User / Developer** switch at the top. User mode opens
   with the Topic title, discussion and visible connection state; diagnostic
   details remain in Developer mode. The display choice is remembered locally.
   Connection, Start/Stop and data controls remain available in both modes.
-- The toolbar speech bubble turns **blue** when the current authorized page and
-  another retained learned page share one Topic. A merely similar recommendation
-  does not qualify. Neutral means no current verified shared-Topic indication,
-  not proof that no related page exists. Matching is still experimental.
+- Light/dark blue require another retained learned page in the exact same Topic;
+  merely related recommendations do not qualify. Dark blue additionally requires
+  visible posts or replies, not Deleted tombstones or drafts. A single-page Topic
+  stays green even with posts. Matching is still experimental.
 - It connects to the local SQLite service using session-only pairing.
   Create/select Topics, post roots and replies, edit/withdraw local comments and
   reopen persisted discussions. Human/AI counts stay distinct; no AI posts run.

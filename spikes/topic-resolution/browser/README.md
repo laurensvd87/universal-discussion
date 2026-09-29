@@ -1,5 +1,35 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Connection, Topic and posts at a glance (0.10.0)
+
+| Icon | Meaning |
+| --- | --- |
+| Red | Disconnected, connection unverified, or last relevant service read failed |
+| Gray | Last verified connection; no current page Topic |
+| Green | Current page has a Topic without another learned page |
+| Light blue | Another distinct learned page shares the Topic; no visible posts |
+| Dark blue | Shared Topic also has a visible post or reply |
+
+A Topic with one learned page stays green even with posts. Deleted placeholders
+and drafts do not count; visible replies under a Deleted root do. Hover for a
+text explanation. Color reflects fresh bounded catalog/discussion evidence and
+last-observed connection, not a live server heartbeat or semantic confidence.
+No permission, pairing retention, capture or backend change is introduced.
+Posting/withdrawing refreshes the icon without recapturing the page. Navigation,
+Stop and failed evidence clear page-specific Topic colors. The focused active
+tab's base state is repainted on activation/focus/startup without scanning tabs.
+
+Reload the unpacked extension, reconnect if its session pairing was cleared,
+and Start one browsing session as usual. The full five-color Chrome smoke is
+pending a free port 4174; unit/integration-independent tests and isolated Chrome
+session/reader checks pass. See [STATUS](../../../plans/STATUS.md).
+
+The title/article-lead matching proposal remains **experiment-only** after
+synthetic tests found false joins. Active reader/input/grouping are unchanged;
+new experimental tags are not accepted by the production backend. Existing
+Topics/comments are preserved. [Results](../../../apps/local-service/experiments/topic-identity/RESULTS.md)
+explain why a separate subject/event verifier is being considered.
+
 ## One session across tabs (0.9.1)
 
 Start once in a normal browser window. Switching to an existing or newly opened
@@ -71,21 +101,18 @@ unchanged capture disclosure, consent and controls without changing the popup UR
 **Choose Topic, demo identity & data controls** contains manual selection, wrong-
 Topic correction, Forget and confirmed deletion. These are available in User mode.
 
-The toolbar speech bubble turns blue only after a fresh local catalog check finds
-another distinct retained learned page in the current page's exact Topic. Related
-recommendations or demo fixtures alone do not qualify. Comments need not exist.
-This is still a provisional local association, not validated semantic accuracy.
-During navigation, stopped/unpaired capture or unavailable evidence it is neutral.
-The indicator operates within the approved active-window session; it does not
-inspect all tabs. Chrome API/storage failures can prevent clearing a previous
-icon; the cleanup marker is retained and further blue updates are blocked.
+The current toolbar meanings are listed above; the original 0.8.0 blue icon meant
+only shared Topic, without a post requirement. Related recommendations or demo
+fixtures alone still do not qualify. These are provisional local associations,
+not validated semantic accuracy. Chrome API/storage failures can prevent clearing
+a previous icon; the cleanup marker is retained and further Topic updates stop.
 
 Local storage adds only `discussionUiModeV1` (`user`/`developer`). Trusted session
 storage may hold one inert `pageMatchingToolbarTabId` integer, allowing a restarted
 worker to clear its previous per-tab icon without scanning tabs. Neither setting
 grants capture, stores content or makes pairing persistent. No new permissions.
 
-Verified in actual Chrome on owned synthetic pages: 17 full matching/User-mode
+Historical 0.8.0 evidence in actual Chrome on owned synthetic pages: 17 full matching/User-mode
 checks, including shared comments and successful native blue/neutral bitmap
 updates; 19 Developer discussion regression areas; 15 session and 32 eligibility/
 reader checks. The connected User popup was visually inspected. These tests use

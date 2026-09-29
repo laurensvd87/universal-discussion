@@ -158,20 +158,21 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     const result = await browser.send('Page.captureScreenshot', { format: 'png' }, popupSession);
     await writeFile(path.join(destination, `${name}.png`), Buffer.from(result.data, 'base64'), { flag: 'wx' });
   }
-  async function toolbar(shared) {
-    const expected = shared ? EN.toolbarTopicShared : EN.toolbarTopicNeutral;
+  async function toolbar(state) {
+    const expected = { disconnected: EN.toolbarDisconnected, connected: EN.toolbarConnected,
+      topic: EN.toolbarTopic, shared: EN.toolbarShared, posts: EN.toolbarPosts }[state];
+    assert.ok(expected, 'Known toolbar test state');
     await waitExpression(`(async () => {
       const state=await chrome.runtime.sendMessage({target:'page-matching',type:'status'});
       return Number.isSafeInteger(state.currentTabId) &&
         await chrome.action.getTitle({tabId:state.currentTabId})===${JSON.stringify(expected)};
-    })()`, shared ? 'same-Topic toolbar indication' : 'neutral toolbar indication');
-    if (shared) {
-      const currentTab = await evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'status'}).then(state=>state.currentTabId)");
-      await wait(() => evaluate(`globalThis.__toolbarNativeEvidence?.some(item=>item.tabId===${JSON.stringify(currentTab)} && item.shared===true)`, toolbarSession), 'successful native blue icon bitmap');
-    } else {
-      await wait(() => evaluate('globalThis.__toolbarNativeEvidence?.at(-1)?.shared !== true', toolbarSession),
-        'native neutral successor after any preceding blue icon');
-    }
+    })()`, `${state} toolbar indication`);
+    const currentTab = await evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'status'}).then(state=>state.currentTabId)");
+    await wait(() => evaluate(`(() => {
+      const evidence=globalThis.__toolbarNativeEvidence??[];
+      const effective=evidence.findLast(item=>item.tabId===${JSON.stringify(currentTab)})??evidence.findLast(item=>item.tabId===null);
+      return effective?.state===${JSON.stringify(state)};
+    })()`, toolbarSession), `successful native ${state} icon bitmap`);
   }
   async function observeNativeIcons() {
     const worker = await wait(() => [...targets.values()].find(item => item.ready && item.type === 'service_worker' &&
@@ -183,11 +184,11 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       chrome.action.setIcon=async function(details) {
         const records=[16,32].map(size=>details.imageData?.[size]);
         if(records.some((item,index)=>!item || item.width!==[16,32][index] || item.height!==[16,32][index] || item.data.length!==item.width*item.height*4))throw Error('Invalid test bitmap');
-        const blue=records.every(item=>Array.from(item.data).some((value,index)=>index%4===0 && value===20 && item.data[index+1]===121 && item.data[index+2]===232 && item.data[index+3]===255));
-        const gray=records.every(item=>Array.from(item.data).some((value,index)=>index%4===0 && value===100 && item.data[index+1]===116 && item.data[index+2]===139 && item.data[index+3]===255));
-        if(blue===gray)throw Error('Unexpected test palette');
+        const palette={disconnected:[220,38,38],connected:[100,116,139],topic:[22,163,74],shared:[56,189,248],posts:[29,78,216]};
+        const matches=Object.entries(palette).filter(([,rgb])=>records.every(item=>Array.from(item.data).some((value,index)=>index%4===0 && value===rgb[0] && item.data[index+1]===rgb[1] && item.data[index+2]===rgb[2] && item.data[index+3]===255)));
+        if(matches.length!==1)throw Error('Unexpected test palette');
         const result=await nativeSetIcon.call(chrome.action,details);
-        globalThis.__toolbarNativeEvidence.push({tabId:details.tabId??null,shared:blue});
+        globalThis.__toolbarNativeEvidence.push({tabId:details.tabId??null,state:matches[0][0]});
         return result;
       };
     })()`, toolbarSession);
@@ -329,15 +330,17 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await navigate('a'); await openPopup(); await waitStatus(EN.discussionDisconnected);
     assert.equal(await evaluate("document.body.dataset.uiMode"), 'user');
     assert.equal(await evaluate("document.querySelector('#connection-status').dataset.state"), 'disconnected');
+    await toolbar('disconnected');
     await screenshot('user-disconnected');
     await pair(FIRST_TOKEN);
     await waitExpression("document.querySelector('#connection-status').dataset.state==='connected'", 'honest paired connection indicator');
+    await toolbar('connected');
     await waitExpression(`document.querySelector('#matching-origin').textContent===${JSON.stringify(ORIGIN)}`, 'eligible disclosed origin');
     await click('#matching-consent'); await click('#matching-enable'); await confirmStart(); await closePopup();
     stage = 'popup-closed-first-inference';
     const a = await automatic('a');
     assert.equal(a.provenance, 'owner-local-page-embedding/v1');
-    await toolbar(false);
+    await toolbar('topic');
     assert.equal(await evaluate("document.querySelector('#selected-topic-title').textContent"), (await catalog()).topics.find(topic => topic.id === a.topicId).title);
     await input('#discussion-body', COMMENT);
     await click('#ui-mode-developer'); await click('#ui-mode-user');
@@ -345,23 +348,34 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.equal(await evaluate("document.querySelector('#ui-mode-user').getAttribute('aria-pressed')"), 'true');
     checks.push('default-user-connection-topic-and-draft-preserving-mode-switch');
     await postComment(); checks.push('actual-pairing-session-consent', 'popup-closed-capture-inference-ingestion', 'comment-on-page-a');
+    await toolbar('topic'); // A lone learned page remains green even with posts.
     stage = 'shared-topic-on-paraphrase';
     await navigate('b'); const b = await automatic('b');
     assert.equal(b.topicId, a.topicId);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
-    await toolbar(true);
+    await toolbar('posts');
     await screenshot('user-shared-topic');
-    checks.push('toolbar-shared-topic-after-distinct-learned-peer');
+    checks.push('toolbar-dark-blue-requires-distinct-learned-peer-and-visible-post');
+    const capturesBeforeWithdraw = ingestions.length;
+    await evaluate(`Array.from(document.querySelectorAll('#local-discussion .discussion-thread button')).find(button=>button.textContent===${JSON.stringify(EN.discussionWithdraw)}).click()`);
+    await waitExpression(`!${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`, 'withdrawn post no longer visible');
+    await waitStatus(EN.discussionReady);
+    await toolbar('shared');
+    assert.equal(ingestions.length, capturesBeforeWithdraw);
+    await postComment();
+    await toolbar('posts');
+    assert.equal(ingestions.length, capturesBeforeWithdraw);
+    checks.push('toolbar-light-blue-on-deleted-only-and-dark-blue-on-new-post-without-recapture');
     checks.push('second-HTTPS-origin-shares-topic-and-comment-without-new-grant');
     stage = 'unrelated-page-separation';
     await navigate('c'); const c = await automatic('c');
     assert.notEqual(c.topicId, a.topicId);
     assert.ok(await evaluate(`!${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
-    await toolbar(false);
+    await toolbar('topic');
     checks.push('page-c-stays-separate');
     stage = 'stop-and-new-explicit-session';
     await click('#matching-pause'); await waitMatching(EN.matchingOff);
-    await toolbar(false);
+    await toolbar('connected');
     const pausedCount = ingestions.length;
     await navigate('d'); await openPopup(); await waitMatching(EN.matchingOff);
     // Longer than the production debounce, without supplying a capture/retry command.
@@ -377,7 +391,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await navigate('generic'); const generic = await automatic('generic');
     assert.equal(generic.topicId, semantic.topicId);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(FALLBACK_COMMENT)})`));
-    await toolbar(true);
+    await toolbar('posts');
     assert.ok(ingestions.some(item => item.url === fixtureUrl('generic') && item.extractorVersion === 'article-container-prefix/v1'));
     checks.push('generic-container-embeds-in-existing-space-and-shares-comment-with-semantic-region');
     stage = 'metadata-bearing-page-accepted';

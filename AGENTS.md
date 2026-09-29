@@ -24,7 +24,13 @@ ADR-019 B's window-scoped browsing session was explicitly approved on 2026-09-29
 It replaces per-site capture grants: capture defaults off, Start binds one normal
 window, and Stop/window closure/browser restart ends that lease. Native broad
 HTTPS access is separate and may remain; legacy enabled preferences are inert.
-ADR-019 A/C matching changes and durable pairing remain pending. No S4 or expanded private/remote
+ADR-019 A's bounded article-first/title-plus-lead single-vector matching upgrade
+was separately explicitly approved on 2026-09-29. Its tested proposal is preserved
+outside the extension, not activated: the frozen synthetic experiment found false
+joins. Production reader/input/grouping remain unchanged. ADR-022 proposes a
+separate local subject-verifier experiment and still needs explicit approval.
+Do not infer approval for second vectors, structured retained facts or automatic
+historical discussion merging. ADR-019 C durable pairing remains pending. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol

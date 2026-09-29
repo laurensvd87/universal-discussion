@@ -179,6 +179,29 @@ const popupShell = mountPopupShell(document, {
 const localSession = createLocalServiceSession({ storageSession: globalThis.chrome.storage.session });
 const localClient = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: localSession.getToken });
 let matchingPanel;
+// Ask for fresh background evidence only when a service projection changes.
+// No Topic, post count or connection claim crosses this authenticated message.
+let toolbarObservation;
+let toolbarRefreshPending = false;
+let toolbarRefreshAgain = false;
+function observeToolbar(state) {
+  const version = (value) => value ? `${value.generation}:${value.revision}` : "";
+  const key = `${state.phase === "disconnected" || state.phase === "error" ? state.phase : "observed"}|${version(state.catalog?.version)}|${version(state.discussion?.version)}`;
+  if (key === toolbarObservation) return;
+  toolbarObservation = key;
+  if (!state.catalog && !["disconnected", "error"].includes(state.phase)) return;
+  if (toolbarRefreshPending) { toolbarRefreshAgain = true; return; }
+  toolbarRefreshPending = true;
+  void (async () => {
+    try {
+      do {
+        toolbarRefreshAgain = false;
+        await runtime.sendMessage({ target: "page-matching", type: "toolbar-refresh" });
+      } while (toolbarRefreshAgain);
+    } catch { /* Toolbar availability does not block the discussion UI. */ }
+    finally { toolbarRefreshPending = false; }
+  })();
+}
 const localDiscussion = createLocalDiscussionController({
   client: localClient,
   session: localSession,
@@ -187,7 +210,7 @@ const localDiscussion = createLocalDiscussionController({
   lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
   readPageResolution: () => matchingPanel.readResolution(),
   pausePageMatching: () => matchingPanel.pauseMatching(),
-  onStateChange: (state) => { discussionPanel.render(state); popupShell.render(state); },
+  onStateChange: (state) => { discussionPanel.render(state); popupShell.render(state); observeToolbar(state); },
 });
 matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-matching"), {
   sendMessage: (message) => runtime.sendMessage(message),
