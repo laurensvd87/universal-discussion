@@ -31,7 +31,28 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current checkpoint: five toolbar states and matching experiment - 0.10.0
+## Latest direction: no additional local language model
+
+- Owner declines ADR-022's Qwen experiment because of download size/latency;
+  defer it rather than repeatedly seek approval. No new model/assets/inference.
+  Connected-user AI is only a possible later direction, not approved integration.
+- Owner asks for embedding-side alternatives, with 0.90 as a fallback threshold.
+  Lead and Sol Medium independently inspect the existing synthetic report:
+  current body-prefix held-out pair acceptance changes from 1/6 positives and
+  5/60 negatives at 0.94 to 5/6 positives and 8/60 negatives at 0.90. These are
+  deliberately difficult synthetic pairs, not general accuracy or sequential
+  cluster results. All-member and 0.04 margin guards also affect assignment.
+- Lightweight option: test a title-focused, much shorter lead with the current
+  model/one vector; title-only ranking is promising but not validated. Longer
+  term: task-specific fine-tuning of the same architecture, requiring proper
+  labeled data and its later approvals. No guaranteed viewpoint-independent fix.
+- Recommendation under discussion: a clearly experimental 0.90-only prototype
+  change retaining other guards, manual correction and stable existing links.
+  Production still uses 0.94; no new input, training, inference, service contact,
+  owner-data access or historical regrouping performed in this advisory turn.
+  See [ADR-022](../decisions/ADR-022-subject-verifier-experiment.md).
+
+## Verified checkpoint: five toolbar states and matching experiment - 0.10.0
 
 - Owner explicitly approved ADR-019 A's bounded article-first/title-plus-lead,
   same-model, single-vector upgrade and new synthetic opposing-opinion/hard-
@@ -87,10 +108,11 @@ private/remote/AI/moderation work and all external release gates remain separate
   No-extra-ingestion assertions are not independent no-reader/inference proof;
   restricted race tests supply those narrower cancellation checks. Existing native
   first-dialog, installed reload/browser-restart and real-page-quality gaps remain.
-- Next matching boundary: [ADR-022](../decisions/ADR-022-subject-verifier-experiment.md)
+- At this checkpoint, [ADR-022](../decisions/ADR-022-subject-verifier-experiment.md)
   proposes one additional quantized local model, at most 750 MiB, synthetic-only
   subject-verification measurements and no production/data-flow changes. Explicit
-  approval requested; **no download or new model inference performed**.
+  approval was requested; **no download or new model inference performed**.
+  The owner subsequently declines this direction (see latest direction above).
 - ADR-019 C durable pairing and all later gates remain pending. Phase 0 and the
   completed 6/6 review are not reopened.
 

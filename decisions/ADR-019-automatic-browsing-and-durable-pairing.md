@@ -81,9 +81,11 @@ the extension. Production reader/input/policy and backend are restored exactly
 to the preceding checkpoint; do not relabel changed input as legacy or accept
 new experimental tags in live ingestion. This preserves existing behavior, not a
 claim that the old heuristic is accurate. No historical data was accessed/changed.
-Candidate retrieval plus a separately measured subject verifier is the next
-direction; [ADR-022](ADR-022-subject-verifier-experiment.md) requests its additional
-synthetic-only model gate. A approval remains recorded and is not being repeated.
+Candidate retrieval plus a separately measured subject verifier was proposed in
+[ADR-022](ADR-022-subject-verifier-experiment.md); the owner subsequently declines
+its additional Qwen model because of size/latency. Keep it deferred and consider
+lighter embedding-side options. A approval remains recorded and is not repeated;
+the fallback 0.90 cutoff is under discussion, not activated by this advisory turn.
 
 ## B. Start one browsing session, then automatic cross-site processing
 

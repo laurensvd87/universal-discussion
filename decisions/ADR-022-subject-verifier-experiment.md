@@ -1,7 +1,41 @@
 # ADR-022: Separate subject verification from embedding retrieval
 
 Date: 2026-09-29.
-Status: **Proposed; explicit owner approval requested, not yet received.**
+Status: **Deferred by the owner on 2026-09-29; proposed Qwen experiment declined.**
+
+## Owner decision and current direction
+
+The owner rejects adding Qwen because of size and latency, and prefers to keep
+the current prototype embedding-only. No Qwen download or inference is approved;
+the proposed package below is retained only as historical context. Optional use
+of a user's connected AI might be revisited later, with a fresh exact provider/
+privacy/performance gate; this is not approval for that integration.
+
+The owner asks about lighter embedding-side options and suggests 0.90 as a
+fallback same-Topic threshold. Read-only inspection of the existing synthetic
+report finds that the current body-prefix transform accepts 1/6 positive and
+5/60 negative held-out pairs at 0.94, versus 5/6 and 8/60 at 0.90. These are
+pairwise threshold counts, not actual sequential Topic assignments: the all-member
+rule and 0.04 competing-Topic margin remain additional conditions. The retained
+report lacks a full similarity matrix/vectors for replaying sequential 0.90.
+No new inference or production threshold change follows from this inspection.
+
+A smaller follow-up could test title plus only the first one or two sentences,
+using the existing model and one vector. Title-only ranking already gets 8/12
+held-out partners first, versus body-prefix 2/12, but this is a tiny, now-observed
+synthetic set, not proof of general performance. This short-lead variant was not
+tested; the previous title plus bounded body prefix was tested and remains dormant.
+Headlines can be ambiguous/clickbait, and changed inputs require explicit version
+compatibility. No second vector, model download or richer server payload is implied.
+
+Longer-term, task-specific fine-tuning could replace the current weights within
+the same architecture rather than add an LLM. It needs sufficient provenance-
+approved labels, training/evaluation and model-version migration; it is not a
+quick free fix or an approved training run. [Sentence Transformers' training
+guide](https://www.sbert.net/docs/sentence_transformer/training_overview.html)
+explains why the required notion of similarity depends on the task. E5 scores
+are not confidence percentages; its [model-card FAQ](https://huggingface.co/intfloat/multilingual-e5-small#faq)
+documents the compressed cosine range and importance of relative ranking.
 
 ## Evidence and direction
 
@@ -31,7 +65,7 @@ representations](https://aclanthology.org/2024.lrec-main.1416/). E5's own
 [model card](https://huggingface.co/intfloat/multilingual-e5-small) says absolute
 cosines are not calibrated probabilities and documents its compressed score range.
 
-## Exact proposed experiment gate
+## Historical proposed experiment gate — do not execute
 
 - Acquire **one** additional model: `onnx-community/Qwen3-0.6B-ONNX`, quantized
   CPU-compatible graph (listed about 618 MB), tokenizer/config and license evidence.
@@ -69,7 +103,8 @@ quotes. Sending/storing them, a second vector, extra capture fields or raw text 
 **not approved** by this proposed experiment. Decide exact on-device computation,
 candidate evidence, output fields, retention/deletion, package size and performance
 only after measurements. No silent historical Topic merges or comment movement.
-If this small model fails, report it; do not silently download a larger one.
+If this experiment is ever separately approved and fails, report it; do not
+silently download a larger one.
 
 ADR-019 A remains approved but its proposed input change is retained only in the
 isolated experiment; active capture/grouping is unchanged. Five-state toolbar work

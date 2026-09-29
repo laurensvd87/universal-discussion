@@ -21,7 +21,9 @@ The approved article/title matching experiment did **not** establish a reliable
 automatic join rule. Its code is preserved outside the extension; production
 capture, vectors, Topic assignments and thresholds remain unchanged. See the
 [measured findings](apps/local-service/experiments/topic-identity/RESULTS.md) and
-[proposed separate subject-verifier experiment](decisions/ADR-022-subject-verifier-experiment.md).
+[deferred subject-verifier proposal](decisions/ADR-022-subject-verifier-experiment.md).
+The owner declines an additional local LLM; lighter embedding options and a
+0.90 prototype cutoff are under discussion. The active cutoff remains 0.94.
 
 Popup **0.9.1** made the existing window-scoped session clear: Start once covers
 eligible active tabs in that window, including new tabs. Active sessions no longer
@@ -45,7 +47,7 @@ browser window. Stop/window closure/browser restart ends capture. Chrome's broad
 grant is separate: Stop retains it; **Remove broad HTTPS access** revokes it.
 Use a dedicated non-sensitive profile; private-page detection is not reliable.
 Bounded matching work is approved but the measured input proposal is not active;
-the additional verifier experiment and persistent pairing remain separate gates.
+the additional verifier experiment is deferred and persistent pairing stays gated.
 
 - Extension 0.8.0 adds a **User / Developer** switch at the top. User mode opens
   with the Topic title, discussion and visible connection state; diagnostic

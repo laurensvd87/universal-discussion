@@ -20,8 +20,10 @@ Stop/window closure/browser restart ends capture, independently of retained
 native HTTPS access. Legacy enabled preferences cannot start capture. A's bounded
 article-first/title-plus-lead single-vector upgrade was separately explicitly
 approved on 2026-09-29; see ADR-019. Measured false joins keep the input proposal
-experiment-only; active reader/input/grouping remain unchanged. ADR-022's new
-model experiment still needs approval. C remains pending; do not implement durable
+experiment-only; active reader/input/grouping remain unchanged. The owner declined
+ADR-022's extra Qwen model experiment because of size/latency; defer it. Lightweight
+embedding options and a fallback 0.90 threshold are under discussion, not deployed.
+C remains pending; do not implement durable
 pairing, extra retained vectors/facts or historical discussion merges from A/B.
 Do not start S4 or acquire
 another model. Keep STATUS current and

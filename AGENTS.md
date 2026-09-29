@@ -27,8 +27,10 @@ HTTPS access is separate and may remain; legacy enabled preferences are inert.
 ADR-019 A's bounded article-first/title-plus-lead single-vector matching upgrade
 was separately explicitly approved on 2026-09-29. Its tested proposal is preserved
 outside the extension, not activated: the frozen synthetic experiment found false
-joins. Production reader/input/grouping remain unchanged. ADR-022 proposes a
-separate local subject-verifier experiment and still needs explicit approval.
+joins. Production reader/input/grouping remain unchanged. The owner declined
+ADR-022's extra Qwen experiment because of size/latency; defer it, do not download
+or infer. Lightweight embedding options and a fallback 0.90 threshold are under
+discussion; production remains 0.94 until an implementation decision is made.
 Do not infer approval for second vectors, structured retained facts or automatic
 historical discussion merging. ADR-019 C durable pairing remains pending. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.

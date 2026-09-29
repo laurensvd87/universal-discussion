@@ -2,7 +2,16 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Latest request: implement viewpoint-independent underlying-subject matching and
+Latest direction: owner declines ADR-022's additional Qwen model because of
+size/latency. Defer it; do not download, infer or repeatedly ask for that package.
+They ask for lightweight embedding options or a fallback 0.90 threshold. Existing
+synthetic pair counts quantify the recall/false-match trade-off (STATUS/ADR-022),
+not validation of 0.90 sequential grouping. No production change yet: 0.94 and
+0.04 margin, stable existing assignments and one-vector payload remain. A short
+title-focused input test and later same-architecture fine-tuning are proposals,
+not completed work or new model/data authority. Future connected-user AI stays gated.
+
+Previous request: implement viewpoint-independent underlying-subject matching and
 five toolbar colors. Owner explicitly approved bounded ADR-019 A on 2026-09-29:
 article-first/title-plus-leading-text inputs, same installed model and existing
 limits, new synthetic opposite-opinion/hard-negative measurements, one retained
@@ -20,8 +29,8 @@ and loopback 2/2. All five colors, withdrawal/repost, red/gray on 401/re-pair an
 semantic/fallback shared comments across SQLite restart pass. A legacy test-only
 storage whitelist now permits the existing exact integer toolbar marker while
 unpaired too; no production/data change. See STATUS for evidence limits.
-ADR-022's extra local-model synthetic-only experiment was proposed and approval
-requested; no download/new-model inference yet. Read ADR-019 A and ADR-020 follow-up.
+ADR-022's extra local-model synthetic-only experiment was proposed, then declined
+by the owner; no download/new-model inference. Read ADR-019 A and ADR-020 follow-up.
 No durable pairing, second vector/facts,
 historical merging, private/provider/download scope or later gate is approved.
 
