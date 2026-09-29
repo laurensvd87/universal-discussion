@@ -78,6 +78,22 @@ with Ctrl+C. Tests never used its token/database or stopped that process.
 
 ## Remaining limits and next step
 
+Context-diagnostic follow-up, extension 0.6.3: owner reported the generic window
+error after 0.6.2. Read-only mocks reproduced that misleading text for loading,
+pending/incognito and expiring-witness cases; none is yet confirmed as the owner
+cause. The correction splits fixed reason enums, localizes each guidance message
+and rejects invalid initial tabs/windows earlier without relaxing acceptance or
+the 500 ms witness deadline. Separate AI Trust review found no material issue and
+independently ran 109/109 focused restricted checks. Full restricted suite passes
+484/484 and indicator suite 302/302; normal suite 483 pass / one intentional
+guard-only skip. Secret scan: 140 files with zero findings.
+Actual Chrome 154 passes 19 eligibility checks: four added tab-query fault/recovery
+pairs for loading, pending URL, missing URL and query rejection. They run with an
+explicitly simulated false parent-focus flag and actual popup focus. No external
+requests, runtime exceptions, inference targets, model loads or backend access;
+the temporary profile is cleaned. Owner backend/data remain untouched. Next obtain
+the precise 0.6.3 message after reload; do not claim the owner's blocker resolved.
+
 Popup-focus follow-up, extension 0.6.2: owner supplied `window-unfocused` while
 using the action popup. Added a fresh bounded focused/visible popup witness for
 its own normal window; no background last-focused bypass, cached authority,

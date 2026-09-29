@@ -1,7 +1,12 @@
 import { inspectPageUrl } from "./page-content-policy.js";
 
 const PHASES = new Set(["off", "checking", "not-enabled", "unpaired", "processing", "ready", "unsupported", "error"]);
-const CONTEXT_REASONS = new Set(["context-unavailable", "window-unfocused", "unsupported-window", "tab-unavailable", "page-loading", "url-unavailable", "incognito", "unsupported-url"]);
+const CONTEXT_REASONS = new Set([
+  "context-unavailable", "window-unavailable", "window-query-failed", "tab-query-failed",
+  "window-changed", "tab-changed", "focus-expired", "focus-changed",
+  "window-unfocused", "unsupported-window", "tab-unavailable", "page-loading",
+  "url-unavailable", "incognito", "unsupported-url",
+]);
 const FIELDS = ["phase", "reason", "tabId", "url", "documentId", "sourceId", "topicId", "assignment", "sequence", "enabled", "origins", "currentOrigin", "currentTabId", "currentUrl", "contextReason"];
 const id = (value) => typeof value === "string" && /^[A-Za-z0-9._:-]{1,128}$/u.test(value);
 const tab = (value) => value === null || (Number.isSafeInteger(value) && value >= 0);

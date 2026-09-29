@@ -97,6 +97,10 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     origin.textContent = result.currentOrigin ?? "";
     context.textContent = result.contextReason ? message({
       "context-unavailable": "matchingContextUnavailable", "window-unfocused": "matchingContextUnfocused",
+      "window-unavailable": "matchingContextWindowUnavailable", "window-query-failed": "matchingContextWindowQueryFailed",
+      "tab-query-failed": "matchingContextTabQueryFailed", "window-changed": "matchingContextWindowChanged",
+      "tab-changed": "matchingContextTabChanged", "focus-expired": "matchingContextFocusExpired",
+      "focus-changed": "matchingContextFocusChanged",
       "unsupported-window": "matchingContextWindow", "tab-unavailable": "matchingContextTab",
       "page-loading": "matchingContextLoading", "url-unavailable": "matchingContextUrlUnavailable",
       incognito: "matchingContextIncognito", "unsupported-url": "matchingContextUnsupportedUrl",

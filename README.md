@@ -9,7 +9,7 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-- Extension 0.6.2 connects to the local SQLite service using session-only pairing.
+- Extension 0.6.3 connects to the local SQLite service using session-only pairing.
   Create/select Topics, post roots and replies, edit/withdraw local comments and
   reopen persisted discussions. Human/AI counts stay distinct; no AI posts run.
 - Opt-in background matching samples rendered main content on enabled sites,
@@ -90,7 +90,12 @@ If **Enable matching for displayed site** stays disabled, check the eligibility
 message beside the site control. It distinguishes an unfocused/loading page,
 unavailable tab access and an unsupported context; disabled does not mean loading.
 Version **0.6.2** additionally checks the actual focused action popup when its
-parent window reports no focus. After updating, reload the unpacked extension.
+parent window reports no focus. **0.6.3** corrects misleading window-error guidance:
+page loading, a changed tab/window, expired/changed popup focus and failed Chrome
+API calls have separate messages. The owner's exact failure is still unconfirmed;
+this is not a claim that their Enable problem is fixed. Reload the unpacked
+extension, reopen it on the public article and report the message that remains
+after a few seconds. No token, storage dump or page content is needed.
 
 To try the discussion loop:
 

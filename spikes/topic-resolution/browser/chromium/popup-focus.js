@@ -67,13 +67,15 @@ export function createPopupFocusWitness({ runtime, onChange = () => {}, schedule
       if (pending?.promise === promise) pending = null;
       resolve(value);
     }
-    const fresh = () => current(port, own) && now() < deadline;
+    const failureReason = () => !current(port, own) ? "focus-changed" :
+      !(now() < deadline) ? "focus-expired" : null;
+    const fresh = () => failureReason() === null;
     const valid = () => !settled && fresh();
     pending = { windowId, promise, finish, answer(from, message) {
       if (!valid() || from !== port || message.sequence !== nonce) return;
       if (!message.focused || message.windowId !== windowId) { finish(null); return; }
       void live(port).then((exists) => {
-        if (valid()) finish(exists ? Object.freeze({ isCurrent: fresh }) : null);
+        if (valid()) finish(exists ? Object.freeze({ isCurrent: fresh, failureReason }) : null);
       }).catch(() => finish(null));
     } };
     timer = schedule(() => finish(null), timeoutMs);

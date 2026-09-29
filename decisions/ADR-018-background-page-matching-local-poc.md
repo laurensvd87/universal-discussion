@@ -188,6 +188,18 @@ headless probe does not reproduce the owner's OS-focus behavior; regression
 tests must explicitly label an injected false parent-focus flag, and owner
 confirmation is still needed after the correction.
 
+Diagnostic refinement (0.6.3): the owner's subsequent `context-unavailable`
+report does not prove a window-identification failure. The old fallback combined
+loading/incognito/navigation and focus-expiry failures under that text. Separate
+only bounded reason enums for window/tab query failures, missing/changed context
+and focus expiry/lifecycle change; keep raw Chrome errors out of the DTO and UI.
+Classify invalid initial tabs before fallback revalidation and stop querying tabs
+after a failed window recheck. Keep the original 500 ms deadline and single-flight
+challenge; possible API latency or an inherited pending-challenge deadline is a
+hypothesis, not a measured cause or authority to widen the bound. No new collection,
+logs, storage, permissions or eligibility bypass. Fault-injection/recovery evidence
+must remain distinct from confirmation of the owner's actual browser behavior.
+
 ## Planning findings (before implementation) and policy evidence
 
 The following baseline inventory records what was missing when this package was

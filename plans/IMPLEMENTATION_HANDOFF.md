@@ -26,8 +26,16 @@ witness, keeping the site/window/navigation/consent restrictions. Actual Chrome
 passes 11 checks including an explicitly injected false parent-focus flag.
 Real popup ports omit optional sender document IDs; use the reviewed exact-port
 identity and trusted-responder invariant in ADR-018, not a fabricated document
-join. No new permissions. Owner reload/confirmation is next; do not claim the
-headless regression reproduced their exact OS focus behavior.
+join. No new permissions; do not claim the headless regression reproduced their
+exact OS focus behavior. The owner then reported `context-unavailable` on 0.6.2.
+**0.6.3** fixes that overbroad diagnostic: missing/changed/query-failed windows,
+tab query/identity failures, focus expiry/lifecycle changes and page eligibility
+are distinct fixed reasons. All capture gates and the 500 ms deadline remain.
+Actual Chrome passes 19 injected eligibility/recovery checks, restricted suite
+484/484 and indicator suite 302/302. Separate AI Trust review accepts the slice.
+The owner's exact cause and successful recovery remain unknown: next obtain the
+message after reload to 0.6.3, not another blanket focus suggestion. Leave the
+owner's running backend, database and profile untouched.
 
 2026-09-29 continuation: [model options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
 and [ADR-017's exact experiment proposal](../decisions/ADR-017-local-embedding-experiment.md)

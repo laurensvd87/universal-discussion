@@ -122,6 +122,52 @@ test("only an in-flight matching action marks disabled controls busy", async () 
   ui.panel.dispose();
 });
 
+const contextMessages = {
+  "context-unavailable": "matchingContextUnavailable", "window-unavailable": "matchingContextWindowUnavailable",
+  "window-query-failed": "matchingContextWindowQueryFailed", "tab-query-failed": "matchingContextTabQueryFailed",
+  "window-changed": "matchingContextWindowChanged", "tab-changed": "matchingContextTabChanged",
+  "focus-expired": "matchingContextFocusExpired", "focus-changed": "matchingContextFocusChanged",
+  "window-unfocused": "matchingContextUnfocused", "unsupported-window": "matchingContextWindow",
+  "tab-unavailable": "matchingContextTab", "page-loading": "matchingContextLoading",
+  "url-unavailable": "matchingContextUrlUnavailable", incognito: "matchingContextIncognito",
+  "unsupported-url": "matchingContextUnsupportedUrl",
+};
+for (const [reason, key] of Object.entries(contextMessages)) {
+  test(`bounded context diagnostic ${reason} has visible guidance and clears on recovery`, async () => {
+    let recovered = false;
+    const ui = harness({ messages: {}, async sendMessage() {
+      return recovered ? resolution() : resolution({ phase: "off", enabled: false,
+        currentOrigin: null, currentTabId: null, currentUrl: null, contextReason: reason });
+    } });
+    await turn();
+    const text = ui.byId("matching-context").textContent;
+    assert.equal(typeof text, "string"); assert.ok(text.length > 0);
+    assert.equal(text, EN[key]);
+    assert.equal(ui.states.at(-1).contextReason, reason);
+    assert.equal(ui.byId("matching-origin").textContent, "");
+    ui.byId("matching-consent").checked = true;
+    ui.byId("matching-consent").listeners.get("change")();
+    assert.equal(ui.byId("matching-enable").disabled, true);
+    assert.equal(ui.byId("matching-enable").attributes["data-busy"], "false");
+    ui.byId("matching-enable").listeners.get("click")();
+    assert.equal(ui.calls.length, 0, "Blocked context must not request a site permission");
+    recovered = true; ui.scheduled[0].fn(); await turn();
+    assert.equal(ui.byId("matching-context").textContent, "");
+    assert.equal(ui.byId("matching-enable").disabled, false);
+    ui.panel.dispose();
+  });
+}
+
+test("new context guidance uses the language pack when supplied", async () => {
+  const translated = "Translated bounded focus message";
+  const ui = harness({ messages: { matchingContextFocusExpired: translated }, async sendMessage() {
+    return resolution({ currentOrigin: null, currentTabId: null, currentUrl: null, contextReason: "focus-expired" });
+  } });
+  await turn();
+  assert.equal(ui.byId("matching-context").textContent, translated);
+  ui.panel.dispose();
+});
+
 test("hung status times out within8seconds, frees queued Pause, and clears request timers", async () => {
   const timers = [], canceled = [], messages = [];
   const ui = harness({

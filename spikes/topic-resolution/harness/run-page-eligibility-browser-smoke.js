@@ -169,6 +169,61 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         const value = await controls(); return value.origin === ORIGIN && value['matching-enable'] === false;
       }, 'focused popup keeps consented Enable usable');
 
+      // Faults are confined to the worker's tab API. The action popup retains
+      // real document focus, exercising the fallback's normal tab checks.
+      for (const fault of [
+        { mode: 'loading-status', reason: 'page-loading', message: EN.matchingContextLoading },
+        { mode: 'pending-url', reason: 'page-loading', message: EN.matchingContextLoading },
+        { mode: 'url-unavailable', reason: 'url-unavailable', message: EN.matchingContextUrlUnavailable },
+        { mode: 'query-rejected', reason: 'tab-query-failed', message: EN.matchingContextTabQueryFailed }
+      ]) {
+        stage = `injected tabs query ${fault.mode} rejection`;
+        assert.equal(await evaluate('document.hasFocus() && document.visibilityState === "visible"'), true);
+        await evaluate(`(() => {
+          globalThis.__eligibilityOriginalTabsQuery = chrome.tabs.query;
+          chrome.tabs.query = async (...args) => {
+            const mode = ${JSON.stringify(fault.mode)};
+            if (mode === 'query-rejected') throw new Error('Injected tab query rejection');
+            const tabs = await globalThis.__eligibilityOriginalTabsQuery.apply(chrome.tabs, args);
+            return tabs.map(tab => {
+              if (mode === 'loading-status') return { ...tab, status: 'loading' };
+              if (mode === 'pending-url') return { ...tab, pendingUrl: tab.url };
+              if (mode === 'url-unavailable') return { ...tab, url: undefined };
+              throw new Error('Unknown tab query injection');
+            });
+          };
+        })()`, workerSession);
+        try {
+          const rejected = await wait(async () => {
+            const value = await status(); return value.contextReason === fault.reason ? value : false;
+          }, `${fault.mode} returns its exact bounded reason`);
+          assert.equal(rejected.currentOrigin, null);
+          assert.equal(rejected.currentUrl, null);
+          const rejectedControls = await wait(async () => {
+            const value = await controls(); return value.context === fault.message ? value : false;
+          }, `${fault.mode} displays its exact guidance`);
+          assert.equal(rejectedControls['matching-enable'], true);
+          assert.equal(rejectedControls.origin, '');
+          assert.equal(rejectedControls.consent, true);
+        } finally {
+          await evaluate(`(() => {
+            chrome.tabs.query = globalThis.__eligibilityOriginalTabsQuery;
+            delete globalThis.__eligibilityOriginalTabsQuery;
+          })()`, workerSession);
+        }
+        stage = `restored tabs query after ${fault.mode}`;
+        assert.equal(await evaluate('document.hasFocus() && document.visibilityState === "visible"'), true);
+        const recovered = await wait(async () => {
+          const value = await status();
+          return value.currentOrigin === ORIGIN && value.contextReason === null ? value : false;
+        }, `${fault.mode} API restoration recovers eligibility`);
+        assert.equal(recovered.currentUrl, ARTICLE);
+        await wait(async () => {
+          const value = await controls();
+          return value.origin === ORIGIN && value['matching-enable'] === false && value.context === '';
+        }, `${fault.mode} recovery restores consented Enable`);
+      }
+
       stage = 'injected unfocused popup rejection';
       await evaluate(`(() => {
         globalThis.__eligibilityHasFocusDescriptor = Object.getOwnPropertyDescriptor(document, 'hasFocus');
@@ -223,6 +278,10 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         window.dispatchEvent(new Event('focus'));
       })()`);
       await evaluate(`(() => {
+        if (globalThis.__eligibilityOriginalTabsQuery) {
+          chrome.tabs.query = globalThis.__eligibilityOriginalTabsQuery;
+          delete globalThis.__eligibilityOriginalTabsQuery;
+        }
         chrome.windows.getLastFocused = globalThis.__eligibilityOriginalLastFocused;
         delete globalThis.__eligibilityOriginalLastFocused;
       })()`, workerSession);
@@ -409,9 +468,14 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     return { result: 'PASS', browser: version.product, checks: ['blank-page-ineligible', 'owned-https-origin-eligible',
       'optional-host-permission-ungranted', 'default-off-and-no-consent-disabled', 'consent-enables-action-only',
       'pause-resume-retry-disabled', 'no-pre-grant-storage-or-network', 'focused-popup-with-simulated-parent-unfocused',
-      'injected-unfocused-popup-rejected', 'restored-popup-focus-accepted', 'injected-popup-window-mismatch-rejected'], interceptedDocuments,
+      'injected-unfocused-popup-rejected', 'restored-popup-focus-accepted', 'injected-popup-window-mismatch-rejected',
+      'injected-tabs-loading-status-rejected', 'restored-tabs-after-loading-status-accepted',
+      'injected-tabs-pending-url-rejected', 'restored-tabs-after-pending-url-accepted',
+      'injected-tabs-url-unavailable-rejected', 'restored-tabs-after-url-unavailable-accepted',
+      'injected-tabs-query-rejected', 'restored-tabs-after-query-rejection-accepted'], interceptedDocuments,
       ownedFaviconRequests, blockedRequests, runtimeExceptions, inferenceTargets: inferenceTargets.size, embeddingRequests,
       simulatedParentFocusFlag: true, injectedNegativeFocusChecks: ['document-hasFocus-false-and-blur', 'current-window-id-mismatch'],
+      injectedTabQueryChecks: ['loading-status', 'pending-url', 'url-unavailable', 'query-rejected'],
       ...(popupFocusDiagnostics ? { popupFocusDiagnostics: focusDiagnostics } : {}),
       elapsedMs: performance.now() - started,
       scope: 'Fresh temporary profile, owned intercepted HTTPS article; no grant, capture, inference, backend, or real webpage fetch' };

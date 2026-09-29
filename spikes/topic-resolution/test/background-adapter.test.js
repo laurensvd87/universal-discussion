@@ -26,7 +26,7 @@ async function harness(t, { enabled = true, paired = true } = {}) {
   const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
   const gates = [];
   const pendingControls = [];
-  const calls = { reads: 0, tabQueries: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [] };
+  const calls = { reads: 0, windowQueries: 0, tabQueries: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [] };
   const state = {
     local: { enabled, origins: [ORIGIN] }, token: paired ? `synthetic-test-token-${"x".repeat(40)}` : undefined,
     tab: { id: 7, active: true, incognito: false, status: "complete", url: PAGE },
@@ -34,7 +34,9 @@ async function harness(t, { enabled = true, paired = true } = {}) {
     writeGate: null, permissionGate: null, embedGate: null, unauthorized: false,
     windowError: false, tabQueryError: false,
     popupContexts: [], popupAnswer: null,
+    now: 0, windowQueryHook: null, tabQueryHook: null,
   };
+  t.mock.method(globalThis.performance, "now", () => state.now);
   const createGate = () => { const gate = deferred(); gates.push(gate); return gate; };
   const api = {
     runtime: { id: EXTENSION_ID, getURL: (filename) => `chrome-extension://${EXTENSION_ID}/${filename}`, onMessage: events.message, onConnect: events.connect,
@@ -62,9 +64,12 @@ async function harness(t, { enabled = true, paired = true } = {}) {
       onChanged: events.storageChanged,
     },
     windows: { getLastFocused: async (options) => { assert.deepEqual(options, { populate: false });
+      calls.windowQueries++;
+      if (state.windowQueryHook) return state.windowQueryHook(calls.windowQueries);
       if (state.windowError) throw new Error("private window detail"); return structuredClone(state.window); }, onFocusChanged: events.focus },
     tabs: { query: async (options) => { assert.deepEqual(options, { active: true, windowId: 1 });
       calls.tabQueries++;
+      if (state.tabQueryHook) return state.tabQueryHook(calls.tabQueries);
       if (state.tabQueryError) throw new Error("private tab detail"); return state.tab ? [structuredClone(state.tab)] : []; },
       onActivated: events.activated, onUpdated: events.updated, onRemoved: events.removed, onReplaced: events.replaced },
     permissions: {
@@ -245,11 +250,11 @@ test("foreground status reports only bounded eligibility reasons without relaxin
   h.state.tab.incognito = false; h.state.tab.url = PAGE;
   h.state.windowError = true;
   const windowFailure = await status();
-  assert.equal(windowFailure.contextReason, "context-unavailable");
+  assert.equal(windowFailure.contextReason, "window-query-failed");
   assert.equal(windowFailure.currentOrigin, null);
   assert.ok(!JSON.stringify(windowFailure).includes("private"));
   h.state.windowError = false; h.state.tabQueryError = true;
-  assert.equal((await status()).contextReason, "context-unavailable");
+  assert.equal((await status()).contextReason, "tab-query-failed");
   assert.equal(h.calls.reads, 0);
   assert.equal(h.calls.fetches.length, 0);
 });
@@ -274,7 +279,7 @@ test("popup fallback rejects navigation during the active-tab recheck", async (t
     return query(options);
   };
   const status = await h.send("status");
-  assert.equal(status.currentOrigin, null); assert.equal(status.contextReason, "context-unavailable");
+  assert.equal(status.currentOrigin, null); assert.equal(status.contextReason, "tab-changed");
   assert.equal(h.calls.reads, 0);
 });
 
@@ -283,6 +288,7 @@ test("ordinary focused browser path never challenges a popup", async (t) => {
   h.state.popupAnswer = () => assert.fail("Focused browser needs no popup witness");
   h.connectPopup(); await flush();
   assert.equal((await h.send("status")).currentOrigin, ORIGIN);
+  assert.equal(h.calls.windowQueries, 1); assert.equal(h.calls.tabQueries, 1);
 });
 
 test("popup blur between witness and active-tab recheck rejects foreground", async (t) => {
@@ -296,7 +302,8 @@ test("popup blur between witness and active-tab recheck rejects foreground", asy
     if (++count === 2) port.onMessage.emit({ type: "focus-change" });
     return result;
   };
-  assert.equal((await h.send("status")).currentOrigin, null);
+  const status = await h.send("status");
+  assert.equal(status.currentOrigin, null); assert.equal(status.contextReason, "focus-changed");
   assert.equal(h.calls.reads, 0);
 });
 
@@ -313,3 +320,112 @@ test("popup closure cancels a late vector, then restored browser focus resumes b
   h.state.window.focused = true; h.events.focus.emit(1); await h.advance();
   assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 1);
 });
+
+function assertRejected(status, reason, calls) {
+  assert.equal(status.contextReason, reason);
+  assert.equal(status.currentOrigin, null);
+  assert.equal(status.currentUrl, null);
+  assert.equal(status.currentTabId, null);
+  assert.equal(calls.reads, 0);
+  assert.equal(calls.embeddings, 0);
+  assert.equal(calls.fetches.length, 0);
+  assert.ok(!JSON.stringify(status).includes("private"));
+}
+
+for (const [reason, setup] of [
+  ["window-unavailable", (h) => { h.state.window = null; }],
+  ["window-query-failed", (h) => { h.state.windowError = true; }],
+  ["tab-query-failed", (h) => { h.state.tabQueryError = true; }],
+  ["context-unavailable", (h) => { h.state.tabQueryHook = () => null; }],
+]) test(`foreground failure ${reason} leaves no current context or capture`, async (t) => {
+  const h = await harness(t);
+  setup(h);
+  await h.advance();
+  assertRejected(await h.send("status"), reason, h.calls);
+});
+
+for (const [reason, patch] of [
+  ["incognito", { incognito: true }],
+  ["page-loading", { status: "loading" }],
+  ["page-loading", { pendingUrl: `${ORIGIN}/next` }],
+  ["url-unavailable", { url: undefined }],
+  ["unsupported-url", { url: "chrome://extensions/" }],
+]) test(`popup fallback classifies initial ${reason} before revalidation ${JSON.stringify(patch)}`, async (t) => {
+  const h = await harness(t);
+  h.state.window.focused = false; Object.assign(h.state.tab, patch);
+  h.connectPopup(); await flush();
+  h.state.windowQueryHook = (count) => {
+    assert.equal(count, 1, "Ineligible initial tab must not requery the window");
+    return structuredClone(h.state.window);
+  };
+  assertRejected(await h.send("status"), reason, h.calls);
+  assert.equal(h.calls.tabQueries, 1);
+  h.state.windowQueryHook = null;
+  await h.advance(); assert.equal(h.calls.reads, 0);
+});
+
+for (const [reason, result] of [
+  ["window-unavailable", null],
+  ["window-changed", { id: 2, focused: false, type: "normal" }],
+  ["unsupported-window", { id: 1, focused: false, type: "popup" }],
+  ["incognito", { id: 1, focused: false, type: "normal", incognito: true }],
+  ["window-query-failed", "reject"],
+]) test(`popup window recheck reports ${reason} without querying a tab afterward`, async (t) => {
+  const h = await harness(t);
+  h.state.window.focused = false; h.connectPopup(); await flush();
+  h.state.windowQueryHook = (count) => {
+    if (count % 2) return structuredClone(h.state.window);
+    if (result === "reject") throw new Error("private recheck window detail");
+    return result;
+  };
+  await h.advance();
+  assert.equal(h.calls.tabQueries, 1);
+  assertRejected(await h.send("status"), reason, h.calls);
+  assert.equal(h.calls.tabQueries, 2, "Only one initial tab query per inspection");
+});
+
+for (const [reason, patch] of [
+  ["tab-unavailable", null],
+  ["tab-unavailable", "multiple"],
+  ["tab-unavailable", { id: undefined }],
+  ["tab-changed", { id: 8 }],
+  ["tab-changed", { url: "https://example.org/other" }],
+  ["incognito", { incognito: true, url: "https://example.org/other" }],
+  ["page-loading", { status: "loading", url: "https://example.org/other" }],
+  ["page-loading", { pendingUrl: `${ORIGIN}/next` }],
+  ["url-unavailable", { url: undefined }],
+  ["unsupported-url", { url: "chrome://extensions/" }],
+  ["tab-query-failed", "reject"],
+]) test(`popup active-tab recheck reports ${reason} ${JSON.stringify(patch)}`, async (t) => {
+  const h = await harness(t);
+  h.state.window.focused = false; h.connectPopup(); await flush();
+  h.state.tabQueryHook = (count) => {
+    if (count % 2) return [structuredClone(h.state.tab)];
+    if (patch === "reject") throw new Error("private recheck tab detail");
+    if (patch === "multiple") return [structuredClone(h.state.tab), { ...structuredClone(h.state.tab), id: 8 }];
+    return patch ? [{ ...structuredClone(h.state.tab), ...patch }] : [];
+  };
+  await h.advance();
+  assertRejected(await h.send("status"), reason, h.calls);
+});
+
+for (const change of ["expiry", "blur", "closure", "replacement"]) {
+  test(`popup witness ${change} after queries fails with precise focus reason`, async (t) => {
+    const h = await harness(t);
+    h.state.window.focused = false; let port = h.connectPopup(); await flush();
+    h.state.tabQueryHook = (count) => {
+      if (count % 2 === 0) {
+        if (change === "expiry") h.state.now += 500;
+        else if (change === "blur") port.onMessage.emit({ type: "focus-change" });
+        else if (change === "closure") port.disconnect();
+        else port = h.connectPopup();
+      }
+      return [structuredClone(h.state.tab)];
+    };
+    assertRejected(await h.send("status"), change === "expiry" ? "focus-expired" : "focus-changed", h.calls);
+    // Expiry/blur retain the port and can prove the capture path rejects again.
+    if (change === "expiry" || change === "blur") {
+      await h.advance(); assert.equal(h.calls.reads, 0); assert.equal(h.calls.fetches.length, 0);
+    }
+  });
+}

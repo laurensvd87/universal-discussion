@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## On-device background matching (0.6.2)
+## On-device background matching (0.6.3)
 
 The owner approved ADR-018's local-only package. Background matching defaults
 off. Page text is sampled and embedded inside the extension; only URL, short
@@ -73,6 +73,15 @@ for the unpacked extension: that switch is unrelated to the DevTools window.
 Before the first enabled site, disabled Pause/Resume/Retry controls are expected.
 Disabled controls no longer use a loading cursor unless an action is pending.
 
+Version 0.6.3 separates window/tab API failures, missing window, changed tab/window
+and expired/changed popup focus. The former "Chrome could not identify the
+current browser window" message also covered a loading page or expiring focus
+proof; it did not establish a window failure. Loading guidance now reflects the
+existing automatic retry. No deadline or capture rule was relaxed. Reload to
+0.6.3, reopen on the article and report the exact message still present after a
+few seconds. The owner's failing condition and successful recovery remain
+unconfirmed; the synthetic regression does not prove this issue resolved.
+
 Pairing and page eligibility are separate. **Choose a topic** means the local
 catalog has loaded, and clearing the token input after Connect is intentional.
 Never share that token or paste extension storage into a bug report. If the page
@@ -96,6 +105,8 @@ it exercises the HTTPS action popup before an optional site grant. It does not
 automate Chrome's permission confirmation or validate any real site's content.
 Its popup-focus regression explicitly simulates a false parent-window focus
 flag in headless Chrome; this does not reproduce the owner's OS focus behavior.
+It also injects loading, pending-navigation, unavailable-URL and rejected-tab-query
+results, verifying precise rejection guidance and recovery after each restoration.
 Actual current test evidence is in [STATUS](../../../plans/STATUS.md); the paragraphs below retain
 the earlier feature-specific evidence, not current global capability limits.
 

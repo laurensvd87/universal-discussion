@@ -32,31 +32,48 @@ function validOrigin(origin) {
   return inspected.supported && inspected.origin === origin;
 }
 async function inspectForeground() {
+  const rejected = (contextReason) => ({ foreground: null, contextReason });
+  const tabReason = (tab) => {
+    if (tab.incognito) return "incognito";
+    if (tab.pendingUrl || tab.status !== "complete") return "page-loading";
+    if (!tab.url) return "url-unavailable";
+    if (!inspectPageUrl(tab.url).supported) return "unsupported-url";
+    return null;
+  };
+  const queryWindow = () => api.windows.getLastFocused({ populate: false });
+  const queryTabs = (windowId) => api.tabs.query({ active: true, windowId });
   try {
-    const window = await api.windows.getLastFocused({ populate: false });
-    if (!window) return { foreground: null, contextReason: "context-unavailable" };
+    let window;
+    try { window = await queryWindow(); } catch { return rejected("window-query-failed"); }
+    if (!window) return rejected("window-unavailable");
     if (window.type !== "normal") return { foreground: null, contextReason: "unsupported-window" };
     if (window.incognito) return { foreground: null, contextReason: "incognito" };
     const witness = window.focused ? null : await popupFocus.check(window.id);
     if (!window.focused && !witness?.isCurrent()) return { foreground: null, contextReason: "window-unfocused" };
-    const tabs = await api.tabs.query({ active: true, windowId: window.id });
+    let tabs;
+    try { tabs = await queryTabs(window.id); } catch { return rejected("tab-query-failed"); }
     if (tabs.length !== 1 || !Number.isSafeInteger(tabs[0]?.id)) return { foreground: null, contextReason: "tab-unavailable" };
     const tab = tabs[0];
+    const initialReason = tabReason(tab);
+    if (initialReason) return rejected(initialReason);
     if (!window.focused) {
-      const currentWindow = await api.windows.getLastFocused({ populate: false });
-      const currentTabs = await api.tabs.query({ active: true, windowId: window.id });
+      let currentWindow;
+      try { currentWindow = await queryWindow(); } catch { return rejected("window-query-failed"); }
+      if (!currentWindow) return rejected("window-unavailable");
+      if (currentWindow.id !== window.id) return rejected("window-changed");
+      if (currentWindow.type !== "normal") return rejected("unsupported-window");
+      if (currentWindow.incognito) return rejected("incognito");
+      let currentTabs;
+      try { currentTabs = await queryTabs(window.id); } catch { return rejected("tab-query-failed"); }
+      if (currentTabs.length !== 1 || !Number.isSafeInteger(currentTabs[0]?.id)) return rejected("tab-unavailable");
       const current = currentTabs[0];
-      if (!witness.isCurrent() || currentWindow?.id !== window.id || currentWindow.type !== "normal" ||
-          currentWindow.incognito || currentTabs.length !== 1 || current?.id !== tab.id || current.url !== tab.url ||
-          current.pendingUrl || current.status !== "complete" || current.incognito) {
-        return { foreground: null, contextReason: "context-unavailable" };
-      }
+      const currentReason = tabReason(current);
+      if (currentReason) return rejected(currentReason);
+      if (current.id !== tab.id || current.url !== tab.url) return rejected("tab-changed");
+      const focusReason = witness.failureReason();
+      if (focusReason) return rejected(focusReason);
     }
-    if (tab.incognito) return { foreground: null, contextReason: "incognito" };
-    if (tab.pendingUrl || tab.status !== "complete") return { foreground: null, contextReason: "page-loading" };
-    if (!tab.url) return { foreground: null, contextReason: "url-unavailable" };
     const inspected = inspectPageUrl(tab.url);
-    if (!inspected.supported) return { foreground: null, contextReason: "unsupported-url" };
     return { foreground: { tabId: tab.id, url: inspected.url, origin: inspected.origin }, contextReason: null };
   } catch {
     return { foreground: null, contextReason: "context-unavailable" };

@@ -37,11 +37,13 @@ test("popup witness challenges afresh and expires immediately on focus change", 
   const h = worker(t), port = h.port(); await flush();
   const first = h.witness.check(1); await flush(); reply(port);
   const result = await first; assert.equal(result.isCurrent(), true);
+  assert.equal(Object.isFrozen(result), true); assert.equal(result.failureReason(), null);
   const second = h.witness.check(1); await flush();
   assert.equal(port.messages.length, 2);
   assert.notEqual(port.messages[0].sequence, port.messages[1].sequence);
   reply(port); assert.ok(await second);
   port.onMessage.emit({ type: "focus-change" }); assert.equal(result.isCurrent(), false);
+  assert.equal(result.failureReason(), "focus-changed");
 });
 
 for (const extra of [{ focused: false, windowId: null }, { windowId: 2 }, { extra: true }, { focused: "true" }]) {
@@ -130,7 +132,24 @@ test("successful witness cannot authorize a delayed downstream tab query", async
   const pending = h.witness.check(1); await flush(); reply(port);
   const result = await pending; assert.equal(result.isCurrent(), true);
   h.state.now = 500; assert.equal(result.isCurrent(), false);
+  assert.equal(result.failureReason(), "focus-expired");
 });
+
+for (const change of ["blur", "closure", "replacement", "disposal"]) {
+  test(`successful witness reports focus-changed for ${change} before deadline expiry`, async (t) => {
+    const h = worker(t), port = h.port(); await flush();
+    const pending = h.witness.check(1); await flush(); reply(port);
+    const result = await pending;
+    if (change === "blur") port.onMessage.emit({ type: "focus-change" });
+    else if (change === "closure") port.disconnect();
+    else if (change === "replacement") h.port();
+    else h.witness.dispose();
+    assert.equal(result.isCurrent(), false);
+    assert.equal(result.failureReason(), "focus-changed");
+    h.state.now = 500;
+    assert.equal(result.failureReason(), "focus-changed", "Lifecycle change takes precedence over elapsed time");
+  });
+}
 
 test("delayed context validation cannot restore a blurred or replaced popup", async (t) => {
   const h = worker(t), port = h.port(); await flush();
