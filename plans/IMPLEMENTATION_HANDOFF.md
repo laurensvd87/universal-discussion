@@ -56,6 +56,15 @@ reload 0.6.5 and retry the enabled public article; another rejection may still
 occur. Do not promise all public sites or the particular article will resolve.
 Leave the owner's backend, database and profile untouched; no reset/restart is
 required. Verification results are recorded in STATUS and the ADR-018 review.
+Latest follow-up supersedes that reload request: the owner reports two public
+news pages ingest successfully but get separate Topics despite similarity.
+Pair-scoped read-only diagnostics find compatible current vectors below the
+unvalidated 0.94 cutoff. No product/data changes; see STATUS. Existing URLs keep
+their links on revisit, so Retry is not a regrouping command. First-main-region
+sampling is a plausible general weakness, not a confirmed fault on these pages.
+Assess bounded article-focused input and positive/hard-negative calibration next;
+do not lower the global cutoff from one pair or silently merge existing threads.
+Manual Source correction is available; comments stay in their original Topic.
 Known separate follow-up: a failed `authorized()` observation after reading can
 strand `processing/reading` without a new event. It remains safely non-ingesting
 but is not fixed by this initial-foreground recovery; see STATUS before changing it.

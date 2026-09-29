@@ -112,6 +112,16 @@ Reload the extension and retry the enabled article; no backend restart or data
 reset is needed. Other checks can still reject pages; all-public-site coverage
 and the owner's exact page outcome are not established.
 
+If similar pages get separate Topics, the experimental policy currently requires
+cosine similarity of at least 0.94 against every member of a candidate Topic,
+plus a 0.04 margin over competing Topics. These are uncalibrated heuristics, not
+probabilities. Input is only a bounded main-region prefix, not necessarily the
+complete article. Existing page-to-Topic links stay fixed on revisit: Retry does
+not regroup them. For a deliberate correction, use **Wrong topic or retained page
+controls**, select the other existing Topic, tick the confirmation and choose
+**Confirm source topic**. Existing comments stay in their original discussion;
+this does not merge discussions. Resume matching explicitly afterward.
+
 To try the discussion loop:
 
 1. Load/reload the unpacked extension; copy its ID from `chrome://extensions`.

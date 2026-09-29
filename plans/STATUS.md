@@ -12,8 +12,11 @@ unknown. In response to the explicit-reservation question the owner now directs
 proceeding with local vectors under a permission working assumption. Extension
 **0.6.5** removes that metadata veto only, preserving the public-only per-site
 scope and other guards. This is owner policy/risk acceptance, not established
-legal or store clearance. Matching quality and the owner's exact page outcome
-remain unvalidated.
+legal or store clearance. The owner now confirms two real public pages were
+ingested but received separate Topics despite perceived semantic similarity.
+A pair-scoped read-only diagnostic finds compatible current vectors below the
+unvalidated automatic-grouping threshold. Real-page matching quality remains
+unvalidated; no automatic association correction or threshold change was made.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -26,7 +29,37 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current owner feedback: local vector-processing assumption — 2026-09-29
+## Current owner feedback: similar pages split into Topics — 2026-09-29
+
+- Owner reports two public news pages receiving separate Topics. Read-only local
+  diagnosis selected only those article records, not other browsing data or
+  comment bodies. Current vectors use the same 384D model/extractor space and
+  have similarity below the frozen 0.94 cutoff; both links are provisional.
+  No raw vectors, article URLs/titles or pair-derived report are committed.
+- The heuristic additionally requires the cutoff against every Topic member and
+  a 0.04 margin over competing Topics. Existing URLs retain their Topic on
+  revisit, even if their vectors change. Thus reloading cannot repair this split.
+  Current vectors explain a present grouping barrier, not a reconstructed past
+  decision: the service intentionally has no historical ingestion/vector ledger.
+- Separate Sol Medium read-only review confirms a potential sampling weakness:
+  the first eligible main/article region wins, including an enclosing main before
+  its nested article. Visible generic teasers can occupy the bounded prefix.
+  The head title is a label, not direct model input. Neither actual captured text
+  nor event dates were verified; a site-specific extraction fault or same-event
+  ground truth is not established. Raw sampled text is deliberately not retained.
+- Restricted focused checks: four matcher regressions and 17 reader/embedding
+  regressions pass. No product change, model run/download, backend request/write,
+  Topic merge, comment move, browser-profile access or new permission. Attempts
+  to open only the owner-supplied public pages with the research browser failed;
+  no access-control bypass or product web-search feature was introduced.
+- Next improvement direction: assess article-focused bounded input and calibrate
+  the provisional policy against positive and confusing-negative cases. One
+  reported similar pair is not sufficient to choose a global cutoff. The 6/6
+  review stays complete; any later provenance-approved 200–250-pair task still
+  needs approval. Existing manual Source-to-Topic correction is available for
+  the immediate owner test and does not move existing comments.
+
+## Completed owner feedback: local vector-processing assumption — 2026-09-29
 
 - Owner explicitly directs assuming permission for the core local vector-matching
   experiment after the earlier question about freely readable pages with explicit
