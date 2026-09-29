@@ -1,8 +1,9 @@
 # Project status
 
 Updated: 2026-09-29. Active direction: ADR-014/015/016 and the product-first roadmap.
-ADR-017's revised synthetic-only local experiment is owner-approved; implementation
-is in progress. No extension/real-page/hosting expansion follows from this approval.
+ADR-017's synthetic-only local experiment is implemented and measured. The next
+gate is the exact interactive/on-device model package; no extension/real-page/
+hosting expansion follows from the experiment approval.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -25,12 +26,43 @@ after its exact model/input approval, then the remaining private/AI/moderation U
 | Discussions and replies | Local human Topic create/select, roots/replies/edit/withdraw implemented in service and extension; no private/AI/moderation controls yet |
 | Local persistence | Memory and SQLite adapters; app DB ignored. Pairing token only in trusted session storage; drafts only popup memory |
 | Current-tab auto-load | Paired popup loads catalog and exact reserved-domain fixture mapping automatically; only known Source ID sent, all other tabs manual |
-| Learned embeddings/general same-Topic matching | Not implemented; early R2 model experiment before R5 AUTO validation |
+| Learned embeddings/general same-Topic matching | Isolated synthetic-only learned comparison implemented; service/extension still fixture-only, no general or automatic Topic matching |
 | AI handoff/import/provider | Planned; no inference or real credentials |
 | Local backend | S1–S3 fixed loopback service, SQLite, session-paired thin client; actual socket and Chrome checks pass |
 | Real accounts/mobile/hosting/stores | Not implemented, deployed or submitted |
 
-## Local embedding experiment approved 2026-09-29 — implementation in progress
+## Local embedding experiment completed 2026-09-29
+
+- Frozen corpus/scoring committed and pushed at `821baf7` before inference.
+  Measured lexical, full/sliced float32 static controls, two compact int8 packs
+  and E5. Source assets, derivative packs, vectors and reports stay ignored/local.
+- Model/runtime archives were pinned and byte-verified. Offline installation
+  disabled every lifecycle script; the CPU runner disables JavaScript network,
+  DNS and subprocess APIs. No service listener, extension change, new permission,
+  real-page input, upload, search or provider was activated.
+- Acquisition accounting: 802,637,843 bytes including a 64 MiB metadata/HTTP reserve;
+  measured full workspace footprint about 1.47 GB, below 1 GiB transfer / 2 GiB
+  installed caps. This is a development workspace, not an end-user app size.
+- Lead review favors E5 as the contextual quality reference for the next bounded
+  on-device prototype; the compact static model remains a size alternative.
+  Neither supports automatic Topic joins based on this smoke test. English and
+  cross-language metrics, difficult distinctions, no-match diagnostics, CPU and
+  whole-process memory are recorded separately in ignored reports. No global
+  language-quality, mobile runtime or production-model selection claim.
+- Focused checks 54/54; actual-asset integration 4/4; existing service regressions
+  51/51. Spike normal/restricted/indicator suites pass (normal retains its one
+  intentional guard-only skip); both secret scans report zero findings. No new
+  listener or browser smoke was needed for this isolated CLI-only increment.
+  The experiment remains isolated from the current fixture-only interactive app.
+- Next: owner-reviewed exact browser/device packaging and interactive input plan.
+  The completed 6/6 task and later provenance-approved R5 review remain untouched.
+- Separate AI review returned qualified accept of the acquisition/runtime and
+  evidence interpretation. A final review finding was corrected and regression-
+  tested: a missing ledger-recorded artifact now stops before any new request.
+  This review is not independent-human, legal or store certification. All 56
+  checked current-document links resolve; `git diff --check` passes.
+
+Earlier approval/research chronology:
 
 - Owner answered **"approved"** to the revised ADR-017 package. Begin the bounded
   local compact-static/E5 experiment; preserve source/derived-data locality,
@@ -321,9 +353,9 @@ are complete. The listener and paired extension loop are implemented and locally
 tested; do not repeat S3 or its unchanged approval. Keep the default offline guard.
 Synthetic identity is a testing device, not real login/security isolation.
 
-The next boundary is choosing and explicitly approving the first real embedding
-experiment; no model is chosen/downloaded by S3 completion. The lead handles the
-review here, without a manual model switch. Model acquisition/activation and broader real-page capture remain separate exact
+The owner approved the first bounded embedding experiment in ADR-017 on
+2026-09-29; that package is now implemented and measured. The lead handles the
+review here, without a manual model switch. Interactive activation and broader real-page capture remain separate exact
 fields/contexts/permissions/assets/retention gates. R1 stores no captured browsing
 data. External search is deferred, not a blocker for these steps.
 Provider/data egress, real accounts/testers, deployment, purchases, public posts,
@@ -342,8 +374,9 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-016: active local-service-first architecture; S1/S2 reviewed, exact local
   S3 activation package owner-approved; listener/client/UI implemented. Supersedes IndexedDB
   placement; no wider data/network permission follows from the approval.
-- ADR-017: proposed local learned-embedding comparison; no model/runtime/input
-  activation approved. Hosting does not inherit permission for raw content or vectors.
+- ADR-017: bounded synthetic-only local comparison completed;
+  no interactive model activation or real inputs. Hosting does not inherit
+  permission for raw content or vectors.
 - ADR-001/004: frozen baseline/editorial evaluation evidence; unchanged.
 - ADR-009: local-first NO-AUTO direction retained and made executable.
 - ADR-010/011: existing exact URL/metadata boundaries unchanged by this reset.

@@ -1,6 +1,6 @@
 # Implementation handoff: local-service discussion MVP
 
-Updated: 2026-09-28. **S1–S3 implemented; next model/input approval boundary.**
+Updated: 2026-09-29. **S1–S3 and ADR-017 experiment complete; next activation gate.**
 Historical starting baseline: `818dd6e`, reviewed S1/S2 and offline extension 0.4.0.
 Inspect current git state first. The fixed listener and session-paired extension
 0.5.0 now provide the local human discussion loop. Socket and actual-Chrome
@@ -18,6 +18,18 @@ Only ADR-017's bounded local acquisition/inference may proceed. The local
 Node process is on-device; future hosting must not silently move raw-content
 embedding there. Browser/mobile inference and remote-vector transfer have not
 been validated or approved by the synthetic comparison proposal.
+
+ADR-017 execution is now complete. Proposed next package, **not yet approved**:
+use E5 suggestions in the existing local extension demo, using only the frozen
+64 synthetic descriptors. Precompute on this PC; retain generated vectors and
+catalog state locally in ignored app-owned storage, preserving existing demo
+contributions. The existing paired loopback API carries known Source IDs and
+bounded display DTOs, never vectors or observed browsing content. Keep suggestions
+distinct from confirmed Topic links, with truthful model/coverage labels and no
+automatic joins. No new extension permissions, model download, real-page input,
+external search/provider, account, spending, hosting or publication. Ask the owner
+explicitly before activation. Browser/mobile inference and general website tests
+remain separate future packages; do not imply that this Node experiment proves them.
 
 The owner answered **"ja"** on 2026-09-28 to ADR-016's explicit local connection,
 pairing, permissions and test package. Do not ask again for that unchanged scope.
@@ -77,7 +89,8 @@ Do not restart Phase 0, the P1.7 questionnaire or the finished 6/6 owner review.
 | S2 — complete | SQLite adapter + in-process secured HTTP handler; composition remains dormant | Persistence/conflict/reset and handler rejection tests pass; no bound socket |
 | Review + owner gate — complete | Corrected S1/S2 accepted; ADR-016 activation package approved 2026-09-28 | Explicit owner answer recorded; no need to repeat |
 | S3 — complete | Fixed listener, session pairing, thin client and human discussion UI | Reviewed code, socket-denied regressions, actual loopback and Chrome smoke |
-| STOP → Astra + owner | Review working local loop; choose exact real model/runtime/license/input experiment | No silent model acquisition/activation or real-page input |
+| ADR-017 — complete | Frozen synthetic multilingual comparison; bounded pinned acquisition and offline CPU measurements | No interactive model activation or real-page input |
+| STOP → Astra + owner | Review measured results; decide exact interactive model/input package | Browser/mobile parity and expanded flows remain gated |
 | Later S4 | Private destination, fixture AI preview, filters, local report/block/moderation | Focused lifecycle/publication tests before each control is enabled |
 
 S1/S2 were the first cheaper-model block and are now complete, not all of roadmap
@@ -306,7 +319,7 @@ owner's picker offers; no model/account/permission setting was changed here.
 ## Historical cheaper-model prompt (completed; do not rerun)
 
 This prompt produced S1/S2. Both historical prompts are complete. Returning agents
-review STATUS and wait for the next exact model/input package approval.
+review STATUS and continue only the approved ADR-017 experiment.
 
 > Lies AGENTS.md, plans/STATUS.md und plans/IMPLEMENTATION_HANDOFF.md sowie die
 > dort genannten aktuellen Entscheidungen. Implementiere zuerst S1 und S2:

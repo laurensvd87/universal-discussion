@@ -1,0 +1,14 @@
+{
+  "name": "@universal-discussion/embedding-experiment-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Explicitly installed, offline-only ADR-017 experiment runtime; not a production service dependency.",
+  "dependencies": {
+    "@huggingface/transformers": "4.3.0",
+    "onnxruntime-node": "1.30.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

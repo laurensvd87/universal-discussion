@@ -1,6 +1,6 @@
 # ADR-017: First local learned-embedding comparison
 
-Status: **Owner-approved bounded local experiment; implementation in progress.**
+Status: **Owner-approved bounded local experiment completed; interactive activation not approved.**
 Date: 2026-09-29.
 
 Approval record: the owner answered **"approved"** to the revised compact
@@ -78,7 +78,8 @@ Published artifact metadata currently lists:
   SHA-256 `f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193`.
 
 These are publisher metadata, not hashes verified against locally acquired
-bytes. Before loading, verify actual bytes, membership in the pinned revisions,
+bytes at proposal time. Execution verified the pinned bytes locally before loading.
+For reproduction, verify actual bytes, membership in the pinned revisions,
 all required external-data/tokenizer/config files and licenses. Record a complete
 manifest; reject mismatch or incomplete artifacts. Do not resolve mutable `main`
 at inference time. No implicit first-run download in tests, popup or service.
@@ -107,6 +108,22 @@ licenses, changed assets/runtime, exceeded resource bounds or required input/egr
 expansion; report the concrete alternative before seeking additional approval.
 
 ## Next checkpoint and exclusions
+
+Execution record, 2026-09-29: corpus/scoring were committed at `821baf7` before
+inference. The isolated runner completed lexical, full/sliced float32, 128/256
+int8 and E5 comparisons under the existing JavaScript capability-denial guard.
+All artifacts and reports remain ignored/local. The runtime lock and
+[installer/license evidence](../apps/local-service/experiments/embeddings/THIRD_PARTY.md)
+record the exact setup. The E5 upstream license card was additionally pinned and
+retained; no model/runtime substitution, input expansion or UI change occurred.
+
+Lead review: retain E5 as the contextual quality reference for the next bounded
+on-device prototype; retain compact static as a footprint alternative, not an
+automatic identity verifier. Neither is selected as a production global model.
+The small synthetic results are not multilingual validation or AUTO evidence.
+Static pooling cannot resolve token-order reversals, and E5 also makes difficult
+distinction errors. Interactive model packaging/lifecycle and exact permitted
+inputs require a new review/owner approval. No implicit extension integration.
 
 The local service runs on the developer's device. This experiment does not select
 hosted content processing. Preserve separate extraction/embedding and matching/

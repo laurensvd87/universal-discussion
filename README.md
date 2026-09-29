@@ -30,7 +30,9 @@ This is a usable local discussion prototype, not a hosted or general-web product
   `127.0.0.1:4174` listener and terminal-only manual pairing token. Actual loopback
   and actual-Chrome extension integration tests pass.
 - Review/evaluation tooling exists; the owner's synthetic 6/6 review is finished.
-- Learned embeddings, general website matching, AI integration, private
+- An isolated, synthetic-only local embedding comparison now runs real models.
+  It does not change the current fixture-only service/extension matching.
+- General website matching, AI integration, private
   discussions, moderation, real accounts and mobile are not implemented yet.
 
 The 2026-09-27–28 reassessment found that validation tooling had overtaken the
@@ -128,11 +130,11 @@ not sent or saved in this block. R1's private/AI/moderation work is still later 
 
 After the initial service/client loop: a pinned local-service embedding experiment
 after exact model/input approval. The adapter is prepared early; no trained model
-is installed yet. The [model options](research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
+is active in the interactive service. The [model options](research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
 and [approved experiment](decisions/ADR-017-local-embedding-experiment.md) define
 the bounded synthetic-only comparison approved on 2026-09-29. Its isolated
 [experiment workspace](apps/local-service/experiments/embeddings/README.md) is
-under implementation; this does not enable learned matching in the extension.
+implemented and locally measured; this does not enable learned matching in the extension.
 The current service is on the user's PC; future
 hosting must not move raw website-content processing off-device by default.
 Remote vectors are sensitive too and require a separate approval.

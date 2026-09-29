@@ -16,8 +16,9 @@ reviewed corrections are recorded in plans/STATUS.md. The owner approved ADR-016
 exact local S3 activation package on 2026-09-28. S3 is now implemented with actual
 loopback/Chrome evidence. Do not repeat S3, its approval or foundation work. The
 owner approved ADR-017's revised synthetic-only local embedding comparison on
-2026-09-29. Implement that exact bounded package; no S4, real-page input or
-extension model activation. The lead handles review here and later gates remain.
+2026-09-29. That comparison is implemented/measured; review its evidence and
+propose the next exact interactive package. No S4, real-page input or extension
+model activation follows from it. The lead handles review and later gates remain.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
 Medium coding subagents (2026-09-28). Delegate bounded coding/test slices with

@@ -11,8 +11,9 @@ owner review. More synthetic review machinery is not on the critical path.
 The completed S1/S2 block is specified in [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md).
 S1/S2 Astra review is complete with corrections. On 2026-09-28 the owner explicitly
 approved ADR-016's local-connection package; S3 is now implemented and locally
-tested. Next stop is the exact real embedding experiment decision, not silent
-model activation. S4's private/AI/moderation UX is still later work.
+tested. ADR-017's revised synthetic-only local embedding comparison was approved
+on 2026-09-29 and is now implemented/measured. Review its evidence before proposing
+interactive activation or broader inputs. S4's private/AI/moderation UX remains later work.
 External search/provider selection is deferred by the owner, not an R1 dependency.
 
 ## Evidence already available
