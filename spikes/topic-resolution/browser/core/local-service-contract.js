@@ -1,4 +1,5 @@
-// Pure /v1 boundary validation. No page context, vectors or revision bodies enter it.
+// Pure /v1 validation. Only the explicit ingestion path accepts approved vectors.
+import { inspectPageUrl } from "./page-content-policy.js";
 const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const KINDS = ["general", "event", "product", "claim"];
 const ACTORS = ["demo-alex", "demo-blair"];
@@ -52,7 +53,8 @@ function sourceUrl(value) {
   text(value, 8192);
   if (/\s|\\/u.test(value)) invalid();
   const url = new URL(value);
-  // S3 has project-created reserved-domain fixtures only, never arbitrary pages.
+  // Preserve fixture compatibility; other Sources require the ADR-018 URL policy.
+  if (inspectPageUrl(value).supported) return value;
   if (url.protocol !== "https:" || url.username || url.password || url.hash || url.port ||
       !(url.hostname.endsWith(".example") || ["example.com", "example.org"].includes(url.hostname))) invalid();
   return value;
@@ -61,6 +63,7 @@ function model(value) {
   const item = record(value, ["id", "status"]);
   if (item.status === "fixture-only" && item.id === "hand-authored-demo-vectors/1") return item;
   if (item.status === "model-unavailable" && item.id === null) return item;
+  if (item.status === "experimental-local" && item.id === "e5-small-q8-browser-main-prefix-v1") return item;
   invalid();
 }
 function topic(value) {
@@ -94,6 +97,18 @@ export function readCommand(value) {
     case "withdraw":
       item = record(value, ["type", "contributionId"]);
       return { type: item.type, contributionId: readId(item.contributionId) };
+    case "correct-source":
+      item = record(value, ["type", "sourceId", "topicId"]);
+      return { type: item.type, sourceId: readId(item.sourceId), topicId: nullableId(item.topicId) };
+    case "forget-source":
+      item = record(value, ["type", "sourceId"]);
+      return { type: item.type, sourceId: readId(item.sourceId) };
+    case "delete-learned-topic":
+      item = record(value, ["type", "topicId", "confirmation"]);
+      return { type: item.type, topicId: readId(item.topicId), confirmation: oneOf(item.confirmation, ["DELETE TOPIC AND DISCUSSION"]) };
+    case "clear-learned-data":
+      item = record(value, ["type", "confirmation"]);
+      return { type: item.type, confirmation: oneOf(item.confirmation, ["CLEAR LEARNED DATA"]) };
     default: invalid();
   }
 }
@@ -109,14 +124,20 @@ export function readCatalog(value) {
     const actor = record(value, ["id", "displayName", "type"]);
     return { id: readActorId(actor.id), displayName: text(actor.displayName, 200), type: oneOf(actor.type, ["human"]) };
   }));
-  const topics = unique(array(item.topics, 100, topic));
+  const topics = unique(array(item.topics, 100, (value) => {
+    const hasMarker = Object.hasOwn(value ?? {}, "learned");
+    if (!hasMarker) return topic(value);
+    const marked = record(value, ["id", "title", "kind", "learned"]);
+    if (marked.learned !== true) invalid();
+    return { ...topic({ id: marked.id, title: marked.title, kind: marked.kind }), learned: true };
+  }));
   const topicIds = new Set(topics.map((item) => item.id));
   const sources = unique(array(item.sources, 100, (value) => {
     const source = record(value, ["id", "url", "title", "provenance", "topicId"]);
     const topicId = nullableId(source.topicId);
     if (topicId !== null && !topicIds.has(topicId)) invalid();
     return { id: readId(source.id), url: sourceUrl(source.url), title: text(source.title, 512),
-      provenance: oneOf(source.provenance, ["project-created-hand-authored-demo/1", "project-created-reserved-domain-bridge/1"]), topicId };
+      provenance: oneOf(source.provenance, ["project-created-hand-authored-demo/1", "project-created-reserved-domain-bridge/1", "owner-local-page-embedding/v1"]), topicId };
   }));
   return { version: readVersion(item.version), model: model(item.model), actors, topics, sources };
 }
@@ -164,10 +185,43 @@ export function readDiscussion(value, topicId) {
 }
 export function readOutcome(value, commandType) {
   const item = record(value, ["version", "result"]);
+  if (commandType === "correct-source") {
+    const result = record(item.result, ["sourceId", "topicId", "previousTopicId", "assignment", "policyVersion"]);
+    return { version: readVersion(item.version), result: { sourceId: readId(result.sourceId), topicId: readId(result.topicId),
+      previousTopicId: nullableId(result.previousTopicId), assignment: oneOf(result.assignment, ["confirmed"]),
+      policyVersion: oneOf(result.policyVersion, ["provisional-all-source-cosine/v1"]) } };
+  }
+  if (["forget-source", "delete-learned-topic", "clear-learned-data"].includes(commandType)) {
+    const fields = commandType === "forget-source" ? ["sourceId"] : commandType === "delete-learned-topic" ? ["topicId", "forgottenSourceIds"] : ["forgottenSourceIds", "deletedTopicIds"];
+    const result = record(item.result, fields);
+    for (const key of fields) result[key] = key.endsWith("Ids") ? array(result[key], 100, readId) : readId(result[key]);
+    return { version: readVersion(item.version), result };
+  }
   const fields = commandType === "create-topic" ? ["topicId", "discussionId"] : ["contributionId"];
   const result = record(item.result, fields);
   for (const field of fields) result[field] = readId(result[field]);
   return { version: readVersion(item.version), result };
+}
+export function readIngestion(value) {
+  const item = record(value, ["expected", "operationId", "url", "title", "embedding", "extractorVersion"]);
+  const url = inspectPageUrl(item.url);
+  if (!url.supported || url.url !== item.url) invalid();
+  const embedding = record(item.embedding, ["modelId", "values"]);
+  oneOf(embedding.modelId, ["e5-small-q8-browser-main-prefix-v1"]);
+  const values = array(embedding.values, 384, (value) => {
+    if (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > 1.001) invalid();
+    return value;
+  });
+  if (values.length !== 384 || Math.abs(Math.hypot(...values) - 1) > 0.001) invalid();
+  return { expected: readVersion(item.expected), operationId: readId(item.operationId), url: url.url,
+    title: text(item.title, 200), embedding: { modelId: embedding.modelId, values },
+    extractorVersion: oneOf(item.extractorVersion, ["main-text-prefix/v1"]) };
+}
+export function readIngestionOutcome(value) {
+  const item = record(value, ["version", "sourceId", "topicId", "assignment", "policyVersion"]);
+  return { version: readVersion(item.version), sourceId: readId(item.sourceId), topicId: readId(item.topicId),
+    assignment: oneOf(item.assignment, ["provisional", "confirmed"]),
+    policyVersion: oneOf(item.policyVersion, ["provisional-all-source-cosine/v1"]) };
 }
 export function readReset(value) { const item = record(value, ["version"]); return { version: readVersion(item.version) }; }
 export function freeze(value) {

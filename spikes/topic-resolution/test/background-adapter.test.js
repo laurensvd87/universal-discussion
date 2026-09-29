@@ -1,0 +1,208 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+const KEY = "pageMatchingPreferences";
+const TOKEN_KEY = "localServicePairingToken";
+const ORIGIN = "https://example.com";
+const EXTENSION_ID = "a".repeat(32);
+const PAGE = `${ORIGIN}/article`;
+let moduleSequence = 0;
+function deferred() {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+}
+const flush = async () => { await new Promise((done) => setImmediate(done)); await new Promise((done) => setImmediate(done)); };
+function event() {
+  const listeners = new Set();
+  return { addListener: (listener) => listeners.add(listener), removeListener: (listener) => listeners.delete(listener),
+    emit(...args) { return [...listeners].map((listener) => listener(...args)); }, clear: () => listeners.clear(), listeners };
+}
+function embedding() { const values = Array(384).fill(0); values[0] = 1; return { modelId: "e5-small-q8-browser-main-prefix-v1", values }; }
+
+async function harness(t, { enabled = true, paired = true } = {}) {
+  const descriptors = new Map(["chrome", "fetch"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const events = Object.fromEntries(["message", "activated", "updated", "removed", "replaced", "focus", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
+  const gates = [];
+  const pendingControls = [];
+  const calls = { reads: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [] };
+  const state = {
+    local: { enabled, origins: [ORIGIN] }, token: paired ? `synthetic-test-token-${"x".repeat(40)}` : undefined,
+    tab: { id: 7, active: true, incognito: false, status: "complete", url: PAGE },
+    window: { id: 1, focused: true, type: "normal" }, permitted: true, exists: false,
+    writeGate: null, permissionGate: null, embedGate: null, unauthorized: false,
+  };
+  const createGate = () => { const gate = deferred(); gates.push(gate); return gate; };
+  const api = {
+    runtime: { id: EXTENSION_ID, getURL: (filename) => `chrome-extension://${EXTENSION_ID}/${filename}`, onMessage: events.message,
+      getContexts: async () => state.exists ? [{}] : [],
+      async sendMessage(message) {
+        assert.equal(message.target, "embedding"); assert.equal(message.type, "embed");
+        assert.equal(message.text, "Project-created bounded public article sample.");
+        calls.embeddings++;
+        if (state.embedGate) return state.embedGate.promise;
+        return { embedding: embedding() };
+      } },
+    storage: {
+      local: { setAccessLevel: async (value) => assert.equal(value.accessLevel, "TRUSTED_CONTEXTS"),
+        get: async (key) => { assert.equal(key, KEY); return { [KEY]: structuredClone(state.local) }; },
+        async set(value) {
+          calls.storageWrites.push(structuredClone(value));
+          if (state.writeGate) await state.writeGate.promise;
+          const oldValue = state.local; state.local = structuredClone(value[KEY]);
+          events.storageChanged.emit({ [KEY]: { oldValue, newValue: state.local } }, "local");
+        } },
+      session: { setAccessLevel: async (value) => assert.equal(value.accessLevel, "TRUSTED_CONTEXTS"),
+        get: async (key) => { assert.equal(key, TOKEN_KEY); return state.token ? { [TOKEN_KEY]: state.token } : {}; },
+        set: async (value) => { state.token = value[TOKEN_KEY]; },
+        remove: async (key) => { assert.equal(key, TOKEN_KEY); const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session"); } },
+      onChanged: events.storageChanged,
+    },
+    windows: { getLastFocused: async (options) => { assert.deepEqual(options, { populate: false }); return structuredClone(state.window); }, onFocusChanged: events.focus },
+    tabs: { query: async (options) => { assert.deepEqual(options, { active: true, windowId: 1 }); return state.tab ? [structuredClone(state.tab)] : []; },
+      onActivated: events.activated, onUpdated: events.updated, onRemoved: events.removed, onReplaced: events.replaced },
+    permissions: {
+      async contains(value) { assert.ok(value.origins.length === 1); const gate = state.permissionGate; state.permissionGate = null; return gate ? gate.promise : state.permitted; },
+      async remove(value) { calls.permissionRemovals.push(value); state.permitted = false; events.permissionRemoved.emit(value); return true; },
+      onRemoved: events.permissionRemoved,
+    },
+    scripting: { async executeScript({ args, target, world }) {
+      assert.equal(world, "ISOLATED"); assert.equal(target.tabId, 7);
+      const attestation = Object.hasOwn(target, "documentIds");
+      if (attestation) calls.attestations++; else calls.reads++;
+      return [{ frameId: 0, documentId: "document-a", result: attestation
+        ? { contractVersion: "page-content-attestation/1", status: "attested", url: args[0] }
+        : { contractVersion: "page-content/1", status: "collected", url: args[0], title: "Synthetic article",
+          text: "Project-created bounded public article sample.", extractorVersion: "main-text-prefix/v1" } }];
+    } },
+    offscreen: { createDocument: async () => { state.exists = true; }, closeDocument: async () => { calls.closes++; state.exists = false; } },
+  };
+  const fakeFetch = async (url, options) => {
+    // Never delegate to ambient fetch. Only a mocked approved loopback route exists.
+    assert.ok(url.startsWith("http://127.0.0.1:4174/v1/"));
+    assert.equal(options.credentials, "omit"); assert.equal(options.redirect, "error");
+    calls.fetches.push({ url, body: options.body });
+    const headers = { "content-type": "application/json" };
+    if (state.unauthorized) return new Response('{"error":"unauthorized"}', { status: 401, headers });
+    if (url.endsWith("/catalog")) return new Response(JSON.stringify({ version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] }), { headers });
+    assert.ok(url.endsWith("/sources/ingest"));
+    assert.ok(!options.body.includes("bounded public article sample"));
+    return new Response(JSON.stringify({ version: { generation: "generation-a", revision: 1 }, sourceId: "source-a", topicId: "topic-a", assignment: "provisional", policyVersion: "provisional-all-source-cosine/v1" }), { headers });
+  };
+  Object.defineProperty(globalThis, "chrome", { configurable: true, value: api });
+  Object.defineProperty(globalThis, "fetch", { configurable: true, value: fakeFetch });
+  const sender = { id: EXTENSION_ID, url: api.runtime.getURL("chromium/popup.html") };
+  async function send(type, extra = {}, from = sender) {
+    const work = new Promise((resolve) => {
+      const results = events.message.emit({ target: "page-matching", type, ...extra }, from, resolve);
+      assert.equal(results.length, 1);
+    });
+    pendingControls.push(work);
+    return work;
+  }
+  async function advance() { t.mock.timers.tick(400); await flush(); }
+  async function unpair() { const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session"); await flush(); }
+  t.after(async () => {
+    state.local.enabled = false; state.token = undefined;
+    for (const gate of gates) gate.resolve(false);
+    events.storageChanged.emit({ [KEY]: { newValue: state.local } }, "local");
+    await flush(); await Promise.allSettled(pendingControls); await advance();
+    Object.values(events).forEach((value) => value.clear());
+    t.mock.timers.reset();
+    for (const [key, descriptor] of descriptors) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
+  });
+  await import(`../browser/chromium/background.js?adapter-test=${++moduleSequence}`);
+  return { state, calls, events, api, send, advance, createGate, unpair };
+}
+
+test("adapter pause remains fail-closed across delayed storage and navigation", async (t) => {
+  const h = await harness(t);
+  h.state.writeGate = h.createGate();
+  const pause = h.send("pause"); await flush();
+  h.events.activated.emit({ tabId: 7, windowId: 1 }); await h.advance();
+  const status = await h.send("status");
+  assert.equal(status.enabled, false);
+  assert.equal(h.calls.reads, 0); assert.equal(h.calls.fetches.length, 0);
+  h.state.writeGate.resolve(); h.state.writeGate = null;
+  await pause; await h.advance();
+  assert.equal(h.state.local.enabled, false); assert.equal(h.calls.reads, 0);
+});
+
+test("adapter remove-site masks consent while preference writes and permission removal are pending", async (t) => {
+  const h = await harness(t);
+  h.state.writeGate = h.createGate();
+  const removal = h.send("remove-site", { origin: ORIGIN }); await flush();
+  h.events.updated.emit(7, { url: PAGE }, h.state.tab); await h.advance();
+  assert.deepEqual((await h.send("status")).origins, []);
+  assert.equal(h.calls.reads, 0); assert.equal(h.calls.fetches.length, 0);
+  h.state.writeGate.resolve(); h.state.writeGate = null;
+  await removal; await h.advance();
+  assert.equal(h.state.permitted, false); assert.deepEqual(h.state.local.origins, []);
+  assert.equal(h.calls.reads, 0);
+});
+
+test("adapter accepts commands only from the packaged popup without a tab sender", async (t) => {
+  const h = await harness(t, { enabled: false });
+  for (const sender of [
+    { id: "b".repeat(32), url: h.api.runtime.getURL("chromium/popup.html") },
+    { id: EXTENSION_ID, url: h.api.runtime.getURL("chromium/popup.html"), tab: { id: 7 } },
+    { id: EXTENSION_ID, url: "https://example.com/" },
+    { id: EXTENSION_ID, url: h.api.runtime.getURL("embedding/offscreen.html") },
+  ]) assert.deepEqual(await h.send("resume", {}, sender), { error: "forbidden" });
+  await h.advance();
+  assert.equal(h.state.local.enabled, false); assert.equal(h.calls.storageWrites.length, 0);
+  assert.equal(h.calls.reads, 0);
+});
+
+test("enable-site reattests expected origin after a delayed permission check", async (t) => {
+  const h = await harness(t, { enabled: false });
+  h.state.permissionGate = h.createGate(); const gate = h.state.permissionGate;
+  const enabling = h.send("enable-site", { origin: ORIGIN }); await flush();
+  h.state.tab.url = "https://example.org/other";
+  h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab);
+  gate.resolve(true);
+  assert.deepEqual(await enabling, { error: "unavailable" });
+  await h.advance(); assert.equal(h.state.local.enabled, false); assert.equal(h.calls.reads, 0);
+});
+
+for (const action of ["pause", "remove-site"]) test(`late enable-site cannot undo completed ${action}`, async (t) => {
+  const h = await harness(t, { enabled: false });
+  h.state.permissionGate = h.createGate(); const gate = h.state.permissionGate;
+  const enabling = h.send("enable-site", { origin: ORIGIN }); await flush();
+  await h.send(action, action === "remove-site" ? { origin: ORIGIN } : {});
+  gate.resolve(true);
+  assert.deepEqual(await enabling, { error: "unavailable" });
+  await h.advance();
+  if (action === "pause") assert.equal(h.state.local.enabled, false);
+  else assert.deepEqual(h.state.local.origins, []);
+  assert.equal(h.calls.reads, 0);
+});
+
+test("unpair during inference cancels native context and never ingests a late vector", async (t) => {
+  const h = await harness(t);
+  h.state.embedGate = h.createGate(); await h.advance();
+  assert.equal(h.calls.reads, 1); assert.equal(h.calls.embeddings, 1);
+  await h.unpair();
+  h.state.embedGate.resolve({ embedding: embedding() }); await flush(); await h.advance();
+  assert.ok(h.calls.closes >= 1);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
+  assert.equal((await h.send("status")).phase, "unpaired");
+});
+
+test("backend 401 clears session pairing and prevents further automatic captures/requests", async (t) => {
+  const h = await harness(t); h.state.unauthorized = true;
+  await h.advance(); assert.equal(h.state.token, undefined); assert.equal(h.calls.reads, 0);
+  const count = h.calls.fetches.length;
+  h.events.activated.emit({ tabId: 7, windowId: 1 }); await h.advance();
+  assert.equal(h.calls.fetches.length, count); assert.equal((await h.send("status")).phase, "unpaired");
+});
+
+test("foreground adapter excludes unfocused/incognito pages and retains only preference settings", async (t) => {
+  const h = await harness(t);
+  h.state.window.focused = false; await h.advance(); assert.equal(h.calls.reads, 0);
+  h.state.window.focused = true; h.state.tab.incognito = true;
+  h.events.focus.emit(1); await h.advance(); assert.equal(h.calls.reads, 0);
+  assert.deepEqual(Object.keys(h.state.local).sort(), ["enabled", "origins"]);
+  assert.equal(h.calls.fetches.length, 0);
+});

@@ -1,7 +1,7 @@
 # ADR-018: Background page matching and shared local discussions
 
-Status: **Owner-requested direction; exact Security/Privacy/Policy activation
-package below awaits explicit approval. No background capture is active.**
+Status: **Owner approved the exact Security/Privacy/Policy package below on
+2026-09-29 ("approved"). B1–B5 implemented and browser-tested; capture defaults off.**
 Date: 2026-09-29.
 
 ## Owner direction and boundary
@@ -21,7 +21,7 @@ superseded as the destination; do not spend another milestone on a toy UI alone.
 Phase 0 and the 6/6 owner review remain complete. The R5 provenance-approved
 200–250-pair task is not needed for this owner-only experimental local loop.
 
-## Proposed single approval package
+## Approved single activation package
 
 1. **Scope and ongoing consent.** One owner on the existing PC/unpacked Chromium
    extension and paired `127.0.0.1:4174` backend. Background matching starts off.
@@ -116,7 +116,7 @@ Phase 0 and the 6/6 owner review remain complete. The R5 provenance-approved
    users, public posts, provider, search, spending, store submission or public
    distribution is included. Those approvals remain separate.
 
-## Implementation slices after approval
+## Implementation slices
 
 | Slice | Deliverable | Required evidence |
 | --- | --- | --- |
@@ -132,7 +132,26 @@ security-sensitive changes before activation. B1/B3 pure work can run in paralle
 B2/B4 integration depends on stable contracts. No model/data/report publication
 follows from a code commit. Keep generated assets and real browsing data ignored.
 
-## Engineering findings and policy evidence
+Implementation refinements inside the approved scope: ingestion uses an expected
+generation/revision fence, one current operation receipt per Source and no visit
+ledger. Local provisional matching uses cosine >=0.94 against every compatible
+Topic member and >=0.04 margin against the nearest member of competing Topics;
+related-reading suggestions use >=0.85. These frozen v1 heuristics are explicitly
+unvalidated and scores are not UI confidence. Existing links remain stable on
+revisit; all corrections are explicit. Deletion removes vectors and receipts,
+including orphan learned Topics via clear/delete controls, without purging demo
+data. Exact source text is neither persisted nor accepted by the HTTP handler.
+
+Actual Chrome 154 CPU inference passed for both packaged document and dedicated
+worker paths; the current runtime works without new assets or substitutions.
+Browser vectors still use a separate model-space identity: one synthetic smoke
+does not certify numeric/ranking parity across Node, browsers or mobile devices.
+
+## Planning findings (before implementation) and policy evidence
+
+The following baseline inventory records what was missing when this package was
+proposed. Implementation has since added these pieces and verified browser CPU
+inference; current evidence and remaining work are recorded in STATUS.
 
 The existing manifest has no background worker or offscreen document and only
 the old active-tab/scripting/storage/loopback grants. Browser workers, foreground
@@ -163,10 +182,10 @@ not legal advice or store approval:
 - [Chrome offscreen API](https://developer.chrome.com/docs/extensions/reference/api/offscreen)
 - [Chrome user-data requirements](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq)
 
-## Supersession on acceptance only
+## Scoped supersession on owner acceptance
 
-Owner acceptance of this exact package would supersede ADR-013's gesture-only/
+Owner acceptance of this exact package supersedes ADR-013's gesture-only/
 ephemeral-query proposal and ADR-014/016's fixture-only/no-auto limits **only for
-this owner-only local test**. It would not authorize private-message/background
+this owner-only local test**. It does not authorize private-message/background
 inbox support, remote vectors/raw content, external testers or release. The old
 6/6 task remains finished; later independent policy/rights and R5 reviews remain.

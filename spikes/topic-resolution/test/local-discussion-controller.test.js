@@ -280,3 +280,119 @@ test("settled ambiguous write latch survives later navigation and selections unt
   assert.equal(ui.controller.currentState().needsFreshRead, false);
   assert.equal(ui.controller.currentState().draft.detached, true);
 });
+
+function backgroundHarness(overrides = {}) {
+  const url = "http://127.0.0.1:4173/background-fixture/page-a.html";
+  let resolution = { phase: "processing", reason: "embedding", tabId: 7, url, documentId: "doc-1", sourceId: null, topicId: null,
+    assignment: null, sequence: 1, enabled: true, origins: ["http://127.0.0.1:4173"], currentOrigin: "http://127.0.0.1:4173", currentTabId: 7, currentUrl: url };
+  const pauses = [];
+  const ui = harness({ readPageResolution: async () => resolution,
+    readActiveTab: async () => ({ tabId: resolution.currentTabId, url: resolution.currentUrl }),
+    async pausePageMatching() { pauses.push("pause"); resolution = { ...resolution, enabled: false, phase: "off", sequence: resolution.sequence + 1 }; return resolution; }, ...overrides });
+  function ingest() {
+    const vector = Array.from({ length: 384 }, (_, index) => index === 0 ? 1 : 0);
+    const result = ui.service.ingest({ expected: ui.service.catalog().version, operationId: "owned-operation-1", url,
+      title: "Owned synthetic learned article", embedding: { modelId: "e5-small-q8-browser-main-prefix-v1", values: vector }, extractorVersion: "main-text-prefix/v1" });
+    resolution = { ...resolution, phase: "ready", reason: null, sourceId: result.sourceId, topicId: result.topicId, assignment: result.assignment };
+    return result;
+  }
+  return { ...ui, ingest, pauses, resolution: () => resolution,
+    setResolution(patch) { resolution = { ...resolution, ...patch }; }, publish: () => ui.controller.updatePageResolution(resolution) };
+}
+
+test("delayed learned readiness loads real service Topic and comment; manual selection wins", async () => {
+  const ui = backgroundHarness(); await ui.controller.open();
+  assert.equal(ui.controller.currentState().phase, "choose-topic"); assert.equal(ui.controller.currentState().topicId, null);
+  const learned = ui.ingest(); await ui.publish();
+  assert.equal(ui.controller.currentState().selection, "background"); assert.equal(ui.controller.currentState().topicId, learned.topicId);
+  ui.controller.setDraft("Owner-only comment on learned Topic"); assert.equal(await ui.controller.submitDraft(), true);
+  assert.equal(ui.service.discussion(learned.topicId).roots[0].body, "Owner-only comment on learned Topic");
+  await ui.controller.selectTopic("harbor-s2"); ui.controller.setDraft("Explicit manual destination");
+  await ui.publish(); assert.equal(ui.controller.currentState().topicId, "harbor-s2");
+  assert.equal(ui.controller.currentState().draft.detached, false);
+});
+
+test("background document/processing changes detach drafts without retargeting, late stale status rejected on submit", async () => {
+  const ui = backgroundHarness(); await ui.controller.open(); ui.ingest(); await ui.publish();
+  ui.controller.setDraft("Keep this text detached");
+  ui.setResolution({ phase: "checking", documentId: null, sourceId: null, topicId: null, sequence: 2 }); await ui.publish();
+  assert.equal(ui.controller.currentState().discussion, null); assert.equal(ui.controller.currentState().draft.detached, true);
+  const catalogSource = ui.service.catalog().sources.find((source) => source.provenance === "owner-local-page-embedding/v1");
+  ui.setResolution({ phase: "ready", documentId: "doc-2", sourceId: catalogSource.id, topicId: catalogSource.topicId, assignment: "provisional" });
+  await ui.publish(); assert.equal(ui.controller.currentState().draft.detached, true);
+  ui.controller.reattachDraft();
+  ui.setResolution({ currentUrl: ui.resolution().url + "?navigation=changed" });
+  assert.equal(await ui.controller.submitDraft(), false);
+  assert.equal(ui.requests.some(([type]) => type === "command"), false);
+  assert.equal(ui.controller.currentState().draft.detached, true);
+});
+
+test("correction pauses before fresh-version write, preserves detached text and never moves comments", async () => {
+  const ui = backgroundHarness(); await ui.controller.open(); const learned = ui.ingest(); await ui.publish();
+  ui.controller.setDraft("Old shared comment"); await ui.controller.submitDraft();
+  ui.controller.setDraft("Unsent must not move with correction");
+  assert.equal(await ui.controller.correctSource(null, "wrong"), false); assert.equal(ui.pauses.length, 0);
+  assert.equal(await ui.controller.correctSource(null, "CONFIRM SOURCE TOPIC"), true);
+  assert.equal(ui.pauses.length, 1); assert.notEqual(ui.controller.currentState().topicId, learned.topicId);
+  assert.equal(ui.controller.currentState().draft.detached, true);
+  assert.equal(ui.service.discussion(learned.topicId).roots[0].body, "Old shared comment");
+  assert.equal(ui.controller.currentState().discussion.roots.length, 0);
+});
+
+test("Forget retains shared comments; learned deletion/clear require exact confirmation and pause", async () => {
+  const ui = backgroundHarness(); await ui.controller.open(); const learned = ui.ingest(); await ui.publish();
+  ui.controller.setDraft("Shared remains after Forget"); await ui.controller.submitDraft();
+  assert.equal(await ui.controller.forgetSource(), true); assert.equal(ui.pauses.length, 1);
+  assert.equal(ui.service.discussion(learned.topicId).roots[0].body, "Shared remains after Forget");
+  const deletion = backgroundHarness(); await deletion.controller.open(); const target = deletion.ingest(); await deletion.publish();
+  assert.equal(await deletion.controller.deleteLearnedTopic("incorrect"), false);
+  assert.equal(await deletion.controller.deleteLearnedTopic("DELETE TOPIC AND DISCUSSION"), true);
+  assert.throws(() => deletion.service.discussion(target.topicId));
+  const clearing = backgroundHarness(); await clearing.controller.open(); clearing.ingest(); await clearing.publish();
+  assert.equal(await clearing.controller.clearLearnedData("incorrect"), false);
+  assert.equal(await clearing.controller.clearLearnedData("CLEAR LEARNED DATA"), true);
+  assert.equal(clearing.service.catalog().sources.length, 8); assert.equal(clearing.pauses.length, 1);
+});
+
+test("learned control duplicate/ambiguous failure remains locked until fresh read", async () => {
+  const pause = deferred();
+  const ui = backgroundHarness({ pausePageMatching: () => pause.promise,
+    client: { async command() { throw Object.assign(new Error(), { code: "unavailable" }); } } });
+  await ui.controller.open(); ui.ingest(); await ui.publish();
+  const forgetting = ui.controller.forgetSource(); assert.equal(ui.controller.currentState().busy, true);
+  assert.equal(await ui.controller.forgetSource(), false); pause.resolve(); await forgetting;
+  assert.equal(ui.controller.currentState().needsFreshRead, true);
+  assert.equal(await ui.controller.clearLearnedData("CLEAR LEARNED DATA"), false);
+});
+
+test("manual choice wins learned auto-resolution with a late catalog response", async () => {
+  const catalog = deferred(); let calls = 0;
+  const ui = backgroundHarness({ client: { async catalog() {
+    if (++calls === 2) return catalog.promise;
+    return ui.service.catalog();
+  } } });
+  await ui.controller.open(); ui.ingest();
+  const applying = ui.publish(); await turn();
+  await ui.controller.selectTopic("harbor-s2"); ui.controller.setDraft("Manual text destination");
+  catalog.resolve(ui.service.catalog()); await applying;
+  assert.equal(ui.controller.currentState().selection, "manual");
+  assert.equal(ui.controller.currentState().topicId, "harbor-s2");
+  assert.equal(ui.controller.currentState().draft.body, "Manual text destination");
+  assert.equal(ui.controller.currentState().draft.detached, false);
+});
+
+test("Forgotten orphan learned Topic remains deletable; corrected fixture Topic cannot be deleted", async () => {
+  const ui = backgroundHarness(); await ui.controller.open(); const learned = ui.ingest(); await ui.publish();
+  ui.controller.setDraft("Shared orphan comment"); await ui.controller.submitDraft();
+  await ui.controller.forgetSource();
+  await ui.controller.selectTopic(learned.topicId);
+  assert.equal(ui.controller.currentState().sourceId, null);
+  assert.equal(ui.controller.currentState().catalog.topics.find((topic) => topic.id === learned.topicId).learned, true);
+  assert.equal(await ui.controller.deleteLearnedTopic("DELETE TOPIC AND DISCUSSION"), true);
+  assert.throws(() => ui.service.discussion(learned.topicId));
+  const corrected = backgroundHarness(); await corrected.controller.open(); corrected.ingest(); await corrected.publish();
+  await corrected.controller.correctSource("harbor-s2", "CONFIRM SOURCE TOPIC");
+  assert.equal(corrected.controller.currentState().topicId, "harbor-s2");
+  assert.equal(await corrected.controller.deleteLearnedTopic("DELETE TOPIC AND DISCUSSION"), false);
+  assert.equal(corrected.pauses.length, 1);
+});

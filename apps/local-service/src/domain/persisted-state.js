@@ -1,5 +1,6 @@
 import { LIMITS, STATE_SCHEMA } from "./demo-state.js";
 import { readBody } from "./validation.js";
+import { BROWSER_MODEL_ID, EXTRACTOR_VERSION, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, MATCH_POLICY_VERSION, readLearnedEmbedding, readLearnedUrl } from "./learned-sources.js";
 
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 const ACTORS = new Set(["demo-alex", "demo-blair"]);
@@ -16,7 +17,7 @@ export function assertValidPersistedState(state) {
   array(state.sourceLinks, 100);
 
   const topicIds = unique(state.topics, (topic) => {
-    record(topic, ["id", "kind", "title", "createdAt"]);
+    record(topic, ["id", "kind", "title", "createdAt", ...(topic.provenance === LEARNED_TOPIC_PROVENANCE ? ["provenance"] : [])]);
     text(topic.id, 128); text(topic.title, 200); text(topic.createdAt, 64);
     if (!TOPIC_KINDS.has(topic.kind)) invalid();
     return topic.id;
@@ -30,9 +31,16 @@ export function assertValidPersistedState(state) {
   if (discussionIds.size !== topicIds.size || new Set(state.discussions.map((entry) => entry.topicId)).size !== topicIds.size) invalid();
 
   const sourceIds = unique(state.sources, (source) => {
-    record(source, ["id", "url", "title", "embedding", "provenance"]);
+    const learned = source.provenance === LEARNED_SOURCE_PROVENANCE;
+    record(source, ["id", "url", "title", "embedding", "provenance", ...(learned ? ["extractorVersion", "operationId", "operationDigest", "policyVersion"] : [])]);
     text(source.id, 128); text(source.title, 512); text(source.provenance, 128); validUrl(source.url);
     validEmbedding(source.embedding);
+    if (learned) {
+      text(source.title, 200); text(source.operationId, 128);
+      if (source.extractorVersion !== EXTRACTOR_VERSION || source.policyVersion !== MATCH_POLICY_VERSION || !/^[a-f0-9]{64}$/u.test(source.operationDigest) || source.embedding?.modelId !== BROWSER_MODEL_ID) invalid();
+      if (readLearnedUrl(source.url) !== source.url) invalid();
+      readLearnedEmbedding(source.embedding);
+    }
     return source.id;
   });
   const linkedSources = new Set();
@@ -40,8 +48,11 @@ export function assertValidPersistedState(state) {
     record(link, ["sourceId", "topicId", "method"]);
     text(link.sourceId, 128); text(link.topicId, 128); text(link.method, 64);
     if (!sourceIds.has(link.sourceId) || !topicIds.has(link.topicId) || linkedSources.has(link.sourceId)) invalid();
+    const source = state.sources.find((item) => item.id === link.sourceId);
+    if (source.provenance === LEARNED_SOURCE_PROVENANCE && !["learned-provisional", "manual-confirmed"].includes(link.method)) invalid();
     linkedSources.add(link.sourceId);
   }
+  if (state.sources.some((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && !linkedSources.has(source.id))) invalid();
 
   const contributionIds = unique(state.contributions, (contribution) => {
     record(contribution, ["id", "discussionId", "rootId", "replyToId", "authorId", "actorType", "visibility", "withdrawn", "createdAt", "revisions"]);

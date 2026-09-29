@@ -25,7 +25,8 @@ function removeOwnedTemp(directory) {
 // Runs only against a new temporary profile and synthetic data. Page interception
 // plus resolver/background flags constrain this smoke; they are not a global
 // browser firewall guarantee. No download or normal browser profile is used.
-export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME) {
+export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, { backgroundMatching = false } = {}) {
+  if (backgroundMatching) return (await import('./run-background-matching-browser-smoke.js')).runBackgroundMatchingBrowserSmoke(executable);
   if (!path.isAbsolute(executable) || !existsSync(executable) || !statSync(executable).isFile()) {
     throw new Error("Supply an absolute path to an installed Chrome executable");
   }
@@ -319,11 +320,13 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
-  if (args.length > 1) {
-    process.stderr.write("Usage: node harness/run-local-service-browser-smoke.js [absolute-installed-chrome-path]\n");
+  const backgroundMatching = args[0] === '--matching';
+  const remaining = backgroundMatching ? args.slice(1) : args;
+  if (remaining.length > 1) {
+    process.stderr.write("Usage: node harness/run-local-service-browser-smoke.js [--matching] [absolute-installed-chrome-path]\n");
     process.exitCode = 1;
   } else {
-    runLocalServiceBrowserSmoke(args[0]).then((result) => process.stdout.write(`${JSON.stringify(result)}\n`)).catch((error) => {
+    runLocalServiceBrowserSmoke(remaining[0], { backgroundMatching }).then((result) => process.stdout.write(`${JSON.stringify(result)}\n`)).catch((error) => {
       // Harness-generated messages deliberately exclude browser/HTTP payloads.
       process.stderr.write(`Local service browser smoke failed: ${error.message}\n`);
       process.exitCode = 1;

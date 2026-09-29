@@ -8,6 +8,7 @@ import { createIndicatorController } from "../core/indicator-controller.js";
 import { createPageMetadataController } from "../core/page-metadata-controller.js";
 import { mountRelatedPagesDemo } from "./related-pages-panel.js";
 import { mountDiscussionPanel } from "./discussion-panel.js";
+import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { createLocalDiscussionController } from "../core/local-discussion-controller.js";
 import { createLocalServiceClient } from "../core/local-service-client.js";
 import { createLocalServiceSession } from "../core/local-service-session.js";
@@ -167,17 +168,26 @@ const tabLifecycleObserver = createTabLifecycleObserver(tabsApi);
 const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"));
 const localSession = createLocalServiceSession({ storageSession: globalThis.chrome.storage.session });
 const localClient = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: localSession.getToken });
+let matchingPanel;
 const localDiscussion = createLocalDiscussionController({
   client: localClient,
   session: localSession,
   readActiveTab: activeTabReader.read,
   observeTabLifecycle: tabLifecycleObserver.observe,
   lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
+  readPageResolution: () => matchingPanel.readResolution(),
+  pausePageMatching: () => matchingPanel.pauseMatching(),
   onStateChange: discussionPanel.render,
+});
+matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-matching"), {
+  sendMessage: (message) => globalThis.chrome.runtime.sendMessage(message),
+  requestPermission: (request) => globalThis.chrome.permissions.request(request),
+  onResolution: localDiscussion.updatePageResolution,
 });
 discussionPanel.bind(localDiscussion);
 document.querySelector("#product-title").textContent = EN.discussionPageTitle;
 document.querySelector("#product-capabilities").textContent = EN.discussionCapabilities;
+document.querySelector("#product-matching-badge").textContent = EN.discussionMatchingBadge;
 document.querySelector("#product-intro").textContent = EN.discussionIntro;
 document.querySelector("#diagnostic-heading").textContent = EN.discussionDiagnostic;
 document.querySelector("#product-footer").textContent = EN.discussionFooter;
@@ -201,6 +211,7 @@ const pageMetadataController = createPageMetadataController({
 });
 
 globalThis.addEventListener("pagehide", () => {
+  matchingPanel.dispose();
   localDiscussion.dispose();
   discussionPanel.dispose();
   pageMetadataController.dispose();

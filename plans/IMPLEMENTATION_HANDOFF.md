@@ -1,18 +1,21 @@
 # Implementation handoff: local-service discussion MVP
 
-Updated: 2026-09-29. **S1–S3 and ADR-017 complete; ADR-018 expanded activation gate.**
+Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
 Latest owner direction supersedes the synthetic-only interactive proposal below:
 build the actual real-page background-vector/grouping/shared-comment loop, with
 asynchronous resolution. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md)
-defines the proposed one-time Security/Privacy/Policy approval and executable
+defines the approved one-time Security/Privacy/Policy package and executable
 B1–B5 slices. Do not interpret direction alone as consent to undisclosed broad
-permissions or retained URL/title fields. Ask for that exact package, then work
-autonomously within it using parallel Sol Medium agents. No new activation yet.
+permissions or retained URL/title fields. The owner explicitly approved that exact
+package on 2026-09-29; work autonomously within it using parallel Sol Medium agents.
+Do not repeat its approval. Capture must default off with per-site enablement.
 Historical starting baseline: `818dd6e`, reviewed S1/S2 and offline extension 0.4.0.
-Inspect current git state first. The fixed listener and session-paired extension
-0.5.0 now provide the local human discussion loop. Socket and actual-Chrome
-integration checks pass; no real model/input has been activated. See STATUS and
+Inspect current git state first. Extension 0.6.0 adds browser-local E5 and
+selected-site provisional Topic resolution to the existing paired human loop.
+Actual browser inference and full shared-comment/lifecycle checks pass; see
+STATUS and the [ADR-018 review](../research/ADR018_IMPLEMENTATION_REVIEW_2026-09-29.md).
+Do not restart B1–B5; owner-local public-site feedback is next. Historical S3 evidence is in
 the [S3 review](../research/S3_IMPLEMENTATION_REVIEW_2026-09-28.md) for exact evidence.
 Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md).
 
@@ -22,10 +25,11 @@ were explicitly **owner-approved on 2026-09-29**. The owner's global-language/do
 clarification revised the comparison to compact multilingual static variants
 versus E5, not the earlier Granite/E5 pair; see the
 [size follow-up](../research/SMALL_EMBEDDING_FOOTPRINT_2026-09-29.md).
-Only ADR-017's bounded local acquisition/inference may proceed. The local
+ADR-017 alone approved only bounded local acquisition/inference; ADR-018 now
+additionally approves its exact browser background matching package. The local
 Node process is on-device; future hosting must not silently move raw-content
 embedding there. Browser/mobile inference and remote-vector transfer have not
-been validated or approved by the synthetic comparison proposal.
+been validated or approved by the synthetic comparison proposal itself.
 
 ADR-017 execution is now complete. Historical narrower proposal, superseded by
 the owner's real-page direction and ADR-018 (do not implement as another milestone):
@@ -86,9 +90,10 @@ Do not restart Phase 0, the P1.7 questionnaire or the finished 6/6 owner review.
 - Client UI stays in `spikes/topic-resolution/browser/chromium/`; DTO/controller
   code in `browser/core/`; new English message keys in `browser/locales/en.js`.
   Browser imports remain inside the unpacked extension root.
-- The server embedding adapter owns model/version/dimension metadata and vectors.
-  Initially use labelled bundled vectors or `model-unavailable`. No model assets,
-  genuine inference, private inputs, vectors/scores in UI DTOs or semantic claims.
+- The server owns model/version/dimension metadata and vectors. ADR-018 adds
+  browser-side real inference and local vector ingestion; the server never gets
+  raw body text or runs that model. Fixture vectors remain separately labelled.
+  Private inputs, vector/score UI DTOs and validated semantic claims stay excluded.
 
 ## Sequential work packages
 
@@ -99,7 +104,7 @@ Do not restart Phase 0, the P1.7 questionnaire or the finished 6/6 owner review.
 | Review + owner gate — complete | Corrected S1/S2 accepted; ADR-016 activation package approved 2026-09-28 | Explicit owner answer recorded; no need to repeat |
 | S3 — complete | Fixed listener, session pairing, thin client and human discussion UI | Reviewed code, socket-denied regressions, actual loopback and Chrome smoke |
 | ADR-017 — complete | Frozen synthetic multilingual comparison; bounded pinned acquisition and offline CPU measurements | No interactive model activation or real-page input |
-| STOP → Astra + owner | Review measured results; decide exact interactive model/input package | Browser/mobile parity and expanded flows remain gated |
+| ADR-018 B1–B5 — complete | Browser E5, selected-site capture, persistent provisional grouping and shared comments | Actual Chrome inference + 14-check lifecycle flow and legacy smoke pass; mobile/remote/private expansion remains gated |
 | Later S4 | Private destination, fixture AI preview, filters, local report/block/moderation | Focused lifecycle/publication tests before each control is enabled |
 
 S1/S2 were the first cheaper-model block and are now complete, not all of roadmap
@@ -107,6 +112,13 @@ R1. S3 is also complete; do not rerun its implementation handoff. Routine naming
 and the approved capabilities do not need more votes; expansion beyond them does.
 Use one implementation owner and a bounded separate Trust/Quality review, not a
 large standing agent team. AI review is not independent-human/legal/store approval.
+
+### Historical completed S1–S3 specifications
+
+The following original slice contracts describe their completed scope. ADR-018
+supersedes their fixture-only/no-vector-ingestion/no-auto limits only within its
+explicit owner-local package. Do not treat the historical stop prompts as a new
+gate for already-approved B1–B5, or repeat these implementations.
 
 ### S1: service-owned domain and catalog
 

@@ -20,7 +20,8 @@ External search/provider selection is deferred by the owner, not an R1 dependenc
 matching loop, not another synthetic-only UI milestone. R2's next execution
 package is [ADR-018 B1–B5](../decisions/ADR-018-background-page-matching-local-poc.md).
 Its exact capture/permissions/payload/retention and provisional local-auto policy
-await owner approval. This does not begin R5 production AUTO or repeat 6/6.
+were explicitly owner-approved on 2026-09-29; B1–B5 are implemented and browser-tested. This does not
+begin R5 production AUTO or repeat 6/6.
 
 ## Evidence already available
 
@@ -123,17 +124,20 @@ generate URLs with an LLM or assume API results may be permanently cached/embedd
 Provider/privacy/security, query fields, retention/derivation rights and spending
 need explicit approval before external activation; see ADR-015 and its research.
 
-Before general live-page tests, ask once for exact fields, contexts, permissions,
-local retention and rights-policy approach. Do not generalize the current
-queryless/robots allowlist. Body/private-message processing remains ADR-013;
-manual Topic selection is a fallback. No provider or upload on popup opening.
+ADR-018 now supplies the explicitly approved exact public selected-site fields,
+permissions, on-device E5/runtime, local retention and rights-policy package.
+Its B1–B5 branch replaces the old queryless metadata-only limit for that scope,
+not for private-message processing or remote transfer. Manual Topic selection
+remains a fallback; no provider or off-device upload occurs on popup opening.
 
 Acceptance: genuinely computed candidates (mock results labeled); paraphrase
 candidates appear, distinct developments can stay separate; local confirmation
 does not merge global Topics; query identity, bad hints, navigation, model absence
 and no-match tested. Versioned Source links and subthread-preserving correction.
-Gate: broader capture/model approval before activation. The 200-pair task is
-not needed for experimental local suggestions. No automatic semantic joins.
+Gate: ADR-018 approval is complete for owner-local provisional automatic grouping,
+with ambiguity/correction/no-post-move controls. The 200-pair task is not needed
+for that local experiment. Broader/private/shared/production AUTO still requires
+its separate capture/model/security and R5 approvals.
 
 ## R3 — AI participation without requiring API keys
 

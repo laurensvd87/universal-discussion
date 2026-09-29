@@ -18,9 +18,11 @@ loopback/Chrome evidence. Do not repeat S3, its approval or foundation work. The
 owner approved ADR-017's revised synthetic-only local embedding comparison on
 2026-09-29. That comparison is implemented/measured. The owner now requests the
 real-page background matching/shared-comment loop. ADR-018 defines its exact
-permission/data/retention/provisional-grouping package, still awaiting explicit
-approval. No S4, live capture or model activation before that gate. After approval,
-implement B1–B5 autonomously. The lead handles review and later gates remain.
+permission/data/retention/provisional-grouping package, explicitly approved on
+2026-09-29. B1–B5 are implemented and actual-Chrome tested; do not repeat them.
+Owner feedback within that local-only scope is next; capture defaults off and
+sites need an in-app grant. No S4 or expanded private/remote
+scope follows. The lead handles review and later gates remain.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
 Medium coding subagents (2026-09-28). Delegate bounded coding/test slices with

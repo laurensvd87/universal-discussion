@@ -79,6 +79,41 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   button("discussionDiscard", () => { controller?.discardDraft(); body.focus(); }, composer);
   const relatedHeading = node("h3", "discussionRelated"); const model = node("p");
   const related = node("ul"); root.append(relatedHeading, model, related);
+  const provenance = node("p"); provenance.id = "discussion-provenance"; root.append(provenance);
+  const learnedControls = node("section"); learnedControls.id = "discussion-learned-controls";
+  learnedControls.append(node("h3", "discussionCorrectionHeading"), node("p", "discussionCorrectionIntro")); root.append(learnedControls);
+  const correctionTarget = node("select"); correctionTarget.id = "discussion-correction-topic";
+  const correctionLabel = node("label", "discussionCorrectionTarget"); correctionLabel.htmlFor = correctionTarget.id;
+  const correctConfirm = node("input"); correctConfirm.id = "discussion-correction-confirm"; correctConfirm.type = "checkbox";
+  const correctLabel = node("label", "discussionCorrectConfirm"); correctLabel.htmlFor = correctConfirm.id;
+  learnedControls.append(correctionLabel, correctionTarget, correctLabel, correctConfirm);
+  const correct = button("discussionCorrect", async () => {
+    if (!correctConfirm.checked) return;
+    if (await controller?.correctSource(correctionTarget.value || null, "CONFIRM SOURCE TOPIC")) correctConfirm.checked = false;
+  }, learnedControls);
+  const forget = button("discussionForget", () => void controller?.forgetSource(), learnedControls);
+  const deleteInput = node("input"); deleteInput.id = "discussion-delete-confirmation"; deleteInput.autocomplete = "off";
+  const deleteLabel = node("label", "discussionDeleteLabel"); deleteLabel.htmlFor = deleteInput.id;
+  learnedControls.append(deleteLabel, deleteInput);
+  const deleteTopic = button("discussionDelete", async () => {
+    if (await controller?.deleteLearnedTopic(deleteInput.value)) deleteInput.value = "";
+  }, learnedControls);
+  const clearInput = node("input"); clearInput.id = "discussion-clear-confirmation"; clearInput.autocomplete = "off";
+  const clearLabel = node("label", "discussionClearLabel"); clearLabel.htmlFor = clearInput.id;
+  learnedControls.append(clearLabel, clearInput);
+  const clear = button("discussionClear", async () => {
+    if (await controller?.clearLearnedData(clearInput.value)) clearInput.value = "";
+  }, learnedControls);
+  function learnedActions() {
+    const usable = lastState?.catalog && ["ready", "choose-topic"].includes(lastState.phase) && !lastState.busy && !lastState.needsFreshRead;
+    const selectedLearned = lastState?.catalog?.sources.some((source) => source.id === lastState.sourceId && source.provenance === "owner-local-page-embedding/v1");
+    const selectedLearnedTopic = lastState?.catalog?.topics.some((topic) => topic.id === lastState.topicId && topic.learned === true);
+    correct.disabled = !usable || !selectedLearned || !correctConfirm.checked;
+    forget.disabled = !usable || !selectedLearned;
+    deleteTopic.disabled = !usable || !selectedLearnedTopic || deleteInput.value !== "DELETE TOPIC AND DISCUSSION";
+    clear.disabled = !usable || clearInput.value !== "CLEAR LEARNED DATA";
+  }
+  listen(correctConfirm, "change", learnedActions); listen(deleteInput, "input", learnedActions); listen(clearInput, "input", learnedActions);
   const resetForm = node("form"); root.append(resetForm);
   const confirmation = node("input"); confirmation.id = "discussion-reset-confirmation";
   confirmation.autocomplete = "off";
@@ -91,12 +126,19 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   listen(resetForm, "submit", async (event) => {
     event.preventDefault(); if (await controller?.reset(confirmation.value)) confirmation.value = "";
   });
+  const choiceStates = new WeakMap();
   function choices(select, entries, selected, placeholder) {
-    const items = [];
-    if (placeholder) { const option = node("option", placeholder); option.value = ""; items.push(option); }
-    for (const entry of entries) { const option = node("option"); option.value = entry.id;
-      option.textContent = entry.title ?? entry.displayName; items.push(option); }
-    select.replaceChildren(...items); select.value = selected ?? "";
+    const signature = JSON.stringify([placeholder ?? null, entries.map((entry) => [entry.id, entry.title ?? entry.displayName])]);
+    const value = selected ?? "";
+    const previous = choiceStates.get(select);
+    if (signature !== previous?.signature) {
+      const items = [];
+      if (placeholder) { const option = node("option", placeholder); option.value = ""; items.push(option); }
+      for (const entry of entries) { const option = node("option"); option.value = entry.id;
+        option.textContent = entry.title ?? entry.displayName; items.push(option); }
+      select.replaceChildren(...items); select.value = value;
+    } else if (value !== previous.value) select.value = value;
+    choiceStates.set(select, { signature, value });
   }
   let threadHandlers = [];
   function clearThreadHandlers() {
@@ -127,9 +169,19 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let renderedActor;
   let renderedBusy;
   let renderedFreshRead;
+  let confirmationContext;
   function render(state) {
     if (disposed) return;
     lastState = state;
+    const nextConfirmationContext = JSON.stringify([state.sourceId ?? null, state.topicId ?? null]);
+    if (confirmationContext !== undefined && confirmationContext !== nextConfirmationContext) {
+      correctConfirm.checked = false;
+      correctionTarget.value = "";
+      deleteInput.value = "";
+      clearInput.value = "";
+      confirmation.value = "";
+    }
+    confirmationContext = nextConfirmationContext;
     const errorKey = { unauthorized: "discussionUnauthorized", conflict: "discussionConflict", capacity: "discussionCapacity",
       "invalid-request": "discussionInvalid", "invalid-response": "discussionInvalid", "context-changed": "discussionContextChanged" }[state.error];
     status.textContent = text(errorKey ?? (state.error ? "discussionUnavailable" : {
@@ -170,7 +222,15 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       thread.replaceChildren(...cards); renderedDiscussion = signature; renderedActor = state.actorId; renderedBusy = state.busy;
       renderedFreshRead = state.needsFreshRead;
     }
-    model.textContent = !state.catalog ? "" : text(state.catalog.model.status === "model-unavailable" ? "discussionModelUnavailable" : "discussionModelFixture");
+    const modelStatus = state.related?.model?.status ?? state.catalog?.model.status;
+    model.textContent = !state.catalog ? "" : text(modelStatus === "experimental-local" ? "discussionModelLearned" : modelStatus === "model-unavailable" ? "discussionModelUnavailable" : "discussionModelFixture");
+    const selectedSource = state.catalog?.sources.find((source) => source.id === state.sourceId);
+    const learned = selectedSource?.provenance === "owner-local-page-embedding/v1";
+    provenance.textContent = !selectedSource ? "" : text(learned ? "discussionProvenanceLearned" : "discussionProvenanceFixture");
+    learnedControls.hidden = !(state.catalog?.sources.some((source) => source.provenance === "owner-local-page-embedding/v1") ||
+      state.catalog?.topics.some((topic) => topic.learned === true));
+    choices(correctionTarget, state.catalog?.topics ?? [], correctionTarget.value, "discussionSeparate");
+    learnedActions();
     const suggestions = (state.related?.results ?? []).map((source) => {
       const item = node("li"); const sourceTitle = node("p"); sourceTitle.textContent = source.title;
       const address = node("p"); address.textContent = source.url;

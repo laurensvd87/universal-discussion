@@ -1,11 +1,12 @@
 # Local service
 
-Local, service-owned prototype state for Sources, fixture vectors, Topic links,
+Local, service-owned prototype state for Sources, vectors, Topic links,
 Topics, Discussions and human Contributions. S3a adds a deliberately started
 loopback listener around the reviewed S1/S2 application. Imports have no listener
 or database side effects. Default tests deny sockets, DNS, fetch and subprocesses.
 The owner approved ADR-016's exact local S3 activation package on 2026-09-28.
-Extension 0.5.0 now pairs with this service and exposes the local human discussion
+Extension 0.6.0 pairs with this service and adds owner-approved on-device page
+matching to the local human discussion
 loop; see the [browser instructions](../../spikes/topic-resolution/browser/README.md).
 See
 [the S1/S2 review](../../research/S1_S2_REVIEW_2026-09-28.md) and
@@ -33,7 +34,9 @@ The service provides:
 - an in-memory and a transactional SQLite repository over the same versioned
   aggregate contract;
 - human root/reply/edit/withdraw commands with ownership and stale-write checks;
-- catalog, fixture-only related ranking and projected discussion DTOs;
+- catalog, separate fixture/learned related ranking and projected discussion DTOs;
+- ADR-018 ingestion of URL/title/384D browser-derived vectors, experimental local
+  Topic grouping and explicit correction/forget/deletion commands;
 - a transport-neutral `/v1` request handler with exact Host, bearer, optional
   exact Origin, CORS preflight, size and route validation;
 - dormant composition plus a bounded, explicitly started HTTP transport.
@@ -43,6 +46,40 @@ Bodies support line breaks/tabs. State is capped at 8 MiB and discussion views a
 capacity without changing the stored state. Existing text remains readable and
 can be withdrawn. Application mutation results contain only version and IDs;
 internal snapshots and revision history are not returned to callers.
+
+## Owner-local page matching (ADR-018)
+
+The service receives only a normalized eligible URL (2,048 characters), short
+title (200), a 384D unit vector in `e5-small-q8-browser-main-prefix-v1`, extractor
+version and bounded operation ID. `POST /v1/sources/ingest` also requires the
+current `{generation, revision}` in `expected`. No page-body field is accepted;
+there is no server inference, URL fetch or external provider. The browser model
+space remains distinct from the earlier Node experiment.
+
+One current vector/title/link and current operation receipt per Source persist
+in SQLite until deletion. There is no visit history. The catalog is capped at
+100 Sources including fixtures, 100 Topics and the existing 8 MiB aggregate.
+At capacity, writes fail visibly; nothing is silently evicted.
+
+The versioned experimental local policy requires cosine >=0.94 against every
+member of a candidate Topic and a >=0.04 margin over every competing Topic's
+nearest compatible Source. Related-reading suggestions use >=0.85. These are
+unvalidated heuristics, not confidence or production accuracy claims. Ambiguity
+creates a separate Topic. Existing Source links stay stable on revisit; manual
+correction does not move comments or merge discussions. Model scores/vectors
+never appear in display DTOs.
+
+New versioned `/v1/commands` types: `correct-source`, `forget-source`,
+`delete-learned-topic` and `clear-learned-data`. Forget removes a Source and its
+vector/receipt/link, keeping comments. Deleting a learned Topic removes its
+linked learned Sources and entire discussion. Clear learned data also removes
+orphan learned Topics and their comments; fixture/manual Topics and comments on
+them remain. Both destructive discussion actions require exact visible
+confirmation. The extension pauses processing first; version checks fence late
+ingestion. None of this encrypts the local database or promises forensic erasure.
+
+This approval covers one owner and public enabled sites on this PC, not private
+messages, a remote service, real accounts, external testers or publication.
 
 The fixture and ranker adapters import the pure modules under
 `spikes/topic-resolution/browser/`; keep those files alongside this package when

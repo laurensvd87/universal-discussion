@@ -12,9 +12,11 @@ approved ADR-016's exact local S3 activation package on 2026-09-28. S3 is now
 implemented with actual loopback/Chrome evidence. Do not repeat S3 or its approval.
 ADR-017's approved synthetic embedding experiment is complete. The owner now
 requests the real-page background matching/shared-comment loop; ADR-018 defines
-its exact permissions/payload/retention/provisional-grouping package, pending
-explicit approval. After that gate, implement B1–B5 autonomously; do not silently
-activate live capture, start S4 or acquire another model. Keep STATUS current and
+its exact permissions/payload/retention/provisional-grouping package, explicitly
+approved on 2026-09-29. B1–B5 are implemented and actual-Chrome tested; next is
+owner feedback within that local-only scope. Capture defaults off and sites need
+an in-app grant. Do not start S4 or acquire
+another model. Keep STATUS current and
 record consequential choices in `decisions/`.
 
 The owner's current workflow is Astra orchestration/review with GPT-6 Sol Medium

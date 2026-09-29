@@ -104,6 +104,7 @@ function route(request, service) {
   }
   if (request.method === "POST") {
     const input = parseJsonBody(request);
+    if (path === "/v1/sources/ingest") return { status: 200, value: service.ingest(input) };
     if (path === "/v1/related") {
       const body = readRecord(input, ["sourceId", "limit"]);
       return { status: 200, value: service.related(body.sourceId, body.limit) };

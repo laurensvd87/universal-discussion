@@ -9,31 +9,28 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-- The offline kernel resolves synthetic Sources by exact URL or content
-  fingerprint. It does **not** perform semantic similarity matching.
-- The unpacked Chromium popup looks up bundled example.com/example.org mappings.
-- A separate metadata button reads only a controlled local fixture and one
-  approved MDN route. No body capture, network, persistence or AI.
-- Extension 0.5.0 connects to the local service with session-only manual pairing.
-  Create/select Topics, post roots and replies, edit/withdraw your demo posts and
-  reopen persisted discussions. Human/AI counts remain distinct; no AI is running.
-- A paired popup loads automatically. The two exact reserved-domain URL fixtures
-  can select one shared demo discussion; all other tabs offer manual selection.
-  No observed URL, metadata or page body is sent to the service.
-- Service-ranked related pages distinguish confirmed same-Topic pages from
-  related reading. Six synthetic Harbor Sources use hand-authored vectors, not a
-  trained model or web search. The older offline panel remains diagnostic.
-- Local-service S1/S2 now implement the service-owned synthetic Source catalog,
-  fixture-vector ranking, Topics, Discussions and human root/reply/edit/withdraw
-  commands with in-memory and SQLite persistence. A secured transport-neutral
-  `/v1` handler is tested in-process. S3a now adds an explicitly started, bounded
-  `127.0.0.1:4174` listener and terminal-only manual pairing token. Actual loopback
-  and actual-Chrome extension integration tests pass.
-- Review/evaluation tooling exists; the owner's synthetic 6/6 review is finished.
-- An isolated, synthetic-only local embedding comparison now runs real models.
-  It does not change the current fixture-only service/extension matching.
-- General website matching, AI integration, private
-  discussions, moderation, real accounts and mobile are not implemented yet.
+- Extension 0.6.0 connects to the local SQLite service using session-only pairing.
+  Create/select Topics, post roots and replies, edit/withdraw local comments and
+  reopen persisted discussions. Human/AI counts stay distinct; no AI posts run.
+- Opt-in background matching samples rendered main content on enabled sites,
+  derives E5 embeddings inside the extension and sends only URL/title/vector and
+  versions to the backend on this PC. It stores current Sources and provisional
+  Topic associations, not raw page text or a per-visit timeline.
+- The popup loads automatically and updates after matching finishes. A real
+  Chrome synthetic-page check verified two related pages sharing a comment and
+  an unrelated page remaining separate. Restart, correction, Pause and deletion
+  checks also pass. It is ready for the approved owner-local public-site test.
+- Wrong-topic correction, Pause/site revocation, Forget page and confirmed learned
+  Topic/data deletion are implemented. Matching defaults off; manual Topic choice
+  remains available. There is no external search or crawler.
+- Older exact-URL/fingerprint fixtures, metadata-only MDN/loopback checks and six
+  hand-authored Harbor vectors remain separate diagnostics with synthetic labels.
+- The secured, bounded `/v1` API listens only when explicitly started on
+  `127.0.0.1:4174`. The service never fetches Source URLs or runs the embedding
+  model. Vectors/scores never appear in display DTOs.
+- The owner's synthetic 6/6 review and isolated model comparison are complete.
+- AI integration, private discussions, moderation, real accounts, remote hosting
+  and mobile are not implemented yet. Matching accuracy remains unvalidated.
 
 The 2026-09-27–28 reassessment found that validation tooling had overtaken the
 usable product. The active plan now prioritizes a local discussion loop,
@@ -47,7 +44,8 @@ Start with [current status](plans/STATUS.md),
 [ADR-016](decisions/ADR-016-loopback-service-first.md).
 For implementation, use the [concrete handoff](plans/IMPLEMENTATION_HANDOFF.md):
 local service first, extension as API client. S1–S3 are implemented and reviewed;
-later model/input work remains gated. External web search is deferred by the owner.
+ADR-018's exact local browser/model/input package is approved and implemented.
+Broader private/remote/release work remains gated. External web search is deferred.
 The [product reassessment](research/PRODUCT_RESET_2026-09-27.md) and
 [store/legal findings](research/PRODUCT_RESET_POLICY_2026-09-27.md) explain the
 corrections and options. These are research and engineering evidence, not store
@@ -123,17 +121,20 @@ The owner now requests background matching while browsing real pages, followed
 by shared comments across matched Topics. The
 [next approval package and implementation slices](decisions/ADR-018-background-page-matching-local-poc.md)
 specify browser-side embeddings, selected-site access, local retention and
-experimental provisional grouping. These features are not active yet; the exact
-expanded privacy/security permissions await confirmation.
+experimental provisional grouping. The owner approved this exact local-only
+package on 2026-09-29; extension 0.6.0 implements and browser-tests it. Matching
+defaults off and requires per-site enablement. Follow the
+[browsing-flow setup](spikes/topic-resolution/browser/README.md#try-the-new-browsing-flow).
 
 A local backend now owns the synthetic Source catalog, fixture vectors/matching,
 Topics and discussion state. Its pure domain, SQLite repository and in-process
 API handler are implemented, tested and corrected following Astra review. The
 owner has explicitly approved the exact local S3 connection and test package.
-S3's listener, session-paired thin client and English message-key UI now complete
+S3's listener, session-paired thin client and English message-key UI complete
 the open -> choose/create Topic -> post -> reply -> reopen -> delete loop.
-Synthetic identities are not real authentication. Captured browsing context is
-not sent or saved in this block. R1's private/AI/moderation work is still later S4.
+Synthetic identities are not real authentication. The old S3 fixture-only block
+does not capture browsing context; ADR-018 separately approves the new local
+URL/title/vector path. R1's private/AI/moderation work is still later S4.
 
 After the initial service/client loop: a pinned local-service embedding experiment
 after exact model/input approval. The adapter is prepared early; no trained model
@@ -141,7 +142,8 @@ is active in the interactive service. The [model options](research/LOCAL_EMBEDDI
 and [approved experiment](decisions/ADR-017-local-embedding-experiment.md) define
 the bounded synthetic-only comparison approved on 2026-09-29. Its isolated
 [experiment workspace](apps/local-service/experiments/embeddings/README.md) is
-implemented and locally measured; this does not enable learned matching in the extension.
+implemented and locally measured. ADR-017 alone did not authorize interactive
+matching; ADR-018 separately authorized the extension 0.6.0 successor.
 The current service is on the user's PC; future
 hosting must not move raw website-content processing off-device by default.
 Remote vectors are sensitive too and require a separate approval.
@@ -156,9 +158,9 @@ The design avoids a crawler, a mandatory per-site API and a mandatory AI vendor.
 For mobile, investigate sharing and Safari integration before assuming a WebView
 can observe content in other apps.
 
-No provider integration, general page acquisition, browsing-data upload,
-deployment, purchase, recruitment/publication or store submission is authorized
-by a successful local test. Relevant gates remain explicit in ADR-014/016.
+No provider integration, capture outside ADR-018's selected public sites,
+off-device browsing-data transfer, deployment, purchase, recruitment/publication
+or store submission is authorized by a successful local test. Later gates remain.
 
 ## Project documents
 

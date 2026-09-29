@@ -16,6 +16,8 @@ async function listFiles(directory) {
   const files = [];
   for (const entry of entries) {
     const entryPath = path.join(directory, entry.name);
+    // Generated, ignored, pinned assets have dedicated integrity/package tests.
+    if (entry.name === ".assets") continue;
     if (entry.isDirectory()) files.push(...(await listFiles(entryPath)));
     if (entry.isFile()) files.push(entryPath);
   }
@@ -33,7 +35,11 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(files, [
     "README.md",
     "chromium/active-tab-reader.js",
+    "chromium/background.js",
     "chromium/discussion-panel.js",
+    "chromium/inference-host.js",
+    "chromium/page-content-reader.js",
+    "chromium/page-matching-panel.js",
     "chromium/page-metadata-reader.js",
     "chromium/popup.css",
     "chromium/popup.html",
@@ -41,16 +47,28 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/related-pages-panel.js",
     "core/active-tab-controller.js",
     "core/active-tab-policy.js",
+    "core/background-matcher.js",
     "core/indicator-contract.js",
     "core/indicator-controller.js",
     "core/local-discussion-controller.js",
     "core/local-service-client.js",
     "core/local-service-contract.js",
     "core/local-service-session.js",
+    "core/page-content-policy.js",
     "core/page-metadata-controller.js",
+    "core/page-resolution-contract.js",
     "core/page-signal-contract.js",
     "core/page-signal-policy.js",
     "core/related-sources.js",
+    "embedding/.gitignore",
+    "embedding/THIRD_PARTY.md",
+    "embedding/e5-browser.js",
+    "embedding/embedding-contract.js",
+    "embedding/inference-worker.js",
+    "embedding/offscreen.html",
+    "embedding/offscreen.js",
+    "embedding/smoke.html",
+    "embedding/smoke.js",
     "fixtures/indicator-fixtures.js",
     "fixtures/local-service-fixture-bridge.js",
     "fixtures/related-source-fixtures.js",
@@ -62,24 +80,24 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.5.0",
-    description: "Local related-page recommendations and bounded metadata proof of concept.",
-    minimum_chrome_version: "106",
+    version: "0.6.0",
+    description: "Opt-in on-device page matching and shared local Topic discussions.",
+    minimum_chrome_version: "116",
     incognito: "not_allowed",
-    permissions: ["activeTab", "scripting", "storage"],
+    permissions: ["activeTab", "scripting", "storage", "offscreen"],
     host_permissions: ["http://127.0.0.1/*"],
+    optional_host_permissions: ["https://*/*"],
+    background: { service_worker: "chromium/background.js", type: "module" },
     action: {
       default_popup: "chromium/popup.html",
       default_title: "Check local discussion state",
     },
     content_security_policy: {
-      extension_pages: "default-src 'none'; script-src 'self'; style-src 'self'; connect-src http://127.0.0.1:4174; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';",
+      extension_pages: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';",
     },
   });
   for (const forbiddenKey of [
     "optional_permissions",
-    "optional_host_permissions",
-    "background",
     "content_scripts",
     "web_accessible_resources",
     "externally_connectable",
@@ -93,29 +111,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
 });
 
 test("every runtime import and document resource remains inside the unpacked root", async () => {
-  const runtimeFiles = [
-    path.join(browserDirectory, "chromium", "active-tab-reader.js"),
-    path.join(browserDirectory, "chromium", "discussion-panel.js"),
-    path.join(browserDirectory, "chromium", "page-metadata-reader.js"),
-    path.join(browserDirectory, "core", "active-tab-controller.js"),
-    path.join(browserDirectory, "core", "active-tab-policy.js"),
-    path.join(browserDirectory, "core", "indicator-contract.js"),
-    path.join(browserDirectory, "core", "indicator-controller.js"),
-    path.join(browserDirectory, "core", "local-discussion-controller.js"),
-    path.join(browserDirectory, "core", "local-service-client.js"),
-    path.join(browserDirectory, "core", "local-service-contract.js"),
-    path.join(browserDirectory, "core", "local-service-session.js"),
-    path.join(browserDirectory, "core", "page-metadata-controller.js"),
-    path.join(browserDirectory, "core", "page-signal-contract.js"),
-    path.join(browserDirectory, "core", "page-signal-policy.js"),
-    path.join(browserDirectory, "fixtures", "indicator-fixtures.js"),
-    path.join(browserDirectory, "fixtures", "local-service-fixture-bridge.js"),
-    path.join(browserDirectory, "fixtures", "related-source-fixtures.js"),
-    path.join(browserDirectory, "core", "related-sources.js"),
-    path.join(browserDirectory, "chromium", "related-pages-panel.js"),
-    path.join(browserDirectory, "locales", "en.js"),
-    popupScriptPath,
-  ];
+  const runtimeFiles = (await listFiles(browserDirectory)).filter(file => file.endsWith(".js"));
   const packagedFiles = new Set((await listFiles(browserDirectory)).map((file) => path.resolve(file)));
   const rootPrefix = `${path.resolve(browserDirectory)}${path.sep}`;
 
@@ -155,17 +151,15 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
   for (const runtimeFile of runtimeFiles) {
     const source = await readFile(runtimeFile, "utf8");
     const label = relativeBrowserPath(runtimeFile);
-    const approvedBindings = [
-      "globalThis.chrome.tabs",
-      "globalThis.chrome.scripting",
-      "globalThis.chrome.storage.session",
-      "globalThis.fetch",
-    ];
+    const approvedBindings = label === "chromium/background.js" ? ["globalThis.chrome", "globalThis.fetch"] :
+      label === "embedding/offscreen.js" ? ["globalThis.chrome.runtime"] :
+      label === "chromium/popup.js" ? ["globalThis.chrome.tabs", "globalThis.chrome.scripting", "globalThis.chrome.storage.session",
+        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions"] : [];
     for (const approvedBinding of approvedBindings) {
       const bindingCount = source.split(approvedBinding).length - 1;
       assert.equal(
         bindingCount,
-        label === "chromium/popup.js" ? 1 : 0,
+        1,
         `${label} ${approvedBinding} binding`,
       );
     }
@@ -176,9 +170,19 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
     // Comments can describe the injected capability; only the exact binding
     // above is permitted in executable code. Readers/controllers stay no-I/O.
     const executableSource = sourceWithoutApprovedBinding.replace(/^\s*\/\/.*$/gmu, "");
-    assert.doesNotMatch(executableSource, capabilityPattern, label);
-    assert.doesNotMatch(executableSource, extensionApiPattern, label);
-    assert.doesNotMatch(source, unsafeCodePattern, label);
+    if (label !== "embedding/e5-browser.js") assert.doesNotMatch(executableSource, capabilityPattern, label);
+    else {
+      assert.match(source, /assetBase\.protocol !== 'chrome-extension:'/u);
+      assert.match(source, /redirect: 'error', credentials: 'omit'/u);
+      assert.doesNotMatch(source, /https?:\/\//u);
+    }
+    assert.doesNotMatch(executableSource.replaceAll('"./e5-browser.js"', '"packaged-module"').replaceAll("'./e5-browser.js'", "'packaged-module'"), extensionApiPattern, label);
+    if (label !== "embedding/e5-browser.js") assert.doesNotMatch(source, unsafeCodePattern, label);
+    else {
+      assert.doesNotMatch(source, /\b(?:eval|Function|require)\s*\(/u);
+      assert.deepEqual([...source.matchAll(/\bimport\('([^']+)'\)/gu)].map(match => match[1]),
+        ["./.assets/tokenizers.mjs", "./.assets/ort.wasm.min.mjs"]);
+    }
     assert.doesNotMatch(source, unsafeHtmlPattern, label);
     assert.doesNotMatch(source, /\bconsole\s*\./u, label);
     assert.doesNotMatch(source, /\bprocess\s*\.|node:/u, label);
@@ -313,6 +317,6 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(script, /observeTabLifecycle: tabLifecycleObserver\.observe/u);
   assert.match(
     script,
-    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
+    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
   );
 });

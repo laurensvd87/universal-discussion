@@ -73,6 +73,38 @@ test("thin client interoperates with actual in-process /v1 human discussion life
   }
 });
 
+test("approved ingestion crosses the strict client boundary without raw text or vector DTO leaks", async () => {
+  const { api, requests } = serviceClient();
+  const catalog = await api.catalog();
+  const embedding = { modelId: "e5-small-q8-browser-main-prefix-v1", values: Array.from({ length: 384 }, (_, i) => i === 0 ? 1 : 0) };
+  const payload = { expected: catalog.version, operationId: "browser-ingest-a", url: "https://example.com/public-article",
+    title: "Synthetic article", embedding, extractorVersion: "main-text-prefix/v1" };
+  const first = await api.ingest(payload);
+  const next = await api.catalog();
+  assert.equal(first.assignment, "provisional");
+  assert.equal(next.sources.find(s => s.id === first.sourceId).topicId, first.topicId);
+  assert.equal(JSON.stringify(next).includes("values"), false);
+  assert.deepEqual(await api.ingest(payload), first);
+  assert.equal((await api.related(first.sourceId)).model.status, "experimental-local");
+  const before = requests.length;
+  for (const bad of [{ ...payload, text: "Raw text must not cross the boundary" },
+    { ...payload, url: "https://example.com/?token=synthetic-secret" },
+    { ...payload, embedding: { ...embedding, values: Array(384).fill(0) } },
+    { ...payload, embedding: { ...embedding, modelId: "other-model" } }]) {
+    await assert.rejects(api.ingest(bad), code("invalid-request"));
+  }
+  assert.equal(requests.length, before);
+  const corrected = await api.command(next.version, { type: "correct-source", sourceId: first.sourceId, topicId: null }, "demo-alex");
+  assert.equal(corrected.result.assignment, "confirmed");
+  const forgotten = await api.command(corrected.version, { type: "forget-source", sourceId: first.sourceId }, "demo-alex");
+  assert.equal(forgotten.result.sourceId, first.sourceId);
+  const removed = await api.command(forgotten.version, { type: "delete-learned-topic", topicId: corrected.result.topicId,
+    confirmation: "DELETE TOPIC AND DISCUSSION" }, "demo-alex");
+  assert.equal(removed.result.topicId, corrected.result.topicId);
+  const cleared = await api.command(removed.version, { type: "clear-learned-data", confirmation: "CLEAR LEARNED DATA" }, "demo-alex");
+  assert.ok(Array.isArray(cleared.result.deletedTopicIds));
+});
+
 test("strict command/input allowlist prevents context, vectors, role and raw URL transfer", async () => {
   let calls = 0;
   const api = client(async () => { calls++; return json(HEALTH); });

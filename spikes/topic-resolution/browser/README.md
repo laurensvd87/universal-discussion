@@ -1,6 +1,76 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Local service discussion loop (0.5.0)
+## On-device background matching (0.6.0)
+
+The owner approved ADR-018's local-only package. Background matching defaults
+off. Page text is sampled and embedded inside the extension; only URL, short
+title, vector and versions go to the paired backend on this PC. It never sends
+raw page text to a server/provider. URL/title/vectors remain sensitive and the
+local SQLite database is not encrypted. No web search or crawler is included.
+
+### Try the new browsing flow
+
+1. From `spikes/topic-resolution`, run `npm run embedding:package`. It copies only
+   already-acquired, pinned assets into ignored `browser/embedding/.assets/`;
+   there is no download. On this owner's checkout these assets are already
+   available. A fresh checkout without them stops; do not install/download a
+   replacement automatically. The unpacked model/runtime payload is about 150 MB.
+2. Reload `browser/` at `chrome://extensions` (Chrome 116+), then start the local
+   service with your extension Origin as described in the service README. Pair
+   using the terminal token. A service/browser restart requires a new pairing.
+3. Use a dedicated non-sensitive browser profile. Visit an eligible public HTTPS
+   article/product page. Open the popup, review its displayed site and disclosure,
+   tick the consent checkbox and select **Enable matching for displayed site**.
+   Accept Chrome's site-access prompt. Do not enable mail, banking, health/account
+   dashboards or confidential sites. This uses one generic reader, not per-site
+   integrations; missing structure or rights restrictions can make a page unsupported.
+4. Browse normally on enabled sites, even with the popup closed. Only the active
+   tab in the focused window is processed. Enable each additional site once.
+   Reopen the popup: it shows processing, then selects the experimental Topic
+   when ready. First model startup takes longer; it is not an instant lookup.
+5. Visit two pages about the same specific topic and an unrelated page. Add a
+   deliberate non-sensitive comment. If both similar pages resolve to the same
+   Topic, that comment appears on both. Similar subject matter alone need not
+   mean the same Topic; this is a fallible local heuristic, not validated accuracy.
+6. Use **Wrong topic or retained page controls** to confirm another Topic or
+   create a separate one. Existing comments stay in their original discussion.
+   Navigation/re-resolution detaches unsent text; attach it explicitly after
+   checking its destination. Unsent text disappears when the popup closes.
+7. Test Pause/Resume and site removal. Pause stops new processing but retains data.
+   **Forget retained page** removes its vector/link and preserves shared comments.
+   Confirmed **Delete learned topic** / **Clear learned data** remove the described
+   learned discussions and comments too. Processing pauses before those actions;
+   resume explicitly. Revisiting afterward may recreate a page. Deletion is
+   logical, not a promise about SQLite/OS forensic remnants or backups.
+
+The reader samples at most 4,096 characters from rendered article/main content,
+excludes forms/editables/navigation/comments/hidden regions and never falls back
+to the whole document. E5 uses a versioned prefix of at most 512 tokens. This is
+limited coverage, not full-page analysis. The exclusions are structural checks,
+not reliable authentication/private-data/paywall detection or a website-rights
+grant. Only process pages you may lawfully process.
+
+The manifest adds an offscreen worker and optional HTTPS host grants. Requests
+remain fixed loopback API or packaged extension assets, with no remote script or
+model fetch. The extra CSP permission is WASM-only, not JavaScript `unsafe-eval`.
+Site preferences persist in trusted local extension storage; the token is still
+session-only, and raw text/vectors are not stored in extension storage.
+
+From `spikes/topic-resolution`, separate real-Chrome checks are:
+
+```sh
+npm run test:browser:embedding
+npm run test:browser:matching
+```
+
+They use a fresh temporary browser profile, installed Chrome, project-created
+intercepted documents and temporary SQLite state; no real site acquisition or
+existing profile. Port 4174 must be free for the full matching check. Do not
+repeat the finished owner 6/6 review or the older metadata manual checklist.
+Actual current test evidence is in [STATUS](../../../plans/STATUS.md); the paragraphs below retain
+the earlier feature-specific evidence, not current global capability limits.
+
+## Historical local service discussion loop (0.5.0)
 
 The approved S3 package adds session pairing and a service-owned discussion UI.
 Start the local service using `apps/local-service/README.md`, configure the exact
@@ -310,6 +380,12 @@ any such adapter or public release.
 
 ## Stop boundary
 
+ADR-018's approved selected-site public main-content/local-vector package above
+now supersedes the older diagnostic-only limits below **within that scope only**.
+Its offscreen/WASM permissions, URL/title/vector retention and experimental local
+provisional grouping do not require another approval. Private contexts, broader
+capture, remote transfer, new assets/providers, deployment and release still do.
+
 The diagnostic capture paths still have no general capture or persistence. ADR-014
 now permits the successor R1 local discussion demo, fixture state and tests
 without a per-module questionnaire. Such code must not silently weaken the old
@@ -317,10 +393,10 @@ capture/package boundary; it needs separately explicit capability tests.
 ADR-015 adds the implemented fixture-only recommendation path within that local
 envelope; neither its HTTP(S) data validator nor its vectors authorize live inputs.
 
-Stop before broader real-page fields/selectors/routes, body/JSON-LD processing,
+Outside ADR-018, stop before broader real-page fields/selectors/routes, body/JSON-LD processing,
 new capture permissions, captured-context retention, expanded network/telemetry,
 provider/model activation, deployment, store submission or public posting.
-Present the relevant exact approval package. `scripting` still authorizes only
-the exact P1.5c routes. ADR-009/014 retain NO AUTO; ADR-010/011 remain the capture
-boundary. Local fixture mobile/domain work follows the active roadmap, not this
+Present the relevant exact approval package. The old metadata button remains
+limited to the exact P1.5c routes. ADR-009/014 retain production/shared NO AUTO;
+ADR-010/011 govern those old capture paths. Local mobile/domain work follows the active roadmap, not this
 historical experiment's former blanket stop on all future implementation.

@@ -2,6 +2,9 @@ import { applyCommand, createDemoState } from "../domain/demo-state.js";
 import { discussionView } from "../domain/discussion-view.js";
 import { fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId } from "../domain/validation.js";
+import { createHash } from "node:crypto";
+import { rankRelatedSources } from "../../../../spikes/topic-resolution/browser/core/related-sources.js";
+import { applyLearnedCommand, applyLearnedIngest, BROWSER_MODEL_ID, EXTRACTOR_VERSION, ingestionResult, LEARNED_COMMANDS, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, readLearnedIngest } from "../domain/learned-sources.js";
 
 export const DEMO_ACTORS = Object.freeze([
   Object.freeze({ id: "demo-alex", displayName: "Alex · synthetic", type: "human", demo: true }),
@@ -24,7 +27,9 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
         version: version(state),
         model: ranking.model,
         actors: DEMO_ACTORS.map(({ id, displayName, type }) => ({ id, displayName, type })),
-        topics: state.topics.map(({ id, title, kind }) => ({ id, title, kind })),
+        topics: state.topics.map(({ id, title, kind, provenance }) => ({
+          id, title, kind, ...(provenance === LEARNED_TOPIC_PROVENANCE ? { learned: true } : {}),
+        })),
         sources: state.sources.map(({ id, url, title, provenance }) => ({
           id, url, title, provenance, topicId: topicIdFor(state, id),
         })),
@@ -36,6 +41,16 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const state = repository.load();
       const source = state.sources.find((entry) => entry.id === sourceId);
       if (!source) fail("not-found", "Object unavailable");
+      if (source.provenance === LEARNED_SOURCE_PROVENANCE) {
+        const candidates = state.sources.filter((entry) => entry.provenance === LEARNED_SOURCE_PROVENANCE && entry.embedding.modelId === source.embedding.modelId && entry.extractorVersion === EXTRACTOR_VERSION).map((entry) => ({
+          id: entry.id, url: entry.url, title: entry.title, embedding: entry.embedding,
+          topicId: state.sourceLinks.find((link) => link.sourceId === entry.id && link.method === "manual-confirmed")?.topicId ?? null,
+        }));
+        const results = rankRelatedSources(candidates.find((entry) => entry.id === sourceId), candidates, { limit, minSimilarity: 0.85 }).map(
+          ({ id, url, title, relationship, method }) => ({ id, url, title, topicId: topicIdFor(state, id), relationship, method }),
+        );
+        return frozenClone({ version: version(state), model: { id: BROWSER_MODEL_ID, status: "experimental-local" }, results });
+      }
       const rankable = state.sources.map((entry) => ({
         id: entry.id, url: entry.url, title: entry.title,
         topicId: topicIdFor(state, entry.id), embedding: entry.embedding,
@@ -52,13 +67,30 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const state = repository.load();
       return frozenClone(discussionView(state, topicId));
     },
+    ingest(value) {
+      const input = readLearnedIngest(value);
+      const state = repository.load();
+      if (state.generation !== input.expected.generation) fail("conflict", "State changed");
+      const operationDigest = createHash("sha256").update(JSON.stringify({ url: input.url, title: input.title, embedding: input.embedding, extractorVersion: input.extractorVersion })).digest("hex");
+      const receipt = state.sources.find((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && source.operationId === input.operationId);
+      if (receipt) {
+        if (receipt.url !== input.url || receipt.operationDigest !== operationDigest) fail("conflict", "Operation changed");
+        return frozenClone({ version: version(state), ...ingestionResult(state, receipt) });
+      }
+      if (state.revision !== input.expected.revision) fail("conflict", "State changed");
+      const outcome = applyLearnedIngest(state, input, operationDigest, { nextId, now });
+      const saved = repository.save(input.expected, outcome.state);
+      return frozenClone({ version: version(saved), ...outcome.result });
+    },
     command(expectedValue, command, actorId) {
       const expected = readExpectedVersion(expectedValue);
       const state = repository.load();
       if (state.generation !== expected.generation || state.revision !== expected.revision) fail("conflict", "State changed");
       const actor = actors.get(actorId);
       if (!actor) fail("forbidden", "Actor unavailable");
-      const outcome = applyCommand(state, command, actor, { nextId, now });
+      const type = command && Object.getOwnPropertyDescriptor(command, "type");
+      const learned = type && type.enumerable && Object.hasOwn(type, "value") && LEARNED_COMMANDS.has(type.value);
+      const outcome = learned ? applyLearnedCommand(state, command, { nextId, now }) : applyCommand(state, command, actor, { nextId, now });
       const saved = repository.save(expected, outcome.state);
       return frozenClone({ version: version(saved), result: outcome.result });
     },

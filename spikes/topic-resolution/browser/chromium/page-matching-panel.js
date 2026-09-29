@@ -1,0 +1,129 @@
+import { EN } from "../locales/en.js";
+import { projectPageResolution } from "../core/page-resolution-contract.js";
+
+export function mountPageMatchingPanel(document, root, { sendMessage, requestPermission,
+  onResolution = () => {}, messages = EN, schedule = setTimeout, cancelSchedule = clearTimeout,
+  timeoutSchedule = setTimeout, timeoutCancel = clearTimeout, requestTimeoutMs = 8000 } = {}) {
+  const message = (key) => messages?.[key] ?? EN[key];
+  let disposed = false, polling = false, acting = false, timer, state = null;
+  const listeners = [];
+  let operations = Promise.resolve();
+  let statusFlight = null;
+  const pendingRequests = new Set();
+  if (!Number.isSafeInteger(requestTimeoutMs) || requestTimeoutMs < 1 || requestTimeoutMs > 10000) throw new TypeError("Page matching unavailable");
+  function request(payload) {
+    if (payload.type === "status" && statusFlight) return statusFlight;
+    const work = operations.then(() => {
+      if (disposed) throw new TypeError("Page matching unavailable");
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        let timeout;
+        function finish(error, value) {
+          if (settled) return; settled = true;
+          timeoutCancel(timeout); pendingRequests.delete(cancel);
+          if (error) reject(new TypeError("Page matching unavailable")); else resolve(value);
+        }
+        const cancel = () => finish(true);
+        pendingRequests.add(cancel);
+        timeout = timeoutSchedule(cancel, requestTimeoutMs);
+        Promise.resolve().then(() => sendMessage(payload)).then((value) => finish(false, value), () => finish(true));
+      });
+    }).then(projectPageResolution);
+    operations = work.catch(() => {});
+    if (payload.type === "status") {
+      statusFlight = work;
+      void work.then(() => { if (statusFlight === work) statusFlight = null; }, () => { if (statusFlight === work) statusFlight = null; });
+    }
+    return work;
+  }
+  function node(tag, key) { const item = document.createElement(tag); if (key) item.textContent = message(key); return item; }
+  function button(id, key, action) {
+    const item = node("button", key); item.id = id; item.type = "button";
+    item.addEventListener("click", action); listeners.push([item, action]); root.append(item); return item;
+  }
+  const heading = node("h2", "matchingHeading"); heading.id = "matching-heading";
+  root.setAttribute("aria-labelledby", heading.id); root.append(heading, node("p", "matchingDisclosure"));
+  const status = node("p"); status.id = "matching-status"; status.setAttribute("role", "status"); root.append(status);
+  const sample = node("p", "matchingPartial"); root.append(sample);
+  const consent = node("input"); consent.type = "checkbox"; consent.id = "matching-consent";
+  const consentLabel = node("label", "matchingConsent"); consentLabel.htmlFor = consent.id; root.append(consentLabel, consent);
+  const origin = node("p"); origin.id = "matching-origin"; root.append(origin);
+  const enable = button("matching-enable", "matchingEnable", () => {
+    if (acting || !state?.currentOrigin || !consent.checked) return;
+    // Initiate Chrome's prompt in the click's user gesture, using only the cached
+    // disclosed origin. The worker rechecks actual foreground after the prompt.
+    const selectedOrigin = state.currentOrigin;
+    let permission;
+    try { permission = requestPermission({ origins: [`${selectedOrigin}/*`] }); }
+    catch { unavailable(); return; }
+    void action(async () => {
+      if (!await permission) { status.textContent = message("matchingPermissionDenied"); return; }
+      if (disposed) return;
+      await deliver({ target: "page-matching", type: "enable-site", origin: selectedOrigin });
+      consent.checked = false;
+    });
+  });
+  const pause = button("matching-pause", "matchingPause", () => void action(() => deliver({ target: "page-matching", type: "pause" })));
+  const resume = button("matching-resume", "matchingResume", () => void action(() => deliver({ target: "page-matching", type: "resume" })));
+  const retry = button("matching-retry", "matchingRetry", () => void action(() => deliver({ target: "page-matching", type: "retry" })));
+  const sites = node("div"); sites.id = "matching-sites"; root.append(sites);
+  let siteHandlers = [];
+  let siteSignature = null;
+  function clearSiteHandlers() { for (const [item, callback] of siteHandlers) item.removeEventListener("click", callback); siteHandlers = []; }
+  function controls() {
+    enable.disabled = acting || !state?.currentOrigin || !consent.checked;
+    pause.disabled = acting || !state?.enabled; resume.disabled = acting || !state || state.enabled || !state.origins.length;
+    retry.disabled = acting || !state?.enabled;
+    for (const [remove] of siteHandlers) remove.disabled = acting;
+  }
+  const changed = () => controls(); consent.addEventListener("change", changed);
+  function unavailable() { status.textContent = message("matchingUnavailable"); state = null; controls(); }
+  async function deliver(payload) {
+    const result = await request(payload);
+    if (disposed) return;
+    state = result;
+    status.textContent = message({ off: "matchingOff", checking: "matchingChecking", "not-enabled": "matchingNotEnabled", unpaired: "matchingUnpaired",
+      processing: "matchingProcessing", ready: "matchingReady", unsupported: "matchingUnsupported", error: "matchingUnavailable" }[result.phase]);
+    origin.textContent = result.currentOrigin ?? "";
+    const signature = JSON.stringify(result.origins);
+    if (signature !== siteSignature) {
+      clearSiteHandlers(); const rows = [];
+      for (const enabledOrigin of result.origins) {
+        const row = node("div"); const name = node("p"); name.textContent = enabledOrigin;
+        const remove = node("button", "matchingRemoveSite"); remove.type = "button";
+        remove.setAttribute("data-remove-origin", enabledOrigin);
+        const callback = () => void action(() => deliver({ target: "page-matching", type: "remove-site", origin: enabledOrigin }));
+        remove.addEventListener("click", callback); siteHandlers.push([remove, callback]); row.append(name, remove); rows.push(row);
+      }
+      sites.replaceChildren(...rows); siteSignature = signature;
+    }
+    controls(); await onResolution(result);
+    return result;
+  }
+  async function action(work) {
+    if (acting || disposed) return;
+    acting = true; controls();
+    try { await work(); } catch { if (!disposed) unavailable(); }
+    finally { acting = false; if (!disposed) controls(); }
+  }
+  async function poll() {
+    if (disposed || polling) return;
+    polling = true;
+    try { if (!acting) await deliver({ target: "page-matching", type: "status" }); }
+    catch { if (!disposed) { unavailable(); try { await onResolution(null); } catch { /* Visible unavailable status already set. */ } } }
+    finally {
+      polling = false;
+      if (!disposed) timer = schedule(() => void poll(), 500);
+    }
+  }
+  async function readResolution() { return request({ target: "page-matching", type: "status" }); }
+  async function pauseMatching() { return request({ target: "page-matching", type: "pause" }); }
+  controls(); void poll();
+  function dispose() {
+    disposed = true; cancelSchedule(timer); clearSiteHandlers();
+    for (const cancel of [...pendingRequests]) cancel();
+    for (const [item, callback] of listeners) item.removeEventListener("click", callback);
+    consent.removeEventListener("change", changed); root.replaceChildren();
+  }
+  return Object.freeze({ readResolution, pauseMatching, dispose });
+}

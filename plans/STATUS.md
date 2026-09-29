@@ -4,21 +4,27 @@ Updated: 2026-09-29. Active direction: ADR-014/015/016 and the product-first roa
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
-the exact expanded Security/Privacy/Policy package awaiting approval. No real-page
-background capture, new permission or automatic grouping has been activated.
+the exact expanded Security/Privacy/Policy package explicitly approved by the
+owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**,
+with capture default-off and site-by-site enablement. Extension 0.6.0 is ready for
+the approved owner-local public-page test; matching quality remains unvalidated.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
 ## Where we are
 
-We have a tested local service and usable synthetic human-discussion extension.
+We have a tested local service and a usable on-device semantic discussion prototype.
 The core product hypotheses—semantic concentration, personal AI utility and
 community adoption—remain unvalidated. Stop expanding review infrastructure.
-The first local discussion loop is built; next prioritize real embedding utility
-after its exact model/input approval, then the remaining private/AI/moderation UX.
+The requested browsing -> local embedding -> provisional Topic -> shared-comment
+loop is built. Next gather owner feedback within the approved scope; broader
+private/remote/AI/moderation work and all external release gates remain separate.
 
 ## New owner direction and next gate — 2026-09-29
 
+- Owner answered **"approved"** to the complete ADR-018 package. Browser inference,
+  bounded main-content extraction and backend ingestion/matching are assigned to
+  separate Sol Medium agents; the lead owns integration, security review and QA.
 - Owner approves connecting learned matching and asks for a testable real-page
   browsing loop with background vectors, durable backend grouping and comments
   shared across similar pages, allowing asynchronous resolution. Work should
@@ -27,18 +33,60 @@ after its exact model/input approval, then the remaining private/AI/moderation U
   inspections ran in parallel: browser/background implementation and Trust/data/
   matching review. The lead reconciled a single ADR-018 approval package and B1–B5
   plan, rather than another synthetic-only UI milestone or per-module interview.
-- Required confirmation: optional per-site background read/WASM permissions,
+- Approved scope: optional per-site background read/WASM permissions,
   public main-content sample, persisted URL/title/vector payload on this PC,
   deletion controls and fallible provisional automatic grouping. Private inboxes,
   off-device transfer, deployment and publication are excluded from this package.
 - No new model download is inherently needed; approximately 150 MB of existing
-  assets can be packaged locally. Actual browser WASM compatibility/parity remains
-  untested and is B1, not inferred from Node success. Real-page activation waits
-  for the explicit exact-package answer; the completed 6/6 review stays finished.
+  assets are now packaged locally. Actual browser WASM execution passed B1;
+  cross-runtime/mobile parity remains unverified. The exact package
+  has now been approved; the completed 6/6 review stays finished.
 - Separate AI Trust review found the package coherent for one bundled approval
   request; sensitive URL rejection and complete matching-state deletion remain
-  focused implementation checks. Documentation-only validation: 55 local links
-  resolve and `git diff --check` passes. No product code or permissions changed.
+  focused implementation checks. The earlier documentation-only preparation
+  checked 55 local links and changed no product code; implemented evidence follows.
+
+## ADR-018 implementation completed
+
+- B1 packaged browser E5 is implemented and actually tested in Chrome
+  154.0.8037.58: direct inference plus background -> offscreen -> dedicated worker,
+  finite normalized 384D outputs, zero external extension requests and zero
+  runtime exceptions. Cold direct run about 3.6 seconds; three worker samples
+  about 1.3 seconds combined. These are one-PC mechanics, not mobile benchmarks
+  or quality validation. The browser space stays distinct from Node.
+- Nine pinned assets copied locally (149,832,250 bytes); experiment plus extension
+  footprint 1,614,594,675 bytes, below 2 GiB. No new acquisition. Generated assets
+  remain ignored; redistribution/license/store approval is not implied.
+- B2 main-region capture, document attestation, default-off site preferences,
+  foreground coordinator and cancellable inference are implemented. Separate
+  Trust review found and verified fixes for delayed pause/revocation writes,
+  stale enable-after-pause, unbounded queued text and 401 pairing cleanup.
+- B3 ingestion, conservative provisional grouping, persistent current vectors,
+  correction/forget/delete/clear are implemented. Service tests 67/67 passed at
+  this checkpoint; client ingestion checks pass without raw-body or score DTOs.
+- B4 delayed popup resolution and controls are implemented. Review identified
+  and verified fixes for orphan learned-Topic deletion visibility and keyboard
+  focus across polling; focused UI/client tests passed. Final UI hardening also
+  preserves dropdown options and clears destructive confirmations on context
+  changes. Full spike restricted suite passes 396/396; indicator checks 214/214.
+  No remaining material issue in the separate
+  AI Trust review; this is not independent-human/legal/store certification.
+- B5 passed all 14 real-Chrome checks: popup-closed inference, two paraphrased pages
+  sharing a Topic/comment, unrelated page separation, Pause/Resume, rights/form
+  rejection, SQLite restart/new pairing, correction preserving old comments,
+  Forget, confirmed deletion/clear and site removal. Four 384D vectors, six owned
+  intercepted documents, zero raw-text API payloads, external extension requests
+  or runtime exceptions; latest full run about 11.7 seconds. Original S3 browser
+  smoke also passed its 19 categories. Temporary profiles/databases/listeners
+  were cleaned; no existing owner data was touched. The owner stopped their
+  preexisting listener with Ctrl+C to free port 4174; transport tests passed 2/2.
+- [Implementation review and retained limits](../research/ADR018_IMPLEMENTATION_REVIEW_2026-09-29.md)
+  records evidence. Real HTTPS optional-permission prompts and matching accuracy
+  on owner-selected websites remain owner testing, not results inferred from
+  intercepted fixtures. No new approval is needed for the already-approved scope.
+- Final normal suite: 396 tests, 395 pass and the intentional restricted-guard
+  skip. Both secret scans found zero findings (137 spike / 48 service files);
+  all 67 checked local documentation links resolve and `git diff --check` passes.
 
 | Capability | Actual state |
 | --- | --- |
@@ -47,11 +95,11 @@ after its exact model/input approval, then the remaining private/AI/moderation U
 | Metadata capture | Controlled loopback fixture and one pinned MDN route only; explicit button, no body/egress/storage |
 | Review/evaluation tooling | Implemented mechanics; no real larger corpus or held-out model results |
 | Synthetic owner review | Finished: 6/6. Do not repeat |
-| Related-page discovery | Service-ranked fixture recommendations in extension 0.5.0; six synthetic Harbor Sources/hand-authored vectors, no web search |
+| Related-page discovery | Service ranks retained compatible learned Sources; fixture recommendations remain separately labelled; no web search |
 | Discussions and replies | Local human Topic create/select, roots/replies/edit/withdraw implemented in service and extension; no private/AI/moderation controls yet |
 | Local persistence | Memory and SQLite adapters; app DB ignored. Pairing token only in trusted session storage; drafts only popup memory |
-| Current-tab auto-load | Paired popup loads catalog and exact reserved-domain fixture mapping automatically; only known Source ID sent, all other tabs manual |
-| Learned embeddings/general same-Topic matching | Isolated synthetic-only learned comparison implemented; service/extension still fixture-only, no general or automatic Topic matching |
+| Current-tab auto-load | Paired popup loads catalog and delayed selected-site page resolution; older reserved-domain fixture lookup remains when matching is off |
+| Learned embeddings/general same-Topic matching | Browser E5 + bounded main-region extraction and local provisional grouping implemented; actual shared-comment and lifecycle smoke passed; no validated production AUTO |
 | AI handoff/import/provider | Planned; no inference or real credentials |
 | Local backend | S1–S3 fixed loopback service, SQLite, session-paired thin client; actual socket and Chrome checks pass |
 | Real accounts/mobile/hosting/stores | Not implemented, deployed or submitted |
@@ -78,8 +126,9 @@ after its exact model/input approval, then the remaining private/AI/moderation U
   51/51. Spike normal/restricted/indicator suites pass (normal retains its one
   intentional guard-only skip); both secret scans report zero findings. No new
   listener or browser smoke was needed for this isolated CLI-only increment.
-  The experiment remains isolated from the current fixture-only interactive app.
-- Next: owner-reviewed exact browser/device packaging and interactive input plan.
+  The experiment remained isolated from the then-fixture-only interactive app.
+- Its next step was the owner-reviewed browser/device packaging and interactive
+  input plan, now approved and implemented as ADR-018 above.
   The completed 6/6 task and later provenance-approved R5 review remain untouched.
 - Separate AI review returned qualified accept of the acquisition/runtime and
   evidence interpretation. A final review finding was corrected and regression-
@@ -380,9 +429,10 @@ Synthetic identity is a testing device, not real login/security isolation.
 
 The owner approved the first bounded embedding experiment in ADR-017 on
 2026-09-29; that package is now implemented and measured. The lead handles the
-review here, without a manual model switch. Interactive activation and broader real-page capture remain separate exact
-fields/contexts/permissions/assets/retention gates. R1 stores no captured browsing
-data. External search is deferred, not a blocker for these steps.
+review here, without a manual model switch. ADR-018 separately approved the exact
+public selected-site browser inference and local URL/title/vector retention
+package; its implementation and tests are recorded above. Broader private inputs,
+off-device transfer and new model assets remain gated. External search is deferred.
 Provider/data egress, real accounts/testers, deployment, purchases, public posts,
 recruitment and store submission each retain explicit applicable approvals.
 
@@ -402,10 +452,11 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-017: bounded synthetic-only local comparison completed;
   no interactive model activation or real inputs. Hosting does not inherit
   permission for raw content or vectors.
-- ADR-018: owner-requested real-page background matching direction; exact
-  permissions/payload/retention/provisional-grouping package pending approval.
+- ADR-018: exact owner-local real-page background matching package approved on
+  2026-09-29; B1–B5 implemented and Chrome-tested, no wider private/remote/release scope.
 - ADR-001/004: frozen baseline/editorial evaluation evidence; unchanged.
-- ADR-009: local-first NO-AUTO direction retained and made executable.
+- ADR-009: NO-AUTO remains for production/shared resolution; ADR-018 supersedes
+  it only for the approved fallible owner-local provisional grouping experiment.
 - ADR-010/011: existing exact URL/metadata boundaries unchanged by this reset.
 - ADR-012: prior design retained with policy corrections; exhaustive lifecycle
   features are phased with actual capabilities, not all prerequisites for R1.

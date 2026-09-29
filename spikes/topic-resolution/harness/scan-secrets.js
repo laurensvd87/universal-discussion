@@ -7,6 +7,8 @@ const scannedExtensions = new Set([".css", ".html", ".js", ".json", ".md", ".tsv
 const excludedDirectories = new Set([".git", "node_modules"]);
 const excludedDirectoryPaths = new Set([
   path.resolve(packageDirectory, "review", "work"),
+  // Locally copied pinned third-party model/runtime assets; never committed.
+  path.resolve(packageDirectory, "browser", "embedding", ".assets"),
 ]);
 const scannerVersion = "high-confidence-local/1.0.0";
 const patterns = [

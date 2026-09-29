@@ -1,5 +1,6 @@
 import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDiscussion, readHealth,
-  readId, readLimit, readOutcome, readPairingToken, readRelated, readReset, readVersion } from "./local-service-contract.js";
+  readId, readLimit, readOutcome, readPairingToken, readRelated, readReset, readVersion,
+  readIngestion, readIngestionOutcome } from "./local-service-contract.js";
 
 const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
@@ -95,6 +96,16 @@ export function createLocalServiceClient({ fetchImpl, getToken, timeoutMs = 5000
   return Object.freeze({
     async health({ signal } = {}) { return request("/health", undefined, undefined, readHealth, signal); },
     async catalog({ signal } = {}) { return request("/catalog", undefined, undefined, readCatalog, signal); },
+    async ingest(payload, { signal } = {}) {
+      const body = input(() => readIngestion(payload));
+      return request("/sources/ingest", body, undefined, (value) => {
+        const outcome = readIngestionOutcome(value);
+        if (outcome.version.generation !== body.expected.generation || outcome.version.revision < body.expected.revision) {
+          throw new TypeError("Invalid local service value");
+        }
+        return outcome;
+      }, signal);
+    },
     async related(sourceId, limit = 5, { signal } = {}) {
       const body = input(() => ({ sourceId: readId(sourceId), limit: readLimit(limit) }));
       return request("/related", body, undefined, (value) => readRelated(value, body.limit), signal);
