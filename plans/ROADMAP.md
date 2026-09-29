@@ -1,7 +1,8 @@
 # Product-first roadmap
 
 Updated: 2026-09-29. Governing decisions: ADR-014/015/016. Browser extension first;
-Android and iOS follow with shared Topic/discussion contracts. Core model:
+readable web conversations next, then Android and iOS, sharing Topic/discussion
+contracts (owner-confirmed sequencing on 2026-09-29). Core model:
 `Content -> Semantic Topic -> Discussion`.
 
 The [historical roadmap](archive/ROADMAP_2026-09-25.md) preserves the old sequence.
@@ -15,6 +16,11 @@ tested. ADR-017's revised synthetic-only local embedding comparison was approved
 on 2026-09-29 and is now implemented/measured. Review its evidence before proposing
 interactive activation or broader inputs. S4's private/AI/moderation UX remains later work.
 External search/provider selection is deferred by the owner, not an R1 dependency.
+The owner's growth discussion is exploratory: optional AI-research source supply
+is not a selected strategy or permission to connect a provider. See
+[growth hypotheses](../research/GROWTH_LOOPS_2026-09-29.md). Web-before-mobile
+sequencing does not authorize hosting/publication or alter the pending routing
+decision described in STATUS and IMPLEMENTATION_HANDOFF.
 
 2026-09-29 continuation: the owner requests a testable real-page background
 matching loop, not another synthetic-only UI milestone. R2's next execution

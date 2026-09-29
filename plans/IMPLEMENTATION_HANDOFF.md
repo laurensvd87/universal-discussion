@@ -2,12 +2,28 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Newest idea: Reddit/other-community discussion discovery as first-user utility.
+Read the external-conversation section of `research/GROWTH_LOOPS_2026-09-29.md`.
+Investigate link-first, provenance-labeled external destinations, not comment
+mirrors. Reddit API/commercial approval is not available; no provider is selected
+or connected. Native participation still needs its own reason to exist.
+
+Latest: owner asks for rapid Source/discussion growth and useful first-install
+coverage. Their user-owned AI research-source idea is explicitly exploratory,
+not selected or approved. They reject a single-interest audience as a required
+launch strategy. Read `research/GROWTH_LOOPS_2026-09-29.md`: independent personal
+source utility and web-shareable questions are hypotheses, not approved new features.
+Distinguish unverified link candidates from captured vectors and conversation associations.
+The accepted sequencing clarification is extension -> readable web -> Android/iOS.
+No shared capture/provider/hosting/publication/recruitment/telemetry/migration
+approval follows; 0.11.0 is unchanged and concrete routing design is still pending.
+
 Owner asks for a whole-concept review before choosing the next architecture.
 Read `research/CONCEPT_REVIEW_2026-09-29.md`: advisory recommendation is automatic
 relevance retrieval around stable semantic conversations, not authoritative dynamic
 page partitions or an immediate Topic-dropdown/many-to-many migration. No change
-is adopted/implemented, and no existing automatic behavior is disabled by this
-review. Await direction on the product/routing contract before the next code slice;
+to the concrete routing contract is approved/implemented, and no existing automatic
+behavior is disabled by this review. Await direction on that contract before code;
 preserve current data, cross-site conversations and all existing approval gates.
 
 Latest feedback is diagnosed, not fixed: current adaptive grouping can keep an

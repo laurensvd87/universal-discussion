@@ -31,7 +31,35 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Latest request: whole-concept review before choosing overlap behavior
+## Latest request: first-use coverage and discussion growth; AI remains optional
+
+Latest follow-up asks about Reddit/other systems. The discussion-finder hypothesis
+links existing canonical external conversations to relevant Sources, keeping native
+posts distinct; no mirroring or presumed API access. Primary docs confirm Reddit
+search/embeds but require explicit API approval and commercial agreement; Hacker
+News's official API and Discourse feeds are other candidates. A cross-source map,
+durable native questions and reciprocal community source bundles may create value;
+outbound-link utility alone does not prove native participation. Nothing connected.
+
+The owner supports the broad concept-review direction and asks how Sources and
+discussions could grow rapidly, especially relevant coverage on first installation.
+They explicitly clarify that user-owned AI supplying research sources is thinking
+aloud, not an adopted strategy. [Growth hypotheses](../research/GROWTH_LOOPS_2026-09-29.md)
+record the owner's rejection of a single-interest launch prerequisite. Latest
+hypothesis: independent personal source utility plus deliberately shared questions
+that recipients can read/answer on the web without an extension; neither new
+feature scope nor a growth strategy is adopted. AI remains optional; discovered
+links/provider citations are not compatible captured-page vectors or confirmed
+Topic membership. Current
+official OpenAI docs establish potential MCP and bounded plan-usage routes, not
+a tested connector, project eligibility or provider approval.
+The owner accepts extension -> readable web -> Android/iOS sequencing. Public
+operation remains separately gated. Coverage, useful replies and returning people
+are separate outcomes; capturing URLs does not reach the publisher's whole audience.
+This is strategy, not permission for shared capture, hosting, publication, outreach,
+telemetry, paid acquisition or a migration. Current implementation is unchanged.
+
+## Previous request: whole-concept review before choosing overlap behavior
 
 The owner requests a candid product reassessment before the next architectural
 decision. [Concept review](../research/CONCEPT_REVIEW_2026-09-29.md) records the
@@ -39,7 +67,8 @@ lead's recommendation and two independent Sol critiques: retain cross-site
 semantic conversations, but separate automatic relevance retrieval from stable
 conversation identity. Reconsider automatic historical routing and defer the
 primary-Topic dropdown/many-to-many migration until its user-facing purpose is
-clear. The recommendation is **not adopted or implemented**; 0.11.0 remains intact.
+clear. The owner subsequently supports the direction; the concrete routing/migration
+contract remains **not approved or implemented**, and 0.11.0 remains intact.
 Cold-start Sources and cold-start participation are separate problems; favor a
 small useful, permitted reading/discussion collection for one reachable audience.
 No new owner data, capture, model, provider, recruitment, migration or release.
