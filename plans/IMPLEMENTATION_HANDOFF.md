@@ -1,6 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
-Updated: 2026-09-29. **S1–S3 and ADR-017 experiment complete; next activation gate.**
+Updated: 2026-09-29. **S1–S3 and ADR-017 complete; ADR-018 expanded activation gate.**
+
+Latest owner direction supersedes the synthetic-only interactive proposal below:
+build the actual real-page background-vector/grouping/shared-comment loop, with
+asynchronous resolution. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md)
+defines the proposed one-time Security/Privacy/Policy approval and executable
+B1–B5 slices. Do not interpret direction alone as consent to undisclosed broad
+permissions or retained URL/title fields. Ask for that exact package, then work
+autonomously within it using parallel Sol Medium agents. No new activation yet.
 Historical starting baseline: `818dd6e`, reviewed S1/S2 and offline extension 0.4.0.
 Inspect current git state first. The fixed listener and session-paired extension
 0.5.0 now provide the local human discussion loop. Socket and actual-Chrome
@@ -19,7 +27,8 @@ Node process is on-device; future hosting must not silently move raw-content
 embedding there. Browser/mobile inference and remote-vector transfer have not
 been validated or approved by the synthetic comparison proposal.
 
-ADR-017 execution is now complete. Proposed next package, **not yet approved**:
+ADR-017 execution is now complete. Historical narrower proposal, superseded by
+the owner's real-page direction and ADR-018 (do not implement as another milestone):
 use E5 suggestions in the existing local extension demo, using only the frozen
 64 synthetic descriptors. Precompute on this PC; retain generated vectors and
 catalog state locally in ignored app-owned storage, preserving existing demo

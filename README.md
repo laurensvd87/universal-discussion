@@ -119,6 +119,13 @@ provenance-approved task requires explicit approval before acquisition/review.
 
 ## Next product increment
 
+The owner now requests background matching while browsing real pages, followed
+by shared comments across matched Topics. The
+[next approval package and implementation slices](decisions/ADR-018-background-page-matching-local-poc.md)
+specify browser-side embeddings, selected-site access, local retention and
+experimental provisional grouping. These features are not active yet; the exact
+expanded privacy/security permissions await confirmation.
+
 A local backend now owns the synthetic Source catalog, fixture vectors/matching,
 Topics and discussion state. Its pure domain, SQLite repository and in-process
 API handler are implemented, tested and corrected following Astra review. The

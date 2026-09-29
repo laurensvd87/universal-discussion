@@ -16,6 +16,12 @@ on 2026-09-29 and is now implemented/measured. Review its evidence before propos
 interactive activation or broader inputs. S4's private/AI/moderation UX remains later work.
 External search/provider selection is deferred by the owner, not an R1 dependency.
 
+2026-09-29 continuation: the owner requests a testable real-page background
+matching loop, not another synthetic-only UI milestone. R2's next execution
+package is [ADR-018 B1–B5](../decisions/ADR-018-background-page-matching-local-poc.md).
+Its exact capture/permissions/payload/retention and provisional local-auto policy
+await owner approval. This does not begin R5 production AUTO or repeat 6/6.
+
 ## Evidence already available
 
 - Offline exact-URL/fingerprint resolver, synthetic extractor and evaluator.

@@ -9,10 +9,13 @@ complete; do not repeat them. ADR-016 supersedes IndexedDB-first with a local
 service owning catalog, embeddings/matching and discussion state. External web
 search is deferred. S1/S2 have passed Astra review with corrections. The owner
 approved ADR-016's exact local S3 activation package on 2026-09-28. S3 is now
-implemented with actual loopback/Chrome evidence. Do not repeat S3 or its approval;
-the next boundary is the exact real embedding model/input experiment approval.
-Do not silently start S4/R2 or acquire a model. Keep STATUS current and record
-consequential choices in `decisions/`.
+implemented with actual loopback/Chrome evidence. Do not repeat S3 or its approval.
+ADR-017's approved synthetic embedding experiment is complete. The owner now
+requests the real-page background matching/shared-comment loop; ADR-018 defines
+its exact permissions/payload/retention/provisional-grouping package, pending
+explicit approval. After that gate, implement B1–B5 autonomously; do not silently
+activate live capture, start S4 or acquire another model. Keep STATUS current and
+record consequential choices in `decisions/`.
 
 The owner's current workflow is Astra orchestration/review with GPT-6 Sol Medium
 coding subagents where supported. Assign bounded, non-overlapping work; return

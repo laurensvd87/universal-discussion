@@ -1,9 +1,11 @@
 # Project status
 
 Updated: 2026-09-29. Active direction: ADR-014/015/016 and the product-first roadmap.
-ADR-017's synthetic-only local experiment is implemented and measured. The next
-gate is the exact interactive/on-device model package; no extension/real-page/
-hosting expansion follows from the experiment approval.
+ADR-017's synthetic-only local experiment is implemented and measured. The owner
+now requests the real-page background -> vector -> local Topic -> shared-comment
+loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
+the exact expanded Security/Privacy/Policy package awaiting approval. No real-page
+background capture, new permission or automatic grouping has been activated.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -14,6 +16,29 @@ The core product hypotheses—semantic concentration, personal AI utility and
 community adoption—remain unvalidated. Stop expanding review infrastructure.
 The first local discussion loop is built; next prioritize real embedding utility
 after its exact model/input approval, then the remaining private/AI/moderation UX.
+
+## New owner direction and next gate — 2026-09-29
+
+- Owner approves connecting learned matching and asks for a testable real-page
+  browsing loop with background vectors, durable backend grouping and comments
+  shared across similar pages, allowing asynchronous resolution. Work should
+  continue autonomously except at genuine approval/information boundaries.
+- Owner explicitly reiterates parallel subagents. Two Sol Medium read-only
+  inspections ran in parallel: browser/background implementation and Trust/data/
+  matching review. The lead reconciled a single ADR-018 approval package and B1–B5
+  plan, rather than another synthetic-only UI milestone or per-module interview.
+- Required confirmation: optional per-site background read/WASM permissions,
+  public main-content sample, persisted URL/title/vector payload on this PC,
+  deletion controls and fallible provisional automatic grouping. Private inboxes,
+  off-device transfer, deployment and publication are excluded from this package.
+- No new model download is inherently needed; approximately 150 MB of existing
+  assets can be packaged locally. Actual browser WASM compatibility/parity remains
+  untested and is B1, not inferred from Node success. Real-page activation waits
+  for the explicit exact-package answer; the completed 6/6 review stays finished.
+- Separate AI Trust review found the package coherent for one bundled approval
+  request; sensitive URL rejection and complete matching-state deletion remain
+  focused implementation checks. Documentation-only validation: 55 local links
+  resolve and `git diff --check` passes. No product code or permissions changed.
 
 | Capability | Actual state |
 | --- | --- |
@@ -377,6 +402,8 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-017: bounded synthetic-only local comparison completed;
   no interactive model activation or real inputs. Hosting does not inherit
   permission for raw content or vectors.
+- ADR-018: owner-requested real-page background matching direction; exact
+  permissions/payload/retention/provisional-grouping package pending approval.
 - ADR-001/004: frozen baseline/editorial evaluation evidence; unchanged.
 - ADR-009: local-first NO-AUTO direction retained and made executable.
 - ADR-010/011: existing exact URL/metadata boundaries unchanged by this reset.
@@ -387,5 +414,6 @@ increment. Completed synthetic labeling is not real-world accuracy evidence.
 - ADR-003/005: backend/correction candidates, not deployed infrastructure or
   permission for global merges.
 
-No real data acquisition, new provider call, model download, spending,
-deployment, announcement, store submission or public discussion occurred.
+During ADR-018 preparation, no additional data/model acquisition, provider call,
+spending, deployment, announcement, store submission or public discussion
+occurred. The earlier approved ADR-017 model/runtime acquisition is recorded above.
