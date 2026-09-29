@@ -4,7 +4,7 @@ import { fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId } from "../domain/validation.js";
 import { createHash } from "node:crypto";
 import { rankRelatedSources } from "../../../../spikes/topic-resolution/browser/core/related-sources.js";
-import { applyLearnedCommand, applyLearnedIngest, BROWSER_MODEL_ID, EXTRACTOR_VERSION, ingestionResult, LEARNED_COMMANDS, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, readLearnedIngest } from "../domain/learned-sources.js";
+import { applyLearnedCommand, applyLearnedIngest, BROWSER_MODEL_ID, compatibleExtractor, ingestionResult, LEARNED_COMMANDS, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, readLearnedIngest } from "../domain/learned-sources.js";
 
 export const DEMO_ACTORS = Object.freeze([
   Object.freeze({ id: "demo-alex", displayName: "Alex · synthetic", type: "human", demo: true }),
@@ -42,7 +42,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const source = state.sources.find((entry) => entry.id === sourceId);
       if (!source) fail("not-found", "Object unavailable");
       if (source.provenance === LEARNED_SOURCE_PROVENANCE) {
-        const candidates = state.sources.filter((entry) => entry.provenance === LEARNED_SOURCE_PROVENANCE && entry.embedding.modelId === source.embedding.modelId && entry.extractorVersion === EXTRACTOR_VERSION).map((entry) => ({
+        const candidates = state.sources.filter((entry) => entry.provenance === LEARNED_SOURCE_PROVENANCE && entry.embedding.modelId === source.embedding.modelId && compatibleExtractor(entry.extractorVersion)).map((entry) => ({
           id: entry.id, url: entry.url, title: entry.title, embedding: entry.embedding,
           topicId: state.sourceLinks.find((link) => link.sourceId === entry.id && link.method === "manual-confirmed")?.topicId ?? null,
         }));

@@ -1,5 +1,5 @@
 // Pure /v1 validation. Only the explicit ingestion path accepts approved vectors.
-import { inspectPageUrl } from "./page-content-policy.js";
+import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "./page-content-policy.js";
 const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const KINDS = ["general", "event", "product", "claim"];
 const ACTORS = ["demo-alex", "demo-blair"];
@@ -215,7 +215,7 @@ export function readIngestion(value) {
   if (values.length !== 384 || Math.abs(Math.hypot(...values) - 1) > 0.001) invalid();
   return { expected: readVersion(item.expected), operationId: readId(item.operationId), url: url.url,
     title: text(item.title, 200), embedding: { modelId: embedding.modelId, values },
-    extractorVersion: oneOf(item.extractorVersion, ["main-text-prefix/v1"]) };
+    extractorVersion: oneOf(item.extractorVersion, PAGE_CONTENT_EXTRACTOR_VERSIONS) };
 }
 export function readIngestionOutcome(value) {
   const item = record(value, ["version", "sourceId", "topicId", "assignment", "policyVersion"]);

@@ -9,6 +9,16 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Reader **0.9.0** adds the explicitly approved [bounded article fallback](decisions/ADR-021-bounded-article-container-fallback.md)
+for pages without main/article markers, alongside cheaper traversal and clearer
+capture-limit messages. It selects a narrowly marked, paragraph-rich container,
+not unrestricted page text. Structural work is capped at 10,000 steps; the checked
+40 ms deadline, 4,096-character sample, privacy exclusions and local-only payload
+remain. Existing Topics/comments are preserved. The reader now succeeds on the
+anonymous GameStar snapshot; 47 actual Chrome reader checks pass. The full-service
+browser regression awaits a free test port; live-site/general-web coverage is not
+established. See [STATUS](plans/STATUS.md) for exact evidence and the remaining check.
+
 The owner approved [ADR-019 B](decisions/ADR-019-automatic-browsing-and-durable-pairing.md):
 Start once per browsing session to match eligible HTTPS sites in that normal
 browser window. Stop/window closure/browser restart ends capture. Chrome's broad

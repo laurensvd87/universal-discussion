@@ -28,6 +28,42 @@ function input(service, suffix, angle = 0, overrides = {}) {
 }
 function command(service, value) { return service.command(service.catalog().version, value, "demo-alex"); }
 const isCode = (code) => (error) => error instanceof ServiceError && error.code === code;
+const FALLBACK_EXTRACTOR = "article-container-prefix/v1";
+
+test("reviewed capture policies share the unchanged vector space without changing existing links or comments", () => {
+  const { service, repository } = setup();
+  const first = service.ingest(input(service, "legacy-region"));
+  command(service, { type: "create-root", topicId: first.topicId, body: "Preserved across capture policies" });
+  const fallback = service.ingest(input(service, "generic-region", 0.1, { extractorVersion: FALLBACK_EXTRACTOR }));
+  assert.equal(fallback.topicId, first.topicId);
+  assert.equal(service.discussion(fallback.topicId).roots[0].body, "Preserved across capture policies");
+  assert.equal(repository.load().sources.find(source => source.id === fallback.sourceId).extractorVersion, FALLBACK_EXTRACTOR);
+  assert.equal(service.related(first.sourceId).results[0].id, fallback.sourceId);
+  assert.equal(service.related(fallback.sourceId).results[0].id, first.sourceId);
+  const mixed = service.ingest(input(service, "mixed-members", 0.05));
+  assert.equal(mixed.topicId, first.topicId);
+  const corrected = command(service, { type: "correct-source", sourceId: first.sourceId, topicId: null }).result;
+  const updated = service.ingest(input(service, "legacy-region", Math.PI / 2,
+    { operationId: "changed-capture-policy", extractorVersion: FALLBACK_EXTRACTOR }));
+  assert.equal(updated.sourceId, first.sourceId);
+  assert.equal(updated.topicId, corrected.topicId);
+  assert.equal(updated.assignment, "confirmed");
+  assert.equal(service.discussion(fallback.topicId).roots[0].body, "Preserved across capture policies");
+  assertValidPersistedState(repository.load());
+});
+
+test("fallback members still enforce all-member and competing-Topic ambiguity rules", () => {
+  const service = demoService();
+  const first = service.ingest(input(service, "mixed-chain-a"));
+  const second = service.ingest(input(service, "mixed-chain-b", 0.3, { extractorVersion: FALLBACK_EXTRACTOR }));
+  assert.equal(second.topicId, first.topicId);
+  const chain = service.ingest(input(service, "mixed-chain-c", 0.6));
+  assert.notEqual(chain.topicId, first.topicId);
+  const separated = command(service, { type: "correct-source", sourceId: second.sourceId, topicId: null }).result;
+  const ambiguous = service.ingest(input(service, "mixed-ambiguous", 0.15));
+  assert.notEqual(ambiguous.topicId, first.topicId);
+  assert.notEqual(ambiguous.topicId, separated.topicId);
+});
 
 test("learned pages share a provisional Topic and existing comments without moving posts or exposing scores", () => {
   const { service, repository } = setup();
@@ -227,7 +263,8 @@ test("SQLite preserves learned state/assignment across reopen and durably clears
   let app = createSqliteDemoService({ databasePath, ...dependencies });
   const first = app.service.ingest(input(app.service, "persist-a"));
   command(app.service, { type: "create-root", topicId: first.topicId, body: "Durable learned comment" });
-  const second = app.service.ingest(input(app.service, "persist-b", 0.1));
+  const second = app.service.ingest(input(app.service, "persist-b", 0.1, { extractorVersion: FALLBACK_EXTRACTOR }));
+  assert.equal(second.topicId, first.topicId);
   const correction = command(app.service, { type: "correct-source", sourceId: second.sourceId, topicId: null }).result;
   app.close();
   app = createSqliteDemoService({ databasePath, ...dependencies });

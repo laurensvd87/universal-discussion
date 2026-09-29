@@ -1,12 +1,15 @@
 import { fail } from "./errors.js";
 import { clone, readExpectedVersion, readId, readRecord, readText } from "./validation.js";
 import { LIMITS } from "./demo-state.js";
-import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
+import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
 export const LEARNED_SOURCE_PROVENANCE = "owner-local-page-embedding/v1";
 export const LEARNED_TOPIC_PROVENANCE = "owner-local-learned-topic/v1";
 export const BROWSER_MODEL_ID = "e5-small-q8-browser-main-prefix-v1";
 export const EXTRACTOR_VERSION = "main-text-prefix/v1";
+// ADR-021 explicitly reviews both capture policies in the unchanged E5 space.
+// This is an exact allowlist, not general compatibility by vector dimension.
+export function compatibleExtractor(version) { return PAGE_CONTENT_EXTRACTOR_VERSIONS.includes(version); }
 export const MATCH_POLICY_VERSION = "provisional-all-source-cosine/v1";
 export const MATCH_POLICY = Object.freeze({ minSimilarity: 0.94, distinctTopicMargin: 0.04 });
 export const LEARNED_COMMANDS = new Set(["correct-source", "forget-source", "delete-learned-topic", "clear-learned-data"]);
@@ -46,7 +49,7 @@ export function readLearnedEmbedding(value) {
 
 export function readLearnedIngest(value) {
   const input = readRecord(value, ["expected", "operationId", "url", "title", "embedding", "extractorVersion"]);
-  if (input.extractorVersion !== EXTRACTOR_VERSION) fail("invalid", "Unsupported extractor version");
+  if (!compatibleExtractor(input.extractorVersion)) fail("invalid", "Unsupported extractor version");
   return {
     expected: readExpectedVersion(input.expected), operationId: readId(input.operationId),
     url: readLearnedUrl(input.url), title: readText(input.title, 200),
@@ -76,7 +79,7 @@ function provisionalTopic(state, embedding) {
     const sourceIds = new Set(state.sourceLinks.filter((link) => link.topicId === topic.id).map((link) => link.sourceId));
     const members = state.sources.filter((source) => sourceIds.has(source.id));
     // Never expand a Topic via a single neighbor or a mixed vector space.
-    if (!members.length || members.some((source) => source.provenance !== LEARNED_SOURCE_PROVENANCE || source.embedding.modelId !== embedding.modelId || source.extractorVersion !== EXTRACTOR_VERSION)) continue;
+    if (!members.length || members.some((source) => source.provenance !== LEARNED_SOURCE_PROVENANCE || source.embedding.modelId !== embedding.modelId || !compatibleExtractor(source.extractorVersion))) continue;
     const similarities = members.map((source) => cosine(embedding.values, source.embedding.values));
     scores.push({ topicId: topic.id, score: Math.min(...similarities) });
   }
@@ -86,7 +89,7 @@ function provisionalTopic(state, embedding) {
   // Ambiguity uses the closest compatible member of every other Topic, even
   // a Topic whose other members made it ineligible for automatic expansion.
   // A low cluster minimum must not hide a competing near-identical Source.
-  const competing = state.sources.filter((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && source.embedding.modelId === embedding.modelId && source.extractorVersion === EXTRACTOR_VERSION && state.sourceLinks.some((link) => link.sourceId === source.id && link.topicId !== first.topicId));
+  const competing = state.sources.filter((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && source.embedding.modelId === embedding.modelId && compatibleExtractor(source.extractorVersion) && state.sourceLinks.some((link) => link.sourceId === source.id && link.topicId !== first.topicId));
   if (competing.some((source) => first.score - cosine(embedding.values, source.embedding.values) < MATCH_POLICY.distinctTopicMargin)) return null;
   return first.topicId;
 }

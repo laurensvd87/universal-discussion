@@ -1,5 +1,45 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Bounded article detection (0.9.0)
+
+The reader stops scanning metadata once it has the first nonempty bounded title
+and reads sibling nodes lazily. Pages with hundreds of later metadata tags or a
+complete leading sample followed by thousands of unused siblings can now succeed.
+The existing first eligible main/article/main-role region retains priority and
+its `main-text-prefix/v1` sample. If none exists, the owner-approved ADR-021 fallback
+requires a DIV/SECTION marked with both article/story/post/entry and body/content/text
+tokens, multiple substantial paragraphs, low link density and mostly paragraph
+text. Ambiguous independent containers are rejected; body text is never a fallback.
+The heuristic may choose the wrong section. Existing exclusions still apply.
+
+Fallback samples use `article-container-prefix/v1`; the unchanged E5 model,
+tokenizer, prefix, pooling and normalization make these two explicitly allowlisted
+capture policies vector-compatible. Unknown versions are rejected. No model
+download, bulk recapture, data reset or Topic/comment movement occurs. Restart
+the local backend as well as reloading the extension so both accept the new tag.
+The sample remains at most 4,096 characters/512 tokens; raw text stays on-device.
+
+Instead of one ambiguous `capture-budget`, diagnostics distinguish:
+
+- `capture-time-budget`: the checked 40 ms extraction deadline was exceeded.
+- `capture-node-budget`: 10,000 shared traversal/evidence/extraction work steps were exhausted.
+- `capture-head-budget`: title lookup exceeded 256 head elements.
+- `capture-attribute-budget`: a checked attribute exceeded 1,024 characters.
+- `capture-failed`: an unexpected extraction error; no raw error detail is shown.
+
+These failures occur before embedding, not after a search finds no matching Topic.
+Wait for loading to settle and use **Retry current page** for a time failure; a
+deterministic structural rejection may need a reader change or manual Topic choice.
+The legacy generic code remains accepted. Previously stored data is unaffected.
+
+The unmodified reader now succeeds 3/3 on the supplied GameStar anonymous static
+snapshot: 3,796 sample characters, 8.4/6.4/4.9 ms. Actual Chrome passes 47 reader/
+eligibility checks and 15 session checks. Restricted tests pass 659/659; backend
+tests 69/69. The full 0.9.0 embedding/shared-comment browser regression still awaits
+the owner's free test port. Static diagnostics do not reproduce the owner's live
+CSS, scripts or consent state, and are not semantic-quality validation. See
+[ADR-021](../../../decisions/ADR-021-bounded-article-container-fallback.md).
+
 ## User-facing discussion popup (0.8.0)
 
 The small **User / Developer** switch is at the top; User is the default. The
@@ -96,7 +136,8 @@ local SQLite database is not encrypted. No web search or crawler is included.
    These reload/restart checks and first native-dialog acceptance remain manual;
    the headless test harness could not verify them reliably.
 
-The reader samples at most 4,096 characters from rendered article/main content,
+The reader samples at most 4,096 characters from a rendered article/main region or
+the approved bounded article-container fallback,
 excludes forms/editables/navigation/comments/hidden regions and never falls back
 to the whole document. E5 uses a versioned prefix of at most 512 tokens. This is
 limited coverage, not full-page analysis. The exclusions are structural checks,

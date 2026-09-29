@@ -1,4 +1,6 @@
 export const MODEL_ID = 'e5-small-q8-browser-main-prefix-v1';
+// Historical asset-manifest identity, not the per-capture region provenance.
+// ADR-021 also accepts article-container-prefix/v1 with this unchanged transform.
 export const EXTRACTOR_VERSION = 'main-text-prefix/v1';
 export const DIMENSIONS = 384;
 export const MAX_CHARACTERS = 4096;

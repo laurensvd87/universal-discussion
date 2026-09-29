@@ -1,6 +1,6 @@
 import { LIMITS, STATE_SCHEMA } from "./demo-state.js";
 import { readBody } from "./validation.js";
-import { BROWSER_MODEL_ID, EXTRACTOR_VERSION, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, MATCH_POLICY_VERSION, readLearnedEmbedding, readLearnedUrl } from "./learned-sources.js";
+import { BROWSER_MODEL_ID, compatibleExtractor, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, MATCH_POLICY_VERSION, readLearnedEmbedding, readLearnedUrl } from "./learned-sources.js";
 
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 const ACTORS = new Set(["demo-alex", "demo-blair"]);
@@ -37,7 +37,7 @@ export function assertValidPersistedState(state) {
     validEmbedding(source.embedding);
     if (learned) {
       text(source.title, 200); text(source.operationId, 128);
-      if (source.extractorVersion !== EXTRACTOR_VERSION || source.policyVersion !== MATCH_POLICY_VERSION || !/^[a-f0-9]{64}$/u.test(source.operationDigest) || source.embedding?.modelId !== BROWSER_MODEL_ID) invalid();
+      if (!compatibleExtractor(source.extractorVersion) || source.policyVersion !== MATCH_POLICY_VERSION || !/^[a-f0-9]{64}$/u.test(source.operationDigest) || source.embedding?.modelId !== BROWSER_MODEL_ID) invalid();
       if (readLearnedUrl(source.url) !== source.url) invalid();
       readLearnedEmbedding(source.embedding);
     }

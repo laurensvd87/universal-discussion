@@ -12,6 +12,13 @@ See
 [the S1/S2 review](../../research/S1_S2_REVIEW_2026-09-28.md) and
 [current handoff](../../plans/IMPLEMENTATION_HANDOFF.md).
 
+Extension 0.9.0 adds the owner-approved bounded generic article fallback (ADR-021).
+Restart this service as well as reloading the extension: ingestion/persistence
+now explicitly accept `main-text-prefix/v1` and `article-container-prefix/v1`
+under the same unchanged E5 transform. Unknown extractors/models stay rejected.
+Existing SQLite data, Topic links, comments and manual corrections are preserved;
+no reset, migration, model installation or additional listener is required.
+
 Requirements: Node.js 24 or newer. No package installation is needed.
 
 The separately approved [embedding experiment](experiments/embeddings/README.md)

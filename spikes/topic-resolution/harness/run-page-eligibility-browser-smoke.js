@@ -14,6 +14,9 @@ const HTML = '<!doctype html><html><head><meta charset="utf-8"><title>Owned elig
 const COLLECTOR_TITLE = 'Owned collector fixture';
 const COLLECTOR_TEXT = 'Owned synthetic article for bounded collector regression.';
 const EXCLUDED_TEXT = 'Owned excluded content must not be collected.';
+const FALLBACK_PARAGRAPH = 'Owned synthetic article paragraph about a local community garden. Volunteers plant tomatoes, improve the soil and share the harvest with their neighbors. ';
+const FALLBACK_BODY = `<div class="article-content"><p>${FALLBACK_PARAGRAPH}</p><p>${FALLBACK_PARAGRAPH}</p></div>`;
+const FALLBACK_TEXT = `${FALLBACK_PARAGRAPH.trim()} ${FALLBACK_PARAGRAPH.trim()}`;
 const COLLECTOR_CASES = [
   { name: 'robots-negative', head: '<meta name="robots" content="noai, noindex, nosnippet, nofollow, max-snippet:0">' },
   { name: 'robots-positive', head: '<meta name="robots" content="all, index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">' },
@@ -26,6 +29,27 @@ const COLLECTOR_CASES = [
   { name: 'hidden-region', unsupported: true, body: `<main hidden><p>${EXCLUDED_TEXT}</p></main>` },
   { name: 'paywall-region', unsupported: true, body: `<article class="paywall"><p>${EXCLUDED_TEXT}</p></article>` },
   { name: 'missing-region', unsupported: true, body: `<div><p>${EXCLUDED_TEXT}</p></div>` },
+  { name: 'early-title-large-metadata-tail', head: '<meta name="owned-unused" content="fixture">'.repeat(300) },
+  { name: 'complete-prefix-before-wide-unused-tail', text: 'A'.repeat(4096),
+    body: `<main><p>${'A'.repeat(4096)}</p>${'<p>Owned unused tail</p>'.repeat(1600)}</main>` },
+  { name: 'genuine-node-limit', unsupported: true, reason: 'capture-node-budget',
+    body: `<main>${'<!-- owned structural step -->'.repeat(10001)}<p>Owned unreachable tail</p></main>` },
+  { name: 'genuine-head-limit', unsupported: true, reason: 'capture-head-budget',
+    beforeTitle: '<meta name="owned-unused" content="fixture">'.repeat(256) },
+  { name: 'oversized-attribute-rejected', unsupported: true, reason: 'capture-attribute-budget',
+    body: `<main class="${'x'.repeat(1025)}"><p>${EXCLUDED_TEXT}</p></main>` },
+  { name: 'generic-article-container', body: FALLBACK_BODY, text: FALLBACK_TEXT, extractorVersion: 'article-container-prefix/v1' },
+  { name: 'generic-nested-container', body: `<section class="story-body">${FALLBACK_BODY}</section>`,
+    text: FALLBACK_TEXT, extractorVersion: 'article-container-prefix/v1' },
+  { name: 'generic-excluded-descendants', body: FALLBACK_BODY.replace('</div>', `<form><p>${EXCLUDED_TEXT}</p></form><div hidden><p>${EXCLUDED_TEXT}</p></div><section class="comments"><p>${EXCLUDED_TEXT}</p></section></div>`),
+    text: FALLBACK_TEXT, extractorVersion: 'article-container-prefix/v1' },
+  { name: 'generic-ambiguous-articles', unsupported: true, body: FALLBACK_BODY + FALLBACK_BODY },
+  { name: 'generic-hidden-ancestor', unsupported: true, body: `<div hidden>${FALLBACK_BODY}</div>` },
+  { name: 'generic-comment-ancestor', unsupported: true, body: `<div class="comments">${FALLBACK_BODY}</div>` },
+  { name: 'generic-link-list', unsupported: true, body: `<div class="article-content"><p><a href="#owned">${FALLBACK_PARAGRAPH}</a></p><p><a href="#owned">${FALLBACK_PARAGRAPH}</a></p></div>` },
+  { name: 'generic-label-without-prose', unsupported: true, body: `<div class="article-content"><p>${COLLECTOR_TEXT}</p></div>` },
+  { name: 'generic-body-never-selected', unsupported: true, body: `<p>${FALLBACK_PARAGRAPH}</p><p>${FALLBACK_PARAGRAPH}</p>` },
+  { name: 'semantic-region-still-prioritized', body: `${FALLBACK_BODY}<main><p>${COLLECTOR_TEXT}</p></main>` },
 ];
 const FILTER = ['page', 'iframe', 'other', 'worker', 'service_worker', 'shared_worker']
   .map(type => ({ type, exclude: false })).concat({ exclude: true });
@@ -376,7 +400,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     try {
       for (const fixture of COLLECTOR_CASES) {
         stage = `packaged collector ${fixture.name}`;
-        const head = `<meta charset="utf-8"><title>${COLLECTOR_TITLE}</title>${fixture.head ?? ''}`;
+        const head = `<meta charset="utf-8">${fixture.beforeTitle ?? ''}<title>${COLLECTOR_TITLE}</title>${fixture.head ?? ''}`;
         const body = fixture.body ?? `<main><p>${COLLECTOR_TEXT}</p></main>`;
         await evaluate(`(() => {
           document.head.innerHTML = ${JSON.stringify(head)};
@@ -393,9 +417,9 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         assert.equal(injections[0].frameId, 0);
         assert.match(injections[0].documentId, /^[A-Za-z0-9._:-]{1,128}$/u);
         const expected = fixture.unsupported
-          ? { contractVersion: 'page-content/1', status: 'unsupported', reason: 'missing-region' }
+          ? { contractVersion: 'page-content/1', status: 'unsupported', reason: fixture.reason ?? 'missing-region' }
           : { contractVersion: 'page-content/1', status: 'collected', url: ARTICLE, title: COLLECTOR_TITLE,
-            text: COLLECTOR_TEXT, extractorVersion: 'main-text-prefix/v1' };
+            text: fixture.text ?? COLLECTOR_TEXT, extractorVersion: fixture.extractorVersion ?? 'main-text-prefix/v1' };
         assert.deepEqual(injections[0].result, expected);
         if (!fixture.unsupported) syntheticContentCaptures++;
         collectorChecks.push(`${fixture.name}-${fixture.unsupported ? 'excluded' : 'collected-exact-shape'}`);

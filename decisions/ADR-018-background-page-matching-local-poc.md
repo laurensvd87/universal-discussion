@@ -117,6 +117,44 @@ Phase 0 and the 6/6 owner review remain complete. The R5 provenance-approved
    users, public posts, provider, search, spending, store submission or public
    distribution is included. Those approvals remain separate.
 
+## Bounded reader efficiency correction (0.8.1, 2026-09-29)
+
+Owner feedback requests a fix for `capture-budget`, with one public GameStar
+article supplied for diagnosis. Within the existing scope, stop the head scan
+after the first nonempty bounded title and enumerate descendant siblings lazily.
+The old reader scanned irrelevant metadata after finding the title and enumerated
+all later siblings before reading a usable first paragraph. Both can reject a
+page before the bounded sample is read. Reproductions now succeed without raising
+the 40 ms, 1,500 work-step, 256 head-element, 1,024 attribute-character, 200 title-
+character, 4,096 sample-character or 512 model-token limits. Keep every exclusion,
+first eligible main/article/main-role region and text/whitespace order. Check the
+deadline after final normalization too; a slow native read must not publish a
+late collected result. This is not a hard real-time interruption of native calls.
+
+Use identity-based internal failure sentinels and fixed public diagnostics for
+time, node, head and attribute limits; unexpected failures have a separate fixed
+code. Never expose an exception message, DOM field or sampled text. Accept the
+legacy `capture-budget` DTO. Parity/exclusion tests support retaining
+`main-text-prefix/v1`: the optimization changes avoidable work, not the sampled
+input for previously successful pages. This does not approve ADR-019 A/C.
+
+Independent Sol Medium Trust review accepts the correction. Restricted suite
+641/641, normal 640 plus one intentional skip, indicator 453/453 and actual Chrome
+37 eligibility/reader checks pass, including large unused head/sibling tails and
+remaining real limit rejections. The full-service regression for this patch
+awaits a free owner backend port; no owner data or service was touched.
+
+The supplied page's anonymous static HTML reproduces node-budget exhaustion in
+both the old and optimized reader. It has no main/article/main-role or standard
+articleBody/Article/NewsArticle markers. This is not the owner's live DOM: external
+styles/scripts were disabled in a temporary, network-blocked browser diagnostic.
+No raw article text or HTML was retained or used for embedding. The bounded
+correction alone is **not a demonstrated fix for GameStar**. A generic fallback
+changes accepted region scope; the owner subsequently explicitly approved
+[ADR-021](ADR-021-bounded-article-container-fallback.md). Its 0.9.0 implementation
+supersedes the 1,500-step/semantic-region-only limits above, keeping all other
+scope boundaries. See STATUS for current verification and remaining full-loop test.
+
 ## Implementation slices
 
 | Slice | Deliverable | Required evidence |

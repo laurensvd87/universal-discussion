@@ -37,6 +37,21 @@ test("background matching sends only explicit fields and resolves delayed Topic"
   assert.ok(!JSON.stringify(matcher.currentState()).includes("bounded article text"));
   assert.ok(!JSON.stringify(payload).includes("bounded article text"));
 });
+test("fallback capture provenance reaches ingestion but raw sample never does", async () => {
+  const base = fixture();
+  const original = base.dependencies.reader.read;
+  base.dependencies.reader.read = async () => {
+    const capture = await original();
+    capture.result.extractorVersion = "article-container-prefix/v1";
+    return capture;
+  };
+  await base.matcher.refresh();
+  const payload = base.calls[2];
+  assert.equal(payload.extractorVersion, "article-container-prefix/v1");
+  assert.deepEqual(Object.keys(payload).sort(), ["embedding", "expected", "extractorVersion", "operationId", "title", "url"]);
+  assert.equal(base.matcher.currentState().phase, "ready");
+});
+
 for (const [label, setup, phase] of [
   ["off", s => { s.enabled = false; }, "off"],
   ["site blocked", s => { s.blockedOrigins = [origin]; }, "not-enabled"],

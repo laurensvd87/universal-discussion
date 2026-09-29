@@ -1,5 +1,10 @@
 export const PAGE_CONTENT_LIMITS = Object.freeze({ url: 2048, title: 200, text: 4096 });
 export const PAGE_CONTENT_EXTRACTOR_VERSION = "main-text-prefix/v1";
+// ADR-021: distinct region-selection provenance, identical E5 input transform.
+// Unknown extractors are not implicitly compatible merely because vectors fit.
+export const PAGE_CONTENT_EXTRACTOR_VERSIONS = Object.freeze([
+  PAGE_CONTENT_EXTRACTOR_VERSION, "article-container-prefix/v1",
+]);
 
 // Syntactic eligibility is not DNS resolution, authentication detection, or a
 // website-rights grant. The coordinator additionally requires owner site consent.

@@ -2,7 +2,22 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Latest request: a User/Developer popup switch, Topic-first discussion, visible
+Latest request: fix `capture-budget`, with a GameStar example. The owner explicitly
+approved [ADR-021](../decisions/ADR-021-bounded-article-container-fallback.md)'s
+generic article-container fallback/10,000-step package on 2026-09-29. Version 0.9.0
+implements it, preserves legacy region priority, keeps 40 ms/4,096 characters and
+adds fixed diagnostics. Two exact capture versions share the unchanged E5 space;
+unknown versions fail closed, old Topic links/comments stay stable. No new assets
+or permissions. Restricted 659/659, indicator 471/471, backend 69/69, actual Chrome
+47 reader/eligibility checks pass. Unmodified reader succeeds 3/3 on an inert
+anonymous GameStar snapshot; **not** a faithful live-site or semantic-quality test.
+The full matching/shared-comment/restart browser suite awaits owner shutdown of
+port 4174; do not contact/stop their backend or claim the new full-loop assertions
+have run. Once freed, run matching/legacy/loopback tests and record the checkpoint.
+The owner must restart the service and reload the extension for both sides to
+accept fallback provenance. This does not approve wider ADR-019 A/C or later gates.
+
+Previous request: a User/Developer popup switch, Topic-first discussion, visible
 connection and blue toolbar icon for another learned page in the same Topic.
 [ADR-020](../decisions/ADR-020-user-mode-and-topic-indicator.md) defines this
 presentation-only increment, implemented and browser-verified as 0.8.0. The owner
@@ -14,7 +29,7 @@ evidence and unchanged manual lifecycle/first-dialog gaps. User is the default; 
 only the inert display enum and one trusted-session toolbar tab ID for cleanup.
 Capture/permissions/matching/token retention are unchanged. Do not repeat S3/B or
 approve A/C by inference. The new User view uses the existing controller/drafts.
-Next is owner feedback on 0.8.0, not further UI foundation work or a repeated gate.
+That UI foundation is finished; do not repeat its work or approval.
 
 Previous request: implement matching-quality improvements, automatic visits across
 sites and pairing across sessions. Read [ADR-019](../decisions/ADR-019-automatic-browsing-and-durable-pairing.md)

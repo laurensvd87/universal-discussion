@@ -31,7 +31,95 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current increment: User/Developer UI and blue same-Topic icon — 0.8.0 verified
+## Current increment: owner-approved generic article fallback — 0.9.0
+
+- Owner explicitly approved **"the bounded generic fallback"** on 2026-09-29.
+  [ADR-021](../decisions/ADR-021-bounded-article-container-fallback.md) records the
+  exact rule: narrowly marked DIV/SECTION, multiple substantial paragraphs, low
+  link density and mostly paragraph text. Existing semantic regions retain
+  priority; ambiguity and excluded content abstain. One shared 10,000-step/40 ms
+  budget, at most 4,096 sample characters/512 tokens, no whole-body fallback.
+- Separate `article-container-prefix/v1` provenance shares the **unchanged** E5
+  transform with `main-text-prefix/v1`. Exact allowlists cover reader/client,
+  ingestion, SQLite validation, all-member/competing-Topic checks and related
+  candidates. Unknown versions remain rejected; legacy records, manual links,
+  comments, thresholds and receipt semantics are preserved. Restart the backend
+  along with reloading the extension to activate both sides of the new tag.
+- Unmodified serialized production reader succeeds **3/3** on the supplied
+  GameStar anonymous static snapshot: 3,796 sample characters, 141 title characters,
+  8.4/6.4/4.9 ms. Browser scripts/network were blocked and external CSS absent;
+  expected URL was `about:blank` in an inert temporary DOM. This is **not** live
+  owner-profile, semantic-quality or embedding/Topic evidence. No article/HTML/
+  title/attribute text was printed or retained or sent to the model/service.
+- Verification: restricted **659/659**, normal **658 plus one intentional skip**,
+  indicator **471/471**, socket-denied backend **69/69**, secret scans **153 + 48
+  files, zero findings**. Actual Chrome **47 eligibility/reader checks** pass,
+  including fallback positives, nesting, ambiguity, hidden/comment ancestors,
+  link lists, no-body fallback and legacy precedence. Thirteen synthetic captures,
+  zero external requests/runtime errors/inference/model loads. Actual Chrome
+  **15 session checks** also pass, preserving prior manual reload/restart/native-
+  dialog gaps. Sol Medium implements the bounded slice; independent Trust review
+  finds no material blocker (65 scoped checks), and separate QA reviews harness
+  wiring. Lead adds explicit mixed-policy restart/comment assertions.
+- **Full 0.9.0 embedding/shared-comment/browser restart regression is pending**:
+  the owner's backend still owns port 4174. Asked for Ctrl+C; no service or owner
+  data was contacted, stopped or changed. The harness now includes a semantic/
+  generic identical-text pair, shared comment/icon and mixed-policy SQLite restart
+  assertions; these new full-loop browser assertions have not run yet. Offline
+  tests already cover cross-policy matching, ambiguity, comments and SQLite reopen.
+
+Next: once the owner says the service is stopped, run matching, legacy discussion
+and loopback regressions, then hand off reloading/restarting and the live GameStar
+check. Do not infer broader public-web coverage, ADR-019 A/C approval or any later
+private/provider/publication gate. Phase 0/6-of-6/S3/B remain finished.
+
+## Earlier narrow attempt: capture-budget diagnosis and efficiency fix — 0.8.1
+
+- Owner asks to fix pages that cannot embed and supplies a public GameStar page.
+  Two anonymous bounded reads plus inert, network-blocked Chrome DOM diagnostics
+  reproduce the old reader's node-budget failure at 1,501 visits during region
+  discovery (about 7.5 ms). The optimized reader still returns
+  `capture-node-budget` (about 6.5 ms). Static response: 361,054 bytes, 145 head
+  children, 1,389 elements, no MAIN/ARTICLE/role=main/articleBody or Article/
+  NewsArticle itemtype marker. This does not establish the owner's live DOM or
+  time-limit failure: external CSS/scripts were disabled. No article/HTML/title/
+  attribute text was printed or retained; no model/backend or owner profile used.
+- Separately reproduced and fixed two generic inefficiencies: scanning metadata
+  after the bounded title was already found, and enumerating an entire sibling
+  list before reading a usable first paragraph. Lazy depth-first traversal and
+  early title completion now accept these fixtures inside all existing limits.
+  First eligible region, ordering/whitespace/prefix, exclusions and payload stay
+  unchanged; `main-text-prefix/v1` remains justified by parity tests. No threshold,
+  credential, permission or expanded region scope change. See the
+  [ADR-018 correction](../decisions/ADR-018-background-page-matching-local-poc.md).
+- Fixed messages now distinguish `capture-time-budget`, `capture-node-budget`,
+  `capture-head-budget`, `capture-attribute-budget` and `capture-failed`, retaining
+  legacy `capture-budget` input. Each states no embedding was created for that
+  attempt. Identity-based internal sentinels never disclose raw exception/DOM
+  details. A final elapsed check prevents slow final reads from publishing late.
+- Sol Medium implements the reader, a separate Sol Medium Trust review accepts
+  it (89 focused checks), and the lead integrates UI diagnostics and real Chrome
+  fixtures. Restricted **641/641**, normal **640 plus one intentional skip**,
+  indicator **453/453**; secret scan 153 files, zero findings. Actual Chrome passes
+  **37 eligibility/reader checks**, including early-title/large-head and complete-
+  prefix/wide-tail recovery plus genuine node/head/attribute-limit rejections.
+  Nine synthetic captures, zero external requests/runtime exceptions/model loads.
+- **GameStar is not fixed by this bounded optimization alone.** Its static HTML
+  lacks the accepted semantic regions. [ADR-021](../decisions/ADR-021-bounded-article-container-fallback.md)
+  proposes a generic likely-article fallback and up to 10,000 structural steps,
+  retaining 40 ms, 4,096 sample characters, exclusions and on-device/local-only
+  processing. The owner explicitly answered **"Approve the bounded generic
+  fallback"** on 2026-09-29. The resulting 0.9.0 implementation is recorded above;
+  no wider ADR-019 A/C approval is inferred.
+- Full embedding/shared-comment regression for 0.8.1 is pending because the
+  owner's backend is running on 4174 again. Asked for Ctrl+C; did not contact,
+  stop or alter that service/data. Last full-loop evidence remains 0.8.0 below.
+
+This initial attempt established why optimization alone was insufficient. The
+approved fallback supersedes only its structural work/region-selection limits;
+all later external gates remain intact.
+
+## Previous increment: User/Developer UI and blue same-Topic icon — 0.8.0 verified
 
 - Owner requests a compact mode switch, Topic-first User view, clear connection
   status and blue toolbar icon when another page belongs to the same Topic.

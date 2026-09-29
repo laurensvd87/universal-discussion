@@ -105,6 +105,24 @@ test("approved ingestion crosses the strict client boundary without raw text or 
   assert.ok(Array.isArray(cleared.result.deletedTopicIds));
 });
 
+test("fallback extractor crosses the exact HTTP allowlist and unknown versions send no request", async () => {
+  const { api, requests } = serviceClient();
+  const embedding = { modelId: "e5-small-q8-browser-main-prefix-v1", values: Array.from({ length: 384 }, (_, i) => i === 0 ? 1 : 0) };
+  const first = await api.ingest({ expected: (await api.catalog()).version, operationId: "semantic-region",
+    url: "https://example.com/semantic", title: "Synthetic legacy region", embedding, extractorVersion: "main-text-prefix/v1" });
+  const payload = { expected: (await api.catalog()).version, operationId: "generic-region",
+    url: "https://example.org/generic", title: "Synthetic generic region", embedding, extractorVersion: "article-container-prefix/v1" };
+  const fallback = await api.ingest(payload);
+  assert.equal(fallback.topicId, first.topicId);
+  assert.equal(JSON.parse(requests.at(-1).options.body).extractorVersion, "article-container-prefix/v1");
+  const count = requests.length;
+  for (const extractorVersion of ["article-container-prefix/v2", "whole-body/v1", null, {}]) {
+    await assert.rejects(api.ingest({ ...payload, extractorVersion }), code("invalid-request"));
+  }
+  await assert.rejects(api.ingest({ ...payload, text: "Raw fallback text" }), code("invalid-request"));
+  assert.equal(requests.length, count);
+});
+
 test("strict command/input allowlist prevents context, vectors, role and raw URL transfer", async () => {
   let calls = 0;
   const api = client(async () => { calls++; return json(HEALTH); });

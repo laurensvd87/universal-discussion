@@ -26,6 +26,8 @@ const TEXTS = {
   metadata: 'Cedar Slate 2 launches in September 2026 with an ink screen and removable battery. Owned metadata-bearing article content.',
 };
 const PRIVATE_SENTINEL = 'owned-form-field-must-never-leave';
+const FALLBACK_PARAGRAPH = 'An invented observatory on the Moon studies distant stars with a new infrared telescope. Its researchers compare measurements over several seasons to distinguish planets from stellar noise.';
+const FALLBACK_COMMENT = 'Owned fallback test: both layouts retain this observatory discussion.';
 const METADATA_TAGS = '<meta name="robots" content="noai, noindex, max-snippet:0"><meta name="googlebot" content="nosnippet"><meta name="tdm-reservation" content="1">';
 const FIXTURES = new Map(Object.entries({
   a: `<title>Owned Cedar launch A</title><article><p>${TEXTS.a}</p></article>`,
@@ -34,6 +36,8 @@ const FIXTURES = new Map(Object.entries({
   d: `<title>Owned paused Cedar D</title><main><p>${TEXTS.a}</p></main>`,
   metadata: `<title>Owned metadata-bearing article</title><article><p>${TEXTS.metadata}</p></article>`,
   forms: `<title>Owned excluded form</title><main><form><input value="${PRIVATE_SENTINEL}"><textarea>${PRIVATE_SENTINEL}</textarea></form></main>`,
+  semantic: `<title>Owned semantic observatory</title><article><p>${FALLBACK_PARAGRAPH}</p><p>${FALLBACK_PARAGRAPH}</p></article>`,
+  generic: `<title>Owned generic observatory</title><div class="article-content"><p>${FALLBACK_PARAGRAPH}</p><p>${FALLBACK_PARAGRAPH}</p><form><p>${PRIVATE_SENTINEL}</p></form></div>`,
 }).map(([key, html]) => {
   const split = html.indexOf('</title>') + 8;
   const body = html.slice(split);
@@ -243,7 +247,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   function inspectApiPayload(request) {
     if (request.method !== 'POST') return;
     assert.equal(typeof request.postData, 'string', 'Inspectable bounded JSON API body required');
-    for (const forbidden of [...Object.values(TEXTS), PRIVATE_SENTINEL]) assert.ok(!request.postData.includes(forbidden), 'Captured text must never enter a backend request');
+    for (const forbidden of [...Object.values(TEXTS), FALLBACK_PARAGRAPH, PRIVATE_SENTINEL]) assert.ok(!request.postData.includes(forbidden), 'Captured text must never enter a backend request');
     const payload = JSON.parse(request.postData);
     const url = new URL(request.url);
     if (url.pathname === '/v1/sources/ingest') {
@@ -253,11 +257,11 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       assert.equal(payload.embedding.values.length, 384);
       assert.ok(payload.embedding.values.every(Number.isFinite));
       assert.ok(Math.abs(Math.hypot(...payload.embedding.values) - 1) < 1e-6);
-      assert.equal(payload.extractorVersion, 'main-text-prefix/v1');
-      assert.ok(['a', 'b', 'c', 'd', 'metadata'].some(name => fixtureUrl(name) === payload.url), 'Only eligible owned articles may ingest');
+      assert.equal(payload.extractorVersion, payload.url === fixtureUrl('generic') ? 'article-container-prefix/v1' : 'main-text-prefix/v1');
+      assert.ok(['a', 'b', 'c', 'd', 'metadata', 'semantic', 'generic'].some(name => fixtureUrl(name) === payload.url), 'Only eligible owned articles may ingest');
       assert.ok(typeof payload.title === 'string' && payload.title.length <= 200);
       assert.equal(payload.title, /<title>([^<]+)<\/title>/u.exec(FIXTURES.get(payload.url))[1], 'Only the exact owned fixture title may enter ingestion');
-      ingestions.push({ url: payload.url, fields: Object.keys(payload).sort(), dimensions: 384 });
+      ingestions.push({ url: payload.url, fields: Object.keys(payload).sort(), dimensions: 384, extractorVersion: payload.extractorVersion });
     }
   }
   try {
@@ -367,6 +371,15 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     checks.push('stop-prevents-new-capture');
     await click('#matching-consent'); await click('#matching-enable'); await confirmStart(); await closePopup(); const d = await automatic('d');
     assert.equal(d.topicId, a.topicId); checks.push('new-explicit-session-captures-current-page');
+    stage = 'generic-fallback-shares-semantic-topic';
+    await navigate('semantic'); const semantic = await automatic('semantic');
+    await postComment(FALLBACK_COMMENT);
+    await navigate('generic'); const generic = await automatic('generic');
+    assert.equal(generic.topicId, semantic.topicId);
+    assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(FALLBACK_COMMENT)})`));
+    await toolbar(true);
+    assert.ok(ingestions.some(item => item.url === fixtureUrl('generic') && item.extractorVersion === 'article-container-prefix/v1'));
+    checks.push('generic-container-embeds-in-existing-space-and-shares-comment-with-semantic-region');
     stage = 'metadata-bearing-page-accepted';
     await navigate('metadata'); const metadata = await automatic('metadata');
     assert.equal(metadata.provenance, 'owner-local-page-embedding/v1');
@@ -389,6 +402,11 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     assert.equal((await source('b')).topicId, a.topicId);
     checks.push('sqlite-comment-survives-restart-and-new-pairing');
+    await chooseSource(generic.id);
+    assert.equal((await source('generic')).topicId, semantic.topicId);
+    assert.equal((await source('semantic')).topicId, semantic.topicId);
+    assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(FALLBACK_COMMENT)})`));
+    checks.push('mixed-capture-policy-topic-and-comment-survive-sqlite-restart');
     const demo = (await catalog()).sources.find(item => item.provenance !== 'owner-local-page-embedding/v1');
     assert.ok(demo, 'Demo Source remains separate from learned data');
     await chooseSource(demo.id); await postComment(DEMO_COMMENT);

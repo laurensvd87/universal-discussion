@@ -36,6 +36,15 @@ It changes presentation only; STATUS records completed full-service Chrome
 verification (17 matching/User/native-icon checks and 19 discussion areas).
 It does not reorder the pending matching, pairing or external approval gates.
 
+The reader efficiency correction removes avoidable work and distinguishes capture
+limits. The owner explicitly approved [ADR-021](../decisions/ADR-021-bounded-article-container-fallback.md)
+on 2026-09-29: 0.9.0 adds bounded generic article-container detection and up to
+10,000 work steps, retaining 40 ms, 4,096 characters and local-only processing.
+Implementation, offline/reader/session tests and Trust review are complete; the
+full-service browser regression awaits the free owner test port. Distinct capture provenance shares
+the unchanged E5 transform; preserve links/comments and reject unknown versions.
+This is not approval of wider ADR-019 A/C or later external/private/release gates.
+
 ## Evidence already available
 
 - Offline exact-URL/fingerprint resolver, synthetic extractor and evaluator.
