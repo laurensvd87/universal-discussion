@@ -5,12 +5,16 @@ Scope: the next model/input gate after S3, not external search or real-page capt
 
 ## Recommendation
 
-Compare **IBM Granite Embedding 97M Multilingual R2** with
-**multilingual-e5-small**, plus a simple lexical baseline, on a small frozen
-project-created English/German/Dutch corpus. Both offer permissively licensed,
-384-dimensional embeddings. Prefer the smaller official IBM artifact as the
-first candidate, but select the eventual default from measured local results,
-not model-card leaderboards. No paid inference provider or API key is needed.
+Updated after the owner's per-device-size and global-language clarification:
+compare a **compact multilingual static encoder with multilingual-e5-small**,
+plus a lexical baseline. See the [size-focused follow-up](SMALL_EMBEDDING_FOOTPRINT_2026-09-29.md)
+and revised ADR-017. The earlier Granite/E5 comparison below is research history,
+not the current acquisition package. Nothing is approved or installed.
+
+The initial shortlist favored Granite 97M Multilingual R2 versus E5-small, both
+permissively licensed and 384-dimensional. The follow-up asks whether a much
+smaller multilingual derivative is useful enough before accepting that footprint.
+Do not choose a default from model-card leaderboards. No paid inference API is needed.
 
 The useful first capability is finding related known Sources across wording and
 languages. Similarity alone must not merge Topics: a product launch and a recall
@@ -66,6 +70,9 @@ These license observations are engineering selection evidence, not a legal or
 store-approval guarantee. Downloaded asset licenses do not grant website rights.
 
 ## Runtime and acquisition proposal
+
+Historical first proposal; revised assets/input/size are in ADR-017 and the
+size-focused follow-up. Runtime pinning and offline/security constraints remain.
 
 Use an explicit CPU experiment runner in the local-service workspace, outside
 the synchronous HTTP request path. Proposed pinned runtime:
@@ -145,7 +152,9 @@ Read-only inspection and a synthetic-vector compatibility probe found:
   retrieval evaluation so existing answers cannot inflate model accuracy.
 - Keep a complete model/config manifest outside the strict `{modelId, values}`
   record. Derive model identity from pinned assets and preprocessing/pooling,
-  dimensions, quantization and runtime; never compare unrelated vector spaces.
+  dimensions and quantization; record runtime/version in execution provenance.
+  Different runtimes may share an identity only after explicit parity validation.
+  Never compare unrelated vector spaces.
 
 Proposed corpus: **48 project-created EN/DE/NL title/description-style descriptors**,
 each at most 4,096 characters and 512 model tokens including task prefixes and

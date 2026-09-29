@@ -133,6 +133,9 @@ and [proposed experiment](decisions/ADR-017-local-embedding-experiment.md) are r
 for owner selection/approval. The current service is on the user's PC; future
 hosting must not move raw website-content processing off-device by default.
 Remote vectors are sensitive too and require a separate approval.
+The [size/global-language follow-up](research/SMALL_EMBEDDING_FOOTPRINT_2026-09-29.md)
+prioritizes English within one multilingual space and compares compact model
+packs with E5; experimental download budgets are not end-user app sizes.
 Known permitted Sources come first; external web search is
 parked and is not a prerequisite. The recorded options remain in the
 [discovery options and costs](research/RELATED_PAGE_DISCOVERY_2026-09-28.md).

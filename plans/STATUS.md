@@ -31,13 +31,22 @@ after its exact model/input approval, then the remaining private/AI/moderation U
 
 ## Embedding options investigated 2026-09-29 — awaiting approval
 
-- Researched official model cards, licenses, ONNX artifact sizes and runtime
-  releases. Recommend a small Granite 97M Multilingual R2 / multilingual-e5-small
-  comparison with a lexical baseline; Gemma and Qwen remain alternatives.
+- Researched official model cards, licenses, artifact sizes and runtime releases.
+  The first Granite/E5 shortlist is superseded by a size-focused comparison:
+  compact multilingual static variants versus E5-small and a lexical baseline.
 - [Research and options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md) and
   [proposed exact package](../decisions/ADR-017-local-embedding-experiment.md)
-  describe assets/runtime, download bounds, 48 synthetic EN/DE/NL descriptors,
+  describe revised assets/runtime, download bounds, 64 synthetic multilingual descriptors,
   local-only inference, retained local artifacts and later review gates.
+- Owner clarified global scope with English the first priority. Preserve one
+  compatible multilingual space across users/platforms; unrelated language
+  models are not interchangeable. [Size-focused research](../research/SMALL_EMBEDDING_FOOTPRINT_2026-09-29.md)
+  distinguishes English-only tiny models, estimated 16.5/30.1 MB static packs,
+  contextual-model footprints and unsupported zero-download native shortcuts.
+  No compact pack is built or quality-tested; small size alone cannot choose it.
+- The revised comparison needs approximately 572 MB of source assets before
+  dependencies, still capped at 1 GiB download / 2 GiB installed for development.
+  End users would receive one selected pack, not the whole experiment or Node.
 - The owner's privacy question prompted an explicit deployment distinction:
   today's PC-local process is on-device; future hosting must not silently move
   raw-content processing there. Separate local derivation from remote matching;
@@ -48,11 +57,19 @@ after its exact model/input approval, then the remaining private/AI/moderation U
 - No model/package installation, inference, listener, real-page capture or new
   permission. Product suites were not rerun for this research/documentation work.
   The next action is owner model/input selection and explicit approval, not S4.
-- Documentation checks: `git diff --check` passes; all 47 local Markdown links
-  across the five changed/new documents resolve.
-- Separate AI Trust/architecture review returned qualified ACCEPT of the proposal;
+- Earlier documentation checks: `git diff --check` passed; all 47 local Markdown
+  links across five documents resolved before the size/global-language revision.
+- Earlier separate AI Trust/architecture review returned qualified ACCEPT of that proposal;
   clarified total-token accounting and public-catalog local matching. This is not
   owner activation approval, a dependency audit or independent legal/store review.
+- A bounded platform investigation found no documented common built-in embedding
+  space across Chrome/Android/iOS. Native APIs do not remove model compatibility
+  or download concerns; extension model-data delivery/CSP still needs exact review.
+- Revised documentation checks: `git diff --check` passes; all 53 local Markdown
+  links across six documents resolve. Size arithmetic and the 64-item language
+  allocation were independently checked. Separate AI Trust/architecture review
+  found no blocker; clarified vector-space identity versus runtime provenance,
+  retaining parity certification before cross-platform comparisons. No model ran.
 
 ## Reassessment completed 2026-09-27–28
 
