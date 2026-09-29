@@ -1,8 +1,10 @@
 # ADR-019: Session-scoped browsing and durable local pairing
 
 Date: 2026-09-29.
-Status: **B explicitly approved on 2026-09-29; implemented in 0.7.0, verification recorded in STATUS. A/C remain pending.**
-No durable credential, model/input or matching-policy change is authorized by B.
+Status: **B explicitly approved on 2026-09-29; implemented in 0.7.0. A's bounded
+matching upgrade separately explicitly approved on 2026-09-29; measured proposal
+retained experiment-only after false joins. C remains pending.**
+No durable credential change is authorized by A or B.
 
 ## Request and current behavior
 
@@ -26,6 +28,23 @@ Do not infer a private-page, remote-service, publication or spending approval.
 
 ## A. Bounded matching-quality implementation
 
+The owner separately answered **"approved"** to an explicit A activation request:
+prefer the actual article within current limits, embed its title plus leading
+text using the already installed multilingual model, and measure revised grouping
+rules on new project-created opposing-opinion and confusing-event/product examples.
+URL/title/one vector/versions remain the only retained page payload; raw text
+remains transient on-device. Existing Topic links/comments remain untouched.
+This is not approval of a second vector, structured page facts, private inputs,
+new model/provider/permission, bulk recapture or historical discussion merging.
+
+The discussion target is the underlying issue/event/product, not agreement with
+the author. Opposite answers to one question can share a Topic. Merely mentioning
+the same public figure or broad subject is insufficient. Event identity concerns
+the referenced occurrence, not the article publication date; later commentary
+can discuss an old event. Product/evergreen discussions do not get a universal
+publication-age cutoff. Disputed quantities alone must not be treated as proof
+of different events. No reliable event/stance classifier is presumed to exist.
+
 1. Prefer an eligible article within a main region over unrelated main-region
    chrome/teasers. Preserve excluded ancestors/subtrees, main-only fallback,
    document/focus fences and current traversal/time/text/token bounds. Evaluate
@@ -47,6 +66,24 @@ Do not infer a private-page, remote-service, publication or spending approval.
    ordinarily authorized revisit. Never compare incompatible input versions.
    No bulk recapture, automatic existing-discussion merge, post move, manual-link
    override or database reset. Existing split links still need explicit correction.
+
+### Measured outcome: no automatic-matching rollout
+
+The bounded reader/title-input proposal was implemented and passed 74 isolated
+checks. A fixed 32-document synthetic experiment made 96 local inferences using
+the existing packaged E5 runtime. Token-only audit establishes proposed-input
+parity on those 32 samples. Positives and hard negatives overlap; no frozen
+threshold supports a useful safe automatic join rule. See [full evidence and
+limitations](../apps/local-service/experiments/topic-identity/RESULTS.md).
+
+Preserve that code under `spikes/topic-resolution/experiments/topic-input`, outside
+the extension. Production reader/input/policy and backend are restored exactly
+to the preceding checkpoint; do not relabel changed input as legacy or accept
+new experimental tags in live ingestion. This preserves existing behavior, not a
+claim that the old heuristic is accurate. No historical data was accessed/changed.
+Candidate retrieval plus a separately measured subject verifier is the next
+direction; [ADR-022](ADR-022-subject-verifier-experiment.md) requests its additional
+synthetic-only model gate. A approval remains recorded and is not being repeated.
 
 ## B. Start one browsing session, then automatic cross-site processing
 

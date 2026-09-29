@@ -122,6 +122,9 @@ test("raw text, mixed models, malformed vectors and over-limit fields fail atomi
     (value) => { value.title = "x".repeat(201); },
     (value) => { value.operationId = "x".repeat(129); },
     (value) => { value.extractorVersion = "unreviewed-extractor"; },
+    // ADR-019 A's measured proposal is dormant; recognition must not activate it.
+    (value) => { value.extractorVersion = "article-title-lead/v1"; },
+    (value) => { value.extractorVersion = "container-title-lead/v1"; },
     (value) => { value.embedding.modelId = "same-dimensions-unrelated-space"; },
     (value) => { value.embedding.values.pop(); },
     (value) => { value.embedding.values.push(0); },
