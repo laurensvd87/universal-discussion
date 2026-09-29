@@ -1,11 +1,18 @@
 # ADR-017: First local learned-embedding comparison
 
-Status: **Proposed; awaiting explicit owner selection and approval.**
-Date: 2026-09-29. Research does not authorize installation or activation.
+Status: **Owner-approved bounded local experiment; implementation in progress.**
+Date: 2026-09-29.
+
+Approval record: the owner answered **"approved"** to the revised compact
+multilingual/E5 comparison, 64 synthetic examples across nine languages, no real
+website content/uploads/paid services, approximately 572 MB source assets plus
+dependencies within 1 GiB download and 2 GiB installed caps, retained locally
+until manual deletion. This authorizes only the package below, not extension
+integration, real-page capture, hosted processing or later publication gates.
 
 Revision: the owner's size/global-language clarification replaces the original
 Granite/E5 shortlist with compact multilingual static variants versus E5. This
-is a revised proposal, not acceptance of either package. See the
+is the revised package now approved by the owner. See the
 [size-focused research](../research/SMALL_EMBEDDING_FOOTPRINT_2026-09-29.md).
 
 ## Context
@@ -15,7 +22,7 @@ fixture vectors. The owner requested investigation and options for the next
 model/input gate, not model acquisition. See the
 [options and primary evidence](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md).
 
-## Proposed bounded package
+## Approved bounded package
 
 - Compare compact variants of `sentence-transformers/static-similarity-mrl-multilingual-v1`
   with multilingual-e5-small and a lexical baseline. No winner, global coverage

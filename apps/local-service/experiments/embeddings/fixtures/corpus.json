@@ -1,0 +1,1497 @@
+{
+  "schema": "synthetic-embedding-corpus/v1",
+  "provenance": "project-created-synthetic",
+  "description": "Invented descriptors and engineering retrieval expectations; no real user labels, confirmed Topic links, calibrated confidence or automatic merges. Translations are project-created smoke fixtures, not independently validated language annotations.",
+  "descriptors": [
+    {
+      "id": "en-01",
+      "language": "en",
+      "text": "Cedar Slate 2 launches in September 2026. The new tablet has an ink screen and a removable battery.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-02",
+      "language": "en",
+      "text": "September 2026 brings the release of Cedar's second Slate tablet, featuring an electronic paper display and replaceable battery.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-03",
+      "language": "en",
+      "text": "Orion recalls K7 kettles in June 2026 because their power switches can overheat. Owners should stop using them.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-04",
+      "language": "en",
+      "text": "A June 2026 safety withdrawal affects Orion K7 electric kettles after overheating switches were found.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-05",
+      "language": "en",
+      "text": "Atlas acquires Lyra in February 2026. The buyer becomes the owner of the small mapping company.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-06",
+      "language": "en",
+      "text": "In February 2026, mapping startup Lyra is purchased by Atlas and becomes its subsidiary.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-07",
+      "language": "en",
+      "text": "The town council approves the Riverstone pedestrian bridge in May 2026. Construction will connect the two river banks.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-08",
+      "language": "en",
+      "text": "In May 2026 councillors vote to build the Riverstone footbridge connecting the river banks.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-09",
+      "language": "en",
+      "text": "Cedar Slate 3 launches in September 2026. The third tablet adds a color ink screen and a removable battery.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-10",
+      "language": "en",
+      "text": "Cedar releases its third Slate tablet in September 2026, with a color electronic paper display and replaceable battery.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-11",
+      "language": "en",
+      "text": "Orion launches K7 kettles in June 2026. The new kettle has an illuminated power switch.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-12",
+      "language": "en",
+      "text": "The June 2026 product introduction from Orion is the K7 electric kettle with a glowing switch.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-13",
+      "language": "en",
+      "text": "Lyra acquires Atlas in February 2026. The buyer becomes the owner of the small mapping company.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-14",
+      "language": "en",
+      "text": "In February 2026, mapping startup Atlas is purchased by Lyra and becomes its subsidiary.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-15",
+      "language": "en",
+      "text": "The town council rejects the Riverstone pedestrian bridge in May 2026. Construction will not connect the two river banks.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-16",
+      "language": "en",
+      "text": "In May 2026 councillors vote against building the Riverstone footbridge between the river banks.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-17",
+      "language": "en",
+      "text": "Cedar Slate 2 launches in September 2024. The second tablet has an ink screen and a removable battery.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-18",
+      "language": "en",
+      "text": "The September 2024 introduction of Cedar's second Slate tablet includes an electronic paper display and replaceable battery.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-19",
+      "language": "en",
+      "text": "A fictional trial reports that Maris tablets do not lower fever in adults. The study finds no benefit.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-20",
+      "language": "en",
+      "text": "The invented adult fever study finds Maris pills ineffective at reducing body temperature.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-21",
+      "language": "en",
+      "text": "A fictional trial reports that Maris tablets do lower fever in adults. The study finds a benefit.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-22",
+      "language": "en",
+      "text": "The invented adult fever study finds Maris pills effective at reducing body temperature.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-23",
+      "language": "en",
+      "text": "Transit route 7 closes in June 2026 for tunnel repairs. Buses replace the trains.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-24",
+      "language": "en",
+      "text": "June 2026 tunnel maintenance shuts rail line 7; passengers use replacement buses.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-25",
+      "language": "en",
+      "text": "Transit route 7 reopens in July 2026 after tunnel repairs. Trains replace the buses.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-26",
+      "language": "en",
+      "text": "July 2026 sees rail line 7 resume train service when tunnel work ends and substitute buses stop.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-27",
+      "language": "en",
+      "text": "Researchers map the fictional Pearl Reef with underwater sonar to measure changes in coral habitat.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-28",
+      "language": "en",
+      "text": "An acoustic underwater survey charts coral habitat changes at the invented Pearl Reef.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-29",
+      "language": "en",
+      "text": "The invented Copper Observatory discovers a comet with a violet tail beyond Neptune.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-30",
+      "language": "en",
+      "text": "A fictional farm tests a solar irrigation robot that waters sesame fields.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-31",
+      "language": "en",
+      "text": "An invented mountain village hosts its first winter zither music festival.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "en-32",
+      "language": "en",
+      "text": "A fictional orbital bakery experiments with bread dough in microgravity.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "de-01",
+      "language": "de",
+      "text": "Cedar bringt das Tablet Slate 2 im September 2026 heraus. Es hat einen E-Paper-Bildschirm und einen austauschbaren Akku.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "de-02",
+      "language": "de",
+      "text": "Orion ruft im Juni 2026 Wasserkocher K7 zurück, weil ihre Schalter überhitzen können. Besitzer sollen sie nicht mehr benutzen.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "de-03",
+      "language": "de",
+      "text": "Atlas übernimmt Lyra im Februar 2026. Atlas wird Eigentümer des kleinen Kartenunternehmens.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "de-04",
+      "language": "de",
+      "text": "Der Stadtrat genehmigt im Mai 2026 die Fußgängerbrücke Riverstone, die beide Flussufer verbinden wird.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "nl-01",
+      "language": "nl",
+      "text": "Cedar introduceert de Slate 2-tablet in september 2026 met een elektronisch papierscherm en een vervangbare accu.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "nl-02",
+      "language": "nl",
+      "text": "Orion roept K7-waterkokers terug in juni 2026 omdat de schakelaars oververhit kunnen raken. Eigenaars moeten het gebruik stoppen.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "nl-03",
+      "language": "nl",
+      "text": "Atlas neemt Lyra over in februari 2026 en wordt eigenaar van het kleine kaartenbedrijf.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "nl-04",
+      "language": "nl",
+      "text": "De gemeenteraad keurt in mei 2026 de Riverstone-voetgangersbrug goed, die beide rivieroevers zal verbinden.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "es-01",
+      "language": "es",
+      "text": "Cedar lanza la tableta Slate 2 en septiembre de 2026 con pantalla de tinta electrónica y batería reemplazable.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "es-02",
+      "language": "es",
+      "text": "Orion retira las hervidoras K7 en junio de 2026 porque sus interruptores pueden sobrecalentarse. Los propietarios deben dejar de usarlas.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "es-03",
+      "language": "es",
+      "text": "Atlas adquiere Lyra en febrero de 2026 y pasa a ser dueño de la pequeña empresa de mapas.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "es-04",
+      "language": "es",
+      "text": "El ayuntamiento aprueba en mayo de 2026 el puente peatonal Riverstone, que conectará las dos orillas del río.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "fr-01",
+      "language": "fr",
+      "text": "Cedar lance la tablette Slate 2 en septembre 2026 avec un écran à encre électronique et une batterie remplaçable.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "fr-02",
+      "language": "fr",
+      "text": "Orion rappelle les bouilloires K7 en juin 2026 car leurs interrupteurs peuvent surchauffer. Les propriétaires doivent cesser de les utiliser.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "fr-03",
+      "language": "fr",
+      "text": "Atlas acquiert Lyra en février 2026 et devient propriétaire de la petite société de cartographie.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "fr-04",
+      "language": "fr",
+      "text": "Le conseil municipal approuve en mai 2026 le pont piéton Riverstone qui reliera les deux rives.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "ar-01",
+      "language": "ar",
+      "text": "تطلق Cedar الجهاز اللوحي Slate 2 في سبتمبر 2026 بشاشة حبر إلكتروني وبطارية قابلة للاستبدال.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "ar-02",
+      "language": "ar",
+      "text": "تستدعي Orion غلايات K7 في يونيو 2026 لأن مفاتيحها قد ترتفع حرارتها. يجب على المالكين التوقف عن استخدامها.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "ar-03",
+      "language": "ar",
+      "text": "تستحوذ Atlas على Lyra في فبراير 2026 وتصبح مالكة شركة الخرائط الصغيرة.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "ar-04",
+      "language": "ar",
+      "text": "يوافق مجلس المدينة في مايو 2026 على جسر المشاة Riverstone الذي سيربط ضفتي النهر.",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "hi-01",
+      "language": "hi",
+      "text": "Cedar सितंबर 2026 में इलेक्ट्रॉनिक स्याही स्क्रीन और बदली जा सकने वाली बैटरी वाला Slate 2 टैबलेट जारी करता है।",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "hi-02",
+      "language": "hi",
+      "text": "Orion जून 2026 में K7 केतलियाँ वापस मँगाता है क्योंकि उनके स्विच अधिक गर्म हो सकते हैं। मालिकों को उनका उपयोग बंद करना चाहिए।",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "hi-03",
+      "language": "hi",
+      "text": "Atlas फरवरी 2026 में Lyra का अधिग्रहण करता है और छोटी मानचित्र कंपनी का मालिक बन जाता है।",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "hi-04",
+      "language": "hi",
+      "text": "नगर परिषद मई 2026 में Riverstone पैदल पुल को मंजूरी देती है जो नदी के दोनों किनारों को जोड़ेगा।",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "zh-01",
+      "language": "zh",
+      "text": "Cedar于2026年9月推出Slate 2平板电脑，配备电子墨水屏幕和可更换电池。",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "zh-02",
+      "language": "zh",
+      "text": "Orion于2026年6月召回K7电水壶，因为开关可能过热。用户应停止使用。",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "zh-03",
+      "language": "zh",
+      "text": "Atlas于2026年2月收购Lyra，成为这家小型地图公司的所有者。",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "zh-04",
+      "language": "zh",
+      "text": "市议会于2026年5月批准修建Riverstone人行桥，连接河流两岸。",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "ja-01",
+      "language": "ja",
+      "text": "Cedarは2026年9月に電子ペーパー画面と交換可能な電池を備えたSlate 2タブレットを発売する。",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "ja-02",
+      "language": "ja",
+      "text": "Orionはスイッチが過熱する恐れがあるため、2026年6月にK7電気ケトルを回収する。所有者は使用を中止すべきだ。",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "ja-03",
+      "language": "ja",
+      "text": "Atlasは2026年2月にLyraを買収し、小さな地図会社の所有者になる。",
+      "provenance": "project-created-synthetic"
+    },
+    {
+      "id": "ja-04",
+      "language": "ja",
+      "text": "町議会は2026年5月に川の両岸を結ぶRiverstone歩道橋の建設を承認する。",
+      "provenance": "project-created-synthetic"
+    }
+  ],
+  "catalogIds": [
+    "en-01",
+    "en-02",
+    "en-03",
+    "en-04",
+    "en-05",
+    "en-06",
+    "en-07",
+    "en-08",
+    "en-09",
+    "en-10",
+    "en-11",
+    "en-12",
+    "en-13",
+    "en-14",
+    "en-15",
+    "en-16",
+    "en-17",
+    "en-18",
+    "en-19",
+    "en-20",
+    "en-21",
+    "en-22",
+    "en-23",
+    "en-24",
+    "en-25",
+    "en-26",
+    "en-27",
+    "en-28",
+    "de-01",
+    "de-02",
+    "de-03",
+    "de-04",
+    "nl-01",
+    "nl-02",
+    "nl-03",
+    "nl-04",
+    "es-01",
+    "es-02",
+    "es-03",
+    "es-04",
+    "fr-01",
+    "fr-02",
+    "fr-03",
+    "fr-04",
+    "ar-01",
+    "ar-02",
+    "ar-03",
+    "ar-04",
+    "hi-01",
+    "hi-02",
+    "hi-03",
+    "hi-04",
+    "zh-01",
+    "zh-02",
+    "zh-03",
+    "zh-04",
+    "ja-01",
+    "ja-02",
+    "ja-03",
+    "ja-04"
+  ],
+  "queries": [
+    {
+      "id": "en-01",
+      "expectedIds": [
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "en-02",
+      "expectedIds": [
+        "en-01",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "en-03",
+      "expectedIds": [
+        "en-04",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "en-04",
+      "expectedIds": [
+        "en-03",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "en-05",
+      "expectedIds": [
+        "en-06",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "en-06",
+      "expectedIds": [
+        "en-05",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "en-07",
+      "expectedIds": [
+        "en-08",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "en-08",
+      "expectedIds": [
+        "en-07",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "en-09",
+      "expectedIds": [
+        "en-10"
+      ],
+      "hardNegativeIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "en-10",
+      "expectedIds": [
+        "en-09"
+      ],
+      "hardNegativeIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "en-11",
+      "expectedIds": [
+        "en-12"
+      ],
+      "hardNegativeIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ]
+    },
+    {
+      "id": "en-12",
+      "expectedIds": [
+        "en-11"
+      ],
+      "hardNegativeIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ]
+    },
+    {
+      "id": "en-13",
+      "expectedIds": [
+        "en-14"
+      ],
+      "hardNegativeIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ]
+    },
+    {
+      "id": "en-14",
+      "expectedIds": [
+        "en-13"
+      ],
+      "hardNegativeIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ]
+    },
+    {
+      "id": "en-15",
+      "expectedIds": [
+        "en-16"
+      ],
+      "hardNegativeIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ]
+    },
+    {
+      "id": "en-16",
+      "expectedIds": [
+        "en-15"
+      ],
+      "hardNegativeIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ]
+    },
+    {
+      "id": "en-17",
+      "expectedIds": [
+        "en-18"
+      ],
+      "hardNegativeIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01",
+        "en-09",
+        "en-10"
+      ]
+    },
+    {
+      "id": "en-18",
+      "expectedIds": [
+        "en-17"
+      ],
+      "hardNegativeIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01",
+        "en-09",
+        "en-10"
+      ]
+    },
+    {
+      "id": "en-19",
+      "expectedIds": [
+        "en-20"
+      ],
+      "hardNegativeIds": [
+        "en-21",
+        "en-22"
+      ]
+    },
+    {
+      "id": "en-20",
+      "expectedIds": [
+        "en-19"
+      ],
+      "hardNegativeIds": [
+        "en-21",
+        "en-22"
+      ]
+    },
+    {
+      "id": "en-21",
+      "expectedIds": [
+        "en-22"
+      ],
+      "hardNegativeIds": [
+        "en-19",
+        "en-20"
+      ]
+    },
+    {
+      "id": "en-22",
+      "expectedIds": [
+        "en-21"
+      ],
+      "hardNegativeIds": [
+        "en-19",
+        "en-20"
+      ]
+    },
+    {
+      "id": "en-23",
+      "expectedIds": [
+        "en-24"
+      ],
+      "hardNegativeIds": [
+        "en-25",
+        "en-26"
+      ]
+    },
+    {
+      "id": "en-24",
+      "expectedIds": [
+        "en-23"
+      ],
+      "hardNegativeIds": [
+        "en-25",
+        "en-26"
+      ]
+    },
+    {
+      "id": "en-25",
+      "expectedIds": [
+        "en-26"
+      ],
+      "hardNegativeIds": [
+        "en-23",
+        "en-24"
+      ]
+    },
+    {
+      "id": "en-26",
+      "expectedIds": [
+        "en-25"
+      ],
+      "hardNegativeIds": [
+        "en-23",
+        "en-24"
+      ]
+    },
+    {
+      "id": "en-27",
+      "expectedIds": [
+        "en-28"
+      ],
+      "hardNegativeIds": []
+    },
+    {
+      "id": "en-28",
+      "expectedIds": [
+        "en-27"
+      ],
+      "hardNegativeIds": []
+    },
+    {
+      "id": "en-29",
+      "expectedIds": [],
+      "hardNegativeIds": []
+    },
+    {
+      "id": "en-30",
+      "expectedIds": [],
+      "hardNegativeIds": []
+    },
+    {
+      "id": "en-31",
+      "expectedIds": [],
+      "hardNegativeIds": []
+    },
+    {
+      "id": "en-32",
+      "expectedIds": [],
+      "hardNegativeIds": []
+    },
+    {
+      "id": "de-01",
+      "expectedIds": [
+        "en-01",
+        "en-02",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "de-02",
+      "expectedIds": [
+        "en-03",
+        "en-04",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "de-03",
+      "expectedIds": [
+        "en-05",
+        "en-06",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "de-04",
+      "expectedIds": [
+        "en-07",
+        "en-08",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "nl-01",
+      "expectedIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "nl-02",
+      "expectedIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "nl-03",
+      "expectedIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "nl-04",
+      "expectedIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "es-01",
+      "expectedIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "es-02",
+      "expectedIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "nl-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "es-03",
+      "expectedIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "nl-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "es-04",
+      "expectedIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "nl-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "fr-01",
+      "expectedIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "ar-01",
+        "hi-01",
+        "zh-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "fr-02",
+      "expectedIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "ar-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "fr-03",
+      "expectedIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "ar-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "fr-04",
+      "expectedIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "ar-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "ar-01",
+      "expectedIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "hi-01",
+        "zh-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "ar-02",
+      "expectedIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "hi-02",
+        "zh-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "ar-03",
+      "expectedIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "hi-03",
+        "zh-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "ar-04",
+      "expectedIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "hi-04",
+        "zh-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "hi-01",
+      "expectedIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "zh-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "hi-02",
+      "expectedIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "zh-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "hi-03",
+      "expectedIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "zh-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "hi-04",
+      "expectedIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "zh-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "zh-01",
+      "expectedIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "ja-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "zh-02",
+      "expectedIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "ja-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "zh-03",
+      "expectedIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "ja-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "zh-04",
+      "expectedIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "ja-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    },
+    {
+      "id": "ja-01",
+      "expectedIds": [
+        "en-01",
+        "en-02",
+        "de-01",
+        "nl-01",
+        "es-01",
+        "fr-01",
+        "ar-01",
+        "hi-01",
+        "zh-01"
+      ],
+      "hardNegativeIds": [
+        "en-09",
+        "en-10",
+        "en-17",
+        "en-18"
+      ]
+    },
+    {
+      "id": "ja-02",
+      "expectedIds": [
+        "en-03",
+        "en-04",
+        "de-02",
+        "nl-02",
+        "es-02",
+        "fr-02",
+        "ar-02",
+        "hi-02",
+        "zh-02"
+      ],
+      "hardNegativeIds": [
+        "en-11",
+        "en-12"
+      ]
+    },
+    {
+      "id": "ja-03",
+      "expectedIds": [
+        "en-05",
+        "en-06",
+        "de-03",
+        "nl-03",
+        "es-03",
+        "fr-03",
+        "ar-03",
+        "hi-03",
+        "zh-03"
+      ],
+      "hardNegativeIds": [
+        "en-13",
+        "en-14"
+      ]
+    },
+    {
+      "id": "ja-04",
+      "expectedIds": [
+        "en-07",
+        "en-08",
+        "de-04",
+        "nl-04",
+        "es-04",
+        "fr-04",
+        "ar-04",
+        "hi-04",
+        "zh-04"
+      ],
+      "hardNegativeIds": [
+        "en-15",
+        "en-16"
+      ]
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 # Project status
 
 Updated: 2026-09-29. Active direction: ADR-014/015/016 and the product-first roadmap.
-ADR-017 is a proposed experiment, not an approved activation.
+ADR-017's revised synthetic-only local experiment is owner-approved; implementation
+is in progress. No extension/real-page/hosting expansion follows from this approval.
 Previous detailed chronology is preserved in
 [the historical status](archive/STATUS_2026-09-25.md).
 
@@ -29,13 +30,25 @@ after its exact model/input approval, then the remaining private/AI/moderation U
 | Local backend | S1–S3 fixed loopback service, SQLite, session-paired thin client; actual socket and Chrome checks pass |
 | Real accounts/mobile/hosting/stores | Not implemented, deployed or submitted |
 
-## Embedding options investigated 2026-09-29 — awaiting approval
+## Local embedding experiment approved 2026-09-29 — implementation in progress
+
+- Owner answered **"approved"** to the revised ADR-017 package. Begin the bounded
+  local compact-static/E5 experiment; preserve source/derived-data locality,
+  1 GiB download / 2 GiB installed caps and all later gates.
+- Lead owns acquisition/dependency review/integration; GPT-6 Sol Medium agents
+  receive bounded non-overlapping encoder and fixture/evaluation tasks. No
+  repeated Phase 0 or 6/6 owner review. Earlier research evidence follows.
+- Prepared the frozen 64-descriptor corpus/evaluator and bounded static-table
+  parser/quantizer. Initial focused offline tests: 33/33 pass. Acquisition review
+  requires concurrency, path and cumulative metadata-limit corrections before
+  model downloads. No model inference has run. Runtime lock generation fetched
+  registry metadata only, with installation scripts disabled.
 
 - Researched official model cards, licenses, artifact sizes and runtime releases.
   The first Granite/E5 shortlist is superseded by a size-focused comparison:
   compact multilingual static variants versus E5-small and a lexical baseline.
 - [Research and options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md) and
-  [proposed exact package](../decisions/ADR-017-local-embedding-experiment.md)
+  [approved exact package](../decisions/ADR-017-local-embedding-experiment.md)
   describe revised assets/runtime, download bounds, 64 synthetic multilingual descriptors,
   local-only inference, retained local artifacts and later review gates.
 - Owner clarified global scope with English the first priority. Preserve one
@@ -56,7 +69,8 @@ after its exact model/input approval, then the remaining private/AI/moderation U
   speed, memory use or browser/mobile inference evidence.
 - No model/package installation, inference, listener, real-page capture or new
   permission. Product suites were not rerun for this research/documentation work.
-  The next action is owner model/input selection and explicit approval, not S4.
+  This describes the earlier research stage; the owner has now approved the
+  bounded package above. S4 and expanded inputs remain unapproved.
 - Earlier documentation checks: `git diff --check` passed; all 47 local Markdown
   links across five documents resolved before the size/global-language revision.
 - Earlier separate AI Trust/architecture review returned qualified ACCEPT of that proposal;

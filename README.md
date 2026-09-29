@@ -129,8 +129,11 @@ not sent or saved in this block. R1's private/AI/moderation work is still later 
 After the initial service/client loop: a pinned local-service embedding experiment
 after exact model/input approval. The adapter is prepared early; no trained model
 is installed yet. The [model options](research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
-and [proposed experiment](decisions/ADR-017-local-embedding-experiment.md) are ready
-for owner selection/approval. The current service is on the user's PC; future
+and [approved experiment](decisions/ADR-017-local-embedding-experiment.md) define
+the bounded synthetic-only comparison approved on 2026-09-29. Its isolated
+[experiment workspace](apps/local-service/experiments/embeddings/README.md) is
+under implementation; this does not enable learned matching in the extension.
+The current service is on the user's PC; future
 hosting must not move raw website-content processing off-device by default.
 Remote vectors are sensitive too and require a separate approval.
 The [size/global-language follow-up](research/SMALL_EMBEDDING_FOOTPRINT_2026-09-29.md)

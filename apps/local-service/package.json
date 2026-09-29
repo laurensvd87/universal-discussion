@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/cli.js",
     "test": "node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none test/*.test.js",
+    "test:embeddings": "node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none experiments/embeddings/test/*.test.js",
     "test:integration": "node --import ./harness/loopback-only-capabilities.js --test --test-isolation=none integration/*.integration.js",
     "check:secrets": "node harness/scan-secrets.js"
   },

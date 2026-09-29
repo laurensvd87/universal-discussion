@@ -13,6 +13,11 @@ See
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
+The separately approved [embedding experiment](experiments/embeddings/README.md)
+has isolated dependencies and ignored assets. It is not loaded by this service.
+`npm run test:embeddings` runs its synthetic, network-denied tests without any
+model download or runtime installation.
+
 ```sh
 cd apps/local-service
 npm test

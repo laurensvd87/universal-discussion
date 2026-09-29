@@ -10,11 +10,11 @@ Read the [review and concrete S3 handoff](../research/S1_S2_REVIEW_2026-09-28.md
 
 2026-09-29 continuation: [model options](../research/LOCAL_EMBEDDING_OPTIONS_2026-09-29.md)
 and [ADR-017's exact experiment proposal](../decisions/ADR-017-local-embedding-experiment.md)
-are ready, **not owner-approved**. The owner's global-language/download-size
+were explicitly **owner-approved on 2026-09-29**. The owner's global-language/download-size
 clarification revised the comparison to compact multilingual static variants
 versus E5, not the earlier Granite/E5 pair; see the
 [size follow-up](../research/SMALL_EMBEDDING_FOOTPRINT_2026-09-29.md).
-Do not install/download or infer yet. The local
+Only ADR-017's bounded local acquisition/inference may proceed. The local
 Node process is on-device; future hosting must not silently move raw-content
 embedding there. Browser/mobile inference and remote-vector transfer have not
 been validated or approved by the synthetic comparison proposal.

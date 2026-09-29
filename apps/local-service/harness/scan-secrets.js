@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const excluded = new Set(["data", "node_modules"]);
+const experimentGenerated = new Set([
+  path.join(root, "experiments", "embeddings", ".cache"),
+  path.join(root, "experiments", "embeddings", "output"),
+]);
 const extensions = new Set([".js", ".json", ".md"]);
 const patterns = [
   ["private-key", /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g],
@@ -30,7 +34,7 @@ for (const [expected, sample] of samples) {
 async function files(directory) {
   const result = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && !excluded.has(entry.name)) result.push(...await files(path.join(directory, entry.name)));
+    if (entry.isDirectory() && !excluded.has(entry.name) && !experimentGenerated.has(path.join(directory, entry.name))) result.push(...await files(path.join(directory, entry.name)));
     if (entry.isFile() && extensions.has(path.extname(entry.name))) result.push(path.join(directory, entry.name));
   }
   return result;

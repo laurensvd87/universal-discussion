@@ -15,8 +15,9 @@ IndexedDB-first plan. External web search is deferred. S1/S2 are implemented;
 reviewed corrections are recorded in plans/STATUS.md. The owner approved ADR-016's
 exact local S3 activation package on 2026-09-28. S3 is now implemented with actual
 loopback/Chrome evidence. Do not repeat S3, its approval or foundation work. The
-next checkpoint is the exact real embedding model/input experiment approval;
-do not silently start S4/R2 or download a model. The lead handles review here.
+owner approved ADR-017's revised synthetic-only local embedding comparison on
+2026-09-29. Implement that exact bounded package; no S4, real-page input or
+extension model activation. The lead handles review here and later gates remain.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
 Medium coding subagents (2026-09-28). Delegate bounded coding/test slices with
