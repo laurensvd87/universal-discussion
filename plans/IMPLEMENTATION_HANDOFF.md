@@ -2,6 +2,15 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Latest feedback is diagnosed, not fixed: current adaptive grouping can keep an
+above-floor pair separate because other similar Sources veto every pairwise
+merge. A pure synthetic .92/.92/.92 triple remains three singletons if all start
+separate, but joins when two are already grouped. See STATUS/ADR-023 for this
+history-dependent candidate-construction gap and a bounded whole-neighborhood
+proposal. No owner data was changed and no new cutoff was activated. Next code
+work should address/retest this mechanic, not lower the floor again or assume
+the model alone explains the failed pair. Preserve the existing scope and gates.
+
 Latest checkpoint **0.11.0** implements owner-approved ADR-023: adaptive grouping,
 source-anchored whole subthreads and directly clickable per-post source-page icons.
 Root origin controls grouping; reply origin only controls its own link. SQLite v2

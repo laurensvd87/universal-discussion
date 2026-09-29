@@ -31,6 +31,33 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
+## Latest owner feedback: similar pages blocked by the competing-member rule
+
+- A pair-scoped read-only/query-only diagnostic confirms current v2 state and
+  adaptive policy, compatible vectors above the .90 floor, no manual pin or
+  retained-tight boundary, but separate Topics. A matching-field-only calculation
+  shows the closest outside-member margin is the immediate veto. No unrelated
+  URLs/titles, comments, authors or credentials were inspected; no data changes,
+  service contact, migration, capture or inference. Pair identities, scores and
+  vectors are deliberately not retained in this repository.
+- Lead and independent Sol review reproduce a general mechanics gap using only
+  invented geometry: three separate Sources with every pair cosine .92 stay as
+  three singleton Topics, because every candidate pair treats the third Source
+  as a competitor. The same three become one group when two already share a
+  Topic. The current pairwise-only candidate construction is therefore history-
+  dependent and can block a fully coherent multi-page group. Lowering the floor
+  alone would not remove this margin veto.
+- Proposed correction: evaluate a bounded, mutually complete-link-compatible
+  multi-partition neighborhood before applying the competing margin to genuinely
+  outside Sources. Preserve manual pins, supported split boundaries, tightened
+  thresholds and atomic thread routing; never use single-link chaining. This is
+  a design follow-up, not an implemented or validated rule. Need staged versus
+  simultaneous arrival, dense/duplicate, bridge/hard-negative and bounded-work
+  tests before changing production. No extra model or expanded data scope needed.
+- This turn diagnoses only. It does not prove that the two live articles describe
+  the exact same event: direct page reads were unavailable. No automatic/manual
+  merge, lower threshold, stored-data write or product-code change was performed.
+
 ## Verified checkpoint: adaptive Topics and clickable post sources — 0.11.0
 
 Owner **explicitly approves ADR-023's local association/migration/regrouping package**

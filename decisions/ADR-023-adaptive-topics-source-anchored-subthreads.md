@@ -177,6 +177,16 @@ See [STATUS](../plans/STATUS.md) for evidence scope and remaining manual boundar
 
 ## Completed gate and future boundaries
 
+Post-implementation diagnostic finds a candidate-construction limitation: with
+three mutually .92-similar invented Sources in separate Topics, each pair fails
+the .04 margin against the third, so none joins. If two were already grouped, all
+three join. This is a reproducible history-dependent grouping gap, not a calibrated
+semantic finding. A follow-up may consider whole mutually compatible neighborhoods
+before testing outside competition; preserve complete-link/manual/tightened/split
+guards and bound work. It requires regression evidence and is not implemented by
+the diagnostic. Changing the .90 floor alone does not fix the margin veto. See
+[STATUS](../plans/STATUS.md); real owner-pair data is not retained in git.
+
 The owner approved the added persistent post-to-page association, versioned local
 migration leaving old unanchored roots fixed, and whole-subthread reclassification.
 Do not repeat this approval. Mechanics measurement and Trust review precede activation;
