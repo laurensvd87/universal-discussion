@@ -57,6 +57,14 @@ private/remote/AI/moderation work and all external release gates remain separate
 - This turn diagnoses only. It does not prove that the two live articles describe
   the exact same event: direct page reads were unavailable. No automatic/manual
   merge, lower threshold, stored-data write or product-code change was performed.
+- Owner follow-up raises overlapping Topics rather than exclusive competition.
+  This is a design proposal, not yet an approved many-to-many schema migration:
+  a Source could participate in several Topics without merging those Topics;
+  each root/reply conversation would retain one canonical selected Topic and
+  appear on its member pages without duplicate posts. Resolve root routing and
+  posting disclosure before replacing the current single Source-to-Topic link.
+  Do not implement either the neighborhood correction or multiple memberships
+  merely from this discussion without settling that architectural choice.
 
 ## Verified checkpoint: adaptive Topics and clickable post sources — 0.11.0
 

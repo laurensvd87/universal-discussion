@@ -11,6 +11,12 @@ proposal. No owner data was changed and no new cutoff was activated. Next code
 work should address/retest this mechanic, not lower the floor again or assume
 the model alone explains the failed pair. Preserve the existing scope and gates.
 
+Owner now additionally proposes overlapping Topics: several memberships per page,
+without collapsing those Topics or duplicating posts. This would change the current
+single-link/source-root routing model. The proposed canonical Topic per conversation
+and multiple Source memberships need an explicit architectural decision before
+implementation; this discussion does not approve a new schema migration.
+
 Latest checkpoint **0.11.0** implements owner-approved ADR-023: adaptive grouping,
 source-anchored whole subthreads and directly clickable per-post source-page icons.
 Root origin controls grouping; reply origin only controls its own link. SQLite v2
