@@ -24,10 +24,11 @@ Improved matching and persistent pairing remain separate pending decisions.
   versions to the backend on this PC. It stores current Sources and provisional
   Topic associations, not raw page text or a per-visit timeline.
 - The popup loads automatically and updates after matching finishes. A real
-  Chrome synthetic-page check on the earlier flow verified related pages sharing
-  a comment, unrelated-page separation, correction and deletion. Version 0.7.0
-  passes 14 session and 32 eligibility/reader browser checks. Its full-loop rerun
-  awaits free port 4174; native first-grant and reload/restart checks remain manual.
+  Chrome synthetic-page check on 0.7.0 verifies cross-domain shared comments,
+  unrelated-page separation, Stop, persistence, correction and deletion: 15 full-
+  loop checks plus the existing discussion regression pass. The separate 14 session
+  and 32 eligibility/reader checks also pass. Native first-grant and browser/
+  extension reload/restart checks remain manual; real-news accuracy is unvalidated.
 - Wrong-topic correction, Stop/site blocking, Forget page and confirmed learned
   Topic/data deletion are implemented. Matching defaults off; manual Topic choice
   remains available. There is no external search or crawler.

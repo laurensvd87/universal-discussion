@@ -12,8 +12,10 @@ closure/browser restart/reload ends it. Stop retains native access; Remove broad
 HTTPS access stops then removes it. A native grant and legacy enabled preferences
 never create a lease. Blocked origins persist and override that broad grant.
 The implementation is 0.7.0; see STATUS for current verification and remaining
-work: full vector/shared-comment and S3 browser smoke await a free port 4174;
-actual first-grant/reload/restart manual checks remain. Session Chrome smoke
+work: owner freed port 4174; full vector/shared-comment Chrome smoke now passes
+15 checks, S3 passes 19 areas, and loopback integration passes 2/2. A test-only
+detached-target setup fix was independently reviewed; production remains 0.7.0.
+Actual first-grant/reload/restart manual checks remain. Session Chrome smoke
 passes 14 checks including forced worker reconstruction; eligibility passes 32.
 **A matching/input changes and C durable pairing remain pending.** B does
 not authorize them. Preserve all discussions, manual links and later gates;

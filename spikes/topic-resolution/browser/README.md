@@ -164,6 +164,11 @@ native permission-confirmation dialog; first-time acceptance is a manual check.
 The session smoke verifies forced worker reconstruction, not natural idle or
 crash cleanup. Actual reload/restart headless attempts lost the CDP-loaded
 worker/action connection; they are reported as gaps, not passes.
+The 0.7.0 full matching check now passes 15 checks across two intercepted HTTPS
+origins with actual packaged E5 inference and a shared comment. The separate
+discussion regression and loopback transport checks also pass. A test-only fix
+cancels debug setup for sessions Chrome has actually detached; live-target and
+network/payload failures remain fatal. This is not real-news accuracy evidence.
 Actual current test evidence is in [STATUS](../../../plans/STATUS.md); the paragraphs below retain
 the earlier feature-specific evidence, not current global capability limits.
 

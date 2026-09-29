@@ -7,6 +7,7 @@ import { createProcessDependencies, startLocalApplication } from '../../../apps/
 import { EN } from '../browser/locales/en.js';
 import { launchChromiumPipe } from './chromium-pipe.js';
 import { prepareSessionPermission } from './prepare-session-permission.js';
+import { createTargetSetupLifetime, isTargetSetupCanceled } from './target-setup-lifetime.js';
 
 const BROWSER_ROOT = fileURLToPath(new URL('../browser/', import.meta.url));
 const DEFAULT_CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
@@ -48,7 +49,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
   const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-background-smoke-'));
   const databasePath = path.join(directory, 'demo.sqlite');
-  const targets = new Map(), tasks = new Set(), workers = [], requests = [], errors = [], ingestions = [];
+  const targets = new Map(), sessionTargets = new Map(), tasks = new Set(), workers = [], requests = [], errors = [], ingestions = [];
   const checks = [];
   let browser, application, extensionId, pageSession, popupSession, popupTarget, deadline, progress;
   let capability = FIRST_TOKEN;
@@ -61,8 +62,31 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   const stop = () => { void browser?.close(); };
   function selfUrl(value) { try { const url = new URL(value); return url.protocol === 'chrome-extension:' && url.host === extensionId; } catch { return false; } }
   function apiUrl(value) { try { const url = new URL(value); return url.origin === 'http://127.0.0.1:4174' && url.pathname.startsWith('/v1/') && !url.search && !url.hash; } catch { return false; } }
-  function schedule(work) {
-    const operation = Promise.resolve().then(work).catch(() => { if (!closing) errors.push(`Target/request setup failed during ${stage}`); });
+  function setupDiagnostic(error) {
+    // Only fixed categories, protocol method/code and this harness's line number.
+    // Assertion messages/values and generic error text can contain request data.
+    const protocol = /^Chromium (protocol rejected|protocol timeout:|pipe ended during|pipe unavailable for) ([A-Za-z]+\.[A-Za-z]+)(?: \(code (-?\d+)\))?$/u.exec(error?.message ?? '');
+    if (protocol) return `${protocol[1]} ${protocol[2]}${protocol[3] ? ` code ${protocol[3]}` : ''}`;
+    const line = /run-background-matching-browser-smoke\.js:(\d+):\d+/u.exec(error?.stack ?? '')?.[1];
+    const category = error?.code === 'ERR_ASSERTION' ? 'assertion' : error instanceof SyntaxError ? 'json-syntax' : 'setup-error';
+    return `${category}${line ? ` harness-line ${line}` : ''}`;
+  }
+  function targetKind(target) {
+    if (selfUrl(target?.url)) {
+      const pathname = new URL(target.url).pathname;
+      if (pathname === '/embedding/offscreen.html') return 'own-offscreen';
+      if (pathname === '/chromium/popup.html') return 'own-popup';
+      return 'own-extension-other';
+    }
+    return 'other';
+  }
+  function schedule(work, label, target) {
+    const scheduledStage = stage;
+    const safeType = ['page', 'iframe', 'other', 'worker', 'service_worker', 'shared_worker'].includes(target?.type) ? target.type : 'unknown';
+    const operation = Promise.resolve().then(work).catch(error => {
+      if (label === 'target-attach' && target?.detached === true && isTargetSetupCanceled(error)) return;
+      if (!closing) errors.push(`Target/request setup failed during ${stage} (scheduled ${scheduledStage}; ${label}; target ${safeType}; kind ${targetKind(target)}; detached ${target?.detached === true}; ready ${target?.ready === true}; ${setupDiagnostic(error)})`);
+    });
     tasks.add(operation); operation.finally(() => tasks.delete(operation));
   }
   async function wait(check, label, timeout = 15000) {
@@ -147,6 +171,15 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await waitStatus(EN.discussionReady);
   }
   const waitMatching = message => waitExpression(`document.querySelector('#matching-status')?.textContent===${JSON.stringify(message)}`, 'matching UI status');
+  async function confirmStart() {
+    await waitExpression(`(async () => {
+      const state=await chrome.runtime.sendMessage({target:'page-matching',type:'status'});
+      return state.enabled===true && state.hostAccess===true && state.sessionWindowId!==null &&
+        state.sessionWindowId===state.currentWindowId &&
+        document.querySelector('#matching-enable')?.getAttribute('data-busy')==='false' &&
+        document.querySelector('#matching-consent')?.checked===false;
+    })()`, 'confirmed active window session before popup closure');
+  }
   async function chooseSource(id) {
     await select('#discussion-source', id); await waitStatus(EN.discussionReady);
     await waitExpression(`document.querySelector('#discussion-source')?.value===${JSON.stringify(id)}`, 'manual retained Source selection');
@@ -167,6 +200,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       assert.equal(payload.extractorVersion, 'main-text-prefix/v1');
       assert.ok(['a', 'b', 'c', 'd', 'metadata'].some(name => fixtureUrl(name) === payload.url), 'Only eligible owned articles may ingest');
       assert.ok(typeof payload.title === 'string' && payload.title.length <= 200);
+      assert.equal(payload.title, /<title>([^<]+)<\/title>/u.exec(FIXTURES.get(payload.url))[1], 'Only the exact owned fixture title may enter ingestion');
       ingestions.push({ url: payload.url, fields: Object.keys(payload).sort(), dimensions: 384 });
     }
   }
@@ -176,23 +210,33 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     progress = setInterval(() => process.stdout.write(`${JSON.stringify({ stage, ingestions: ingestions.length, interceptedDocuments })}\n`), 15000);
     process.once('SIGINT', stop); process.once('SIGTERM', stop);
     browser.on('Target.attachedToTarget', ({ sessionId, targetInfo }) => {
-      const target = { ...targetInfo, sessionId, ready: false }; targets.set(targetInfo.targetId, target);
+      const target = { ...targetInfo, sessionId, ready: false, detached: false, setupLifetime: createTargetSetupLifetime() };
+      targets.set(targetInfo.targetId, target); sessionTargets.set(sessionId, target);
       if (['worker', 'service_worker', 'shared_worker'].includes(targetInfo.type)) workers.push(target);
       schedule(async () => {
+        const setup = (method, params) => target.setupLifetime.step(() => browser.send(method, params, sessionId));
         if (stage === 'prepare-native-session-permission' && permissionPreparationTarget &&
             targetInfo.targetId === await permissionPreparationTarget) {
-          await browser.send('Runtime.runIfWaitingForDebugger', {}, sessionId); target.ready = true; return;
+          await setup('Runtime.runIfWaitingForDebugger', {});
+          target.setupLifetime.complete(); target.ready = true; return;
         }
-        await browser.send('Runtime.enable', {}, sessionId); await browser.send('Network.enable', {}, sessionId);
-        if (['worker', 'shared_worker'].includes(targetInfo.type)) await browser.send('Network.setBlockedURLs', { urls: ['http://*', 'https://*', 'ws://*', 'wss://*', 'ftp://*', 'file://*'] }, sessionId);
-        try { await browser.send('Fetch.enable', { patterns: [{ urlPattern: '*' }] }, sessionId); }
+        await setup('Runtime.enable', {}); await setup('Network.enable', {});
+        if (['worker', 'shared_worker'].includes(targetInfo.type)) await setup('Network.setBlockedURLs', { urls: ['http://*', 'https://*', 'ws://*', 'wss://*', 'ftp://*', 'file://*'] });
+        try { await setup('Fetch.enable', { patterns: [{ urlPattern: '*' }] }); }
         catch (error) { if (!['worker', 'shared_worker'].includes(targetInfo.type) || !error.message.includes('Fetch.enable (code -32601)')) throw error; }
-        await browser.send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true, filter: CHILD_FILTER }, sessionId);
-        await browser.send('Runtime.runIfWaitingForDebugger', {}, sessionId); target.ready = true;
-      });
+        await setup('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true, filter: CHILD_FILTER });
+        await setup('Runtime.runIfWaitingForDebugger', {});
+        target.setupLifetime.complete(); target.ready = true;
+      }, 'target-attach', target);
     });
     browser.on('Target.targetInfoChanged', ({ targetInfo }) => { const target = targets.get(targetInfo.targetId); if (target) Object.assign(target, targetInfo); });
-    browser.on('Target.detachedFromTarget', ({ sessionId }) => { for (const [id, target] of targets) if (target.sessionId === sessionId) targets.delete(id); });
+    browser.on('Target.detachedFromTarget', ({ sessionId }) => {
+      const detached = sessionTargets.get(sessionId);
+      if (detached) { detached.detached = true; detached.setupLifetime.detach(); }
+      // Keep the session reference for setup diagnostics even if this target ID
+      // was replaced or explicitly removed from the live lookup by popup close.
+      for (const [id, target] of targets) if (target.sessionId === sessionId) targets.delete(id);
+    });
     browser.on('Runtime.exceptionThrown', (_, sessionId) => { const target = [...targets.values()].find(item => item.sessionId === sessionId); if (selfUrl(target?.url)) runtimeExceptions++; });
     browser.on('Network.requestWillBeSent', ({ request }, sessionId) => { const target = [...targets.values()].find(item => item.sessionId === sessionId); requests.push({ context: target?.url, url: request.url }); });
     browser.on('Fetch.requestPaused', ({ requestId, request, resourceType }, sessionId) => schedule(async () => {
@@ -206,7 +250,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
         await browser.send('Fetch.fulfillRequest', { requestId, responseCode: 200,
           responseHeaders: [{ name: 'Content-Type', value: 'text/html; charset=utf-8' }], body: Buffer.from(FIXTURES.get(request.url)).toString('base64') }, sessionId);
       } else await browser.send('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' }, sessionId);
-    }));
+    }, 'request-interception', sessionTargets.get(sessionId)));
     const version = await browser.send('Browser.getVersion');
     await browser.send('Target.setDiscoverTargets', { discover: true });
     await browser.send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true, filter: ROOT_FILTER });
@@ -223,7 +267,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     stage = 'pairing-and-session-consent';
     await navigate('a'); await openPopup(); await waitStatus(EN.discussionDisconnected); await pair(FIRST_TOKEN);
     await waitExpression(`document.querySelector('#matching-origin').textContent===${JSON.stringify(ORIGIN)}`, 'eligible disclosed origin');
-    await click('#matching-consent'); await click('#matching-enable'); await closePopup();
+    await click('#matching-consent'); await click('#matching-enable'); await confirmStart(); await closePopup();
     stage = 'popup-closed-first-inference';
     const a = await automatic('a');
     assert.equal(a.provenance, 'owner-local-page-embedding/v1');
@@ -247,7 +291,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.ok(!(await catalog()).sources.some(item => item.url === fixtureUrl('d')));
     assert.equal(ingestions.length, pausedCount);
     checks.push('stop-prevents-new-capture');
-    await click('#matching-consent'); await click('#matching-enable'); await closePopup(); const d = await automatic('d');
+    await click('#matching-consent'); await click('#matching-enable'); await confirmStart(); await closePopup(); const d = await automatic('d');
     assert.equal(d.topicId, a.topicId); checks.push('new-explicit-session-captures-current-page');
     stage = 'metadata-bearing-page-accepted';
     await navigate('metadata'); const metadata = await automatic('metadata');
@@ -313,15 +357,26 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await click(`[data-unblock-origin="${ORIGIN}"]`);
     await waitExpression("document.querySelectorAll('[data-unblock-origin]').length===0", 'site unblocked');
     await click('#matching-remove-access');
-    await waitExpression("document.querySelector('#matching-remove-access').disabled", 'broad access removed');
+    await waitExpression(`(async () => {
+      const state=await chrome.runtime.sendMessage({target:'page-matching',type:'status'});
+      return state.hostAccess===false && state.enabled===false && state.sessionWindowId===null &&
+        document.querySelector('#matching-access')?.textContent===${JSON.stringify(EN.matchingAccessAbsent)} &&
+        document.querySelector('#matching-remove-access')?.getAttribute('data-busy')==='false';
+    })()`, 'confirmed stopped session and removed broad access');
     assert.equal(await evaluate("chrome.permissions.contains({origins:['https://*/*']})"), false);
     checks.push('block-unblock-site-and-remove-native-access');
+    // Finish all work queued before PASS while setup failures still fail closed.
+    // Capture is authoritatively stopped and access removed above.
+    await wait(() => tasks.size === 0, 'settled target/request tasks before summary', 5000);
+    await sleep(0);
+    if (errors.length) throw new Error(errors[0]);
     const externalExtensionRequests = requests.filter(request => selfUrl(request.context) && !selfUrl(request.url) && !apiUrl(request.url)).length;
     assert.equal(externalExtensionRequests, 0); assert.equal(runtimeExceptions, 0);
     assert.ok(ingestions.length >= 5);
     assert.ok(workers.some(worker => selfUrl(worker.url) && worker.type === 'worker'));
     return { browser: version.product, result: 'PASS', actualActionPopup: true, checks,
-      vectorsSent: ingestions.length, vectorDimensions: 384, rawTextApiRequests: 0,
+      vectorsSent: ingestions.length, vectorDimensions: 384, fixtureRawTextBodyMatches: 0,
+      abandonedSetup: [...sessionTargets.values()].filter(target => target.setupLifetime.abandoned).length,
       externalExtensionRequests, runtimeExceptions, interceptedDocuments, elapsedMs: performance.now() - began,
       scope: 'Owned intercepted articles only; fresh temporary profile/SQLite; no third-party browsing or global browser firewall claim' };
   } finally {

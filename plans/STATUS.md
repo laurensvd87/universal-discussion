@@ -31,7 +31,7 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current increment: ADR-019 B session-wide browsing — implemented/reviewed; full-loop test blocked
+## Current increment: ADR-019 B session-wide browsing — implemented/reviewed; full-loop checks pass
 
 - Owner requests implementation of improved viewpoint-independent matching,
   automatic vectorization on visits, and connection credentials across sessions.
@@ -85,18 +85,35 @@ private/remote/AI/moderation work and all external release gates remain separate
   and crashed-process cleanup are not claimed. Owner manual check: start in the
   dedicated test profile, reload the extension, then separately restart Chrome;
   each must show capture off until fresh Start. Native HTTPS access may remain.
-- The full updated two-domain vector/shared-comment smoke was attempted but
-  **blocked at bind because 4174 is occupied**. No owner service was used/stopped
-  and no owner database was accessed. Asked owner to stop their listener manually
-  for this test. Both matching and historical S3 harnesses are adapted and syntax
-  checked, not counted as current-version full-loop passes. No owner data,
-  model assets, pairing credentials or matching policy changed.
+- Owner subsequently confirmed their service was stopped. **The updated full
+  two-domain Chrome smoke now passes all 15 checks in two consecutive runs**, including real browser E5
+  vectors, shared comments on another HTTPS origin without a new grant, unrelated
+  separation, Stop/new Start, accepted metadata, excluded forms, SQLite/service
+  restart with explicit re-pairing, correction/Forget and confirmed deletion.
+  Each run: six intercepted owned documents, ten 384D vector requests, one
+  actually detached setup canceled; no external extension request, runtime error
+  or fixture raw-text body match in inspected API requests. This is wiring and
+  fixture evidence, not validated real-news matching quality.
+- The first runs exposed a **test-harness** race, not a production regression:
+  `Runtime.enable` timed out ten seconds after its exact CDP session had detached
+  before setup completed. A per-session lifetime now cancels only that vanished
+  target's unfinished setup. Live setup errors and all Fetch/payload checks remain
+  fatal. Start/removal await confirmed state; pending tasks/errors are checked
+  before PASS. Separate Sol Medium QA/Trust review accepts the correction after
+  catching and fixing a same-turn error-ordering edge; **6/6** focused tests pass.
+- The historical discussion Chrome smoke also passes **19 covered areas** on
+  0.7.0, with zero runtime exceptions/external extension requests; loopback
+  transport tests pass **2/2**. Full restricted suite is now **577/577**, normal
+  **576 pass / one intentional guard-only skip**; secret scan **146 files, zero
+  findings**. Only
+  harness/tests/docs changed in this follow-up; no production, owner profile/
+  database, model assets, pairing credentials or matching-policy changes.
   Phase 0 and the 6/6 review stay complete; broader gates remain unchanged.
 
 See [the ADR-019 B review](../research/ADR019_SESSION_REVIEW_2026-09-29.md) for
-scope, corrections, exact evidence and storage-failure limitations. Next: finish
-full-loop/S3 Chrome checks when the owner frees 4174; obtain manual first-grant and
-reload/restart evidence. No renewed B approval is needed. A/C remain separate.
+scope, corrections, exact evidence and storage-failure limitations. Next: owner
+can restart their service and test 0.7.0; obtain manual first-grant and reload/
+restart evidence. No renewed B approval is needed. A/C remain separate.
 
 ## Current owner feedback: similar pages split into Topics — 2026-09-29
 
