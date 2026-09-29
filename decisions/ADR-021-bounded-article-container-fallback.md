@@ -2,7 +2,7 @@
 
 Date: 2026-09-29.
 Status: **Explicitly owner-approved on 2026-09-29; 0.9.0 implemented and reviewed;
-full-service browser regression pending the owner's free test port.**
+full-service browser regression subsequently verified in 0.10.0.**
 
 The owner answered the exact bounded-fallback request: "Approve the bounded
 generic fallback". This approves the package below, not wider ADR-019 A/C or
@@ -125,10 +125,15 @@ printed or retained, embedded or sent to the backend; the temporary profile was
 removed. This establishes fallback extraction on that inert snapshot, not live
 owner-page extraction quality, model matching quality or final Topic assignment.
 
-Full 0.9.0 embedding/shared-comment/restart browser and loopback transport checks
-await owner shutdown of their running service on port 4174. Do not stop or contact
-it, claim the new full-loop assertions passed, or reset its data. The checkpoint
-preserves prior full-loop evidence as historical, not current verification.
+Full embedding/shared-comment/backend-restart browser and loopback checks were
+pending at the original 0.9.0 checkpoint. After owner shutdown of port 4174, the 0.10.0
+Chrome smoke passes all 20 covered areas, including a semantic/generic identical-
+text pair sharing a Topic/comment and preserving both policies across SQLite
+restart. Legacy discussion 19 and loopback 2/2 also pass. Eight owned intercepted
+documents generate 14 vectors, with zero external extension requests/runtime
+exceptions/fixture raw-text matches in inspected API bodies. Tests use only
+disposable profiles/databases, never the owner's service/data. This closes the
+full-loop regression gap, not live GameStar or general-web matching validation.
 
 No GameStar success is promised before a faithful check. If the new candidate rule
 needs larger time/text budgets, private scope, another dependency/provider/model

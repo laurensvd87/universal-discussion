@@ -12,10 +12,14 @@ Production reader/input/policy/backend match the preceding checkpoint. See resul
 under `apps/local-service/experiments/topic-identity/`; no useful safe cutoff found.
 Toolbar: red disconnected; gray connected/no current Topic; green Topic; light
 blue another learned page shares Topic; dark blue shared Topic with visible posts.
-Colors are implemented in 0.10.0. Restricted753/753, indicator491/491, backend69/69,
-evaluator6/6, independent Trust149; actual Chrome session19/19 and reader47/47 pass.
-Full matching/comment/native-color Chrome test could not bind occupied4174; ask
-owner to stop their backend, never stop/contact it or claim that test passed.
+Colors are implemented in 0.10.0. Restricted 753/753, indicator 491/491, backend
+69/69, evaluator 6/6, independent Trust 149; Chrome session 19/19 and reader 47/47 pass.
+After owner shutdown of their backend, full matching/comment/native-color Chrome
+passes 20 covered areas (14 vectors, eight owned documents), legacy discussion 19
+and loopback 2/2. All five colors, withdrawal/repost, red/gray on 401/re-pair and
+semantic/fallback shared comments across SQLite restart pass. A legacy test-only
+storage whitelist now permits the existing exact integer toolbar marker while
+unpaired too; no production/data change. See STATUS for evidence limits.
 ADR-022's extra local-model synthetic-only experiment was proposed and approval
 requested; no download/new-model inference yet. Read ADR-019 A and ADR-020 follow-up.
 No durable pairing, second vector/facts,
@@ -30,7 +34,8 @@ No product/data changes, service contact, page fetch or wider corpus inspection.
 See STATUS; pair-derived numeric details/identities are not retained in git.
 ADR-019 A/C and later gates remain unchanged; diagnosis is not merge authority.
 The owner confirms restarting the backend restored the displayed Topic title;
-this is not replacement evidence for the still-pending full 0.9.x browser suite.
+this is not semantic-quality evidence. The formerly pending full 0.9.x browser
+flow subsequently passed at the current 0.10.0 checkpoint above.
 
 Previous request: session consent appears required again on new tabs. ADR-019 B
 already covers new active tabs in the same window. No lease bug was found; the
@@ -54,9 +59,9 @@ unknown versions fail closed, old Topic links/comments stay stable. No new asset
 or permissions. Restricted 659/659, indicator 471/471, backend 69/69, actual Chrome
 47 reader/eligibility checks pass. Unmodified reader succeeds 3/3 on an inert
 anonymous GameStar snapshot; **not** a faithful live-site or semantic-quality test.
-The full matching/shared-comment/restart browser suite awaits owner shutdown of
-port 4174; do not contact/stop their backend or claim the new full-loop assertions
-have run. Once freed, run matching/legacy/loopback tests and record the checkpoint.
+The full matching/shared-comment/backend-restart browser suite was pending at
+that checkpoint; it subsequently passed in 0.10.0 after owner shutdown of port 4174.
+Never contact/stop the owner's backend or use their database for these tests.
 The owner must restart the service and reload the extension for both sides to
 accept fallback provenance. This does not approve wider ADR-019 A/C or later gates.
 

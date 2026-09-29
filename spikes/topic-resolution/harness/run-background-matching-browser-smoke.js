@@ -412,7 +412,10 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await application.close(); application = null; await startService(SECOND_TOKEN);
     await click('#discussion-reload'); await waitStatus(EN.discussionUnauthorized);
     assert.equal(await evaluate("document.querySelector('#connection-status').dataset.state"), 'disconnected');
+    await toolbar('disconnected');
     await pair(SECOND_TOKEN); await chooseSource(b.id);
+    // A manual Topic selection while capture is stopped is not current-page evidence.
+    await toolbar('connected');
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     assert.equal((await source('b')).topicId, a.topicId);
     checks.push('sqlite-comment-survives-restart-and-new-pairing');

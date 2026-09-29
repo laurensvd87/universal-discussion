@@ -20,9 +20,11 @@ Stop and failed evidence clear page-specific Topic colors. The focused active
 tab's base state is repainted on activation/focus/startup without scanning tabs.
 
 Reload the unpacked extension, reconnect if its session pairing was cleared,
-and Start one browsing session as usual. The full five-color Chrome smoke is
-pending a free port 4174; unit/integration-independent tests and isolated Chrome
-session/reader checks pass. See [STATUS](../../../plans/STATUS.md).
+and Start one browsing session as usual. The full Chrome smoke passes all 20
+covered areas, including five native icon colors, post withdrawal/repost and
+red/gray across test-service restart/re-pairing. The legacy discussion smoke and
+2/2 loopback tests also pass. Only disposable profiles/databases and owned pages
+were used. See [STATUS](../../../plans/STATUS.md) for evidence limitations.
 
 The title/article-lead matching proposal remains **experiment-only** after
 synthetic tests found false joins. Active reader/input/grouping are unchanged;
@@ -44,7 +46,7 @@ remains available. Previously those controls stayed visible and misleadingly
 looked like another required approval. No lease, permission or pairing change.
 After reloading/updating the extension, Start once again: reload deliberately
 ends the previous session. Actual Chrome verifies new-tab/switch/close routing;
-see [STATUS](../../../plans/STATUS.md) for evidence and remaining full-loop tests.
+see [STATUS](../../../plans/STATUS.md) for evidence and remaining manual checks.
 
 ## Bounded article detection (0.9.0)
 
@@ -81,9 +83,10 @@ The legacy generic code remains accepted. Previously stored data is unaffected.
 The unmodified reader now succeeds 3/3 on the supplied GameStar anonymous static
 snapshot: 3,796 sample characters, 8.4/6.4/4.9 ms. Actual Chrome passes 47 reader/
 eligibility checks and 15 session checks. Restricted tests pass 659/659; backend
-tests 69/69. The full 0.9.0 embedding/shared-comment browser regression still awaits
-the owner's free test port. Static diagnostics do not reproduce the owner's live
-CSS, scripts or consent state, and are not semantic-quality validation. See
+tests 69/69 at the fallback checkpoint. The subsequent 0.10.0 full-service Chrome
+regression verifies a shared Topic/comment between semantic and generic layouts,
+including mixed-policy SQLite restart. Static diagnostics do not reproduce the
+owner's live CSS, scripts or consent state, and are not semantic-quality validation. See
 [ADR-021](../../../decisions/ADR-021-bounded-article-container-fallback.md).
 
 ## User-facing discussion popup (0.8.0)

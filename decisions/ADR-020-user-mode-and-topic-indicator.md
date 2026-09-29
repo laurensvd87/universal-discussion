@@ -5,8 +5,8 @@ Status: Owner-requested presentation increment implemented/reviewed and
 full-service Chrome verified in 0.8.0. See STATUS for evidence and limitations.
 
 2026-09-29 follow-up: the owner requests five toolbar states. Implemented in
-0.10.0 with independent Trust/offline checks; actual Chrome session/reader checks
-pass, while the full comments/native-color smoke awaits a free port 4174. This
+0.10.0 with independent Trust/offline checks; actual Chrome session/reader and
+full comments/native-color checks pass after owner shutdown of port 4174. This
 supersedes the old two-color meaning below:
 
 - Red: disconnected/unverified or the last relevant service read failed.
@@ -109,3 +109,17 @@ At the original 0.8.0 checkpoint ADR-019 A/C were pending. A was subsequently
 approved and measured without input rollout; C remains pending. No change to private-input, provider, remote service,
 deployment, spending, external tester/publication or provenance-review gates.
 Completed Phase 0 and the 6/6 owner review remain complete.
+
+0.10.0 continuation: full matching smoke passes 20 covered areas in Chrome 154,
+including successful native bitmap submissions/tooltips for all five colors,
+withdrawal to light blue, repost to dark blue, and red on 401/gray after re-pair.
+The last two are checked with capture stopped and a manually selected Topic;
+manual selection must not count as attested current-page evidence. Fourteen
+384D vectors from eight owned documents, no external extension requests/runtime
+exceptions/fixture raw-text matches in inspected API bodies. Legacy discussion
+passes 19 areas after its strict storage whitelist is corrected to permit the
+existing integer cleanup marker while unpaired; transport tests pass 2/2. No
+production or owner-data changes. Native API completion is not an OS-toolbar
+screenshot or complete transition-ordering trace. Withdrawal/repost ingestion
+counts do not independently prove no reader/inference activity; restricted race
+tests remain necessary. Earlier first-dialog/reload/restart/quality limits stand.

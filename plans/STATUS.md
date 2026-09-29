@@ -62,12 +62,31 @@ private/remote/AI/moderation work and all external release gates remain separate
   Independent Sol Medium icon review passes **149** scoped checks with no blocker.
   Actual Chrome session **19/19** and reader/eligibility **47/47** pass with zero
   external requests/runtime exceptions/model loads/backend contact.
-- **Full 0.10.0 matching/comment/native-color browser test is pending**. Its own
-  disposable service could not bind port 4174, so it stopped without accessing
-  the owner's service/data. Lead's initial listener filter missed Windows'
-  localized status label; a locale-independent endpoint check confirmed the
-  occupied port. Asked owner for Ctrl+C. New five-state/native-bitmap and post-
-  withdrawal/repost assertions exist but are not yet claimed as browser evidence.
+- Owner confirms their backend is stopped. Full **0.10.0 Chrome 154 matching/
+  comments/native-color smoke passes all 20 covered areas**, twice; the final run
+  adds explicit red-on-401 and gray-after-re-pair assertions with capture stopped.
+  All five colors, last-visible-post withdrawal to light blue and repost to dark
+  blue pass without additional ingestion. Semantic/fallback layouts share a
+  Topic/comment, preserved across SQLite restart. Eight owned intercepted documents
+  produce 14 real 384D vectors; zero fixture raw-text matches in inspected API
+  bodies, external extension requests, runtime exceptions or abandoned setups.
+- Legacy Developer discussion smoke passes all **19 covered areas** after a
+  test-only whitelist correction: the existing one-integer toolbar cleanup marker
+  is legitimate even while unpaired/capture-off. Exact session keys, inactive
+  lease, token shape and empty sync/local-only UI preference stay enforced.
+  Separate loopback transport/security/persistence tests pass **2/2**. Owner
+  service/profile/database were not contacted or changed; only disposable test
+  profiles/databases and injected test tokens were used. No production fix needed.
+- Independent Sol Medium QA/Trust review accepts both harness changes, with
+  **115/115** focused socket-denied checks and no must-fix finding. Lead reruns
+  the complete restricted suite **753/753** and secret scans **162 + 56 files,
+  zero findings** after the harness correction. README, handoff and ADR-020/021
+  now record the completed full-loop evidence; the model gate remains untouched.
+- Native evidence is completed 16/32px bitmap submission and tooltip checks, not
+  a screenshot of the OS toolbar or proof of every transient paint ordering.
+  No-extra-ingestion assertions are not independent no-reader/inference proof;
+  restricted race tests supply those narrower cancellation checks. Existing native
+  first-dialog, installed reload/browser-restart and real-page-quality gaps remain.
 - Next matching boundary: [ADR-022](../decisions/ADR-022-subject-verifier-experiment.md)
   proposes one additional quantized local model, at most 750 MiB, synthetic-only
   subject-verification measurements and no production/data-flow changes. Explicit
@@ -127,9 +146,10 @@ private/remote/AI/moderation work and all external release gates remain separate
   evidence gaps remain. Reload deliberately ends the session; the owner must
   Start once after updating, not once per tab.
 
-The full 0.9.x matching/shared-comment browser test still awaits the owner's
-manual shutdown of port 4174. Do not stop/contact their backend. Prior fallback
-implementation checkpoint `f9b96d6` is committed/pushed; its evidence follows.
+At this checkpoint the full 0.9.x matching/shared-comment test awaited the owner's
+manual shutdown of port 4174. It subsequently passed in 0.10.0 as recorded above.
+Prior fallback implementation checkpoint `f9b96d6` is committed/pushed; its
+original evidence follows.
 
 ## Previous increment: owner-approved generic article fallback — 0.9.0
 
@@ -161,17 +181,19 @@ implementation checkpoint `f9b96d6` is committed/pushed; its evidence follows.
   dialog gaps. Sol Medium implements the bounded slice; independent Trust review
   finds no material blocker (65 scoped checks), and separate QA reviews harness
   wiring. Lead adds explicit mixed-policy restart/comment assertions.
-- **Full 0.9.0 embedding/shared-comment/browser restart regression is pending**:
+- **At the original 0.9.0 checkpoint, the full embedding/shared-comment/backend
+  restart regression was pending**:
   the owner's backend still owns port 4174. Asked for Ctrl+C; no service or owner
   data was contacted, stopped or changed. The harness now includes a semantic/
   generic identical-text pair, shared comment/icon and mixed-policy SQLite restart
   assertions; these new full-loop browser assertions have not run yet. Offline
   tests already cover cross-policy matching, ambiguity, comments and SQLite reopen.
 
-Next: once the owner says the service is stopped, run matching, legacy discussion
-and loopback regressions, then hand off reloading/restarting and the live GameStar
-check. Do not infer broader public-web coverage, ADR-019 A/C approval or any later
-private/provider/publication gate. Phase 0/6-of-6/S3/B remain finished.
+Subsequent 0.10.0 continuation completes matching, legacy discussion and loopback
+regressions after the owner stops the service (see current checkpoint). Reload/
+restart and live GameStar feedback remain owner steps, not general-web validation.
+ADR-019 A was separately approved/measured without rollout; C and later gates
+remain pending. Phase 0/6-of-6/S3/B remain finished.
 
 ## Earlier narrow attempt: capture-budget diagnosis and efficiency fix — 0.8.1
 

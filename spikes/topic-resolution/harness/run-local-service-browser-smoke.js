@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { startLocalApplication, createProcessDependencies } from "../../../apps/local-service/src/startup.js";
 import { EN } from "../browser/locales/en.js";
+import { TOOLBAR_TAB_KEY } from "../browser/core/topic-toolbar-controller.js";
 import { launchChromiumPipe } from "./chromium-pipe.js";
 
 const BROWSER_ROOT = fileURLToPath(new URL("../browser/", import.meta.url));
@@ -103,13 +104,21 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
       const [local,sync,session]=await Promise.all([chrome.storage.local.get(null),chrome.storage.sync.get(null),chrome.storage.session.get(null)]);
       const lease=session.pageMatchingCaptureSession;
       const inactiveLease=lease && lease.schema==='capture-session/1' && lease.windowId===null &&
-        typeof lease.revision==='string' && Object.keys(lease).length===3;
-      const keys=Object.keys(session).filter(key=>key!=='pageMatchingCaptureSession');
+        typeof lease.revision==='string' && /^[a-zA-Z0-9-]{16,80}$/.test(lease.revision) && Object.keys(lease).length===3;
+      // Red/gray per-tab overrides also require the approved cleanup marker,
+      // even when capture is off or pairing has been removed.
+      const toolbarKey=${JSON.stringify(TOOLBAR_TAB_KEY)};
+      const validToolbarMarker=!Object.hasOwn(session,toolbarKey) ||
+        (Number.isSafeInteger(session[toolbarKey]) && session[toolbarKey]>=0);
+      const keys=Object.keys(session).filter(key=>key!=='pageMatchingCaptureSession' && key!==toolbarKey);
+      const token=session.localServicePairingToken;
+      const validPairing=typeof token==='string' && token.length>=32 && token.length<=512 && /^[A-Za-z0-9._~+/-]+={0,2}$/.test(token);
       return {localUiOnly:Object.keys(local).length===1 && local.discussionUiModeV1==='developer',syncEmpty:Object.keys(sync).length===0,
-        sessionEmpty:inactiveLease && keys.length===0,onlyPairing:inactiveLease && keys.length===1 && keys[0]==='localServicePairingToken' && typeof session[keys[0]]==='string'};
+        sessionUnpaired:inactiveLease && validToolbarMarker && keys.length===0,
+        sessionPaired:inactiveLease && validToolbarMarker && keys.length===1 && keys[0]==='localServicePairingToken' && validPairing};
     })()`);
     assert.ok(shape.localUiOnly && shape.syncEmpty);
-    assert.ok(paired ? shape.onlyPairing : shape.sessionEmpty);
+    assert.ok(paired ? shape.sessionPaired : shape.sessionUnpaired);
   }
   async function bringPageForward() {
     await browser.send("Page.bringToFront", {}, pageSession);
