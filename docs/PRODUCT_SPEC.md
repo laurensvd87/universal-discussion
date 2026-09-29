@@ -20,6 +20,15 @@ Topic cards describe kind, subject/entities and defining event/question/version,
 with an optional temporal scope. Stable opaque Topic IDs do not change with
 the embedding model. Users can distinguish same-topic and related-topic links.
 
+Owner clarification (2026-09-29): opposing interpretations of the same event or
+answers to the same question should share a discussion. Same Topic does not mean
+agreement, factual endorsement or equal source reliability. A supportive and a
+critical report about the same military expansion may belong together; another
+expansion in a different year may be related but distinct. Disputed facts or
+numbers alone must not automatically split reports of the same incident. Event
+time is distinct from publication time. These are matching requirements, not a
+claim that the current embedding/cutoff already implements them reliably.
+
 ## Platforms and initial interaction
 
 First: Chromium desktop extension. Later: Android and iOS, plus other browsers

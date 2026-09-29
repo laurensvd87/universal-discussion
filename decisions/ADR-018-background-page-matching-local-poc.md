@@ -214,6 +214,44 @@ guidance. The reader, rights checks, resource limits, collection, storage and
 permissions remain unchanged. A restriction code describes prototype behavior,
 not legal permission or prohibition. The owner's actual rejection is still unknown.
 
+## Matching-quality direction after owner feedback — 2026-09-29
+
+The owner reports similar news pages split into separate Topics and emphasizes
+matching opposing political framings of the same event. This clarifies Topic
+identity, not permission to merge existing discussions. The owner suggests
+tightening thresholds as the catalog grows; no numeric schedule is approved or
+implemented. Lead recommendation: calibrate decisions from observed quality and
+ambiguity among relevant candidates, rather than raw Topic count. Unrelated
+catalog growth should not change what a Topic represents. The current all-member
+minimum cannot increase as members are added and may penalize varied framing;
+the existing competing-Topic margin is an ambiguity check, not validated accuracy.
+
+Proposed direction, **not an activated algorithm**: use embeddings to retrieve a
+broad shortlist, then distinguish underlying event/product/question identity
+from perspective. Shared actors/actions/contextual time/location can support
+identity; different stances and disputed figures are not automatic non-matches.
+Event time is not publication time, and shared entities alone do not identify an
+event. No truth/propaganda classifier or automatic neutral-summary generator is
+assumed. Uncertain candidates remain related suggestions/manual choices.
+
+Near-term investigation can start with cleaner bounded article input and
+project-created counterexamples: opposite framings of one event versus very
+similar wording about different events. The compact existing E5 model remains
+a retrieval component; it is not proven to disentangle stance/event identity.
+Its [official model card](https://huggingface.co/intfloat/multilingual-e5-small)
+notes that scores are concentrated and relative order matters; cosine is not a
+same-Topic probability. [Cross-document event search research](https://aclanthology.org/2022.emnlp-main.58/)
+provides relevant task framing, not evidence that this prototype solves it.
+
+Richer local event representations, a reranker or alternative aggregation need
+a concrete design, regression evidence and lead review before activation. New
+server-side fields/multiple vectors, dependencies/models, input/retention changes
+or migration require their corresponding explicit approval package. Do not send
+raw articles or extracted event text to the server implicitly. Preserve stable
+manual links, comment destinations and the prohibition on automatic discussion
+merges. The current 0.94/0.04 policy and payload remain unchanged in this turn;
+no expanded evaluation acquisition or completed owner-review repetition follows.
+
 ## Owner-approved local working assumption (0.6.5) — 2026-09-29
 
 After being asked specifically whether freely readable pages with an explicit

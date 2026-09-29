@@ -58,6 +58,14 @@ private/remote/AI/moderation work and all external release gates remain separate
   review stays complete; any later provenance-approved 200–250-pair task still
   needs approval. Existing manual Source-to-Topic correction is available for
   the immediate owner test and does not move existing comments.
+- Owner further clarifies that opposing political framings must be able to share
+  the same underlying event Topic, and suggests tightening with catalog growth.
+  Recommendation: use measured quality and ambiguity among relevant candidates,
+  not total Topic count, to govern caution. Adding unrelated Topics should not
+  redefine an existing event. The current all-member minimum can only stay the
+  same or decrease as members are added; simply tightening it could exclude
+  diverse views. ADR-018 records the proposed retrieval/identity separation and
+  its limits. No cutoff, grouping rule, payload, model or existing link changed.
 
 ## Completed owner feedback: local vector-processing assumption — 2026-09-29
 
