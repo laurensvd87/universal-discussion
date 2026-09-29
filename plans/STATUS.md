@@ -31,7 +31,26 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Latest request: first-use coverage and discussion growth; AI remains optional
+## Latest request: valuable user-owned AI research as the cold-start hypothesis
+
+The owner now explicitly redirects investigation from specialist-forum aggregation
+to users' own AI researching the current page and relevant external sources,
+finding useful missing/conflicting context, and deliberately sharing selected
+insights into native discussions. This is the prioritized product hypothesis,
+not provider/build/publication approval. Read
+[AI insight research](../research/AI_INSIGHT_COLD_START_2026-09-29.md).
+Lead and two Sol reviews distinguish personal value from actual willingness to
+publish; public reusable findings, not private chat alone or AI filler, are the
+proposed value. Consumer-plan integration is provider-specific: official ChatGPT
+OSS/local plan-use documentation is promising but project/account/search eligibility
+is unverified, and no project LICENSE was found. Manual research is a validation
+fallback, not the desired final UI. No account, inference, real-page AI pilot,
+external search API, capture expansion or app change occurred; 0.11.0 remains.
+Next proposed evidence is five public-page insight comparisons, with the exact
+provider/data/search/quota/privacy package approved before any real activation.
+Do not continue forum-feed or Lemmy integration as the next product work.
+
+## Previous request: first-use coverage through external discussions
 
 Newest owner clarification after the probe: many specialist sources are too much
 onboarding/complexity, and comments must be readable **inside the extension**.

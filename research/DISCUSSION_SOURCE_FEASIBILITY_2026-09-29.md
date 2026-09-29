@@ -5,6 +5,11 @@ Implementation remains owner-local 0.11.0. This investigates the owner's request
 for broad public first-use value without reliance on a few large platforms or
 many bespoke website adapters. AI supply is still an unselected idea.
 
+Subsequent owner direction: prioritize
+[AI-assisted original insights](AI_INSIGHT_COLD_START_2026-09-29.md) rather than
+continuing external-forum aggregation as the cold-start approach. The completed
+probe remains evidence, not the next integration plan. No new collection follows.
+
 ## Latest owner clarification: comments must be readable inside the extension
 
 After the probe, the owner rejects onboarding many specialized sources as the

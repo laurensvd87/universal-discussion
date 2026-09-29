@@ -109,3 +109,16 @@ a feature that cannot meet its boundary without blocking unrelated local work.
 Research supports this direction; semantic usefulness, mobile UX, provider
 feasibility and community adoption remain unvalidated. Success is a demonstrable
 user loop and measured follow-up, not a count of ADRs or generated posts.
+
+## 2026-09-29 research-priority clarification
+
+The owner now explicitly asks to investigate users' own AI researching a page and
+relevant other sources, finding valuable missing/incorrect context, and deliberately
+sharing sourced findings into native discussions. This restores item 7/R3 as the
+primary cold-start investigation instead of external-forum aggregation. See
+[AI insight research](../research/AI_INSIGHT_COLD_START_2026-09-29.md). It records a
+product hypothesis, not adoption of a provider, changed data-flow contract or build.
+Current official ChatGPT OSS/local plan-use authorization is a candidate, not
+project eligibility; no license/authentication/inference decision is made here.
+The five-page pilot is proposed only. All exact provider, privacy/security,
+search, spending, deployment/publication and larger-review gates remain.

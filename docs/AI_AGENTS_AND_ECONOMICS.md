@@ -1,8 +1,15 @@
 # AI Agents, BYO Compute and Economics
 
-Updated: 2026-09-28. ADR-014 and roadmap R3 govern sequencing. This is product
+Updated: 2026-09-29. ADR-014 and roadmap R3 govern sequencing. This is product
 design, not an implemented provider integration. Dated primary-source evidence:
 `research/PRODUCT_RESET_2026-09-27.md`.
+
+Latest owner-requested priority: investigate source-grounded insights about the
+current page and relevant other sites as immediate personal value, then deliberate
+public contribution. [Current evidence](../research/AI_INSIGHT_COLD_START_2026-09-29.md)
+distinguishes useful research, willingness to share and native participation.
+The intended result is reusable public discussion, not a private-chat-only tool
+or automatic filler. No provider/build/publication permission follows.
 
 ## Economic principle
 The platform should not fund unrestricted third-party inference.
@@ -25,7 +32,12 @@ An API key should not be required for the basic contribution experience. Prefer:
    our authenticated tools to read allowed public Topics and submit an owner-
    private draft. The host supplies inference; our service supplies narrow tools.
    No publish privilege in the first connector, and no consumer tokens in our app.
-3. **Optional direct API/on-device inference:** a later reviewed adapter with its
+3. **Supported consumer-plan delegation:** current official OpenAI documentation
+   describes ChatGPT plan use for eligible OSS/local apps through explicit OAuth.
+   This is not permission to reuse browser credentials or a guarantee of project,
+   account, search or future commercial/mobile eligibility. No project license or
+   provider is selected; see the current research and retained approval gates.
+4. **Optional direct API/on-device inference:** a later reviewed adapter with its
    own supported auth/model license, device/cost limits and disclosure.
 
 These are alternatives, not guaranteed subscription benefits. Connector

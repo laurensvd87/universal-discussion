@@ -10,10 +10,11 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Exploratory [independent-source research](research/DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md)
-evaluates public discussion discovery through common feeds. No external source is
-connected. The desired experience includes comments readable inside the extension,
-not just outbound links; broad first-use coverage and growth remain unvalidated.
+The latest [product investigation](research/AI_INSIGHT_COLD_START_2026-09-29.md)
+prioritizes useful research by the user's own AI, with selected sourced insights
+shared into native discussions visible inside the extension. No AI provider is
+connected and no AI research runs automatically. Earlier external-feed tests are
+research only; first-user value, sharing and growth remain unvalidated.
 
 Extension **0.11.0** adds a clickable ↗ source icon to new page-linked posts:
 it opens that post's source in a new tab. Replies can link their own page while

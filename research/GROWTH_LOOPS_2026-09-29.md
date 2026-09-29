@@ -1,6 +1,16 @@
 # Growth loops: Sources, conversations and retained participation
 
 Date: 2026-09-29. **Product hypotheses, not activated features or a growth forecast.**
+
+Latest direction: the owner now explicitly prioritizes investigation of valuable
+user-owned AI research about the current page, with relevant external evidence
+and deliberate publication of findings to start native discussions. See
+[AI insight cold-start research](AI_INSIGHT_COLD_START_2026-09-29.md). This supersedes
+the earlier "thinking aloud, keep AI off the dependency chain" research priority,
+not the provider/privacy/publication gates. AI remains optional for readers and
+human contributors; no connector or source-acquisition strategy is adopted.
+
+The following records the earlier exploration and its constraints.
 The owner supports the broad concept-review direction and asks how captured pages
 and conversations could grow rapidly, especially useful coverage on first use.
 They explicitly describe the user-owned AI idea as thinking aloud, not a chosen
@@ -276,7 +286,11 @@ Current caps are 100 Sources, 100 Topics and 1,000 Contributions. Scaling the
 shared system requires measured capacity/query/pagination and abuse controls;
 those caps cannot be removed as a growth feature without corresponding work.
 
-## Optional AI-assisted supply hypothesis, not the selected growth strategy
+## Earlier optional AI-assisted supply hypothesis
+
+Superseded as research priority by the owner's latest explicit investigation
+request above. Its data/provenance distinctions and approval limits still apply;
+neither then nor now does the idea constitute a selected provider or public launch.
 
 The owner wonders whether a minority (illustratively 10%) could connect their own
 AI for personal research and voluntarily contribute its useful public sources.

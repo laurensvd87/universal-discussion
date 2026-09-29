@@ -16,9 +16,11 @@ tested. ADR-017's revised synthetic-only local embedding comparison was approved
 on 2026-09-29 and is now implemented/measured. Review its evidence before proposing
 interactive activation or broader inputs. S4's private/AI/moderation UX remains later work.
 External search/provider selection is deferred by the owner, not an R1 dependency.
-The owner's growth discussion is exploratory: optional AI-research source supply
-is not a selected strategy or permission to connect a provider. See
-[growth hypotheses](../research/GROWTH_LOOPS_2026-09-29.md). Web-before-mobile
+The owner's latest growth direction prioritizes investigating useful user-owned
+AI research and deliberately shared insights over external-forum aggregation.
+This is a product hypothesis, not approval to connect a provider or publish.
+See [AI insight research](../research/AI_INSIGHT_COLD_START_2026-09-29.md) and
+[growth history](../research/GROWTH_LOOPS_2026-09-29.md). Web-before-mobile
 sequencing does not authorize hosting/publication or alter the pending routing
 decision described in STATUS and IMPLEMENTATION_HANDOFF.
 
@@ -190,6 +192,14 @@ its separate capture/model/security and R5 approvals.
 Owner: Platform/Client; Lead/Trust/Privacy/Policy review.
 Dependencies: R1 draft/publication flow; R2 is not required for draft UX.
 
+Latest research priority: a single evidence-seeking `Find missing context` flow,
+returning concise sourced findings and an optional genuine discussion question.
+Do not fill empty Topics with automatic summaries or import specialist forums as
+a substitute. Test personal value **and** willingness to publish before building
+multiple provider adapters. A five-public-page pilot is proposed, not run or
+approved for external context transfer. Existing source/prompt/provenance gates
+remain; candidate citation URLs are not captured-page vectors or confirmed Topics.
+
 Start with prompt preview and plain-text AI response import using synthetic data.
 General Analysis, Opinion and Summary are declarative modes. Imported content
 has user-declared AI provenance, never an invented verified model label. Show
@@ -198,7 +208,10 @@ Reserve explicit reporting of offensive generated output.
 
 Later: user-initiated handoff to their AI application, and a narrow AI-host
 connector/API to read permitted Topics and submit an owner-private draft. The AI
-calls our service; we do not reverse-engineer a subscription API. Manual handoff
+calls our service; we do not reverse-engineer a subscription API. Current official
+ChatGPT OSS/local plan-use OAuth is another candidate for a direct local adapter,
+subject to project/license/account/search fit and its own exact approval. No
+blanket consumer-subscription API entitlement is assumed. Manual handoff
 survives connector/provider failure. Agent definitions cannot expand permissions.
 
 Acceptance: disclosure before handoff; inert bounded import; no accidental

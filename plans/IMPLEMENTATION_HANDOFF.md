@@ -2,7 +2,18 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Newest requirement: actual comments readable inside the extension; external
+Latest owner direction supersedes external-forum aggregation as the primary
+investigation: valuable research by the user's AI about the current page and
+other relevant sources, with deliberately shared findings seeding native public
+discussions. Read `research/AI_INSIGHT_COLD_START_2026-09-29.md`. This is research
+priority, not provider/build approval. Current official ChatGPT OSS/local plan
+usage is a candidate; project/license/account/search fit is unverified. No provider
+login/call, source-index build, model, search API or publication was activated.
+Next proposed evidence: five-page value/sharing pilot after one exact provider/
+data/search/quota/privacy gate, not a repeat of 6/6 or the 200–250-pair task.
+Current app 0.11.0 and routing/retention contracts are unchanged.
+
+Previous requirement: actual comments readable inside the extension; external
 links alone and onboarding many specialist forums do not meet the owner's needs.
 The completed feed probe is not a selected product build. Read the opening
 clarification in `research/DISCUSSION_SOURCE_FEASIBILITY_2026-09-29.md` before
