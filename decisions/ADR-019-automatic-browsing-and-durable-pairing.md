@@ -113,6 +113,43 @@ Do not infer a private-page, remote-service, publication or spending approval.
   Session-scoped capture and durable authentication are independent controls;
   approval of B alone does not approve C.
 
+### B clarification: same-window tabs and visible session status — 0.9.1
+
+Owner feedback says opening a new tab appears to require consent again. This is
+already covered by the approved window session; **no new permission or scope is
+needed**. Read-only diagnosis found no per-tab lease: tab events invalidate pending
+page work but do not stop/rebind capture. However, the popup always showed a new
+unchecked checkbox and Start, even when the existing window session was active.
+This reproduced presentation defect does not establish what state the owner saw.
+
+Show a separate, language-pack session status independent of page eligibility,
+pairing, reader success or Topic assignment. Hide/disable consent and Start while
+the same-window session is active; reject redundant programmatic Start clicks too.
+When an enabled session temporarily has no eligible current context (blank/loading/
+internal tab), explain that it remains active in its original window, not that the
+current window was authenticated. Keep Stop available. Unknown worker state is
+unavailable/checking, not an assertion that a session is off or active. Only a
+confirmed stopped state or a known other eligible window exposes fresh explicit
+Start; moving to another window is labeled explicitly. Do not persist or auto-check
+consent, issue Start from polling, or widen authority to inactive tabs/other windows.
+Extension reload still ends the session and requires one fresh Start.
+
+New deterministic adapter tests cover a distinct tab ID, blank/loading -> eligible,
+inactive-tab exclusion, switching back, closing a non-last tab, and canceling a
+pending embedding when a second tab has the same URL. Actual Chrome adds real new
+tab creation, navigation, switchback/forward and active non-last-tab closure;
+the exact lease revision/window persists without Start. All 19 session checks pass,
+with zero external requests, runtime errors, model loads or backend contact. This
+is routing/UI evidence to the unpaired gate, not full vector ingestion evidence.
+Existing manual reload/browser-restart/native-dialog gaps and all A/C gates remain.
+
+Independent Trust review accepts the presentation-only correction (181 scoped
+tests). Final restricted 675/675, normal 674 plus one intentional skip, indicator
+487/487 and actual Chrome eligibility/reader 47/47 pass; secret scan finds zero
+issues across 153 files. The separate full-service 0.9.x browser regression is
+still pending owner shutdown of port 4174; do not treat unpaired routing checks as
+end-to-end embedding/shared-comment evidence.
+
 ## C. Persistent, revocable local pairing
 
 - One fresh pairing after upgrade; no idle expiry or automatic logout on browser

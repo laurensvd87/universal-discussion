@@ -9,7 +9,7 @@ import { EN } from '../browser/locales/en.js';
 
 const BROWSER_ROOT = fileURLToPath(new URL('../browser/', import.meta.url));
 const DEFAULT_CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const ARTICLES = ['https://example.com/owned-article', 'https://example.org/owned-article'];
+const ARTICLES = ['https://example.com/owned-article', 'https://example.org/owned-article', 'https://example.org/owned-new-tab-article'];
 const HTML = '<!doctype html><html><head><meta charset="utf-8"><title>Owned session article</title><link rel="icon" href="data:,"></head><body><main><p>Project-created public article for the isolated session lifecycle check.</p></main></body></html>';
 const FILTER = ['page', 'iframe', 'other', 'worker', 'service_worker', 'shared_worker']
   .map(type => ({ type, exclude: false })).concat({ exclude: true });
@@ -68,8 +68,9 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     await browser.send('Page.bringToFront', {}, pageSession);
     const url = await evaluate('location.href', pageSession);
     const available = await browser.send('Target.getTargets', { filter: [{ type: 'tab', exclude: false }, { exclude: true }] });
-    const tab = available.targetInfos.find(item => item.type === 'tab' && item.url === url);
-    assert.ok(tab, 'Actual tab target required');
+    const matchingTabs = available.targetInfos.filter(item => item.type === 'tab' && item.url === url);
+    assert.equal(matchingTabs.length, 1, 'Unique actual tab target required');
+    const tab = matchingTabs[0];
     await browser.send('Extensions.triggerAction', { id: extensionId, targetId: tab.targetId });
     const popup = await wait(() => [...targets.values()].find(item => item.ready &&
       item.url === `chrome-extension://${extensionId}/chromium/popup.html`), 'actual action popup');
@@ -90,6 +91,28 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
   }
   async function nativeAccess() {
     return evaluate("chrome.permissions.contains({origins:['https://*/*']})", (await worker()).sessionId);
+  }
+  async function activeTab(windowId) {
+    const tabs = await evaluate(`chrome.tabs.query({active:true,windowId:${JSON.stringify(windowId)}})`, (await worker()).sessionId);
+    assert.equal(tabs.length, 1, 'Exactly one active tab in the owned window');
+    return tabs[0];
+  }
+  function sameLease(value, expected) {
+    assert.equal(value.enabled, true);
+    assert.equal(value.hostAccess, true);
+    assert.equal(value.sessionWindowId, expected.sessionWindowId);
+    assert.equal(value.sessionRevision, expected.sessionRevision);
+  }
+  async function activeSessionUi() {
+    await wait(() => evaluate(`(() => {
+      const consent=document.getElementById('matching-consent');
+      const label=document.querySelector('label[for="matching-consent"]');
+      const start=document.getElementById('matching-enable');
+      const summary=document.getElementById('matching-session-status');
+      return consent?.hidden===true && consent.disabled===true && consent.checked===false && label?.hidden===true &&
+        start?.hidden===true && start.disabled===true && summary?.hidden===false && summary.textContent.trim().length>0 &&
+        summary.getClientRects().length>0 && document.getElementById('matching-pause')?.disabled===false;
+    })()`), 'active-session summary and Stop without renewed consent controls');
   }
   async function navigate(url) {
     await closePopup();
@@ -195,6 +218,62 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     const reopened = await status(); assert.equal(reopened.enabled, true); assert.equal(reopened.sessionRevision, active.sessionRevision);
     assert.equal(await evaluate("document.getElementById('matching-consent').checked"), false);
     check('popup-close-reopen-retains-lease-without-saved-checkbox');
+    stage = 'new blank tab retains window session';
+    const originalPageSession = pageSession;
+    const originalTab = await activeTab(boundWindow);
+    await closePopup();
+    const newTab = await evaluate(`chrome.tabs.create({windowId:${boundWindow},url:'about:blank',active:true})`, (await worker()).sessionId);
+    assert.equal(newTab.windowId, boundWindow);
+    assert.notEqual(newTab.id, originalTab.id);
+    const blankPage = await wait(() => {
+      const candidates = [...targets.values()].filter(item => item.ready && item.type === 'page' && item.url === 'about:blank');
+      return candidates.length === 1 ? candidates[0] : false;
+    }, 'unique newly created blank page target');
+    pageSession = blankPage.sessionId;
+    await browser.send('Page.bringToFront', {}, pageSession);
+    assert.equal((await activeTab(boundWindow)).id, newTab.id, 'Fresh CDP page must correlate with the created Chrome tab');
+    await openPopup();
+    const blankState = await wait(async () => {
+      const value = await status();
+      return ['unsupported-url', 'url-unavailable'].includes(value.contextReason) ? value : false;
+    }, 'unsupported blank foreground without ending its window lease');
+    sameLease(blankState, active);
+    await activeSessionUi();
+    check('same-window-new-blank-tab-retains-lease-and-active-session-ui');
+    stage = 'new tab navigates to eligible HTTPS without Start';
+    await navigate(ARTICLES[2]);
+    const newArticle = await wait(async () => { const value = await status(); return value.phase === 'unpaired' ? value : false; }, 'new tab automatic session routing');
+    sameLease(newArticle, active);
+    assert.equal(newArticle.currentTabId, newTab.id);
+    assert.equal(newArticle.currentWindowId, boundWindow);
+    await activeSessionUi();
+    check('same-window-new-tab-HTTPS-routes-without-consent-or-Start');
+    stage = 'switch between same-window tabs without Start';
+    await closePopup();
+    await evaluate(`chrome.tabs.update(${originalTab.id},{active:true})`, (await worker()).sessionId);
+    pageSession = originalPageSession;
+    await openPopup(); await eligible('https://example.com');
+    const switchedBack = await wait(async () => { const value = await status(); return value.phase === 'unpaired' ? value : false; }, 'original tab restored');
+    sameLease(switchedBack, active); assert.equal(switchedBack.currentTabId, originalTab.id);
+    await activeSessionUi();
+    await closePopup();
+    await evaluate(`chrome.tabs.update(${newTab.id},{active:true})`, (await worker()).sessionId);
+    pageSession = blankPage.sessionId;
+    await openPopup(); await eligible('https://example.org');
+    const switchedForward = await wait(async () => { const value = await status(); return value.phase === 'unpaired' ? value : false; }, 'new article tab restored');
+    sameLease(switchedForward, active); assert.equal(switchedForward.currentTabId, newTab.id);
+    await activeSessionUi();
+    check('same-window-tab-switches-retain-lease-and-active-session-ui');
+    stage = 'closing active non-last tab retains window session';
+    await closePopup();
+    await evaluate(`chrome.tabs.remove(${newTab.id})`, (await worker()).sessionId);
+    pageSession = originalPageSession;
+    assert.equal((await activeTab(boundWindow)).id, originalTab.id);
+    await openPopup(); await eligible('https://example.com');
+    const afterTabClose = await wait(async () => { const value = await status(); return value.phase === 'unpaired' ? value : false; }, 'remaining active tab after non-last close');
+    sameLease(afterTabClose, active); assert.equal(afterTabClose.currentTabId, originalTab.id);
+    assert.equal(await nativeAccess(), true); await activeSessionUi();
+    check('active-non-last-tab-close-retains-lease-without-new-Start');
     stage = 'automatic second origin';
     await navigate(ARTICLES[1]);
     const second = await wait(async () => { const value = await status(); return value.phase === 'unpaired' ? value : false; }, 'second site session routing');
@@ -280,7 +359,7 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
       interceptedDocuments: documents, blockedRequests, runtimeExceptions, embeddingRequests, inferenceTargets: inferenceTargets.size,
       nativePermissionPreparation: 'Test-only chrome://extensions addHostPermission; real product permissions.request runs under the Start click. Native confirmation dialog is not automated.',
       focusEvidence: 'Actual action popup and existing product popup witness in headless Chrome; no focus or authorization API mocks.',
-      scope: 'Disposable profile and two intercepted project-created HTTPS pages; no pairing, service, page capture, inference or external acquisition. Session routing reaches the real unpaired gate.',
+      scope: 'Disposable profile, a new blank tab and three intercepted project-created HTTPS routes; no pairing, service, page capture, inference or external acquisition. Session routing reaches the real unpaired gate.',
       elapsedMs: performance.now() - began };
   } catch (error) {
     const protocol = /^Chromium protocol (?:rejected|timeout:?) ([A-Za-z.]+)(?: \(code (-?\d+)\))?$/u.exec(error.message);

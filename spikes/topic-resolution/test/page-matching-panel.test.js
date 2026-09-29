@@ -13,6 +13,7 @@ function resolution(patch = {}) {
     currentWindowId: Object.hasOwn(patch, "currentWindowId") ? patch.currentWindowId : patch.currentOrigin === null ? null : 2 };
 }
 function harness(overrides = {}) {
+  const { initialState = resolution(), ...options } = overrides;
   const created = [], calls = [], scheduled = [], canceled = [], states = [];
   const document = { createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
@@ -24,10 +25,10 @@ function harness(overrides = {}) {
   } };
   const root = document.createElement("section");
   const panel = mountPageMatchingPanel(document, root, {
-    async sendMessage(message) { calls.push(message); return resolution(); },
+    async sendMessage(message) { calls.push(message); return initialState; },
     requestPermission(request) { calls.push({ permission: request }); return Promise.resolve(true); },
     onResolution(value) { states.push(value); }, schedule(fn, delay) { scheduled.push({ fn, delay }); return scheduled.length; },
-    cancelSchedule(id) { canceled.push(id); }, ...overrides });
+    cancelSchedule(id) { canceled.push(id); }, ...options });
   return { created, calls, states, scheduled, canceled, panel, root, byId: (id) => created.find((item) => item.id === id) };
 }
 test("matching status DTO rejects raw bodies/vectors/accessors and readiness needs current foreground", () => {
@@ -46,8 +47,163 @@ test("matching status DTO rejects raw bodies/vectors/accessors and readiness nee
   assert.equal(isReadyPageResolution({ ...ready, currentTabId: 8 }), false);
   assert.equal(isReadyPageResolution({ ...ready, blockedOrigins: ["https://public.example.com"] }), false);
 });
-test("broad permission prompt starts synchronously in gesture after disclosed checkbox consent", async () => {
+
+test("active same-window session hides repeat consent and Start even after forged checkbox clicks", async () => {
   const ui = harness(); await turn();
+  assert.equal(ui.byId("matching-consent").hidden, true);
+  assert.equal(ui.byId("matching-consent").disabled, true);
+  assert.equal(ui.byId("matching-consent-label").hidden, true);
+  assert.equal(ui.byId("matching-enable").hidden, true);
+  assert.equal(ui.byId("matching-enable").disabled, true);
+  assert.equal(ui.byId("matching-pause").disabled, false);
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionActive);
+  const before = ui.calls.length;
+  ui.byId("matching-consent").checked = true;
+  ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.equal(ui.calls.length, before);
+  ui.panel.dispose();
+});
+
+test("one explicit first Start persists through popup reopening without repeat permission or consent", async () => {
+  let current = resolution({ phase: "off", enabled: false });
+  let grants = 0;
+  const payloads = [];
+  const dependencies = {
+    requestPermission() { grants++; return Promise.resolve(true); },
+    async sendMessage(message) {
+      payloads.push(message);
+      if (message.type === "start-session") current = resolution({ phase: "unpaired", sessionRevision: "started" });
+      return current;
+    },
+  };
+  const first = harness(dependencies); await turn();
+  assert.equal(first.byId("matching-session-status").textContent, EN.matchingSessionOff);
+  assert.equal(first.byId("matching-consent").hidden, false);
+  assert.equal(!!first.byId("matching-consent").checked, false);
+  assert.equal(first.byId("matching-enable").disabled, true);
+  first.byId("matching-consent").checked = true;
+  first.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.equal(grants, 1); assert.equal(payloads.filter((item) => item.type === "start-session").length, 1);
+  assert.equal(first.byId("matching-session-status").textContent, EN.matchingSessionActive);
+  assert.equal(first.byId("matching-consent").hidden, true); assert.equal(first.byId("matching-consent").checked, false);
+  assert.equal(first.byId("matching-enable").hidden, true); assert.equal(first.byId("matching-pause").disabled, false);
+  first.panel.dispose();
+  const reopened = harness(dependencies); await turn();
+  reopened.scheduled[0].fn(); await turn();
+  assert.equal(reopened.byId("matching-session-status").textContent, EN.matchingSessionActive);
+  assert.equal(reopened.byId("matching-consent").hidden, true); assert.equal(reopened.byId("matching-enable").disabled, true);
+  assert.equal(grants, 1); assert.equal(payloads.filter((item) => item.type === "start-session").length, 1);
+  assert.equal(reopened.byId("matching-status").textContent, EN.matchingUnpaired);
+  reopened.panel.dispose();
+});
+
+test("different eligible tabs in the same window retain active summary with no permission or Start on polling", async () => {
+  let current = resolution({ phase: "unpaired" }); let grants = 0;
+  const ui = harness({ requestPermission() { grants++; return true; }, async sendMessage(message) { ui.calls.push(message); return current; } });
+  await turn();
+  current = resolution({ phase: "unpaired", currentTabId: 8, tabId: 8,
+    url: "https://another.example.com/new", currentUrl: "https://another.example.com/new", currentOrigin: "https://another.example.com" });
+  ui.byId("matching-consent").checked = true; ui.scheduled[0].fn(); await turn();
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionActive);
+  assert.equal(ui.byId("matching-consent").hidden, true); assert.equal(ui.byId("matching-consent").checked, false);
+  assert.equal(ui.byId("matching-enable").hidden, true); assert.equal(ui.byId("matching-pause").disabled, false);
+  assert.equal(grants, 0); assert.ok(ui.calls.every((item) => item.type === "status"));
+  ui.panel.dispose();
+});
+
+for (const reason of ["page-loading", "unsupported-url", "tab-unavailable", "window-unfocused", "incognito"]) {
+  test(`enabled lease with unavailable ${reason} context retains original-window session without repeat consent`, async () => {
+    const ui = harness({ initialState: resolution({ phase: "unsupported", reason: "no-focused-page", currentOrigin: null,
+      currentTabId: null, currentUrl: null, currentWindowId: null, contextReason: reason }) }); await turn();
+    assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionActiveUnknownPage);
+    assert.equal(ui.byId("matching-session-status").attributes.role, "status");
+    assert.equal(ui.byId("matching-consent").hidden, true); assert.equal(ui.byId("matching-consent").disabled, true);
+    assert.equal(ui.byId("matching-consent-label").hidden, true); assert.equal(ui.byId("matching-enable").disabled, true);
+    assert.equal(ui.byId("matching-enable").hidden, true); assert.equal(ui.byId("matching-pause").disabled, false);
+    assert.ok(!ui.byId("matching-session-status").textContent.includes("active in this window"));
+    assert.ok(!ui.byId("matching-context").textContent.includes("outside the active browsing session"));
+    ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")(); await turn();
+    assert.deepEqual(ui.calls, [{ target: "page-matching", type: "status" }]);
+    ui.panel.dispose();
+  });
+}
+
+test("known other-window session offers only explicit disclosed movement into this window", async () => {
+  let moved = false;
+  const ui = harness({ async sendMessage(message) {
+    ui.calls.push(message);
+    if (message.type === "start-session") moved = true;
+    return resolution({ phase: "unpaired", currentWindowId: 3, sessionWindowId: moved ? 3 : 2 });
+  } }); await turn();
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionElsewhere);
+  assert.equal(ui.byId("matching-consent").hidden, false); assert.equal(ui.byId("matching-consent-label").hidden, false);
+  assert.equal(ui.byId("matching-enable").hidden, false); assert.equal(ui.byId("matching-enable").disabled, true);
+  assert.equal(ui.byId("matching-enable").textContent, EN.matchingMoveSession);
+  assert.equal(ui.byId("matching-pause").disabled, false); assert.equal(ui.byId("matching-retry").disabled, true);
+  ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.equal(ui.calls.length, 1);
+  ui.byId("matching-consent").checked = true; ui.byId("matching-consent").listeners.get("change")();
+  ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "start-session", windowId: 3, expectedRevision: "revision-1" });
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionActive);
+  assert.equal(ui.byId("matching-enable").hidden, true); assert.equal(ui.byId("matching-consent").checked, false);
+  ui.panel.dispose();
+});
+
+test("pending Stop keeps consent hidden and rejects Start until the worker confirms off", async () => {
+  let complete;
+  const stopped = new Promise((resolve) => { complete = resolve; });
+  const ui = harness({ async sendMessage(message) { ui.calls.push(message); return message.type === "stop-session" ? stopped : resolution(); } });
+  await turn(); ui.byId("matching-pause").listeners.get("click")(); await turn();
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingStopping);
+  assert.equal(ui.byId("matching-consent").hidden, true); assert.equal(ui.byId("matching-enable").hidden, true);
+  ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.ok(ui.calls.every((item) => ["status", "stop-session"].includes(item.type)));
+  complete(resolution({ phase: "off", enabled: false })); await turn();
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionOff);
+  assert.equal(ui.byId("matching-consent").hidden, false); assert.equal(ui.byId("matching-consent").disabled, false);
+  assert.equal(ui.byId("matching-consent").checked, false); assert.equal(ui.byId("matching-consent-label").hidden, false);
+  assert.equal(ui.byId("matching-enable").hidden, false); assert.equal(ui.byId("matching-enable").disabled, true);
+  ui.panel.dispose();
+});
+
+test("initial delayed status and worker errors never claim active or offer unverified Start", async () => {
+  let complete; let fails = false;
+  const pending = new Promise((resolve) => { complete = resolve; });
+  const ui = harness({ sendMessage: () => fails ? Promise.reject(new Error("private details")) : pending });
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionChecking);
+  assert.equal(ui.byId("matching-enable").hidden, true); assert.equal(ui.byId("matching-consent").disabled, true);
+  complete(resolution()); await turn();
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionActive);
+  fails = true; ui.scheduled[0].fn(); await turn();
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionUnavailable);
+  assert.equal(ui.byId("matching-enable").hidden, true); assert.equal(ui.byId("matching-enable").disabled, true);
+  assert.equal(ui.byId("matching-consent").checked, false);
+  assert.ok(ui.created.every((item) => !item.textContent.includes("private details")));
+  ui.panel.dispose(); assert.equal(ui.byId("matching-session-status").textContent, "");
+});
+
+test("failed Stop shows unavailable session status and cannot offer a fresh Start", async () => {
+  const ui = harness({ sendMessage: async (message) => message.type === "stop-session" ? { error: "unavailable" } : resolution() });
+  await turn(); await assert.rejects(ui.panel.pauseMatching(), /Page matching unavailable/);
+  assert.equal(ui.byId("matching-session-status").textContent, EN.matchingSessionUnavailable);
+  assert.equal(ui.byId("matching-consent").hidden, true); assert.equal(ui.byId("matching-enable").hidden, true);
+  assert.equal(ui.byId("matching-enable").disabled, true);
+  ui.panel.dispose();
+});
+
+test("session summaries and movement label use supplied messages with English fallback", async () => {
+  const ui = harness({ messages: { matchingSessionElsewhere: "Translated other-window session", matchingMoveSession: "Translated move action" },
+    initialState: resolution({ currentWindowId: 3 }) }); await turn();
+  assert.equal(ui.byId("matching-session-status").textContent, "Translated other-window session");
+  assert.equal(ui.byId("matching-enable").textContent, "Translated move action");
+  ui.panel.dispose();
+  const english = harness({ messages: {} }); await turn();
+  assert.equal(english.byId("matching-session-status").textContent, EN.matchingSessionActive);
+  english.panel.dispose();
+});
+test("broad permission prompt starts synchronously in gesture after disclosed checkbox consent", async () => {
+  const ui = harness({ initialState: resolution({ phase: "off", enabled: false }) }); await turn();
   assert.equal(ui.byId("matching-enable").disabled, true);
   ui.byId("matching-consent").checked = true; ui.byId("matching-consent").listeners.get("change")();
   assert.equal(ui.byId("matching-enable").disabled, false);
@@ -89,7 +245,7 @@ test("session controls send bounded stop/retry/block/unblock/remove-access messa
   ui.panel.dispose();
 });
 test("denied native permission never starts a session", async () => {
-  const ui = harness({ requestPermission: () => Promise.resolve(false) }); await turn();
+  const ui = harness({ initialState: resolution({ phase: "off", enabled: false }), requestPermission: () => Promise.resolve(false) }); await turn();
   const before = ui.calls.length;
   ui.byId("matching-consent").checked = true; ui.byId("matching-enable").listeners.get("click")(); await turn();
   assert.equal(ui.calls.length, before); assert.equal(ui.byId("matching-status").textContent, EN.matchingPermissionDenied);
@@ -203,7 +359,7 @@ test("hung status times out within8seconds, frees queued Pause, and clears reque
 test("popup disposal during permission prompt does not enable after permission resolves", async () => {
   let resolve;
   const granted = new Promise((yes) => { resolve = yes; });
-  const ui = harness({ requestPermission: () => granted }); await turn();
+  const ui = harness({ initialState: resolution({ phase: "off", enabled: false }), requestPermission: () => granted }); await turn();
   ui.byId("matching-consent").checked = true;
   ui.byId("matching-enable").listeners.get("click")(); ui.panel.dispose(); resolve(true); await turn();
   assert.equal(ui.calls.some((message) => message.type === "start-session"), false);
@@ -310,7 +466,7 @@ test("unsupported diagnostic clears on worker failure and permission denial", as
   let failure = false;
   const ui = harness({ requestPermission: () => Promise.resolve(false), async sendMessage() {
     if (failure) throw new Error("https://private.invalid/body-secret");
-    return resolution({ phase: "unsupported", reason: "missing-region" });
+    return resolution({ phase: "unsupported", enabled: false, reason: "missing-region" });
   } });
   await turn();
   assert.equal(ui.byId("matching-detail").textContent, "[missing-region]");

@@ -97,7 +97,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) 
       onRemoved: events.permissionRemoved,
     },
     scripting: { async executeScript({ args, target, world }) {
-      assert.equal(world, "ISOLATED"); assert.equal(target.tabId, 7);
+      assert.equal(world, "ISOLATED"); assert.equal(target.tabId, state.tab.id);
       const attestation = Object.hasOwn(target, "documentIds");
       if (attestation) calls.attestations++; else calls.reads++;
       return [{ frameId: 0, documentId: "document-a", result: attestation
@@ -247,6 +247,72 @@ test("same bound window automatically processes a new eligible HTTPS origin", as
   assert.equal(h.calls.reads, 2);
   assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 2);
   assert.deepEqual(h.state.local.origins, [ORIGIN]);
+});
+
+test("new blank/loading tab, eligible navigation, switchback and non-last-tab closure retain one window lease", async (t) => {
+  const h = await harness(t); await h.advance();
+  const original = structuredClone(h.state.tab);
+  const lease = structuredClone(h.state.capture);
+  const writes = h.calls.storageWrites.length;
+  const ingestions = () => h.calls.fetches.filter(call => call.url.endsWith("/sources/ingest"));
+  assert.equal(ingestions().length, 1);
+  h.state.tab = { ...original, id: 8, url: "about:blank" };
+  h.events.activated.emit({ tabId: 8, windowId: 1 }); await h.advance();
+  const blank = projectPageResolution(await h.send("status"));
+  assert.equal(blank.enabled, true); assert.equal(blank.sessionWindowId, 1);
+  assert.equal(blank.currentWindowId, null); assert.equal(blank.contextReason, "unsupported-url");
+  assert.equal(h.calls.reads, 1); assert.equal(ingestions().length, 1);
+  h.state.tab = { ...h.state.tab, status: "loading", url: "https://example.org/new-tab" };
+  h.events.updated.emit(8, { status: "loading", url: h.state.tab.url }, h.state.tab); await h.advance();
+  const loading = projectPageResolution(await h.send("status"));
+  assert.equal(loading.enabled, true); assert.equal(loading.contextReason, "page-loading");
+  assert.equal(h.calls.reads, 1); assert.equal(ingestions().length, 1);
+  h.state.tab.status = "complete";
+  h.events.updated.emit(8, { status: "complete" }, h.state.tab); await h.advance();
+  const ready = projectPageResolution(await h.send("status"));
+  assert.equal(ready.phase, "ready"); assert.equal(ready.currentTabId, 8);
+  assert.equal(ready.sessionRevision, lease.revision); assert.equal(ingestions().length, 2);
+  assert.equal(JSON.parse(ingestions().at(-1).body).url, "https://example.org/new-tab");
+  const newTab = h.state.tab;
+  h.state.tab = original; h.events.activated.emit({ tabId: original.id, windowId: 1 }); await h.advance();
+  assert.equal((await h.send("status")).currentTabId, original.id);
+  assert.equal(ingestions().length, 3);
+  h.state.tab = newTab; h.events.activated.emit({ tabId: newTab.id, windowId: 1 }); await h.advance();
+  assert.equal((await h.send("status")).currentTabId, newTab.id);
+  h.state.tab = original; h.events.removed.emit(newTab.id, { windowId: 1, isWindowClosing: false }); await h.advance();
+  const after = projectPageResolution(await h.send("status"));
+  assert.equal(after.phase, "ready"); assert.equal(after.enabled, true);
+  assert.equal(after.currentTabId, original.id); assert.equal(after.sessionRevision, lease.revision);
+  assert.deepEqual(h.state.capture, lease); assert.equal(h.calls.storageWrites.length, writes);
+  assert.deepEqual(h.calls.permissionRemovals, []);
+});
+
+test("opening an inactive tab never scans it; activation is covered by the existing window lease", async (t) => {
+  const h = await harness(t); await h.advance();
+  const lease = structuredClone(h.state.capture);
+  const backgroundTab = { ...h.state.tab, id: 8, active: false, url: "https://example.org/background-tab" };
+  h.events.updated.emit(8, { status: "complete", url: backgroundTab.url }, backgroundTab); await h.advance();
+  assert.equal(h.calls.reads, 1);
+  assert.equal((await h.send("status")).currentTabId, 7);
+  h.state.tab = { ...backgroundTab, active: true };
+  h.events.activated.emit({ tabId: 8, windowId: 1 }); await h.advance();
+  assert.equal(h.calls.reads, 2); assert.equal((await h.send("status")).currentTabId, 8);
+  assert.deepEqual(h.state.capture, lease);
+});
+
+test("switching to another same-URL tab cancels the previous tab's pending embedding without ending consent", async (t) => {
+  const h = await harness(t); const lease = structuredClone(h.state.capture);
+  h.state.embedGate = h.createGate(); await h.advance();
+  assert.equal(h.calls.embeddings, 1);
+  h.state.tab = { ...h.state.tab, id: 8 };
+  h.events.activated.emit({ tabId: 8, windowId: 1 });
+  h.state.embedGate.resolve({ embedding: embedding() }); h.state.embedGate = null; await flush();
+  assert.equal(h.calls.fetches.filter(call => call.url.endsWith("/sources/ingest")).length, 0);
+  await h.advance();
+  assert.equal(h.calls.fetches.filter(call => call.url.endsWith("/sources/ingest")).length, 1);
+  const status = projectPageResolution(await h.send("status"));
+  assert.equal(status.currentTabId, 8); assert.equal(status.phase, "ready");
+  assert.equal(status.sessionRevision, lease.revision); assert.deepEqual(h.state.capture, lease);
 });
 
 test("other focused window pauses matching without binding that window", async (t) => {

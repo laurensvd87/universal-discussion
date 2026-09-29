@@ -9,6 +9,11 @@ contributions clearly distinguished. Android and iOS follow.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Popup **0.9.1** makes the existing window-scoped session clear: Start once covers
+eligible active tabs in that window, including new tabs. Active sessions no longer
+show another unchecked consent/Start prompt. Blank/loading tabs do not end the
+session; another window or extension/browser restart still needs explicit Start.
+
 Reader **0.9.0** adds the explicitly approved [bounded article fallback](decisions/ADR-021-bounded-article-container-fallback.md)
 for pages without main/article markers, alongside cheaper traversal and clearer
 capture-limit messages. It selects a narrowly marked, paragraph-rich container,

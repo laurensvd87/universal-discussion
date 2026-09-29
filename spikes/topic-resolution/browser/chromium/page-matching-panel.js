@@ -34,6 +34,8 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   let operations = Promise.resolve();
   let statusFlight = null;
   let stopFlight = null;
+  let stopPending = false;
+  let sessionUnavailable = false;
   const pendingRequests = new Set();
   if (!Number.isSafeInteger(requestTimeoutMs) || requestTimeoutMs < 1 || requestTimeoutMs > 10000) throw new TypeError("Page matching unavailable");
   function request(payload) {
@@ -70,15 +72,18 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   const heading = node("h2", "matchingHeading"); heading.id = "matching-heading";
   root.setAttribute("aria-labelledby", heading.id); root.append(heading, node("p", "matchingDisclosure"));
   const status = node("p"); status.id = "matching-status"; status.setAttribute("role", "status"); root.append(status);
+  const sessionStatus = node("p", "matchingSessionChecking"); sessionStatus.id = "matching-session-status";
+  sessionStatus.setAttribute("role", "status"); root.append(sessionStatus);
   const detail = node("p"); detail.id = "matching-detail"; detail.setAttribute("role", "status"); root.append(detail);
   const sample = node("p", "matchingPartial"); root.append(sample);
   const consent = node("input"); consent.type = "checkbox"; consent.id = "matching-consent";
-  const consentLabel = node("label", "matchingConsent"); consentLabel.htmlFor = consent.id; root.append(consentLabel, consent);
+  const consentLabel = node("label", "matchingConsent"); consentLabel.id = "matching-consent-label";
+  consentLabel.htmlFor = consent.id; root.append(consentLabel, consent);
   const origin = node("p"); origin.id = "matching-origin"; root.append(origin);
   const context = node("p"); context.id = "matching-context"; context.setAttribute("role", "status"); root.append(context);
   const access = node("p"); access.id = "matching-access"; access.setAttribute("role", "status"); root.append(access);
   const enable = button("matching-enable", "matchingEnable", () => {
-    if (disposed || acting || startPending || !state?.currentOrigin || state.currentWindowId === null || !consent.checked) return;
+    if (disposed || acting || startPending || !showStart() || !state?.currentOrigin || state.currentWindowId === null || !consent.checked) return;
     // Initiate Chrome's broad prompt in this click's user gesture. The cached
     // window/revision binds Start; the worker rechecks it after the prompt.
     const windowId = state.currentWindowId, expectedRevision = state.sessionRevision;
@@ -109,9 +114,25 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   let siteHandlers = [];
   let siteSignature = null;
   function clearSiteHandlers() { for (const [item, callback] of siteHandlers) item.removeEventListener("click", callback); siteHandlers = []; }
+  function showStart() {
+    return !!state && !stopPending && stopFlight === null &&
+      (!state.enabled || (state.currentWindowId !== null && state.currentWindowId !== state.sessionWindowId));
+  }
+  function renderSessionStatus() {
+    sessionStatus.textContent = message(stopPending || stopFlight !== null ? "matchingStopping"
+      : !state ? sessionUnavailable ? "matchingSessionUnavailable" : "matchingSessionChecking"
+      : !state.enabled ? "matchingSessionOff"
+      : state.currentWindowId === null ? "matchingSessionActiveUnknownPage"
+      : state.currentWindowId === state.sessionWindowId ? "matchingSessionActive" : "matchingSessionElsewhere");
+  }
   function controls() {
     const busy = acting || startPending;
-    enable.disabled = busy || !state?.currentOrigin || state.currentWindowId === null || !consent.checked;
+    const show = showStart();
+    consent.hidden = consentLabel.hidden = enable.hidden = !show;
+    consent.disabled = disposed || busy || !show;
+    if (!show) consent.checked = false;
+    enable.textContent = message(state?.enabled ? "matchingMoveSession" : "matchingEnable");
+    enable.disabled = disposed || busy || !show || !state?.currentOrigin || state.currentWindowId === null || !consent.checked;
     pause.disabled = disposed || stopFlight !== null || (!state?.enabled && !startPending && !acting);
     retry.disabled = busy || !state?.enabled || state.currentWindowId !== state.sessionWindowId || state.blockedOrigins.includes(state.currentOrigin);
     block.disabled = busy || !state?.currentOrigin || state.blockedOrigins.includes(state.currentOrigin);
@@ -121,6 +142,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
       remove.disabled = busy || !state;
       remove.setAttribute("data-busy", busy ? "true" : "false");
     }
+    renderSessionStatus();
   }
   const changed = () => controls(); consent.addEventListener("change", changed);
   function unavailable() {
@@ -129,12 +151,14 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     origin.textContent = "";
     context.textContent = message("matchingContextWorkerUnavailable");
     access.textContent = "";
+    sessionUnavailable = true;
     state = null; controls();
   }
   async function deliver(payload, epoch = controlEpoch) {
     const result = await request(payload);
     if (disposed || epoch !== controlEpoch) return;
     state = result;
+    sessionUnavailable = false;
     status.textContent = message({ off: "matchingOff", checking: "matchingChecking", "not-enabled": "matchingNotEnabled", unpaired: "matchingUnpaired",
       processing: "matchingProcessing", ready: "matchingReady", unsupported: "matchingUnsupported", error: "matchingUnavailable" }[result.phase]);
     detail.textContent = "";
@@ -155,7 +179,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
       "page-loading": "matchingContextLoading", "url-unavailable": "matchingContextUrlUnavailable",
       incognito: "matchingContextIncognito", "unsupported-url": "matchingContextUnsupportedUrl",
     }[result.contextReason]) : "";
-    if (!result.contextReason && result.enabled) context.textContent = message(result.currentWindowId === result.sessionWindowId ? "matchingSessionWindow" : "matchingOtherWindow");
+    if (!result.contextReason && result.enabled && result.currentWindowId !== null) context.textContent = message(result.currentWindowId === result.sessionWindowId ? "matchingSessionWindow" : "matchingOtherWindow");
     if (result.enabled && result.currentOrigin && (result.currentWindowId !== result.sessionWindowId || result.blockedOrigins.includes(result.currentOrigin))) {
       status.textContent = message("matchingNotEnabled"); detail.textContent = "";
     }
@@ -186,6 +210,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     if (stopFlight) return stopFlight;
     const epoch = ++controlEpoch;
     statusFlight = null;
+    stopPending = true;
     startPending = false; acting = true; consent.checked = false;
     if (state) state = { ...state, enabled: false, sessionWindowId: null, phase: "off" };
     if (!state?.contextReason) context.textContent = "";
@@ -194,7 +219,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     stopFlight = (async () => {
       try { return await deliver({ target: "page-matching", type: "stop-session" }, epoch); }
       catch { if (!disposed && epoch === controlEpoch) unavailable(); throw new TypeError("Page matching unavailable"); }
-      finally { stopFlight = null; if (epoch === controlEpoch) { acting = false; if (!disposed) controls(); } }
+      finally { stopFlight = null; stopPending = false; if (epoch === controlEpoch) { acting = false; if (!disposed) controls(); } }
     })();
     controls(); return stopFlight;
   }
@@ -219,7 +244,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   controls(); void poll();
   function dispose() {
     disposed = true; controlEpoch++; cancelSchedule(timer); clearSiteHandlers();
-    state = null; status.textContent = ""; detail.textContent = ""; origin.textContent = ""; context.textContent = ""; access.textContent = "";
+    state = null; status.textContent = ""; sessionStatus.textContent = ""; detail.textContent = ""; origin.textContent = ""; context.textContent = ""; access.textContent = "";
     for (const cancel of [...pendingRequests]) cancel();
     for (const [item, callback] of listeners) item.removeEventListener("click", callback);
     consent.removeEventListener("change", changed); root.replaceChildren();

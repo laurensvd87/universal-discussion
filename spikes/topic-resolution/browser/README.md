@@ -1,5 +1,21 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## One session across tabs (0.9.1)
+
+Start once in a normal browser window. Switching to an existing or newly opened
+eligible tab in that window uses the same session; only its active page is sampled,
+not every background tab. A blank/loading/internal tab temporarily cannot match,
+but does not end the session. Closing one tab does not end it while the window
+remains open. Other windows still require an explicit move/Start.
+
+The popup now shows session status separately from page/connection status and
+hides the unchecked consent/Start controls while that session is active. Stop
+remains available. Previously those controls stayed visible and misleadingly
+looked like another required approval. No lease, permission or pairing change.
+After reloading/updating the extension, Start once again: reload deliberately
+ends the previous session. Actual Chrome verifies new-tab/switch/close routing;
+see [STATUS](../../../plans/STATUS.md) for evidence and remaining full-loop tests.
+
 ## Bounded article detection (0.9.0)
 
 The reader stops scanning metadata once it has the first nonempty bounded title

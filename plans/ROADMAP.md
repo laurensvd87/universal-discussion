@@ -45,6 +45,11 @@ full-service browser regression awaits the free owner test port. Distinct captur
 the unchanged E5 transform; preserve links/comments and reject unknown versions.
 This is not approval of wider ADR-019 A/C or later external/private/release gates.
 
+Follow-up 0.9.1 clarifies ADR-019 B's existing same-window tab session: an active
+lease no longer shows fresh consent/Start controls. New actual Chrome coverage
+verifies new-tab navigation, switchback and non-last-tab closure; this is a UI/
+coverage correction, not expanded capture authority. See STATUS for final tests.
+
 ## Evidence already available
 
 - Offline exact-URL/fingerprint resolver, synthetic extractor and evaluator.

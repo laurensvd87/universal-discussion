@@ -31,7 +31,38 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/AI/moderation work and all external release gates remain separate.
 
-## Current increment: owner-approved generic article fallback — 0.9.0
+## Current increment: same-window tab session clarity — 0.9.1
+
+- Owner reports new tabs appear to need consent again. ADR-019 B already covers
+  all eligible active tabs in one normal window. Diagnosis found no per-tab lease
+  or tab-triggered Stop, but reproduced an always-visible unchecked checkbox/Start
+  even during active sessions. Owner runtime state has not been independently
+  reproduced; do not assume every report was solely this presentation problem.
+- Sol Medium implements a separate localized session status and hides/disables
+  redundant Start/consent while active here or while an enabled session lacks an
+  eligible page context. Stop remains usable; unavailable worker state stays honest.
+  Other-window Start explicitly moves the session. No automatic consent, persistent
+  checkbox, background-tab scan, permission/core-lease/pairing/backend change.
+- Root adds three adapter regressions: distinct new blank/loading/HTTPS tab and
+  switchback/non-last closure; inactive-tab exclusion; same-URL different-tab
+  pending inference cancellation. Adapter **78/78** pass. Separate QA agent adds
+  actual Chrome new-tab/navigation/switch/close checks: **19/19** session checks
+  pass with the exact same lease revision/window, zero external requests/runtime
+  errors/model loads/backend contact. This actual-browser slice stops at the
+  unpaired gate; it is not full embedding/shared-comment evidence.
+- Final verification: restricted **675/675**, normal **674 plus one intentional
+  skip**, indicator **487/487**, secret scan **153 files, zero findings**.
+  Independent Trust review finds no material blocker, with **181/181** scoped
+  tests. Lead reruns actual Chrome eligibility/reader checks **47/47** alongside
+  the QA agent's **19/19** session checks. Existing reload/restart/native-dialog
+  evidence gaps remain. Reload deliberately ends the session; the owner must
+  Start once after updating, not once per tab.
+
+The full 0.9.x matching/shared-comment browser test still awaits the owner's
+manual shutdown of port 4174. Do not stop/contact their backend. Prior fallback
+implementation checkpoint `f9b96d6` is committed/pushed; its evidence follows.
+
+## Previous increment: owner-approved generic article fallback — 0.9.0
 
 - Owner explicitly approved **"the bounded generic fallback"** on 2026-09-29.
   [ADR-021](../decisions/ADR-021-bounded-article-container-fallback.md) records the

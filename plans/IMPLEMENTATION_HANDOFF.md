@@ -2,7 +2,20 @@
 
 Updated: 2026-09-29. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Latest request: fix `capture-budget`, with a GameStar example. The owner explicitly
+Latest request: session consent appears required again on new tabs. ADR-019 B
+already covers new active tabs in the same window. No lease bug was found; the
+popup always showed an unchecked checkbox/Start despite an active lease. 0.9.1
+adds separate localized session status, hides/disables redundant Start/consent,
+preserves Stop and labels explicit movement to another window. No auto-consent,
+new authority/storage/permission or pairing change. Actual Chrome passes 19
+session checks including new blank->HTTPS tab, switchback/forward and active
+non-last-tab close with unchanged lease; adapter tests cover paired mocked
+ingestion and inactive/stale-tab exclusion. Final restricted 675/675, indicator
+487/487, actual Chrome eligibility 47/47 and independent Trust 181/181 pass;
+normal suite has 674 passes plus one intentional skip. See STATUS for details.
+Reload still ends the session, requiring one fresh Start after updating.
+
+Previous request: fix `capture-budget`, with a GameStar example. The owner explicitly
 approved [ADR-021](../decisions/ADR-021-bounded-article-container-fallback.md)'s
 generic article-container fallback/10,000-step package on 2026-09-29. Version 0.9.0
 implements it, preserves legacy region priority, keeps 40 ms/4,096 characters and
