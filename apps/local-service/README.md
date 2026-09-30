@@ -22,12 +22,12 @@ ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
-## ChatGPT insights (0.12.0)
+## ChatGPT insights (0.12.1)
 
 The normal CLI now composes the owner-approved optional ChatGPT connector.
 Starting the service does not contact a provider. Connect/model-list/research
 actions are explicit; no API key or ChatGPT browser automation is used. Follow
-the [extension workflow](../../spikes/topic-resolution/browser/README.md#chatgpt-insights-0120).
+the [extension workflow](../../spikes/topic-resolution/browser/README.md#chatgpt-insights-0121).
 
 Paired `/v1/ai/` routes expose connection status, authorization, disconnection,
 the account model list and bounded insight jobs. Only `/auth/callback` is an
@@ -42,6 +42,13 @@ and non-secret account mapping (client ID, subject, email/label), not tokens.
 Disconnect clears tokens/jobs and attempts provider revocation; it does not erase
 that registration or deliberately shared comments. Local filesystem protection
 is not encryption. Do not upload the data folder or place it in a shared location.
+
+An identity-only sign-in can show the account as connected without permission
+to use ChatGPT plan inference. Model listing and research remain unavailable in
+that state; the owner may deliberately use **Continue with ChatGPT** again to
+request plan consent. Temporary refresh failures preserve the local connection
+for a later explicit attempt. Unusable refresh credentials are cleared. Neither
+path starts research automatically.
 
 An insight request temporarily relays up to 4,096 reviewed public-page characters,
 bounded source descriptors and optional human discussion excerpts to OpenAI.

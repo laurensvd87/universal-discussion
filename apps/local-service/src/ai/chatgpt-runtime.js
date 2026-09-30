@@ -10,7 +10,7 @@ const FILE = "chatgpt-registration.json";
 const OPERATION = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const RESULT_TTL_MS = 120_000;
 const MAX_OPERATIONS = 1_024;
-const SAFE_ERRORS = new Set(["invalid-input", "model-unavailable", "unauthorized", "rate-limit", "busy", "timeout", "cancelled", "provider-unavailable", "invalid-response"]);
+const SAFE_ERRORS = new Set(["invalid-input", "model-unavailable", "unauthorized", "rate-limit", "busy", "timeout", "cancelled", "provider-unavailable", "invalid-response", "unsupported-capability"]);
 
 function exact(value, names) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
@@ -131,7 +131,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
         .then(() => { stopJobs(); insights.clearModels?.(); })
         .catch(() => { callbackError = "connection-failed"; }).finally(() => { callbackPending = false; }); } },
     async disconnect(value) { exact(value, []); stopJobs(); insights.clearModels?.(); callbackError = null; return connection.disconnect(); },
-    async models() { if (!connection.status().connected) fail("unauthorized", "Connection required");
+    async models() { const state = connection.status();
+      if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       return { models: await insights.listModels() }; },
     create(value, actorId) {
       exact(value, ["operationId", "model", "context", "articleText", "allowWebResearch", "expected"]);
@@ -140,7 +141,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
       if (seen.has(key)) fail("conflict", "Operation changed");
       if (seen.size >= MAX_OPERATIONS) fail("capacity", "Operation capacity reached");
       if (active) fail("conflict", "Operation active");
-      if (!connection.status().connected) fail("unauthorized", "Connection required");
+      const state = connection.status();
+      if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       const context = inspectContext(value);
       const job = { operationId: key, actorId, expected: value.expected, state: "running", result: null, error: null, finishedAt: null };
       seen.add(key); jobs.set(key, job); active = job;

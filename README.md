@@ -16,15 +16,17 @@ shared into native discussions visible inside the extension. ChatGPT connection
 is opt-in; no AI research runs automatically. Earlier external-feed tests are
 research only; first-user value, sharing and growth remain unvalidated.
 
-Extension **0.12.0** adds a ChatGPT insights PoC: review a bounded public-page
+Extension **0.12.1** includes a ChatGPT insights PoC: review a bounded public-page
 sample and same-Topic/related links, request research using your account, then
 edit and separately share an AI-labelled discussion opening locally. No API key
 or automatic posting. User Mode is simplified around the Topic, discussion
 and insight action; setup and diagnostics stay secondary.
-See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0120)
+See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0121)
 and [ADR-024](decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md).
 Integration evidence is tracked in [STATUS](plans/STATUS.md). Actual account
 eligibility, live research and answer quality still require the owner's test.
+The 0.12.1 hardening clarifies plan access after sign-in, offers an explicit
+re-consent path when needed, and gives safer, more useful provider-error guidance.
 
 Extension **0.11.0** added a clickable ↗ source icon to new page-linked posts:
 it opens that post's source in a new tab. Replies can link their own page while

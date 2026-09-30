@@ -47,7 +47,9 @@ test("hostile context, URLs, and reviewed text stay inert with no link or clipbo
   ui.panel.render(state({ draft: body, preview: { body, topicTitle: "<script>preview topic</script>",
     operatorName: "<img>operator", sourceTitle: "<iframe>origin</iframe>" } }));
   const nodes = ui.descendants(ui.root);
-  assert.equal(nodes.some((item) => ["a", "script", "img", "iframe", "svg"].includes(item.tag)), false);
+  assert.equal(nodes.some((item) => ["script", "img", "iframe", "svg"].includes(item.tag)), false);
+  assert.deepEqual(nodes.filter((item) => item.tag === "a").map((item) => item.linkHref),
+    ["https://chatgpt.com/settings/usage"]);
   assert.equal(nodes.some((item) => item.textContent === "javascript:alert(1)"), true);
   assert.equal(nodes.some((item) => item.textContent === body), true);
   assert.equal(ui.byId("insight-preview-body").textContent, body);
@@ -142,7 +144,7 @@ test("message fallback and repeated disposal clear sensitive content and detach 
 
 test("AI controls use separate callbacks and citations become safe deliberate links", () => {
   const ui = harness();
-  ui.panel.render(state({ ai: { connected: true, pending: false, account: { label: "Owner <b>" },
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, account: { label: "Owner <b>" },
     models: [{ slug: "model-a", displayName: "Model A" }], model: "model-a", articleText: "Public text",
     article: { url: "https://example.com/", documentId: "doc-a" }, costConsent: true, status: "generated",
     result: { body: "Source finding", citations: [{ url: "https://example.org/article", title: "Source <script>",
@@ -162,7 +164,7 @@ test("compact workspace keeps account and context secondary while exposing redac
   assert.equal(ui.byId("insight-source-details").tag, "details");
   assert.equal(ui.byId("insight-draft-details").tag, "details");
   assert.equal(ui.created.some((item) => item.textContent === INSIGHT_EN.disconnected), false);
-  ui.panel.render(state({ ai: { connected: true, pending: false, models: [{ slug: "model-a", displayName: "Model A" }],
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, models: [{ slug: "model-a", displayName: "Model A" }],
     model: "model-a", articleText: "Review me", article: { url: "https://example.com/", documentId: "doc-a" },
     costConsent: false, status: "articleReady", result: null } }));
   assert.equal(ui.byId("insight-article-text").hidden, false);
@@ -170,10 +172,43 @@ test("compact workspace keeps account and context secondary while exposing redac
   assert.equal(ui.byId("insight-createInsights").disabled, true);
   const warning = ui.created.find((item) => item.textContent === INSIGHT_EN.articleWarning);
   assert.ok(warning); assert.equal(warning.hidden, false);
-  ui.panel.render(state({ ai: { connected: true, pending: false, models: [], model: "", articleText: "Review me",
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, models: [], model: "", articleText: "Review me",
     article: { url: "https://example.com/", documentId: "doc-a" }, costConsent: true, status: "generating", result: null } }));
   assert.equal(ui.byId("insight-checkConnection").disabled, true);
   assert.equal(ui.byId("insight-loadModels").disabled, true);
   assert.equal(ui.byId("insight-readPageText").disabled, true);
   assert.equal(ui.byId("insight-cancelInsights").disabled, false);
+});
+
+test("first-use connection and plan usage stay clear beside the explicit research controls", () => {
+  const ui = harness();
+  const summary = ui.byId("insight-account-details").children[0];
+  const usage = ui.byId("insight-plan-usage");
+  const link = ui.byId("insight-manage-usage");
+  assert.equal(ui.byId("insight-connect").textContent, "Continue with ChatGPT");
+  assert.equal(summary.textContent, INSIGHT_EN.accountDisconnected);
+  assert.equal(usage.hidden, true);
+  ui.panel.render(state({ ai: { connected: false, planEnabled: false, pending: true, status: "connecting" } }));
+  assert.equal(summary.textContent, INSIGHT_EN.accountConnecting);
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, models: [], model: "", status: "connected" } }));
+  assert.equal(summary.textContent, INSIGHT_EN.accountChooseModel);
+  assert.equal(usage.hidden, false);
+  assert.equal(link.linkHref, "https://chatgpt.com/settings/usage");
+  assert.equal(link.rel, "noopener noreferrer");
+  assert.equal(ui.byId("insight-createInsights").disabled, true);
+  ui.panel.render(state({ ai: { connected: true, planEnabled: false, pending: false, models: [], model: "", status: "planUnavailable" } }));
+  assert.equal(summary.textContent, INSIGHT_EN.accountPlanUnavailable);
+  assert.equal(usage.hidden, true);
+  assert.equal(ui.byId("insight-connect").disabled, false);
+  assert.equal(ui.byId("insight-loadModels").disabled, true);
+  assert.equal(ui.byId("insight-model").disabled, true);
+  assert.equal(ui.byId("insight-createInsights").disabled, true);
+  assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN.aiPlanUnavailable);
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, models: [{ slug: "model-a", displayName: "A" }],
+    model: "model-a", article: { url: "https://example.com/" }, articleText: "Reviewed", costConsent: false,
+    status: "articleReady" } }));
+  assert.equal(summary.textContent, INSIGHT_EN.accountModelSelected);
+  assert.equal(ui.byId("insight-article-text").hidden, false);
+  assert.equal(ui.byId("insight-cost-consent").hidden, false);
+  assert.equal(ui.byId("insight-createInsights").disabled, true);
 });

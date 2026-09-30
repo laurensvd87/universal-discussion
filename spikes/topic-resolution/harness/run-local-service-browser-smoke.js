@@ -57,7 +57,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
   const syntheticJobs = new Map();
   // Trusted test seam only. This never signs in or contacts a provider.
   const syntheticAi = {
-    status: () => ({ connected: true, pending: false, account: { clientId: "synthetic-client", label: "Synthetic browser test account" } }),
+    status: () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "synthetic-client", label: "Synthetic browser test account" } }),
     models: async () => ({ models: [{ slug: "synthetic-model", displayName: "Synthetic browser test model" }] }),
     create(value, actorId) {
       assert.equal(actorId, "demo-alex");

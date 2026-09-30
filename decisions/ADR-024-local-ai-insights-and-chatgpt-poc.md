@@ -94,6 +94,26 @@ remain visible at their action boundaries; this is not reduced consent.
 Offline results and the successful isolated Chrome flow are recorded in STATUS.
 The owner freed the required test port; no owner data or live provider was used.
 
+## 2026-09-30 live-readiness clarification (0.12.1)
+
+Official sign-in guidance permits a valid account identity grant without the
+plan-use scopes. This is shown as connected identity but **not** permission to
+list models or infer. Only an explicit second Continue with ChatGPT requests
+consent again; page navigation does not cancel an account-scoped sign-in.
+First dynamic-registration `invalid_grant` retains only the issued client ID
+in memory for a fresh attempt. Transient refresh failures preserve credentials
+for an explicit later attempt, while documented unusable refresh credentials
+clear them. No automatic provider call, retry of research or paid fallback was
+added. Account model catalogs and supported capability/usage errors remain
+bounded; provider body text is not surfaced to the extension.
+
+Lead integration and a read-only Sol Medium security review found no remaining
+code blocker. Service 132/132, loopback 2/2, extension 799/799, indicator
+537/537 and actual isolated Chrome synthetic research pass. This confirms the
+local mechanics only; live account/search eligibility and useful output remain
+untested and require the owner's own sign-in. No new capture, token retention,
+publication or release approval follows.
+
 Primary documentation checked 2026-09-29:
 
 - [ChatGPT plan-use overview](https://developers.openai.com/siwc/token-sharing-open-source)

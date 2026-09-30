@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## ChatGPT insights (0.12.0)
+## ChatGPT insights (0.12.1)
 
 An optional private research workspace now uses the current public article,
 other pages in its Topic and related perspectives. Nothing runs automatically
@@ -16,9 +16,12 @@ For a first test:
 
 1. Open a non-sensitive public article already matched to a Topic. Open **AI
    insights**. Prepare the local context and inspect the selected page and links.
-2. Choose **Connect ChatGPT** and complete the official sign-in in the opened
+2. Choose **Continue with ChatGPT** and complete the official sign-in in the opened
    tab. Return to the article and reopen the extension, then **Check connection**.
-   Never paste your ChatGPT password or token into this app or a chat message.
+   If the account connects without plan access, use **Continue with ChatGPT**
+   again only if you want to request the missing permission. Model listing and
+   research stay unavailable until it is granted. Never paste your ChatGPT
+   password or token into this app or a chat message.
 3. List available models and choose one. No API key is needed. If your account
    rejects this preview integration or lists no models, stop; no paid fallback
    or browser-cookie workaround is attempted.
@@ -26,7 +29,7 @@ For a first test:
    (maximum 4,096 characters). Source titles/URLs and any explicitly included
    human discussion openings are also sent. Use public pages only: visible prose
    can contain secrets, and automatic filtering is not a guarantee.
-5. In ChatGPT's app settings, limit this app to included plan usage with paid
+5. In [ChatGPT usage settings](https://chatgpt.com/settings/usage), limit this app to included plan usage with paid
    credits disabled, then confirm that in the extension. **Create insights**
    sends the reviewed context through this PC's service to OpenAI. The app cannot
    enforce provider billing settings. Keep the popup open during research.
@@ -55,6 +58,9 @@ Current validation uses synthetic provider responses and isolated Chrome, not
 your account. Real sign-in, account/search eligibility and insight quality still
 need the owner test above. Manual AI-assisted draft entry works without a
 connected provider. No hosted/commercial/store eligibility is implied.
+The connection and model list are account-specific; a listed model can still
+reject web research or reach a plan usage limit. The popup reports these as
+bounded status messages without importing partial output or retrying silently.
 See [ADR-024](../../../decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md).
 
 ## Source icons and adaptive Topics (0.11.0)

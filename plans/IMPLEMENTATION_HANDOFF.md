@@ -2,8 +2,8 @@
 
 Updated: 2026-09-30. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Current checkpoint: **0.12.0 ChatGPT insights and compact User Mode implemented,
-offline and isolated-Chrome tested.** Read ADR-024 and the latest
+Current checkpoint: **0.12.1 ChatGPT live-readiness hardening complete;
+ChatGPT insights and compact User Mode remain owner-local.** Read ADR-024 and the latest
 STATUS section first. The owner approved implementation, ChatGPT connection and
 explicit public-text/related-source research. Sol Medium agents handle coding;
 the lead reviews/integrates. No actual account login/provider call yet; do not
@@ -13,7 +13,13 @@ The owner freed port 4174; serial service integration (2/2) and full Chrome
 synthetic insight/sharing regression passed, and the lead inspected User Mode
 screenshots. Do not repeat foundation/provider approvals. User Mode wording is
 also simplified; see STATUS for final verification counts.
-Next the owner can test live sign-in/research using the browser README. Retain
+The follow-up hardening distinguishes identity-only sign-in from a plan-enabled
+account, permits explicit re-consent, preserves temporary refresh failures,
+and provides bounded provider-error guidance. Service 132/132, extension
+799/799, indicator 537/537, loopback 2/2 and isolated Chrome synthetic insight
+pass; independent security review found no remaining code blocker. No live
+account/provider inference is claimed. Next the owner can test live
+sign-in/research using the browser README. Retain
 explicit redaction/credit consent and separate Share; no automatic generation,
 publishing, private pages, paid fallback, new model/permissions or remote scope.
 The research-only checkpoints below predate these approvals. All later

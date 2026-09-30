@@ -10,6 +10,15 @@ const ATTEMPT_MS = 5 * 60_000;
 const MAX_BYTES = 65_536;
 
 function invalid() { throw new Error("ChatGPT connection could not be verified"); }
+const UNUSABLE_REFRESH = new Set(["invalid_grant", "invalid_refresh_token", "token_expired",
+  "refresh_token_expired", "refresh_token_invalidated", "refresh_token_reused"]);
+class OAuthRequestError extends Error {
+  constructor(code, status) {
+    super("ChatGPT authorization request failed");
+    this.code = code;
+    this.status = status;
+  }
+}
 function requiredText(value, max = 512) {
   if (typeof value !== "string" || !value || value.length > max || /[\u0000-\u001f\u007f]/u.test(value)) invalid();
   return value;
@@ -53,6 +62,7 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
   let pending = null;
   let active = null;
   let refreshFlight = null;
+  let retryClientId = null;
   let disposed = false;
   let epoch = 0;
   const requests = new Set();
@@ -67,7 +77,7 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     if (!Buffer.isBuffer(value) || value.length !== 32) invalid();
     return value.toString("base64url");
   }
-  async function request(url, options = {}, { empty = false } = {}) {
+  async function request(url, options = {}, { empty = false, oauthError = false } = {}) {
     authEndpoint(url);
     const controller = new AbortController();
     requests.add(controller);
@@ -79,7 +89,9 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
       if (controller.signal.aborted || disposed) invalid();
       if (response.redirected || (response.url && response.url !== url)) invalid();
       if (empty && response.status === 200) { await response.body?.cancel?.(); return null; }
-      if (!response.ok || response.status !== 200 || !/^application\/json(?:\s*;|$)/iu.test(response.headers.get("content-type") ?? "")) invalid();
+      const jsonResponse = /^application\/json(?:\s*;|$)/iu.test(response.headers.get("content-type") ?? "");
+      if (response.status !== 200 && (!oauthError || !jsonResponse)) throw new OAuthRequestError(null, response.status);
+      if (!jsonResponse) invalid();
       const reader = response.body?.getReader();
       if (!reader) invalid();
       const chunks = []; let bytes = 0;
@@ -92,8 +104,14 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
           chunks.push(item.value);
         }
       } finally { reader.releaseLock(); }
-      return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-    } catch { invalid(); }
+      const value = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      if (response.status !== 200) {
+        const code = typeof value?.error === "string" && /^[a-z][a-z0-9_]{0,79}$/u.test(value.error)
+          ? value.error : null;
+        throw new OAuthRequestError(code, response.status);
+      }
+      return value;
+    } catch (error) { if (error instanceof OAuthRequestError) throw error; invalid(); }
     finally { requests.delete(controller); }
   }
   async function discovery() {
@@ -129,14 +147,16 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     if (value?.token_type !== "Bearer" || !Number.isInteger(value.expires_in) || value.expires_in < 60 ||
         value.expires_in > 86_400 || typeof value.scope !== "string") invalid();
     const scopes = new Set(value.scope.split(" ").filter(Boolean));
-    if (!scopes.has("chatgpt.tokens.use.direct") || !scopes.has("resource.invoke") || !scopes.has("offline_access")) invalid();
+    const planEnabled = scopes.has("chatgpt.tokens.use.direct") && scopes.has("resource.invoke") &&
+      scopes.has("offline_access") && value.refresh_token != null;
     return { clientId, accessToken: requiredText(value.access_token, 20_000),
-      refreshToken: requiredText(value.refresh_token, 20_000), idToken: requiredText(value.id_token, 20_000),
-      expiresAt: now() + value.expires_in * 1000, scopes };
+      refreshToken: value.refresh_token == null && !planEnabled ? null : requiredText(value.refresh_token, 20_000),
+      idToken: requiredText(value.id_token, 20_000), expiresAt: now() + value.expires_in * 1000,
+      scopes, planEnabled };
   }
   function status() {
-    if (disposed) return { connected: false, pending: false, account: null };
-    return { connected: Boolean(active), pending: Boolean(currentPending()),
+    if (disposed) return { connected: false, planEnabled: false, pending: false, account: null };
+    return { connected: Boolean(active), planEnabled: Boolean(active?.planEnabled), pending: Boolean(currentPending()),
       account: active ? { clientId: active.clientId, label: active.label } : null };
   }
   async function start({ redirectUri } = {}) {
@@ -147,14 +167,16 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
       const registration = safeRegistration(await readRegistration());
       if (disposed || pending !== starting) invalid();
       const state = fresh(), nonce = fresh(), verifier = fresh();
-      starting = { state, nonce, verifier, redirectUri, registration, expiresAt: now() + ATTEMPT_MS };
+      starting = { state, nonce, verifier, redirectUri, registration, retryClientId,
+        expiresAt: now() + ATTEMPT_MS };
       pending = starting;
-      const parameters = new URLSearchParams({ client_id: registration?.clientId ?? "dynamic_agent_client",
+      const parameters = new URLSearchParams({ client_id: registration?.clientId ?? retryClientId ?? "dynamic_agent_client",
         ext_agent_host_id: hostId, response_type: "code", redirect_uri: redirectUri, scope: SCOPES,
         resource: RESOURCE, state, nonce, code_challenge_method: "S256",
         code_challenge: createHash("sha256").update(verifier).digest("base64url") });
-      if (!registration) parameters.set("agent_name_hint", agentName);
-      else if (registration.email) parameters.set("login_hint", registration.email);
+      if (!registration && !retryClientId) parameters.set("agent_name_hint", agentName);
+      else if (registration?.email) parameters.set("login_hint", registration.email);
+      if (active && !active.planEnabled) parameters.set("prompt", "consent");
       return `${AUTHORIZE}?${parameters}`;
     } catch {
       if (pending === starting) pending = null;
@@ -174,12 +196,19 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     if (callback.searchParams.has("error")) invalid();
     const code = requiredText(callback.searchParams.get("code"), 2_048);
     const returnedClientId = callback.searchParams.get("client_id");
-    const clientId = attempt.registration?.clientId ?? requiredText(returnedClientId, 256);
-    if (clientId === "dynamic_agent_client" || attempt.registration && returnedClientId && returnedClientId !== clientId) invalid();
+    const clientId = attempt.registration?.clientId ?? attempt.retryClientId ?? requiredText(returnedClientId, 256);
+    if (clientId === "dynamic_agent_client" ||
+        (attempt.registration || attempt.retryClientId) && returnedClientId && returnedClientId !== clientId) invalid();
     const before = epoch;
-    const tokenResponse = await request(TOKEN, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ grant_type: "authorization_code", client_id: clientId, code,
-        code_verifier: attempt.verifier, redirect_uri: redirectUri, resource: RESOURCE }).toString() });
+    let tokenResponse;
+    try {
+      tokenResponse = await request(TOKEN, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ grant_type: "authorization_code", client_id: clientId, code,
+          code_verifier: attempt.verifier, redirect_uri: redirectUri, resource: RESOURCE }).toString() }, { oauthError: true });
+    } catch (error) {
+      if (!attempt.registration && error instanceof OAuthRequestError && error.code === "invalid_grant") retryClientId = clientId;
+      throw error;
+    }
     const tokens = credentials(tokenResponse, clientId);
     const endpoints = await discovery();
     const identity = await verifyIdToken(tokens.idToken, clientId, attempt.nonce, endpoints.jwksUri);
@@ -190,12 +219,13 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     await writeRegistration(registration);
     if (disposed || before !== epoch || pending !== attempt) invalid();
     active = { ...tokens, ...registration, jwksUri: endpoints.jwksUri, revocationEndpoint: endpoints.revocationEndpoint };
+    retryClientId = null;
     pending = null;
     return status();
     } finally { if (pending === attempt) pending = null; }
   }
   async function getAccessToken() {
-    if (disposed || !active) invalid();
+    if (disposed || !active || !active.planEnabled) invalid();
     if (active.expiresAt > now() + 60_000) return active.accessToken;
     if (!refreshFlight) {
       const original = active; const before = epoch;
@@ -203,7 +233,7 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
         try {
           const value = await request(TOKEN, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({ grant_type: "refresh_token", client_id: original.clientId,
-              refresh_token: original.refreshToken, resource: RESOURCE }).toString() });
+              refresh_token: original.refreshToken, resource: RESOURCE }).toString() }, { oauthError: true });
           const updated = credentials({ ...value, id_token: value.id_token ?? original.idToken }, original.clientId);
           if (value.id_token) {
             const identity = await verifyIdToken(value.id_token, original.clientId, null, original.jwksUri);
@@ -211,8 +241,12 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
           }
           if (disposed || epoch !== before || active !== original) invalid();
           active = { ...original, ...updated };
+          if (!active.planEnabled) invalid();
           return active.accessToken;
-        } catch { if (active === original) active = null; invalid(); }
+        } catch (error) {
+          if (active === original && error instanceof OAuthRequestError && UNUSABLE_REFRESH.has(error.code)) active = null;
+          invalid();
+        }
       })();
       const settled = flight.finally(() => { if (refreshFlight === settled) refreshFlight = null; });
       refreshFlight = settled;
@@ -220,14 +254,16 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     return refreshFlight;
   }
   async function disconnect() {
-    const previous = active; epoch += 1; pending = null; active = null; refreshFlight = null; abortRequests();
-    if (!previous || disposed) return { revocationConfirmed: false };
+    const previous = active; epoch += 1; pending = null; active = null; refreshFlight = null;
+    retryClientId = null; abortRequests();
+    if (!previous || disposed || !previous.refreshToken) return { revocationConfirmed: false };
     try {
       await request(previous.revocationEndpoint, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ token: previous.refreshToken, token_type_hint: "refresh_token", client_id: previous.clientId }).toString() }, { empty: true });
       return { revocationConfirmed: true };
     } catch { return { revocationConfirmed: false }; }
   }
-  function dispose() { disposed = true; epoch += 1; pending = null; active = null; refreshFlight = null; abortRequests(); }
+  function dispose() { disposed = true; epoch += 1; pending = null; active = null; refreshFlight = null;
+    retryClientId = null; abortRequests(); }
   return Object.freeze({ start, completeCallback, getAccessToken, status, disconnect, dispose });
 }

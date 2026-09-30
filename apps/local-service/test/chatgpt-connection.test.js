@@ -44,6 +44,7 @@ function fixture(options = {}) {
       if (form.get("grant_type") === "refresh_token" && options.refreshImpl) return options.refreshImpl(request);
       if (form.get("grant_type") === "refresh_token") return json(options.refreshTokens ?? {
         ...tokenResponse(form.get("client_id"), "unused"), access_token: "access-refreshed", refresh_token: "refresh-rotated" });
+      if (options.exchangeImpl) return options.exchangeImpl(request);
       return json(tokens ?? tokenResponse(form.get("client_id"), options.nonce));
     }
     if (url === REVOKE) return revocationResponse;
@@ -193,11 +194,26 @@ test("failed account replacement leaves the previously validated connection acti
   assert.equal(f.writes.length, 1);
 });
 
-test("missing plan scope, hostile discovery and oversized responses fail closed", async () => {
+test("valid identity without plan scope remains signed in but cannot send inference", async () => {
   const f = fixture(); const auth = await f.start();
-  f.setTokens(tokenResponse("oaiapp_synthetic", auth.searchParams.get("nonce"), { scope: "openid profile email" }));
-  await assert.rejects(f.complete(auth));
-  assert.equal(f.connection.status().connected, false);
+  f.setTokens(tokenResponse("oaiapp_synthetic", auth.searchParams.get("nonce"), {
+    scope: "openid profile email", refresh_token: undefined }));
+  const status = await f.complete(auth);
+  assert.equal(status.connected, true);
+  assert.equal(status.planEnabled, false);
+  await assert.rejects(f.connection.getAccessToken());
+  assert.equal(f.writes.length, 1);
+  assert.equal(auth.searchParams.has("prompt"), false);
+  const reconnect = await f.start();
+  assert.equal(reconnect.searchParams.get("client_id"), "oaiapp_synthetic");
+  assert.equal(reconnect.searchParams.get("prompt"), "consent");
+  f.setTokens(tokenResponse("oaiapp_synthetic", reconnect.searchParams.get("nonce")));
+  assert.equal((await f.complete(reconnect, { omitClientId: true })).planEnabled, true);
+  const ordinary = await f.start();
+  assert.equal(ordinary.searchParams.has("prompt"), false);
+});
+
+test("hostile discovery and oversized responses fail closed", async () => {
   const g = fixture({ discovery: { issuer: ISSUER, authorization_endpoint: `${ISSUER}/api/accounts/authorize`,
     token_endpoint: TOKEN, jwks_uri: "https://attacker.example/keys", revocation_endpoint: REVOKE } });
   const second = await g.start(); await assert.rejects(g.complete(second));
@@ -206,6 +222,41 @@ test("missing plan scope, hostile discovery and oversized responses fail closed"
   h.setTokens(tokenResponse("oaiapp_synthetic", third.searchParams.get("nonce"), { extra: "x".repeat(70_000) }));
   await assert.rejects(h.complete(third));
   assert.deepEqual(h.writes, []);
+});
+
+test("first-registration invalid_grant retries with issued client ID", async () => {
+  let exchanges = 0;
+  const f = fixture({ exchangeImpl: (request) => {
+    exchanges += 1;
+    if (exchanges === 1) return json({ error: "invalid_grant" }, 400);
+    return json(tokenResponse(new URLSearchParams(request.body).get("client_id"), f.nonce));
+  } });
+  const first = await f.start();
+  await assert.rejects(f.complete(first));
+  const second = await f.start();
+  f.nonce = second.searchParams.get("nonce");
+  assert.equal(second.searchParams.get("client_id"), "oaiapp_synthetic");
+  assert.equal(second.searchParams.has("agent_name_hint"), false);
+  await f.complete(second, { omitClientId: true });
+  assert.equal(f.connection.status().connected, true);
+  assert.equal(exchanges, 2);
+});
+
+test("temporary refresh failure keeps credentials; terminal refresh error clears them", async () => {
+  let refreshes = 0;
+  const f = fixture({ refreshImpl: () => {
+    refreshes += 1;
+    if (refreshes === 1) return json({ error: "temporarily_unavailable" }, 503);
+    if (refreshes === 2) return json({ error: "invalid_grant" }, 400);
+    assert.fail("Unexpected refresh");
+  } });
+  const auth = await f.start(); await f.complete(auth);
+  f.setClock(NOW + 3_550_000);
+  await assert.rejects(f.connection.getAccessToken());
+  assert.equal(f.connection.status().connected, true);
+  await assert.rejects(f.connection.getAccessToken());
+  assert.equal(f.connection.status().connected, false);
+  assert.equal(refreshes, 2);
 });
 
 test("disconnect attempts documented refresh-token revocation then clears local tokens", async () => {

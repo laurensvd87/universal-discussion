@@ -62,7 +62,7 @@ test("real projection -> context -> exact preview -> one AI-labelled local root,
 test("AI research requires explicit page preview, model and credit consent; answer remains private", async () => {
   const calls = [];
   const aiClient = {
-    status: async () => ({ connected: true, pending: false, account: { clientId: "client-a", label: "Owner" } }),
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "client-a", label: "Owner" } }),
     models: async () => [{ slug: "model-a", displayName: "Model A" }],
     start: async (request) => { calls.push(request); return { operationId: request.operationId, state: "running" }; },
     result: async (operationId) => ({ operationId, state: "completed", result: { body: "Useful synthetic finding.", model: "model-a", citations: [] } }),
@@ -88,11 +88,44 @@ test("AI research requires explicit page preview, model and credit consent; answ
   assert.equal(await app.insight.share(), false);
 });
 
+test("connected identity without plan access permits only explicit re-consent and local drafting", async () => {
+  let planEnabled = false, modelsCalled = 0, starts = 0, connects = 0;
+  const opened = [];
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled, pending: false,
+      account: { clientId: "client-a", label: "Owner" } }),
+    connect: async () => { connects++; return { authorizationUrl: "https://auth.openai.com/api/accounts/authorize?synthetic=1" }; },
+    models: async () => { modelsCalled++; return [{ slug: "model-a", displayName: "A" }]; },
+    start: async () => { starts++; }, cancel: async () => true,
+  }, openAuthorization: async (url) => { opened.push(url); },
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+    attestArticle: async () => true, randomId: () => "op-no-plan" });
+  app.insight.prepare();
+  assert.equal(await app.insight.checkConnection(), true);
+  assert.equal(app.insight.currentState().ai.status, "planUnavailable");
+  assert.equal(app.insight.currentState().ai.planEnabled, false);
+  assert.equal(await app.insight.loadModels(), false);
+  assert.equal(modelsCalled, 0);
+  assert.equal(await app.insight.readPageText(), true);
+  app.insight.setCostConsent(true);
+  assert.equal(await app.insight.createInsights(), false);
+  assert.equal(starts, 0); assert.equal(connects, 0);
+  app.insight.setDraft("Private manual insight");
+  assert.equal(app.insight.preview(), true);
+  assert.equal(await app.insight.connect(), true);
+  assert.equal(connects, 1); assert.equal(opened.length, 1);
+  planEnabled = true;
+  assert.equal(await app.insight.checkConnection(), true);
+  assert.equal(app.insight.currentState().ai.planEnabled, true);
+  assert.equal(await app.insight.loadModels(), true);
+  assert.equal(modelsCalled, 1);
+});
+
 test("navigation during attestation drops the answer without contacting the AI", async () => {
   let finish;
   const calls = [];
   const app = await harness({ aiClient: {
-    status: async () => ({ connected: true, pending: false, account: null }),
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
     models: async () => [{ slug: "model-a", displayName: "Model A" }],
     start: async (...args) => { calls.push(args); }, cancel: async () => true,
   }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
@@ -104,7 +137,7 @@ test("navigation during attestation drops the answer without contacting the AI",
   assert.equal(app.insight.currentState().ai.articleText, "");
 });
 
-test("stale and duplicate Connect operations never open an authorization tab", async () => {
+test("page changes preserve explicit sign-in while disconnect fences a stale authorization tab", async () => {
   let release;
   let connectCalls = 0;
   let disconnectCalls = 0;
@@ -119,25 +152,26 @@ test("stale and duplicate Connect operations never open an authorization tab", a
   assert.equal(connectCalls, 1);
   app.navigate();
   release({ authorizationUrl: "https://auth.openai.com/api/accounts/authorize?synthetic=1" });
-  assert.equal(await pending, false);
-  assert.deepEqual(opened, []);
-  assert.equal(disconnectCalls, 1);
-  assert.equal(app.insight.currentState().ai.pending, false);
+  assert.equal(await pending, true);
+  assert.deepEqual(opened, ["https://auth.openai.com/api/accounts/authorize?synthetic=1"]);
+  assert.equal(disconnectCalls, 0);
 
+  await app.insight.disconnect();
   const second = app.insight.connect();
   assert.equal(connectCalls, 2);
   const disconnecting = app.insight.disconnect();
   release({ authorizationUrl: "https://auth.openai.com/api/accounts/authorize?synthetic=2" });
   assert.equal(await second, false);
   await disconnecting;
-  assert.deepEqual(opened, []);
+  assert.equal(opened.length, 1);
+  assert.equal(disconnectCalls, 2);
 });
 
 test("duplicate Create clicks dispatch only one provider operation", async () => {
   let release;
   const calls = [];
   const app = await harness({ aiClient: {
-    status: async () => ({ connected: true, pending: false, account: null }),
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
     models: async () => [{ slug: "model-a", displayName: "Model A" }],
     start: async (request) => { calls.push(request); return new Promise((resolve) => { release = resolve; }); },
     cancel: async () => true,
@@ -153,6 +187,33 @@ test("duplicate Create clicks dispatch only one provider operation", async () =>
   release({ operationId: "op-only", state: "running" });
   assert.equal(await first, false);
   assert.equal(calls.length, 1);
+});
+
+test("safe research failures give actionable status without importing provider text or retrying", async () => {
+  for (const [code, expected] of [
+    ["rate-limit", "usageLimit"], ["model-unavailable", "modelUnavailable"],
+    ["unsupported-capability", "webResearchUnavailable"], ["unauthorized", "authorizationExpired"],
+    ["timeout", "researchTimeout"], ["busy", "researchBusy"],
+    ["provider-secret-detail", "generationFailed"],
+  ]) {
+    let starts = 0;
+    const app = await harness({ aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+      models: async () => [{ slug: "model-a", displayName: "Model A" }],
+      start: async () => { starts++; return { state: "running" }; },
+      result: async () => ({ operationId: "op-failed", state: "failed", error: code }),
+      cancel: async () => true,
+    }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+      attestArticle: async () => true, randomId: () => "op-failed" });
+    app.insight.prepare(); await app.insight.checkConnection(); await app.insight.loadModels();
+    await app.insight.readPageText(); app.insight.selectModel("model-a"); app.insight.setCostConsent(true);
+    assert.equal(await app.insight.createInsights(), false, code);
+    const outcome = app.insight.currentState();
+    assert.equal(outcome.ai.status, expected, code);
+    assert.equal(outcome.ai.result, null, code);
+    assert.equal(outcome.draft, "", code);
+    assert.equal(starts, 1, code);
+  }
 });
 
 test("editing invalidates preview; navigation/actor/source/version changes clear private context", async () => {

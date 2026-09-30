@@ -21,13 +21,15 @@ function publicUrl(value) {
   return url;
 }
 function projectStatus(value) {
-  keys(value, ["connected", "pending", "account", "error"], ["connected", "pending", "account"]);
-  if (typeof value.connected !== "boolean" || typeof value.pending !== "boolean") invalid();
+  keys(value, ["connected", "planEnabled", "pending", "account", "error"], ["connected", "planEnabled", "pending", "account"]);
+  if (typeof value.connected !== "boolean" || typeof value.planEnabled !== "boolean" || typeof value.pending !== "boolean" ||
+      value.planEnabled && !value.connected) invalid();
   if (value.error !== undefined && value.error !== "connection-failed") invalid();
   const account = value.account === null || value.account === undefined ? null : record(value.account);
   if (account) keys(account, ["clientId", "label"]);
   if (account && (typeof account.clientId !== "string" || account.clientId.length > 256 || typeof account.label !== "string" || account.label.length > 320 || UNSAFE.test(account.label))) invalid();
-  return { connected: value.connected, pending: value.pending, account: account && { clientId: account.clientId, label: account.label },
+  return { connected: value.connected, planEnabled: value.planEnabled, pending: value.pending,
+    account: account && { clientId: account.clientId, label: account.label },
     error: value.error ?? null };
 }
 function projectModels(value) {

@@ -30,7 +30,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const prepare = button(details, "prepare", () => controller?.prepare({ includeDiscussion: include.checked }));
   const aiControls = node("section", null, "insight-ai-controls"); details.append(aiControls);
   const accountDetails = node("details", null, "insight-account-details"); accountDetails.className = "insight-subdetails";
-  accountDetails.append(node("summary", "accountWorkspace")); aiControls.append(accountDetails);
+  const accountSummary = node("summary", "accountWorkspace"); accountDetails.append(accountSummary); aiControls.append(accountDetails);
   const connect = button(accountDetails, "connect", () => { void controller?.connect(); });
   const check = button(accountDetails, "checkConnection", () => { void controller?.checkConnection(); });
   const disconnect = button(accountDetails, "disconnect", () => { void controller?.disconnect(); });
@@ -38,6 +38,13 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const modelLabel = node("label", "model"); modelLabel.htmlFor = "insight-model";
   const model = node("select", null, "insight-model"); accountDetails.append(modelLabel, model);
   listen(model, "change", () => controller?.selectModel(model.value));
+  const usage = node("p", "usingChatgptPlan", "insight-plan-usage");
+  const manageUsage = node("a", "manageUsage", "insight-manage-usage");
+  manageUsage.href = "https://chatgpt.com/settings/usage";
+  manageUsage.target = "_blank"; manageUsage.rel = "noopener noreferrer";
+  manageUsage.referrerPolicy = "no-referrer";
+  const usageSeparator = node("span"); usageSeparator.textContent = " · ";
+  usage.append(usageSeparator, manageUsage); aiControls.append(usage);
   const read = button(aiControls, "readPageText", () => { void controller?.readPageText(); });
   const articleLabel = node("label", "articleText"); articleLabel.htmlFor = "insight-article-text";
   const article = node("textarea", null, "insight-article-text"); article.maxLength = 4096; article.rows = 6;
@@ -118,8 +125,12 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       ? text("origin").replace("{title}", `${state.preview.sourceTitle} — ${state.preview.sourceUrl ?? ""}`) : text("noOrigin");
     exactBody.textContent = state.preview?.body ?? "";
     share.disabled = blocked || !state.preview;
-    const ai = state.ai ?? { connected: false, pending: false, models: [], model: "", articleText: "", article: null,
+    const ai = state.ai ?? { connected: false, planEnabled: false, pending: false, models: [], model: "", articleText: "", article: null,
       costConsent: false, result: null, status: "idle" };
+    accountSummary.textContent = text(ai.pending ? "accountConnecting" : ai.connected ?
+      ai.planEnabled ? ai.model ? "accountModelSelected" : "accountChooseModel" : "accountPlanUnavailable" :
+      "accountDisconnected");
+    usage.hidden = !ai.planEnabled;
     const generating = ai.status === "generating";
     const aiPending = generating || ai.status === "disconnecting" || ai.status === "loadingModels";
     include.disabled ||= generating;
@@ -132,12 +143,12 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     if (ai.status === "generated" || state.preview) draftDetails.open = true;
     if (generating) draftDetails.open = false;
     aiStatus.textContent = text(`ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
-    aiStatus.setAttribute("data-state", ai.connected ? "connected" : ai.pending ? "connecting" : "disconnected");
+    aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
     account.textContent = ai.account?.label ? text("connectedAccount").replace("{label}", ai.account.label) : "";
-    connect.disabled = ai.connected || ai.pending || aiPending || state.busy;
+    connect.disabled = ai.connected && ai.planEnabled || ai.pending || aiPending || state.busy;
     check.disabled = aiPending || state.busy;
     disconnect.disabled = (!ai.connected && !ai.pending) || ai.status === "disconnecting";
-    models.disabled = !ai.connected || aiPending || state.busy;
+    models.disabled = !ai.planEnabled || aiPending || state.busy;
     const priorModel = model.value;
     const signatureModels = JSON.stringify(ai.models);
     if (model.dataset?.signature !== signatureModels) {
@@ -147,13 +158,13 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       if (model.dataset) model.dataset.signature = signatureModels;
     }
     model.value = ai.model || (priorModel && ai.models.some((item) => item.slug === priorModel) ? priorModel : "");
-    model.disabled = !ai.connected || !ai.models.length || aiPending || state.busy;
+    model.disabled = !ai.planEnabled || !ai.models.length || aiPending || state.busy;
     read.disabled = !state.context?.currentSource || blocked || aiPending;
     article.disabled = !ai.article || generating;
     if (article.value !== ai.articleText) article.value = ai.articleText;
     cost.checked = ai.costConsent;
-    cost.disabled = !ai.connected || generating;
-    create.disabled = !ai.connected || !ai.model || !ai.articleText?.trim() || !ai.costConsent || blocked || generating;
+    cost.disabled = !ai.planEnabled || generating;
+    create.disabled = !ai.planEnabled || !ai.model || !ai.articleText?.trim() || !ai.costConsent || blocked || generating;
     cancel.disabled = cancel.hidden = !generating;
     articleLabel.hidden = article.hidden = articleWarning.hidden = !ai.article;
     costLabel.hidden = cost.hidden = aiScope.hidden = !ai.article;

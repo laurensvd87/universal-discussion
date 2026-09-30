@@ -33,6 +33,30 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.1 live-readiness hardening complete (2026-09-30):** the owner asked
+the lead to continue with GPT-6 Sol Medium coding agents. First-registration
+recovery, temporary-versus-terminal refresh handling, and an explicit
+identity-only/plan-access distinction are now enforced end-to-end. A connected
+account without plan permission cannot list models or start research; only an
+owner-clicked Continue with ChatGPT requests consent again. Account sign-in no
+longer gets stranded by a page change. Large account model catalogs and a small
+set of documented provider failures have bounded, actionable handling without
+importing partial answers or exposing provider text. The compact User Mode keeps
+model/account setup secondary while showing connection and usage controls.
+
+Evidence after integration: service **132/132**, loopback integration **2/2**,
+extension restricted **799/799**, package/indicator **537/537**, focused
+cross-layer **23/23**, and secret scans **73/173 files, zero findings**.
+Actual Chrome **154.0.8037.58** passed the isolated popup regression with one
+synthetic insight, three intercepted fixture documents, zero runtime exceptions
+and zero external extension requests. Lead visually checked User Mode top/footer
+and a read-only Sol Medium trust review found no remaining code blocker.
+`git diff --check` passes. No real ChatGPT account, provider inference or owner
+data was used by these tests. First live sign-in, eligible model/web-search
+availability, useful output and provider response compatibility remain the
+owner's next test; do not claim them from synthetic evidence. The app remains an
+owner-local PoC, not provider, legal, store or publication clearance.
+
 **0.12.0 implementation checkpoint:** the owner approved ChatGPT connection and
 button-invoked public-page/linked-source research; [ADR-024](../decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md)
 records the exact boundary. Sol Medium agents implemented the connection adapter,
@@ -81,7 +105,7 @@ changes.
 
 No live login/inference is claimed. Next owner check is official ChatGPT login,
 account/model/search eligibility and a useful public-page result, following the
-[browser guide](../spikes/topic-resolution/browser/README.md#chatgpt-insights-0120).
+[browser guide](../spikes/topic-resolution/browser/README.md#chatgpt-insights-0121).
 Included-plan-only spending must be configured at the provider and confirmed in
 the UI; the application cannot enforce provider billing. Slow model-list or
 revocation calls can exceed the retained five-second HTTP deadline and require

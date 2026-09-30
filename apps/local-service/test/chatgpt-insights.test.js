@@ -122,6 +122,47 @@ test("completed event alone yields bounded text and safe citation offsets", asyn
     citations: [{ url: citation.url, title: citation.title, startIndex: 2, endIndex: 8 }] });
 });
 
+test("account catalog preserves display order while bounding the selector", async () => {
+  const catalog = Array.from({ length: 120 }, (_, index) => ({ slug: `model-${index}`, display_name: `Model ${index}`, visibility: "list" }));
+  let posts = 0;
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+    if (url.endsWith("/models")) return new Response(JSON.stringify({ models: catalog }), { headers: { "content-type": "application/json" } });
+    posts += 1; return stream(complete());
+  }, getAccessToken: async () => ACCESS });
+  const listed = await adapter.listModels();
+  assert.equal(listed.length, 100);
+  assert.deepEqual(listed[0], { slug: "model-0", displayName: "Model 0" });
+  assert.deepEqual(listed.at(-1), { slug: "model-99", displayName: "Model 99" });
+  await assert.rejects(adapter.createInsight({ ...REQUEST, model: "model-100" }), errorCode("model-unavailable"));
+  assert.equal(posts, 0);
+});
+
+test("completed response may name a resolved alias while result keeps selected catalog slug", async () => {
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
+    stream(event("response.completed", { status: "completed", model: "synthetic-model-2026-09-30", output: [
+      { type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text: "Checked finding." }] },
+    ] })), getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  assert.deepEqual(await adapter.createInsight(REQUEST), { body: "Checked finding.", citations: [], model: "synthetic-model" });
+});
+
+test("unsupported web capability and streamed quota failures stop without retry", async () => {
+  for (const [response, code] of [
+    [new Response(JSON.stringify({ error: { code: "subscription_sharing_unsupported_capability", param: "tools" } }),
+      { status: 400, headers: { "content-type": "application/json" } }), "unsupported-capability"],
+    [stream(event("response.failed", { status: "failed", error: { code: "subscription_sharing_usage_limit_exceeded" } })), "rate-limit"],
+  ]) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1; return response;
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), errorCode(code));
+    assert.equal(posts, 1);
+  }
+});
+
 test("failure, incomplete, partial-only, oversized and provider errors never become drafts", async () => {
   for (const [body, code] of [
     [event("response.failed", { status: "failed", error: { message: "sensitive" } }), "provider-unavailable"],
@@ -129,6 +170,7 @@ test("failure, incomplete, partial-only, oversized and provider errors never bec
     ["event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"partial\"}\n\n", "invalid-response"],
     [complete("x".repeat(8_001)), "invalid-response"],
     ["x".repeat(262_145), "invalid-response"],
+    [complete() + event("response.output_text.delta", { delta: "late" }), "invalid-response"],
   ]) {
     const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : stream(body),
       getAccessToken: async () => ACCESS });

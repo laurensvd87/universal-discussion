@@ -6,7 +6,8 @@ const TIMEOUT = 90_000;
 const MAX_STREAM_BYTES = 262_144;
 const MAX_INPUT = 24_000;
 const MAX_OUTPUT = 8_000;
-const MAX_MODELS = 100;
+const MAX_MODELS = 512;
+const MAX_DISPLAY_MODELS = 100;
 const MAX_TEXT = 4_096;
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
@@ -100,6 +101,21 @@ function contextValue(value) {
 function errorForStatus(status) {
   return status === 401 || status === 403 ? "unauthorized" : status === 429 ? "rate-limit" : "provider-unavailable";
 }
+function errorForCode(code) {
+  return code === "subscription_sharing_usage_limit_exceeded" ? "rate-limit" :
+    code === "subscription_sharing_unsupported_capability" ? "unsupported-capability" : "provider-unavailable";
+}
+async function responseError(response, signal) {
+  if (response?.status === 400 && /^application\/json(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) {
+    try {
+      const parsed = JSON.parse(await boundedBody(response, 8_192, signal));
+      if (parsed?.error?.code === "subscription_sharing_unsupported_capability") fail("unsupported-capability");
+    } catch (error) {
+      if (error instanceof ChatGptInsightError && error.code === "unsupported-capability") throw error;
+    }
+  }
+  fail(errorForStatus(response?.status));
+}
 function safeCitation(value, body, offset) {
   if (!value || value.type !== "url_citation") return null;
   try {
@@ -113,7 +129,8 @@ function safeCitation(value, body, offset) {
 }
 function completed(value, model) {
   if (!value || value.status !== "completed" || !Array.isArray(value.output)) fail("invalid-response");
-  if (value.model !== undefined && value.model !== model) fail("invalid-response");
+  // The response may report the resolved model behind an account-listed alias.
+  if (value.model !== undefined && (typeof value.model !== "string" || !SLUG.test(value.model))) fail("invalid-response");
   let body = "";
   const citations = [];
   for (const item of value.output) {
@@ -164,11 +181,12 @@ function parseSse(raw, model) {
   for (const frame of frames) {
     const data = frame.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
     if (!data || data === "[DONE]") continue;
+    if (final !== null) fail("invalid-response");
     let event;
     try { event = JSON.parse(data); } catch { fail("invalid-response"); }
-    if (event.type === "response.failed" || event.type === "response.incomplete" || event.type === "error") fail("provider-unavailable");
+    if (event.type === "response.failed") fail(errorForCode(event.response?.error?.code));
+    if (event.type === "response.incomplete" || event.type === "error") fail(errorForCode(event.error?.code));
     if (event.type === "response.completed") {
-      if (final !== null) fail("invalid-response");
       final = event.response;
     }
   }
@@ -240,11 +258,12 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         if (entry?.visibility !== "list") continue;
         if (typeof entry.slug !== "string" || !SLUG.test(entry.slug) || seen.has(entry.slug) ||
             typeof entry.display_name !== "string" || !entry.display_name.trim() || entry.display_name.length > 200 || UNSAFE.test(entry.display_name)) fail("invalid-response");
-        seen.add(entry.slug); models.push({ slug: entry.slug, displayName: entry.display_name });
+        seen.add(entry.slug);
+        if (models.length < MAX_DISPLAY_MODELS) models.push({ slug: entry.slug, displayName: entry.display_name });
       }
       check(requestSignal);
       if (modelEpoch !== before) fail("cancelled");
-      listed = seen;
+      listed = new Set(models.map((entry) => entry.slug));
       return models;
     }, signal);
   }
@@ -281,7 +300,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         redirect: "error", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
       check(requestSignal);
       if (response?.redirected || response?.url && response.url !== `${API}/responses`) fail("invalid-response");
-      if (!response?.ok) fail(errorForStatus(response?.status));
+      if (!response?.ok) await responseError(response, requestSignal);
       if (!/^text\/event-stream(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) fail("invalid-response");
       const raw = await boundedBody(response, MAX_STREAM_BYTES, requestSignal);
       check(requestSignal);

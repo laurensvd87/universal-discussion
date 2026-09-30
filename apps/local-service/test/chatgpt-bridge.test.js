@@ -49,7 +49,7 @@ test("paired bridge accepts rebuilt current context and isolates async result by
   const { service, catalog, context } = fixture();
   let finish;
   let calls = 0;
-  const connectionAdapter = { status: () => ({ connected: true, pending: false, account: { clientId: "synthetic", label: "Demo" } }),
+  const connectionAdapter = { status: () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "synthetic", label: "Demo" } }),
     start: async () => "https://auth.openai.com/example", completeCallback: async () => {}, disconnect: async () => ({ revocationConfirmed: true }), dispose() {} };
   const insightsAdapter = { listModels: async () => [{ slug: "synthetic", displayName: "Synthetic" }],
     createInsight: () => { calls += 1; return new Promise((resolve) => { finish = resolve; }); }, cancel() {}, dispose() {} };
@@ -74,11 +74,33 @@ test("paired bridge accepts rebuilt current context and isolates async result by
   ai.dispose();
 });
 
+test("verified account without plan permission cannot list models or create insight", async () => {
+  const { service, catalog, context } = fixture();
+  let providerCalls = 0;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: false, pending: false,
+      account: { clientId: "synthetic", label: "Demo" } }), dispose() {} },
+    insightsAdapter: { listModels: async () => { providerCalls += 1; return []; },
+      createInsight: async () => { providerCalls += 1; return { body: "No", citations: [], model: "synthetic" }; },
+      cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const status = body(await handle(request("GET", "/v1/ai/status", null, { origin: ORIGIN })));
+  assert.equal(status.connected, true);
+  assert.equal(status.planEnabled, false);
+  assert.equal((await handle(request("GET", "/v1/ai/models", null, { origin: ORIGIN }))).status, 401);
+  const input = { operationId: "no-plan", model: "synthetic", context, articleText: "Public article.",
+    allowWebResearch: true, expected: catalog.version };
+  assert.equal((await handle(request("POST", "/v1/ai/insights", input,
+    { origin: ORIGIN, "x-demo-actor": "demo-alex" }))).status, 401);
+  assert.equal(providerCalls, 0);
+  ai.dispose();
+});
+
 test("forged context, stale revision, invalid actor and missing capability never invoke provider", async () => {
   const { service, catalog, context } = fixture();
   let calls = 0;
   const ai = createChatGPTRuntime({ service,
-    connectionAdapter: { status: () => ({ connected: true, pending: false, account: null }), dispose() {} },
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
     insightsAdapter: { createInsight: async () => { calls += 1; return { body: "No", citations: [], model: "synthetic" }; }, cancel() {}, dispose() {} } });
   const handle = createRequestHandler({ service, config, ai });
   const input = { operationId: "op-one", model: "synthetic", context, articleText: "Public article.",
@@ -98,7 +120,7 @@ test("changed catalog version invalidates an in-flight result without exposing t
   const { service, catalog, context } = fixture();
   let finish;
   const ai = createChatGPTRuntime({ service,
-    connectionAdapter: { status: () => ({ connected: true, pending: false, account: null }), dispose() {} },
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
     insightsAdapter: { createInsight: () => new Promise((resolve) => { finish = resolve; }), cancel() {}, dispose() {} } });
   const handle = createRequestHandler({ service, config, ai });
   const actor = { "x-demo-actor": "demo-alex" };
@@ -118,7 +140,7 @@ test("reset and disconnect clear late provider results and cannot replay operati
   const { service, catalog, context } = fixture();
   let finish;
   let cancelled = 0;
-  const connectionAdapter = { status: () => ({ connected: true, pending: false, account: null }),
+  const connectionAdapter = { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }),
     disconnect: async () => ({ revocationConfirmed: false }), dispose() {} };
   const insightsAdapter = { createInsight: () => new Promise((resolve) => { finish = resolve; }),
     cancel: () => { cancelled += 1; }, dispose() {}, clearModels() {} };
@@ -151,7 +173,7 @@ test("wrong-state callback cannot block a later valid callback", async () => {
   let pending = true;
   let completed = false;
   const ai = createChatGPTRuntime({ service,
-    connectionAdapter: { status: () => ({ connected: completed, pending, account: null }),
+    connectionAdapter: { status: () => ({ connected: completed, planEnabled: completed, pending, account: null }),
       completeCallback: async ({ url }) => {
         if (!url.includes("state=valid")) throw new Error("Invalid state");
         completed = true; pending = false;
@@ -189,7 +211,7 @@ test("provider request article and finding remain absent from SQLite and dormant
     const context = buildInsightContext({ catalog, discussion: service.discussion(topicId),
       related: service.related(sourceId, 5), sourceId, topicId });
     const ai = createChatGPTRuntime({ service,
-      connectionAdapter: { status: () => ({ connected: true, pending: false, account: null }), dispose() {} },
+      connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
       insightsAdapter: { createInsight: async () => ({ body: "SECRET_FINDING_SENTINEL", citations: [], model: "synthetic" }),
         cancel() {}, dispose() {} } });
     const result = ai.create({ operationId: "private-one", model: "synthetic", context,
