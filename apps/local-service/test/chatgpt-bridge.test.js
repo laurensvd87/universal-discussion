@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createChatGPTRuntime, createChatGPTRegistrationStore } from "../src/ai/chatgpt-runtime.js";
+import { ChatGPTConnectionFailure } from "../src/ai/chatgpt-connection.js";
 import { createSqliteDemoService } from "../src/application/create-sqlite-demo-service.js";
 import { createRequestHandler } from "../src/http/request-handler.js";
 import { inspectRequestHead } from "../src/http/loopback-listener.js";
@@ -193,6 +194,97 @@ test("wrong-state callback cannot block a later valid callback", async () => {
   ai.dispose();
 });
 
+test("authenticated AI status projects only allowlisted in-memory callback stage", async () => {
+  const service = demoService();
+  let nextError = new ChatGPTConnectionFailure("token-exchange-rejected");
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: false, planEnabled: false, pending: false, account: null }),
+      completeCallback: async () => { throw nextError; },
+      start: async () => "https://auth.openai.com/example", disconnect: async () => ({}), dispose() {} },
+    insightsAdapter: { cancel() {}, dispose() {}, clearModels() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const callback = async () => {
+    await handle({ method: "GET", url: "/auth/callback?code=SECRET_CODE&state=SECRET_STATE",
+      headers: { host: config.hostHeader }, body: null });
+    await Promise.resolve(); await Promise.resolve();
+  };
+  await callback();
+  const status = body(await handle(request("GET", "/v1/ai/status")));
+  assert.equal(status.error, "connection-failed");
+  assert.equal(status.failureStage, "token-exchange-rejected");
+  assert.equal(JSON.stringify(status).includes("SECRET"), false);
+  assert.equal((await handle({ method: "GET", url: "/v1/ai/status", headers: { host: config.hostHeader }, body: null })).status, 401);
+  nextError = Object.assign(new Error("SECRET_PROVIDER_TEXT"), { failureStage: "registration-failed" });
+  await callback();
+  assert.equal(ai.status().failureStage, undefined);
+  assert.equal(JSON.stringify(ai.status()).includes("SECRET"), false);
+  assert.equal((await handle(request("POST", "/v1/ai/connect", {}))).status, 200);
+  assert.equal(ai.status().error, undefined);
+  await ai.disconnect({});
+  assert.equal(ai.status().failureStage, undefined);
+  ai.dispose();
+});
+
+test("second callback reports busy while first verification remains in flight", async () => {
+  const service = demoService();
+  let finish;
+  let calls = 0;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: false, planEnabled: false, pending: true, account: null }),
+      completeCallback: () => { calls += 1; return new Promise((resolve) => { finish = resolve; }); }, dispose() {} },
+    insightsAdapter: { cancel() {}, dispose() {}, clearModels() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const callback = (code) => handle({ method: "GET", url: `/auth/callback?code=${code}&state=synthetic`,
+    headers: { host: config.hostHeader }, body: null });
+  assert.equal((await callback("FIRST_SECRET")).status, 200);
+  assert.equal((await callback("SECOND_SECRET")).status, 200);
+  assert.equal(calls, 1);
+  const busy = body(await handle(request("GET", "/v1/ai/status")));
+  assert.equal(busy.pending, true);
+  assert.equal(busy.error, "connection-failed");
+  assert.equal(busy.failureStage, "callback-busy");
+  assert.equal(JSON.stringify(busy).includes("SECRET"), false);
+  finish();
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(ai.status().failureStage, undefined);
+  assert.equal(ai.status().error, undefined);
+  ai.dispose();
+});
+
+test("disconnect fences a late callback failure and permits a fresh callback", async () => {
+  const service = demoService();
+  const completions = [];
+  let connected = false;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected, planEnabled: connected, pending: false, account: null }),
+      completeCallback: () => new Promise((resolve, reject) => { completions.push({ resolve, reject }); }),
+      disconnect: async () => { connected = false; return { revocationConfirmed: false }; }, dispose() {} },
+    insightsAdapter: { cancel() {}, dispose() {}, clearModels() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const callback = (code) => handle({ method: "GET", url: `/auth/callback?code=${code}&state=synthetic`,
+    headers: { host: config.hostHeader }, body: null });
+  assert.equal((await callback("FIRST_SECRET")).status, 200);
+  assert.equal(ai.status().pending, true);
+  await ai.disconnect({});
+  assert.equal(ai.status().pending, false);
+  assert.equal(ai.status().error, undefined);
+  assert.equal(ai.status().failureStage, undefined);
+  assert.equal((await callback("SECOND_SECRET")).status, 200);
+  assert.equal(completions.length, 2);
+  completions[0].reject(new ChatGPTConnectionFailure("token-exchange-rejected"));
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(ai.status().pending, true);
+  assert.equal(ai.status().error, undefined);
+  assert.equal(ai.status().failureStage, undefined);
+  connected = true;
+  completions[1].resolve();
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  assert.equal(ai.status().connected, true);
+  assert.equal(ai.status().pending, false);
+  assert.equal(ai.status().failureStage, undefined);
+  ai.dispose();
+});
+
 test("provider request article and finding remain absent from SQLite and dormant startup creates no AI registration", async () => {
   const dir = mkdtempSync(path.join(tmpdir(), "discussion-chatgpt-sqlite-"));
   const databasePath = path.join(dir, "demo.sqlite");
@@ -249,7 +341,13 @@ test("callback is narrow generic HTML and all application routes retain capabili
   assert.equal(good.status, 200);
   assert.equal(good.headers["cache-control"], "no-store");
   assert.equal(good.body.includes("synthetic"), false);
+  assert.match(good.body, /Sign-in response received; verification is not yet complete\. Return to extension and check status\./u);
+  assert.equal(good.body.includes("Connection received"), false);
   assert.equal(callback, "http://127.0.0.1:4174/auth/callback?code=synthetic&state=synthetic");
+  const secretCallback = await handle({ method: "GET", url: "/auth/callback?code=SECRET_CODE&state=SECRET_STATE&client_id=SECRET_CLIENT",
+    headers: { host: config.hostHeader }, body: null });
+  assert.equal(secretCallback.status, 200);
+  assert.equal(JSON.stringify(secretCallback).includes("SECRET"), false);
   assert.equal((await handle({ method: "GET", url: "/auth/callback?code=x", headers: { host: config.hostHeader, origin: "https://evil.example" }, body: null })).status, 400);
   assert.equal((await handle({ method: "GET", url: "/v1/ai/status", headers: { host: config.hostHeader }, body: null })).status, 401);
   assert.equal((await handle({ method: "GET", url: `/v1/ai/status?${"x".repeat(3000)}`, headers: { host: config.hostHeader }, body: null })).status, 400);

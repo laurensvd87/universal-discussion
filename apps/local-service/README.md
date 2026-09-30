@@ -22,12 +22,12 @@ ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
-## ChatGPT insights (0.12.1)
+## ChatGPT insights (0.12.2)
 
 The normal CLI now composes the owner-approved optional ChatGPT connector.
 Starting the service does not contact a provider. Connect/model-list/research
 actions are explicit; no API key or ChatGPT browser automation is used. Follow
-the [extension workflow](../../spikes/topic-resolution/browser/README.md#chatgpt-insights-0121).
+the [extension workflow](../../spikes/topic-resolution/browser/README.md#chatgpt-insights-0122).
 
 Paired `/v1/ai/` routes expose connection status, authorization, disconnection,
 the account model list and bounded insight jobs. Only `/auth/callback` is an
@@ -49,6 +49,14 @@ that state; the owner may deliberately use **Continue with ChatGPT** again to
 request plan consent. Temporary refresh failures preserve the local connection
 for a later explicit attempt. Unusable refresh credentials are cleared. Neither
 path starts research automatically.
+
+The first owner login reached `/auth/callback` but failed later, before a
+verified connection. The callback page now says that receiving the redirect
+is not completed authorization. Authenticated `/v1/ai/status` may include a
+fixed `failureStage` alongside `connection-failed` so the owner can report a
+short code after a fresh attempt. Stages are process-memory only; callback
+URLs, authorization codes, tokens and provider response bodies are never
+returned in status or written to logs. The exact live failure remains unknown.
 
 An insight request temporarily relays up to 4,096 reviewed public-page characters,
 bounded source descriptors and optional human discussion excerpts to OpenAI.

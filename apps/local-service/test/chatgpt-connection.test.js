@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import test from "node:test";
-import { createChatGPTConnection } from "../src/ai/chatgpt-connection.js";
+import { ChatGPTConnectionFailure, createChatGPTConnection } from "../src/ai/chatgpt-connection.js";
 
 const ISSUER = "https://auth.openai.com";
 const DISCOVERY = `${ISSUER}/.well-known/openid-configuration`;
@@ -38,7 +38,7 @@ function fixture(options = {}) {
   const fetchImpl = async (url, request) => {
     calls.push({ url, request });
     if (url === DISCOVERY) return json(options.discovery ?? discovery);
-    if (url === JWKS) return json(options.jwks ?? { keys: [publicJwk] });
+    if (url === JWKS) return options.jwksImpl ? options.jwksImpl() : json(options.jwks ?? { keys: [publicJwk] });
     if (url === TOKEN) {
       const form = new URLSearchParams(request.body);
       if (form.get("grant_type") === "refresh_token" && options.refreshImpl) return options.refreshImpl(request);
@@ -52,7 +52,8 @@ function fixture(options = {}) {
   };
   const connection = createChatGPTConnection({ hostId: "urn:uuid:synthetic-host", agentName: "Universal Discussion",
     readRegistration: async () => registration,
-    writeRegistration: async (value) => { writes.push(value); registration = value; },
+    writeRegistration: async (value) => { if (options.writeImpl) await options.writeImpl(value);
+      writes.push(value); registration = value; },
     fetchImpl, now: () => clock,
     random: () => { count += 1; return Buffer.alloc(32, count); } });
   async function start() {
@@ -232,7 +233,8 @@ test("first-registration invalid_grant retries with issued client ID", async () 
     return json(tokenResponse(new URLSearchParams(request.body).get("client_id"), f.nonce));
   } });
   const first = await f.start();
-  await assert.rejects(f.complete(first));
+  await assert.rejects(f.complete(first), (error) => error instanceof ChatGPTConnectionFailure &&
+    error.failureStage === "token-exchange-rejected" && !JSON.stringify(error).includes("invalid_grant"));
   const second = await f.start();
   f.nonce = second.searchParams.get("nonce");
   assert.equal(second.searchParams.get("client_id"), "oaiapp_synthetic");
@@ -240,6 +242,44 @@ test("first-registration invalid_grant retries with issued client ID", async () 
   await f.complete(second, { omitClientId: true });
   assert.equal(f.connection.status().connected, true);
   assert.equal(exchanges, 2);
+});
+
+test("callback failure stages are fixed and never contain provider or callback secrets", async () => {
+  const secret = "SENSITIVE_PROVIDER_BODY_AND_CODE";
+  const cases = [
+    { stage: "callback-invalid", change: { state: "wrong" } },
+    { stage: "callback-expired", expire: true },
+    { stage: "token-exchange-rejected", options: { exchangeImpl: () => json({ error: "invalid_grant", detail: secret }, 400) } },
+    { stage: "token-exchange-failed", options: { exchangeImpl: () => { throw new Error(secret); } } },
+    { stage: "token-response-invalid", options: { exchangeImpl: () => json({ access_token: secret }) } },
+    { stage: "discovery-failed", options: { discovery: { issuer: secret } } },
+    { stage: "identity-verification-failed", options: { jwks: { keys: [] } } },
+    { stage: "registration-failed", options: { writeImpl: () => { throw new Error(secret); } } },
+  ];
+  for (const scenario of cases) {
+    const f = fixture(scenario.options); const auth = await f.start();
+    if (scenario.expire) f.setClock(NOW + 5 * 60_000);
+    await assert.rejects(f.complete(auth, scenario.change), (error) => {
+      assert.ok(error instanceof ChatGPTConnectionFailure);
+      assert.equal(error.failureStage, scenario.stage);
+      const projected = JSON.stringify(error);
+      assert.equal(projected.includes(secret), false);
+      assert.equal(projected.includes("synthetic-code"), false);
+      assert.equal(projected.includes("state"), false);
+      return true;
+    });
+    assert.equal(f.connection.status().connected, false);
+  }
+});
+
+test("attempt that expires during identity verification reports callback expiry", async () => {
+  let advance;
+  const f = fixture({ jwksImpl: () => { advance(); return json({ keys: [publicJwk] }); } });
+  advance = () => f.setClock(NOW + 5 * 60_000);
+  const auth = await f.start();
+  await assert.rejects(f.complete(auth), (error) => error instanceof ChatGPTConnectionFailure &&
+    error.failureStage === "callback-expired");
+  assert.deepEqual(f.writes, []);
 });
 
 test("temporary refresh failure keeps credentials; terminal refresh error clears them", async () => {

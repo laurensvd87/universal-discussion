@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { createChatGPTConnection } from "./chatgpt-connection.js";
+import { ChatGPTConnectionFailure, createChatGPTConnection } from "./chatgpt-connection.js";
 import { ChatGptInsightError, createChatGptInsights } from "./chatgpt-insights.js";
 import { buildInsightContext } from "../../../../spikes/topic-resolution/browser/core/insight-context.js";
 import { fail } from "../domain/errors.js";
@@ -11,6 +11,9 @@ const OPERATION = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const RESULT_TTL_MS = 120_000;
 const MAX_OPERATIONS = 1_024;
 const SAFE_ERRORS = new Set(["invalid-input", "model-unavailable", "unauthorized", "rate-limit", "busy", "timeout", "cancelled", "provider-unavailable", "invalid-response", "unsupported-capability"]);
+const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "callback-busy", "token-exchange-rejected",
+  "token-exchange-failed", "token-response-invalid", "discovery-failed",
+  "identity-verification-failed", "registration-failed"]);
 
 function exact(value, names) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
@@ -83,6 +86,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
   let disposed = false;
   let callbackPending = false;
   let callbackError = null;
+  let failureStage = null;
+  let callbackGeneration = 0;
   function finish(job) {
     job.finishedAt = now();
     job.expiry = setTimeout(() => { job.result = null; jobs.delete(job.operationId); }, RESULT_TTL_MS);
@@ -123,14 +128,25 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
   }
   return Object.freeze({
     status: () => ({ ...connection.status(), pending: connection.status().pending || callbackPending,
-      ...(callbackError ? { error: callbackError } : {}) }),
-    connect: (value) => { exact(value, []); callbackError = null;
+      ...(callbackError ? { error: callbackError } : {}),
+      ...(failureStage ? { failureStage } : {}) }),
+    connect: (value) => { exact(value, []); callbackError = null; failureStage = null;
       return connection.start({ redirectUri: "http://127.0.0.1:4174/auth/callback" }).then((authorizationUrl) => ({ authorizationUrl })); },
-    callback(url) { if (!disposed && !callbackPending) { callbackPending = true; callbackError = null;
+    callback(url) { if (!disposed && callbackPending) {
+      callbackError = "connection-failed"; failureStage = "callback-busy"; return;
+    }
+      if (!disposed) { const generation = ++callbackGeneration;
+        callbackPending = true; callbackError = null; failureStage = null;
       void connection.completeCallback({ redirectUri: "http://127.0.0.1:4174/auth/callback", url })
-        .then(() => { stopJobs(); insights.clearModels?.(); })
-        .catch(() => { callbackError = "connection-failed"; }).finally(() => { callbackPending = false; }); } },
-    async disconnect(value) { exact(value, []); stopJobs(); insights.clearModels?.(); callbackError = null; return connection.disconnect(); },
+        .then(() => { if (generation !== callbackGeneration || disposed) return;
+          stopJobs(); insights.clearModels?.(); callbackError = null; failureStage = null; })
+        .catch((error) => { if (generation !== callbackGeneration || disposed) return;
+          callbackError = "connection-failed";
+          failureStage = error instanceof ChatGPTConnectionFailure && FAILURE_STAGES.has(error.failureStage)
+            ? error.failureStage : null;
+        }).finally(() => { if (generation === callbackGeneration) callbackPending = false; }); } },
+    async disconnect(value) { exact(value, []); callbackGeneration += 1; callbackPending = false;
+      stopJobs(); insights.clearModels?.(); callbackError = null; failureStage = null; return connection.disconnect(); },
     async models() { const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       return { models: await insights.listModels() }; },
@@ -167,6 +183,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
     },
     cancel(value, actorId) { exact(value, ["operationId"]); const job = owned(value.operationId, actorId); cancelJob(job); return { cancelled: true }; },
     reset() { stopJobs(); },
-    dispose() { disposed = true; stopJobs(); insights.dispose(); connection.dispose(); },
+    dispose() { disposed = true; callbackGeneration += 1; callbackPending = false;
+      stopJobs(); insights.dispose(); connection.dispose(); },
   });
 }

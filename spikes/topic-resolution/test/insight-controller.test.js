@@ -121,6 +121,27 @@ test("connected identity without plan access permits only explicit re-consent an
   assert.equal(modelsCalled, 1);
 });
 
+test("connection failure stage clears on a new attempt and a successful status", async () => {
+  let nextStatus = { connected: false, planEnabled: false, pending: false, account: null,
+    error: "connection-failed", failureStage: "callback-expired" };
+  let connects = 0;
+  const app = await harness({ aiClient: {
+    status: async () => nextStatus,
+    connect: async () => { connects++; return { authorizationUrl: "https://auth.openai.com/api/accounts/authorize?synthetic=1" }; },
+  }, openAuthorization: async () => {} });
+  assert.equal(await app.insight.checkConnection(), false);
+  assert.equal(app.insight.currentState().ai.status, "connectionFailed");
+  assert.equal(app.insight.currentState().ai.failureStage, "callback-expired");
+  assert.equal(await app.insight.connect(), true);
+  assert.equal(connects, 1);
+  assert.equal(app.insight.currentState().ai.failureStage, null);
+  nextStatus = { connected: true, planEnabled: true, pending: false,
+    account: { clientId: "client-a", label: "Owner" } };
+  assert.equal(await app.insight.checkConnection(), true);
+  assert.equal(app.insight.currentState().ai.status, "connected");
+  assert.equal(app.insight.currentState().ai.failureStage, null);
+});
+
 test("navigation during attestation drops the answer without contacting the AI", async () => {
   let finish;
   const calls = [];

@@ -156,7 +156,7 @@ function callbackResponse() {
     "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff",
     "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
     "referrer-policy": "no-referrer",
-  }, body: "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Connection received</title><body><p>Connection received. Return to the extension to check its status.</p></body></html>" };
+  }, body: "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Sign-in response received</title><body><p>Sign-in response received; verification is not yet complete. Return to extension and check status.</p></body></html>" };
 }
 
 function parseJsonBody(request) {

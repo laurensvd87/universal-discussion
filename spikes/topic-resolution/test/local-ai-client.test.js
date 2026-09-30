@@ -24,7 +24,7 @@ test("status requires a consistent plan grant and preserves a connected account 
   const verifiedNoPlan = client(async (url) => response(url, { connected: true, planEnabled: false,
     pending: false, account: { clientId: "client-a", label: "Owner" } }));
   assert.deepEqual(await verifiedNoPlan.status(), { connected: true, planEnabled: false,
-    pending: false, account: { clientId: "client-a", label: "Owner" }, error: null });
+    pending: false, account: { clientId: "client-a", label: "Owner" }, error: null, failureStage: null });
   for (const value of [
     { connected: true, pending: false, account: null },
     { connected: true, planEnabled: "yes", pending: false, account: null },
@@ -32,6 +32,26 @@ test("status requires a consistent plan grant and preserves a connected account 
   ]) {
     await assert.rejects(client(async (url) => response(url, value)).status(), TypeError);
   }
+});
+
+test("authenticated status projects only fixed failure stages with the generic error", async () => {
+  const stages = ["callback-invalid", "callback-expired", "callback-busy", "token-exchange-rejected",
+    "token-exchange-failed", "token-response-invalid", "discovery-failed",
+    "identity-verification-failed", "registration-failed"];
+  const base = { connected: false, planEnabled: false, pending: false, account: null };
+  for (const failureStage of stages) {
+    const projected = await client(async (url) => response(url,
+      { ...base, error: "connection-failed", failureStage })).status();
+    assert.equal(projected.error, "connection-failed");
+    assert.equal(projected.failureStage, failureStage);
+  }
+  for (const value of [
+    { ...base, error: "connection-failed", failureStage: "provider-secret-detail" },
+    { ...base, failureStage: "callback-expired" },
+    { ...base, error: "connection-failed", failureStage: null },
+    { ...base, error: "connection-failed", failureStage: { code: "callback-expired" } },
+  ]) await assert.rejects(client(async (url) => response(url, value)).status(), TypeError);
+  assert.equal((await client(async (url) => response(url, { ...base, error: "connection-failed" })).status()).failureStage, null);
 });
 
 test("authorization URL and citation URLs reject unsafe targets", async () => {

@@ -1,6 +1,18 @@
 import { INSIGHT_EN } from "../locales/insight-en.js";
 import { inspectPageUrl } from "../core/page-content-policy.js";
 
+const FAILURE_STAGE_MESSAGES = Object.freeze({
+  "callback-invalid": "aiFailureCallbackInvalid",
+  "callback-expired": "aiFailureCallbackExpired",
+  "callback-busy": "aiFailureCallbackBusy",
+  "token-exchange-rejected": "aiFailureTokenExchangeRejected",
+  "token-exchange-failed": "aiFailureTokenExchangeFailed",
+  "token-response-invalid": "aiFailureTokenResponseInvalid",
+  "discovery-failed": "aiFailureDiscoveryFailed",
+  "identity-verification-failed": "aiFailureIdentityVerificationFailed",
+  "registration-failed": "aiFailureRegistrationFailed",
+});
+
 export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}) {
   const text = (key) => messages?.[key] ?? INSIGHT_EN[key];
   const handlers = [];
@@ -142,7 +154,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     draftSummary.textContent = text(ai.status === "generated" ? "draftWorkspaceGenerated" : "draftWorkspace");
     if (ai.status === "generated" || state.preview) draftDetails.open = true;
     if (generating) draftDetails.open = false;
-    aiStatus.textContent = text(`ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
+    const stageMessage = ai.status === "connectionFailed" && Object.hasOwn(FAILURE_STAGE_MESSAGES, ai.failureStage)
+      ? FAILURE_STAGE_MESSAGES[ai.failureStage] : null;
+    aiStatus.textContent = text(stageMessage ?? `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
     account.textContent = ai.account?.label ? text("connectedAccount").replace("{label}", ai.account.label) : "";
     connect.disabled = ai.connected && ai.planEnabled || ai.pending || aiPending || state.busy;

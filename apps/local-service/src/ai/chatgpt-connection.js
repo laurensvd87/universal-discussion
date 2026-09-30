@@ -9,6 +9,17 @@ const SCOPES = "openid profile email offline_access resource.invoke chatgpt.toke
 const ATTEMPT_MS = 5 * 60_000;
 const MAX_BYTES = 65_536;
 
+const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "token-exchange-rejected",
+  "token-exchange-failed", "token-response-invalid", "discovery-failed",
+  "identity-verification-failed", "registration-failed"]);
+export class ChatGPTConnectionFailure extends Error {
+  constructor(stage) {
+    super("ChatGPT connection could not be verified");
+    if (!FAILURE_STAGES.has(stage)) throw new TypeError("Invalid connection failure stage");
+    this.failureStage = stage;
+  }
+}
+
 function invalid() { throw new Error("ChatGPT connection could not be verified"); }
 const UNUSABLE_REFRESH = new Set(["invalid_grant", "invalid_refresh_token", "token_expired",
   "refresh_token_expired", "refresh_token_invalidated", "refresh_token_reused"]);
@@ -184,14 +195,17 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     }
   }
   async function completeCallback({ redirectUri, url } = {}) {
+    const expired = pending?.expiresAt <= now();
     const attempt = currentPending();
-    if (disposed || !attempt || attempt.processing || !attempt.state || redirectUri !== attempt.redirectUri) invalid();
+    if (disposed || !attempt || attempt.processing || !attempt.state || redirectUri !== attempt.redirectUri)
+      throw new ChatGPTConnectionFailure(expired ? "callback-expired" : "callback-invalid");
     let callback;
-    try { callback = new URL(url); } catch { invalid(); }
+    try { callback = new URL(url); } catch { throw new ChatGPTConnectionFailure("callback-invalid"); }
     if (`${callback.origin}${callback.pathname}` !== redirectUri || callback.hash || callback.username || callback.password ||
         [...callback.searchParams.keys()].some((key) => callback.searchParams.getAll(key).length !== 1) ||
-        callback.searchParams.get("state") !== attempt.state) invalid();
+        callback.searchParams.get("state") !== attempt.state) throw new ChatGPTConnectionFailure("callback-invalid");
     attempt.processing = true;
+    let failureStage = "callback-invalid";
     try {
     if (callback.searchParams.has("error")) invalid();
     const code = requiredText(callback.searchParams.get("code"), 2_048);
@@ -201,27 +215,36 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
         (attempt.registration || attempt.retryClientId) && returnedClientId && returnedClientId !== clientId) invalid();
     const before = epoch;
     let tokenResponse;
+    failureStage = "token-exchange-failed";
     try {
       tokenResponse = await request(TOKEN, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ grant_type: "authorization_code", client_id: clientId, code,
           code_verifier: attempt.verifier, redirect_uri: redirectUri, resource: RESOURCE }).toString() }, { oauthError: true });
     } catch (error) {
       if (!attempt.registration && error instanceof OAuthRequestError && error.code === "invalid_grant") retryClientId = clientId;
+      if (error instanceof OAuthRequestError) failureStage = "token-exchange-rejected";
       throw error;
     }
+    failureStage = "token-response-invalid";
     const tokens = credentials(tokenResponse, clientId);
+    failureStage = "discovery-failed";
     const endpoints = await discovery();
+    failureStage = "identity-verification-failed";
     const identity = await verifyIdToken(tokens.idToken, clientId, attempt.nonce, endpoints.jwksUri);
+    if (attempt.expiresAt <= now()) failureStage = "callback-expired";
     if (attempt.registration && identity.subject !== attempt.registration.subject || disposed || before !== epoch ||
         pending !== attempt || attempt.expiresAt <= now()) invalid();
     const registration = { clientId, subject: identity.subject, email: identity.email,
       label: identity.email ?? identity.subject };
+    failureStage = "registration-failed";
     await writeRegistration(registration);
     if (disposed || before !== epoch || pending !== attempt) invalid();
     active = { ...tokens, ...registration, jwksUri: endpoints.jwksUri, revocationEndpoint: endpoints.revocationEndpoint };
     retryClientId = null;
     pending = null;
     return status();
+    } catch {
+      throw new ChatGPTConnectionFailure(failureStage);
     } finally { if (pending === attempt) pending = null; }
   }
   async function getAccessToken() {

@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## ChatGPT insights (0.12.1)
+## ChatGPT insights (0.12.2)
 
 An optional private research workspace now uses the current public article,
 other pages in its Topic and related perspectives. Nothing runs automatically
@@ -17,11 +17,18 @@ For a first test:
 1. Open a non-sensitive public article already matched to a Topic. Open **AI
    insights**. Prepare the local context and inspect the selected page and links.
 2. Choose **Continue with ChatGPT** and complete the official sign-in in the opened
-   tab. Return to the article and reopen the extension, then **Check connection**.
+   tab. The local callback only confirms receipt, not verified sign-in. Return
+   to the article and reopen the extension, then **Check connection**.
    If the account connects without plan access, use **Continue with ChatGPT**
    again only if you want to request the missing permission. Model listing and
    research stay unavailable until it is granted. Never paste your ChatGPT
-   password or token into this app or a chat message.
+   password or token into this app or a chat message. Never share or reuse the
+   full callback URL: its query contains a one-use authorization code and state.
+   If sign-in fails, report only the short failure-stage identifier shown in
+   the extension (for example, `token-exchange-rejected`) and start a fresh
+   attempt. Do not paste a URL, screenshot with the address bar, code or token.
+   A first-registration exchange can require one fresh retry with the issued
+   client ID while the backend process remains running.
 3. List available models and choose one. No API key is needed. If your account
    rejects this preview integration or lists no models, stop; no paid fallback
    or browser-cookie workaround is attempted.
@@ -55,8 +62,11 @@ retention. Sign-in tokens remain in service memory, never extension storage;
 the non-secret account registration remains in its ignored local data folder.
 
 Current validation uses synthetic provider responses and isolated Chrome, not
-your account. Real sign-in, account/search eligibility and insight quality still
-need the owner test above. Manual AI-assisted draft entry works without a
+your account. The first owner sign-in reached the callback but failed after
+receipt; the exact reason was hidden by the old generic status. A fresh attempt
+with 0.12.2 is needed to identify it without collecting credentials. Model/
+search eligibility and insight quality also remain unverified. Manual
+AI-assisted draft entry works without a
 connected provider. No hosted/commercial/store eligibility is implied.
 The connection and model list are account-specific; a listed model can still
 reject web research or reach a plan usage limit. The popup reports these as

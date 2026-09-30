@@ -25,7 +25,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let job = null;
   let state = { available: false, context: null, draft: "", preview: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
-      result: null, status: "idle", error: null } };
+      result: null, status: "idle", error: null, failureStage: null } };
 
   function eligible() {
     return observed?.phase === "ready" && !observed.busy && !observed.needsFreshRead &&
@@ -112,18 +112,19 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       const value = await aiClient.status();
       if (disposed || current !== connectionEpoch) return false;
       aiPatch({ connected: value.connected, planEnabled: value.planEnabled, pending: value.pending, account: value.account,
+        failureStage: value.error === "connection-failed" ? value.failureStage ?? null : null,
         status: value.error === "connection-failed" ? "connectionFailed" : value.pending ? "connecting" :
           value.connected ? value.planEnabled ? "connected" : "planUnavailable" : "disconnected",
         ...(value.planEnabled ? {} : { models: [], model: "", result: null, costConsent: false }) });
       return value.connected;
-    } catch { if (!disposed && current === connectionEpoch) aiPatch({ status: "unavailable", connected: false,
+    } catch { if (!disposed && current === connectionEpoch) aiPatch({ status: "unavailable", failureStage: null, connected: false,
       planEnabled: false, account: null, models: [], model: "" }); return false; }
   }
   async function connect() {
     if (!aiClient || !openAuthorization || disposed || connectionBusy || state.ai.pending ||
         state.ai.connected && state.ai.planEnabled) return false;
     const current = ++connectionEpoch;
-    connectionBusy = true; aiPatch({ pending: true, status: "connecting" });
+    connectionBusy = true; aiPatch({ pending: true, status: "connecting", failureStage: null });
     const active = () => !disposed && current === connectionEpoch;
     try {
       const { authorizationUrl } = await aiClient.connect();
@@ -132,14 +133,14 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       if (!active()) return false;
       aiPatch({ pending: true, status: "connecting" });
       return true;
-    } catch { if (active()) aiPatch({ pending: false, status: "unavailable" }); return false; }
+    } catch { if (active()) aiPatch({ pending: false, status: "unavailable", failureStage: null }); return false; }
     finally { if (current === connectionEpoch) connectionBusy = false; }
   }
   async function disconnect() {
     if (!aiClient || disposed) return false;
     const current = ++connectionEpoch;
     clear("changed"); connectionBusy = true; modelsBusy = false;
-    aiPatch({ connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", status: "disconnecting" });
+    aiPatch({ connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", status: "disconnecting", failureStage: null });
     let outcome;
     try { outcome = await aiClient.disconnect(); }
     catch { /* The local bridge may be unavailable. Clear private popup material anyway. */ }

@@ -212,3 +212,29 @@ test("first-use connection and plan usage stay clear beside the explicit researc
   assert.equal(ui.byId("insight-cost-consent").hidden, false);
   assert.equal(ui.byId("insight-createInsights").disabled, true);
 });
+
+test("connection failure renders only fixed stage guidance and clears it on a new state", () => {
+  const ui = harness();
+  for (const [stage, key] of [
+    ["callback-invalid", "aiFailureCallbackInvalid"],
+    ["callback-expired", "aiFailureCallbackExpired"],
+    ["callback-busy", "aiFailureCallbackBusy"],
+    ["token-exchange-rejected", "aiFailureTokenExchangeRejected"],
+    ["token-exchange-failed", "aiFailureTokenExchangeFailed"],
+    ["token-response-invalid", "aiFailureTokenResponseInvalid"],
+    ["discovery-failed", "aiFailureDiscoveryFailed"],
+    ["identity-verification-failed", "aiFailureIdentityVerificationFailed"],
+    ["registration-failed", "aiFailureRegistrationFailed"],
+  ]) {
+    ui.panel.render(state({ ai: { connected: false, planEnabled: false, pending: false,
+      status: "connectionFailed", failureStage: stage } }));
+    assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN[key]);
+    assert.match(INSIGHT_EN[key], new RegExp(stage));
+  }
+  ui.panel.render(state({ ai: { connected: false, planEnabled: false, pending: false,
+    status: "connectionFailed", failureStage: "provider-secret-detail" } }));
+  assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN.aiConnectionFailed);
+  ui.panel.render(state({ ai: { connected: false, planEnabled: false, pending: true,
+    status: "connecting", failureStage: null } }));
+  assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN.aiConnecting);
+});

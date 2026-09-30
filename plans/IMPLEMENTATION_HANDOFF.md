@@ -2,12 +2,23 @@
 
 Updated: 2026-09-30. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Current checkpoint: **0.12.1 ChatGPT live-readiness hardening complete;
-ChatGPT insights and compact User Mode remain owner-local.** Read ADR-024 and the latest
+Current checkpoint: **0.12.2 first owner login failed after callback receipt;
+safe failure-stage diagnostics implemented, exact cause pending a fresh test.**
+ChatGPT insights and compact User Mode remain owner-local. Read ADR-024 and the latest
 STATUS section first. The owner approved implementation, ChatGPT connection and
 explicit public-text/related-source research. Sol Medium agents handle coding;
-the lead reviews/integrates. No actual account login/provider call yet; do not
+the lead reviews/integrates. No verified account or successful inference yet; do not
 confuse pasted/edited AI-assisted text with attested provider output.
+
+The public callback originally acknowledged receipt before asynchronous code
+exchange and verification, then the popup collapsed any failure to one sentence.
+0.12.2 adds nine fixed, non-secret failure stages only to authenticated status,
+updates callback wording, and fences late failures after Disconnect. The owner
+must restart the service/reload the extension and perform a fresh sign-in to
+identify the stage; never ask for or reuse callback URLs, codes or tokens.
+Current service/extension/indicator offline tests pass; isolated loopback and
+Chrome tests cannot bind port 4174 while the owner's running Node service owns
+it. Do not stop that owner process without coordination. See STATUS for counts.
 
 The owner freed port 4174; serial service integration (2/2) and full Chrome
 synthetic insight/sharing regression passed, and the lead inspected User Mode

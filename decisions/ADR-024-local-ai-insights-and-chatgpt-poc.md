@@ -3,7 +3,8 @@
 Date: 2026-09-29. Verification updated: 2026-09-30. Status: local implementation,
 offline and isolated-browser tests complete. Provider choice and
 button-invoked public-text/source research explicitly owner-approved in this
-conversation. No live account authorization or successful provider call claimed.
+conversation. First live sign-in failed after callback receipt; no verified
+authorization or successful provider call is claimed.
 
 ## Authority and scope
 
@@ -113,6 +114,25 @@ code blocker. Service 132/132, loopback 2/2, extension 799/799, indicator
 local mechanics only; live account/search eligibility and useful output remain
 untested and require the owner's own sign-in. No new capture, token retention,
 publication or release approval follows.
+
+## 2026-09-30 first owner login and diagnostic boundary (0.12.2)
+
+The first real authorization redirect reached the loopback callback but the
+extension reported failure. The callback acknowledgment had only proved local
+receipt; code exchange, OIDC verification and registration ran asynchronously.
+No verified account or successful inference is claimed, and the exact failure
+stage cannot be reconstructed from the prior generic status. The owner was
+advised not to reuse or share authorization URLs and to start a fresh attempt.
+
+The callback page now explicitly states that verification is incomplete. The
+paired status may expose one of nine fixed diagnostic stages; the extension
+renders only fixed English messages. These in-memory stages do not contain
+codes, state, tokens, callback URLs, provider bodies, request IDs or account
+identifiers. Public callback HTML remains generic. Disconnect fences in-flight
+callback outcomes from restoring stale status. No diagnostic is persisted or
+sent to telemetry, and no new provider call is automatic. An independent
+security review found no new secret-exposure blocker. The existing five-minute
+attempt lease is unchanged until live evidence shows whether it is too short.
 
 Primary documentation checked 2026-09-29:
 

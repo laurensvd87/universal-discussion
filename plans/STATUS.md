@@ -33,6 +33,30 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.2 first-live-sign-in diagnosis (2026-09-30):** the owner reports that
+OpenAI redirected to the local callback, whose old generic acknowledgment was
+shown, while the extension later said authorization failed. The callback
+contained the expected non-secret parameter names, but its code was not used
+for debugging or saved in this repository. Read-only inspection shows the
+acknowledgment precedes asynchronous code exchange, token/identity verification
+and registration; all failures were collapsed into one UI message. The local
+non-secret registration is not yet completed, so no successful sign-in is
+claimed. Exact root cause remains unknown. The owner was advised to use a fresh
+attempt and never share a callback URL again.
+
+The service and extension now expose only nine fixed, non-secret failure stages
+through authenticated status, with fixed localized guidance; no callback
+values or raw provider responses are logged, persisted or reflected. The public
+callback page explicitly says verification is unfinished. First-registration
+retry and timeout remain bounded; the five-minute lease is unchanged pending
+real evidence. A late callback cannot restore stale failure state after
+Disconnect. Sol Medium coding agents and independent trust review found no
+new secret-exposure blocker. Offline service **137/137**, extension restricted
+**802/802**, indicator **540/540** pass. Synthetic loopback integration and
+Chrome smoke are pending this checkpoint because the owner's Node service holds
+port 4174; it was left running, not terminated. A fresh owner login on the
+restarted 0.12.2 backend is still required to identify the failed stage.
+
 **0.12.1 live-readiness hardening complete (2026-09-30):** the owner asked
 the lead to continue with GPT-6 Sol Medium coding agents. First-registration
 recovery, temporary-versus-terminal refresh handling, and an explicit
@@ -105,7 +129,7 @@ changes.
 
 No live login/inference is claimed. Next owner check is official ChatGPT login,
 account/model/search eligibility and a useful public-page result, following the
-[browser guide](../spikes/topic-resolution/browser/README.md#chatgpt-insights-0121).
+[browser guide](../spikes/topic-resolution/browser/README.md#chatgpt-insights-0122).
 Included-plan-only spending must be configured at the provider and confirmed in
 the UI; the application cannot enforce provider billing. Slow model-list or
 revocation calls can exceed the retained five-second HTTP deadline and require
