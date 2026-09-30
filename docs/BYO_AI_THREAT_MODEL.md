@@ -1,8 +1,29 @@
 # BYO AI Threat Model
 
-Status: Proposed; no provider integration authorized
+Status: baseline threat model; ADR-024 now authorizes a bounded owner-invoked
+local ChatGPT PoC. Production/private/remote integration remains gated.
 
-Last reviewed: 2026-09-28
+Last reviewed: 2026-09-29
+
+## Current implementation boundary
+
+[ADR-024](../decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md) records the
+owner's explicit ChatGPT connection and public-text/source-research approval.
+The local implementation uses popup-memory input/result previews, memory-only
+OAuth credentials in the paired service, no paid API fallback and a separate
+local Share action. Provider web research is restricted to supplied source
+domains and cannot inherit browser login cookies. The original first-proof
+tool-free rule below applies to the synthetic transport/auth proof; the owner-
+requested research step specifically permits the bounded hosted web tool, not
+custom tools, autonomous posting, shell, MCP or arbitrary browsing capture.
+
+Synthetic demo actor selection is not secure multi-user ownership. Private
+article drafts never enter local-public projections unless explicitly reviewed
+and shared as text; this is not ready for remote users. Visible page prose may
+contain secrets despite form/hidden-content exclusions. Preview and public-only
+scope are required, not a guarantee of automated secret removal. `store:false`
+does not establish zero provider retention. All later private/remote/spending/
+publication gates survive.
 
 Owners: Trust/security/privacy with Platform, Product, and Quality review
 
@@ -61,7 +82,12 @@ Trust boundaries include page/DOM to extension, extension to platform, platform 
 
 ## Credential architecture options requiring research
 
-No option is accepted. Provider terms, delegated-auth availability, scopes, retention controls, revocation, regional processing, and whether developer/API access is distinct from consumer subscriptions must be verified from current primary sources.
+These are the original architecture alternatives. ADR-024 now selects a local
+service-owned delegated ChatGPT flow with memory-only tokens for this owner PoC,
+not a production credential vault. Other providers, persistent secrets and remote
+custody remain unapproved. Provider terms, scopes, retention, revocation, regional
+processing and consumer-plan eligibility still require current evidence for any
+expanded deployment.
 
 1. **Provider-delegated authorization:** preferred when a provider offers a suitable third-party OAuth/delegation flow. Limits raw-key handling but still requires token vaulting, scope, refresh, revocation, and provider-term review.
 2. **Server-side encrypted user key vault:** operationally straightforward but makes the platform a high-value credential custodian. Requires explicit owner acceptance, key-management design, isolated decryption/inference path, access audit, rotation/revocation, incident response, and proof secrets never enter general logs/backups.

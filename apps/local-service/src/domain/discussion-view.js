@@ -37,6 +37,7 @@ function projectContribution(entry, state) {
   return {
     id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId,
     state: "visible", authorId: entry.authorId, actorType: entry.actorType,
+    ...(entry.insight ? { insight: entry.insight } : {}),
     body: entry.revisions.at(-1).body, createdAt: entry.createdAt, edited: entry.revisions.length > 1,
     ...(source ? { origin: { sourceId: source.id, url: source.url, title: source.title } } : {}),
     ...(entry.rootId === null && entry.originalTopicId !== currentTopicId ? { regrouped: true } : {}),

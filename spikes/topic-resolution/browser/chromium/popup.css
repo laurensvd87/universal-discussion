@@ -39,6 +39,43 @@ body[data-ui-mode="user"] .discussion-contribution button { min-height: 30px; wi
 body[data-ui-mode="user"] #discussion-submit { background: #2469ad; }
 body[data-ui-mode="user"] #discussion-demo-identity { font-size: 11px; color: #637389; }
 body[data-ui-mode="user"] #page-matching { box-shadow: none; background: #f8fafc; }
+body[data-ui-mode="user"] #local-insights { display: block; padding: 0 16px; border-color: #dce6f1; background: #fff; box-shadow: 0 8px 24px #233a590d; }
+body[data-ui-mode="user"] #insight-workspace { border: 0; padding: 0; }
+body[data-ui-mode="user"] #insight-workspace > summary { padding: 16px 0; color: #174b77; font-size: 15px; }
+body[data-ui-mode="user"] .capture-settings { border: 1px solid #dce6f1; border-radius: 10px; padding: 10px 13px; background: #f8fafc; }
+body[data-ui-mode="user"] .capture-settings > summary { font-size: 11px; color: #627387; }
+body[data-ui-mode="user"] .capture-settings:not([open]) { padding: 8px 12px; }
+body[data-ui-mode="developer"] .capture-settings > summary { margin-bottom: 10px; }
+.insight-shortcut { justify-self: start; width: auto; min-height: 34px; padding: 0 14px; background: #e8f1fb; color: #17578d; font-size: 12px; }
+.insight-shortcut:hover, .insight-shortcut:focus-visible { background: #d8e9fb; color: #124a78; }
+#local-insights [hidden] { display: none; }
+#insight-workspace[open] { display: grid; gap: 12px; }
+#insight-workspace > summary { list-style-position: inside; }
+#insight-workspace > :not(summary) { margin-top: 0; }
+#insight-workspace > p { margin: 0; }
+#insight-ai-controls { display: grid; gap: 10px; }
+#insight-ai-status { order: -1; padding: 7px 9px; border-radius: 8px; background: #f1f5f9; color: #526478; font-size: 11px; }
+#insight-ai-status[data-state="connected"] { background: #e4f5e9; color: #17633a; }
+#insight-ai-status[data-state="connecting"] { background: #e8f1fb; color: #17578d; }
+.insight-subdetails { border: 1px solid #e1e8ef; border-radius: 9px; padding: 9px 11px; background: #fbfdff; }
+.insight-subdetails > summary { color: #2d597b; font-size: 12px; }
+.insight-subdetails[open] > :not(summary) { margin-top: 8px; }
+#insight-account-details button { min-height: 32px; margin-top: 6px; background: #eef4fa; color: #215d8c; font-size: 11px; }
+#insight-account-details button:hover { background: #e0edf9; }
+#insight-account-details label, #insight-source-details label { display: block; }
+#insight-ai-controls label[for="insight-cost-consent"],
+#insight-source-details label[for="insight-include-discussion"] {
+  color: #364b5f; font-size: 12px; font-weight: 600; letter-spacing: 0; line-height: 1.45; text-transform: none;
+}
+#insight-ai-controls label[for="insight-cost-consent"] { margin-top: 4px; }
+#insight-source-details input[type="checkbox"], #insight-ai-controls input[type="checkbox"] { vertical-align: middle; }
+#insight-readPageText, #insight-prepare { background: #e8f1fb; color: #17578d; font-size: 12px; min-height: 36px; }
+#insight-readPageText:hover, #insight-prepare:hover { background: #d8e9fb; }
+#insight-createInsights { background: #2469ad; }
+#insight-cancelInsights { background: #eef2f6; color: #39546c; font-size: 11px; min-height: 32px; }
+.insight-warning { padding: 9px 10px; border-radius: 8px; color: #7d4128 !important; background: #fff3e9; font-size: 11px; }
+.insight-send-scope { font-size: 11px !important; }
+#insight-citations { overflow-wrap: anywhere; }
 
 * {
   box-sizing: border-box;
@@ -380,6 +417,13 @@ footer {
   margin: 0;
   padding-left: 18px;
 }
+
+.insight-workspace p { line-height: 1.5; }
+.insight-sources { padding-left: 20px; }
+.insight-sources p { margin: 4px 0; overflow-wrap: anywhere; }
+.insight-preview { border-left: 3px solid #28738a; padding-left: 14px; margin-top: 16px; }
+.insight-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.insight-provenance { color: #28577b; font-size: 12px; font-weight: 650; }
 
 .related-pages-list li {
   display: grid;

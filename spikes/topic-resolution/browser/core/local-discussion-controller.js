@@ -15,6 +15,11 @@ export function selectedPostingSource(state) {
   return state.phase === "ready" && source?.topicId === state.topicId &&
     ["automatic", "background", "manual"].includes(state.selection) ? source : null;
 }
+export function ownsContribution(entry, actorId) {
+  return entry?.state === "visible" && (entry.actorType === "agent"
+    ? entry.insight?.kind === "manual-import" && entry.insight.operatorId === actorId
+    : entry.authorId === actorId);
+}
 
 // Owns transient selection/drafts only; the service owns all canonical data.
 export function createLocalDiscussionController({ client, session, readActiveTab,
@@ -240,7 +245,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     const entries = state.discussion.roots.flatMap((root) => [root, ...root.replies]);
     const target = entries.find((entry) => entry.id === targetId);
     if (mode !== "root" && (!target || target.state !== "visible")) return false;
-    if (mode === "edit" && target.authorId !== state.actorId) return false;
+    if (mode === "edit" && !ownsContribution(target, state.actorId)) return false;
     const root = mode === "reply" ? state.discussion.roots.find((entry) => entry.id === (target.rootId ?? target.id)) : null;
     if (mode === "reply" && root?.state !== "visible") return false;
     publish({ draft: { body: mode === "edit" ? target.body : "", detached: false, mode, targetId } });
@@ -279,7 +284,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (ownEpoch !== epoch || disposed) return false;
       confirmed = true;
       if (command.type === "create-topic" || learned) detach();
-      else publish({ draft: { body: "", detached: false, mode: "root", targetId: null } });
+      else if (command.type !== "share-insight") publish({ draft: { body: "", detached: false, mode: "root", targetId: null } });
       if (reset) { detach(); publish({ topicId: null, sourceId: null, selection: null, catalog: null, discussion: null, related: null }); }
       if (command.type === "create-topic") {
         manualSelection += 1;
@@ -326,8 +331,17 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   function withdraw(contributionId) {
     const target = state.discussion?.roots.flatMap((root) => [root, ...root.replies]).find((entry) => entry.id === contributionId);
-    if (!target || target.state !== "visible" || target.authorId !== state.actorId) return Promise.resolve(false);
+    if (!ownsContribution(target, state.actorId)) return Promise.resolve(false);
     return mutate({ type: "withdraw", contributionId });
+  }
+  function shareInsight(review) {
+    const version = state.discussion?.version;
+    if (!review || state.phase !== "ready" || state.busy || state.needsFreshRead ||
+        review.topicId !== state.topicId || review.actorId !== state.actorId ||
+        review.sourceId !== (selectedPostingSource(state)?.id ?? null) ||
+        review.expected?.generation !== version?.generation || review.expected?.revision !== version?.revision ||
+        typeof review.body !== "string" || !review.body.trim() || review.body.length > 8_000) return Promise.resolve(false);
+    return mutate({ type: "share-insight", topicId: state.topicId, body: review.body, originSourceId: review.sourceId });
   }
   function createTopic(title, kind) { return mutate({ type: "create-topic", title, kind }); }
   function reset(confirmation) {
@@ -360,6 +374,6 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       draft: { body: "", detached: false, mode: "root", targetId: null } };
   }
   return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor,
-    selectSource, setDraft, reattachDraft, begin, discardDraft, submitDraft, withdraw, createTopic, reset,
+    selectSource, setDraft, reattachDraft, begin, discardDraft, submitDraft, shareInsight, withdraw, createTopic, reset,
     updatePageResolution, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

@@ -1,7 +1,7 @@
 # Local service
 
 Local, service-owned prototype state for Sources, vectors, Topic links,
-Topics, Discussions and human Contributions. S3a adds a deliberately started
+Topics, Discussions and human/AI-assisted Contributions. S3a adds a deliberately started
 loopback listener around the reviewed S1/S2 application. Imports have no listener
 or database side effects. Default tests deny sockets, DNS, fetch and subprocesses.
 The owner approved ADR-016's exact local S3 activation package on 2026-09-28.
@@ -21,6 +21,47 @@ manual corrections without a reset, model installation or additional listener.
 ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
+
+## ChatGPT insights (0.12.0)
+
+The normal CLI now composes the owner-approved optional ChatGPT connector.
+Starting the service does not contact a provider. Connect/model-list/research
+actions are explicit; no API key or ChatGPT browser automation is used. Follow
+the [extension workflow](../../spikes/topic-resolution/browser/README.md#chatgpt-insights-0120).
+
+Paired `/v1/ai/` routes expose connection status, authorization, disconnection,
+the account model list and bounded insight jobs. Only `/auth/callback` is an
+unpaired OAuth callback, with exact Host, state/nonce/PKCE and verified token
+claims. It returns generic HTML; no code or account information is reflected.
+Both use the existing `127.0.0.1:4174` listener. Imports/default dormant composition
+still have no provider network capability.
+
+Access/refresh/ID tokens are process-memory only. Restart requires reauthorization.
+The ignored `data/chatgpt-registration.json` contains the stable installation ID
+and non-secret account mapping (client ID, subject, email/label), not tokens.
+Disconnect clears tokens/jobs and attempts provider revocation; it does not erase
+that registration or deliberately shared comments. Local filesystem protection
+is not encryption. Do not upload the data folder or place it in a shared location.
+
+An insight request temporarily relays up to 4,096 reviewed public-page characters,
+bounded source descriptors and optional human discussion excerpts to OpenAI.
+It does not store article text or private results in SQLite. Completed results
+expire after two minutes, or are purged when consumed/cancelled/disconnected;
+request IDs cannot replay. One research operation at a time, five starts per
+rolling hour per process, bounded stream/output and a 90-second deadline; restart
+resets that local limiter. Provider retention and usage rules still apply.
+
+`share-insight` is an explicit root-only command. It derives the fixed agent
+author and human demo operator server-side, uses the existing revision and source
+anchor checks, and preserves that distinction during edits/withdrawals/regrouping.
+Pasted or edited answers have unverified manual-import provenance, not a verified
+claim about a particular provider/model. Only deliberate shared text and ordinary
+discussion metadata persist. No remote publication occurs.
+
+Offline transports test the connector without any actual account or provider
+call. Live model/web-research availability and useful answer quality are not yet
+established. [ADR-024](../../decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md)
+records the limits and remaining gates.
 
 The separately approved [embedding experiment](experiments/embeddings/README.md)
 has isolated dependencies and ignored assets. It is not loaded by this service.
@@ -62,7 +103,8 @@ The service receives only a normalized eligible URL (2,048 characters), short
 title (200), a 384D unit vector in `e5-small-q8-browser-main-prefix-v1`, extractor
 version and bounded operation ID. `POST /v1/sources/ingest` also requires the
 current `{generation, revision}` in `expected`. No page-body field is accepted;
-there is no server inference, URL fetch or external provider. The browser model
+this background-matching route has no server inference, URL fetch or provider.
+The separate explicit ChatGPT insight action is described above. The browser model
 space remains distinct from the earlier Node experiment.
 
 One current vector/title/link and current operation receipt per Source persist

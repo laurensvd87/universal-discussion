@@ -1,5 +1,62 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## ChatGPT insights (0.12.0)
+
+An optional private research workspace now uses the current public article,
+other pages in its Topic and related perspectives. Nothing runs automatically
+or posts an answer for you. User Mode keeps the main view focused on the Topic
+and conversation; setup, source details and Developer diagnostics are secondary.
+
+Restart the backend using your existing extension Origin and reload the unpacked
+extension. Pair using the new local-service token as usual. Existing SQLite
+Topics/comments are retained; no model download or new extension permission is
+needed. A service restart also ends ChatGPT authorization for this prototype.
+
+For a first test:
+
+1. Open a non-sensitive public article already matched to a Topic. Open **AI
+   insights**. Prepare the local context and inspect the selected page and links.
+2. Choose **Connect ChatGPT** and complete the official sign-in in the opened
+   tab. Return to the article and reopen the extension, then **Check connection**.
+   Never paste your ChatGPT password or token into this app or a chat message.
+3. List available models and choose one. No API key is needed. If your account
+   rejects this preview integration or lists no models, stop; no paid fallback
+   or browser-cookie workaround is attempted.
+4. Prepare/read the current page text. Inspect and redact the visible sample
+   (maximum 4,096 characters). Source titles/URLs and any explicitly included
+   human discussion openings are also sent. Use public pages only: visible prose
+   can contain secrets, and automatic filtering is not a guarantee.
+5. In ChatGPT's app settings, limit this app to included plan usage with paid
+   credits disabled, then confirm that in the extension. **Create insights**
+   sends the reviewed context through this PC's service to OpenAI. The app cannot
+   enforce provider billing settings. Keep the popup open during research.
+6. Read the private result and citations; check claims, edit or discard. It has
+   not been added to the discussion. **Preview insight**, verify its exact Topic,
+   source and text, then **Share insight locally** if useful. It appears with an
+   AI-assisted label; people can reply. Sharing stays on this PC, not the Internet.
+7. Visit another stored page in that Topic and confirm the shared opening is
+   visible there too. Related pages in a different Topic do not share its thread.
+
+The provider may inspect public pages on the supplied domains, including paths
+other than the specific candidate links. It receives no browser cookies/login
+session, so reachable-in-your-browser does not guarantee provider access. Unread
+pages and provisional grouping must not be treated as verified evidence. There
+is no crawler, automatic source ingestion or background AI research.
+
+Unshared context/drafts are memory-only and cleared on context change or popup
+closure. The service briefly holds an in-flight request/result, not a page-text
+archive; completed results have a two-minute fallback expiry and are purged after
+retrieval/cancellation. Closing the popup cancels pending work on a best-effort
+basis, not with a billing guarantee. `store:false` does not mean zero OpenAI
+retention. Sign-in tokens remain in service memory, never extension storage;
+the non-secret account registration remains in its ignored local data folder.
+
+Current validation uses synthetic provider responses and isolated Chrome, not
+your account. Real sign-in, account/search eligibility and insight quality still
+need the owner test above. Manual AI-assisted draft entry works without a
+connected provider. No hosted/commercial/store eligibility is implied.
+See [ADR-024](../../../decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md).
+
 ## Source icons and adaptive Topics (0.11.0)
 
 New page-linked posts have a small **↗** icon: click it (or focus it and press

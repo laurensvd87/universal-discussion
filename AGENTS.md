@@ -47,6 +47,14 @@ return to the lead in this conversation, not a manual user model switch. If
 that configuration is unavailable, report it instead of silently substituting.
 This workflow does not change any owner approval or data/security boundary.
 
+ADR-024 now records the explicitly approved owner-local ChatGPT insights PoC:
+user-invoked public article/context research, private preview, and separately
+confirmed AI-labelled local sharing. Version 0.12.0 and a compact User Mode are
+implemented/offline and isolated-Chrome tested; read current STATUS for evidence and
+owner login. Do not repeat provider selection approval or completed review gates.
+No automatic AI call/post, private-page expansion, paid fallback, persistent
+provider tokens, new model/permissions, remote service or release is authorized.
+
 ## Original bootstrap task (completed; retained as history)
 
 For a new bootstrap, first read `PROJECT_CHARTER.md`, `README.md`, and the referenced files under `docs/`, `agents/`, `plans/`, `research/`, and `decisions/`, then complete Phase 0. Do not repeat these completed steps on continuation:

@@ -8,6 +8,10 @@ import { createIndicatorController } from "../core/indicator-controller.js";
 import { createPageMetadataController } from "../core/page-metadata-controller.js";
 import { mountRelatedPagesDemo } from "./related-pages-panel.js";
 import { mountDiscussionPanel } from "./discussion-panel.js";
+import { mountInsightPanel } from "./insight-panel.js";
+import { createInsightController } from "../core/insight-controller.js";
+import { createLocalAiClient } from "../core/local-ai-client.js";
+import { createInsightPageReader } from "./insight-page-reader.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { mountPopupShell } from "./popup-shell.js";
 import { connectPopupFocusResponder } from "./popup-focus.js";
@@ -169,15 +173,21 @@ const relatedPagesDemo = mountRelatedPagesDemo(
 );
 
 const tabsApi = globalThis.chrome.tabs;
+const scriptingApi = globalThis.chrome.scripting;
 const activeTabReader = createActiveTabReader(tabsApi);
+const insightPageReader = createInsightPageReader({ scriptingApi, readActiveTab: activeTabReader.read });
 const tabLifecycleObserver = createTabLifecycleObserver(tabsApi);
 const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"));
+const insightPanel = mountInsightPanel(document, document.querySelector("#local-insights"));
+let insightController;
 const popupShell = mountPopupShell(document, {
   storageLocal: globalThis.chrome.storage.local,
   onModeChange: discussionPanel.setMode,
 });
 const localSession = createLocalServiceSession({ storageSession: globalThis.chrome.storage.session });
-const localClient = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: localSession.getToken });
+const localTransport = globalThis.fetch.bind(globalThis);
+const localClient = createLocalServiceClient({ fetchImpl: localTransport, getToken: localSession.getToken });
+const aiClient = createLocalAiClient({ fetchImpl: localTransport, getToken: localSession.getToken });
 let matchingPanel;
 // Ask for fresh background evidence only when a service projection changes.
 // No Topic, post count or connection claim crosses this authenticated message.
@@ -210,8 +220,20 @@ const localDiscussion = createLocalDiscussionController({
   lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
   readPageResolution: () => matchingPanel.readResolution(),
   pausePageMatching: () => matchingPanel.pauseMatching(),
-  onStateChange: (state) => { discussionPanel.render(state); popupShell.render(state); observeToolbar(state); },
+  onStateChange: (state) => {
+    discussionPanel.render(state); popupShell.render(state); observeToolbar(state);
+    insightController?.observe(state);
+  },
 });
+insightController = createInsightController({
+  shareInsight: localDiscussion.shareInsight,
+  onStateChange: insightPanel.render,
+  aiClient,
+  readArticle: insightPageReader.read,
+  attestArticle: insightPageReader.attest,
+  openAuthorization: (url) => tabsApi.create({ url, active: true }),
+});
+insightPanel.bind(insightController);
 matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-matching"), {
   sendMessage: (message) => runtime.sendMessage(message),
   requestPermission: (request) => globalThis.chrome.permissions.request(request),
@@ -225,7 +247,7 @@ document.querySelector("#product-intro").textContent = EN.discussionIntro;
 document.querySelector("#diagnostic-heading").textContent = EN.discussionDiagnostic;
 document.querySelector("#product-footer").textContent = EN.discussionFooter;
 void localDiscussion.open();
-const pageMetadataReader = createPageMetadataReader(globalThis.chrome.scripting);
+const pageMetadataReader = createPageMetadataReader(scriptingApi);
 const fixtureController = createIndicatorController({
   lookup: lookupIndicatorFixture,
   onStateChange: renderDiscussion,
@@ -244,6 +266,8 @@ const pageMetadataController = createPageMetadataController({
 });
 
 globalThis.addEventListener("pagehide", () => {
+  insightController.dispose();
+  insightPanel.dispose();
   matchingPanel.dispose();
   localDiscussion.dispose();
   discussionPanel.dispose();

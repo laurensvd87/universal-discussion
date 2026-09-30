@@ -1,7 +1,7 @@
 import { EN } from "../locales/en.js";
 import { projectDiscussionShell } from "./popup-shell.js";
 import { readPostOrigin } from "../core/local-service-contract.js";
-import { selectedPostingSource } from "../core/local-discussion-controller.js";
+import { ownsContribution, selectedPostingSource } from "../core/local-discussion-controller.js";
 
 export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -32,15 +32,25 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const topicLabel = node("p", "uiTopicLabel"); topicLabel.className = "topic-eyebrow user-only";
   const topicTitle = node("h1"); topicTitle.id = "selected-topic-title"; topicTitle.className = "user-only";
   const selectionCue = node("p"); selectionCue.id = "selected-topic-provenance"; selectionCue.className = "user-only topic-selection-cue";
+  const insightShortcut = node("button", "uiCreateInsights"); insightShortcut.type = "button";
+  insightShortcut.id = "discussion-ai-insights"; insightShortcut.className = "user-only insight-shortcut";
+  listen(insightShortcut, "click", () => {
+    const workspace = document.querySelector?.("#insight-workspace");
+    if (!workspace) return;
+    workspace.open = true;
+    workspace.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    workspace.querySelector?.("summary")?.focus?.({ preventScroll: true });
+  });
   root.setAttribute("aria-labelledby", heading.id);
   const scope = node("p", "discussionScope"); scope.className = "developer-only";
-  root.append(topicLabel, topicTitle, selectionCue, heading, scope);
-  const status = node("p"); status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); root.append(status);
+  root.append(topicLabel, topicTitle, selectionCue, insightShortcut, heading, scope);
+  const status = node("p"); status.id = "discussion-status"; status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); root.append(status);
   const connectionSettings = node("details"); connectionSettings.id = "discussion-connection-settings";
   connectionSettings.className = "compact-details";
   connectionSettings.append(node("summary", "uiConnectionSetup")); root.append(connectionSettings);
   const advanced = node("details"); advanced.id = "discussion-advanced"; advanced.className = "compact-details";
-  advanced.append(node("summary", "uiAdvanced"), node("p", "discussionScope"));
+  const advancedSummary = node("summary", "uiAdvanced");
+  advanced.append(advancedSummary, node("p", "discussionScope"));
   const token = node("input"); token.type = "password"; token.autocomplete = "off";
   token.spellcheck = false; token.maxLength = 512;
   label(token, "discussionToken", "discussion-token", connectionSettings);
@@ -76,7 +86,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   listen(createForm, "submit", async (event) => {
     event.preventDefault(); if (await controller?.createTopic(title.value, kind.value)) title.value = "";
   });
-  const counts = node("p"); const thread = node("div"); thread.className = "discussion-thread";
+  const counts = node("p"); counts.id = "discussion-counts"; const thread = node("div"); thread.className = "discussion-thread";
   root.append(counts, thread);
   const composer = node("form"); const mode = node("p"); root.append(composer);
   const identity = node("p"); identity.id = "discussion-demo-identity"; composer.append(identity);
@@ -91,7 +101,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   listen(body, "input", () => controller?.setDraft(body.value));
   listen(composer, "submit", (event) => { event.preventDefault(); void controller?.submitDraft(); });
   const reattach = button("discussionReattach", () => { controller?.reattachDraft(); body.focus(); }, composer);
-  button("discussionDiscard", () => { controller?.discardDraft(); body.focus(); }, composer);
+  const discard = button("discussionDiscard", () => { controller?.discardDraft(); body.focus(); }, composer);
   const relatedHeading = node("h3", "discussionRelated"); const model = node("p");
   model.className = "developer-only";
   const related = node("ul"); root.append(relatedHeading, model, related);
@@ -165,6 +175,11 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const card = node("article"); card.className = "discussion-contribution";
     if (entry.state === "deleted") { card.append(node("p", "discussionDeleted")); return card; }
     const author = node("p"); author.textContent = state.catalog.actors.find((item) => item.id === entry.authorId)?.displayName ?? entry.authorId;
+    if (entry.actorType === "agent") {
+      const operator = state.catalog.actors.find((item) => item.id === entry.insight?.operatorId)?.displayName ?? "";
+      author.textContent = text("discussionImportedInsight").replace("{operator}", operator);
+      author.className = "insight-provenance";
+    }
     const content = node("p"); content.className = "discussion-body"; content.textContent = entry.body;
     card.append(author, content);
     if (entry.origin) {
@@ -188,7 +203,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       item.addEventListener("click", callback); threadHandlers.push([item, callback]); card.append(item);
     }
     if (rootEntry.state === "visible") action("discussionReply", () => { if (controller?.begin("reply", entry.id)) body.focus(); });
-    if (entry.authorId === state.actorId) {
+    if (ownsContribution(entry, state.actorId)) {
       action("discussionEdit", () => { if (controller?.begin("edit", entry.id)) body.focus(); });
       action("discussionWithdraw", () => void controller?.withdraw(entry.id));
     }
@@ -207,6 +222,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     topicTitle.textContent = shellView.topicTitle;
     selectionCue.textContent = shellView.selectionCue; selectionCue.hidden = !shellView.selectionCue;
     heading.textContent = text(uiMode === "user" ? "uiDiscussions" : "discussionHeading");
+    advancedSummary.textContent = text(uiMode === "user" ? "uiAdvanced" : "uiAdvancedDeveloper");
+    insightShortcut.disabled = !state.catalog || !["ready", "choose-topic"].includes(state.phase) || state.busy;
     relatedHeading.textContent = text(uiMode === "user" ? "uiRelated" : "discussionRelated");
     identity.textContent = !state.catalog ? "" : text("uiDemoIdentity").replace("{actor}",
       state.catalog.actors.find((entry) => entry.id === state.actorId)?.displayName ?? text("discussionChoose"));
@@ -230,6 +247,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       ready: "discussionReady", disconnected: "discussionDisconnected", connecting: "discussionConnecting",
       loading: "discussionLoading", "choose-topic": "discussionChooseStatus" }[state.phase] ?? "discussionUnavailable"));
     if (state.needsFreshRead) status.textContent += ` · ${text("discussionReload")}`;
+    status.hidden = uiMode === "user" && state.phase === "ready" && !state.error && !state.needsFreshRead;
     const usable = ["ready", "choose-topic"].includes(state.phase) && !state.busy && !state.needsFreshRead;
     pair.disabled = state.busy || state.phase === "connecting";
     token.disabled = pair.disabled; disconnect.disabled = state.busy;
@@ -251,12 +269,15 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     mode.textContent = text((uiMode === "user" ? { root: "discussionComposerRoot", reply: "uiReplyMode", edit: "uiEditMode" }
       : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])
       .replace("{id}", state.draft.targetId ?? "");
+    if (uiMode === "user" && state.draft.mode === "root") mode.textContent = text("uiComposerRoot");
+    submit.textContent = text(uiMode === "user" ? state.draft.mode === "edit" ? "uiSaveChanges" : "uiPostComment" : "discussionSubmit");
+    discard.textContent = text(uiMode === "user" ? "uiDiscard" : "discussionDiscard");
     const postingSource = selectedPostingSource(state);
     originDisclosure.textContent = state.draft.mode === "edit" ? text("discussionOriginEdit") : postingSource
       ? text("discussionOriginDisclosure").replace("{title}", postingSource.title)
       : text("discussionOriginNone");
     const entries = state.discussion?.roots.flatMap((entry) => [entry, ...entry.replies]) ?? [];
-    counts.textContent = state.discussion ? text("discussionCounts")
+    counts.textContent = state.discussion ? text(uiMode === "user" ? "uiContributionCounts" : "discussionCounts")
       .replace("{human}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "human").length))
       .replace("{agent}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "agent").length)) : "";
     // Input updates leave contribution buttons in place so keyboard focus survives.

@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-09-29. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-09-30. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -29,9 +29,67 @@ The core product hypotheses—semantic concentration, personal AI utility and
 community adoption—remain unvalidated. Stop expanding review infrastructure.
 The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
-private/remote/AI/moderation work and all external release gates remain separate.
+private/remote/other-provider/moderation work and all external release gates remain separate.
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
+
+**0.12.0 implementation checkpoint:** the owner approved ChatGPT connection and
+button-invoked public-page/linked-source research; [ADR-024](../decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md)
+records the exact boundary. Sol Medium agents implemented the connection adapter,
+service bridge, extension workflow and UI, with lead review/integration. The
+owner subsequently requested a minimal, clean User UI: the Topic/discussion and
+near-title insight action are prominent; account/model, source details, manual
+drafting and browsing-session controls use progressive disclosure. Developer
+Mode retains diagnostic access; English strings remain in locale packs.
+
+Implemented: supported ChatGPT OAuth via the paired service, process-memory
+tokens, ignored non-secret account registration, account-listed models, explicit
+4,096-character article preview/redaction, bounded same-Topic/related source
+context and optional human roots, domain-limited provider research, private
+result/citations, and separate exact preview/local AI-labelled sharing. The
+backend derives agent identity/operator provenance and enforces revision/source
+ownership. No automatic provider call or publication, raw-text SQLite archive,
+API key, paid fallback, new browser permission or model download. Background
+embedding remains local. Research is capped at one concurrent operation and five
+starts/hour/process, with a 90-second deadline and no retries. Completed service
+results expire after two minutes or are purged after consumption/cancellation.
+
+Review corrections include stale connect/refresh/callback fences, wrong-state
+callback handling, bounded response parsing, account-specific model invalidation,
+cancel/reset/disconnect late-result suppression, strict safe citations, source
+document attestation, and preservation of human versus AI ownership/counts.
+
+Current evidence: service **125/125**, loopback integration **2/2**, extension restricted **795/795**, explicit
+indicator suite **533/533**, focused UI/package **33/33**, final mode/label checks
+**23/23**, controller
+**9/9**; service/extension secret scans **73/173 files, zero findings**. Relative
+links checked in the changed Markdown files resolve; whitespace check passes.
+After the owner freed port 4174, actual **Chrome 154.0.8037.58** passed the full
+isolated action-popup regression: one synthetic insight request, three intercepted
+fixture documents, **zero runtime exceptions and zero external extension requests**.
+This covers reading public article text while excluding form values, source
+context, model choice, explicit cost confirmation, private output/citations,
+separate preview/share, AI-labelled cross-source discussion, operator ownership,
+withdrawal, persistence/re-pairing and deliberate source-icon navigation. Lead
+inspected accurate User Mode top/footer screenshots; account/source/session
+details are collapsed, and the Topic/discussion stays prominent. Only disposable
+profiles/databases and synthetic transports were used, never the owner database
+or a real provider. User Mode uses concise comment/edit/discard/count labels;
+Developer wording remains available. Only redundant success text is hidden;
+loading/errors and demo identity remain explicit. No matching/capture authority
+changes.
+
+No live login/inference is claimed. Next owner check is official ChatGPT login,
+account/model/search eligibility and a useful public-page result, following the
+[browser guide](../spikes/topic-resolution/browser/README.md#chatgpt-insights-0120).
+Included-plan-only spending must be configured at the provider and confirmed in
+the UI; the application cannot enforce provider billing. Slow model-list or
+revocation calls can exceed the retained five-second HTTP deadline and require
+a deliberate status check/retry, not an automatic fallback. Registration remains
+after sign-out; reusable tokens do not. This is a local PoC, not production
+multi-user auth, provider/legal/store clearance or validated insight quality.
+The research-only wording below describes earlier checkpoints, not authority
+to repeat completed reviews or ask again for the already approved connection.
 
 The owner now explicitly redirects investigation from specialist-forum aggregation
 to users' own AI researching the current page and relevant external sources,

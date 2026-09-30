@@ -32,7 +32,11 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   document.querySelector("#ui-mode-toggle").setAttribute("aria-label", EN.uiModeLabel);
   const captureControls = document.querySelector("#capture-controls-link");
   captureControls.textContent = EN.uiCaptureLink;
+  const captureSummary = document.querySelector("#capture-settings-summary");
+  if (captureSummary) captureSummary.textContent = EN.uiCaptureSettings;
   const showCaptureControls = () => {
+    const settings = document.querySelector("#capture-settings");
+    if (settings) settings.open = true;
     const panel = document.querySelector("#page-matching");
     panel.scrollIntoView({ block: "start", behavior: "smooth" });
     panel.focus({ preventScroll: true });
@@ -41,6 +45,12 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   user.textContent = EN.uiUser; developer.textContent = EN.uiDeveloper;
   const preference = createUiModePreference({ storageLocal, onChange(mode) {
     document.body.dataset.uiMode = mode;
+    const settings = document.querySelector("#capture-settings");
+    if (settings) settings.open = mode === "developer";
+    for (const selector of ["#insight-workspace", "#insight-account-details", "#insight-source-details"]) {
+      const section = document.querySelector(selector);
+      if (section) section.open = mode === "developer";
+    }
     user.setAttribute("aria-pressed", String(mode === "user"));
     developer.setAttribute("aria-pressed", String(mode === "developer"));
     onModeChange(mode);

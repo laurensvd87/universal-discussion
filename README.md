@@ -12,11 +12,21 @@ This is a usable local discussion prototype, not a hosted or general-web product
 
 The latest [product investigation](research/AI_INSIGHT_COLD_START_2026-09-29.md)
 prioritizes useful research by the user's own AI, with selected sourced insights
-shared into native discussions visible inside the extension. No AI provider is
-connected and no AI research runs automatically. Earlier external-feed tests are
+shared into native discussions visible inside the extension. ChatGPT connection
+is opt-in; no AI research runs automatically. Earlier external-feed tests are
 research only; first-user value, sharing and growth remain unvalidated.
 
-Extension **0.11.0** adds a clickable ↗ source icon to new page-linked posts:
+Extension **0.12.0** adds a ChatGPT insights PoC: review a bounded public-page
+sample and same-Topic/related links, request research using your account, then
+edit and separately share an AI-labelled discussion opening locally. No API key
+or automatic posting. User Mode is simplified around the Topic, discussion
+and insight action; setup and diagnostics stay secondary.
+See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0120)
+and [ADR-024](decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md).
+Integration evidence is tracked in [STATUS](plans/STATUS.md). Actual account
+eligibility, live research and answer quality still require the owner's test.
+
+Extension **0.11.0** added a clickable ↗ source icon to new page-linked posts:
 it opens that post's source in a new tab. Replies can link their own page while
 staying with their root conversation. Legacy/Topic-only posts have no guessed link.
 New page-anchored roots and all their replies follow the page during regrouping;
@@ -76,7 +86,8 @@ the additional verifier experiment is deferred and persistent pairing stays gate
   stays green even with posts. Matching is still experimental.
 - It connects to the local SQLite service using session-only pairing.
   Create/select Topics, post roots and replies, edit/withdraw local comments and
-  reopen persisted discussions. Human/AI counts stay distinct; no AI posts run.
+  reopen persisted discussions. Human/AI counts stay distinct; AI-assisted drafts
+  are saved only after a separate explicit sharing action.
 - Session opt-in background matching samples rendered main content on eligible sites,
   derives E5 embeddings inside the extension and sends only URL/title/vector and
   versions to the backend on this PC. It stores current Sources and provisional
@@ -97,8 +108,9 @@ the additional verifier experiment is deferred and persistent pairing stays gate
   `127.0.0.1:4174`. The service never fetches Source URLs or runs the embedding
   model. Vectors/scores never appear in display DTOs.
 - The owner's synthetic 6/6 review and isolated model comparison are complete.
-- AI integration, private discussions, moderation, real accounts, remote hosting
-  and mobile are not implemented yet. Matching accuracy remains unvalidated.
+- The initial ChatGPT connector is local-only. Private discussions, moderation,
+  real discussion accounts, remote hosting and mobile are not implemented yet.
+  Matching accuracy remains unvalidated.
 
 The 2026-09-27–28 reassessment found that validation tooling had overtaken the
 usable product. The active plan now prioritizes a local discussion loop,
@@ -113,7 +125,8 @@ Start with [current status](plans/STATUS.md),
 For implementation, use the [concrete handoff](plans/IMPLEMENTATION_HANDOFF.md):
 local service first, extension as API client. S1–S3 are implemented and reviewed;
 ADR-018's exact local browser/model/input package is approved and implemented.
-Broader private/remote/release work remains gated. External web search is deferred.
+Broader private/remote/release work remains gated. General background search is
+deferred; the explicit ChatGPT research action may search supplied public domains.
 The [product reassessment](research/PRODUCT_RESET_2026-09-27.md) and
 [store/legal findings](research/PRODUCT_RESET_POLICY_2026-09-27.md) explain the
 corrections and options. These are research and engineering evidence, not store
@@ -273,9 +286,10 @@ The design avoids a crawler, a mandatory per-site API and a mandatory AI vendor.
 For mobile, investigate sharing and Safari integration before assuming a WebView
 can observe content in other apps.
 
-No provider integration, capture outside ADR-018's selected public sites,
-off-device browsing-data transfer, deployment, purchase, recruitment/publication
-or store submission is authorized by a successful local test. Later gates remain.
+Beyond ADR-024's explicit local ChatGPT action, no new provider integration,
+private capture, off-device browsing-data transfer, deployment, purchase,
+recruitment/publication or store submission is authorized by a successful local
+test. Later gates remain.
 
 ## Project documents
 

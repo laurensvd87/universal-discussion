@@ -19,6 +19,9 @@ export async function runCli(args = process.argv.slice(2)) {
     databasePath: APP_DATABASE_PATH,
     nextId: dependencies.nextId,
     now: dependencies.now,
+    // Explicit runtime composition: provider adapters remain inert until the
+    // paired owner clicks Connect / Create insights. No import-time provider I/O.
+    chatgptFetchImpl: globalThis.fetch.bind(globalThis),
   });
   process.stdout.write(`Local synthetic demo listening at http://${FIXED_HOST}:${FIXED_PORT}\nPairing token (this process only): ${dependencies.capability}\nUse deliberate demo text only. Stop with Ctrl+C.\n`);
   let stopping = false;

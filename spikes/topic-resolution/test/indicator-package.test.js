@@ -38,6 +38,8 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/background.js",
     "chromium/discussion-panel.js",
     "chromium/inference-host.js",
+    "chromium/insight-page-reader.js",
+    "chromium/insight-panel.js",
     "chromium/page-content-reader.js",
     "chromium/page-matching-panel.js",
     "chromium/page-metadata-reader.js",
@@ -55,6 +57,9 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/capture-session.js",
     "core/indicator-contract.js",
     "core/indicator-controller.js",
+    "core/insight-context.js",
+    "core/insight-controller.js",
+    "core/local-ai-client.js",
     "core/local-discussion-controller.js",
     "core/local-service-client.js",
     "core/local-service-contract.js",
@@ -79,6 +84,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "fixtures/local-service-fixture-bridge.js",
     "fixtures/related-source-fixtures.js",
     "locales/en.js",
+    "locales/insight-en.js",
     "manifest.json",
   ]);
 
@@ -86,7 +92,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.11.0",
+    version: "0.12.0",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -236,7 +242,9 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
 
   const popupScript = await readFile(popupScriptPath, "utf8");
   assert.match(popupScript, /createLocalServiceSession\(\{ storageSession: globalThis\.chrome\.storage\.session \}\)/u);
-  assert.match(popupScript, /createLocalServiceClient\(\{ fetchImpl: globalThis\.fetch\.bind\(globalThis\), getToken: localSession\.getToken \}\)/u);
+  assert.match(popupScript, /const localTransport = globalThis\.fetch\.bind\(globalThis\);/u);
+  assert.match(popupScript, /createLocalServiceClient\(\{ fetchImpl: localTransport, getToken: localSession\.getToken \}\)/u);
+  assert.match(popupScript, /createLocalAiClient\(\{ fetchImpl: localTransport, getToken: localSession\.getToken \}\)/u);
   assert.match(popupScript, /void localDiscussion\.open\(\);/u);
   for (const boundary of ["active-tab-reader.js", "page-metadata-reader.js"]) {
     assert.doesNotMatch(await readFile(path.join(browserDirectory, "chromium", boundary), "utf8"), /local-service|storageSession|fetchImpl/u);
@@ -325,6 +333,6 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(script, /observeTabLifecycle: tabLifecycleObserver\.observe/u);
   assert.match(
     script,
-    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*popupShell\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
+    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*insightController\.dispose\(\);\s*insightPanel\.dispose\(\);\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*popupShell\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
   );
 });

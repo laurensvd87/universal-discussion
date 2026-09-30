@@ -3,6 +3,7 @@ import { clone, readBody, readId, readRecord, readText } from "./validation.js";
 import { contributionOrigin, rootAssociation, withdrawAssociation } from "./source-threads.js";
 
 export const STATE_SCHEMA = "demo-state/v2";
+export const IMPORTED_INSIGHT_AUTHOR_ID = "demo-imported-ai";
 export const LIMITS = Object.freeze({ topics: 100, contributions: 1_000, revisions: 50 });
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 
@@ -77,7 +78,7 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     next.topics.push({ id: topicId, title, kind: input.kind, createdAt: timestamp });
     next.discussions.push({ id: discussionId, topicId });
     result = { topicId, discussionId };
-  } else if (type === "create-root") {
+  } else if (type === "create-root" || type === "share-insight") {
     const input = commandRecord(command, ["topicId", "body"], ["originSourceId"]);
     const topicId = readId(input.topicId);
     const discussion = next.discussions.find((entry) => entry.topicId === topicId);
@@ -87,7 +88,9 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     ensureUnused(next, contributionId);
     addContribution(next, {
       id: contributionId, discussionId: discussion.id,
-      rootId: null, replyToId: null, authorId: actor.id,
+      rootId: null, replyToId: null, authorId: type === "share-insight" ? IMPORTED_INSIGHT_AUTHOR_ID : actor.id,
+      actorType: type === "share-insight" ? "agent" : "human",
+      ...(type === "share-insight" ? { insight: { kind: "manual-import", operatorId: actor.id } } : {}),
       body: readBody(input.body), timestamp, originSourceId: origin?.id,
       association: rootAssociation(topicId, origin),
     });
@@ -120,17 +123,18 @@ export function applyCommand(state, command, actor, { nextId, now }) {
   } else if (type === "edit") {
     const input = commandRecord(command, ["contributionId", "body"]);
     const contribution = findContribution(next, readId(input.contributionId));
-    if (contribution.withdrawn || contribution.authorId !== actor.id) fail("forbidden", "Action unavailable");
+    if (contribution.withdrawn || !ownsContribution(contribution, actor.id)) fail("forbidden", "Action unavailable");
     if (contribution.revisions.length >= LIMITS.revisions) fail("capacity", "Capacity reached");
     contribution.revisions.push({ body: readBody(input.body), createdAt: timestamp });
     result = { contributionId: contribution.id };
   } else if (type === "withdraw") {
     const input = commandRecord(command, ["contributionId"]);
     const contribution = findContribution(next, readId(input.contributionId));
-    if (contribution.withdrawn || contribution.authorId !== actor.id) fail("forbidden", "Action unavailable");
+    if (contribution.withdrawn || !ownsContribution(contribution, actor.id)) fail("forbidden", "Action unavailable");
     contribution.withdrawn = true;
     contribution.authorId = null;
     contribution.revisions = [];
+    delete contribution.insight;
     withdrawAssociation(next, contribution);
     result = { contributionId: contribution.id };
   } else {
@@ -150,6 +154,12 @@ function ensureUnused(state, ...ids) {
   if (new Set(ids).size !== ids.length || ids.some((id) => existing.has(id))) fail("conflict", "Identifier collision");
 }
 
+function ownsContribution(contribution, actorId) {
+  return contribution.actorType === "agent"
+    ? contribution.insight?.kind === "manual-import" && contribution.insight.operatorId === actorId
+    : contribution.actorType === "human" && contribution.authorId === actorId;
+}
+
 function addContribution(state, input) {
   if (state.contributions.length >= LIMITS.contributions) fail("capacity", "Capacity reached");
   state.contributions.push({
@@ -158,7 +168,8 @@ function addContribution(state, input) {
     rootId: input.rootId,
     replyToId: input.replyToId,
     authorId: input.authorId,
-    actorType: "human",
+    actorType: input.actorType ?? "human",
+    ...(input.insight ? { insight: input.insight } : {}),
     visibility: "local-public",
     withdrawn: false,
     createdAt: input.timestamp,

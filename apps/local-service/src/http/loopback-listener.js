@@ -9,6 +9,7 @@ export const TRANSPORT_LIMITS = Object.freeze({
   headerNameBytes: 128,
   headerValueBytes: 8_192,
   urlUnits: 2_048,
+  callbackUrlUnits: 8_192,
   requestMs: 5_000,
   connections: 16,
 });
@@ -19,7 +20,9 @@ export function inspectRequestHead(request) {
   const { rawHeaders, method, url } = request;
   if (!Array.isArray(rawHeaders) || rawHeaders.length % 2 !== 0) return { status: 400 };
   if (rawHeaders.length / 2 > TRANSPORT_LIMITS.headerCount) return { status: 431 };
-  if (typeof url !== "string" || url.length > TRANSPORT_LIMITS.urlUnits) return { status: 414 };
+  const urlLimit = method === "GET" && typeof url === "string" && url.startsWith("/auth/callback?")
+    ? TRANSPORT_LIMITS.callbackUrlUnits : TRANSPORT_LIMITS.urlUnits;
+  if (typeof url !== "string" || url.length > urlLimit) return { status: 414 };
   if (!["GET", "POST", "OPTIONS"].includes(method)) return { status: 400 };
   const headers = Object.create(null);
   let bytes = 0;

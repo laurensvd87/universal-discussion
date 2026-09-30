@@ -192,6 +192,16 @@ its separate capture/model/security and R5 approvals.
 Owner: Platform/Client; Lead/Trust/Privacy/Policy review.
 Dependencies: R1 draft/publication flow; R2 is not required for draft UX.
 
+Current implementation authority: [ADR-024](../decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md).
+The owner now approves the local PoC, ChatGPT account connection and explicit
+Create insights action for public article text plus same-Topic/related sources.
+One adapter, a private preview and explicit local AI-labelled sharing are now
+implemented; integrated verification is tracked in STATUS. User Mode is
+simplified around the Topic, discussion and insight entry point. Keep automatic
+provider calls/publication, private pages, paid fallback,
+remote service and store release excluded. Earlier research-only wording below
+is the preceding checkpoint, not a requirement to ask again for ChatGPT selection.
+
 Latest research priority: a single evidence-seeking `Find missing context` flow,
 returning concise sourced findings and an optional genuine discussion question.
 Do not fill empty Topics with automatic summaries or import specialist forums as

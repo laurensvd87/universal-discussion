@@ -38,6 +38,13 @@ coding subagents where supported. Assign bounded, non-overlapping work; return
 checkpoint results to the lead without asking the owner to switch models. Do
 not silently substitute an unavailable model or bypass an approval boundary.
 
+ADR-024 now records the approved owner-local ChatGPT insights PoC: explicitly
+invoked public-page/source research, private preview and separately confirmed
+AI-labelled local sharing. Version 0.12.0 and compact User Mode are implemented;
+read STATUS for current verification and remaining owner login. No automatic
+AI call/post, private-page expansion, paid fallback, persistent provider tokens,
+new permissions/model, remote service or release is authorized.
+
 Preserve these invariants: semantic topics sit between content and discussions; AI identity and provenance are explicit; private AI output never becomes public silently; browsing data and provider credentials are minimized and protected; and irreversible external actions require owner approval.
 
 Prefer small, testable changes with focused validation. Do not invent a stack or provider before the relevant research and ADR exist.

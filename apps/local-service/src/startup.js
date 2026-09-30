@@ -7,6 +7,7 @@ import { createSqliteDemoService } from "./application/create-sqlite-demo-servic
 import { createRequestHandler } from "./http/request-handler.js";
 import { validateStartupConfig } from "./http/startup-config.js";
 import { startLoopbackListener } from "./http/loopback-listener.js";
+import { createChatGPTRuntime } from "./ai/chatgpt-runtime.js";
 
 export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
 
@@ -18,14 +19,17 @@ export function createProcessDependencies() {
   });
 }
 
-export function openDormantLocalApplication({ config: input, databasePath, nextId, now }) {
+export function openDormantLocalApplication({ config: input, databasePath, nextId, now, chatgptFetchImpl, ai }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
   const database = createSqliteDemoService({ databasePath, nextId, now });
+  let runtime;
+  try { runtime = ai ?? createChatGPTRuntime({ service: database.service, dataDir: path.dirname(databasePath), fetchImpl: chatgptFetchImpl }); }
+  catch (error) { database.close(); throw error; }
   return Object.freeze({
     config,
-    handle: createRequestHandler({ service: database.service, config }),
-    close: database.close,
+    handle: createRequestHandler({ service: database.service, config, ai: runtime }),
+    close() { runtime?.dispose?.(); database.close(); },
   });
 }
 

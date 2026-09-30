@@ -51,6 +51,23 @@ test("posting origin command is optional opaque ID/null only; edits cannot overw
   assert.throws(() => readCommand({ type: "edit", contributionId: "root-a", body: "Edit", originSourceId: "source-a" }));
   assert.throws(() => readCommand({ ...root, origin: origin() }));
 });
+test("manual insight command and projection are strict about unverified agent provenance", () => {
+  const input = { type: "share-insight", topicId: "topic-a", body: "Selected finding", originSourceId: "source-a" };
+  assert.deepEqual(readCommand(input), input);
+  for (const extra of [{ authorId: "demo-alex" }, { operatorId: "demo-blair" }, { provider: "claimed" }, { model: "claimed" }, { insight: {} }]) {
+    assert.throws(() => readCommand({ ...input, ...extra }));
+  }
+  const root = { ...visiblePost("root-a"), authorId: "demo-imported-ai", actorType: "agent",
+    insight: { kind: "manual-import", operatorId: "demo-alex" }, replies: [] };
+  const value = { version: VERSION, topic: { id: "topic-a", title: "A", kind: "general" }, discussionId: "discussion-a", roots: [root] };
+  assert.deepEqual(readDiscussion(value, "topic-a").roots[0], root);
+  for (const variant of [
+    { ...root, authorId: "demo-alex" }, { ...root, insight: { ...root.insight, provider: "claimed" } },
+    { ...root, insight: { ...root.insight, operatorId: "unknown" } }, { ...root, insight: { kind: "attested", operatorId: "demo-alex" } },
+    { ...root, insight: undefined }, { ...root, actorType: "human" },
+    { ...root, replies: [{ ...visiblePost("reply-a", "root-a"), actorType: "agent", authorId: "demo-imported-ai", insight: root.insight }] },
+  ]) assert.throws(() => readDiscussion({ ...value, roots: [variant] }, "topic-a"));
+});
 function json(value, status = 200, headers = {}) {
   return new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 }

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -50,6 +51,32 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
   const tasks = new Set();
   let deadline;
   let stage = "initializing";
+  let syntheticInsightRequests = 0;
+  let userModeScreenshot = null;
+  let userModeFooterScreenshot = null;
+  const syntheticJobs = new Map();
+  // Trusted test seam only. This never signs in or contacts a provider.
+  const syntheticAi = {
+    status: () => ({ connected: true, pending: false, account: { clientId: "synthetic-client", label: "Synthetic browser test account" } }),
+    models: async () => ({ models: [{ slug: "synthetic-model", displayName: "Synthetic browser test model" }] }),
+    create(value, actorId) {
+      assert.equal(actorId, "demo-alex");
+      assert.equal(value.context.currentSource.url, "https://example.org/");
+      assert.ok(value.context.sameTopicSources.some(source => source.url === "https://example.com/"));
+      assert.ok(value.articleText.includes("Public synthetic article"));
+      assert.equal(value.articleText.includes("excluded-form-value"), false);
+      syntheticInsightRequests++;
+      syntheticJobs.set(value.operationId, { operationId: value.operationId, state: "completed", result: {
+        body: "Synthetic generated comparison [1].", model: "synthetic-model",
+        citations: [{ url: "https://example.com/", title: "Synthetic comparison source", startIndex: 31, endIndex: 34 }],
+      } });
+      return { operationId: value.operationId, state: "running" };
+    },
+    result: value => syntheticJobs.get(value.operationId),
+    cancel: value => { syntheticJobs.delete(value.operationId); return { cancelled: true }; },
+    disconnect: async () => ({ revocationConfirmed: true }),
+    reset: () => syntheticJobs.clear(), dispose: () => syntheticJobs.clear(),
+  };
   const stop = () => { void browser?.close(); };
   function schedule(operation, target) {
     const task = Promise.resolve().then(operation).catch(error => {
@@ -158,7 +185,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
   }
   async function startService(token) {
     const dependencies = createProcessDependencies();
-    application = await startLocalApplication({ databasePath, nextId: dependencies.nextId, now: dependencies.now,
+    application = await startLocalApplication({ databasePath, nextId: dependencies.nextId, now: dependencies.now, ai: syntheticAi,
       config: { host: "127.0.0.1", port: 4174, origin: `chrome-extension://${extensionId}`, capability: token } });
   }
   async function post(body) {
@@ -220,7 +247,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
         await browser.send("Fetch.continueRequest", { requestId }, sessionId);
       } else if (resourceType === "Document" && ["https://example.com/", "https://example.org/"].includes(request.url)) {
         interceptedFixtureDocuments += 1;
-        const html = "<!doctype html><meta charset=utf-8><title>Project-created reserved-domain browser smoke fixture</title><p>Synthetic fixture only.</p>";
+        const html = "<!doctype html><meta charset=utf-8><title>Project-created reserved-domain browser smoke fixture</title><main><h1>Public synthetic article</h1><p>This project-created article compares two reserved-domain examples and contains no real reporting. The related page is another perspective for a synthetic insight.</p><form><input value='excluded-form-value'></form></main>";
         await browser.send("Fetch.fulfillRequest", { requestId, responseCode: 200,
           responseHeaders: [{ name: "Content-Type", value: "text/html; charset=utf-8" }], body: Buffer.from(html).toString("base64") }, sessionId);
       } else {
@@ -333,6 +360,76 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
       if (sourceId === "reserved-example-com") await post("Synthetic shared reserved-domain browser root");
       else assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic shared reserved-domain browser root')`));
     }
+    stage = "local-insight-preview";
+    await click("#insight-prepare");
+    await waitExpression("!document.querySelector('#insight-composer').hidden", "local research context prepared");
+    assert.ok(await evaluate("document.querySelector('#insight-context').textContent.includes('https://example.com/') && document.querySelector('#insight-context').textContent.includes('https://example.org/')"));
+    await input("#insight-body", "Synthetic AI-assisted comparison; not a provider-generated finding.");
+    assert.ok(await evaluate("document.querySelector('#insight-preview').hidden"));
+    await click("#insight-review");
+    await waitExpression("!document.querySelector('#insight-preview').hidden", "insight explicit preview");
+    assert.ok(await evaluate("document.querySelector('#insight-preview-origin').textContent.includes('https://example.org/')"));
+    await click("#insight-share");
+    await waitExpression(`${THREAD}.textContent.includes('Synthetic AI-assisted comparison') && ${THREAD}.textContent.includes('AI-assisted') && ${THREAD}.textContent.includes('unverified manual import')`, "AI-labelled local insight share");
+    await waitStatus(EN.discussionReady);
+    const insightId = await evaluate(`Array.from(${THREAD}.querySelectorAll('article')).find(item=>item.textContent.includes('Synthetic AI-assisted comparison')).querySelector('[data-action=withdraw]').dataset.contributionId`);
+    await select("#discussion-source", "reserved-example-com");
+    assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic AI-assisted comparison')`));
+    await select("#discussion-actor", "demo-blair");
+    assert.ok(await evaluate(`!${THREAD}.querySelector('[data-action=withdraw][data-contribution-id="${insightId}"]')`));
+    await select("#discussion-actor", "demo-alex");
+    await click(`[data-action=withdraw][data-contribution-id="${insightId}"]`);
+    await waitExpression(`!${THREAD}.textContent.includes('Synthetic AI-assisted comparison')`, "insight withdrawal purge");
+    await waitStatus(EN.discussionReady);
+    stage = "synthetic-ai-insight";
+    await select("#discussion-source", "reserved-example-org");
+    await click("#insight-prepare");
+    await waitExpression("!document.querySelector('#insight-composer').hidden", "provider context prepared");
+    await click("#insight-checkConnection");
+    await waitExpression("document.querySelector('#insight-ai-account').textContent.includes('Synthetic browser test account')", "synthetic AI connection shown");
+    await click("#insight-loadModels");
+    await waitExpression("Array.from(document.querySelector('#insight-model').options).some(option => option.value === 'synthetic-model')", "synthetic model listed");
+    await select("#insight-model", "synthetic-model");
+    await click("#insight-readPageText");
+    await waitExpression("document.querySelector('#insight-article-text').value.includes('Public synthetic article')", "public article prefix read");
+    assert.equal(await evaluate("document.querySelector('#insight-article-text').value.includes('excluded-form-value')"), false);
+    assert.equal(await evaluate("document.querySelector('#insight-preview').hidden"), true);
+    assert.equal(await evaluate(`${THREAD}.textContent.includes('Synthetic generated comparison')`), false);
+    await click("#insight-cost-consent");
+    await click("#insight-createInsights");
+    await waitExpression("document.querySelector('#insight-body').value.includes('Synthetic generated comparison [1].')", "synthetic provider draft received");
+    assert.equal(syntheticInsightRequests, 1);
+    assert.equal(await evaluate(`${THREAD}.textContent.includes('Synthetic generated comparison')`), false);
+    assert.equal(await evaluate("document.querySelector('#insight-preview').hidden"), true);
+    assert.ok(await evaluate(`(() => {
+      const link=document.querySelector('#insight-citations a');
+      return link && link.href==='https://example.com/' && link.target==='_blank' &&
+        link.rel==='noopener noreferrer' && link.referrerPolicy==='no-referrer';
+    })()`));
+    await click("#insight-review");
+    await waitExpression("!document.querySelector('#insight-preview').hidden", "generated insight exact preview");
+    assert.ok(await evaluate("document.querySelector('#insight-preview-body').textContent.includes('Synthetic generated comparison [1].')"));
+    await click("#insight-share");
+    await waitExpression(`${THREAD}.textContent.includes('Synthetic generated comparison [1].') && ${THREAD}.textContent.includes('AI-assisted')`, "generated insight explicitly shared");
+    await waitStatus(EN.discussionReady);
+    const generatedId = await evaluate(`Array.from(${THREAD}.querySelectorAll('article')).find(item=>item.textContent.includes('Synthetic generated comparison [1].')).querySelector('[data-action=withdraw]').dataset.contributionId`);
+    await click(`[data-action=withdraw][data-contribution-id="${generatedId}"]`);
+    await waitExpression(`!${THREAD}.textContent.includes('Synthetic generated comparison [1].')`, "generated insight withdrawal purge");
+    await select("#discussion-source", "reserved-example-com");
+    assert.equal(syntheticInsightRequests, 1);
+    await click("#ui-mode-user");
+    await waitExpression("document.body.dataset.uiMode==='user' && !document.querySelector('#insight-workspace').open", "compact User Mode with collapsed AI");
+    assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic shared reserved-domain browser root')`));
+    await evaluate("window.scrollTo(0, 0)");
+    const screenshot = await browser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, popupSession);
+    userModeScreenshot = path.join(os.tmpdir(), `udl-user-mode-${randomUUID()}.png`);
+    writeFileSync(userModeScreenshot, Buffer.from(screenshot.data, "base64"), { flag: "wx" });
+    await evaluate("document.querySelector('#insight-workspace').scrollIntoView({ block: 'center' })");
+    const footerScreenshot = await browser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, popupSession);
+    userModeFooterScreenshot = path.join(os.tmpdir(), `udl-user-mode-footer-${randomUUID()}.png`);
+    writeFileSync(userModeFooterScreenshot, Buffer.from(footerScreenshot.data, "base64"), { flag: "wx" });
+    await click("#ui-mode-developer");
+    await waitExpression("document.body.dataset.uiMode==='developer'", "restore Developer Mode for keyboard verification");
     await storage(true);
     await evaluate("document.querySelector('#discussion-token').focus()");
     await key("Tab", "Tab", 9);
@@ -363,8 +460,9 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     assert.equal(externalExtensionRequests, 0);
     assert.ok(extensionRequests > 0 && interceptedFixtureDocuments === 3);
     return { browser: version.product, result: "PASS", actualActionPopup: true,
-      covered: ["pairing", "keyboard", "service-source-ranking", "source-selection-invalidation", "topic-create", "root", "reply", "edit", "popup-reopen", "disconnect", "unavailable", "service-restart-token", "withdraw", "reset", "fixture-auto-load", "shared-topic", "inert-markup", "session-only-storage", "bounded-extension-network", "source-icon-keyboard-opens-new-tab-without-opener-or-referrer"],
-      runtimeExceptions, externalExtensionRequests, interceptedFixtureDocuments,
+      covered: ["pairing", "keyboard", "service-source-ranking", "source-selection-invalidation", "topic-create", "root", "reply", "edit", "popup-reopen", "disconnect", "unavailable", "service-restart-token", "withdraw", "reset", "fixture-auto-load", "shared-topic", "inert-markup", "session-only-storage", "bounded-extension-network", "local-insight-context-preview-share-cross-source-ownership-withdrawal", "synthetic-AI-page-read-model-call-citation-preview-share-withdrawal", "source-icon-keyboard-opens-new-tab-without-opener-or-referrer"],
+      runtimeExceptions, externalExtensionRequests, interceptedFixtureDocuments, syntheticInsightRequests,
+      userModeScreenshot, userModeFooterScreenshot,
       scope: "Fresh profile; actual extension action popup; synthetic intercepted pages; no global browser firewall claim" };
   } finally {
     clearTimeout(deadline); process.removeListener("SIGINT", stop); process.removeListener("SIGTERM", stop);

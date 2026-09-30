@@ -100,6 +100,7 @@ export function readCommand(value) {
       item = record(value, ["type", "title", "kind"]);
       return { type: item.type, title: text(item.title, 200), kind: oneOf(item.kind, KINDS) };
     case "create-root":
+    case "share-insight":
       item = record(value, ["type", "topicId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : [])]);
       return { type: item.type, topicId: readId(item.topicId), body: text(item.body, 8000, true),
         ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}) };
@@ -174,6 +175,7 @@ function contribution(value, rootId, isRoot) {
   const fields = state === "deleted" ? ["id", "rootId", "replyToId", "state", "label"] :
     ["id", "rootId", "replyToId", "state", "authorId", "actorType", "body", "createdAt", "edited"];
   if (state === "visible" && Object.hasOwn(value ?? {}, "origin")) fields.push("origin");
+  if (state === "visible" && Object.hasOwn(value ?? {}, "insight")) fields.push("insight");
   if (state === "visible" && isRoot && Object.hasOwn(value ?? {}, "regrouped")) fields.push("regrouped");
   const item = record(value, isRoot ? [...fields, "replies"] : fields);
   const projected = { id: readId(item.id), rootId: nullableId(item.rootId), replyToId: nullableId(item.replyToId), state: oneOf(item.state, ["deleted", "visible"]) };
@@ -181,7 +183,14 @@ function contribution(value, rootId, isRoot) {
   if (state === "deleted") projected.label = oneOf(item.label, ["Deleted"]);
   else {
     if (typeof item.edited !== "boolean" || typeof item.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(item.createdAt) || !Number.isFinite(Date.parse(item.createdAt))) invalid();
-    Object.assign(projected, { authorId: readActorId(item.authorId), actorType: oneOf(item.actorType, ["human"]),
+    const actorType = oneOf(item.actorType, ["human", "agent"]);
+    if (actorType === "agent") {
+      if (!isRoot || item.authorId !== "demo-imported-ai" || !Object.hasOwn(item, "insight")) invalid();
+      const insight = record(item.insight, ["kind", "operatorId"]);
+      if (insight.kind !== "manual-import") invalid();
+      projected.insight = { kind: insight.kind, operatorId: readActorId(insight.operatorId) };
+    } else if (Object.hasOwn(item, "insight")) invalid();
+    Object.assign(projected, { authorId: actorType === "agent" ? item.authorId : readActorId(item.authorId), actorType,
       body: text(item.body, 8000, true), createdAt: item.createdAt, edited: item.edited });
     if (Object.hasOwn(item, "origin")) projected.origin = readPostOrigin(item.origin);
   }

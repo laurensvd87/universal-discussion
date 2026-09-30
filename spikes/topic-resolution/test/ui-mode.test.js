@@ -60,7 +60,8 @@ test("connection relies on successful catalog state; titles clear on context/err
 test("shell uses native keyboard buttons, accessible pressed state, visible connection text and removes listeners", async () => {
   const nodes = new Map();
   const uiActions = [];
-  for (const id of ["#ui-mode-user", "#ui-mode-developer", "#connection-status", "#ui-mode-toggle", "#capture-controls-link", "#page-matching"]) nodes.set(id, {
+  for (const id of ["#ui-mode-user", "#ui-mode-developer", "#connection-status", "#ui-mode-toggle", "#capture-controls-link", "#capture-settings-summary", "#page-matching",
+    "#capture-settings", "#insight-workspace", "#insight-account-details", "#insight-source-details"]) nodes.set(id, {
     attributes: {}, dataset: {}, listeners: new Map(), setAttribute(key, value) { this.attributes[key] = value; },
     addEventListener(key, value) { this.listeners.set(key, value); }, removeEventListener(key) { this.listeners.delete(key); },
     scrollIntoView(value) { uiActions.push(["scroll", id, value]); }, focus(value) { uiActions.push(["focus", id, value]); },
@@ -70,16 +71,24 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
   const shell = mountPopupShell(document, { onModeChange: (mode) => modes.push(mode) });
   assert.equal(document.body.dataset.uiMode, "user");
   assert.equal(nodes.get("#connection-status").attributes.title, EN.uiConnectionLastChecked);
+  assert.equal(nodes.get("#capture-settings-summary").textContent, EN.uiCaptureSettings);
   nodes.get("#ui-mode-developer").listeners.get("click")();
   assert.equal(document.body.dataset.uiMode, "developer");
+  for (const id of ["#capture-settings", "#insight-workspace", "#insight-account-details", "#insight-source-details"])
+    assert.equal(nodes.get(id).open, true);
   assert.equal(nodes.get("#ui-mode-developer").attributes["aria-pressed"], "true");
   shell.render({ phase: "choose-topic", catalog: { topics: [] } });
   assert.equal(nodes.get("#connection-status").textContent, EN.uiConnected);
   nodes.get("#capture-controls-link").listeners.get("click")();
+  nodes.get("#ui-mode-user").listeners.get("click")();
+  assert.equal(nodes.get("#capture-settings").open, false);
+  nodes.get("#capture-controls-link").listeners.get("click")();
+  assert.equal(nodes.get("#capture-settings").open, true);
   assert.equal(document.location.href, "chrome-extension://test/popup.html");
   assert.equal(nodes.get("#capture-controls-link").attributes.href, undefined);
-  assert.deepEqual(uiActions, [["scroll", "#page-matching", { block: "start", behavior: "smooth" }], ["focus", "#page-matching", { preventScroll: true }]]);
+  assert.deepEqual(uiActions, [["scroll", "#page-matching", { block: "start", behavior: "smooth" }], ["focus", "#page-matching", { preventScroll: true }],
+    ["scroll", "#page-matching", { block: "start", behavior: "smooth" }], ["focus", "#page-matching", { preventScroll: true }]]);
   shell.dispose(); assert.equal(nodes.get("#ui-mode-user").listeners.size, 0);
   assert.equal(nodes.get("#capture-controls-link").listeners.size, 0);
-  assert.deepEqual(modes, ["user", "developer"]);
+  assert.deepEqual(modes, ["user", "developer", "user"]);
 });

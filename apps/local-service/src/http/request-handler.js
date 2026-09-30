@@ -6,16 +6,22 @@ import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 export const MAX_BODY_BYTES = 65_536;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
 
-export function createRequestHandler({ service, config }) {
+export function createRequestHandler({ service, config, ai = null }) {
   return async function handle(request) {
     let corsOrigin = null;
     try {
       const normalized = normalizeRequest(request);
       requireHost(normalized.headers, config.hostHeader);
+      if (normalized.url.pathname === "/auth/callback" && ai) {
+        if (normalized.method !== "GET" || normalized.body !== null || Object.hasOwn(normalized.headers, "origin") ||
+            normalized.url.hash || normalized.url.search.length > 8_192) fail("invalid", "Invalid request");
+        ai.callback(`http://${config.hostHeader}${normalized.url.pathname}${normalized.url.search}`);
+        return callbackResponse();
+      }
       if (normalized.method === "OPTIONS") return preflight(normalized, config);
       corsOrigin = requireOrigin(normalized.headers, config.origin);
       requireCapability(normalized.headers.authorization, config.capability);
-      const response = route(normalized, service);
+      const response = await route(normalized, service, ai);
       return jsonResponse(response.status, response.value, corsOrigin);
     } catch (error) {
       const mapped = mapError(error);
@@ -27,10 +33,12 @@ export function createRequestHandler({ service, config }) {
 function normalizeRequest(request) {
   const record = readRecord(request, ["method", "url", "headers", "body"]);
   if (typeof record.method !== "string" || !["GET", "POST", "OPTIONS"].includes(record.method)) fail("method", "Method unavailable");
-  if (typeof record.url !== "string" || !record.url.startsWith("/") || record.url.startsWith("//") || record.url.length > 2_048) fail("invalid", "Invalid request");
+  if (typeof record.url !== "string" || !record.url.startsWith("/") || record.url.startsWith("//") ||
+      record.url.length > (record.method === "GET" && record.url.startsWith("/auth/callback?") ? 8_192 : 2_048)) fail("invalid", "Invalid request");
   let url;
   try { url = new URL(record.url, "http://local.invalid"); } catch { fail("invalid", "Invalid request"); }
-  if (url.origin !== "http://local.invalid" || url.username || url.password || url.hash || url.search) fail("invalid", "Invalid request");
+  if (url.origin !== "http://local.invalid" || url.username || url.password || url.hash ||
+      (url.search && url.pathname !== "/auth/callback")) fail("invalid", "Invalid request");
   if (record.body !== null && typeof record.body !== "string") fail("invalid", "Invalid request");
   if (Buffer.byteLength(record.body ?? "", "utf8") > MAX_BODY_BYTES) fail("oversize", "Request too large");
   return { method: record.method, url, headers: normalizeHeaders(record.headers), body: record.body };
@@ -91,9 +99,23 @@ function preflight(request, config) {
   };
 }
 
-function route(request, service) {
+async function route(request, service, ai) {
   const path = request.url.pathname;
   if (request.method === "GET" && request.body !== null && request.body !== "") fail("invalid", "Invalid request");
+  if (ai && path.startsWith("/v1/ai/")) {
+    if (request.method === "GET" && path === "/v1/ai/status") return { status: 200, value: ai.status() };
+    if (request.method === "GET" && path === "/v1/ai/models") return { status: 200, value: await ai.models() };
+    if (request.method === "POST") {
+      const input = parseJsonBody(request);
+      if (path === "/v1/ai/connect") return { status: 200, value: await ai.connect(input) };
+      if (path === "/v1/ai/disconnect") return { status: 200, value: await ai.disconnect(input) };
+      const actorId = request.headers["x-demo-actor"];
+      if (!actorId) fail("forbidden", "Actor unavailable");
+      if (path === "/v1/ai/insights") return { status: 200, value: ai.create(input, actorId) };
+      if (path === "/v1/ai/insights/result") return { status: 200, value: ai.result(input, actorId) };
+      if (path === "/v1/ai/insights/cancel") return { status: 200, value: ai.cancel(input, actorId) };
+    }
+  }
   if (request.method === "GET" && path === "/v1/health") return { status: 200, value: { protocol: "local-service/v1", capability: "paired-demo" } };
   if (request.method === "GET" && path === "/v1/catalog") return { status: 200, value: service.catalog() };
   const discussionMatch = /^\/v1\/topics\/([^/]+)\/discussion$/u.exec(path);
@@ -122,10 +144,19 @@ function route(request, service) {
     if (path === "/v1/demo/reset") {
       const body = readRecord(input, ["expected", "confirmation"]);
       const state = service.reset(body.expected, body.confirmation);
+      ai?.reset?.();
       return { status: 200, value: { version: { generation: state.generation, revision: state.revision } } };
     }
   }
   fail("not-found", "Object unavailable");
+}
+
+function callbackResponse() {
+  return { status: 200, headers: {
+    "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff",
+    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+    "referrer-policy": "no-referrer",
+  }, body: "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Connection received</title><body><p>Connection received. Return to the extension to check its status.</p></body></html>" };
 }
 
 function parseJsonBody(request) {

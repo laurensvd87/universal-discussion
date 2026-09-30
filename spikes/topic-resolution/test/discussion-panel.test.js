@@ -4,9 +4,9 @@ import { mountDiscussionPanel } from "../browser/chromium/discussion-panel.js";
 import { EN } from "../browser/locales/en.js";
 import { readFileSync } from "node:fs";
 
-function harness(messages) {
+function harness(messages, workspace) {
   const created = [];
-  const document = { createElement(tag) {
+  const document = { querySelector: (selector) => selector === "#insight-workspace" ? workspace : null, createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
       append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; },
       setAttribute(key, value) { this.attributes[key] = value; }, focus() { this.focused = true; },
@@ -22,6 +22,18 @@ function harness(messages) {
   panel.bind(controller);
   return { created, root, panel, calls, byId: (id) => created.find((item) => item.id === id) };
 }
+test("User insight shortcut opens the compact workspace near the Topic", () => {
+  const actions = [];
+  const workspace = { open: false, scrollIntoView: (options) => actions.push(["scroll", options]),
+    querySelector: (selector) => selector === "summary" ? { focus: (options) => actions.push(["focus", options]) } : null };
+  const ui = harness(undefined, workspace);
+  ui.panel.render(state());
+  const shortcut = ui.byId("discussion-ai-insights");
+  assert.equal(shortcut.disabled, false);
+  shortcut.listeners.get("click")();
+  assert.equal(workspace.open, true);
+  assert.deepEqual(actions, [["scroll", { block: "start", behavior: "smooth" }], ["focus", { preventScroll: true }]]);
+});
 function state(patch = {}) {
   return { phase: "ready", busy: false, error: null, actorId: "demo-alex", topicId: "topic-demo", sourceId: null,
     catalog: { model: { status: "fixture-only" }, actors: [{ id: "demo-alex", displayName: "Alex · synthetic" }],
@@ -94,7 +106,7 @@ test("panel renders hostile service text inertly, actual distinct counts, fixtur
   const ui = harness();
   assert.ok(ui.created.some((item) => item.textContent === "<script>hostile topic</script>"));
   assert.ok(ui.created.some((item) => item.textContent === "<img src=x onerror=alert(1)>\nplain text"));
-  assert.ok(ui.created.some((item) => item.textContent === "Human contributions: 1 · Agent contributions: 0"));
+  assert.ok(ui.created.some((item) => item.textContent === "1 human · 0 AI"));
   assert.ok(ui.created.some((item) => item.textContent === EN.discussionModelFixture));
   assert.ok(ui.created.some((item) => item.textContent === EN.discussionDeleted));
   assert.equal(ui.created.some((item) => ["a", "img", "iframe", "script"].includes(item.tag)), false);
@@ -255,10 +267,31 @@ test("display-mode toggles preserve draft/control nodes and actions while hiding
   options.forEach((option, index) => assert.equal(topic.children[index], option));
   assert.deepEqual(ui.calls, calls);
   assert.equal(ui.byId("selected-topic-title").textContent, "<script>hostile topic</script>");
-  assert.match(ui.byId("discussion-demo-identity").textContent, /demo identity/);
+  assert.match(ui.byId("discussion-demo-identity").textContent, /Demo:.*not signed in/u);
   ui.panel.render({ ...snapshot, phase: "error", error: "unavailable" });
   assert.equal(ui.byId("selected-topic-title").textContent, EN.uiTopicUnavailable);
   assert.equal(ui.byId("discussion-connection-settings").open, true);
+});
+
+test("User copy stays concise while Developer labels and action IDs remain intact", () => {
+  const ui = harness();
+  ui.panel.render(state());
+  assert.equal(ui.byId("discussion-submit").textContent, EN.uiPostComment);
+  assert.equal(ui.byId("discussion-discard").textContent, EN.uiDiscard);
+  assert.equal(ui.byId("discussion-counts").textContent, "1 human · 0 AI");
+  assert.equal(ui.byId("discussion-status").hidden, true);
+  assert.equal(ui.byId("discussion-advanced").children[0].textContent, EN.uiAdvanced);
+  ui.panel.render(state({ draft: { body: "Edit", detached: false, mode: "edit", targetId: "root-1" } }));
+  assert.equal(ui.byId("discussion-submit").textContent, EN.uiSaveChanges);
+  ui.panel.render(state({ phase: "loading", error: null }));
+  assert.equal(ui.byId("discussion-status").hidden, false);
+  ui.panel.render(state({ phase: "error", error: "unavailable" }));
+  assert.equal(ui.byId("discussion-status").hidden, false);
+  ui.panel.setMode("developer");
+  assert.equal(ui.byId("discussion-submit").textContent, EN.discussionSubmit);
+  assert.equal(ui.byId("discussion-discard").textContent, EN.discussionDiscard);
+  assert.equal(ui.byId("discussion-counts").textContent, "Human contributions: 1 · Agent contributions: 0");
+  assert.equal(ui.byId("discussion-advanced").children[0].textContent, EN.uiAdvancedDeveloper);
 });
 
 test("User details stay compact through transient choose-topic; connection collapses on success but permits inspection", () => {
