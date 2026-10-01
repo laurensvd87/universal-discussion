@@ -66,6 +66,11 @@ reload the extension for this checkpoint. Native Chrome permission and ChatGPT
 sign-in still require their own initial interaction. Provider-side paid-credit
 settings remain the owner's responsibility; the app cannot enforce them.
 
+The actual Chrome action popup initially exposed a width bug missed by a
+fixed-width tab test. A follow-up CSS correction and real action-popup check
+restore a 410 px User body (380 px Developer body) without horizontal overflow;
+reload the unpacked extension to get this display-only fix.
+
 Extension **0.11.0** added a clickable ↗ source icon to new page-linked posts:
 it opens that post's source in a new tab. Replies can link their own page while
 staying with their root conversation. Legacy/Topic-only posts have no guessed link.

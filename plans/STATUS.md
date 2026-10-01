@@ -33,6 +33,21 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.8 real-popup width correction (2026-10-01):** the original layout smoke
+used `popup.html` as a forced-width tab and missed Chrome action-popup sizing.
+An actual action-popup screenshot was about 55 px wide. Root `max-width`
+constraints circularly capped the 410 px User body to Chrome's initial tiny
+viewport. Removing those constraints and testing via `Extensions.triggerAction`
+now measures User body/client width **410 px** (425 px outer width including
+the scrollbar), Developer **380 px**, no horizontal document overflow, wrapped
+long text and a visible sticky action bar in the actual 510 px popup viewport.
+Extension restricted **834/834** and isolated real-action Chrome smoke pass.
+Reload the unpacked extension to receive the correction. No provider call or
+owner browser profile was used. The owner explicitly approved pushing the
+three preceding commits through 0.12.8 to the named GitHub `main`; that push
+succeeded. This later popup-width correction is a separate local commit and
+has not been pushed.
+
 **0.12.8 public-profile one-click workflow (2026-10-01):** the owner explicitly
 approved both scopes in [ADR-025](../decisions/ADR-025-public-profile-autocapture-and-one-click-insights.md).
 After local pairing and the existing Chrome HTTPS grant, eligible active public
@@ -57,7 +72,8 @@ found no security/privacy blocker. No live owner account inference is claimed;
 the owner must try one deliberate Create action and report only fixed status
 codes if it fails. Native HTTPS access still needs a one-time browser gesture;
 neither legal/store clearance nor private-page capture is approved. GitHub
-push remains blocked until explicit approval of the named remote and payload.
+push of this checkpoint was explicitly approved and succeeded. A later
+popup-width correction remains local pending separate push approval.
 
 **0.12.7 empty-draft UI clarification (2026-10-01):** code inspection confirms
 the owner's empty editor is the manual draft, not a completed ChatGPT result;

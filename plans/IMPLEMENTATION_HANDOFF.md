@@ -2,6 +2,17 @@
 
 Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Newest correction: the actual Chrome action popup was about 55 px wide despite
+the old forced-width tab test. Removing circular root `max-width` caps restores
+a 410 px User body (425 px outer including scrollbar) and 380 px Developer
+body. The new harness opens the real action popup; it verifies no horizontal
+overflow, text wrapping and a sticky visible Create/model bar. Extension
+restricted 834/834 and isolated Chrome smoke pass. Reload the unpacked
+extension; no backend restart is needed for this CSS-only correction.
+The owner approved the three earlier commits through 0.12.8 to the named
+GitHub `main`; that push succeeded. This later width correction is a separate
+local commit and is not yet pushed.
+
 Newest checkpoint: extension/service 0.12.8 implements the owner's two
 explicit ADR-025 approvals for automatic matching in a separate public profile
 and one-click ChatGPT insights. Pairing plus the existing native HTTPS grant
@@ -16,8 +27,8 @@ and 0/176, isolated Chrome one-click/layout/background smokes pass. A read-only
 Sol Medium trust review found no blocker. The owner's live inference remains
 unverified; ask for only fixed status codes after one deliberate Create click,
 never account/callback data or page text. First Chrome HTTPS access still needs
-its native user gesture. Push to GitHub remains blocked pending explicit owner
-approval of the named remote and payload; do not retry without it. ADR-019 C
+its native user gesture. The push of this checkpoint to the named GitHub
+`main` was explicitly approved and succeeded. ADR-019 C
 durable pairing, private/authenticated pages, legal/store review and later
 owner gates remain open.
 
