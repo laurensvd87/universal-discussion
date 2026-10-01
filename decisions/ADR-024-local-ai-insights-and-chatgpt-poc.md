@@ -147,3 +147,25 @@ This does not repeat the completed 6/6 review or authorize the later 200–250-p
 review. Private/remote/multi-user, new provider/spending and publication gates
 remain. A successful local call would not prove insight quality, safe autonomous
 publication, legal/store acceptance or product-market fit.
+
+## 2026-10-01 identity-verification compatibility and diagnostic (0.12.3)
+
+The owner's fresh attempt reached `identity-verification-failed`. That code
+does not identify which local identity check failed and does not imply that the
+provider rejected the account. Official sign-in guidance requires a verified
+JWKS signature, issuer, audience, expiration and nonce; it does not constrain
+the audience claim to a scalar string. The existing verifier accepts only the
+exact client ID or a singleton array containing it, rejects multi-audience
+tokens and mismatched `azp`, and preserves signature, issuer, nonce and time
+checks. No general algorithm/key-policy relaxation is inferred from the live
+report.
+
+The authenticated status can now contain one of six fixed in-memory identity
+substages: `jwks-request-failed`, `jwks-invalid`, `token-header-invalid`,
+`matching-key-invalid`, `signature-invalid` or `claims-invalid`. The extension
+maps them to fixed English guidance. Neither the callback nor the status
+reflects token/claim/JWKS contents, account identifiers or provider body text.
+Substages clear on retry, success and disconnect. This narrows the next owner
+test without reusing a prior code or disclosing secrets. The root cause and a
+successful real-provider connection remain unverified; any further algorithm,
+key or claim-policy change needs evidence and trust review.

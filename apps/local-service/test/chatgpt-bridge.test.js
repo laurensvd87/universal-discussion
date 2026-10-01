@@ -212,16 +212,32 @@ test("authenticated AI status projects only allowlisted in-memory callback stage
   const status = body(await handle(request("GET", "/v1/ai/status")));
   assert.equal(status.error, "connection-failed");
   assert.equal(status.failureStage, "token-exchange-rejected");
+  assert.equal(status.failureSubstage, undefined);
   assert.equal(JSON.stringify(status).includes("SECRET"), false);
   assert.equal((await handle({ method: "GET", url: "/v1/ai/status", headers: { host: config.hostHeader }, body: null })).status, 401);
+  nextError = new ChatGPTConnectionFailure("identity-verification-failed", "matching-key-invalid");
+  await callback();
+  const identityStatus = body(await handle(request("GET", "/v1/ai/status")));
+  assert.equal(identityStatus.failureStage, "identity-verification-failed");
+  assert.equal(identityStatus.failureSubstage, "matching-key-invalid");
+  assert.equal(JSON.stringify(identityStatus).includes("SECRET"), false);
+  nextError = Object.assign(new ChatGPTConnectionFailure("identity-verification-failed"),
+    { failureSubstage: "SECRET_PROVIDER_TEXT" });
+  await callback();
+  assert.equal(ai.status().failureStage, "identity-verification-failed");
+  assert.equal(ai.status().failureSubstage, undefined);
+  assert.equal(JSON.stringify(ai.status()).includes("SECRET"), false);
   nextError = Object.assign(new Error("SECRET_PROVIDER_TEXT"), { failureStage: "registration-failed" });
   await callback();
   assert.equal(ai.status().failureStage, undefined);
+  assert.equal(ai.status().failureSubstage, undefined);
   assert.equal(JSON.stringify(ai.status()).includes("SECRET"), false);
   assert.equal((await handle(request("POST", "/v1/ai/connect", {}))).status, 200);
   assert.equal(ai.status().error, undefined);
+  assert.equal(ai.status().failureSubstage, undefined);
   await ai.disconnect({});
   assert.equal(ai.status().failureStage, undefined);
+  assert.equal(ai.status().failureSubstage, undefined);
   ai.dispose();
 });
 
@@ -271,11 +287,12 @@ test("disconnect fences a late callback failure and permits a fresh callback", a
   assert.equal(ai.status().failureStage, undefined);
   assert.equal((await callback("SECOND_SECRET")).status, 200);
   assert.equal(completions.length, 2);
-  completions[0].reject(new ChatGPTConnectionFailure("token-exchange-rejected"));
+  completions[0].reject(new ChatGPTConnectionFailure("identity-verification-failed", "signature-invalid"));
   await Promise.resolve(); await Promise.resolve();
   assert.equal(ai.status().pending, true);
   assert.equal(ai.status().error, undefined);
   assert.equal(ai.status().failureStage, undefined);
+  assert.equal(ai.status().failureSubstage, undefined);
   connected = true;
   completions[1].resolve();
   await Promise.resolve(); await Promise.resolve(); await Promise.resolve();

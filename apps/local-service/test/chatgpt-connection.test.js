@@ -14,8 +14,8 @@ const SCOPE = "openid profile email offline_access resource.invoke chatgpt.token
 const pair = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const publicJwk = { ...pair.publicKey.export({ format: "jwk" }), kid: "synthetic-key", alg: "RS256", use: "sig" };
 const enc = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
-function idToken(clientId, nonce, changes = {}) {
-  const header = enc({ alg: "RS256", typ: "JWT", kid: "synthetic-key" });
+function idToken(clientId, nonce, changes = {}, headerChanges = {}) {
+  const header = enc({ alg: "RS256", typ: "JWT", kid: "synthetic-key", ...headerChanges });
   const payload = enc({ iss: ISSUER, aud: clientId, sub: "account-1", email: "synthetic@example.com",
     nonce, iat: NOW / 1000, exp: NOW / 1000 + 3600, ...changes });
   const content = `${header}.${payload}`;
@@ -165,6 +165,60 @@ test("OIDC signature, issuer, audience, expiry and nonce failures never activate
   f.setTokens(tokenResponse("oaiapp_synthetic", auth.searchParams.get("nonce"), { id_token: parts.join(".") }));
   await assert.rejects(f.complete(auth));
   assert.deepEqual(f.writes, []);
+});
+
+test("single-client audience arrays are accepted; other audiences and azp are rejected", async () => {
+  for (const claims of [
+    { aud: ["oaiapp_synthetic"] },
+    { aud: ["oaiapp_synthetic"], azp: "oaiapp_synthetic" },
+  ]) {
+    const f = fixture(); const auth = await f.start();
+    f.setTokens(tokenResponse("oaiapp_synthetic", auth.searchParams.get("nonce"), {
+      id_token: idToken("oaiapp_synthetic", auth.searchParams.get("nonce"), claims) }));
+    assert.equal((await f.complete(auth)).connected, true);
+  }
+  for (const claims of [
+    { aud: [] }, { aud: ["oaiapp_other"] },
+    { aud: ["oaiapp_synthetic", "oaiapp_other"] },
+    { aud: "oaiapp_synthetic", azp: "oaiapp_other" },
+    { aud: ["oaiapp_synthetic"], azp: "oaiapp_other" },
+  ]) {
+    const f = fixture(); const auth = await f.start();
+    f.setTokens(tokenResponse("oaiapp_synthetic", auth.searchParams.get("nonce"), {
+      id_token: idToken("oaiapp_synthetic", auth.searchParams.get("nonce"), claims) }));
+    await assert.rejects(f.complete(auth), (error) => error.failureStage === "identity-verification-failed" &&
+      error.failureSubstage === "claims-invalid");
+    assert.deepEqual(f.writes, []);
+  }
+});
+
+test("identity substages identify only fixed verification boundaries", async () => {
+  const scenarios = [
+    { substage: "jwks-request-failed", options: { jwksImpl: () => { throw new Error("SECRET_JWKS"); } } },
+    { substage: "jwks-invalid", options: { jwks: { keys: [] } } },
+    { substage: "token-header-invalid", header: { alg: "ES256" } },
+    { substage: "matching-key-invalid", options: { jwks: { keys: [{ ...publicJwk, kid: "other" }] } } },
+    { substage: "signature-invalid", corruptSignature: true },
+    { substage: "claims-invalid", claims: { nonce: "wrong" } },
+  ];
+  for (const scenario of scenarios) {
+    const f = fixture(scenario.options); const auth = await f.start();
+    let signed = idToken("oaiapp_synthetic", auth.searchParams.get("nonce"), scenario.claims, scenario.header);
+    if (scenario.corruptSignature) {
+      const parts = signed.split(".");
+      parts[2] = `${parts[2][0] === "A" ? "B" : "A"}${parts[2].slice(1)}`;
+      signed = parts.join(".");
+    }
+    f.setTokens(tokenResponse("oaiapp_synthetic", auth.searchParams.get("nonce"), { id_token: signed }));
+    await assert.rejects(f.complete(auth), (error) => {
+      assert.ok(error instanceof ChatGPTConnectionFailure);
+      assert.equal(error.failureStage, "identity-verification-failed");
+      assert.equal(error.failureSubstage, scenario.substage);
+      assert.equal(JSON.stringify(error).includes("SECRET"), false);
+      return true;
+    });
+    assert.deepEqual(f.writes, []);
+  }
 });
 
 test("returning account binds issued client and verified subject without replacing active credentials", async () => {

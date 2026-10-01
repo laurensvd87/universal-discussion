@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## ChatGPT insights (0.12.2)
+## ChatGPT insights (0.12.3)
 
 An optional private research workspace now uses the current public article,
 other pages in its Topic and related perspectives. Nothing runs automatically
@@ -25,7 +25,7 @@ For a first test:
    password or token into this app or a chat message. Never share or reuse the
    full callback URL: its query contains a one-use authorization code and state.
    If sign-in fails, report only the short failure-stage identifier shown in
-   the extension (for example, `token-exchange-rejected`) and start a fresh
+   the extension (for example, `claims-invalid`) and start a fresh
    attempt. Do not paste a URL, screenshot with the address bar, code or token.
    A first-registration exchange can require one fresh retry with the issued
    client ID while the backend process remains running.
@@ -62,9 +62,12 @@ retention. Sign-in tokens remain in service memory, never extension storage;
 the non-secret account registration remains in its ignored local data folder.
 
 Current validation uses synthetic provider responses and isolated Chrome, not
-your account. The first owner sign-in reached the callback but failed after
-receipt; the exact reason was hidden by the old generic status. A fresh attempt
-with 0.12.2 is needed to identify it without collecting credentials. Model/
+your account. The first owner sign-in reached the callback but failed during
+identity verification. Version 0.12.3 adds a fixed, non-secret code for the
+specific local verification step and accepts the standard single-item audience
+array. Neither establishes the cause of the previous failure. Restart the
+backend and reload the extension, then make one fresh sign-in attempt and report
+only the short code if it still fails. Model/
 search eligibility and insight quality also remain unverified. Manual
 AI-assisted draft entry works without a
 connected provider. No hosted/commercial/store eligibility is implied.

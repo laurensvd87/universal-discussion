@@ -1,9 +1,9 @@
 # Implementation handoff: local-service discussion MVP
 
-Updated: 2026-09-30. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
+Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Current checkpoint: **0.12.2 first owner login failed after callback receipt;
-safe failure-stage diagnostics implemented, exact cause pending a fresh test.**
+Current checkpoint: **0.12.3 owner retry reached identity verification;
+the exact failed check awaits one fresh sign-in with fixed substage reporting.**
 ChatGPT insights and compact User Mode remain owner-local. Read ADR-024 and the latest
 STATUS section first. The owner approved implementation, ChatGPT connection and
 explicit public-text/related-source research. Sol Medium agents handle coding;
@@ -14,8 +14,16 @@ The public callback originally acknowledged receipt before asynchronous code
 exchange and verification, then the popup collapsed any failure to one sentence.
 0.12.2 adds nine fixed, non-secret failure stages only to authenticated status,
 updates callback wording, and fences late failures after Disconnect. The owner
-must restart the service/reload the extension and perform a fresh sign-in to
-identify the stage; never ask for or reuse callback URLs, codes or tokens.
+did retry and reported `identity-verification-failed`. Version 0.12.3 accepts
+the client ID in a scalar or single-item audience array, preserves all other
+identity checks and adds six fixed identity substages to authenticated status.
+After backend restart and extension reload, the owner may make one fresh sign-in
+to identify the check if it still fails; never ask for or reuse callback URLs,
+codes or tokens. This does not establish the cause of the earlier failure.
+Synthetic service 139/139, extension restricted 805/805 and indicator/package
+543/543 pass; two secret scans and diff check pass. The owner's Node process
+still occupies port 4174, so isolated loopback/Chrome tests were not repeated
+for this checkpoint. Do not interrupt that process or claim a live sign-in.
 Current service/extension/indicator offline tests pass; isolated loopback and
 Chrome tests cannot bind port 4174 while the owner's running Node service owns
 it. Do not stop that owner process without coordination. See STATUS for counts.

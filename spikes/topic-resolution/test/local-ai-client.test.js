@@ -24,7 +24,8 @@ test("status requires a consistent plan grant and preserves a connected account 
   const verifiedNoPlan = client(async (url) => response(url, { connected: true, planEnabled: false,
     pending: false, account: { clientId: "client-a", label: "Owner" } }));
   assert.deepEqual(await verifiedNoPlan.status(), { connected: true, planEnabled: false,
-    pending: false, account: { clientId: "client-a", label: "Owner" }, error: null, failureStage: null });
+    pending: false, account: { clientId: "client-a", label: "Owner" }, error: null,
+    failureStage: null, failureSubstage: null });
   for (const value of [
     { connected: true, pending: false, account: null },
     { connected: true, planEnabled: "yes", pending: false, account: null },
@@ -52,6 +53,27 @@ test("authenticated status projects only fixed failure stages with the generic e
     { ...base, error: "connection-failed", failureStage: { code: "callback-expired" } },
   ]) await assert.rejects(client(async (url) => response(url, value)).status(), TypeError);
   assert.equal((await client(async (url) => response(url, { ...base, error: "connection-failed" })).status()).failureStage, null);
+});
+
+test("status projects only six fixed identity substages under the exact failure stage", async () => {
+  const base = { connected: false, planEnabled: false, pending: false, account: null };
+  const substages = ["jwks-request-failed", "jwks-invalid", "token-header-invalid",
+    "matching-key-invalid", "signature-invalid", "claims-invalid"];
+  for (const failureSubstage of substages) {
+    const projected = await client(async (url) => response(url, { ...base, error: "connection-failed",
+      failureStage: "identity-verification-failed", failureSubstage })).status();
+    assert.equal(projected.failureSubstage, failureSubstage);
+  }
+  for (const value of [
+    { ...base, failureSubstage: "claims-invalid" },
+    { ...base, error: "connection-failed", failureSubstage: "claims-invalid" },
+    { ...base, error: "connection-failed", failureStage: "registration-failed", failureSubstage: "claims-invalid" },
+    { ...base, error: "connection-failed", failureStage: "identity-verification-failed", failureSubstage: null },
+    { ...base, error: "connection-failed", failureStage: "identity-verification-failed", failureSubstage: "raw-token-data" },
+    { ...base, error: "connection-failed", failureStage: "identity-verification-failed", failureSubstage: { code: "claims-invalid" } },
+  ]) await assert.rejects(client(async (url) => response(url, value)).status(), TypeError);
+  assert.equal((await client(async (url) => response(url, { ...base, error: "connection-failed",
+    failureStage: "identity-verification-failed" })).status()).failureSubstage, null);
 });
 
 test("authorization URL and citation URLs reject unsafe targets", async () => {

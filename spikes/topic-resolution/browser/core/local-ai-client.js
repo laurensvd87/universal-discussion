@@ -7,6 +7,8 @@ const ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "callback-busy", "token-exchange-rejected",
   "token-exchange-failed", "token-response-invalid", "discovery-failed",
   "identity-verification-failed", "registration-failed"]);
+const IDENTITY_FAILURE_SUBSTAGES = new Set(["jwks-request-failed", "jwks-invalid", "token-header-invalid",
+  "matching-key-invalid", "signature-invalid", "claims-invalid"]);
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 function invalid() { throw new TypeError("Invalid local AI response"); }
 function record(value) { if (!value || typeof value !== "object" || Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) invalid(); return value; }
@@ -24,18 +26,23 @@ function publicUrl(value) {
   return url;
 }
 function projectStatus(value) {
-  keys(value, ["connected", "planEnabled", "pending", "account", "error", "failureStage"], ["connected", "planEnabled", "pending", "account"]);
+  keys(value, ["connected", "planEnabled", "pending", "account", "error", "failureStage", "failureSubstage"],
+    ["connected", "planEnabled", "pending", "account"]);
   if (typeof value.connected !== "boolean" || typeof value.planEnabled !== "boolean" || typeof value.pending !== "boolean" ||
       value.planEnabled && !value.connected) invalid();
   if (value.error !== undefined && value.error !== "connection-failed") invalid();
   if (value.failureStage !== undefined &&
       (value.error !== "connection-failed" || !FAILURE_STAGES.has(value.failureStage))) invalid();
+  if (value.failureSubstage !== undefined &&
+      (value.error !== "connection-failed" || value.failureStage !== "identity-verification-failed" ||
+        !IDENTITY_FAILURE_SUBSTAGES.has(value.failureSubstage))) invalid();
   const account = value.account === null || value.account === undefined ? null : record(value.account);
   if (account) keys(account, ["clientId", "label"]);
   if (account && (typeof account.clientId !== "string" || account.clientId.length > 256 || typeof account.label !== "string" || account.label.length > 320 || UNSAFE.test(account.label))) invalid();
   return { connected: value.connected, planEnabled: value.planEnabled, pending: value.pending,
     account: account && { clientId: account.clientId, label: account.label },
-    error: value.error ?? null, failureStage: value.failureStage ?? null };
+    error: value.error ?? null, failureStage: value.failureStage ?? null,
+    failureSubstage: value.failureSubstage ?? null };
 }
 function projectModels(value) {
   keys(value, ["models"]);

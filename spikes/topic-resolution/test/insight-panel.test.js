@@ -238,3 +238,33 @@ test("connection failure renders only fixed stage guidance and clears it on a ne
     status: "connecting", failureStage: null } }));
   assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN.aiConnecting);
 });
+
+test("identity failure displays only fixed reportable substage guidance", () => {
+  const ui = harness();
+  for (const [substage, key] of [
+    ["jwks-request-failed", "aiFailureJwksRequestFailed"],
+    ["jwks-invalid", "aiFailureJwksInvalid"],
+    ["token-header-invalid", "aiFailureTokenHeaderInvalid"],
+    ["matching-key-invalid", "aiFailureMatchingKeyInvalid"],
+    ["signature-invalid", "aiFailureSignatureInvalid"],
+    ["claims-invalid", "aiFailureClaimsInvalid"],
+  ]) {
+    ui.panel.render(state({ ai: { connected: false, planEnabled: false, pending: false,
+      status: "connectionFailed", failureStage: "identity-verification-failed", failureSubstage: substage } }));
+    assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN[key]);
+    assert.match(INSIGHT_EN[key], new RegExp(substage));
+  }
+  for (const [failureStage, failureSubstage] of [
+    ["identity-verification-failed", "raw-token-data"],
+    ["registration-failed", "claims-invalid"],
+  ]) {
+    ui.panel.render(state({ ai: { connected: false, planEnabled: false, pending: false,
+      status: "connectionFailed", failureStage, failureSubstage } }));
+    assert.equal(ui.byId("insight-ai-status").textContent,
+      failureStage === "registration-failed" ? INSIGHT_EN.aiFailureRegistrationFailed : INSIGHT_EN.aiFailureIdentityVerificationFailed);
+    assert.equal(ui.byId("insight-ai-status").textContent.includes("raw-token-data"), false);
+  }
+  ui.panel.render(state({ ai: { connected: false, planEnabled: false, pending: false,
+    status: "disconnected", failureStage: "identity-verification-failed", failureSubstage: "claims-invalid" } }));
+  assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN.aiDisconnected);
+});

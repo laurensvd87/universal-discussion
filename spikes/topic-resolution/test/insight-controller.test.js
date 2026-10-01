@@ -123,7 +123,7 @@ test("connected identity without plan access permits only explicit re-consent an
 
 test("connection failure stage clears on a new attempt and a successful status", async () => {
   let nextStatus = { connected: false, planEnabled: false, pending: false, account: null,
-    error: "connection-failed", failureStage: "callback-expired" };
+    error: "connection-failed", failureStage: "identity-verification-failed", failureSubstage: "claims-invalid" };
   let connects = 0;
   const app = await harness({ aiClient: {
     status: async () => nextStatus,
@@ -131,14 +131,34 @@ test("connection failure stage clears on a new attempt and a successful status",
   }, openAuthorization: async () => {} });
   assert.equal(await app.insight.checkConnection(), false);
   assert.equal(app.insight.currentState().ai.status, "connectionFailed");
-  assert.equal(app.insight.currentState().ai.failureStage, "callback-expired");
+  assert.equal(app.insight.currentState().ai.failureStage, "identity-verification-failed");
+  assert.equal(app.insight.currentState().ai.failureSubstage, "claims-invalid");
   assert.equal(await app.insight.connect(), true);
   assert.equal(connects, 1);
   assert.equal(app.insight.currentState().ai.failureStage, null);
+  assert.equal(app.insight.currentState().ai.failureSubstage, null);
   nextStatus = { connected: true, planEnabled: true, pending: false,
     account: { clientId: "client-a", label: "Owner" } };
   assert.equal(await app.insight.checkConnection(), true);
   assert.equal(app.insight.currentState().ai.status, "connected");
+  assert.equal(app.insight.currentState().ai.failureStage, null);
+  assert.equal(app.insight.currentState().ai.failureSubstage, null);
+});
+
+test("identity substage is scoped to its failure and clears on disconnect", async () => {
+  let nextStatus = { connected: false, planEnabled: false, pending: false, account: null,
+    error: "connection-failed", failureStage: "identity-verification-failed", failureSubstage: "jwks-invalid" };
+  const app = await harness({ aiClient: {
+    status: async () => nextStatus,
+    disconnect: async () => ({ revocationConfirmed: true }),
+  } });
+  await app.insight.checkConnection();
+  assert.equal(app.insight.currentState().ai.failureSubstage, "jwks-invalid");
+  nextStatus = { ...nextStatus, failureStage: "registration-failed" };
+  await app.insight.checkConnection();
+  assert.equal(app.insight.currentState().ai.failureSubstage, null);
+  await app.insight.disconnect();
+  assert.equal(app.insight.currentState().ai.failureSubstage, null);
   assert.equal(app.insight.currentState().ai.failureStage, null);
 });
 

@@ -12,15 +12,27 @@ const MAX_BYTES = 65_536;
 const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "token-exchange-rejected",
   "token-exchange-failed", "token-response-invalid", "discovery-failed",
   "identity-verification-failed", "registration-failed"]);
+const IDENTITY_SUBSTAGES = new Set(["jwks-request-failed", "jwks-invalid", "token-header-invalid",
+  "matching-key-invalid", "signature-invalid", "claims-invalid"]);
 export class ChatGPTConnectionFailure extends Error {
-  constructor(stage) {
+  constructor(stage, substage = null) {
     super("ChatGPT connection could not be verified");
     if (!FAILURE_STAGES.has(stage)) throw new TypeError("Invalid connection failure stage");
+    if (substage !== null && (stage !== "identity-verification-failed" || !IDENTITY_SUBSTAGES.has(substage)))
+      throw new TypeError("Invalid identity verification substage");
     this.failureStage = stage;
+    if (substage !== null) this.failureSubstage = substage;
   }
 }
 
 function invalid() { throw new Error("ChatGPT connection could not be verified"); }
+class IdentityVerificationError extends Error {
+  constructor(substage) {
+    super("ChatGPT identity could not be verified");
+    this.substage = substage;
+  }
+}
+function identityInvalid(substage) { throw new IdentityVerificationError(substage); }
 const UNUSABLE_REFRESH = new Set(["invalid_grant", "invalid_refresh_token", "token_expired",
   "refresh_token_expired", "refresh_token_invalidated", "refresh_token_reused"]);
 class OAuthRequestError extends Error {
@@ -131,27 +143,45 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     return { jwksUri: authEndpoint(value.jwks_uri), revocationEndpoint: authEndpoint(value.revocation_endpoint) };
   }
   async function verifyIdToken(token, clientId, nonce, jwksUri) {
-    requiredText(token, 20_000);
+    try { requiredText(token, 20_000); } catch { identityInvalid("token-header-invalid"); }
     const parts = token.split(".");
-    if (parts.length !== 3) invalid();
-    const header = jwtPart(parts[0]), claims = jwtPart(parts[1]);
+    if (parts.length !== 3) identityInvalid("token-header-invalid");
+    let header, claims;
+    try { header = jwtPart(parts[0]); } catch { identityInvalid("token-header-invalid"); }
+    try { claims = jwtPart(parts[1]); } catch { identityInvalid("claims-invalid"); }
     if (header?.alg !== "RS256" || typeof header.kid !== "string" || !header.kid ||
-        (header.typ !== undefined && header.typ !== "JWT") || header.crit !== undefined) invalid();
-    const jwks = await request(jwksUri);
-    if (!Array.isArray(jwks?.keys) || jwks.keys.length < 1 || jwks.keys.length > 20) invalid();
+        (header.typ !== undefined && header.typ !== "JWT") || header.crit !== undefined)
+      identityInvalid("token-header-invalid");
+    let jwks;
+    try { jwks = await request(jwksUri); } catch { identityInvalid("jwks-request-failed"); }
+    if (!Array.isArray(jwks?.keys) || jwks.keys.length < 1 || jwks.keys.length > 20 ||
+        jwks.keys.some((key) => !key || typeof key !== "object" || Array.isArray(key)))
+      identityInvalid("jwks-invalid");
     const matches = jwks.keys.filter((key) => key.kid === header.kid && key.kty === "RSA" &&
       (!key.use || key.use === "sig") && (!key.alg || key.alg === "RS256") && !key.d);
-    if (matches.length !== 1) invalid();
+    if (matches.length !== 1) identityInvalid("matching-key-invalid");
     let key;
     try { key = createPublicKey({ key: matches[0], format: "jwk" }); }
-    catch { invalid(); }
-    if (!verifySignature("RSA-SHA256", Buffer.from(`${parts[0]}.${parts[1]}`), key, Buffer.from(parts[2], "base64url"))) invalid();
+    catch { identityInvalid("matching-key-invalid"); }
+    let signatureValid;
+    try { signatureValid = verifySignature("RSA-SHA256", Buffer.from(`${parts[0]}.${parts[1]}`), key,
+      Buffer.from(parts[2], "base64url")); }
+    catch { identityInvalid("signature-invalid"); }
+    if (!signatureValid) identityInvalid("signature-invalid");
     const seconds = Math.floor(now() / 1000);
-    if (claims.iss !== ISSUER || claims.aud !== clientId || nonce !== null && claims.nonce !== nonce ||
+    if (!claims || typeof claims !== "object" || Array.isArray(claims)) identityInvalid("claims-invalid");
+    const audienceMatches = claims.aud === clientId ||
+      Array.isArray(claims.aud) && claims.aud.length === 1 && claims.aud[0] === clientId;
+    if (claims.iss !== ISSUER || !audienceMatches ||
+        claims.azp !== undefined && claims.azp !== clientId ||
+        nonce !== null && claims.nonce !== nonce ||
         typeof claims.sub !== "string" || !claims.sub || !Number.isInteger(claims.exp) ||
         !Number.isInteger(claims.iat) || claims.exp <= seconds - 5 || claims.iat > seconds + 5 ||
-        (claims.nbf !== undefined && (!Number.isInteger(claims.nbf) || claims.nbf > seconds + 5))) invalid();
-    return { subject: requiredText(claims.sub, 256), email: typeof claims.email === "string" &&
+        (claims.nbf !== undefined && (!Number.isInteger(claims.nbf) || claims.nbf > seconds + 5)))
+      identityInvalid("claims-invalid");
+    let subject;
+    try { subject = requiredText(claims.sub, 256); } catch { identityInvalid("claims-invalid"); }
+    return { subject, email: typeof claims.email === "string" &&
       claims.email.length <= 320 && !/[\u0000-\u001f\u007f]/u.test(claims.email) ? claims.email : null };
   }
   function credentials(value, clientId) {
@@ -243,8 +273,10 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     retryClientId = null;
     pending = null;
     return status();
-    } catch {
-      throw new ChatGPTConnectionFailure(failureStage);
+    } catch (error) {
+      throw new ChatGPTConnectionFailure(failureStage,
+        failureStage === "identity-verification-failed" && error instanceof IdentityVerificationError
+          ? error.substage : null);
     } finally { if (pending === attempt) pending = null; }
   }
   async function getAccessToken() {

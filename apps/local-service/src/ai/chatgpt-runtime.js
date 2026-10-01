@@ -87,6 +87,9 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
   let callbackPending = false;
   let callbackError = null;
   let failureStage = null;
+  let failureSubstage = null;
+  const identitySubstages = new Set(["jwks-request-failed", "jwks-invalid", "token-header-invalid",
+    "matching-key-invalid", "signature-invalid", "claims-invalid"]);
   let callbackGeneration = 0;
   function finish(job) {
     job.finishedAt = now();
@@ -129,24 +132,28 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
   return Object.freeze({
     status: () => ({ ...connection.status(), pending: connection.status().pending || callbackPending,
       ...(callbackError ? { error: callbackError } : {}),
-      ...(failureStage ? { failureStage } : {}) }),
-    connect: (value) => { exact(value, []); callbackError = null; failureStage = null;
+      ...(failureStage ? { failureStage } : {}),
+      ...(failureStage === "identity-verification-failed" && failureSubstage ? { failureSubstage } : {}) }),
+    connect: (value) => { exact(value, []); callbackError = null; failureStage = null; failureSubstage = null;
       return connection.start({ redirectUri: "http://127.0.0.1:4174/auth/callback" }).then((authorizationUrl) => ({ authorizationUrl })); },
     callback(url) { if (!disposed && callbackPending) {
-      callbackError = "connection-failed"; failureStage = "callback-busy"; return;
+      callbackError = "connection-failed"; failureStage = "callback-busy"; failureSubstage = null; return;
     }
       if (!disposed) { const generation = ++callbackGeneration;
-        callbackPending = true; callbackError = null; failureStage = null;
+        callbackPending = true; callbackError = null; failureStage = null; failureSubstage = null;
       void connection.completeCallback({ redirectUri: "http://127.0.0.1:4174/auth/callback", url })
         .then(() => { if (generation !== callbackGeneration || disposed) return;
-          stopJobs(); insights.clearModels?.(); callbackError = null; failureStage = null; })
+          stopJobs(); insights.clearModels?.(); callbackError = null; failureStage = null; failureSubstage = null; })
         .catch((error) => { if (generation !== callbackGeneration || disposed) return;
           callbackError = "connection-failed";
           failureStage = error instanceof ChatGPTConnectionFailure && FAILURE_STAGES.has(error.failureStage)
             ? error.failureStage : null;
+          failureSubstage = failureStage === "identity-verification-failed" &&
+            identitySubstages.has(error.failureSubstage) ? error.failureSubstage : null;
         }).finally(() => { if (generation === callbackGeneration) callbackPending = false; }); } },
     async disconnect(value) { exact(value, []); callbackGeneration += 1; callbackPending = false;
-      stopJobs(); insights.clearModels?.(); callbackError = null; failureStage = null; return connection.disconnect(); },
+      stopJobs(); insights.clearModels?.(); callbackError = null; failureStage = null; failureSubstage = null;
+      return connection.disconnect(); },
     async models() { const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       return { models: await insights.listModels() }; },

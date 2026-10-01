@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-09-30. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-01. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -32,6 +32,26 @@ loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/other-provider/moderation work and all external release gates remain separate.
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
+
+**0.12.3 identity-verification follow-up (2026-10-01):** the owner's fresh
+attempt reached `identity-verification-failed`; the earlier nine-stage diagnostic
+cannot identify the exact failing check. Official sign-in guidance requires
+signature/JWKS, issuer, audience, expiration and nonce verification, but does not
+promise a scalar `aud` claim. The verifier now accepts only the exact client ID
+as a scalar or singleton array, rejects other/multiple audiences and mismatched
+`azp`, and retains its signature/issuer/nonce/time checks. Authenticated status
+may additionally expose one of six fixed, non-secret identity substages; the
+extension presents fixed English guidance and clears it on retry/success/
+disconnect. No raw token, claim, key, URL or provider response is surfaced.
+This is a standards-compatibility correction and a diagnostic, **not** a proven
+root-cause fix. Live sign-in, plan permission, model availability and inference
+remain unverified. No provider was called for this checkpoint. Synthetic service
+**139/139**, extension restricted **805/805**, indicator/package **543/543** pass;
+service/extension secret scans found **0/73** and **0/173** findings respectively,
+and `git diff --check` passes. Loopback/actual-Chrome tests were not rerun:
+the owner's Node process still owns port 4174 and was not interrupted. An
+independent Sol Medium trust review found no blocker in this narrow change;
+no live provider test is claimed.
 
 **0.12.2 first-live-sign-in diagnosis (2026-09-30):** the owner reports that
 OpenAI redirected to the local callback, whose old generic acknowledgment was

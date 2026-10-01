@@ -12,6 +12,14 @@ const FAILURE_STAGE_MESSAGES = Object.freeze({
   "identity-verification-failed": "aiFailureIdentityVerificationFailed",
   "registration-failed": "aiFailureRegistrationFailed",
 });
+const IDENTITY_FAILURE_SUBSTAGE_MESSAGES = Object.freeze({
+  "jwks-request-failed": "aiFailureJwksRequestFailed",
+  "jwks-invalid": "aiFailureJwksInvalid",
+  "token-header-invalid": "aiFailureTokenHeaderInvalid",
+  "matching-key-invalid": "aiFailureMatchingKeyInvalid",
+  "signature-invalid": "aiFailureSignatureInvalid",
+  "claims-invalid": "aiFailureClaimsInvalid",
+});
 
 export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}) {
   const text = (key) => messages?.[key] ?? INSIGHT_EN[key];
@@ -156,7 +164,11 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     if (generating) draftDetails.open = false;
     const stageMessage = ai.status === "connectionFailed" && Object.hasOwn(FAILURE_STAGE_MESSAGES, ai.failureStage)
       ? FAILURE_STAGE_MESSAGES[ai.failureStage] : null;
-    aiStatus.textContent = text(stageMessage ?? `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
+    const substageMessage = ai.status === "connectionFailed" && ai.failureStage === "identity-verification-failed" &&
+      Object.hasOwn(IDENTITY_FAILURE_SUBSTAGE_MESSAGES, ai.failureSubstage)
+      ? IDENTITY_FAILURE_SUBSTAGE_MESSAGES[ai.failureSubstage] : null;
+    aiStatus.textContent = text(substageMessage ?? stageMessage ??
+      `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
     account.textContent = ai.account?.label ? text("connectedAccount").replace("{label}", ai.account.label) : "";
     connect.disabled = ai.connected && ai.planEnabled || ai.pending || aiPending || state.busy;
