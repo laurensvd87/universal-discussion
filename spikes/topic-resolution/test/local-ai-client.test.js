@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLocalAiClient } from "../browser/core/local-ai-client.js";
+import { createLocalAiClient, ModelListFailure } from "../browser/core/local-ai-client.js";
 
 function response(path, value) {
   return new Response(JSON.stringify(value), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -91,4 +91,37 @@ test("mismatched operation and oversized body fail closed", async () => {
   const oversized = client(async () => new Response("x".repeat(70_000), {
     headers: { "Content-Type": "application/json" } }));
   await assert.rejects(oversized.status(), TypeError);
+});
+
+test("model list accepts only exact success or fixed failure responses", async () => {
+  const models = [{ slug: "model-a", displayName: "Model A" }];
+  assert.deepEqual(await client(async (url) => response(url, { models })).models(), models);
+  for (const failure of ["access-rejected", "rate-limited", "timed-out", "invalid-response",
+    "provider-unavailable", "busy"]) {
+    await assert.rejects(client(async (url) => response(url, { failure })).models(),
+      (error) => error instanceof ModelListFailure && error.failure === failure &&
+        !error.message.includes(failure));
+  }
+  for (const value of [
+    { failure: "access-rejected", detail: "private response" },
+    { failure: "access-rejected", models: [] },
+    { failure: "unexpected" }, { failure: null }, { failure: { code: "busy" } },
+    { models, detail: "private response" },
+  ]) await assert.rejects(client(async (url) => response(url, value)).models(), TypeError);
+});
+
+test("model listing has its own 30-second deadline", async () => {
+  const realSetTimeout = globalThis.setTimeout;
+  const delays = [];
+  globalThis.setTimeout = (callback, delay, ...args) => {
+    delays.push(delay);
+    return realSetTimeout(callback, delay, ...args);
+  };
+  try {
+    const value = createLocalAiClient({ fetchImpl: async (url) => response(url,
+      url.endsWith("/models") ? { models: [] } : { connected: false, planEnabled: false, pending: false, account: null }),
+    getToken: async () => "a".repeat(64), timeoutMs: 1234 });
+    await value.status(); await value.models();
+    assert.deepEqual(delays, [1234, 30000]);
+  } finally { globalThis.setTimeout = realSetTimeout; }
 });

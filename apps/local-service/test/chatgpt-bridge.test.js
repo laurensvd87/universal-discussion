@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createChatGPTRuntime, createChatGPTRegistrationStore } from "../src/ai/chatgpt-runtime.js";
 import { ChatGPTConnectionFailure } from "../src/ai/chatgpt-connection.js";
+import { ChatGptInsightError } from "../src/ai/chatgpt-insights.js";
 import { createSqliteDemoService } from "../src/application/create-sqlite-demo-service.js";
 import { createRequestHandler } from "../src/http/request-handler.js";
 import { inspectRequestHead } from "../src/http/loopback-listener.js";
@@ -94,6 +95,60 @@ test("verified account without plan permission cannot list models or create insi
   assert.equal((await handle(request("POST", "/v1/ai/insights", input,
     { origin: ORIGIN, "x-demo-actor": "demo-alex" }))).status, 401);
   assert.equal(providerCalls, 0);
+  ai.dispose();
+});
+
+test("authenticated model-list failures expose only fixed categories", async () => {
+  const service = demoService();
+  const providerSecret = "SECRET_PROVIDER_BODY_TOKEN_REQUEST_ID_STATUS";
+  const failures = [
+    ["unauthorized", "access-rejected"], ["rate-limit", "rate-limited"],
+    ["timeout", "timed-out"], ["invalid-response", "invalid-response"],
+    ["provider-unavailable", "provider-unavailable"], ["cancelled", "provider-unavailable"],
+    ["busy", "busy"],
+  ];
+  let nextError;
+  let calls = 0;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
+    insightsAdapter: { listModels: async () => { calls += 1; throw nextError; }, cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  for (const [code, failure] of failures) {
+    nextError = Object.assign(new ChatGptInsightError(code), { detail: providerSecret, status: 503, requestId: providerSecret });
+    const response = await handle(request("GET", "/v1/ai/models", null, { origin: ORIGIN }));
+    assert.equal(response.status, 200);
+    assert.deepEqual(body(response), { failure });
+    assert.equal(response.body.includes(providerSecret), false);
+  }
+  assert.equal(calls, failures.length);
+  for (const error of [new ChatGptInsightError(providerSecret), new Error(providerSecret)]) {
+    nextError = error;
+    const response = await handle(request("GET", "/v1/ai/models", null, { origin: ORIGIN }));
+    assert.equal(response.status, 500);
+    assert.equal(response.body.includes(providerSecret), false);
+  }
+  assert.equal(calls, failures.length + 2);
+  ai.dispose();
+});
+
+test("malformed provider catalog cannot expose body or request details through model route", async () => {
+  const providerSecret = "SECRET_PROVIDER_MODEL_BODY_REQUEST_ID";
+  let requests = 0;
+  const service = demoService();
+  const ai = createChatGPTRuntime({ service,
+    fetchImpl: async () => {
+      requests += 1;
+      return new Response(JSON.stringify({ models: providerSecret, request_id: providerSecret }),
+        { headers: { "content-type": "application/json" } });
+    },
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+      getAccessToken: async () => "synthetic-oauth-token-for-tests", dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const response = await handle(request("GET", "/v1/ai/models", null, { origin: ORIGIN }));
+  assert.equal(response.status, 200);
+  assert.deepEqual(body(response), { failure: "invalid-response" });
+  assert.equal(response.body.includes(providerSecret), false);
+  assert.equal(requests, 1);
   ai.dispose();
 });
 

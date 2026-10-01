@@ -2,12 +2,13 @@
 
 Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Current checkpoint: **0.12.4 owner sign-in now reports connected, but List
-available models leaves the selector empty; exact list outcome unreported.**
+Current checkpoint: **0.12.5 owner sign-in reports connected, but model listing
+fails; fixed failure categories are implemented for the next owner check.**
 ChatGPT insights and compact User Mode remain owner-local. Read ADR-024 and the latest
 STATUS section first. The owner approved implementation, ChatGPT connection and
 explicit public-text/related-source research. Sol Medium agents handle coding;
-the lead reviews/integrates. No verified account or successful inference yet; do not
+the lead reviews/integrates. The owner reports a connected account, but no
+independently verified live model catalog or successful inference yet; do not
 confuse pasted/edited AI-assisted text with attested provider output.
 
 The public callback originally acknowledged receipt before asynchronous code
@@ -25,6 +26,20 @@ feedback beside the disabled selector. Ask for that sentence after one explicit
 List available models click, not provider response bodies or account details.
 Offline extension restricted 807/807, indicator/package 545/545 and secret
 scan 0/173 pass. No new provider call or live model-catalog result is claimed.
+The owner then reported 0.12.4 “Model list unavailable” while ChatGPT still
+showed connected. Version 0.12.5 changes only the explicit catalog path:
+the paired service maps known errors to six fixed categories, the extension
+strictly projects them and displays fixed guidance beside the picker. Listing
+has a bounded 25-second service/30-second extension deadline; research stays
+90 seconds. The actual error is still unknown. Both the backend and extension
+must be updated for one fresh List available models click; never request
+credentials, raw provider bodies or a callback URL. No automatic model call or
+provider retry was added.
+Offline service 144/144, extension restricted 812/812, indicator/package
+550/550, secret scans 0/73 and 0/173, diff check, and independent trust review
+pass. Synthetic malformed provider response and stale-list/account-switch tests
+cover the new boundary. Loopback/Chrome smoke were not rerun while the owner's
+Node process holds port 4174; do not interrupt it.
 Synthetic service 139/139, extension restricted 805/805 and indicator/package
 543/543 pass; two secret scans and diff check pass. The owner's Node process
 still occupies port 4174, so isolated loopback/Chrome tests were not repeated

@@ -1,4 +1,5 @@
 import { buildInsightContext } from "./insight-context.js";
+import { ModelListFailure } from "./local-ai-client.js";
 
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const sameVersion = (a, b) => a && b && a.generation === b.generation && a.revision === b.revision;
@@ -6,6 +7,11 @@ const RESEARCH_FAILURE_STATUS = Object.freeze({
   "rate-limit": "usageLimit", "model-unavailable": "modelUnavailable",
   "unsupported-capability": "webResearchUnavailable", unauthorized: "authorizationExpired",
   timeout: "researchTimeout", busy: "researchBusy",
+});
+const MODEL_LIST_FAILURE_STATUS = Object.freeze({
+  "access-rejected": "modelListAccessRejected", "rate-limited": "modelListRateLimited",
+  "timed-out": "modelListTimedOut", "invalid-response": "modelListInvalidResponse",
+  "provider-unavailable": "modelListProviderUnavailable", busy: "modelListBusy",
 });
 
 // Private popup state only. Explicit actions invoke injected page/provider
@@ -22,6 +28,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let connectionEpoch = 0;
   let connectionBusy = false;
   let modelsBusy = false;
+  let modelsEpoch = 0;
   let job = null;
   let state = { available: false, context: null, draft: "", preview: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
@@ -52,6 +59,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       result: null, costConsent: false, status: "idle", error: null } });
   }
   function aiPatch(patch) { publish({ ai: { ...state.ai, ...patch } }); }
+  function invalidateModels() { modelsEpoch++; modelsBusy = false; }
   function cancelJob() {
     const previous = job; job = null;
     if (previous) { previous.abort.abort(); void aiClient?.cancel(previous.id, previous.actorId).catch(() => {}); }
@@ -111,22 +119,28 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     try {
       const value = await aiClient.status();
       if (disposed || current !== connectionEpoch) return false;
+      invalidateModels();
+      const accountChanged = value.account?.clientId !== state.ai.account?.clientId ||
+        value.account?.label !== state.ai.account?.label;
       aiPatch({ connected: value.connected, planEnabled: value.planEnabled, pending: value.pending, account: value.account,
         failureStage: value.error === "connection-failed" ? value.failureStage ?? null : null,
         failureSubstage: value.error === "connection-failed" && value.failureStage === "identity-verification-failed"
           ? value.failureSubstage ?? null : null,
         status: value.error === "connection-failed" ? "connectionFailed" : value.pending ? "connecting" :
           value.connected ? value.planEnabled ? "connected" : "planUnavailable" : "disconnected",
-        ...(value.planEnabled ? {} : { models: [], model: "", result: null, costConsent: false }) });
+        ...(value.planEnabled && !accountChanged ? {} : { models: [], model: "", result: null, costConsent: false }) });
       return value.connected;
-    } catch { if (!disposed && current === connectionEpoch) aiPatch({ status: "unavailable", failureStage: null,
-      failureSubstage: null, connected: false,
-      planEnabled: false, account: null, models: [], model: "" }); return false; }
+    } catch { if (!disposed && current === connectionEpoch) {
+      invalidateModels();
+      aiPatch({ status: "unavailable", failureStage: null, failureSubstage: null, connected: false,
+        planEnabled: false, account: null, models: [], model: "" });
+    } return false; }
   }
   async function connect() {
     if (!aiClient || !openAuthorization || disposed || connectionBusy || state.ai.pending ||
         state.ai.connected && state.ai.planEnabled) return false;
     const current = ++connectionEpoch;
+    invalidateModels();
     connectionBusy = true; aiPatch({ pending: true, status: "connecting", failureStage: null, failureSubstage: null });
     const active = () => !disposed && current === connectionEpoch;
     try {
@@ -143,7 +157,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   async function disconnect() {
     if (!aiClient || disposed) return false;
     const current = ++connectionEpoch;
-    clear("changed"); connectionBusy = true; modelsBusy = false;
+    clear("changed"); connectionBusy = true; invalidateModels();
     aiPatch({ connected: false, planEnabled: false, pending: false, account: null, models: [], model: "",
       status: "disconnecting", failureStage: null, failureSubstage: null });
     let outcome;
@@ -157,14 +171,21 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   }
   async function loadModels() {
     if (!aiClient || !state.ai.planEnabled || disposed || job || modelsBusy || connectionBusy) return false;
-    const current = connectionEpoch;
+    const current = connectionEpoch, listEpoch = ++modelsEpoch;
     modelsBusy = true; aiPatch({ status: "loadingModels" });
     try {
       const models = await aiClient.models();
-      if (disposed || current !== connectionEpoch) return false;
+      if (disposed || current !== connectionEpoch || listEpoch !== modelsEpoch) return false;
       aiPatch({ models, model: "", status: models.length ? "chooseModel" : "noModels" }); return true;
-    } catch { if (!disposed && current === connectionEpoch) aiPatch({ status: "modelListUnavailable", models: [], model: "" }); return false; }
-    finally { if (current === connectionEpoch) modelsBusy = false; }
+    } catch (error) {
+      if (!disposed && current === connectionEpoch && listEpoch === modelsEpoch) aiPatch({
+        status: error instanceof ModelListFailure && Object.hasOwn(MODEL_LIST_FAILURE_STATUS, error.failure)
+          ? MODEL_LIST_FAILURE_STATUS[error.failure] : "modelListUnavailable",
+        models: [], model: "",
+      });
+      return false;
+    }
+    finally { if (listEpoch === modelsEpoch) modelsBusy = false; }
   }
   function selectModel(model) {
     if (!state.ai.planEnabled || !state.ai.models.some((item) => item.slug === model) || job || disposed) return false;
@@ -236,7 +257,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   }
   function cancelInsights() { if (!job) return false; cancelJob(); epoch++; aiPatch({ status: "cancelled", result: null }); return true; }
   function dispose() {
-    cancelJob(); epoch++; connectionEpoch++;
+    cancelJob(); epoch++; connectionEpoch++; invalidateModels();
     disposed = true; observed = null; boundKey = null; review = null;
     state = { available: false, context: null, draft: "", preview: null, status: "idle", busy: false,
       ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,

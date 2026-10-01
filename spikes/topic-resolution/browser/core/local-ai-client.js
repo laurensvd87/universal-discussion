@@ -9,6 +9,11 @@ const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "callbac
   "identity-verification-failed", "registration-failed"]);
 const IDENTITY_FAILURE_SUBSTAGES = new Set(["jwks-request-failed", "jwks-invalid", "token-header-invalid",
   "matching-key-invalid", "signature-invalid", "claims-invalid"]);
+const MODEL_LIST_FAILURES = new Set(["access-rejected", "rate-limited", "timed-out",
+  "invalid-response", "provider-unavailable", "busy"]);
+export class ModelListFailure extends Error {
+  constructor(failure) { super("Model list unavailable"); this.failure = failure; }
+}
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 function invalid() { throw new TypeError("Invalid local AI response"); }
 function record(value) { if (!value || typeof value !== "object" || Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) invalid(); return value; }
@@ -45,6 +50,11 @@ function projectStatus(value) {
     failureSubstage: value.failureSubstage ?? null };
 }
 function projectModels(value) {
+  if (Object.hasOwn(record(value), "failure")) {
+    keys(value, ["failure"]);
+    if (!MODEL_LIST_FAILURES.has(value.failure)) invalid();
+    throw new ModelListFailure(value.failure);
+  }
   keys(value, ["models"]);
   if (!Array.isArray(value.models) || value.models.length > 100) invalid();
   const seen = new Set();
@@ -75,7 +85,7 @@ function projectResult(value) {
 
 export function createLocalAiClient({ fetchImpl, getToken, timeoutMs = 10000 }) {
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000) throw new TypeError("Invalid local AI client");
-  async function request(path, body, actorId, signal) {
+  async function request(path, body, actorId, signal, requestTimeoutMs = timeoutMs) {
     const url = BASE + path;
     const payload = body === undefined ? undefined : JSON.stringify(body);
     if (payload !== undefined && encoder.encode(payload).length > 32768) throw new TypeError("Invalid local AI request");
@@ -84,7 +94,7 @@ export function createLocalAiClient({ fetchImpl, getToken, timeoutMs = 10000 }) 
     const interrupted = new Promise((_, reject) => { rejectInterrupted = reject; });
     let reader;
     const interrupt = () => { controller.abort(); void reader?.cancel().catch(() => {}); rejectInterrupted(new TypeError("Local AI request unavailable")); };
-    const timeout = setTimeout(interrupt, timeoutMs);
+    const timeout = setTimeout(interrupt, requestTimeoutMs);
     const abort = () => interrupt();
     signal?.addEventListener("abort", abort, { once: true });
     if (signal?.aborted) interrupt();
@@ -130,7 +140,7 @@ export function createLocalAiClient({ fetchImpl, getToken, timeoutMs = 10000 }) 
       if (typeof value.revocationConfirmed !== "boolean") invalid();
       return { revocationConfirmed: value.revocationConfirmed };
     },
-    models: async (options = {}) => projectModels(await request("/models", undefined, undefined, options.signal)),
+    models: async (options = {}) => projectModels(await request("/models", undefined, undefined, options.signal, 30000)),
     start: async (value, actorId, options = {}) => {
       id(value?.operationId); id(value?.model); readActorId(actorId);
       if (typeof value.articleText !== "string" || !value.articleText.trim() || value.articleText.length > 4096 || value.allowWebResearch !== true) invalid();

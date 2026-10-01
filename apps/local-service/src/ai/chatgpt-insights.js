@@ -3,6 +3,7 @@ import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core
 const API = "https://api.openai.com/v1";
 const HOUR = 3_600_000;
 const TIMEOUT = 90_000;
+const MODEL_TIMEOUT = 25_000;
 const MAX_STREAM_BYTES = 262_144;
 const MAX_INPUT = 24_000;
 const MAX_OUTPUT = 8_000;
@@ -204,12 +205,12 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
   let calls = [];
   function check(signal) { if (signal.aborted || disposed) fail("cancelled"); }
   function guard() { if (disposed) fail("cancelled"); if (active) fail("busy"); }
-  async function run(work, signal) {
+  async function run(work, signal, timeout = TIMEOUT) {
     guard();
     const abort = new AbortController();
     active = abort;
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; abort.abort(); }, TIMEOUT);
+    const timer = setTimeout(() => { timedOut = true; abort.abort(); }, timeout);
     const cancel = () => abort.abort();
     signal?.addEventListener("abort", cancel, { once: true });
     let onAbort;
@@ -265,7 +266,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       if (modelEpoch !== before) fail("cancelled");
       listed = new Set(models.map((entry) => entry.slug));
       return models;
-    }, signal);
+    }, signal, MODEL_TIMEOUT);
   }
   async function createInsight(request, { signal } = {}) {
     return run(async (requestSignal) => {

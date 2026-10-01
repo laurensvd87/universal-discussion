@@ -49,6 +49,56 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   }
 });
 
+test("model catalog uses a 25-second deadline while research keeps 90 seconds", async () => {
+  const delays = [];
+  const originalSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, delay, ...args) => {
+    delays.push(delay);
+    return originalSetTimeout(callback, delay, ...args);
+  };
+  try {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : stream(complete()),
+      getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await adapter.createInsight(REQUEST);
+    assert.deepEqual(delays.filter((delay) => delay === 25_000 || delay === 90_000), [25_000, 90_000]);
+    adapter.dispose();
+  } finally { globalThis.setTimeout = originalSetTimeout; }
+});
+
+test("model catalog deadline aborts one request without retry", async () => {
+  const originalSetTimeout = globalThis.setTimeout;
+  let requests = 0;
+  globalThis.setTimeout = (callback, delay, ...args) =>
+    originalSetTimeout(callback, delay === 25_000 ? 0 : delay, ...args);
+  try {
+    const adapter = createChatGptInsights({ fetchImpl: async () => { requests += 1; return new Promise(() => {}); },
+      getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.listModels(), errorCode("timeout"));
+    assert.equal(requests, 1);
+    adapter.dispose();
+  } finally { globalThis.setTimeout = originalSetTimeout; }
+});
+
+test("malformed provider model catalog is reduced to a fixed invalid-response error", async () => {
+  const providerSecret = "SECRET_PROVIDER_MODEL_BODY_REQUEST_ID";
+  let requests = 0;
+  const adapter = createChatGptInsights({ fetchImpl: async () => {
+    requests += 1;
+    return new Response(JSON.stringify({ models: providerSecret, request_id: providerSecret }),
+      { headers: { "content-type": "application/json" } });
+  }, getAccessToken: async () => ACCESS });
+  await assert.rejects(adapter.listModels(), (error) => {
+    assert.equal(error instanceof ChatGptInsightError, true);
+    assert.equal(error.code, "invalid-response");
+    assert.equal(JSON.stringify(error).includes(providerSecret), false);
+    assert.equal(error.message.includes(providerSecret), false);
+    return true;
+  });
+  assert.equal(requests, 1);
+  adapter.dispose();
+});
+
 test("strict context rebuild blocks hidden data, unsafe URLs and unauthorized model without inference", async () => {
   let posts = 0;
   const adapter = createChatGptInsights({ fetchImpl: async (url) => {

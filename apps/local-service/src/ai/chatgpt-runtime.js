@@ -11,6 +11,11 @@ const OPERATION = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const RESULT_TTL_MS = 120_000;
 const MAX_OPERATIONS = 1_024;
 const SAFE_ERRORS = new Set(["invalid-input", "model-unavailable", "unauthorized", "rate-limit", "busy", "timeout", "cancelled", "provider-unavailable", "invalid-response", "unsupported-capability"]);
+const MODEL_FAILURES = new Map([
+  ["unauthorized", "access-rejected"], ["rate-limit", "rate-limited"], ["timeout", "timed-out"],
+  ["invalid-response", "invalid-response"], ["provider-unavailable", "provider-unavailable"],
+  ["cancelled", "provider-unavailable"], ["busy", "busy"],
+]);
 const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "callback-busy", "token-exchange-rejected",
   "token-exchange-failed", "token-response-invalid", "discovery-failed",
   "identity-verification-failed", "registration-failed"]);
@@ -156,7 +161,12 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
       return connection.disconnect(); },
     async models() { const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
-      return { models: await insights.listModels() }; },
+      try { return { models: await insights.listModels() }; }
+      catch (error) {
+        if (error instanceof ChatGptInsightError && MODEL_FAILURES.has(error.code))
+          return { failure: MODEL_FAILURES.get(error.code) };
+        throw error;
+      } },
     create(value, actorId) {
       exact(value, ["operationId", "model", "context", "articleText", "allowWebResearch", "expected"]);
       service.actor(actorId);

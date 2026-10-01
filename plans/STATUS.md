@@ -33,6 +33,29 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.5 model-catalog failure diagnosis (2026-10-01):** after the 0.12.4 owner
+check, ChatGPT still reports connected but the explicit model-list action shows
+“Model list unavailable.” This confirms the catalog did not reach the picker;
+it does **not** establish a provider rejection or explain why. The local service
+previously collapsed known catalog errors into HTTP 500, and the extension
+collapsed all failed reads into one sentence. The paired model-list route now
+returns only a fixed, allowlisted failure category for known internal errors:
+access rejected, rate limited, timeout, invalid response, provider unavailable
+or busy. Success remains `{models}`; no-plan still fails closed; unknown errors
+remain generic. The extension validates the exact response and shows fixed
+English guidance beside the picker. Owner-clicked list reads have a 25-second
+service/30-second extension deadline; research stays at 90 seconds. This change
+does not log or surface raw provider bodies, tokens, request IDs or account
+metadata, add an automatic call/retry, or bypass billing/policy gates. A single
+fresh owner click after updating both service and extension is the next evidence.
+The exact live failure remains unknown; no provider request was made by agents.
+Offline service **144/144**, extension restricted **812/812** and
+indicator/package **550/550** pass. Secret scans found **0/73** service and
+**0/173** extension findings; `git diff --check` passes. An independent Sol
+Medium trust review found no blocker after stale-list fencing and a malformed
+provider-response test. Loopback/Chrome smoke were not rerun because the owner's
+Node process holds port 4174; it was not interrupted.
+
 **0.12.4 model-list visibility (2026-10-01):** the owner reports that ChatGPT
 shows connected but clicking List available models leaves the selector disabled
 on “Choose a model.” This proves no selectable list reached the popup, not why:

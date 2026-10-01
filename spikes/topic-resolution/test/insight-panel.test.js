@@ -229,6 +229,12 @@ test("model-list feedback stays beside the disabled dropdown in account details"
     ["loadingModels", INSIGHT_EN.aiLoadingModels],
     ["noModels", INSIGHT_EN.aiNoModels],
     ["modelListUnavailable", INSIGHT_EN.aiModelListUnavailable],
+    ["modelListAccessRejected", INSIGHT_EN.aiModelListAccessRejected],
+    ["modelListRateLimited", INSIGHT_EN.aiModelListRateLimited],
+    ["modelListTimedOut", INSIGHT_EN.aiModelListTimedOut],
+    ["modelListInvalidResponse", INSIGHT_EN.aiModelListInvalidResponse],
+    ["modelListProviderUnavailable", INSIGHT_EN.aiModelListProviderUnavailable],
+    ["modelListBusy", INSIGHT_EN.aiModelListBusy],
   ]) {
     ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,
       models: [], model: "", status, providerDetail: "private provider response" } }));

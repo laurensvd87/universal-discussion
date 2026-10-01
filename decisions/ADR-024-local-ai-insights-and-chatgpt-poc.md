@@ -169,3 +169,25 @@ Substages clear on retry, success and disconnect. This narrows the next owner
 test without reusing a prior code or disclosing secrets. The root cause and a
 successful real-provider connection remain unverified; any further algorithm,
 key or claim-policy change needs evidence and trust review.
+
+## 2026-10-01 model-catalog diagnostic boundary (0.12.5)
+
+The owner reports a connected ChatGPT account but no selectable models after
+an explicit catalog request. The 0.12.4 fixed message only establishes that
+the catalog request failed somewhere; it does not prove provider rejection,
+missing plan permission or an empty catalog. The existing connector uses the
+official account-specific `GET /v1/models` endpoint and displayable entries,
+but local transport had hidden all failures behind one generic status.
+
+For the paired, owner-clicked model-list route only, known internal errors now
+project to six fixed categories: `access-rejected`, `rate-limited`, `timed-out`,
+`invalid-response`, `provider-unavailable` and `busy`. These are in-app
+classifications, not verbatim OpenAI error codes. Unexpected errors remain
+generic; no raw response text, headers, model catalog on failure, credential,
+account identity or request ID is projected or logged. The extension accepts
+only the exact failure shape and renders fixed English guidance. Successful
+listing and no-plan authorization behavior are unchanged. The 25-second
+service/30-second extension deadlines keep the existing 90-second research
+deadline unchanged and do not add retries, automatic calls or paid fallback.
+The next fresh owner click will determine which branch was encountered; this
+diagnostic does not itself fix live provider eligibility or response shape.

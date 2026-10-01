@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ModelListFailure } from "../browser/core/local-ai-client.js";
 import { createInsightController } from "../browser/core/insight-controller.js";
 import { createLocalDiscussionController } from "../browser/core/local-discussion-controller.js";
 import { createMemoryDemoService } from "../../../apps/local-service/src/application/create-demo-service.js";
@@ -133,6 +134,77 @@ test("failed model listing uses its own status and clears stale model choices", 
   assert.deepEqual(ai.models, []);
   assert.equal(ai.model, "");
   assert.equal(JSON.stringify(ai).includes("private provider detail"), false);
+});
+
+test("fixed model-list failures map to fixed status; unrelated errors remain generic", async () => {
+  let failure, calls = 0;
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => { calls++; throw failure; },
+  } });
+  await app.insight.checkConnection();
+  for (const [code, status] of [
+    ["access-rejected", "modelListAccessRejected"], ["rate-limited", "modelListRateLimited"],
+    ["timed-out", "modelListTimedOut"], ["invalid-response", "modelListInvalidResponse"],
+    ["provider-unavailable", "modelListProviderUnavailable"], ["busy", "modelListBusy"],
+  ]) {
+    failure = new ModelListFailure(code);
+    assert.equal(await app.insight.loadModels(), false);
+    assert.equal(app.insight.currentState().ai.status, status);
+    assert.deepEqual(app.insight.currentState().ai.models, []);
+  }
+  failure = new Error("access-rejected");
+  assert.equal(await app.insight.loadModels(), false);
+  assert.equal(app.insight.currentState().ai.status, "modelListUnavailable");
+  assert.equal(calls, 7);
+});
+
+test("fresh connection status fences stale model lists and preserves newer list busy state", async () => {
+  let account = { clientId: "client-a", label: "Owner A" };
+  const finish = [];
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account }),
+    models: async () => new Promise((resolve) => { finish.push(resolve); }),
+  } });
+  await app.insight.checkConnection();
+  const stale = app.insight.loadModels();
+  assert.equal(app.insight.currentState().ai.status, "loadingModels");
+  account = { clientId: "client-b", label: "Owner B" };
+  await app.insight.checkConnection();
+  assert.equal(app.insight.currentState().ai.status, "connected");
+  assert.deepEqual(app.insight.currentState().ai.models, []);
+  const fresh = app.insight.loadModels();
+  finish[0]([{ slug: "old-model", displayName: "Old" }]);
+  assert.equal(await stale, false);
+  assert.equal(await app.insight.loadModels(), false);
+  finish[1]([{ slug: "new-model", displayName: "New" }]);
+  assert.equal(await fresh, true);
+  assert.deepEqual(app.insight.currentState().ai.models, [{ slug: "new-model", displayName: "New" }]);
+  assert.equal(app.insight.currentState().ai.status, "chooseModel");
+  assert.equal(app.insight.selectModel("new-model"), true);
+  account = { clientId: "client-c", label: "Owner C" };
+  await app.insight.checkConnection();
+  assert.deepEqual(app.insight.currentState().ai.models, []);
+  assert.equal(app.insight.currentState().ai.model, "");
+});
+
+test("connection loss clears a selected model and fences an in-flight list", async () => {
+  let planEnabled = true;
+  let finish;
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: planEnabled, planEnabled, pending: false,
+      account: planEnabled ? { clientId: "client-a", label: "Owner" } : null }),
+    models: async () => new Promise((resolve) => { finish = resolve; }),
+  } });
+  await app.insight.checkConnection();
+  const listing = app.insight.loadModels();
+  planEnabled = false;
+  await app.insight.checkConnection();
+  finish([{ slug: "old-model", displayName: "Old" }]);
+  assert.equal(await listing, false);
+  assert.equal(app.insight.currentState().ai.status, "disconnected");
+  assert.deepEqual(app.insight.currentState().ai.models, []);
+  assert.equal(app.insight.currentState().ai.model, "");
 });
 
 test("connection failure stage clears on a new attempt and a successful status", async () => {

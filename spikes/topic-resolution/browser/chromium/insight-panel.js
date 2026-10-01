@@ -173,7 +173,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     aiStatus.textContent = text(substageMessage ?? stageMessage ??
       `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
-    modelStatus.hidden = !["loadingModels", "noModels", "modelListUnavailable"].includes(ai.status);
+    modelStatus.hidden = !["loadingModels", "noModels", "modelListUnavailable", "modelListAccessRejected",
+      "modelListRateLimited", "modelListTimedOut", "modelListInvalidResponse",
+      "modelListProviderUnavailable", "modelListBusy"].includes(ai.status);
     modelStatus.textContent = modelStatus.hidden ? "" :
       text(`ai${ai.status[0].toUpperCase()}${ai.status.slice(1)}`);
     account.textContent = ai.account?.label ? text("connectedAccount").replace("{label}", ai.account.label) : "";

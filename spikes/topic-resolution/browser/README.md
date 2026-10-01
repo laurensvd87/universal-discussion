@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## ChatGPT insights (0.12.4)
+## ChatGPT insights (0.12.5)
 
 An optional private research workspace now uses the current public article,
 other pages in its Topic and related perspectives. Nothing runs automatically
@@ -31,10 +31,11 @@ For a first test:
    client ID while the backend process remains running.
 3. List available models and choose one. No API key is needed. If your account
    rejects this preview integration or lists no models, stop; no paid fallback
-   or browser-cookie workaround is attempted. Version 0.12.4 shows loading,
-   no-models or model-list-failure feedback directly beneath the disabled
-   model selector. Report that fixed sentence, not account data, tokens or raw
-   provider responses. A connected identity does not prove models are available.
+   or browser-cookie workaround is attempted. Version 0.12.5 shows loading,
+   no-models or a fixed model-list failure category directly beneath the
+   disabled model selector. Report that fixed sentence, not account data,
+   tokens or raw provider responses. A connected identity does not prove
+   models are available. No model call is made until you press the button.
 4. Prepare/read the current page text. Inspect and redact the visible sample
    (maximum 4,096 characters). Source titles/URLs and any explicitly included
    human discussion openings are also sent. Use public pages only: visible prose

@@ -22,12 +22,12 @@ ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
-## ChatGPT insights (0.12.3)
+## ChatGPT insights (0.12.5)
 
 The normal CLI now composes the owner-approved optional ChatGPT connector.
 Starting the service does not contact a provider. Connect/model-list/research
 actions are explicit; no API key or ChatGPT browser automation is used. Follow
-the [extension workflow](../../spikes/topic-resolution/browser/README.md#chatgpt-insights-0123).
+the [extension workflow](../../spikes/topic-resolution/browser/README.md#chatgpt-insights-0125).
 
 Paired `/v1/ai/` routes expose connection status, authorization, disconnection,
 the account model list and bounded insight jobs. Only `/auth/callback` is an
@@ -63,6 +63,15 @@ It accepts an exact one-item audience array containing this client ID; it still
 rejects multiple audiences and preserves signature, issuer, nonce and time checks.
 The new diagnostic does not prove which check failed in the owner's earlier
 attempt. Report only the short substage code, never an authorization URL or token.
+
+Version 0.12.5 adds a separate fixed result for a failed, owner-clicked model
+catalog read: access rejected, rate limited, timed out, invalid response,
+provider unavailable or another AI request busy. These categories are derived
+locally from known internal errors; raw provider responses, credentials and
+request identifiers are not returned. A successful list still returns only
+`{models}`. Model listing now has a 25-second service deadline (30 seconds in
+the extension); research keeps its 90-second deadline. No automatic retry or
+fallback is added, and an unknown failure still returns a generic error.
 
 An insight request temporarily relays up to 4,096 reviewed public-page characters,
 bounded source descriptors and optional human discussion excerpts to OpenAI.
