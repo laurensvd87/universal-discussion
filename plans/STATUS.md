@@ -45,8 +45,10 @@ Extension restricted **834/834** and isolated real-action Chrome smoke pass.
 Reload the unpacked extension to receive the correction. No provider call or
 owner browser profile was used. The owner explicitly approved pushing the
 three preceding commits through 0.12.8 to the named GitHub `main`; that push
-succeeded. This later popup-width correction is a separate local commit and
-has not been pushed.
+succeeded. The popup-width correction was subsequently pushed as `b5c41b4`.
+The owner then granted standing permission to commit and push checked,
+in-scope changes to this repository. This does not waive provider, data,
+spending, deployment, store/publication or other separate owner gates.
 
 **0.12.8 public-profile one-click workflow (2026-10-01):** the owner explicitly
 approved both scopes in [ADR-025](../decisions/ADR-025-public-profile-autocapture-and-one-click-insights.md).
@@ -72,8 +74,8 @@ found no security/privacy blocker. No live owner account inference is claimed;
 the owner must try one deliberate Create action and report only fixed status
 codes if it fails. Native HTTPS access still needs a one-time browser gesture;
 neither legal/store clearance nor private-page capture is approved. GitHub
-push of this checkpoint was explicitly approved and succeeded. A later
-popup-width correction remains local pending separate push approval.
+push of this checkpoint was explicitly approved and succeeded. The later
+popup-width correction was also pushed after approval.
 
 **0.12.7 empty-draft UI clarification (2026-10-01):** code inspection confirms
 the owner's empty editor is the manual draft, not a completed ChatGPT result;

@@ -10,8 +10,11 @@ overflow, text wrapping and a sticky visible Create/model bar. Extension
 restricted 834/834 and isolated Chrome smoke pass. Reload the unpacked
 extension; no backend restart is needed for this CSS-only correction.
 The owner approved the three earlier commits through 0.12.8 to the named
-GitHub `main`; that push succeeded. This later width correction is a separate
-local commit and is not yet pushed.
+GitHub `main`; that push succeeded. The later width correction was pushed as
+`b5c41b4`. The owner grants standing permission to commit/push checked,
+in-scope repository changes to `origin/main`. This is not approval for
+provider/data egress, spending, deployment, public announcements or app/store
+submission; later owner gates remain explicit.
 
 Newest checkpoint: extension/service 0.12.8 implements the owner's two
 explicit ADR-025 approvals for automatic matching in a separate public profile
