@@ -191,3 +191,31 @@ service/30-second extension deadlines keep the existing 90-second research
 deadline unchanged and do not add retries, automatic calls or paid fallback.
 The next fresh owner click will determine which branch was encountered; this
 diagnostic does not itself fix live provider eligibility or response shape.
+
+## 2026-10-01 bounded model-catalog diagnostics and UI correction (0.12.6)
+
+The owner restarted the service and reported `invalid-response` with fixed
+`catalog-body` detail. That establishes a failure while reading the model
+catalog body, but does not distinguish the former 256 KiB cap from a stream or
+encoding failure. Official OpenAI documentation confirms the existing
+ChatGPT-plan `models[]` / `visibility` / `slug` / `display_name` format; no
+alternative provider endpoint, scraping or catalog-shape fallback is added.
+
+Only the explicit model-list GET may read up to 2 MiB and inspect up to 2,048
+entries; at most 100 validated displayable models reach the extension. The
+research response remains capped at 256 KiB. New fixed catalog details separate
+oversize, missing/malformed stream and invalid UTF-8 from JSON/shape/entry
+errors. A larger catalog is still rejected, not silently truncated.
+
+The paired service retains at most 20 fixed model-list outcome codes in process
+memory and exposes them only through the existing Origin/capability checks on
+`GET /v1/ai/diagnostics`. The extension keeps at most 20 of its own fixed
+outcomes in popup memory. Developer Mode reads the service record only on an
+explicit click. No bodies, headers, model names, account identity, callback
+data, tokens, URLs, timestamps or arbitrary exception messages enter either
+record; disconnect clears the popup record and service restart clears its
+record. No disk log, telemetry, automatic provider request, paid fallback or
+new permission is introduced. This is owner-local PoC debugging, not a general
+production logging policy. The user-facing UI retains Topic/discussion first
+and hides account identity in User Mode; sign-in, provider-send and local-share
+consents remain separate.

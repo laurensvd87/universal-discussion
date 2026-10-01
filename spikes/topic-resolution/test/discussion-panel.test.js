@@ -301,9 +301,11 @@ test("User details stay compact through transient choose-topic; connection colla
   ui.panel.setMode("user");
   ui.panel.render(state({ phase: "disconnected", catalog: null, discussion: null }));
   assert.equal(connection.open, true);
+  assert.equal(connection.children[0].textContent, EN.uiConnectionSetup);
   ui.panel.render(state({ phase: "connecting", catalog: null, discussion: null }));
   ui.panel.render(state({ phase: "choose-topic", topicId: null, discussion: null }));
   assert.equal(connection.open, false); assert.equal(advanced.open, false);
+  assert.equal(connection.children[0].textContent, EN.uiConnectionReady);
   connection.open = true;
   ui.panel.render(state());
   assert.equal(connection.open, true);

@@ -11,8 +11,11 @@ const IDENTITY_FAILURE_SUBSTAGES = new Set(["jwks-request-failed", "jwks-invalid
   "matching-key-invalid", "signature-invalid", "claims-invalid"]);
 const MODEL_LIST_FAILURES = new Set(["access-rejected", "rate-limited", "timed-out",
   "invalid-response", "provider-unavailable", "busy"]);
+const MODEL_LIST_OUTCOMES = new Set(["success", ...MODEL_LIST_FAILURES]);
+const MODEL_LIST_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body",
+  "catalog-too-large", "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
 export class ModelListFailure extends Error {
-  constructor(failure) { super("Model list unavailable"); this.failure = failure; }
+  constructor(failure, detail = null) { super("Model list unavailable"); this.failure = failure; this.detail = detail; }
 }
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 function invalid() { throw new TypeError("Invalid local AI response"); }
@@ -51,9 +54,11 @@ function projectStatus(value) {
 }
 function projectModels(value) {
   if (Object.hasOwn(record(value), "failure")) {
-    keys(value, ["failure"]);
+    keys(value, ["failure", "detail"], ["failure"]);
     if (!MODEL_LIST_FAILURES.has(value.failure)) invalid();
-    throw new ModelListFailure(value.failure);
+    if (Object.hasOwn(value, "detail") &&
+        (value.failure !== "invalid-response" || !MODEL_LIST_DETAILS.has(value.detail))) invalid();
+    throw new ModelListFailure(value.failure, value.detail ?? null);
   }
   keys(value, ["models"]);
   if (!Array.isArray(value.models) || value.models.length > 100) invalid();
@@ -62,6 +67,18 @@ function projectModels(value) {
     keys(item, ["slug", "displayName"]); const slug = id(item.slug); const displayName = text(item.displayName, 200);
     if (seen.has(slug)) invalid(); seen.add(slug); return { slug, displayName };
   });
+}
+function projectDiagnostics(value) {
+  keys(value, ["events"]);
+  if (!Array.isArray(value.events) || value.events.length > 20) invalid();
+  return { events: value.events.map((event) => {
+    keys(event, ["kind", "outcome", "detail"], ["kind", "outcome"]);
+    if (event.kind !== "models" || !MODEL_LIST_OUTCOMES.has(event.outcome) ||
+        (Object.hasOwn(event, "detail") &&
+          (event.outcome !== "invalid-response" || !MODEL_LIST_DETAILS.has(event.detail)))) invalid();
+    return { kind: "models", outcome: event.outcome,
+      ...(Object.hasOwn(event, "detail") ? { detail: event.detail } : {}) };
+  }) };
 }
 function projectResult(value) {
   keys(value, ["operationId", "state", "result", "error"], ["operationId", "state"]); id(value.operationId);
@@ -141,6 +158,7 @@ export function createLocalAiClient({ fetchImpl, getToken, timeoutMs = 10000 }) 
       return { revocationConfirmed: value.revocationConfirmed };
     },
     models: async (options = {}) => projectModels(await request("/models", undefined, undefined, options.signal, 30000)),
+    diagnostics: async (options = {}) => projectDiagnostics(await request("/diagnostics", undefined, undefined, options.signal)),
     start: async (value, actorId, options = {}) => {
       id(value?.operationId); id(value?.model); readActorId(actorId);
       if (typeof value.articleText !== "string" || !value.articleText.trim() || value.articleText.length > 4096 || value.allowWebResearch !== true) invalid();

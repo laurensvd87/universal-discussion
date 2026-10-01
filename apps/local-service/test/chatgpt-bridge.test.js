@@ -128,6 +128,12 @@ test("authenticated model-list failures expose only fixed categories", async () 
     assert.equal(response.body.includes(providerSecret), false);
   }
   assert.equal(calls, failures.length + 2);
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/diagnostics", null, { origin: ORIGIN }))), {
+    events: failures.map(([, outcome]) => ({ kind: "models", outcome })),
+  });
+  assert.equal((await handle({ method: "GET", url: "/v1/ai/diagnostics",
+    headers: { host: config.hostHeader }, body: null })).status, 401);
+  assert.equal((await handle(request("GET", "/v1/ai/diagnostics", null, { origin: "https://untrusted.example" }))).status, 403);
   ai.dispose();
 });
 
@@ -146,10 +152,36 @@ test("malformed provider catalog cannot expose body or request details through m
   const handle = createRequestHandler({ service, config, ai });
   const response = await handle(request("GET", "/v1/ai/models", null, { origin: ORIGIN }));
   assert.equal(response.status, 200);
-  assert.deepEqual(body(response), { failure: "invalid-response" });
+  assert.deepEqual(body(response), { failure: "invalid-response", detail: "catalog-shape" });
   assert.equal(response.body.includes(providerSecret), false);
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/diagnostics"))), {
+    events: [{ kind: "models", outcome: "invalid-response", detail: "catalog-shape" }],
+  });
   assert.equal(requests, 1);
   ai.dispose();
+});
+
+test("model diagnostics retain only the last 20 fixed outcomes in process memory", async () => {
+  const service = demoService();
+  let nextError = null;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true }), dispose() {} },
+    insightsAdapter: { listModels: async () => {
+      if (nextError) throw nextError;
+      return [{ slug: "SECRET_MODEL_ID", displayName: "SECRET_MODEL_NAME" }];
+    }, cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  for (let index = 0; index < 22; index += 1) {
+    nextError = index === 0 ? new ChatGptInsightError("invalid-response", "catalog-json") : null;
+    const response = await handle(request("GET", "/v1/ai/models"));
+    assert.equal(response.status, 200);
+  }
+  const diagnostics = body(await handle(request("GET", "/v1/ai/diagnostics")));
+  assert.equal(diagnostics.events.length, 20);
+  assert.deepEqual(diagnostics.events, Array.from({ length: 20 }, () => ({ kind: "models", outcome: "success" })));
+  assert.equal(JSON.stringify(diagnostics).includes("SECRET"), false);
+  ai.dispose();
+  assert.deepEqual(ai.diagnostics(), { events: [] });
 });
 
 test("forged context, stale revision, invalid actor and missing capability never invoke provider", async () => {

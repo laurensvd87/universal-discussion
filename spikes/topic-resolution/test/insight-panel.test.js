@@ -33,6 +33,7 @@ function harness(messages) {
     setDraft: (value) => { calls.push(["setDraft", value]); return true; },
     preview: () => { calls.push(["preview"]); return true; },
     discard: () => { calls.push(["discard"]); },
+    loadDiagnostics: () => { calls.push(["loadDiagnostics"]); },
     share: () => { calls.push(["share"]); return Promise.resolve(true); } };
   panel.bind(controller);
   const byId = (id) => created.find((item) => item.id === id);
@@ -222,7 +223,7 @@ test("model-list feedback stays beside the disabled dropdown in account details"
   details.open = false;
   assert.equal(details.children[details.children.indexOf(model) + 1], feedback);
   assert.equal(ui.descendants(details).includes(general), false);
-  assert.equal(ui.descendants(ui.byId("insight-ai-controls")).includes(general), true);
+  assert.equal(ui.descendants(ui.byId("insight-workspace")).includes(general), true);
   assert.equal(feedback.attributes.role, "status");
   assert.equal(feedback.attributes["aria-live"], "polite");
   for (const [status, message] of [
@@ -254,6 +255,37 @@ test("model-list feedback stays beside the disabled dropdown in account details"
   assert.equal(feedback.hidden, true);
   assert.equal(feedback.textContent, "");
   assert.equal(general.textContent, INSIGHT_EN.aiGenerating);
+});
+
+test("diagnostics require an explicit click and render only fixed codes in Developer disclosure", () => {
+  const ui = harness();
+  const details = ui.byId("insight-diagnostics");
+  assert.equal(details.className.includes("developer-only"), true);
+  assert.equal(ui.calls.length, 0);
+  ui.click("insight-loadDiagnostics");
+  assert.deepEqual(ui.calls, [["loadDiagnostics"]]);
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,
+    models: [], model: "", status: "modelListInvalidResponse", modelFailureDetail: "catalog-entry",
+    diagnostics: { status: "ready", localEvents: [
+      { kind: "models", outcome: "invalid-response", detail: "catalog-json" },
+      { kind: "models", outcome: "local-error" },
+      { kind: "models", outcome: "secret-token", detail: "private response" }], events: [
+      { kind: "models", outcome: "invalid-response", detail: "catalog-entry" },
+      { kind: "models", outcome: "success", detail: "private response" }] } } }));
+  assert.equal(ui.byId("insight-model-status").textContent.includes("Code: catalog-entry"), true);
+  assert.deepEqual(ui.byId("insight-local-diagnostics-events").children.map((item) => item.textContent),
+    ["models · invalid-response · catalog-json", "models · local-error"]);
+  assert.deepEqual(ui.byId("insight-diagnostics-events").children.map((item) => item.textContent),
+    ["models · invalid-response · catalog-entry", "models · success"]);
+});
+
+test("connected account identity is Developer-only while User setup remains available", () => {
+  const ui = harness();
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,
+    models: [], model: "", status: "connected", account: { label: "private@example.com" } } }));
+  assert.equal(ui.byId("insight-ai-account").className, "developer-only");
+  assert.equal(ui.byId("insight-account-details").children.includes(ui.byId("insight-connect")), true);
+  assert.equal(ui.byId("insight-account-details").children.includes(ui.byId("insight-model")), true);
 });
 
 test("connection failure renders only fixed stage guidance and clears it on a new state", () => {

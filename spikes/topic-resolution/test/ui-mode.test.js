@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createUiModePreference, UI_MODE_KEY } from "../browser/chromium/ui-mode.js";
 import { mountPopupShell, projectDiscussionShell } from "../browser/chromium/popup-shell.js";
@@ -63,6 +64,7 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
   for (const id of ["#ui-mode-user", "#ui-mode-developer", "#connection-status", "#ui-mode-toggle", "#capture-controls-link", "#capture-settings-summary", "#page-matching",
     "#capture-settings", "#insight-workspace", "#insight-account-details", "#insight-source-details"]) nodes.set(id, {
     attributes: {}, dataset: {}, listeners: new Map(), setAttribute(key, value) { this.attributes[key] = value; },
+    getAttribute(key) { return this.attributes[key] ?? null; },
     addEventListener(key, value) { this.listeners.set(key, value); }, removeEventListener(key) { this.listeners.delete(key); },
     scrollIntoView(value) { uiActions.push(["scroll", id, value]); }, focus(value) { uiActions.push(["focus", id, value]); },
   });
@@ -70,6 +72,8 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
   const modes = [];
   const shell = mountPopupShell(document, { onModeChange: (mode) => modes.push(mode) });
   assert.equal(document.body.dataset.uiMode, "user");
+  assert.equal(nodes.get("#insight-workspace").open, true);
+  assert.equal(nodes.get("#insight-account-details").open, true);
   assert.equal(nodes.get("#connection-status").attributes.title, EN.uiConnectionLastChecked);
   assert.equal(nodes.get("#capture-settings-summary").textContent, EN.uiCaptureSettings);
   nodes.get("#ui-mode-developer").listeners.get("click")();
@@ -80,8 +84,11 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
   shell.render({ phase: "choose-topic", catalog: { topics: [] } });
   assert.equal(nodes.get("#connection-status").textContent, EN.uiConnected);
   nodes.get("#capture-controls-link").listeners.get("click")();
+  nodes.get("#insight-account-details").setAttribute("data-ready", "true");
   nodes.get("#ui-mode-user").listeners.get("click")();
   assert.equal(nodes.get("#capture-settings").open, false);
+  assert.equal(nodes.get("#insight-workspace").open, true);
+  assert.equal(nodes.get("#insight-account-details").open, false);
   nodes.get("#capture-controls-link").listeners.get("click")();
   assert.equal(nodes.get("#capture-settings").open, true);
   assert.equal(document.location.href, "chrome-extension://test/popup.html");
@@ -91,4 +98,13 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
   shell.dispose(); assert.equal(nodes.get("#ui-mode-user").listeners.size, 0);
   assert.equal(nodes.get("#capture-controls-link").listeners.size, 0);
   assert.deepEqual(modes, ["user", "developer", "user"]);
+});
+
+test("User layout keeps the Topic first and hides account identity and diagnostics", () => {
+  const html = readFileSync(new URL("../browser/chromium/popup.html", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8");
+  assert.ok(html.indexOf('id="local-discussion"') < html.indexOf('id="local-insights"'));
+  assert.doesNotMatch(css, /#local-insights\s*\{\s*order\s*:/u);
+  assert.match(css, /body\[data-ui-mode="user"\]\s+#insight-ai-account\s*\{\s*display:\s*none/u);
+  assert.match(css, /body\[data-ui-mode="user"\]\s+#insight-diagnostics\s*\{\s*display:\s*none/u);
 });

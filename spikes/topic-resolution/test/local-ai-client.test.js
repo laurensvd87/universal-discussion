@@ -102,12 +102,34 @@ test("model list accepts only exact success or fixed failure responses", async (
       (error) => error instanceof ModelListFailure && error.failure === failure &&
         !error.message.includes(failure));
   }
+  for (const detail of ["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
+    "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]) {
+    await assert.rejects(client(async (url) => response(url, { failure: "invalid-response", detail })).models(),
+      (error) => error instanceof ModelListFailure && error.failure === "invalid-response" && error.detail === detail);
+  }
   for (const value of [
-    { failure: "access-rejected", detail: "private response" },
+    { failure: "access-rejected", detail: "catalog-entry" },
+    { failure: "invalid-response", detail: "private response" },
     { failure: "access-rejected", models: [] },
     { failure: "unexpected" }, { failure: null }, { failure: { code: "busy" } },
     { models, detail: "private response" },
   ]) await assert.rejects(client(async (url) => response(url, value)).models(), TypeError);
+});
+
+test("diagnostics require paired fixed-code events and discard provider data", async () => {
+  const events = [{ kind: "models", outcome: "success" },
+    { kind: "models", outcome: "invalid-response", detail: "catalog-entry" }];
+  let path;
+  const valid = client(async (url) => { path = url; return response(url, { events }); });
+  assert.deepEqual(await valid.diagnostics(), { events });
+  assert.equal(path, "http://127.0.0.1:4174/v1/ai/diagnostics");
+  for (const value of [
+    { events: [{ kind: "models", outcome: "success", detail: "catalog-entry" }] },
+    { events: [{ kind: "models", outcome: "invalid-response", detail: "provider-secret" }] },
+    { events: [{ kind: "login", outcome: "success" }] },
+    { events: Array.from({ length: 21 }, () => events[0]) },
+    { events, account: "private" },
+  ]) await assert.rejects(client(async (url) => response(url, value)).diagnostics(), TypeError);
 });
 
 test("model listing has its own 30-second deadline", async () => {

@@ -2,8 +2,18 @@
 
 Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Current checkpoint: **0.12.5 owner sign-in reports connected, but model listing
-fails; fixed failure categories are implemented for the next owner check.**
+Current checkpoint: **0.12.6 owner sign-in reports connected, but an explicit
+model list returned `catalog-body`; the separate bounded catalog-read and
+fixed-code diagnostics are ready for the next owner check.**
+Restart the local service, reload the unpacked extension, pair and sign in
+again, then click List available models once. Developer Mode > Local diagnostics
+can show fixed extension/service codes without sharing account details or
+provider bodies. A `catalog-body` report alone did not prove oversize; 0.12.6
+separates `catalog-too-large`, `catalog-stream` and `catalog-encoding`, and
+raises only the catalog limit to 2 MiB. Service 147/147, extension restricted
+817/817 and indicator/package 555/555 pass; secret scans 0/73 and 0/173.
+The independent Sol Medium trust-review attempt hit a usage limit and remains
+open. No successful live model list or inference is claimed.
 ChatGPT insights and compact User Mode remain owner-local. Read ADR-024 and the latest
 STATUS section first. The owner approved implementation, ChatGPT connection and
 explicit public-text/related-source research. Sol Medium agents handle coding;

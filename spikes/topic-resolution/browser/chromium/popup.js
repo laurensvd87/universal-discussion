@@ -247,6 +247,12 @@ document.querySelector("#product-intro").textContent = EN.discussionIntro;
 document.querySelector("#diagnostic-heading").textContent = EN.discussionDiagnostic;
 document.querySelector("#product-footer").textContent = EN.discussionFooter;
 void localDiscussion.open();
+// A paired popup may read only the local in-memory sign-in state on open.
+// Model listing and provider research remain explicit owner actions.
+void localSession.isPaired().then((paired) => {
+  if (paired) return insightController.checkConnection();
+  return false;
+}).catch(() => {});
 const pageMetadataReader = createPageMetadataReader(scriptingApi);
 const fixtureController = createIndicatorController({
   lookup: lookupIndicatorFixture,

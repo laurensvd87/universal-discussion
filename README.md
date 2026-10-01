@@ -16,12 +16,12 @@ shared into native discussions visible inside the extension. ChatGPT connection
 is opt-in; no AI research runs automatically. Earlier external-feed tests are
 research only; first-user value, sharing and growth remain unvalidated.
 
-Extension **0.12.5** includes a ChatGPT insights PoC: review a bounded public-page
+Extension **0.12.6** includes a ChatGPT insights PoC: review a bounded public-page
 sample and same-Topic/related links, request research using your account, then
 edit and separately share an AI-labelled discussion opening locally. No API key
 or automatic posting. User Mode is simplified around the Topic, discussion
 and insight action; setup and diagnostics stay secondary.
-See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0125)
+See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0126)
 and [ADR-024](decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md).
 Integration evidence is tracked in [STATUS](plans/STATUS.md). Actual account
 eligibility, live research and answer quality still require the owner's test.
@@ -36,6 +36,14 @@ Version 0.12.4 places model-list loading, empty-result and failure feedback
 beside the model selector. Live model availability is still unverified.
 Version 0.12.5 gives that failed, explicitly requested catalog read a fixed
 reason category without exposing provider details; no automatic model call.
+Version 0.12.6 responds to the owner's live `catalog-body` result with a separate
+2 MiB model-catalog limit (research output stays at 256 KiB) and fixed size,
+stream and encoding diagnoses. The last 20 model-list outcomes stay only in
+service memory; the extension's own fixed codes stay only in popup memory.
+Developer Mode can inspect them on request. No provider body, account identity,
+page content, tokens or URLs enter these diagnostics. User Mode keeps Topic and
+discussion first and exposes ChatGPT setup as the next action without showing
+account identity. Live model availability and insight generation remain unverified.
 
 Extension **0.11.0** added a clickable ↗ source icon to new page-linked posts:
 it opens that post's source in a new tab. Replies can link their own page while

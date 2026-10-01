@@ -42,6 +42,16 @@ body[data-ui-mode="user"] #page-matching { box-shadow: none; background: #f8fafc
 body[data-ui-mode="user"] #local-insights { display: block; padding: 0 16px; border-color: #dce6f1; background: #fff; box-shadow: 0 8px 24px #233a590d; }
 body[data-ui-mode="user"] #insight-workspace { border: 0; padding: 0; }
 body[data-ui-mode="user"] #insight-workspace > summary { padding: 16px 0; color: #174b77; font-size: 15px; }
+body[data-ui-mode="user"] #insight-workspace > summary + p { display: none; }
+body[data-ui-mode="user"] #insight-ai-account { display: none; }
+body[data-ui-mode="user"] #insight-account-details { background: #f3f8fe; border-color: #cbdff1; }
+body[data-ui-mode="user"] #insight-account-details > summary { color: #174b77; font-size: 13px; }
+body[data-ui-mode="user"] #insight-account-details[data-ready="true"] { background: #eef8f2; border-color: #cfe8d7; }
+body[data-ui-mode="user"] #insight-account-details[data-ready="true"] > summary { color: #17633a; }
+body[data-ui-mode="user"] #insight-diagnostics { display: none; }
+body[data-ui-mode="user"] #insight-checkConnection:disabled,
+body[data-ui-mode="user"] #insight-connect:disabled,
+body[data-ui-mode="user"] #insight-disconnect:disabled { display: none; }
 body[data-ui-mode="user"] .capture-settings { border: 1px solid #dce6f1; border-radius: 10px; padding: 10px 13px; background: #f8fafc; }
 body[data-ui-mode="user"] .capture-settings > summary { font-size: 11px; color: #627387; }
 body[data-ui-mode="user"] .capture-settings:not([open]) { padding: 8px 12px; }
@@ -54,7 +64,7 @@ body[data-ui-mode="developer"] .capture-settings > summary { margin-bottom: 10px
 #insight-workspace > :not(summary) { margin-top: 0; }
 #insight-workspace > p { margin: 0; }
 #insight-ai-controls { display: grid; gap: 10px; }
-#insight-ai-status { order: -1; padding: 7px 9px; border-radius: 8px; background: #f1f5f9; color: #526478; font-size: 11px; }
+#insight-ai-status { padding: 7px 9px; border-radius: 8px; background: #f1f5f9; color: #526478; font-size: 11px; }
 #insight-ai-status[data-state="connected"] { background: #e4f5e9; color: #17633a; }
 #insight-ai-status[data-state="connecting"] { background: #e8f1fb; color: #17578d; }
 .insight-subdetails { border: 1px solid #e1e8ef; border-radius: 9px; padding: 9px 11px; background: #fbfdff; }

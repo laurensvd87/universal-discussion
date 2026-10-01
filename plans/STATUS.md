@@ -33,6 +33,31 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.6 live catalog-body follow-up (2026-10-01):** after restarting and
+retrying, the owner reported a connected account whose explicit model-list
+request returned fixed `catalog-body`. This establishes that the backend reached
+the model-catalog read and rejected its body; it does **not** prove the cause
+was size. The previous 256 KiB body cap was shared with research output. The
+catalog alone now has a 2 MiB cap and a 2,048-entry structural limit, still
+returning at most 100 validated displayable choices. Fixed codes distinguish
+too-large, stream and encoding failures. The service retains only 20 fixed
+model-list outcome codes in memory behind the paired diagnostic route, and
+Developer Mode retrieves them on request; the extension retains its own fixed
+codes only in popup memory. No raw provider body, token, account, page material,
+URL, disk log or telemetry is added. The User UI keeps Topic and discussion
+first, opens the ChatGPT setup path when needed, hides account identity and
+places diagnostics in Developer Mode. A paired popup checks only local sign-in
+state on open; model listing and research remain explicit. No provider request
+was made by agents.
+Offline service **147/147**, extension restricted **817/817**, indicator/package
+**555/555** pass; service/extension secret scans found **0/73** and **0/173**.
+The owner's running service still holds port 4174, so no isolated Chrome or
+loopback test was rerun here; do not interrupt it. The next evidence is one
+owner-clicked list request after restarting 0.12.6. Live model availability,
+research, provider web-search eligibility and insight quality remain unverified.
+The attempted independent Sol Medium trust-review agent hit a usage limit;
+lead review and focused tests passed, but independent review remains open.
+
 **0.12.5 model-catalog failure diagnosis (2026-10-01):** after the 0.12.4 owner
 check, ChatGPT still reports connected but the explicit model-list action shows
 “Model list unavailable.” This confirms the catalog did not reach the picker;

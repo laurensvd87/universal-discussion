@@ -27,6 +27,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   let controller;
   let disposed = false;
   let contextSignature;
+  let previousAccountReady;
   function node(tag, key, id) {
     const item = document.createElement(tag);
     if (key) item.textContent = text(key);
@@ -43,14 +44,15 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const details = node("details", null, "insight-workspace"); details.className = "compact-details insight-workspace";
   details.append(node("summary", "title"), node("p", "intro")); root.append(details);
   const status = node("p", null, "insight-status"); status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); details.append(status);
+  const accountDetails = node("details", null, "insight-account-details"); accountDetails.className = "insight-subdetails";
+  const accountSummary = node("summary", "accountWorkspace"); accountDetails.append(accountSummary); details.append(accountDetails);
+  const aiStatus = node("p", null, "insight-ai-status"); aiStatus.setAttribute("role", "status"); details.append(aiStatus);
   const include = node("input", null, "insight-include-discussion"); include.type = "checkbox"; include.checked = false;
   const includeLabel = node("label", "includeDiscussion"); includeLabel.htmlFor = include.id;
   const sourceDetails = node("details", null, "insight-source-details"); sourceDetails.className = "insight-subdetails";
   sourceDetails.append(node("summary", "sourceWorkspace"), includeLabel, include); details.append(sourceDetails);
   const prepare = button(details, "prepare", () => controller?.prepare({ includeDiscussion: include.checked }));
   const aiControls = node("section", null, "insight-ai-controls"); details.append(aiControls);
-  const accountDetails = node("details", null, "insight-account-details"); accountDetails.className = "insight-subdetails";
-  const accountSummary = node("summary", "accountWorkspace"); accountDetails.append(accountSummary); aiControls.append(accountDetails);
   const connect = button(accountDetails, "connect", () => { void controller?.connect(); });
   const check = button(accountDetails, "checkConnection", () => { void controller?.checkConnection(); });
   const disconnect = button(accountDetails, "disconnect", () => { void controller?.disconnect(); });
@@ -61,6 +63,18 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   modelStatus.setAttribute("role", "status"); modelStatus.setAttribute("aria-live", "polite");
   accountDetails.append(modelStatus);
   listen(model, "change", () => controller?.selectModel(model.value));
+  const diagnostics = node("details", null, "insight-diagnostics");
+  diagnostics.className = "insight-subdetails developer-only";
+  diagnostics.append(node("summary", "diagnostics"));
+  const loadDiagnostics = button(diagnostics, "loadDiagnostics", () => { void controller?.loadDiagnostics?.(); });
+  const diagnosticStatus = node("p", null, "insight-diagnostics-status");
+  diagnosticStatus.setAttribute("role", "status"); diagnosticStatus.setAttribute("aria-live", "polite");
+  const localDiagnosticHeading = node("h4", "diagnosticsExtension");
+  const localDiagnosticEvents = node("ul", null, "insight-local-diagnostics-events");
+  const serviceDiagnosticHeading = node("h4", "diagnosticsService");
+  const diagnosticEvents = node("ul", null, "insight-diagnostics-events");
+  diagnostics.append(diagnosticStatus, localDiagnosticHeading, localDiagnosticEvents,
+    serviceDiagnosticHeading, diagnosticEvents); details.append(diagnostics);
   const usage = node("p", "usingChatgptPlan", "insight-plan-usage");
   const manageUsage = node("a", "manageUsage", "insight-manage-usage");
   manageUsage.href = "https://chatgpt.com/settings/usage";
@@ -81,8 +95,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   listen(cost, "change", () => controller?.setCostConsent(cost.checked));
   const create = button(aiControls, "createInsights", () => { void controller?.createInsights(); });
   const cancel = button(aiControls, "cancelInsights", () => controller?.cancelInsights());
-  const aiStatus = node("p", null, "insight-ai-status"); aiStatus.setAttribute("role", "status"); aiControls.append(aiStatus);
-  const account = node("p", null, "insight-ai-account"); accountDetails.append(account);
+  const account = node("p", null, "insight-ai-account"); account.className = "developer-only"; accountDetails.append(account);
   const citations = node("section", null, "insight-citations"); aiControls.append(citations);
   const context = node("section", null, "insight-context"); context.hidden = true; sourceDetails.append(context);
   const draftDetails = node("details", null, "insight-draft-details"); draftDetails.className = "insight-subdetails";
@@ -150,6 +163,10 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     share.disabled = blocked || !state.preview;
     const ai = state.ai ?? { connected: false, planEnabled: false, pending: false, models: [], model: "", articleText: "", article: null,
       costConsent: false, result: null, status: "idle" };
+    const accountReady = ai.planEnabled && !!ai.model;
+    accountDetails.setAttribute("data-ready", String(accountReady));
+    if (document.body?.dataset?.uiMode === "user" && accountReady && previousAccountReady === false) accountDetails.open = false;
+    previousAccountReady = accountReady;
     accountSummary.textContent = text(ai.pending ? "accountConnecting" : ai.connected ?
       ai.planEnabled ? ai.model ? "accountModelSelected" : "accountChooseModel" : "accountPlanUnavailable" :
       "accountDisconnected");
@@ -176,9 +193,34 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     modelStatus.hidden = !["loadingModels", "noModels", "modelListUnavailable", "modelListAccessRejected",
       "modelListRateLimited", "modelListTimedOut", "modelListInvalidResponse",
       "modelListProviderUnavailable", "modelListBusy"].includes(ai.status);
+    const allowedDetails = new Set(["catalog-redirect", "catalog-content-type", "catalog-body",
+      "catalog-too-large", "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
     modelStatus.textContent = modelStatus.hidden ? "" :
       text(`ai${ai.status[0].toUpperCase()}${ai.status.slice(1)}`);
+    if (!modelStatus.hidden && ai.status === "modelListInvalidResponse" && allowedDetails.has(ai.modelFailureDetail)) {
+      modelStatus.textContent += ` ${text("modelFailureCode").replace("{code}", ai.modelFailureDetail)}`;
+    }
     account.textContent = ai.account?.label ? text("connectedAccount").replace("{label}", ai.account.label) : "";
+    const diagnostic = ai.diagnostics;
+    const diagnosticState = ["idle", "loading", "ready", "unavailable"].includes(diagnostic?.status)
+      ? diagnostic.status : "idle";
+    diagnosticStatus.textContent = text({ idle: "diagnosticsIdle", loading: "diagnosticsLoading",
+      ready: "diagnosticsReady", unavailable: "diagnosticsUnavailable" }[diagnosticState]);
+    loadDiagnostics.disabled = diagnosticState === "loading" || state.busy;
+    const allowedOutcomes = new Set(["success", "access-rejected", "rate-limited", "timed-out",
+      "invalid-response", "provider-unavailable", "busy"]);
+    const fixedEvents = (events, local = false) => {
+      const items = [];
+      if (!Array.isArray(events)) return items;
+      for (const event of events.slice(-12)) {
+        if (event?.kind !== "models" || !(allowedOutcomes.has(event.outcome) || local && event.outcome === "local-error")) continue;
+        const detail = event.outcome === "invalid-response" && allowedDetails.has(event.detail) ? ` · ${event.detail}` : "";
+        const item = node("li"); item.textContent = `models · ${event.outcome}${detail}`; items.push(item);
+      }
+      return items;
+    };
+    localDiagnosticEvents.replaceChildren(...fixedEvents(diagnostic?.localEvents, true));
+    diagnosticEvents.replaceChildren(...(diagnosticState === "ready" ? fixedEvents(diagnostic?.events) : []));
     connect.disabled = ai.connected && ai.planEnabled || ai.pending || aiPending || state.busy;
     check.disabled = aiPending || state.busy;
     disconnect.disabled = (!ai.connected && !ai.pending) || ai.status === "disconnecting";

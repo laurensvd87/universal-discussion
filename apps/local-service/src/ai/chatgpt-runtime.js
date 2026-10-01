@@ -16,6 +16,9 @@ const MODEL_FAILURES = new Map([
   ["invalid-response", "invalid-response"], ["provider-unavailable", "provider-unavailable"],
   ["cancelled", "provider-unavailable"], ["busy", "busy"],
 ]);
+const MODEL_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
+  "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
+const MAX_DIAGNOSTIC_EVENTS = 20;
 const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "callback-busy", "token-exchange-rejected",
   "token-exchange-failed", "token-response-invalid", "discovery-failed",
   "identity-verification-failed", "registration-failed"]);
@@ -87,6 +90,13 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
   const insights = insightsAdapter ?? createChatGptInsights({ fetchImpl, getAccessToken: connection.getAccessToken, now });
   const jobs = new Map();
   const seen = new Set();
+  const diagnosticEvents = [];
+  function recordModelOutcome(outcome, detail) {
+    const event = { kind: "models", outcome };
+    if (outcome === "invalid-response" && MODEL_DETAILS.has(detail)) event.detail = detail;
+    diagnosticEvents.push(event);
+    if (diagnosticEvents.length > MAX_DIAGNOSTIC_EVENTS) diagnosticEvents.shift();
+  }
   let active = null;
   let disposed = false;
   let callbackPending = false;
@@ -135,6 +145,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
     return rebuilt;
   }
   return Object.freeze({
+    diagnostics: () => ({ events: diagnosticEvents.map((event) => ({ ...event })) }),
     status: () => ({ ...connection.status(), pending: connection.status().pending || callbackPending,
       ...(callbackError ? { error: callbackError } : {}),
       ...(failureStage ? { failureStage } : {}),
@@ -161,10 +172,14 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
       return connection.disconnect(); },
     async models() { const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
-      try { return { models: await insights.listModels() }; }
+      try { const models = await insights.listModels(); recordModelOutcome("success"); return { models }; }
       catch (error) {
-        if (error instanceof ChatGptInsightError && MODEL_FAILURES.has(error.code))
-          return { failure: MODEL_FAILURES.get(error.code) };
+        if (error instanceof ChatGptInsightError && MODEL_FAILURES.has(error.code)) {
+          const failure = MODEL_FAILURES.get(error.code);
+          const detail = failure === "invalid-response" && MODEL_DETAILS.has(error.detail) ? error.detail : null;
+          recordModelOutcome(failure, detail);
+          return { failure, ...(detail ? { detail } : {}) };
+        }
         throw error;
       } },
     create(value, actorId) {
@@ -201,6 +216,6 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
     cancel(value, actorId) { exact(value, ["operationId"]); const job = owned(value.operationId, actorId); cancelJob(job); return { cancelled: true }; },
     reset() { stopJobs(); },
     dispose() { disposed = true; callbackGeneration += 1; callbackPending = false;
-      stopJobs(); insights.dispose(); connection.dispose(); },
+      stopJobs(); diagnosticEvents.length = 0; insights.dispose(); connection.dispose(); },
   });
 }

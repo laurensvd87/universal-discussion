@@ -47,7 +47,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const status = node("p"); status.id = "discussion-status"; status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); root.append(status);
   const connectionSettings = node("details"); connectionSettings.id = "discussion-connection-settings";
   connectionSettings.className = "compact-details";
-  connectionSettings.append(node("summary", "uiConnectionSetup")); root.append(connectionSettings);
+  const connectionSummary = node("summary", "uiConnectionSetup");
+  connectionSettings.append(connectionSummary); root.append(connectionSettings);
   const advanced = node("details"); advanced.id = "discussion-advanced"; advanced.className = "compact-details";
   const advancedSummary = node("summary", "uiAdvanced");
   advanced.append(advancedSummary, node("p", "discussionScope"));
@@ -219,6 +220,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const previousState = lastState;
     lastState = state;
     const shellView = projectDiscussionShell(state, messages);
+    connectionSummary.textContent = text(shellView.connection === "connected" ? "uiConnectionReady" : "uiConnectionSetup");
     topicTitle.textContent = shellView.topicTitle;
     selectionCue.textContent = shellView.selectionCue; selectionCue.hidden = !shellView.selectionCue;
     heading.textContent = text(uiMode === "user" ? "uiDiscussions" : "discussionHeading");

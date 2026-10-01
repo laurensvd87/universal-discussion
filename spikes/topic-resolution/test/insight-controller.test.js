@@ -159,6 +159,29 @@ test("fixed model-list failures map to fixed status; unrelated errors remain gen
   assert.equal(calls, 7);
 });
 
+test("fixed catalog detail and explicit diagnostics remain bounded to local UI state", async () => {
+  const events = [{ kind: "models", outcome: "invalid-response", detail: "catalog-shape" }];
+  let reads = 0;
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => { throw new ModelListFailure("invalid-response", "catalog-shape"); },
+    diagnostics: async () => { reads++; return { events }; },
+    disconnect: async () => ({ revocationConfirmed: true }),
+  } });
+  await app.insight.checkConnection();
+  assert.equal(reads, 0);
+  assert.equal(await app.insight.loadModels(), false);
+  assert.equal(app.insight.currentState().ai.modelFailureDetail, "catalog-shape");
+  assert.deepEqual(app.insight.currentState().ai.diagnostics.localEvents,
+    [{ kind: "models", outcome: "invalid-response", detail: "catalog-shape" }]);
+  assert.equal(await app.insight.loadDiagnostics(), true);
+  assert.equal(reads, 1);
+  assert.deepEqual(app.insight.currentState().ai.diagnostics, { status: "ready", events,
+    localEvents: [{ kind: "models", outcome: "invalid-response", detail: "catalog-shape" }] });
+  await app.insight.disconnect();
+  assert.deepEqual(app.insight.currentState().ai.diagnostics, { status: "idle", events: [], localEvents: [] });
+});
+
 test("fresh connection status fences stale model lists and preserves newer list busy state", async () => {
   let account = { clientId: "client-a", label: "Owner A" };
   const finish = [];

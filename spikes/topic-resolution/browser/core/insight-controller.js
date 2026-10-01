@@ -13,6 +13,10 @@ const MODEL_LIST_FAILURE_STATUS = Object.freeze({
   "timed-out": "modelListTimedOut", "invalid-response": "modelListInvalidResponse",
   "provider-unavailable": "modelListProviderUnavailable", busy: "modelListBusy",
 });
+const MODEL_LIST_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body",
+  "catalog-too-large", "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
+const MODEL_LIST_OUTCOMES = new Set(["success", "access-rejected", "rate-limited", "timed-out",
+  "invalid-response", "provider-unavailable", "busy", "local-error"]);
 
 // Private popup state only. Explicit actions invoke injected page/provider
 // adapters; only final sharing persists the reviewed discussion text.
@@ -29,10 +33,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let connectionBusy = false;
   let modelsBusy = false;
   let modelsEpoch = 0;
+  let diagnosticsBusy = false;
   let job = null;
   let state = { available: false, context: null, draft: "", preview: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
-      result: null, status: "idle", error: null, failureStage: null, failureSubstage: null } };
+      result: null, status: "idle", error: null, failureStage: null, failureSubstage: null,
+      modelFailureDetail: null,
+      diagnostics: { status: "idle", events: [], localEvents: [] } } };
 
   function eligible() {
     return observed?.phase === "ready" && !observed.busy && !observed.needsFreshRead &&
@@ -59,6 +66,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       result: null, costConsent: false, status: "idle", error: null } });
   }
   function aiPatch(patch) { publish({ ai: { ...state.ai, ...patch } }); }
+  function recordLocalModelOutcome(outcome, detail = null) {
+    if (!MODEL_LIST_OUTCOMES.has(outcome)) return;
+    const prior = state.ai.diagnostics;
+    const event = { kind: "models", outcome,
+      ...(outcome === "invalid-response" && MODEL_LIST_DETAILS.has(detail) ? { detail } : {}) };
+    aiPatch({ diagnostics: { ...prior, localEvents: [...prior.localEvents, event].slice(-20) } });
+  }
   function invalidateModels() { modelsEpoch++; modelsBusy = false; }
   function cancelJob() {
     const previous = job; job = null;
@@ -123,6 +137,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       const accountChanged = value.account?.clientId !== state.ai.account?.clientId ||
         value.account?.label !== state.ai.account?.label;
       aiPatch({ connected: value.connected, planEnabled: value.planEnabled, pending: value.pending, account: value.account,
+        modelFailureDetail: null,
         failureStage: value.error === "connection-failed" ? value.failureStage ?? null : null,
         failureSubstage: value.error === "connection-failed" && value.failureStage === "identity-verification-failed"
           ? value.failureSubstage ?? null : null,
@@ -159,7 +174,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const current = ++connectionEpoch;
     clear("changed"); connectionBusy = true; invalidateModels();
     aiPatch({ connected: false, planEnabled: false, pending: false, account: null, models: [], model: "",
-      status: "disconnecting", failureStage: null, failureSubstage: null });
+      status: "disconnecting", failureStage: null, failureSubstage: null,
+      diagnostics: { status: "idle", events: [], localEvents: [] } });
     let outcome;
     try { outcome = await aiClient.disconnect(); }
     catch { /* The local bridge may be unavailable. Clear private popup material anyway. */ }
@@ -172,20 +188,42 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   async function loadModels() {
     if (!aiClient || !state.ai.planEnabled || disposed || job || modelsBusy || connectionBusy) return false;
     const current = connectionEpoch, listEpoch = ++modelsEpoch;
-    modelsBusy = true; aiPatch({ status: "loadingModels" });
+    modelsBusy = true; aiPatch({ status: "loadingModels", modelFailureDetail: null });
     try {
       const models = await aiClient.models();
       if (disposed || current !== connectionEpoch || listEpoch !== modelsEpoch) return false;
-      aiPatch({ models, model: "", status: models.length ? "chooseModel" : "noModels" }); return true;
+      aiPatch({ models, model: "", status: models.length ? "chooseModel" : "noModels",
+        modelFailureDetail: null });
+      recordLocalModelOutcome("success");
+      return true;
     } catch (error) {
-      if (!disposed && current === connectionEpoch && listEpoch === modelsEpoch) aiPatch({
-        status: error instanceof ModelListFailure && Object.hasOwn(MODEL_LIST_FAILURE_STATUS, error.failure)
-          ? MODEL_LIST_FAILURE_STATUS[error.failure] : "modelListUnavailable",
-        models: [], model: "",
-      });
+      if (!disposed && current === connectionEpoch && listEpoch === modelsEpoch) {
+        const failure = error instanceof ModelListFailure && Object.hasOwn(MODEL_LIST_FAILURE_STATUS, error.failure)
+          ? error.failure : null;
+        const detail = failure === "invalid-response" && MODEL_LIST_DETAILS.has(error.detail) ? error.detail : null;
+        aiPatch({ status: failure ? MODEL_LIST_FAILURE_STATUS[failure] : "modelListUnavailable",
+          modelFailureDetail: detail, models: [], model: "" });
+        recordLocalModelOutcome(failure ?? "local-error", detail);
+      }
       return false;
     }
     finally { if (listEpoch === modelsEpoch) modelsBusy = false; }
+  }
+  async function loadDiagnostics() {
+    if (!aiClient?.diagnostics || disposed || diagnosticsBusy) return false;
+    const current = connectionEpoch;
+    diagnosticsBusy = true;
+    aiPatch({ diagnostics: { ...state.ai.diagnostics, status: "loading", events: [] } });
+    try {
+      const diagnostics = await aiClient.diagnostics();
+      if (disposed || current !== connectionEpoch) return false;
+      aiPatch({ diagnostics: { ...state.ai.diagnostics, status: "ready", events: diagnostics.events } });
+      return true;
+    } catch {
+      if (!disposed && current === connectionEpoch)
+        aiPatch({ diagnostics: { ...state.ai.diagnostics, status: "unavailable", events: [] } });
+      return false;
+    } finally { diagnosticsBusy = false; }
   }
   function selectModel(model) {
     if (!state.ai.planEnabled || !state.ai.models.some((item) => item.slug === model) || job || disposed) return false;
@@ -261,9 +299,9 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     disposed = true; observed = null; boundKey = null; review = null;
     state = { available: false, context: null, draft: "", preview: null, status: "idle", busy: false,
       ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
-        result: null, status: "idle", error: null } };
+        result: null, status: "idle", error: null, diagnostics: { status: "idle", events: [], localEvents: [] } } };
   }
   return Object.freeze({ observe, currentState, prepare, setDraft, preview, share, discard, dispose,
-    checkConnection, connect, disconnect, loadModels, selectModel, setCostConsent,
+    checkConnection, connect, disconnect, loadModels, loadDiagnostics, selectModel, setCostConsent,
     readPageText, setArticleText, createInsights, cancelInsights });
 }

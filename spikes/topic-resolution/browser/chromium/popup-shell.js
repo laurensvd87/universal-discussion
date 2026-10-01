@@ -47,10 +47,12 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     document.body.dataset.uiMode = mode;
     const settings = document.querySelector("#capture-settings");
     if (settings) settings.open = mode === "developer";
-    for (const selector of ["#insight-workspace", "#insight-account-details", "#insight-source-details"]) {
-      const section = document.querySelector(selector);
-      if (section) section.open = mode === "developer";
-    }
+    const workspace = document.querySelector("#insight-workspace");
+    if (workspace) workspace.open = true;
+    const accountDetails = document.querySelector("#insight-account-details");
+    if (accountDetails) accountDetails.open = mode === "developer" || accountDetails.getAttribute?.("data-ready") !== "true";
+    const sourceDetails = document.querySelector("#insight-source-details");
+    if (sourceDetails) sourceDetails.open = mode === "developer";
     user.setAttribute("aria-pressed", String(mode === "user"));
     developer.setAttribute("aria-pressed", String(mode === "developer"));
     onModeChange(mode);

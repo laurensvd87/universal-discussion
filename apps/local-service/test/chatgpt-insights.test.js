@@ -91,11 +91,47 @@ test("malformed provider model catalog is reduced to a fixed invalid-response er
   await assert.rejects(adapter.listModels(), (error) => {
     assert.equal(error instanceof ChatGptInsightError, true);
     assert.equal(error.code, "invalid-response");
+    assert.equal(error.detail, "catalog-shape");
     assert.equal(JSON.stringify(error).includes(providerSecret), false);
     assert.equal(error.message.includes(providerSecret), false);
     return true;
   });
   assert.equal(requests, 1);
+  adapter.dispose();
+});
+
+test("model catalog failures expose only fixed validation substages", async () => {
+  const secret = "SECRET_PROVIDER_CATALOG_DATA";
+  assert.equal(new ChatGptInsightError("invalid-response", secret).detail, undefined);
+  const redirect = models();
+  Object.defineProperty(redirect, "redirected", { value: true });
+  const cases = [
+    [redirect, "catalog-redirect"],
+    [new Response(secret, { headers: { "content-type": "text/plain" } }), "catalog-content-type"],
+    [new Response(secret, { headers: { "content-type": "application/json" } }), "catalog-json"],
+    [new Response(JSON.stringify({ models: [{ slug: "bad slug", display_name: secret, visibility: "list" }] }),
+      { headers: { "content-type": "application/json" } }), "catalog-entry"],
+    [new Response("x".repeat(2_097_153), { headers: { "content-type": "application/json" } }), "catalog-too-large"],
+    [new Response(null, { headers: { "content-type": "application/json" } }), "catalog-stream"],
+    [new Response(new Uint8Array([0xff]), { headers: { "content-type": "application/json" } }), "catalog-encoding"],
+  ];
+  for (const [response, detail] of cases) {
+    const adapter = createChatGptInsights({ fetchImpl: async () => response, getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.listModels(), (error) => {
+      assert.equal(errorCode("invalid-response")(error), true);
+      assert.equal(error.detail, detail);
+      assert.equal(JSON.stringify(error).includes(secret), false);
+      return true;
+    });
+    adapter.dispose();
+  }
+});
+
+test("model catalog accepts bounded responses larger than the inference stream budget", async () => {
+  const response = new Response(JSON.stringify({ models: [{ slug: "synthetic-model", display_name: "Synthetic model", visibility: "list" }],
+    ignored: "x".repeat(300_000) }), { headers: { "content-type": "application/json" } });
+  const adapter = createChatGptInsights({ fetchImpl: async () => response, getAccessToken: async () => ACCESS });
+  assert.deepEqual(await adapter.listModels(), [{ slug: "synthetic-model", displayName: "Synthetic model" }]);
   adapter.dispose();
 });
 

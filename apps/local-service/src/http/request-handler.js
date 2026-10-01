@@ -104,6 +104,7 @@ async function route(request, service, ai) {
   if (request.method === "GET" && request.body !== null && request.body !== "") fail("invalid", "Invalid request");
   if (ai && path.startsWith("/v1/ai/")) {
     if (request.method === "GET" && path === "/v1/ai/status") return { status: 200, value: ai.status() };
+    if (request.method === "GET" && path === "/v1/ai/diagnostics") return { status: 200, value: ai.diagnostics() };
     if (request.method === "GET" && path === "/v1/ai/models") return { status: 200, value: await ai.models() };
     if (request.method === "POST") {
       const input = parseJsonBody(request);

@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## ChatGPT insights (0.12.5)
+## ChatGPT insights (0.12.6)
 
 An optional private research workspace now uses the current public article,
 other pages in its Topic and related perspectives. Nothing runs automatically
@@ -14,11 +14,13 @@ needed. A service restart also ends ChatGPT authorization for this prototype.
 
 For a first test:
 
-1. Open a non-sensitive public article already matched to a Topic. Open **AI
-   insights**. Prepare the local context and inspect the selected page and links.
+1. Open a non-sensitive public article already matched to a Topic. Select
+   **Open ChatGPT research** beside the Topic; the setup section is expanded
+   until a model is chosen.
 2. Choose **Continue with ChatGPT** and complete the official sign-in in the opened
    tab. The local callback only confirms receipt, not verified sign-in. Return
-   to the article and reopen the extension, then **Check connection**.
+   to the article and reopen the extension. If paired, it checks local sign-in
+   state automatically; **Check connection** remains a manual refresh.
    If the account connects without plan access, use **Continue with ChatGPT**
    again only if you want to request the missing permission. Model listing and
    research stay unavailable until it is granted. Never paste your ChatGPT
@@ -31,12 +33,18 @@ For a first test:
    client ID while the backend process remains running.
 3. List available models and choose one. No API key is needed. If your account
    rejects this preview integration or lists no models, stop; no paid fallback
-   or browser-cookie workaround is attempted. Version 0.12.5 shows loading,
+   or browser-cookie workaround is attempted. Version 0.12.6 shows loading,
    no-models or a fixed model-list failure category directly beneath the
-   disabled model selector. Report that fixed sentence, not account data,
-   tokens or raw provider responses. A connected identity does not prove
+   disabled model selector. If it fails, switch to Developer Mode, open
+   **Local diagnostics**, and press **Check recent model-list attempts**.
+   Report only the fixed codes shown for the extension and local service;
+   never send account data, tokens, URLs or raw provider responses. The service
+   keeps at most 20 fixed outcomes in process memory; the extension's own
+   codes exist only while this popup remains open. Restart clears service
+   diagnostics, and closing the popup clears its codes. A connected identity does not prove
    models are available. No model call is made until you press the button.
-4. Prepare/read the current page text. Inspect and redact the visible sample
+4. Prepare the local context, inspect the selected page and links, then read
+   the current page text. Inspect and redact the visible sample
    (maximum 4,096 characters). Source titles/URLs and any explicitly included
    human discussion openings are also sent. Use public pages only: visible prose
    can contain secrets, and automatic filtering is not a guarantee.
@@ -65,14 +73,15 @@ basis, not with a billing guarantee. `store:false` does not mean zero OpenAI
 retention. Sign-in tokens remain in service memory, never extension storage;
 the non-secret account registration remains in its ignored local data folder.
 
-Current validation uses synthetic provider responses and isolated Chrome, not
-your account. The first owner sign-in reached the callback but failed during
-identity verification. Version 0.12.3 adds a fixed, non-secret code for the
-specific local verification step and accepts the standard single-item audience
-array. Neither establishes the cause of the previous failure. Restart the
-backend and reload the extension, then make one fresh sign-in attempt and report
-only the short code if it still fails. Model/
-search eligibility and insight quality also remain unverified. Manual
+Automated validation uses synthetic provider responses and isolated Chrome, not
+your account. The first owner sign-in failed identity verification; after
+0.12.3, the owner reported a connected ChatGPT account. An explicit real model
+request then failed at `catalog-body`, which points to reading the catalog
+response, not to model eligibility. Version 0.12.6 raises only the catalog's
+bounded response limit and separates body size, stream and encoding codes.
+Restart the backend, reload the extension, reconnect and sign in again, then
+make one explicit list request. A successful live model list, web search and
+insight quality remain unverified. Manual
 AI-assisted draft entry works without a
 connected provider. No hosted/commercial/store eligibility is implied.
 The connection and model list are account-specific; a listed model can still

@@ -5,20 +5,28 @@ const HOUR = 3_600_000;
 const TIMEOUT = 90_000;
 const MODEL_TIMEOUT = 25_000;
 const MAX_STREAM_BYTES = 262_144;
+const MAX_CATALOG_BYTES = 2_097_152;
 const MAX_INPUT = 24_000;
 const MAX_OUTPUT = 8_000;
-const MAX_MODELS = 512;
+const MAX_MODELS = 2_048;
 const MAX_DISPLAY_MODELS = 100;
 const MAX_TEXT = 4_096;
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
 const LIMITATIONS = new Set(["grouping-provisional", "related-not-same-topic", "title-url-only", "sources-unverified", "visible-roots-only"]);
+const CATALOG_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
+  "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
 
 export class ChatGptInsightError extends Error {
-  constructor(code) { super("ChatGPT insight request unavailable"); this.name = "ChatGptInsightError"; this.code = code; }
+  constructor(code, detail) {
+    super("ChatGPT insight request unavailable");
+    this.name = "ChatGptInsightError";
+    this.code = code;
+    if (code === "invalid-response" && CATALOG_DETAILS.has(detail)) this.detail = detail;
+  }
 }
-function fail(code) { throw new ChatGptInsightError(code); }
+function fail(code, detail) { throw new ChatGptInsightError(code, detail); }
 function object(value) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
       ![Object.prototype, null].includes(Object.getPrototypeOf(value))) fail("invalid-input");
@@ -152,8 +160,8 @@ function completed(value, model) {
   if (!body.trim() || UNSAFE.test(body)) fail("invalid-response");
   return { body, citations, model };
 }
-async function boundedBody(response, maximum, signal) {
-  if (!response.body?.getReader) fail("invalid-response");
+async function boundedBody(response, maximum, signal, catalog = false) {
+  if (!response.body?.getReader) fail("invalid-response", catalog ? "catalog-stream" : undefined);
   const reader = response.body.getReader();
   const chunks = [];
   let size = 0;
@@ -162,9 +170,9 @@ async function boundedBody(response, maximum, signal) {
       if (signal.aborted) fail("cancelled");
       const { done, value } = await reader.read();
       if (done) break;
-      if (!(value instanceof Uint8Array)) fail("invalid-response");
+      if (!(value instanceof Uint8Array)) fail("invalid-response", catalog ? "catalog-stream" : undefined);
       size += value.byteLength;
-      if (size > maximum) fail("invalid-response");
+      if (size > maximum) fail("invalid-response", catalog ? "catalog-too-large" : undefined);
       chunks.push(value);
     }
   } catch (error) {
@@ -174,7 +182,8 @@ async function boundedBody(response, maximum, signal) {
   const bytes = new Uint8Array(size);
   let at = 0;
   for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.length; }
-  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+  catch { fail("invalid-response", catalog ? "catalog-encoding" : undefined); }
 }
 function parseSse(raw, model) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
@@ -246,19 +255,25 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const response = await fetchImpl(`${API}/models`, { method: "GET", headers: { Authorization: `Bearer ${accessToken}` },
         signal: requestSignal, redirect: "error", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
       check(requestSignal);
-      if (response?.redirected || response?.url && response.url !== `${API}/models`) fail("invalid-response");
+      if (response?.redirected || response?.url && response.url !== `${API}/models`) fail("invalid-response", "catalog-redirect");
       if (!response?.ok) fail(errorForStatus(response?.status));
-      if (!/^application\/json(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) fail("invalid-response");
+      if (!/^application\/json(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) fail("invalid-response", "catalog-content-type");
+      let raw;
+      try { raw = await boundedBody(response, MAX_CATALOG_BYTES, requestSignal, true); } catch (error) {
+        if (error instanceof ChatGptInsightError && error.code === "invalid-response" && CATALOG_DETAILS.has(error.detail)) throw error;
+        if (error instanceof ChatGptInsightError && error.code === "invalid-response") fail("invalid-response", "catalog-body");
+        throw error;
+      }
       let parsed;
-      try { parsed = JSON.parse(await boundedBody(response, MAX_STREAM_BYTES, requestSignal)); } catch { fail("invalid-response"); }
+      try { parsed = JSON.parse(raw); } catch { fail("invalid-response", "catalog-json"); }
       check(requestSignal);
-      if (!parsed || !Array.isArray(parsed.models) || parsed.models.length > MAX_MODELS) fail("invalid-response");
+      if (!parsed || !Array.isArray(parsed.models) || parsed.models.length > MAX_MODELS) fail("invalid-response", "catalog-shape");
       const models = [];
       const seen = new Set();
       for (const entry of parsed.models) {
         if (entry?.visibility !== "list") continue;
         if (typeof entry.slug !== "string" || !SLUG.test(entry.slug) || seen.has(entry.slug) ||
-            typeof entry.display_name !== "string" || !entry.display_name.trim() || entry.display_name.length > 200 || UNSAFE.test(entry.display_name)) fail("invalid-response");
+            typeof entry.display_name !== "string" || !entry.display_name.trim() || entry.display_name.length > 200 || UNSAFE.test(entry.display_name)) fail("invalid-response", "catalog-entry");
         seen.add(entry.slug);
         if (models.length < MAX_DISPLAY_MODELS) models.push({ slug: entry.slug, displayName: entry.display_name });
       }
