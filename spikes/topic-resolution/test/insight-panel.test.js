@@ -181,6 +181,63 @@ test("compact workspace keeps account and context secondary while exposing redac
   assert.equal(ui.byId("insight-cancelInsights").disabled, false);
 });
 
+test("model listing leaves an explicitly empty manual draft and guides each research step", () => {
+  const ui = harness();
+  const next = ui.byId("insight-next-step");
+  const hint = ui.byId("insight-draft-hint");
+  const draft = ui.byId("insight-body");
+  const summary = ui.byId("insight-draft-details").children[0];
+  const baseAi = { connected: true, planEnabled: true, pending: false,
+    models: [{ slug: "model-a", displayName: "A" }], model: "", articleText: "", article: null,
+    costConsent: false, status: "chooseModel", result: null };
+  ui.panel.render(state({ ai: baseAi }));
+  assert.equal(next.textContent, INSIGHT_EN.nextChooseModel);
+  assert.equal(summary.textContent, INSIGHT_EN.draftWorkspace);
+  assert.equal(draft.value, "");
+  assert.equal(draft.placeholder, INSIGHT_EN.draftManualPlaceholder);
+  assert.equal(hint.textContent, INSIGHT_EN.draftManualHint);
+  assert.equal(ui.byId("insight-review").disabled, true);
+  ui.panel.render(state({ draft: "Own draft", ai: baseAi }));
+  assert.equal(summary.textContent, INSIGHT_EN.draftWorkspaceManualFilled);
+  assert.equal(ui.byId("insight-review").disabled, false);
+  ui.panel.render(state({ ai: { ...baseAi, model: "model-a" } }));
+  assert.equal(next.textContent, INSIGHT_EN.nextReadPage);
+  ui.panel.render(state({ ai: { ...baseAi, model: "model-a", article: { url: "https://example.com/" },
+    articleText: "Public text", status: "articleReady" } }));
+  assert.equal(next.textContent, INSIGHT_EN.nextReviewConsent);
+  ui.panel.render(state({ ai: { ...baseAi, model: "model-a", article: { url: "https://example.com/" },
+    articleText: "Public text", costConsent: true, status: "articleReady" } }));
+  assert.equal(next.textContent, INSIGHT_EN.nextCreateInsights);
+  assert.equal(ui.byId("insight-createInsights").disabled, false);
+});
+
+test("research progress, failure, and completed draft have distinct editor guidance", () => {
+  const ui = harness();
+  const hint = ui.byId("insight-draft-hint");
+  const next = ui.byId("insight-next-step");
+  const draft = ui.byId("insight-body");
+  const summary = ui.byId("insight-draft-details").children[0];
+  const ai = { connected: true, planEnabled: true, pending: false,
+    models: [{ slug: "model-a", displayName: "A" }], model: "model-a", articleText: "Public text",
+    article: { url: "https://example.com/" }, costConsent: true, result: null };
+  ui.panel.render(state({ ai: { ...ai, status: "generating" } }));
+  assert.equal(hint.textContent, INSIGHT_EN.draftGenerating);
+  assert.equal(next.textContent, INSIGHT_EN.nextGenerating);
+  assert.equal(draft.value, "");
+  ui.panel.render(state({ ai: { ...ai, status: "generationFailed" } }));
+  assert.equal(hint.textContent, INSIGHT_EN.draftResearchFailed);
+  assert.equal(next.textContent, INSIGHT_EN.nextResearchFailed);
+  assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN.aiGenerationFailed);
+  assert.equal(summary.textContent, INSIGHT_EN.draftWorkspace);
+  ui.panel.render(state({ draft: "Generated finding", ai: { ...ai, status: "generated",
+    result: { body: "Generated finding", citations: [] } } }));
+  assert.equal(summary.textContent, INSIGHT_EN.draftWorkspaceGenerated);
+  assert.equal(hint.textContent, INSIGHT_EN.hint);
+  assert.equal(next.textContent, INSIGHT_EN.nextReviewDraft);
+  assert.equal(draft.value, "Generated finding");
+  assert.equal(draft.placeholder, INSIGHT_EN.draftGeneratedPlaceholder);
+});
+
 test("first-use connection and plan usage stay clear beside the explicit research controls", () => {
   const ui = harness();
   const summary = ui.byId("insight-account-details").children[0];

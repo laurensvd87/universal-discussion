@@ -16,12 +16,12 @@ shared into native discussions visible inside the extension. ChatGPT connection
 is opt-in; no AI research runs automatically. Earlier external-feed tests are
 research only; first-user value, sharing and growth remain unvalidated.
 
-Extension **0.12.6** includes a ChatGPT insights PoC: review a bounded public-page
+Extension **0.12.7** includes a ChatGPT insights PoC: review a bounded public-page
 sample and same-Topic/related links, request research using your account, then
 edit and separately share an AI-labelled discussion opening locally. No API key
 or automatic posting. User Mode is simplified around the Topic, discussion
 and insight action; setup and diagnostics stay secondary.
-See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0126)
+See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0127)
 and [ADR-024](decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md).
 Integration evidence is tracked in [STATUS](plans/STATUS.md). Actual account
 eligibility, live research and answer quality still require the owner's test.
@@ -43,7 +43,12 @@ service memory; the extension's own fixed codes stay only in popup memory.
 Developer Mode can inspect them on request. No provider body, account identity,
 page content, tokens or URLs enter these diagnostics. User Mode keeps Topic and
 discussion first and exposes ChatGPT setup as the next action without showing
-account identity. Live model availability and insight generation remain unverified.
+account identity. The owner now confirms a live model list; insight generation
+remains unverified.
+After the owner confirmed the model list works, 0.12.7 clarifies that its empty
+manual-draft editor is not an AI result and shows the next step or research
+failure distinctly. This is an extension-only UI change; reload the extension,
+but the local service need not restart.
 
 Extension **0.11.0** added a clickable ↗ source icon to new page-linked posts:
 it opens that post's source in a new tab. Replies can link their own page while

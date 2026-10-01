@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## ChatGPT insights (0.12.6)
+## ChatGPT insights (0.12.7)
 
 An optional private research workspace now uses the current public article,
 other pages in its Topic and related perspectives. Nothing runs automatically
@@ -43,6 +43,11 @@ For a first test:
    codes exist only while this popup remains open. Restart clears service
    diagnostics, and closing the popup clears its codes. A connected identity does not prove
    models are available. No model call is made until you press the button.
+   Listing models alone never fills the draft. Version 0.12.7 labels the empty
+   editor as a manual draft and gives a short next-step cue. Only a completed
+   Create insights request fills it automatically; a failed request leaves it
+   empty and shows a separate status. This UI-only update needs an extension
+   reload, not another service restart or sign-in.
 4. Prepare the local context, inspect the selected page and links, then read
    the current page text. Inspect and redact the visible sample
    (maximum 4,096 characters). Source titles/URLs and any explicitly included
@@ -79,9 +84,8 @@ your account. The first owner sign-in failed identity verification; after
 request then failed at `catalog-body`, which points to reading the catalog
 response, not to model eligibility. Version 0.12.6 raises only the catalog's
 bounded response limit and separates body size, stream and encoding codes.
-Restart the backend, reload the extension, reconnect and sign in again, then
-make one explicit list request. A successful live model list, web search and
-insight quality remain unverified. Manual
+After that update, the owner reports a successful live model list. Web search,
+completed inference and insight quality remain unverified. Manual
 AI-assisted draft entry works without a
 connected provider. No hosted/commercial/store eligibility is implied.
 The connection and model list are account-specific; a listed model can still

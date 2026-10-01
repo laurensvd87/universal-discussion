@@ -33,6 +33,34 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.7 empty-draft UI clarification (2026-10-01):** code inspection confirms
+the owner's empty editor is the manual draft, not a completed ChatGPT result;
+model listing only supplies model choices. The User panel now labels that
+editor clearly, displays a single next-step cue through context/model/text/
+consent/Create, and distinguishes running, failed and generated states. It
+does not generate, retry, send or share automatically and changes no backend
+or permission. The owner has not yet confirmed pressing Create insights; live
+completed inference remains unverified. Reloading the unpacked extension is
+enough for this UI-only update; the service need not restart. Extension
+restricted **819/819**, indicator/package **557/557**, extension secret scan
+**0/173** and diff check pass. No actual Chrome/provider test was run for this
+checkpoint while the owner tests the current local service. Push remains
+blocked pending explicit owner approval of the named remote/payload.
+
+**Owner model-list result and empty-draft clarification (2026-10-01):** the
+owner now reports a populated live model list. This establishes that catalog
+retrieval works in their current local setup, but not that the earlier
+`catalog-body` failure was caused by size alone. The empty field they then saw
+shows the static manual-draft hint: listing models never generates an insight;
+preparing context starts with an empty draft. Only a separately invoked,
+successfully completed Create insights operation fills it. Service and client
+reject blank provider output, so a successful completion should not produce
+an empty draft. It is not yet known whether the owner pressed Create insights
+or saw an error status. No provider call was made by agents; live inference and
+answer quality remain unverified. The 0.12.6 commit is local: auto-review
+rejected the push pending explicit owner approval of the named remote/payload.
+Do not retry it without that approval.
+
 **0.12.6 live catalog-body follow-up (2026-10-01):** after restarting and
 retrying, the owner reported a connected account whose explicit model-list
 request returned fixed `catalog-body`. This establishes that the backend reached

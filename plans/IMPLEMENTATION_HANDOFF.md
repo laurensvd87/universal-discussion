@@ -2,6 +2,21 @@
 
 Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Newest checkpoint: extension 0.12.7 clarifies the empty manual draft with
+next-step and research-result cues, without backend or permission changes.
+Restricted extension 819/819, indicator/package 557/557 and secret scan 0/173
+pass. The owner need only reload the extension. No live completed inference is
+claimed. GitHub push remains blocked pending explicit approval of the named
+remote/payload; do not retry it without that approval.
+
+Newest owner result: a populated live model list now works. The empty text box
+they subsequently report is the manual draft field, not evidence of a
+completed AI response. Model listing does not populate it; only an explicit
+completed Create insights operation does. Ask whether that action ran and for
+only the fixed AI status, never page text/account data. The 0.12.6 commit
+remains local: auto-review rejected GitHub push until the owner explicitly
+approves the named remote and payload. Do not retry without that approval.
+
 Current checkpoint: **0.12.6 owner sign-in reports connected, but an explicit
 model list returned `catalog-body`; the separate bounded catalog-read and
 fixed-code diagnostics are ready for the next owner check.**

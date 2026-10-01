@@ -20,6 +20,8 @@ const IDENTITY_FAILURE_SUBSTAGE_MESSAGES = Object.freeze({
   "signature-invalid": "aiFailureSignatureInvalid",
   "claims-invalid": "aiFailureClaimsInvalid",
 });
+const RESEARCH_FAILURE_STATUSES = new Set(["generationFailed", "usageLimit", "modelUnavailable",
+  "webResearchUnavailable", "authorizationExpired", "researchTimeout", "researchBusy", "cancelled"]);
 
 export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}) {
   const text = (key) => messages?.[key] ?? INSIGHT_EN[key];
@@ -53,6 +55,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   sourceDetails.append(node("summary", "sourceWorkspace"), includeLabel, include); details.append(sourceDetails);
   const prepare = button(details, "prepare", () => controller?.prepare({ includeDiscussion: include.checked }));
   const aiControls = node("section", null, "insight-ai-controls"); details.append(aiControls);
+  const nextStep = node("p", null, "insight-next-step");
+  nextStep.setAttribute("role", "status"); nextStep.setAttribute("aria-live", "polite");
+  aiControls.append(nextStep);
   const connect = button(accountDetails, "connect", () => { void controller?.connect(); });
   const check = button(accountDetails, "checkConnection", () => { void controller?.checkConnection(); });
   const disconnect = button(accountDetails, "disconnect", () => { void controller?.disconnect(); });
@@ -101,7 +106,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const draftDetails = node("details", null, "insight-draft-details"); draftDetails.className = "insight-subdetails";
   const draftSummary = node("summary", "draftWorkspace"); draftDetails.append(draftSummary); details.append(draftDetails);
   const composer = node("section", null, "insight-composer"); composer.hidden = true; draftDetails.append(composer);
-  composer.append(node("p", "hint"));
+  const draftHint = node("p", null, "insight-draft-hint"); composer.append(draftHint);
   const body = node("textarea", null, "insight-body"); body.maxLength = 8_000; body.rows = 7;
   const label = node("label", "draft"); label.htmlFor = body.id; composer.append(label, body);
   listen(body, "input", () => controller?.setDraft(body.value));
@@ -179,7 +184,13 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     review.disabled ||= generating;
     share.disabled ||= generating;
     discard.disabled ||= generating;
-    draftSummary.textContent = text(ai.status === "generated" ? "draftWorkspaceGenerated" : "draftWorkspace");
+    const generatedDraft = ai.status === "generated" && Boolean(state.draft.trim());
+    draftSummary.textContent = text(generatedDraft ? "draftWorkspaceGenerated" :
+      state.draft.trim() ? "draftWorkspaceManualFilled" : "draftWorkspace");
+    draftHint.textContent = text(generatedDraft ? "hint" : generating ? "draftGenerating" :
+      RESEARCH_FAILURE_STATUSES.has(ai.status) && !state.draft.trim()
+        ? "draftResearchFailed" : "draftManualHint");
+    body.placeholder = text(generatedDraft ? "draftGeneratedPlaceholder" : "draftManualPlaceholder");
     if (ai.status === "generated" || state.preview) draftDetails.open = true;
     if (generating) draftDetails.open = false;
     const stageMessage = ai.status === "connectionFailed" && Object.hasOwn(FAILURE_STAGE_MESSAGES, ai.failureStage)
@@ -190,6 +201,12 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     aiStatus.textContent = text(substageMessage ?? stageMessage ??
       `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
+    nextStep.textContent = text(!state.context ? "nextPrepare" : generating ? "nextGenerating" :
+      RESEARCH_FAILURE_STATUSES.has(ai.status) ? "nextResearchFailed" :
+      generatedDraft ? "nextReviewDraft" : !ai.planEnabled ? "nextConnect" :
+      !ai.models.length ? "nextListModels" : !ai.model ? "nextChooseModel" :
+      !ai.article ? "nextReadPage" : !ai.articleText?.trim() ? "nextEnterPageText" :
+      !ai.costConsent ? "nextReviewConsent" : "nextCreateInsights");
     modelStatus.hidden = !["loadingModels", "noModels", "modelListUnavailable", "modelListAccessRejected",
       "modelListRateLimited", "modelListTimedOut", "modelListInvalidResponse",
       "modelListProviderUnavailable", "modelListBusy"].includes(ai.status);
