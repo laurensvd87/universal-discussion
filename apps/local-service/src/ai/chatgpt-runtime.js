@@ -18,6 +18,9 @@ const MODEL_FAILURES = new Map([
 ]);
 const MODEL_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
   "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
+const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "response-stream", "response-too-large",
+  "response-encoding", "response-event", "response-no-final", "response-empty-output", "response-output-too-large",
+  "response-incomplete", "response-failed", "response-http-400"]);
 const MAX_DIAGNOSTIC_EVENTS = 20;
 const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "callback-busy", "token-exchange-rejected",
   "token-exchange-failed", "token-response-invalid", "discovery-failed",
@@ -97,6 +100,12 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
     diagnosticEvents.push(event);
     if (diagnosticEvents.length > MAX_DIAGNOSTIC_EVENTS) diagnosticEvents.shift();
   }
+  function recordInsightOutcome(outcome, detail) {
+    const event = { kind: "insight", outcome };
+    if (INSIGHT_DETAILS.has(detail)) event.detail = detail;
+    diagnosticEvents.push(event);
+    if (diagnosticEvents.length > MAX_DIAGNOSTIC_EVENTS) diagnosticEvents.shift();
+  }
   let active = null;
   let disposed = false;
   let callbackPending = false;
@@ -121,7 +130,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
   function cancelJob(job) {
     if (job.state === "running") insights.cancel();
     clearTimeout(job.expiry);
-    job.result = null; job.state = "failed"; job.error = "cancelled"; finish(job);
+    job.result = null; job.state = "failed"; job.error = "cancelled"; job.detail = null; finish(job);
   }
   function stopJobs() {
     if (active) insights.cancel();
@@ -142,7 +151,16 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
       includeDiscussion: context.coverage?.discussionIncluded === true }); }
     catch { fail("invalid", "Invalid request"); }
     if (!same(rebuilt, context)) fail("invalid", "Invalid request");
-    return rebuilt;
+    const excluded = input.excludedRelatedSourceIds ?? [];
+    if (!Array.isArray(excluded) || excluded.length > rebuilt.relatedSources.length ||
+        excluded.some((id) => typeof id !== "string" ||
+          !rebuilt.relatedSources.some((source) => source.id === id)) ||
+        new Set(excluded).size !== excluded.length) fail("invalid", "Invalid request");
+    if (!excluded.length) return rebuilt;
+    const hidden = new Set(excluded);
+    const relatedSources = rebuilt.relatedSources.filter((source) => !hidden.has(source.id));
+    return { ...rebuilt, relatedSources,
+      coverage: { ...rebuilt.coverage, relatedTotal: relatedSources.length } };
   }
   return Object.freeze({
     diagnostics: () => ({ events: diagnosticEvents.map((event) => ({ ...event })) }),
@@ -183,7 +201,9 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
         throw error;
       } },
     create(value, actorId) {
-      exact(value, ["operationId", "model", "context", "articleText", "allowWebResearch", "expected"]);
+      exact(value, Object.hasOwn(value ?? {}, "excludedRelatedSourceIds")
+        ? ["operationId", "model", "context", "articleText", "allowWebResearch", "expected", "excludedRelatedSourceIds"]
+        : ["operationId", "model", "context", "articleText", "allowWebResearch", "expected"]);
       service.actor(actorId);
       const key = operationId(value.operationId);
       if (seen.has(key)) fail("conflict", "Operation changed");
@@ -192,14 +212,19 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
       const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       const context = inspectContext(value);
-      const job = { operationId: key, actorId, expected: value.expected, state: "running", result: null, error: null, finishedAt: null };
+      const job = { operationId: key, actorId, expected: value.expected, state: "running", result: null,
+        error: null, detail: null, finishedAt: null };
       seen.add(key); jobs.set(key, job); active = job;
       void insights.createInsight({ model: value.model, context, articleText: value.articleText,
         allowWebResearch: value.allowWebResearch }).then((result) => {
-        if (job.state === "running" && !disposed) { job.state = "completed"; job.result = result; finish(job); }
+        if (job.state === "running" && !disposed) {
+          job.state = "completed"; job.result = result; recordInsightOutcome("success"); finish(job);
+        }
       }, (error) => {
         if (job.state === "running" && !disposed) { job.state = "failed";
           job.error = error instanceof ChatGptInsightError && SAFE_ERRORS.has(error.code) ? error.code : "provider-unavailable";
+          job.detail = error instanceof ChatGptInsightError && INSIGHT_DETAILS.has(error.detail) ? error.detail : null;
+          recordInsightOutcome(job.error, job.detail);
           finish(job); }
       }).finally(() => { if (active === job) active = null; });
       return { operationId: key, state: "running" };
@@ -210,7 +235,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
         cancelJob(job); job.error = "stale-context";
       }
       if (job.state === "completed") return { operationId: job.operationId, state: job.state, result: job.result };
-      if (job.state === "failed") return { operationId: job.operationId, state: job.state, error: job.error };
+      if (job.state === "failed") return { operationId: job.operationId, state: job.state, error: job.error,
+        ...(job.detail ? { detail: job.detail } : {}) };
       return { operationId: job.operationId, state: "running" };
     },
     cancel(value, actorId) { exact(value, ["operationId"]); const job = owned(value.operationId, actorId); cancelJob(job); return { cancelled: true }; },

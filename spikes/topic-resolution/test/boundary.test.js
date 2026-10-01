@@ -59,6 +59,7 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       "browser/core/page-resolution-contract.js",
       "browser/core/page-signal-contract.js",
       "browser/core/page-signal-policy.js",
+      "browser/core/read-only-service-retry.js",
       "browser/core/related-sources.js",
       "browser/core/topic-toolbar-controller.js",
       "browser/fixtures/indicator-fixtures.js",

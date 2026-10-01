@@ -16,13 +16,17 @@ shared into native discussions visible inside the extension. ChatGPT connection
 is opt-in; no AI research runs automatically. Earlier external-feed tests are
 research only; first-user value, sharing and growth remain unvalidated.
 
-Extension **0.12.7** includes a ChatGPT insights PoC: review a bounded public-page
-sample and same-Topic/related links, request research using your account, then
-edit and separately share an AI-labelled discussion opening locally. No API key
-or automatic posting. User Mode is simplified around the Topic, discussion
-and insight action; setup and diagnostics stay secondary.
-See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0127)
-and [ADR-024](decisions/ADR-024-local-ai-insights-and-chatgpt-poc.md).
+Extension **0.12.8** includes owner-approved automatic local matching in a
+separate public-only browser profile and a one-click ChatGPT insight PoC. Once
+the local service is paired, Chrome HTTPS access is granted and ChatGPT is
+signed in, User Mode loads the current Topic and available models, selects the
+last listed model, and keeps **Create insights** visible. Clicking it reads the
+bounded current public-page text and sends it with selected related source
+titles/URLs to ChatGPT; the result stays private until separately previewed
+and shared locally. Related pages can be excluded in Insight settings. No API
+key, automatic AI inference, automatic posting, new permission or cloud backend.
+See [setup and testing](spikes/topic-resolution/browser/README.md#chatgpt-insights-0128)
+and [ADR-025](decisions/ADR-025-public-profile-autocapture-and-one-click-insights.md).
 Integration evidence is tracked in [STATUS](plans/STATUS.md). Actual account
 eligibility, live research and answer quality still require the owner's test.
 The 0.12.1 hardening clarifies plan access after sign-in, offers an explicit
@@ -49,6 +53,18 @@ After the owner confirmed the model list works, 0.12.7 clarifies that its empty
 manual-draft editor is not an AI result and shows the next step or research
 failure distinctly. This is an extension-only UI change; reload the extension,
 but the local service need not restart.
+Version 0.12.8 responds to the first real failed research attempt with only
+fixed, non-sensitive failure details in the paired result and in-memory local
+diagnostics. The exact live cause is still unknown; no partial answer, provider
+body or automatic AI retry is introduced. After separate explicit owner
+approvals, this version also starts matching after authenticated local pairing
+when the existing Chrome HTTPS grant is present; Stop remains sticky for that
+browser session. User Mode no longer requires a separate text/cost click before
+the explicit Create action. A compact bottom bar prevents horizontal popup
+overflow and keeps the model and action visible. Restart the local service and
+reload the extension for this checkpoint. Native Chrome permission and ChatGPT
+sign-in still require their own initial interaction. Provider-side paid-credit
+settings remain the owner's responsibility; the app cannot enforce them.
 
 Extension **0.11.0** added a clickable ↗ source icon to new page-linked posts:
 it opens that post's source in a new tab. Replies can link their own page while

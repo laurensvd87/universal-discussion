@@ -29,8 +29,8 @@ body[data-ui-mode="developer"] .user-only { display: none; }
 .compact-details > label { display: block; }
 .topic-eyebrow { color: #3675b2 !important; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
 #selected-topic-title { font-size: 25px; line-height: 1.25; overflow-wrap: anywhere; }
-body[data-ui-mode="user"] { width: 410px; background: linear-gradient(160deg, #f0f5ff, #f8fafc 48%, #edf3fa); }
-body[data-ui-mode="user"] main { gap: 12px; padding: 18px; }
+body[data-ui-mode="user"] { width: 410px; max-width: 100vw; background: linear-gradient(160deg, #f0f5ff, #f8fafc 48%, #edf3fa); }
+body[data-ui-mode="user"] main { gap: 12px; padding: 18px 18px 155px; }
 body[data-ui-mode="user"] #local-discussion { padding: 20px; border-color: #dce6f1; background: #fff; box-shadow: 0 10px 30px #233a5910; gap: 13px; }
 body[data-ui-mode="user"] #discussion-heading { font-size: 16px; margin-top: 7px; }
 body[data-ui-mode="user"] .discussion-contribution { padding: 12px; border-color: #e0e7f0; background: #f7faff; }
@@ -43,15 +43,59 @@ body[data-ui-mode="user"] #local-insights { display: block; padding: 0 16px; bor
 body[data-ui-mode="user"] #insight-workspace { border: 0; padding: 0; }
 body[data-ui-mode="user"] #insight-workspace > summary { padding: 16px 0; color: #174b77; font-size: 15px; }
 body[data-ui-mode="user"] #insight-workspace > summary + p { display: none; }
+body[data-ui-mode="user"] #insight-status,
+body[data-ui-mode="user"] #insight-source-details,
+body[data-ui-mode="user"] #insight-prepare,
+body[data-ui-mode="user"] #insight-next-step,
+body[data-ui-mode="user"] #insight-readPageText,
+body[data-ui-mode="user"] #insight-article-text,
+body[data-ui-mode="user"] label[for="insight-article-text"],
+body[data-ui-mode="user"] .insight-warning,
+body[data-ui-mode="user"] #insight-cost-consent,
+body[data-ui-mode="user"] label[for="insight-cost-consent"],
+body[data-ui-mode="user"] .insight-send-scope,
+body[data-ui-mode="user"] #insight-draft-details[data-has-draft="false"] { display: none; }
 body[data-ui-mode="user"] #insight-ai-account { display: none; }
 body[data-ui-mode="user"] #insight-account-details { background: #f3f8fe; border-color: #cbdff1; }
 body[data-ui-mode="user"] #insight-account-details > summary { color: #174b77; font-size: 13px; }
 body[data-ui-mode="user"] #insight-account-details[data-ready="true"] { background: #eef8f2; border-color: #cfe8d7; }
 body[data-ui-mode="user"] #insight-account-details[data-ready="true"] > summary { color: #17633a; }
+body[data-ui-mode="user"] #insight-account-details[data-ready="true"] { display: none; }
+body[data-ui-mode="user"] #insight-account-details[data-ready="true"] { display: none; }
 body[data-ui-mode="user"] #insight-diagnostics { display: none; }
+body[data-ui-mode="user"] #insight-status,
+body[data-ui-mode="user"] #insight-source-details,
+body[data-ui-mode="user"] #insight-ai-status,
+body[data-ui-mode="user"] #insight-next-step,
+body[data-ui-mode="user"] #insight-prepare,
+body[data-ui-mode="user"] #insight-readPageText,
+body[data-ui-mode="user"] #insight-article-text,
+body[data-ui-mode="user"] #insight-ai-controls label[for="insight-article-text"],
+body[data-ui-mode="user"] #insight-ai-controls label[for="insight-cost-consent"],
+body[data-ui-mode="user"] #insight-cost-consent,
+body[data-ui-mode="user"] #insight-ai-controls .insight-warning,
+body[data-ui-mode="user"] #insight-ai-controls .insight-send-scope { display: none; }
 body[data-ui-mode="user"] #insight-checkConnection:disabled,
 body[data-ui-mode="user"] #insight-connect:disabled,
 body[data-ui-mode="user"] #insight-disconnect:disabled { display: none; }
+body[data-ui-mode="user"] #insight-quick-actions {
+  position: fixed;
+  z-index: 10;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-width: 410px;
+  margin: 0 auto;
+  border-top: 1px solid #dce6f1;
+  border-radius: 14px 14px 0 0;
+  padding: 11px 18px 13px;
+  background: #fff;
+  box-shadow: 0 -8px 28px #233a5920;
+}
+body[data-ui-mode="user"] #insight-quick-actions label { grid-column: 1; }
+body[data-ui-mode="user"] #insight-quick-actions select,
+body[data-ui-mode="user"] #insight-quick-actions button { min-height: 40px; }
 body[data-ui-mode="user"] .capture-settings { border: 1px solid #dce6f1; border-radius: 10px; padding: 10px 13px; background: #f8fafc; }
 body[data-ui-mode="user"] .capture-settings > summary { font-size: 11px; color: #627387; }
 body[data-ui-mode="user"] .capture-settings:not([open]) { padding: 8px 12px; }
@@ -64,6 +108,19 @@ body[data-ui-mode="developer"] .capture-settings > summary { margin-bottom: 10px
 #insight-workspace > :not(summary) { margin-top: 0; }
 #insight-workspace > p { margin: 0; }
 #insight-ai-controls { display: grid; gap: 10px; }
+.insight-quick-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, 0.9fr); gap: 7px 9px; min-width: 0; }
+.insight-quick-actions label { grid-column: 1; }
+.insight-quick-actions select, .insight-quick-actions button { min-width: 0; }
+.insight-quick-actions select { grid-column: 1; grid-row: 2; }
+.insight-quick-actions button { grid-column: 2; grid-row: 2; }
+.insight-quick-actions #insight-model-status { grid-column: 1 / -1; grid-row: 3; }
+.insight-quick-actions #insight-quick-status { grid-column: 1 / -1; grid-row: 4; }
+#insight-plan-usage { grid-column: 2; grid-row: 1; align-self: center; margin: 0; text-align: right; font-size: 10px; }
+#insight-quick-status { color: #8a3d2d; font-size: 11px; line-height: 1.35; }
+#insight-quick-status[data-state="preparing"] { color: #17578d; }
+.related-source-choice { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; font-size: 12px; font-weight: 500; letter-spacing: 0; line-height: 1.35; text-transform: none; }
+.related-source-choice input { flex: 0 0 18px; width: 18px; min-height: 18px; margin: 0; }
+.related-source-choice span { min-width: 0; overflow-wrap: anywhere; }
 #insight-ai-status { padding: 7px 9px; border-radius: 8px; background: #f1f5f9; color: #526478; font-size: 11px; }
 #insight-ai-status[data-state="connected"] { background: #e4f5e9; color: #17633a; }
 #insight-ai-status[data-state="connecting"] { background: #e8f1fb; color: #17578d; }
@@ -90,6 +147,12 @@ body[data-ui-mode="developer"] .capture-settings > summary { margin-bottom: 10px
 * {
   box-sizing: border-box;
 }
+
+html, body { max-width: 100%; overflow-x: hidden; }
+main, main > *, .action-panel, .action-panel > *, .result-card,
+.discussion-thread, .discussion-contribution, #insight-workspace,
+#insight-ai-controls, #insight-context, #insight-composer { min-width: 0; }
+p, li, blockquote, summary, label, dd { overflow-wrap: anywhere; }
 
 body {
   width: 380px;
@@ -215,6 +278,8 @@ button,
 input,
 textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 42px;
   border-radius: 10px;
   font: inherit;

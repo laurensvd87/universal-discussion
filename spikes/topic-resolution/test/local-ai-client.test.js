@@ -93,6 +93,24 @@ test("mismatched operation and oversized body fail closed", async () => {
   await assert.rejects(oversized.status(), TypeError);
 });
 
+test("failed insight result exposes only fixed research details", async () => {
+  const details = ["response-redirect", "response-content-type", "response-stream",
+    "response-too-large", "response-encoding", "response-event", "response-no-final",
+    "response-empty-output", "response-output-too-large", "response-incomplete",
+    "response-failed", "response-http-400"];
+  for (const detail of details) {
+    const value = await client(async (url) => response(url,
+      { operationId: "op-a", state: "failed", error: "invalid-response", detail })).result("op-a", "demo-alex");
+    assert.equal(value.detail, detail);
+  }
+  for (const value of [
+    { operationId: "op-a", state: "failed", error: "invalid-response", detail: "private provider text" },
+    { operationId: "op-a", state: "failed", error: "invalid-response", detail: { code: "response-event" } },
+    { operationId: "op-a", state: "running", detail: "response-event" },
+    { operationId: "op-a", state: "completed", detail: "response-event" },
+  ]) await assert.rejects(client(async (url) => response(url, value)).result("op-a", "demo-alex"), TypeError);
+});
+
 test("model list accepts only exact success or fixed failure responses", async () => {
   const models = [{ slug: "model-a", displayName: "Model A" }];
   assert.deepEqual(await client(async (url) => response(url, { models })).models(), models);
@@ -118,7 +136,8 @@ test("model list accepts only exact success or fixed failure responses", async (
 
 test("diagnostics require paired fixed-code events and discard provider data", async () => {
   const events = [{ kind: "models", outcome: "success" },
-    { kind: "models", outcome: "invalid-response", detail: "catalog-entry" }];
+    { kind: "models", outcome: "invalid-response", detail: "catalog-entry" },
+    { kind: "insight", outcome: "invalid-response", detail: "response-no-final" }];
   let path;
   const valid = client(async (url) => { path = url; return response(url, { events }); });
   assert.deepEqual(await valid.diagnostics(), { events });
@@ -126,6 +145,8 @@ test("diagnostics require paired fixed-code events and discard provider data", a
   for (const value of [
     { events: [{ kind: "models", outcome: "success", detail: "catalog-entry" }] },
     { events: [{ kind: "models", outcome: "invalid-response", detail: "provider-secret" }] },
+    { events: [{ kind: "insight", outcome: "invalid-response", detail: "provider-secret" }] },
+    { events: [{ kind: "insight", outcome: "provider-secret" }] },
     { events: [{ kind: "login", outcome: "success" }] },
     { events: Array.from({ length: 21 }, () => events[0]) },
     { events, account: "private" },

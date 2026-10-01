@@ -269,6 +269,41 @@ test("failure, incomplete, partial-only, oversized and provider errors never bec
   await assert.rejects(adapter.createInsight(REQUEST), errorCode("unauthorized"));
 });
 
+test("research failures expose only fixed substages without provider text or retries", async () => {
+  const secret = "SECRET_PROVIDER_RESEARCH_BODY_REQUEST_ID";
+  assert.equal(new ChatGptInsightError("invalid-response", secret).detail, undefined);
+  assert.equal(new ChatGptInsightError("provider-unavailable", secret).detail, undefined);
+  const cases = [
+    [new Response(JSON.stringify({ error: { code: "unknown", message: secret } }),
+      { status: 400, headers: { "content-type": "application/json" } }), "provider-unavailable", "response-http-400"],
+    [new Response(secret, { headers: { "content-type": "text/plain" } }), "invalid-response", "response-content-type"],
+    [stream("x".repeat(262_145)), "invalid-response", "response-too-large"],
+    [stream("event: response.completed\ndata: {invalid}\n\n"), "invalid-response", "response-event"],
+    [stream("event: response.output_text.delta\ndata: {}\n\n"), "invalid-response", "response-no-final"],
+    [stream(complete("  ")), "invalid-response", "response-empty-output"],
+    [stream(complete("x".repeat(8_001))), "invalid-response", "response-output-too-large"],
+    [stream(event("response.incomplete", { status: "incomplete", incomplete_details: { reason: secret } })),
+      "provider-unavailable", "response-incomplete"],
+  ];
+  for (const [response, code, detail] of cases) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1;
+      return response;
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.equal(errorCode(code)(error), true);
+      assert.equal(error.detail, detail);
+      assert.equal(JSON.stringify(error).includes(secret), false);
+      return true;
+    });
+    assert.equal(posts, 1);
+    adapter.dispose();
+  }
+});
+
 test("one active request, cancellation, disposal and five calls per rolling hour", async () => {
   let clock = 10_000;
   let parked;

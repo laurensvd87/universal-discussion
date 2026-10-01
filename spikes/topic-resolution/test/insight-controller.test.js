@@ -89,6 +89,60 @@ test("AI research requires explicit page preview, model and credit consent; answ
   assert.equal(await app.insight.share(), false);
 });
 
+test("one User click reads the current page and omits unchecked related links from provider context", async () => {
+  const calls = [];
+  let currentUrl;
+  const aiClient = {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a", displayName: "A" }, { slug: "model-b", displayName: "B" }],
+    start: async (request) => { calls.push(request); return { operationId: request.operationId, state: "running" }; },
+    result: async (operationId) => ({ operationId, state: "completed", result: { body: "Current-page insight.", model: "model-b", citations: [] } }),
+    cancel: async () => true,
+  };
+  const app = await harness({ aiClient,
+    readArticle: async () => ({ url: currentUrl, documentId: "doc-harbor", text: "The public current page" }),
+    attestArticle: async (_, article) => { assert.equal(article.documentId, "doc-harbor"); },
+    randomId: () => "one-click-harbor" });
+  await app.discussion.selectSource("harbor-overview");
+  const before = app.insight.currentState();
+  assert.ok(before.context?.currentSource);
+  assert.ok(before.context.relatedSources.length > 0);
+  currentUrl = before.context.currentSource.url;
+  assert.equal(await app.insight.checkConnection(), true);
+  assert.equal(await app.insight.loadModels(), true);
+  assert.equal(app.insight.currentState().ai.model, "model-b");
+  const excluded = before.context.relatedSources[0].id;
+  assert.equal(app.insight.setRelatedSourceIncluded(excluded, false), true);
+  assert.equal(app.insight.setRelatedSourceIncluded(before.context.currentSource.id, false), false);
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].articleText, "The public current page");
+  assert.equal(calls[0].context.currentSource.id, before.context.currentSource.id);
+  assert.equal(calls[0].context.relatedSources.some((source) => source.id === excluded), true);
+  assert.deepEqual(calls[0].excludedRelatedSourceIds, [excluded]);
+  assert.equal(app.insight.currentState().context.relatedSources.some((source) => source.id === excluded), true);
+  assert.equal(app.insight.currentState().draft, "Current-page insight.");
+  assert.equal(app.service.discussion(before.context.topic.id).roots.length, 0);
+});
+
+test("navigation during automatic page reading prevents provider send", async () => {
+  let finishRead, starts = 0;
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a", displayName: "A" }],
+    start: async () => { starts++; }, cancel: async () => true,
+  }, readArticle: () => new Promise((resolve) => { finishRead = resolve; }),
+    attestArticle: async () => true, randomId: () => "stale-read" });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  const running = app.insight.createInsights({ automatic: true });
+  assert.equal(await app.insight.createInsights({ automatic: true }), false);
+  app.navigate();
+  finishRead({ url: "https://example.com/", documentId: "doc-old", text: "Old public text" });
+  assert.equal(await running, false);
+  assert.equal(starts, 0);
+  assert.equal(app.insight.currentState().ai.articleText, "");
+});
+
 test("connected identity without plan access permits only explicit re-consent and local drafting", async () => {
   let planEnabled = false, modelsCalled = 0, starts = 0, connects = 0;
   const opened = [];
@@ -364,6 +418,25 @@ test("safe research failures give actionable status without importing provider t
     assert.equal(outcome.draft, "", code);
     assert.equal(starts, 1, code);
   }
+});
+
+test("research failure retains only a fixed diagnostic detail in popup memory", async () => {
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => [{ slug: "model-a", displayName: "Model A" }],
+    start: async () => ({ state: "running" }),
+    result: async () => ({ operationId: "op-failed", state: "failed", error: "invalid-response",
+      detail: "response-no-final" }),
+    cancel: async () => true,
+  }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+    attestArticle: async () => true, randomId: () => "op-failed" });
+  app.insight.prepare(); await app.insight.checkConnection(); await app.insight.loadModels();
+  await app.insight.readPageText(); app.insight.selectModel("model-a"); app.insight.setCostConsent(true);
+  assert.equal(await app.insight.createInsights(), false);
+  assert.equal(app.insight.currentState().ai.researchFailureDetail, "response-no-final");
+  assert.equal(app.insight.currentState().draft, "");
+  app.insight.discard();
+  assert.equal(app.insight.currentState().ai.researchFailureDetail, null);
 });
 
 test("editing invalidates preview; navigation/actor/source/version changes clear private context", async () => {

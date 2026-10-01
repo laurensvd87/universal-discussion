@@ -37,7 +37,25 @@ test("native wildcard access without a lease stays off and status revision stays
   assert.equal(before.enabled, false); assert.equal(before.sessionWindowId, null);
   assert.equal((await h.session.snapshot()).sessionRevision, before.sessionRevision);
   await h.start(); assert.equal((await h.session.snapshot()).enabled, true);
-  assert.deepEqual(Object.keys(h.state.saved).sort(), ["revision", "schema", "windowId"]);
+  assert.deepEqual(Object.keys(h.state.saved).sort(), ["autoStart", "revision", "schema", "windowId"]);
+  assert.equal(h.state.saved.autoStart, true);
+});
+test("fresh session may auto-start; Stop persists across worker reconstruction", async () => {
+  const h = fixture();
+  assert.equal(h.session.mayAutoStart(), true);
+  await h.session.stop();
+  assert.equal(h.session.mayAutoStart(), false);
+  assert.equal(h.state.saved.autoStart, false);
+  const restored = h.reconstruct();
+  assert.equal((await restored.snapshot()).enabled, false);
+  assert.equal(restored.mayAutoStart(), false);
+  await h.start();
+  assert.equal(h.state.saved.autoStart, true);
+});
+test("legacy inactive lease does not turn on after extension update", async () => {
+  const h = fixture({ saved: { schema: "capture-session/1", revision: "saved-control-revision-0001", windowId: null } });
+  await h.session.snapshot();
+  assert.equal(h.session.mayAutoStart(), false);
 });
 test("Stop rejects a grant completed with the previous status ticket even while inactive", async () => {
   const h = fixture(); const before = await h.session.snapshot();

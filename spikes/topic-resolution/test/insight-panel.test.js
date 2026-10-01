@@ -13,9 +13,9 @@ function context() {
 function state(patch = {}) {
   return { available: true, busy: false, status: "prepared", context: context(), draft: "", preview: null, ...patch };
 }
-function harness(messages) {
+function harness(messages, uiMode) {
   const created = [];
-  const document = { createElement(tag) {
+  const document = { body: { dataset: { uiMode } }, createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
       append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; },
       setAttribute(key, value) { this.attributes[key] = value; }, focus() { this.focused = true; },
@@ -33,13 +33,15 @@ function harness(messages) {
     setDraft: (value) => { calls.push(["setDraft", value]); return true; },
     preview: () => { calls.push(["preview"]); return true; },
     discard: () => { calls.push(["discard"]); },
+    setRelatedSourceIncluded: (id, included) => { calls.push(["setRelatedSourceIncluded", id, included]); return true; },
+    createInsights: (options) => { calls.push(["createInsights", options]); return Promise.resolve(true); },
     loadDiagnostics: () => { calls.push(["loadDiagnostics"]); },
     share: () => { calls.push(["share"]); return Promise.resolve(true); } };
   panel.bind(controller);
   const byId = (id) => created.find((item) => item.id === id);
   const descendants = (node) => [node, ...node.children.flatMap(descendants)];
   const click = (id) => byId(id).listeners.get("click")();
-  return { created, root, panel, calls, byId, descendants, click };
+  return { created, document, root, panel, calls, byId, descendants, click };
 }
 
 test("hostile context, URLs, and reviewed text stay inert with no link or clipboard action", () => {
@@ -164,6 +166,11 @@ test("compact workspace keeps account and context secondary while exposing redac
   assert.equal(ui.byId("insight-account-details").tag, "details");
   assert.equal(ui.byId("insight-source-details").tag, "details");
   assert.equal(ui.byId("insight-draft-details").tag, "details");
+  const quickActions = ui.byId("insight-quick-actions");
+  assert.equal(ui.root.children.includes(quickActions), true);
+  assert.deepEqual(quickActions.children.map((item) => item.id),
+    [undefined, "insight-model", "insight-model-status", "insight-createInsights", "insight-quick-status", "insight-plan-usage"]);
+  assert.equal(ui.byId("insight-account-details").children.includes(ui.byId("insight-model")), false);
   assert.equal(ui.created.some((item) => item.textContent === INSIGHT_EN.disconnected), false);
   ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, models: [{ slug: "model-a", displayName: "Model A" }],
     model: "model-a", articleText: "Review me", article: { url: "https://example.com/", documentId: "doc-a" },
@@ -224,10 +231,13 @@ test("research progress, failure, and completed draft have distinct editor guida
   assert.equal(hint.textContent, INSIGHT_EN.draftGenerating);
   assert.equal(next.textContent, INSIGHT_EN.nextGenerating);
   assert.equal(draft.value, "");
+  assert.equal(ui.byId("insight-quick-status").hidden, true);
   ui.panel.render(state({ ai: { ...ai, status: "generationFailed" } }));
   assert.equal(hint.textContent, INSIGHT_EN.draftResearchFailed);
   assert.equal(next.textContent, INSIGHT_EN.nextResearchFailed);
   assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN.aiGenerationFailed);
+  assert.equal(ui.byId("insight-quick-status").textContent, INSIGHT_EN.aiGenerationFailed);
+  assert.equal(ui.byId("insight-quick-status").hidden, false);
   assert.equal(summary.textContent, INSIGHT_EN.draftWorkspace);
   ui.panel.render(state({ draft: "Generated finding", ai: { ...ai, status: "generated",
     result: { body: "Generated finding", citations: [] } } }));
@@ -236,6 +246,43 @@ test("research progress, failure, and completed draft have distinct editor guida
   assert.equal(next.textContent, INSIGHT_EN.nextReviewDraft);
   assert.equal(draft.value, "Generated finding");
   assert.equal(draft.placeholder, INSIGHT_EN.draftGeneratedPlaceholder);
+  assert.equal(ui.byId("insight-quick-status").hidden, true);
+});
+
+test("User Create click uses current page automatically and related-source settings stay local", () => {
+  const ui = harness(undefined, "user");
+  const ai = { connected: true, planEnabled: true, pending: false,
+    models: [{ slug: "model-a", displayName: "A" }], model: "model-a", articleText: "", article: null,
+    costConsent: false, status: "connected", result: null };
+  ui.panel.render(state({ ai }));
+  assert.equal(ui.byId("insight-createInsights").disabled, false);
+  const settings = ui.byId("insight-related-settings");
+  const choices = ui.byId("insight-related-choices");
+  assert.equal(settings.hidden, false);
+  assert.equal(choices.children.length, 1);
+  const checkbox = choices.children[0].children[0];
+  assert.equal(checkbox.value, "source-c");
+  assert.equal(checkbox.checked, true);
+  checkbox.checked = false;
+  choices.listeners.get("change")({ target: checkbox });
+  assert.deepEqual(ui.calls.at(-1), ["setRelatedSourceIncluded", "source-c", false]);
+  ui.panel.render(state({ ai, excludedRelatedSourceIds: ["source-c"] }));
+  assert.equal(checkbox.checked, false);
+  ui.click("insight-createInsights");
+  assert.deepEqual(ui.calls.at(-1), ["createInsights", { automatic: true }]);
+  assert.equal(ui.calls.some(([name]) => name === "share"), false);
+});
+
+test("research failure exposes only allowlisted fixed detail and clears it on success", () => {
+  const ui = harness();
+  const ai = { connected: true, planEnabled: true, pending: false, models: [], model: "",
+    articleText: "", article: null, status: "generationFailed", researchFailureDetail: "response-http-400" };
+  ui.panel.render(state({ ai }));
+  assert.equal(ui.byId("insight-quick-status").textContent.includes("Code: response-http-400"), true);
+  ui.panel.render(state({ ai: { ...ai, researchFailureDetail: "private-provider-body" } }));
+  assert.equal(ui.byId("insight-quick-status").textContent.includes("private-provider-body"), false);
+  ui.panel.render(state({ ai: { ...ai, status: "generated", researchFailureDetail: null } }));
+  assert.equal(ui.byId("insight-quick-status").hidden, true);
 });
 
 test("first-use connection and plan usage stay clear beside the explicit research controls", () => {
@@ -271,14 +318,16 @@ test("first-use connection and plan usage stay clear beside the explicit researc
   assert.equal(ui.byId("insight-createInsights").disabled, true);
 });
 
-test("model-list feedback stays beside the disabled dropdown in account details", () => {
+test("model-list feedback stays beside the always-visible model selector", () => {
   const ui = harness();
   const details = ui.byId("insight-account-details");
+  const quickActions = ui.byId("insight-quick-actions");
   const model = ui.byId("insight-model");
   const feedback = ui.byId("insight-model-status");
   const general = ui.byId("insight-ai-status");
   details.open = false;
-  assert.equal(details.children[details.children.indexOf(model) + 1], feedback);
+  assert.equal(quickActions.children[quickActions.children.indexOf(model) + 1], feedback);
+  assert.equal(ui.descendants(details).includes(model), false);
   assert.equal(ui.descendants(details).includes(general), false);
   assert.equal(ui.descendants(ui.byId("insight-workspace")).includes(general), true);
   assert.equal(feedback.attributes.role, "status");
@@ -328,12 +377,14 @@ test("diagnostics require an explicit click and render only fixed codes in Devel
       { kind: "models", outcome: "local-error" },
       { kind: "models", outcome: "secret-token", detail: "private response" }], events: [
       { kind: "models", outcome: "invalid-response", detail: "catalog-entry" },
-      { kind: "models", outcome: "success", detail: "private response" }] } } }));
+      { kind: "models", outcome: "success", detail: "private response" },
+      { kind: "insight", outcome: "invalid-response", detail: "response-http-400" },
+      { kind: "insight", outcome: "secret-token", detail: "private response" }] } } }));
   assert.equal(ui.byId("insight-model-status").textContent.includes("Code: catalog-entry"), true);
   assert.deepEqual(ui.byId("insight-local-diagnostics-events").children.map((item) => item.textContent),
     ["models · invalid-response · catalog-json", "models · local-error"]);
   assert.deepEqual(ui.byId("insight-diagnostics-events").children.map((item) => item.textContent),
-    ["models · invalid-response · catalog-entry", "models · success"]);
+    ["models · invalid-response · catalog-entry", "models · success", "insight · invalid-response · response-http-400"]);
 });
 
 test("connected account identity is Developer-only while User setup remains available", () => {
@@ -342,7 +393,7 @@ test("connected account identity is Developer-only while User setup remains avai
     models: [], model: "", status: "connected", account: { label: "private@example.com" } } }));
   assert.equal(ui.byId("insight-ai-account").className, "developer-only");
   assert.equal(ui.byId("insight-account-details").children.includes(ui.byId("insight-connect")), true);
-  assert.equal(ui.byId("insight-account-details").children.includes(ui.byId("insight-model")), true);
+  assert.equal(ui.byId("insight-quick-actions").children.includes(ui.byId("insight-model")), true);
 });
 
 test("connection failure renders only fixed stage guidance and clears it on a new state", () => {

@@ -2,7 +2,26 @@
 
 Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Newest checkpoint: extension 0.12.7 clarifies the empty manual draft with
+Newest checkpoint: extension/service 0.12.8 implements the owner's two
+explicit ADR-025 approvals for automatic matching in a separate public profile
+and one-click ChatGPT insights. Pairing plus the existing native HTTPS grant
+now starts active eligible-page matching automatically; Stop is sticky until
+explicit resume. User Mode keeps Create insight and the model selector visible,
+auto-lists models and defaults to the final displayed choice. Create reattests
+and sends bounded current-page text plus selected related titles/URLs only;
+related bodies/cookies are not sent. Result remains private until an explicit
+share. Service 150/150, extension restricted 834/834, indicator/package
+571/571, focused tests 48/48, background adapter 88/88, secret scans 0/73
+and 0/176, isolated Chrome one-click/layout/background smokes pass. A read-only
+Sol Medium trust review found no blocker. The owner's live inference remains
+unverified; ask for only fixed status codes after one deliberate Create click,
+never account/callback data or page text. First Chrome HTTPS access still needs
+its native user gesture. Push to GitHub remains blocked pending explicit owner
+approval of the named remote and payload; do not retry without it. ADR-019 C
+durable pairing, private/authenticated pages, legal/store review and later
+owner gates remain open.
+
+Prior checkpoint: extension 0.12.7 clarifies the empty manual draft with
 next-step and research-result cues, without backend or permission changes.
 Restricted extension 819/819, indicator/package 557/557 and secret scan 0/173
 pass. The owner need only reload the extension. No live completed inference is

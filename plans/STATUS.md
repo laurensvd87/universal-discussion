@@ -33,6 +33,32 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.8 public-profile one-click workflow (2026-10-01):** the owner explicitly
+approved both scopes in [ADR-025](../decisions/ADR-025-public-profile-autocapture-and-one-click-insights.md).
+After local pairing and the existing Chrome HTTPS grant, eligible active public
+pages now start window-bound background matching automatically; a deliberate
+Stop stays effective until explicit resume. User Mode hides connected-only
+setup, keeps Create insight and the selected model visible, lists models on
+connection and defaults to the last displayed model. One Create click reads
+and reattests at most 4,096 characters of the current page, then sends that
+text and selected related source titles/URLs through the local service to
+ChatGPT. Related bodies, cookies and credentials are excluded; candidate
+exclusions are reconstructed and validated server-side. AI output remains a
+private editable draft; publication still takes a separate action. Read-only
+service reconnection retries do not retry inference or posting. Fixed in-memory
+diagnostic codes replace opaque research errors. Service **150/150**,
+extension restricted **834/834**, indicator/package **571/571**, focused
+client/controller/panel **48/48**, and background adapter **88/88** pass;
+secret scans **0/73** service and **0/176** extension. Isolated Chrome synthetic
+one-click, popup geometry (410 px, no horizontal overflow, sticky action),
+and automatic matching/shared-comment smokes pass with **0** extension
+external requests or runtime exceptions. A read-only Sol Medium trust review
+found no security/privacy blocker. No live owner account inference is claimed;
+the owner must try one deliberate Create action and report only fixed status
+codes if it fails. Native HTTPS access still needs a one-time browser gesture;
+neither legal/store clearance nor private-page capture is approved. GitHub
+push remains blocked until explicit approval of the named remote and payload.
+
 **0.12.7 empty-draft UI clarification (2026-10-01):** code inspection confirms
 the owner's empty editor is the manual draft, not a completed ChatGPT result;
 model listing only supplies model choices. The User panel now labels that

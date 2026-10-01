@@ -19,6 +19,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     control.id = id;
     const item = node("label", key); item.htmlFor = id;
     parent.append(item, control);
+    return item;
   }
   function listen(item, event, callback) {
     item.addEventListener(event, callback); handlers.push([item, event, callback]);
@@ -54,7 +55,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   advanced.append(advancedSummary, node("p", "discussionScope"));
   const token = node("input"); token.type = "password"; token.autocomplete = "off";
   token.spellcheck = false; token.maxLength = 512;
-  label(token, "discussionToken", "discussion-token", connectionSettings);
+  const tokenLabel = label(token, "discussionToken", "discussion-token", connectionSettings);
   const pairForm = node("form"); const pair = node("button", "discussionPair"); pair.type = "submit";
   pair.id = "discussion-pair";
   // The input is intentionally outside the form: no native form serialization.
@@ -251,6 +252,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (state.needsFreshRead) status.textContent += ` · ${text("discussionReload")}`;
     status.hidden = uiMode === "user" && state.phase === "ready" && !state.error && !state.needsFreshRead;
     const usable = ["ready", "choose-topic"].includes(state.phase) && !state.busy && !state.needsFreshRead;
+    const showPairingInput = uiMode !== "user" || shellView.connection !== "connected";
+    tokenLabel.hidden = token.hidden = pairForm.hidden = !showPairingInput;
     pair.disabled = state.busy || state.phase === "connecting";
     token.disabled = pair.disabled; disconnect.disabled = state.busy;
     disconnect.hidden = reload.hidden = uiMode === "user" && state.phase === "disconnected";

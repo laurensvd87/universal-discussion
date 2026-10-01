@@ -25,6 +25,7 @@ let timer;
 let presentationTabId = null;
 let presentationEpoch = 0;
 let removingAccess = false;
+let autoStartFlight = null;
 const captureSession = createCaptureSession({ storageSession: api.storage.session, storageLocal: api.storage.local,
   getWindow: (id) => api.windows.get(id), hasAccess: permission, readForeground, validOrigin,
   onInvalidate: () => { matcher.invalidate(); clearTimeout(timer); void inference.close().catch(() => {}); } });
@@ -95,11 +96,30 @@ const matcher = createBackgroundMatcher({ getPreferences: preferences, readForeg
   embed: inference.embed, client, nextOperationId: () => crypto.randomUUID(),
   onStateChange: (state) => { void toolbar.update({ ...state, presentationTabId }); },
   onUnauthorized: async () => { await session.clear(); void inference.close().catch(() => {}); } });
+async function ensureAutoSession() {
+  if (removingAccess || autoStartFlight) return autoStartFlight;
+  autoStartFlight = (async () => {
+    const settings = await preferences();
+    if (settings.enabled || !captureSession.mayAutoStart()) return;
+    // A native HTTPS grant is never requested by the worker. Chrome requires
+    // the first grant to originate from an explicit popup user gesture.
+    if (!await session.isPaired() || !await permission() || !captureSession.mayAutoStart()) return;
+    // A remembered token alone is not proof that this local service is running
+    // and accepts it. Do not sample a page before authenticated health succeeds.
+    try { await client.health(); } catch { return; }
+    if (!captureSession.mayAutoStart()) return;
+    const foreground = await readForeground();
+    if (!foreground || !captureSession.mayAutoStart()) return;
+    await captureSession.start(foreground.windowId, settings.sessionRevision);
+    return true;
+  })().catch(() => {}).finally(() => { autoStartFlight = null; });
+  return autoStartFlight;
+}
 function schedule(observation) {
   presentationEpoch++;
   if (Number.isSafeInteger(observation?.tabId) && observation.tabId >= 0) presentationTabId = observation.tabId;
   matcher.invalidate(); clearTimeout(timer);
-  timer = setTimeout(() => { void matcher.refresh(); }, 400);
+  timer = setTimeout(() => { void ensureAutoSession().then(() => matcher.refresh()); }, 400);
 }
 async function observePresentation(windowId, own = presentationEpoch) {
   // Only the focused normal window's single active tab is observed. This can
@@ -119,6 +139,7 @@ async function observePresentation(windowId, own = presentationEpoch) {
   void toolbar.update({ ...matcher.currentState(), presentationTabId });
 }
 async function status() {
+  if (await ensureAutoSession()) schedule();
   const [settings, context] = await Promise.all([preferences(), inspectForeground()]);
   const { foreground, contextReason } = context;
   const observed = matcher.currentState();

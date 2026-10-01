@@ -23,7 +23,7 @@ function event() {
 }
 function embedding() { const values = Array(384).fill(0); values[0] = 1; return { modelId: "e5-small-q8-browser-main-prefix-v1", values }; }
 
-async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) {
+async function harness(t, { enabled = true, paired = true, blocked = [], autoEligible = false } = {}) {
   const descriptors = new Map(["chrome", "fetch", "OffscreenCanvas"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "windowRemoved", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
@@ -32,10 +32,11 @@ async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) 
   const calls = { reads: 0, windowQueries: 0, tabQueries: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [], icons: [], titles: [] };
   const state = {
     local: { enabled, origins: [ORIGIN] }, token: paired ? `synthetic-test-token-${"x".repeat(40)}` : undefined,
-    capture: { schema: "capture-session/1", revision: "synthetic-control-revision-0001", windowId: enabled ? 1 : null }, blocked,
+    capture: autoEligible ? { schema: "capture-session/2", revision: "synthetic-control-revision-0001", windowId: enabled ? 1 : null, autoStart: true }
+      : { schema: "capture-session/1", revision: "synthetic-control-revision-0001", windowId: enabled ? 1 : null }, blocked,
     tab: { id: 7, active: true, incognito: false, status: "complete", url: PAGE },
     window: { id: 1, focused: true, type: "normal" }, permitted: true, exists: false,
-    writeGate: null, permissionGate: null, embedGate: null, unauthorized: false,
+    writeGate: null, permissionGate: null, embedGate: null, unauthorized: false, healthUnavailable: false,
     windowError: false, tabQueryError: false,
     popupContexts: [], popupAnswer: null,
     now: 0, windowQueryHook: null, tabQueryHook: null,
@@ -114,6 +115,10 @@ async function harness(t, { enabled = true, paired = true, blocked = [] } = {}) 
     calls.fetches.push({ url, body: options.body });
     const headers = { "content-type": "application/json" };
     if (state.unauthorized) return new Response('{"error":"unauthorized"}', { status: 401, headers });
+    if (url.endsWith("/health")) {
+      if (state.healthUnavailable) throw new Error("Synthetic local service unavailable");
+      return new Response(JSON.stringify({ protocol: "local-service/v1", capability: "paired-demo" }), { headers });
+    }
     if (url.endsWith("/catalog")) return new Response(JSON.stringify(state.catalog ?? { version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] }), { headers });
     if (url.endsWith("/topics/topic-a/discussion")) return new Response(JSON.stringify({ version: state.catalog.version, topic: { id: "topic-a", title: "Synthetic Topic", kind: "general" }, discussionId: "discussion-a", roots: state.roots }), { headers });
     assert.ok(url.endsWith("/sources/ingest"));
@@ -239,6 +244,60 @@ test("wildcard plus legacy enabled preferences stays off until fresh Start", asy
   const started = await h.send("start-session", { windowId: before.currentWindowId, expectedRevision: before.sessionRevision });
   assert.equal(started.enabled, true); assert.equal(started.sessionWindowId, 1); await h.advance();
   assert.equal(h.calls.reads, 1); assert.equal(h.state.local.enabled, true);
+});
+test("paired fresh session with existing Chrome grant starts and captures the focused public tab automatically", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true });
+  const state = projectPageResolution(await h.send("status"));
+  assert.equal(state.enabled, true);
+  assert.equal(state.sessionWindowId, 1);
+  await h.advance();
+  assert.equal(h.calls.reads, 1);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 1);
+});
+test("automatic capture waits for authenticated local health instead of sampling with a stale pairing", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true });
+  h.state.healthUnavailable = true;
+  assert.equal((await h.send("status")).enabled, false);
+  await h.advance();
+  assert.equal(h.calls.reads, 0);
+  h.state.healthUnavailable = false;
+  assert.equal((await h.send("status")).enabled, true);
+  await h.advance();
+  assert.equal(h.calls.reads, 1);
+});
+test("automatic start waits for pairing and native grant; Stop survives popup polling and navigation", async (t) => {
+  const h = await harness(t, { enabled: false, paired: false, autoEligible: true });
+  await h.advance();
+  assert.equal((await h.send("status")).enabled, false);
+  assert.equal(h.calls.reads, 0);
+  h.state.permitted = false;
+  const token = `synthetic-test-token-${"x".repeat(40)}`;
+  await h.api.storage.session.set({ [TOKEN_KEY]: token });
+  h.events.storageChanged.emit({ [TOKEN_KEY]: { newValue: token } }, "session");
+  await h.advance();
+  assert.equal((await h.send("status")).enabled, false);
+  assert.equal(h.calls.reads, 0);
+  h.state.permitted = true;
+  assert.equal((await h.send("status")).enabled, true);
+  await h.advance();
+  assert.equal(h.calls.reads, 1);
+  await h.send("stop-session");
+  h.events.updated.emit(7, { url: PAGE }, h.state.tab); await h.advance();
+  assert.equal((await h.send("status")).enabled, false);
+  assert.equal(h.state.capture.autoStart, false);
+  assert.equal(h.calls.reads, 1);
+});
+test("automatic start never captures an incognito or blocked foreground page", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true, blocked: [ORIGIN] });
+  h.state.tab.incognito = true;
+  await h.advance();
+  assert.equal((await h.send("status")).enabled, false);
+  assert.equal(h.calls.reads, 0);
+  h.state.tab.incognito = false;
+  await h.advance();
+  assert.equal((await h.send("status")).enabled, true);
+  assert.equal(h.calls.reads, 0);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
 });
 
 test("same bound window automatically processes a new eligible HTTPS origin", async (t) => {

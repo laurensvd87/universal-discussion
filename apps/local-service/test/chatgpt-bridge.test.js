@@ -76,6 +76,82 @@ test("paired bridge accepts rebuilt current context and isolates async result by
   ai.dispose();
 });
 
+test("paired bridge filters only named related sources from an exact full context", async () => {
+  const service = demoService();
+  const catalog = service.catalog();
+  const sourceId = "harbor-overview";
+  const topicId = catalog.sources.find((source) => source.id === sourceId).topicId;
+  const context = buildInsightContext({ catalog, discussion: service.discussion(topicId),
+    related: service.related(sourceId, 5), sourceId, topicId });
+  assert.equal(context.relatedSources.length, 2);
+  assert.ok(context.sameTopicSources.length > 0);
+  const excludedId = context.relatedSources[0].id;
+  const providerContexts = [];
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
+    insightsAdapter: { createInsight: async ({ context: providerContext }) => {
+      providerContexts.push(providerContext);
+      return { body: "Synthetic finding.", citations: [], model: "synthetic" };
+    }, cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const actor = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
+  const input = { operationId: "filtered-related", model: "synthetic", context,
+    articleText: "Public synthetic article.", allowWebResearch: true, expected: catalog.version,
+    excludedRelatedSourceIds: [excludedId] };
+  assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights", input, actor))),
+    { operationId: "filtered-related", state: "running" });
+  assert.deepEqual(providerContexts, [{ ...context,
+    relatedSources: context.relatedSources.slice(1),
+    coverage: { ...context.coverage, relatedTotal: 1 } }]);
+  for (const [name, changes] of [
+    ["unknown", { excludedRelatedSourceIds: ["forged-related"] }],
+    ["current", { excludedRelatedSourceIds: [context.currentSource.id] }],
+    ["same-topic", { excludedRelatedSourceIds: [context.sameTopicSources[0].id] }],
+    ["duplicate", { excludedRelatedSourceIds: [excludedId, excludedId] }],
+    ["wrong-type", { excludedRelatedSourceIds: excludedId }],
+    ["filtered-context", { context: { ...context, relatedSources: context.relatedSources.slice(1) } }],
+    ["forged-current", { context: { ...context,
+      currentSource: { ...context.currentSource, title: "Forged current title" } } }],
+    ["forged-same-topic", { context: { ...context,
+      sameTopicSources: [{ ...context.sameTopicSources[0], title: "Forged peer title" }, ...context.sameTopicSources.slice(1)] } }],
+    ["forged-candidate", { context: { ...context,
+      relatedSources: [{ ...context.relatedSources[0], title: "Forged candidate title" }, ...context.relatedSources.slice(1)] } }],
+  ]) {
+    const response = await handle(request("POST", "/v1/ai/insights",
+      { ...input, operationId: `reject-${name}`, ...changes }, actor));
+    assert.equal(response.status, 400, name);
+  }
+  assert.equal(providerContexts.length, 1);
+  ai.dispose();
+});
+
+test("paired research result and diagnostics retain fixed failure detail only", async () => {
+  const { service, catalog, context } = fixture();
+  const secret = "SECRET_PROVIDER_RESEARCH_TEXT_URL_TOKEN";
+  let calls = 0;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
+    insightsAdapter: { createInsight: async () => { calls += 1;
+      throw Object.assign(new ChatGptInsightError("invalid-response", "response-no-final"),
+        { message: secret, requestId: secret, body: secret }); },
+      cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const actor = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
+  const input = { operationId: "research-failure", model: "synthetic", context,
+    articleText: "Public synthetic article.", allowWebResearch: true, expected: catalog.version };
+  assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights", input, actor))),
+    { operationId: "research-failure", state: "running" });
+  await Promise.resolve(); await Promise.resolve();
+  assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights/result",
+    { operationId: "research-failure" }, actor))),
+    { operationId: "research-failure", state: "failed", error: "invalid-response", detail: "response-no-final" });
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/diagnostics", null, { origin: ORIGIN }))),
+    { events: [{ kind: "insight", outcome: "invalid-response", detail: "response-no-final" }] });
+  assert.equal(calls, 1);
+  assert.equal(JSON.stringify(ai.diagnostics()).includes(secret), false);
+  ai.dispose();
+});
+
 test("verified account without plan permission cannot list models or create insight", async () => {
   const { service, catalog, context } = fixture();
   let providerCalls = 0;

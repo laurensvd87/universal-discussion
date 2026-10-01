@@ -9,6 +9,9 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
   readForeground, validOrigin, nonce = () => crypto.randomUUID(), onInvalidate = () => {} }) {
   let revision = nonce();
   let windowId = null;
+  // Persist Stop with the lease so service-worker reconstruction cannot
+  // silently resume automatic capture in the same browser session.
+  let autoStart = true;
   let pendingWindowId = null;
   let blockedOrigins = [];
   const pendingBlocks = new Set();
@@ -16,7 +19,7 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
   let failed = false;
   let pendingConfiguration = 0;
   let writes = Promise.resolve();
-  const record = () => ({ schema: "capture-session/1", revision, windowId });
+  const record = () => ({ schema: "capture-session/2", revision, windowId, autoStart });
   function fence() { revision = nonce(); windowId = null; pendingWindowId = null; onInvalidate(); }
   function enqueue(area, value) {
     const work = writes.then(() => area.set(value));
@@ -46,10 +49,15 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
         await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
       }
       if (value !== undefined) {
-        if (!value || Object.keys(value).length !== 3 || value.schema !== "capture-session/1" ||
-            !validRevision(value.revision) || !(value.windowId === null || validWindow(value.windowId))) throw new Error("invalid");
+        const legacy = value?.schema === "capture-session/1" && Object.keys(value).length === 3;
+        const current = value?.schema === "capture-session/2" && Object.keys(value).length === 4 && typeof value.autoStart === "boolean";
+        if ((!legacy && !current) || !validRevision(value.revision) ||
+            !(value.windowId === null || validWindow(value.windowId)) || (current && !value.autoStart && value.windowId !== null)) throw new Error("invalid");
         if (revision !== initialRevision) return;
         revision = value.revision;
+        // Legacy inactive records were deliberately stopped under the old
+        // manual-start policy; a fresh browser session has no record.
+        autoStart = legacy ? value.windowId !== null : value.autoStart;
         const restoringRevision = revision;
         if (value.windowId !== null) {
           const window = await getWindow(value.windowId);
@@ -88,9 +96,9 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
     };
     try {
       if (!await eligible()) throw new Error("changed");
-      await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: { schema: "capture-session/1", revision: ticket, windowId: id } });
+      await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: { schema: "capture-session/2", revision: ticket, windowId: id, autoStart: true } });
       if (!await eligible()) throw new Error("changed");
-      windowId = id; pendingWindowId = null;
+      windowId = id; autoStart = true; pendingWindowId = null;
     } catch (error) {
       if (ticket === revision) { fence(); await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() }).catch(() => {}); }
       throw error;
@@ -98,9 +106,9 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
   }
   async function stop() {
     // Must happen before the first await, including while initialization is pending.
-    fence();
+    autoStart = false; fence();
     await ready;
-    fence();
+    autoStart = false; fence();
     await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
   }
   function closeWindow(id) {
@@ -119,10 +127,11 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
     }
     if (blocked) pendingBlocks.add(origin);
     const previousWindowId = windowId;
+    const previousAutoStart = autoStart;
     pendingConfiguration++;
     // Configuration is a fail-closed transaction: persist an inactive lease
     // first so worker reconstruction cannot lose an uncommitted site block.
-    fence();
+    autoStart = false; fence();
     pendingWindowId = previousWindowId;
     const ticket = revision;
     try {
@@ -134,9 +143,11 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
         throw new Error("capacity");
       }
       blockedOrigins = next;
-      await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: { schema: "capture-session/1", revision, windowId: null } });
+      await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
       await enqueue(storageLocal, { [BLOCKED_ORIGINS_KEY]: [...blockedOrigins] });
       pendingBlocks.delete(origin);
+      if (revision !== ticket || failed) return;
+      autoStart = previousAutoStart;
       const restorable = async () => {
         if (previousWindowId === null || revision !== ticket || failed || pendingConfiguration !== 1 || closedWindows.has(previousWindowId)) return false;
         const [window, access] = await Promise.all([getWindow(previousWindowId), hasAccess()]);
@@ -144,12 +155,14 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
           window?.id === previousWindowId && window.type === "normal" && !window.incognito && access;
       };
       if (await restorable()) {
-        await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: { schema: "capture-session/1", revision: ticket, windowId: previousWindowId } });
+        await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: { schema: "capture-session/2", revision: ticket, windowId: previousWindowId, autoStart } });
         if (await restorable()) { windowId = previousWindowId; pendingWindowId = null; }
-        else await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: { schema: "capture-session/1", revision, windowId: null } });
-      }
+        else { autoStart = false; await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() }); }
+      } else if (previousWindowId === null) await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
+      else { autoStart = false; await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() }); }
     } catch (error) { fence(); throw error; }
     finally { pendingConfiguration--; }
   }
-  return Object.freeze({ snapshot, start, stop, closeWindow, setBlocked });
+  function mayAutoStart() { return !failed && autoStart && windowId === null && pendingWindowId === null && pendingConfiguration === 0; }
+  return Object.freeze({ snapshot, start, stop, closeWindow, setBlocked, mayAutoStart });
 }

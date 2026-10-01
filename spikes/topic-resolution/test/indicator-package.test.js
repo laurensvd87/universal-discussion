@@ -69,6 +69,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/page-resolution-contract.js",
     "core/page-signal-contract.js",
     "core/page-signal-policy.js",
+    "core/read-only-service-retry.js",
     "core/related-sources.js",
     "core/topic-toolbar-controller.js",
     "embedding/.gitignore",
@@ -92,7 +93,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.12.7",
+    version: "0.12.8",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -333,6 +334,6 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(script, /observeTabLifecycle: tabLifecycleObserver\.observe/u);
   assert.match(
     script,
-    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*insightController\.dispose\(\);\s*insightPanel\.dispose\(\);\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*popupShell\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
+    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*serviceRetry\.dispose\(\);\s*insightController\.dispose\(\);\s*insightPanel\.dispose\(\);\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*popupShell\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
   );
 });

@@ -1,11 +1,13 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## ChatGPT insights (0.12.7)
+## ChatGPT insights (0.12.8)
 
-An optional private research workspace now uses the current public article,
-other pages in its Topic and related perspectives. Nothing runs automatically
-or posts an answer for you. User Mode keeps the main view focused on the Topic
-and conversation; setup, source details and Developer diagnostics are secondary.
+User Mode shows the current Topic, discussion and a fixed **Create insights**
+button/model selector. Matching starts automatically after local pairing when
+Chrome's HTTPS grant already exists; AI inference still runs only when you click.
+Use a separate public-only, non-sensitive browser profile: the extension cannot
+reliably recognize signed-in or private pages. Stop and site-block controls remain
+in Browsing session settings.
 
 Restart the backend using your existing extension Origin and reload the unpacked
 extension. Pair using the new local-service token as usual. Existing SQLite
@@ -14,61 +16,49 @@ needed. A service restart also ends ChatGPT authorization for this prototype.
 
 For a first test:
 
-1. Open a non-sensitive public article already matched to a Topic. Select
-   **Open ChatGPT research** beside the Topic; the setup section is expanded
-   until a model is chosen.
-2. Choose **Continue with ChatGPT** and complete the official sign-in in the opened
-   tab. The local callback only confirms receipt, not verified sign-in. Return
-   to the article and reopen the extension. If paired, it checks local sign-in
-   state automatically; **Check connection** remains a manual refresh.
-   If the account connects without plan access, use **Continue with ChatGPT**
-   again only if you want to request the missing permission. Model listing and
-   research stay unavailable until it is granted. Never paste your ChatGPT
-   password or token into this app or a chat message. Never share or reuse the
-   full callback URL: its query contains a one-use authorization code and state.
-   If sign-in fails, report only the short failure-stage identifier shown in
-   the extension (for example, `claims-invalid`) and start a fresh
-   attempt. Do not paste a URL, screenshot with the address bar, code or token.
-   A first-registration exchange can require one fresh retry with the issued
-   client ID while the backend process remains running.
-3. List available models and choose one. No API key is needed. If your account
-   rejects this preview integration or lists no models, stop; no paid fallback
-   or browser-cookie workaround is attempted. Version 0.12.6 shows loading,
-   no-models or a fixed model-list failure category directly beneath the
-   disabled model selector. If it fails, switch to Developer Mode, open
-   **Local diagnostics**, and press **Check recent model-list attempts**.
-   Report only the fixed codes shown for the extension and local service;
-   never send account data, tokens, URLs or raw provider responses. The service
-   keeps at most 20 fixed outcomes in process memory; the extension's own
-   codes exist only while this popup remains open. Restart clears service
-   diagnostics, and closing the popup clears its codes. A connected identity does not prove
-   models are available. No model call is made until you press the button.
-   Listing models alone never fills the draft. Version 0.12.7 labels the empty
-   editor as a manual draft and gives a short next-step cue. Only a completed
-   Create insights request fills it automatically; a failed request leaves it
-   empty and shows a separate status. This UI-only update needs an extension
-   reload, not another service restart or sign-in.
-4. Prepare the local context, inspect the selected page and links, then read
-   the current page text. Inspect and redact the visible sample
-   (maximum 4,096 characters). Source titles/URLs and any explicitly included
-   human discussion openings are also sent. Use public pages only: visible prose
-   can contain secrets, and automatic filtering is not a guarantee.
-5. In [ChatGPT usage settings](https://chatgpt.com/settings/usage), limit this app to included plan usage with paid
-   credits disabled, then confirm that in the extension. **Create insights**
-   sends the reviewed context through this PC's service to OpenAI. The app cannot
-   enforce provider billing settings. Keep the popup open during research.
-6. Read the private result and citations; check claims, edit or discard. It has
-   not been added to the discussion. **Preview insight**, verify its exact Topic,
-   source and text, then **Share insight locally** if useful. It appears with an
-   AI-assisted label; people can reply. Sharing stays on this PC, not the Internet.
-7. Visit another stored page in that Topic and confirm the shared opening is
-   visible there too. Related pages in a different Topic do not share its thread.
+1. Start the local service with your extension Origin, reload the unpacked
+   extension, and open a public article in the separate non-sensitive profile.
+   Paste the new local-service pairing token if prompted. If Chrome HTTPS access
+   is not yet granted, choose **Grant browser access** once in Browsing session
+   settings. Matching then runs on eligible active pages in that window; a new
+   browser session still needs a new service pairing token under the current
+   session-only design. Stop prevents automatic restart until explicit Resume or
+   a new browser session. A blocked site remains excluded.
+2. If ChatGPT is not connected, choose **Continue with ChatGPT** and finish the
+   official sign-in. Return to the public article and reopen the popup. The
+   callback only confirms receipt; the popup checks actual sign-in and lists
+   available models automatically. The last listed model is selected by default;
+   change it in the bottom selector if desired. If the list fails, use the
+   visible retry in ChatGPT setup. No model download or API key is needed.
+3. In [ChatGPT usage settings](https://chatgpt.com/settings/usage), keep this app
+   within your intended included-plan/paid-credit limits. The app cannot enforce
+   provider billing settings. On a matched public article, click **Create
+   insights** once. This reads and reattests at most 4,096 characters of that
+   current page, then sends it with up to ten same-Topic/related source titles
+   and URLs through the local service to OpenAI. The other pages' bodies and
+   your browser cookies are not sent. Use **Insight settings** to uncheck
+   related pages you do not want included. Keep the popup open during research.
+4. Read and edit the private draft and citations. It is not a discussion post.
+   Choose **Preview insight** and then **Share insight locally** only if you want
+   to add it. Visit another stored page in the same Topic to see the shared post.
+   Merely related pages in another Topic do not share its thread.
+
+The model and Create action stay visible while the conversation scrolls; the
+popup should not scroll horizontally. Create remains disabled until the current
+page has a usable Topic and account/model connection. If research fails, no
+partial answer is imported or retried automatically. A fixed `response-*` code
+may appear beside the failure or under Developer Mode > Local diagnostics.
+Report only that code. Never share a callback URL, token, account identity,
+page text or raw provider response; the code identifies a boundary, not the
+underlying cause. The owner's first live research failure predates these new
+diagnostics, so its exact cause remains unknown.
 
 The provider may inspect public pages on the supplied domains, including paths
 other than the specific candidate links. It receives no browser cookies/login
 session, so reachable-in-your-browser does not guarantee provider access. Unread
 pages and provisional grouping must not be treated as verified evidence. There
-is no crawler, automatic source ingestion or background AI research.
+is no remote crawler or background AI research. Eligible visited pages may be
+ingested automatically for local matching after pairing and Chrome access.
 
 Unshared context/drafts are memory-only and cleared on context change or popup
 closure. The service briefly holds an in-flight request/result, not a page-text
@@ -112,7 +102,9 @@ Reply origins never control routing. Manual Source pins override automatic group
 Legacy/manual Topic-only threads stay fixed. Changed page vectors pin old threads
 conservatively; merely changing the display title does not.
 
-Stop/restart the backend and reload the extension, then pair and Start once.
+Stop/restart the backend and reload the extension, then pair. In 0.12.8,
+matching starts automatically after the native Chrome HTTPS grant; the older
+manual Start instruction for 0.11.0 no longer applies.
 First open migrates SQLite atomically without guessing old post origins or resetting
 comments. Forget removes every post link to that Source, keeps comments and pins
 its threads. Withdrawal removes the withdrawn post's link; other replies survive.

@@ -12,8 +12,15 @@ const IDENTITY_FAILURE_SUBSTAGES = new Set(["jwks-request-failed", "jwks-invalid
 const MODEL_LIST_FAILURES = new Set(["access-rejected", "rate-limited", "timed-out",
   "invalid-response", "provider-unavailable", "busy"]);
 const MODEL_LIST_OUTCOMES = new Set(["success", ...MODEL_LIST_FAILURES]);
+const RESEARCH_OUTCOMES = new Set(["success", "invalid-input", "model-unavailable", "unauthorized",
+  "rate-limit", "busy", "timeout", "cancelled", "provider-unavailable", "invalid-response",
+  "unsupported-capability"]);
 const MODEL_LIST_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body",
   "catalog-too-large", "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
+const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-stream",
+  "response-too-large", "response-encoding", "response-event", "response-no-final",
+  "response-empty-output", "response-output-too-large", "response-incomplete",
+  "response-failed", "response-http-400"]);
 export class ModelListFailure extends Error {
   constructor(failure, detail = null) { super("Model list unavailable"); this.failure = failure; this.detail = detail; }
 }
@@ -73,20 +80,24 @@ function projectDiagnostics(value) {
   if (!Array.isArray(value.events) || value.events.length > 20) invalid();
   return { events: value.events.map((event) => {
     keys(event, ["kind", "outcome", "detail"], ["kind", "outcome"]);
-    if (event.kind !== "models" || !MODEL_LIST_OUTCOMES.has(event.outcome) ||
-        (Object.hasOwn(event, "detail") &&
-          (event.outcome !== "invalid-response" || !MODEL_LIST_DETAILS.has(event.detail)))) invalid();
-    return { kind: "models", outcome: event.outcome,
+    if (event.kind === "models" ? !MODEL_LIST_OUTCOMES.has(event.outcome) ||
+        (Object.hasOwn(event, "detail") && (event.outcome !== "invalid-response" || !MODEL_LIST_DETAILS.has(event.detail))) :
+      event.kind === "insight" ? !RESEARCH_OUTCOMES.has(event.outcome) ||
+        (Object.hasOwn(event, "detail") && !RESEARCH_DETAILS.has(event.detail)) : true) invalid();
+    return { kind: event.kind, outcome: event.outcome,
       ...(Object.hasOwn(event, "detail") ? { detail: event.detail } : {}) };
   }) };
 }
 function projectResult(value) {
-  keys(value, ["operationId", "state", "result", "error"], ["operationId", "state"]); id(value.operationId);
+  keys(value, ["operationId", "state", "result", "error", "detail"], ["operationId", "state"]); id(value.operationId);
   if (!["running", "completed", "failed"].includes(value.state)) invalid();
-  if (value.state === "running" && (value.result !== undefined || value.error !== undefined) ||
-      value.state === "failed" && (value.result !== undefined || typeof value.error !== "string" || !/^[a-z-]{1,64}$/u.test(value.error))) invalid();
-  if (value.state !== "completed") return { operationId: value.operationId, state: value.state, error: typeof value.error === "string" ? value.error.slice(0, 100) : null };
-  if (value.error !== undefined) invalid();
+  if (value.state === "running" && (value.result !== undefined || value.error !== undefined || value.detail !== undefined) ||
+      value.state === "failed" && (value.result !== undefined || typeof value.error !== "string" || !/^[a-z-]{1,64}$/u.test(value.error) ||
+        value.detail !== undefined && !RESEARCH_DETAILS.has(value.detail))) invalid();
+  if (value.state !== "completed") return { operationId: value.operationId, state: value.state,
+    error: typeof value.error === "string" ? value.error.slice(0, 100) : null,
+    ...(value.detail === undefined ? {} : { detail: value.detail }) };
+  if (value.error !== undefined || value.detail !== undefined) invalid();
   const answer = value.result; keys(answer, ["body", "model", "citations"]);
   const body = text(answer.body, 8000);
   const model = id(answer.model);

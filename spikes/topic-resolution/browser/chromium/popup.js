@@ -10,6 +10,7 @@ import { mountRelatedPagesDemo } from "./related-pages-panel.js";
 import { mountDiscussionPanel } from "./discussion-panel.js";
 import { mountInsightPanel } from "./insight-panel.js";
 import { createInsightController } from "../core/insight-controller.js";
+import { createReadOnlyServiceRetry } from "../core/read-only-service-retry.js";
 import { createLocalAiClient } from "../core/local-ai-client.js";
 import { createInsightPageReader } from "./insight-page-reader.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
@@ -180,6 +181,15 @@ const tabLifecycleObserver = createTabLifecycleObserver(tabsApi);
 const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"));
 const insightPanel = mountInsightPanel(document, document.querySelector("#local-insights"));
 let insightController;
+let aiStartupAttempted = false;
+function primeAiAfterLocalConnection(state) {
+  if (aiStartupAttempted || !state.catalog || !["ready", "choose-topic"].includes(state.phase)) return;
+  aiStartupAttempted = true;
+  void (async () => {
+    const connected = await insightController?.checkConnection();
+    if (connected && insightController.currentState().ai.planEnabled) await insightController.loadModels();
+  })().catch(() => {});
+}
 const popupShell = mountPopupShell(document, {
   storageLocal: globalThis.chrome.storage.local,
   onModeChange: discussionPanel.setMode,
@@ -194,6 +204,7 @@ let matchingPanel;
 let toolbarObservation;
 let toolbarRefreshPending = false;
 let toolbarRefreshAgain = false;
+const serviceRetry = createReadOnlyServiceRetry({ open: () => localDiscussion.open() });
 function observeToolbar(state) {
   const version = (value) => value ? `${value.generation}:${value.revision}` : "";
   const key = `${state.phase === "disconnected" || state.phase === "error" ? state.phase : "observed"}|${version(state.catalog?.version)}|${version(state.discussion?.version)}`;
@@ -223,6 +234,8 @@ const localDiscussion = createLocalDiscussionController({
   onStateChange: (state) => {
     discussionPanel.render(state); popupShell.render(state); observeToolbar(state);
     insightController?.observe(state);
+    primeAiAfterLocalConnection(state);
+    serviceRetry.observe(state);
   },
 });
 insightController = createInsightController({
@@ -238,6 +251,7 @@ matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-m
   sendMessage: (message) => runtime.sendMessage(message),
   requestPermission: (request) => globalThis.chrome.permissions.request(request),
   onResolution: localDiscussion.updatePageResolution,
+  streamlinedSession: true,
 });
 discussionPanel.bind(localDiscussion);
 document.querySelector("#product-title").textContent = EN.discussionPageTitle;
@@ -247,12 +261,8 @@ document.querySelector("#product-intro").textContent = EN.discussionIntro;
 document.querySelector("#diagnostic-heading").textContent = EN.discussionDiagnostic;
 document.querySelector("#product-footer").textContent = EN.discussionFooter;
 void localDiscussion.open();
-// A paired popup may read only the local in-memory sign-in state on open.
-// Model listing and provider research remain explicit owner actions.
-void localSession.isPaired().then((paired) => {
-  if (paired) return insightController.checkConnection();
-  return false;
-}).catch(() => {});
+// After an authenticated local catalog arrives, discover this session's account
+// models once. This does not start inference or retry a failed provider read.
 const pageMetadataReader = createPageMetadataReader(scriptingApi);
 const fixtureController = createIndicatorController({
   lookup: lookupIndicatorFixture,
@@ -272,6 +282,7 @@ const pageMetadataController = createPageMetadataController({
 });
 
 globalThis.addEventListener("pagehide", () => {
+  serviceRetry.dispose();
   insightController.dispose();
   insightPanel.dispose();
   matchingPanel.dispose();

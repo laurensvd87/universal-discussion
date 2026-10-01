@@ -21,7 +21,11 @@ const IDENTITY_FAILURE_SUBSTAGE_MESSAGES = Object.freeze({
   "claims-invalid": "aiFailureClaimsInvalid",
 });
 const RESEARCH_FAILURE_STATUSES = new Set(["generationFailed", "usageLimit", "modelUnavailable",
-  "webResearchUnavailable", "authorizationExpired", "researchTimeout", "researchBusy", "cancelled"]);
+  "webResearchUnavailable", "authorizationExpired", "researchTimeout", "researchBusy", "cancelled", "articleUnavailable"]);
+const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-stream",
+  "response-too-large", "response-encoding", "response-event", "response-no-final",
+  "response-empty-output", "response-output-too-large", "response-incomplete",
+  "response-failed", "response-http-400"]);
 
 export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}) {
   const text = (key) => messages?.[key] ?? INSIGHT_EN[key];
@@ -29,6 +33,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   let controller;
   let disposed = false;
   let contextSignature;
+  let relatedSettingsSignature;
   let previousAccountReady;
   function node(tag, key, id) {
     const item = document.createElement(tag);
@@ -53,6 +58,14 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const includeLabel = node("label", "includeDiscussion"); includeLabel.htmlFor = include.id;
   const sourceDetails = node("details", null, "insight-source-details"); sourceDetails.className = "insight-subdetails";
   sourceDetails.append(node("summary", "sourceWorkspace"), includeLabel, include); details.append(sourceDetails);
+  const relatedSettings = node("details", null, "insight-related-settings");
+  relatedSettings.className = "insight-subdetails";
+  relatedSettings.append(node("summary", "relatedSettings"), node("p", "relatedSettingsScope"));
+  const relatedChoices = node("div", null, "insight-related-choices");
+  relatedSettings.append(relatedChoices); root.append(relatedSettings);
+  listen(relatedChoices, "change", (event) => {
+    if (event.target?.type === "checkbox") controller?.setRelatedSourceIncluded(event.target.value, event.target.checked);
+  });
   const prepare = button(details, "prepare", () => controller?.prepare({ includeDiscussion: include.checked }));
   const aiControls = node("section", null, "insight-ai-controls"); details.append(aiControls);
   const nextStep = node("p", null, "insight-next-step");
@@ -63,10 +76,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const disconnect = button(accountDetails, "disconnect", () => { void controller?.disconnect(); });
   const models = button(accountDetails, "loadModels", () => { void controller?.loadModels(); });
   const modelLabel = node("label", "model"); modelLabel.htmlFor = "insight-model";
-  const model = node("select", null, "insight-model"); accountDetails.append(modelLabel, model);
+  const model = node("select", null, "insight-model");
   const modelStatus = node("p", null, "insight-model-status");
   modelStatus.setAttribute("role", "status"); modelStatus.setAttribute("aria-live", "polite");
-  accountDetails.append(modelStatus);
   listen(model, "change", () => controller?.selectModel(model.value));
   const diagnostics = node("details", null, "insight-diagnostics");
   diagnostics.className = "insight-subdetails developer-only";
@@ -86,7 +98,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   manageUsage.target = "_blank"; manageUsage.rel = "noopener noreferrer";
   manageUsage.referrerPolicy = "no-referrer";
   const usageSeparator = node("span"); usageSeparator.textContent = " · ";
-  usage.append(usageSeparator, manageUsage); aiControls.append(usage);
+  usage.append(usageSeparator, manageUsage);
   const read = button(aiControls, "readPageText", () => { void controller?.readPageText(); });
   const articleLabel = node("label", "articleText"); articleLabel.htmlFor = "insight-article-text";
   const article = node("textarea", null, "insight-article-text"); article.maxLength = 4096; article.rows = 6;
@@ -98,7 +110,16 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   aiControls.append(costLabel, cost);
   const aiScope = node("p", "aiScope"); aiScope.className = "insight-send-scope"; aiControls.append(aiScope);
   listen(cost, "change", () => controller?.setCostConsent(cost.checked));
-  const create = button(aiControls, "createInsights", () => { void controller?.createInsights(); });
+  const quickActions = node("div", null, "insight-quick-actions");
+  quickActions.className = "insight-quick-actions";
+  quickActions.append(modelLabel, model, modelStatus);
+  const create = button(quickActions, "createInsights", () => {
+    void controller?.createInsights({ automatic: document.body?.dataset?.uiMode === "user" });
+  });
+  const quickStatus = node("p", null, "insight-quick-status");
+  quickStatus.setAttribute("role", "status"); quickStatus.setAttribute("aria-live", "polite");
+  quickActions.append(quickStatus, usage);
+  root.append(quickActions);
   const cancel = button(aiControls, "cancelInsights", () => controller?.cancelInsights());
   const account = node("p", null, "insight-ai-account"); account.className = "developer-only"; accountDetails.append(account);
   const citations = node("section", null, "insight-citations"); aiControls.append(citations);
@@ -159,6 +180,24 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
         context.append(node("p", "limited"));
       }
     }
+    const relatedSources = state.context?.relatedSources ?? [];
+    relatedSettings.hidden = relatedSources.length === 0;
+    const relatedSignature = JSON.stringify(relatedSources);
+    if (relatedSignature !== relatedSettingsSignature) {
+      relatedSettingsSignature = relatedSignature;
+      relatedChoices.replaceChildren();
+      for (const source of relatedSources) {
+        const choice = node("input"); choice.type = "checkbox"; choice.value = source.id;
+        const caption = node("span"); caption.textContent = source.title;
+        const label = node("label"); label.className = "related-source-choice";
+        label.append(choice, caption); relatedChoices.append(label);
+      }
+    }
+    const excludedRelatedSourceIds = new Set(state.excludedRelatedSourceIds ?? []);
+    Array.from(relatedChoices.children).forEach((label, index) => {
+      label.children[0].checked = !excludedRelatedSourceIds.has(relatedSources[index]?.id);
+      label.children[0].disabled = state.busy || state.ai?.status === "generating";
+    });
     preview.hidden = !state.preview;
     target.textContent = state.preview ? text("selected").replace("{title}", state.preview.topicTitle) : "";
     provenance.textContent = state.preview ? text("provenance").replace("{operator}", state.preview.operatorName) : "";
@@ -177,7 +216,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       "accountDisconnected");
     usage.hidden = !ai.planEnabled;
     const generating = ai.status === "generating";
-    const aiPending = generating || ai.status === "disconnecting" || ai.status === "loadingModels";
+    const aiPending = generating || ai.status === "preparingArticle" ||
+      ai.status === "disconnecting" || ai.status === "loadingModels";
     include.disabled ||= generating;
     prepare.disabled ||= generating;
     body.disabled ||= generating;
@@ -185,6 +225,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     share.disabled ||= generating;
     discard.disabled ||= generating;
     const generatedDraft = ai.status === "generated" && Boolean(state.draft.trim());
+    draftDetails.setAttribute("data-has-draft", String(Boolean(state.draft.trim())));
     draftSummary.textContent = text(generatedDraft ? "draftWorkspaceGenerated" :
       state.draft.trim() ? "draftWorkspaceManualFilled" : "draftWorkspace");
     draftHint.textContent = text(generatedDraft ? "hint" : generating ? "draftGenerating" :
@@ -200,7 +241,12 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       ? IDENTITY_FAILURE_SUBSTAGE_MESSAGES[ai.failureSubstage] : null;
     aiStatus.textContent = text(substageMessage ?? stageMessage ??
       `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
+    if (RESEARCH_FAILURE_STATUSES.has(ai.status) && RESEARCH_DETAILS.has(ai.researchFailureDetail))
+      aiStatus.textContent += ` ${text("researchFailureCode").replace("{code}", ai.researchFailureDetail)}`;
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
+    quickStatus.hidden = !RESEARCH_FAILURE_STATUSES.has(ai.status) && ai.status !== "preparingArticle";
+    quickStatus.textContent = quickStatus.hidden ? "" : aiStatus.textContent;
+    quickStatus.setAttribute("data-state", ai.status === "preparingArticle" ? "preparing" : "failed");
     nextStep.textContent = text(!state.context ? "nextPrepare" : generating ? "nextGenerating" :
       RESEARCH_FAILURE_STATUSES.has(ai.status) ? "nextResearchFailed" :
       generatedDraft ? "nextReviewDraft" : !ai.planEnabled ? "nextConnect" :
@@ -226,13 +272,21 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     loadDiagnostics.disabled = diagnosticState === "loading" || state.busy;
     const allowedOutcomes = new Set(["success", "access-rejected", "rate-limited", "timed-out",
       "invalid-response", "provider-unavailable", "busy"]);
+    const insightOutcomes = new Set(["success", "invalid-input", "model-unavailable", "unauthorized",
+      "rate-limit", "busy", "timeout", "cancelled", "provider-unavailable", "invalid-response",
+      "unsupported-capability"]);
     const fixedEvents = (events, local = false) => {
       const items = [];
       if (!Array.isArray(events)) return items;
       for (const event of events.slice(-12)) {
-        if (event?.kind !== "models" || !(allowedOutcomes.has(event.outcome) || local && event.outcome === "local-error")) continue;
-        const detail = event.outcome === "invalid-response" && allowedDetails.has(event.detail) ? ` · ${event.detail}` : "";
-        const item = node("li"); item.textContent = `models · ${event.outcome}${detail}`; items.push(item);
+        if (event?.kind === "models") {
+          if (!(allowedOutcomes.has(event.outcome) || local && event.outcome === "local-error")) continue;
+          const detail = event.outcome === "invalid-response" && allowedDetails.has(event.detail) ? ` · ${event.detail}` : "";
+          const item = node("li"); item.textContent = `models · ${event.outcome}${detail}`; items.push(item);
+        } else if (!local && event?.kind === "insight" && insightOutcomes.has(event.outcome)) {
+          const detail = RESEARCH_DETAILS.has(event.detail) ? ` · ${event.detail}` : "";
+          const item = node("li"); item.textContent = `insight · ${event.outcome}${detail}`; items.push(item);
+        }
       }
       return items;
     };
@@ -257,7 +311,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     if (article.value !== ai.articleText) article.value = ai.articleText;
     cost.checked = ai.costConsent;
     cost.disabled = !ai.planEnabled || generating;
-    create.disabled = !ai.planEnabled || !ai.model || !ai.articleText?.trim() || !ai.costConsent || blocked || generating;
+    const automatic = document.body?.dataset?.uiMode === "user";
+    create.disabled = !ai.planEnabled || !ai.model || blocked || aiPending ||
+      (automatic ? !state.context?.currentSource : !ai.articleText?.trim() || !ai.costConsent);
     cancel.disabled = cancel.hidden = !generating;
     articleLabel.hidden = article.hidden = articleWarning.hidden = !ai.article;
     costLabel.hidden = cost.hidden = aiScope.hidden = !ai.article;

@@ -26,7 +26,8 @@ const UNSUPPORTED_MESSAGES = Object.freeze({
 
 export function mountPageMatchingPanel(document, root, { sendMessage, requestPermission,
   onResolution = () => {}, messages = EN, schedule = setTimeout, cancelSchedule = clearTimeout,
-  timeoutSchedule = setTimeout, timeoutCancel = clearTimeout, requestTimeoutMs = 8000 } = {}) {
+  timeoutSchedule = setTimeout, timeoutCancel = clearTimeout, requestTimeoutMs = 8000,
+  streamlinedSession = false } = {}) {
   const message = (key) => messages?.[key] ?? EN[key];
   let disposed = false, polling = false, acting = false, startPending = false, timer, state = null;
   let controlEpoch = 0;
@@ -83,14 +84,15 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   const context = node("p"); context.id = "matching-context"; context.setAttribute("role", "status"); root.append(context);
   const access = node("p"); access.id = "matching-access"; access.setAttribute("role", "status"); root.append(access);
   const enable = button("matching-enable", "matchingEnable", () => {
-    if (disposed || acting || startPending || !showStart() || !state?.currentOrigin || state.currentWindowId === null || !consent.checked) return;
+    if (disposed || acting || startPending || !showStart() || !state?.currentOrigin || state.currentWindowId === null ||
+        (!streamlinedSession && !consent.checked)) return;
     // Initiate Chrome's broad prompt in this click's user gesture. The cached
     // window/revision binds Start; the worker rechecks it after the prompt.
     const windowId = state.currentWindowId, expectedRevision = state.sessionRevision;
     const ticket = ++controlEpoch;
     statusFlight = null;
     let permission;
-    try { permission = requestPermission({ origins: ["https://*/*"] }); }
+    try { permission = streamlinedSession && state.hostAccess ? Promise.resolve(true) : requestPermission({ origins: ["https://*/*"] }); }
     catch { unavailable(); return; }
     startPending = true; controls();
     void (async () => {
@@ -128,11 +130,13 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   function controls() {
     const busy = acting || startPending;
     const show = showStart();
-    consent.hidden = consentLabel.hidden = enable.hidden = !show;
-    consent.disabled = disposed || busy || !show;
+    consent.hidden = consentLabel.hidden = streamlinedSession || !show;
+    enable.hidden = !show;
+    consent.disabled = disposed || busy || !show || streamlinedSession;
     if (!show) consent.checked = false;
-    enable.textContent = message(state?.enabled ? "matchingMoveSession" : "matchingEnable");
-    enable.disabled = disposed || busy || !show || !state?.currentOrigin || state.currentWindowId === null || !consent.checked;
+    enable.textContent = message(state?.enabled ? "matchingMoveSession" : streamlinedSession && !state?.hostAccess ? "matchingGrantAccess" : "matchingEnable");
+    enable.disabled = disposed || busy || !show || !state?.currentOrigin || state.currentWindowId === null ||
+      (!streamlinedSession && !consent.checked);
     pause.disabled = disposed || stopFlight !== null || (!state?.enabled && !startPending && !acting);
     retry.disabled = busy || !state?.enabled || state.currentWindowId !== state.sessionWindowId || state.blockedOrigins.includes(state.currentOrigin);
     block.disabled = busy || !state?.currentOrigin || state.blockedOrigins.includes(state.currentOrigin);

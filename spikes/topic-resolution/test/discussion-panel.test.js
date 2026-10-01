@@ -309,12 +309,15 @@ test("User details stay compact through transient choose-topic; connection colla
   connection.open = true;
   ui.panel.render(state());
   assert.equal(connection.open, true);
+  assert.equal(ui.byId("discussion-token").hidden, true);
+  assert.equal(connection.children.find((item) => item.tag === "form").hidden, true);
   ui.panel.render(state({ draft: { body: "Draft survives", detached: false, mode: "root", targetId: null } }));
   assert.equal(connection.open, true);
   ui.byId("discussion-new-title").value = "Unsent new title";
   ui.byId("discussion-token").value = "unsubmitted local value";
   ui.panel.setMode("developer");
   assert.equal(connection.open, true); assert.equal(advanced.open, true);
+  assert.equal(ui.byId("discussion-token").hidden, false);
   ui.panel.render(state({ phase: "choose-topic", draft: { body: "Draft survives", detached: false, mode: "root", targetId: null } }));
   assert.equal(connection.open, true); assert.equal(advanced.open, true);
   ui.panel.setMode("user");

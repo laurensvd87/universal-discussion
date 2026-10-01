@@ -96,6 +96,30 @@ test("one explicit first Start persists through popup reopening without repeat p
   assert.equal(reopened.byId("matching-status").textContent, EN.matchingUnpaired);
   reopened.panel.dispose();
 });
+test("streamlined session offers one Chrome grant gesture without a repeated checkbox", async () => {
+  let current = resolution({ phase: "off", enabled: false, hostAccess: false });
+  const ui = harness({ streamlinedSession: true, initialState: current,
+    async sendMessage(message) { ui.calls.push(message); if (message.type === "start-session") current = resolution({ phase: "checking" }); return current; } });
+  await turn();
+  assert.equal(ui.byId("matching-consent").hidden, true);
+  assert.equal(ui.byId("matching-consent-label").hidden, true);
+  assert.equal(ui.byId("matching-enable").disabled, false);
+  assert.equal(ui.byId("matching-enable").textContent, EN.matchingGrantAccess);
+  ui.byId("matching-enable").listeners.get("click")();
+  assert.deepEqual(ui.calls.at(-1), { permission: { origins: ["https://*/*"] } });
+  await turn();
+  assert.equal(ui.calls.at(-1).type, "start-session");
+  ui.panel.dispose();
+});
+test("streamlined Resume with an existing native grant skips Chrome permission request", async () => {
+  const ui = harness({ streamlinedSession: true, initialState: resolution({ phase: "off", enabled: false }) });
+  await turn();
+  assert.equal(ui.byId("matching-enable").textContent, EN.matchingEnable);
+  ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.equal(ui.calls.some((item) => Object.hasOwn(item, "permission")), false);
+  assert.equal(ui.calls.at(-1).type, "start-session");
+  ui.panel.dispose();
+});
 
 test("different eligible tabs in the same window retain active summary with no permission or Start on polling", async () => {
   let current = resolution({ phase: "unpaired" }); let grants = 0;

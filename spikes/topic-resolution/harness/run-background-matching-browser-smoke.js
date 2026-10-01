@@ -242,13 +242,25 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   }
   const waitMatching = message => waitExpression(`document.querySelector('#matching-status')?.textContent===${JSON.stringify(message)}`, 'matching UI status');
   async function confirmStart() {
-    await waitExpression(`(async () => {
+    try { await waitExpression(`(async () => {
       const state=await chrome.runtime.sendMessage({target:'page-matching',type:'status'});
       return state.enabled===true && state.hostAccess===true && state.sessionWindowId!==null &&
         state.sessionWindowId===state.currentWindowId &&
         document.querySelector('#matching-enable')?.getAttribute('data-busy')==='false' &&
         document.querySelector('#matching-consent')?.checked===false;
-    })()`, 'confirmed active window session before popup closure');
+    })()`, 'confirmed active window session before popup closure'); }
+    catch {
+      const safe = await evaluate(`(async () => {
+        const state=await chrome.runtime.sendMessage({target:'page-matching',type:'status'});
+        return {enabled:state.enabled===true,hostAccess:state.hostAccess===true,
+          sameWindow:state.sessionWindowId!==null&&state.sessionWindowId===state.currentWindowId,
+          hasCurrentWindow:state.currentWindowId!==null,phase:state.phase,
+          reason:state.reason,contextReason:state.contextReason,
+          busy:document.querySelector('#matching-enable')?.getAttribute('data-busy'),
+          connected:document.querySelector('#connection-status')?.dataset.state};
+      })()`);
+      throw new Error(`Automatic matching did not activate: ${JSON.stringify(safe)}`);
+    }
   }
   async function chooseSource(id) {
     await select('#discussion-source', id); await waitStatus(EN.discussionReady);
@@ -345,7 +357,9 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await waitExpression("document.querySelector('#connection-status').dataset.state==='connected'", 'honest paired connection indicator');
     await toolbar('connected');
     await waitExpression(`document.querySelector('#matching-origin').textContent===${JSON.stringify(ORIGIN)}`, 'eligible disclosed origin');
-    await click('#matching-consent'); await click('#matching-enable'); await confirmStart(); await closePopup();
+    // The fresh test profile has no native HTTPS grant. One explicit Chrome
+    // permission gesture is still required; subsequent pairing auto-starts.
+    await click('#matching-enable'); await confirmStart(); await closePopup();
     stage = 'popup-closed-first-inference';
     const a = await automatic('a');
     assert.equal(a.provenance, 'owner-local-page-embedding/v1');
@@ -394,7 +408,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.ok(!(await catalog()).sources.some(item => item.url === fixtureUrl('d')));
     assert.equal(ingestions.length, pausedCount);
     checks.push('stop-prevents-new-capture');
-    await click('#matching-consent'); await click('#matching-enable'); await confirmStart(); await closePopup(); const d = await automatic('d');
+    await click('#matching-enable'); await confirmStart(); await closePopup(); const d = await automatic('d');
     assert.equal(d.topicId, a.topicId); checks.push('new-explicit-session-captures-current-page');
     stage = 'generic-fallback-shares-semantic-topic';
     await navigate('semantic'); const semantic = await automatic('semantic');
