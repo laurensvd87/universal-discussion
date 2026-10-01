@@ -132,7 +132,7 @@ test("paired research result and diagnostics retain fixed failure detail only", 
   const ai = createChatGPTRuntime({ service,
     connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
     insightsAdapter: { createInsight: async () => { calls += 1;
-      throw Object.assign(new ChatGptInsightError("invalid-response", "response-no-final"),
+      throw Object.assign(new ChatGptInsightError("invalid-response", "response-content-json"),
         { message: secret, requestId: secret, body: secret }); },
       cancel() {}, dispose() {} } });
   const handle = createRequestHandler({ service, config, ai });
@@ -144,9 +144,9 @@ test("paired research result and diagnostics retain fixed failure detail only", 
   await Promise.resolve(); await Promise.resolve();
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights/result",
     { operationId: "research-failure" }, actor))),
-    { operationId: "research-failure", state: "failed", error: "invalid-response", detail: "response-no-final" });
+    { operationId: "research-failure", state: "failed", error: "invalid-response", detail: "response-content-json" });
   assert.deepEqual(body(await handle(request("GET", "/v1/ai/diagnostics", null, { origin: ORIGIN }))),
-    { events: [{ kind: "insight", outcome: "invalid-response", detail: "response-no-final" }] });
+    { events: [{ kind: "insight", outcome: "invalid-response", detail: "response-content-json" }] });
   assert.equal(calls, 1);
   assert.equal(JSON.stringify(ai.diagnostics()).includes(secret), false);
   ai.dispose();

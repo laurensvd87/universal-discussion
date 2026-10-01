@@ -2,6 +2,30 @@
 
 Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
+Newest owner result: after the 0.12.9 diagnostic, Create reports
+`response-content-missing`: a 2xx Responses reply has no `Content-Type`
+header. Body/status and root cause remain unknown. Do not request another
+provider call yet. The owner asks for auth across backend restarts; current
+access/refresh/ID tokens are RAM-only and cannot survive process exit.
+The owner separately approved an HTTP-200 missing-header fallback accepting
+only a bounded completed SSE body, and OS-protected refresh-token persistence
+with sign-out revocation/deletion. Neither is implemented in 0.12.9; implement,
+test and review them as separate increments.
+
+Prior owner result: one live Create attempt failed with fixed
+`response-content-type`. This means a 2xx `/v1/responses` reply did not pass
+the expected SSE media-type check; the actual media type and root cause are
+unknown. Version 0.12.9 narrows the next result to fixed
+`response-content-json/html/text/missing/other` without reading/importing or
+logging the response body or raw header. Valid SSE media-type whitespace is
+accepted. Service 152/152, extension restricted 834/834, focused 48/48 and
+independent read-only security review pass. Restart backend, reload extension,
+then ask the owner for at most one deliberate public-page Create retry and
+only its fixed code. Do not make a provider call for the owner, ask for raw
+responses/credentials/page text, silently retry or assume a cause.
+The new isolated Chrome integration smoke could not bind fixed loopback port
+4174 while the owner's service occupied it; the owner process was not touched.
+
 Newest correction: the actual Chrome action popup was about 55 px wide despite
 the old forced-width tab test. Removing circular root `max-width` caps restores
 a 410 px User body (425 px outer including scrollbar) and 380 px Developer

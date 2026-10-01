@@ -94,7 +94,8 @@ test("mismatched operation and oversized body fail closed", async () => {
 });
 
 test("failed insight result exposes only fixed research details", async () => {
-  const details = ["response-redirect", "response-content-type", "response-stream",
+  const details = ["response-redirect", "response-content-type", "response-content-json",
+    "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",
     "response-too-large", "response-encoding", "response-event", "response-no-final",
     "response-empty-output", "response-output-too-large", "response-incomplete",
     "response-failed", "response-http-400"];
@@ -137,7 +138,8 @@ test("model list accepts only exact success or fixed failure responses", async (
 test("diagnostics require paired fixed-code events and discard provider data", async () => {
   const events = [{ kind: "models", outcome: "success" },
     { kind: "models", outcome: "invalid-response", detail: "catalog-entry" },
-    { kind: "insight", outcome: "invalid-response", detail: "response-no-final" }];
+    { kind: "insight", outcome: "invalid-response", detail: "response-no-final" },
+    { kind: "insight", outcome: "invalid-response", detail: "response-content-json" }];
   let path;
   const valid = client(async (url) => { path = url; return response(url, { events }); });
   assert.deepEqual(await valid.diagnostics(), { events });

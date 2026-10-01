@@ -22,10 +22,19 @@ const IDENTITY_FAILURE_SUBSTAGE_MESSAGES = Object.freeze({
 });
 const RESEARCH_FAILURE_STATUSES = new Set(["generationFailed", "usageLimit", "modelUnavailable",
   "webResearchUnavailable", "authorizationExpired", "researchTimeout", "researchBusy", "cancelled", "articleUnavailable"]);
-const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-stream",
+const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json",
+  "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",
   "response-too-large", "response-encoding", "response-event", "response-no-final",
   "response-empty-output", "response-output-too-large", "response-incomplete",
   "response-failed", "response-http-400"]);
+const CONTENT_TYPE_MESSAGES = Object.freeze({
+  "response-content-json": "aiResearchContentJson",
+  "response-content-html": "aiResearchContentHtml",
+  "response-content-text": "aiResearchContentText",
+  "response-content-missing": "aiResearchContentMissing",
+  "response-content-other": "aiResearchContentOther",
+  "response-content-type": "aiResearchContentType",
+});
 
 export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}) {
   const text = (key) => messages?.[key] ?? INSIGHT_EN[key];
@@ -241,8 +250,11 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       ? IDENTITY_FAILURE_SUBSTAGE_MESSAGES[ai.failureSubstage] : null;
     aiStatus.textContent = text(substageMessage ?? stageMessage ??
       `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
-    if (RESEARCH_FAILURE_STATUSES.has(ai.status) && RESEARCH_DETAILS.has(ai.researchFailureDetail))
+    if (RESEARCH_FAILURE_STATUSES.has(ai.status) && RESEARCH_DETAILS.has(ai.researchFailureDetail)) {
+      const contentMessage = CONTENT_TYPE_MESSAGES[ai.researchFailureDetail];
+      if (contentMessage) aiStatus.textContent += ` ${text(contentMessage)}`;
       aiStatus.textContent += ` ${text("researchFailureCode").replace("{code}", ai.researchFailureDetail)}`;
+    }
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
     quickStatus.hidden = !RESEARCH_FAILURE_STATUSES.has(ai.status) && ai.status !== "preparingArticle";
     quickStatus.textContent = quickStatus.hidden ? "" : aiStatus.textContent;

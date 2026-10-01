@@ -17,7 +17,8 @@ const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
 const LIMITATIONS = new Set(["grouping-provisional", "related-not-same-topic", "title-url-only", "sources-unverified", "visible-roots-only"]);
 const CATALOG_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
   "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
-const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "response-stream", "response-too-large",
+const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json", "response-content-html",
+  "response-content-text", "response-content-missing", "response-content-other", "response-stream", "response-too-large",
   "response-encoding", "response-event", "response-no-final", "response-empty-output", "response-output-too-large",
   "response-incomplete", "response-failed", "response-http-400"]);
 
@@ -117,6 +118,13 @@ function errorForStatus(status) {
 function errorForCode(code) {
   return code === "subscription_sharing_usage_limit_exceeded" ? "rate-limit" :
     code === "subscription_sharing_unsupported_capability" ? "unsupported-capability" : "provider-unavailable";
+}
+function responseContentDetail(contentType) {
+  if (typeof contentType !== "string" || !contentType.trim()) return "response-content-missing";
+  if (/^application\/json[ \t]*(?:;|$)/iu.test(contentType)) return "response-content-json";
+  if (/^text\/html[ \t]*(?:;|$)/iu.test(contentType)) return "response-content-html";
+  if (/^text\/plain[ \t]*(?:;|$)/iu.test(contentType)) return "response-content-text";
+  return "response-content-other";
 }
 async function responseError(response, signal) {
   if (response?.status === 400 && /^application\/json(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) {
@@ -322,7 +330,9 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       check(requestSignal);
       if (response?.redirected || response?.url && response.url !== `${API}/responses`) fail("invalid-response", "response-redirect");
       if (!response?.ok) await responseError(response, requestSignal);
-      if (!/^text\/event-stream(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) fail("invalid-response", "response-content-type");
+      const contentType = response.headers?.get("content-type");
+      if (!/^text\/event-stream[ \t]*(?:;|$)/iu.test(contentType ?? ""))
+        fail("invalid-response", responseContentDetail(contentType));
       const raw = await boundedBody(response, MAX_STREAM_BYTES, requestSignal);
       check(requestSignal);
       if (modelEpoch !== before) fail("cancelled");

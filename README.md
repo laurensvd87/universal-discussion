@@ -10,6 +10,16 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Version **0.12.9** adds safe diagnosis for the owner's first live ChatGPT
+research failure (`response-content-type`): after restarting the local service
+and reloading the unpacked extension, one deliberate Create attempt will show
+whether a non-stream reply looked like JSON, HTML, plain text, a missing format
+header or another format. No provider body/header, account or page text enters
+the diagnostic; no non-stream output is accepted and no automatic retry occurs.
+The owner-operated check returned `response-content-missing`: the successful
+HTTP reply supplied no format header. Its body and cause remain unknown; no
+further retry is requested while a narrow, gated fallback is considered.
+
 The latest [product investigation](research/AI_INSIGHT_COLD_START_2026-09-29.md)
 prioritizes useful research by the user's own AI, with selected sourced insights
 shared into native discussions visible inside the extension. ChatGPT connection

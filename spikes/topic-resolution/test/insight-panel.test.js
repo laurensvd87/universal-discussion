@@ -279,6 +279,19 @@ test("research failure exposes only allowlisted fixed detail and clears it on su
     articleText: "", article: null, status: "generationFailed", researchFailureDetail: "response-http-400" };
   ui.panel.render(state({ ai }));
   assert.equal(ui.byId("insight-quick-status").textContent.includes("Code: response-http-400"), true);
+  for (const [detail, key] of [
+    ["response-content-json", "aiResearchContentJson"],
+    ["response-content-html", "aiResearchContentHtml"],
+    ["response-content-text", "aiResearchContentText"],
+    ["response-content-missing", "aiResearchContentMissing"],
+    ["response-content-other", "aiResearchContentOther"],
+    ["response-content-type", "aiResearchContentType"],
+  ]) {
+    ui.panel.render(state({ ai: { ...ai, researchFailureDetail: detail } }));
+    const message = ui.byId("insight-quick-status").textContent;
+    assert.equal(message.includes(INSIGHT_EN[key]), true, detail);
+    assert.equal(message.includes(`Code: ${detail}`), true, detail);
+  }
   ui.panel.render(state({ ai: { ...ai, researchFailureDetail: "private-provider-body" } }));
   assert.equal(ui.byId("insight-quick-status").textContent.includes("private-provider-body"), false);
   ui.panel.render(state({ ai: { ...ai, status: "generated", researchFailureDetail: null } }));

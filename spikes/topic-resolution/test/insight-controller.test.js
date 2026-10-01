@@ -421,22 +421,24 @@ test("safe research failures give actionable status without importing provider t
 });
 
 test("research failure retains only a fixed diagnostic detail in popup memory", async () => {
-  const app = await harness({ aiClient: {
-    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
-    models: async () => [{ slug: "model-a", displayName: "Model A" }],
-    start: async () => ({ state: "running" }),
-    result: async () => ({ operationId: "op-failed", state: "failed", error: "invalid-response",
-      detail: "response-no-final" }),
-    cancel: async () => true,
-  }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
-    attestArticle: async () => true, randomId: () => "op-failed" });
-  app.insight.prepare(); await app.insight.checkConnection(); await app.insight.loadModels();
-  await app.insight.readPageText(); app.insight.selectModel("model-a"); app.insight.setCostConsent(true);
-  assert.equal(await app.insight.createInsights(), false);
-  assert.equal(app.insight.currentState().ai.researchFailureDetail, "response-no-final");
-  assert.equal(app.insight.currentState().draft, "");
-  app.insight.discard();
-  assert.equal(app.insight.currentState().ai.researchFailureDetail, null);
+  for (const detail of ["response-no-final", "response-content-json", "response-content-html",
+    "response-content-text", "response-content-missing", "response-content-other", "response-content-type"]) {
+    const app = await harness({ aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+      models: async () => [{ slug: "model-a", displayName: "Model A" }],
+      start: async () => ({ state: "running" }),
+      result: async () => ({ operationId: "op-failed", state: "failed", error: "invalid-response", detail }),
+      cancel: async () => true,
+    }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+      attestArticle: async () => true, randomId: () => "op-failed" });
+    app.insight.prepare(); await app.insight.checkConnection(); await app.insight.loadModels();
+    await app.insight.readPageText(); app.insight.selectModel("model-a"); app.insight.setCostConsent(true);
+    assert.equal(await app.insight.createInsights(), false);
+    assert.equal(app.insight.currentState().ai.researchFailureDetail, detail);
+    assert.equal(app.insight.currentState().draft, "");
+    app.insight.discard();
+    assert.equal(app.insight.currentState().ai.researchFailureDetail, null);
+  }
 });
 
 test("editing invalidates preview; navigation/actor/source/version changes clear private context", async () => {

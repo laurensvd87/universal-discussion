@@ -17,7 +17,8 @@ const RESEARCH_OUTCOMES = new Set(["success", "invalid-input", "model-unavailabl
   "unsupported-capability"]);
 const MODEL_LIST_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body",
   "catalog-too-large", "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
-const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-stream",
+const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json",
+  "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",
   "response-too-large", "response-encoding", "response-event", "response-no-final",
   "response-empty-output", "response-output-too-large", "response-incomplete",
   "response-failed", "response-http-400"]);

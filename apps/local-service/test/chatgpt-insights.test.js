@@ -276,7 +276,7 @@ test("research failures expose only fixed substages without provider text or ret
   const cases = [
     [new Response(JSON.stringify({ error: { code: "unknown", message: secret } }),
       { status: 400, headers: { "content-type": "application/json" } }), "provider-unavailable", "response-http-400"],
-    [new Response(secret, { headers: { "content-type": "text/plain" } }), "invalid-response", "response-content-type"],
+    [new Response(secret, { headers: { "content-type": "text/plain" } }), "invalid-response", "response-content-text"],
     [stream("x".repeat(262_145)), "invalid-response", "response-too-large"],
     [stream("event: response.completed\ndata: {invalid}\n\n"), "invalid-response", "response-event"],
     [stream("event: response.output_text.delta\ndata: {}\n\n"), "invalid-response", "response-no-final"],
@@ -302,6 +302,46 @@ test("research failures expose only fixed substages without provider text or ret
     assert.equal(posts, 1);
     adapter.dispose();
   }
+});
+
+test("non-SSE success responses report only a fixed MIME category and never import their body", async () => {
+  const secret = "SECRET_PROVIDER_RESPONSE_BODY_URL_ACCOUNT";
+  const cases = [
+    [new Response(JSON.stringify({ output_text: secret }), { headers: { "content-type": "application/json; charset=utf-8" } }), "response-content-json"],
+    [new Response(`<html>${secret}</html>`, { headers: { "content-type": "TEXT/HTML" } }), "response-content-html"],
+    [new Response(secret, { headers: { "content-type": "text/plain ; charset=utf-8" } }), "response-content-text"],
+    [new Response(new TextEncoder().encode(secret)), "response-content-missing"],
+    [new Response(secret, { headers: { "content-type": `application/x-${secret}` } }), "response-content-other"],
+    [new Response(secret, { headers: { "content-type": "application/jsonish" } }), "response-content-other"],
+    [new Response(secret, { headers: { "content-type": "text/event-streamish" } }), "response-content-other"],
+  ];
+  for (const [response, detail] of cases) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1;
+      return response;
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.equal(errorCode("invalid-response")(error), true);
+      assert.equal(error.detail, detail);
+      assert.equal(JSON.stringify(error).includes(secret), false);
+      assert.equal(error.message.includes(secret), false);
+      return true;
+    });
+    assert.equal(posts, 1);
+    adapter.dispose();
+  }
+});
+
+test("SSE media type accepts optional whitespace before parameters", async () => {
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
+    new Response(complete(), { headers: { "content-type": "Text/Event-Stream ; charset=utf-8" } }),
+    getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  assert.equal((await adapter.createInsight(REQUEST)).body, "A bounded finding [1].");
+  adapter.dispose();
 });
 
 test("one active request, cancellation, disposal and five calls per rolling hour", async () => {

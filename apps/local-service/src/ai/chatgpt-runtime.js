@@ -18,7 +18,8 @@ const MODEL_FAILURES = new Map([
 ]);
 const MODEL_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
   "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
-const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "response-stream", "response-too-large",
+const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json", "response-content-html",
+  "response-content-text", "response-content-missing", "response-content-other", "response-stream", "response-too-large",
   "response-encoding", "response-event", "response-no-final", "response-empty-output", "response-output-too-large",
   "response-incomplete", "response-failed", "response-http-400"]);
 const MAX_DIAGNOSTIC_EVENTS = 20;

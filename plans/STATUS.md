@@ -33,6 +33,43 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.9 first live research response-format follow-up (2026-10-01):** the
+owner's deliberate Create action returned fixed `response-content-type`.
+This proves the local service received a 2xx Responses reply whose media type
+did not pass its SSE check; it does not identify the actual media type or prove
+a provider, account, model or local-service cause. Official OpenAI Docs require
+`stream: true` and consuming streamed events for this ChatGPT-plan route.
+The service now classifies a non-SSE 2xx response only as fixed
+`response-content-json/html/text/missing/other` and accepts syntactically valid
+SSE with optional whitespace before parameters. The extension carries only
+those fixed codes with brief English guidance. No raw header/body, request ID,
+token, account or page text is added to logs/UI; no non-SSE success is imported
+and no automatic retry occurs. Service **152/152**, extension restricted
+**834/834**, focused client/panel/controller **48/48** pass; independent
+read-only security review found no blocker. Indicator/package **571/571** and
+secret scans **0/73** service and **0/176** extension also pass. The new
+synthetic Chrome integration smoke could not bind fixed loopback port 4174
+while the owner's service was running; no owner process was stopped or modified.
+No live inference success is claimed. Restart the backend and reload the
+extension, then the owner may make one deliberate public-page Create attempt
+and report only the new fixed
+code. Each attempt can count toward provider usage and the process's five-per-
+hour cap; do not loop on failure.
+
+**Owner 0.12.9 result and two follow-up approvals (2026-10-01):** after installing
+the new diagnostic, the owner reports `response-content-missing`: a 2xx
+Responses reply had no `Content-Type` header. This does not establish its HTTP
+status, body shape or root cause. No further owner retry is requested yet.
+The owner asks whether ChatGPT authorization can survive backend restarts;
+today access/refresh/ID tokens are RAM-only and necessarily disappear on
+process restart. Official OpenAI Docs describe protected local credential
+storage and rotating refresh-token renewal, but ADR-024 did not approve that
+retention. The owner separately approved (1) a narrow HTTP-200,
+missing-header fallback that accepts only a bounded, fully completed SSE body,
+and (2) OS-protected refresh-token persistence with revoke/delete on sign-out.
+Neither scope is implemented in 0.12.9; Git-push permission did not supply
+either approval.
+
 **0.12.8 real-popup width correction (2026-10-01):** the original layout smoke
 used `popup.html` as a forced-width tab and missed Chrome action-popup sizing.
 An actual action-popup screenshot was about 55 px wide. Root `max-width`

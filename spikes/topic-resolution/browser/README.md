@@ -1,5 +1,18 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Live research response diagnosis (0.12.9)
+
+The owner's first deliberate Create attempt returned `response-content-type`:
+the local service got a 2xx response, but it was not an accepted SSE stream.
+This alone does not identify the returned format or the cause. Restart the
+local service, reload the unpacked extension, pair with the new local token and
+sign in to ChatGPT again if prompted. Then make at most one deliberate Create
+attempt on a public article. If it fails, report only the new fixed
+`response-content-json`, `response-content-html`, `response-content-text`,
+`response-content-missing` or `response-content-other` code. Do not share the
+response body, raw headers, page text, token or account details; do not keep
+retrying. The app still imports an insight only after a completed SSE response.
+
 ## ChatGPT insights (0.12.8)
 
 User Mode shows the current Topic, discussion and a fixed **Create insights**
