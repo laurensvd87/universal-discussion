@@ -163,7 +163,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       const models = await aiClient.models();
       if (disposed || current !== connectionEpoch) return false;
       aiPatch({ models, model: "", status: models.length ? "chooseModel" : "noModels" }); return true;
-    } catch { if (!disposed && current === connectionEpoch) aiPatch({ status: "unavailable", models: [], model: "" }); return false; }
+    } catch { if (!disposed && current === connectionEpoch) aiPatch({ status: "modelListUnavailable", models: [], model: "" }); return false; }
     finally { if (current === connectionEpoch) modelsBusy = false; }
   }
   function selectModel(model) {

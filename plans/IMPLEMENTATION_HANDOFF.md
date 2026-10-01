@@ -2,8 +2,8 @@
 
 Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
-Current checkpoint: **0.12.3 owner retry reached identity verification;
-the exact failed check awaits one fresh sign-in with fixed substage reporting.**
+Current checkpoint: **0.12.4 owner sign-in now reports connected, but List
+available models leaves the selector empty; exact list outcome unreported.**
 ChatGPT insights and compact User Mode remain owner-local. Read ADR-024 and the latest
 STATUS section first. The owner approved implementation, ChatGPT connection and
 explicit public-text/related-source research. Sol Medium agents handle coding;
@@ -17,9 +17,14 @@ updates callback wording, and fences late failures after Disconnect. The owner
 did retry and reported `identity-verification-failed`. Version 0.12.3 accepts
 the client ID in a scalar or single-item audience array, preserves all other
 identity checks and adds six fixed identity substages to authenticated status.
-After backend restart and extension reload, the owner may make one fresh sign-in
-to identify the check if it still fails; never ask for or reuse callback URLs,
-codes or tokens. This does not establish the cause of the earlier failure.
+After backend restart and extension reload, the owner reports ChatGPT now says
+connected. This does not establish the cause of the earlier failure, plan/model
+availability or successful inference; never ask for or reuse callback URLs,
+codes or tokens. Version 0.12.4 places fixed model-list loading/empty/failure
+feedback beside the disabled selector. Ask for that sentence after one explicit
+List available models click, not provider response bodies or account details.
+Offline extension restricted 807/807, indicator/package 545/545 and secret
+scan 0/173 pass. No new provider call or live model-catalog result is claimed.
 Synthetic service 139/139, extension restricted 805/805 and indicator/package
 543/543 pass; two secret scans and diff check pass. The owner's Node process
 still occupies port 4174, so isolated loopback/Chrome tests were not repeated

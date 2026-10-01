@@ -213,6 +213,43 @@ test("first-use connection and plan usage stay clear beside the explicit researc
   assert.equal(ui.byId("insight-createInsights").disabled, true);
 });
 
+test("model-list feedback stays beside the disabled dropdown in account details", () => {
+  const ui = harness();
+  const details = ui.byId("insight-account-details");
+  const model = ui.byId("insight-model");
+  const feedback = ui.byId("insight-model-status");
+  const general = ui.byId("insight-ai-status");
+  details.open = false;
+  assert.equal(details.children[details.children.indexOf(model) + 1], feedback);
+  assert.equal(ui.descendants(details).includes(general), false);
+  assert.equal(ui.descendants(ui.byId("insight-ai-controls")).includes(general), true);
+  assert.equal(feedback.attributes.role, "status");
+  assert.equal(feedback.attributes["aria-live"], "polite");
+  for (const [status, message] of [
+    ["loadingModels", INSIGHT_EN.aiLoadingModels],
+    ["noModels", INSIGHT_EN.aiNoModels],
+    ["modelListUnavailable", INSIGHT_EN.aiModelListUnavailable],
+  ]) {
+    ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,
+      models: [], model: "", status, providerDetail: "private provider response" } }));
+    assert.equal(model.disabled, true);
+    assert.equal(feedback.hidden, false);
+    assert.equal(feedback.textContent, message);
+    assert.equal(feedback.textContent.includes("private provider response"), false);
+  }
+  assert.equal(ui.byId("insight-loadModels").disabled, false);
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,
+    models: [], model: "", status: "unavailable" } }));
+  assert.equal(feedback.hidden, true);
+  assert.equal(general.textContent, INSIGHT_EN.aiUnavailable);
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,
+    models: [{ slug: "model-a", displayName: "A" }], model: "model-a", status: "generating" } }));
+  assert.equal(details.open, false);
+  assert.equal(feedback.hidden, true);
+  assert.equal(feedback.textContent, "");
+  assert.equal(general.textContent, INSIGHT_EN.aiGenerating);
+});
+
 test("connection failure renders only fixed stage guidance and clears it on a new state", () => {
   const ui = harness();
   for (const [stage, key] of [

@@ -33,6 +33,22 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.4 model-list visibility (2026-10-01):** the owner reports that ChatGPT
+shows connected but clicking List available models leaves the selector disabled
+on “Choose a model.” This proves no selectable list reached the popup, not why:
+the provider could return no displayable models, the list request could fail or
+time out, or the local response could be rejected. The app previously put the
+result away from the selector and collapsed all list errors into generic
+unavailable. A dedicated fixed loading/empty/failure status is now immediately
+beside the selector; generic sign-in and research status remains visible outside
+the collapsible account section. No new provider call, automatic retry, token
+exposure or scope change was added. Actual account model availability and the
+cause of this owner's failed/empty list remain unknown until the owner reports
+the fixed status after one deliberate click. Offline verification follows below.
+Extension restricted **807/807** and indicator/package **545/545** pass;
+extension secret scan found **0/173** findings. The owner's running service was
+not touched, and no live model-catalog request was made by this checkpoint.
+
 **0.12.3 identity-verification follow-up (2026-10-01):** the owner's fresh
 attempt reached `identity-verification-failed`; the earlier nine-stage diagnostic
 cannot identify the exact failing check. Official sign-in guidance requires

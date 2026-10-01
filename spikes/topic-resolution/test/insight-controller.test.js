@@ -121,6 +121,20 @@ test("connected identity without plan access permits only explicit re-consent an
   assert.equal(modelsCalled, 1);
 });
 
+test("failed model listing uses its own status and clears stale model choices", async () => {
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => { throw new Error("private provider detail"); },
+  } });
+  assert.equal(await app.insight.checkConnection(), true);
+  assert.equal(await app.insight.loadModels(), false);
+  const ai = app.insight.currentState().ai;
+  assert.equal(ai.status, "modelListUnavailable");
+  assert.deepEqual(ai.models, []);
+  assert.equal(ai.model, "");
+  assert.equal(JSON.stringify(ai).includes("private provider detail"), false);
+});
+
 test("connection failure stage clears on a new attempt and a successful status", async () => {
   let nextStatus = { connected: false, planEnabled: false, pending: false, account: null,
     error: "connection-failed", failureStage: "identity-verification-failed", failureSubstage: "claims-invalid" };

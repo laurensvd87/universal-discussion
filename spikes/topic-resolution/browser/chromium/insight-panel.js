@@ -57,6 +57,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const models = button(accountDetails, "loadModels", () => { void controller?.loadModels(); });
   const modelLabel = node("label", "model"); modelLabel.htmlFor = "insight-model";
   const model = node("select", null, "insight-model"); accountDetails.append(modelLabel, model);
+  const modelStatus = node("p", null, "insight-model-status");
+  modelStatus.setAttribute("role", "status"); modelStatus.setAttribute("aria-live", "polite");
+  accountDetails.append(modelStatus);
   listen(model, "change", () => controller?.selectModel(model.value));
   const usage = node("p", "usingChatgptPlan", "insight-plan-usage");
   const manageUsage = node("a", "manageUsage", "insight-manage-usage");
@@ -170,6 +173,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     aiStatus.textContent = text(substageMessage ?? stageMessage ??
       `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
+    modelStatus.hidden = !["loadingModels", "noModels", "modelListUnavailable"].includes(ai.status);
+    modelStatus.textContent = modelStatus.hidden ? "" :
+      text(`ai${ai.status[0].toUpperCase()}${ai.status.slice(1)}`);
     account.textContent = ai.account?.label ? text("connectedAccount").replace("{label}", ai.account.label) : "";
     connect.disabled = ai.connected && ai.planEnabled || ai.pending || aiPending || state.busy;
     check.disabled = aiPending || state.busy;
