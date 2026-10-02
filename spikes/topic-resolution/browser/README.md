@@ -1,5 +1,16 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Completed stream without a usable answer (2026-10-02)
+
+The owner's last deliberate Create returned `response-empty-output` after the
+completed-stream check. The response content was not logged or retained, so
+the cause is not yet known. Restart the backend and reload the unpacked
+extension for fixed, non-content categories such as `response-no-message`,
+`response-refusal` or `response-blank-text`. Make at most one deliberate Create
+attempt on a public article, then report only the fixed code or whether a
+private editable draft appeared. Do not send provider output, page text or
+credentials. No automatic retry or sharing occurs.
+
 ## Headerless research and sign-in restart check (2026-10-02)
 
 Restart the local service, then pair the extension using its **new** local

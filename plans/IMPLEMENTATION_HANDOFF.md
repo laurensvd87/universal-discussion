@@ -1,5 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
+Latest owner result (2026-10-02): ChatGPT protected sign-in appears to work,
+but the next Create yielded `response-empty-output`. It proves a completed
+stream without usable final assistant text, not why. The offline correction
+adds content-free structural codes and requests an explicit uncertainty
+explanation when evidence is insufficient. No provider retry has occurred.
+Await one deliberate owner public-page recheck after backend restart and
+extension reload. Persistent local-service pairing remains a separate
+ADR-019 C owner/security decision; its exact scope has been asked explicitly.
+
 2026-10-02 update: The separately approved missing-header and protected-refresh
 changes are implemented in the local service under ADR-026/027. Offline tests
 pass; real-account restart and insight success remain unverified. Ask the owner

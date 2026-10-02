@@ -10,6 +10,17 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension **0.12.10** addresses the latest owner-operated Create attempt. It
+passed the completed-stream check but
+returned `response-empty-output`: the service saw no usable final assistant
+text. We have not seen the provider response and cannot yet tell whether it
+was blank, a refusal, or tool/reasoning-only output. The local follow-up now
+reports one fixed, content-free category for those cases and asks the model
+for a brief uncertainty explanation instead of an empty answer when evidence
+is insufficient. No partial/tool output is imported, no provider material is
+logged and no automatic retry is added. Restart the backend and reload the
+unpacked extension before one deliberate public-page recheck.
+
 The **2026-10-02 local-service follow-up** accepts a headerless HTTP 200
 research response only when its bounded body is a complete validated SSE
 stream. It also keeps the ChatGPT refresh credential in Windows CurrentUser

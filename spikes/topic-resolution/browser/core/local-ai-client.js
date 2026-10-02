@@ -20,7 +20,8 @@ const MODEL_LIST_DETAILS = new Set(["catalog-redirect", "catalog-content-type", 
 const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json",
   "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",
   "response-too-large", "response-encoding", "response-event", "response-no-final",
-  "response-empty-output", "response-output-too-large", "response-incomplete",
+  "response-empty-output", "response-no-message", "response-message-unfinished", "response-refusal",
+  "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-incomplete",
   "response-failed", "response-http-400"]);
 export class ModelListFailure extends Error {
   constructor(failure, detail = null) { super("Model list unavailable"); this.failure = failure; this.detail = detail; }

@@ -97,7 +97,8 @@ test("failed insight result exposes only fixed research details", async () => {
   const details = ["response-redirect", "response-content-type", "response-content-json",
     "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",
     "response-too-large", "response-encoding", "response-event", "response-no-final",
-    "response-empty-output", "response-output-too-large", "response-incomplete",
+    "response-empty-output", "response-no-message", "response-message-unfinished", "response-refusal",
+    "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-incomplete",
     "response-failed", "response-http-400"];
   for (const detail of details) {
     const value = await client(async (url) => response(url,

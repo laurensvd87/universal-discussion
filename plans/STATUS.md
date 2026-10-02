@@ -33,6 +33,26 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.10 owner insight result and offline correction (2026-10-02):** owner confirms
+Windows protected ChatGPT sign-in appears to survive restart. A subsequent
+deliberate Create returns `response-empty-output`: the bounded stream reached
+`response.completed`, but the parser found no usable final assistant text.
+This does **not** reveal whether the response was blank, a refusal, a
+tool/reasoning-only result, an unfinished message or unsafe control text. The
+service now distinguishes those possibilities with fixed content-free codes,
+still rejects each without importing partial output, and never logs provider
+content. The prompt no longer contradicts the required nonempty final answer:
+when evidence is insufficient, it requests a short uncertainty explanation
+and question instead of silence. No automatic provider retry or extra call was
+made. Focused service **42/42** and extension client/controller/panel **48/48**
+pass offline; full service **163 passed, 2 opt-in Windows tests skipped** and
+extension restricted **834/834** pass. A useful live insight is still unverified;
+the owner may make one
+deliberate public-page Create attempt after restarting backend and reloading
+extension, then report only the fixed code or that a private draft appeared.
+Pairing remains session-only under ADR-019 C's pending security gate; the
+owner has been asked separately whether to activate that exact package.
+
 **2026-10-02 approved local-service follow-up:** the two separate owner
 approvals are implemented as [ADR-026](../decisions/ADR-026-headerless-complete-sse-fallback.md)
 and [ADR-027](../decisions/ADR-027-windows-protected-chatgpt-refresh.md).

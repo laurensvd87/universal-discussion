@@ -281,7 +281,7 @@ test("research failures expose only fixed substages without provider text or ret
     [stream("x".repeat(262_145)), "invalid-response", "response-too-large"],
     [stream("event: response.completed\ndata: {invalid}\n\n"), "invalid-response", "response-event"],
     [stream("event: response.output_text.delta\ndata: {}\n\n"), "invalid-response", "response-no-final"],
-    [stream(complete("  ")), "invalid-response", "response-empty-output"],
+    [stream(complete("  ")), "invalid-response", "response-blank-text"],
     [stream(complete("x".repeat(8_001))), "invalid-response", "response-output-too-large"],
     [stream(event("response.incomplete", { status: "incomplete", incomplete_details: { reason: secret } })),
       "provider-unavailable", "response-incomplete"],
@@ -296,6 +296,37 @@ test("research failures expose only fixed substages without provider text or ret
     await adapter.listModels();
     await assert.rejects(adapter.createInsight(REQUEST), (error) => {
       assert.equal(errorCode(code)(error), true);
+      assert.equal(error.detail, detail);
+      assert.equal(JSON.stringify(error).includes(secret), false);
+      return true;
+    });
+    assert.equal(posts, 1);
+    adapter.dispose();
+  }
+});
+
+test("completed research without final usable text reports only a fixed structural category", async () => {
+  const secret = "SECRET_UNTRUSTED_PROVIDER_MATERIAL";
+  const message = (status, content) => ({ type: "message", role: "assistant", status, content });
+  const completedStream = (output) => stream(event("response.completed", { status: "completed", output }));
+  const cases = [
+    [completedStream([{ type: "web_search_call", status: "completed", action: { query: secret } }]), "response-no-message"],
+    [completedStream([message("in_progress", [{ type: "output_text", text: secret }])]), "response-message-unfinished"],
+    [completedStream([message("completed", [{ type: "refusal", refusal: secret }])]), "response-refusal"],
+    [completedStream([message("completed", [{ type: "other", text: secret }])]), "response-no-text"],
+    [completedStream([message("completed", [{ type: "output_text", text: "  " }])]), "response-blank-text"],
+    [completedStream([message("completed", [{ type: "output_text", text: `${secret}\u202e` }])]), "response-unsafe-text"],
+  ];
+  for (const [reply, detail] of cases) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1;
+      return reply;
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.equal(errorCode("invalid-response")(error), true);
       assert.equal(error.detail, detail);
       assert.equal(JSON.stringify(error).includes(secret), false);
       return true;
