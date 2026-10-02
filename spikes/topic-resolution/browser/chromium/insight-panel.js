@@ -25,7 +25,9 @@ const RESEARCH_FAILURE_STATUSES = new Set(["generationFailed", "usageLimit", "mo
 const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json",
   "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",
   "response-too-large", "response-encoding", "response-event", "response-no-final",
-  "response-empty-output", "response-no-message", "response-message-unfinished", "response-refusal",
+  "response-empty-output", "response-no-message", "response-output-empty", "response-search-only",
+  "response-reasoning-only", "response-final-item-missing", "response-stream-text-unfinalized",
+  "response-message-unfinished", "response-refusal",
   "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-incomplete",
   "response-failed", "response-http-400"]);
 const CONTENT_TYPE_MESSAGES = Object.freeze({
@@ -70,7 +72,12 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   sourceDetails.append(node("summary", "sourceWorkspace"), includeLabel, include); details.append(sourceDetails);
   const relatedSettings = node("details", null, "insight-related-settings");
   relatedSettings.className = "insight-subdetails";
-  relatedSettings.append(node("summary", "relatedSettings"), node("p", "relatedSettingsScope"));
+  relatedSettings.append(node("summary", "relatedSettings"));
+  const webResearch = node("input", null, "insight-allow-web-research");
+  webResearch.type = "checkbox"; webResearch.checked = true;
+  const webResearchLabel = node("label", "allowWebResearch"); webResearchLabel.htmlFor = webResearch.id;
+  relatedSettings.append(webResearchLabel, webResearch, node("p", "relatedSettingsScope"));
+  listen(webResearch, "change", () => controller?.setAllowWebResearch(webResearch.checked));
   const relatedChoices = node("div", null, "insight-related-choices");
   relatedSettings.append(relatedChoices); root.append(relatedSettings);
   listen(relatedChoices, "change", (event) => {
@@ -191,7 +198,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       }
     }
     const relatedSources = state.context?.relatedSources ?? [];
-    relatedSettings.hidden = relatedSources.length === 0;
+    relatedSettings.hidden = !state.context;
+    webResearch.checked = state.allowWebResearch !== false;
+    webResearch.disabled = state.busy || state.ai?.status === "generating" || state.ai?.status === "preparingArticle";
     const relatedSignature = JSON.stringify(relatedSources);
     if (relatedSignature !== relatedSettingsSignature) {
       relatedSettingsSignature = relatedSignature;

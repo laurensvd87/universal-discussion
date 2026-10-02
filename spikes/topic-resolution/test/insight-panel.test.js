@@ -34,6 +34,7 @@ function harness(messages, uiMode) {
     preview: () => { calls.push(["preview"]); return true; },
     discard: () => { calls.push(["discard"]); },
     setRelatedSourceIncluded: (id, included) => { calls.push(["setRelatedSourceIncluded", id, included]); return true; },
+    setAllowWebResearch: (allowed) => { calls.push(["setAllowWebResearch", allowed]); return true; },
     createInsights: (options) => { calls.push(["createInsights", options]); return Promise.resolve(true); },
     loadDiagnostics: () => { calls.push(["loadDiagnostics"]); },
     share: () => { calls.push(["share"]); return Promise.resolve(true); } };
@@ -259,6 +260,15 @@ test("User Create click uses current page automatically and related-source setti
   const settings = ui.byId("insight-related-settings");
   const choices = ui.byId("insight-related-choices");
   assert.equal(settings.hidden, false);
+  const webResearch = ui.byId("insight-allow-web-research");
+  assert.equal(webResearch.checked, true);
+  assert.equal(ui.created.some((item) => item.tag === "label" && item.htmlFor === webResearch.id &&
+    item.textContent === INSIGHT_EN.allowWebResearch), true);
+  webResearch.checked = false;
+  webResearch.listeners.get("change")();
+  assert.deepEqual(ui.calls.at(-1), ["setAllowWebResearch", false]);
+  ui.panel.render(state({ ai, allowWebResearch: false }));
+  assert.equal(webResearch.checked, false);
   assert.equal(choices.children.length, 1);
   const checkbox = choices.children[0].children[0];
   assert.equal(checkbox.value, "source-c");
@@ -266,11 +276,19 @@ test("User Create click uses current page automatically and related-source setti
   checkbox.checked = false;
   choices.listeners.get("change")({ target: checkbox });
   assert.deepEqual(ui.calls.at(-1), ["setRelatedSourceIncluded", "source-c", false]);
-  ui.panel.render(state({ ai, excludedRelatedSourceIds: ["source-c"] }));
+  ui.panel.render(state({ ai, excludedRelatedSourceIds: ["source-c"], allowWebResearch: false }));
   assert.equal(checkbox.checked, false);
   ui.click("insight-createInsights");
   assert.deepEqual(ui.calls.at(-1), ["createInsights", { automatic: true }]);
   assert.equal(ui.calls.some(([name]) => name === "share"), false);
+});
+
+test("linked-page search setting remains available when no related pages are listed", () => {
+  const ui = harness(undefined, "user");
+  ui.panel.render(state({ context: { ...context(), relatedSources: [] }, allowWebResearch: false }));
+  assert.equal(ui.byId("insight-related-settings").hidden, false);
+  assert.equal(ui.byId("insight-allow-web-research").checked, false);
+  assert.equal(ui.byId("insight-related-choices").children.length, 0);
 });
 
 test("research failure exposes only allowlisted fixed detail and clears it on success", () => {
@@ -294,6 +312,11 @@ test("research failure exposes only allowlisted fixed detail and clears it on su
   }
   ui.panel.render(state({ ai: { ...ai, researchFailureDetail: "private-provider-body" } }));
   assert.equal(ui.byId("insight-quick-status").textContent.includes("private-provider-body"), false);
+  for (const detail of ["response-output-empty", "response-search-only", "response-reasoning-only",
+    "response-final-item-missing", "response-stream-text-unfinalized"]) {
+    ui.panel.render(state({ ai: { ...ai, researchFailureDetail: detail } }));
+    assert.equal(ui.byId("insight-quick-status").textContent.includes(`Code: ${detail}`), true, detail);
+  }
   ui.panel.render(state({ ai: { ...ai, status: "generated", researchFailureDetail: null } }));
   assert.equal(ui.byId("insight-quick-status").hidden, true);
 });

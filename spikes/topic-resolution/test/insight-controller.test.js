@@ -84,6 +84,7 @@ test("AI research requires explicit page preview, model and credit consent; answ
   app.insight.setCostConsent(true);
   assert.equal(await app.insight.createInsights(), true);
   assert.equal(calls.length, 1); assert.equal(calls[0].articleText, "Public text");
+  assert.equal(calls[0].allowWebResearch, true);
   assert.equal(app.insight.currentState().draft, "Useful synthetic finding.");
   assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 0);
   assert.equal(await app.insight.share(), false);
@@ -114,15 +115,20 @@ test("one User click reads the current page and omits unchecked related links fr
   const excluded = before.context.relatedSources[0].id;
   assert.equal(app.insight.setRelatedSourceIncluded(excluded, false), true);
   assert.equal(app.insight.setRelatedSourceIncluded(before.context.currentSource.id, false), false);
+  assert.equal(app.insight.setAllowWebResearch(false), true);
+  assert.equal(app.insight.currentState().allowWebResearch, false);
   assert.equal(await app.insight.createInsights({ automatic: true }), true);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].articleText, "The public current page");
   assert.equal(calls[0].context.currentSource.id, before.context.currentSource.id);
   assert.equal(calls[0].context.relatedSources.some((source) => source.id === excluded), true);
   assert.deepEqual(calls[0].excludedRelatedSourceIds, [excluded]);
+  assert.equal(calls[0].allowWebResearch, false);
   assert.equal(app.insight.currentState().context.relatedSources.some((source) => source.id === excluded), true);
   assert.equal(app.insight.currentState().draft, "Current-page insight.");
   assert.equal(app.service.discussion(before.context.topic.id).roots.length, 0);
+  assert.equal(app.insight.prepare(), true);
+  assert.equal(app.insight.currentState().allowWebResearch, false);
 });
 
 test("navigation during automatic page reading prevents provider send", async () => {
@@ -421,7 +427,9 @@ test("safe research failures give actionable status without importing provider t
 });
 
 test("research failure retains only a fixed diagnostic detail in popup memory", async () => {
-  for (const detail of ["response-no-final", "response-content-json", "response-content-html",
+  for (const detail of ["response-no-final", "response-output-empty", "response-search-only",
+    "response-reasoning-only", "response-final-item-missing", "response-stream-text-unfinalized",
+    "response-content-json", "response-content-html",
     "response-content-text", "response-content-missing", "response-content-other", "response-content-type"]) {
     const app = await harness({ aiClient: {
       status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),

@@ -1,5 +1,20 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Completed response without assistant message (2026-10-02)
+
+The owner selected model “5.5” and a deliberate Create returned
+`response-no-message`. That means the final completed response contained no
+assistant message; it does not identify why. The next version reports only a
+fixed shape category (`response-output-empty`, `response-search-only`,
+`response-reasoning-only`, `response-final-item-missing`, or
+`response-stream-text-unfinalized`) without showing provider material.
+In Insight settings, **Search linked pages with ChatGPT** is on by default;
+turning it off for a separate deliberate test still sends the current public
+page and selected related titles/URLs as context, but does not request the
+provider's web-search tool. Each click is a new provider request; do not
+repeat automatically. Report only the fixed result code or whether a private
+draft appeared, never tokens or page/provider content.
+
 ## Completed stream without a usable answer (2026-10-02)
 
 The owner's last deliberate Create returned `response-empty-output` after the

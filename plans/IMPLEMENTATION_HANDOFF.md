@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-02 owner result: with model “5.5”, Create now returns
+`response-no-message`. A completed response carried no final assistant
+message. Do not infer a cause or import partial stream text. Structural-only
+offline diagnostics and an opt-out for linked-page web research are the next
+in-scope increment; the default one-click research remains on. No automatic
+provider retry or real-account call was made. Durable local pairing remains
+at the separate ADR-019 C approval gate.
+
 Latest owner result (2026-10-02): ChatGPT protected sign-in appears to work,
 but the next Create yielded `response-empty-output`. It proves a completed
 stream without usable final assistant text, not why. The offline correction

@@ -21,6 +21,8 @@ const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "
   "response-content-text", "response-content-missing", "response-content-other", "response-stream", "response-too-large",
   "response-encoding", "response-event", "response-no-final", "response-empty-output", "response-no-message",
   "response-message-unfinished", "response-refusal", "response-no-text", "response-blank-text",
+  "response-output-empty", "response-search-only", "response-reasoning-only",
+  "response-final-item-missing", "response-stream-text-unfinalized",
   "response-unsafe-text", "response-output-too-large",
   "response-incomplete", "response-failed", "response-http-400"]);
 
@@ -150,7 +152,7 @@ function safeCitation(value, body, offset) {
     return { url, title, startIndex: offset + startIndex, endIndex: offset + endIndex };
   } catch { return null; }
 }
-function completed(value, model) {
+function completed(value, model, streamShape) {
   if (!value || value.status !== "completed" || !Array.isArray(value.output)) fail("invalid-response", "response-event");
   // The response may report the resolved model behind an account-listed alias.
   if (value.model !== undefined && (typeof value.model !== "string" || !SLUG.test(value.model))) fail("invalid-response");
@@ -180,7 +182,16 @@ function completed(value, model) {
       }
     }
   }
-  if (!assistantMessage) fail("invalid-response", "response-no-message");
+  if (!assistantMessage) {
+    if (streamShape.finalAssistantItem) fail("invalid-response", "response-final-item-missing");
+    if (streamShape.textDone) fail("invalid-response", "response-stream-text-unfinalized");
+    if (value.output.length === 0) fail("invalid-response", "response-output-empty");
+    if (value.output.some((item) => item?.type === "web_search_call") &&
+        value.output.every((item) => ["web_search_call", "reasoning"].includes(item?.type)))
+      fail("invalid-response", "response-search-only");
+    if (value.output.every((item) => item?.type === "reasoning")) fail("invalid-response", "response-reasoning-only");
+    fail("invalid-response", "response-no-message");
+  }
   if (!completedMessage) fail("invalid-response", "response-message-unfinished");
   if (refusal) fail("invalid-response", "response-refusal");
   if (!outputText) fail("invalid-response", "response-no-text");
@@ -216,6 +227,7 @@ async function boundedBody(response, maximum, signal, catalog = false) {
 function parseSse(raw, model) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
+  const streamShape = { finalAssistantItem: false, textDone: false };
   for (const frame of frames) {
     const data = frame.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
     if (!data || data === "[DONE]") continue;
@@ -225,12 +237,15 @@ function parseSse(raw, model) {
     if (event.type === "response.failed") fail(errorForCode(event.response?.error?.code), "response-failed");
     if (event.type === "response.incomplete") fail(errorForCode(event.response?.error?.code), "response-incomplete");
     if (event.type === "error") fail(errorForCode(event.error?.code), "response-failed");
+    if (event.type === "response.output_item.done" && event.item?.type === "message" &&
+        event.item.role === "assistant" && event.item.status === "completed") streamShape.finalAssistantItem = true;
+    if (event.type === "response.output_text.done" && typeof event.text === "string") streamShape.textDone = true;
     if (event.type === "response.completed") {
       final = event.response;
     }
   }
   if (!final) fail("invalid-response", "response-no-final");
-  return completed(final, model);
+  return completed(final, model, streamShape);
 }
 function isCompleteSse(raw) {
   const normalized = raw.replace(/\r\n|\r/gu, "\n");

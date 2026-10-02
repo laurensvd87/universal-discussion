@@ -33,6 +33,24 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.11 owner 0.12.10 result (2026-10-02):** model shown as “5.5”; deliberate Create
+returned `response-no-message`. The service reached a completed Responses
+event, but its final `output` array contained no assistant `message`. This is
+not proof of a web-search failure, a blank model answer, or a parser bug.
+Official OpenAI Docs show normal web-search responses containing a search
+item **and** an assistant message; finalized text can also appear in stream
+events, but text absent from the authoritative final output is not imported.
+The next offline increment classifies only final-output structure (empty,
+search-only, reasoning-only or other) and whether a finalized assistant item
+or text event was emitted before completion. No provider content, IDs, URLs,
+queries or token counts are logged or reported; no automatic retry or unsafe
+delta fallback. A user-controlled tool-free option in Insight settings can
+isolate web-search behavior while leaving the one-click default unchanged.
+Full service **163 passed, 2 opt-in Windows tests skipped** and extension
+restricted **835/835** pass offline for this increment.
+Owner-account result after this increment remains pending. Persistent local
+pairing has **not** been activated; ADR-019 C still awaits explicit approval.
+
 **0.12.10 owner insight result and offline correction (2026-10-02):** owner confirms
 Windows protected ChatGPT sign-in appears to survive restart. A subsequent
 deliberate Create returns `response-empty-output`: the bounded stream reached

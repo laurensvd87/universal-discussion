@@ -20,7 +20,9 @@ const MODEL_LIST_OUTCOMES = new Set(["success", "access-rejected", "rate-limited
 const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json",
   "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",
   "response-too-large", "response-encoding", "response-event", "response-no-final",
-  "response-empty-output", "response-no-message", "response-message-unfinished", "response-refusal",
+  "response-empty-output", "response-no-message", "response-output-empty", "response-search-only",
+  "response-reasoning-only", "response-final-item-missing", "response-stream-text-unfinalized",
+  "response-message-unfinished", "response-refusal",
   "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-incomplete",
   "response-failed", "response-http-400"]);
 
@@ -42,7 +44,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let diagnosticsBusy = false;
   let automaticStartBusy = false;
   let job = null;
-  let state = { available: false, context: null, excludedRelatedSourceIds: [], draft: "", preview: null, status: "idle", busy: false,
+  let state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
+    draft: "", preview: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
       result: null, status: "idle", error: null, failureStage: null, failureSubstage: null,
       modelFailureDetail: null, researchFailureDetail: null,
@@ -110,6 +113,11 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const excluded = new Set(state.excludedRelatedSourceIds);
     if (included) excluded.delete(sourceId); else excluded.add(sourceId);
     publish({ excludedRelatedSourceIds: [...excluded].sort() });
+    return true;
+  }
+  function setAllowWebResearch(value) {
+    if (disposed || pending || job || automaticStartBusy || typeof value !== "boolean") return false;
+    publish({ allowWebResearch: value });
     return true;
   }
   function setDraft(body) {
@@ -300,7 +308,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     try {
       const request = { operationId, model: state.ai.model, context: structuredClone(state.context),
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
-        allowWebResearch: true, expected: { ...observed.catalog.version } };
+        allowWebResearch: state.allowWebResearch, expected: { ...observed.catalog.version } };
       await attestArticle(observed, state.ai.article);
       if (!active()) return false;
       await aiClient.start(request, actorId, { signal: abort.signal });
@@ -341,11 +349,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   function dispose() {
     cancelJob(); epoch++; connectionEpoch++; invalidateModels();
     disposed = true; observed = null; boundKey = null; review = null;
-    state = { available: false, context: null, excludedRelatedSourceIds: [], draft: "", preview: null, status: "idle", busy: false,
+    state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
+      draft: "", preview: null, status: "idle", busy: false,
       ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
         result: null, status: "idle", error: null, diagnostics: { status: "idle", events: [], localEvents: [] } } };
   }
-  return Object.freeze({ observe, currentState, prepare, setRelatedSourceIncluded, setDraft, preview, share, discard, dispose,
+  return Object.freeze({ observe, currentState, prepare, setRelatedSourceIncluded, setAllowWebResearch,
+    setDraft, preview, share, discard, dispose,
     checkConnection, connect, disconnect, loadModels, loadDiagnostics, selectModel, setCostConsent,
     readPageText, setArticleText, createInsights, cancelInsights });
 }

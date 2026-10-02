@@ -22,6 +22,8 @@ const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "
   "response-content-text", "response-content-missing", "response-content-other", "response-stream", "response-too-large",
   "response-encoding", "response-event", "response-no-final", "response-empty-output", "response-no-message",
   "response-message-unfinished", "response-refusal", "response-no-text", "response-blank-text",
+  "response-output-empty", "response-search-only", "response-reasoning-only",
+  "response-final-item-missing", "response-stream-text-unfinalized",
   "response-unsafe-text", "response-output-too-large",
   "response-incomplete", "response-failed", "response-http-400"]);
 const MAX_DIAGNOSTIC_EVENTS = 20;

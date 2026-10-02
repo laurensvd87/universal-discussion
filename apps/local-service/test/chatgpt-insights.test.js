@@ -310,7 +310,17 @@ test("completed research without final usable text reports only a fixed structur
   const message = (status, content) => ({ type: "message", role: "assistant", status, content });
   const completedStream = (output) => stream(event("response.completed", { status: "completed", output }));
   const cases = [
-    [completedStream([{ type: "web_search_call", status: "completed", action: { query: secret } }]), "response-no-message"],
+    [completedStream([]), "response-output-empty"],
+    [completedStream([{ type: "web_search_call", status: "completed", action: { query: secret } }]), "response-search-only"],
+    [completedStream([{ type: "web_search_call", status: "completed" }, { type: "reasoning" }]), "response-search-only"],
+    [completedStream([{ type: "reasoning", summary: [{ text: secret }] }]), "response-reasoning-only"],
+    [completedStream([{ type: "web_search_call", status: "completed" }, { type: "other", content: secret }]), "response-no-message"],
+    [completedStream([{ type: "other", content: secret }]), "response-no-message"],
+    [stream(`event: response.output_text.done\ndata: ${JSON.stringify({ type: "response.output_text.done", text: secret })}\n\n` +
+      event("response.completed", { status: "completed", output: [] })), "response-stream-text-unfinalized"],
+    [stream(`event: response.output_item.done\ndata: ${JSON.stringify({ type: "response.output_item.done",
+      item: message("completed", [{ type: "output_text", text: secret }]) })}\n\n` +
+      event("response.completed", { status: "completed", output: [] })), "response-final-item-missing"],
     [completedStream([message("in_progress", [{ type: "output_text", text: secret }])]), "response-message-unfinished"],
     [completedStream([message("completed", [{ type: "refusal", refusal: secret }])]), "response-refusal"],
     [completedStream([message("completed", [{ type: "other", text: secret }])]), "response-no-text"],

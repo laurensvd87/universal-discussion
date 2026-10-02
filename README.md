@@ -10,6 +10,15 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension **0.12.11** follows the latest owner test with model “5.5”, which
+returned `response-no-message`:
+ChatGPT sign-in and a completed response stream worked, but the final response
+contained no assistant message for an insight. The next local diagnostic
+distinguishes an empty final output from search-only or reasoning-only output
+without recording provider text. Insight settings can disable linked-page web
+research for an explicit comparison; the normal one-click behavior remains
+unchanged. No partial output is imported and no retry runs automatically.
+
 Extension **0.12.10** addresses the latest owner-operated Create attempt. It
 passed the completed-stream check but
 returned `response-empty-output`: the service saw no usable final assistant
