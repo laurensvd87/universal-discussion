@@ -10,6 +10,19 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The **2026-10-02 local-service follow-up** accepts a headerless HTTP 200
+research response only when its bounded body is a complete validated SSE
+stream. It also keeps the ChatGPT refresh credential in Windows CurrentUser
+protected storage so sign-in can resume after a service restart. Access/ID
+tokens stay in RAM; the extension's local-service pairing token still changes
+on restart and must be entered again. On other systems or if protected storage
+is unavailable, ChatGPT sign-in remains RAM-only. Restart the local service to
+use these backend changes; no extension reload or new permission is needed.
+Live insight success and live sign-in restoration remain unverified. See
+[ADR-026](decisions/ADR-026-headerless-complete-sse-fallback.md),
+[ADR-027](decisions/ADR-027-windows-protected-chatgpt-refresh.md) and
+[status](plans/STATUS.md).
+
 Version **0.12.9** adds safe diagnosis for the owner's first live ChatGPT
 research failure (`response-content-type`): after restarting the local service
 and reloading the unpacked extension, one deliberate Create attempt will show
@@ -17,8 +30,8 @@ whether a non-stream reply looked like JSON, HTML, plain text, a missing format
 header or another format. No provider body/header, account or page text enters
 the diagnostic; no non-stream output is accepted and no automatic retry occurs.
 The owner-operated check returned `response-content-missing`: the successful
-HTTP reply supplied no format header. Its body and cause remain unknown; no
-further retry is requested while a narrow, gated fallback is considered.
+HTTP reply supplied no format header. Its body and cause remain unknown; the
+subsequently approved narrow fallback above is now implemented.
 
 The latest [product investigation](research/AI_INSIGHT_COLD_START_2026-09-29.md)
 prioritizes useful research by the user's own AI, with selected sourced insights

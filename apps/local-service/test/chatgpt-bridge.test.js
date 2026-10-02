@@ -498,15 +498,26 @@ test("provider request article and finding remain absent from SQLite and dormant
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("explicit provider transport performs no network request on startup or shutdown", () => {
+test("dormant provider transport defers protected credential read until explicit restore", async () => {
   const dir = mkdtempSync(path.join(tmpdir(), "discussion-chatgpt-dormant-"));
   try {
     let calls = 0;
+    let protectedReads = 0;
+    let protectedHostId;
     const application = openDormantLocalApplication({ config: { host: "127.0.0.1", port: 4174, origin: ORIGIN, capability: TOKEN },
       databasePath: path.join(dir, "demo.sqlite"), ...deterministicDependencies(),
-      chatgptFetchImpl: async () => { calls += 1; throw new Error("Unexpected network request"); } });
+      chatgptFetchImpl: async () => { calls += 1; throw new Error("Unexpected network request"); },
+      chatgptRefreshStore: ({ hostId }) => {
+        protectedHostId = hostId;
+        return { async read() { protectedReads += 1; return null; }, async write() {}, async clear() {} };
+      } });
     assert.equal(calls, 0);
+    assert.equal(protectedReads, 0);
     assert.equal(existsSync(path.join(dir, "chatgpt-registration.json")), true);
+    assert.equal(protectedHostId, JSON.parse(readFileSync(path.join(dir, "chatgpt-registration.json"), "utf8")).hostId);
+    assert.equal(await application.restore(), false);
+    assert.equal(protectedReads, 1);
+    assert.equal(calls, 0);
     application.close();
     assert.equal(calls, 0);
   } finally { rmSync(dir, { recursive: true, force: true }); }

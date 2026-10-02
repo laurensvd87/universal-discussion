@@ -86,11 +86,15 @@ function validateRegistration(value) {
   }
 }
 
-export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.now, connectionAdapter, insightsAdapter } = {}) {
+export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore = null, now = Date.now,
+  connectionAdapter, insightsAdapter } = {}) {
   if (typeof fetchImpl !== "function" && !connectionAdapter) return null;
   const store = connectionAdapter ? null : createChatGPTRegistrationStore(dataDir);
+  const protectedStore = connectionAdapter ? null : typeof refreshStore === "function"
+    ? refreshStore({ hostId: store.hostId }) : refreshStore;
   const connection = connectionAdapter ?? createChatGPTConnection({ hostId: store.hostId, agentName: "Universal Discussion Layer",
-    readRegistration: store.readRegistration, writeRegistration: store.writeRegistration, fetchImpl, now });
+    readRegistration: store.readRegistration, writeRegistration: store.writeRegistration,
+    fetchImpl, refreshStore: protectedStore, now });
   const insights = insightsAdapter ?? createChatGptInsights({ fetchImpl, getAccessToken: connection.getAccessToken, now });
   const jobs = new Map();
   const seen = new Set();
@@ -164,6 +168,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, now = Date.n
       coverage: { ...rebuilt.coverage, relatedTotal: relatedSources.length } };
   }
   return Object.freeze({
+    restore: () => connection.restore?.() ?? Promise.resolve(false),
     diagnostics: () => ({ events: diagnosticEvents.map((event) => ({ ...event })) }),
     status: () => ({ ...connection.status(), pending: connection.status().pending || callbackPending,
       ...(callbackError ? { error: callbackError } : {}),

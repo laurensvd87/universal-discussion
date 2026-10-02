@@ -1,5 +1,12 @@
 # ADR-024: Local insight workflow and owner-invoked ChatGPT PoC
 
+2026-10-02 amendment: [ADR-027](ADR-027-windows-protected-chatgpt-refresh.md)
+supersedes the RAM-only refresh-token/restart clause below on Windows after
+separate explicit owner approval. Access/ID tokens and extension pairing remain
+session-only. [ADR-026](ADR-026-headerless-complete-sse-fallback.md) adds only
+a bounded completed-SSE compatibility case for HTTP 200 without a format
+header. The original 2026-09-29 decision text remains as its historical scope.
+
 Date: 2026-09-29. Verification updated: 2026-09-30. Status: local implementation,
 offline and isolated-browser tests complete. Provider choice and
 button-invoked public-text/source research explicitly owner-approved in this

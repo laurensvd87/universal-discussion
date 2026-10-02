@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { APP_DATABASE_PATH, createProcessDependencies, startLocalApplication } from "./startup.js";
+import { createProtectedRefreshStore } from "./ai/protected-refresh-store.js";
 import { validateStartupConfig, FIXED_HOST, FIXED_PORT } from "./http/startup-config.js";
 
 export function parseCliArguments(args) {
@@ -19,9 +20,11 @@ export async function runCli(args = process.argv.slice(2)) {
     databasePath: APP_DATABASE_PATH,
     nextId: dependencies.nextId,
     now: dependencies.now,
-    // Explicit runtime composition: provider adapters remain inert until the
-    // paired owner clicks Connect / Create insights. No import-time provider I/O.
+    // Explicit runtime composition: after the fixed loopback port binds,
+    // a stored user-approved refresh token may renew sign-in; inference still
+    // requires the paired owner's Create click. No import-time provider I/O.
     chatgptFetchImpl: globalThis.fetch.bind(globalThis),
+    chatgptRefreshStore: createProtectedRefreshStore,
   });
   process.stdout.write(`Local synthetic demo listening at http://${FIXED_HOST}:${FIXED_PORT}\nPairing token (this process only): ${dependencies.capability}\nUse deliberate demo text only. Stop with Ctrl+C.\n`);
   let stopping = false;

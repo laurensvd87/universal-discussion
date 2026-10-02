@@ -216,6 +216,35 @@ function parseSse(raw, model) {
   if (!final) fail("invalid-response", "response-no-final");
   return completed(final, model);
 }
+function isCompleteSse(raw) {
+  const normalized = raw.replace(/\r\n|\r/gu, "\n");
+  if (!normalized.endsWith("\n\n")) return false;
+  const frames = normalized.slice(0, -2).split("\n\n");
+  if (!frames.length) return false;
+  let completedEvent = false;
+  for (const frame of frames) {
+    let type = null;
+    let data = null;
+    for (const line of frame.split("\n")) {
+      if (line.startsWith(":")) continue;
+      const match = /^(event|data): ?(.*)$/u.exec(line);
+      if (!match) return false;
+      if (match[1] === "event") {
+        if (type !== null) return false;
+        type = match[2];
+      } else {
+        if (data !== null) return false;
+        data = match[2];
+      }
+    }
+    if (!type || data === null || completedEvent) return false;
+    let parsed;
+    try { parsed = JSON.parse(data); } catch { return false; }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || parsed.type !== type) return false;
+    if (type === "response.completed") completedEvent = true;
+  }
+  return completedEvent;
+}
 
 /** Injected transport only; construction performs no I/O. All limits reset on process restart. */
 export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.now }) {
@@ -331,11 +360,13 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       if (response?.redirected || response?.url && response.url !== `${API}/responses`) fail("invalid-response", "response-redirect");
       if (!response?.ok) await responseError(response, requestSignal);
       const contentType = response.headers?.get("content-type");
-      if (!/^text\/event-stream[ \t]*(?:;|$)/iu.test(contentType ?? ""))
+      const headerlessSse = response.status === 200 && (contentType == null || contentType.trim() === "");
+      if (!headerlessSse && !/^text\/event-stream[ \t]*(?:;|$)/iu.test(contentType ?? ""))
         fail("invalid-response", responseContentDetail(contentType));
       const raw = await boundedBody(response, MAX_STREAM_BYTES, requestSignal);
       check(requestSignal);
       if (modelEpoch !== before) fail("cancelled");
+      if (headerlessSse && !isCompleteSse(raw)) fail("invalid-response", "response-content-missing");
       return parseSse(raw, model);
     }, signal);
   }

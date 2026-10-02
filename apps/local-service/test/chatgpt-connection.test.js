@@ -54,7 +54,7 @@ function fixture(options = {}) {
     readRegistration: async () => registration,
     writeRegistration: async (value) => { if (options.writeImpl) await options.writeImpl(value);
       writes.push(value); registration = value; },
-    fetchImpl, now: () => clock,
+    fetchImpl, refreshStore: options.refreshStore ?? null, now: () => clock,
     random: () => { count += 1; return Buffer.alloc(32, count); } });
   async function start() {
     const authUrl = new URL(await connection.start({ redirectUri: REDIRECT }));
@@ -398,4 +398,109 @@ test("disconnect aborts an outstanding refresh and stale credentials cannot reac
   release(json({ ...tokenResponse("oaiapp_synthetic", "unused"), access_token: "stale-access" }));
   await assert.rejects(refreshing);
   assert.equal(f.connection.status().connected, false);
+});
+
+test("protected refresh record restores after restart, rotates before use and clears on disconnect", async () => {
+  let saved = null;
+  const writes = [];
+  const refreshStore = {
+    async read() { return saved; },
+    async write(value) { saved = { ...value }; writes.push({ ...value }); },
+    async clear() { saved = null; },
+  };
+  const first = fixture({ refreshStore });
+  const auth = await first.start(); await first.complete(auth);
+  assert.deepEqual(saved, { clientId: "oaiapp_synthetic", subject: "account-1", refreshToken: "refresh-synthetic" });
+  first.connection.dispose();
+  const second = fixture({ registration: first.writes[0], refreshStore });
+  assert.equal(second.connection.status().connected, false);
+  assert.equal(second.calls.length, 0);
+  assert.equal(await second.connection.restore(), true);
+  assert.equal(await second.connection.restore(), true);
+  assert.equal(second.calls.filter(({ url, request }) => url === TOKEN &&
+    new URLSearchParams(request.body).get("grant_type") === "refresh_token").length, 1);
+  assert.equal(saved.refreshToken, "refresh-rotated");
+  assert.equal(await second.connection.getAccessToken(), "access-refreshed");
+  assert.equal(JSON.stringify(second.connection.status()).includes("refresh-rotated"), false);
+  assert.deepEqual(await second.connection.disconnect(), { revocationConfirmed: true });
+  assert.equal(saved, null);
+  const revoke = second.calls.find(({ url }) => url === REVOKE);
+  assert.equal(new URLSearchParams(revoke.request.body).get("token"), "refresh-rotated");
+  assert.equal(writes.length, 2);
+});
+
+test("restore rejects mismatched or unusable stored credentials without connecting", async () => {
+  let saved = { clientId: "other-client", subject: "account-1", refreshToken: "synthetic-secret" };
+  const refreshStore = { async read() { return saved; }, async write() { assert.fail("No write expected"); },
+    async clear() { saved = null; } };
+  const registration = { clientId: "oaiapp_synthetic", subject: "account-1",
+    email: "synthetic@example.com", label: "synthetic@example.com" };
+  const mismatch = fixture({ registration, refreshStore });
+  assert.equal(await mismatch.connection.restore(), false);
+  assert.equal(saved, null);
+  assert.equal(mismatch.calls.length, 0);
+  saved = { clientId: registration.clientId, subject: registration.subject, refreshToken: "synthetic-secret" };
+  const invalidGrant = fixture({ registration, refreshStore, refreshImpl: () => json({ error: "invalid_grant" }, 400) });
+  assert.equal(await invalidGrant.connection.restore(), false);
+  assert.equal(saved, null);
+  assert.equal(invalidGrant.connection.status().connected, false);
+  saved = { clientId: registration.clientId, subject: registration.subject, refreshToken: "synthetic-secret" };
+  const changedIdentity = fixture({ registration, refreshStore, refreshTokens: tokenResponse(registration.clientId,
+    "unused", { id_token: idToken(registration.clientId, "unused", { sub: "other-account" }) }) });
+  assert.equal(await changedIdentity.connection.restore(), false);
+  assert.equal(saved, null);
+  assert.equal(changedIdentity.connection.status().connected, false);
+});
+
+test("protected-store write failure leaves a validated sign-in in RAM only", async () => {
+  let clears = 0;
+  const refreshStore = { async read() { return null; }, async write() { throw new Error("private storage detail"); },
+    async clear() { clears += 1; } };
+  const f = fixture({ refreshStore });
+  const auth = await f.start(); await f.complete(auth);
+  assert.equal(f.connection.status().connected, true);
+  assert.equal(await f.connection.getAccessToken(), "access-synthetic");
+  assert.equal(clears, 1);
+  await f.connection.disconnect();
+  assert.equal(clears, 2);
+});
+
+test("a new account grant without refresh permission clears an older protected grant", async () => {
+  let saved = { clientId: "oaiapp_synthetic", subject: "account-1", refreshToken: "older-synthetic-token" };
+  const refreshStore = { async read() { return saved; }, async write(value) { saved = { ...value }; },
+    async clear() { saved = null; } };
+  const f = fixture({ refreshStore });
+  const auth = await f.start();
+  f.setTokens(tokenResponse("oaiapp_synthetic", auth.searchParams.get("nonce"), {
+    scope: "openid profile email", refresh_token: undefined }));
+  assert.equal((await f.complete(auth)).planEnabled, false);
+  assert.equal(saved, null);
+});
+
+test("ordinary token refresh replaces the protected rotating token before returning access", async () => {
+  let saved = null;
+  const refreshStore = { async read() { return saved; }, async write(value) { saved = { ...value }; },
+    async clear() { saved = null; } };
+  const f = fixture({ refreshStore });
+  const auth = await f.start(); await f.complete(auth);
+  assert.equal(saved.refreshToken, "refresh-synthetic");
+  f.setClock(NOW + 3_550_000);
+  assert.equal(await f.connection.getAccessToken(), "access-refreshed");
+  assert.equal(saved.refreshToken, "refresh-rotated");
+  assert.equal(JSON.stringify(f.connection.status()).includes("refresh-rotated"), false);
+});
+
+test("disconnect clears and attempts revocation even after a transient restore failure", async () => {
+  let saved = { clientId: "oaiapp_synthetic", subject: "account-1", refreshToken: "saved-synthetic" };
+  const refreshStore = { async read() { return saved; }, async write() { assert.fail("No write expected"); },
+    async clear() { saved = null; } };
+  const registration = { clientId: "oaiapp_synthetic", subject: "account-1",
+    email: "synthetic@example.com", label: "synthetic@example.com" };
+  const f = fixture({ registration, refreshStore, refreshImpl: () => json({ error: "temporarily_unavailable" }, 503) });
+  assert.equal(await f.connection.restore(), false);
+  assert.equal(saved.refreshToken, "saved-synthetic");
+  assert.deepEqual(await f.connection.disconnect(), { revocationConfirmed: true });
+  assert.equal(saved, null);
+  const revoke = f.calls.find(({ url }) => url === REVOKE);
+  assert.equal(new URLSearchParams(revoke.request.body).get("token"), "saved-synthetic");
 });

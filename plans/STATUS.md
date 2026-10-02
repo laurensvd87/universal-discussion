@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-01. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-02. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -32,6 +32,27 @@ loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/other-provider/moderation work and all external release gates remain separate.
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
+
+**2026-10-02 approved local-service follow-up:** the two separate owner
+approvals are implemented as [ADR-026](../decisions/ADR-026-headerless-complete-sse-fallback.md)
+and [ADR-027](../decisions/ADR-027-windows-protected-chatgpt-refresh.md).
+An HTTP 200 with no/empty `Content-Type` is accepted only if the <=256 KiB
+body is a complete typed SSE sequence ending in `response.completed`; normal
+completed-output validation still applies. No non-SSE import, body/header
+logging, automatic retry or additional provider call. On Windows, a rotating
+ChatGPT refresh token is protected by CurrentUser DPAPI in an installation-
+scoped local file, restored once after fixed-port binding and deleted on
+Disconnect with provider revocation attempted. Access/ID tokens stay RAM-only;
+without secure storage, sign-in is RAM-only. The extension pairing token is
+still process-scoped. Service unit tests **162 passed, 2 skipped** (the two
+real-Windows tests are opt-in under the offline guard); the separate synthetic
+DPAPI Windows run passed **3/3**. This is offline mechanics evidence, not a
+successful live research or owner-account restart result. The planned
+independent review agent was unavailable due usage limit; lead reviewed the
+bounded parser, credential path, race and failure behavior. Remaining check:
+owner restarts backend, pairs anew, signs in once if necessary, then verifies
+reconnection after another restart and optionally makes one deliberate public
+Create attempt. No owner process or real account was touched by tests.
 
 **0.12.9 first live research response-format follow-up (2026-10-01):** the
 owner's deliberate Create action returned fixed `response-content-type`.

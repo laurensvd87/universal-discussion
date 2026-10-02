@@ -19,16 +19,19 @@ export function createProcessDependencies() {
   });
 }
 
-export function openDormantLocalApplication({ config: input, databasePath, nextId, now, chatgptFetchImpl, ai }) {
+export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
+  chatgptFetchImpl, chatgptRefreshStore = null, ai }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
   const database = createSqliteDemoService({ databasePath, nextId, now });
   let runtime;
-  try { runtime = ai ?? createChatGPTRuntime({ service: database.service, dataDir: path.dirname(databasePath), fetchImpl: chatgptFetchImpl }); }
+  try { runtime = ai ?? createChatGPTRuntime({ service: database.service, dataDir: path.dirname(databasePath),
+    fetchImpl: chatgptFetchImpl, refreshStore: chatgptRefreshStore }); }
   catch (error) { database.close(); throw error; }
   return Object.freeze({
     config,
     handle: createRequestHandler({ service: database.service, config, ai: runtime }),
+    restore: () => runtime?.restore?.() ?? Promise.resolve(false),
     close() { runtime?.dispose?.(); database.close(); },
   });
 }
@@ -39,6 +42,9 @@ export async function startLocalApplication(options) {
   const application = openDormantLocalApplication(options);
   try {
     const listener = await startLoopbackListener({ handle: application.handle });
+    // The fixed port is owned before renewing a rotating credential, so a
+    // second local process cannot race the same stored refresh token.
+    await Promise.resolve().then(() => application.restore()).catch(() => false);
     let closed = false;
     return Object.freeze({
       async close() {

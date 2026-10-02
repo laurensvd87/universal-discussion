@@ -1,5 +1,24 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Headerless research and sign-in restart check (2026-10-02)
+
+Restart the local service, then pair the extension using its **new** local
+pairing token. On Windows, an existing ChatGPT authorization will resume if a
+valid rotating refresh token was protected by this version of the service;
+earlier RAM-only sign-ins cannot be recovered retroactively, so sign in once
+more if prompted. After that, you can verify persistence by restarting the
+service and pairing again. Do not share the local token, callback URL, page
+text or account details. Disconnect removes the protected local credential
+and attempts provider revocation. On non-Windows or without secure storage,
+ChatGPT sign-in still ends with the process.
+
+The owner-approved HTTP-200/no-format-header fallback accepts only a bounded,
+complete SSE research response. If you choose to test it, make **one**
+deliberate Create attempt on a public article and report only the fixed result
+code or that a private editable draft appeared. Do not repeat on failure;
+provider usage may be charged according to your account settings. No draft is
+automatically shared.
+
 ## Live research response diagnosis (0.12.9)
 
 The owner's first deliberate Create attempt returned `response-content-type`:
@@ -25,7 +44,8 @@ in Browsing session settings.
 Restart the backend using your existing extension Origin and reload the unpacked
 extension. Pair using the new local-service token as usual. Existing SQLite
 Topics/comments are retained; no model download or new extension permission is
-needed. A service restart also ends ChatGPT authorization for this prototype.
+needed. On older builds a service restart also ends ChatGPT authorization;
+the 2026-10-02 Windows follow-up can restore it after a new sign-in.
 
 For a first test:
 

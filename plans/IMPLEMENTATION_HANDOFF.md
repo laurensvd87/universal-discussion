@@ -1,6 +1,15 @@
 # Implementation handoff: local-service discussion MVP
 
-Updated: 2026-10-01. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
+2026-10-02 update: The separately approved missing-header and protected-refresh
+changes are implemented in the local service under ADR-026/027. Offline tests
+pass; real-account restart and insight success remain unverified. Ask the owner
+to restart the backend, re-pair with its new process token, sign in once if
+needed and then check whether a subsequent backend restart resumes ChatGPT.
+A single deliberate public-page Create may test the bounded fallback; do not
+retry automatically or ask for raw provider data. Extension code/permissions
+and session-only local-service pairing are unchanged. Later gates remain.
+
+Updated: 2026-10-02. **S1–S3, ADR-017 and ADR-018 B1–B5 complete.**
 
 Newest owner result: after the 0.12.9 diagnostic, Create reports
 `response-content-missing`: a 2xx Responses reply has no `Content-Type`

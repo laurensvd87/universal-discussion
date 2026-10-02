@@ -22,6 +22,7 @@ function complete(text = "A bounded finding [1].", annotations = []) {
     content: [{ type: "output_text", text, annotations }] }] });
 }
 function stream(body) { return new Response(body, { headers: { "content-type": "text/event-stream" } }); }
+function headerless(body) { return new Response(new TextEncoder().encode(body), { status: 200 }); }
 function errorCode(code) { return (error) => error instanceof ChatGptInsightError && error.code === code &&
   error.message === "ChatGPT insight request unavailable"; }
 
@@ -342,6 +343,58 @@ test("SSE media type accepts optional whitespace before parameters", async () =>
   await adapter.listModels();
   assert.equal((await adapter.createInsight(REQUEST)).body, "A bounded finding [1].");
   adapter.dispose();
+});
+
+test("headerless HTTP 200 accepts one complete bounded Responses SSE stream", async () => {
+  let posts = 0;
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+    if (url.endsWith("/models")) return models();
+    posts += 1;
+    return headerless(complete());
+  }, getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  assert.deepEqual(await adapter.createInsight(REQUEST), { body: "A bounded finding [1].", citations: [], model: "synthetic-model" });
+  assert.equal(posts, 1);
+  adapter.dispose();
+});
+
+test("empty format header uses the same strict completed-stream fallback", async () => {
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
+    new Response(complete(), { status: 200, headers: { "content-type": " " } }),
+  getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  assert.equal((await adapter.createInsight(REQUEST)).body, "A bounded finding [1].");
+  adapter.dispose();
+});
+
+test("headerless success rejects JSON, HTML, partial, malformed, oversized and non-200 bodies without retry", async () => {
+  const secret = "SECRET_PROVIDER_UNLABELLED_BODY";
+  const cases = [
+    headerless(JSON.stringify({ output_text: secret })),
+    headerless(`<html>${secret}</html>`),
+    headerless(`event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"${secret}"}\n\n`),
+    headerless(complete().slice(0, -1)),
+    headerless(`event: response.completed\ndata: ${JSON.stringify({ type: "response.completed", response: { status: "completed" } })}\n\ngarbage\n\n`),
+    headerless("x".repeat(262_145)),
+    new Response(null, { status: 204 }),
+  ];
+  for (const response of cases) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1;
+      return response;
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.equal(errorCode("invalid-response")(error), true);
+      assert.equal(error.detail, response === cases[5] ? "response-too-large" : "response-content-missing");
+      assert.equal(JSON.stringify(error).includes(secret), false);
+      return true;
+    });
+    assert.equal(posts, 1);
+    adapter.dispose();
+  }
 });
 
 test("one active request, cancellation, disposal and five calls per rolling hour", async () => {
