@@ -480,6 +480,62 @@ test("finalized-item diagnostics disclose only a fixed rejection boundary", asyn
   }
 });
 
+test("research response trace identifies a missing finalized item without provider data", async () => {
+  const secret = "SECRET_BODY_URL_ACCOUNT_TOKEN";
+  const responseId = `resp_${secret}`;
+  const itemId = `msg_${secret}`;
+  const item = { id: itemId, type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: secret }] };
+  const raw = streamEvent("response.created", { response: { id: responseId, account: secret } }) +
+    streamEvent("response.output_item.done", { output_index: 2, item, metadata: { secret } }) +
+    streamEvent("response.output_text.done", { item_id: itemId, output_index: 2, content_index: 0, text: secret }) +
+    streamEvent("response.web_search_call.searching", { query: secret }) +
+    streamEvent("response.unknown-secret-event", { secret }) +
+    streamEvent("response.completed", { response: { id: responseId, status: "completed",
+      output: [{ id: `call_${secret}`, type: "web_search_call", status: "completed", action: { query: secret } }],
+      model: `model_${secret}`, usage: { secret } } });
+  const traces = [];
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : stream(raw),
+    getAccessToken: async () => ACCESS, onTrace: (trace) => traces.push(trace) });
+  await adapter.listModels();
+  await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+    assert.equal(error.detail, "response-item-prefix");
+    return true;
+  });
+  assert.equal(traces.length, 1);
+  assert.equal(traces[0].schema, "insight-response-trace/v1");
+  assert.equal(traces[0].outcome, "failure");
+  assert.equal(traces[0].detail, "response-item-prefix");
+  assert.equal(traces[0].fallbackFailure, "response-item-prefix");
+  assert.equal(traces[0].createdFinalMatch, true);
+  assert.equal(traces[0].candidateCount, 1);
+  assert.equal(traces[0].candidateIndex, 2);
+  assert.deepEqual(traces[0].observedItems, [{ phase: "done", index: 2, type: "message", status: "completed" }]);
+  assert.deepEqual(traces[0].finalOutput, [{ phase: "final", index: 0, type: "web_search_call", status: "completed" }]);
+  assert.deepEqual(traces[0].events.sequence,
+    ["response.created", "response.output_item.done", "response.output_text.done",
+      "response.web_search_call.searching", "other", "response.completed"]);
+  assert.equal(JSON.stringify(traces).includes(secret), false);
+  assert.equal(JSON.stringify(traces).includes(ACCESS), false);
+  adapter.dispose();
+});
+
+test("research trace is emitted once on success and callback exceptions do not change the result", async () => {
+  let traces = 0;
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : stream(complete()),
+    getAccessToken: async () => ACCESS, onTrace: (trace) => {
+      traces += 1;
+      assert.equal(trace.outcome, "success");
+      assert.equal(trace.detail, null);
+      assert.equal(trace.finalOutput[0].type, "message");
+      throw new Error("synthetic logger failure");
+    } });
+  await adapter.listModels();
+  assert.equal((await adapter.createInsight(REQUEST)).body, "A bounded finding [1].");
+  assert.equal(traces, 1);
+  adapter.dispose();
+});
+
 test("non-SSE success responses report only a fixed MIME category and never import their body", async () => {
   const secret = "SECRET_PROVIDER_RESPONSE_BODY_URL_ACCOUNT";
   const cases = [

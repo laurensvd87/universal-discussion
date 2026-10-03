@@ -43,6 +43,9 @@ and ADR-028's strict private-draft exception were separately approved on
 the completed-item fallback after the first owner retry. Owner live pairing
 and research verification remains open. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.
+ADR-029 permits only an ephemeral, content-free terminal structure trace for
+deliberate insight responses reaching SSE parsing; raw response capture and
+persistent logs remain unapproved.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
 Medium coding subagents (2026-09-28). Delegate bounded coding/test slices with

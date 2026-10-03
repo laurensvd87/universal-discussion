@@ -22,6 +22,18 @@ ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
+## Content-free insight trace
+
+The interactive backend terminal prints one `INSIGHT_TRACE` JSON line when an
+explicit Create insight request reaches the bounded Responses SSE parser. It
+lists recognized event order/counts, item type/status/index, terminal output
+shape and the exact local rejection boundary. It contains no provider/page
+text, URLs, IDs, tokens, account/model, raw headers or usage counts, and is
+not written to a file or SQLite. An earlier HTTP/format/timeout failure still
+has only its fixed result code. After one public-page test, you may send the
+single trace line and fixed result code; review your terminal selection before
+sharing and never include pairing tokens, callback URLs or raw provider data.
+
 ## Durable local pairing (0.12.12)
 
 Stop the old service first. In an interactive terminal, run

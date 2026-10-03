@@ -21,13 +21,13 @@ export function createProcessDependencies() {
 }
 
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
-  chatgptFetchImpl, chatgptRefreshStore = null, ai, pairingVerifier = null }) {
+  chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, ai, pairingVerifier = null }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
   const database = createSqliteDemoService({ databasePath, nextId, now });
   let runtime;
   try { runtime = ai ?? createChatGPTRuntime({ service: database.service, dataDir: path.dirname(databasePath),
-    fetchImpl: chatgptFetchImpl, refreshStore: chatgptRefreshStore }); }
+    fetchImpl: chatgptFetchImpl, refreshStore: chatgptRefreshStore, onInsightTrace: insightTrace }); }
   catch (error) { database.close(); throw error; }
   return Object.freeze({
     config,

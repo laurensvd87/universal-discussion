@@ -1,5 +1,16 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-03 owner request: implement meaningful provider-response diagnostics
+without repeating blind Create retries. ADR-029 permits only an ephemeral,
+content-free `INSIGHT_TRACE` line in the backend terminal on a deliberate
+Create reaching bounded SSE parsing, with fixed event/shape/equality fields and no raw provider/page data,
+IDs, URLs, tokens, log file or automatic call. Raw capture remains a separate
+privacy gate. Offline service 173 passed/2 Windows opt-in skipped and
+extension restricted 838/838; independent read-only Trust review found no
+blocker. Earlier transport/format/timeouts give only their fixed code, no
+trace. No live result yet. Owner may restart backend and make one deliberate
+public-page Create, reporting only the `INSIGHT_TRACE` line and fixed outcome.
+
 2026-10-03 owner result: after 0.12.12, a deliberate Create still returned
 `response-final-item-missing`; exact stream shape is unknown because raw
 provider output is neither logged nor retained. Version 0.12.13 aligns

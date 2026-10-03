@@ -33,6 +33,20 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-03 diagnostic follow-up:** The owner requests meaningful logs so
+the next live failure can be diagnosed from actual response structure rather
+than another guessed condition. ADR-029 limits this to one content-free,
+allowlisted `INSIGHT_TRACE` line in the local service's interactive terminal
+for each deliberately clicked Create that reaches bounded SSE parsing. Earlier
+transport/format/timeouts still use fixed codes and produce no trace. No raw provider/page text, account data,
+IDs, URLs, tokens, new log file, automatic call or sharing. Implementation
+and offline redaction/security checks are complete: service **173 passed,
+2 Windows opt-in skipped**, extension restricted **838/838**, zero findings in
+the synthetic secret-bearing trace test. Independent read-only Trust review
+found no blocker. No new live result yet; restart the backend before the next
+single deliberate public-page Create and report only the `INSIGHT_TRACE` line
+plus the fixed result code, not raw provider output.
+
 **0.12.13 owner result and offline follow-up (2026-10-03):** The owner paired
 successfully enough to invoke Create, but the first post-0.12.12 live attempt
 still returned `response-final-item-missing`. No raw provider response was

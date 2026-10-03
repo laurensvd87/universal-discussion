@@ -15,6 +15,14 @@ const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
 const STREAM_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u;
+const TRACE_EVENTS = ["response.created", "response.in_progress", "response.output_item.added",
+  "response.output_item.done", "response.output_text.delta", "response.output_text.done",
+  "response.content_part.added", "response.content_part.done", "response.web_search_call.in_progress",
+  "response.web_search_call.searching", "response.web_search_call.completed",
+  "response.refusal.delta", "response.refusal.done", "response.completed",
+  "response.failed", "response.incomplete", "error"];
+const TRACE_ITEM_TYPES = new Set(["message", "web_search_call", "reasoning"]);
+const TRACE_STATUSES = new Set(["in_progress", "completed", "incomplete", "failed"]);
 const LIMITATIONS = new Set(["grouping-provisional", "related-not-same-topic", "title-url-only", "sources-unverified", "visible-roots-only"]);
 const CATALOG_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
   "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
@@ -272,18 +280,45 @@ async function boundedBody(response, maximum, signal, catalog = false) {
   try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
   catch { fail("invalid-response", catalog ? "catalog-encoding" : "response-encoding"); }
 }
-function parseSse(raw, model) {
+function traceIndex(value) { return Number.isSafeInteger(value) && value >= 0 && value <= 100 ? value : null; }
+function traceItem(item, index, phase) {
+  return { phase, index: traceIndex(index), type: TRACE_ITEM_TYPES.has(item?.type) ? item.type : "other",
+    status: TRACE_STATUSES.has(item?.status) ? item.status : "other" };
+}
+function parseSse(raw, model, onTrace) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
   const streamShape = { finalAssistantItem: false, textDone: false, createdId: null,
     createdCount: 0, candidate: null, candidateCount: 0, textDoneItems: [], contentDoneItems: [],
     addedItems: [], doneItems: [], conflict: false };
+  const eventCounts = Object.fromEntries(TRACE_EVENTS.map((type) => [type, 0]));
+  const eventSequence = [];
+  const observedItems = [];
+  let otherEventCount = 0;
+  let textDoneCount = 0;
+  let contentDoneCount = 0;
+  let outcome = "success";
+  let detail = null;
+  try {
   for (const frame of frames) {
     const data = frame.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
     if (!data || data === "[DONE]") continue;
     if (final !== null) fail("invalid-response", "response-event");
     let event;
     try { event = JSON.parse(data); } catch { fail("invalid-response", "response-event"); }
+    if (Object.hasOwn(eventCounts, event?.type)) {
+      eventCounts[event.type] = Math.min(eventCounts[event.type] + 1, 101);
+      if (eventSequence.length < 24) eventSequence.push(event.type);
+    } else {
+      otherEventCount = Math.min(otherEventCount + 1, 101);
+      if (eventSequence.length < 24) eventSequence.push("other");
+    }
+    if (event?.type === "response.output_item.added" || event?.type === "response.output_item.done") {
+      if (observedItems.length < 16) observedItems.push(traceItem(event.item, event.output_index,
+        event.type === "response.output_item.added" ? "added" : "done"));
+    }
+    if (event?.type === "response.output_text.done") textDoneCount = Math.min(textDoneCount + 1, 101);
+    if (event?.type === "response.content_part.done") contentDoneCount = Math.min(contentDoneCount + 1, 101);
     const eventLine = frame.split("\n").find((line) => line.startsWith("event:"));
     if (!eventLine || eventLine.slice(6).trimStart() !== event.type) streamShape.conflict = true;
     if (event.type === "response.failed") fail(errorForCode(event.response?.error?.code), "response-failed");
@@ -361,6 +396,30 @@ function parseSse(raw, model) {
   const recovered = completedStreamItemFallback(final, model, streamShape);
   if (recovered) return recovered;
   return completed(final, model, streamShape);
+  } catch (error) {
+    outcome = "failure";
+    detail = INSIGHT_DETAILS.has(error?.detail) ? error.detail : null;
+    throw error;
+  } finally {
+    if (onTrace) {
+      const output = Array.isArray(final?.output) ? final.output : [];
+      const trace = { schema: "insight-response-trace/v1", outcome, detail,
+        events: { sequence: eventSequence, counts: eventCounts, otherCount: otherEventCount },
+        createdCount: Math.min(streamShape.createdCount, 101),
+        createdFinalMatch: typeof streamShape.createdId === "string" &&
+          typeof final?.id === "string" && streamShape.createdId === final.id,
+        finalStatus: TRACE_STATUSES.has(final?.status) ? final.status : "other",
+        observedItems, finalOutput: output.slice(0, 16).map((item, index) => traceItem(item, index, "final")),
+        finalOutputCount: Math.min(output.length, 101),
+        candidateCount: Math.min(streamShape.candidateCount, 101),
+        candidateIndex: traceIndex(streamShape.candidate?.index), textDoneCount, contentDoneCount,
+        fallbackFailure: INSIGHT_DETAILS.has(streamShape.fallbackFailure) ? streamShape.fallbackFailure : null };
+      try {
+        const sent = onTrace(trace);
+        if (sent && typeof sent.then === "function") void Promise.resolve(sent).catch(() => {});
+      } catch { /* Diagnostics never change a research result. */ }
+    }
+  }
 }
 function isCompleteSse(raw) {
   const normalized = raw.replace(/\r\n|\r/gu, "\n");
@@ -393,8 +452,9 @@ function isCompleteSse(raw) {
 }
 
 /** Injected transport only; construction performs no I/O. All limits reset on process restart. */
-export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.now }) {
-  if (typeof fetchImpl !== "function" || typeof getAccessToken !== "function" || typeof now !== "function") fail("invalid-input");
+export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.now, onTrace }) {
+  if (typeof fetchImpl !== "function" || typeof getAccessToken !== "function" || typeof now !== "function" ||
+      (onTrace !== undefined && typeof onTrace !== "function")) fail("invalid-input");
   let active = null;
   let disposed = false;
   let listed = new Set();
@@ -513,7 +573,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       check(requestSignal);
       if (modelEpoch !== before) fail("cancelled");
       if (headerlessSse && !isCompleteSse(raw)) fail("invalid-response", "response-content-missing");
-      return parseSse(raw, model);
+      return parseSse(raw, model, onTrace);
     }, signal);
   }
   function cancel() { active?.abort(); }

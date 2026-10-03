@@ -10,6 +10,12 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The local diagnostic checkpoint adds one content-free `INSIGHT_TRACE`
+line to the backend terminal after a deliberate Create reaches SSE parsing. It summarizes the
+provider's typed response structure and failed check without storing raw
+page or answer text. No provider retry or new data sink is added; see
+[ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md).
+
 Extension **0.12.13** follows the owner's first live retry of the strict
 insight fallback, which still returned `response-final-item-missing`. The
 fallback had additionally required a matching `response.output_text.done`

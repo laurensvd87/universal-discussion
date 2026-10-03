@@ -50,6 +50,9 @@ export async function runCli(args = process.argv.slice(2)) {
     // requires the paired owner's Create click. No import-time provider I/O.
     chatgptFetchImpl: globalThis.fetch.bind(globalThis),
     chatgptRefreshStore: createProtectedRefreshStore,
+    // One content-free structural line per deliberate Create, kept only in
+    // this interactive terminal. The adapter constructs an allowlisted DTO.
+    insightTrace: (trace) => process.stdout.write(`INSIGHT_TRACE ${JSON.stringify(trace)}\n`),
   });
   process.stdout.write(`Local synthetic demo listening at http://${FIXED_HOST}:${FIXED_PORT}\nPersistent pairing active. Use deliberate demo text only. Stop with Ctrl+C.\n`);
   let stopping = false;
