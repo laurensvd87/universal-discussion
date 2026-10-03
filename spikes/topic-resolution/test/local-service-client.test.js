@@ -8,6 +8,21 @@ import { readCommand, readDiscussion, readPostOrigin, readOutcome, readIngestion
 const TOKEN = "synthetic-test-capability-for-client-only";
 const VERSION = { generation: "generation-test", revision: 0 };
 const HEALTH = { protocol: "local-service/v1", capability: "paired-demo" };
+test("confirmed 401 reports the exact credential used; outages never request clearing", async () => {
+  const rejected = [];
+  const client = createLocalServiceClient({ getToken: async () => TOKEN,
+    onUnauthorized: async (used) => { rejected.push(used); },
+    fetchImpl: async (url) => ({ url, status: 401, body: null }) });
+  await assert.rejects(client.health(), { code: "unauthorized" });
+  assert.deepEqual(rejected, [TOKEN]);
+  const offline = createLocalServiceClient({ getToken: async () => TOKEN,
+    onUnauthorized: async (used) => { rejected.push(used); },
+    fetchImpl: async () => { throw new Error("offline"); } });
+  await assert.rejects(offline.health(), { code: "unavailable" });
+  assert.deepEqual(rejected, [TOKEN]);
+  await assert.rejects(client.healthWithToken(TOKEN), { code: "unauthorized" });
+  assert.deepEqual(rejected, [TOKEN]);
+});
 const origin = (sourceId = "source-a", url = "https://example.com/article-a") => ({ sourceId, url, title: "<script>Plain title</script>" });
 const visiblePost = (id, rootId = null) => ({ id, rootId, replyToId: null, state: "visible", authorId: "demo-alex", actorType: "human", body: "Synthetic post", createdAt: "2026-09-29T00:00:00.000Z", edited: false });
 test("learned receipt and correction accept only the two reviewed policy tags", () => {

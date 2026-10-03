@@ -17,6 +17,7 @@ function models() { return new Response(JSON.stringify({ models: [
   { slug: "hidden-model", display_name: "Hidden", visibility: "hide" },
 ] }), { headers: { "content-type": "application/json" } }); }
 function event(type, response) { return `event: ${type}\ndata: ${JSON.stringify({ type, response })}\n\n`; }
+function streamEvent(type, fields) { return `event: ${type}\ndata: ${JSON.stringify({ type, ...fields })}\n\n`; }
 function complete(text = "A bounded finding [1].", annotations = []) {
   return event("response.completed", { status: "completed", output: [{ type: "message", role: "assistant", status: "completed",
     content: [{ type: "output_text", text, annotations }] }] });
@@ -339,6 +340,101 @@ test("completed research without final usable text reports only a fixed structur
       assert.equal(errorCode("invalid-response")(error), true);
       assert.equal(error.detail, detail);
       assert.equal(JSON.stringify(error).includes(secret), false);
+      return true;
+    });
+    assert.equal(posts, 1);
+    adapter.dispose();
+  }
+});
+
+test("one identity-matched finalized assistant item can become a private result after terminal completion", async () => {
+  const responseId = "resp_synthetic_one";
+  const itemId = "msg_synthetic_one";
+  const body = "A bounded synthetic insight.";
+  const item = { id: itemId, type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: body, annotations: [] }] };
+  const raw = streamEvent("response.created", { response: { id: responseId, status: "in_progress", output: [] } }) +
+    streamEvent("response.output_item.added", { output_index: 1,
+      item: { id: itemId, type: "message", role: "assistant", status: "in_progress" } }) +
+    streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body }) +
+    streamEvent("response.content_part.done", { item_id: itemId, output_index: 1, content_index: 0,
+      part: { type: "output_text", text: body } }) +
+    streamEvent("response.output_item.done", { output_index: 1, item }) +
+    streamEvent("response.completed", { response: { id: responseId, status: "completed",
+      output: [{ id: "call_synthetic", type: "web_search_call", status: "completed" }] } });
+  for (const reply of [stream(raw), headerless(raw)]) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1;
+      return reply;
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    assert.deepEqual(await adapter.createInsight(REQUEST), { body, citations: [], model: "synthetic-model" });
+    assert.equal(posts, 1);
+    adapter.dispose();
+  }
+});
+
+test("finalized-item fallback rejects missing identity, conflict, refusal and incomplete streams", async () => {
+  const responseId = "resp_synthetic_two", itemId = "msg_synthetic_two";
+  const body = "SECRET_SYNTHETIC_FINAL_ITEM";
+  const item = { id: itemId, type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: body, annotations: [] }] };
+  const created = streamEvent("response.created", { response: { id: responseId } });
+  const doneText = streamEvent("response.output_text.done", { item_id: itemId, output_index: 0, content_index: 0, text: body });
+  const doneItem = streamEvent("response.output_item.done", { output_index: 0, item });
+  const terminal = streamEvent("response.completed", { response: { id: responseId, status: "completed", output: [] } });
+  const cases = [
+    doneText + doneItem + terminal,
+    created + doneText + doneItem + streamEvent("response.completed", { response: { id: "resp_other", status: "completed", output: [] } }),
+    created + streamEvent("response.output_text.done", { item_id: itemId, output_index: 0, content_index: 0, text: "different" }) + doneItem + terminal,
+    created + doneText + doneItem + doneItem + terminal,
+    created + streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body }) +
+      streamEvent("response.output_item.done", { output_index: 1, item }) + terminal,
+    created + doneText + doneItem + streamEvent("response.output_text.done", { item_id: itemId,
+      output_index: 0, content_index: 0, text: null }) + terminal,
+    created + doneText + doneItem + streamEvent("response.completed", { response: { id: responseId, status: "completed",
+      output: [{ id: "call_conflict", type: "web_search_call" }] } }),
+    created + streamEvent("response.output_item.done", { output_index: 0,
+      item: { id: "call_observed", type: "web_search_call", status: "completed" } }) +
+      streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body }) +
+      streamEvent("response.output_item.done", { output_index: 1, item }) +
+      streamEvent("response.completed", { response: { id: responseId, status: "completed",
+        output: [{ id: "call_other", type: "web_search_call", status: "completed" }] } }),
+    created + streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body }) +
+      streamEvent("response.output_item.done", { output_index: 1, item }) +
+      streamEvent("response.completed", { response: { id: responseId, status: "completed",
+        output: [{ id: "call_failed", type: "web_search_call", status: "failed" }] } }),
+    created + streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body }) +
+      streamEvent("response.output_item.done", { output_index: 1, item }) +
+      streamEvent("response.completed", { response: { id: responseId, status: "completed",
+        output: [{ id: "msg_other", type: "message", role: "user", status: "completed", content: [] }] } }),
+    created + doneText + streamEvent("response.output_item.done", { output_index: 0,
+      item: { ...item, content: [{ type: "refusal", refusal: body }, ...item.content] } }) + terminal,
+    created + doneText + doneItem + streamEvent("response.incomplete", { response: { status: "incomplete" } }) + terminal,
+    created + doneText + doneItem + streamEvent("response.output_item.done", { output_index: 1,
+      item: { id: "msg_incomplete", type: "message", role: "assistant", status: "incomplete", content: [] } }) + terminal,
+    created + doneText + doneItem + streamEvent("response.output_item.done", { output_index: 1,
+      item: { id: "call_failed", type: "web_search_call", status: "failed" } }) + terminal,
+    created + doneText + doneItem + streamEvent("response.content_part.done", { item_id: itemId,
+      output_index: 0, content_index: 0, part: { type: "output_text", text: "different" } }) + terminal,
+    created + streamEvent("response.output_item.added", { output_index: 0,
+      item: { id: "msg_other", type: "message", role: "assistant", status: "in_progress" } }) +
+      doneText + doneItem + terminal,
+    created + doneText + doneItem,
+  ];
+  for (const raw of cases) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1;
+      return stream(raw);
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.ok(error instanceof ChatGptInsightError);
+      assert.equal(JSON.stringify(error).includes(body), false);
       return true;
     });
     assert.equal(posts, 1);

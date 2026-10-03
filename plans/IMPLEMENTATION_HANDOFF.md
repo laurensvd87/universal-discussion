@@ -1,5 +1,31 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-02 current checkpoint: 0.12.12 implements the owner's separate
+approvals for ADR-019 C durable local pairing and ADR-028's strict finalized
+assistant item private-draft fallback. The old session key is discarded, not
+promoted. After one interactive pairing initialization and updated backend/
+extension restart, the saved browser token survives later restarts until
+Forget, rotate/revoke or confirmed 401. A service outage retains it. The AI
+exception imports only one fully finalized, identity-consistent item to a
+private editable draft after a terminal completed stream; no delta, retry or
+automatic Share. Full offline service 170 passed/2 skipped and extension
+restricted 838/838; independent Trust review found and closed five parser
+contradictions. Do not claim live provider success or owner-browser restart
+verification. Next: owner performs one local pairing migration and at most
+one deliberate public-page Create; collect only fixed code/outcome. Later
+security/privacy/provider/store/deployment/spending gates remain explicit.
+The isolated Chrome smoke has been adapted for durable pairing, but could not
+bind fixed port 4174 in the elevated environment; it remains unverified.
+
+2026-10-02 active owner gate update: ADR-019 C durable local pairing was
+explicitly approved and is now being implemented. Do not treat this as
+approval for provider-output fallback, new public hosting or broader data
+scope. The owner's latest insight code is `response-final-item-missing`:
+completed assistant item in stream, absent from final completed response.
+Current parser rejects it; strict private-draft fallback awaits a separate
+explicit answer. No live provider call or owner-data inspection is authorized
+for implementation tests.
+
 2026-10-02 owner result: with model “5.5”, Create now returns
 `response-no-message`. A completed response carried no final assistant
 message. Do not infer a cause or import partial stream text. Structural-only

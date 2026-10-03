@@ -14,6 +14,7 @@ const MAX_TEXT = 4_096;
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
+const STREAM_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u;
 const LIMITATIONS = new Set(["grouping-provisional", "related-not-same-topic", "title-url-only", "sources-unverified", "visible-roots-only"]);
 const CATALOG_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
   "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
@@ -199,6 +200,41 @@ function completed(value, model, streamShape) {
   if (UNSAFE.test(body)) fail("invalid-response", "response-unsafe-text");
   return { body, citations, model };
 }
+function completedStreamItemFallback(final, model, shape) {
+  const candidate = shape.candidate;
+  if (shape.conflict || shape.createdCount !== 1 || !candidate || shape.candidateCount !== 1 ||
+      !final || final.status !== "completed" || !Array.isArray(final.output) ||
+      final.error != null || final.incomplete_details != null ||
+      typeof final.id !== "string" || final.id !== shape.createdId ||
+      final.output.some((item) => item?.type === "message" ||
+        item?.status === "failed" || item?.status === "incomplete") ||
+      final.output.length !== candidate.index ||
+      final.output.some((item) => item?.id === candidate.item.id) ||
+      !Array.isArray(candidate.item.content) || candidate.item.content.length > 8) return null;
+  if (shape.addedItems.some((added) => added.index === candidate.index &&
+      (added.id !== candidate.item.id || added.type !== "message" || added.role !== "assistant"))) return null;
+  for (const observed of [...shape.addedItems, ...shape.doneItems]) {
+    if (observed.index > candidate.index) return null;
+    if (observed.index < candidate.index && final.output[observed.index]?.id !== observed.id) return null;
+  }
+  const texts = candidate.item.content.map((part, index) => ({ part, index }))
+    .filter(({ part }) => part?.type === "output_text" && typeof part.text === "string");
+  if (!texts.length || texts.length !== shape.textDoneItems.length) return null;
+  for (const { part, index } of texts) {
+    const matches = shape.textDoneItems.filter((done) => done.itemId === candidate.item.id &&
+      done.outputIndex === candidate.index && done.contentIndex === index && done.text === part.text);
+    if (matches.length !== 1) return null;
+  }
+  for (const done of shape.contentDoneItems) {
+    const part = candidate.item.content[done.contentIndex];
+    if (done.itemId !== candidate.item.id || done.outputIndex !== candidate.index ||
+        part?.type !== "output_text" || done.part?.type !== "output_text" ||
+        done.part.text !== part.text) return null;
+  }
+  // A finalized item may be used only after the terminal completed response;
+  // no delta, tool result, conflicting final item or refused output is imported.
+  return completed({ ...final, output: [candidate.item] }, model, shape);
+}
 async function boundedBody(response, maximum, signal, catalog = false) {
   if (!response.body?.getReader) fail("invalid-response", catalog ? "catalog-stream" : "response-stream");
   const reader = response.body.getReader();
@@ -227,24 +263,88 @@ async function boundedBody(response, maximum, signal, catalog = false) {
 function parseSse(raw, model) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
-  const streamShape = { finalAssistantItem: false, textDone: false };
+  const streamShape = { finalAssistantItem: false, textDone: false, createdId: null,
+    createdCount: 0, candidate: null, candidateCount: 0, textDoneItems: [], contentDoneItems: [],
+    addedItems: [], doneItems: [], conflict: false };
   for (const frame of frames) {
     const data = frame.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
     if (!data || data === "[DONE]") continue;
     if (final !== null) fail("invalid-response", "response-event");
     let event;
     try { event = JSON.parse(data); } catch { fail("invalid-response", "response-event"); }
+    const eventLine = frame.split("\n").find((line) => line.startsWith("event:"));
+    if (!eventLine || eventLine.slice(6).trimStart() !== event.type) streamShape.conflict = true;
     if (event.type === "response.failed") fail(errorForCode(event.response?.error?.code), "response-failed");
     if (event.type === "response.incomplete") fail(errorForCode(event.response?.error?.code), "response-incomplete");
     if (event.type === "error") fail(errorForCode(event.error?.code), "response-failed");
-    if (event.type === "response.output_item.done" && event.item?.type === "message" &&
-        event.item.role === "assistant" && event.item.status === "completed") streamShape.finalAssistantItem = true;
-    if (event.type === "response.output_text.done" && typeof event.text === "string") streamShape.textDone = true;
+    if (event.type === "response.refusal.delta" || event.type === "response.refusal.done") streamShape.conflict = true;
+    if (event.type === "response.created") {
+      streamShape.createdCount += 1;
+      if (typeof event.response?.id !== "string" || !STREAM_ID.test(event.response.id) ||
+          streamShape.createdCount !== 1) streamShape.conflict = true;
+      else streamShape.createdId = event.response.id;
+    }
+    if (event.type === "response.in_progress" && streamShape.createdId &&
+        event.response?.id !== streamShape.createdId) streamShape.conflict = true;
+    if (event.type === "response.output_item.added") {
+      if (streamShape.addedItems.length >= 101 || !Number.isSafeInteger(event.output_index) ||
+          event.output_index < 0 || event.output_index > 100 || typeof event.item?.id !== "string" ||
+          !STREAM_ID.test(event.item.id) || streamShape.addedItems.some((item) => item.index === event.output_index) ||
+          (event.item.type === "message" && event.item.role === "assistant" &&
+            streamShape.addedItems.some((item) => item.type === "message" && item.role === "assistant")))
+        streamShape.conflict = true;
+      else streamShape.addedItems.push({ index: event.output_index, id: event.item.id,
+        type: event.item.type, role: event.item.role });
+    }
+    if (event.type === "response.output_item.done") {
+      if (streamShape.doneItems.length >= 101 || !Number.isSafeInteger(event.output_index) ||
+          event.output_index < 0 || event.output_index > 100 || typeof event.item?.id !== "string" ||
+          !STREAM_ID.test(event.item.id) || streamShape.doneItems.some((item) => item.index === event.output_index) ||
+          streamShape.addedItems.some((item) => item.index === event.output_index && item.id !== event.item.id))
+        streamShape.conflict = true;
+      else streamShape.doneItems.push({ index: event.output_index, id: event.item.id });
+      if (event.item?.status === "incomplete" || event.item?.status === "failed") streamShape.conflict = true;
+      if (event.item?.type === "message" && event.item.role === "assistant") {
+        streamShape.candidateCount += 1;
+        if (event.item.status !== "completed") streamShape.conflict = true;
+        else {
+          streamShape.finalAssistantItem = true;
+          if (streamShape.candidateCount !== 1 || typeof event.item.id !== "string" ||
+              !STREAM_ID.test(event.item.id) || !Number.isSafeInteger(event.output_index) ||
+              event.output_index < 0 || event.output_index > 100) streamShape.conflict = true;
+          else streamShape.candidate = { item: event.item, index: event.output_index };
+        }
+      }
+    }
+    if (event.type === "response.output_text.done") {
+      streamShape.textDone = true;
+      if (streamShape.textDoneItems.length >= 8 || typeof event.item_id !== "string" ||
+          !STREAM_ID.test(event.item_id) || !Number.isSafeInteger(event.output_index) ||
+          !Number.isSafeInteger(event.content_index) || event.output_index < 0 || event.output_index > 100 ||
+          event.content_index < 0 || event.content_index > 7 || typeof event.text !== "string" ||
+          event.text.length > MAX_OUTPUT)
+        streamShape.conflict = true;
+      else streamShape.textDoneItems.push({ itemId: event.item_id, outputIndex: event.output_index,
+        contentIndex: event.content_index, text: event.text });
+    }
+    if (event.type === "response.content_part.done") {
+      if (streamShape.contentDoneItems.length >= 8 || typeof event.item_id !== "string" ||
+          !STREAM_ID.test(event.item_id) || !Number.isSafeInteger(event.output_index) ||
+          !Number.isSafeInteger(event.content_index) || event.output_index < 0 || event.output_index > 100 ||
+          event.content_index < 0 || event.content_index > 7 || event.part?.type !== "output_text" ||
+          typeof event.part.text !== "string" || event.part.text.length > MAX_OUTPUT ||
+          streamShape.contentDoneItems.some((part) => part.contentIndex === event.content_index))
+        streamShape.conflict = true;
+      else streamShape.contentDoneItems.push({ itemId: event.item_id, outputIndex: event.output_index,
+        contentIndex: event.content_index, part: event.part });
+    }
     if (event.type === "response.completed") {
       final = event.response;
     }
   }
   if (!final) fail("invalid-response", "response-no-final");
+  const recovered = completedStreamItemFallback(final, model, streamShape);
+  if (recovered) return recovered;
   return completed(final, model, streamShape);
 }
 function isCompleteSse(raw) {

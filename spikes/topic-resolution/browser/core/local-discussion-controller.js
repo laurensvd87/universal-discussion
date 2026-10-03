@@ -23,7 +23,8 @@ export function ownsContribution(entry, actorId) {
 
 // Owns transient selection/drafts only; the service owns all canonical data.
 export function createLocalDiscussionController({ client, session, readActiveTab,
-  observeTabLifecycle, lookupByNormalizedUrl, readPageResolution = null, pausePageMatching = null, onStateChange = () => {} }) {
+  observeTabLifecycle, lookupByNormalizedUrl, readPageResolution = null, pausePageMatching = null,
+  validatePairing = async () => {}, onStateChange = () => {} }) {
   let state = { phase: "disconnected", error: null, catalog: null, discussion: null,
     related: null, sourceId: null, topicId: null, actorId: null, selection: null,
     draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null };
@@ -58,8 +59,6 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       cancel(); detach();
       publish({ phase: "disconnected", error: "unauthorized", catalog: null,
         discussion: null, related: null, sourceId: null, topicId: null, actorId: null, selection: null, resolution: null });
-      try { await session.clear(); }
-      catch { if (!disposed) publish({ error: "storage-unavailable" }); }
     } else if (ownEpoch === epoch && !disposed) {
       detach(); publish({ error: error?.code ?? "unavailable", phase: "error",
         discussion: null, related: null });
@@ -201,6 +200,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     publish({ phase: "connecting", catalog: null, discussion: null, related: null,
       topicId: null, sourceId: null, actorId: null, selection: null, resolution: null, error: null });
     try {
+      await validatePairing(token);
+      if (ownEpoch !== epoch || disposed) return;
       await session.setToken(token);
       if (ownEpoch !== epoch || disposed) return;
       await open();

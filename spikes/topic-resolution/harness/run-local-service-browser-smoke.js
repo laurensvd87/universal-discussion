@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { startLocalApplication, createProcessDependencies } from "../../../apps/local-service/src/startup.js";
+import { changePairing } from "../../../apps/local-service/src/http/pairing-store.js";
 import { EN } from "../browser/locales/en.js";
 import { TOOLBAR_TAB_KEY } from "../browser/core/topic-toolbar-controller.js";
 import { launchChromiumPipe } from "./chromium-pipe.js";
@@ -12,8 +13,6 @@ import { createTargetSetupLifetime, isTargetSetupCanceled } from "./target-setup
 
 const BROWSER_ROOT = fileURLToPath(new URL("../browser/", import.meta.url));
 const DEFAULT_CHROME = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const TOKEN = "browser-smoke-injected-synthetic-token";
-const SECOND_TOKEN = "browser-smoke-restart-synthetic-token";
 const STATUS = "document.querySelector('#local-discussion [role=status]')?.textContent";
 const THREAD = "document.querySelector('#local-discussion .discussion-thread')";
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -35,6 +34,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
   }
   const directory = mkdtempSync(path.join(os.tmpdir(), "udl-browser-smoke-"));
   const databasePath = path.join(directory, "demo.sqlite");
+  const pairingPath = path.join(directory, "pairing.json");
   const profileDirectory = path.join(directory, "chrome-profile");
   let browser;
   let application;
@@ -138,7 +138,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await waitFor(async () => [EN.discussionReady, EN.discussionChooseStatus].includes(await evaluate(STATUS)), "manual pairing");
     assert.ok(await evaluate("document.querySelector('#discussion-token').value === ''"));
   }
-  async function storage(paired) {
+  async function storage(paired, expectedToken = null) {
     const shape = await evaluate(`(async () => {
       const [local,sync,session]=await Promise.all([chrome.storage.local.get(null),chrome.storage.sync.get(null),chrome.storage.session.get(null)]);
       const lease=session.pageMatchingCaptureSession;
@@ -151,14 +151,19 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
       const validToolbarMarker=!Object.hasOwn(session,toolbarKey) ||
         (Number.isSafeInteger(session[toolbarKey]) && session[toolbarKey]>=0);
       const keys=Object.keys(session).filter(key=>key!=='pageMatchingCaptureSession' && key!==toolbarKey);
-      const token=session.localServicePairingToken;
-      const validPairing=typeof token==='string' && token.length>=32 && token.length<=512 && /^[A-Za-z0-9._~+/-]+={0,2}$/.test(token);
-      return {localUiOnly:Object.keys(local).length===1 && local.discussionUiModeV1==='developer',syncEmpty:Object.keys(sync).length===0,
-        sessionUnpaired:inactiveLease && validToolbarMarker && keys.length===0,
-        sessionPaired:inactiveLease && validToolbarMarker && keys.length===1 && keys[0]==='localServicePairingToken' && validPairing};
+      const stored=local.localServicePairingV1;
+      const validPairing=stored?.version===1 && typeof stored.token==='string' &&
+        stored.token.length===43 && /^[A-Za-z0-9_-]{43}$/.test(stored.token) &&
+        Object.keys(stored).length===2;
+      return {localUiOnly:local.discussionUiModeV1==='developer' && Object.keys(local).length===(stored?2:1),
+        syncEmpty:Object.keys(sync).length===0,
+        sessionUnpaired:inactiveLease && validToolbarMarker && keys.length===0 && stored===undefined,
+        sessionPaired:inactiveLease && validToolbarMarker && keys.length===0 && validPairing,
+        tokenMatches:stored?.token===${JSON.stringify(expectedToken)}};
     })()`);
     assert.ok(shape.localUiOnly && shape.syncEmpty);
     assert.ok(paired ? shape.sessionPaired : shape.sessionUnpaired);
+    if (paired) assert.ok(shape.tokenMatches);
   }
   async function bringPageForward() {
     await browser.send("Page.bringToFront", {}, pageSession);
@@ -184,10 +189,10 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await browser.send("Target.closeTarget", { targetId: popupTarget });
     targets.delete(popupTarget); popupTarget = null; popupSession = null;
   }
-  async function startService(token) {
+  async function startService() {
     const dependencies = createProcessDependencies();
     application = await startLocalApplication({ databasePath, nextId: dependencies.nextId, now: dependencies.now, ai: syntheticAi,
-      config: { host: "127.0.0.1", port: 4174, origin: `chrome-extension://${extensionId}`, capability: token } });
+      pairingPath, config: { host: "127.0.0.1", port: 4174, origin: `chrome-extension://${extensionId}`, capability: dependencies.capability } });
   }
   async function post(body) {
     await input("#discussion-body", body);
@@ -262,7 +267,9 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     const loaded = await browser.send("Extensions.loadUnpacked", { path: BROWSER_ROOT });
     extensionId = loaded.id;
     assert.ok(/^[a-p]{32}$/u.test(extensionId));
-    await startService(TOKEN);
+    const origin = `chrome-extension://${extensionId}`;
+    const firstToken = changePairing({ filePath: pairingPath, origin, action: "init" });
+    await startService();
     await waitFor(() => {
       const page = [...targets.values()].find((target) => target.ready && target.url === "about:blank");
       if (!page) return false;
@@ -271,9 +278,9 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await openPopup();
     await waitStatus(EN.discussionDisconnected);
     assert.ok(await evaluate("document.querySelector('#discussion-token').type === 'password' && document.querySelector('#discussion-submit').disabled"));
-    await pair(TOKEN);
+    await pair(firstToken);
     await waitStatus(EN.discussionChooseStatus);
-    await storage(true);
+    await storage(true, firstToken);
     await select("#discussion-source", "harbor-overview");
     const ranking = await evaluate(`(() => {
       const root=document.querySelector('#local-discussion');
@@ -321,26 +328,36 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await closePopup();
     await openPopup();
     await waitStatus(EN.discussionChooseStatus);
-    await storage(true);
+    await storage(true, firstToken);
     await select("#discussion-topic", topicId);
     assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic edited browser root')`));
     await click("#discussion-disconnect");
     await waitStatus(EN.discussionDisconnected);
     await storage(false);
     assert.ok(await evaluate(`${THREAD}.querySelectorAll('.discussion-body').length === 0`));
-    await pair(TOKEN);
+    await pair(firstToken);
     await select("#discussion-topic", topicId);
     await application.close(); application = null;
     await click("#discussion-reload");
     await waitStatus(EN.discussionUnavailable);
     assert.ok(await evaluate("document.querySelector('#discussion-submit').disabled"));
-    await startService(SECOND_TOKEN);
+    await storage(true, firstToken);
+    await startService();
+    await click("#discussion-reload");
+    await waitStatus(EN.discussionReady);
+    await storage(true, firstToken);
+    assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic edited browser root')`));
+    await application.close(); application = null;
+    const secondToken = changePairing({ filePath: pairingPath, origin, action: "rotate" });
+    assert.notEqual(firstToken, secondToken);
+    await startService();
     await click("#discussion-reload");
     await waitStatus(EN.discussionUnauthorized);
-    await waitFor(async () => evaluate("chrome.storage.session.get(null).then(value => value.localServicePairingToken === undefined && value.pageMatchingCaptureSession?.windowId === null)"), "rejected pairing session removal with inactive capture lease retained");
+    await waitFor(async () => evaluate("Promise.all([chrome.storage.local.get(null),chrome.storage.session.get(null)]).then(([local,session]) => local.localServicePairingV1 === undefined && session.localServicePairingToken === undefined && session.pageMatchingCaptureSession?.windowId === null)"), "rotated pairing removed from local storage with inactive capture lease retained");
     await storage(false);
     assert.ok(await evaluate(`${THREAD}.querySelectorAll('.discussion-body').length === 0`));
-    await pair(SECOND_TOKEN);
+    await pair(secondToken);
+    await storage(true, secondToken);
     await select("#discussion-topic", topicId);
     assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic edited browser root')`));
     await click(`[data-action=withdraw][data-contribution-id="${rootId}"]`);
@@ -427,7 +444,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     writeFileSync(userModeFooterScreenshot, Buffer.from(footerScreenshot.data, "base64"), { flag: "wx" });
     await click("#ui-mode-developer");
     await waitExpression("document.body.dataset.uiMode==='developer'", "restore Developer Mode for keyboard verification");
-    await storage(true);
+    await storage(true, secondToken);
     await evaluate("document.querySelector('#discussion-token').focus()");
     await key("Tab", "Tab", 9);
     assert.ok(await evaluate("document.activeElement.id === 'discussion-pair'"));
@@ -457,7 +474,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     assert.equal(externalExtensionRequests, 0);
     assert.ok(extensionRequests > 0 && interceptedFixtureDocuments === 3);
     return { browser: version.product, result: "PASS", actualActionPopup: true,
-      covered: ["pairing", "keyboard", "service-source-ranking", "source-selection-invalidation", "topic-create", "root", "reply", "edit", "popup-reopen", "disconnect", "unavailable", "service-restart-token", "withdraw", "reset", "fixture-auto-load", "shared-topic", "inert-markup", "session-only-storage", "bounded-extension-network", "local-insight-context-preview-share-cross-source-ownership-withdrawal", "synthetic-AI-one-click-current-page-read-auto-model-citation-preview-share-withdrawal", "source-icon-keyboard-opens-new-tab-without-opener-or-referrer"],
+      covered: ["durable-pairing", "keyboard", "service-source-ranking", "source-selection-invalidation", "topic-create", "root", "reply", "edit", "popup-reopen", "disconnect", "outage-retains-pairing", "service-restart-same-token", "rotation-clears-old-token", "withdraw", "reset", "fixture-auto-load", "shared-topic", "inert-markup", "local-trusted-pairing-storage", "bounded-extension-network", "local-insight-context-preview-share-cross-source-ownership-withdrawal", "synthetic-AI-one-click-current-page-read-auto-model-citation-preview-share-withdrawal", "source-icon-keyboard-opens-new-tab-without-opener-or-referrer"],
       runtimeExceptions, externalExtensionRequests, interceptedFixtureDocuments, syntheticInsightRequests,
       userModeScreenshot, userModeFooterScreenshot,
       scope: "Fresh profile; actual extension action popup; synthetic intercepted pages; no global browser firewall claim" };

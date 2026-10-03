@@ -1,5 +1,5 @@
 import { createLocalServiceClient } from "../core/local-service-client.js";
-import { createLocalServiceSession } from "../core/local-service-session.js";
+import { createLocalServiceSession, PAIRING_KEY } from "../core/local-service-session.js";
 import { createBackgroundMatcher } from "../core/background-matcher.js";
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { createPageContentReader } from "./page-content-reader.js";
@@ -10,8 +10,14 @@ import { createTopicToolbarController, TOOLBAR_TAB_KEY } from "../core/topic-too
 import { createTopicToolbarPainter } from "./topic-toolbar-icon.js";
 
 const api = globalThis.chrome;
-const session = createLocalServiceSession({ storageSession: api.storage.session });
-const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: session.getToken });
+const session = createLocalServiceSession({ storageLocal: api.storage.local, storageSession: api.storage.session });
+const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: session.getToken,
+  onUnauthorized: async (token) => {
+    if (await session.clearIfCurrent(token)) {
+      matcher.invalidate(); clearTimeout(timer); void inference.close().catch(() => {});
+      await captureSession.stop();
+    }
+  } });
 const toolbar = createTopicToolbarController({ catalog: client.catalog, discussion: client.discussion, paint: createTopicToolbarPainter(api.action),
   readMarker: async () => {
     await api.storage.session.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
@@ -95,7 +101,7 @@ const matcher = createBackgroundMatcher({ getPreferences: preferences, readForeg
   hasPermission: permission, isPaired: session.isPaired, reader: createPageContentReader(api.scripting),
   embed: inference.embed, client, nextOperationId: () => crypto.randomUUID(),
   onStateChange: (state) => { void toolbar.update({ ...state, presentationTabId }); },
-  onUnauthorized: async () => { await session.clear(); void inference.close().catch(() => {}); } });
+  onUnauthorized: async () => { void inference.close().catch(() => {}); } });
 async function ensureAutoSession() {
   if (removingAccess || autoStartFlight) return autoStartFlight;
   autoStartFlight = (async () => {
@@ -192,6 +198,30 @@ async function handle(message) {
   }
 }
 api.runtime.onMessage.addListener((message, sender, reply) => {
+  if (message?.target === "local-pairing") {
+    if (sender.id !== api.runtime.id || sender.tab || sender.url !== api.runtime.getURL("chromium/popup.html")) {
+      reply({ ok: false }); return false;
+    }
+    const allowed = message.type === "set" || message.type === "clear-if-current"
+      ? ["target", "type", "value"] : ["target", "type"];
+    if (!message || typeof message !== "object" || Object.keys(message).some((key) => !allowed.includes(key))) {
+      reply({ ok: false }); return false;
+    }
+    const stopAfterClear = async (removed) => {
+      if (removed === false) return false;
+      matcher.invalidate(); clearTimeout(timer);
+      void inference.close().catch(() => {});
+      await captureSession.stop();
+      return true;
+    };
+    const action = { get: () => session.getToken(), paired: () => session.isPaired(),
+      set: () => session.setToken(message.value),
+      clear: async () => { await session.clear(); return stopAfterClear(true); },
+      "clear-if-current": async () => stopAfterClear(await session.clearIfCurrent(message.value)) }[message.type];
+    if (!action) { reply({ ok: false }); return false; }
+    void action().then((value) => reply({ ok: true, value: value ?? null })).catch(() => reply({ ok: false }));
+    return true;
+  }
   if (message?.target !== "page-matching") return false;
   if (sender.id !== api.runtime.id || sender.tab || sender.url !== api.runtime.getURL("chromium/popup.html")) {
     reply({ error: "forbidden" }); return false;
@@ -226,7 +256,7 @@ api.permissions.onRemoved.addListener((removed) => {
   void permission().then((access) => access ? undefined : captureSession.stop()).then(schedule).catch(() => {});
 });
 api.storage.onChanged.addListener((changes, area) => {
-  if (area === "session" && changes.localServicePairingToken) {
+  if (area === "local" && changes[PAIRING_KEY]) {
     void toolbar.update({ phase: "unpaired", presentationTabId }, { pairingChanged: true });
     schedule(); void inference.close().catch(() => {});
   }

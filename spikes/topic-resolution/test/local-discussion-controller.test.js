@@ -56,6 +56,15 @@ test("paired popup automatically loads bridged service discussion and sends IDs 
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
 });
 
+test("new pairing is not persisted until durable service validation succeeds", async () => {
+  let saved = 0;
+  const ui = harness({ validatePairing: async () => { throw Object.assign(new Error(), { code: "durable-pairing-required" }); },
+    session: { async setToken() { saved++; } } });
+  await ui.controller.pair("synthetic-new-capability-for-tests-only");
+  assert.equal(saved, 0);
+  assert.equal(ui.controller.currentState().error, "durable-pairing-required");
+});
+
 test("root and reply link their own deliberately selected Sources; manual Topic has no origin", async () => {
   const ui = harness(); await ui.controller.open();
   ui.controller.setDraft("Root from first Source"); assert.equal(await ui.controller.submitDraft(), true);
@@ -187,13 +196,13 @@ test("ambiguous failure never retries or permits writes until reload; duplicate/
   assert.equal(ui.controller.currentState().draft.detached, true);
 });
 
-test("active unauthorized clears token and projections; conflict/capacity are distinct", async () => {
+test("active unauthorized clears projections; credential compare-clear belongs to the client", async () => {
   for (const code of ["unauthorized", "conflict", "capacity", "invalid-response"]) {
     const ui = harness({ client: { command: async () => { throw Object.assign(new Error(), { code }); } } });
     await ui.controller.open(); ui.controller.setDraft("Demo failure"); await ui.controller.submitDraft();
     assert.equal(ui.controller.currentState().error, code);
     assert.equal(ui.controller.currentState().discussion, null);
-    assert.equal(ui.clears(), code === "unauthorized" ? 1 : 0);
+    assert.equal(ui.clears(), 0);
   }
 });
 
@@ -214,7 +223,7 @@ test("manual known-source selection requests service ranking; unlinked source ne
   assert.equal(ui.controller.currentState().topicId, null);
 });
 
-test("storage failures in pairing, disconnect and unauthorized clear are visible without rejection", async () => {
+test("storage failures in pairing and disconnect are visible without rejection", async () => {
   const ui = harness({ session: {
     async setToken() { throw new Error("Private storage details"); },
     async clear() { throw new Error("Private storage details"); },
@@ -226,7 +235,7 @@ test("storage failures in pairing, disconnect and unauthorized clear are visible
     session: { async clear() { throw new Error("Private storage details"); } } });
   await denied.controller.open();
   assert.equal(denied.controller.currentState().phase, "disconnected");
-  assert.equal(denied.controller.currentState().error, "storage-unavailable");
+  assert.equal(denied.controller.currentState().error, "unauthorized");
 });
 
 test("creating a Topic preserves existing unsent contribution text only as detached", async () => {

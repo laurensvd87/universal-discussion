@@ -115,7 +115,7 @@ function projectResult(value) {
   return { operationId: value.operationId, state: value.state, result: { body, model, citations } };
 }
 
-export function createLocalAiClient({ fetchImpl, getToken, timeoutMs = 10000 }) {
+export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = async () => {}, timeoutMs = 10000 }) {
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000) throw new TypeError("Invalid local AI client");
   async function request(path, body, actorId, signal, requestTimeoutMs = timeoutMs) {
     const url = BASE + path;
@@ -139,6 +139,11 @@ export function createLocalAiClient({ fetchImpl, getToken, timeoutMs = 10000 }) 
       const response = await Promise.race([fetchImpl(url, { method: payload === undefined ? "GET" : "POST", headers,
         ...(payload === undefined ? {} : { body: payload }), credentials: "omit", redirect: "error", cache: "no-store",
         referrerPolicy: "no-referrer", signal: controller.signal }), interrupted]);
+      if (response?.status === 401 && !controller.signal.aborted) {
+        await response.body?.cancel?.().catch(() => {});
+        try { await onUnauthorized(token); } catch { /* Rejected request stays rejected. */ }
+        throw new TypeError("Local AI request unauthorized");
+      }
       if (!response || response.redirected || response.url && response.url !== url || response.status !== 200 ||
           !/^application\/json(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) invalid();
       if (!response.body?.getReader) invalid();

@@ -14,11 +14,11 @@ function fail(code) { throw new LocalServiceClientError(code); }
 function input(project) { try { return project(); } catch { fail("invalid-request"); } }
 
 // Only this adapter performs fetch; endpoint, methods and transport policy are fixed.
-export function createLocalServiceClient({ fetchImpl, getToken, timeoutMs = 5000 }) {
+export function createLocalServiceClient({ fetchImpl, getToken, onUnauthorized = async () => {}, timeoutMs = 5000 }) {
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30_000) {
     throw new TypeError("Invalid local service client configuration");
   }
-  async function request(path, body, actorId, project, signal) {
+  async function request(path, body, actorId, project, signal, suppliedToken) {
     const url = BASE + path;
     const serialized = body === undefined ? undefined : JSON.stringify(body);
     if (serialized !== undefined && encoder.encode(serialized).byteLength > MAX_REQUEST_BYTES) fail("invalid-request");
@@ -39,7 +39,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, timeoutMs = 5000
     let response;
     const operation = (async () => {
       let token;
-      try { token = readPairingToken(await getToken()); } catch { fail("unauthorized"); }
+      try { token = readPairingToken(suppliedToken ?? await getToken()); } catch { fail("unauthorized"); }
       if (controller.signal.aborted) fail("unavailable");
       const headers = { Authorization: `Bearer ${token}` };
       if (serialized !== undefined) headers["Content-Type"] = "application/json";
@@ -51,6 +51,9 @@ export function createLocalServiceClient({ fetchImpl, getToken, timeoutMs = 5000
       if (!response || response.redirected || (response.url && response.url !== url)) fail("invalid-response");
       if (response.status !== 200) {
         await response.body?.cancel?.().catch(() => {});
+        if (response.status === 401 && !controller.signal.aborted && suppliedToken === undefined) {
+          try { await onUnauthorized(token); } catch { /* A failed clear cannot turn rejection into success. */ }
+        }
         const code = { 400: "invalid-request", 401: "unauthorized", 409: "conflict", 413: "capacity" }[response.status] ?? "unavailable";
         fail(code);
       }
@@ -95,6 +98,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, timeoutMs = 5000
   }
   return Object.freeze({
     async health({ signal } = {}) { return request("/health", undefined, undefined, readHealth, signal); },
+    async healthWithToken(token, { signal } = {}) { return request("/health", undefined, undefined, readHealth, signal, token); },
     async catalog({ signal } = {}) { return request("/catalog", undefined, undefined, readCatalog, signal); },
     async ingest(payload, { signal } = {}) {
       const body = input(() => readIngestion(payload));

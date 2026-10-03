@@ -6,7 +6,7 @@ import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 export const MAX_BODY_BYTES = 65_536;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
 
-export function createRequestHandler({ service, config, ai = null }) {
+export function createRequestHandler({ service, config, ai = null, pairingVerifier = null }) {
   return async function handle(request) {
     let corsOrigin = null;
     try {
@@ -20,8 +20,8 @@ export function createRequestHandler({ service, config, ai = null }) {
       }
       if (normalized.method === "OPTIONS") return preflight(normalized, config);
       corsOrigin = requireOrigin(normalized.headers, config.origin);
-      requireCapability(normalized.headers.authorization, config.capability);
-      const response = await route(normalized, service, ai);
+      requireCapability(normalized.headers.authorization, config.capability, pairingVerifier);
+      const response = await route(normalized, service, ai, pairingVerifier !== null);
       return jsonResponse(response.status, response.value, corsOrigin);
     } catch (error) {
       const mapped = mapError(error);
@@ -72,8 +72,12 @@ function requireOrigin(headers, expected) {
   return expected;
 }
 
-function requireCapability(authorization, expected) {
+function requireCapability(authorization, expected, pairingVerifier) {
   if (typeof authorization !== "string" || !authorization.startsWith("Bearer ")) fail("unauthorized", "Authentication required");
+  if (pairingVerifier !== null) {
+    if (!pairingVerifier.verify(authorization.slice(7))) fail("unauthorized", "Authentication required");
+    return;
+  }
   const supplied = Buffer.from(authorization.slice(7));
   const wanted = Buffer.from(expected);
   if (supplied.length !== wanted.length || !timingSafeEqual(supplied, wanted)) fail("unauthorized", "Authentication required");
@@ -99,7 +103,7 @@ function preflight(request, config) {
   };
 }
 
-async function route(request, service, ai) {
+async function route(request, service, ai, durablePairing) {
   const path = request.url.pathname;
   if (request.method === "GET" && request.body !== null && request.body !== "") fail("invalid", "Invalid request");
   if (ai && path.startsWith("/v1/ai/")) {
@@ -117,7 +121,9 @@ async function route(request, service, ai) {
       if (path === "/v1/ai/insights/cancel") return { status: 200, value: ai.cancel(input, actorId) };
     }
   }
-  if (request.method === "GET" && path === "/v1/health") return { status: 200, value: { protocol: "local-service/v1", capability: "paired-demo" } };
+  if (request.method === "GET" && path === "/v1/health") return { status: 200, value: {
+    protocol: "local-service/v1", capability: durablePairing ? "paired-durable-v1" : "paired-demo",
+  } };
   if (request.method === "GET" && path === "/v1/catalog") return { status: 200, value: service.catalog() };
   const discussionMatch = /^\/v1\/topics\/([^/]+)\/discussion$/u.exec(path);
   if (request.method === "GET" && discussionMatch) {

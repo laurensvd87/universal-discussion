@@ -37,7 +37,10 @@ Version 0.11.0 is implemented/reviewed; see STATUS for tests. Do not repeat the 
 Root origin controls grouping; a reply's optional origin supplies its own link only.
 SQLite v2 migration pins existing roots without inventing their source
 lineage: never guess it. Do not infer approval for second vectors, structured
-retained facts or an unreviewed historical migration. ADR-019 C durable pairing remains pending. No S4 or expanded private/remote
+retained facts or an unreviewed historical migration. ADR-019 C durable pairing
+and ADR-028's strict private-draft exception were separately approved on
+2026-10-02 and implemented with offline tests in 0.12.12; owner live pairing
+and research verification remains open. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
@@ -52,8 +55,10 @@ user-invoked public article/context research, private preview, and separately
 confirmed AI-labelled local sharing. Version 0.12.0 and a compact User Mode are
 implemented/offline and isolated-Chrome tested; read current STATUS for evidence and
 owner login. Do not repeat provider selection approval or completed review gates.
-No automatic AI call/post, private-page expansion, paid fallback, persistent
-provider tokens, new model/permissions, remote service or release is authorized.
+No automatic AI call/post, private-page expansion, paid fallback, new model/
+permissions, remote service or release is authorized. ADR-027 separately
+approved protected Windows refresh-token persistence; access/ID tokens remain
+RAM-only.
 
 ## Original bootstrap task (completed; retained as history)
 

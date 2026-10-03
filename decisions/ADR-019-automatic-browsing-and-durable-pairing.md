@@ -196,6 +196,13 @@ end-to-end embedding/shared-comment evidence.
 
 ## C. Persistent, revocable local pairing
 
+Owner approval: 2026-10-02, explicitly granted after the 0.12.11 local
+insight test. This activates only the exact local package below; it does not
+approve importing a ChatGPT stream item absent from the provider's final
+response. That separate question was subsequently approved under ADR-028.
+This local pairing package is implemented with synthetic checks and independent
+Trust review; owner-browser restart behavior remains to be confirmed.
+
 - One fresh pairing after upgrade; no idle expiry or automatic logout on browser
   or service restart. The owner still starts the service manually; this package
   does not install OS auto-start, a background service, native messaging or accounts.

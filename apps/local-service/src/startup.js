@@ -7,6 +7,7 @@ import { createSqliteDemoService } from "./application/create-sqlite-demo-servic
 import { createRequestHandler } from "./http/request-handler.js";
 import { validateStartupConfig } from "./http/startup-config.js";
 import { startLoopbackListener } from "./http/loopback-listener.js";
+import { loadPairingVerifier } from "./http/pairing-store.js";
 import { createChatGPTRuntime } from "./ai/chatgpt-runtime.js";
 
 export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
@@ -20,7 +21,7 @@ export function createProcessDependencies() {
 }
 
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
-  chatgptFetchImpl, chatgptRefreshStore = null, ai }) {
+  chatgptFetchImpl, chatgptRefreshStore = null, ai, pairingVerifier = null }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
   const database = createSqliteDemoService({ databasePath, nextId, now });
@@ -30,7 +31,7 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
   catch (error) { database.close(); throw error; }
   return Object.freeze({
     config,
-    handle: createRequestHandler({ service: database.service, config, ai: runtime }),
+    handle: createRequestHandler({ service: database.service, config, ai: runtime, pairingVerifier }),
     restore: () => runtime?.restore?.() ?? Promise.resolve(false),
     close() { runtime?.dispose?.(); database.close(); },
   });
@@ -39,9 +40,17 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
 // databasePath/config are trusted composition seams for tests, never HTTP input.
 // The CLI below this adapter always uses APP_DATABASE_PATH and random dependencies.
 export async function startLocalApplication(options) {
-  const application = openDormantLocalApplication(options);
+  let activeVerifier = null;
+  const pairingVerifier = options.pairingPath ? { verify: (token) => activeVerifier?.verify(token) ?? false } : null;
+  const application = openDormantLocalApplication({ ...options, pairingVerifier });
   try {
     const listener = await startLoopbackListener({ handle: application.handle });
+    try {
+      if (options.pairingPath) activeVerifier = loadPairingVerifier({ filePath: options.pairingPath, origin: application.config.origin });
+    } catch (error) {
+      await listener.close();
+      throw error;
+    }
     // The fixed port is owned before renewing a rotating credential, so a
     // second local process cannot race the same stored refresh token.
     await Promise.resolve().then(() => application.restore()).catch(() => false);

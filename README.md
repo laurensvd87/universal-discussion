@@ -10,6 +10,20 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension **0.12.12** implements the owner's approved persistent local pairing:
+after one fresh explicit initialization and pairing, the browser retains its
+local-service token across browser/service restarts until **Forget connection**,
+rotation, revocation or confirmed rejection. The service stores only a verifier;
+the browser profile stores the bearer and is not an encrypted vault. The owner
+still starts the service manually. A separately approved strict fallback can
+turn exactly one identity-matched, fully finalized assistant stream item into a
+**private editable draft** when the provider's terminal completed response
+omits that item. Contradictory, failed, incomplete and refusal events are
+rejected; nothing is auto-shared or auto-retried. Offline tests pass, but a
+successful live insight remains unverified. See the [current local setup](spikes/topic-resolution/browser/README.md#current-local-setup-01212),
+[ADR-019](decisions/ADR-019-automatic-browsing-and-durable-pairing.md) and
+[ADR-028](decisions/ADR-028-finalized-insight-item-private-draft.md).
+
 Extension **0.12.11** follows the latest owner test with model “5.5”, which
 returned `response-no-message`:
 ChatGPT sign-in and a completed response stream worked, but the final response

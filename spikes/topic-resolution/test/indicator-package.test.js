@@ -93,7 +93,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.12.11",
+    version: "0.12.12",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -168,7 +168,7 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
     const label = relativeBrowserPath(runtimeFile);
     const approvedBindings = label === "chromium/background.js" ? ["globalThis.chrome", "globalThis.fetch"] :
       label === "embedding/offscreen.js" ? ["globalThis.chrome.runtime"] :
-      label === "chromium/popup.js" ? ["globalThis.chrome.tabs", "globalThis.chrome.scripting", "globalThis.chrome.storage.session",
+      label === "chromium/popup.js" ? ["globalThis.chrome.tabs", "globalThis.chrome.scripting",
         "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows", "globalThis.chrome.storage.local"] : [];
     for (const approvedBinding of approvedBindings) {
       const bindingCount = source.split(approvedBinding).length - 1;
@@ -242,10 +242,10 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
   }
 
   const popupScript = await readFile(popupScriptPath, "utf8");
-  assert.match(popupScript, /createLocalServiceSession\(\{ storageSession: globalThis\.chrome\.storage\.session \}\)/u);
+  assert.match(popupScript, /createLocalServiceSessionProxy\(\{ sendMessage: \(message\) => runtime\.sendMessage\(message\) \}\)/u);
   assert.match(popupScript, /const localTransport = globalThis\.fetch\.bind\(globalThis\);/u);
-  assert.match(popupScript, /createLocalServiceClient\(\{ fetchImpl: localTransport, getToken: localSession\.getToken \}\)/u);
-  assert.match(popupScript, /createLocalAiClient\(\{ fetchImpl: localTransport, getToken: localSession\.getToken \}\)/u);
+  assert.match(popupScript, /createLocalServiceClient\(\{ fetchImpl: localTransport, getToken: localSession\.getToken,/u);
+  assert.match(popupScript, /createLocalAiClient\(\{ fetchImpl: localTransport, getToken: localSession\.getToken,/u);
   assert.match(popupScript, /void localDiscussion\.open\(\);/u);
   for (const boundary of ["active-tab-reader.js", "page-metadata-reader.js"]) {
     assert.doesNotMatch(await readFile(path.join(browserDirectory, "chromium", boundary), "utf8"), /local-service|storageSession|fetchImpl/u);

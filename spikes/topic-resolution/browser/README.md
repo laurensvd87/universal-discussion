@@ -1,5 +1,28 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Current local setup (0.12.12)
+
+The pairing token now persists in this browser profile after one fresh
+connection. With the old service stopped, initialize durable pairing in an
+interactive terminal as described in the [service README](../../../apps/local-service/README.md#durable-local-pairing-01212),
+then start the updated service and reload the unpacked extension. Enter the
+one-time token once. On later service/browser restarts, start the service
+normally and the popup should reconnect automatically; no new token is printed.
+If the saved key is rejected, ask for a new token by explicitly rotating
+pairing with the service stopped. An outage does not discard the key. **Forget
+connection** removes this browser's key; it does not revoke other copies or
+delete discussions. Never share the token, callback URL, profile storage or
+private page text.
+
+After pairing, public-page matching still needs Chrome HTTPS access in the
+separate non-sensitive profile. ChatGPT sign-in is independent. One deliberate
+**Create insights** click may now produce a private editable draft from a
+strictly finalized provider stream even if its terminal output omitted that
+assistant item. It never shares or retries automatically. Please report only
+whether the private draft appeared, or the fixed `response-*` code. Live
+success is not yet verified; avoid repeated provider calls. Older sections
+below describe earlier versions and their then-current session-only behavior.
+
 ## Completed response without assistant message (2026-10-02)
 
 The owner selected model “5.5” and a deliberate Create returned

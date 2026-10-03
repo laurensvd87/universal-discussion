@@ -5,7 +5,8 @@ import { projectPageResolution } from "../browser/core/page-resolution-contract.
 const KEY = "pageMatchingPreferences";
 const CAPTURE_KEY = "pageMatchingCaptureSession";
 const BLOCKED_KEY = "pageMatchingBlockedOrigins";
-const TOKEN_KEY = "localServicePairingToken";
+const TOKEN_KEY = "localServicePairingV1";
+const LEGACY_KEY = "localServicePairingToken";
 const ORIGIN = "https://example.com";
 const EXTENSION_ID = "a".repeat(32);
 const PAGE = `${ORIGIN}/article`;
@@ -57,28 +58,37 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
       } },
     storage: {
       local: { setAccessLevel: async (value) => assert.equal(value.accessLevel, "TRUSTED_CONTEXTS"),
-        get: async (key) => { assert.equal(key, BLOCKED_KEY); return { [BLOCKED_KEY]: structuredClone(state.blocked) }; },
+        get: async (key) => {
+          if (key === TOKEN_KEY) return state.token ? { [TOKEN_KEY]: { version: 1, token: state.token } } : {};
+          assert.equal(key, BLOCKED_KEY); return { [BLOCKED_KEY]: structuredClone(state.blocked) };
+        },
         async set(value) {
+          if (Object.hasOwn(value, TOKEN_KEY)) {
+            state.token = value[TOKEN_KEY].token;
+            events.storageChanged.emit({ [TOKEN_KEY]: { newValue: value[TOKEN_KEY] } }, "local"); return;
+          }
           calls.storageWrites.push(structuredClone(value));
           if (state.writeGate) await state.writeGate.promise;
           const oldValue = state.blocked; state.blocked = structuredClone(value[BLOCKED_KEY]);
           events.storageChanged.emit({ [BLOCKED_KEY]: { oldValue, newValue: state.blocked } }, "local");
-        } },
+        },
+        async remove(key) { assert.equal(key, TOKEN_KEY); const oldValue = state.token;
+          state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "local"); } },
       session: { setAccessLevel: async (value) => assert.equal(value.accessLevel, "TRUSTED_CONTEXTS"),
         get: async (key) => key === "pageMatchingToolbarTabId" ? { [key]: state.toolbarTabId }
-          : key === CAPTURE_KEY ? { [CAPTURE_KEY]: structuredClone(state.capture) } : state.token ? { [TOKEN_KEY]: state.token } : {},
+          : key === CAPTURE_KEY ? { [CAPTURE_KEY]: structuredClone(state.capture) } : {},
         set: async (value) => {
           if (Object.hasOwn(value, CAPTURE_KEY)) {
             calls.storageWrites.push(structuredClone(value));
             if (state.writeGate) await state.writeGate.promise;
             state.capture = structuredClone(value[CAPTURE_KEY]);
           } else if (Object.hasOwn(value, "pageMatchingToolbarTabId")) state.toolbarTabId = value.pageMatchingToolbarTabId;
-          else state.token = value[TOKEN_KEY];
+          else assert.fail("Legacy session pairing must not be written");
         },
         remove: async (key) => {
           if (key === CAPTURE_KEY) { state.capture = undefined; return; }
           if (key === "pageMatchingToolbarTabId") { state.toolbarTabId = undefined; return; }
-          assert.equal(key, TOKEN_KEY); const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session");
+          assert.equal(key, LEGACY_KEY);
         } },
       onChanged: events.storageChanged,
     },
@@ -143,7 +153,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
     return work;
   }
   async function advance() { t.mock.timers.tick(400); await flush(); }
-  async function unpair() { const oldValue = state.token; state.token = undefined; events.storageChanged.emit({ [TOKEN_KEY]: { oldValue } }, "session"); await flush(); }
+  async function unpair() { await api.storage.local.remove(TOKEN_KEY); await flush(); }
   t.after(async () => {
     state.local.enabled = false; state.capture.windowId = null; state.token = undefined;
     for (const gate of gates) gate.resolve(false);
@@ -272,8 +282,7 @@ test("automatic start waits for pairing and native grant; Stop survives popup po
   assert.equal(h.calls.reads, 0);
   h.state.permitted = false;
   const token = `synthetic-test-token-${"x".repeat(40)}`;
-  await h.api.storage.session.set({ [TOKEN_KEY]: token });
-  h.events.storageChanged.emit({ [TOKEN_KEY]: { newValue: token } }, "session");
+  await h.api.storage.local.set({ [TOKEN_KEY]: { version: 1, token } });
   await h.advance();
   assert.equal((await h.send("status")).enabled, false);
   assert.equal(h.calls.reads, 0);
@@ -437,12 +446,25 @@ test("unpair during inference cancels native context and never ingests a late ve
   assert.equal((await h.send("status")).phase, "unpaired");
 });
 
-test("backend 401 clears session pairing and prevents further automatic captures/requests", async (t) => {
+test("backend 401 clears durable pairing, stops capture and prevents further requests", async (t) => {
   const h = await harness(t); h.state.unauthorized = true;
   await h.advance(); assert.equal(h.state.token, undefined); assert.equal(h.calls.reads, 0);
   const count = h.calls.fetches.length;
   h.events.activated.emit({ tabId: 7, windowId: 1 }); await h.advance();
-  assert.equal(h.calls.fetches.length, count); assert.equal((await h.send("status")).phase, "unpaired");
+  assert.equal(h.calls.fetches.length, count); assert.equal((await h.send("status")).phase, "off");
+});
+
+test("pairing RPC is popup-only and status messages never contain a credential", async (t) => {
+  const h = await harness(t);
+  const popup = { id: EXTENSION_ID, url: h.api.runtime.getURL("chromium/popup.html") };
+  const sendPairing = (type, sender = popup) => new Promise((resolve) => {
+    h.events.message.emit({ target: "local-pairing", type }, sender, resolve);
+  });
+  assert.deepEqual(await sendPairing("get", { ...popup, tab: { id: 7 } }), { ok: false });
+  assert.deepEqual(await sendPairing("get", { ...popup, url: PAGE }), { ok: false });
+  assert.deepEqual(await sendPairing("get"), { ok: true, value: h.state.token });
+  const status = await h.send("status");
+  assert.equal(JSON.stringify(status).includes(h.state.token), false);
 });
 
 function sharedToolbarCatalog() {

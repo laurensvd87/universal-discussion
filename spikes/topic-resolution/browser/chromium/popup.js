@@ -18,7 +18,7 @@ import { mountPopupShell } from "./popup-shell.js";
 import { connectPopupFocusResponder } from "./popup-focus.js";
 import { createLocalDiscussionController } from "../core/local-discussion-controller.js";
 import { createLocalServiceClient } from "../core/local-service-client.js";
-import { createLocalServiceSession } from "../core/local-service-session.js";
+import { createLocalServiceSessionProxy } from "../core/local-service-session.js";
 import { EN } from "../locales/en.js";
 import {
   INDICATOR_SCENARIOS,
@@ -194,10 +194,12 @@ const popupShell = mountPopupShell(document, {
   storageLocal: globalThis.chrome.storage.local,
   onModeChange: discussionPanel.setMode,
 });
-const localSession = createLocalServiceSession({ storageSession: globalThis.chrome.storage.session });
+const localSession = createLocalServiceSessionProxy({ sendMessage: (message) => runtime.sendMessage(message) });
 const localTransport = globalThis.fetch.bind(globalThis);
-const localClient = createLocalServiceClient({ fetchImpl: localTransport, getToken: localSession.getToken });
-const aiClient = createLocalAiClient({ fetchImpl: localTransport, getToken: localSession.getToken });
+const localClient = createLocalServiceClient({ fetchImpl: localTransport, getToken: localSession.getToken,
+  onUnauthorized: localSession.clearIfCurrent });
+const aiClient = createLocalAiClient({ fetchImpl: localTransport, getToken: localSession.getToken,
+  onUnauthorized: localSession.clearIfCurrent });
 let matchingPanel;
 // Ask for fresh background evidence only when a service projection changes.
 // No Topic, post count or connection claim crosses this authenticated message.
@@ -226,6 +228,10 @@ function observeToolbar(state) {
 const localDiscussion = createLocalDiscussionController({
   client: localClient,
   session: localSession,
+  validatePairing: async (token) => {
+    const health = await localClient.healthWithToken(token);
+    if (health.capability !== "paired-durable-v1") throw Object.assign(new Error("Durable pairing required"), { code: "durable-pairing-required" });
+  },
   readActiveTab: activeTabReader.read,
   observeTabLifecycle: tabLifecycleObserver.observe,
   lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,

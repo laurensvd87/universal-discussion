@@ -33,6 +33,41 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.12 checkpoint (2026-10-02):** The owner explicitly approved ADR-019 C
+durable local pairing and ADR-028's strict completed-item private-draft
+exception. The local service now requires explicit interactive initialization,
+stores only an ignored verifier, resumes pairing across restarts, and exposes
+rotation/revocation while stopped. The extension migrates without promoting
+old session credentials, stores the new key in trusted local storage only
+after a durable-health check, keeps it on outage and compare-clears it on a
+confirmed 401. No backend auto-start or new Chrome permission. The provider
+fallback requires matching response/item/part identities and completed status,
+rejects contradictory/failure/refusal events and imports only a private
+editable draft; Share is still explicit. Independent Trust review identified
+and led to closure of five contradictory-event cases. Full offline service
+tests: **170 passed, 2 opt-in Windows tests skipped**; extension restricted:
+**838/838**. Actual owner restart/pairing and successful live Create are still
+unverified. One fresh `--pairing-init`/token entry is required after upgrade;
+the old per-process key cannot be promoted. The isolated Chrome smoke was
+updated for local-token retention, same-token service restart and rotation,
+but did not run to completion here: the sandbox denied Chrome process spawn;
+an elevated retry reached the listener and could not bind fixed port 4174.
+No owner process or browser profile was stopped or modified. This is a test
+gap, not a Chrome pass. See current setup in README.
+
+**2026-10-02 current owner decisions:** ADR-019 C's exact persistent,
+revocable local-pairing package is now explicitly approved. Backend and
+extension implementation is underway; the existing session-only pairing
+remains active until a tested checkpoint is committed. One fresh pairing will
+be required after upgrade, with no automatic server start. The owner also
+reports `response-final-item-missing` after the 0.12.11 diagnostic: a completed
+assistant `output_item.done` appeared in the bounded stream, but the final
+`response.completed.response.output` omitted that assistant message. Official
+OpenAI Docs normally include it in both places. We continue to reject it and
+do not import delta or missing-final text; a separate explicit owner decision
+has been requested for a strictly bounded private-draft fallback. No provider
+call, raw response capture or retry was performed by the agent.
+
 **0.12.11 owner 0.12.10 result (2026-10-02):** model shown as “5.5”; deliberate Create
 returned `response-no-message`. The service reached a completed Responses
 event, but its final `output` array contained no assistant `message`. This is

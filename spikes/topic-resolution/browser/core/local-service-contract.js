@@ -132,7 +132,7 @@ export function readCommand(value) {
 export function readConfirmation(value) { return oneOf(value, ["RESET DEMO STATE"]); }
 export function readHealth(value) {
   const item = record(value, ["protocol", "capability"]);
-  oneOf(item.protocol, ["local-service/v1"]); oneOf(item.capability, ["paired-demo"]);
+  oneOf(item.protocol, ["local-service/v1"]); oneOf(item.capability, ["paired-demo", "paired-durable-v1"]);
   return item;
 }
 export function readCatalog(value) {

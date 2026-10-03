@@ -22,6 +22,30 @@ ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
+## Durable local pairing (0.12.12)
+
+Stop the old service first. In an interactive terminal, run
+`node src/cli.js --origin chrome-extension://<your-extension-id> --pairing-init`
+from this directory. Copy the one-time token directly into the extension's
+**Connect local service** field; never send it in chat or a bug report. Then
+start normally with `node src/cli.js --origin chrome-extension://<your-extension-id>`.
+Initialization succeeds only when no pairing record exists. For a changed
+extension ID, lost token or deliberately invalidated copies, stop the service
+and use `--pairing-rotate` with the new Origin; this makes previous tokens
+invalid. `--pairing-revoke` invalidates all copies for the current Origin until
+a later explicit rotation. Administrative commands claim the fixed port first
+and fail if another service/admin is using it. The startup command no longer
+prints a new token. The ignored `data/pairing.json` stores a verifier, not the
+bearer; keep this PC's browser profile and service data private. **Forget
+connection** removes only this browser's token, not other copies or discussion
+data. A service outage preserves the saved token; a confirmed 401 clears it.
+
+The approved insight fallback accepts one fully finalized, identity-consistent
+assistant message as a private draft only after a valid terminal completed
+stream when the terminal output omitted that item. It rejects contradictory
+finalized parts/items, failures, incompletion and refusal, and never imports
+deltas or automatically retries. No successful live owner insight is claimed.
+
 ## ChatGPT insights (0.12.5)
 
 The normal CLI now composes the owner-approved optional ChatGPT connector.
@@ -36,7 +60,9 @@ claims. It returns generic HTML; no code or account information is reflected.
 Both use the existing `127.0.0.1:4174` listener. Imports/default dormant composition
 still have no provider network capability.
 
-Access/refresh/ID tokens are process-memory only. Restart requires reauthorization.
+Access/ID tokens are process-memory only. On Windows, a rotating refresh token
+may be protected under the current OS user for restart; on other systems or
+without secure storage, restart requires reauthorization (ADR-027).
 The ignored `data/chatgpt-registration.json` contains the stable installation ID
 and non-secret account mapping (client ID, subject, email/label), not tokens.
 Disconnect clears tokens/jobs and attempts provider revocation; it does not erase

@@ -244,7 +244,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       confirmation.value = "";
     }
     confirmationContext = nextConfirmationContext;
-    const errorKey = { unauthorized: "discussionUnauthorized", conflict: "discussionConflict", capacity: "discussionCapacity",
+    const errorKey = { unauthorized: "discussionUnauthorized", "durable-pairing-required": "discussionDurableRequired",
+      conflict: "discussionConflict", capacity: "discussionCapacity",
       "invalid-request": "discussionInvalid", "invalid-response": "discussionInvalid", "context-changed": "discussionContextChanged" }[state.error];
     status.textContent = text(errorKey ?? (state.error ? "discussionUnavailable" : {
       ready: "discussionReady", disconnected: "discussionDisconnected", connecting: "discussionConnecting",
@@ -252,7 +253,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (state.needsFreshRead) status.textContent += ` · ${text("discussionReload")}`;
     status.hidden = uiMode === "user" && state.phase === "ready" && !state.error && !state.needsFreshRead;
     const usable = ["ready", "choose-topic"].includes(state.phase) && !state.busy && !state.needsFreshRead;
-    const showPairingInput = uiMode !== "user" || shellView.connection !== "connected";
+    const showPairingInput = uiMode !== "user" || shellView.connection !== "connected" || state.error === "unauthorized";
     tokenLabel.hidden = token.hidden = pairForm.hidden = !showPairingInput;
     pair.disabled = state.busy || state.phase === "connecting";
     token.disabled = pair.disabled; disconnect.disabled = state.busy;
