@@ -1,14 +1,29 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Current local build (0.12.15)
+## Current local build (0.12.16)
 
-The popup has a cleaner User view: Topic and conversation first, a compact
-connection state, and a persistent model/Create control only while paired.
-Pairing, developer details and browsing controls remain available without
-crowding the main conversation. Synthetic actual-Chrome checks cover a native
-410 px User popup, 380 px Developer popup, long text, no horizontal overflow,
-and keyboard access to private-draft controls. This is still an owner-only
-local prototype with synthetic posting identities, not a hosted community.
+The User popup now opens with a connection welcome, then shows a shared Topic
+header and three views: Discussion, Pages, and Insights. Settings holds local
+pairing, browsing-session, Topic/data, and display controls. Discussion has a
+compact composer and a prominent **Create insight** action. That action opens
+Insights and forwards exactly one Create click only when its existing model and
+current-page prerequisites are ready; otherwise it opens setup. Tabs and
+Settings never start capture or AI work. Pages links only validated public
+sources and distinguishes same-Topic pages from related reading. Generated
+insight drafts appear before model controls and remain private until separate
+review and share. **Using ChatGPT plan** and **Manage usage** stay by the model
+and Create controls. Synthetic actual-Chrome checks cover disconnected and
+ready views, long text, no horizontal overflow, and keyboard access to
+account and draft actions. This remains an owner-only local prototype with
+synthetic posting identities, not a hosted community.
+
+The first AI result is prompted as a short forum opener about the displayed
+page. When the provider returns structured URL citations, the private preview
+and shared AI post show small inline source links. The private text editor
+shows the narrow `[↗](URL)` representation; unannotated model-written URLs
+are omitted from generated drafts, and manually edited links carry only a
+neutral “source link” label. Candidate related URLs are not guaranteed to be
+opened by the provider. See [ADR-033](../../../decisions/ADR-033-short-insight-openers-and-inline-sources.md).
 
 The owner-approved [ADR-031](../../../decisions/ADR-031-complete-stream-private-draft.md)
 adds a narrowly checked private-draft fallback for completed ChatGPT streams

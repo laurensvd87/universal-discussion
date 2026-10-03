@@ -1,5 +1,39 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-03 next integration: The 0.12.16 product-first popup is coded and its
+thirteen synthetic Chrome visual states pass. ADR-033 narrows the first AI
+result to a short current-page forum opener and uses the provider's structured
+URL citations for inline source icons rather than a raw URL list. Private
+preview and AI-labelled shared posts render validated inline links; human
+posts remain plain text. The backend suite passes 190 tests/four optional
+Windows skips; restricted extension tests pass 852/852; both secret scans
+found zero findings. Read-only trust review's forged-citation finding was
+fixed by neutralizing unannotated generated links; edited/shared links have
+a neutral label. New shell copy uses English language-pack keys. Final
+isolated Chrome rerun passes all 13 synthetic states without horizontal
+overflow. Lead diff review found no remaining blocker. Integration rerun could
+not bind the fixed port because the normal service was running; previous
+loopback 2/2 evidence
+remains. The provider's optional
+web tool and domain filter cannot guarantee loading the exact candidate URL,
+so an inaccessible link is not treated as evidence. This work adds no
+follow-up AI reply, automatic Share or publication, and no agent-initiated
+post-change provider call was made. The normal fixed-endpoint service was restarted after the prompt
+change; persistent pairing remains active.
+
+2026-10-03 19:41 Berlin result: The owner-authorized, single synthetic-public
+provider probe succeeded against the saved ChatGPT connection after the
+owner's stated reset time: 1,354 private answer characters and one citation.
+It made one model-list call and one Responses call, with no retry or Share.
+The fixed-port service was stopped before protected-token use and restarted
+afterward with durable pairing. The temporary harness/test were deleted; no
+raw answer, provider body, account or credential was logged. This is a live
+backend/parser success, not an actual popup/real-page UX or quality pass.
+The Astra High-led/Sol Medium-coded product popup redesign later passed its
+isolated Chrome review. No Google related-page integration has been approved;
+Google's old `related:` operator is unsupported and its documented
+`relatedSite` API path is deprecated/unavailable to new customers.
+
 2026-10-03 latest: ADR-032 single-profile ChatGPT account switch is implemented
 and independently trust-reviewed. Disconnect must complete before Connect;
 it clears the protected grant and old non-secret registration, retaining the

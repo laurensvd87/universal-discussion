@@ -90,6 +90,34 @@ test("AI research requires explicit page preview, model and credit consent; answ
   assert.equal(await app.insight.share(), false);
 });
 
+test("provider citation survives private preview and explicit AI-labelled share in the body", async () => {
+  const marker = "citeturn0search0";
+  const answer = `A concise question for this page ${marker} What do you think?`;
+  const startIndex = answer.indexOf(marker);
+  const aiClient = {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a", displayName: "A" }],
+    start: async (request) => ({ operationId: request.operationId, state: "running" }),
+    result: async (operationId) => ({ operationId, state: "completed", result: { body: answer, model: "model-a",
+      citations: [{ startIndex, endIndex: startIndex + marker.length, title: "Source", url: "https://example.org/article" }] } }),
+    cancel: async () => true,
+  };
+  const app = await harness({ aiClient,
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public article" }),
+    attestArticle: async () => {}, randomId: () => "citation-op" });
+  await app.insight.checkConnection();
+  await app.insight.loadModels();
+  assert.equal(await app.insight.readPageText(), true);
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  const draft = "A concise question for this page [↗](https://example.org/article) What do you think?";
+  assert.equal(app.insight.currentState().draft, draft);
+  assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 0);
+  assert.equal(app.insight.preview(), true);
+  assert.equal(app.insight.currentState().preview.body, draft);
+  assert.equal(await app.insight.share(), true);
+  assert.equal(app.service.discussion("reserved-domain-demo").roots[0].body, draft);
+});
+
 test("one User click reads the current page and omits unchecked related links from provider context", async () => {
   const calls = [];
   let currentUrl;

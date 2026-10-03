@@ -1,9 +1,11 @@
 # ADR-031: Complete-stream fallback for a private insight draft
 
 Status: explicitly approved by the owner on 2026-10-03; implemented and
-offline/adversarially verified, including independent Trust review. A fresh
-live private draft remains unverified because the original ChatGPT account
-reached its plan usage limit. This extends ADR-028 only for private drafts.
+offline/adversarially verified, including independent Trust review. At the
+owner's stated 19:41 Berlin reset time, one synthetic-public live probe
+returned a private result (1,354 characters, one citation) through the strict
+parser. The actual popup/real-page owner journey remains unverified. This
+extends ADR-028 only for private drafts.
 
 ## Evidence and decision
 

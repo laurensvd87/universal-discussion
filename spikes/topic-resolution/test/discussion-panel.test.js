@@ -40,6 +40,28 @@ test("User insight shortcut opens the compact workspace near the Topic", () => {
   assert.equal(workspace.open, true);
   assert.deepEqual(actions, [["scroll", { block: "start", behavior: "smooth" }], ["focus", { preventScroll: true }]]);
 });
+test("no-topic User view shows no empty composer or Create shortcut, while drafts remain recoverable", () => {
+  const ui = harness();
+  const composer = ui.root.children.find((item) => item.tag === "form" && item.children.some((child) => child.id === "discussion-body"));
+  const shortcut = ui.byId("discussion-ai-insights");
+  const discard = ui.byId("discussion-discard");
+  const noTopic = state({ phase: "choose-topic", topicId: null, discussion: null });
+  ui.panel.render(noTopic);
+  assert.equal(composer.hidden, true);
+  assert.equal(shortcut.hidden, true);
+  assert.equal(discard.hidden, true);
+  ui.panel.render(state());
+  assert.equal(composer.hidden, false);
+  assert.equal(shortcut.hidden, false);
+  assert.equal(discard.hidden, true);
+  ui.panel.render(state({ phase: "choose-topic", topicId: null, discussion: null,
+    draft: { body: "Keep this draft", detached: true, mode: "root", targetId: null } }));
+  assert.equal(composer.hidden, false);
+  assert.equal(discard.hidden, false);
+  ui.panel.setMode("developer");
+  assert.equal(composer.hidden, false);
+  assert.equal(discard.hidden, false);
+});
 function state(patch = {}) {
   return { phase: "ready", busy: false, error: null, actorId: "demo-alex", topicId: "topic-demo", sourceId: null,
     catalog: { model: { status: "fixture-only" }, actors: [{ id: "demo-alex", displayName: "Alex · synthetic" }],
@@ -63,6 +85,27 @@ test("connected settings follow the composer in User DOM order and return before
   assert.ok(ui.root.children.indexOf(settings) < ui.root.children.indexOf(counts));
 });
 const descendants = (node) => [node, ...node.children.flatMap(descendants)];
+test("only AI-labelled posts render validated inline source icons", () => {
+  const ui = harness();
+  const marker = "A claim [↗](https://example.org/article) <img src=x>";
+  ui.panel.render(state({ discussion: { roots: [
+    { id: "ai-root", rootId: null, state: "visible", authorId: "demo-imported-ai", actorType: "agent",
+      insight: { kind: "manual-import", operatorId: "demo-alex" }, body: marker, edited: false, replies: [] },
+    { id: "human-root", rootId: null, state: "visible", authorId: "demo-alex", actorType: "human",
+      body: marker, edited: false, replies: [] },
+  ] } }));
+  const cards = descendants(ui.root).filter((item) => item.tag === "article" && item.children.some((child) => child.className === "discussion-body"));
+  assert.equal(cards.length, 2);
+  const aiBody = cards[0].children.find((item) => item.className === "discussion-body");
+  const humanBody = cards[1].children.find((item) => item.className === "discussion-body");
+  const links = descendants(aiBody).filter((item) => item.tag === "a");
+  assert.equal(links.length, 1);
+  assert.equal(links[0].href, "https://example.org/article");
+  assert.equal(links[0].rel, "noopener noreferrer");
+  assert.equal(aiBody.children[2].textContent, " <img src=x>");
+  assert.equal(humanBody.textContent, marker);
+  assert.equal(descendants(humanBody).some((item) => item.tag === "a"), false);
+});
 test("User related pages are a count disclosure; native open state survives polling and resets on mode switch", () => {
   const ui = harness();
   const details = ui.byId("discussion-related");
@@ -81,7 +124,8 @@ test("User related pages are a count disclosure; native open state survives poll
   assert.equal(details.open, false);
   ui.panel.render(state({ related: { results: [] }, discussion: { roots: [] } }));
   assert.equal(details.hidden, true);
-  assert.equal(ui.byId("discussion-counts").hidden, true);
+  assert.equal(ui.byId("discussion-counts").hidden, false);
+  assert.equal(ui.byId("discussion-counts").textContent, "0 human · 0 AI");
   assert.ok(descendants(ui.root).some((item) => item.textContent === EN.uiDiscussionEmpty));
 });
 test("only registered synthetic actors get compact User names; full names stay available", () => {

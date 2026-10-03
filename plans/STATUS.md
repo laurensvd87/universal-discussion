@@ -33,6 +33,67 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-03 product/prompt follow-up:** The 0.12.16 product popup now has a
+first-use welcome state, Topic-first Discussion/Pages/Insights views and
+separate Settings. Thirteen synthetic actual-Chrome states passed, including
+keyboard access, no horizontal overflow, retained draft controls and a useful
+no-topic action instead of a disabled composer. [ADR-033](../decisions/ADR-033-short-insight-openers-and-inline-sources.md)
+records the new short forum-opener prompt and inline source links. Provider
+annotations become validated inline references in the private preview and
+AI-labelled shared posts; they are no longer appended as a raw URL list.
+An independent trust review found that model-written marker text could
+masquerade as a citation. The generated-draft formatter now neutralizes any
+unannotated URL before inserting validated references, and shared/edited
+links have a neutral accessible label. New English shell strings are routed
+through language-pack keys. The full restricted extension suite passes
+852/852 and the backend suite 190 passed/four opt-in skipped; both secret
+scans found zero findings. The final isolated-Chrome smoke pass covers 13
+synthetic states without horizontal overflow. The provider's web tool can be
+offered candidate URLs/domain restrictions but does not guarantee opening a specific
+page; an inaccessible candidate should no longer dominate the answer. No
+agent-initiated post-change live provider call or real-page quality claim is
+made. The normal local service was restarted on the fixed 4174 endpoint so
+it now runs the revised prompt. Lead diff review found no remaining blocker.
+A local
+loopback integration rerun could not bind port 4174 while the normal service
+was running; the previous 2/2 pass still stands, and the prompt/citation
+changes do not alter that transport.
+An independent read-only web-tool check could not load the owner's earlier
+[RTL](https://www.rtl.nl/nieuws/buitenland/artikel/5656001/poetin-roept-15000-nieuwe-militairen-op-leger-telt-nu-15-miljoen)
+or [De Standaard](https://www.standaard.be/buitenland/president-poetin-beveelt-uitbreiding-russische-leger/35173633.html)
+examples while [MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+loaded. This illustrates an access difference between browser and web tools;
+it does **not** prove which URLs the owner's ChatGPT request actually tried
+or why that provider could not load them.
+
+**2026-10-03 19:41 Berlin live checkpoint:** After the owner-supplied wait,
+one explicitly confirmed synthetic-public `example.com` insight probe used
+the protected saved ChatGPT connection. The normal fixed-port service was
+stopped first to avoid concurrent refresh-token rotation; the one-shot harness
+claimed the port and performed exactly one catalog read and one Responses
+request. It returned `status=success answer_chars=1354 citations=1` through
+the current strict parser/private-result path. The answer text, account data,
+tokens and provider body were neither printed nor archived. No automatic
+retry or sharing occurred. The normal service was restarted with persistent
+pairing immediately afterward. This proves a real provider result can reach
+the local private result adapter; it does **not** verify the revised popup's
+end-to-end owner interaction, insight quality on a real page, or publication.
+The temporary harness and tests were removed after the check. The GUI
+app-shell redesign subsequently passed independent synthetic Chrome review.
+
+**Related-page discovery follow-up:** The owner suggests using Google's
+"related" feature when the local catalog is empty. Google's original
+[Google Related extension](https://www.google.com/related/) is discontinued;
+Google [removed the `related:` operator as unsupported](https://developers.google.com/search/updates)
+in 2023. Its Custom Search [`relatedSite` parameter](https://developers.google.com/custom-search/v1/reference/rest/v1/cse/list)
+is deprecated, and the [JSON API](https://developers.google.com/custom-search/v1/overview)
+is unavailable to new customers and scheduled for discontinuation in 2027.
+Current third-party similar-site extensions may use their own data; this is
+not evidence of a supported Google page-level related API. No automated
+Google search, scraping, new permission, egress or paid service was added.
+If the owner supplies a specific extension, investigate its mechanism before
+deciding whether a user-triggered discovery action is worth a separate gate.
+
 **2026-10-03 current checkpoint:** [ADR-032](../decisions/ADR-032-explicit-chatgpt-account-switch.md)
 is implemented. Disconnect fences in-flight work, clears protected credentials,
 attempts remote revocation, then removes the old non-secret registration while

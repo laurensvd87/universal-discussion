@@ -1,5 +1,5 @@
 import { INSIGHT_EN } from "../locales/insight-en.js";
-import { inspectPageUrl } from "../core/page-content-policy.js";
+import { appendInsightCitationNodes } from "../core/insight-citations.js";
 
 const FAILURE_STAGE_MESSAGES = Object.freeze({
   "callback-invalid": "aiFailureCallbackInvalid",
@@ -61,6 +61,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     const item = node("button", key, `insight-${key}`); item.type = "button";
     listen(item, "click", callback); parent.append(item); return item;
   }
+  const userHeading = node("h2", "title", "insight-user-heading"); userHeading.className = "user-only";
+  userHeading.tabIndex = -1; root.append(userHeading);
   const details = node("details", null, "insight-workspace"); details.className = "compact-details insight-workspace";
   details.append(node("summary", "title"), node("p", "intro")); root.append(details);
   const status = node("p", null, "insight-status"); status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); details.append(status);
@@ -139,7 +141,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const quickStatus = node("p", null, "insight-quick-status");
   quickStatus.setAttribute("role", "status"); quickStatus.setAttribute("aria-live", "polite");
   quickActions.append(quickStatus, usage);
-  root.append(quickActions);
+  details.insertBefore(quickActions, accountDetails);
   const cancel = button(aiControls, "cancelInsights", () => controller?.cancelInsights());
   const account = node("p", null, "insight-ai-account"); account.className = "developer-only"; accountDetails.append(account);
   const citations = node("section", null, "insight-citations"); aiControls.append(citations);
@@ -225,7 +227,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     provenance.textContent = state.preview ? text("provenance").replace("{operator}", state.preview.operatorName) : "";
     origin.textContent = !state.preview ? "" : state.preview.sourceTitle
       ? text("origin").replace("{title}", `${state.preview.sourceTitle} — ${state.preview.sourceUrl ?? ""}`) : text("noOrigin");
-    exactBody.textContent = state.preview?.body ?? "";
+    appendInsightCitationNodes(document, exactBody, state.preview?.body ?? "", text("citationOpen"));
     share.disabled = blocked || !state.preview;
     const ai = state.ai ?? { connected: false, planEnabled: false, pending: false, models: [], model: "", articleText: "", article: null,
       costConsent: false, result: null, status: "idle" };
@@ -237,7 +239,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       ai.planEnabled ? ai.model ? "accountModelSelected" : "accountChooseModel" : "accountPlanUnavailable" :
       "accountDisconnected");
     accountSwitchHint.hidden = !ai.connected;
-    usage.hidden = !ai.planEnabled;
+    usage.hidden = !ai.planEnabled && ai.status !== "usageLimit";
     const generating = ai.status === "generating";
     const aiPending = generating || ai.status === "preparingArticle" ||
       ai.status === "disconnecting" || ai.status === "loadingModels";
@@ -248,6 +250,10 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     share.disabled ||= generating;
     discard.disabled ||= generating;
     const generatedDraft = ai.status === "generated" && Boolean(state.draft.trim());
+    const workspaceOrder = [...details.children];
+    if (generatedDraft && workspaceOrder[workspaceOrder.indexOf(draftDetails) + 1] !== quickActions)
+      details.insertBefore(draftDetails, quickActions);
+    else if (!generatedDraft && workspaceOrder.at(-1) !== draftDetails) details.append(draftDetails);
     draftDetails.setAttribute("data-has-draft", String(Boolean(state.draft.trim())));
     draftSummary.textContent = text(generatedDraft ? "draftWorkspaceGenerated" :
       state.draft.trim() ? "draftWorkspaceManualFilled" : "draftWorkspace");
@@ -271,7 +277,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     }
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
     quickStatus.hidden = !RESEARCH_FAILURE_STATUSES.has(ai.status) && ai.status !== "preparingArticle";
-    quickStatus.textContent = quickStatus.hidden ? "" : aiStatus.textContent;
+    quickStatus.textContent = quickStatus.hidden ? "" :
+      ai.status === "usageLimit" && document.body?.dataset?.uiMode === "user" ? text("usageLimitBrief") : aiStatus.textContent;
     quickStatus.setAttribute("data-state", ai.status === "preparingArticle" ? "preparing" : "failed");
     nextStep.textContent = text(!state.context ? "nextPrepare" : generating ? "nextGenerating" :
       RESEARCH_FAILURE_STATUSES.has(ai.status) ? "nextResearchFailed" :
@@ -344,36 +351,11 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     articleLabel.hidden = article.hidden = articleWarning.hidden = !ai.article;
     costLabel.hidden = cost.hidden = aiScope.hidden = !ai.article;
     citations.replaceChildren();
-    if (ai.result?.citations?.length) {
-      citations.append(node("h4", "citations"));
-      const annotated = node("p"); annotated.className = "insight-body";
-      const bodyText = ai.result.body;
-      let cursor = 0;
-      const ordered = [...ai.result.citations].sort((a, b) => a.startIndex - b.startIndex || a.endIndex - b.endIndex);
-      for (const citation of ordered) {
-        if (citation.startIndex < cursor || !Number.isSafeInteger(citation.startIndex) ||
-            !Number.isSafeInteger(citation.endIndex) || citation.endIndex <= citation.startIndex ||
-            citation.endIndex > bodyText.length || !safeCitationUrl(citation.url)) continue;
-        const before = node("span"); before.textContent = bodyText.slice(cursor, citation.startIndex); annotated.append(before);
-        const linked = node("a"); linked.textContent = bodyText.slice(citation.startIndex, citation.endIndex);
-        linked.href = citation.url; linked.target = "_blank"; linked.rel = "noopener noreferrer";
-        linked.referrerPolicy = "no-referrer"; annotated.append(linked); cursor = citation.endIndex;
-      }
-      const tail = node("span"); tail.textContent = bodyText.slice(cursor); annotated.append(tail); citations.append(annotated);
-      const list = node("ul");
-      for (const citation of ai.result.citations) {
-        if (!safeCitationUrl(citation.url)) continue;
-        const item = node("li");
-        const link = node("a"); link.textContent = `${citation.title} (${citation.url})`;
-        link.href = citation.url; link.target = "_blank"; link.rel = "noopener noreferrer";
-        link.referrerPolicy = "no-referrer"; item.append(link); list.append(item);
-      }
-      citations.append(list);
+    if (ai.result?.citations?.length && state.draft) {
+      const citedDraft = node("p"); citedDraft.className = "insight-body";
+      appendInsightCitationNodes(document, citedDraft, state.draft, text("citationOpen"));
+      citations.append(citedDraft);
     }
-  }
-  function safeCitationUrl(url) {
-    return typeof url === "string" && url.startsWith("https://") &&
-      inspectPageUrl(url).supported && inspectPageUrl(url).url === url;
   }
   function bind(value) { controller = value; render(controller.currentState()); }
   function dispose() {

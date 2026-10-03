@@ -108,3 +108,104 @@ test("User layout keeps the Topic first and hides account identity and diagnosti
   assert.match(css, /body\[data-ui-mode="user"\]\s+#insight-ai-account\s*\{\s*display:\s*none/u);
   assert.match(css, /body\[data-ui-mode="user"\]\s+#insight-diagnostics\s*\{\s*display:\s*none/u);
 });
+
+test("app navigation rehomes controls without calling Create or losing drafts", () => {
+  const selectors = ["main", "#ui-mode-user", "#ui-mode-developer", "#connection-status", "#ui-mode-toggle",
+    "#capture-controls-link", "#capture-settings-summary", "#page-matching", "#capture-settings", "#popup-preferences",
+    "#insight-workspace", "#insight-account-details", "#insight-source-details", "#app-welcome", "#app-navigation",
+    "#app-topic-header", "#app-view-discussion", "#app-view-pages", "#app-view-insights", "#app-settings-view",
+    "#app-welcome-kicker", "#app-welcome-heading", "#app-welcome-intro", "#app-pages-heading", "#app-settings-heading",
+    "#app-settings-kicker", "#app-settings-intro",
+    "#app-pages-list", "#app-pages-empty", "#app-pages-context", "#app-start-session", "#app-choose-topic", "#app-settings-button",
+    "#app-settings-back", "#app-tab-discussion", "#app-tab-pages", "#app-tab-insights", "#app-settings-connection",
+    "#app-welcome-connection", "#app-settings-capture", "#app-settings-display", "#local-discussion",
+    "#discussion-connection-settings", "#discussion-status", "#discussion-advanced", "#discussion-related", "#discussion-counts", "#discussion-topic",
+    ".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance", "#discussion-ai-insights",
+    "#insight-createInsights", "#insight-body"];
+  const elements = new Map();
+  for (const selector of selectors) elements.set(selector, {
+    children: [], dataset: {}, attributes: {}, listeners: new Map(), hidden: false,
+    append(child) {
+      if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
+      this.children.push(child); child.parentElement = this;
+    },
+    insertBefore(child, sibling) {
+      if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
+      const index = this.children.indexOf(sibling); assert.notEqual(index, -1);
+      this.children.splice(index, 0, child); child.parentElement = this;
+    },
+    setAttribute(key, value) { this.attributes[key] = value; },
+    removeAttribute(key) { delete this.attributes[key]; },
+    getAttribute(key) { return this.attributes[key] ?? null; },
+    addEventListener(key, value) { this.listeners.set(key, value); },
+    removeEventListener(key) { this.listeners.delete(key); },
+    click() { if (!this.disabled) this.listeners.get("click")?.(); },
+    focus() {}, scrollIntoView() {}, querySelector() { return { focus() {} }; },
+  });
+  const get = (selector) => elements.get(selector);
+  for (const selector of ["#discussion-connection-settings", "#discussion-status", "#discussion-advanced",
+    "#discussion-related", ".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance", "#discussion-ai-insights", "#discussion-counts"])
+    get("#local-discussion").append(get(selector));
+  for (const selector of ["#capture-settings", "#popup-preferences"]) get("main").append(get(selector));
+  const document = { body: { dataset: {} }, querySelector: get };
+  const draft = get("#insight-body"); draft.value = "Private unsent draft";
+  let creates = 0; get("#insight-createInsights").addEventListener("click", () => { creates++; });
+  const shell = mountPopupShell(document, { messages: {
+    uiWelcomeTitle: "Localized welcome", uiPagesSameTopicIntro: "Localized shared pages",
+    uiPagesNoTopicIntro: "Localized setup pages", uiStartSession: "Localized session",
+    uiSettingsTitle: "Localized settings", uiNavigationLabel: "Localized navigation",
+  } });
+  assert.equal(get("#app-welcome-heading").textContent, "Localized welcome");
+  assert.equal(get("#app-start-session").textContent, "Localized session");
+  assert.equal(get("#app-settings-button").textContent, "Localized settings");
+  assert.equal(get("#app-navigation").getAttribute("aria-label"), "Localized navigation");
+  assert.equal(get("#app-tab-pages").textContent, EN.uiTabPages, "missing translation uses English fallback");
+  const disconnected = { phase: "disconnected", catalog: null, draft: { body: "" } };
+  shell.render(disconnected);
+  assert.equal(get("#app-welcome").hidden, false);
+  assert.equal(get("#discussion-connection-settings").parentElement, get("#app-welcome-connection"));
+  assert.equal(get("#discussion-status").parentElement, get("#app-welcome-connection"));
+  get("#app-settings-button").click();
+  assert.equal(get("#app-settings-view").hidden, false);
+  assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
+  get("#app-settings-back").click();
+  const connected = { phase: "ready", catalog: { topics: [{ id: "t", title: "Topic" }], sources: [] }, topicId: "t",
+    related: { results: [] } };
+  shell.render(connected);
+  assert.equal(get("#app-navigation").hidden, false);
+  assert.equal(get("#app-pages-context").textContent, "Localized shared pages");
+  assert.equal(get("#selected-topic-title").parentElement, get("#app-topic-header"));
+  const noTopic = { ...connected, phase: "choose-topic", topicId: null };
+  shell.render(noTopic);
+  assert.equal(get("#app-pages-context").textContent, "Localized setup pages");
+  assert.equal(get("#app-start-session").hidden, false);
+  assert.equal(get("#app-choose-topic").hidden, false);
+  assert.ok(get("#local-discussion").children.indexOf(get("#app-choose-topic")) <
+    get("#local-discussion").children.indexOf(get("#discussion-counts")));
+  get("#app-choose-topic").click();
+  assert.equal(get("#app-settings-view").hidden, false);
+  assert.equal(get("#discussion-advanced").open, true);
+  shell.render(connected);
+  get("#app-tab-pages").click();
+  assert.equal(get("#app-view-pages").hidden, false);
+  assert.equal(get("#app-tab-pages").getAttribute("aria-current"), "page");
+  get("#app-tab-insights").click();
+  assert.equal(creates, 0);
+  get("#app-tab-discussion").click();
+  get("#discussion-ai-insights").click();
+  assert.equal(creates, 1);
+  get("#insight-createInsights").disabled = true;
+  get("#app-tab-discussion").click(); get("#discussion-ai-insights").click();
+  assert.equal(creates, 1);
+  assert.equal(draft.value, "Private unsent draft");
+  get("#ui-mode-developer").click();
+  assert.equal(get("#discussion-connection-settings").parentElement, get("#local-discussion"));
+  get("#ui-mode-user").click();
+  assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
+  shell.render(disconnected);
+  assert.equal(get("#discussion-connection-settings").parentElement, get("#app-welcome-connection"));
+  shell.render(connected);
+  assert.equal(get("#app-navigation").hidden, false);
+  assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
+  shell.dispose();
+});

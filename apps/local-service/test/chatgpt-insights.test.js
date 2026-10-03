@@ -41,6 +41,13 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   assert.deepEqual(Object.keys(sent), ["model", "store", "stream", "instructions", "input", "tools"]);
   assert.equal(sent.store, false); assert.equal(sent.stream, true);
   assert.equal(sent.input.length, 1); assert.equal(sent.input[0].role, "user");
+  assert.match(sent.instructions, /one useful opening post.*currentSource/u);
+  assert.match(sent.instructions, /never over 120/u);
+  assert.match(sent.instructions, /current page central/u);
+  assert.match(sent.instructions, /A supplied URL is a suggestion, not proof/u);
+  assert.match(sent.instructions, /If a candidate is unavailable, continue/u);
+  assert.match(sent.instructions, /URL citation annotations immediately after the supported claim/u);
+  assert.match(sent.instructions, /Do not print raw URLs, invent citation markers, or add a source list/u);
   assert.deepEqual(sent.tools, [{ type: "web_search", search_context_size: "low",
     filters: { allowed_domains: ["example.com", "news.example.org", "research.example.net"] } }]);
   assert.ok(!JSON.stringify(sent).includes("synthetic-oauth-token"));
@@ -186,6 +193,8 @@ test("explicit tool-free mode omits web search and preserves the requested model
   await adapter.createInsight({ ...REQUEST, allowWebResearch: false });
   assert.deepEqual(payload.tools, []);
   assert.match(payload.instructions, /Do not use external research/u);
+  assert.match(payload.instructions, /one useful opening post/u);
+  assert.doesNotMatch(payload.instructions, /Use web research selectively/u);
 });
 
 test("clearing account models invalidates old selection without resetting the call quota", async () => {

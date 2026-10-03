@@ -1,5 +1,6 @@
 import { buildInsightContext } from "./insight-context.js";
 import { ModelListFailure } from "./local-ai-client.js";
+import { formatInsightCitations } from "./insight-citations.js";
 
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const sameVersion = (a, b) => a && b && a.generation === b.generation && a.revision === b.revision;
@@ -322,12 +323,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
           throw new Error(outcome.error ?? "provider-unavailable");
         }
         if (outcome.state === "completed") {
-          let draft = outcome.result.body;
-          if (outcome.result.citations.length) {
-            const links = [...new Set(outcome.result.citations.map((citation) => citation.url))];
-            const withLinks = `${draft}\n\nSources:\n${links.join("\n")}`;
-            if (withLinks.length <= 8000) draft = withLinks;
-          }
+          const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
           review = null; job = null;
           // The completed result is now owned by this popup. Purge the service
           // copy immediately; its short TTL is only a fallback for lost popups.

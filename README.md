@@ -23,14 +23,30 @@ there is no automatic posting or retry. See also
 [ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md) and
 [ADR-030](decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
 
-Extension **0.12.15** presents a simpler User popup with Topic and discussion
-first, a compact connection state, a paired-only model/Create control, and
-private-draft actions reachable with the keyboard. Synthetic actual-Chrome
-layout checks found no horizontal overflow at the native popup widths. Reload
-the unpacked extension and restart the local service after updating. The
-connected ChatGPT account controls remain reachable through **AI insights >
-ChatGPT ready - account settings > Disconnect to switch account**, even when a
-model is selected; reconnecting is a separate deliberate action.
+Extension **0.12.16** organizes the popup around the current Topic and three
+views: Discussion, Pages and Insights. First-time pairing has a dedicated
+welcome state; settings and prototype diagnostics no longer crowd the main
+conversation. Create insight remains an explicit action, and a generated
+draft stays private until a separate Preview and Share. Synthetic isolated-
+Chrome checks cover the actual popup width and height, keyboard navigation,
+account switching and no horizontal overflow. Reload the unpacked extension
+after updating. The local service was restarted to load the revised insight
+prompt; UI changes alone would not require it. The connected ChatGPT account controls remain reachable under
+**Insights > ChatGPT account settings > Disconnect to switch account**.
+
+The first AI result is now prompted as a short, page-specific forum opener,
+not a long research report. Provider-returned citation references appear as
+small inline source links instead of a list of bare URLs. Other pages supplied
+for context may be inaccessible to ChatGPT even when your browser can load
+them; candidate links alone are not evidence. The draft still needs your
+review and explicit Share. AI follow-up replies are not implemented yet.
+See [ADR-033](decisions/ADR-033-short-insight-openers-and-inline-sources.md).
+
+At the owner's stated 2026-10-03 19:41 Berlin reset time, one synthetic-public
+live request completed through the saved ChatGPT connection and strict local
+parser as a private result (1,354 characters, one citation). It did not
+publish anything or prove insight quality on a real page or the popup's
+end-to-end owner experience. No answer or credentials were logged.
 
 To use a different ChatGPT account, explicitly disconnect the current one in
 the extension before reconnecting. The local service then forgets that

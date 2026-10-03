@@ -13,8 +13,9 @@
           <span class="brand-name">Universal Discussion</span>
           <span id="connection-status" class="connection-status" role="status" aria-live="polite"></span>
         </div>
+        <button id="app-settings-button" class="app-settings-button user-only" type="button" aria-controls="app-settings-view"></button>
       </div>
-      <button id="capture-controls-link" class="capture-controls-link" type="button"></button>
+      <button id="capture-controls-link" class="capture-controls-link developer-only" type="button"></button>
       <div class="scope-row developer-only" aria-label="Prototype scope">
         <span id="product-capabilities" class="scope-badge"></span>
         <span id="product-matching-badge" class="scope-badge scope-badge--quiet"></span>
@@ -26,8 +27,37 @@
         <p id="product-intro" class="intro"></p>
       </header>
 
-      <section id="local-discussion" class="action-panel"></section>
-      <section id="local-insights" class="action-panel"></section>
+      <section id="app-welcome" class="user-only app-welcome" aria-labelledby="app-welcome-heading" hidden>
+        <p id="app-welcome-kicker" class="app-kicker"></p>
+        <h1 id="app-welcome-heading"></h1>
+        <p id="app-welcome-intro"></p>
+        <div id="app-welcome-connection"></div>
+      </section>
+      <header id="app-topic-header" class="user-only app-topic-header" hidden></header>
+      <nav id="app-navigation" class="user-only app-navigation" hidden>
+        <button id="app-tab-discussion" type="button" aria-controls="app-view-discussion" aria-current="page"></button>
+        <button id="app-tab-pages" type="button" aria-controls="app-view-pages"></button>
+        <button id="app-tab-insights" type="button" aria-controls="app-view-insights"></button>
+      </nav>
+      <section id="app-view-discussion" class="app-view"><section id="local-discussion" class="action-panel"></section></section>
+      <section id="app-view-pages" class="app-view user-only" aria-labelledby="app-pages-heading" hidden>
+        <h2 id="app-pages-heading"></h2>
+        <p id="app-pages-context" class="app-view-intro"></p>
+        <div id="app-pages-list"></div>
+        <p id="app-pages-empty" class="app-empty" hidden></p>
+      </section>
+      <section id="app-view-insights" class="app-view" hidden><section id="local-insights" class="action-panel"></section></section>
+      <section id="app-settings-view" class="app-view user-only" aria-labelledby="app-settings-heading" hidden>
+        <button id="app-settings-back" class="app-back" type="button"></button>
+        <p id="app-settings-kicker" class="app-kicker"></p>
+        <h2 id="app-settings-heading" tabindex="-1"></h2>
+        <p id="app-settings-intro" class="app-view-intro"></p>
+        <div id="app-settings-connection"></div>
+        <div id="app-settings-capture"></div>
+        <div id="app-settings-display"></div>
+      </section>
+      <button id="app-start-session" class="user-only app-session-link" type="button" hidden></button>
+      <button id="app-choose-topic" class="user-only app-session-link" type="button" hidden></button>
       <details id="capture-settings" class="capture-settings compact-details">
         <summary id="capture-settings-summary"></summary>
         <section id="page-matching" class="action-panel" tabindex="-1"></section>

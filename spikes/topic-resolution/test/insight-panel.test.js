@@ -17,7 +17,9 @@ function harness(messages, uiMode) {
   const created = [];
   const document = { body: { dataset: { uiMode } }, createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
-      append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; },
+      append(...items) { for (const child of items) { if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child); this.children.push(child); child.parentElement = this; } },
+      replaceChildren(...items) { this.children = []; this.append(...items); },
+      insertBefore(item, sibling) { if (item.parentElement) item.parentElement.children = item.parentElement.children.filter((child) => child !== item); const index = this.children.indexOf(sibling); assert.notEqual(index, -1); this.children.splice(index, 0, item); item.parentElement = this; },
       setAttribute(key, value) { this.attributes[key] = value; }, focus() { this.focused = true; },
       addEventListener(event, callback) { this.listeners.set(event, callback); },
       removeEventListener(event, callback) { if (this.listeners.get(event) === callback) this.listeners.delete(event); },
@@ -146,9 +148,9 @@ test("message fallback and repeated disposal clear sensitive content and detach 
   assert.equal(ui.calls.length, callsBefore);
 });
 
-test("AI controls use separate callbacks and citations become safe deliberate links", () => {
+test("AI controls use separate callbacks and inline citation draft has one safe link", () => {
   const ui = harness();
-  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, account: { label: "Owner <b>" },
+  ui.panel.render(state({ draft: "Finding [↗](https://example.org/article)", ai: { connected: true, planEnabled: true, pending: false, account: { label: "Owner <b>" },
     models: [{ slug: "model-a", displayName: "Model A" }], model: "model-a", articleText: "Public text",
     article: { url: "https://example.com/", documentId: "doc-a" }, costConsent: true, status: "generated",
     result: { body: "Source finding", citations: [{ url: "https://example.org/article", title: "Source <script>",
@@ -156,9 +158,14 @@ test("AI controls use separate callbacks and citations become safe deliberate li
   assert.equal(ui.byId("insight-ai-account").textContent.includes("Owner <b>"), true);
   assert.equal(ui.byId("insight-article-text").value, "Public text");
   const links = ui.descendants(ui.byId("insight-citations")).filter((item) => item.tag === "a");
-  assert.equal(links.length, 2); assert.equal(links[0].linkHref, "https://example.org/article");
+  assert.equal(links.length, 1); assert.equal(links[0].linkHref, "https://example.org/article");
   assert.equal(links[0].rel, "noopener noreferrer");
   assert.equal(ui.byId("insight-createInsights").disabled, false);
+  ui.panel.render(state({ draft: "Finding [↗](https://example.org/article)", preview: {
+    body: "Finding [↗](https://example.org/article)", topicTitle: "Topic", operatorName: "Alex" } }));
+  const previewLinks = ui.descendants(ui.byId("insight-preview-body")).filter((item) => item.tag === "a");
+  assert.equal(previewLinks.length, 1);
+  assert.equal(previewLinks[0].linkHref, "https://example.org/article");
 });
 
 test("compact workspace keeps account and context secondary while exposing redaction before Create", () => {
@@ -168,7 +175,7 @@ test("compact workspace keeps account and context secondary while exposing redac
   assert.equal(ui.byId("insight-source-details").tag, "details");
   assert.equal(ui.byId("insight-draft-details").tag, "details");
   const quickActions = ui.byId("insight-quick-actions");
-  assert.equal(ui.root.children.includes(quickActions), true);
+  assert.equal(ui.byId("insight-workspace").children.includes(quickActions), true);
   assert.deepEqual(quickActions.children.map((item) => item.id),
     [undefined, "insight-model", "insight-model-status", "insight-createInsights", "insight-quick-status", "insight-plan-usage"]);
   assert.equal(ui.byId("insight-account-details").children.includes(ui.byId("insight-model")), false);
@@ -248,6 +255,18 @@ test("research progress, failure, and completed draft have distinct editor guida
   assert.equal(draft.value, "Generated finding");
   assert.equal(draft.placeholder, INSIGHT_EN.draftGeneratedPlaceholder);
   assert.equal(ui.byId("insight-quick-status").hidden, true);
+});
+
+test("User usage-limit summary comes from locale with English fallback", () => {
+  const ai = { connected: true, planEnabled: true, pending: false, models: [], model: "",
+    articleText: "", article: null, costConsent: false, result: null, status: "usageLimit" };
+  const localized = harness({ usageLimitBrief: "Localized usage limit" }, "user");
+  localized.panel.render(state({ ai }));
+  assert.equal(localized.byId("insight-quick-status").textContent, "Localized usage limit");
+  assert.equal(localized.byId("insight-plan-usage").hidden, false);
+  const fallback = harness({}, "user");
+  fallback.panel.render(state({ ai }));
+  assert.equal(fallback.byId("insight-quick-status").textContent, INSIGHT_EN.usageLimitBrief);
 });
 
 test("User Create click uses current page automatically and related-source settings stay local", () => {
