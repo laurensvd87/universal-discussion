@@ -10,11 +10,36 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-The local diagnostic checkpoint adds one content-free `INSIGHT_TRACE`
-line to the backend terminal after a deliberate Create reaches SSE parsing. It summarizes the
-provider's typed response structure and failed check without storing raw
-page or answer text. No provider retry or new data sink is added; see
-[ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md).
+The local diagnostic checkpoint adds a content-free `INSIGHT_TRACE` line to
+the backend terminal. Explicit `--debug-insight-raw` mode additionally keeps
+bounded request/response and structure logs in the user's temporary folder;
+these can contain page and AI text, are never committed, and should be removed
+after debugging. One owner-authorized synthetic GPT-5.5 test reproduced the
+live `response-item-prefix` failure: the stream completed eight items but its
+final output list was empty. The owner approved [ADR-031](decisions/ADR-031-complete-stream-private-draft.md):
+one complete, internally consistent stream may yield a **private editable
+draft** despite that empty list. Contradictory/partial streams still fail;
+there is no automatic posting or retry. See also
+[ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md) and
+[ADR-030](decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
+
+Extension **0.12.15** presents a simpler User popup with Topic and discussion
+first, a compact connection state, a paired-only model/Create control, and
+private-draft actions reachable with the keyboard. Synthetic actual-Chrome
+layout checks found no horizontal overflow at the native popup widths. Reload
+the unpacked extension and restart the local service after updating. The
+connected ChatGPT account controls remain reachable through **AI insights >
+ChatGPT ready - account settings > Disconnect to switch account**, even when a
+model is selected; reconnecting is a separate deliberate action.
+
+To use a different ChatGPT account, explicitly disconnect the current one in
+the extension before reconnecting. The local service then forgets that
+account's client mapping and starts a fresh OpenAI registration; local pairing,
+Topics and comments remain untouched. The OpenAI consent page itself may
+still show the browser's active ChatGPT account, so change that account on
+ChatGPT web or sign out there before starting the new flow. Do not approve
+the consent page if it shows the wrong account. The second-account flow has
+offline coverage but still awaits owner live verification.
 
 Extension **0.12.13** follows the owner's first live retry of the strict
 insight fallback, which still returned `response-final-item-missing`. The

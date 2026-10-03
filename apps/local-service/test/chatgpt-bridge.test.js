@@ -44,6 +44,11 @@ test("registration persists only stable opaque host ID and non-secret account id
     assert.ok(!disk.includes("refreshToken"));
     await assert.rejects(store.writeRegistration({ clientId: "x", subject: "y", email: null, label: "z", accessToken: "secret" }));
     assert.equal(readFileSync(path.join(dir, "chatgpt-registration.json"), "utf8"), disk);
+    await store.writeRegistration(null);
+    assert.equal(await store.readRegistration(), null);
+    const restarted = createChatGPTRegistrationStore(dir);
+    assert.equal(restarted.hostId, store.hostId);
+    assert.equal(await restarted.readRegistration(), null);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -539,6 +544,11 @@ test("callback is narrow generic HTML and all application routes retain capabili
     headers: { host: config.hostHeader }, body: null });
   assert.equal(secretCallback.status, 200);
   assert.equal(JSON.stringify(secretCallback).includes("SECRET"), false);
+  const cancelled = await handle({ method: "GET", url: "/auth/callback?error=access_denied&error_description=SECRET_REASON&state=SECRET_STATE",
+    headers: { host: config.hostHeader }, body: null });
+  assert.equal(cancelled.status, 200);
+  assert.match(cancelled.body, /Sign-in was cancelled or declined\. No account was connected\./u);
+  assert.equal(JSON.stringify(cancelled).includes("SECRET"), false);
   assert.equal((await handle({ method: "GET", url: "/auth/callback?code=x", headers: { host: config.hostHeader, origin: "https://evil.example" }, body: null })).status, 400);
   assert.equal((await handle({ method: "GET", url: "/v1/ai/status", headers: { host: config.hostHeader }, body: null })).status, 401);
   assert.equal((await handle({ method: "GET", url: `/v1/ai/status?${"x".repeat(3000)}`, headers: { host: config.hostHeader }, body: null })).status, 400);

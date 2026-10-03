@@ -89,6 +89,8 @@ test("durable handler authenticates all routes and marks its protocol", async ()
 
 test("CLI accepts only fixed origin and explicit administrative actions", () => {
   assert.deepEqual(parsePairingCliArguments(["--origin", ORIGIN]), { origin: ORIGIN, action: "start" });
+  assert.deepEqual(parsePairingCliArguments(["--origin", ORIGIN, "--debug-insight-raw"]),
+    { origin: ORIGIN, action: "start", rawDebug: true });
   for (const action of ["init", "rotate", "revoke"]) {
     assert.deepEqual(parsePairingCliArguments(["--origin", ORIGIN, `--pairing-${action}`]), { origin: ORIGIN, action });
   }

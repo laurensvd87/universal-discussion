@@ -104,9 +104,11 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   listen(composer, "submit", (event) => { event.preventDefault(); void controller?.submitDraft(); });
   const reattach = button("discussionReattach", () => { controller?.reattachDraft(); body.focus(); }, composer);
   const discard = button("discussionDiscard", () => { controller?.discardDraft(); body.focus(); }, composer);
-  const relatedHeading = node("h3", "discussionRelated"); const model = node("p");
+  const relatedDetails = node("details"); relatedDetails.id = "discussion-related";
+  relatedDetails.className = "compact-details";
+  const relatedHeading = node("summary", "discussionRelated"); const model = node("p");
   model.className = "developer-only";
-  const related = node("ul"); root.append(relatedHeading, model, related);
+  const related = node("ul"); relatedDetails.append(relatedHeading, model, related); root.append(relatedDetails);
   const provenance = node("p"); provenance.id = "discussion-provenance"; provenance.className = "developer-only"; root.append(provenance);
   const learnedControls = node("section"); learnedControls.id = "discussion-learned-controls";
   learnedControls.append(node("h3", "discussionCorrectionHeading"), node("p", "discussionCorrectionIntro")); advanced.append(learnedControls);
@@ -173,10 +175,19 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     for (const [item, callback] of threadHandlers) item.removeEventListener("click", callback);
     threadHandlers = [];
   }
+  function actorName(actor) {
+    const raw = actor?.displayName ?? actor?.id ?? "";
+    if (uiMode !== "user") return raw;
+    if (actor?.id === "demo-alex" && raw === "Alex · synthetic") return "Alex";
+    if (actor?.id === "demo-blair" && raw === "Blair · synthetic") return "Blair";
+    return raw;
+  }
   function contribution(entry, rootEntry, state) {
     const card = node("article"); card.className = "discussion-contribution";
     if (entry.state === "deleted") { card.append(node("p", "discussionDeleted")); return card; }
-    const author = node("p"); author.textContent = state.catalog.actors.find((item) => item.id === entry.authorId)?.displayName ?? entry.authorId;
+    const actor = state.catalog.actors.find((item) => item.id === entry.authorId);
+    const author = node("p"); author.textContent = actorName(actor) || entry.authorId;
+    if (actor?.displayName && author.textContent !== actor.displayName) author.title = actor.displayName;
     if (entry.actorType === "agent") {
       const operator = state.catalog.actors.find((item) => item.id === entry.insight?.operatorId)?.displayName ?? "";
       author.textContent = text("discussionImportedInsight").replace("{operator}", operator);
@@ -215,21 +226,33 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let renderedActor;
   let renderedBusy;
   let renderedFreshRead;
+  let renderedUiMode;
   let confirmationContext;
+  let connectionPosition = "before";
   function render(state) {
     if (disposed) return;
     const previousState = lastState;
     lastState = state;
     const shellView = projectDiscussionShell(state, messages);
     connectionSummary.textContent = text(shellView.connection === "connected" ? "uiConnectionReady" : "uiConnectionSetup");
+    connectionSettings.setAttribute("data-connection", shellView.connection);
+    // Keep keyboard order aligned with the compact visual order in User Mode.
+    const nextConnectionPosition = uiMode === "user" && shellView.connection === "connected" ? "after" : "before";
+    if (nextConnectionPosition !== connectionPosition) {
+      root.insertBefore(connectionSettings, nextConnectionPosition === "after" ? advanced : counts);
+      connectionPosition = nextConnectionPosition;
+    }
     topicTitle.textContent = shellView.topicTitle;
     selectionCue.textContent = shellView.selectionCue; selectionCue.hidden = !shellView.selectionCue;
     heading.textContent = text(uiMode === "user" ? "uiDiscussions" : "discussionHeading");
     advancedSummary.textContent = text(uiMode === "user" ? "uiAdvanced" : "uiAdvancedDeveloper");
     insightShortcut.disabled = !state.catalog || !["ready", "choose-topic"].includes(state.phase) || state.busy;
-    relatedHeading.textContent = text(uiMode === "user" ? "uiRelated" : "discussionRelated");
+    relatedHeading.textContent = uiMode === "user"
+      ? text("uiRelatedCount").replace("{count}", String(state.related?.results?.length ?? 0))
+      : text("discussionRelated");
     identity.textContent = !state.catalog ? "" : text("uiDemoIdentity").replace("{actor}",
-      state.catalog.actors.find((entry) => entry.id === state.actorId)?.displayName ?? text("discussionChoose"));
+      actorName(state.catalog.actors.find((entry) => entry.id === state.actorId)) || text("discussionChoose"));
+    bodyLabel.textContent = text(uiMode === "user" ? "uiCommentBody" : "discussionBody");
     const arrivedCatalog = state.catalog && !previousState?.catalog;
     const reachedConnected = ["ready", "choose-topic"].includes(state.phase) &&
       !["ready", "choose-topic", "loading"].includes(previousState?.phase);
@@ -276,27 +299,29 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])
       .replace("{id}", state.draft.targetId ?? "");
     if (uiMode === "user" && state.draft.mode === "root") mode.textContent = text("uiComposerRoot");
+    mode.hidden = uiMode === "user" && state.draft.mode === "root";
     submit.textContent = text(uiMode === "user" ? state.draft.mode === "edit" ? "uiSaveChanges" : "uiPostComment" : "discussionSubmit");
     discard.textContent = text(uiMode === "user" ? "uiDiscard" : "discussionDiscard");
     const postingSource = selectedPostingSource(state);
     originDisclosure.textContent = state.draft.mode === "edit" ? text("discussionOriginEdit") : postingSource
-      ? text("discussionOriginDisclosure").replace("{title}", postingSource.title)
-      : text("discussionOriginNone");
+      ? text(uiMode === "user" ? "uiOriginDisclosure" : "discussionOriginDisclosure").replace("{title}", postingSource.title)
+      : text(uiMode === "user" ? "uiOriginNone" : "discussionOriginNone");
     const entries = state.discussion?.roots.flatMap((entry) => [entry, ...entry.replies]) ?? [];
     counts.textContent = state.discussion ? text(uiMode === "user" ? "uiContributionCounts" : "discussionCounts")
       .replace("{human}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "human").length))
       .replace("{agent}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "agent").length)) : "";
+    counts.hidden = uiMode === "user" && entries.length === 0;
     // Input updates leave contribution buttons in place so keyboard focus survives.
     const signature = JSON.stringify(state.discussion);
-    if (signature !== renderedDiscussion || renderedActor !== state.actorId || renderedBusy !== state.busy || renderedFreshRead !== state.needsFreshRead) {
+    if (signature !== renderedDiscussion || renderedActor !== state.actorId || renderedBusy !== state.busy || renderedFreshRead !== state.needsFreshRead || renderedUiMode !== uiMode) {
       clearThreadHandlers(); const cards = [];
       for (const rootEntry of state.discussion?.roots ?? []) {
         const group = node("section"); group.append(contribution(rootEntry, rootEntry, state));
         for (const reply of rootEntry.replies) group.append(contribution(reply, rootEntry, state)); cards.push(group);
       }
-      if (state.discussion && !cards.length) cards.push(node("p", "discussionEmpty"));
+      if (state.discussion && !cards.length) cards.push(node("p", uiMode === "user" ? "uiDiscussionEmpty" : "discussionEmpty"));
       thread.replaceChildren(...cards); renderedDiscussion = signature; renderedActor = state.actorId; renderedBusy = state.busy;
-      renderedFreshRead = state.needsFreshRead;
+      renderedFreshRead = state.needsFreshRead; renderedUiMode = uiMode;
     }
     const modelStatus = state.related?.model?.status ?? state.catalog?.model.status;
     model.textContent = !state.catalog ? "" : text(modelStatus === "experimental-local" ? "discussionModelLearned" : modelStatus === "model-unavailable" ? "discussionModelUnavailable" : "discussionModelFixture");
@@ -313,17 +338,18 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       const association = node("p", source.relationship === "same-topic" ? "discussionSameTopic" : "discussionRelatedReading");
       item.append(sourceTitle, address, association); return item;
     });
-    if (state.related && !suggestions.length) suggestions.push(node("li", "discussionRelatedEmpty"));
+    if (state.related && !suggestions.length && uiMode === "developer") suggestions.push(node("li", "discussionRelatedEmpty"));
     related.replaceChildren(...suggestions);
-    relatedHeading.hidden = related.hidden = !state.related;
+    relatedDetails.hidden = !state.related || uiMode === "user" && !suggestions.length;
+    if (uiMode === "developer") relatedDetails.open = true;
     reset.disabled = !state.catalog || !usable || confirmation.value !== "RESET DEMO STATE";
   }
   function bind(value) { controller = value; render(controller.currentState()); }
   function setMode(value) {
     if (!["user", "developer"].includes(value) || disposed) return;
     uiMode = value;
-    if (value === "developer") { connectionSettings.open = true; advanced.open = true; }
-    else { connectionSettings.open = false; advanced.open = false; }
+    if (value === "developer") { connectionSettings.open = true; advanced.open = true; relatedDetails.open = true; }
+    else { connectionSettings.open = false; advanced.open = false; relatedDetails.open = false; }
     // Never rebuild controls or call the controller on a display-only change.
     if (lastState) render(lastState);
   }

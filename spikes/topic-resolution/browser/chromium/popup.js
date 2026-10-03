@@ -265,7 +265,8 @@ document.querySelector("#product-capabilities").textContent = EN.discussionCapab
 document.querySelector("#product-matching-badge").textContent = EN.discussionMatchingBadge;
 document.querySelector("#product-intro").textContent = EN.discussionIntro;
 document.querySelector("#diagnostic-heading").textContent = EN.discussionDiagnostic;
-document.querySelector("#product-footer").textContent = EN.discussionFooter;
+document.querySelector("#user-footer").textContent = EN.uiFooter;
+document.querySelector("#developer-footer").textContent = EN.discussionFooter;
 void localDiscussion.open();
 // After an authenticated local catalog arrives, discover this session's account
 // models once. This does not start inference or retry a failed provider read.

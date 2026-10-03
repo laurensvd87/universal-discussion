@@ -1,5 +1,54 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-03 latest: ADR-032 single-profile ChatGPT account switch is implemented
+and independently trust-reviewed. Disconnect must complete before Connect;
+it clears the protected grant and old non-secret registration, retaining the
+host ID. A late restore is epoch-fenced. The local callback page now labels
+an OAuth decline as cancelled. Offline service 190 pass/4 Windows opt-in
+skips, local loopback 2/2, secret scan zero. The backend was restarted on the
+approved fixed endpoint. The owner's old non-secret registration file had not
+yet changed on read-only inspection after the latest attempt. Extension
+0.12.15 removes the User Mode CSS rule that hid the connected account's
+Disconnect control. After reloading the unpacked extension, the owner can
+open **AI insights > ChatGPT ready - account settings > Disconnect to switch
+account**, wait for **Continue with ChatGPT**, and then choose
+the other account in the browser.
+No second-account success is claimed. The Astra High/Sol Medium popup
+refinement is complete: 84/84 focused UI tests, 28/28 account-access/package
+checks, thirteen isolated-Chrome visual checks, no horizontal overflow;
+full restricted extension suite 841/841. The three previous temporary raw/trace
+diagnostic files were deleted after diagnosis. Do not generate a new provider
+request merely to test account switching.
+
+2026-10-03 update: ADR-031 parser now replays the owner's previously captured
+complete synthetic-public GPT-5.5 stream offline as a private result (1,666
+characters, three citations), without a provider request. The one approved
+fresh live probe reached `subscription_sharing_usage_limit_exceeded` and no
+answer; do not retry on that account or enable paid credits without a separate
+owner gate. A strict headerless SSE failure classifier now maps that exact
+provider code to the existing rate-limit state instead of misleading
+`response-content-missing` (offline tests pending final integration). The
+owner requests a different ChatGPT OAuth account; the current single-profile
+registration is bound to the old subject and account-switch correction is in
+progress. Official SIWC docs require a new dynamic registration or separate
+saved profile, never mixing the old client ID with a new subject. Local pairing
+and discussions remain unaffected. No new-account sign-in has occurred yet.
+
+2026-10-03 live diagnostic: The owner authorized agent-readable temp logs,
+opt-in raw ChatGPT/page-prefix capture and agent-run tests using the existing
+saved ChatGPT connection. ADR-030 scopes the debug mode; no credentials or
+browser-wide page data are logged. One agent-run synthetic-public GPT-5.5
+request reproduced `response-item-prefix`: eight `output_item.done` items,
+assistant message at index 7, terminal `response.completed/status=completed`
+with `output: []`. The owner subsequently explicitly approved ADR-031's
+complete-stream-only reconstruction solely for a private editable draft;
+implementation, adversarial tests and trust review are in progress. Do not
+extend it to posting or contradictory terminal outputs. Raw and structural debug logs live only in the
+OS user temp directory in explicit `--debug-insight-raw` mode and must be
+deleted after diagnosis. Normal mode keeps terminal-only structure trace.
+GUI refinement is being orchestrated by an Astra High agent with Sol Medium
+UI coding agent(s), synthetic screenshots only; lead owns integration.
+
 2026-10-03 owner request: implement meaningful provider-response diagnostics
 without repeating blind Create retries. ADR-029 permits only an ephemeral,
 content-free `INSIGHT_TRACE` line in the backend terminal on a deliberate

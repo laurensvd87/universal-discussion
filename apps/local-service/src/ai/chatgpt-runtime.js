@@ -73,9 +73,10 @@ export function createChatGPTRegistrationStore(dataDir) {
     async readRegistration() { return record.registration; },
     async writeRegistration(registration) {
       // Only the non-secret identity fields accepted by the connection adapter.
-      validateRegistration(registration);
-      const next = { ...record, registration: { clientId: registration.clientId, subject: registration.subject,
-        email: registration.email, label: registration.label } };
+      if (registration !== null) validateRegistration(registration);
+      const next = { ...record, registration: registration === null ? null :
+        { clientId: registration.clientId, subject: registration.subject,
+          email: registration.email, label: registration.label } };
       atomic(next); record = next;
     },
   });
@@ -92,7 +93,7 @@ function validateRegistration(value) {
 }
 
 export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore = null, now = Date.now,
-  onInsightTrace = null,
+  onInsightTrace = null, onInsightDebug = null,
   connectionAdapter, insightsAdapter } = {}) {
   if (typeof fetchImpl !== "function" && !connectionAdapter) return null;
   const store = connectionAdapter ? null : createChatGPTRegistrationStore(dataDir);
@@ -102,7 +103,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     readRegistration: store.readRegistration, writeRegistration: store.writeRegistration,
     fetchImpl, refreshStore: protectedStore, now });
   const insights = insightsAdapter ?? createChatGptInsights({ fetchImpl, getAccessToken: connection.getAccessToken,
-    now, ...(typeof onInsightTrace === "function" ? { onTrace: onInsightTrace } : {}) });
+    now, ...(typeof onInsightTrace === "function" ? { onTrace: onInsightTrace } : {}),
+    ...(typeof onInsightDebug === "function" ? { onDebug: onInsightDebug } : {}) });
   const jobs = new Map();
   const seen = new Set();
   const diagnosticEvents = [];

@@ -88,6 +88,7 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
   let active = null;
   let refreshFlight = null;
   let retryClientId = null;
+  let disconnectFlight = null;
   let disposed = false;
   let epoch = 0;
   const requests = new Set();
@@ -110,6 +111,30 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     }
     try { await saveStored(clientId, subject, refreshToken); }
     catch { try { await clearStored(); } catch { /* Never report credentials or storage paths. */ } }
+  }
+  // A restore can finish after Disconnect and a different sign-in. Check when
+  // the queued storage operation actually runs, not just before it is queued.
+  function restoreCurrent(before) {
+    return !disposed && epoch === before && !active && !currentPending();
+  }
+  async function restoreStored(before, operation) {
+    return storage(async () => {
+      if (!restoreCurrent(before)) return false;
+      await operation();
+      return true;
+    });
+  }
+  async function restorePersistOrForget(before, clientId, subject, refreshToken) {
+    if (!refreshToken) {
+      try { await restoreStored(before, () => refreshStore.clear()); }
+      catch { /* No durable grant for this account. */ }
+      return;
+    }
+    try { await restoreStored(before, () => refreshStore.write({ clientId, subject, refreshToken })); }
+    catch {
+      try { await restoreStored(before, () => refreshStore.clear()); }
+      catch { /* Never report credentials or storage paths. */ }
+    }
   }
   function abortRequests() { for (const controller of requests) controller.abort(); }
   function currentPending() {
@@ -231,12 +256,15 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
       let registration, saved;
       try {
         registration = safeRegistration(await readRegistration());
+        if (!restoreCurrent(before)) return false;
         saved = await storage(() => refreshStore.read());
       } catch { return false; }
+      if (!restoreCurrent(before)) return false;
       if (!registration || !saved) return false;
       if (saved.clientId !== registration.clientId || saved.subject !== registration.subject ||
           typeof saved.refreshToken !== "string") {
-        try { await clearStored(); } catch { /* Keep disconnected on corrupt storage. */ }
+        try { await restoreStored(before, () => refreshStore.clear()); }
+        catch { /* Keep disconnected on corrupt storage. */ }
         return false;
       }
       try {
@@ -247,25 +275,26 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
             refresh_token: saved.refreshToken, resource: RESOURCE }).toString() }, { oauthError: true });
         const tokens = credentials(value, registration.clientId);
         if (!tokens.planEnabled) {
-          await clearStored();
+          await restoreStored(before, () => refreshStore.clear());
           return false;
         }
         if (value.id_token) {
           const identity = await verifyIdToken(value.id_token, registration.clientId, null, endpoints.jwksUri);
           if (identity.subject !== registration.subject) {
-            await clearStored();
+            await restoreStored(before, () => refreshStore.clear());
             return false;
           }
         }
         if (disposed || epoch !== before || active || currentPending()) return false;
-        await persistOrForget(registration.clientId, registration.subject, tokens.refreshToken);
+        await restorePersistOrForget(before, registration.clientId, registration.subject, tokens.refreshToken);
         if (disposed || epoch !== before || active || currentPending()) return false;
         active = { ...tokens, ...registration, jwksUri: endpoints.jwksUri,
           revocationEndpoint: endpoints.revocationEndpoint };
         return true;
       } catch (error) {
         if (error instanceof OAuthRequestError && UNUSABLE_REFRESH.has(error.code)) {
-          try { await clearStored(); } catch { /* Keep disconnected on unusable storage. */ }
+          try { await restoreStored(before, () => refreshStore.clear()); }
+          catch { /* Keep disconnected on unusable storage. */ }
         }
         return false;
       }
@@ -273,7 +302,7 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     return restoreFlight;
   }
   async function start({ redirectUri } = {}) {
-    if (disposed || currentPending()) invalid();
+    if (disposed || disconnectFlight || currentPending()) invalid();
     exactUri(redirectUri);
     let starting = {}; pending = starting;
     try {
@@ -387,28 +416,35 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     }
     return refreshFlight;
   }
-  async function disconnect() {
-    const previous = active; epoch += 1; pending = null; active = null; refreshFlight = null;
-    retryClientId = null; abortRequests();
-    let saved = null;
-    if (!previous && refreshStore) {
-      try { saved = await storage(() => refreshStore.read()); } catch { /* Clear even if read fails. */ }
-    }
-    let localCleared = true;
-    try { await clearStored(); } catch { localCleared = false; }
-    const token = previous?.refreshToken ?? saved?.refreshToken;
-    const clientId = previous?.clientId ?? saved?.clientId;
-    if (!token || !clientId || disposed) {
+  function disconnect() {
+    if (disconnectFlight) return disconnectFlight;
+    const flight = (async () => {
+      const previous = active; epoch += 1; pending = null; active = null; refreshFlight = null;
+      retryClientId = null; abortRequests();
+      let saved = null;
+      if (!previous && refreshStore) {
+        try { saved = await storage(() => refreshStore.read()); } catch { /* Clear even if read fails. */ }
+      }
+      let localCleared = true;
+      try { await clearStored(); } catch { localCleared = false; }
+      const token = previous?.refreshToken ?? saved?.refreshToken;
+      const clientId = previous?.clientId ?? saved?.clientId;
+      let revocationConfirmed = false;
+      if (token && clientId && !disposed) {
+        try {
+          const endpoint = previous?.revocationEndpoint ?? (await discovery()).revocationEndpoint;
+          await request(endpoint, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ token, token_type_hint: "refresh_token", client_id: clientId }).toString() }, { empty: true });
+          revocationConfirmed = true;
+        } catch { /* A failed remote revocation must not retain locally cleared credentials. */ }
+      }
       if (!localCleared) invalid();
-      return { revocationConfirmed: false };
-    }
-    try {
-      const endpoint = previous?.revocationEndpoint ?? (await discovery()).revocationEndpoint;
-      await request(endpoint, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ token, token_type_hint: "refresh_token", client_id: clientId }).toString() }, { empty: true });
-      if (!localCleared) invalid();
-      return { revocationConfirmed: true };
-    } catch { if (!localCleared) invalid(); return { revocationConfirmed: false }; }
+      try { await writeRegistration(null); } catch { invalid(); }
+      return { revocationConfirmed };
+    })();
+    disconnectFlight = flight;
+    void flight.finally(() => { if (disconnectFlight === flight) disconnectFlight = null; }).catch(() => {});
+    return flight;
   }
   function dispose() { disposed = true; epoch += 1; pending = null; active = null; refreshFlight = null;
     retryClientId = null; abortRequests(); }

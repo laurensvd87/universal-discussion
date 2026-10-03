@@ -29,10 +29,19 @@ explicit Create insight request reaches the bounded Responses SSE parser. It
 lists recognized event order/counts, item type/status/index, terminal output
 shape and the exact local rejection boundary. It contains no provider/page
 text, URLs, IDs, tokens, account/model, raw headers or usage counts, and is
-not written to a file or SQLite. An earlier HTTP/format/timeout failure still
-has only its fixed result code. After one public-page test, you may send the
-single trace line and fixed result code; review your terminal selection before
-sharing and never include pairing tokens, callback URLs or raw provider data.
+not written to a file or SQLite in normal mode. An earlier HTTP/format/timeout
+failure still has only its fixed result code.
+
+For the owner-approved local debug mode, stop the service and restart it with
+`node src/cli.js --origin chrome-extension://<your-extension-id> --debug-insight-raw`.
+The terminal prints exact locations for `insight-trace.log` and
+`exchanges.log` under the current user's OS temp folder. The latter contains
+the actual bounded ChatGPT insight request envelope (including the sent page
+prefix and context links) and successful bounded Responses body/status/media
+type; it does **not** contain authorization headers or other browser traffic.
+It is disabled by default, capped at three requests and 1 MiB across restarts,
+and may contain sensitive text. Do not share or commit it; delete it after
+diagnosis. Normal use needs no debug flag. See [ADR-030](../../decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
 
 ## Durable local pairing (0.12.12)
 

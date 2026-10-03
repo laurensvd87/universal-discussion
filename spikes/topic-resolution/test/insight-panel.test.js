@@ -329,11 +329,14 @@ test("first-use connection and plan usage stay clear beside the explicit researc
   const link = ui.byId("insight-manage-usage");
   assert.equal(ui.byId("insight-connect").textContent, "Continue with ChatGPT");
   assert.equal(summary.textContent, INSIGHT_EN.accountDisconnected);
+  assert.equal(ui.byId("insight-account-switch-hint").hidden, true);
   assert.equal(usage.hidden, true);
   ui.panel.render(state({ ai: { connected: false, planEnabled: false, pending: true, status: "connecting" } }));
   assert.equal(summary.textContent, INSIGHT_EN.accountConnecting);
   ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, models: [], model: "", status: "connected" } }));
   assert.equal(summary.textContent, INSIGHT_EN.accountChooseModel);
+  assert.equal(ui.byId("insight-account-switch-hint").hidden, false);
+  assert.equal(ui.byId("insight-disconnect").textContent, INSIGHT_EN.disconnect);
   assert.equal(usage.hidden, false);
   assert.equal(link.linkHref, "https://chatgpt.com/settings/usage");
   assert.equal(link.rel, "noopener noreferrer");
@@ -350,6 +353,7 @@ test("first-use connection and plan usage stay clear beside the explicit researc
     model: "model-a", article: { url: "https://example.com/" }, articleText: "Reviewed", costConsent: false,
     status: "articleReady" } }));
   assert.equal(summary.textContent, INSIGHT_EN.accountModelSelected);
+  assert.equal(ui.byId("insight-account-switch-hint").textContent, INSIGHT_EN.accountSwitchHint);
   assert.equal(ui.byId("insight-article-text").hidden, false);
   assert.equal(ui.byId("insight-cost-consent").hidden, false);
   assert.equal(ui.byId("insight-createInsights").disabled, true);

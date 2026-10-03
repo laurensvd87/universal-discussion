@@ -2,6 +2,8 @@ import { pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
 import { APP_DATABASE_PATH, startLocalApplication } from "./startup.js";
 import { createProtectedRefreshStore } from "./ai/protected-refresh-store.js";
+import { createInsightTraceLog } from "./ai/insight-trace-log.js";
+import { createRawInsightDebugLog } from "./ai/raw-insight-debug-log.js";
 import { validateStartupConfig, FIXED_HOST, FIXED_PORT } from "./http/startup-config.js";
 import { startLoopbackListener } from "./http/loopback-listener.js";
 import { changePairing, PAIRING_FILE_NAME } from "./http/pairing-store.js";
@@ -16,6 +18,8 @@ export function parseCliArguments(args) {
 
 export function parsePairingCliArguments(args) {
   if (args.length === 2) return { origin: parseCliArguments(args), action: "start" };
+  if (args.length === 3 && args[2] === "--debug-insight-raw")
+    return { origin: parseCliArguments(args.slice(0, 2)), action: "start", rawDebug: true };
   if (args.length !== 3 || !["--pairing-init", "--pairing-rotate", "--pairing-revoke"].includes(args[2])) {
     throw new Error("Supply --origin chrome-extension://<extension-id> and one pairing action");
   }
@@ -23,7 +27,7 @@ export function parsePairingCliArguments(args) {
 }
 
 export async function runCli(args = process.argv.slice(2)) {
-  const { origin, action } = parsePairingCliArguments(args);
+  const { origin, action, rawDebug = false } = parsePairingCliArguments(args);
   // Pairing secrets may only be revealed in a developer's interactive terminal.
   if (!process.stdout.isTTY) throw new Error("Start the local service in an interactive terminal for manual pairing");
   const pairingPath = path.join(path.dirname(APP_DATABASE_PATH), PAIRING_FILE_NAME);
@@ -39,6 +43,9 @@ export async function runCli(args = process.argv.slice(2)) {
     else process.stdout.write("Pairing revoked. Existing tokens are invalid.\n");
     return;
   }
+  const traceLog = rawDebug ? createInsightTraceLog() : null;
+  const rawDebugLog = createRawInsightDebugLog({ enabled: rawDebug });
+  if (rawDebug && !rawDebugLog.enabled) throw new Error("Raw insight debug log unavailable");
   const application = await startLocalApplication({
     config: { host: FIXED_HOST, port: FIXED_PORT, origin, capability: "durable-pairing-verifier-only-placeholder" },
     databasePath: APP_DATABASE_PATH,
@@ -50,11 +57,16 @@ export async function runCli(args = process.argv.slice(2)) {
     // requires the paired owner's Create click. No import-time provider I/O.
     chatgptFetchImpl: globalThis.fetch.bind(globalThis),
     chatgptRefreshStore: createProtectedRefreshStore,
-    // One content-free structural line per deliberate Create, kept only in
-    // this interactive terminal. The adapter constructs an allowlisted DTO.
-    insightTrace: (trace) => process.stdout.write(`INSIGHT_TRACE ${JSON.stringify(trace)}\n`),
+    // The sink independently validates the structural DTO before persistence.
+    insightTrace: (trace) => {
+      try {
+        if (!traceLog || traceLog.write(trace)) process.stdout.write(`INSIGHT_TRACE ${JSON.stringify(trace)}\n`);
+      }
+      catch { /* Diagnostics never change a research result. */ }
+    },
+    insightDebug: rawDebug ? (entry) => rawDebugLog.capture(entry) : null,
   });
-  process.stdout.write(`Local synthetic demo listening at http://${FIXED_HOST}:${FIXED_PORT}\nPersistent pairing active. Use deliberate demo text only. Stop with Ctrl+C.\n`);
+  process.stdout.write(`Local synthetic demo listening at http://${FIXED_HOST}:${FIXED_PORT}\n${rawDebug ? `Insight trace log: ${traceLog.filePath}\nRaw insight debug log: ${rawDebugLog.filePath}\n` : ""}Persistent pairing active. Use deliberate demo text only. Stop with Ctrl+C.\n`);
   let stopping = false;
   const shutdown = async () => {
     if (stopping) return;

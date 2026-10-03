@@ -51,7 +51,7 @@ function fixture(options = {}) {
     assert.fail(`Unexpected endpoint: ${url}`);
   };
   const connection = createChatGPTConnection({ hostId: "urn:uuid:synthetic-host", agentName: "Universal Discussion",
-    readRegistration: async () => registration,
+    readRegistration: async () => options.readImpl ? options.readImpl(registration) : registration,
     writeRegistration: async (value) => { if (options.writeImpl) await options.writeImpl(value);
       writes.push(value); registration = value; },
     fetchImpl, refreshStore: options.refreshStore ?? null, now: () => clock,
@@ -70,7 +70,8 @@ function fixture(options = {}) {
     return connection.completeCallback({ redirectUri: REDIRECT, url: callback.toString() });
   }
   return { connection, calls, writes, start, complete, setClock: (value) => { clock = value; },
-    setTokens: (value) => { tokens = value; }, setRevocation: (value) => { revocationResponse = value; } };
+    registration: () => registration, setTokens: (value) => { tokens = value; },
+    setRevocation: (value) => { revocationResponse = value; } };
 }
 
 test("dynamic registration uses one-use state, nonce and S256 PKCE; tokens stay out of status", async () => {
@@ -368,6 +369,74 @@ test("disconnect attempts documented refresh-token revocation then clears local 
   assert.equal(g.connection.status().connected, false);
 });
 
+test("explicit disconnect clears account A before dynamic registration of account B", async () => {
+  let saved = null;
+  const refreshStore = { async read() { return saved; }, async write(value) { saved = value; },
+    async clear() { saved = null; } };
+  const f = fixture({ refreshStore });
+  const first = await f.start(); await f.complete(first);
+  assert.equal(f.registration().subject, "account-1");
+  assert.equal(saved.subject, "account-1");
+  assert.deepEqual(await f.connection.disconnect(), { revocationConfirmed: true });
+  assert.equal(f.registration(), null);
+  assert.equal(saved, null);
+  const second = await f.start();
+  assert.equal(second.searchParams.get("client_id"), "dynamic_agent_client");
+  assert.equal(second.searchParams.has("login_hint"), false);
+  assert.equal(second.searchParams.get("agent_name_hint"), "Universal Discussion");
+  f.setTokens(tokenResponse("oaiapp_account_b", second.searchParams.get("nonce"), {
+    id_token: idToken("oaiapp_account_b", second.searchParams.get("nonce"),
+      { sub: "account-2", email: "second@example.com" }) }));
+  await f.complete(second, { clientId: "oaiapp_account_b" });
+  assert.equal(f.registration().subject, "account-2");
+  assert.equal(f.registration().clientId, "oaiapp_account_b");
+  assert.equal(saved.subject, "account-2");
+});
+
+test("failed protected credential clear retains old registration and prevents account switch", async () => {
+  let saved = null;
+  const refreshStore = { async read() { return saved; }, async write(value) { saved = value; },
+    async clear() { throw new Error("SECRET_STORAGE_PATH"); } };
+  const f = fixture({ refreshStore });
+  const first = await f.start(); await f.complete(first);
+  await assert.rejects(f.connection.disconnect(), (error) =>
+    !String(error).includes("SECRET_STORAGE_PATH"));
+  assert.equal(f.connection.status().connected, false);
+  assert.equal(f.registration().subject, "account-1");
+  assert.equal(saved.subject, "account-1");
+  const next = await f.start();
+  assert.equal(next.searchParams.get("client_id"), "oaiapp_synthetic");
+  assert.equal(next.searchParams.get("login_hint"), "synthetic@example.com");
+});
+
+test("failed remote revocation still clears local credentials and account mapping", async () => {
+  let saved = null;
+  const refreshStore = { async read() { return saved; }, async write(value) { saved = value; },
+    async clear() { saved = null; } };
+  const f = fixture({ refreshStore });
+  const first = await f.start(); await f.complete(first);
+  f.setRevocation(new Response(null, { status: 500 }));
+  assert.deepEqual(await f.connection.disconnect(), { revocationConfirmed: false });
+  assert.equal(saved, null);
+  assert.equal(f.registration(), null);
+  const next = await f.start();
+  assert.equal(next.searchParams.get("client_id"), "dynamic_agent_client");
+  assert.equal(next.searchParams.has("login_hint"), false);
+});
+
+test("registration clear failure cannot silently authorize a different account", async () => {
+  const f = fixture({ writeImpl: (value) => {
+    if (value === null) throw new Error("SECRET_REGISTRATION_PATH");
+  } });
+  const first = await f.start(); await f.complete(first);
+  await assert.rejects(f.connection.disconnect(), (error) =>
+    !String(error).includes("SECRET_REGISTRATION_PATH"));
+  assert.equal(f.connection.status().connected, false);
+  assert.equal(f.registration().subject, "account-1");
+  const next = await f.start();
+  assert.equal(next.searchParams.get("client_id"), "oaiapp_synthetic");
+});
+
 test("near expiry, concurrent callers share one refresh and replacement tokens remain memory-only", async () => {
   const f = fixture(); const auth = await f.start(); await f.complete(auth);
   f.setClock(NOW + 3_550_000);
@@ -450,6 +519,43 @@ test("restore rejects mismatched or unusable stored credentials without connecti
   assert.equal(await changedIdentity.connection.restore(), false);
   assert.equal(saved, null);
   assert.equal(changedIdentity.connection.status().connected, false);
+});
+
+test("late account A restore cannot erase account B after Disconnect and sign-in", async () => {
+  const accountA = { clientId: "oaiapp_account_a", subject: "account-1",
+    email: "first@example.com", label: "first@example.com" };
+  let saved = { clientId: accountA.clientId, subject: accountA.subject, refreshToken: "refresh-a" };
+  const clears = [];
+  const refreshStore = {
+    async read() { return saved; },
+    async write(value) { saved = { ...value }; },
+    async clear() { clears.push(saved?.subject ?? null); saved = null; },
+  };
+  let releaseRead;
+  let markReadStarted;
+  const readStarted = new Promise((resolve) => { markReadStarted = resolve; });
+  const oldRead = new Promise((resolve) => { releaseRead = resolve; });
+  let firstRead = true;
+  const f = fixture({ registration: accountA, refreshStore, readImpl: async (registration) => {
+    if (firstRead) { firstRead = false; markReadStarted(); return oldRead; }
+    return registration;
+  } });
+  const restoring = f.connection.restore();
+  await readStarted;
+  await f.connection.disconnect();
+  const next = await f.start();
+  assert.equal(next.searchParams.get("client_id"), "dynamic_agent_client");
+  f.setTokens(tokenResponse("oaiapp_account_b", next.searchParams.get("nonce"), {
+    id_token: idToken("oaiapp_account_b", next.searchParams.get("nonce"),
+      { sub: "account-2", email: "second@example.com" }) }));
+  await f.complete(next, { clientId: "oaiapp_account_b" });
+  releaseRead(accountA);
+  assert.equal(await restoring, false);
+  assert.equal(f.registration().subject, "account-2");
+  assert.equal(saved.subject, "account-2");
+  assert.equal(saved.clientId, "oaiapp_account_b");
+  assert.deepEqual(clears, ["account-1"]);
+  assert.equal(f.connection.status().connected, true);
 });
 
 test("protected-store write failure leaves a validated sign-in in RAM only", async () => {

@@ -9,6 +9,12 @@ function harness(messages, workspace) {
   const document = { querySelector: (selector) => selector === "#insight-workspace" ? workspace : null, createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
       append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; },
+      insertBefore(item, sibling) {
+        this.children = this.children.filter((child) => child !== item);
+        const index = this.children.indexOf(sibling);
+        assert.notEqual(index, -1);
+        this.children.splice(index, 0, item);
+      },
       setAttribute(key, value) { this.attributes[key] = value; }, focus() { this.focused = true; },
       addEventListener(event, callback) { this.listeners.set(event, callback); },
       removeEventListener(event, callback) { if (this.listeners.get(event) === callback) this.listeners.delete(event); } };
@@ -44,7 +50,52 @@ function state(patch = {}) {
       ] }] }, related: { results: [{ title: "<iframe>inert source</iframe>", url: "https://synthetic.example/", relationship: "related" }] },
     draft: { body: "", detached: false, mode: "root", targetId: null }, ...patch };
 }
+test("connected settings follow the composer in User DOM order and return before content when disconnected", () => {
+  const ui = harness();
+  const settings = ui.byId("discussion-connection-settings");
+  const counts = ui.byId("discussion-counts");
+  const composer = ui.root.children.find((item) => item.tag === "form" && item.children.some((child) => child.id === "discussion-body"));
+  assert.ok(ui.root.children.indexOf(settings) > ui.root.children.indexOf(composer));
+  const sameChildren = [...ui.root.children];
+  ui.panel.render(state());
+  assert.deepEqual(ui.root.children, sameChildren);
+  ui.panel.render(state({ phase: "disconnected", catalog: null, discussion: null, related: null }));
+  assert.ok(ui.root.children.indexOf(settings) < ui.root.children.indexOf(counts));
+});
 const descendants = (node) => [node, ...node.children.flatMap(descendants)];
+test("User related pages are a count disclosure; native open state survives polling and resets on mode switch", () => {
+  const ui = harness();
+  const details = ui.byId("discussion-related");
+  const related = state({ related: { results: Array.from({ length: 4 }, (_, index) => ({
+    title: `Synthetic page ${index + 1}`, url: `https://example.com/${index + 1}`, relationship: "related",
+  })) } });
+  ui.panel.render(related);
+  assert.equal(details.hidden, false);
+  assert.equal(details.children[0].textContent, "Related pages (4)");
+  details.open = true;
+  ui.panel.render(related);
+  assert.equal(details.open, true);
+  ui.panel.setMode("developer");
+  assert.equal(details.open, true);
+  ui.panel.setMode("user");
+  assert.equal(details.open, false);
+  ui.panel.render(state({ related: { results: [] }, discussion: { roots: [] } }));
+  assert.equal(details.hidden, true);
+  assert.equal(ui.byId("discussion-counts").hidden, true);
+  assert.ok(descendants(ui.root).some((item) => item.textContent === EN.uiDiscussionEmpty));
+});
+test("only registered synthetic actors get compact User names; full names stay available", () => {
+  const current = state();
+  current.catalog.actors.push({ id: "demo-blair", displayName: "Blair · synthetic" },
+    { id: "owner-other", displayName: "Other · synthetic" });
+  current.discussion.roots[0].authorId = "demo-blair";
+  const ui = harness(); ui.panel.render(current);
+  const author = descendants(ui.root).find((item) => item.title === "Blair · synthetic");
+  assert.equal(author.textContent, "Blair");
+  assert.match(ui.byId("discussion-demo-identity").textContent, /Posting as Alex · synthetic identity/u);
+  current.discussion.roots[0].authorId = "owner-other"; ui.panel.render(current);
+  assert.ok(descendants(ui.root).some((item) => item.textContent === "Other · synthetic"));
+});
 test("English disclosures describe adaptive regrouping, source links and the bounded Clear scope", () => {
   assert.match(EN.matchingPartial, /0\.90 and 0\.94/u);
   assert.match(EN.matchingPartial, /move whole Source-anchored conversations with their replies/u);
@@ -98,8 +149,8 @@ test("composer discloses deliberate selected-source association and honest manua
   const ui = harness(); const current = state({ sourceId: "source-demo", selection: "manual" });
   current.catalog.sources[0].topicId = current.topicId;
   ui.panel.render(current);
-  assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.discussionOriginDisclosure.replace("{title}", "Synthetic source"));
-  current.sourceId = null; ui.panel.render(current); assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.discussionOriginNone);
+  assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.uiOriginDisclosure.replace("{title}", "Synthetic source"));
+  current.sourceId = null; ui.panel.render(current); assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.uiOriginNone);
   current.draft.mode = "edit"; ui.panel.render(current); assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.discussionOriginEdit);
 });
 test("panel renders hostile service text inertly, actual distinct counts, fixture model labels", () => {
@@ -267,7 +318,7 @@ test("display-mode toggles preserve draft/control nodes and actions while hiding
   options.forEach((option, index) => assert.equal(topic.children[index], option));
   assert.deepEqual(ui.calls, calls);
   assert.equal(ui.byId("selected-topic-title").textContent, "<script>hostile topic</script>");
-  assert.match(ui.byId("discussion-demo-identity").textContent, /Demo:.*not signed in/u);
+  assert.match(ui.byId("discussion-demo-identity").textContent, /Posting as Alex.*synthetic identity, not signed in/u);
   ui.panel.render({ ...snapshot, phase: "error", error: "unavailable" });
   assert.equal(ui.byId("selected-topic-title").textContent, EN.uiTopicUnavailable);
   assert.equal(ui.byId("discussion-connection-settings").open, true);

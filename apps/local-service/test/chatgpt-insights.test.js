@@ -51,6 +51,26 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   }
 });
 
+test("explicit raw-debug callback receives only the sent insight envelope and bounded response body", async () => {
+  const captured = [];
+  const raw = complete("Synthetic answer.");
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : stream(raw),
+    getAccessToken: async () => ACCESS, onDebug: (entry) => {
+      captured.push(entry);
+      throw new Error("synthetic debug sink failure");
+    } });
+  await adapter.listModels();
+  assert.equal(captured.length, 0);
+  assert.equal((await adapter.createInsight(REQUEST)).body, "Synthetic answer.");
+  assert.deepEqual(captured.map((entry) => entry.phase), ["request", "response"]);
+  assert.equal(JSON.parse(captured[0].payload.input[0].content).articlePrefix, REQUEST.articleText);
+  assert.equal(captured[1].body, raw);
+  assert.equal(captured[1].status, 200);
+  assert.equal(captured[1].contentType, "text/event-stream");
+  assert.equal(JSON.stringify(captured).includes(ACCESS), false);
+  adapter.dispose();
+});
+
 test("model catalog uses a 25-second deadline while research keeps 90 seconds", async () => {
   const delays = [];
   const originalSetTimeout = globalThis.setTimeout;
@@ -353,16 +373,24 @@ test("one identity-matched finalized assistant item can become a private result 
   const body = "A bounded synthetic insight.";
   const item = { id: itemId, type: "message", role: "assistant", status: "completed",
     content: [{ type: "output_text", text: body, annotations: [] }] };
-  const textFinalized = streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body });
+  const textFinalized = streamEvent("response.output_text.done", { item_id: itemId, output_index: 7, content_index: 0, text: body });
+  const prefix = Array.from({ length: 7 }, (_, index) => {
+    const type = index % 2 === 0 ? "reasoning" : "web_search_call";
+    const id = `${type}_${index}`;
+    return streamEvent("response.output_item.added", { output_index: index,
+      item: { id, type, ...(type === "reasoning" ? {} : { status: "in_progress" }) } }) +
+      streamEvent("response.output_item.done", { output_index: index,
+        item: { id, type, ...(type === "reasoning" ? {} : { status: "completed" }) } });
+  }).join("");
   const raw = streamEvent("response.created", { response: { id: responseId, status: "in_progress", output: [] } }) +
-    streamEvent("response.output_item.added", { output_index: 1,
-      item: { id: itemId, type: "message", role: "assistant", status: "in_progress" } }) +
+    prefix + streamEvent("response.output_item.added", { output_index: 7,
+      item: { id: itemId, type: "message", role: "assistant", status: "in_progress", content: [] } }) +
     textFinalized +
-    streamEvent("response.content_part.done", { item_id: itemId, output_index: 1, content_index: 0,
+    streamEvent("response.content_part.done", { item_id: itemId, output_index: 7, content_index: 0,
       part: { type: "output_text", text: body } }) +
-    streamEvent("response.output_item.done", { output_index: 1, item }) +
+    streamEvent("response.output_item.done", { output_index: 7, item }) +
     streamEvent("response.completed", { response: { id: responseId, status: "completed",
-      output: [{ id: "call_synthetic", type: "web_search_call", status: "completed" }] } });
+      output: [] } });
   for (const reply of [stream(raw), headerless(raw), stream(raw.replace(textFinalized, ""))]) {
     let posts = 0;
     const adapter = createChatGptInsights({ fetchImpl: async (url) => {
@@ -372,6 +400,115 @@ test("one identity-matched finalized assistant item can become a private result 
     }, getAccessToken: async () => ACCESS });
     await adapter.listModels();
     assert.deepEqual(await adapter.createInsight(REQUEST), { body, citations: [], model: "synthetic-model" });
+    assert.equal(posts, 1);
+    adapter.dispose();
+  }
+});
+
+test("previous matching terminal-prefix fallback remains available", async () => {
+  const responseId = "resp_legacy_prefix";
+  const prior = { id: "call_prior", type: "web_search_call", status: "completed" };
+  const answer = { id: "msg_legacy", type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Legacy private answer." }] };
+  const created = streamEvent("response.created", { response: { id: responseId } });
+  const done = streamEvent("response.output_item.done", { output_index: 1, item: answer });
+  const final = (output) => streamEvent("response.completed", { response: {
+    id: responseId, status: "completed", output } });
+  for (const [raw, expected] of [
+    [created + done + final([prior]), "Legacy private answer."],
+    [created + done + final([{ ...prior, id: "other" }]), "Legacy private answer."],
+    [created + streamEvent("response.output_item.done", { output_index: 0, item: prior }) +
+      done + final([{ ...prior, id: "other" }]), null],
+    [created + done + final([{ ...prior, status: "failed" }]), null],
+    [created + done + final([prior]).slice(0, -1), null],
+  ]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    if (expected) assert.equal((await adapter.createInsight(REQUEST)).body, expected);
+    else await assert.rejects(adapter.createInsight(REQUEST), errorCode("invalid-response"));
+    adapter.dispose();
+  }
+});
+
+test("empty-output recovery requires a complete matched prefix and rejects contradictory evidence", async () => {
+  const responseId = "resp_strict_prefix", body = "Synthetic private answer.";
+  const prior = { id: "reasoning_prior", type: "reasoning" };
+  const answer = { id: "msg_answer", type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: body }] };
+  const created = streamEvent("response.created", { response: { id: responseId } });
+  const added = (index, item) => streamEvent("response.output_item.added", { output_index: index,
+    item: { ...item, ...(item.type === "reasoning" ? {} : { status: "in_progress" }),
+      ...(item.type === "message" ? { content: [] } : {}) } });
+  const done = (index, item) => streamEvent("response.output_item.done", { output_index: index, item });
+  const final = (output = [], extra = {}) => streamEvent("response.completed", { response: {
+    id: responseId, status: "completed", output, ...extra } });
+  const prefix = added(0, prior) + done(0, prior) + added(1, answer) + done(1, answer);
+  const cases = [
+    { raw: created + prefix + final(), detail: null },
+    { raw: created + added(0, { ...prior, encrypted_content: "opaque_added" }) +
+      done(0, { ...prior, encrypted_content: "opaque_done" }) +
+      added(1, answer) + done(1, answer) + final(), detail: null },
+    { raw: created + added(0, prior) + added(1, answer) + done(1, answer) + final(), detail: "response-item-prefix" },
+    { raw: created + done(0, prior) + added(0, prior) + added(1, answer) + done(1, answer) + final(), detail: "response-item-conflict" },
+    { raw: created + added(0, prior) + done(0, { ...prior, id: "different_prior" }) +
+      added(1, answer) + done(1, answer) + final(), detail: "response-item-conflict" },
+    { raw: created + added(0, prior) + done(0, { ...prior, type: "web_search_call" }) +
+      added(1, answer) + done(1, answer) + final(), detail: "response-item-conflict" },
+    { raw: created + added(0, prior) + done(0, { ...prior, status: "incomplete" }) +
+      added(1, answer) + done(1, answer) + final(), detail: "response-item-conflict" },
+    { raw: created + added(0, { ...prior, type: "web_search_call" }) +
+      done(0, { ...prior, type: "web_search_call" }) + added(1, answer) + done(1, answer) + final(),
+      detail: "response-item-identity" },
+    { raw: created + added(0, { ...prior, status: "in_progress" }) +
+      done(0, { ...prior, status: "completed" }) + added(1, answer) + done(1, answer) + final(),
+      detail: "response-item-identity" },
+    { raw: created + streamEvent("response.output_item.added", { output_index: 0,
+      item: { id: prior.id, type: "web_search_call" } }) +
+      done(0, { ...prior, type: "web_search_call", status: "completed" }) +
+      added(1, answer) + done(1, answer) + final(), detail: "response-item-identity" },
+    { raw: created + added(0, prior) + done(0, prior) +
+      added(1, { ...answer, status: undefined }) + done(1, { ...answer, status: undefined }) + final(),
+      detail: "response-output-empty" },
+    { raw: created + added(0, prior) + done(0, prior) +
+      streamEvent("response.output_item.added", { output_index: 1,
+        item: { ...answer, status: "in_progress", content: [{ type: "output_text", text: "Earlier answer A." }] } }) +
+      done(1, answer) + final(), detail: "response-item-text" },
+    { raw: created + streamEvent("response.output_item.added", { output_index: 0,
+      item: { ...prior, summary: [{ type: "summary_text", text: "Earlier reasoning A." }] } }) +
+      done(0, { ...prior, summary: [{ type: "summary_text", text: "Different reasoning B." }] }) +
+      added(1, answer) + done(1, answer) + final(), detail: "response-item-conflict" },
+    { raw: created + streamEvent("response.output_item.added", { output_index: 0,
+      item: { id: prior.id, type: "web_search_call", status: "in_progress", action: { query: "A" } } }) +
+      done(0, { id: prior.id, type: "web_search_call", status: "completed", action: { query: "B" } }) +
+      added(1, answer) + done(1, answer) + final(), detail: "response-item-conflict" },
+    { raw: created + prefix + final([prior]), detail: null },
+    { raw: created + prefix + final([], { error: { code: "failure" } }), detail: "response-item-conflict" },
+    { raw: created + prefix + streamEvent("response.refusal.done", { item_id: answer.id }) + final(), detail: "response-item-conflict" },
+    { raw: created + prefix + streamEvent("response.output_text.done", { item_id: answer.id,
+      output_index: 1, content_index: 0, text: "different" }) + final(), detail: "response-item-text" },
+    { raw: created + prefix + streamEvent("response.content_part.done", { item_id: answer.id,
+      output_index: 1, content_index: 0, part: { type: "output_text", text: "different" } }) + final(), detail: "response-item-text" },
+    { raw: created + added(0, prior) + done(0, prior) +
+      streamEvent("response.output_text.delta", { item_id: answer.id, output_index: 1, content_index: 0,
+        delta: body }) + final(), detail: "response-output-empty" },
+    { raw: created + prefix + final().slice(0, -1), detail: "response-event" },
+  ];
+  for (const [index, { raw, detail }] of cases.entries()) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1;
+      return stream(raw);
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    if (detail === null) assert.equal((await adapter.createInsight(REQUEST)).body, body);
+    else await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.equal(error.detail, detail, `case ${index}`);
+      assert.equal(JSON.stringify(error).includes("Earlier answer A."), false);
+      assert.equal(JSON.stringify(error).includes("Earlier reasoning A."), false);
+      return true;
+    });
     assert.equal(posts, 1);
     adapter.dispose();
   }
@@ -458,14 +595,16 @@ test("finalized-item diagnostics disclose only a fixed rejection boundary", asyn
   const item = { id: "msg_synthetic_diag", type: "message", role: "assistant", status: "completed",
     content: [{ type: "output_text", text: body }] };
   const created = streamEvent("response.created", { response: { id: "resp_synthetic_diag" } });
+  const added = streamEvent("response.output_item.added", { output_index: 0,
+    item: { id: item.id, type: "message", role: "assistant", status: "in_progress" } });
   const done = streamEvent("response.output_item.done", { output_index: 0, item });
   const final = (output = []) => streamEvent("response.completed", { response: {
     id: "resp_synthetic_diag", status: "completed", output } });
   for (const [raw, detail] of [
     [done + final(), "response-item-identity"],
-    [created + done + streamEvent("response.output_item.done", { output_index: 0, item }) + final(), "response-item-conflict"],
+    [created + added + done + streamEvent("response.output_item.done", { output_index: 0, item }) + final(), "response-item-conflict"],
     [created + streamEvent("response.output_item.done", { output_index: 1, item }) + final(), "response-item-prefix"],
-    [created + streamEvent("response.output_text.done", { item_id: item.id, output_index: 0,
+    [created + added + streamEvent("response.output_text.done", { item_id: item.id, output_index: 0,
       content_index: 0, text: "contradictory" }) + done + final(), "response-item-text"],
   ]) {
     const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : stream(raw),
@@ -507,6 +646,7 @@ test("research response trace identifies a missing finalized item without provid
   assert.equal(traces[0].outcome, "failure");
   assert.equal(traces[0].detail, "response-item-prefix");
   assert.equal(traces[0].fallbackFailure, "response-item-prefix");
+  assert.equal(traces[0].fallbackBranch, "length");
   assert.equal(traces[0].createdFinalMatch, true);
   assert.equal(traces[0].candidateCount, 1);
   assert.equal(traces[0].candidateIndex, 2);
@@ -518,6 +658,30 @@ test("research response trace identifies a missing finalized item without provid
   assert.equal(JSON.stringify(traces).includes(secret), false);
   assert.equal(JSON.stringify(traces).includes(ACCESS), false);
   adapter.dispose();
+});
+
+test("trace distinguishes a missing prefix without logging item identities", async () => {
+  const secret = "SECRET_PREFIX_ID";
+  const candidate = { id: `msg_${secret}`, type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "A bounded finding [1]." }] };
+  const created = streamEvent("response.created", { response: { id: "resp_prefix" } });
+  const added = streamEvent("response.output_item.added", { output_index: 1,
+    item: { id: candidate.id, type: "message", role: "assistant", status: "in_progress" } });
+  const done = streamEvent("response.output_item.done", { output_index: 1, item: candidate });
+  const final = (output) => streamEvent("response.completed", { response: {
+    id: "resp_prefix", status: "completed", output } });
+  const cases = [{ branch: "length", raw: created + added + done + final([]) }];
+  for (const { branch, raw } of cases) {
+    const traces = [];
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : stream(raw),
+      getAccessToken: async () => ACCESS, onTrace: (trace) => traces.push(trace) });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => error.detail === "response-item-prefix");
+    assert.equal(traces.length, 1);
+    assert.equal(traces[0].fallbackBranch, branch);
+    assert.equal(JSON.stringify(traces).includes(secret), false);
+    adapter.dispose();
+  }
 });
 
 test("research trace is emitted once on success and callback exceptions do not change the result", async () => {
@@ -587,6 +751,66 @@ test("headerless HTTP 200 accepts one complete bounded Responses SSE stream", as
   assert.deepEqual(await adapter.createInsight(REQUEST), { body: "A bounded finding [1].", citations: [], model: "synthetic-model" });
   assert.equal(posts, 1);
   adapter.dispose();
+});
+
+test("headerless terminal failure maps only fixed codes from a complete matching stream", async () => {
+  const id = "resp_synthetic";
+  const secret = "SECRET_PROVIDER_FAILURE_MESSAGE";
+  const prefix = event("response.created", { id, status: "in_progress" }) +
+    event("response.in_progress", { id, status: "in_progress" });
+  const failed = (code, responseId = id) => event("response.failed", {
+    id: responseId, status: "failed", error: { code, message: secret }, output: [],
+  });
+  const error = streamEvent("error", { error: { code: "subscription_sharing_usage_limit_exceeded", message: secret } });
+  const cases = [
+    [prefix + error + failed("subscription_sharing_usage_limit_exceeded"), "rate-limit"],
+    [prefix + failed("subscription_sharing_unsupported_capability"), "unsupported-capability"],
+  ];
+  for (const [body, code] of cases) {
+    let posts = 0;
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) return models();
+      posts += 1; return headerless(body);
+    }, getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.equal(errorCode(code)(error), true);
+      assert.equal(error.detail, undefined);
+      assert.equal(JSON.stringify(error).includes(secret), false);
+      assert.equal(JSON.stringify(error).includes(id), false);
+      return true;
+    });
+    assert.equal(posts, 1);
+    adapter.dispose();
+  }
+});
+
+test("headerless failure rejects mismatched, incomplete, malformed and nonterminal streams", async () => {
+  const id = "resp_synthetic";
+  const created = event("response.created", { id, status: "in_progress" });
+  const failed = event("response.failed", { id, status: "failed",
+    error: { code: "subscription_sharing_usage_limit_exceeded" }, output: [] });
+  const cases = [
+    created + failed.slice(0, -1),
+    created + event("response.failed", { id: "resp_other", status: "failed",
+      error: { code: "subscription_sharing_usage_limit_exceeded" } }),
+    created + failed + event("response.in_progress", { id }),
+    created + failed.replace("event: response.failed", "event: response.completed"),
+    created + streamEvent("response.output_text.delta", { delta: "untrusted" }) + failed,
+    created + failed.replace("\n\n", "\ndata: {}\n\n"),
+    created + event("response.failed", { id, status: "failed", error: { code: "unknown_failure" } }),
+  ];
+  for (const body of cases) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : headerless(body),
+      getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.equal(errorCode("invalid-response")(error), true);
+      assert.equal(error.detail, "response-content-missing");
+      return true;
+    });
+    adapter.dispose();
+  }
 });
 
 test("empty format header uses the same strict completed-stream fallback", async () => {

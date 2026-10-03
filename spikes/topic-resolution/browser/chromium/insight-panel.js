@@ -92,6 +92,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const connect = button(accountDetails, "connect", () => { void controller?.connect(); });
   const check = button(accountDetails, "checkConnection", () => { void controller?.checkConnection(); });
   const disconnect = button(accountDetails, "disconnect", () => { void controller?.disconnect(); });
+  const accountSwitchHint = node("p", "accountSwitchHint", "insight-account-switch-hint");
+  accountDetails.append(accountSwitchHint);
   const models = button(accountDetails, "loadModels", () => { void controller?.loadModels(); });
   const modelLabel = node("label", "model"); modelLabel.htmlFor = "insight-model";
   const model = node("select", null, "insight-model");
@@ -234,6 +236,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     accountSummary.textContent = text(ai.pending ? "accountConnecting" : ai.connected ?
       ai.planEnabled ? ai.model ? "accountModelSelected" : "accountChooseModel" : "accountPlanUnavailable" :
       "accountDisconnected");
+    accountSwitchHint.hidden = !ai.connected;
     usage.hidden = !ai.planEnabled;
     const generating = ai.status === "generating";
     const aiPending = generating || ai.status === "preparingArticle" ||

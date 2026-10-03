@@ -45,7 +45,19 @@ and research verification remains open. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.
 ADR-029 permits only an ephemeral, content-free terminal structure trace for
 deliberate insight responses reaching SSE parsing; raw response capture and
-persistent logs remain unapproved.
+persistent logs were separately owner-approved only for explicit local debug
+mode in ADR-030. Its first agent-run synthetic GPT-5.5 request reproduced
+`response-item-prefix`: eight completed stream items but empty terminal output.
+The owner subsequently approved ADR-031's bounded completed-stream fallback
+for a private editable draft only; adversarial tests and trust review passed.
+An offline replay of the actual completed synthetic-public stream yields a
+private result; a fresh live result is still unverified because the original
+account reached its plan limit. ADR-032's explicit single-profile account
+switch and the Astra High/Sol Medium minimal popup refinement are implemented
+and offline-reviewed. Owner second-account sign-in is pending; the old local
+registration remained in place after the last owner attempt, so do not claim
+the switch completed. No provider, store or deployment gate follows from the
+GUI work.
 
 The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
 Medium coding subagents (2026-09-28). Delegate bounded coding/test slices with

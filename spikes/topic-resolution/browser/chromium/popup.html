@@ -9,10 +9,9 @@
   <body data-ui-mode="user">
     <main>
       <div class="popup-topbar">
-        <span id="connection-status" class="connection-status" role="status" aria-live="polite"></span>
-        <div id="ui-mode-toggle" class="ui-mode-switch" role="group">
-          <button id="ui-mode-user" type="button" aria-pressed="true"></button>
-          <button id="ui-mode-developer" type="button" aria-pressed="false"></button>
+        <div class="brand-lockup">
+          <span class="brand-name">Universal Discussion</span>
+          <span id="connection-status" class="connection-status" role="status" aria-live="polite"></span>
         </div>
       </div>
       <button id="capture-controls-link" class="capture-controls-link" type="button"></button>
@@ -32,6 +31,13 @@
       <details id="capture-settings" class="capture-settings compact-details">
         <summary id="capture-settings-summary"></summary>
         <section id="page-matching" class="action-panel" tabindex="-1"></section>
+      </details>
+      <details id="popup-preferences" class="capture-settings compact-details">
+        <summary>Settings</summary>
+        <div id="ui-mode-toggle" class="ui-mode-switch" role="group">
+          <button id="ui-mode-user" type="button" aria-pressed="true"></button>
+          <button id="ui-mode-developer" type="button" aria-pressed="false"></button>
+        </div>
       </details>
 
       <details class="fixture-panel developer-only">
@@ -185,7 +191,7 @@
       </section>
 
       </details>
-      <footer id="product-footer"></footer>
+      <footer id="product-footer"><span id="user-footer" class="user-only"></span><span id="developer-footer" class="developer-only"></span></footer>
     </main>
     <script type="module" src="popup.js"></script>
   </body>

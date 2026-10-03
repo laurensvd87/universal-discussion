@@ -16,7 +16,7 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         if (normalized.method !== "GET" || normalized.body !== null || Object.hasOwn(normalized.headers, "origin") ||
             normalized.url.hash || normalized.url.search.length > 8_192) fail("invalid", "Invalid request");
         ai.callback(`http://${config.hostHeader}${normalized.url.pathname}${normalized.url.search}`);
-        return callbackResponse();
+        return callbackResponse(normalized.url.searchParams.has("error") && !normalized.url.searchParams.has("code"));
       }
       if (normalized.method === "OPTIONS") return preflight(normalized, config);
       corsOrigin = requireOrigin(normalized.headers, config.origin);
@@ -158,12 +158,14 @@ async function route(request, service, ai, durablePairing) {
   fail("not-found", "Object unavailable");
 }
 
-function callbackResponse() {
+function callbackResponse(cancelled = false) {
   return { status: 200, headers: {
     "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff",
     "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
     "referrer-policy": "no-referrer",
-  }, body: "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Sign-in response received</title><body><p>Sign-in response received; verification is not yet complete. Return to extension and check status.</p></body></html>" };
+  }, body: cancelled
+    ? "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Sign-in cancelled</title><body><p>Sign-in was cancelled or declined. No account was connected. Return to the extension to try again.</p></body></html>"
+    : "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Sign-in response received</title><body><p>Sign-in response received; verification is not yet complete. Return to extension and check status.</p></body></html>" };
 }
 
 function parseJsonBody(request) {

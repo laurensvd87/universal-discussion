@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-02. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-03. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -32,6 +32,77 @@ loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/other-provider/moderation work and all external release gates remain separate.
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
+
+**2026-10-03 current checkpoint:** [ADR-032](../decisions/ADR-032-explicit-chatgpt-account-switch.md)
+is implemented. Disconnect fences in-flight work, clears protected credentials,
+attempts remote revocation, then removes the old non-secret registration while
+preserving the installation host ID. The next Connect uses fresh dynamic
+registration without an old login hint. A late restore cannot erase the new
+account's protected token. The cancellation callback page now labels a declined
+attempt without echoing URL parameters. Service tests: **190 passed, four
+Windows opt-in skipped**; loopback integration **2/2**; secret scan zero
+findings. Independent Trust review found no blocker. The updated backend is
+running locally. The owner's second-account sign-in is still pending: a
+read-only check showed the old registration has not yet been cleared, and
+review found User Mode had hidden the connected account's Disconnect control.
+Extension 0.12.15 fixes this: the account-settings disclosure is now reachable
+whether or not a model is selected; the owner must reload the unpacked
+extension before using it. An existing OpenAI browser session may independently
+select the old account until the owner changes the active browser account.
+No new insight request was made.
+
+The Astra High-directed/Sol Medium-coded product popup refinement passed
+**84/84** focused UI/package tests plus **28/28** account-access/package checks
+and thirteen isolated Chrome visual checks,
+including no horizontal overflow and keyboard access. User mode now puts
+Topic, discussion and Create insight first; related pages are a counted,
+collapsed disclosure, empty lists disappear, and mode switching is in
+Settings. The ChatGPT account-switch control remains in the compact AI-insights
+account disclosure. One synthetic/not-signed-in note remains to avoid implying a real
+identity. This does not broaden provider or data scope. The three exact
+temporary raw/trace diagnostic files from the completed investigation were
+deleted; normal runtime has no raw log. The full restricted extension suite
+passed **841/841** and the extension secret scan found zero findings.
+
+**2026-10-03 actual owner-account diagnosis and UX push:** The owner asked for
+agent-readable temp `.log` files, then explicitly approved local raw insight
+request/response capture for debugging and agent-run tests using the saved
+ChatGPT sign-in. ADR-030 defines the opt-in, bounded raw mode; normal mode
+retains ADR-029's terminal-only structural trace. The agent ran one synthetic-
+public GPT-5.5 research request through the protected saved login. It
+reproduced `response-item-prefix`. The stream had eight completed items
+(reasoning/search and one assistant message at index 7); the terminal
+`response.completed/status=completed` had `output: []`. The mismatch is thus
+observed, not guessed. No private draft was imported or posted. The owner has
+now explicitly approved ADR-031's narrow complete-stream fallback for a
+**private editable draft only**; implementation and trust verification are in
+progress. No automatic Share or provider retry follows.
+The backend raw/structure debug mode and tests are in progress. Independently,
+the owner authorized an Astra High GUI orchestrator with Sol Medium coding
+agent(s) for a minimal, app-transferable popup redesign, with synthetic
+screenshots and no real-account GUI automation. No store/deployment/publication
+gate is implied.
+
+**2026-10-03 post-fix verification:** ADR-031 implementation passed the full
+offline service suite (183 pass, 4 opt-in Windows skips), two loopback
+integrations, and independent Trust review after closing an added/done content
+contradiction. The actual second owner-authorized synthetic GPT-5.5 call did
+not reach an answer: it returned `subscription_sharing_usage_limit_exceeded`.
+No more provider calls or paid fallback are planned while usage is exhausted.
+Because the provider omitted `Content-Type`, the client surfaced misleading
+`response-content-missing`; a narrow failure-only classifier now maps an
+offline replay of that exact bounded response to `rate-limit` without a
+provider call. It cannot import a draft from a failed response.
+An offline replay of the earlier completed raw stream exposed a separate
+compatibility detail: opaque `reasoning.encrypted_content` differs between
+added and done events. Excluding that opaque field from visible-content
+consistency checks lets the *same previously captured completed response*
+replay offline as a private result (1,666 answer characters, three citations)
+without any provider request. A fresh live private draft is still unverified
+because of the ChatGPT usage limit. The owner now asks to connect a different
+ChatGPT account; current single-registration mapping is bound to the former
+subject, so safe explicit account switching is being implemented. The local
+pairing and discussions must remain unchanged.
 
 **2026-10-03 diagnostic follow-up:** The owner requests meaningful logs so
 the next live failure can be diagnosed from actual response structure rather

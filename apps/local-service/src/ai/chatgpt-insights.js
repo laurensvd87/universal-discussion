@@ -23,6 +23,8 @@ const TRACE_EVENTS = ["response.created", "response.in_progress", "response.outp
   "response.failed", "response.incomplete", "error"];
 const TRACE_ITEM_TYPES = new Set(["message", "web_search_call", "reasoning"]);
 const TRACE_STATUSES = new Set(["in_progress", "completed", "incomplete", "failed"]);
+const TRACE_PREFIX_BRANCHES = new Set(["length", "candidate-repeated", "later-observed",
+  "prior-id", "prior-shape"]);
 const LIMITATIONS = new Set(["grouping-provisional", "related-not-same-topic", "title-url-only", "sources-unverified", "visible-roots-only"]);
 const CATALOG_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
   "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
@@ -210,7 +212,11 @@ function completed(value, model, streamShape) {
   return { body, citations, model };
 }
 function completedStreamItemFallback(final, model, shape) {
-  const reject = (detail) => { shape.fallbackFailure = detail; return null; };
+  const reject = (detail, branch = null) => {
+    shape.fallbackFailure = detail;
+    shape.fallbackBranch = branch;
+    return null;
+  };
   const candidate = shape.candidate;
   if (shape.conflict) return reject("response-item-conflict");
   if (shape.createdCount !== 1 || !candidate || shape.candidateCount !== 1 ||
@@ -219,19 +225,62 @@ function completedStreamItemFallback(final, model, shape) {
       final.error != null || final.incomplete_details != null ||
       final.output.some((item) => item?.type === "message" ||
         (item?.status != null && item.status !== "completed"))) return reject("response-item-conflict");
-  if (final.output.length !== candidate.index ||
-      final.output.some((item) => item?.id === candidate.item.id)) return reject("response-item-prefix");
+  if (!shape.completeStream) return reject("response-event");
   if (!Array.isArray(candidate.item.content) || candidate.item.content.length > 8) return reject("response-item-text");
-  if (shape.addedItems.some((added) => added.index === candidate.index &&
-      (added.id !== candidate.item.id || added.type !== "message" || added.role !== "assistant"))) return reject("response-item-identity");
-  for (const observed of [...shape.addedItems, ...shape.doneItems]) {
-    if (observed.index > candidate.index) return reject("response-item-prefix");
-    if (observed.index < candidate.index) {
-      const terminal = final.output[observed.index];
-      if (terminal?.id !== observed.id) return reject("response-item-prefix");
-      if (terminal.type !== observed.type ||
-          (observed.role !== undefined && terminal.role !== observed.role) ||
-          (observed.status !== undefined && terminal.status !== observed.status)) return reject("response-item-conflict");
+  if (final.output.length === 0) {
+    if (shape.addedItems.length !== candidate.index + 1 ||
+        shape.doneItems.length !== candidate.index + 1) return reject("response-item-prefix", "length");
+    const ids = new Set();
+    for (let index = 0; index <= candidate.index; index += 1) {
+      const added = shape.addedItems.find((item) => item.index === index);
+      const done = shape.doneItems.find((item) => item.index === index);
+      if (!added || !done) return reject("response-item-prefix", "length");
+      if (ids.has(done.id) || added.id !== done.id || added.type !== done.type ||
+          (done.type === "reasoning" ? added.status !== undefined || done.status !== undefined :
+            added.status !== "in_progress" || done.status !== "completed"))
+        return reject("response-item-identity");
+      ids.add(done.id);
+      if (index === candidate.index) {
+        if (done.id !== candidate.item.id || done.type !== "message" || done.role !== "assistant" ||
+            added.role !== "assistant") return reject("response-item-identity");
+        // A newly added assistant message has no answer yet. A populated earlier
+        // content field cannot establish the same final private draft.
+        if (!Array.isArray(added.item.content) || added.item.content.length !== 0)
+          return reject("response-item-text");
+      } else if (!["reasoning", "web_search_call"].includes(done.type) ||
+          added.role !== undefined || done.role !== undefined) return reject("response-item-conflict");
+      if (index < candidate.index) {
+        // Reasoning encrypted_content is opaque and may change between added and done.
+        for (const key of done.type === "reasoning" ? ["content", "summary", "action"] :
+          ["content", "summary", "encrypted_content", "action"]) {
+          const preliminary = added.item[key];
+          if (preliminary == null || preliminary === "" ||
+              Array.isArray(preliminary) && preliminary.length === 0 ||
+              typeof preliminary === "object" && !Array.isArray(preliminary) &&
+                Object.keys(preliminary).length === 0) continue;
+          if (JSON.stringify(preliminary) !== JSON.stringify(done.item[key]))
+            return reject("response-item-conflict");
+        }
+      }
+    }
+    if (shape.unpairedDone) return reject("response-item-conflict");
+  } else {
+    if (final.output.length !== candidate.index) return reject("response-item-prefix", "length");
+    if (final.output.some((item) => item?.id === candidate.item.id))
+      return reject("response-item-prefix", "candidate-repeated");
+    if (shape.addedItems.some((added) => added.index === candidate.index &&
+        (added.id !== candidate.item.id || added.type !== "message" || added.role !== "assistant")))
+      return reject("response-item-identity");
+    for (const observed of [...shape.addedItems, ...shape.doneItems]) {
+      if (observed.index > candidate.index) return reject("response-item-prefix", "later-observed");
+      if (observed.index < candidate.index) {
+        const terminal = final.output[observed.index];
+        if (terminal?.id !== observed.id) return reject("response-item-prefix", "prior-id");
+        if (terminal.type !== observed.type ||
+            (observed.role !== undefined && terminal.role !== observed.role) ||
+            (observed.status !== undefined && terminal.status !== observed.status))
+          return reject("response-item-conflict", "prior-shape");
+      }
     }
   }
   const texts = candidate.item.content.map((part, index) => ({ part, index }))
@@ -290,7 +339,7 @@ function parseSse(raw, model, onTrace) {
   let final = null;
   const streamShape = { finalAssistantItem: false, textDone: false, createdId: null,
     createdCount: 0, candidate: null, candidateCount: 0, textDoneItems: [], contentDoneItems: [],
-    addedItems: [], doneItems: [], conflict: false };
+    addedItems: [], doneItems: [], conflict: false, unpairedDone: false, completeStream: isCompleteSse(raw) };
   const eventCounts = Object.fromEntries(TRACE_EVENTS.map((type) => [type, 0]));
   const eventSequence = [];
   const observedItems = [];
@@ -341,7 +390,7 @@ function parseSse(raw, model, onTrace) {
             streamShape.addedItems.some((item) => item.type === "message" && item.role === "assistant")))
         streamShape.conflict = true;
       else streamShape.addedItems.push({ index: event.output_index, id: event.item.id,
-        type: event.item.type, role: event.item.role });
+        type: event.item.type, role: event.item.role, status: event.item.status, item: event.item });
     }
     if (event.type === "response.output_item.done") {
       if (streamShape.doneItems.length >= 101 || !Number.isSafeInteger(event.output_index) ||
@@ -352,7 +401,9 @@ function parseSse(raw, model, onTrace) {
               (item.role !== undefined && item.role !== event.item.role))))
         streamShape.conflict = true;
       else streamShape.doneItems.push({ index: event.output_index, id: event.item.id,
-        type: event.item.type, role: event.item.role, status: event.item.status });
+        type: event.item.type, role: event.item.role, status: event.item.status, item: event.item });
+      if (!streamShape.addedItems.some((item) => item.index === event.output_index))
+        streamShape.unpairedDone = true;
       if (event.item?.status !== undefined && event.item.status !== "completed") streamShape.conflict = true;
       if (event.item?.type === "message" && event.item.role === "assistant") {
         streamShape.candidateCount += 1;
@@ -413,7 +464,8 @@ function parseSse(raw, model, onTrace) {
         finalOutputCount: Math.min(output.length, 101),
         candidateCount: Math.min(streamShape.candidateCount, 101),
         candidateIndex: traceIndex(streamShape.candidate?.index), textDoneCount, contentDoneCount,
-        fallbackFailure: INSIGHT_DETAILS.has(streamShape.fallbackFailure) ? streamShape.fallbackFailure : null };
+        fallbackFailure: INSIGHT_DETAILS.has(streamShape.fallbackFailure) ? streamShape.fallbackFailure : null,
+        fallbackBranch: TRACE_PREFIX_BRANCHES.has(streamShape.fallbackBranch) ? streamShape.fallbackBranch : null };
       try {
         const sent = onTrace(trace);
         if (sent && typeof sent.then === "function") void Promise.resolve(sent).catch(() => {});
@@ -450,16 +502,68 @@ function isCompleteSse(raw) {
   }
   return completedEvent;
 }
+function completeHeaderlessFailureCode(raw) {
+  const normalized = raw.replace(/\r\n|\r/gu, "\n");
+  if (!normalized.endsWith("\n\n")) return null;
+  const frames = normalized.slice(0, -2).split("\n\n");
+  if (frames.length < 2 || frames.length > 4) return null;
+  let createdId = null;
+  let previous = "";
+  let failureCode = null;
+  for (const [index, frame] of frames.entries()) {
+    const lines = frame.split("\n");
+    if (lines.length !== 2) return null;
+    const eventLine = /^event: ?([^\s]+)$/u.exec(lines[0]);
+    const dataLine = /^data: ?(.+)$/u.exec(lines[1]);
+    if (!eventLine || !dataLine) return null;
+    let event;
+    try { event = JSON.parse(dataLine[1]); } catch { return null; }
+    if (!event || typeof event !== "object" || Array.isArray(event) || event.type !== eventLine[1]) return null;
+    const type = event.type;
+    if (index === 0 ? type !== "response.created" :
+        type !== "response.in_progress" && type !== "error" && type !== "response.failed") return null;
+    if (type === "response.in_progress" && previous !== "response.created") return null;
+    if (type === "error" && !["response.created", "response.in_progress"].includes(previous)) return null;
+    if (type === "response.failed" && index !== frames.length - 1) return null;
+    if (type !== "error") {
+      if (!event.response || typeof event.response !== "object" || Array.isArray(event.response)) return null;
+      const responseId = event.response.id;
+      if (responseId !== undefined) {
+        if (typeof responseId !== "string" || !STREAM_ID.test(responseId) ||
+            createdId !== null && responseId !== createdId) return null;
+        createdId = responseId;
+      }
+      if (type !== "response.failed" && event.response.status !== "in_progress") return null;
+    }
+    if (type === "response.failed") {
+      if (event.response.status !== "failed" || event.response.output?.length ||
+          typeof event.response.error?.code !== "string") return null;
+      failureCode = event.response.error.code;
+    }
+    previous = type;
+  }
+  return previous === "response.failed" &&
+    ["subscription_sharing_usage_limit_exceeded", "subscription_sharing_unsupported_capability"].includes(failureCode)
+    ? failureCode : null;
+}
 
 /** Injected transport only; construction performs no I/O. All limits reset on process restart. */
-export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.now, onTrace }) {
+export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.now, onTrace, onDebug }) {
   if (typeof fetchImpl !== "function" || typeof getAccessToken !== "function" || typeof now !== "function" ||
-      (onTrace !== undefined && typeof onTrace !== "function")) fail("invalid-input");
+      (onTrace !== undefined && typeof onTrace !== "function") ||
+      (onDebug !== undefined && typeof onDebug !== "function")) fail("invalid-input");
   let active = null;
   let disposed = false;
   let listed = new Set();
   let modelEpoch = 0;
   let calls = [];
+  function debug(event) {
+    if (!onDebug) return;
+    try {
+      const sent = onDebug(event);
+      if (sent && typeof sent.then === "function") void Promise.resolve(sent).catch(() => {});
+    } catch { /* Opt-in diagnostics never change the research result. */ }
+  }
   function check(signal) { if (signal.aborted || disposed) fail("cancelled"); }
   function guard() { if (disposed) fail("cancelled"); if (active) fail("busy"); }
   async function run(work, signal, timeout = TIMEOUT) {
@@ -559,6 +663,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         input: [{ role: "user", content: userText }],
         tools: allowWebResearch ? [{ type: "web_search", search_context_size: "low", filters: { allowed_domains: domains } }] : [],
       };
+      debug({ phase: "request", payload });
       const response = await fetchImpl(`${API}/responses`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: requestSignal,
         redirect: "error", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
@@ -572,7 +677,12 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const raw = await boundedBody(response, MAX_STREAM_BYTES, requestSignal);
       check(requestSignal);
       if (modelEpoch !== before) fail("cancelled");
-      if (headerlessSse && !isCompleteSse(raw)) fail("invalid-response", "response-content-missing");
+      debug({ phase: "response", status: response.status, contentType, body: raw });
+      if (headerlessSse && !isCompleteSse(raw)) {
+        const failureCode = completeHeaderlessFailureCode(raw);
+        if (failureCode) fail(errorForCode(failureCode), "response-failed");
+        fail("invalid-response", "response-content-missing");
+      }
       return parseSse(raw, model, onTrace);
     }, signal);
   }

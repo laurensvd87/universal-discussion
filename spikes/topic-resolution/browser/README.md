@@ -1,6 +1,25 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Current insight check (0.12.13)
+## Current local build (0.12.15)
+
+The popup has a cleaner User view: Topic and conversation first, a compact
+connection state, and a persistent model/Create control only while paired.
+Pairing, developer details and browsing controls remain available without
+crowding the main conversation. Synthetic actual-Chrome checks cover a native
+410 px User popup, 380 px Developer popup, long text, no horizontal overflow,
+and keyboard access to private-draft controls. This is still an owner-only
+local prototype with synthetic posting identities, not a hosted community.
+
+The owner-approved [ADR-031](../../../decisions/ADR-031-complete-stream-private-draft.md)
+adds a narrowly checked private-draft fallback for completed ChatGPT streams
+whose final output list is entirely empty. It does not publish, retry or
+accept a partial/conflicting stream. Restart the local service and reload the
+unpacked extension after updating this build. The local backend can optionally
+write bounded, sensitive request/response debug logs to the user's temp folder
+with `--debug-insight-raw`; normal use does not create those files. See the
+[service README](../../../apps/local-service/README.md#content-free-insight-trace).
+
+## Earlier insight check (0.12.13)
 
 The owner's first Create attempt after 0.12.12 still returned
 `response-final-item-missing`. Version 0.12.13 makes the separately approved
