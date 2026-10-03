@@ -138,25 +138,29 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     publish({ draft: body, preview: null, status: "prepared", ai: { ...state.ai, result: null } });
     return true;
   }
-  function preview() {
+  function preparedReview() {
     if (disposed || pending || job || boundKey === null || key() !== boundKey ||
         !state.ai.result || state.draft !== formatInsightCitations(state.ai.result.body, state.ai.result.citations) ||
-        !state.draft.trim() || UNSAFE.test(state.draft)) return false;
-    const operator = observed.catalog.actors.find((actor) => actor.id === observed.actorId);
-    if (!completedJob) return false;
-    review = { body: state.draft, operationId: completedJob.id, expected: { ...observed.discussion.version },
+        !state.draft.trim() || UNSAFE.test(state.draft) || !completedJob) return null;
+    return { body: state.draft, operationId: completedJob.id, expected: { ...observed.discussion.version },
       topicId: observed.topicId, sourceId: observed.sourceId ?? null, actorId: observed.actorId,
       ...(completedJob.followup ? { ...completedJob.followup } : {}) };
+  }
+  function preview() {
+    const candidate = preparedReview();
+    if (!candidate) return false;
+    review = candidate;
+    const operator = observed.catalog.actors.find((actor) => actor.id === observed.actorId);
     publish({ preview: { body: review.body, topicTitle: state.context.topic.title,
       operatorName: operator.displayName, sourceTitle: state.context.currentSource?.title ?? null,
       sourceUrl: state.context.currentSource?.url ?? null, replyToId: review.replyToId ?? null }, status: "preview" });
     return true;
   }
   async function share() {
-    if (disposed || pending || job || !review || !completedJob ||
-        completedJob.id !== review.operationId || key() !== boundKey || state.draft !== review.body ||
-        !state.ai.result || review.body !== formatInsightCitations(state.ai.result.body, state.ai.result.citations)) return false;
-    const exactReview = structuredClone(review);
+    // The already formatted private draft is the review. Share remains one
+    // explicit action, and the service independently attests the exact result.
+    const exactReview = preparedReview();
+    if (!exactReview) return false;
     pending = true; publish({ status: "sharing" });
     let success = false;
     try { success = await shareInsight(exactReview) === true; }

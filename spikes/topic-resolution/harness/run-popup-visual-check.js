@@ -175,7 +175,7 @@ try {
     await capture("insights", sessionId);
     await evaluate("window.visualInsightState.draft='Synthetic private insight draft about shaded gathering places.';window.visualInsightState.ai.status='generated';window.visualInsightState.ai.result={body:window.visualInsightState.draft,model:'synthetic',citations:[]};window.visualInsightPanel.render(window.visualInsightState);document.querySelector('#insight-draft-details').scrollIntoView({block:'start'})", sessionId);
     await capture("private-draft", sessionId);
-    await checkReachable("#insight-review", sessionId);
+    await checkReachable("#insight-share", sessionId);
     await checkReachable("#insight-discard", sessionId);
     await evaluate("document.querySelector('#insight-account-details').open=true;document.querySelector('#insight-account-details > summary').focus()", sessionId);
     await tabTo("#insight-checkConnection", sessionId);
@@ -190,7 +190,7 @@ try {
     await capture("account-no-model", sessionId);
     await evaluate("document.querySelector('#app-tab-discussion').click();document.querySelector('#discussion-ai-insights').click()", sessionId);
     assert.equal(await evaluate("window.visualCreates", sessionId), 1, "missing model only opens setup");
-    assert.equal(await evaluate("window.visualInsightState.draft === document.querySelector('#insight-body').value", sessionId), true,
+    assert.equal(await evaluate("window.visualInsightState.draft === document.querySelector('#insight-citations').textContent", sessionId), true,
       "private draft survives navigation");
     await evaluate("window.visualInsightState.ai.status='usageLimit';window.visualInsightPanel.render(window.visualInsightState);scrollTo(0,0)", sessionId);
     await capture("usage-limit", sessionId);
@@ -247,7 +247,7 @@ try {
     const draft='Synthetic design example: A small shaded gathering place could help neighbors spend more time outside. Which streets need it most?';
     const state={available:true,busy:false,status:'prepared',draft,preview:null,
       context:{topic:{id:'topic-visual',title:'A quieter, greener city'},currentSource:{id:'source-visual',title:'Synthetic neighborhood article',url:'https://example.com/article'},sameTopicSources:[],relatedSources:[],discussion:[]},
-      ai:{connected:true,planEnabled:true,pending:false,models:[{slug:'synthetic',displayName:'Synthetic model'}],model:'synthetic',articleText:'',article:null,costConsent:false,result:null,status:'generated'}};
+      ai:{connected:true,planEnabled:true,pending:false,models:[{slug:'synthetic',displayName:'Synthetic model'}],model:'synthetic',articleText:'',article:null,costConsent:false,result:{body:draft,model:'synthetic',citations:[]},status:'generated'}};
     window.visualInsightPanel=panel;window.visualInsightState=state;
     panel.bind(new Proxy({currentState:()=>state},{get:(object,key)=>object[key]??(()=>{})}));
     const workspace=document.querySelector('#insight-workspace');workspace.open=true;workspace.scrollIntoView({block:'start'});
@@ -266,7 +266,7 @@ try {
   await tabTo("#insight-disconnect", sessionId);
   await capture("account-missing-model-switch", sessionId);
   await evaluate("window.visualInsightState.ai={...window.visualInsightState.ai,model:'synthetic',models:[{slug:'synthetic',displayName:'Synthetic model'}],status:'generated'};window.visualInsightPanel.render(window.visualInsightState);", sessionId);
-  await checkReachable("#insight-review", sessionId);
+  await checkReachable("#insight-share", sessionId);
   await checkReachable("#insight-discard", sessionId);
   await evaluate(`(() => {
     document.querySelector('#insight-quick-status').hidden=false;
@@ -274,8 +274,7 @@ try {
   })()`, sessionId);
   await capture("footer-status", sessionId);
   await checkReachable("#insight-discard", sessionId);
-  await evaluate("document.querySelector('#insight-body').scrollIntoView({block:'start'}); document.querySelector('#insight-body').focus();", sessionId);
-  await tabTo("#insight-review", sessionId);
+  await evaluate("document.querySelector('#insight-citations').scrollIntoView({block:'start'}); document.querySelector('#insight-share').focus();", sessionId);
   await tabTo("#insight-discard", sessionId);
   await evaluate("document.querySelector('#popup-preferences > summary').scrollIntoView({block:'start'});document.querySelector('#popup-preferences > summary').focus();", sessionId);
   await pressEnter(sessionId);

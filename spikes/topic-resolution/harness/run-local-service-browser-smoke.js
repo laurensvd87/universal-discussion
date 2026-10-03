@@ -405,23 +405,19 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await click("#ui-mode-user");
     await waitExpression("document.querySelector('#insight-model').value === 'synthetic-model'", "synthetic model listed and selected automatically");
     await waitExpression("!document.querySelector('#insight-createInsights').disabled", "one-click insight ready");
-    assert.equal(await evaluate("document.querySelector('#insight-preview').hidden"), true);
+    assert.equal(await evaluate("document.querySelector('#insight-composer').hidden"), true);
     assert.equal(await evaluate(`${THREAD}.textContent.includes('Synthetic generated comparison')`), false);
     await click("#insight-createInsights");
-    await waitExpression("document.querySelector('#insight-body').value.includes('Synthetic generated comparison')", "synthetic provider draft received");
+    await waitExpression("!document.querySelector('#insight-composer').hidden && document.querySelector('#insight-citations').textContent.includes('Synthetic generated comparison')", "synthetic formatted private result received");
     assert.ok(await evaluate("document.querySelector('#insight-article-text').value.includes('Public synthetic article')"));
     assert.equal(await evaluate("document.querySelector('#insight-article-text').value.includes('excluded-form-value')"), false);
     assert.equal(syntheticInsightRequests, 1);
     assert.equal(await evaluate(`${THREAD}.textContent.includes('Synthetic generated comparison')`), false);
-    assert.equal(await evaluate("document.querySelector('#insight-preview').hidden"), true);
     assert.ok(await evaluate(`(() => {
       const link=document.querySelector('#insight-citations a');
       return link && link.href==='https://example.com/' && link.target==='_blank' &&
         link.rel==='noopener noreferrer' && link.referrerPolicy==='no-referrer';
     })()`));
-    await click("#insight-review");
-    await waitExpression("!document.querySelector('#insight-preview').hidden", "generated insight exact preview");
-    assert.ok(await evaluate("document.querySelector('#insight-preview-body').textContent.includes('Synthetic generated comparison')"));
     await click("#insight-share");
     await waitExpression(`${THREAD}.textContent.includes('Synthetic generated comparison') && ${THREAD}.textContent.includes('Robot')`, "generated insight explicitly shared");
     await waitStatus(EN.discussionReady);

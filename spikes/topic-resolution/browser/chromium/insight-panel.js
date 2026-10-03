@@ -1,5 +1,5 @@
 import { INSIGHT_EN } from "../locales/insight-en.js";
-import { appendInsightCitationNodes } from "../core/insight-citations.js";
+import { appendInsightCitationNodes, formatInsightCitations } from "../core/insight-citations.js";
 
 const FAILURE_STAGE_MESSAGES = Object.freeze({
   "callback-invalid": "aiFailureCallbackInvalid",
@@ -144,25 +144,18 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   details.insertBefore(quickActions, accountDetails);
   const cancel = button(aiControls, "cancelInsights", () => controller?.cancelInsights());
   const account = node("p", null, "insight-ai-account"); account.className = "developer-only"; accountDetails.append(account);
-  const citations = node("section", null, "insight-citations"); aiControls.append(citations);
   const context = node("section", null, "insight-context"); context.hidden = true; sourceDetails.append(context);
   const draftDetails = node("details", null, "insight-draft-details"); draftDetails.className = "insight-subdetails";
   const draftSummary = node("summary", "draftWorkspace"); draftDetails.append(draftSummary); details.append(draftDetails);
   const composer = node("section", null, "insight-composer"); composer.hidden = true; draftDetails.append(composer);
   const draftHint = node("p", null, "insight-draft-hint"); composer.append(draftHint);
-  const body = node("textarea", null, "insight-body"); body.maxLength = 8_000; body.rows = 7;
-  const label = node("label", "draft"); label.htmlFor = body.id; composer.append(label, body);
-  listen(body, "input", () => controller?.setDraft(body.value));
-  const review = button(composer, "review", () => controller?.preview());
-  const discard = button(composer, "discard", () => controller?.discard());
-  const preview = node("section", null, "insight-preview"); preview.className = "insight-preview"; preview.hidden = true;
-  const target = node("p", null, "insight-preview-topic");
-  const provenance = node("p", null, "insight-preview-provenance");
-  const origin = node("p", null, "insight-preview-origin");
-  const exactBody = node("p", null, "insight-preview-body"); exactBody.className = "insight-body";
+  const target = node("p", null, "insight-preview-topic"); composer.append(target);
+  const origin = node("p", null, "insight-preview-origin"); composer.append(origin);
+  const citations = node("p", null, "insight-citations"); citations.className = "insight-body"; composer.append(citations);
   const shareScope = node("p", "shareScope", "insight-share-scope");
-  preview.append(node("h3", "preview"), target, provenance, origin, shareScope, exactBody);
-  const share = button(preview, "share", () => { void controller?.share(); }); draftDetails.append(preview);
+  composer.append(shareScope);
+  const share = button(composer, "share", () => { void controller?.share(); });
+  const discard = button(composer, "discard", () => controller?.discard());
 
   function sourceGroup(parent, key, sources) {
     parent.append(node("h4", key));
@@ -178,15 +171,15 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   function render(state) {
     if (disposed) return;
     const blocked = !state.available || state.busy;
-    status.textContent = text(state.status === "preview" ? "previewStatus" :
-      state.status === "idle" && !state.available ? "unavailable" : state.status);
+    status.textContent = text(state.status === "idle" && !state.available ? "unavailable" : state.status);
     include.disabled = prepare.disabled = blocked;
     context.hidden = !state.context;
-    draftDetails.hidden = composer.hidden = !state.context || !state.ai?.result;
-    if (body.value !== state.draft) body.value = state.draft;
-    body.disabled = blocked;
-    body.readOnly = Boolean(state.ai?.result);
-    review.disabled = blocked || !state.ai?.result || !state.draft.trim();
+    let exactGenerated = false;
+    try {
+      exactGenerated = Boolean(state.context && state.ai?.result && state.draft?.trim() &&
+        state.draft === formatInsightCitations(state.ai.result.body, state.ai.result.citations));
+    } catch { /* An invalid result cannot be offered for sharing. */ }
+    draftDetails.hidden = composer.hidden = !exactGenerated;
     discard.disabled = state.busy;
     const signature = JSON.stringify(state.context);
     if (signature !== contextSignature) {
@@ -225,15 +218,14 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       label.children[0].checked = !excludedRelatedSourceIds.has(relatedSources[index]?.id);
       label.children[0].disabled = state.busy || state.ai?.status === "generating";
     });
-    preview.hidden = !state.preview;
-    shareScope.textContent = text(state.preview?.replyToId ? "replyShareScope" : "shareScope");
-    share.textContent = text(state.preview?.replyToId ? "shareReply" : "share");
-    target.textContent = state.preview ? text("selected").replace("{title}", state.preview.topicTitle) : "";
-    provenance.textContent = state.preview ? text("provenance").replace("{operator}", state.preview.operatorName) : "";
-    origin.textContent = !state.preview ? "" : state.preview.sourceTitle
-      ? text("origin").replace("{title}", `${state.preview.sourceTitle} — ${state.preview.sourceUrl ?? ""}`) : text("noOrigin");
-    appendInsightCitationNodes(document, exactBody, state.preview?.body ?? "", text("citationOpen"));
-    share.disabled = blocked || !state.preview;
+    shareScope.textContent = text("shareScope");
+    share.textContent = text("share");
+    target.textContent = exactGenerated ? text("selected").replace("{title}", state.context.topic.title) : "";
+    origin.textContent = !exactGenerated ? "" : state.context.currentSource?.title
+      ? text("origin").replace("{title}", `${state.context.currentSource.title} — ${state.context.currentSource.url ?? ""}`) : text("noOrigin");
+    citations.textContent = "";
+    appendInsightCitationNodes(document, citations, exactGenerated ? state.draft : "", text("citationOpen"));
+    share.disabled = blocked || !exactGenerated;
     const ai = state.ai ?? { connected: false, planEnabled: false, pending: false, models: [], model: "", articleText: "", article: null,
       costConsent: false, result: null, status: "idle" };
     const accountReady = ai.planEnabled && !!ai.model;
@@ -250,23 +242,18 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       ai.status === "disconnecting" || ai.status === "loadingModels";
     include.disabled ||= generating;
     prepare.disabled ||= generating;
-    body.disabled ||= generating;
-    review.disabled ||= generating;
     share.disabled ||= generating;
     discard.disabled ||= generating;
-    const generatedDraft = ai.status === "generated" && Boolean(state.draft.trim());
+    const generatedDraft = ai.status === "generated" && exactGenerated;
     const workspaceOrder = [...details.children];
     if (generatedDraft && workspaceOrder[workspaceOrder.indexOf(draftDetails) + 1] !== quickActions)
       details.insertBefore(draftDetails, quickActions);
     else if (!generatedDraft && workspaceOrder.at(-1) !== draftDetails) details.append(draftDetails);
-    draftDetails.setAttribute("data-has-draft", String(Boolean(state.draft.trim())));
-    draftSummary.textContent = text(generatedDraft ? "draftWorkspaceGenerated" :
-      state.draft.trim() ? "draftWorkspaceManualFilled" : "draftWorkspace");
+    draftDetails.setAttribute("data-has-draft", String(exactGenerated));
+    draftSummary.textContent = text(generatedDraft ? "draftWorkspaceGenerated" : "draftWorkspace");
     draftHint.textContent = text(generatedDraft ? "hint" : generating ? "draftGenerating" :
-      RESEARCH_FAILURE_STATUSES.has(ai.status) && !state.draft.trim()
-        ? "draftResearchFailed" : "draftManualHint");
-    body.placeholder = text(generatedDraft ? "draftGeneratedPlaceholder" : "draftManualPlaceholder");
-    if (ai.status === "generated" || state.preview) draftDetails.open = true;
+      RESEARCH_FAILURE_STATUSES.has(ai.status) ? "draftResearchFailed" : "draftManualHint");
+    if (exactGenerated) draftDetails.open = true;
     if (generating) draftDetails.open = false;
     const stageMessage = ai.status === "connectionFailed" && Object.hasOwn(FAILURE_STAGE_MESSAGES, ai.failureStage)
       ? FAILURE_STAGE_MESSAGES[ai.failureStage] : null;
@@ -355,17 +342,11 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     cancel.disabled = cancel.hidden = !generating;
     articleLabel.hidden = article.hidden = articleWarning.hidden = !ai.article;
     costLabel.hidden = cost.hidden = aiScope.hidden = !ai.article;
-    citations.replaceChildren();
-    if (ai.result?.citations?.length && state.draft) {
-      const citedDraft = node("p"); citedDraft.className = "insight-body";
-      appendInsightCitationNodes(document, citedDraft, state.draft, text("citationOpen"));
-      citations.append(citedDraft);
-    }
   }
   function bind(value) { controller = value; render(controller.currentState()); }
   function dispose() {
-    disposed = true; controller = null; body.value = ""; article.value = ""; context.replaceChildren(); citations.replaceChildren(); exactBody.textContent = ""; account.textContent = "";
-    target.textContent = provenance.textContent = origin.textContent = "";
+    disposed = true; controller = null; article.value = ""; context.replaceChildren(); citations.replaceChildren(); citations.textContent = ""; account.textContent = "";
+    target.textContent = origin.textContent = "";
     for (const [item, event, callback] of handlers) item.removeEventListener(event, callback);
   }
   return Object.freeze({ bind, render, dispose });

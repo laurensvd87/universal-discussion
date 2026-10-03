@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mountInsightPanel } from "../browser/chromium/insight-panel.js";
 import { INSIGHT_EN } from "../browser/locales/insight-en.js";
+import { formatInsightCitations } from "../browser/core/insight-citations.js";
 
 function context() {
   return { topic: { id: "topic-a", title: "<script>topic</script>" },
@@ -47,63 +48,53 @@ function harness(messages, uiMode) {
   return { created, document, root, panel, calls, byId, descendants, click };
 }
 
-test("hostile context, URLs, and reviewed text stay inert with no link or clipboard action", () => {
+test("hostile context, URLs, and generated text stay inert with no link or clipboard action", () => {
   const ui = harness();
   const body = "<svg onload=alert(1)>\nUser selected this exact text";
-  ui.panel.render(state({ draft: body, preview: { body, topicTitle: "<script>preview topic</script>",
-    operatorName: "<img>operator", sourceTitle: "<iframe>origin</iframe>" } }));
+  ui.panel.render(state({ draft: body, ai: { result: { body, citations: [] }, status: "generated" } }));
   const nodes = ui.descendants(ui.root);
   assert.equal(nodes.some((item) => ["script", "img", "iframe", "svg"].includes(item.tag)), false);
   assert.deepEqual(nodes.filter((item) => item.tag === "a").map((item) => item.linkHref),
     ["https://chatgpt.com/settings/usage"]);
   assert.equal(nodes.some((item) => item.textContent === "javascript:alert(1)"), true);
   assert.equal(nodes.some((item) => item.textContent === body), true);
-  assert.equal(ui.byId("insight-preview-body").textContent, body);
-  assert.equal(ui.byId("insight-body").value, body);
+  assert.equal(ui.byId("insight-citations").textContent, body);
+  assert.equal(ui.byId("insight-share").disabled, false);
   assert.deepEqual(ui.calls, []);
 });
 
-test("discussion inclusion is opt-in and prepare, edit, preview, share are separate callbacks", () => {
+test("discussion inclusion is opt-in and a generated insight has Share and Discard actions", () => {
   const ui = harness();
   const include = ui.byId("insight-include-discussion");
   assert.equal(include.checked, false);
   assert.equal(ui.created.some((item) => item.tag === "label" && item.htmlFor === include.id), true);
-  assert.equal(ui.created.some((item) => item.tag === "label" && item.htmlFor === "insight-body"), true);
+  assert.equal(ui.byId("insight-review"), undefined);
+  assert.equal(ui.byId("insight-body"), undefined);
+  assert.equal(ui.byId("insight-preview"), undefined);
   ui.panel.render(state());
   ui.click("insight-prepare");
   assert.deepEqual(ui.calls, [["prepare", { includeDiscussion: false }]]);
   include.checked = true; ui.click("insight-prepare");
   assert.deepEqual(ui.calls.at(-1), ["prepare", { includeDiscussion: true }]);
-  const body = ui.byId("insight-body"); body.value = "Edited draft"; body.listeners.get("input")();
-  assert.deepEqual(ui.calls.at(-1), ["setDraft", "Edited draft"]);
-  assert.equal(ui.calls.some(([name]) => name === "share"), false);
-  ui.panel.render(state({ draft: "Edited draft" })); ui.click("insight-review");
-  assert.deepEqual(ui.calls.at(-1), ["preview"]);
-  assert.equal(ui.calls.some(([name]) => name === "share"), false);
-  ui.panel.render(state({ draft: "Edited draft", status: "preview", preview: {
-    body: "Edited draft", topicTitle: "Topic A", operatorName: "Alex", sourceTitle: "Source A" } }));
+  ui.panel.render(state({ draft: "Generated insight", ai: { result: { body: "Generated insight", citations: [] }, status: "generated" } }));
+  assert.equal(ui.byId("insight-share").disabled, false);
   ui.click("insight-share");
   assert.deepEqual(ui.calls.at(-1), ["share"]);
   ui.click("insight-discard");
   assert.deepEqual(ui.calls.at(-1), ["discard"]);
 });
 
-test("preview identifies an unchanged robot reply separately from a new insight opener", () => {
+test("one generic share label applies to both opener and follow-up results", () => {
   const ui = harness();
-  const preview = { body: "A short answer", topicTitle: "Topic A", operatorName: "Alex",
-    sourceTitle: "Source A", replyToId: "own-question" };
-  ui.panel.render(state({ draft: preview.body, status: "preview", preview }));
-  assert.equal(ui.byId("insight-share-scope").textContent, INSIGHT_EN.replyShareScope);
-  assert.equal(ui.byId("insight-share").textContent, INSIGHT_EN.shareReply);
-  ui.panel.render(state({ draft: preview.body, status: "preview", preview: { ...preview, replyToId: null } }));
+  const result = { body: "A short answer", citations: [] };
+  ui.panel.render(state({ draft: result.body, ai: { result, status: "generated" }, preview: { replyToId: "own-question" } }));
   assert.equal(ui.byId("insight-share-scope").textContent, INSIGHT_EN.shareScope);
   assert.equal(ui.byId("insight-share").textContent, INSIGHT_EN.share);
 });
 
-test("unavailable and busy states disable actions; empty draft and missing preview cannot share", () => {
+test("unavailable, busy, manual, and altered results cannot share", () => {
   const ui = harness();
   const prepare = ui.byId("insight-prepare"), include = ui.byId("insight-include-discussion");
-  const body = ui.byId("insight-body"), review = ui.byId("insight-review");
   const share = ui.byId("insight-share"), discard = ui.byId("insight-discard");
   assert.equal(prepare.disabled, true);
   assert.equal(share.disabled, true);
@@ -112,32 +103,35 @@ test("unavailable and busy states disable actions; empty draft and missing previ
   ui.panel.render(state({ available: false, context: null, status: "idle" }));
   assert.equal(ui.byId("insight-status").textContent, INSIGHT_EN.unavailable);
   assert.equal(prepare.disabled, true); assert.equal(include.disabled, true);
-  assert.equal(body.disabled, true); assert.equal(review.disabled, true); assert.equal(share.disabled, true);
+  assert.equal(share.disabled, true);
   ui.panel.render(state({ draft: "   " }));
-  assert.equal(prepare.disabled, false); assert.equal(review.disabled, true); assert.equal(share.disabled, true);
-  ui.panel.render(state({ busy: true, status: "sharing", draft: "Text", preview: {
-    body: "Text", topicTitle: "A", operatorName: "Alex", sourceTitle: null } }));
-  for (const item of [prepare, include, body, review, share, discard]) assert.equal(item.disabled, true);
+  assert.equal(prepare.disabled, false); assert.equal(share.disabled, true);
+  ui.panel.render(state({ draft: "Pasted robot text", ai: { status: "generated", result: null } }));
+  assert.equal(share.disabled, true);
+  ui.panel.render(state({ draft: "Altered", ai: { status: "generated", result: { body: "Original", citations: [] } } }));
+  assert.equal(share.disabled, true);
+  ui.panel.render(state({ busy: true, status: "sharing", draft: "Text",
+    ai: { status: "generated", result: { body: "Text", citations: [] } } }));
+  for (const item of [prepare, include, share, discard]) assert.equal(item.disabled, true);
   assert.equal(ui.byId("insight-status").textContent, INSIGHT_EN.sharing);
 });
 
-test("context changes clear old nodes and preview, while typing preserves focus and editor identity", () => {
+test("context changes clear the single formatted insight", () => {
   const ui = harness();
-  const prepared = state({ draft: "Unsent secret", preview: { body: "Unsent secret", topicTitle: "Old topic",
-    operatorName: "Alex", sourceTitle: "Old source" }, status: "preview" });
+  const prepared = state({ draft: "Unsent secret", ai: { status: "generated",
+    result: { body: "Unsent secret", citations: [] } } });
   ui.panel.render(prepared);
-  const body = ui.byId("insight-body"), contextNode = ui.byId("insight-context");
+  const formatted = ui.byId("insight-citations"), contextNode = ui.byId("insight-context");
   const sourceNodes = [...contextNode.children];
-  body.focus(); ui.panel.render({ ...prepared, draft: "Unsent secret plus edit", preview: null, status: "prepared" });
-  assert.equal(ui.byId("insight-body"), body);
-  assert.equal(body.focused, true);
+  ui.panel.render({ ...prepared, draft: "Unsent secret plus edit", status: "prepared" });
+  assert.equal(ui.byId("insight-citations"), formatted);
   sourceNodes.forEach((item, index) => assert.equal(contextNode.children[index], item));
-  assert.equal(ui.byId("insight-preview").hidden, true);
-  assert.equal(ui.byId("insight-preview-body").textContent, "");
+  assert.equal(formatted.textContent, "");
+  assert.equal(ui.byId("insight-draft-details").hidden, true);
   ui.panel.render(state({ context: null, draft: "", preview: null, status: "changed", available: false }));
   assert.equal(contextNode.hidden, true); assert.equal(contextNode.children.length, 0);
   assert.equal(ui.byId("insight-composer").hidden, true);
-  assert.equal(body.value, "");
+  assert.equal(formatted.textContent, "");
   assert.equal(ui.byId("insight-status").textContent, INSIGHT_EN.changed);
 });
 
@@ -145,39 +139,38 @@ test("message fallback and repeated disposal clear sensitive content and detach 
   const ui = harness({ title: "<b>Translated title</b>" });
   assert.equal(ui.created.some((item) => item.textContent === "<b>Translated title</b>"), true);
   assert.equal(ui.created.some((item) => item.textContent === INSIGHT_EN.scope), false);
-  ui.panel.render(state({ draft: "Sensitive draft", preview: { body: "Sensitive draft", topicTitle: "A",
-    operatorName: "Alex", sourceTitle: "S" } }));
+  ui.panel.render(state({ draft: "Sensitive draft", ai: { result: { body: "Sensitive draft", citations: [] }, status: "generated" } }));
   assert.equal(ui.created.some((item) => item.textContent === INSIGHT_EN.scope), true);
   const callsBefore = ui.calls.length;
   ui.panel.dispose(); ui.panel.dispose();
-  assert.equal(ui.byId("insight-body").value, "");
   assert.equal(ui.byId("insight-context").children.length, 0);
-  for (const id of ["insight-preview-body", "insight-preview-topic", "insight-preview-provenance", "insight-preview-origin"])
+  for (const id of ["insight-citations", "insight-preview-topic", "insight-preview-origin"])
     assert.equal(ui.byId(id).textContent, "");
   assert.equal(ui.created.some((item) => item.listeners.size > 0), false);
   ui.panel.render(state({ draft: "Should remain absent" }));
-  assert.equal(ui.byId("insight-body").value, "");
+  assert.equal(ui.byId("insight-citations").textContent, "");
   assert.equal(ui.calls.length, callsBefore);
 });
 
-test("AI controls use separate callbacks and inline citation draft has one safe link", () => {
+test("AI controls use separate callbacks and one formatted insight has one safe citation link", () => {
   const ui = harness();
-  ui.panel.render(state({ draft: "Finding [↗](https://example.org/article)", ai: { connected: true, planEnabled: true, pending: false, account: { label: "Owner <b>" },
+  const marker = "citeturn0search0";
+  const result = { body: `Finding ${marker}`, citations: [{ url: "https://example.org/article",
+    title: "Source <script>", startIndex: 8, endIndex: 8 + marker.length }] };
+  const draft = formatInsightCitations(result.body, result.citations);
+  ui.panel.render(state({ draft, ai: { connected: true, planEnabled: true, pending: false, account: { label: "Owner <b>" },
     models: [{ slug: "model-a", displayName: "Model A" }], model: "model-a", articleText: "Public text",
     article: { url: "https://example.com/", documentId: "doc-a" }, costConsent: true, status: "generated",
-    result: { body: "Source finding", citations: [{ url: "https://example.org/article", title: "Source <script>",
-      startIndex: 0, endIndex: 6 }] } } }));
+    result } }));
   assert.equal(ui.byId("insight-ai-account").textContent.includes("Owner <b>"), true);
   assert.equal(ui.byId("insight-article-text").value, "Public text");
   const links = ui.descendants(ui.byId("insight-citations")).filter((item) => item.tag === "a");
   assert.equal(links.length, 1); assert.equal(links[0].linkHref, "https://example.org/article");
   assert.equal(links[0].rel, "noopener noreferrer");
   assert.equal(ui.byId("insight-createInsights").disabled, true);
-  ui.panel.render(state({ draft: "Finding [↗](https://example.org/article)", preview: {
-    body: "Finding [↗](https://example.org/article)", topicTitle: "Topic", operatorName: "Alex" } }));
-  const previewLinks = ui.descendants(ui.byId("insight-preview-body")).filter((item) => item.tag === "a");
-  assert.equal(previewLinks.length, 1);
-  assert.equal(previewLinks[0].linkHref, "https://example.org/article");
+  assert.equal(ui.descendants(ui.root).filter((item) => item.tag === "a" &&
+    item.linkHref === "https://example.org/article").length, 1);
+  assert.equal(ui.byId("insight-share").disabled, false);
 });
 
 test("compact workspace keeps account and context secondary while exposing redaction before Create", () => {
@@ -212,7 +205,6 @@ test("model listing keeps answer workspace hidden until a generated answer arriv
   const ui = harness();
   const next = ui.byId("insight-next-step");
   const hint = ui.byId("insight-draft-hint");
-  const draft = ui.byId("insight-body");
   const summary = ui.byId("insight-draft-details").children[0];
   const baseAi = { connected: true, planEnabled: true, pending: false,
     models: [{ slug: "model-a", displayName: "A" }], model: "", articleText: "", article: null,
@@ -221,13 +213,11 @@ test("model listing keeps answer workspace hidden until a generated answer arriv
   assert.equal(next.textContent, INSIGHT_EN.nextChooseModel);
   assert.equal(ui.byId("insight-draft-details").hidden, true);
   assert.equal(summary.textContent, INSIGHT_EN.draftWorkspace);
-  assert.equal(draft.value, "");
-  assert.equal(draft.placeholder, INSIGHT_EN.draftManualPlaceholder);
   assert.equal(hint.textContent, INSIGHT_EN.draftManualHint);
-  assert.equal(ui.byId("insight-review").disabled, true);
+  assert.equal(ui.byId("insight-share").disabled, true);
   ui.panel.render(state({ draft: "Own draft", ai: baseAi }));
-  assert.equal(summary.textContent, INSIGHT_EN.draftWorkspaceManualFilled);
-  assert.equal(ui.byId("insight-review").disabled, true);
+  assert.equal(summary.textContent, INSIGHT_EN.draftWorkspace);
+  assert.equal(ui.byId("insight-share").disabled, true);
   ui.panel.render(state({ ai: { ...baseAi, model: "model-a" } }));
   assert.equal(next.textContent, INSIGHT_EN.nextReadPage);
   ui.panel.render(state({ ai: { ...baseAi, model: "model-a", article: { url: "https://example.com/" },
@@ -239,11 +229,11 @@ test("model listing keeps answer workspace hidden until a generated answer arriv
   assert.equal(ui.byId("insight-createInsights").disabled, false);
 });
 
-test("research progress, failure, and completed draft have distinct editor guidance", () => {
+test("research progress, failure, and completed insight have distinct guidance", () => {
   const ui = harness();
   const hint = ui.byId("insight-draft-hint");
   const next = ui.byId("insight-next-step");
-  const draft = ui.byId("insight-body");
+  const formatted = ui.byId("insight-citations");
   const summary = ui.byId("insight-draft-details").children[0];
   const ai = { connected: true, planEnabled: true, pending: false,
     models: [{ slug: "model-a", displayName: "A" }], model: "model-a", articleText: "Public text",
@@ -251,7 +241,7 @@ test("research progress, failure, and completed draft have distinct editor guida
   ui.panel.render(state({ ai: { ...ai, status: "generating" } }));
   assert.equal(hint.textContent, INSIGHT_EN.draftGenerating);
   assert.equal(next.textContent, INSIGHT_EN.nextGenerating);
-  assert.equal(draft.value, "");
+  assert.equal(formatted.textContent, "");
   assert.equal(ui.byId("insight-quick-status").hidden, true);
   ui.panel.render(state({ ai: { ...ai, status: "generationFailed" } }));
   assert.equal(hint.textContent, INSIGHT_EN.draftResearchFailed);
@@ -266,9 +256,8 @@ test("research progress, failure, and completed draft have distinct editor guida
   assert.equal(ui.byId("insight-draft-details").hidden, false);
   assert.equal(hint.textContent, INSIGHT_EN.hint);
   assert.equal(next.textContent, INSIGHT_EN.nextReviewDraft);
-  assert.equal(draft.value, "Generated finding");
-  assert.equal(draft.readOnly, true);
-  assert.equal(draft.placeholder, INSIGHT_EN.draftGeneratedPlaceholder);
+  assert.equal(formatted.textContent, "Generated finding");
+  assert.equal(ui.byId("insight-share").disabled, false);
   assert.equal(ui.byId("insight-quick-status").hidden, true);
 });
 

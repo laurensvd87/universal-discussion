@@ -1,5 +1,12 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-03 UI refinement complete (0.12.18): The owner chose one formatted private
+Insight preview with a direct Share or Discard action, removing the extra
+Preview button and duplicate text. The controller and service retain exact
+generated-body and target attestation. The full extension suite, isolated
+Chrome visual run and local-service/Chrome synthetic integration smoke pass;
+details are in STATUS. The local service is running again on port 4174.
+
 2026-10-03 current integration: ADR-034's immutable, server-attested robot
 opener/follow-up path is implemented in the owner-local prototype. A published
 human direct question under a generated robot root can invoke Get insights;

@@ -33,6 +33,22 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-03 version 0.12.18 insight review simplification:** The owner found
+the separate Preview and Share steps redundant. The formatted private result
+is now the only preview; Share is the single deliberate publication action,
+and Discard remains available. The service still attests the exact unchanged
+generated body and bound target; a manually pasted draft cannot be shared as
+a robot contribution. Verification and Chrome evidence are recorded below
+now: the full extension suite passed (858 passed, one pre-existing skip), the
+focused insight/indicator suite passed (47/47), and secret scan found zero
+high-confidence findings across 179 files. An isolated actual-Chrome popup
+visual run passed 13 synthetic screens at 410 px User/380 px Developer width
+without horizontal overflow; the local-service/Chrome integration smoke
+passed direct generated-insight sharing, withdrawal and its other synthetic
+flows with zero runtime exceptions or external extension requests. The owner
+local service was restarted on port 4174 afterward. No live provider call was
+needed for this UI-only change; owner live insight verification remains open.
+
 **2026-10-03 version 0.12.17 immutable robot follow-ups and related-source audit:**
 [ADR-034](../decisions/ADR-034-published-followups-and-robot-provenance.md)
 is implemented for this owner-local synthetic-actor prototype. A generated

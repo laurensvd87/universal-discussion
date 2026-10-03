@@ -56,7 +56,7 @@ async function generatedHarness(options = {}) {
   return { ...app, cancelled };
 }
 
-test("generated result -> exact preview -> one immutable AI-labelled local root", async () => {
+test("formatted generated result -> one explicit immutable AI-labelled local root", async () => {
   const app = await generatedHarness(); const { insight, discussion, service } = app;
   assert.equal(insight.currentState().available, true);
   assert.equal(insight.currentState().context.currentSource.id, "reserved-example-com");
@@ -66,8 +66,6 @@ test("generated result -> exact preview -> one immutable AI-labelled local root"
   assert.equal(await insight.createInsights({ automatic: true }), false);
   assert.equal(insight.selectModel("model-a"), false);
   assert.equal(await insight.readPageText(), false);
-  assert.equal(await insight.share(), false); // No preview, no mutation.
-  assert.equal(insight.preview(), true);
   assert.equal(service.discussion("reserved-domain-demo").roots.length, 0);
   assert.equal(await insight.share(), true);
   assert.deepEqual(app.cancelled, [], "Share must not cancel the completed service proof during the busy transition");
@@ -91,7 +89,6 @@ test("own published question gets one unchanged private robot follow-up", async 
   let number = 0;
   const app = await generatedHarness({ randomId: () => `followup-${++number}` });
   const { insight, discussion, service } = app;
-  assert.equal(insight.preview(), true);
   assert.equal(await insight.share(), true);
   const root = service.discussion("reserved-domain-demo").roots[0];
   assert.equal(discussion.begin("reply", root.id), true);
@@ -100,8 +97,7 @@ test("own published question gets one unchanged private robot follow-up", async 
   const question = service.discussion("reserved-domain-demo").roots[0].replies[0];
   assert.equal(await insight.createFollowup(question.id), true);
   assert.equal(insight.currentState().draft, "Generated answer");
-  assert.equal(insight.preview(), true);
-  assert.equal(insight.currentState().preview.replyToId, question.id);
+  assert.equal(insight.currentState().preview, null);
   assert.equal(await insight.share(), true);
   const replies = service.discussion("reserved-domain-demo").roots[0].replies;
   assert.equal(replies.length, 2);
@@ -113,7 +109,7 @@ test("own published question gets one unchanged private robot follow-up", async 
   assert.equal(service.discussion("reserved-domain-demo").roots[0].replies[1].label, "Deleted by user");
 });
 
-test("AI research requires explicit page preview, model and credit consent; answer remains private", async () => {
+test("AI research requires page text, model and credit consent; answer stays private until Share", async () => {
   const calls = [];
   const aiClient = {
     status: async () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "client-a", label: "Owner" } }),
@@ -140,7 +136,8 @@ test("AI research requires explicit page preview, model and credit consent; answ
   assert.equal(calls[0].allowWebResearch, true);
   assert.equal(app.insight.currentState().draft, "Useful synthetic finding.");
   assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 0);
-  assert.equal(await app.insight.share(), false);
+  app.insight.discard();
+  assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 0);
 });
 
 test("provider citation survives private preview and explicit AI-labelled share in the body", async () => {
