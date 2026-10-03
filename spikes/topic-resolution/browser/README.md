@@ -1,5 +1,17 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Current insight check (0.12.13)
+
+The owner's first Create attempt after 0.12.12 still returned
+`response-final-item-missing`. Version 0.12.13 makes the separately approved
+completed assistant item sufficient without requiring an additional finalized
+text event; any such event that is present must still agree. Restart the local
+service and reload the unpacked extension before a new check. On one public
+article, click **Create insight** once. Report only whether a private editable
+draft appeared, or the fixed `response-*` code. The new `response-item-*`
+codes indicate an identity, contradiction, missing-prefix or text-consistency
+boundary without showing provider text. No automatic retry or sharing occurs.
+
 ## Current local setup (0.12.12)
 
 The pairing token now persists in this browser profile after one fresh

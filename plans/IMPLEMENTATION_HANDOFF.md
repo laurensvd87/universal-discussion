@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-03 owner result: after 0.12.12, a deliberate Create still returned
+`response-final-item-missing`; exact stream shape is unknown because raw
+provider output is neither logged nor retained. Version 0.12.13 aligns
+ADR-028 with its approved completed-item boundary: `output_text.done` is not
+mandatory, but if present must match. Four fixed content-free subcodes now
+differentiate remaining rejection boundaries. Offline service 171 passed/2
+skipped, extension restricted 838/838. No live success claim, provider call,
+auto-retry or auto-share. Next owner action: restart backend, reload extension,
+one deliberate public-page Create at most; report only draft or fixed code.
+Independent Trust review identified a same-ID prefix type/status contradiction;
+the fix and synthetic negative tests were re-reviewed without a blocker.
+
 2026-10-02 current checkpoint: 0.12.12 implements the owner's separate
 approvals for ADR-019 C durable local pairing and ADR-028's strict finalized
 assistant item private-draft fallback. The old session key is discarded, not

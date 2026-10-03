@@ -39,7 +39,8 @@ SQLite v2 migration pins existing roots without inventing their source
 lineage: never guess it. Do not infer approval for second vectors, structured
 retained facts or an unreviewed historical migration. ADR-019 C durable pairing
 and ADR-028's strict private-draft exception were separately approved on
-2026-10-02 and implemented with offline tests in 0.12.12; owner live pairing
+2026-10-02 and implemented with offline tests in 0.12.12; 0.12.13 clarifies
+the completed-item fallback after the first owner retry. Owner live pairing
 and research verification remains open. No S4 or expanded private/remote
 scope follows. The lead handles review and later gates remain.
 

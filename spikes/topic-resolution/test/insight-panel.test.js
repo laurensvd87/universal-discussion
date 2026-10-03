@@ -313,7 +313,8 @@ test("research failure exposes only allowlisted fixed detail and clears it on su
   ui.panel.render(state({ ai: { ...ai, researchFailureDetail: "private-provider-body" } }));
   assert.equal(ui.byId("insight-quick-status").textContent.includes("private-provider-body"), false);
   for (const detail of ["response-output-empty", "response-search-only", "response-reasoning-only",
-    "response-final-item-missing", "response-stream-text-unfinalized"]) {
+    "response-final-item-missing", "response-item-identity", "response-item-conflict",
+    "response-item-prefix", "response-item-text", "response-stream-text-unfinalized"]) {
     ui.panel.render(state({ ai: { ...ai, researchFailureDetail: detail } }));
     assert.equal(ui.byId("insight-quick-status").textContent.includes(`Code: ${detail}`), true, detail);
   }

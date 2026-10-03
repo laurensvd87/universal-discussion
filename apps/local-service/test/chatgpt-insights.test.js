@@ -321,7 +321,7 @@ test("completed research without final usable text reports only a fixed structur
       event("response.completed", { status: "completed", output: [] })), "response-stream-text-unfinalized"],
     [stream(`event: response.output_item.done\ndata: ${JSON.stringify({ type: "response.output_item.done",
       item: message("completed", [{ type: "output_text", text: secret }]) })}\n\n` +
-      event("response.completed", { status: "completed", output: [] })), "response-final-item-missing"],
+      event("response.completed", { status: "completed", output: [] })), "response-item-conflict"],
     [completedStream([message("in_progress", [{ type: "output_text", text: secret }])]), "response-message-unfinished"],
     [completedStream([message("completed", [{ type: "refusal", refusal: secret }])]), "response-refusal"],
     [completedStream([message("completed", [{ type: "other", text: secret }])]), "response-no-text"],
@@ -353,16 +353,17 @@ test("one identity-matched finalized assistant item can become a private result 
   const body = "A bounded synthetic insight.";
   const item = { id: itemId, type: "message", role: "assistant", status: "completed",
     content: [{ type: "output_text", text: body, annotations: [] }] };
+  const textFinalized = streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body });
   const raw = streamEvent("response.created", { response: { id: responseId, status: "in_progress", output: [] } }) +
     streamEvent("response.output_item.added", { output_index: 1,
       item: { id: itemId, type: "message", role: "assistant", status: "in_progress" } }) +
-    streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body }) +
+    textFinalized +
     streamEvent("response.content_part.done", { item_id: itemId, output_index: 1, content_index: 0,
       part: { type: "output_text", text: body } }) +
     streamEvent("response.output_item.done", { output_index: 1, item }) +
     streamEvent("response.completed", { response: { id: responseId, status: "completed",
       output: [{ id: "call_synthetic", type: "web_search_call", status: "completed" }] } });
-  for (const reply of [stream(raw), headerless(raw)]) {
+  for (const reply of [stream(raw), headerless(raw), stream(raw.replace(textFinalized, ""))]) {
     let posts = 0;
     const adapter = createChatGptInsights({ fetchImpl: async (url) => {
       if (url.endsWith("/models")) return models();
@@ -402,6 +403,16 @@ test("finalized-item fallback rejects missing identity, conflict, refusal and in
       streamEvent("response.output_item.done", { output_index: 1, item }) +
       streamEvent("response.completed", { response: { id: responseId, status: "completed",
         output: [{ id: "call_other", type: "web_search_call", status: "completed" }] } }),
+    created + streamEvent("response.output_item.done", { output_index: 0,
+      item: { id: "call_same", type: "reasoning", status: "completed" } }) +
+      streamEvent("response.output_item.done", { output_index: 1, item }) +
+      streamEvent("response.completed", { response: { id: responseId, status: "completed",
+        output: [{ id: "call_same", type: "web_search_call", status: "completed" }] } }),
+    created + streamEvent("response.output_item.done", { output_index: 0,
+      item: { id: "call_same", type: "web_search_call", status: "completed" } }) +
+      streamEvent("response.output_item.done", { output_index: 1, item }) +
+      streamEvent("response.completed", { response: { id: responseId, status: "completed",
+        output: [{ id: "call_same", type: "web_search_call", status: "in_progress" }] } }),
     created + streamEvent("response.output_text.done", { item_id: itemId, output_index: 1, content_index: 0, text: body }) +
       streamEvent("response.output_item.done", { output_index: 1, item }) +
       streamEvent("response.completed", { response: { id: responseId, status: "completed",
@@ -438,6 +449,33 @@ test("finalized-item fallback rejects missing identity, conflict, refusal and in
       return true;
     });
     assert.equal(posts, 1);
+    adapter.dispose();
+  }
+});
+
+test("finalized-item diagnostics disclose only a fixed rejection boundary", async () => {
+  const body = "SECRET_SYNTHETIC_DIAGNOSTIC";
+  const item = { id: "msg_synthetic_diag", type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: body }] };
+  const created = streamEvent("response.created", { response: { id: "resp_synthetic_diag" } });
+  const done = streamEvent("response.output_item.done", { output_index: 0, item });
+  const final = (output = []) => streamEvent("response.completed", { response: {
+    id: "resp_synthetic_diag", status: "completed", output } });
+  for (const [raw, detail] of [
+    [done + final(), "response-item-identity"],
+    [created + done + streamEvent("response.output_item.done", { output_index: 0, item }) + final(), "response-item-conflict"],
+    [created + streamEvent("response.output_item.done", { output_index: 1, item }) + final(), "response-item-prefix"],
+    [created + streamEvent("response.output_text.done", { item_id: item.id, output_index: 0,
+      content_index: 0, text: "contradictory" }) + done + final(), "response-item-text"],
+  ]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() : stream(raw),
+      getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight(REQUEST), (error) => {
+      assert.equal(error.detail, detail);
+      assert.equal(JSON.stringify(error).includes(body), false);
+      return true;
+    });
     adapter.dispose();
   }
 });

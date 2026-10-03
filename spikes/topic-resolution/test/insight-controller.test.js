@@ -428,7 +428,8 @@ test("safe research failures give actionable status without importing provider t
 
 test("research failure retains only a fixed diagnostic detail in popup memory", async () => {
   for (const detail of ["response-no-final", "response-output-empty", "response-search-only",
-    "response-reasoning-only", "response-final-item-missing", "response-stream-text-unfinalized",
+    "response-reasoning-only", "response-final-item-missing", "response-item-identity",
+    "response-item-conflict", "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
     "response-content-json", "response-content-html",
     "response-content-text", "response-content-missing", "response-content-other", "response-content-type"]) {
     const app = await harness({ aiClient: {

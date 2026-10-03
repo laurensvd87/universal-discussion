@@ -33,6 +33,23 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**0.12.13 owner result and offline follow-up (2026-10-03):** The owner paired
+successfully enough to invoke Create, but the first post-0.12.12 live attempt
+still returned `response-final-item-missing`. No raw provider response was
+retained, so the exact rejecting condition is unknown. ADR-028 approved a
+fully completed, identity-consistent assistant item as a private draft; our
+implementation additionally demanded `response.output_text.done`. This is
+now optional, but when emitted must match item ID, indices and exact text.
+The separate `content_part.done` consistency check remains. If rejection
+persists, fixed content-free `response-item-identity`, `-conflict`, `-prefix`
+or `-text` codes identify the boundary without exposing provider material.
+No agent-made provider call, auto-retry or auto-share. Full offline service
+**171 passed, 2 Windows opt-in skipped**; extension restricted **838/838**.
+Independent read-only Trust review found a prefix type/status mismatch path;
+it was fixed, covered by negative tests and re-reviewed without a blocker.
+Owner can restart the service, reload the extension and make at most one
+deliberate public-page Create attempt, reporting only draft-or-fixed-code.
+
 **0.12.12 checkpoint (2026-10-02):** The owner explicitly approved ADR-019 C
 durable local pairing and ADR-028's strict completed-item private-draft
 exception. The local service now requires explicit interactive initialization,

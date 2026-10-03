@@ -10,6 +10,16 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension **0.12.13** follows the owner's first live retry of the strict
+insight fallback, which still returned `response-final-item-missing`. The
+fallback had additionally required a matching `response.output_text.done`
+event, beyond the approved fully completed `output_item.done` condition. It
+now accepts that text event being absent, while rejecting it if present but
+inconsistent. Four fixed, content-free rejection codes distinguish identity,
+contradiction, missing output prefix and text mismatch. No provider call,
+raw response capture, automatic retry or sharing was added by this fix.
+Live insight success remains unverified.
+
 Extension **0.12.12** implements the owner's approved persistent local pairing:
 after one fresh explicit initialization and pairing, the browser retains its
 local-service token across browser/service restarts until **Forget connection**,

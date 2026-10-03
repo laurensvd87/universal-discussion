@@ -23,7 +23,8 @@ const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "
   "response-encoding", "response-event", "response-no-final", "response-empty-output", "response-no-message",
   "response-message-unfinished", "response-refusal", "response-no-text", "response-blank-text",
   "response-output-empty", "response-search-only", "response-reasoning-only",
-  "response-final-item-missing", "response-stream-text-unfinalized",
+  "response-final-item-missing", "response-item-identity", "response-item-conflict",
+  "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
   "response-unsafe-text", "response-output-too-large",
   "response-incomplete", "response-failed", "response-http-400"]);
 
@@ -184,7 +185,7 @@ function completed(value, model, streamShape) {
     }
   }
   if (!assistantMessage) {
-    if (streamShape.finalAssistantItem) fail("invalid-response", "response-final-item-missing");
+    if (streamShape.finalAssistantItem) fail("invalid-response", streamShape.fallbackFailure ?? "response-final-item-missing");
     if (streamShape.textDone) fail("invalid-response", "response-stream-text-unfinalized");
     if (value.output.length === 0) fail("invalid-response", "response-output-empty");
     if (value.output.some((item) => item?.type === "web_search_call") &&
@@ -201,35 +202,46 @@ function completed(value, model, streamShape) {
   return { body, citations, model };
 }
 function completedStreamItemFallback(final, model, shape) {
+  const reject = (detail) => { shape.fallbackFailure = detail; return null; };
   const candidate = shape.candidate;
-  if (shape.conflict || shape.createdCount !== 1 || !candidate || shape.candidateCount !== 1 ||
-      !final || final.status !== "completed" || !Array.isArray(final.output) ||
+  if (shape.conflict) return reject("response-item-conflict");
+  if (shape.createdCount !== 1 || !candidate || shape.candidateCount !== 1 ||
+      typeof final?.id !== "string" || final.id !== shape.createdId) return reject("response-item-identity");
+  if (final.status !== "completed" || !Array.isArray(final.output) ||
       final.error != null || final.incomplete_details != null ||
-      typeof final.id !== "string" || final.id !== shape.createdId ||
       final.output.some((item) => item?.type === "message" ||
-        item?.status === "failed" || item?.status === "incomplete") ||
-      final.output.length !== candidate.index ||
-      final.output.some((item) => item?.id === candidate.item.id) ||
-      !Array.isArray(candidate.item.content) || candidate.item.content.length > 8) return null;
+        (item?.status != null && item.status !== "completed"))) return reject("response-item-conflict");
+  if (final.output.length !== candidate.index ||
+      final.output.some((item) => item?.id === candidate.item.id)) return reject("response-item-prefix");
+  if (!Array.isArray(candidate.item.content) || candidate.item.content.length > 8) return reject("response-item-text");
   if (shape.addedItems.some((added) => added.index === candidate.index &&
-      (added.id !== candidate.item.id || added.type !== "message" || added.role !== "assistant"))) return null;
+      (added.id !== candidate.item.id || added.type !== "message" || added.role !== "assistant"))) return reject("response-item-identity");
   for (const observed of [...shape.addedItems, ...shape.doneItems]) {
-    if (observed.index > candidate.index) return null;
-    if (observed.index < candidate.index && final.output[observed.index]?.id !== observed.id) return null;
+    if (observed.index > candidate.index) return reject("response-item-prefix");
+    if (observed.index < candidate.index) {
+      const terminal = final.output[observed.index];
+      if (terminal?.id !== observed.id) return reject("response-item-prefix");
+      if (terminal.type !== observed.type ||
+          (observed.role !== undefined && terminal.role !== observed.role) ||
+          (observed.status !== undefined && terminal.status !== observed.status)) return reject("response-item-conflict");
+    }
   }
   const texts = candidate.item.content.map((part, index) => ({ part, index }))
     .filter(({ part }) => part?.type === "output_text" && typeof part.text === "string");
-  if (!texts.length || texts.length !== shape.textDoneItems.length) return null;
-  for (const { part, index } of texts) {
-    const matches = shape.textDoneItems.filter((done) => done.itemId === candidate.item.id &&
-      done.outputIndex === candidate.index && done.contentIndex === index && done.text === part.text);
-    if (matches.length !== 1) return null;
+  if (!texts.length || (shape.textDoneItems.length > 0 && texts.length !== shape.textDoneItems.length))
+    return reject("response-item-text");
+  if (shape.textDoneItems.length) {
+    for (const { part, index } of texts) {
+      const matches = shape.textDoneItems.filter((done) => done.itemId === candidate.item.id &&
+        done.outputIndex === candidate.index && done.contentIndex === index && done.text === part.text);
+      if (matches.length !== 1) return reject("response-item-text");
+    }
   }
   for (const done of shape.contentDoneItems) {
     const part = candidate.item.content[done.contentIndex];
     if (done.itemId !== candidate.item.id || done.outputIndex !== candidate.index ||
         part?.type !== "output_text" || done.part?.type !== "output_text" ||
-        done.part.text !== part.text) return null;
+        done.part.text !== part.text) return reject("response-item-text");
   }
   // A finalized item may be used only after the terminal completed response;
   // no delta, tool result, conflicting final item or refused output is imported.
@@ -300,10 +312,13 @@ function parseSse(raw, model) {
       if (streamShape.doneItems.length >= 101 || !Number.isSafeInteger(event.output_index) ||
           event.output_index < 0 || event.output_index > 100 || typeof event.item?.id !== "string" ||
           !STREAM_ID.test(event.item.id) || streamShape.doneItems.some((item) => item.index === event.output_index) ||
-          streamShape.addedItems.some((item) => item.index === event.output_index && item.id !== event.item.id))
+          streamShape.addedItems.some((item) => item.index === event.output_index &&
+            (item.id !== event.item.id || item.type !== event.item.type ||
+              (item.role !== undefined && item.role !== event.item.role))))
         streamShape.conflict = true;
-      else streamShape.doneItems.push({ index: event.output_index, id: event.item.id });
-      if (event.item?.status === "incomplete" || event.item?.status === "failed") streamShape.conflict = true;
+      else streamShape.doneItems.push({ index: event.output_index, id: event.item.id,
+        type: event.item.type, role: event.item.role, status: event.item.status });
+      if (event.item?.status !== undefined && event.item.status !== "completed") streamShape.conflict = true;
       if (event.item?.type === "message" && event.item.role === "assistant") {
         streamShape.candidateCount += 1;
         if (event.item.status !== "completed") streamShape.conflict = true;
