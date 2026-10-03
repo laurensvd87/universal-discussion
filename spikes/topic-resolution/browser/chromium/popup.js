@@ -253,6 +253,7 @@ insightController = createInsightController({
   openAuthorization: (url) => tabsApi.create({ url, active: true }),
 });
 insightPanel.bind(insightController);
+discussionPanel.bindInsight(insightController);
 matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-matching"), {
   sendMessage: (message) => runtime.sendMessage(message),
   requestPermission: (request) => globalThis.chrome.permissions.request(request),

@@ -4,9 +4,10 @@ import { mountDiscussionPanel } from "../browser/chromium/discussion-panel.js";
 import { EN } from "../browser/locales/en.js";
 import { readFileSync } from "node:fs";
 
-function harness(messages, workspace) {
+function harness(messages, workspace, insightsTab) {
   const created = [];
-  const document = { querySelector: (selector) => selector === "#insight-workspace" ? workspace : null, createElement(tag) {
+  const document = { querySelector: (selector) => selector === "#insight-workspace" ? workspace
+    : selector === "#app-tab-insights" ? insightsTab : null, createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
       append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; },
       insertBefore(item, sibling) {
@@ -105,6 +106,59 @@ test("only AI-labelled posts render validated inline source icons", () => {
   assert.equal(aiBody.children[2].textContent, " <img src=x>");
   assert.equal(humanBody.textContent, marker);
   assert.equal(descendants(humanBody).some((item) => item.tag === "a"), false);
+});
+test("owned robot post can be withdrawn but never edited; withdrawn root retains replies", () => {
+  const ui = harness();
+  const agent = { id: "ai-root", rootId: null, state: "visible", authorId: "demo-imported-ai", actorType: "agent",
+    insight: { kind: "manual-import", operatorId: "demo-alex" }, body: "Answer", edited: false,
+    replies: [{ id: "human-reply", rootId: "ai-root", state: "visible", authorId: "demo-alex", actorType: "human", body: "Question" }] };
+  ui.panel.render(state({ discussion: { roots: [agent] } }));
+  const card = descendants(ui.root).find((item) => item.tag === "article" && item.children.some((child) => child.className === "discussion-body"));
+  const actions = card.children.filter((item) => item.tag === "button").map((item) => item.attributes["data-action"]);
+  assert.deepEqual(actions, ["reply", "withdraw"]);
+  card.children.find((item) => item.attributes["data-action"] === "withdraw").listeners.get("click")();
+  assert.deepEqual(ui.calls.at(-1), ["withdraw", "ai-root"]);
+  ui.panel.render(state({ discussion: { roots: [{ id: "ai-root", rootId: null, state: "deleted", replies: agent.replies }] } }));
+  assert.ok(descendants(ui.root).some((item) => item.textContent === "Deleted by user"));
+  assert.ok(descendants(ui.root).some((item) => item.textContent === "Question"));
+});
+test("own published question under a generated robot opener offers one-click private follow-up", () => {
+  const navigation = [];
+  const ui = harness(undefined, null, { click: () => navigation.push("insights") });
+  const followups = [];
+  ui.panel.bindInsight({ createFollowup: (id) => { followups.push(id); return Promise.resolve(true); } });
+  const root = { id: "robot-root", rootId: null, state: "visible", authorId: "demo-imported-ai",
+    actorType: "agent", insight: { kind: "generated", operatorId: "demo-alex" }, body: "An opener",
+    replies: [
+      { id: "own-question", rootId: "robot-root", replyToId: "robot-root", state: "visible", actorType: "human",
+        authorId: "demo-alex", body: "Why?" },
+      { id: "other-question", rootId: "robot-root", replyToId: "robot-root", state: "visible", actorType: "human",
+        authorId: "demo-blair", body: "How?" },
+    ] };
+  ui.panel.render(state({ discussion: { roots: [root] } }));
+  const actions = descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights");
+  assert.equal(actions.length, 1);
+  assert.equal(actions[0].attributes["data-contribution-id"], "own-question");
+  assert.equal(actions[0].textContent, "Get insights");
+  actions[0].listeners.get("click")();
+  assert.deepEqual(navigation, ["insights"]);
+  assert.deepEqual(followups, ["own-question"]);
+});
+test("manual import, non-reply and withdrawn questions cannot initiate a robot follow-up", () => {
+  const ui = harness();
+  const directReply = { id: "question", rootId: "robot-root", replyToId: "robot-root", state: "visible", actorType: "human",
+    authorId: "demo-alex", body: "Why?" };
+  const root = { id: "robot-root", rootId: null, state: "visible", authorId: "demo-imported-ai",
+    actorType: "agent", insight: { kind: "manual-import", operatorId: "demo-alex" }, body: "Opener",
+    replies: [directReply] };
+  for (const mutation of [
+    () => {},
+    () => { root.insight.kind = "generated"; directReply.state = "deleted"; },
+    () => { directReply.state = "visible"; directReply.replyToId = "other-reply"; },
+  ]) {
+    mutation(); ui.panel.render(state({ discussion: { roots: [root] } }));
+    assert.equal(descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights").length, 0);
+  }
 });
 test("User related pages are a count disclosure; native open state survives polling and resets on mode switch", () => {
   const ui = harness();

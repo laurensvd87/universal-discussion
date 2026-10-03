@@ -4,7 +4,9 @@ import path from "node:path";
 import { ChatGPTConnectionFailure, createChatGPTConnection } from "./chatgpt-connection.js";
 import { ChatGptInsightError, createChatGptInsights } from "./chatgpt-insights.js";
 import { buildInsightContext } from "../../../../spikes/topic-resolution/browser/core/insight-context.js";
+import { formatInsightCitations } from "../../../../spikes/topic-resolution/browser/core/insight-citations.js";
 import { fail } from "../domain/errors.js";
+import { readId } from "../domain/validation.js";
 
 const FILE = "chatgpt-registration.json";
 const OPERATION = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
@@ -176,6 +178,22 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     return { ...rebuilt, relatedSources,
       coverage: { ...rebuilt.coverage, relatedTotal: relatedSources.length } };
   }
+  function inspectFollowup(questionId, actorId, context, expected) {
+    const id = readId(questionId);
+    const discussion = service.discussion(context.topic.id);
+    if (!same(discussion.version, expected)) fail("conflict", "State changed");
+    for (const root of discussion.roots) {
+      if (root.state !== "visible" || root.actorType !== "agent" || root.insight?.kind !== "generated") continue;
+      const question = root.replies.find((entry) => entry.id === id);
+      if (!question) continue;
+      if (question.state !== "visible" || question.actorType !== "human" ||
+          question.authorId !== actorId || question.replyToId !== root.id ||
+          root.body.length > 2_000 || question.body.length > 2_000) fail("forbidden", "Action unavailable");
+      return { parentBody: root.body, questionBody: question.body,
+        rootId: root.id, replyToId: question.id, discussionId: discussion.discussionId };
+    }
+    fail("not-found", "Object unavailable");
+  }
   return Object.freeze({
     restore: () => connection.restore?.() ?? Promise.resolve(false),
     diagnostics: () => ({ events: diagnosticEvents.map((event) => ({ ...event })) }),
@@ -216,9 +234,9 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         throw error;
       } },
     create(value, actorId) {
-      exact(value, Object.hasOwn(value ?? {}, "excludedRelatedSourceIds")
-        ? ["operationId", "model", "context", "articleText", "allowWebResearch", "expected", "excludedRelatedSourceIds"]
-        : ["operationId", "model", "context", "articleText", "allowWebResearch", "expected"]);
+      exact(value, ["operationId", "model", "context", "articleText", "allowWebResearch", "expected",
+        ...(Object.hasOwn(value ?? {}, "excludedRelatedSourceIds") ? ["excludedRelatedSourceIds"] : []),
+        ...(Object.hasOwn(value ?? {}, "followupQuestionId") ? ["followupQuestionId"] : [])]);
       service.actor(actorId);
       const key = operationId(value.operationId);
       if (seen.has(key)) fail("conflict", "Operation changed");
@@ -227,11 +245,17 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       const context = inspectContext(value);
-      const job = { operationId: key, actorId, expected: value.expected, state: "running", result: null,
+      const followup = Object.hasOwn(value, "followupQuestionId")
+        ? inspectFollowup(value.followupQuestionId, actorId, context, value.expected) : null;
+      const job = { operationId: key, actorId, expected: value.expected, topicId: context.topic.id,
+        originSourceId: context.currentSource?.id ?? null,
+        rootId: followup?.rootId ?? null, replyToId: followup?.replyToId ?? null,
+        discussionId: followup?.discussionId ?? null, state: "running", result: null,
         error: null, detail: null, finishedAt: null };
       seen.add(key); jobs.set(key, job); active = job;
       void insights.createInsight({ model: value.model, context, articleText: value.articleText,
-        allowWebResearch: value.allowWebResearch }).then((result) => {
+        allowWebResearch: value.allowWebResearch,
+        ...(followup ? { followup: { parentBody: followup.parentBody, questionBody: followup.questionBody } } : {}) }).then((result) => {
         if (job.state === "running" && !disposed) {
           job.state = "completed"; job.result = result; recordInsightOutcome("success"); finish(job);
         }
@@ -254,7 +278,35 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         ...(job.detail ? { detail: job.detail } : {}) };
       return { operationId: job.operationId, state: "running" };
     },
-    cancel(value, actorId) { exact(value, ["operationId"]); const job = owned(value.operationId, actorId); cancelJob(job); return { cancelled: true }; },
+    share(value, actorId, persist) {
+      exact(value, ["expected", "command"]);
+      if (typeof persist !== "function") fail("invalid", "Invalid request");
+      const command = value.command;
+      if (!command || typeof command !== "object" || Array.isArray(command) ||
+          !["share-insight", "share-insight-reply"].includes(command.type)) fail("invalid", "Invalid request");
+      const job = owned(command.operationId, actorId);
+      if (job.state !== "completed" || !job.result || !same(job.expected, value.expected) ||
+          !same(job.expected, service.catalog().version) || command.topicId !== job.topicId ||
+          command.originSourceId !== job.originSourceId ||
+          (job.replyToId === null ? command.type !== "share-insight" :
+            command.type !== "share-insight-reply" ||
+            command.rootId !== job.rootId || command.replyToId !== job.replyToId ||
+            command.discussionId !== job.discussionId)) fail("conflict", "State changed");
+      let body;
+      try { body = formatInsightCitations(job.result.body, job.result.citations); }
+      catch { fail("invalid", "Invalid request"); }
+      if (command.body !== body) fail("invalid", "Invalid request");
+      const proof = Object.freeze({ kind: "generated-insight", operationId: job.operationId,
+        actorId, topicId: job.topicId, originSourceId: job.originSourceId, body,
+        rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId });
+      const outcome = persist(proof);
+      clearTimeout(job.expiry); job.result = null; jobs.delete(job.operationId);
+      return outcome;
+    },
+    cancel(value, actorId) { exact(value, ["operationId"]); const job = owned(value.operationId, actorId);
+      if (job.state === "completed") { clearTimeout(job.expiry); job.result = null; jobs.delete(job.operationId); }
+      else cancelJob(job);
+      return { cancelled: true }; },
     reset() { stopJobs(); },
     dispose() { disposed = true; callbackGeneration += 1; callbackPending = false;
       stopJobs(); diagnosticEvents.length = 0; insights.dispose(); connection.dispose(); },

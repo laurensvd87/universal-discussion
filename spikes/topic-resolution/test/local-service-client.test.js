@@ -44,8 +44,8 @@ test("origin DTO preserves distinct root/reply links and visible-root regrouping
   assert.deepEqual(readDiscussion(value, "topic-a").roots[0], root);
   for (const bad of [{ ...root, origin: { ...origin(), token: "secret" } }, { ...root, origin: null },
     { ...root, regrouped: "true" }, { ...root, regrouped: false }, { ...root, replies: [{ ...root.replies[0], regrouped: true }] },
-    { id: "root-a", rootId: null, replyToId: null, state: "deleted", label: "Deleted", replies: [], origin: origin() },
-    { id: "root-a", rootId: null, replyToId: null, state: "deleted", label: "Deleted", replies: [], regrouped: true }]) {
+    { id: "root-a", rootId: null, replyToId: null, state: "deleted", label: "Deleted by user", replies: [], origin: origin() },
+    { id: "root-a", rootId: null, replyToId: null, state: "deleted", label: "Deleted by user", replies: [], regrouped: true }]) {
     assert.throws(() => readDiscussion({ ...value, roots: [bad] }, "topic-a"));
   }
   delete root.origin; delete root.regrouped; delete root.replies[0].origin;
@@ -66,12 +66,14 @@ test("posting origin command is optional opaque ID/null only; edits cannot overw
   assert.throws(() => readCommand({ type: "edit", contributionId: "root-a", body: "Edit", originSourceId: "source-a" }));
   assert.throws(() => readCommand({ ...root, origin: origin() }));
 });
-test("manual insight command and projection are strict about unverified agent provenance", () => {
-  const input = { type: "share-insight", topicId: "topic-a", body: "Selected finding", originSourceId: "source-a" };
+test("generated insight command and projection require bounded provenance", () => {
+  const input = { type: "share-insight", topicId: "topic-a", body: "Selected finding",
+    operationId: "operation-a", originSourceId: "source-a" };
   assert.deepEqual(readCommand(input), input);
   for (const extra of [{ authorId: "demo-alex" }, { operatorId: "demo-blair" }, { provider: "claimed" }, { model: "claimed" }, { insight: {} }]) {
     assert.throws(() => readCommand({ ...input, ...extra }));
   }
+  assert.throws(() => readCommand({ ...input, operationId: undefined }));
   const root = { ...visiblePost("root-a"), authorId: "demo-imported-ai", actorType: "agent",
     insight: { kind: "manual-import", operatorId: "demo-alex" }, replies: [] };
   const value = { version: VERSION, topic: { id: "topic-a", title: "A", kind: "general" }, discussionId: "discussion-a", roots: [root] };
@@ -82,6 +84,10 @@ test("manual insight command and projection are strict about unverified agent pr
     { ...root, insight: undefined }, { ...root, actorType: "human" },
     { ...root, replies: [{ ...visiblePost("reply-a", "root-a"), actorType: "agent", authorId: "demo-imported-ai", insight: root.insight }] },
   ]) assert.throws(() => readDiscussion({ ...value, roots: [variant] }, "topic-a"));
+  const generated = { ...root, insight: { kind: "generated", operatorId: "demo-alex" },
+    replies: [{ ...visiblePost("reply-a", "root-a"), actorType: "agent", authorId: "demo-imported-ai",
+      insight: { kind: "generated", operatorId: "demo-alex" } }] };
+  assert.deepEqual(readDiscussion({ ...value, roots: [generated] }, "topic-a").roots[0], generated);
 });
 function json(value, status = 200, headers = {}) {
   return new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
@@ -309,10 +315,10 @@ test("catalog, related, discussion and mutation DTOs reject extra fields and mal
   related.results[0].similarity = 1;
   await assert.rejects(client(async () => json(related)).related("harbor-overview", 3), code("invalid-response"));
   const view = structuredClone(service.discussion("harbor-s2"));
-  view.roots.push({ id: "root", rootId: null, replyToId: null, state: "deleted", label: "Deleted", body: "old", replies: [] });
+  view.roots.push({ id: "root", rootId: null, replyToId: null, state: "deleted", label: "Deleted by user", body: "old", replies: [] });
   await assert.rejects(client(async () => json(view)).discussion("harbor-s2"), code("invalid-response"));
   delete view.roots[0].body;
-  view.roots[0].replies.push({ id: "reply", rootId: "other-root", replyToId: null, state: "deleted", label: "Deleted" });
+  view.roots[0].replies.push({ id: "reply", rootId: "other-root", replyToId: null, state: "deleted", label: "Deleted by user" });
   await assert.rejects(client(async () => json(view)).discussion("harbor-s2"), code("invalid-response"));
   await assert.rejects(client(async () => json({ version: VERSION, result: { contributionId: "root" } }))
     .command(VERSION, { type: "withdraw", contributionId: "root" }, "demo-alex"), code("invalid-response"));

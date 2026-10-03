@@ -77,12 +77,12 @@ function assertState(state, legacy) {
     if (!discussionIds.has(contribution.discussionId) || !["human", "agent"].includes(contribution.actorType) ||
         (legacy && contribution.actorType !== "human") || contribution.visibility !== "local-public" || typeof contribution.withdrawn !== "boolean") invalid();
     if (contribution.actorType === "agent") {
-      if (contribution.rootId !== null) invalid();
+      if (contribution.rootId !== null && contribution.insight?.kind !== "generated" && !contribution.withdrawn) invalid();
       if (contribution.withdrawn) {
         if (Object.hasOwn(contribution, "insight")) invalid();
       } else {
         record(contribution.insight, ["kind", "operatorId"]);
-        if (contribution.insight.kind !== "manual-import" || !ACTORS.has(contribution.insight.operatorId) ||
+        if (!["manual-import", "generated"].includes(contribution.insight.kind) || !ACTORS.has(contribution.insight.operatorId) ||
             contribution.authorId !== IMPORTED_INSIGHT_AUTHOR_ID) invalid();
       }
     } else if (Object.hasOwn(contribution, "insight")) invalid();
@@ -135,6 +135,13 @@ function assertState(state, legacy) {
       if (!contributionIds.has(contribution.replyToId)) invalid();
       const target = state.contributions.find((entry) => entry.id === contribution.replyToId);
       if (target.discussionId !== contribution.discussionId || (target.rootId ?? target.id) !== root.id) invalid();
+    }
+    if (contribution.actorType === "agent" && !contribution.withdrawn) {
+      const question = state.contributions.find((entry) => entry.id === contribution.replyToId);
+      if (!question || question.actorType !== "human" || question.replyToId !== root.id ||
+          root.actorType !== "agent" ||
+          (!root.withdrawn && root.insight?.kind !== "generated") ||
+          (!question.withdrawn && question.authorId !== contribution.insight?.operatorId)) invalid();
     }
   }
   return state;

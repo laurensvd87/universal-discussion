@@ -56,10 +56,11 @@ test("paired bridge accepts rebuilt current context and isolates async result by
   const { service, catalog, context } = fixture();
   let finish;
   let calls = 0;
+  let cancellations = 0;
   const connectionAdapter = { status: () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "synthetic", label: "Demo" } }),
     start: async () => "https://auth.openai.com/example", completeCallback: async () => {}, disconnect: async () => ({ revocationConfirmed: true }), dispose() {} };
   const insightsAdapter = { listModels: async () => [{ slug: "synthetic", displayName: "Synthetic" }],
-    createInsight: () => { calls += 1; return new Promise((resolve) => { finish = resolve; }); }, cancel() {}, dispose() {} };
+    createInsight: () => { calls += 1; return new Promise((resolve) => { finish = resolve; }); }, cancel() { cancellations += 1; }, dispose() {} };
   const ai = createChatGPTRuntime({ service, connectionAdapter, insightsAdapter });
   const handle = createRequestHandler({ service, config, ai });
   const input = { operationId: "op-one", model: "synthetic", context, articleText: "Public synthetic article.",
@@ -77,7 +78,72 @@ test("paired bridge accepts rebuilt current context and isolates async result by
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights/result", { operationId: "op-one" }, authorized))),
     { operationId: "op-one", state: "completed", result: { body: "A useful finding.", citations: [], model: "synthetic" } });
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights/cancel", { operationId: "op-one" }, authorized))), { cancelled: true });
-  assert.equal(body(await handle(request("POST", "/v1/ai/insights/result", { operationId: "op-one" }, authorized))).state, "failed");
+  assert.equal((await handle(request("POST", "/v1/ai/insights/result", { operationId: "op-one" }, authorized))).status, 404);
+  assert.equal(cancellations, 0);
+  ai.dispose();
+});
+
+test("follow-up bridge sends only server-selected thread text and shares one exact robot reply", async () => {
+  const service = demoService();
+  const actor = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
+  const rootCommand = { type: "share-insight", operationId: "prior-generated-op",
+    topicId: "reserved-domain-demo", body: "A short robot opener.", originSourceId: "reserved-example-com" };
+  const rootProof = { kind: "generated-insight", operationId: rootCommand.operationId,
+    actorId: "demo-alex", topicId: rootCommand.topicId, body: rootCommand.body,
+    originSourceId: rootCommand.originSourceId, rootId: null, replyToId: null, discussionId: null };
+  const rootId = service.command(service.catalog().version, rootCommand, "demo-alex", rootProof).result.contributionId;
+  const discussionId = service.discussion(rootCommand.topicId).discussionId;
+  const ownQuestion = "What evidence supports the opener?";
+  const questionId = service.command(service.catalog().version, { type: "reply", discussionId,
+    rootId, replyToId: rootId, body: ownQuestion }, "demo-alex").result.contributionId;
+  const otherQuestionId = service.command(service.catalog().version, { type: "reply", discussionId,
+    rootId, replyToId: rootId, body: "Other user's private question" }, "demo-blair").result.contributionId;
+  service.command(service.catalog().version, { type: "create-root", topicId: rootCommand.topicId,
+    body: "Unrelated discussion must stay local." }, "demo-blair");
+  const catalog = service.catalog();
+  const context = buildInsightContext({ catalog, discussion: service.discussion(rootCommand.topicId),
+    related: service.related(rootCommand.originSourceId, 5), sourceId: rootCommand.originSourceId,
+    topicId: rootCommand.topicId });
+  const providerInputs = [];
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false }), dispose() {} },
+    insightsAdapter: { createInsight: async (value) => {
+      providerInputs.push(value);
+      return { body: "One concise generated reply.", citations: [], model: "synthetic" };
+    }, cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const input = { operationId: "followup-through-bridge", model: "synthetic", context,
+    articleText: "Public synthetic current-page text.", allowWebResearch: false,
+    expected: catalog.version, followupQuestionId: questionId };
+  assert.equal((await handle(request("POST", "/v1/ai/insights",
+    { ...input, operationId: "other-question", followupQuestionId: otherQuestionId }, actor))).status, 403);
+  assert.equal((await handle(request("POST", "/v1/ai/insights",
+    { ...input, operationId: "forged-question", followupQuestionId: "missing-question" }, actor))).status, 404);
+  assert.equal(providerInputs.length, 0);
+  assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights", input, actor))),
+    { operationId: input.operationId, state: "running" });
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(providerInputs.length, 1);
+  assert.deepEqual(providerInputs[0].followup,
+    { parentBody: rootCommand.body, questionBody: ownQuestion });
+  assert.equal(JSON.stringify(providerInputs[0]).includes("Other user's private question"), false);
+  assert.equal(JSON.stringify(providerInputs[0]).includes("Unrelated discussion must stay local"), false);
+  assert.equal(body(await handle(request("POST", "/v1/ai/insights/result",
+    { operationId: input.operationId }, actor))).state, "completed");
+  const shareCommand = { type: "share-insight-reply", operationId: input.operationId,
+    topicId: rootCommand.topicId, discussionId, rootId, replyToId: questionId,
+    originSourceId: rootCommand.originSourceId, body: "One concise generated reply." };
+  assert.equal((await handle(request("POST", "/v1/commands", { expected: catalog.version,
+    command: { ...shareCommand, body: "Altered reply" } }, actor))).status, 400);
+  assert.equal((await handle(request("POST", "/v1/commands", { expected: catalog.version,
+    command: shareCommand }, actor))).status, 200);
+  const reply = service.discussion(rootCommand.topicId).roots.find((item) => item.id === rootId)
+    .replies.find((item) => item.actorType === "agent");
+  assert.equal(reply.replyToId, questionId);
+  assert.equal(reply.body, shareCommand.body);
+  assert.deepEqual(reply.insight, { kind: "generated", operatorId: "demo-alex" });
+  assert.equal((await handle(request("POST", "/v1/commands", { expected: catalog.version,
+    command: shareCommand }, actor))).status, 404);
   ai.dispose();
 });
 

@@ -33,6 +33,47 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-03 version 0.12.17 immutable robot follow-ups and related-source audit:**
+[ADR-034](../decisions/ADR-034-published-followups-and-robot-provenance.md)
+is implemented for this owner-local synthetic-actor prototype. A generated
+opener is kept unchanged or discarded. An owner-authored direct question under
+that opener exposes **Get insights**; the server selects and verifies only the
+published robot parent and own human question before one user-triggered,
+stateless provider request. A short private reply may be shared unchanged
+under that question or discarded. Exact generated body, Topic/source/target,
+actor, operation and revision are checked server-side before an agent post;
+the short-lived operation is consumed after successful persistence. Arbitrary
+direct `share-insight` writes and replays are rejected. Own human/robot
+contributions may be withdrawn; visible descendants preserve a `Deleted by
+user` tombstone, while wholly withdrawn threads are omitted. Historical
+manual-import roots remain readable, not retroactively attested. Backend suite:
+201 passed, four opt-in skipped. Restricted extension suite: 858 passed, one
+skipped. An isolated Chrome popup smoke test passed 13 synthetic screens,
+including no horizontal overflow and reachable focus. A separate actual
+Chrome/local-service smoke passed with a temporary profile and intercepted
+synthetic pages: one-click current-page read, mocked provider result, exact
+citation preview, server-attested Share, withdrawal and source-link navigation,
+with zero runtime exceptions or external extension requests. It exposed and
+helped fix a busy-transition bug that previously cancelled the completed
+server proof just before Share. Neither smoke used the real provider or a
+real page; a live ChatGPT follow-up and real-account UI test remain open.
+
+[ADR-035](../decisions/ADR-035-bounded-related-source-context.md) limits
+each insight to five source references **including** the current page;
+same-Topic candidates lead and service ranking order is retained. Related
+pages provide title/URL only; the current page provides the bounded text.
+The current implementation does send those candidate references to ChatGPT,
+but optional provider web research may ignore or fail to open them. A
+captured completed local-service `INSIGHT_TRACE` on 2026-10-03 recorded
+`response.web_search_call.completed: 0` (and zero search started), which
+establishes that this particular insight did **not** retrieve any linked
+page through ChatGPT's web tool. It does not prove access failure at a
+publisher; the tool was simply not used in that request. No Google-related
+fallback is implemented; the unsupported/deprecated Google paths are noted
+below. A future related-page text capture, forced additional research or
+alternate provider/discovery route needs a separate privacy/usage/policy
+decision. No new provider request was made for this audit.
+
 **2026-10-03 product/prompt follow-up:** The 0.12.16 product popup now has a
 first-use welcome state, Topic-first Discussion/Pages/Insights views and
 separate Settings. Thirteen synthetic actual-Chrome states passed, including

@@ -53,6 +53,29 @@ function request(method, url, value) {
 }
 
 for (const [name, factory] of adapters) {
+  test(`${name}: withdrawn thread disappears only after every descendant is withdrawn`, (t) => {
+    const { repository, service } = setup(t, factory);
+    const rootId = service.command(service.catalog().version,
+      { type: "create-root", topicId: "harbor-s2", body: "Root text" }, "demo-alex").result.contributionId;
+    const discussionId = service.discussion("harbor-s2").discussionId;
+    const firstId = service.command(service.catalog().version,
+      { type: "reply", discussionId, rootId, replyToId: rootId, body: "First reply" }, "demo-blair").result.contributionId;
+    const secondId = service.command(service.catalog().version,
+      { type: "reply", discussionId, rootId, replyToId: firstId, body: "Second reply" }, "demo-alex").result.contributionId;
+    service.command(service.catalog().version, { type: "withdraw", contributionId: rootId }, "demo-alex");
+    let view = service.discussion("harbor-s2");
+    assert.equal(view.roots[0].label, "Deleted by user");
+    assert.deepEqual(view.roots[0].replies.map((reply) => reply.id), [firstId, secondId]);
+    service.command(view.version, { type: "withdraw", contributionId: firstId }, "demo-blair");
+    view = service.discussion("harbor-s2");
+    assert.equal(view.roots[0].replies[0].label, "Deleted by user");
+    assert.equal(view.roots[0].replies[1].body, "Second reply");
+    service.command(view.version, { type: "withdraw", contributionId: secondId }, "demo-alex");
+    assert.deepEqual(service.discussion("harbor-s2").roots, []);
+    assert.deepEqual(repository.load().contributions.map((entry) => entry.id), [rootId, firstId, secondId]);
+    assert.ok(repository.load().contributions.every((entry) => entry.withdrawn && entry.revisions.length === 0));
+  });
+
   test(`${name}: multiline CRUD preserves text and purges all revisions on withdrawal`, (t) => {
     const { repository, service } = setup(t, factory);
     const body = "First paragraph\r\n\tIndented second paragraph\n<html>plain text</html>";

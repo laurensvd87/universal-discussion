@@ -88,6 +88,18 @@ test("discussion inclusion is opt-in and prepare, edit, preview, share are separ
   assert.deepEqual(ui.calls.at(-1), ["discard"]);
 });
 
+test("preview identifies an unchanged robot reply separately from a new insight opener", () => {
+  const ui = harness();
+  const preview = { body: "A short answer", topicTitle: "Topic A", operatorName: "Alex",
+    sourceTitle: "Source A", replyToId: "own-question" };
+  ui.panel.render(state({ draft: preview.body, status: "preview", preview }));
+  assert.equal(ui.byId("insight-share-scope").textContent, INSIGHT_EN.replyShareScope);
+  assert.equal(ui.byId("insight-share").textContent, INSIGHT_EN.shareReply);
+  ui.panel.render(state({ draft: preview.body, status: "preview", preview: { ...preview, replyToId: null } }));
+  assert.equal(ui.byId("insight-share-scope").textContent, INSIGHT_EN.shareScope);
+  assert.equal(ui.byId("insight-share").textContent, INSIGHT_EN.share);
+});
+
 test("unavailable and busy states disable actions; empty draft and missing preview cannot share", () => {
   const ui = harness();
   const prepare = ui.byId("insight-prepare"), include = ui.byId("insight-include-discussion");
@@ -160,7 +172,7 @@ test("AI controls use separate callbacks and inline citation draft has one safe 
   const links = ui.descendants(ui.byId("insight-citations")).filter((item) => item.tag === "a");
   assert.equal(links.length, 1); assert.equal(links[0].linkHref, "https://example.org/article");
   assert.equal(links[0].rel, "noopener noreferrer");
-  assert.equal(ui.byId("insight-createInsights").disabled, false);
+  assert.equal(ui.byId("insight-createInsights").disabled, true);
   ui.panel.render(state({ draft: "Finding [↗](https://example.org/article)", preview: {
     body: "Finding [↗](https://example.org/article)", topicTitle: "Topic", operatorName: "Alex" } }));
   const previewLinks = ui.descendants(ui.byId("insight-preview-body")).filter((item) => item.tag === "a");
@@ -196,7 +208,7 @@ test("compact workspace keeps account and context secondary while exposing redac
   assert.equal(ui.byId("insight-cancelInsights").disabled, false);
 });
 
-test("model listing leaves an explicitly empty manual draft and guides each research step", () => {
+test("model listing keeps answer workspace hidden until a generated answer arrives", () => {
   const ui = harness();
   const next = ui.byId("insight-next-step");
   const hint = ui.byId("insight-draft-hint");
@@ -207,6 +219,7 @@ test("model listing leaves an explicitly empty manual draft and guides each rese
     costConsent: false, status: "chooseModel", result: null };
   ui.panel.render(state({ ai: baseAi }));
   assert.equal(next.textContent, INSIGHT_EN.nextChooseModel);
+  assert.equal(ui.byId("insight-draft-details").hidden, true);
   assert.equal(summary.textContent, INSIGHT_EN.draftWorkspace);
   assert.equal(draft.value, "");
   assert.equal(draft.placeholder, INSIGHT_EN.draftManualPlaceholder);
@@ -214,7 +227,7 @@ test("model listing leaves an explicitly empty manual draft and guides each rese
   assert.equal(ui.byId("insight-review").disabled, true);
   ui.panel.render(state({ draft: "Own draft", ai: baseAi }));
   assert.equal(summary.textContent, INSIGHT_EN.draftWorkspaceManualFilled);
-  assert.equal(ui.byId("insight-review").disabled, false);
+  assert.equal(ui.byId("insight-review").disabled, true);
   ui.panel.render(state({ ai: { ...baseAi, model: "model-a" } }));
   assert.equal(next.textContent, INSIGHT_EN.nextReadPage);
   ui.panel.render(state({ ai: { ...baseAi, model: "model-a", article: { url: "https://example.com/" },
@@ -250,9 +263,11 @@ test("research progress, failure, and completed draft have distinct editor guida
   ui.panel.render(state({ draft: "Generated finding", ai: { ...ai, status: "generated",
     result: { body: "Generated finding", citations: [] } } }));
   assert.equal(summary.textContent, INSIGHT_EN.draftWorkspaceGenerated);
+  assert.equal(ui.byId("insight-draft-details").hidden, false);
   assert.equal(hint.textContent, INSIGHT_EN.hint);
   assert.equal(next.textContent, INSIGHT_EN.nextReviewDraft);
   assert.equal(draft.value, "Generated finding");
+  assert.equal(draft.readOnly, true);
   assert.equal(draft.placeholder, INSIGHT_EN.draftGeneratedPlaceholder);
   assert.equal(ui.byId("insight-quick-status").hidden, true);
 });

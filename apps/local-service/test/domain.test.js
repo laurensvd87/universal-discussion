@@ -62,7 +62,7 @@ test("withdraw purges author and revision bodies while replies survive", () => {
   service.command(view.version, { type: "withdraw", contributionId: rootId }, "demo-alex");
   view = service.discussion("harbor-s2");
   assert.deepEqual(view.roots[0], {
-    id: rootId, rootId: null, replyToId: null, state: "deleted", label: "Deleted",
+    id: rootId, rootId: null, replyToId: null, state: "deleted", label: "Deleted by user",
     replies: [view.roots[0].replies[0]],
   });
   assert.equal(view.roots[0].replies[0].body, "Survives");
@@ -87,10 +87,12 @@ test("reply cannot cross discussions, roots or withdrawn targets", () => {
   service.command(service.catalog().version, { type: "create-root", topicId: "harbor-s3", body: "B" }, "demo-alex");
   const a = service.discussion("harbor-s2");
   const b = service.discussion("harbor-s3");
+  const rootId = a.roots[0].id;
   errorCode(() => service.command(b.version, { type: "reply", discussionId: b.discussionId, rootId: a.roots[0].id, replyToId: null, body: "Cross" }, "demo-alex"), "invalid");
   service.command(service.catalog().version, { type: "withdraw", contributionId: a.roots[0].id }, "demo-alex");
   const latest = service.discussion("harbor-s2");
-  errorCode(() => service.command(latest.version, { type: "reply", discussionId: latest.discussionId, rootId: latest.roots[0].id, replyToId: null, body: "Late" }, "demo-alex"), "invalid");
+  assert.equal(latest.roots.length, 0);
+  errorCode(() => service.command(latest.version, { type: "reply", discussionId: latest.discussionId, rootId, replyToId: null, body: "Late" }, "demo-alex"), "invalid");
 });
 
 test("create topic works without a URL and reset rotates generation", () => {

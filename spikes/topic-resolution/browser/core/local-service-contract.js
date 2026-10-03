@@ -100,10 +100,18 @@ export function readCommand(value) {
       item = record(value, ["type", "title", "kind"]);
       return { type: item.type, title: text(item.title, 200), kind: oneOf(item.kind, KINDS) };
     case "create-root":
-    case "share-insight":
       item = record(value, ["type", "topicId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : [])]);
       return { type: item.type, topicId: readId(item.topicId), body: text(item.body, 8000, true),
         ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}) };
+    case "share-insight":
+      item = record(value, ["type", "topicId", "body", "operationId", "originSourceId"]);
+      return { type: item.type, topicId: readId(item.topicId), body: text(item.body, 8000, true),
+        operationId: readId(item.operationId), originSourceId: nullableId(item.originSourceId) };
+    case "share-insight-reply":
+      item = record(value, ["type", "topicId", "discussionId", "rootId", "replyToId", "body", "operationId", "originSourceId"]);
+      return { type: item.type, topicId: readId(item.topicId), discussionId: readId(item.discussionId),
+        rootId: readId(item.rootId), replyToId: readId(item.replyToId), body: text(item.body, 8000, true),
+        operationId: readId(item.operationId), originSourceId: nullableId(item.originSourceId) };
     case "reply":
       item = record(value, ["type", "discussionId", "rootId", "replyToId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : [])]);
       return { type: item.type, discussionId: readId(item.discussionId), rootId: readId(item.rootId), replyToId: nullableId(item.replyToId), body: text(item.body, 8000, true),
@@ -180,14 +188,15 @@ function contribution(value, rootId, isRoot) {
   const item = record(value, isRoot ? [...fields, "replies"] : fields);
   const projected = { id: readId(item.id), rootId: nullableId(item.rootId), replyToId: nullableId(item.replyToId), state: oneOf(item.state, ["deleted", "visible"]) };
   if (projected.rootId !== rootId || (isRoot && projected.replyToId !== null)) invalid();
-  if (state === "deleted") projected.label = oneOf(item.label, ["Deleted"]);
+  if (state === "deleted") projected.label = oneOf(item.label, ["Deleted by user"]);
   else {
     if (typeof item.edited !== "boolean" || typeof item.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(item.createdAt) || !Number.isFinite(Date.parse(item.createdAt))) invalid();
     const actorType = oneOf(item.actorType, ["human", "agent"]);
     if (actorType === "agent") {
-      if (!isRoot || item.authorId !== "demo-imported-ai" || !Object.hasOwn(item, "insight")) invalid();
+      if (item.authorId !== "demo-imported-ai" || !Object.hasOwn(item, "insight")) invalid();
       const insight = record(item.insight, ["kind", "operatorId"]);
-      if (insight.kind !== "manual-import") invalid();
+      if (insight.kind !== "manual-import" && insight.kind !== "generated") invalid();
+      if (!isRoot && insight.kind !== "generated") invalid();
       projected.insight = { kind: insight.kind, operatorId: readActorId(insight.operatorId) };
     } else if (Object.hasOwn(item, "insight")) invalid();
     Object.assign(projected, { authorId: actorType === "agent" ? item.authorId : readActorId(item.authorId), actorType,

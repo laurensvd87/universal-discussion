@@ -8,10 +8,11 @@ export function discussionView(state, topicId) {
   const discussion = state.discussions.find((entry) => entry.topicId === topicId);
   if (!topic || !discussion) fail("not-found", "Object unavailable");
   const contributions = state.contributions.filter((entry) => entry.discussionId === discussion.id);
-  const roots = contributions.filter((entry) => entry.rootId === null).sort(newestFirst).map((root) => ({
-    ...projectContribution(root, state),
-    replies: contributions.filter((entry) => entry.rootId === root.id).sort(oldestFirst).map((entry) => projectContribution(entry, state)),
-  }));
+  const roots = contributions.filter((entry) => entry.rootId === null).sort(newestFirst).flatMap((root) => {
+    const replies = contributions.filter((entry) => entry.rootId === root.id).sort(oldestFirst);
+    if (root.withdrawn && replies.every((entry) => entry.withdrawn)) return [];
+    return [{ ...projectContribution(root, state), replies: replies.map((entry) => projectContribution(entry, state)) }];
+  });
   return {
     version: { generation: state.generation, revision: state.revision },
     topic: { id: topic.id, title: topic.title, kind: topic.kind },
@@ -31,7 +32,7 @@ export function assertReadableDiscussions(state) {
 }
 
 function projectContribution(entry, state) {
-  if (entry.withdrawn) return { id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId, state: "deleted", label: "Deleted" };
+  if (entry.withdrawn) return { id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId, state: "deleted", label: "Deleted by user" };
   const source = state.sources.find((item) => item.id === entry.originSourceId);
   const currentTopicId = state.discussions.find((item) => item.id === entry.discussionId)?.topicId;
   return {

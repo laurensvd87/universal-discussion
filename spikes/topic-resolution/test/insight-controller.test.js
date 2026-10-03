@@ -15,7 +15,14 @@ async function harness({ command, aiClient, readArticle, attestArticle, openAuth
     discussion: async (id) => service.discussion(id), related: async (id, limit) => service.related(id, limit),
     command: async (expected, value, actor) => {
       commands.push(value);
-      return command ? command(expected, value, actor) : service.command(expected, value, actor);
+      if (command) return command(expected, value, actor);
+      const generated = ["share-insight", "share-insight-reply"].includes(value.type);
+      return service.command(expected, value, actor, generated ? {
+        kind: "generated-insight", operationId: value.operationId, actorId: actor,
+        topicId: value.topicId, originSourceId: value.originSourceId, body: value.body,
+        rootId: value.rootId ?? null, replyToId: value.replyToId ?? null,
+        discussionId: value.discussionId ?? null,
+      } : null);
     },
   };
   let insight;
@@ -31,33 +38,79 @@ async function harness({ command, aiClient, readArticle, attestArticle, openAuth
   return { service, insight, discussion, commands, navigate: () => changed() };
 }
 
-test("real projection -> context -> exact preview -> one AI-labelled local root, not context persistence", async () => {
-  const app = await harness(); const { insight, discussion, service } = app;
+async function generatedHarness(options = {}) {
+  const cancelled = [];
+  const app = await harness({
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (request) => ({ operationId: request.operationId, state: "running" }),
+      result: async (operationId) => ({ operationId, state: "completed", result: { body: "Generated answer", model: "model-a", citations: [] } }),
+      cancel: async (operationId) => { cancelled.push(operationId); return true; },
+    },
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public article" }),
+    attestArticle: async () => true, randomId: () => "generated-op", ...options,
+  });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  return { ...app, cancelled };
+}
+
+test("generated result -> exact preview -> one immutable AI-labelled local root", async () => {
+  const app = await generatedHarness(); const { insight, discussion, service } = app;
   assert.equal(insight.currentState().available, true);
-  assert.equal(insight.prepare(), true);
   assert.equal(insight.currentState().context.currentSource.id, "reserved-example-com");
   assert.equal(insight.currentState().context.sameTopicSources[0].id, "reserved-example-org");
-  insight.setDraft("Synthetic AI-assisted finding: compare the two reserved examples.");
+  assert.equal(insight.setDraft("Edited answer"), false);
+  assert.equal(insight.currentState().draft, "Generated answer");
+  assert.equal(await insight.createInsights({ automatic: true }), false);
+  assert.equal(insight.selectModel("model-a"), false);
+  assert.equal(await insight.readPageText(), false);
   assert.equal(await insight.share(), false); // No preview, no mutation.
   assert.equal(insight.preview(), true);
   assert.equal(service.discussion("reserved-domain-demo").roots.length, 0);
   assert.equal(await insight.share(), true);
+  assert.deepEqual(app.cancelled, [], "Share must not cancel the completed service proof during the busy transition");
   const saved = service.discussion("reserved-domain-demo").roots[0];
   assert.equal(saved.actorType, "agent"); assert.equal(saved.insight.operatorId, "demo-alex");
   assert.equal(saved.origin.sourceId, "reserved-example-com");
-  assert.deepEqual(Object.keys(app.commands[0]).sort(), ["body", "originSourceId", "topicId", "type"]);
+  assert.deepEqual(Object.keys(app.commands[0]).sort(), ["body", "operationId", "originSourceId", "topicId", "type"]);
   assert.equal(insight.currentState().draft, ""); assert.equal(insight.currentState().context, null);
   assert.equal(insight.currentState().status, "shared");
   assert.equal(await insight.share(), false); assert.equal(app.commands.length, 1);
   await discussion.selectSource("reserved-example-org");
   assert.equal(discussion.currentState().discussion.roots[0].id, saved.id);
-  assert.equal(discussion.begin("edit", saved.id), true);
-  discussion.setDraft("Edited import stays AI-assisted"); await discussion.submitDraft();
-  assert.equal(service.discussion("reserved-domain-demo").roots[0].actorType, "agent");
+  assert.equal(discussion.begin("edit", saved.id), false);
   await discussion.selectActor("demo-blair");
   assert.equal(discussion.begin("edit", saved.id), false); assert.equal(await discussion.withdraw(saved.id), false);
   await discussion.selectActor("demo-alex"); assert.equal(await discussion.withdraw(saved.id), true);
-  assert.equal(service.discussion("reserved-domain-demo").roots[0].state, "deleted");
+  assert.equal(service.discussion("reserved-domain-demo").roots.length, 0);
+});
+
+test("own published question gets one unchanged private robot follow-up", async () => {
+  let number = 0;
+  const app = await generatedHarness({ randomId: () => `followup-${++number}` });
+  const { insight, discussion, service } = app;
+  assert.equal(insight.preview(), true);
+  assert.equal(await insight.share(), true);
+  const root = service.discussion("reserved-domain-demo").roots[0];
+  assert.equal(discussion.begin("reply", root.id), true);
+  discussion.setDraft("What evidence supports that?");
+  assert.equal(await discussion.submitDraft(), true);
+  const question = service.discussion("reserved-domain-demo").roots[0].replies[0];
+  assert.equal(await insight.createFollowup(question.id), true);
+  assert.equal(insight.currentState().draft, "Generated answer");
+  assert.equal(insight.preview(), true);
+  assert.equal(insight.currentState().preview.replyToId, question.id);
+  assert.equal(await insight.share(), true);
+  const replies = service.discussion("reserved-domain-demo").roots[0].replies;
+  assert.equal(replies.length, 2);
+  assert.equal(replies[1].replyToId, question.id);
+  assert.equal(replies[1].actorType, "agent");
+  assert.equal(replies[1].insight.kind, "generated");
+  assert.equal(discussion.begin("edit", replies[1].id), false);
+  assert.equal(await discussion.withdraw(replies[1].id), true);
+  assert.equal(service.discussion("reserved-domain-demo").roots[0].replies[1].label, "Deleted by user");
 });
 
 test("AI research requires explicit page preview, model and credit consent; answer remains private", async () => {
@@ -112,6 +165,7 @@ test("provider citation survives private preview and explicit AI-labelled share 
   const draft = "A concise question for this page [↗](https://example.org/article) What do you think?";
   assert.equal(app.insight.currentState().draft, draft);
   assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 0);
+  assert.equal(app.insight.setDraft("Changed citation"), false);
   assert.equal(app.insight.preview(), true);
   assert.equal(app.insight.currentState().preview.body, draft);
   assert.equal(await app.insight.share(), true);
@@ -155,6 +209,8 @@ test("one User click reads the current page and omits unchecked related links fr
   assert.equal(app.insight.currentState().context.relatedSources.some((source) => source.id === excluded), true);
   assert.equal(app.insight.currentState().draft, "Current-page insight.");
   assert.equal(app.service.discussion(before.context.topic.id).roots.length, 0);
+  assert.equal(app.insight.prepare(), false);
+  app.insight.discard();
   assert.equal(app.insight.prepare(), true);
   assert.equal(app.insight.currentState().allowWebResearch, false);
 });
@@ -200,7 +256,7 @@ test("connected identity without plan access permits only explicit re-consent an
   assert.equal(await app.insight.createInsights(), false);
   assert.equal(starts, 0); assert.equal(connects, 0);
   app.insight.setDraft("Private manual insight");
-  assert.equal(app.insight.preview(), true);
+  assert.equal(app.insight.preview(), false);
   assert.equal(await app.insight.connect(), true);
   assert.equal(connects, 1); assert.equal(opened.length, 1);
   planEnabled = true;
@@ -505,15 +561,15 @@ test("Topic-only preparation and opt-in human excerpts work; hostile controls ne
   app.insight.setDraft("Hidden\u0000control"); assert.equal(app.insight.preview(), false);
   assert.equal(app.insight.setDraft("x".repeat(8001)), false);
   app.insight.setDraft("A visible draft"); app.insight.preview();
-  assert.equal(await app.insight.share(), true);
+  assert.equal(await app.insight.share(), false);
   const root = app.service.discussion("reserved-domain-demo").roots.find((entry) => entry.actorType === "agent");
-  assert.equal(root.origin, undefined);
+  assert.equal(root, undefined);
 });
 
 test("stale exact review cannot retarget, duplicate click or uncertain failure cannot replay", async () => {
   let resolve;
-  const app = await harness({ command: () => new Promise((done) => { resolve = done; }) });
-  app.insight.prepare(); app.insight.setDraft("Reviewed"); app.insight.preview();
+  const app = await generatedHarness({ command: () => new Promise((done) => { resolve = done; }) });
+  app.insight.preview();
   const pending = app.insight.share(); assert.equal(await app.insight.share(), false);
   assert.equal(app.insight.setDraft("Changed while pending"), false);
   assert.equal(app.commands.length, 1);
@@ -529,8 +585,8 @@ test("stale exact review cannot retarget, duplicate click or uncertain failure c
 });
 
 test("service failure requires a fresh read; dispose erases unshared memory and blocks calls", async () => {
-  const app = await harness({ command: async () => { throw Object.assign(new Error("uncertain"), { code: "unavailable" }); } });
-  app.insight.prepare(); app.insight.setDraft("Not retried"); app.insight.preview();
+  const app = await generatedHarness({ command: async () => { throw Object.assign(new Error("uncertain"), { code: "unavailable" }); } });
+  app.insight.preview();
   assert.equal(await app.insight.share(), false); assert.equal(app.insight.currentState().status, "failed");
   assert.equal(await app.insight.share(), false); assert.equal(app.commands.length, 1);
   assert.equal(app.discussion.currentState().needsFreshRead, true);

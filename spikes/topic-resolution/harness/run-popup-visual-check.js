@@ -173,7 +173,7 @@ try {
     assert.equal(await evaluate("window.visualCreates", sessionId), 1, "primary Create forwards exactly once");
     assert.equal(await evaluate("document.querySelector('#app-tab-insights').getAttribute('aria-current')", sessionId), "page");
     await capture("insights", sessionId);
-    await evaluate("window.visualInsightState.draft='Synthetic private insight draft about shaded gathering places.';window.visualInsightState.ai.status='generated';window.visualInsightPanel.render(window.visualInsightState);document.querySelector('#insight-draft-details').scrollIntoView({block:'start'})", sessionId);
+    await evaluate("window.visualInsightState.draft='Synthetic private insight draft about shaded gathering places.';window.visualInsightState.ai.status='generated';window.visualInsightState.ai.result={body:window.visualInsightState.draft,model:'synthetic',citations:[]};window.visualInsightPanel.render(window.visualInsightState);document.querySelector('#insight-draft-details').scrollIntoView({block:'start'})", sessionId);
     await capture("private-draft", sessionId);
     await checkReachable("#insight-review", sessionId);
     await checkReachable("#insight-discard", sessionId);

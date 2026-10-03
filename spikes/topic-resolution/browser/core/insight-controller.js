@@ -46,6 +46,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let diagnosticsBusy = false;
   let automaticStartBusy = false;
   let job = null;
+  let completedJob = null;
   let state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
     draft: "", preview: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
@@ -72,7 +73,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     onStateChange(currentState());
   }
   function clear(status = "idle") {
-    cancelJob(); epoch++;
+    cancelJob(); purgeCompleted(); epoch++;
     boundKey = null; review = null;
     publish({ context: null, excludedRelatedSourceIds: [], draft: "", preview: null, status, ai: { ...state.ai, articleText: "", article: null,
       result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null } });
@@ -90,19 +91,27 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const previous = job; job = null;
     if (previous) { previous.abort.abort(); void aiClient?.cancel(previous.id, previous.actorId).catch(() => {}); }
   }
+  function purgeCompleted() {
+    const previous = completedJob; completedJob = null;
+    if (previous) void aiClient?.cancel(previous.id, previous.actorId).catch(() => {});
+  }
   function observe(value) {
     if (disposed) return;
     observed = value;
+    // The discussion controller sets busy before persisting our reviewed
+    // Share. Do not revoke its completed-result proof mid-flight; the write
+    // itself performs fresh context checks and this controller clears on exit.
+    if (pending) { publish(); return; }
     if (boundKey !== null && key() !== boundKey) clear("changed");
     else if (boundKey === null && eligible()) prepare();
     else publish();
   }
   function prepare({ includeDiscussion = false } = {}) {
-    if (disposed || pending || job || !eligible()) return false;
+    if (disposed || pending || job || completedJob || !eligible()) return false;
     try {
       const context = buildInsightContext({ ...observed, includeDiscussion: includeDiscussion === true });
       boundKey = key(); review = null;
-      cancelJob(); epoch++;
+      cancelJob(); purgeCompleted(); epoch++;
       publish({ context, excludedRelatedSourceIds: [], draft: "", preview: null, status: "prepared", ai: { ...state.ai, articleText: "", article: null,
         result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null } });
       return true;
@@ -124,24 +133,29 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   }
   function setDraft(body) {
     if (disposed || pending || job || boundKey === null || key() !== boundKey ||
-        typeof body !== "string" || body.length > 8_000) return false;
+        state.ai.result || typeof body !== "string" || body.length > 8_000) return false;
     review = null;
     publish({ draft: body, preview: null, status: "prepared", ai: { ...state.ai, result: null } });
     return true;
   }
   function preview() {
     if (disposed || pending || job || boundKey === null || key() !== boundKey ||
+        !state.ai.result || state.draft !== formatInsightCitations(state.ai.result.body, state.ai.result.citations) ||
         !state.draft.trim() || UNSAFE.test(state.draft)) return false;
     const operator = observed.catalog.actors.find((actor) => actor.id === observed.actorId);
-    review = { body: state.draft, expected: { ...observed.discussion.version },
-      topicId: observed.topicId, sourceId: observed.sourceId ?? null, actorId: observed.actorId };
+    if (!completedJob) return false;
+    review = { body: state.draft, operationId: completedJob.id, expected: { ...observed.discussion.version },
+      topicId: observed.topicId, sourceId: observed.sourceId ?? null, actorId: observed.actorId,
+      ...(completedJob.followup ? { ...completedJob.followup } : {}) };
     publish({ preview: { body: review.body, topicTitle: state.context.topic.title,
       operatorName: operator.displayName, sourceTitle: state.context.currentSource?.title ?? null,
-      sourceUrl: state.context.currentSource?.url ?? null }, status: "preview" });
+      sourceUrl: state.context.currentSource?.url ?? null, replyToId: review.replyToId ?? null }, status: "preview" });
     return true;
   }
   async function share() {
-    if (disposed || pending || job || !review || key() !== boundKey || state.draft !== review.body) return false;
+    if (disposed || pending || job || !review || !completedJob ||
+        completedJob.id !== review.operationId || key() !== boundKey || state.draft !== review.body ||
+        !state.ai.result || review.body !== formatInsightCitations(state.ai.result.body, state.ai.result.citations)) return false;
     const exactReview = structuredClone(review);
     pending = true; publish({ status: "sharing" });
     let success = false;
@@ -149,6 +163,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     catch { /* A failed/uncertain write is never retried automatically. */ }
     finally {
       pending = false;
+      if (success) completedJob = null;
       if (!disposed) clear(success ? "shared" : "failed");
     }
     return success;
@@ -163,6 +178,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       invalidateModels();
       const accountChanged = value.account?.clientId !== state.ai.account?.clientId ||
         value.account?.label !== state.ai.account?.label;
+      if ((accountChanged || !value.connected || !value.planEnabled) && completedJob) clear("changed");
       aiPatch({ connected: value.connected, planEnabled: value.planEnabled, pending: value.pending, account: value.account,
         modelFailureDetail: null,
         failureStage: value.error === "connection-failed" ? value.failureStage ?? null : null,
@@ -255,12 +271,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     } finally { diagnosticsBusy = false; }
   }
   function selectModel(model) {
-    if (!state.ai.planEnabled || !state.ai.models.some((item) => item.slug === model) || job || disposed) return false;
+    if (!state.ai.planEnabled || !state.ai.models.some((item) => item.slug === model) ||
+        job || completedJob || disposed) return false;
     aiPatch({ model, result: null }); return true;
   }
   function setCostConsent(value) { if (disposed || job) return false; aiPatch({ costConsent: value === true }); return true; }
   async function readPageText() {
-    if (!readArticle || disposed || pending || job || !state.context || key() !== boundKey) return false;
+    if (!readArticle || disposed || pending || job || completedJob || !state.context || key() !== boundKey) return false;
     const current = epoch, snapshot = observed, expectedKey = boundKey;
     try {
       const article = await readArticle(snapshot);
@@ -275,12 +292,12 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     } catch { if (!disposed && epoch === current) aiPatch({ article: null, articleText: "", status: "articleUnavailable" }); return false; }
   }
   function setArticleText(value) {
-    if (disposed || job || !state.ai.article || typeof value !== "string" || value.length > 4096 || UNSAFE.test(value)) return false;
+    if (disposed || job || completedJob || !state.ai.article || typeof value !== "string" || value.length > 4096 || UNSAFE.test(value)) return false;
     aiPatch({ articleText: value, result: null }); return true;
   }
   async function createInsights({ automatic = false } = {}) {
     if (automatic) {
-      if (automaticStartBusy || !readArticle || !eligible() || !state.ai.planEnabled ||
+      if (automaticStartBusy || completedJob || !readArticle || !eligible() || !state.ai.planEnabled ||
           !state.ai.models.some((item) => item.slug === state.ai.model) || job || pending) return false;
       automaticStartBusy = true;
       try {
@@ -291,11 +308,33 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         return await runInsights({ skipConsent: true });
       } finally { automaticStartBusy = false; }
     }
-    if (automaticStartBusy) return false;
+    if (automaticStartBusy || completedJob) return false;
     return runInsights({ skipConsent: false });
   }
-  async function runInsights({ skipConsent }) {
-    if (!aiClient || !attestArticle || disposed || job || pending || !state.ai.planEnabled ||
+  async function createFollowup(questionId) {
+    if (disposed || pending || job || automaticStartBusy || !eligible() ||
+        state.ai.result || state.draft ||
+        !state.ai.planEnabled || !state.ai.models.some((item) => item.slug === state.ai.model)) return false;
+    const root = observed.discussion.roots.find((entry) => entry.state === "visible" &&
+      entry.actorType === "agent" && entry.insight?.kind === "generated" &&
+      entry.replies.some((reply) => reply.id === questionId));
+    const question = root?.replies.find((entry) => entry.id === questionId);
+    if (!question || question.state !== "visible" || question.actorType !== "human" ||
+        question.authorId !== observed.actorId || question.replyToId !== root.id ||
+        root.body.length > 2_000 || question.body.length > 2_000) return false;
+    if ((!state.context || key() !== boundKey) && !prepare()) return false;
+    if (!state.context?.currentSource) return false;
+    automaticStartBusy = true;
+    try {
+      aiPatch({ status: "preparingArticle", error: null, researchFailureDetail: null });
+      if (!await readPageText()) return false;
+      return await runInsights({ skipConsent: true, followup: {
+        questionId, discussionId: observed.discussion.discussionId, rootId: root.id, replyToId: question.id,
+      } });
+    } finally { automaticStartBusy = false; }
+  }
+  async function runInsights({ skipConsent, followup = null }) {
+    if (!aiClient || !attestArticle || disposed || job || completedJob || pending || !state.ai.planEnabled ||
         (!skipConsent && !state.ai.costConsent) ||
         !state.ai.models.some((item) => item.slug === state.ai.model) || !state.ai.articleText.trim() ||
         !state.ai.article || !state.context || key() !== boundKey) return false;
@@ -310,7 +349,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     try {
       const request = { operationId, model: state.ai.model, context: structuredClone(state.context),
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
-        allowWebResearch: state.allowWebResearch, expected: { ...observed.catalog.version } };
+        allowWebResearch: state.allowWebResearch, expected: { ...observed.catalog.version },
+        ...(followup ? { followupQuestionId: followup.questionId } : {}) };
       await attestArticle(observed, state.ai.article);
       if (!active()) return false;
       await aiClient.start(request, actorId, { signal: abort.signal });
@@ -325,9 +365,11 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         if (outcome.state === "completed") {
           const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
           review = null; job = null;
-          // The completed result is now owned by this popup. Purge the service
-          // copy immediately; its short TTL is only a fallback for lost popups.
-          void aiClient.cancel(operationId, actorId).catch(() => {});
+          // Keep the short-lived service result until Share or Discard so the
+          // service can attest the exact generated body before publication.
+          completedJob = { id: operationId, actorId, followup: followup ? {
+            discussionId: followup.discussionId, rootId: followup.rootId, replyToId: followup.replyToId,
+          } : null };
           publish({ draft, preview: null, status: "prepared", ai: { ...state.ai, result: outcome.result,
             status: "generated", costConsent: false } });
           return true;
@@ -344,7 +386,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   }
   function cancelInsights() { if (!job) return false; cancelJob(); epoch++; aiPatch({ status: "cancelled", result: null }); return true; }
   function dispose() {
-    cancelJob(); epoch++; connectionEpoch++; invalidateModels();
+    cancelJob(); purgeCompleted(); epoch++; connectionEpoch++; invalidateModels();
     disposed = true; observed = null; boundKey = null; review = null;
     state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
       draft: "", preview: null, status: "idle", busy: false,
@@ -354,5 +396,5 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   return Object.freeze({ observe, currentState, prepare, setRelatedSourceIncluded, setAllowWebResearch,
     setDraft, preview, share, discard, dispose,
     checkConnection, connect, disconnect, loadModels, loadDiagnostics, selectModel, setCostConsent,
-    readPageText, setArticleText, createInsights, cancelInsights });
+    readPageText, setArticleText, createInsights, createFollowup, cancelInsights });
 }

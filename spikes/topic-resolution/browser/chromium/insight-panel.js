@@ -160,7 +160,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const provenance = node("p", null, "insight-preview-provenance");
   const origin = node("p", null, "insight-preview-origin");
   const exactBody = node("p", null, "insight-preview-body"); exactBody.className = "insight-body";
-  preview.append(node("h3", "preview"), target, provenance, origin, node("p", "shareScope"), exactBody);
+  const shareScope = node("p", "shareScope", "insight-share-scope");
+  preview.append(node("h3", "preview"), target, provenance, origin, shareScope, exactBody);
   const share = button(preview, "share", () => { void controller?.share(); }); draftDetails.append(preview);
 
   function sourceGroup(parent, key, sources) {
@@ -180,10 +181,12 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     status.textContent = text(state.status === "preview" ? "previewStatus" :
       state.status === "idle" && !state.available ? "unavailable" : state.status);
     include.disabled = prepare.disabled = blocked;
-    context.hidden = composer.hidden = !state.context;
+    context.hidden = !state.context;
+    draftDetails.hidden = composer.hidden = !state.context || !state.ai?.result;
     if (body.value !== state.draft) body.value = state.draft;
     body.disabled = blocked;
-    review.disabled = blocked || !state.draft.trim();
+    body.readOnly = Boolean(state.ai?.result);
+    review.disabled = blocked || !state.ai?.result || !state.draft.trim();
     discard.disabled = state.busy;
     const signature = JSON.stringify(state.context);
     if (signature !== contextSignature) {
@@ -223,6 +226,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       label.children[0].disabled = state.busy || state.ai?.status === "generating";
     });
     preview.hidden = !state.preview;
+    shareScope.textContent = text(state.preview?.replyToId ? "replyShareScope" : "shareScope");
+    share.textContent = text(state.preview?.replyToId ? "shareReply" : "share");
     target.textContent = state.preview ? text("selected").replace("{title}", state.preview.topicTitle) : "";
     provenance.textContent = state.preview ? text("provenance").replace("{operator}", state.preview.operatorName) : "";
     origin.textContent = !state.preview ? "" : state.preview.sourceTitle
@@ -338,14 +343,14 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       if (model.dataset) model.dataset.signature = signatureModels;
     }
     model.value = ai.model || (priorModel && ai.models.some((item) => item.slug === priorModel) ? priorModel : "");
-    model.disabled = !ai.planEnabled || !ai.models.length || aiPending || state.busy;
-    read.disabled = !state.context?.currentSource || blocked || aiPending;
-    article.disabled = !ai.article || generating;
+    model.disabled = !ai.planEnabled || !ai.models.length || aiPending || state.busy || Boolean(ai.result);
+    read.disabled = !state.context?.currentSource || blocked || aiPending || Boolean(ai.result);
+    article.disabled = !ai.article || generating || Boolean(ai.result);
     if (article.value !== ai.articleText) article.value = ai.articleText;
     cost.checked = ai.costConsent;
     cost.disabled = !ai.planEnabled || generating;
     const automatic = document.body?.dataset?.uiMode === "user";
-    create.disabled = !ai.planEnabled || !ai.model || blocked || aiPending ||
+    create.disabled = !ai.planEnabled || !ai.model || blocked || aiPending || Boolean(ai.result) ||
       (automatic ? !state.context?.currentSource : !ai.articleText?.trim() || !ai.costConsent);
     cancel.disabled = cancel.hidden = !generating;
     articleLabel.hidden = article.hidden = articleWarning.hidden = !ai.article;

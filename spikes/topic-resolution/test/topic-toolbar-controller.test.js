@@ -9,7 +9,7 @@ function catalog(sources = [source("source-a", ready().url), source("source-b", 
   return { version: { generation: "generation-a", revision }, actors: [], model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, topics: [topic], sources };
 }
 const visible = (id, rootId = null) => ({ id, rootId, replyToId: null, state: "visible", authorId: "demo-alex", actorType: "human", body: "Synthetic published post", createdAt: "2026-09-29T00:00:00.000Z", edited: false });
-const deleted = (id, rootId = null) => ({ id, rootId, replyToId: null, state: "deleted", label: "Deleted" });
+const deleted = (id, rootId = null) => ({ id, rootId, replyToId: null, state: "deleted", label: "Deleted by user" });
 const discussion = (roots = [], revision = 2) => ({ version: { generation: "generation-a", revision }, topic: { id: topic.id, title: topic.title, kind: topic.kind }, discussionId: "discussion-a", roots });
 function deferred() { let resolve; let reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 const flush = async () => { await new Promise((done) => setImmediate(done)); };

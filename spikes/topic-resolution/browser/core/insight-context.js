@@ -70,18 +70,27 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
 
     const peers = sources.filter((source) => !source.unsafe && source.topicId === topicId && source.id !== sourceId).sort(byId);
     const peerIds = new Set(peers.map((source) => source.id));
+    const rankedPeers = [];
+    const rankedPeerIds = new Set();
     const relatedIds = new Set();
     const nominated = related === null && sourceId === null ? [] : entries(field(related, "results"), MAX_SOURCES);
     for (const result of nominated) {
       const id = readId(field(result, "id"));
       const source = catalogById.get(id);
-      if (!source || source.unsafe || id === sourceId || peerIds.has(id) ||
-          field(result, "relationship") !== "related" ||
+      if (!source || source.unsafe || id === sourceId ||
           field(result, "topicId") !== source.topicId ||
           field(result, "url") !== source.url || field(result, "title") !== source.title) continue;
-      relatedIds.add(id);
+      const relationship = field(result, "relationship");
+      if (peerIds.has(id) && relationship === "same-topic" && !rankedPeerIds.has(id)) {
+        rankedPeers.push(source);
+        rankedPeerIds.add(id);
+      } else if (!peerIds.has(id) && relationship === "related") {
+        relatedIds.add(id);
+      }
     }
-    const relatedSources = [...relatedIds].map((id) => catalogById.get(id)).sort(byId);
+    const sameTopicSources = [...rankedPeers, ...peers.filter((source) => !rankedPeerIds.has(source.id))];
+    const relatedSources = [...relatedIds].map((id) => catalogById.get(id));
+    const sourceSlots = DISPLAY_LIMIT - Number(current !== null);
 
     const posts = [];
     if (includeDiscussion) {
@@ -106,8 +115,8 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
       schema: "insight-context/v1",
       topic,
       currentSource: current ? sourceView(current) : null,
-      sameTopicSources: peers.slice(0, DISPLAY_LIMIT).map(sourceView),
-      relatedSources: relatedSources.slice(0, DISPLAY_LIMIT).map(sourceView),
+      sameTopicSources: sameTopicSources.slice(0, sourceSlots).map(sourceView),
+      relatedSources: relatedSources.slice(0, Math.max(0, sourceSlots - sameTopicSources.length)).map(sourceView),
       discussion: posts,
       coverage: { sameTopicTotal: peers.length, relatedTotal: relatedSources.length, discussionIncluded: includeDiscussion },
       limitations: ["grouping-provisional", "related-not-same-topic", "title-url-only", "sources-unverified", "visible-roots-only"],

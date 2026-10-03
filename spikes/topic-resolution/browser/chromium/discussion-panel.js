@@ -9,6 +9,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
   const handlers = [];
   let controller;
+  let insightController;
   let lastState;
   let disposed = false;
   let uiMode = "user";
@@ -194,7 +195,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (actor?.displayName && author.textContent !== actor.displayName) author.title = actor.displayName;
     if (entry.actorType === "agent") {
       const operator = state.catalog.actors.find((item) => item.id === entry.insight?.operatorId)?.displayName ?? "";
-      author.textContent = text("discussionImportedInsight").replace("{operator}", operator);
+      author.textContent = text(entry.insight?.kind === "generated" ? "discussionGeneratedInsight" : "discussionImportedInsight")
+        .replace("{operator}", operator);
       author.className = "insight-provenance";
     }
     const content = node("p"); content.className = "discussion-body";
@@ -223,7 +225,21 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     }
     if (rootEntry.state === "visible") action("discussionReply", () => { if (controller?.begin("reply", entry.id)) body.focus(); });
     if (ownsContribution(entry, state.actorId)) {
-      action("discussionEdit", () => { if (controller?.begin("edit", entry.id)) body.focus(); });
+      if (entry !== rootEntry && entry.rootId === rootEntry.id && entry.replyToId === rootEntry.id &&
+          entry.actorType === "human" &&
+          rootEntry.actorType === "agent" && rootEntry.insight?.kind === "generated") {
+        action("discussionGetInsights", () => {
+          if (!insightController) return;
+          const insightsTab = document.querySelector?.("#app-tab-insights");
+          if (uiMode === "user" && insightsTab) insightsTab.click();
+          else {
+            const workspace = document.querySelector?.("#insight-workspace");
+            if (workspace) workspace.open = true;
+          }
+          void insightController.createFollowup(entry.id);
+        });
+      }
+      if (entry.actorType !== "agent") action("discussionEdit", () => { if (controller?.begin("edit", entry.id)) body.focus(); });
       action("discussionWithdraw", () => void controller?.withdraw(entry.id));
     }
     return card;
@@ -363,6 +379,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     reset.disabled = !state.catalog || !usable || confirmation.value !== "RESET DEMO STATE";
   }
   function bind(value) { controller = value; render(controller.currentState()); }
+  function bindInsight(value) { insightController = value; }
   function setMode(value) {
     if (!["user", "developer"].includes(value) || disposed) return;
     uiMode = value;
@@ -376,5 +393,5 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     for (const [item, event, callback] of handlers) item.removeEventListener(event, callback);
     root.replaceChildren();
   }
-  return Object.freeze({ bind, render, setMode, dispose });
+  return Object.freeze({ bind, bindInsight, render, setMode, dispose });
 }

@@ -1,5 +1,30 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-03 current integration: ADR-034's immutable, server-attested robot
+opener/follow-up path is implemented in the owner-local prototype. A published
+human direct question under a generated robot root can invoke Get insights;
+only that verified question and parent plus the current bounded public-page
+extract are passed for one stateless provider response. The response stays
+private until explicit unchanged Share. The service rejects forged robot
+posts and consumes an exact completed-operation proof on successful write.
+Owner withdrawals retain a tombstone only while visible descendants exist.
+ADR-035 now caps the source context at five references total (current page
+plus up to four ranked candidates), but related page **text** is not supplied.
+One observed completed local-service trace recorded zero web-search calls:
+that request did not fetch related-page content; this was not a publisher
+access failure diagnosis. Google `related:` is not implemented. The full
+local-service suite passes 201 with four opt-in skips, extension suite 858
+with one skip, and 13 isolated-Chrome synthetic popup states pass without
+horizontal overflow. A separate actual-Chrome temporary-profile service
+smoke passes the mocked generated insight -> citation preview -> attested
+Share -> withdrawal path with zero runtime exceptions/external extension
+requests. It found and fixed a Share busy-transition cancellation race. No
+live follow-up or real-account UI verification is claimed. Before testing new
+backend logic against the owner's persistent
+service, restart the fixed-port service after code changes; do not run a
+second credential-restoring process concurrently. Later provider, external
+discovery, privacy, release and spending gates remain separate.
+
 2026-10-03 next integration: The 0.12.16 product-first popup is coded and its
 thirteen synthetic Chrome visual states pass. ADR-033 narrows the first AI
 result to a short current-page forum opener and uses the provider's structured

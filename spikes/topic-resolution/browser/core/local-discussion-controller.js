@@ -17,7 +17,7 @@ export function selectedPostingSource(state) {
 }
 export function ownsContribution(entry, actorId) {
   return entry?.state === "visible" && (entry.actorType === "agent"
-    ? entry.insight?.kind === "manual-import" && entry.insight.operatorId === actorId
+    ? ["manual-import", "generated"].includes(entry.insight?.kind) && entry.insight.operatorId === actorId
     : entry.authorId === actorId);
 }
 
@@ -246,7 +246,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     const entries = state.discussion.roots.flatMap((root) => [root, ...root.replies]);
     const target = entries.find((entry) => entry.id === targetId);
     if (mode !== "root" && (!target || target.state !== "visible")) return false;
-    if (mode === "edit" && !ownsContribution(target, state.actorId)) return false;
+    if (mode === "edit" && (!ownsContribution(target, state.actorId) || target.actorType === "agent")) return false;
     const root = mode === "reply" ? state.discussion.roots.find((entry) => entry.id === (target.rootId ?? target.id)) : null;
     if (mode === "reply" && root?.state !== "visible") return false;
     publish({ draft: { body: mode === "edit" ? target.body : "", detached: false, mode, targetId } });
@@ -285,7 +285,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (ownEpoch !== epoch || disposed) return false;
       confirmed = true;
       if (command.type === "create-topic" || learned) detach();
-      else if (command.type !== "share-insight") publish({ draft: { body: "", detached: false, mode: "root", targetId: null } });
+      else if (command.type !== "share-insight" && command.type !== "share-insight-reply")
+        publish({ draft: { body: "", detached: false, mode: "root", targetId: null } });
       if (reset) { detach(); publish({ topicId: null, sourceId: null, selection: null, catalog: null, discussion: null, related: null }); }
       if (command.type === "create-topic") {
         manualSelection += 1;
@@ -341,8 +342,21 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         review.topicId !== state.topicId || review.actorId !== state.actorId ||
         review.sourceId !== (selectedPostingSource(state)?.id ?? null) ||
         review.expected?.generation !== version?.generation || review.expected?.revision !== version?.revision ||
-        typeof review.body !== "string" || !review.body.trim() || review.body.length > 8_000) return Promise.resolve(false);
-    return mutate({ type: "share-insight", topicId: state.topicId, body: review.body, originSourceId: review.sourceId });
+        typeof review.body !== "string" || !review.body.trim() || review.body.length > 8_000 ||
+        typeof review.operationId !== "string") return Promise.resolve(false);
+    if (review.replyToId) {
+      const root = state.discussion.roots.find((entry) => entry.id === review.rootId);
+      const question = root?.replies.find((entry) => entry.id === review.replyToId);
+      if (!root || root.state !== "visible" || root.insight?.kind !== "generated" ||
+          !question || question.state !== "visible" || question.actorType !== "human" ||
+          question.authorId !== state.actorId || question.replyToId !== root.id ||
+          review.discussionId !== state.discussion.discussionId) return Promise.resolve(false);
+      return mutate({ type: "share-insight-reply", topicId: state.topicId,
+        discussionId: review.discussionId, rootId: root.id, replyToId: question.id,
+        body: review.body, originSourceId: review.sourceId, operationId: review.operationId });
+    }
+    return mutate({ type: "share-insight", topicId: state.topicId, body: review.body,
+      originSourceId: review.sourceId, operationId: review.operationId });
   }
   function createTopic(title, kind) { return mutate({ type: "create-topic", title, kind }); }
   function reset(confirmation) {

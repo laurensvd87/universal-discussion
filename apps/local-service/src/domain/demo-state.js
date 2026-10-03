@@ -53,7 +53,7 @@ function commandRecord(command, fields, optional = []) {
   return input;
 }
 
-export function applyCommand(state, command, actor, { nextId, now }) {
+export function applyCommand(state, command, actor, { nextId, now, generatedProof = null }) {
   if (!actor || actor.type !== "human" || actor.demo !== true) fail("forbidden", "Action unavailable");
   if (command === null || typeof command !== "object" || Array.isArray(command)) fail("invalid", "Invalid request");
   const prototype = Object.getPrototypeOf(command);
@@ -79,8 +79,18 @@ export function applyCommand(state, command, actor, { nextId, now }) {
     next.discussions.push({ id: discussionId, topicId });
     result = { topicId, discussionId };
   } else if (type === "create-root" || type === "share-insight") {
-    const input = commandRecord(command, ["topicId", "body"], ["originSourceId"]);
+    const input = commandRecord(command, type === "share-insight" ? ["topicId", "body", "operationId"] : ["topicId", "body"], ["originSourceId"]);
     const topicId = readId(input.topicId);
+    const body = readBody(input.body);
+    if (type === "share-insight") {
+      const operationId = readId(input.operationId);
+      if (!generatedProof || generatedProof.kind !== "generated-insight" ||
+          generatedProof.operationId !== operationId || generatedProof.actorId !== actor.id ||
+          generatedProof.topicId !== topicId || generatedProof.body !== body ||
+          generatedProof.originSourceId !== (input.originSourceId ?? null) ||
+          generatedProof.rootId !== null || generatedProof.replyToId !== null ||
+          generatedProof.discussionId !== null) fail("forbidden", "Action unavailable");
+    }
     const discussion = next.discussions.find((entry) => entry.topicId === topicId);
     if (!discussion) fail("not-found", "Object unavailable");
     const origin = contributionOrigin(next, input.originSourceId, topicId);
@@ -90,17 +100,32 @@ export function applyCommand(state, command, actor, { nextId, now }) {
       id: contributionId, discussionId: discussion.id,
       rootId: null, replyToId: null, authorId: type === "share-insight" ? IMPORTED_INSIGHT_AUTHOR_ID : actor.id,
       actorType: type === "share-insight" ? "agent" : "human",
-      ...(type === "share-insight" ? { insight: { kind: "manual-import", operatorId: actor.id } } : {}),
-      body: readBody(input.body), timestamp, originSourceId: origin?.id,
+      ...(type === "share-insight" ? { insight: { kind: "generated", operatorId: actor.id } } : {}),
+      body, timestamp, originSourceId: origin?.id,
       association: rootAssociation(topicId, origin),
     });
     result = { contributionId };
-  } else if (type === "reply") {
-    const input = commandRecord(command, ["discussionId", "rootId", "replyToId", "body"], ["originSourceId"]);
+  } else if (type === "reply" || type === "share-insight-reply") {
+    const generated = type === "share-insight-reply";
+    const input = commandRecord(command,
+      generated ? ["topicId", "discussionId", "rootId", "replyToId", "body", "operationId"] :
+        ["discussionId", "rootId", "replyToId", "body"], ["originSourceId"]);
     const discussion = findDiscussion(next, readId(input.discussionId));
     const root = findContribution(next, readId(input.rootId));
     if (root.discussionId !== discussion.id || root.rootId !== null || root.withdrawn) {
       fail("invalid", "Invalid request");
+    }
+    const body = readBody(input.body);
+    if (generated) {
+      const topicId = readId(input.topicId);
+      const operationId = readId(input.operationId);
+      if (discussion.topicId !== topicId || root.actorType !== "agent" || root.insight?.kind !== "generated" ||
+          input.replyToId === null || !generatedProof || generatedProof.kind !== "generated-insight" ||
+          generatedProof.operationId !== operationId || generatedProof.actorId !== actor.id ||
+          generatedProof.topicId !== topicId || generatedProof.discussionId !== discussion.id ||
+          generatedProof.rootId !== root.id || generatedProof.replyToId !== input.replyToId ||
+          generatedProof.body !== body ||
+          generatedProof.originSourceId !== (input.originSourceId ?? null)) fail("forbidden", "Action unavailable");
     }
     const origin = contributionOrigin(next, input.originSourceId, discussion.topicId);
     let replyToId = null;
@@ -110,20 +135,24 @@ export function applyCommand(state, command, actor, { nextId, now }) {
       if (target.discussionId !== discussion.id || targetRoot !== root.id || target.withdrawn) {
         fail("invalid", "Invalid request");
       }
+      if (generated && (target.actorType !== "human" || target.authorId !== actor.id ||
+          target.replyToId !== root.id)) fail("forbidden", "Action unavailable");
       replyToId = target.id;
     }
     const contributionId = readId(nextId("contribution"));
     ensureUnused(next, contributionId);
     addContribution(next, {
       id: contributionId, discussionId: discussion.id,
-      rootId: root.id, replyToId, authorId: actor.id,
-      body: readBody(input.body), timestamp, originSourceId: origin?.id,
+      rootId: root.id, replyToId, authorId: generated ? IMPORTED_INSIGHT_AUTHOR_ID : actor.id,
+      actorType: generated ? "agent" : "human",
+      ...(generated ? { insight: { kind: "generated", operatorId: actor.id } } : {}),
+      body, timestamp, originSourceId: origin?.id,
     });
     result = { contributionId };
   } else if (type === "edit") {
     const input = commandRecord(command, ["contributionId", "body"]);
     const contribution = findContribution(next, readId(input.contributionId));
-    if (contribution.withdrawn || !ownsContribution(contribution, actor.id)) fail("forbidden", "Action unavailable");
+    if (contribution.withdrawn || contribution.actorType === "agent" || !ownsContribution(contribution, actor.id)) fail("forbidden", "Action unavailable");
     if (contribution.revisions.length >= LIMITS.revisions) fail("capacity", "Capacity reached");
     contribution.revisions.push({ body: readBody(input.body), createdAt: timestamp });
     result = { contributionId: contribution.id };
@@ -156,7 +185,7 @@ function ensureUnused(state, ...ids) {
 
 function ownsContribution(contribution, actorId) {
   return contribution.actorType === "agent"
-    ? contribution.insight?.kind === "manual-import" && contribution.insight.operatorId === actorId
+    ? ["manual-import", "generated"].includes(contribution.insight?.kind) && contribution.insight.operatorId === actorId
     : contribution.actorType === "human" && contribution.authorId === actorId;
 }
 

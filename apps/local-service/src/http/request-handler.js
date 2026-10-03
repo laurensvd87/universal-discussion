@@ -142,7 +142,10 @@ async function route(request, service, ai, durablePairing) {
       const body = readRecord(input, ["expected", "command"]);
       const actorId = request.headers["x-demo-actor"];
       if (!actorId) fail("forbidden", "Actor unavailable");
-      const outcome = service.command(body.expected, body.command, actorId);
+      const persist = (proof) => service.command(body.expected, body.command, actorId, proof);
+      const outcome = ["share-insight", "share-insight-reply"].includes(body.command?.type)
+        ? (ai ? ai.share(body, actorId, persist) : fail("forbidden", "Action unavailable"))
+        : persist(null);
       return { status: 200, value: {
         version: outcome.version,
         result: outcome.result,

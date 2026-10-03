@@ -17,13 +17,13 @@ these can contain page and AI text, are never committed, and should be removed
 after debugging. One owner-authorized synthetic GPT-5.5 test reproduced the
 live `response-item-prefix` failure: the stream completed eight items but its
 final output list was empty. The owner approved [ADR-031](decisions/ADR-031-complete-stream-private-draft.md):
-one complete, internally consistent stream may yield a **private editable
-draft** despite that empty list. Contradictory/partial streams still fail;
+one complete, internally consistent stream may yield a **private draft**
+despite that empty list. Contradictory/partial streams still fail;
 there is no automatic posting or retry. See also
 [ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md) and
 [ADR-030](decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
 
-Extension **0.12.16** organizes the popup around the current Topic and three
+Extension **0.12.17** organizes the popup around the current Topic and three
 views: Discussion, Pages and Insights. First-time pairing has a dedicated
 welcome state; settings and prototype diagnostics no longer crowd the main
 conversation. Create insight remains an explicit action, and a generated
@@ -34,13 +34,25 @@ after updating. The local service was restarted to load the revised insight
 prompt; UI changes alone would not require it. The connected ChatGPT account controls remain reachable under
 **Insights > ChatGPT account settings > Disconnect to switch account**.
 
-The first AI result is now prompted as a short, page-specific forum opener,
+The first AI result is prompted as a short, page-specific forum opener,
 not a long research report. Provider-returned citation references appear as
-small inline source links instead of a list of bare URLs. Other pages supplied
-for context may be inaccessible to ChatGPT even when your browser can load
-them; candidate links alone are not evidence. The draft still needs your
-review and explicit Share. AI follow-up replies are not implemented yet.
-See [ADR-033](decisions/ADR-033-short-insight-openers-and-inline-sources.md).
+small inline source links instead of a list of bare URLs. A generated robot
+result can be shared unchanged or discarded, never edited under robot identity.
+You can publish a human question beneath that opener, then click **Get insights**
+on your own question for a short private robot reply; Preview and Share are
+separate. Your own human and robot posts can be withdrawn. A fully withdrawn
+thread disappears; otherwise a withdrawn post reads **Deleted by user**.
+This is still a synthetic-actor local prototype, not an account system.
+See [ADR-033](decisions/ADR-033-short-insight-openers-and-inline-sources.md)
+and [ADR-034](decisions/ADR-034-published-followups-and-robot-provenance.md).
+
+Insight context is limited to the current page plus at most four other ranked
+source references. Only the current page contributes article text; other pages
+contribute title and URL. ChatGPT's web search is optional: the latest captured
+completed request made **zero web-search calls**, so its related-page contents
+were not fetched in that request. A URL alone is not evidence, and even a
+source citation does not prove the whole linked article was read. There is no
+Google-related fallback. See [ADR-035](decisions/ADR-035-bounded-related-source-context.md).
 
 At the owner's stated 2026-10-03 19:41 Berlin reset time, one synthetic-public
 live request completed through the saved ChatGPT connection and strict local

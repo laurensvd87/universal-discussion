@@ -82,7 +82,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const saved = repository.save(input.expected, outcome.state);
       return frozenClone({ version: version(saved), ...outcome.result });
     },
-    command(expectedValue, command, actorId) {
+    command(expectedValue, command, actorId, generatedProof = null) {
       const expected = readExpectedVersion(expectedValue);
       const state = repository.load();
       if (state.generation !== expected.generation || state.revision !== expected.revision) fail("conflict", "State changed");
@@ -90,7 +90,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       if (!actor) fail("forbidden", "Actor unavailable");
       const type = command && Object.getOwnPropertyDescriptor(command, "type");
       const learned = type && type.enumerable && Object.hasOwn(type, "value") && LEARNED_COMMANDS.has(type.value);
-      const outcome = learned ? applyLearnedCommand(state, command, { nextId, now }) : applyCommand(state, command, actor, { nextId, now });
+      const outcome = learned ? applyLearnedCommand(state, command, { nextId, now }) : applyCommand(state, command, actor, { nextId, now, generatedProof });
       const saved = repository.save(expected, outcome.state);
       return frozenClone({ version: version(saved), result: outcome.result });
     },

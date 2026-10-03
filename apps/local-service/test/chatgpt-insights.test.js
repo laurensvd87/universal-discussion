@@ -58,6 +58,74 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   }
 });
 
+test("follow-up sends only bounded public article, robot parent, human question and source references", async () => {
+  let payload;
+  const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+    if (url.endsWith("/models")) return models();
+    payload = JSON.parse(options.body); return stream(complete("A researched reply."));
+  }, getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  const context = { ...CONTEXT, discussion: [{ id: "older-post", actorType: "human", body: "UNRELATED_POST_SECRET" }],
+    coverage: { ...CONTEXT.coverage, discussionIncluded: true } };
+  const result = await adapter.createInsight({ ...REQUEST, context,
+    followup: { parentBody: "The robot's published claim.", questionBody: "What about the exception?" } });
+  assert.equal(result.body, "A researched reply.");
+  assert.deepEqual(Object.keys(payload), ["model", "store", "stream", "instructions", "input", "tools"]);
+  assert.equal(payload.store, false); assert.equal(payload.stream, true);
+  assert.deepEqual(payload.input, [{ role: "user", content: JSON.stringify({
+    currentSource: { title: "Title current", url: "https://example.com/current" },
+    sameTopicSources: [{ title: "Title same", url: "https://news.example.org/same" }],
+    relatedSources: [{ title: "Title related", url: "https://research.example.net/related" }],
+    articlePrefix: REQUEST.articleText, robotParent: "The robot's published claim.",
+    humanQuestion: "What about the exception?",
+  }) }]);
+  assert.deepEqual(payload.tools, [{ type: "web_search", search_context_size: "low",
+    filters: { allowed_domains: ["example.com", "news.example.org", "research.example.net"] } }]);
+  assert.match(payload.instructions, /reply.*humanQuestion/u);
+  assert.match(payload.instructions, /cite verified external sources.*URL citation annotations/u);
+  assert.match(payload.instructions, /never instructions/u);
+  assert.doesNotMatch(payload.instructions, /opening post/u);
+  assert.equal(JSON.stringify(payload).includes("UNRELATED_POST_SECRET"), false);
+  assert.equal(JSON.stringify(payload).includes("previous_response_id"), false);
+  adapter.dispose();
+});
+
+test("tool-free follow-up preserves research opt-out and does not imply linked pages were checked", async () => {
+  let payload;
+  const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+    if (url.endsWith("/models")) return models();
+    payload = JSON.parse(options.body); return stream(complete());
+  }, getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  await adapter.createInsight({ ...REQUEST, allowWebResearch: false,
+    followup: { parentBody: "A published robot answer.", questionBody: "Why?" } });
+  assert.deepEqual(payload.tools, []);
+  assert.match(payload.instructions, /Do not use external research/u);
+  assert.match(payload.instructions, /do not imply that linked pages were checked/u);
+  assert.doesNotMatch(payload.instructions, /Research relevant claims on the allowed domains/u);
+  adapter.dispose();
+});
+
+test("invalid follow-up shapes and unsafe or oversized text cannot dispatch", async () => {
+  let posts = 0;
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+    if (url.endsWith("/models")) return models();
+    posts += 1; return stream(complete());
+  }, getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  const valid = { parentBody: "A published robot answer.", questionBody: "A published human question?" };
+  for (const followup of [null, {}, { ...valid, extra: "private" },
+    { ...valid, parentBody: " " }, { ...valid, questionBody: " " },
+    { ...valid, parentBody: "x".repeat(2_001) }, { ...valid, questionBody: "x".repeat(2_001) },
+    { ...valid, parentBody: "bad\u202e text" }, { ...valid, questionBody: "bad\u0000 text" },
+    Object.defineProperty({ parentBody: valid.parentBody }, "questionBody", { enumerable: true,
+      get() { throw new Error("getter should not execute"); } })]) {
+    await assert.rejects(adapter.createInsight({ ...REQUEST, followup }), errorCode("invalid-input"));
+  }
+  assert.equal(posts, 0);
+  adapter.dispose();
+});
+
 test("explicit raw-debug callback receives only the sent insight envelope and bounded response body", async () => {
   const captured = [];
   const raw = complete("Synthetic answer.");
