@@ -35,6 +35,29 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 Topic architecture review (proposal, no activation):** The owner
+requests a same-Topic algorithm that remains useful as embedded pages grow,
+joins opposing views of the same subject, and gives Insights a diverse four-
+page comparison set. Independent Astra architecture review and Sol code/
+aggregate audit found that current cosine complete-link/margin grouping is
+arrival-order dependent, while the Insight selector can choose provisional
+peers by ID and redundant pages from one publisher. Read-only local aggregates
+show 92 total Sources/83 total Topics, including 84 learned Sources in 70
+learned Topics (57 singletons, 12 pairs, one triple), and 185 cross-Topic
+vector pairs at cosine >=0.90. These are not
+semantic labels or proof that those pairs should merge. The local catalog is
+also near the hard 100-Source/100-Topic PoC ceiling; merely lowering 0.90 or
+raising constants cannot meet the growth objective. [ADR-044](../decisions/ADR-044-topic-identity-collections-and-insight-diversity-proposal.md)
+proposes separate candidate retrieval, identity verification and diverse
+Insight selection, with precise Topics connected by broader Collections.
+It is not approved or implemented. Near-term safe work is synthetic shadow
+testing of the documented three-page margin bug and source diversification;
+normalized SQLite and any additional retained representation/provider call/
+real review corpus retain their explicit gates. The owner-facing product
+choice is whether related developments should appear in one broader
+Collection view while exact same developments and opposing views share a
+precise Topic.
+
 **2026-10-04 owner-provided HLN Insight diagnostic (read-only):** The public
 Russian-defence-budget article supplied by the owner exists once in the local
 catalog, but its assigned Topic has zero other Sources. The current ranker

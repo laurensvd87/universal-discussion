@@ -1,5 +1,22 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 Topic architecture proposal: ADR-044 separates scalable candidate
+retrieval, stance-independent precise Topic membership, related Collection
+links and four-slot Insight evidence selection. Independent review found
+history-dependent .92 triad grouping and ID-/publisher-biased source choice.
+Read-only aggregates: 92 total Sources/83 total Topics, including 84 learned
+Sources/70 learned Topics, 57 singletons and 185 cross-Topic pairs >=.90;
+these are unlabeled geometry, not merge targets.
+The 100-Source/Topic JSON-state ceiling is near. No grouping rule, schema,
+data, model, provider call or UI was changed. The proposal awaits the owner's
+one material scope decision: exact developments/opposing views in precise
+Topics, related developments in broader Collections with clearly attributed
+subthreads, rather than one broad undifferentiated Topic. Safe next coding
+slice after that decision is synthetic shadow evaluation of whole-neighborhood
+candidate construction and diversified four-slot selection. Normalized
+SQLite migration on owner data and any extra representations are separate
+approval gates.
+
 2026-10-04 HLN Insight diagnosis: For the owner-provided public defence-budget
 page, the read-only local catalog has no same-Topic peer. Four of five related
 suggestions enter the normal Insight context only as related candidates.
