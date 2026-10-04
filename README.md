@@ -10,6 +10,16 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension **0.13.1** removes manual Topic selection and the initial Start
+session/Choose Topic buttons from User Mode. With the already-granted HTTPS
+access and saved pairing, eligible public pages are discovered automatically
+when a fresh browser session has a healthy local service and focused window.
+When no Topic is found, the popup shows a short waiting state instead of an
+empty composer; manual Topic tools remain in Developer Mode. Two overlapping
+mustard rings now visibly move behind the conversation and become static when
+Reduced Motion is enabled. This is an extension-only update: reload the
+unpacked extension; the backend need not restart for these UI changes.
+
 The local diagnostic checkpoint adds a content-free `INSIGHT_TRACE` line to
 the backend terminal. Explicit `--debug-insight-raw` mode additionally keeps
 bounded request/response and structure logs in the user's temporary folder;
@@ -419,7 +429,11 @@ For the unpacked extension and fixture-server/manual checks, follow the
 `spikes/topic-resolution/browser/` directory. The pinned MDN experiment expires
 on 2026-10-23; that is a narrow experiment limit, not the future site architecture.
 
-If **Start browsing session** stays disabled, check the eligibility
+The following troubleshooting notes describe the older, manual-session UI.
+In current User Mode, browsing starts automatically when the saved pairing,
+Chrome HTTPS grant, service and eligible focused window are available; the
+Start button is no longer shown. If an older build's **Start browsing session**
+stays disabled, check the eligibility
 message beside the site control. It distinguishes an unfocused/loading page,
 unavailable tab access and an unsupported context; disabled does not mean loading.
 Version **0.6.2** additionally checks the actual focused action popup when its

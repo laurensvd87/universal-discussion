@@ -101,6 +101,8 @@ test("no-topic User view shows no empty composer or Create shortcut, while draft
   const discard = ui.byId("discussion-discard");
   const noTopic = state({ phase: "choose-topic", topicId: null, discussion: null });
   ui.panel.render(noTopic);
+  assert.equal(ui.byId("discussion-status").textContent, EN.uiTopicAwaitingPage);
+  assert.equal(ui.byId("discussion-status").hidden, false);
   assert.equal(composer.hidden, true);
   assert.equal(shortcut.hidden, true);
   assert.equal(discard.hidden, true);
@@ -113,6 +115,7 @@ test("no-topic User view shows no empty composer or Create shortcut, while draft
   assert.equal(composer.hidden, false);
   assert.equal(discard.hidden, false);
   ui.panel.setMode("developer");
+  assert.equal(ui.byId("discussion-status").textContent, EN.discussionChooseStatus);
   assert.equal(composer.hidden, false);
   assert.equal(discard.hidden, false);
 });

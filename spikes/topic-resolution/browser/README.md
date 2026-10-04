@@ -1,5 +1,21 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Current owner-local build (0.13.1)
+
+User Mode is conversation-first: the current Topic, comment composer and
+discussion appear together. The Pages list is background context; exclusions,
+connection, ChatGPT and data controls are in Settings. The normal view no
+longer asks you to choose a Topic or start browsing. With saved pairing,
+granted Chrome HTTPS access, healthy local service and an eligible focused
+window, matching starts automatically on a fresh browser session. Stop still
+suppresses capture for that browser session. An unmatched page shows a short
+automatic-discovery state rather than an empty composer; manual Topic/source
+tools remain in Developer Mode. The animated overlapping-ring background
+becomes static when Reduced Motion is enabled. Reload this unpacked extension
+to use 0.13.1; these UI changes need no backend restart. The related-page
+Insight behavior and its separate approval limits are described in the main
+[README](../../../README.md#current-state) and [STATUS](../../../plans/STATUS.md).
+
 ## Current local build (0.12.22)
 
 The User discussion composer now identifies the exact message and author when

@@ -120,11 +120,8 @@ try {
       const {mountInsightPanel}=await import('./insight-panel.js');
       const {mountPopupShell}=await import('./popup-shell.js');
       const matchingVisual=document.querySelector('#page-matching').cloneNode(true);
-      const startVisual=document.querySelector('#app-start-session').cloneNode(true);
-      const chooseVisual=document.querySelector('#app-choose-topic').cloneNode(true);
       window.dispatchEvent(new Event('pagehide'));
       document.querySelector('#page-matching').replaceWith(matchingVisual);
-      document.querySelector('main').append(startVisual,chooseVisual);
       const insightRoot=document.querySelector('#local-insights')??document.createElement('section');
       insightRoot.id='local-insights';insightRoot.className='action-panel';
       const settingsInsightHost=document.querySelector('#app-settings-insights');
@@ -168,6 +165,8 @@ try {
       })()`, sessionId), true, `${selector} visible, welcome hidden`);
     };
     await assertView("#app-view-discussion");
+    assert.equal(await evaluate("(() => document.body.dataset.topicState==='ready' && getComputedStyle(document.body,'::before').animationDuration!=='0s')()", sessionId), true,
+      "resolved Topic exposes the animated ambient layer");
     await capture("discussion", sessionId);
     await evaluate("window.visualDiscussionState.draft={body:'A thoughtful reply',detached:false,mode:'reply',targetId:'root-1'};window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     assert.equal(await evaluate("(() => { const cue=document.querySelector('#discussion-reply-context'); return cue && !cue.hidden && cue.textContent.includes('Blair') && document.querySelector('#discussion-submit').textContent === 'Post reply'; })()", sessionId), true,
@@ -177,9 +176,9 @@ try {
     assert.equal(await evaluate("(() => document.querySelector('#app-navigation').hidden && document.querySelector('#app-view-pages').hidden)()", sessionId), true,
       "User Mode has one Discussion view and no visible related-pages list");
     await evaluate("window.visualDiscussionState.phase='choose-topic';window.visualDiscussionState.topicId=null;window.visualDiscussionState.discussion=null;window.visualDiscussionState.related={results:[]};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);document.querySelector('#app-tab-discussion').click()", sessionId);
-    assert.equal(await evaluate("(() => { const start=document.querySelector('#app-start-session'); return !start.hidden && start.getBoundingClientRect().bottom <= innerHeight && document.querySelector('#local-discussion > form').hidden && document.querySelector('#discussion-ai-insights').hidden; })()", sessionId), true,
-      "no-topic actions are in the first viewport without empty composer or Create");
-    await capture("choose-topic", sessionId);
+    assert.equal(await evaluate("(() => { const title=document.querySelector('#selected-topic-title');const status=document.querySelector('#discussion-status');return !document.querySelector('#app-start-session') && !document.querySelector('#app-choose-topic') && title.textContent==='Looking for a topic' && status.textContent.includes('automatically') && document.body.dataset.topicState==='idle' && document.querySelector('#local-discussion > form').hidden && document.querySelector('#discussion-ai-insights').hidden; })()", sessionId), true,
+      "no-topic view explains automatic discovery without manual controls or empty composer");
+    await capture("awaiting-topic", sessionId);
     await evaluate("window.visualDiscussionState.phase='ready';window.visualDiscussionState.topicId='topic-visual';window.visualDiscussionState.discussion={roots:[{id:'root-1',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',body:'What would make your neighborhood a better place to spend time?',edited:false,replies:[]}]};window.visualDiscussionState.related={results:[1,2,3,4].map(index=>({title:'Synthetic page '+index,url:'https://example.com/related/'+index,relationship:index===1?'same-topic':'related'}))};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState)", sessionId);
     await evaluate("document.querySelector('#app-tab-discussion').click();window.visualDiscussionState.discussion={roots:[]};window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await capture("empty-discussion", sessionId);
@@ -246,8 +245,8 @@ try {
     await evaluate("document.body.style.zoom='1.2';scrollTo(0,0)", compactSession);
     await capture("compact-enlarged", compactSession, { compact: true });
     await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, compactSession);
-    assert.equal(await evaluate("(() => { const card=document.querySelector('.discussion-contribution');card.classList.add('is-new');const button=document.querySelector('#discussion-ai-insights');return getComputedStyle(card).animationDuration==='0s' && getComputedStyle(button).transitionDuration==='0s'; })()", compactSession), true,
-      "reduced motion suppresses entrance and hover effects");
+    assert.equal(await evaluate("(() => { const card=document.querySelector('.discussion-contribution');card.classList.add('is-new');const button=document.querySelector('#discussion-ai-insights');return getComputedStyle(card).animationDuration==='0s' && getComputedStyle(button).transitionDuration==='0s' && getComputedStyle(document.body,'::before').animationDuration==='0s' && getComputedStyle(document.body,'::after').animationDuration==='0s'; })()", compactSession), true,
+      "reduced motion suppresses entrance, hover and ambient effects");
     await capture("compact-reduced-motion", compactSession, { compact: true });
   } else {
   // Remount only the discussion renderer with invented state for visual review.

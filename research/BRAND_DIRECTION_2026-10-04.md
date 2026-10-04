@@ -67,6 +67,22 @@ asked to continue exploring rather than close on a candidate; retain both as
 signals about desired compactness and perspective language, not as approved
 rebrand choices.
 
+The latest owner preference is a playful, coined, short name with the sound
+and memorability of "Triffle" or "Weezr", while retaining a subtle link to
+cross-page conversation. Treat those as phonetic references, not selections.
+The adjacent **Trifle** is already a [social conversation app on Google
+Play](https://play.google.com/store/apps/details?id=com.trifle.connect) and a
+[different app name](https://trifle.app/); the ordinary English word can also
+suggest something unimportant, which is a weak fit for serious news discussion.
+The exact **Weezr** string is used by a [Dutch company](https://www.weezr.nl/contact)
+and is close in sound to the [Weezer band](https://weezer.com/). These quick
+screens are neither legal opinions nor proof that a particular spelling is
+unavailable. They argue against adopting either example literally. The next
+shortlist should use the rhythm of those examples but be more distinctive and
+easy to spell in English, German and Dutch; a light hint of perspective,
+crossing or conversation is enough. Do not force a name into the UI before
+the owner chooses one and a proper store/trademark/domain screen is complete.
+
 Keep the working product name while testing the core experience. Develop a
 small, genuinely distinct shortlist around **shared perspective / connection
 across pages**, with the light, memorable rhythm of "Jibber" but enough

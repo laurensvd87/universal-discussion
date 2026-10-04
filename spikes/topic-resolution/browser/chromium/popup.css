@@ -521,7 +521,46 @@ footer {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 body { width: 380px; color: var(--ink); background: var(--canvas); font-size: 14px; line-height: 1.5; }
-body[data-ui-mode="user"] { width: 410px; min-height: 560px; background: var(--canvas); }
+body[data-ui-mode="user"] {
+  width: 410px; min-height: min(560px, 100vh); overflow-x: hidden;
+  background: linear-gradient(155deg, #f8f5e9 0%, var(--canvas) 48%, #f3efe2 100%);
+}
+/* Quiet, overlapping topic orbits sit behind the reading surface. */
+body[data-ui-mode="user"]::before,
+body[data-ui-mode="user"]::after {
+  content: ""; position: fixed; pointer-events: none; z-index: 0;
+  border-radius: 50%; transform-origin: center;
+}
+body[data-ui-mode="user"]::before {
+  top: 86px; right: -126px; width: 340px; height: 290px;
+  transform: rotate(-22deg) skewX(-9deg);
+  border: 1px solid #c5a84945;
+  background: radial-gradient(ellipse at 38% 42%, #e9cf7b30 0 32%, #d1b04c19 58%, transparent 72%);
+  box-shadow: inset 0 0 0 28px #f7edc349, inset 0 0 0 29px #b79b4840,
+    0 0 0 38px #e3cf8840, 0 0 0 39px #b49a4d30;
+  opacity: .7;
+  animation: topic-orbit-far 7.2s cubic-bezier(.45, 0, .55, 1) infinite;
+}
+body[data-ui-mode="user"]::after {
+  top: 355px; left: -160px; width: 290px; height: 230px;
+  transform: rotate(17deg) skewX(8deg);
+  border: 1px solid #a9966345;
+  background: radial-gradient(ellipse at 60% 44%, #fcf8eb72 0 38%, #dec77b24 67%, transparent 74%);
+  box-shadow: inset 0 0 0 24px #f2e6bb45, inset 0 0 0 25px #aa925045,
+    0 0 0 32px #d8c59033, 0 0 0 33px #a7915940;
+  opacity: .68;
+  animation: topic-orbit-near 7.2s cubic-bezier(.45, 0, .55, 1) infinite;
+}
+body[data-ui-mode="user"][data-topic-state="ready"]::before { opacity: .82; }
+body[data-ui-mode="user"][data-topic-state="ready"]::after { opacity: .76; }
+@keyframes topic-orbit-far {
+  0%, 100% { transform: translate3d(16px, -12px, 0) rotate(-25deg) skewX(-9deg) scale(.985); }
+  50% { transform: translate3d(-20px, 16px, 0) rotate(-18deg) skewX(-9deg) scale(1.035); }
+}
+@keyframes topic-orbit-near {
+  0%, 100% { transform: translate3d(-16px, 12px, 0) rotate(20deg) skewX(8deg) scale(1.025); }
+  50% { transform: translate3d(20px, -16px, 0) rotate(13deg) skewX(8deg) scale(.985); }
+}
 [hidden], body[data-ui-mode="user"] [hidden] { display: none !important; }
 body[data-ui-mode="developer"] main { gap: 14px; }
 .action-panel, .fixture-panel, .result-card { border-color: var(--line); background: var(--surface); box-shadow: none; }
@@ -559,7 +598,7 @@ body :is(button, input, textarea, select, summary, a):focus-visible {
 }
 
 /* User Mode shell, pages and Settings. Sections stay mounted across navigation. */
-body[data-ui-mode="user"] main { gap: 0; padding: 0 0 24px; }
+body[data-ui-mode="user"] main { position: relative; z-index: 1; gap: 0; padding: 0 0 24px; }
 body[data-ui-mode="user"] main > :is(.popup-topbar, .app-navigation, .app-topic-header, .app-view, .app-welcome, .app-session-link, #product-footer) {
   margin-inline: 18px;
 }
@@ -813,6 +852,8 @@ body[data-ui-mode="user"] :is(.discussion-contribution.is-new, #insight-composer
 @keyframes conversation-arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes insight-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
+  body[data-ui-mode="user"]::before,
+  body[data-ui-mode="user"]::after { animation: none; }
   body[data-ui-mode="user"] :is(button:not(:disabled), .discussion-source-link, .inline-citation) { transition: none; }
   body[data-ui-mode="user"] button:not(:disabled):active { transform: none; }
   body[data-ui-mode="user"] :is(.discussion-contribution.is-new, #insight-composer.is-new) { animation: none; }

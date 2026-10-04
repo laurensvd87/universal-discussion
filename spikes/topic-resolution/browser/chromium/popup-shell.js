@@ -21,6 +21,7 @@ export function projectDiscussionShell(state, messages = EN) {
   return Object.freeze({ connection,
     connectionText: text({ connected: "uiConnected", connecting: "uiConnecting", disconnected: "uiDisconnected", unavailable: "uiServiceUnavailable", "extension-unavailable": "uiExtensionUnavailable", unverified: "uiConnectionUnverified" }[connection]),
     topicTitle: selected?.title ?? text(connection === "disconnected" ? "uiTopicDisconnected" : ["unavailable", "extension-unavailable"].includes(connection) ? "uiTopicUnavailable" : processing ? "uiTopicProcessing" : "uiTopicEmpty"),
+    topicState: selected ? "ready" : !["disconnected", "unavailable", "extension-unavailable"].includes(connection) && processing ? "working" : "idle",
     selectionCue,
   });
 }
@@ -36,8 +37,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     ["#app-pages-heading", "uiTabPages"],
     ["#app-pages-empty", "uiPagesEmpty"], ["#app-settings-back", "uiSettingsBack"],
     ["#app-settings-kicker", "uiSettingsKicker"], ["#app-settings-heading", "uiSettingsTitle"],
-    ["#app-settings-intro", "uiSettingsIntro"], ["#app-start-session", "uiStartSession"],
-    ["#app-choose-topic", "uiChooseTopicAction"],
+    ["#app-settings-intro", "uiSettingsIntro"],
   ];
   for (const [selector, key] of shellCopy) {
     const element = find(selector);
@@ -55,7 +55,6 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     insights: find("#app-view-insights"), settings: find("#app-settings-view"),
     pageList: find("#app-pages-list"), pageEmpty: find("#app-pages-empty"),
     pageContext: find("#app-pages-context"),
-    startSession: find("#app-start-session"), chooseTopic: find("#app-choose-topic"),
   };
   let activeView = "discussion";
   let lastState;
@@ -133,20 +132,6 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     const composer = find("#discussion-body");
     (composer && !composer.hidden ? composer : find("#app-settings-button"))?.focus?.({ preventScroll: true });
   });
-  on(app.startSession, "click", () => {
-    navigate("settings");
-    const settings = find("#capture-settings");
-    if (settings) settings.open = true;
-    find("#capture-settings-summary")?.focus?.({ preventScroll: true });
-  });
-  on(app.chooseTopic, "click", () => {
-    navigate("settings");
-    const advanced = find("#discussion-advanced");
-    if (advanced) advanced.open = true;
-    const topic = find("#discussion-topic");
-    topic?.scrollIntoView?.({ block: "start", behavior: "smooth" });
-    topic?.focus?.({ preventScroll: true });
-  });
   const user = document.querySelector("#ui-mode-user");
   const developer = document.querySelector("#ui-mode-developer");
   const connection = document.querySelector("#connection-status");
@@ -209,6 +194,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     lastState = state;
     const view = projectDiscussionShell(state, messages);
     connection.dataset.state = view.connection; connection.textContent = view.connectionText;
+    document.body.dataset.topicState = view.topicState;
     if (app.nav && document.body.dataset.uiMode === "user") {
       placeInsightWorkspace("user");
       const connected = Boolean(state.catalog);
@@ -220,18 +206,6 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
       const suggestions = state.related?.results ?? [];
       app.pageEmpty.hidden = suggestions.length > 0;
       app.pageContext.textContent = text(state.phase === "ready" ? "uiPagesSameTopicIntro" : "uiPagesNoTopicIntro");
-      app.startSession.hidden = !connected || state.phase === "ready";
-      app.chooseTopic.hidden = !connected || state.phase === "ready";
-      const discussion = find("#local-discussion");
-      const counts = find("#discussion-counts");
-      if (discussion && counts && app.startSession && app.chooseTopic) {
-        const children = [...discussion.children];
-        const index = children.indexOf(app.startSession);
-        if (children[index + 1] !== app.chooseTopic || children[index + 2] !== counts) {
-          discussion.insertBefore(app.startSession, counts);
-          discussion.insertBefore(app.chooseTopic, counts);
-        }
-      }
       showView(activeView);
     }
   }

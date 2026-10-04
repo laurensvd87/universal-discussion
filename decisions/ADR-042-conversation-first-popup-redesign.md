@@ -35,6 +35,18 @@ connection, browsing, Insight, source, model and display controls, not another
 consent gauntlet. Material privacy details may be concise but cannot disappear
 from the product or its release documentation.
 
+The owner subsequently removed manual Topic selection and the initial Start
+session/Choose Topic calls to action from User Mode. A saved pairing, existing
+Chrome HTTPS grant, healthy service and eligible focused window already cause
+capture to start on a fresh browser session; the UI must not imply another
+click is required. When no Topic is available, User Mode says it is looking
+for one and keeps the empty composer hidden. Manual Topic/source creation and
+correction remain in Developer Mode for local recovery and testing; this is a
+presentation change, not a new automatic-capture permission or broader scope.
+The ambient overlapping-perspectives background now moves perceptibly as two
+slowly converging and separating rings. It remains behind the reading surface,
+has no pointer target, and becomes static under reduced-motion preferences.
+
 ## Verification and boundaries
 
 Synthetic Chrome screenshots, overflow measurements, keyboard/focus checks,

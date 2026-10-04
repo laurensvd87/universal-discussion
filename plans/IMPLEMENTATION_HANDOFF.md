@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 extension 0.13.1 popup checkpoint: User Mode no longer presents
+manual Topic selection or Start session/Choose Topic calls to action. It
+shows an automatic-discovery empty state until matching finds a Topic. The
+manual Topic/source and correction controls remain Developer-only. Existing
+fresh-session capture preconditions, grants, Stop semantics, provider behavior
+and stored data are unchanged. The ambient overlapping rings now visibly
+converge/separate every 7.2 seconds and are static under reduced motion.
+Full extension tests pass 906/907 (one optional skip), zero secret findings
+across 183 files, and the 17-state isolated-Chrome visual check has no overflow
+or uncaught errors; direct Chrome sampling measured roughly 27 px relative
+movement in 1.5 seconds. Reload the unpacked extension; no backend restart
+is required for this UI-only increment. Brand/name choice remains open.
+
 2026-10-04 prompt checkpoint: ADR-043 now prioritizes a supported contrast
 between the current-page extract and excerpts mapped to provisional same-Topic
 Sources, while retaining related-only and single-page fallbacks. This is a

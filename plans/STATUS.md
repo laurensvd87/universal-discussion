@@ -35,6 +35,24 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 extension 0.13.1 User Mode cleanup:** The owner confirmed that
+manual Topic selection and the initial Start browsing session/Choose Topic
+calls to action do not belong in the normal product flow. They are removed
+from User Mode; no-Topic status now describes automatic discovery and hides
+the empty composer. Manual Topic/source creation and correction remain in
+Developer Mode. The existing fresh-session auto-start preconditions and Stop
+behavior did not change. A mustard overlapping-ring background now visibly
+converges and separates on a 7.2-second loop, stays behind content, and stops
+under reduced-motion preferences. An isolated Chrome measurement found about
+27 px of relative ring movement in 1.5 seconds. Full extension tests pass
+906/907 (one optional skip); the secret scan has zero findings across 183
+files. The isolated Chrome visual check passes 17 states, including 410 px,
+320 px, 120% text zoom and reduced motion, with no horizontal overflow or
+uncaught popup errors. Reload the unpacked extension to see this extension-
+only increment; the backend needs no restart for it. The owner-local status
+and all provider, source-rights and store gates are unchanged. Naming remains
+exploratory, not a rebrand.
+
 **2026-10-04 same-Topic contrast refinement:** The owner wants Insights to
 surface useful differences between other pages of the same provisional Topic,
 not mainly restate the current article. The static opener prompt now examines
