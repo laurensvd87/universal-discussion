@@ -1,6 +1,17 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Current local build (0.12.21)
+## Current local build (0.12.22)
+
+The User discussion composer now identifies the exact message and author when
+writing a reply, including a reply to a reply, and labels the action **Post
+reply**. A missing target is called out instead of guessed. In Pages, safe
+related-page titles are the primary links with a smaller hostname beneath;
+retained restricted Sources stay non-clickable. These are presentation-only
+changes: Topic matching, post targets, permission/capture, provider calls and
+Share remain unchanged. The 0.12.21 catalog-recovery correction below remains
+included. Reload the unpacked extension to pick up both updates.
+
+## Catalog-recovery build (0.12.21)
 
 This extension-only correction keeps the paired local catalog readable after
 the credential/account-host capture guard: older retained Sources may still

@@ -23,6 +23,11 @@ there is no automatic posting or retry. See also
 [ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md) and
 [ADR-030](decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
 
+Extension **0.12.22** makes reply targets explicit in the composer and uses
+readable safe page titles as links in Pages. Restricted retained Sources remain
+non-clickable. It includes the 0.12.21 catalog recovery below; reload the
+unpacked extension in Chrome to pick up the update.
+
 Extension **0.12.21** keeps the 0.12.20 discussion-first popup and fixes a
 local compatibility regression: old retained account-host Source records no
 longer invalidate the entire catalog after the new-capture guard. They remain

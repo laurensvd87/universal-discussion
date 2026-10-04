@@ -284,6 +284,14 @@ textarea { resize: vertical; }
 .discussion-source-link:hover { background: #e8f1fb; }
 .discussion-source-link:focus-visible { outline: 3px solid #0b7285; outline-offset: 2px; }
 #discussion-origin-disclosure { font-size: 11px; color: #52606c; line-height: 1.45; }
+#discussion-reply-context {
+  display: grid; gap: 3px; min-width: 0; padding: 8px 10px;
+  border-left: 3px solid #5c9b78; border-radius: 7px;
+  background: #eef5f0; font-size: 12px; line-height: 1.35;
+}
+#discussion-reply-context[hidden] { display: none; }
+#discussion-reply-context .discussion-reply-author { font-weight: 700; overflow-wrap: anywhere; }
+#discussion-reply-context .discussion-reply-excerpt { color: #52606c; overflow-wrap: anywhere; }
 .discussion-thread section { display: grid; gap: 5px; }
 .discussion-thread section article + article { margin-left: 12px; }
 .discussion-body { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -625,6 +633,10 @@ body[data-ui-mode="user"] #discussion-ai-insights:disabled { display: none; }
 #discussion-related > ul { margin: 9px 0 0; padding-left: 20px; }
 #discussion-related li { margin: 7px 0; overflow-wrap: anywhere; }
 #discussion-related li p { margin: 3px 0; }
+#discussion-related .related-page-title { display: block; font-weight: 650; }
+#discussion-related a.related-page-title { color: var(--forest); text-decoration: underline; text-underline-offset: 2px; }
+#discussion-related a.related-page-title:focus-visible { outline: 3px solid #7aab81; outline-offset: 2px; border-radius: 2px; }
+#discussion-related .related-page-address { color: var(--ink-soft); font-size: 11px; }
 #popup-preferences { justify-self: stretch; }
 #popup-preferences > #ui-mode-toggle { width: max-content; margin-top: 10px; }
 #discussion-connection-settings,

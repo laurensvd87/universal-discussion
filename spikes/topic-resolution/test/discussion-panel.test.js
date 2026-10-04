@@ -19,7 +19,8 @@ function harness(messages, workspace, insightsTab, settingsButton, accountDetail
         assert.notEqual(index, -1);
         this.children.splice(index, 0, item);
       },
-      setAttribute(key, value) { this.attributes[key] = value; }, focus() { this.focused = true; },
+      setAttribute(key, value) { this.attributes[key] = value; },
+      removeAttribute(key) { delete this.attributes[key]; }, focus() { this.focused = true; },
       addEventListener(event, callback) { this.listeners.set(event, callback); },
       removeEventListener(event, callback) { if (this.listeners.get(event) === callback) this.listeners.delete(event); } };
     created.push(item); return item;
@@ -233,6 +234,55 @@ test("User related pages are a count disclosure; native open state survives poll
   assert.equal(ui.byId("discussion-counts").hidden, true);
   assert.equal(ui.byId("discussion-counts").textContent, "0 human · 0 AI");
   assert.ok(descendants(ui.root).some((item) => item.textContent === EN.uiDiscussionEmpty));
+});
+test("safe related Page titles are keyboard-accessible links with hostnames and relationship labels", () => {
+  const ui = harness();
+  const url = "https://example.com/articles/intro";
+  ui.panel.render(state({ related: { results: [
+    { title: "<img src=x> Page title", url, relationship: "same-topic" },
+    { title: "Second page", url: "https://other.example.org/read", relationship: "related" },
+  ] } }));
+  const rows = ui.byId("discussion-related").children.find((item) => item.tag === "ul").children;
+  assert.equal(rows.length, 2);
+  const [title, address, relationship] = rows[0].children;
+  assert.equal(title.tag, "a");
+  assert.equal(title.textContent, "<img src=x> Page title");
+  assert.equal(title.href, url);
+  assert.equal(title.target, "_blank");
+  assert.equal(title.rel, "noopener noreferrer");
+  assert.equal(title.referrerPolicy, "no-referrer");
+  assert.equal(title.listeners.size, 0);
+  title.focus(); assert.equal(title.focused, true);
+  assert.equal(address.tag, "p"); assert.equal(address.textContent, "example.com");
+  assert.equal(relationship.textContent, EN.discussionSameTopic);
+  assert.equal(rows[1].children[0].tag, "a");
+  assert.equal(rows[1].children[1].textContent, "other.example.org");
+  assert.equal(rows[1].children[2].textContent, EN.discussionRelatedReading);
+  assert.equal(descendants(ui.byId("discussion-related")).some((item) => item.tag === "img"), false);
+  assert.match(readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8"),
+    /a\.related-page-title:focus-visible\s*\{/u);
+  ui.panel.setMode("developer");
+  const developerRow = ui.byId("discussion-related").children.find((item) => item.tag === "ul").children[0];
+  assert.equal(developerRow.children[0].href, url);
+  assert.equal(developerRow.children[1].textContent, url);
+  assert.deepEqual(ui.calls, []);
+});
+test("rejected related URLs, including retained account hosts, remain inert text", () => {
+  const ui = harness();
+  const rejected = ["https://account.example.com/profile", "https://example.com/account",
+    "https://example.com/articles?token=private", "javascript:alert(1)"];
+  ui.panel.render(state({ related: { results: rejected.map((url) => ({
+    title: `<script>${url}</script>`, url, relationship: "related",
+  })) } }));
+  const rows = ui.byId("discussion-related").children.find((item) => item.tag === "ul").children;
+  assert.equal(rows.length, rejected.length);
+  rows.forEach((row, index) => {
+    assert.equal(row.children[0].tag, "p");
+    assert.equal(row.children[0].textContent, `<script>${rejected[index]}</script>`);
+    assert.equal(row.children[1].tag, "p");
+    assert.equal(row.children[1].textContent, rejected[index]);
+    assert.equal(descendants(row).some((item) => item.tag === "a" || item.tag === "script"), false);
+  });
 });
 test("only registered synthetic actors get compact User names; full names stay available", () => {
   const current = state();
@@ -459,10 +509,13 @@ test("display-mode toggles preserve draft/control nodes and actions while hiding
   const body = ui.byId("discussion-body"), topic = ui.byId("discussion-topic");
   const options = [...topic.children]; const calls = [...ui.calls];
   assert.equal(body.value, "Unsent words");
-  assert.ok(ui.created.some((item) => item.textContent === EN.uiReplyMode));
+  const mode = ui.created.find((item) => item.textContent === EN.uiReplyMode);
+  assert.equal(mode.hidden, true);
   ui.panel.setMode("developer");
+  assert.equal(mode.hidden, false);
   assert.ok(ui.created.some((item) => item.textContent === "Reply to root-1"));
   ui.panel.setMode("user");
+  assert.equal(mode.hidden, true);
   assert.equal(ui.byId("discussion-connection-settings").open, false);
   assert.equal(ui.byId("discussion-advanced").open, false);
   assert.equal(ui.byId("discussion-body"), body); assert.equal(body.value, "Unsent words");
@@ -473,6 +526,81 @@ test("display-mode toggles preserve draft/control nodes and actions while hiding
   ui.panel.render({ ...snapshot, phase: "error", error: "unavailable" });
   assert.equal(ui.byId("selected-topic-title").textContent, EN.uiTopicUnavailable);
   assert.equal(ui.byId("discussion-connection-settings").open, true);
+});
+
+test("reply context follows the exact selected author, including a reply to a reply, without submitting", () => {
+  const ui = harness();
+  const root = { id: "root-a", rootId: null, state: "visible", authorId: "demo-alex", actorType: "human",
+    body: "Alex's opening comment", replies: [
+      { id: "reply-b", rootId: "root-a", replyToId: "root-a", state: "visible", authorId: "demo-blair",
+        actorType: "human", body: "Blair's answer" },
+    ] };
+  const snapshot = state({ catalog: { ...state().catalog, actors: [
+    { id: "demo-alex", displayName: "Alex · synthetic" }, { id: "demo-blair", displayName: "Blair · synthetic" },
+  ] }, discussion: { roots: [root] } });
+  const context = ui.byId("discussion-reply-context");
+  const [author, excerpt] = context.children;
+  const replyButton = (id) => descendants(ui.root).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === id);
+  ui.panel.render(snapshot);
+  replyButton("root-a").listeners.get("click")();
+  ui.panel.render({ ...snapshot, draft: { body: "", detached: false, mode: "reply", targetId: "root-a" } });
+  assert.equal(context.hidden, false);
+  assert.equal(author.textContent, "Replying to Alex");
+  assert.equal(excerpt.textContent, "Alex's opening comment");
+  assert.equal(ui.byId("discussion-body").placeholder, EN.uiReplyPlaceholder);
+  assert.equal(ui.byId("discussion-body").attributes["aria-label"], EN.uiReplyBody);
+  assert.equal(ui.byId("discussion-body").attributes["aria-describedby"], context.id);
+  assert.equal(ui.byId("discussion-submit").textContent, "Post reply");
+  replyButton("reply-b").listeners.get("click")();
+  ui.panel.render({ ...snapshot, draft: { body: "A reply", detached: false, mode: "reply", targetId: "reply-b" } });
+  assert.equal(author.textContent, "Replying to Blair");
+  assert.equal(excerpt.textContent, "Blair's answer");
+  assert.deepEqual(ui.calls, [["begin", "reply", "root-a"], ["begin", "reply", "reply-b"]]);
+  ui.byId("discussion-discard").listeners.get("click")();
+  ui.panel.render(snapshot);
+  assert.equal(context.hidden, true);
+  assert.equal(ui.byId("discussion-body").placeholder, EN.uiCommentPlaceholder);
+  assert.equal(ui.byId("discussion-body").attributes["aria-describedby"], undefined);
+  assert.equal(ui.byId("discussion-submit").textContent, EN.uiPostComment);
+  assert.deepEqual(ui.calls.at(-1), ["discardDraft"]);
+  assert.equal(ui.calls.some(([method]) => method === "submitDraft"), false);
+});
+
+test("reply context renders hostile long text as bounded plain text and never guesses a missing target", async () => {
+  const ui = harness();
+  const hostile = "<img src=x onerror=alert(1)>\n" + "😀".repeat(150);
+  const root = { id: "root-hostile", rootId: null, state: "visible", authorId: "demo-alex",
+    actorType: "human", body: hostile, replies: [] };
+  const snapshot = state({ discussion: { roots: [root] },
+    draft: { body: "Draft", detached: false, mode: "reply", targetId: "root-hostile" } });
+  ui.panel.render(snapshot);
+  const [author, excerpt] = ui.byId("discussion-reply-context").children;
+  assert.equal(author.textContent, "Replying to Alex");
+  assert.ok(excerpt.textContent.startsWith("<img src=x onerror=alert(1)> "));
+  assert.equal(Array.from(excerpt.textContent).length, 121);
+  assert.equal(excerpt.textContent.endsWith("…"), true);
+  assert.equal(descendants(ui.byId("discussion-reply-context")).some((item) => item.tag === "img"), false);
+  ui.panel.render({ ...snapshot, draft: { ...snapshot.draft, targetId: "missing" } });
+  assert.equal(author.textContent, EN.uiReplyTargetUnavailable);
+  assert.equal(excerpt.textContent, "");
+  assert.equal(excerpt.hidden, true);
+  assert.equal(ui.byId("discussion-reply-context").children[2].textContent, EN.uiReplyUnavailableAction);
+  assert.equal(ui.byId("discussion-reply-context").children[2].attributes.role, "status");
+  assert.equal(ui.byId("discussion-body").attributes["aria-describedby"], "discussion-reply-context");
+  assert.equal(ui.byId("discussion-submit").attributes["aria-describedby"], "discussion-reply-context");
+  assert.equal(ui.byId("discussion-submit").disabled, true);
+  assert.equal(ui.byId("discussion-submit").textContent, EN.uiPostReply);
+  await ui.byId("discussion-composer").listeners.get("submit")({ preventDefault() {} });
+  assert.equal(ui.calls.some(([method]) => method === "submitDraft"), false);
+  ui.panel.render({ ...snapshot, discussion: { roots: [{ ...root, state: "deleted" }] } });
+  assert.equal(author.textContent, EN.uiReplyTargetUnavailable);
+  assert.equal(ui.byId("discussion-submit").disabled, true);
+  ui.panel.render(snapshot);
+  assert.equal(ui.byId("discussion-submit").disabled, false);
+  assert.equal(ui.byId("discussion-submit").attributes["aria-describedby"], undefined);
+  assert.equal(ui.byId("discussion-reply-context").children[2].hidden, true);
+  assert.equal(ui.calls.some(([method]) => method === "submitDraft"), false);
 });
 
 test("User copy stays concise while Developer labels and action IDs remain intact", () => {

@@ -168,6 +168,11 @@ try {
     };
     await assertView("#app-view-discussion");
     await capture("discussion", sessionId);
+    await evaluate("window.visualDiscussionState.draft={body:'A thoughtful reply',detached:false,mode:'reply',targetId:'root-1'};window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
+    assert.equal(await evaluate("(() => { const cue=document.querySelector('#discussion-reply-context'); return cue && !cue.hidden && cue.textContent.includes('Blair') && document.querySelector('#discussion-submit').textContent === 'Post reply'; })()", sessionId), true,
+      "reply composer identifies its exact target before submission");
+    await capture("reply", sessionId);
+    await evaluate("window.visualDiscussionState.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(window.visualDiscussionState)", sessionId);
     await evaluate("document.querySelector('#app-tab-discussion').focus()", sessionId);
     await tabTo("#app-tab-pages", sessionId);
     assert.equal(await evaluate("document.querySelector('#app-tab-insights') === null", sessionId), true,

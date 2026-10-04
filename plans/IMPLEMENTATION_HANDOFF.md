@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 0.12.22 UI polish: The User reply composer identifies the exact
+target author and a bounded excerpt, including reply-to-reply, before Post
+reply. Pages promotes only strict-policy-safe titles to links; retained-only
+URLs remain inert. No matching, capture, provider, post-target or publication
+scope changes. Final offline/Chrome evidence is in STATUS. Reload the extension
+for this and the 0.12.21 catalog recovery; owner live confirmation is pending.
+The full extension suite passes 884/885 (one skipped), focused restricted
+discussion panel 36/36, secret scan zero/181; isolated Chrome passes 14 states
+without uncaught exceptions or horizontal overflow. Independent trust review
+closed two reply accessibility issues and found no remaining blocker; actual
+screen-reader behavior remains untested.
+
 2026-10-04 owner popup incident / 0.12.21: The fixed-port service is healthy;
 the `Local service unavailable` banner came from strict client rejection of
 the catalog after ADR-039's capture guard encountered seven historical

@@ -33,6 +33,23 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 version 0.12.22 conversation usability:** The User reply composer
+now identifies the selected target author and a bounded plain-text excerpt,
+including reply-to-reply; the action says **Post reply**. A missing target is
+reported rather than guessed. Safe related-page titles become the primary
+links in Pages, with the hostname underneath; retained restricted URLs remain
+inert. This is presentation only: post targets, matching, capture, provider
+and publication boundaries are unchanged. Offline and isolated-Chrome evidence
+passes: full extension suite 884 passed, one skipped, zero failed; focused
+restricted discussion panel 36/36; secret scan zero findings across 181 files.
+The isolated Chrome popup passed 14 visual states (including Reply and Pages)
+with zero uncaught exceptions or horizontal overflow at 410 px User / 380 px
+Developer content width. Independent trust review found two reply accessibility
+gaps and verified their fixes: the text box describes its target, and a missing
+or deleted target disables Post with guidance. Focused panel/controller/policy
+tests pass 71/71. Actual screen-reader behavior was not exercised. Owner live
+popup confirmation is still needed after Chrome Reload.
+
 **2026-10-04 version 0.12.21 catalog recovery and connection clarity:** The
 owner saw `Local service unavailable` after a service restart. The service
 responded on 4174 and passed the configured Origin's CORS preflight. A read-

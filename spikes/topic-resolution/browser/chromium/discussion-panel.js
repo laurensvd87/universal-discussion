@@ -114,6 +114,12 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   root.append(counts, thread);
   const composer = node("form"); composer.id = "discussion-composer";
   const mode = node("p"); root.append(composer);
+  const replyContext = node("div"); replyContext.id = "discussion-reply-context";
+  const replyAuthor = node("span"); replyAuthor.className = "discussion-reply-author";
+  const replyExcerpt = node("span"); replyExcerpt.className = "discussion-reply-excerpt";
+  const replyStatus = node("span"); replyStatus.className = "discussion-reply-status";
+  replyStatus.setAttribute("role", "status");
+  replyContext.append(replyAuthor, replyExcerpt, replyStatus);
   const identity = node("p"); identity.id = "discussion-demo-identity"; composer.append(identity);
   const originDisclosure = node("p"); originDisclosure.id = "discussion-origin-disclosure"; composer.append(originDisclosure);
   const body = node("textarea"); body.id = "discussion-body"; body.maxLength = 8000;
@@ -127,7 +133,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   insightActivity.setAttribute("role", "status"); insightActivity.setAttribute("aria-live", "polite");
   insightShortcut.setAttribute("aria-describedby", insightActivity.id);
   composerActions.append(submit, insightShortcut, insightActivity);
-  composer.append(mode, bodyLabel, body, detached, composerActions);
+  composer.append(mode, replyContext, bodyLabel, body, detached, composerActions);
   listen(body, "input", () => controller?.setDraft(body.value));
   listen(composer, "submit", async (event) => {
     event.preventDefault();
@@ -216,6 +222,12 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (actor?.id === "demo-alex" && raw === "Alex · synthetic") return "Alex";
     if (actor?.id === "demo-blair" && raw === "Blair · synthetic") return "Blair";
     return raw;
+  }
+  function compactText(value, limit) {
+    const plain = value.replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu, " ")
+      .replace(/\s+/gu, " ").trim();
+    const chars = Array.from(plain);
+    return chars.length > limit ? `${chars.slice(0, limit).join("")}…` : plain;
   }
   function contribution(entry, rootEntry, state, newlyArrived = false) {
     const card = node("article"); card.className = "discussion-contribution";
@@ -326,10 +338,12 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     identity.textContent = !state.catalog ? "" : text("uiDemoIdentity").replace("{actor}",
       actorName(state.catalog.actors.find((entry) => entry.id === state.actorId)) || text("discussionChoose"));
     identity.hidden = uiMode === "user";
-    bodyLabel.textContent = text(uiMode === "user" ? "uiCommentBody" : "discussionBody");
+    bodyLabel.textContent = text(uiMode === "user" ? state.draft.mode === "reply" ? "uiReplyBody" : "uiCommentBody" : "discussionBody");
     bodyLabel.hidden = uiMode === "user";
-    body.setAttribute("aria-label", text(uiMode === "user" ? "uiCommentBody" : "discussionBody"));
-    body.placeholder = uiMode === "user" ? text("uiCommentPlaceholder") : "";
+    body.setAttribute("aria-label", bodyLabel.textContent);
+    body.placeholder = uiMode === "user" ? text(state.draft.mode === "reply" ? "uiReplyPlaceholder" : "uiCommentPlaceholder") : "";
+    if (state.draft.mode === "reply") body.setAttribute("aria-describedby", replyContext.id);
+    else body.removeAttribute("aria-describedby");
     const arrivedCatalog = state.catalog && !previousState?.catalog;
     const reachedConnected = ["ready", "choose-topic"].includes(state.phase) &&
       !["ready", "choose-topic", "loading"].includes(previousState?.phase);
@@ -374,14 +388,35 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     body.readOnly = posting;
     detached.hidden = !state.draft.detached;
     reattach.hidden = !state.draft.detached; reattach.disabled = !ready;
-    submit.disabled = posting || !ready || state.draft.detached || !state.draft.body.trim();
+    const replyTarget = state.draft.mode === "reply" ? state.discussion?.roots
+      .flatMap((entry) => [entry, ...(entry.replies ?? [])])
+      .find((entry) => entry.id === state.draft.targetId && entry.state === "visible") : null;
+    submit.disabled = posting || !ready || state.draft.detached || !state.draft.body.trim() ||
+      state.draft.mode === "reply" && !replyTarget;
     mode.textContent = text((uiMode === "user" ? { root: "discussionComposerRoot", reply: "uiReplyMode", edit: "uiEditMode" }
       : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])
       .replace("{id}", state.draft.targetId ?? "");
     if (uiMode === "user" && state.draft.mode === "root") mode.textContent = text("uiComposerRoot");
-    mode.hidden = uiMode === "user" && state.draft.mode === "root";
+    mode.hidden = uiMode === "user" && ["root", "reply"].includes(state.draft.mode);
+    replyContext.hidden = state.draft.mode !== "reply";
+    if (!replyContext.hidden) {
+      const author = replyTarget && state.catalog?.actors.find((entry) => entry.id === replyTarget.authorId);
+      const authorText = author && replyTarget.actorType === "human" ? actorName(author)
+        : author && replyTarget.actorType === "agent" ? text(replyTarget.insight?.kind === "generated"
+          ? "discussionGeneratedInsight" : "discussionImportedInsight")
+          .replace("{operator}", actorName(state.catalog.actors.find((entry) => entry.id === replyTarget.insight?.operatorId))) : "";
+      replyAuthor.textContent = !replyTarget ? text("uiReplyTargetUnavailable")
+        : text("uiReplyToAuthor").replace("{author}", compactText(authorText || text("uiReplyUnknownAuthor"), 48));
+      replyExcerpt.textContent = replyTarget && typeof replyTarget.body === "string"
+        ? compactText(replyTarget.body, 120) || text("uiReplyTextUnavailable") : "";
+      replyExcerpt.hidden = !replyExcerpt.textContent;
+      replyStatus.textContent = replyTarget ? "" : text("uiReplyUnavailableAction");
+      replyStatus.hidden = Boolean(replyTarget);
+    }
+    if (state.draft.mode === "reply" && !replyTarget) submit.setAttribute("aria-describedby", replyContext.id);
+    else submit.removeAttribute("aria-describedby");
     submit.textContent = text(uiMode === "user" ? posting && state.draft.mode !== "edit" ? "uiPostSending"
-      : state.draft.mode === "edit" ? "uiSaveChanges" : "uiPostComment" : "discussionSubmit");
+      : state.draft.mode === "edit" ? "uiSaveChanges" : state.draft.mode === "reply" ? "uiPostReply" : "uiPostComment" : "discussionSubmit");
     submit.setAttribute("aria-busy", String(posting));
     discard.textContent = text(uiMode === "user" ? "uiDiscard" : "discussionDiscard");
     discard.hidden = uiMode === "user" && !state.draft.body.trim() && !state.draft.detached &&
@@ -438,14 +473,17 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     choices(correctionTarget, state.catalog?.topics ?? [], correctionTarget.value, "discussionSeparate");
     learnedActions();
     const suggestions = (state.related?.results ?? []).map((source) => {
-      const item = node("li"); const sourceTitle = node("p"); sourceTitle.textContent = source.title;
+      const item = node("li");
       const safeUrl = typeof source.url === "string" && inspectPageUrl(source.url).supported &&
         inspectPageUrl(source.url).url === source.url;
-      const address = node(safeUrl ? "a" : "p"); address.textContent = source.url;
+      const sourceTitle = node(safeUrl ? "a" : "p"); sourceTitle.className = "related-page-title";
+      sourceTitle.textContent = source.title;
       if (safeUrl) {
-        address.href = source.url; address.target = "_blank"; address.rel = "noopener noreferrer";
-        address.referrerPolicy = "no-referrer";
+        sourceTitle.href = source.url; sourceTitle.target = "_blank"; sourceTitle.rel = "noopener noreferrer";
+        sourceTitle.referrerPolicy = "no-referrer";
       }
+      const address = node("p"); address.className = "related-page-address";
+      address.textContent = safeUrl && uiMode === "user" ? new URL(source.url).hostname : source.url;
       const association = node("p", source.relationship === "same-topic" ? "discussionSameTopic" : "discussionRelatedReading");
       item.append(sourceTitle, address, association); return item;
     });
