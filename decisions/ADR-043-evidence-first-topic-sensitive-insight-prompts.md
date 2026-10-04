@@ -39,6 +39,16 @@ response format, extra call, automatic retry or sharing is added.
 
 ## Evaluation and boundaries
 
+The 2026-10-04 owner refinement prioritizes a supported, discussion-worthy
+difference between the current-page extract and an excerpt whose source ID is
+listed among provisional same-Topic Sources. Differences among those other
+excerpts may inform the angle, but the current page remains central. A
+related-only excerpt is fallback context, not proof of Topic identity. This
+is prompt guidance, not a new matching decision: no contrast may be inferred
+from titles, URLs, repeated points, partial text or unavailable pages, and a
+single-page observation remains valid when the evidence is thin. It changes
+neither source selection nor provider-data scope.
+
 Synthetic reserved-domain fixtures should cover comparable and incomparable
 products, changing news counts/dates, observational research, technical
 prerequisites, practical constraints, interpretive material, thin/mismatched

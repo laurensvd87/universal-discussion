@@ -54,6 +54,19 @@ should drive a UI or logo rebrand yet.
 
 ## Recommendation
 
+The owner subsequently explored **Panl** ("pan" as all perspectives plus
+"panel") and **reScope** (a second look through a broader lens). Both have
+stronger semantic fit than arbitrary invented syllables, but neither is
+selected. The exact Panl name is already used by a
+[Google Play app](https://play.google.com/store/apps/details?id=com.brtsys.panl)
+and [software product](https://panl.so/). The exact reScope/Rescope name is
+used by an [iPhone community marketplace](https://apps.apple.com/us/app/rescope/id6738115614)
+and [web/app development studio](https://rescope.uk/), among others. These are
+preliminary collision observations, not trademark conclusions. The owner has
+asked to continue exploring rather than close on a candidate; retain both as
+signals about desired compactness and perspective language, not as approved
+rebrand choices.
+
 Keep the working product name while testing the core experience. Develop a
 small, genuinely distinct shortlist around **shared perspective / connection
 across pages**, with the light, memorable rhythm of "Jibber" but enough

@@ -35,6 +35,19 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 same-Topic contrast refinement:** The owner wants Insights to
+surface useful differences between other pages of the same provisional Topic,
+not mainly restate the current article. The static opener prompt now examines
+bounded excerpts mapped to same-Topic Sources first, keeps the current page
+central, and falls back when no supported contrast exists. It does not turn
+related-only pages into same-Topic evidence. No source fetch, permission, provider request,
+automatic Share or grouping behavior changed. Offline prompt/provider-contract
+tests pass (220/224; four optional skips); the secret scan found zero findings
+across 88 files. An independent trust review found no blocker and its recommended
+hostile-excerpt contract fixture is included. No fresh live model-quality test
+was run. The local service must restart to use the new prompt. Brand exploration
+continues; neither Panl nor reScope is selected or cleared.
+
 **2026-10-04 live related-text QA and startup recovery:** The owner approved
 one additional fixed public-page GPT-5.5 test after the first PEP probe. Both
 used one Responses request, a 4,096-character PEP 8 current-page extract and

@@ -1,5 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 prompt checkpoint: ADR-043 now prioritizes a supported contrast
+between the current-page extract and excerpts mapped to provisional same-Topic
+Sources, while retaining related-only and single-page fallbacks. This is a
+static prompt-only refinement with no new data/permission/provider scope and
+no live quality proof. Full service tests pass 220/224 (four optional skips),
+with zero secret-scan findings across 88 files. Restart the local service to
+activate it. Panl and reScope remain exploratory naming directions, not a
+rebrand.
+
 2026-10-04 recovery and QA checkpoint: Two separately approved one-request
 public PEP 8/257/20/7 live ChatGPT quality checks completed without retry or
 Share. Both supplied three bounded related excerpts; the first opener did not
