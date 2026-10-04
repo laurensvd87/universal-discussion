@@ -33,6 +33,34 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 bounded live Insight QA:** The owner explicitly authorized up to
+two deliberate live Responses requests per relevant Insight change, using
+only public signed-out pages, at most 4,096 characters of current-page text
+and four public related titles/URLs; no retry, private data or automatic
+Share. [ADR-038](../decisions/ADR-038-bounded-owner-live-insight-qa.md) records
+that gate. A standalone opt-in harness acquired the fixed port before using
+the protected ChatGPT grant, did not read the local Source catalog, and
+completed one real-public MDN HTTP Overview probe with the listed GPT-5.5
+model: one Responses request, 76-word private forum opener, one relevant
+question and zero external citations. The current-page observation was
+specific and plausible; related context was not verified or cited. Four
+focused offline checks pass. This is a live backend/prompt quality sample,
+not a rendered-Chrome or popup E2E quality pass. The normal local service
+was restarted on 4174 afterward. A read-only catalog audit exposed at least
+one previously retained account/credential-site URL despite the public-only
+profile policy; its content was not read or sent to the provider.
+[ADR-039](../decisions/ADR-039-credential-host-capture-guard.md) records a narrowly
+scoped extension guard rejecting exact password/account/auth/login/SSO host
+labels (including the observed credential host) before future capture;
+existing rows remain. An independent trust review confirmed the narrowing
+and noted generic authenticated sites cannot be detected reliably. The
+extension suite passed 872/873 (one pre-existing skip), the service suite
+206/210 (four opt-in skips), and the extension secret scan found zero
+findings across 179 files. Reload the unpacked extension for the new guard;
+the separate public-only browser profile is still required. Owner-directed
+cleanup of previously stored rows remains open; no silent deletion or provider
+expansion is authorized.
+
 **2026-10-04 version 0.12.20 unified Discussion UI:** The owner asked to
 remove the separate Insights tab and make writing or requesting an insight one
 conversation workflow. [ADR-037](../decisions/ADR-037-unified-discussion-insights-ui.md)

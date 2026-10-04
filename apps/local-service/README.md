@@ -22,6 +22,27 @@ ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
+## Opt-in live Insight quality probe
+
+`harness/run-live-insight-qa.js` is a developer-only, owner-approved one-shot
+probe of the ChatGPT Insight adapter using a fixed public MDN article. It is
+not part of normal service startup or the extension. Stop the local service
+first, then run from this directory:
+
+```sh
+node harness/run-live-insight-qa.js --run-live --model <listed-model-slug> --show-result
+```
+
+It refuses an occupied fixed port, restores the protected local ChatGPT grant, checks that the model
+is on the account's list, fetches the signed-out page without cookies, and
+sends at most one Responses request. There is no retry, Share, SQLite/catalog
+read or saved answer. Omit `--show-result` for count-only output. The HTML
+main-region extractor approximates public page prose; it cannot prove what
+the Chrome reader displayed. This is a backend/prompt quality check, not a
+full popup end-to-end test. The owner-approved ceiling is two deliberate
+live Responses requests per relevant Insight change, with no private-page
+material. Restart the normal local service when finished.
+
 ## Content-free insight trace
 
 The interactive backend terminal prints one `INSIGHT_TRACE` JSON line when an

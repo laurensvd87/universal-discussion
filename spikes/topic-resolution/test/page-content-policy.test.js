@@ -23,6 +23,21 @@ test("policy rejects credential, local/IP/intranet/internal/sensitive contexts",
   }
 });
 
+test("credential and account host labels are excluded without blocking public articles", () => {
+  for (const host of ["passwords", "password", "account", "accounts", "auth", "login", "signin", "sign-in", "sso"]) {
+    for (const prefix of ["", "www."]) {
+      const result = inspectPageUrl(`https://${prefix}${host}.example.com/articles/public-story`);
+      assert.equal(result.supported, false, `${prefix}${host}`);
+      assert.equal(result.reason, "unsupported-host");
+    }
+  }
+  for (const raw of [
+    "https://www.example.com/articles/account-security-guide",
+    "https://passwords-guide.example.com/articles/public-story",
+    "https://www.example.com/articles/public-story",
+  ]) assert.equal(inspectPageUrl(raw).supported, true, raw);
+});
+
 test("owned fixture exception is exact host/port/path without opening arbitrary loopback", () => {
   assert.equal(inspectPageUrl("http://127.0.0.1:4173/background-fixture/article-a.html?id=2#top").supported, true);
   for (const raw of ["http://127.0.0.1:4174/background-fixture/article-a.html", "http://localhost:4173/background-fixture/article-a.html",

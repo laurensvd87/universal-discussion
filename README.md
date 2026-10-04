@@ -42,6 +42,20 @@ after updating; this UI change alone does not require a service restart. The
 connected ChatGPT account controls remain reachable under **Settings > Insight
 settings > ChatGPT account > Disconnect to switch account**.
 
+With the owner's bounded live-QA approval, one fixed public MDN HTTP article
+was also tested through the real ChatGPT backend prompt and response parser:
+the listed GPT-5.5 model returned a short 76-word private discussion opener
+and a relevant question in one request. No source citation appeared and
+nothing was shared. This does not yet validate the extension's rendered-page
+capture, related-page research quality or the whole popup flow. The opt-in
+probe and limits are in [ADR-038](decisions/ADR-038-bounded-owner-live-insight-qa.md)
+and the [local-service instructions](apps/local-service/README.md#opt-in-live-insight-quality-probe).
+
+The public-page URL guard now also excludes obvious credential/account host
+labels before new capture. This does not identify every private or signed-in
+page, so use the separate public-only browser profile. Previously retained
+sources were not deleted; reload the unpacked extension for this guard.
+
 The first AI result is prompted as a short, page-specific forum opener,
 not a long research report. Provider-returned citation references appear as
 small inline source links instead of a list of bare URLs. A generated robot

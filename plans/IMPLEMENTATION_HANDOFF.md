@@ -1,5 +1,24 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 live Insight QA: ADR-038 records the owner's bounded standing
+permission for deliberate public-page provider checks. The opt-in
+`apps/local-service/harness/run-live-insight-qa.js` isolates the fixed port
+before protected grant restore, uses a fixed signed-out MDN page and one
+public related link, and caps each run at one Responses dispatch with no
+retry, catalog/SQLite read or publication. One listed GPT-5.5 live request
+completed: 76-word current-page opening post, one question, no citations.
+This covers the backend adapter and prompt only; the harness's HTML main-
+region extraction is not Chrome rendered-document attestation. The normal
+service was restarted on 4174. Do not turn the harness into background AI
+behavior or use catalog items as public QA fixtures. A read-only catalog
+audit found an account/credential-site URL in retained state. Obtain owner
+direction before deleting stored data.
+The extension's shared page URL policy now rejects exact credential/account
+host labels before future capture; an independent trust review and focused
+tests passed. It cannot detect private state on generic public hosts, and
+old retained rows were not removed. Reload the unpacked extension to apply
+the guard. Full extension/service suites and secret scan pass; see STATUS.
+
 2026-10-04 current UI integration (0.12.20): ADR-037 unifies User Mode around
 Discussion and Pages. The comment composer offers a small explicit Insight
 action; its private result stays in Discussion with distinct Share/Discard.

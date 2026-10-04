@@ -40,6 +40,7 @@ export function inspectPageUrl(raw) {
     if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/u.test(host) ||
         /(?:^|\.)(?:localhost|local|localdomain|internal|intranet|lan|home|corp|invalid|test|example|onion)$/u.test(host) ||
         /(?:^|\.)(?:localtest\.me|lvh\.me|nip\.io|sslip\.io)$/u.test(host) ||
+        /(?:^|\.)(?:password|passwords|account|accounts|auth|login|signin|sign-in|sso)\./u.test(host) ||
         /^(?:mail|webmail|inbox|banking|patientportal)\./u.test(host)) return reject("unsupported-host");
   }
   const url = parsed.toString();
