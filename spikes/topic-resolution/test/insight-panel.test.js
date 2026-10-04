@@ -98,12 +98,14 @@ test("User insight preview contains only the generated message, citation links, 
   const result = { body: `A concise finding ${marker}`, citations: [{
     url: "https://example.org/article", title: "Source", startIndex: 18, endIndex: 18 + marker.length }] };
   ui.panel.render(state({ draft: formatInsightCitations(result.body, result.citations),
-    ai: { status: "generated", result } }));
+    relatedExcerptCount: 2, ai: { status: "generated", result } }));
   const card = ui.byId("insight-composer");
   assert.equal(ui.byId("insight-workspace").attributes["data-has-result"], "true");
   assert.deepEqual(card.children.filter((item) => !item.hidden).map((item) => item.id),
     ["insight-private-label", "insight-citations", "insight-share", "insight-discard"]);
-  assert.equal(ui.byId("insight-private-label").textContent, "Private draft · not shared");
+  assert.equal(ui.byId("insight-private-label").textContent, "Only you");
+  assert.equal(ui.byId("insight-related-excerpt-indicator").hidden, true);
+  assert.equal(ui.byId("insight-related-excerpt-summary").textContent, "Linked pages read: 2");
   assert.equal(ui.descendants(ui.byId("insight-citations")).filter((item) => item.tag === "a").length, 1);
   assert.equal(ui.byId("insight-draft-details").children[0].hidden, true);
   assert.equal(ui.byId("insight-share").disabled, false);
@@ -337,8 +339,14 @@ test("User Create click uses current page automatically and related-source setti
   assert.deepEqual(ui.calls.at(-1), ["setAllowWebResearch", false]);
   ui.panel.render(state({ ai, allowWebResearch: false }));
   assert.equal(webResearch.checked, false);
-  assert.equal(choices.children.length, 1);
-  const checkbox = choices.children[0].children[0];
+  assert.equal(choices.children.length, 2);
+  const sameTopicCheckbox = choices.children[0].children[0];
+  assert.equal(sameTopicCheckbox.value, "source-b");
+  assert.equal(sameTopicCheckbox.checked, true);
+  sameTopicCheckbox.checked = false;
+  choices.listeners.get("change")({ target: sameTopicCheckbox });
+  assert.deepEqual(ui.calls.at(-1), ["setRelatedSourceIncluded", "source-b", false]);
+  const checkbox = choices.children[1].children[0];
   assert.equal(checkbox.value, "source-c");
   assert.equal(checkbox.checked, true);
   checkbox.checked = false;
@@ -346,6 +354,7 @@ test("User Create click uses current page automatically and related-source setti
   assert.deepEqual(ui.calls.at(-1), ["setRelatedSourceIncluded", "source-c", false]);
   ui.panel.render(state({ ai, excludedRelatedSourceIds: ["source-c"], allowWebResearch: false }));
   assert.equal(checkbox.checked, false);
+  assert.equal(sameTopicCheckbox.checked, true);
   ui.click("insight-createInsights");
   assert.deepEqual(ui.calls.at(-1), ["createInsights", { automatic: true }]);
   assert.equal(ui.calls.some(([name]) => name === "share"), false);
@@ -353,10 +362,22 @@ test("User Create click uses current page automatically and related-source setti
 
 test("linked-page search setting remains available when no related pages are listed", () => {
   const ui = harness(undefined, "user");
-  ui.panel.render(state({ context: { ...context(), relatedSources: [] }, allowWebResearch: false }));
+  ui.panel.render(state({ context: { ...context(), sameTopicSources: [], relatedSources: [] }, allowWebResearch: false }));
   assert.equal(ui.byId("insight-related-settings").hidden, false);
   assert.equal(ui.byId("insight-allow-web-research").checked, false);
   assert.equal(ui.byId("insight-related-choices").children.length, 0);
+});
+
+test("linked-page choices cannot appear editable during article or related-text preparation", () => {
+  const ui = harness(undefined, "user");
+  const checkbox = () => ui.byId("insight-related-choices").children[0].children[0];
+  for (const status of ["preparingArticle", "fetchingRelated", "generating", "resuming"]) {
+    ui.panel.render(state({ ai: { ...state().ai, status } }));
+    assert.equal(checkbox().disabled, true, status);
+    assert.equal(ui.byId("insight-related-page-text").disabled, false, `${status}: global opt-out remains available`);
+  }
+  ui.panel.render(state());
+  assert.equal(checkbox().disabled, false);
 });
 
 test("related source choices render with browser-style children lacking forEach", () => {
@@ -366,7 +387,7 @@ test("related source choices render with browser-style children lacking forEach"
   choices.children.forEach = undefined;
   choices.replaceChildren = function (...items) { this.children.length = 0; this.append(...items); };
   ui.panel.render(state());
-  const checkbox = choices.children[0].children[0];
+  const checkbox = choices.children[1].children[0];
   assert.equal(checkbox.checked, true);
   ui.panel.render(state({ excludedRelatedSourceIds: ["source-c"] }));
   assert.equal(checkbox.checked, false);

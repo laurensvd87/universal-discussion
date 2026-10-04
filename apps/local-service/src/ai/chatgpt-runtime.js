@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { ChatGPTConnectionFailure, createChatGPTConnection } from "./chatgpt-connection.js";
-import { ChatGptInsightError, createChatGptInsights } from "./chatgpt-insights.js";
+import { ChatGptInsightError, createChatGptInsights, validateRelatedExcerpts } from "./chatgpt-insights.js";
 import { buildInsightContext } from "../../../../spikes/topic-resolution/browser/core/insight-context.js";
 import { formatInsightCitations } from "../../../../spikes/topic-resolution/browser/core/insight-citations.js";
 import { fail } from "../domain/errors.js";
@@ -183,15 +183,19 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     catch { fail("invalid", "Invalid request"); }
     if (!same(rebuilt, context)) fail("invalid", "Invalid request");
     const excluded = input.excludedRelatedSourceIds ?? [];
-    if (!Array.isArray(excluded) || excluded.length > rebuilt.relatedSources.length ||
-        excluded.some((id) => typeof id !== "string" ||
-          !rebuilt.relatedSources.some((source) => source.id === id)) ||
+    const selected = [...rebuilt.sameTopicSources, ...rebuilt.relatedSources];
+    const selectedIds = new Set(selected.map((source) => source.id));
+    if (!Array.isArray(excluded) || excluded.length > selectedIds.size ||
+        excluded.some((id) => typeof id !== "string" || !selectedIds.has(id)) ||
         new Set(excluded).size !== excluded.length) fail("invalid", "Invalid request");
     if (!excluded.length) return rebuilt;
     const hidden = new Set(excluded);
+    const sameTopicSources = rebuilt.sameTopicSources.filter((source) => !hidden.has(source.id));
     const relatedSources = rebuilt.relatedSources.filter((source) => !hidden.has(source.id));
-    return { ...rebuilt, relatedSources,
-      coverage: { ...rebuilt.coverage, relatedTotal: relatedSources.length } };
+    return { ...rebuilt, sameTopicSources, relatedSources,
+      coverage: { ...rebuilt.coverage,
+        sameTopicTotal: rebuilt.coverage.sameTopicTotal - (rebuilt.sameTopicSources.length - sameTopicSources.length),
+        relatedTotal: rebuilt.coverage.relatedTotal - (rebuilt.relatedSources.length - relatedSources.length) } };
   }
   function inspectFollowup(questionId, actorId, context, expected) {
     const id = readId(questionId);
@@ -251,6 +255,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     create(value, actorId) {
       exact(value, ["operationId", "model", "context", "articleText", "allowWebResearch", "expected",
         ...(Object.hasOwn(value ?? {}, "excludedRelatedSourceIds") ? ["excludedRelatedSourceIds"] : []),
+        ...(Object.hasOwn(value ?? {}, "relatedExcerpts") ? ["relatedExcerpts"] : []),
         ...(Object.hasOwn(value ?? {}, "followupQuestionId") ? ["followupQuestionId"] : [])]);
       service.actor(actorId);
       const key = operationId(value.operationId);
@@ -260,6 +265,10 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       const context = inspectContext(value);
+      let relatedExcerpts;
+      try { relatedExcerpts = validateRelatedExcerpts(
+        Object.hasOwn(value, "relatedExcerpts") ? value.relatedExcerpts : [], context); }
+      catch { fail("invalid", "Invalid request"); }
       const followup = Object.hasOwn(value, "followupQuestionId")
         ? inspectFollowup(value.followupQuestionId, actorId, context, value.expected) : null;
       const job = { operationId: key, actorId, expected: value.expected, topicId: context.topic.id,
@@ -269,7 +278,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         error: null, detail: null, finishedAt: null };
       seen.add(key); jobs.set(key, job); active = job;
       void insights.createInsight({ model: value.model, context, articleText: value.articleText,
-        allowWebResearch: value.allowWebResearch,
+        allowWebResearch: value.allowWebResearch, relatedExcerpts,
         ...(followup ? { followup: { parentBody: followup.parentBody, questionBody: followup.questionBody } } : {}) }).then((result) => {
         if (job.state === "running" && !disposed) {
           job.state = "completed"; job.result = result; recordInsightOutcome("success"); finish(job);

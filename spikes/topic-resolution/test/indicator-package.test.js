@@ -38,6 +38,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/background.js",
     "chromium/discussion-panel.js",
     "chromium/icons/conversation.svg",
+    "chromium/icons/lock.svg",
     "chromium/icons/pages.svg",
     "chromium/icons/person.svg",
     "chromium/icons/robot.svg",
@@ -77,6 +78,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/page-signal-contract.js",
     "core/page-signal-policy.js",
     "core/read-only-service-retry.js",
+    "core/related-page-excerpts.js",
     "core/related-sources.js",
     "core/topic-toolbar-controller.js",
     "embedding/.gitignore",
@@ -100,7 +102,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.12.22",
+    version: "0.13.0",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -113,7 +115,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
       default_title: "Check local discussion state",
     },
     content_security_policy: {
-      extension_pages: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';",
+      extension_pages: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174 https:; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';",
     },
   });
   for (const forbiddenKey of [
@@ -285,9 +287,9 @@ test("popup contains only local external assets and basic accessible bindings", 
     .replaceAll("http://127.0.0.1:4173/p1-5c.html", "");
   assert.doesNotMatch(withoutApprovedUrls, /\b(?:https?:)?\/\//iu);
   const cssWithoutPackagedIconMasks = css.replaceAll(
-    /url\("icons\/(?:conversation|pages|spark|settings|person|robot)\.svg"\)/gu, "");
+    /url\("icons\/(?:conversation|pages|spark|settings|person|robot|lock)\.svg"\)/gu, "");
   assert.doesNotMatch(cssWithoutPackagedIconMasks, /@import\b|url\s*\(/iu);
-  for (const name of ["conversation", "pages", "spark", "settings", "person", "robot"]) {
+  for (const name of ["conversation", "pages", "spark", "settings", "person", "robot", "lock"]) {
     const svg = await readFile(path.join(browserDirectory, "chromium", "icons", `${name}.svg`), "utf8");
     assert.match(svg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 24 24" fill="none">\s*(?:(?:<path|<circle) [^>]+\/>\s*)+<\/svg>\s*$/u);
     assert.doesNotMatch(svg, /<script|<foreignObject|<image|href\s*=|url\s*\(|@import|https?:\/\/(?!www\.w3\.org\/2000\/svg)/iu);

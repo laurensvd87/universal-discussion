@@ -202,7 +202,23 @@ export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = asyn
     diagnostics: async (options = {}) => projectDiagnostics(await request("/diagnostics", undefined, undefined, options.signal)),
     start: async (value, actorId, options = {}) => {
       id(value?.operationId); id(value?.model); readActorId(actorId);
-      if (typeof value.articleText !== "string" || !value.articleText.trim() || value.articleText.length > 4096 || value.allowWebResearch !== true) invalid();
+      if (typeof value.articleText !== "string" || !value.articleText.trim() || value.articleText.length > 4096 ||
+          typeof value.allowWebResearch !== "boolean") invalid();
+      if (value.relatedExcerpts !== undefined) {
+        if (!Array.isArray(value.relatedExcerpts) || value.relatedExcerpts.length > 4) invalid();
+        const allowed = [...(value.context?.sameTopicSources ?? []), ...(value.context?.relatedSources ?? [])]
+          .filter((source) => !(value.excludedRelatedSourceIds ?? []).includes(source.id));
+        const seen = new Set();
+        for (const excerpt of value.relatedExcerpts) {
+          if (!excerpt || typeof excerpt !== "object" || Array.isArray(excerpt) ||
+              !Object.hasOwn(excerpt, "sourceId") || !Object.hasOwn(excerpt, "url") ||
+              !Object.hasOwn(excerpt, "text") || seen.has(excerpt.sourceId) ||
+              !allowed.some((source) => source.id === excerpt.sourceId && source.url === excerpt.url) ||
+              !inspectPageUrl(excerpt.url).supported || typeof excerpt.text !== "string" ||
+              excerpt.text.trim().length < 80 || excerpt.text.length > 2048) invalid();
+          seen.add(excerpt.sourceId);
+        }
+      }
       const started = await request("/insights", value, actorId, options.signal);
       keys(started, ["operationId", "state"]);
       if (started.operationId !== value.operationId || started.state !== "running") invalid();

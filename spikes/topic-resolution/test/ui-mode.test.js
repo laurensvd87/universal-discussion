@@ -193,7 +193,7 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   const connected = { phase: "ready", catalog: { topics: [{ id: "t", title: "Topic" }], sources: [] }, topicId: "t",
     related: { results: [] } };
   shell.render(connected);
-  assert.equal(get("#app-navigation").hidden, false);
+  assert.equal(get("#app-navigation").hidden, true);
   assert.equal(get("#local-insights").parentElement, get("#app-discussion-insights-host"));
   assert.equal(get("#discussion-composer").nextSibling, get("#app-discussion-insights-host"));
   assert.equal(get("#insight-model").parentElement, get("#app-settings-insights"));
@@ -214,8 +214,8 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   assert.equal(get("#discussion-advanced").open, true);
   shell.render(connected);
   get("#app-tab-pages").click();
-  assert.equal(get("#app-view-pages").hidden, false);
-  assert.equal(get("#app-tab-pages").getAttribute("aria-current"), "page");
+  assert.equal(get("#app-view-pages").hidden, true);
+  assert.equal(get("#app-view-discussion").hidden, false);
   get("#app-tab-discussion").click();
   get("#discussion-ai-insights").click();
   assert.equal(creates, 0, "the discussion owns the generate action");
@@ -236,7 +236,7 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   shell.render(disconnected);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-welcome-connection"));
   shell.render(connected);
-  assert.equal(get("#app-navigation").hidden, false);
+  assert.equal(get("#app-navigation").hidden, true);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
   shell.dispose();
 });

@@ -52,7 +52,8 @@ export function createInsightResumeGate(resume) {
 // Private popup state only. Explicit actions invoke injected page/provider
 // adapters; only final sharing persists the reviewed discussion text.
 export function createInsightController({ shareInsight, onStateChange = () => {}, aiClient = null,
-  readArticle = null, attestArticle = null, openAuthorization = null,
+  readArticle = null, attestArticle = null, readRelatedExcerpts = null,
+  loadRelatedTextPreference = async () => null, saveRelatedTextPreference = () => {}, openAuthorization = null,
   randomId = () => globalThis.crypto.randomUUID() }) {
   let observed = null;
   let boundKey = null;
@@ -69,7 +70,17 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let resumeBusy = false;
   let job = null;
   let completedJob = null;
+  let relatedReadAbort = null;
+  let relatedPreferenceTouched = false;
+  const relatedPreferenceReady = Promise.resolve().then(loadRelatedTextPreference).then((value) => {
+    if (!disposed && !relatedPreferenceTouched && typeof value === "boolean")
+      publish({ relatedPageTextEnabled: value, relatedExcerptCount: null });
+  }).catch(() => {
+    if (!disposed && !relatedPreferenceTouched)
+      publish({ relatedPageTextEnabled: false, relatedExcerptCount: null });
+  });
   let state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
+    relatedPageTextEnabled: true, relatedExcerptCount: null,
     draft: "", preview: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
       result: null, status: "idle", error: null, failureStage: null, failureSubstage: null,
@@ -97,7 +108,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   function clear(status = "idle") {
     cancelJob(); purgeCompleted(); epoch++;
     boundKey = null; review = null;
-    publish({ context: null, excludedRelatedSourceIds: [], draft: "", preview: null, status, ai: { ...state.ai, articleText: "", article: null,
+    publish({ context: null, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, status, ai: { ...state.ai, articleText: "", article: null,
       result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null } });
   }
   function aiPatch(patch) { publish({ ai: { ...state.ai, ...patch } }); }
@@ -140,14 +151,15 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       const context = buildInsightContext({ ...observed, includeDiscussion: includeDiscussion === true });
       boundKey = key(); review = null;
       cancelJob(); purgeCompleted(); epoch++;
-      publish({ context, excludedRelatedSourceIds: [], draft: "", preview: null, status: "prepared", ai: { ...state.ai, articleText: "", article: null,
+      publish({ context, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, status: "prepared", ai: { ...state.ai, articleText: "", article: null,
         result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null } });
       return true;
     } catch { clear("failed"); return false; }
   }
   function setRelatedSourceIncluded(sourceId, included) {
     if (disposed || pending || job || automaticStartBusy || resumeBusy || !state.context ||
-        !state.context.relatedSources.some((source) => source.id === sourceId) ||
+        ![...(state.context.sameTopicSources ?? []), ...(state.context.relatedSources ?? [])]
+          .some((source) => source.id === sourceId) ||
         typeof included !== "boolean") return false;
     const excluded = new Set(state.excludedRelatedSourceIds);
     if (included) excluded.delete(sourceId); else excluded.add(sourceId);
@@ -157,6 +169,14 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   function setAllowWebResearch(value) {
     if (disposed || pending || job || automaticStartBusy || resumeBusy || typeof value !== "boolean") return false;
     publish({ allowWebResearch: value });
+    return true;
+  }
+  function setRelatedPageTextEnabled(value, { persist = true } = {}) {
+    if (disposed || typeof value !== "boolean" || value && (pending || job || automaticStartBusy || resumeBusy)) return false;
+    if (persist) relatedPreferenceTouched = true;
+    if (!value) relatedReadAbort?.abort();
+    publish({ relatedPageTextEnabled: value, relatedExcerptCount: null });
+    if (persist) void Promise.resolve().then(() => saveRelatedTextPreference(value)).catch(() => {});
     return true;
   }
   function setDraft(body) {
@@ -367,6 +387,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     } finally { automaticStartBusy = false; }
   }
   async function runInsights({ skipConsent, followup = null }) {
+    await relatedPreferenceReady;
     if (!aiClient || !attestArticle || disposed || job || completedJob || pending || !state.ai.planEnabled ||
         (!skipConsent && !state.ai.costConsent) ||
         !state.ai.models.some((item) => item.slug === state.ai.model) || !state.ai.articleText.trim() ||
@@ -384,8 +405,35 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
         allowWebResearch: state.allowWebResearch, expected: { ...observed.catalog.version },
         ...(followup ? { followupQuestionId: followup.questionId } : {}) };
+      if (state.relatedPageTextEnabled && readRelatedExcerpts) {
+        aiPatch({ status: "fetchingRelated" });
+        const excerptAbort = new AbortController();
+        relatedReadAbort = excerptAbort;
+        const cancelExcerpt = () => excerptAbort.abort();
+        abort.signal.addEventListener("abort", cancelExcerpt, { once: true });
+        let excerpts = [];
+        try {
+          excerpts = await readRelatedExcerpts(request.context,
+            request.excludedRelatedSourceIds, excerptAbort.signal);
+        } catch (error) {
+          if (state.relatedPageTextEnabled) throw error;
+        } finally {
+          abort.signal.removeEventListener("abort", cancelExcerpt);
+          if (relatedReadAbort === excerptAbort) relatedReadAbort = null;
+        }
+        if (!active()) return false;
+        if (state.relatedPageTextEnabled) {
+          request.relatedExcerpts = excerpts;
+          publish({ relatedExcerptCount: excerpts.length });
+        }
+        aiPatch({ status: "generating" });
+      }
       await attestArticle(observed, state.ai.article);
       if (!active()) return false;
+      if (!state.relatedPageTextEnabled) {
+        delete request.relatedExcerpts;
+        publish({ relatedExcerptCount: null });
+      }
       await aiClient.start(request, actorId, { signal: abort.signal });
       const end = Date.now() + 95000;
       while (active() && Date.now() < end) {
@@ -479,11 +527,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     detachJob(); completedJob = null; epoch++; connectionEpoch++; invalidateModels();
     disposed = true; observed = null; boundKey = null; review = null;
     state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
+      relatedPageTextEnabled: true, relatedExcerptCount: null,
       draft: "", preview: null, status: "idle", busy: false,
       ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
         result: null, status: "idle", error: null, diagnostics: { status: "idle", events: [], localEvents: [] } } };
   }
   return Object.freeze({ observe, currentState, prepare, setRelatedSourceIncluded, setAllowWebResearch,
+    setRelatedPageTextEnabled,
     setDraft, preview, share, discard, dispose,
     checkConnection, connect, disconnect, loadModels, loadDiagnostics, selectModel, setCostConsent,
     readPageText, setArticleText, createInsights, createFollowup, cancelInsights, resumeInsights });

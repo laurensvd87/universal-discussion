@@ -64,6 +64,19 @@ test("active same-window session hides repeat consent and Start even after forge
   ui.panel.dispose();
 });
 
+test("compact matching status keeps needed Grant or Resume visible before collapsed details", async () => {
+  const ui = harness({ initialState: resolution({ phase: "off", enabled: false, hostAccess: false }),
+    streamlinedSession: true });
+  await turn();
+  const enable = ui.byId("matching-enable"), how = ui.byId("matching-how");
+  assert.equal(ui.byId("matching-user-status").textContent, EN.matchingCompactOff);
+  assert.equal(enable.hidden, false);
+  assert.equal(enable.textContent, EN.matchingGrantAccess);
+  assert.ok(ui.root.children.indexOf(enable) < ui.root.children.indexOf(how));
+  assert.equal(how.open, false);
+  ui.panel.dispose();
+});
+
 test("one explicit first Start persists through popup reopening without repeat permission or consent", async () => {
   let current = resolution({ phase: "off", enabled: false });
   let grants = 0;

@@ -76,7 +76,7 @@ test("follow-up sends only bounded public article, robot parent, human question 
     currentSource: { title: "Title current", url: "https://example.com/current" },
     sameTopicSources: [{ title: "Title same", url: "https://news.example.org/same" }],
     relatedSources: [{ title: "Title related", url: "https://research.example.net/related" }],
-    articlePrefix: REQUEST.articleText, robotParent: "The robot's published claim.",
+    articlePrefix: REQUEST.articleText, relatedExcerpts: [], robotParent: "The robot's published claim.",
     humanQuestion: "What about the exception?",
   }) }]);
   assert.deepEqual(payload.tools, [{ type: "web_search", search_context_size: "low",
@@ -103,6 +103,50 @@ test("tool-free follow-up preserves research opt-out and does not imply linked p
   assert.match(payload.instructions, /Do not use external research/u);
   assert.match(payload.instructions, /do not imply that linked pages were checked/u);
   assert.doesNotMatch(payload.instructions, /Research relevant claims on the allowed domains/u);
+  adapter.dispose();
+});
+
+test("related excerpts remain bounded candidate context in the exact provider request", async () => {
+  let payload;
+  const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+    if (url.endsWith("/models")) return models();
+    payload = JSON.parse(options.body); return stream(complete("A qualified comparison."));
+  }, getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  const relatedExcerpts = [{ sourceId: "same", url: CONTEXT.sameTopicSources[0].url,
+    text: "A second public article reports a different estimate." },
+  { sourceId: "related", url: CONTEXT.relatedSources[0].url,
+    text: "The related page discusses a possible consequence." }];
+  await adapter.createInsight({ ...REQUEST, relatedExcerpts, allowWebResearch: false });
+  const input = JSON.parse(payload.input[0].content);
+  assert.deepEqual(input.relatedExcerpts, relatedExcerpts);
+  assert.equal(input.articlePrefix, REQUEST.articleText);
+  assert.deepEqual(payload.tools, []);
+  assert.match(payload.instructions, /relatedExcerpts are short, unverified extracts/u);
+  assert.match(payload.instructions, /current page central/u);
+  assert.match(payload.instructions, /not separately verified web results/u);
+  adapter.dispose();
+});
+
+test("forged, duplicated and oversized related excerpts cannot reach the provider", async () => {
+  let posts = 0;
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+    if (url.endsWith("/models")) return models();
+    posts += 1; return stream(complete());
+  }, getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  const valid = { sourceId: "same", url: CONTEXT.sameTopicSources[0].url, text: "Public excerpt." };
+  for (const relatedExcerpts of [null, {}, [valid, valid],
+    [{ ...valid, sourceId: "current", url: CONTEXT.currentSource.url }],
+    [{ ...valid, sourceId: "forged" }], [{ ...valid, url: CONTEXT.relatedSources[0].url }],
+    [{ ...valid, text: "x".repeat(2_049) }], [{ ...valid, text: "bad\u202e text" }],
+    [{ ...valid, extra: "private" }], Array(5).fill(valid),
+    [Object.defineProperty({ sourceId: valid.sourceId, url: valid.url }, "text", {
+      enumerable: true, get() { throw new Error("getter should not execute"); },
+    })]]) {
+    await assert.rejects(adapter.createInsight({ ...REQUEST, relatedExcerpts }), errorCode("invalid-input"));
+  }
+  assert.equal(posts, 0);
   adapter.dispose();
 });
 

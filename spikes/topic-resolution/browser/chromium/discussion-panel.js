@@ -132,7 +132,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const insightActivity = node("span"); insightActivity.id = "discussion-insight-activity";
   insightActivity.setAttribute("role", "status"); insightActivity.setAttribute("aria-live", "polite");
   insightShortcut.setAttribute("aria-describedby", insightActivity.id);
-  composerActions.append(submit, insightShortcut, insightActivity);
+  composerActions.append(insightShortcut, submit, insightActivity);
   composer.append(mode, replyContext, bodyLabel, body, detached, composerActions);
   listen(body, "input", () => controller?.setDraft(body.value));
   listen(composer, "submit", async (event) => {
@@ -231,6 +231,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   }
   function contribution(entry, rootEntry, state, newlyArrived = false) {
     const card = node("article"); card.className = "discussion-contribution";
+    card.setAttribute("data-ownership", ownsContribution(entry, state.actorId) ? "own" : "other");
+    card.setAttribute("data-actor-type", entry.actorType);
     if (newlyArrived && entry.state === "visible") card.className += " is-new";
     if (entry.state === "deleted") { card.append(node("p", "discussionDeleted")); return card; }
     const actor = state.catalog.actors.find((item) => item.id === entry.authorId);
@@ -251,6 +253,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (entry.actorType === "agent") appendInsightCitationNodes(document, content, entry.body, text("discussionCitationOpen"));
     else content.textContent = entry.body;
     card.append(author, content);
+    const actions = node("div"); actions.className = "discussion-actions";
+    let sourceLink = null;
     if (entry.origin) {
       try {
         const origin = readPostOrigin(entry.origin);
@@ -260,7 +264,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
         link.referrerPolicy = "no-referrer";
         const destination = text("discussionOriginOpen").replace("{title}", origin.title.slice(0, 160)).replace("{url}", origin.url.slice(0, 240));
         link.setAttribute("aria-label", destination); link.title = destination;
-        card.append(link);
+        sourceLink = link;
       } catch { /* Invalid projections never become navigable links. */ }
     }
     if (entry === rootEntry && entry.regrouped === true) card.append(node("p", "discussionRegrouped"));
@@ -269,7 +273,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       const item = node("button", key); item.type = "button"; item.disabled = state.busy || state.needsFreshRead || state.phase !== "ready";
       item.setAttribute("data-action", key.replace(/^discussion/u, "").toLowerCase());
       item.setAttribute("data-contribution-id", entry.id);
-      item.addEventListener("click", callback); threadHandlers.push([item, callback]); card.append(item);
+      item.addEventListener("click", callback); threadHandlers.push([item, callback]); actions.append(item);
     }
     if (rootEntry.state === "visible") action("discussionReply", () => { if (controller?.begin("reply", entry.id)) body.focus(); });
     if (ownsContribution(entry, state.actorId)) {
@@ -288,6 +292,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       if (entry.actorType !== "agent") action("discussionEdit", () => { if (controller?.begin("edit", entry.id)) body.focus(); });
       action("discussionWithdraw", () => void controller?.withdraw(entry.id));
     }
+    if (sourceLink) actions.append(sourceLink);
+    if (actions.children.length) card.append(actions);
     return card;
   }
   let renderedDiscussion;

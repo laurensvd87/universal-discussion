@@ -95,6 +95,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   }
   function showView(view) {
     if (!app.nav || !["discussion", "pages", "settings"].includes(view)) return;
+    if (view === "pages") view = "discussion";
     activeView = view;
     if (document.body.dataset.uiMode !== "user") return;
     const connected = Boolean(lastState?.catalog);
@@ -107,7 +108,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
       if (related) related.open = true;
     }
     app.welcome.hidden = connected || view === "settings";
-    app.nav.hidden = !connected;
+    app.nav.hidden = true;
     app.topicHeader.hidden = !connected || view === "settings";
     for (const name of ["discussion", "pages", "settings"]) {
       app[name].hidden = (name !== "settings" && !connected) || name !== view;
@@ -128,7 +129,9 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     navigate("settings"); find("#app-settings-heading")?.focus?.({ preventScroll: true });
   });
   on(find("#app-settings-back"), "click", () => {
-    navigate("discussion"); find("#app-tab-discussion")?.focus?.({ preventScroll: true });
+    navigate("discussion");
+    const composer = find("#discussion-body");
+    (composer && !composer.hidden ? composer : find("#app-settings-button"))?.focus?.({ preventScroll: true });
   });
   on(app.startSession, "click", () => {
     navigate("settings");
@@ -192,6 +195,8 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     if (accountDetails) accountDetails.open = mode === "developer" || accountDetails.getAttribute?.("data-ready") !== "true";
     const sourceDetails = document.querySelector("#insight-source-details");
     if (sourceDetails) sourceDetails.open = mode === "developer";
+    const matchingHow = document.querySelector("#matching-how");
+    if (matchingHow) matchingHow.open = mode === "developer";
     user.setAttribute("aria-pressed", String(mode === "user"));
     developer.setAttribute("aria-pressed", String(mode === "developer"));
     onModeChange(mode);

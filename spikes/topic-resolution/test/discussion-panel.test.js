@@ -167,9 +167,9 @@ test("owned robot post can be withdrawn but never edited; withdrawn root retains
     replies: [{ id: "human-reply", rootId: "ai-root", state: "visible", authorId: "demo-alex", actorType: "human", body: "Question" }] };
   ui.panel.render(state({ discussion: { roots: [agent] } }));
   const card = descendants(ui.root).find((item) => item.tag === "article" && item.children.some((child) => child.className === "discussion-body"));
-  const actions = card.children.filter((item) => item.tag === "button").map((item) => item.attributes["data-action"]);
+  const actions = descendants(card).filter((item) => item.tag === "button").map((item) => item.attributes["data-action"]);
   assert.deepEqual(actions, ["reply", "withdraw"]);
-  card.children.find((item) => item.attributes["data-action"] === "withdraw").listeners.get("click")();
+  descendants(card).find((item) => item.attributes["data-action"] === "withdraw").listeners.get("click")();
   assert.deepEqual(ui.calls.at(-1), ["withdraw", "ai-root"]);
   ui.panel.render(state({ discussion: { roots: [{ id: "ai-root", rootId: null, state: "deleted", replies: agent.replies }] } }));
   assert.ok(descendants(ui.root).some((item) => item.textContent === "Deleted by user"));

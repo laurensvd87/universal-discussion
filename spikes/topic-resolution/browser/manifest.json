@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Universal Discussion - Local PoC",
-  "version": "0.12.22",
+  "version": "0.13.0",
   "description": "Opt-in on-device page matching and shared local Topic discussions.",
   "minimum_chrome_version": "116",
   "incognito": "not_allowed",
@@ -14,6 +14,6 @@
     "default_title": "Check local discussion state"
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';"
+    "extension_pages": "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174 https:; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';"
   }
 }

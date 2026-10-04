@@ -13,6 +13,7 @@ import { createInsightController, createInsightResumeGate } from "../core/insigh
 import { createReadOnlyServiceRetry } from "../core/read-only-service-retry.js";
 import { createLocalAiClient } from "../core/local-ai-client.js";
 import { createInsightPageReader } from "./insight-page-reader.js";
+import { createRelatedPageExcerptReader } from "../core/related-page-excerpts.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { mountPopupShell } from "./popup-shell.js";
 import { connectPopupFocusResponder } from "./popup-focus.js";
@@ -198,8 +199,9 @@ function primeAiAfterLocalConnection(state) {
     }
   })().catch(() => {});
 }
+const storageLocal = globalThis.chrome.storage.local;
 const popupShell = mountPopupShell(document, {
-  storageLocal: globalThis.chrome.storage.local,
+  storageLocal,
   onModeChange: discussionPanel.setMode,
 });
 const localSession = createLocalServiceSessionProxy({ sendMessage: (message) => runtime.sendMessage(message) });
@@ -208,6 +210,9 @@ const localClient = createLocalServiceClient({ fetchImpl: localTransport, getTok
   onUnauthorized: localSession.clearIfCurrent });
 const aiClient = createLocalAiClient({ fetchImpl: localTransport, getToken: localSession.getToken,
   onUnauthorized: localSession.clearIfCurrent });
+const permissionsApi = globalThis.chrome.permissions;
+const relatedExcerptReader = createRelatedPageExcerptReader({ fetchImpl: localTransport,
+  hasHostAccess: () => permissionsApi.contains({ origins: ["https://*/*"] }) });
 let matchingPanel;
 // Ask for fresh background evidence only when a service projection changes.
 // No Topic, post count or connection claim crosses this authenticated message.
@@ -259,13 +264,19 @@ insightController = createInsightController({
   aiClient,
   readArticle: insightPageReader.read,
   attestArticle: insightPageReader.attest,
+  readRelatedExcerpts: relatedExcerptReader.read,
+  loadRelatedTextPreference: async () => {
+    const stored = await storageLocal.get("relatedPageTextEnabled");
+    return typeof stored.relatedPageTextEnabled === "boolean" ? stored.relatedPageTextEnabled : null;
+  },
+  saveRelatedTextPreference: (enabled) => storageLocal.set({ relatedPageTextEnabled: enabled }),
   openAuthorization: (url) => tabsApi.create({ url, active: true }),
 });
 insightPanel.bind(insightController);
 discussionPanel.bindInsight(insightController);
 matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-matching"), {
   sendMessage: (message) => runtime.sendMessage(message),
-  requestPermission: (request) => globalThis.chrome.permissions.request(request),
+  requestPermission: (request) => permissionsApi.request(request),
   onResolution: localDiscussion.updatePageResolution,
   streamlinedSession: true,
 });

@@ -33,6 +33,52 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 version 0.13.0 owner-local Insight/GUI increment:** The owner asked
+for related-page text in Insights as a default-on Settings option without
+repeated consent screens. [ADR-041](../decisions/ADR-041-owner-local-related-page-excerpts.md)
+records the bounded explicit-click, anonymous public-page fetch and the
+separate store disclosure gate. The extension and local-service implementation
+passed offline tests and an isolated-Chrome visual run; no live provider request with related excerpts is
+authorized by ADR-038's narrower title/URL QA permission. Astra High supplied
+the conversation-first GUI specification in
+[ADR-042](../decisions/ADR-042-conversation-first-popup-redesign.md) and the
+evidence-first topic-sensitive prompt strategy in
+[ADR-043](../decisions/ADR-043-evidence-first-topic-sensitive-insight-prompts.md).
+Sol High implemented both. Independent Astra visual review found no blocker
+at 410/380/320 px, 120% text zoom and reduced motion; the one-view User popup
+puts Topic, composer and messages first, with linked-page controls in Settings.
+This is an owner-local tested build, **not** a store-ready release.
+[The SimilarSites assessment](../research/SIMILAR_SITES_FALLBACK_2026-10-04.md)
+finds that its paid API returns audience-similar domains, not matching
+articles; simply scraping/reusing its site as a competing fallback is outside
+its published terms. A separate owned page-link/semantic-candidate experiment
+is a possible later task, not an active Google/SimilarSites dependency or
+same-Topic resolver.
+An independent read-only trust pass reproduced four related-text blockers:
+off-during-attestation still sending an attached excerpt, hidden text from an
+explicitly paywalled fixture, an uncancelled rejected response stream, and
+storage-read failure falling back to on. It also found that same-Topic text
+could be fetched without the per-source exclusion offered for related-only
+candidates. Sol High corrected these and subsequent malformed-HTML/raw-script
+leaks, with synthetic regressions. Final independent trust re-review found no
+remaining blocker within this owner-local scope; 83 focused tests passed.
+The static reader cannot compute external-CSS visibility or identify every
+publisher restriction, so this does not authorize public distribution.
+The owner then requested automatic browsing on each new browser session and
+that related pages stop occupying a User Mode view. The existing
+`background.js`/`capture-session.js` already auto-starts on a fresh session
+after saved pairing, an existing Chrome HTTPS grant, authenticated local
+health, and a focused eligible normal window; offline background-adapter tests
+cover that path. Stop still suppresses capture for the rest of the same browser
+session, and a closed bound window is not silently rebound to another window.
+No capture scope change was made; the GUI removes the User Pages tab and keeps
+source exclusions in Settings and source links on posts. This version has no
+Google/SimilarSites fallback. Next evidence is an owner-operated real-page
+usability test; live provider QA with related excerpts requires separate
+explicit data-egress approval because ADR-038 covers titles/URLs only.
+Brand exploration (including a reactive overlapping-background metaphor) has
+not selected or cleared a name; no rebrand was applied.
+
 **2026-10-04 version 0.12.22 conversation usability:** The User reply composer
 now identifies the selected target author and a bounded plain-text excerpt,
 including reply-to-reply; the action says **Post reply**. A missing target is

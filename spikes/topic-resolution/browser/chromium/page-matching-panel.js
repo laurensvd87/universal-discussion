@@ -66,23 +66,28 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     return work;
   }
   function node(tag, key) { const item = document.createElement(tag); if (key) item.textContent = message(key); return item; }
-  function button(id, key, action) {
+  function button(id, key, action, parent = root) {
     const item = node("button", key); item.id = id; item.type = "button";
-    item.addEventListener("click", action); listeners.push([item, action]); root.append(item); return item;
+    item.addEventListener("click", action); listeners.push([item, action]); parent.append(item); return item;
   }
   const heading = node("h2", "matchingHeading"); heading.id = "matching-heading";
-  root.setAttribute("aria-labelledby", heading.id); root.append(heading, node("p", "matchingDisclosure"));
-  const status = node("p"); status.id = "matching-status"; status.setAttribute("role", "status"); root.append(status);
+  root.setAttribute("aria-labelledby", heading.id); root.append(heading);
+  const compactStatus = node("p", "matchingCompactChecking"); compactStatus.id = "matching-user-status";
+  compactStatus.setAttribute("role", "status"); root.append(compactStatus);
+  const how = node("details"); how.id = "matching-how";
+  how.open = document.body?.dataset?.uiMode === "developer";
+  how.append(node("summary", "matchingHowPrivacy"), node("p", "matchingDisclosure"));
+  const status = node("p"); status.id = "matching-status"; status.setAttribute("role", "status"); how.append(status);
   const sessionStatus = node("p", "matchingSessionChecking"); sessionStatus.id = "matching-session-status";
-  sessionStatus.setAttribute("role", "status"); root.append(sessionStatus);
-  const detail = node("p"); detail.id = "matching-detail"; detail.setAttribute("role", "status"); root.append(detail);
-  const sample = node("p", "matchingPartial"); root.append(sample);
+  sessionStatus.setAttribute("role", "status"); how.append(sessionStatus);
+  const detail = node("p"); detail.id = "matching-detail"; detail.setAttribute("role", "status"); how.append(detail);
+  how.append(node("p", "matchingPartial"));
   const consent = node("input"); consent.type = "checkbox"; consent.id = "matching-consent";
   const consentLabel = node("label", "matchingConsent"); consentLabel.id = "matching-consent-label";
-  consentLabel.htmlFor = consent.id; root.append(consentLabel, consent);
-  const origin = node("p"); origin.id = "matching-origin"; root.append(origin);
-  const context = node("p"); context.id = "matching-context"; context.setAttribute("role", "status"); root.append(context);
-  const access = node("p"); access.id = "matching-access"; access.setAttribute("role", "status"); root.append(access);
+  consentLabel.htmlFor = consent.id; how.append(consentLabel, consent);
+  const origin = node("p"); origin.id = "matching-origin"; how.append(origin);
+  const context = node("p"); context.id = "matching-context"; context.setAttribute("role", "status"); how.append(context);
+  const access = node("p"); access.id = "matching-access"; access.setAttribute("role", "status"); how.append(access);
   const enable = button("matching-enable", "matchingEnable", () => {
     if (disposed || acting || startPending || !showStart() || !state?.currentOrigin || state.currentWindowId === null ||
         (!streamlinedSession && !consent.checked)) return;
@@ -106,13 +111,14 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
       finally { if (ticket === controlEpoch) { startPending = false; if (!disposed) controls(); } }
     })();
   });
+  root.append(how);
   const pause = button("matching-pause", "matchingPause", () => { void stop().catch(() => {}); });
   const retry = button("matching-retry", "matchingRetry", () => void action(() => deliver({ target: "page-matching", type: "retry" })));
   const block = button("matching-block", "matchingBlock", () => {
     if (state?.currentOrigin) void action(() => deliver({ target: "page-matching", type: "block-site", origin: state.currentOrigin }));
   });
-  const removeAccess = button("matching-remove-access", "matchingRemoveAccess", () => void action(() => deliver({ target: "page-matching", type: "remove-access" })));
-  const sites = node("div"); sites.id = "matching-sites"; root.append(sites);
+  const removeAccess = button("matching-remove-access", "matchingRemoveAccess", () => void action(() => deliver({ target: "page-matching", type: "remove-access" })), how);
+  const sites = node("div"); sites.id = "matching-sites"; how.append(sites);
   let siteHandlers = [];
   let siteSignature = null;
   function clearSiteHandlers() { for (const [item, callback] of siteHandlers) item.removeEventListener("click", callback); siteHandlers = []; }
@@ -126,6 +132,20 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
       : !state.enabled ? "matchingSessionOff"
       : state.currentWindowId === null ? "matchingSessionActiveUnknownPage"
       : state.currentWindowId === state.sessionWindowId ? "matchingSessionActive" : "matchingSessionElsewhere");
+  }
+  function renderCompactStatus() {
+    const activeHere = state?.enabled && state.currentWindowId !== null &&
+      state.currentWindowId === state.sessionWindowId &&
+      !state.blockedOrigins.includes(state.currentOrigin);
+    const key = stopPending || stopFlight !== null ? "matchingCompactStopping"
+      : !state ? sessionUnavailable ? "matchingCompactUnavailable" : "matchingCompactChecking"
+      : !state.enabled ? "matchingCompactOff"
+      : !activeHere ? "matchingCompactNotHere"
+      : state.phase === "unsupported" && state.reason === "missing-region" ? "matchingCompactNoArticle"
+      : state.phase === "unsupported" ? "matchingCompactUnsupported"
+      : ["checking", "processing"].includes(state.phase) ? "matchingCompactChecking"
+      : "matchingCompactActive";
+    compactStatus.textContent = message(key);
   }
   function controls() {
     const busy = acting || startPending;
@@ -147,6 +167,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
       remove.setAttribute("data-busy", busy ? "true" : "false");
     }
     renderSessionStatus();
+    renderCompactStatus();
   }
   const changed = () => controls(); consent.addEventListener("change", changed);
   function unavailable() {
@@ -248,7 +269,7 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   controls(); void poll();
   function dispose() {
     disposed = true; controlEpoch++; cancelSchedule(timer); clearSiteHandlers();
-    state = null; status.textContent = ""; sessionStatus.textContent = ""; detail.textContent = ""; origin.textContent = ""; context.textContent = ""; access.textContent = "";
+    state = null; compactStatus.textContent = ""; status.textContent = ""; sessionStatus.textContent = ""; detail.textContent = ""; origin.textContent = ""; context.textContent = ""; access.textContent = "";
     for (const cancel of [...pendingRequests]) cancel();
     for (const [item, callback] of listeners) item.removeEventListener("click", callback);
     consent.removeEventListener("change", changed); root.replaceChildren();

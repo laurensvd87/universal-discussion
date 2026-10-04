@@ -7,6 +7,18 @@ function response(path, value) {
 }
 function client(fetchImpl) { return createLocalAiClient({ fetchImpl, getToken: async () => "a".repeat(64) }); }
 
+test("Insight client accepts explicit web-research opt-out without changing the request", async () => {
+  let body;
+  const value = client(async (_url, options) => {
+    body = JSON.parse(options.body);
+    return response(_url, { operationId: "op-a", state: "running" });
+  });
+  const request = { operationId: "op-a", model: "model-a", articleText: "Public synthetic text.",
+    allowWebResearch: false };
+  assert.deepEqual(await value.start(request, "demo-alex"), { operationId: "op-a", state: "running" });
+  assert.equal(body.allowWebResearch, false);
+});
+
 test("fixed loopback endpoint and guarded request options", async () => {
   let request;
   const value = client(async (url, options) => {

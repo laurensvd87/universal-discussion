@@ -23,6 +23,33 @@ there is no automatic posting or retry. See also
 [ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md) and
 [ADR-030](decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
 
+Extension **0.13.0** adds a conversation-first ivory/ink/mustard popup
+and optional related-page excerpts for **Get insights**. The related-text
+setting is on by default and can be changed in Settings; a saved off choice
+is honored before any fetch. Only an explicit Insight request tries up to
+four selected public HTTPS pages, anonymously and with a 96 KiB/5-second
+fetch bound and at most 2,048 text characters per page. Failed or inaccessible
+pages are skipped. The current page remains the subject; the local service
+checks excerpt source IDs/URLs against the selected catalog context. Ordinary
+use does not add those texts to SQLite; explicit raw Insight debug mode can
+record them in its local temp log. Related excerpts are supplied context, not
+proof that the whole pages were available, and citation icons still require
+validated provider annotations. The related-page list is no longer a main User
+view; individual source exclusions remain in Settings and post source links
+remain accessible. Browsing already starts automatically on a fresh browser
+session when saved pairing, Chrome HTTPS access, local-service health and an
+eligible focused window are present; Stop still suppresses capture for the rest
+of that session. The opening-post prompt now selects a useful angle from the
+article and treats related excerpts as unverified context. This has
+offline/synthetic and isolated-Chrome coverage, **not**
+a live ChatGPT quality result with related excerpts. See
+[ADR-041](decisions/ADR-041-owner-local-related-page-excerpts.md),
+[ADR-042](decisions/ADR-042-conversation-first-popup-redesign.md) and
+[ADR-043](decisions/ADR-043-evidence-first-topic-sensitive-insight-prompts.md).
+Restart the local service and reload the unpacked extension to test 0.13.0.
+The new related text is sent only by a deliberate **Insight** click; a
+live-provider test with related text needs separate owner authorization.
+
 Extension **0.12.22** makes reply targets explicit in the composer and uses
 readable safe page titles as links in Pages. Restricted retained Sources remain
 non-clickable. It includes the 0.12.21 catalog recovery below; reload the
@@ -90,12 +117,14 @@ See [ADR-033](decisions/ADR-033-short-insight-openers-and-inline-sources.md)
 and [ADR-034](decisions/ADR-034-published-followups-and-robot-provenance.md).
 
 Insight context is limited to the current page plus at most four other ranked
-source references. Only the current page contributes article text; other pages
-contribute title and URL. ChatGPT's web search is optional: the latest captured
-completed request made **zero web-search calls**, so its related-page contents
-were not fetched in that request. A URL alone is not evidence, and even a
-source citation does not prove the whole linked article was read. There is no
-Google-related fallback. See [ADR-035](decisions/ADR-035-bounded-related-source-context.md).
+source references. ADR-035 initially supplied title/URL only for the other
+pages; ADR-041's next local build may also supply short anonymous public-page
+excerpts on a deliberate click. ChatGPT's web search remains optional: the
+earlier captured completed request made **zero web-search calls**, so it did
+not fetch related content in that request. A URL alone is not evidence, and
+even a citation does not prove the whole linked article was read. There is no
+Google-related or SimilarSites fallback. See
+[ADR-035](decisions/ADR-035-bounded-related-source-context.md).
 
 At the owner's stated 2026-10-03 19:41 Berlin reset time, one synthetic-public
 live request completed through the saved ChatGPT connection and strict local

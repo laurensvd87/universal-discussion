@@ -6,7 +6,8 @@ import { createLocalDiscussionController } from "../browser/core/local-discussio
 import { createMemoryDemoService } from "../../../apps/local-service/src/application/create-demo-service.js";
 import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indicator-fixtures.js";
 
-async function harness({ command, aiClient, readArticle, attestArticle, openAuthorization, randomId } = {}) {
+async function harness({ command, aiClient, readArticle, attestArticle, readRelatedExcerpts,
+  loadRelatedTextPreference, saveRelatedTextPreference, openAuthorization, randomId } = {}) {
   let sequence = 0;
   const service = createMemoryDemoService({ nextId: (kind) => `${kind}-${++sequence}`, now: () => "2026-09-29T12:00:00.000Z" });
   const commands = []; let changed;
@@ -33,7 +34,8 @@ async function harness({ command, aiClient, readArticle, attestArticle, openAuth
     onStateChange: (state) => insight?.observe(state),
   });
   const newInsight = () => createInsightController({ shareInsight: discussion.shareInsight, aiClient, readArticle,
-    attestArticle, openAuthorization, randomId });
+    attestArticle, readRelatedExcerpts, loadRelatedTextPreference, saveRelatedTextPreference,
+    openAuthorization, randomId });
   insight = newInsight();
   await discussion.open();
   return { service, insight, discussion, commands, navigate: () => changed(),
@@ -104,6 +106,177 @@ test("formatted generated result -> one explicit immutable AI-labelled local roo
   assert.equal(discussion.begin("edit", saved.id), false); assert.equal(await discussion.withdraw(saved.id), false);
   await discussion.selectActor("demo-alex"); assert.equal(await discussion.withdraw(saved.id), true);
   assert.equal(service.discussion("reserved-domain-demo").roots.length, 0);
+});
+
+test("same-Topic linked pages can be excluded individually while the current page cannot", async () => {
+  const app = await harness();
+  assert.equal(app.insight.prepare(), true);
+  const context = app.insight.currentState().context;
+  assert.equal(context.sameTopicSources[0].id, "reserved-example-org");
+  assert.equal(app.insight.setRelatedSourceIncluded("reserved-example-org", false), true);
+  assert.deepEqual(app.insight.currentState().excludedRelatedSourceIds, ["reserved-example-org"]);
+  assert.equal(app.insight.setRelatedSourceIncluded(context.currentSource.id, false), false);
+  assert.equal(app.insight.setRelatedSourceIncluded("reserved-example-org", true), true);
+  assert.deepEqual(app.insight.currentState().excludedRelatedSourceIds, []);
+});
+
+test("related text is fetched only at explicit Insight click and default-on can be disabled", async () => {
+  let fetches = 0, request;
+  const reader = async (context, excluded, signal) => {
+    fetches++;
+    assert.equal(context.currentSource.id, "reserved-example-com");
+    assert.deepEqual(excluded, []);
+    assert.equal(signal.aborted, false);
+    return [{ sourceId: "reserved-example-org", url: "https://example.org/", text: "Public context ".repeat(12) }];
+  };
+  const aiClient = { status: async () => ({ connected: true, planEnabled: true, pending: false,
+    account: { clientId: "client-a", label: "Owner" } }),
+  models: async () => [{ slug: "model-a", displayName: "A" }],
+  start: async (value) => { request = value; return { operationId: value.operationId, state: "running" }; },
+  result: async (operationId) => ({ operationId, state: "completed", result: { body: "Answer", model: "model-a", citations: [] } }),
+  cancel: async () => true };
+  const saved = [];
+  const app = await harness({ aiClient, readRelatedExcerpts: reader, saveRelatedTextPreference: (value) => saved.push(value),
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc", text: "Public article" }),
+    attestArticle: async () => true, randomId: () => "related-op" });
+  assert.equal(fetches, 0);
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(fetches, 0);
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(fetches, 1);
+  assert.equal(request.relatedExcerpts.length, 1);
+  assert.equal(app.insight.currentState().relatedExcerptCount, 1);
+  app.insight.discard();
+  assert.equal(app.insight.setRelatedPageTextEnabled(false), true);
+  await Promise.resolve();
+  assert.deepEqual(saved, [false]);
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(fetches, 1);
+  assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+});
+
+test("saved related-text off is hydrated before a Get insights fetch can begin", async () => {
+  let resolvePreference, fetches = 0, request;
+  const preference = new Promise((resolve) => { resolvePreference = resolve; });
+  const app = await harness({
+    loadRelatedTextPreference: () => preference,
+    readRelatedExcerpts: async () => { fetches++; return []; },
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc", text: "Public article" }),
+    attestArticle: async () => true, randomId: () => "saved-off-op",
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (value) => { request = value; return { operationId: value.operationId }; },
+      result: async (operationId) => ({ operationId, state: "completed",
+        result: { body: "Answer", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    },
+  });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  const running = app.insight.createInsights({ automatic: true });
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(fetches, 0);
+  resolvePreference(false);
+  assert.equal(await running, true);
+  assert.equal(fetches, 0);
+  assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+  assert.equal(app.insight.currentState().relatedPageTextEnabled, false);
+});
+
+test("turning related-text off takes effect before its storage write resolves", async () => {
+  let resolvePreference, resolveWrite;
+  const preference = new Promise((resolve) => { resolvePreference = resolve; });
+  const write = new Promise((resolve) => { resolveWrite = resolve; });
+  const app = await harness({ loadRelatedTextPreference: () => preference,
+    saveRelatedTextPreference: () => write });
+  assert.equal(app.insight.setRelatedPageTextEnabled(false), true);
+  assert.equal(app.insight.currentState().relatedPageTextEnabled, false);
+  resolvePreference(true);
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  assert.equal(app.insight.currentState().relatedPageTextEnabled, false);
+  resolveWrite();
+});
+
+test("turning related-text off during its read aborts the read and omits its excerpts", async () => {
+  let readSignal, finishRead, request;
+  const app = await harness({
+    readRelatedExcerpts: async (_context, _excluded, signal) => {
+      readSignal = signal;
+      return new Promise((resolve) => { finishRead = resolve; });
+    },
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc", text: "Public article" }),
+    attestArticle: async () => true, randomId: () => "toggle-off-op",
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (value) => { request = value; return { operationId: value.operationId }; },
+      result: async (operationId) => ({ operationId, state: "completed",
+        result: { body: "Answer", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    },
+  });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  const running = app.insight.createInsights({ automatic: true });
+  for (let step = 0; step < 12 && !readSignal; step++) await Promise.resolve();
+  assert.ok(readSignal);
+  assert.equal(app.insight.setRelatedPageTextEnabled(false), true);
+  assert.equal(readSignal.aborted, true);
+  finishRead([{ sourceId: "reserved-example-org", url: "https://example.org/",
+    text: "Public context ".repeat(12) }]);
+  assert.equal(await running, true);
+  assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+  assert.equal(app.insight.currentState().relatedExcerptCount, null);
+});
+
+test("a failed saved related-text read fails closed before any page fetch", async () => {
+  let fetches = 0;
+  const app = await harness({ loadRelatedTextPreference: async () => { throw new Error("storage unavailable"); },
+    readRelatedExcerpts: async () => { fetches++; return []; },
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc", text: "Public article" }),
+    attestArticle: async () => true, randomId: () => "storage-failed-op",
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (value) => ({ operationId: value.operationId }),
+      result: async (operationId) => ({ operationId, state: "completed",
+        result: { body: "Answer", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    } });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(fetches, 0);
+  assert.equal(app.insight.currentState().relatedPageTextEnabled, false);
+});
+
+test("turning related-text off during article attestation removes fetched excerpts before send", async () => {
+  let finishAttestation, request;
+  const app = await harness({
+    readRelatedExcerpts: async () => [{ sourceId: "reserved-example-org", url: "https://example.org/",
+      text: "Public context ".repeat(12) }],
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc", text: "Public article" }),
+    attestArticle: () => new Promise((resolve) => { finishAttestation = resolve; }),
+    randomId: () => "attestation-opt-out-op",
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (value) => { request = value; return { operationId: value.operationId }; },
+      result: async (operationId) => ({ operationId, state: "completed",
+        result: { body: "Answer", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    } });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  const running = app.insight.createInsights({ automatic: true });
+  for (let step = 0; step < 12 && !finishAttestation; step++) await Promise.resolve();
+  assert.ok(finishAttestation);
+  assert.equal(app.insight.setRelatedPageTextEnabled(false), true);
+  finishAttestation();
+  assert.equal(await running, true);
+  assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+  assert.equal(app.insight.currentState().relatedExcerptCount, null);
 });
 
 test("closed popup detaches a running local insight; reopened popup restores it without a second provider start", async () => {
@@ -541,7 +714,10 @@ test("navigation during attestation drops the answer without contacting the AI",
     attestArticle: () => new Promise((resolve) => { finish = resolve; }), randomId: () => "op-b" });
   app.insight.prepare(); await app.insight.checkConnection(); await app.insight.loadModels();
   await app.insight.readPageText(); app.insight.selectModel("model-a"); app.insight.setCostConsent(true);
-  const running = app.insight.createInsights(); app.navigate(); finish(true);
+  const running = app.insight.createInsights();
+  for (let attempt = 0; !finish && attempt < 20; attempt++) await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(typeof finish, "function");
+  app.navigate(); finish(true);
   assert.equal(await running, false); assert.equal(calls.length, 0);
   assert.equal(app.insight.currentState().ai.articleText, "");
 });

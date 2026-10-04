@@ -1,5 +1,26 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 version 0.13.0 owner-local increment: ADR-041 permits up to four bounded
+anonymous public related-page extracts only after deliberate Get insights,
+default-on but switchable in Settings. The implementation has offline and
+isolated-Chrome tests; final independent trust re-review cleared the reviewed
+owner-local scope after malformed-HTML/raw-script fixes. Backend must restart
+and extension must reload. Do not run live provider QA with excerpts under
+ADR-038, which approved only related titles/URLs. ADR-042's conversation-first
+GUI and ADR-043's one-call topic-sensitive prompt are implemented; the User
+view hides the Pages list and puts exclusions in Settings. Matching already
+auto-starts on a fresh browser session with saved pairing, HTTPS grant,
+authenticated service health and an eligible focused window; Stop still
+suppresses capture within that session. No public/store clearance is claimed.
+Chrome store disclosure/consent and source-rights review stay
+explicit release gates. SimilarSites itself is not a fallback: its API is
+paid/domain-audience oriented and its website data is not authorized for
+scraped competing reuse. A self-owned page-link discovery experiment can be
+considered later without treating candidate links as Topic matches. Current
+next evidence: owner-operated real-page UX check, then a separately approved
+live-provider QA with related excerpts if wanted. Brand/name and dynamic
+background are exploration only, not yet product decisions.
+
 2026-10-04 0.12.22 UI polish: The User reply composer identifies the exact
 target author and a bounded excerpt, including reply-to-reply, before Post
 reply. Pages promotes only strict-policy-safe titles to links; retained-only

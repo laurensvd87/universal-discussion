@@ -20,7 +20,7 @@ async function evaluate(expression, sessionId) {
   if (result.exceptionDetails) throw Error(`Visual evaluation failed: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}`);
   return result.result.value;
 }
-async function capture(name, sessionId) {
+async function capture(name, sessionId, { compact = false } = {}) {
   const metrics = await evaluate(`(() => {
     const root=document.documentElement, body=document.body;
     const clientWidth=root.clientWidth;
@@ -33,7 +33,8 @@ async function capture(name, sessionId) {
       bodyWidth:body.getBoundingClientRect().width,scrollWidth:root.scrollWidth,
       clientWidth,escaped};
   })()`, sessionId);
-  assert.equal(metrics.bodyWidth, metrics.mode === "user" ? 410 : 380, `${name}: popup body width`);
+  if (compact) assert.ok(metrics.bodyWidth >= 300 && metrics.bodyWidth <= 320, `${name}: fluid compact body width`);
+  else assert.equal(metrics.bodyWidth, metrics.mode === "user" ? 410 : 380, `${name}: popup body width`);
   assert.ok(metrics.scrollWidth <= metrics.clientWidth, `${name}: no horizontal overflow`);
   assert.deepEqual(metrics.escaped, [], `${name}: visible elements stay within popup width`);
   const screenshot = await browser.send("Page.captureScreenshot", { format: "png" }, sessionId);
@@ -134,7 +135,7 @@ try {
       const discussionRoot=document.querySelector('#local-discussion'); discussionRoot.replaceChildren();
       const insightHost=document.createElement('div'); insightHost.id='app-discussion-insights-host'; discussionRoot.append(insightHost);
       settingsInsightHost.replaceChildren();
-      const settingsInsightHeading=document.createElement('h2'); settingsInsightHeading.id='app-settings-insights-heading'; settingsInsightHost.append(settingsInsightHeading);
+      const settingsInsightHeading=document.createElement('h3'); settingsInsightHeading.id='app-settings-insights-heading'; settingsInsightHost.append(settingsInsightHeading);
       insightRoot.replaceChildren();
       const discussion=mountDiscussionPanel(document,discussionRoot);
       const insights=mountInsightPanel(document,insightRoot);
@@ -173,15 +174,8 @@ try {
       "reply composer identifies its exact target before submission");
     await capture("reply", sessionId);
     await evaluate("window.visualDiscussionState.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(window.visualDiscussionState)", sessionId);
-    await evaluate("document.querySelector('#app-tab-discussion').focus()", sessionId);
-    await tabTo("#app-tab-pages", sessionId);
-    assert.equal(await evaluate("document.querySelector('#app-tab-insights') === null", sessionId), true,
-      "User navigation has no separate Insights tab");
-    assert.equal(await evaluate("document.querySelector('#app-tab-discussion').getAttribute('aria-current')", sessionId), "page");
-    await evaluate("document.querySelector('#app-tab-pages').click();scrollTo(0,0)", sessionId);
-    await assertView("#app-view-pages");
-    await capture("pages", sessionId);
-    assert.equal(await evaluate("document.querySelector('#discussion-related li a')?.getAttribute('rel')", sessionId), "noopener noreferrer");
+    assert.equal(await evaluate("(() => document.querySelector('#app-navigation').hidden && document.querySelector('#app-view-pages').hidden)()", sessionId), true,
+      "User Mode has one Discussion view and no visible related-pages list");
     await evaluate("window.visualDiscussionState.phase='choose-topic';window.visualDiscussionState.topicId=null;window.visualDiscussionState.discussion=null;window.visualDiscussionState.related={results:[]};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);document.querySelector('#app-tab-discussion').click()", sessionId);
     assert.equal(await evaluate("(() => { const start=document.querySelector('#app-start-session'); return !start.hidden && start.getBoundingClientRect().bottom <= innerHeight && document.querySelector('#local-discussion > form').hidden && document.querySelector('#discussion-ai-insights').hidden; })()", sessionId), true,
       "no-topic actions are in the first viewport without empty composer or Create");
@@ -196,7 +190,9 @@ try {
     assert.equal(await evaluate("window.visualCreates", sessionId), 1, "primary Create forwards exactly once");
     assert.equal(await evaluate("document.querySelector('#app-view-insights').hidden", sessionId), true);
     await capture("compose-insight", sessionId);
-    await evaluate("window.visualInsightState.draft='Synthetic private insight draft about shaded gathering places.';window.visualInsightState.ai.status='generated';window.visualInsightState.ai.result={body:window.visualInsightState.draft,model:'synthetic',citations:[]};window.visualInsightPanel.render(window.visualInsightState);document.querySelector('#insight-draft-details').scrollIntoView({block:'start'})", sessionId);
+    await evaluate("window.visualInsightState.draft='Synthetic private insight draft about shaded gathering places.';window.visualInsightState.relatedExcerptCount=2;window.visualInsightState.ai.status='generated';window.visualInsightState.ai.result={body:window.visualInsightState.draft,model:'synthetic',citations:[]};window.visualInsightPanel.render(window.visualInsightState);document.querySelector('#insight-draft-details').scrollIntoView({block:'start'})", sessionId);
+    assert.equal(await evaluate("(() => { const note=document.querySelector('#insight-related-excerpt-indicator');const summary=document.querySelector('#insight-related-excerpt-summary');return note.hidden && !summary.hidden && summary.textContent === 'Linked pages read: 2' && !/verified|used/i.test(summary.textContent); })()", sessionId), true,
+      "Settings disclose linked excerpt count without claiming verification in the private card");
     await capture("private-draft", sessionId);
     await checkReachable("#insight-share", sessionId);
     await checkReachable("#insight-discard", sessionId);
@@ -220,8 +216,39 @@ try {
     await evaluate("document.querySelector('#app-settings-button').click();scrollTo(0,0)", sessionId);
     await assertView("#app-settings-view");
     await capture("settings", sessionId);
+    await evaluate("document.querySelector('#capture-settings').open=true;document.querySelector('#matching-how').open=false;document.querySelector('#capture-settings').scrollIntoView({block:'start'})", sessionId);
+    assert.equal(await evaluate("document.querySelector('#matching-how').open === false && document.querySelector('#matching-user-status').getClientRects().length > 0", sessionId), true,
+      "User matching surface shows compact status with technical detail collapsed");
+    await capture("matching-settings", sessionId);
     await evaluate("document.querySelector('#ui-mode-developer').click();scrollTo(0,0)", sessionId);
     await capture("developer", sessionId);
+    await evaluate("document.querySelector('#ui-mode-user').click();document.querySelector('#app-settings-back').click();window.visualInsightState.draft='';window.visualInsightState.ai.result=null;window.visualInsightState.ai.status='prepared';window.visualInsightPanel.render(window.visualInsightState);window.visualDiscussionState.discussion={roots:[{id:'root-compact',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',body:'A deliberately long synthetic neighborhood contribution with uninterruptedword'.repeat(18),edited:false,replies:[]}]};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualDiscussionPanel.renderInsightState(window.visualInsightState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    // Chrome action popups reject viewport emulation. Reproduce the same inert
+    // synthetic DOM in a normal extension page, where real 320px media rules run.
+    const syntheticMarkup = await evaluate("document.body.innerHTML", sessionId);
+    const compactTarget = await browser.send("Target.createTarget", { url: `chrome-extension://${loaded.id}/chromium/popup.html` });
+    let compactSession;
+    for (let attempt = 0; attempt < 100 && !compactSession; attempt++) {
+      compactSession = sessions.get(compactTarget.targetId);
+      if (!compactSession) await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    assert.ok(compactSession, "isolated compact extension tab attached");
+    await browser.send("Runtime.enable", {}, compactSession);
+    await browser.send("Page.enable", {}, compactSession);
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if (await evaluate("document.readyState === 'complete' && !!document.body", compactSession).catch(() => false)) break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    await evaluate(`window.dispatchEvent(new Event('pagehide'));document.body.innerHTML=${JSON.stringify(syntheticMarkup)};document.body.dataset.uiMode='user';document.querySelectorAll('.is-new').forEach(node=>node.classList.remove('is-new'));scrollTo(0,0)`, compactSession);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 510, deviceScaleFactor: 1, mobile: false }, compactSession);
+    await capture("compact-long", compactSession, { compact: true });
+    await evaluate("document.body.style.zoom='1.2';scrollTo(0,0)", compactSession);
+    await capture("compact-enlarged", compactSession, { compact: true });
+    await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, compactSession);
+    assert.equal(await evaluate("(() => { const card=document.querySelector('.discussion-contribution');card.classList.add('is-new');const button=document.querySelector('#discussion-ai-insights');return getComputedStyle(card).animationDuration==='0s' && getComputedStyle(button).transitionDuration==='0s'; })()", compactSession), true,
+      "reduced motion suppresses entrance and hover effects");
+    await capture("compact-reduced-motion", compactSession, { compact: true });
   } else {
   // Remount only the discussion renderer with invented state for visual review.
   // Controller callbacks are inert: this fixture cannot post or call a provider.

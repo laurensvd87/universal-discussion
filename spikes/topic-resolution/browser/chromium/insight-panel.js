@@ -84,6 +84,13 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const webResearchLabel = node("label", "allowWebResearch"); webResearchLabel.htmlFor = webResearch.id;
   relatedSettings.append(webResearchLabel, webResearch, node("p", "relatedSettingsScope"));
   listen(webResearch, "change", () => controller?.setAllowWebResearch(webResearch.checked));
+  const relatedPageText = node("input", null, "insight-related-page-text");
+  relatedPageText.type = "checkbox"; relatedPageText.checked = true;
+  const relatedPageTextLabel = node("label", "relatedPageText"); relatedPageTextLabel.htmlFor = relatedPageText.id;
+  relatedSettings.append(relatedPageTextLabel, relatedPageText);
+  listen(relatedPageText, "change", () => controller?.setRelatedPageTextEnabled(relatedPageText.checked));
+  const relatedExcerptSummary = node("p", null, "insight-related-excerpt-summary");
+  relatedSettings.append(relatedExcerptSummary);
   const relatedChoices = node("div", null, "insight-related-choices");
   relatedSettings.append(relatedChoices); root.append(relatedSettings);
   listen(relatedChoices, "change", (event) => {
@@ -156,6 +163,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const target = node("p", null, "insight-preview-topic"); composer.append(target);
   const origin = node("p", null, "insight-preview-origin"); composer.append(origin);
   const citations = node("p", null, "insight-citations"); citations.className = "insight-body"; composer.append(citations);
+  const relatedExcerptIndicator = node("p", null, "insight-related-excerpt-indicator");
+  composer.append(relatedExcerptIndicator);
   const shareScope = node("p", "shareScope", "insight-share-scope");
   composer.append(shareScope);
   const share = button(composer, "share", () => { void controller?.share(); });
@@ -216,15 +225,24 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
         context.append(node("p", "limited"));
       }
     }
-    const relatedSources = state.context?.relatedSources ?? [];
+    const sourceChoices = [...(state.context?.sameTopicSources ?? []), ...(state.context?.relatedSources ?? [])]
+      .filter((source, index, all) => source.id !== state.context?.currentSource?.id &&
+        all.findIndex((candidate) => candidate.id === source.id) === index);
     relatedSettings.hidden = !state.context;
     webResearch.checked = state.allowWebResearch !== false;
     webResearch.disabled = state.busy || state.ai?.status === "generating" || state.ai?.status === "preparingArticle";
-    const relatedSignature = JSON.stringify(relatedSources);
+    relatedPageText.checked = state.relatedPageTextEnabled !== false;
+    // Switching this off remains available while an Insight is preparing or reading pages.
+    relatedPageText.disabled = !relatedPageText.checked &&
+      (state.busy || ["generating", "fetchingRelated", "preparingArticle"].includes(state.ai?.status));
+    relatedExcerptSummary.hidden = state.relatedExcerptCount === null || state.relatedExcerptCount === undefined;
+    relatedExcerptSummary.textContent = relatedExcerptSummary.hidden ? "" :
+      text("relatedExcerptCount").replace("{count}", String(state.relatedExcerptCount));
+    const relatedSignature = JSON.stringify(sourceChoices);
     if (relatedSignature !== relatedSettingsSignature) {
       relatedSettingsSignature = relatedSignature;
       relatedChoices.replaceChildren();
-      for (const source of relatedSources) {
+      for (const source of sourceChoices) {
         const choice = node("input"); choice.type = "checkbox"; choice.value = source.id;
         const caption = node("span"); caption.textContent = source.title;
         const label = node("label"); label.className = "related-source-choice";
@@ -233,8 +251,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     }
     const excludedRelatedSourceIds = new Set(state.excludedRelatedSourceIds ?? []);
     Array.from(relatedChoices.children).forEach((label, index) => {
-      label.children[0].checked = !excludedRelatedSourceIds.has(relatedSources[index]?.id);
-      label.children[0].disabled = state.busy || state.ai?.status === "generating";
+      label.children[0].checked = !excludedRelatedSourceIds.has(sourceChoices[index]?.id);
+      label.children[0].disabled = state.busy ||
+        ["generating", "fetchingRelated", "preparingArticle", "resuming"].includes(state.ai?.status);
     });
     shareScope.textContent = text("shareScope");
     share.textContent = text("share");
@@ -246,6 +265,10 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       ? text("origin").replace("{title}", `${state.context.currentSource.title} — ${state.context.currentSource.url ?? ""}`) : text("noOrigin");
     citations.textContent = "";
     appendInsightCitationNodes(document, citations, exactGenerated ? state.draft : "", text("citationOpen"));
+    relatedExcerptIndicator.hidden = simplePreview || !exactGenerated || state.relatedExcerptCount === null ||
+      state.relatedExcerptCount === undefined;
+    relatedExcerptIndicator.textContent = relatedExcerptIndicator.hidden ? "" :
+      text("relatedExcerptCount").replace("{count}", String(state.relatedExcerptCount));
     share.disabled = blocked || !exactGenerated;
     const ai = state.ai ?? { connected: false, planEnabled: false, pending: false, models: [], model: "", articleText: "", article: null,
       costConsent: false, result: null, status: "idle" };
@@ -258,7 +281,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       "accountDisconnected");
     accountSwitchHint.hidden = !ai.connected;
     usage.hidden = !ai.planEnabled && ai.status !== "usageLimit";
-    const generating = ai.status === "generating";
+    const generating = ai.status === "generating" || ai.status === "fetchingRelated";
     const resuming = ai.status === "resuming";
     const aiPending = generating || resuming || ai.status === "preparingArticle" ||
       ai.status === "disconnecting" || ai.status === "loadingModels";
@@ -298,10 +321,11 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
     aiStatus.setAttribute("data-attention", String(["connecting", "connectionFailed", "disconnectedUnconfirmed",
       "planUnavailable", "unavailable"].includes(ai.status)));
-    quickStatus.hidden = !RESEARCH_FAILURE_STATUSES.has(ai.status) && ai.status !== "preparingArticle";
+    quickStatus.hidden = !RESEARCH_FAILURE_STATUSES.has(ai.status) && !["preparingArticle", "fetchingRelated"].includes(ai.status);
     quickStatus.textContent = quickStatus.hidden ? "" :
-      ai.status === "usageLimit" && document.body?.dataset?.uiMode === "user" ? text("usageLimitBrief") : aiStatus.textContent;
-    quickStatus.setAttribute("data-state", ai.status === "preparingArticle" ? "preparing" : "failed");
+      ai.status === "usageLimit" && document.body?.dataset?.uiMode === "user" ? text("usageLimitBrief") :
+        ai.status === "fetchingRelated" ? text("aiFetchingRelated") : aiStatus.textContent;
+    quickStatus.setAttribute("data-state", ["preparingArticle", "fetchingRelated"].includes(ai.status) ? "preparing" : "failed");
     quickActions.hidden = document.body?.dataset?.uiMode === "user" && quickStatus.hidden;
     nextStep.textContent = text(!state.context ? "nextPrepare" : resuming ? "nextResuming" : generating ? "nextGenerating" :
       RESEARCH_FAILURE_STATUSES.has(ai.status) ? "nextResearchFailed" :
