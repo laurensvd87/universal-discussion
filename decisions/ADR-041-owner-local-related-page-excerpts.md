@@ -76,3 +76,17 @@ describes separate application-state and abuse-monitoring retention for
 Responses. Chrome's [user-data FAQ](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq/)
 and [disclosure requirements](https://developer.chrome.com/docs/webstore/program-policies/disclosure-requirements/)
 remain release-review inputs, not a finding of compliance.
+
+## Bounded owner-local QA outcome (2026-10-04)
+
+The owner gave a separate one-request approval for the fixed public PEP 8
+current page and three PEP 257/20/7 related excerpts, then approved one
+additional request after seeing that the first post did not visibly use the
+related text. Each completed with exactly one Responses dispatch, no retry,
+no Share and no local-catalog/private-page input. The first post was 78 words
+and current-page-focused; the refined opener prompt yielded an 80-word post
+with a concrete PEP 8/PEP 257 comparison. Neither received a provider citation,
+so the excerpt was described as supplied context, not verified external
+research. This demonstrates one useful fixed-fixture behavior, not reliable
+cross-page reasoning, Chrome-rendered capture, publisher rights, or release
+compliance. Additional live tests need a separate scope approval.

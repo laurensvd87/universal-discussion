@@ -1,8 +1,9 @@
 import { IMPORTED_INSIGHT_AUTHOR_ID, LIMITS, STATE_SCHEMA } from "./demo-state.js";
 import { readBody } from "./validation.js";
 import { operationDigestFor, sourceStamp } from "./source-threads.js";
-import { BROWSER_MODEL_ID, compatibleExtractor, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, MATCH_POLICY_VERSION, readLearnedEmbedding, readLearnedUrl } from "./learned-sources.js";
+import { BROWSER_MODEL_ID, compatibleExtractor, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, MATCH_POLICY_VERSION, readLearnedEmbedding } from "./learned-sources.js";
 import { ADAPTIVE_TOPIC_POLICY } from "./adaptive-topics.js";
+import { inspectRetainedSourceDtoUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 const ACTORS = new Set(["demo-alex", "demo-blair"]);
@@ -51,7 +52,8 @@ function assertState(state, legacy) {
       if (!compatibleExtractor(source.extractorVersion) || !(legacy ? source.policyVersion === MATCH_POLICY_VERSION :
           [MATCH_POLICY_VERSION, ADAPTIVE_TOPIC_POLICY.version].includes(source.policyVersion)) ||
           !/^[a-f0-9]{64}$/u.test(source.operationDigest) || source.embedding?.modelId !== BROWSER_MODEL_ID) invalid();
-      if (readLearnedUrl(source.url) !== source.url) invalid();
+      const retainedUrl = inspectRetainedSourceDtoUrl(source.url);
+      if (!retainedUrl.supported || retainedUrl.url !== source.url) invalid();
       readLearnedEmbedding(source.embedding);
       if (source.operationDigest !== operationDigestFor(source)) invalid();
     }

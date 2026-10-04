@@ -19,7 +19,8 @@ Separate syntactic validation of authenticated, already retained Source DTOs
 from eligibility for new capture. The retained DTO path applies the same URL
 scheme, public-host shape, private-path, credential-query, length and control-
 character checks, allowing only the ADR-039 credential-host-label exception.
-Use it only for catalog and related-result projections. New ingestion and
+Initially use it for catalog and related-result projections; the startup
+addendum below extends only persisted-state reading. New ingestion and
 capture continue to use the stricter `inspectPageUrl`; post-origin links and
 Insight context also keep that strict check. Selecting a retained-only Source
 to write in its Topic stamps no origin Source ID, preventing a new post from
@@ -36,3 +37,20 @@ choice. The shared URL policy now also rejects `code` plus case-varied
 `code` values. Focused synthetic tests and a read-only check of the actual local
 catalog/related projections establish compatibility; independent trust review
 and full suite results are recorded in STATUS.
+
+## Startup compatibility addendum (2026-10-04)
+
+The same historical URL can also prevent the service from opening its SQLite
+snapshot: persisted learned Sources were rechecked with the *new-capture* URL
+policy at startup. Permit the retained-only URL check there as well, only for
+already persisted learned Sources. The exact canonical URL and stored
+`operationDigest` must still match; this does not change new ingestion. The
+shared service-side post-origin boundary now applies the strict new-page URL
+policy to learned Sources, so a direct paired API command cannot attach a
+retained-only learned Source to a new root or reply. Hand-authored reserved-
+domain demo fixtures keep their existing synthetic posting behavior, and
+originless posts remain possible. A read-only check of
+the owner database found one retained-only Source and no posts or root anchors
+using it; no row was deleted, rewritten or migrated. The independent trust
+re-review found no remaining blocker in this narrow correction. This is still
+not approval to capture that host anew or to release publicly.

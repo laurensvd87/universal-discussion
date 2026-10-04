@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { fail } from "./errors.js";
 import { readId } from "./validation.js";
+import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
 const LEARNED = "owner-local-page-embedding/v1";
 
@@ -21,6 +22,12 @@ export function contributionOrigin(state, sourceId, topicId) {
   const source = state.sources.find((entry) => entry.id === id);
   const link = state.sourceLinks.find((entry) => entry.sourceId === id);
   if (!source || link?.topicId !== topicId) fail("invalid", "Source is not linked to destination");
+  // Hand-authored reserved-domain fixtures predate page capture and remain
+  // usable in the synthetic demo. A learned Source must meet today's capture
+  // URL policy before it can become the origin of a new contribution.
+  if (source.provenance === LEARNED && !inspectPageUrl(source.url).supported) {
+    fail("invalid", "Source is not eligible for a new post origin");
+  }
   return source;
 }
 

@@ -11,6 +11,7 @@ import { ServiceError } from "../src/domain/errors.js";
 import { assertValidPersistedState } from "../src/domain/persisted-state.js";
 import { BROWSER_MODEL_ID, EXTRACTOR_VERSION, readLearnedIngest } from "../src/domain/learned-sources.js";
 import { ADAPTIVE_TOPIC_POLICY } from "../src/domain/adaptive-topics.js";
+import { operationDigestFor } from "../src/domain/source-threads.js";
 import { createMemoryRepository } from "../src/adapters/memory-repository.js";
 import { createFixtureRankingAdapter } from "../src/adapters/fixture-ranking.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../src/adapters/fixture-catalog.js";
@@ -299,4 +300,35 @@ test("persisted old fixture schema still loads; malformed learned records fail c
     (value) => { value.sources.at(-1).url = "https://127.0.0.1/private"; },
   ];
   for (const change of changes) { const value = structuredClone(repository.load()); change(value); assert.throws(() => assertValidPersistedState(value)); }
+});
+
+test("historical credential-host learned Sources load without relaxing new ingestion or retained URL guards", () => {
+  const { service, repository } = setup();
+  service.ingest(input(service, "retained-policy"));
+  const original = repository.load();
+  const historicalUrl = "https://passwords.example.com/articles/retained-policy";
+  const historical = structuredClone(original);
+  const source = historical.sources.at(-1);
+  source.url = historicalUrl;
+  source.operationDigest = operationDigestFor(source);
+  assert.equal(assertValidPersistedState(historical), historical);
+
+  assert.throws(() => readLearnedIngest(input(service, "new-capture", 0, { url: historicalUrl })), isCode("invalid"));
+
+  for (const url of [
+    "https://passwords.example.com/private/retained-policy",
+    "https://passwords.example.com/articles/retained-policy?access_token=synthetic",
+    "https://passwords.example.com/articles/retained-policy?code=synthetic&STATE=synthetic",
+    "https://user:pass@passwords.example.com/articles/retained-policy",
+  ]) {
+    const rejected = structuredClone(historical);
+    const rejectedSource = rejected.sources.at(-1);
+    rejectedSource.url = url;
+    rejectedSource.operationDigest = operationDigestFor(rejectedSource);
+    assert.throws(() => assertValidPersistedState(rejected), /Invalid persisted state/u);
+  }
+
+  const tampered = structuredClone(historical);
+  tampered.sources.at(-1).operationDigest = original.sources.at(-1).operationDigest;
+  assert.throws(() => assertValidPersistedState(tampered), /Invalid persisted state/u);
 });

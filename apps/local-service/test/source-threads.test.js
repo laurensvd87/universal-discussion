@@ -12,6 +12,9 @@ import { createFixtureRankingAdapter } from "../src/adapters/fixture-ranking.js"
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../src/adapters/fixture-catalog.js";
 import { BROWSER_MODEL_ID, EXTRACTOR_VERSION } from "../src/domain/learned-sources.js";
 import { deterministicDependencies } from "./helpers.js";
+import { createRequestHandler } from "../src/http/request-handler.js";
+import { validateStartupConfig } from "../src/http/startup-config.js";
+import { operationDigestFor } from "../src/domain/source-threads.js";
 
 const command = (service, value, actor = "demo-alex") => service.command(service.catalog().version, value, actor).result;
 const code = (name) => (error) => error.code === name;
@@ -25,10 +28,11 @@ function temporaryPath(t) {
   t.after(() => { assert.ok(directory.startsWith(os.tmpdir())); rmSync(directory, { recursive: true, force: true }); });
   return path.join(directory, "demo.sqlite");
 }
-function memoryApp() {
+function memoryApp(prepareState = () => {}) {
   const dependencies = deterministicDependencies();
   const state = createDemoState({ generation: dependencies.nextId("generation"), createdAt: dependencies.now(),
     sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
+  prepareState(state);
   const repository = createMemoryRepository(state);
   const service = createDiscussionService({ repository, ranking: createFixtureRankingAdapter(),
     sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS, ...dependencies });
@@ -121,6 +125,43 @@ test("origin command variants require retained Source linked to current destinat
   assert.throws(() => service.command(service.catalog().version, { type: "reply", discussionId, rootId,
     replyToId: null, body: "Other Topic", originSourceId: "harbor-overview" }, "demo-alex"), code("invalid"));
   assert.ok(service.discussion(learned.topicId).roots[0].origin.url.startsWith("https://example.com/"));
+});
+
+test("paired commands keep retained-only Sources readable but reject new root and reply origins", async () => {
+  const retainedUrl = "https://accounts.example.com/articles/legacy";
+  const app = memoryApp();
+  const learned = app.service.ingest(input(app.service, "historical-origin"));
+  const state = structuredClone(app.repository.load());
+  const source = state.sources.find((entry) => entry.id === learned.sourceId);
+  source.url = retainedUrl;
+  source.operationDigest = operationDigestFor(source);
+  state.revision += 1;
+  app.repository.save({ generation: state.generation, revision: state.revision - 1 }, state);
+  const config = validateStartupConfig({ host: "127.0.0.1", port: 4174,
+    origin: `chrome-extension://${"a".repeat(32)}`, capability: "test-capability-value-32-characters" });
+  const handle = createRequestHandler({ service: app.service, config });
+  const request = (value) => handle({ method: "POST", url: "/v1/commands", headers: {
+    host: "127.0.0.1:4174", authorization: `Bearer ${config.capability}`,
+    "content-type": "application/json", "x-demo-actor": "demo-alex",
+  }, body: JSON.stringify({ expected: app.service.catalog().version, command: value }) });
+  assert.equal(app.service.catalog().sources.find((entry) => entry.id === learned.sourceId).url, retainedUrl);
+  const rejectedRoot = await request({ type: "create-root", topicId: learned.topicId,
+    body: "Rejected origin", originSourceId: learned.sourceId });
+  assert.equal(rejectedRoot.status, 400);
+  assert.equal(app.service.discussion(learned.topicId).roots.length, 0);
+
+  const created = await request({ type: "create-root", topicId: learned.topicId, body: "No source origin" });
+  assert.equal(created.status, 200);
+  const rootId = JSON.parse(created.body).result.contributionId;
+  const discussionId = app.service.discussion(learned.topicId).discussionId;
+  const rejectedReply = await request({ type: "reply", discussionId, rootId,
+    replyToId: rootId, body: "Rejected reply origin", originSourceId: learned.sourceId });
+  assert.equal(rejectedReply.status, 400);
+  assert.equal(app.service.discussion(learned.topicId).roots[0].replies.length, 0);
+  const reply = await request({ type: "reply", discussionId, rootId, replyToId: rootId,
+    body: "No source origin", originSourceId: null });
+  assert.equal(reply.status, 200);
+  assert.equal(app.service.discussion(learned.topicId).roots[0].replies[0].origin, undefined);
 });
 
 test("SQLite v1 migration is atomic, pins old roots and increments revision exactly once", (t) => {

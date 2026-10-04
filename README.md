@@ -41,14 +41,23 @@ session when saved pairing, Chrome HTTPS access, local-service health and an
 eligible focused window are present; Stop still suppresses capture for the rest
 of that session. The opening-post prompt now selects a useful angle from the
 article and treats related excerpts as unverified context. This has
-offline/synthetic and isolated-Chrome coverage, **not**
-a live ChatGPT quality result with related excerpts. See
+offline/synthetic and isolated-Chrome coverage. Two separately owner-approved
+one-request GPT-5.5 tests used only public PEP 8 text plus three bounded public
+PEP excerpts: the first opener stayed on PEP 8, while a revised prompt produced
+a short PEP 8/PEP 257 comparison. Neither test shared a post, retried, or proves
+reliable cross-page quality on arbitrary sites. See
 [ADR-041](decisions/ADR-041-owner-local-related-page-excerpts.md),
 [ADR-042](decisions/ADR-042-conversation-first-popup-redesign.md) and
 [ADR-043](decisions/ADR-043-evidence-first-topic-sensitive-insight-prompts.md).
-Restart the local service and reload the unpacked extension to test 0.13.0.
-The new related text is sent only by a deliberate **Insight** click; a
-live-provider test with related text needs separate owner authorization.
+The local service was restarted with the current code on 2026-10-04; reload
+the unpacked extension to test 0.13.0. New related text is sent only by a
+deliberate **Insight** click. No standing authorization for further live
+provider tests or public release follows from the two fixed QA requests.
+
+A narrow service startup fix now accepts historical retained Sources under
+the retained-only URL validator without rewriting the database. New capture
+and new post origins remain strict, including at the paired API boundary.
+See [ADR-040](decisions/ADR-040-retained-source-projection-compatibility.md).
 
 Extension **0.12.22** makes reply targets explicit in the composer and uses
 readable safe page titles as links in Pages. Restricted retained Sources remain

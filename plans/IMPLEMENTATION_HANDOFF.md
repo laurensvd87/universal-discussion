@@ -1,17 +1,34 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 recovery and QA checkpoint: Two separately approved one-request
+public PEP 8/257/20/7 live ChatGPT quality checks completed without retry or
+Share. Both supplied three bounded related excerpts; the first opener did not
+show their use, the second, after a narrow prompt refinement, made a useful
+PEP 8/PEP 257 contrast. This is fixed-fixture evidence only, not Chrome-flow
+or general quality validation. The owner's `Research did not complete` has
+no specific code and is not conclusively diagnosed. The normal service now
+listens on 127.0.0.1:4174 with current code. Restart initially failed because
+persisted learned Sources reused the new-capture URL policy; ADR-040 now
+allows its retained-only URL check during startup, retaining exact canonical
+URL and operation-digest validation. The actual SQLite snapshot passed a
+read-only validation (83 Sources); one historical retained-only Source had
+no post origins or anchors. A paired-API post-origin guard prevents new posts
+from attaching a retained-only learned Source while preserving the synthetic
+reserved-domain fixture flow. The full service suite passes 219/223 (four
+optional skips), and the final independent trust re-review found no blocker.
+No owner data was deleted or migrated. Current next evidence: reload the
+extension in Chrome and try the real-page Insight flow, capturing only a
+fixed error code if it fails. Further provider tests or public/store release
+require their own approval. Name selection remains open.
+
 2026-10-04 version 0.13.0 owner-local increment: ADR-041 permits up to four bounded
 anonymous public related-page extracts only after deliberate Get insights,
 default-on but switchable in Settings. The implementation has offline and
 isolated-Chrome tests; final independent trust re-review cleared the reviewed
 owner-local scope after malformed-HTML/raw-script fixes. Backend must restart
 and extension must reload. Do not run live provider QA with excerpts under
-ADR-038 alone, which approved only related titles/URLs. The owner separately
-approved one bounded public-page live QA on 2026-10-04; the fixed PEP probe is
-prepared but has not dispatched a Responses request because the owner's old
-service occupies port 4174. Ask before interrupting it. A separate model-list
-check rotated the protected refresh credential, so restart that service before
-further use; the owner was informed. ADR-042's conversation-first
+ADR-038 alone, which approved only related titles/URLs. The owner's separate
+bounded QA approvals have been exercised as summarized above. ADR-042's conversation-first
 GUI and ADR-043's one-call topic-sensitive prompt are implemented; the User
 view hides the Pages list and puts exclusions in Settings. Matching already
 auto-starts on a fresh browser session with saved pairing, HTTPS grant,
@@ -22,8 +39,7 @@ explicit release gates. SimilarSites itself is not a fallback: its API is
 paid/domain-audience oriented and its website data is not authorized for
 scraped competing reuse. A self-owned page-link discovery experiment can be
 considered later without treating candidate links as Topic matches. Current
-next evidence: restart the local service, run the separately approved one-shot
-PEP QA, then an owner-operated real-page UX check. Brand/name and dynamic
+next evidence is an owner-operated real-page UX check. Brand/name and dynamic
 background are exploration only, not yet product decisions; see the brand
 direction screen in research/.
 

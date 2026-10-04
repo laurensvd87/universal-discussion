@@ -6,8 +6,10 @@ now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
 the exact expanded Security/Privacy/Policy package explicitly approved by the
 owner on 2026-09-29. **B1–B5 are implemented and verified in actual Chrome**.
-ADR-019 B now replaces their site-by-site enablement with an explicitly approved
-window-scoped session in **0.7.0**; capture still defaults off. Current verification
+ADR-019 B replaced their site-by-site enablement with an explicitly approved
+window-scoped session in **0.7.0**; the later owner-local build auto-starts a
+new session only when saved pairing, HTTPS access, service health and an
+eligible focused window are present. Current verification
 and remaining gaps are recorded below. The owner's earlier `rights-restricted`
 report identified the reader's metadata gate; its exact triggering tag remains
 unknown. In response to the explicit-reservation question the owner now directs
@@ -33,13 +35,44 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 live related-text QA and startup recovery:** The owner approved
+one additional fixed public-page GPT-5.5 test after the first PEP probe. Both
+used one Responses request, a 4,096-character PEP 8 current-page extract and
+three public PEP 257/20/7 excerpts totaling 5,567 characters, with no retry
+or Share. The first 78-word post made a useful PEP 8 point but showed no clear
+use of related text. A revised prompt asks for one supported cross-source
+contrast when useful, without forcing it. The second 80-word post compared
+PEP 8 with the excerpted PEP 257 convention/tooling angle and asked a relevant
+question; it had no provider citation. This is one positive fixed-fixture
+quality observation, not general related-page or rendered-Chrome validation.
+The owner's generic `Research did not complete` did not include a code; old
+backend/extension version skew remains a hypothesis, not a proven cause.
+The normal service initially failed to restart because its persisted-state
+validator used the new-capture URL policy for one historical retained-only
+Source. SQLite integrity was OK; a read-only actual-state check found 83
+Sources, one retained-only URL and no historical post origins or root anchors
+using it. [ADR-040](../decisions/ADR-040-retained-source-projection-compatibility.md)
+now extends retained-only validation to persisted learned Sources while still
+checking canonical URL and operation digest. An independent trust review
+identified and then cleared a paired-API post-origin gap after a strict service-
+side guard and regression; new ingestion, provider context and post origins
+remain strict for learned Sources; reserved-domain demo fixtures retain their
+synthetic posting behavior. No owner row was changed. The full service suite
+passes 219/223 with four optional skips, and the secret scan found zero
+findings across 88 checked files; the normal service is again listening on
+127.0.0.1:4174 with the current code. Reloading the Chrome extension and
+owner-operated real-page Insight feedback remain next. Store/privacy/source-
+rights gates remain open. Brand screening rejected a second set of occupied
+exact names; no name or dynamic-background motif was selected.
+
 **2026-10-04 version 0.13.0 owner-local Insight/GUI increment:** The owner asked
 for related-page text in Insights as a default-on Settings option without
 repeated consent screens. [ADR-041](../decisions/ADR-041-owner-local-related-page-excerpts.md)
 records the bounded explicit-click, anonymous public-page fetch and the
 separate store disclosure gate. The extension and local-service implementation
-passed offline tests and an isolated-Chrome visual run; no live provider request with related excerpts is
-authorized by ADR-038's narrower title/URL QA permission. Astra High supplied
+passed offline tests and an isolated-Chrome visual run; ADR-038's narrower
+title/URL permission alone did not authorize related-text QA. The owner gave
+separate bounded permission for the two fixed requests described above. Astra High supplied
 the conversation-first GUI specification in
 [ADR-042](../decisions/ADR-042-conversation-first-popup-redesign.md) and the
 evidence-first topic-sensitive prompt strategy in
@@ -74,25 +107,20 @@ session, and a closed bound window is not silently rebound to another window.
 No capture scope change was made; the GUI removes the User Pages tab and keeps
 source exclusions in Settings and source links on posts. This version has no
 Google/SimilarSites fallback. Next evidence is an owner-operated real-page
-usability test; live provider QA with related excerpts requires separate
-explicit data-egress approval because ADR-038 covers titles/URLs only.
+usability test; additional live provider QA needs a new explicit scope.
 Brand exploration (including a reactive overlapping-background metaphor) has
 not selected or cleared a name; no rebrand was applied.
 
-**2026-10-04 live QA preparation:** The owner explicitly approved one
+**2026-10-04 live QA preparation (completed above):** The owner explicitly approved one
 controlled public-page/provider test with up to four related excerpts. A
 fixed PEP 8 + PEP 257/20/7 one-shot harness option is implemented and its
 7 focused offline tests pass; full service suite passes 216/220 with four
 skips. The PEP 8 current extract is 4,096 characters; related PEP HTML
-passes the bounded text extractor in anonymous preflight. No Responses request has
-yet been dispatched by this probe: the fixed port was occupied by the
-owner's long-running local service. The service started before version
-0.13.0, so backend/extension version skew plausibly explains the owner's
-generic Research failure, but this is not proven. A separate protected-
-credential/model-list check while that service was active rotated the
-stored ChatGPT refresh credential; the running service should be restarted
-before further use so it restores the current credential. The owner was
-explicitly informed and asked before interrupting that service. Brand
+passes the bounded text extractor in anonymous preflight. The owner approved
+interrupting the long-running service, the two fixed QA requests completed,
+and the service restarted with the protected credential. The earlier
+protected-credential/model-list check while the old service was active may
+have affected it; this is not proven as the generic failure's cause. Brand
 criteria and preliminary collision findings are recorded in
 [the brand direction screen](../research/BRAND_DIRECTION_2026-10-04.md);
 there is still no selected name.

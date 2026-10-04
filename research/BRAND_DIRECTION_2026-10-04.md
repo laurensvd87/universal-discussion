@@ -36,6 +36,22 @@ the positioning line and first-run experience can do that.
   store-name or domain clearance. No checked candidate yet has both clear
   product fit and a sufficiently clean preliminary screen to justify a rebrand.
 
+An additional exploratory round found exact product/app uses for ten modern-
+sounding candidates: Vaylo, Sidera, Nuvra, Tembra, Avello, Viora, Pendra,
+Lunelo, Sovelo and Relayo. Especially relevant collisions include the
+[Nuvra social app](https://play.google.com/store/apps/details?id=com.nuvra.app),
+[Viora social app](https://play.google.com/store/apps/details?id=com.viora.media.meet)
+and [Sovelo conversation-practice app](https://sovelo.app/). None is a
+recommended shortlist entry. This is a web/store collision screen, not a
+trademark, domain or cross-jurisdiction clearance search.
+
+Two unselected directions for a later pronunciation/recall test are
+**Topicfold** (many pages folded into one Topic, but more utility-sounding)
+and **Crossay** (short and conversational, but ambiguous to hear/spell and
+also a French surname). A quick exact-name web/app search did not establish
+either as clear; absence of a surfaced app is not availability. Neither
+should drive a UI or logo rebrand yet.
+
 ## Recommendation
 
 Keep the working product name while testing the core experience. Develop a
