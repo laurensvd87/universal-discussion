@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLocalServiceSession, createLocalServiceSessionProxy, PAIRING_KEY } from "../browser/core/local-service-session.js";
+import { createLocalServiceSession, createLocalServiceSessionProxy, LocalServiceSessionProxyError, PAIRING_KEY } from "../browser/core/local-service-session.js";
 
 const OLD = "synthetic-old-capability-for-tests-only";
 const NEW = "synthetic-new-capability-for-tests-only";
@@ -62,7 +62,7 @@ test("storage failure is generic and transient failure preserves durable key", a
   assert.equal(await session.getToken(), OLD);
 });
 
-test("trusted popup proxy has fixed actions and generic failures", async () => {
+test("trusted popup proxy has fixed actions and safe, classified failures", async () => {
   const calls = [];
   const proxy = createLocalServiceSessionProxy({ sendMessage: async (message) => {
     calls.push(message); return { ok: true, value: message.type === "get" ? OLD : null };
@@ -73,6 +73,11 @@ test("trusted popup proxy has fixed actions and generic failures", async () => {
     { target: "local-pairing", type: "get" },
     { target: "local-pairing", type: "set", value: NEW },
   ]);
-  await assert.rejects(createLocalServiceSessionProxy({ sendMessage: async () => ({ ok: false }) }).getToken(),
-    { message: "Local service pairing unavailable" });
+  for (const sendMessage of [async () => ({ ok: false, error: NEW }),
+    async () => ({ ok: true }), async () => ({ ok: true, value: "not-a-token" }),
+    async () => { throw new Error(NEW); }]) {
+    await assert.rejects(createLocalServiceSessionProxy({ sendMessage }).getToken(), (error) =>
+      error instanceof LocalServiceSessionProxyError && error.code === "extension-connection-unavailable" &&
+      error.message === "Extension state unavailable" && !error.message.includes(NEW));
+  }
 });

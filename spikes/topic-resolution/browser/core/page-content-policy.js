@@ -8,7 +8,13 @@ export const PAGE_CONTENT_EXTRACTOR_VERSIONS = Object.freeze([
 
 // Syntactic eligibility is not DNS resolution, authentication detection, or a
 // website-rights grant. The coordinator additionally requires owner site consent.
-export function inspectPageUrl(raw) {
+export function inspectPageUrl(raw) { return inspectUrl(raw, false); }
+
+// Read-only compatibility for Sources retained before ADR-039. This must not
+// be used for capture, post origins, or provider context.
+export function inspectRetainedSourceDtoUrl(raw) { return inspectUrl(raw, true); }
+
+function inspectUrl(raw, allowRetainedCredentialHost) {
   const reject = (reason) => Object.freeze({ supported: false, reason });
   if (typeof raw !== "string" || !raw || raw.length > PAGE_CONTENT_LIMITS.url ||
       /[\u0000-\u0020\u007f]/u.test(raw)) return reject("invalid-url");
@@ -23,11 +29,12 @@ export function inspectPageUrl(raw) {
     return reject("sensitive-context");
   }
   let queryCount = 0;
+  const hasState = [...parsed.searchParams.keys()].some((key) => key.toLowerCase().replace(/[-_.]/gu, "") === "state");
   for (const [key, value] of parsed.searchParams) {
     if (++queryCount > 64) return reject("invalid-url");
     const normalizedKey = key.toLowerCase().replace(/[-_.]/gu, "");
     if (/^(?:password|passwd|pwd|token|accesstoken|refreshtoken|idtoken|auth|authorization|session|sessionid|sid|apikey|clientsecret|secret|jwt|signature|sig)$/u.test(normalizedKey) ||
-        (normalizedKey === "code" && parsed.searchParams.has("state")) ||
+        (normalizedKey === "code" && hasState) ||
         (normalizedKey === "key" && value.length >= 16) ||
         /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u.test(value)) return reject("credential-query");
   }
@@ -40,7 +47,7 @@ export function inspectPageUrl(raw) {
     if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/u.test(host) ||
         /(?:^|\.)(?:localhost|local|localdomain|internal|intranet|lan|home|corp|invalid|test|example|onion)$/u.test(host) ||
         /(?:^|\.)(?:localtest\.me|lvh\.me|nip\.io|sslip\.io)$/u.test(host) ||
-        /(?:^|\.)(?:password|passwords|account|accounts|auth|login|signin|sign-in|sso)\./u.test(host) ||
+        (!allowRetainedCredentialHost && /(?:^|\.)(?:password|passwords|account|accounts|auth|login|signin|sign-in|sso)\./u.test(host)) ||
         /^(?:mail|webmail|inbox|banking|patientportal)\./u.test(host)) return reject("unsupported-host");
   }
   const url = parsed.toString();

@@ -33,6 +33,38 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 version 0.12.21 catalog recovery and connection clarity:** The
+owner saw `Local service unavailable` after a service restart. The service
+responded on 4174 and passed the configured Origin's CORS preflight. A read-
+only projection check found the actual cause: ADR-039's new-capture host guard
+also rejected seven *historical* Source URLs in the 71-Source/65-Topic local
+catalog, so the strict client discarded the entire otherwise healthy catalog.
+[ADR-040](../decisions/ADR-040-retained-source-projection-compatibility.md)
+separates retained catalog/related DTO validation from new-capture eligibility.
+Actual local catalog validation now passes (71/71 Sources), as do related
+projections for all 71 Sources; no stored row was changed, and no URL/content
+was printed. New capture, post-origin links, and ChatGPT context still reject
+the credential hosts. A separate popup-to-background pairing failure now has
+its own safe status and no longer presents a misleading token field. A
+synthetic service-outage/reopen test covers durable pairing without touching
+the owner's token or fixed port. The owner still needs to reload the unpacked
+extension and confirm the live popup.
+
+Chrome also listed `relatedChoices.children.forEach is not a function` and
+an undefined `.replace` error. The first expression is absent from current
+HEAD (`Array.from(...)` is used); current locale keys/draft modes do not
+reproduce the second. These may be stale loaded-code or retained Chrome
+error entries, not the established catalog failure. A focused HTMLCollection
+regression and an isolated Chrome check now capture uncaught runtime errors
+on popup reload; startup and 13 states pass with zero exceptions and no
+horizontal overflow. The full extension suite passes (880 passed, one skipped,
+zero failed); the focused retained/pairing/controller/panel tests pass (73/73),
+and the secret scan found zero findings across 181 files. Independent trust
+review found and closed the new-post origin and case-varied OAuth-query gaps;
+it approved the final read-only compatibility boundary. The actual owner
+Chrome popup remains unverified until the extension is reloaded. Do not rotate
+pairing or delete state on this evidence.
+
 **2026-10-04 bounded live Insight QA:** The owner explicitly authorized up to
 two deliberate live Responses requests per relevant Insight change, using
 only public signed-out pages, at most 4,096 characters of current-page text

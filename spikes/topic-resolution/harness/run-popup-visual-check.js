@@ -95,14 +95,22 @@ try {
     if (!sessionId) await new Promise(resolve => setTimeout(resolve, 50));
   }
   assert.ok(sessionId);
+  const popupExceptions = [];
+  browser.on("Runtime.exceptionThrown", ({ exceptionDetails }, eventSessionId) => {
+    if (eventSessionId !== sessionId) return;
+    popupExceptions.push(exceptionDetails.exception?.description ?? exceptionDetails.text);
+  });
   await browser.send("Runtime.enable", {}, sessionId);
   await browser.send("Page.enable", {}, sessionId);
+  // Reload after Runtime.enable so uncaught startup errors cannot precede the listener.
+  await browser.send("Page.reload", { ignoreCache: true }, sessionId);
   let ready;
   for (let attempt = 0; attempt < 100 && !ready; attempt++) {
-    ready = await evaluate("!!document.querySelector('#insight-quick-actions')", sessionId).catch(() => false);
+    ready = await evaluate("document.readyState === 'complete' && !!document.querySelector('#insight-quick-actions')", sessionId).catch(() => false);
     if (!ready) await new Promise(resolve => setTimeout(resolve, 50));
   }
   assert.ok(ready);
+  assert.deepEqual(popupExceptions, [], "popup startup has no uncaught runtime exceptions");
   await capture("connection", sessionId);
   if (stage === "after") {
     // Replace only renderers with synthetic states. Their callbacks are inert.
@@ -299,6 +307,7 @@ try {
   await capture("developer", sessionId);
   await checkReachable("#discussion-body", sessionId);
   }
+  assert.deepEqual(popupExceptions, [], "popup rendering has no uncaught runtime exceptions");
 } finally {
   await browser?.close();
   const target = path.resolve(profileRoot);

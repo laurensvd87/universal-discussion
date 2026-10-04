@@ -6,6 +6,7 @@ import { localServiceSourceId } from "../browser/fixtures/local-service-fixture-
 import { validateAndProjectActiveTabResponse } from "../browser/core/indicator-contract.js";
 import { createMemoryDemoService } from "../../../apps/local-service/src/application/create-demo-service.js";
 import { createTabLifecycleObserver } from "../browser/chromium/active-tab-reader.js";
+import { LocalServiceSessionProxyError } from "../browser/core/local-service-session.js";
 
 const deferred = () => {
   let resolve, reject;
@@ -64,6 +65,16 @@ test("new pairing is not persisted until durable service validation succeeds", a
   assert.equal(saved, 0);
   assert.equal(ui.controller.currentState().error, "durable-pairing-required");
 });
+test("extension pairing RPC failure stays distinct from local HTTP outage", async () => {
+  let healthCalls = 0;
+  const ui = harness({ session: { async isPaired() { throw new LocalServiceSessionProxyError(); } },
+    client: { async health() { healthCalls++; } } });
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().phase, "error");
+  assert.equal(ui.controller.currentState().error, "extension-connection-unavailable");
+  assert.equal(healthCalls, 0);
+  assert.equal(ui.clears(), 0);
+});
 
 test("root and reply link their own deliberately selected Sources; manual Topic has no origin", async () => {
   const ui = harness(); await ui.controller.open();
@@ -86,6 +97,39 @@ test("root and reply link their own deliberately selected Sources; manual Topic 
   ui.controller.setDraft("Manual Topic root"); assert.equal(await ui.controller.submitDraft(), true);
   assert.equal(ui.requests.filter((entry) => entry[0] === "command").at(-1)[1].originSourceId, null);
   assert.equal(Object.hasOwn(ui.controller.currentState().discussion.roots.find((entry) => entry.body === "Manual Topic root"), "origin"), false);
+});
+
+test("a retained-only account Source can be viewed but cannot poison a new post origin", async () => {
+  let sequence = 0;
+  const service = createMemoryDemoService({ nextId: (type) => `${type}-${++sequence}`,
+    now: () => "2026-10-04T00:00:00.000Z" });
+  const retained = { id: "source-retained-account", url: "https://account.example.com/articles/public-story",
+    title: "Historical account-host Source", provenance: "owner-local-page-embedding/v1",
+    topicId: "reserved-domain-demo" };
+  let posted;
+  const client = {
+    async health() { return {}; },
+    async catalog() { const value = service.catalog(); return { ...value, sources: [...value.sources, retained] }; },
+    async discussion(topicId) { return service.discussion(topicId); },
+    async related(sourceId) { return sourceId === retained.id
+      ? { version: service.catalog().version, model: service.catalog().model, results: [] }
+      : service.related(sourceId, 5); },
+    async command(expected, command, actorId) { posted = command; return service.command(expected, command, actorId); },
+  };
+  const controller = createLocalDiscussionController({ client,
+    session: { async isPaired() { return true; } },
+    readActiveTab: async () => ({ tabId: 7, url: "https://example.com/" }),
+    observeTabLifecycle: () => () => {}, lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl });
+  await controller.open();
+  await controller.selectSource(retained.id);
+  assert.equal(controller.currentState().phase, "ready");
+  controller.setDraft("A deliberate topic comment");
+  assert.equal(await controller.submitDraft(), true);
+  assert.equal(posted.originSourceId, null);
+  assert.equal(controller.currentState().phase, "ready");
+  assert.equal(controller.currentState().discussion.roots[0].body, "A deliberate topic comment");
+  assert.equal(Object.hasOwn(controller.currentState().discussion.roots[0], "origin"), false);
+  controller.dispose();
 });
 
 test("changed manual Source Topic detaches unsent draft before a fresh read", async () => {

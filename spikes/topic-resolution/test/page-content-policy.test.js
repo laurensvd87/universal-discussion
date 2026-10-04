@@ -51,4 +51,8 @@ test("policy bounds URL/query shape and rejects coercion or credential-like JWT 
     "https://example.com/?q=eyJhbGciOiJub25lIn0.payload.signature", "https://example.com/?key=verylongsecretvalue"]) {
     assert.equal(inspectPageUrl(raw).supported, false);
   }
+  for (const state of ["state", "State", "STATE", "st-ate"]) {
+    assert.equal(inspectPageUrl(`https://example.com/articles?code=secret&${state}=nonce`).supported, false);
+  }
+  assert.equal(inspectPageUrl("https://example.com/articles?code=SKU12").supported, true);
 });

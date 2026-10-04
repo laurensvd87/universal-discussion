@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLocalServiceClient, LocalServiceClientError } from "../browser/core/local-service-client.js";
+import { LocalServiceSessionProxyError } from "../browser/core/local-service-session.js";
 import { createRequestHandler } from "../../../apps/local-service/src/http/request-handler.js";
 import { demoService } from "../../../apps/local-service/test/helpers.js";
 import { readCommand, readDiscussion, readPostOrigin, readOutcome, readIngestionOutcome } from "../browser/core/local-service-contract.js";
@@ -22,6 +23,17 @@ test("confirmed 401 reports the exact credential used; outages never request cle
   assert.deepEqual(rejected, [TOKEN]);
   await assert.rejects(client.healthWithToken(TOKEN), { code: "unauthorized" });
   assert.deepEqual(rejected, [TOKEN]);
+});
+test("popup pairing transport failure does not become rejected credentials or call HTTP", async () => {
+  let fetches = 0, clears = 0;
+  const client = createLocalServiceClient({
+    getToken: async () => { throw new LocalServiceSessionProxyError(); },
+    onUnauthorized: async () => { clears++; },
+    fetchImpl: async () => { fetches++; throw new Error("unexpected HTTP"); },
+  });
+  await assert.rejects(client.health(), { code: "extension-connection-unavailable" });
+  assert.equal(fetches, 0);
+  assert.equal(clears, 0);
 });
 const origin = (sourceId = "source-a", url = "https://example.com/article-a") => ({ sourceId, url, title: "<script>Plain title</script>" });
 const visiblePost = (id, rootId = null) => ({ id, rootId, replyToId: null, state: "visible", authorId: "demo-alex", actorType: "human", body: "Synthetic post", createdAt: "2026-09-29T00:00:00.000Z", edited: false });

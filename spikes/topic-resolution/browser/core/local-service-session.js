@@ -3,6 +3,16 @@ import { readPairingToken } from "./local-service-contract.js";
 export const PAIRING_KEY = "localServicePairingV1";
 const LEGACY_KEY = "localServicePairingToken";
 const MESSAGE = "Local service pairing unavailable";
+export const EXTENSION_CONNECTION_UNAVAILABLE = "extension-connection-unavailable";
+export class LocalServiceSessionProxyError extends Error {
+  constructor() {
+    // A missing bridge reply and an explicit worker/storage refusal are both
+    // internal extension-state failures. Neither asks for a new bearer token.
+    super("Extension state unavailable");
+    this.name = "LocalServiceSessionProxyError";
+    this.code = EXTENSION_CONNECTION_UNAVAILABLE;
+  }
+}
 
 // The background worker is the sole writer. Legacy session credentials are
 // discarded, never promoted into persistent storage.
@@ -61,9 +71,11 @@ export function createLocalServiceSessionProxy({ sendMessage }) {
   async function call(type, value) {
     try {
       const reply = await sendMessage({ target: "local-pairing", type, ...(value === undefined ? {} : { value }) });
-      if (!reply || reply.ok !== true) throw new Error(MESSAGE);
+      if (!reply || reply.ok !== true || !Object.hasOwn(reply, "value") ||
+          (type === "paired" && typeof reply.value !== "boolean") ||
+          (type === "get" && reply.value !== null && readPairingToken(reply.value) !== reply.value)) throw new Error(MESSAGE);
       return reply.value;
-    } catch { throw new Error(MESSAGE); }
+    } catch { throw new LocalServiceSessionProxyError(); }
   }
   return Object.freeze({
     getToken: () => call("get"), isPaired: () => call("paired"),

@@ -1,5 +1,5 @@
 // Pure /v1 validation. Only the explicit ingestion path accepts approved vectors.
-import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "./page-content-policy.js";
+import { inspectPageUrl, inspectRetainedSourceDtoUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "./page-content-policy.js";
 const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const KINDS = ["general", "event", "product", "claim"];
 const ACTORS = ["demo-alex", "demo-blair"];
@@ -59,6 +59,13 @@ function sourceUrl(value) {
   if (url.protocol !== "https:" || url.username || url.password || url.hash || url.port ||
       !(url.hostname.endsWith(".example") || ["example.com", "example.org"].includes(url.hostname))) invalid();
   return value;
+}
+function retainedSourceDtoUrl(value) {
+  text(value, 8192);
+  if (/\s|\\/u.test(value)) invalid();
+  if (inspectRetainedSourceDtoUrl(value).supported) return value;
+  // Preserve the pre-existing synthetic Source fixture exception unchanged.
+  return sourceUrl(value);
 }
 export function readPostOrigin(value) {
   const item = record(value, ["sourceId", "url", "title"]);
@@ -161,7 +168,7 @@ export function readCatalog(value) {
     const source = record(value, ["id", "url", "title", "provenance", "topicId"]);
     const topicId = nullableId(source.topicId);
     if (topicId !== null && !topicIds.has(topicId)) invalid();
-    return { id: readId(source.id), url: sourceUrl(source.url), title: text(source.title, 512),
+    return { id: readId(source.id), url: retainedSourceDtoUrl(source.url), title: text(source.title, 512),
       provenance: oneOf(source.provenance, ["project-created-hand-authored-demo/1", "project-created-reserved-domain-bridge/1", "owner-local-page-embedding/v1"]), topicId };
   }));
   return { version: readVersion(item.version), model: model(item.model), actors, topics, sources };
@@ -174,7 +181,7 @@ export function readRelated(value, limit) {
     const method = oneOf(entry.method, [relationship === "same-topic" ? "confirmed-topic" : "vector-similarity"]);
     const topicId = nullableId(entry.topicId);
     if (relationship === "same-topic" && topicId === null) invalid();
-    return { id: readId(entry.id), url: sourceUrl(entry.url), title: text(entry.title, 512), topicId, relationship, method };
+    return { id: readId(entry.id), url: retainedSourceDtoUrl(entry.url), title: text(entry.title, 512), topicId, relationship, method };
   }));
   return { version: readVersion(item.version), model: model(item.model), results };
 }

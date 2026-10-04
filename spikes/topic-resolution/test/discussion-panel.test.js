@@ -73,6 +73,15 @@ test("User insight action opens account settings when ChatGPT is not ready", () 
   assert.equal(account.open, true);
   assert.deepEqual(actions, [["settings"], ["focus", { preventScroll: true }]]);
 });
+test("User Mode gives extension repair guidance without asking for a new token", () => {
+  const ui = harness();
+  ui.panel.render(state({ phase: "error", error: "extension-connection-unavailable", catalog: null,
+    discussion: null, related: null }));
+  assert.equal(ui.byId("discussion-status").textContent, EN.discussionExtensionUnavailable);
+  assert.equal(ui.byId("discussion-token").hidden, true);
+  assert.equal(ui.created.find((item) => item.tag === "form" && item.children.includes(ui.byId("discussion-pair"))).hidden, true);
+  assert.equal(ui.byId("discussion-reload").hidden, false);
+});
 test("Developer insight action still opens detailed workspace", () => {
   const actions = [];
   const workspace = { open: false, scrollIntoView: () => actions.push("scroll"),
@@ -289,6 +298,7 @@ test("legacy, forgotten, deleted and malicious origin projections never leave a 
 test("composer discloses deliberate selected-source association and honest manual Topic absence", () => {
   const ui = harness(); const current = state({ sourceId: "source-demo", selection: "manual" });
   current.catalog.sources[0].topicId = current.topicId;
+  current.catalog.sources[0].url = "https://example.com/article";
   ui.panel.render(current);
   assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.uiOriginDisclosure.replace("{title}", "Synthetic source"));
   current.sourceId = null; ui.panel.render(current); assert.equal(ui.byId("discussion-origin-disclosure").textContent, EN.uiOriginNone);

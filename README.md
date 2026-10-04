@@ -23,6 +23,14 @@ there is no automatic posting or retry. See also
 [ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md) and
 [ADR-030](decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
 
+Extension **0.12.21** keeps the 0.12.20 discussion-first popup and fixes a
+local compatibility regression: old retained account-host Source records no
+longer invalidate the entire catalog after the new-capture guard. They remain
+inert for links/Insights and are not recaptured or deleted. Internal popup-
+to-background pairing errors now ask for an extension reload, not a new token.
+Reload the unpacked extension in Chrome; the backend needs no restart for
+this extension-only correction. See [ADR-040](decisions/ADR-040-retained-source-projection-compatibility.md).
+
 Extension **0.12.20** organizes the popup around the current Topic and two
 views: Discussion and Pages. The comment composer is above the conversation;
 its small **Insight** button explicitly starts a private insight for the
@@ -55,6 +63,14 @@ The public-page URL guard now also excludes obvious credential/account host
 labels before new capture. This does not identify every private or signed-in
 page, so use the separate public-only browser profile. Previously retained
 sources were not deleted; reload the unpacked extension for this guard.
+
+If Chrome shows old popup JavaScript errors after pulling changes, use the
+round-arrow **Reload** control on this extension's card at `chrome://extensions`;
+closing and reopening the popup alone does not load changed extension files.
+Chrome may retain earlier error entries, so compare their timestamps or clear
+the old entries before retesting. A visible pairing-token field on an error
+screen does not itself mean the stored token was lost. Do not rotate pairing
+until a fresh error identifies an authorization failure.
 
 The first AI result is prompted as a short, page-specific forum opener,
 not a long research report. Provider-returned citation references appear as

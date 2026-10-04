@@ -15,7 +15,8 @@ body[data-ui-mode="developer"] .user-only { display: none; }
 .connection-status[data-state="connected"] { color: #17633a; }
 .connection-status[data-state="connected"]::before { background: #239257; }
 .connection-status[data-state="connecting"]::before { background: #2679ca; }
-.connection-status[data-state="unavailable"]::before { background: #b84a38; }
+.connection-status[data-state="unavailable"]::before,
+.connection-status[data-state="extension-unavailable"]::before { background: #b84a38; }
 .ui-mode-switch { display: flex; flex-shrink: 0; border: 1px solid #d4dee3; border-radius: 8px; padding: 2px; background: #eef2f7; }
 .ui-mode-switch button { width: auto; min-height: 27px; padding: 0 9px; border-radius: 6px; font-size: 10px; color: #556376; background: transparent; }
 .ui-mode-switch button[aria-pressed="true"] { color: #17578d; background: #fff; box-shadow: 0 1px 4px #26394c18; }

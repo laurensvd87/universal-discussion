@@ -46,6 +46,10 @@ test("connection relies on successful catalog state; titles clear on context/err
   assert.equal(projectDiscussionShell({ ...ready, phase: "connecting" }).connection, "connecting");
   assert.equal(projectDiscussionShell({ phase: "disconnected", token: "presence is irrelevant" }).connection, "disconnected");
   const unavailable = projectDiscussionShell({ ...ready, phase: "error", error: "unavailable" });
+  const extensionUnavailable = projectDiscussionShell({ ...ready, phase: "error", error: "extension-connection-unavailable" });
+  assert.equal(extensionUnavailable.connection, "extension-unavailable");
+  assert.equal(extensionUnavailable.connectionText, EN.uiExtensionUnavailable);
+  assert.equal(extensionUnavailable.topicTitle, EN.uiTopicUnavailable);
   assert.equal(unavailable.connection, "unavailable"); assert.equal(unavailable.topicTitle, EN.uiTopicUnavailable);
   assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", error: "context-changed" }).topicTitle, EN.uiTopicEmpty);
   assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", resolution: { phase: "processing", enabled: true } }).topicTitle, EN.uiTopicProcessing);

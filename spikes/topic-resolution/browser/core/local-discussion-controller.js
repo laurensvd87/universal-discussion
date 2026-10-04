@@ -1,6 +1,7 @@
 import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-tab-policy.js";
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
+import { readPostOrigin } from "./local-service-contract.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
 
 function freeze(value) {
@@ -12,8 +13,15 @@ function freeze(value) {
 }
 export function selectedPostingSource(state) {
   const source = state.catalog?.sources.find((entry) => entry.id === state.sourceId);
-  return state.phase === "ready" && source?.topicId === state.topicId &&
-    ["automatic", "background", "manual"].includes(state.selection) ? source : null;
+  if (state.phase !== "ready" || source?.topicId !== state.topicId ||
+      !["automatic", "background", "manual"].includes(state.selection)) return null;
+  try {
+    // Historical catalog rows may remain readable after capture eligibility
+    // tightens. Never stamp a new root/reply with an origin that the strict
+    // discussion projection will reject on its next read.
+    readPostOrigin({ sourceId: source.id, url: source.url, title: source.title });
+    return source;
+  } catch { return null; }
 }
 export function ownsContribution(entry, actorId) {
   return entry?.state === "visible" && (entry.actorType === "agent"

@@ -6,6 +6,7 @@ export function projectDiscussionShell(state, messages = EN) {
   let connection = "disconnected";
   if (state.phase === "connecting") connection = "connecting";
   else if (state.error === "unauthorized" || state.phase === "disconnected") connection = "disconnected";
+  else if (state.phase === "error" && state.error === "extension-connection-unavailable") connection = "extension-unavailable";
   else if (state.phase === "error" && !["conflict", "capacity", "invalid-request", "context-changed"].includes(state.error)) connection = "unavailable";
   else if (state.catalog && ["ready", "choose-topic", "loading", "error"].includes(state.phase)) connection = "connected";
   if (connection === "connected" && state.resolution?.phase === "error" && state.resolution.reason === "unavailable") connection = "unverified";
@@ -18,8 +19,8 @@ export function projectDiscussionShell(state, messages = EN) {
       ? state.resolution?.assignment === "confirmed" ? "uiTopicConfirmed" : "uiTopicProvisional"
       : "uiTopicFixture");
   return Object.freeze({ connection,
-    connectionText: text({ connected: "uiConnected", connecting: "uiConnecting", disconnected: "uiDisconnected", unavailable: "uiServiceUnavailable", unverified: "uiConnectionUnverified" }[connection]),
-    topicTitle: selected?.title ?? text(connection === "disconnected" ? "uiTopicDisconnected" : connection === "unavailable" ? "uiTopicUnavailable" : processing ? "uiTopicProcessing" : "uiTopicEmpty"),
+    connectionText: text({ connected: "uiConnected", connecting: "uiConnecting", disconnected: "uiDisconnected", unavailable: "uiServiceUnavailable", "extension-unavailable": "uiExtensionUnavailable", unverified: "uiConnectionUnverified" }[connection]),
+    topicTitle: selected?.title ?? text(connection === "disconnected" ? "uiTopicDisconnected" : ["unavailable", "extension-unavailable"].includes(connection) ? "uiTopicUnavailable" : processing ? "uiTopicProcessing" : "uiTopicEmpty"),
     selectionCue,
   });
 }

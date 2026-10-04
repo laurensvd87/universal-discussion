@@ -1,5 +1,25 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 owner popup incident / 0.12.21: The fixed-port service is healthy;
+the `Local service unavailable` banner came from strict client rejection of
+the catalog after ADR-039's capture guard encountered seven historical
+credential/account-host Sources. ADR-040 adds a separate retained DTO URL
+validator for catalog/related projections only. The actual read-only local
+catalog now validates all 71 Sources/65 Topics and related projections for
+all 71 Sources; new capture, post-origin links and Insight context stay
+strict. No row was deleted or sent to a provider. Popup-to-background pairing
+failure now has its own safe status instead of suggesting a new token. A
+synthetic outage/reopen test exercises retained pairing; no owner token was
+read. Chrome-reported `relatedChoices.children.forEach` is absent from HEAD;
+the undefined `.replace` error is not reproduced. The visual harness now
+captures uncaught popup errors on reload and passes 13 states with zero.
+The full extension suite passes (880 passed, one skipped), focused tests pass
+73/73, and the secret scan reports zero findings across 181 files. Independent
+trust review approved the final compatibility boundary after the post-origin
+and case-varied query fixes. The owner Chrome popup has not yet been retested.
+Owner must use Chrome's round-arrow Reload and confirm the actual popup;
+do not rotate pairing on the old error report. The backend needs no restart.
+
 2026-10-04 live Insight QA: ADR-038 records the owner's bounded standing
 permission for deliberate public-page provider checks. The opt-in
 `apps/local-service/harness/run-live-insight-qa.js` isolates the fixed port

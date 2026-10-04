@@ -1,6 +1,21 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Current local build (0.12.20)
+## Current local build (0.12.21)
+
+This extension-only correction keeps the paired local catalog readable after
+the credential/account-host capture guard: older retained Sources may still
+appear as inert text, but cannot be newly captured, opened from related-page
+links, or included in Insight context. A separate popup-to-background pairing
+failure now says to reload the extension instead of misleadingly asking for a
+new token. No pairing rotation, data deletion, new permission or service
+restart is needed. At `chrome://extensions`, click this extension's round-arrow
+**Reload** control; reopening only the popup is insufficient. Chrome can keep
+older error entries, so compare timestamps if its Errors panel still lists
+them. The current Chrome test watches uncaught popup exceptions on reload.
+See [ADR-040](../../../decisions/ADR-040-retained-source-projection-compatibility.md)
+and [STATUS](../../../plans/STATUS.md) for exact verification.
+
+## Previous UI build (0.12.20)
 
 The User popup opens with a connection welcome, then a shared Topic and two
 views: Discussion and Pages. The composer sits above the conversation. Write a

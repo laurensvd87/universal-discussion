@@ -359,6 +359,19 @@ test("linked-page search setting remains available when no related pages are lis
   assert.equal(ui.byId("insight-related-choices").children.length, 0);
 });
 
+test("related source choices render with browser-style children lacking forEach", () => {
+  const ui = harness(undefined, "user");
+  const choices = ui.byId("insight-related-choices");
+  // HTMLCollection is iterable and indexable, but has no Array.forEach method.
+  choices.children.forEach = undefined;
+  choices.replaceChildren = function (...items) { this.children.length = 0; this.append(...items); };
+  ui.panel.render(state());
+  const checkbox = choices.children[0].children[0];
+  assert.equal(checkbox.checked, true);
+  ui.panel.render(state({ excludedRelatedSourceIds: ["source-c"] }));
+  assert.equal(checkbox.checked, false);
+});
+
 test("research failure exposes only allowlisted fixed detail and clears it on success", () => {
   const ui = harness();
   const ai = { connected: true, planEnabled: true, pending: false, models: [], model: "",

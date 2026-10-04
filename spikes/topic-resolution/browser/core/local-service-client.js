@@ -1,6 +1,7 @@
 import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDiscussion, readHealth,
   readId, readLimit, readOutcome, readPairingToken, readRelated, readReset, readVersion,
   readIngestion, readIngestionOutcome } from "./local-service-contract.js";
+import { LocalServiceSessionProxyError } from "./local-service-session.js";
 
 const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
@@ -39,7 +40,11 @@ export function createLocalServiceClient({ fetchImpl, getToken, onUnauthorized =
     let response;
     const operation = (async () => {
       let token;
-      try { token = readPairingToken(suppliedToken ?? await getToken()); } catch { fail("unauthorized"); }
+      try { token = readPairingToken(suppliedToken ?? await getToken()); }
+      catch (error) {
+        if (error instanceof LocalServiceSessionProxyError) throw error;
+        fail("unauthorized");
+      }
       if (controller.signal.aborted) fail("unavailable");
       const headers = { Authorization: `Bearer ${token}` };
       if (serialized !== undefined) headers["Content-Type"] = "application/json";
@@ -87,7 +92,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, onUnauthorized =
     try { return await Promise.race([operation, interrupted]); }
     catch (error) {
       controller.abort();
-      if (error instanceof LocalServiceClientError) throw error;
+      if (error instanceof LocalServiceClientError || error instanceof LocalServiceSessionProxyError) throw error;
       fail("unavailable");
     }
     finally {
