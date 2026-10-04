@@ -3,6 +3,11 @@
 Date: 2026-10-04
 Status: owner-approved for the local proof of concept; store/release review open
 
+On 2026-10-04 the owner separately approved one controlled live quality test
+using one public current page and up to four bounded public related-page
+excerpts through the existing local ChatGPT connection, with no automatic
+publication or retry loop. This does not extend the release scope below.
+
 ## Decision
 
 The owner wants a useful one-click Insight without a sequence of warnings or

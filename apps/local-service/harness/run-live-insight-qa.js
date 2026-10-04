@@ -1,9 +1,9 @@
 // Owner-invoked, one-shot quality probe. This module has no I/O on import.
-// Run from apps/local-service: node harness/run-live-insight-qa.js --run-live --model <listed-slug> [--show-result]
+// Run from apps/local-service: node harness/run-live-insight-qa.js --run-live --model <listed-slug> [--with-related-text] [--show-result]
 // Stop the regular service first. This program exclusively owns 127.0.0.1:4174
 // before restoring a rotating protected refresh token; an occupied port fails.
-// The fixed, signed-out MDN HTML fetch is a CLI approximation of the extension's
-// isolated Chrome reader: it cannot attest the browser's displayed document.
+// Fixed, signed-out public HTML fetches approximate the extension's isolated
+// Chrome reader: they cannot attest the browser's displayed document.
 import { createServer } from "node:net";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -12,12 +12,22 @@ import { createChatGPTRegistrationStore } from "../src/ai/chatgpt-runtime.js";
 import { createChatGPTConnection } from "../src/ai/chatgpt-connection.js";
 import { createProtectedRefreshStore } from "../src/ai/protected-refresh-store.js";
 import { createChatGptInsights } from "../src/ai/chatgpt-insights.js";
+import { createRelatedPageExcerptReader } from "../../../spikes/topic-resolution/browser/core/related-page-excerpts.js";
 
 export const PUBLIC_PAGE = Object.freeze({
   url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview",
   title: "Overview of HTTP - HTTP | MDN",
   related: Object.freeze([
     Object.freeze({ url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Connection_management_in_HTTP_1.x", title: "Connection management in HTTP/1.x - HTTP | MDN" }),
+  ]),
+});
+export const RELATED_TEXT_PAGE = Object.freeze({
+  url: "https://peps.python.org/pep-0008/",
+  title: "PEP 8 – Style Guide for Python Code",
+  related: Object.freeze([
+    Object.freeze({ url: "https://peps.python.org/pep-0257/", title: "PEP 257 – Docstring Conventions" }),
+    Object.freeze({ url: "https://peps.python.org/pep-0020/", title: "PEP 20 – The Zen of Python" }),
+    Object.freeze({ url: "https://peps.python.org/pep-0007/", title: "PEP 7 – Style Guide for C Code" }),
   ]),
 });
 const DATA_DIR = fileURLToPath(new URL("../data/", import.meta.url));
@@ -52,8 +62,8 @@ export function extractPublicArticle(html) {
   return article;
 }
 
-async function boundedText(response, maxBytes) {
-  if (!response?.ok || response.redirected || response.url !== PUBLIC_PAGE.url ||
+async function boundedText(response, maxBytes, expectedUrl) {
+  if (!response?.ok || response.redirected || response.url !== expectedUrl ||
       !/^text\/html(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) fail("Public page response unavailable");
   const reader = response.body?.getReader();
   if (!reader) fail("Public page response unavailable");
@@ -72,11 +82,18 @@ async function boundedText(response, maxBytes) {
   } finally { await reader.cancel().catch(() => {}); }
 }
 
-export async function readPublicPage(fetchImpl = fetch) {
+export async function readPublicPage(fetchImpl = fetch, page = PUBLIC_PAGE) {
   const signal = AbortSignal.timeout(15_000);
-  const response = await fetchImpl(PUBLIC_PAGE.url, { method: "GET", redirect: "error", credentials: "omit",
+  const response = await fetchImpl(page.url, { method: "GET", redirect: "error", credentials: "omit",
     cache: "no-store", referrerPolicy: "no-referrer", signal });
-  return extractPublicArticle(await boundedText(response, MAX_HTML_BYTES));
+  return extractPublicArticle(await boundedText(response, MAX_HTML_BYTES, page.url));
+}
+
+export async function readRequiredRelatedExcerpts(context, fetchImpl = fetch) {
+  const reader = createRelatedPageExcerptReader({ fetchImpl, hasHostAccess: async () => true });
+  const excerpts = await reader.read(context);
+  if (excerpts.length < 1) fail("Related public excerpts unavailable");
+  return excerpts;
 }
 
 export function oneResponseFetch(fetchImpl = fetch) {
@@ -95,28 +112,33 @@ export function oneResponseFetch(fetchImpl = fetch) {
   return Object.freeze({ fetch: guarded, responsesSent: () => responses });
 }
 
-export function qualityMetrics(result, articleText) {
+export function qualityMetrics(result, articleText, relatedExcerpts = []) {
   const body = result?.body;
   if (typeof body !== "string") fail("Insight result unavailable");
   const citations = Array.isArray(result.citations) ? result.citations : [];
   return Object.freeze({
     articleCharacters: articleText.length,
+    ...(relatedExcerpts.length ? { relatedExcerptCount: relatedExcerpts.length,
+      relatedExcerptCharacters: relatedExcerpts.reduce((total, excerpt) => total + excerpt.text.length, 0) } : {}),
     bodyCharacters: body.length,
     words: body.trim().split(/\s+/u).filter(Boolean).length,
     sentences: (body.match(/[.!?](?:\s|$)/gu) ?? []).length,
     hasQuestion: body.includes("?"),
     citationCount: citations.length,
-    sourceMentions: (body.match(/\b(?:HTTP|MDN)\b/giu) ?? []).length,
+    sourceMentions: (body.match(relatedExcerpts.length ? /\b(?:PEP|Python)\b/giu : /\b(?:HTTP|MDN)\b/giu) ?? []).length,
   });
 }
 
-function publicCitationSummary(citations) {
+export function publicCitationSummary(citations, page = PUBLIC_PAGE) {
   if (!Array.isArray(citations)) return [];
   return citations.slice(0, 5).flatMap((citation) => {
     try {
       const { url, title } = citation ?? {};
       const parsed = new URL(url);
-      if (parsed.protocol !== "https:" || parsed.hostname !== "developer.mozilla.org" ||
+      const allowed = page === RELATED_TEXT_PAGE
+        ? parsed.hostname === "peps.python.org" && /^\/pep-[0-9]{4}\/$/u.test(parsed.pathname)
+        : parsed.hostname === "developer.mozilla.org";
+      if (parsed.protocol !== "https:" || !allowed ||
           parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash ||
           typeof title !== "string" || title.length > MAX_CITATION_TITLE ||
           /[\u0000-\u001f\u007f-\u009f]/u.test(title)) return [];
@@ -146,14 +168,16 @@ function inspectArgs(args) {
       !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(args[modelIndex + 1])) fail("A listed --model slug is required");
   const expected = ["--run-live", "--model", args[modelIndex + 1]];
   if (args.includes("--show-result")) expected.push("--show-result");
+  if (args.includes("--with-related-text")) expected.push("--with-related-text");
   if (args.length !== expected.length || args.some((arg) => !expected.includes(arg)) ||
       args.filter((arg) => arg === "--run-live").length !== 1 ||
       args.filter((arg) => arg === "--model").length !== 1) fail("Unsupported QA option");
-  return { model: args[modelIndex + 1], showResult: args.includes("--show-result") };
+  return { model: args[modelIndex + 1], showResult: args.includes("--show-result"),
+    withRelatedText: args.includes("--with-related-text") };
 }
 
 export async function runLiveInsightQa(args, { fetchImpl = fetch, print = console.log } = {}) {
-  const { model, showResult } = inspectArgs(args);
+  const { model, showResult, withRelatedText } = inspectArgs(args);
   if (!existsSync(path.join(DATA_DIR, "chatgpt-registration.json"))) fail("Existing ChatGPT registration unavailable");
   const release = await ownFixedPort();
   let connection, insights;
@@ -169,19 +193,24 @@ export async function runLiveInsightQa(args, { fetchImpl = fetch, print = consol
     insights = createChatGptInsights({ fetchImpl: provider.fetch, getAccessToken: connection.getAccessToken });
     const models = await insights.listModels();
     if (!models.some((entry) => entry.slug === model)) fail("Selected model is not listed for this account");
-    const articleText = await readPublicPage(fetchImpl);
-    const context = { schema: "insight-context/v1", topic: { id: "qa-http", title: "HTTP" },
-      currentSource: { id: "qa-mdn-http-overview", url: PUBLIC_PAGE.url, title: PUBLIC_PAGE.title },
-      sameTopicSources: PUBLIC_PAGE.related.map((source, index) => ({ id: `qa-mdn-related-${index + 1}`, ...source })),
+    const page = withRelatedText ? RELATED_TEXT_PAGE : PUBLIC_PAGE;
+    const articleText = await readPublicPage(fetchImpl, page);
+    const context = { schema: "insight-context/v1", topic: withRelatedText
+      ? { id: "qa-python-style", title: "Python style guides" } : { id: "qa-http", title: "HTTP" },
+      currentSource: { id: withRelatedText ? "qa-pep-8" : "qa-mdn-http-overview", url: page.url, title: page.title },
+      sameTopicSources: page.related.map((source, index) => ({ id: withRelatedText
+        ? `qa-pep-related-${index + 1}` : `qa-mdn-related-${index + 1}`, ...source })),
       relatedSources: [], discussion: [],
-      coverage: { sameTopicTotal: PUBLIC_PAGE.related.length, relatedTotal: 0, discussionIncluded: false },
+      coverage: { sameTopicTotal: page.related.length, relatedTotal: 0, discussionIncluded: false },
       limitations: ["grouping-provisional", "title-url-only", "sources-unverified"] };
-    const result = await insights.createInsight({ model, context, articleText, allowWebResearch: true });
-    const metrics = qualityMetrics(result, articleText);
+    const relatedExcerpts = withRelatedText ? await readRequiredRelatedExcerpts(context, fetchImpl) : [];
+    const result = await insights.createInsight({ model, context, articleText, allowWebResearch: true,
+      ...(withRelatedText ? { relatedExcerpts } : {}) });
+    const metrics = qualityMetrics(result, articleText, relatedExcerpts);
     print(JSON.stringify({ status: "completed", responsesSent: provider.responsesSent(), ...metrics }));
     if (showResult) {
       print(`Private public-page QA excerpt: ${JSON.stringify(result.body.slice(0, MAX_PRINT_CHARS))}`);
-      print(`MDN citations: ${JSON.stringify(publicCitationSummary(result.citations))}`);
+      print(`${withRelatedText ? "PEP" : "MDN"} citations: ${JSON.stringify(publicCitationSummary(result.citations, page))}`);
     }
     return metrics;
   } finally {
@@ -199,7 +228,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       "Protected Windows ChatGPT connection unavailable", "Connected ChatGPT plan unavailable",
       "Selected model is not listed for this account", "Public page response unavailable",
       "Public page response too large", "Public article region unavailable", "Public article text unavailable",
-      "One Responses request per invocation", "Unexpected provider endpoint"]);
+      "One Responses request per invocation", "Unexpected provider endpoint", "Related public excerpts unavailable"]);
     console.error(safe.has(error?.message) ? error.message : `Live QA failed (${typeof error?.code === "string" &&
       /^[a-z-]{1,40}$/u.test(error.code) ? error.code : "unavailable"})`);
     process.exitCode = 1;

@@ -33,6 +33,18 @@ first, then run from this directory:
 node harness/run-live-insight-qa.js --run-live --model <listed-model-slug> --show-result
 ```
 
+For the separately approved controlled related-text check, explicitly add
+`--with-related-text`. That selects public PEP 8 as the current page and
+PEP 257, PEP 20 and PEP 7 as the only related candidates. The probe uses the
+extension's bounded anonymous related-page reader and stops before a Responses
+request unless at least one excerpt was obtained. Count-only output reports
+the number and total characters of included excerpts; `--show-result` adds a
+bounded private result preview and only validated PEP citation URLs.
+
+```sh
+node harness/run-live-insight-qa.js --run-live --model <listed-model-slug> --with-related-text
+```
+
 It refuses an occupied fixed port, restores the protected local ChatGPT grant, checks that the model
 is on the account's list, fetches the signed-out page without cookies, and
 sends at most one Responses request. There is no retry, Share, SQLite/catalog

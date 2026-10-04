@@ -79,6 +79,24 @@ explicit data-egress approval because ADR-038 covers titles/URLs only.
 Brand exploration (including a reactive overlapping-background metaphor) has
 not selected or cleared a name; no rebrand was applied.
 
+**2026-10-04 live QA preparation:** The owner explicitly approved one
+controlled public-page/provider test with up to four related excerpts. A
+fixed PEP 8 + PEP 257/20/7 one-shot harness option is implemented and its
+7 focused offline tests pass; full service suite passes 216/220 with four
+skips. The PEP 8 current extract is 4,096 characters; related PEP HTML
+passes the bounded text extractor in anonymous preflight. No Responses request has
+yet been dispatched by this probe: the fixed port was occupied by the
+owner's long-running local service. The service started before version
+0.13.0, so backend/extension version skew plausibly explains the owner's
+generic Research failure, but this is not proven. A separate protected-
+credential/model-list check while that service was active rotated the
+stored ChatGPT refresh credential; the running service should be restarted
+before further use so it restores the current credential. The owner was
+explicitly informed and asked before interrupting that service. Brand
+criteria and preliminary collision findings are recorded in
+[the brand direction screen](../research/BRAND_DIRECTION_2026-10-04.md);
+there is still no selected name.
+
 **2026-10-04 version 0.12.22 conversation usability:** The User reply composer
 now identifies the selected target author and a bounded plain-text excerpt,
 including reply-to-reply; the action says **Post reply**. A missing target is

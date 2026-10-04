@@ -6,7 +6,12 @@ default-on but switchable in Settings. The implementation has offline and
 isolated-Chrome tests; final independent trust re-review cleared the reviewed
 owner-local scope after malformed-HTML/raw-script fixes. Backend must restart
 and extension must reload. Do not run live provider QA with excerpts under
-ADR-038, which approved only related titles/URLs. ADR-042's conversation-first
+ADR-038 alone, which approved only related titles/URLs. The owner separately
+approved one bounded public-page live QA on 2026-10-04; the fixed PEP probe is
+prepared but has not dispatched a Responses request because the owner's old
+service occupies port 4174. Ask before interrupting it. A separate model-list
+check rotated the protected refresh credential, so restart that service before
+further use; the owner was informed. ADR-042's conversation-first
 GUI and ADR-043's one-call topic-sensitive prompt are implemented; the User
 view hides the Pages list and puts exclusions in Settings. Matching already
 auto-starts on a fresh browser session with saved pairing, HTTPS grant,
@@ -17,9 +22,10 @@ explicit release gates. SimilarSites itself is not a fallback: its API is
 paid/domain-audience oriented and its website data is not authorized for
 scraped competing reuse. A self-owned page-link discovery experiment can be
 considered later without treating candidate links as Topic matches. Current
-next evidence: owner-operated real-page UX check, then a separately approved
-live-provider QA with related excerpts if wanted. Brand/name and dynamic
-background are exploration only, not yet product decisions.
+next evidence: restart the local service, run the separately approved one-shot
+PEP QA, then an owner-operated real-page UX check. Brand/name and dynamic
+background are exploration only, not yet product decisions; see the brand
+direction screen in research/.
 
 2026-10-04 0.12.22 UI polish: The User reply composer identifies the exact
 target author and a bounded excerpt, including reply-to-reply, before Post
