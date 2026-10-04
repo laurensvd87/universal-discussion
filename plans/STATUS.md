@@ -35,6 +35,29 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 owner-provided HLN Insight diagnostic (read-only):** The public
+Russian-defence-budget article supplied by the owner exists once in the local
+catalog, but its assigned Topic has zero other Sources. The current ranker
+finds 18 vector-related suggestions above 0.85, returns five, and the normal
+Insight context includes the first four as `relatedSources`, not
+`sameTopicSources`. Those four are the owner-visible Telegraaf, Vietnam.vn,
+Google Search and De Standaard candidates. A bounded anonymous run through
+the existing related-excerpt reader, outside Chrome, yielded zero accepted
+excerpts: the first and fourth returned HTTP 403, the second returned HTML
+but did not pass the reader, and Google fetch failed. This is evidence about
+the anonymous Node path, not proof of the owner's Chrome result. The service
+currently listening on 4174 started at 22:02, before the revised prompt file
+was written at 22:24; it therefore needs a restart to activate that prompt.
+No provider call was made despite the owner's permission: the running process
+has the old prompt and the sampled comparison input is empty, so a request
+would not test the new contrast instruction. No local catalog or user data
+was modified. This is primarily a context-availability/grouping problem,
+not evidence that the revised prompt ignored available same-Topic excerpts.
+The next useful check is after a safe service restart: inspect the actual
+Chrome request's content-free counts for same-Topic and accepted related
+excerpts before spending a provider request. Any new retained page-text cache
+or expanded source collection requires its own data/security review.
+
 **2026-10-04 extension 0.13.1 User Mode cleanup:** The owner confirmed that
 manual Topic selection and the initial Start browsing session/Choose Topic
 calls to action do not belong in the normal product flow. They are removed

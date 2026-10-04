@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 HLN Insight diagnosis: For the owner-provided public defence-budget
+page, the read-only local catalog has no same-Topic peer. Four of five related
+suggestions enter the normal Insight context only as related candidates.
+The existing anonymous excerpt reader returned zero excerpts in a Node probe
+(two HTTP 403, one HTML rejected by reader, one failed fetch); actual Chrome
+behavior is not yet measured. The current service process predates the
+2026-10-04 same-Topic prompt revision, so restart it before judging the new
+prompt. The owner permitted a provider call, but none was made because this
+combination would not test the new instruction. No database mutation or
+provider output resulted. Do not infer that a prompt tweak alone can compare
+pages whose text was not supplied. A retained excerpt cache or broader source
+retrieval would be a new data/security decision.
+
 2026-10-04 extension 0.13.1 popup checkpoint: User Mode no longer presents
 manual Topic selection or Start session/Choose Topic calls to action. It
 shows an automatic-discovery empty state until matching finds a Topic. The

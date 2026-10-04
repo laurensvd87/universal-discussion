@@ -60,3 +60,14 @@ does **not** cover sending related-page text in a live test. The existing
 actor, source, exact-body Share, parser, timeout, rate and privacy controls
 remain unchanged. English remains the first output language; localization is
 separate future work.
+
+Read-only real-page diagnostic, 2026-10-04: The owner-provided public HLN
+defence-budget page has no other Source in its assigned local Topic. Four
+vector-related, but not same-Topic, candidates would enter its bounded
+Insight context. A separate anonymous Node run of the current excerpt reader
+accepted zero texts from those candidates; it does not establish what the
+owner's Chrome fetch supplied. The running service also predates this prompt
+revision. No provider request was spent. This observation tests the input
+boundary, not model compliance: the same-Topic contrast instruction cannot
+operate without an eligible peer excerpt, and a prompt alone cannot recover
+unavailable source text.
