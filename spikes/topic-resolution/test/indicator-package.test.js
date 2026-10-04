@@ -37,6 +37,9 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/active-tab-reader.js",
     "chromium/background.js",
     "chromium/discussion-panel.js",
+    "chromium/icons/conversation.svg",
+    "chromium/icons/pages.svg",
+    "chromium/icons/spark.svg",
     "chromium/inference-host.js",
     "chromium/insight-page-reader.js",
     "chromium/insight-panel.js",
@@ -94,7 +97,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.12.18",
+    version: "0.12.19",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -278,7 +281,14 @@ test("popup contains only local external assets and basic accessible bindings", 
     .replaceAll("https://example.org/", "")
     .replaceAll("http://127.0.0.1:4173/p1-5c.html", "");
   assert.doesNotMatch(withoutApprovedUrls, /\b(?:https?:)?\/\//iu);
-  assert.doesNotMatch(css, /@import\b|url\s*\(/iu);
+  const cssWithoutPackagedIconMasks = css.replaceAll(
+    /url\("icons\/(?:conversation|pages|spark)\.svg"\)/gu, "");
+  assert.doesNotMatch(cssWithoutPackagedIconMasks, /@import\b|url\s*\(/iu);
+  for (const name of ["conversation", "pages", "spark"]) {
+    const svg = await readFile(path.join(browserDirectory, "chromium", "icons", `${name}.svg`), "utf8");
+    assert.match(svg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 24 24" fill="none">\s*(?:<path [^>]+\/>\s*)+<\/svg>\s*$/u);
+    assert.doesNotMatch(svg, /<script|<foreignObject|<image|href\s*=|url\s*\(|@import|https?:\/\/(?!www\.w3\.org\/2000\/svg)/iu);
+  }
 
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(new Set(ids).size, ids.length, "popup IDs must be unique");

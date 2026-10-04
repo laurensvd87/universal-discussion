@@ -9,7 +9,7 @@ import { createPageMetadataController } from "../core/page-metadata-controller.j
 import { mountRelatedPagesDemo } from "./related-pages-panel.js";
 import { mountDiscussionPanel } from "./discussion-panel.js";
 import { mountInsightPanel } from "./insight-panel.js";
-import { createInsightController } from "../core/insight-controller.js";
+import { createInsightController, createInsightResumeGate } from "../core/insight-controller.js";
 import { createReadOnlyServiceRetry } from "../core/read-only-service-retry.js";
 import { createLocalAiClient } from "../core/local-ai-client.js";
 import { createInsightPageReader } from "./insight-page-reader.js";
@@ -182,12 +182,20 @@ const discussionPanel = mountDiscussionPanel(document, document.querySelector("#
 const insightPanel = mountInsightPanel(document, document.querySelector("#local-insights"));
 let insightController;
 let aiStartupAttempted = false;
+const resumeGate = createInsightResumeGate(() => insightController.resumeInsights());
+function resumeAfterReady(state) {
+  resumeGate.observe(state, insightController?.currentState().ai.planEnabled === true);
+}
 function primeAiAfterLocalConnection(state) {
   if (aiStartupAttempted || !state.catalog || !["ready", "choose-topic"].includes(state.phase)) return;
   aiStartupAttempted = true;
   void (async () => {
     const connected = await insightController?.checkConnection();
-    if (connected && insightController.currentState().ai.planEnabled) await insightController.loadModels();
+    if (connected && insightController.currentState().ai.planEnabled) {
+      await insightController.loadModels();
+      resumeGate.prime();
+      resumeAfterReady(localDiscussion.currentState());
+    }
   })().catch(() => {});
 }
 const popupShell = mountPopupShell(document, {
@@ -241,6 +249,7 @@ const localDiscussion = createLocalDiscussionController({
     discussionPanel.render(state); popupShell.render(state); observeToolbar(state);
     insightController?.observe(state);
     primeAiAfterLocalConnection(state);
+    resumeAfterReady(state);
     serviceRetry.observe(state);
   },
 });

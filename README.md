@@ -23,11 +23,17 @@ there is no automatic posting or retry. See also
 [ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md) and
 [ADR-030](decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
 
-Extension **0.12.18** organizes the popup around the current Topic and three
+Extension **0.12.19** organizes the popup around the current Topic and three
 views: Discussion, Pages and Insights. First-time pairing has a dedicated
 welcome state; settings and prototype diagnostics no longer crowd the main
 conversation. Create insight remains an explicit action. Its formatted result
-is already the private preview; only a separate **Share** publishes it. Synthetic isolated-
+is already the private preview; only a separate **Share** publishes it. If you
+close the popup after research starts, the paired local service can finish it
+and recover the result when you reopen the same Topic/source within 30 minutes.
+The result stays in service RAM, never posts by itself, and is lost on service
+restart, disconnect, reset, expiry or context change. User Mode displays only
+the insight message, its inline source links, and Share/Discard controls;
+technical disclosures remain in Settings/Developer. Synthetic isolated-
 Chrome checks cover the actual popup width and height, keyboard navigation,
 account switching and no horizontal overflow. Reload the unpacked extension
 after updating. The local service was restarted to load the revised insight
@@ -398,7 +404,9 @@ To try the discussion loop:
    state, use the popup's explicit `RESET DEMO STATE` confirmation.
 
 Demo posts persist in ignored local SQLite state until withdrawal/reset/removal.
-Unsent drafts stay only in popup memory. These are local test discussions, not
+Unsent human discussion drafts stay only in popup memory. Private generated
+insight results instead have the bounded RAM lifetime described above. These
+are local test discussions, not
 Internet publication, real accounts or production security isolation.
 
 The navigation hardening clears metadata on source-tab updates, removal or

@@ -66,10 +66,20 @@ test("paired bridge accepts rebuilt current context and isolates async result by
   const input = { operationId: "op-one", model: "synthetic", context, articleText: "Public synthetic article.",
     allowWebResearch: true, expected: catalog.version };
   const authorized = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
+  const resumePath = "/v1/ai/insights/resumable";
+  assert.deepEqual(body(await handle(request("GET", resumePath, null, authorized))), { job: null });
+  assert.equal((await handle(request("GET", resumePath, null, { origin: ORIGIN }))).status, 403);
+  assert.equal((await handle(request("GET", resumePath, null, { ...authorized, authorization: "Bearer wrong" }))).status, 401);
   assert.deepEqual(body(await handle(request("GET", "/v1/ai/status", null, { origin: ORIGIN }))), connectionAdapter.status());
   assert.deepEqual(body(await handle(request("GET", "/v1/ai/models", null, { origin: ORIGIN }))),
     { models: [{ slug: "synthetic", displayName: "Synthetic" }] });
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights", input, authorized))), { operationId: "op-one", state: "running" });
+  const summary = { operationId: "op-one", state: "running", expected: catalog.version,
+    topicId: "reserved-domain-demo", originSourceId: "reserved-example-com",
+    rootId: null, replyToId: null, discussionId: null };
+  assert.deepEqual(body(await handle(request("GET", resumePath, null, authorized))), { job: summary });
+  assert.deepEqual(body(await handle(request("GET", resumePath, null,
+    { ...authorized, "x-demo-actor": "demo-blair" }))), { job: null });
   assert.equal(calls, 1);
   assert.equal((await handle(request("POST", "/v1/ai/insights", input, authorized))).status, 409);
   assert.equal((await handle(request("POST", "/v1/ai/insights/result", { operationId: "op-one" }, { ...authorized, "x-demo-actor": "demo-blair" }))).status, 403);
@@ -77,8 +87,36 @@ test("paired bridge accepts rebuilt current context and isolates async result by
   await Promise.resolve(); await Promise.resolve();
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights/result", { operationId: "op-one" }, authorized))),
     { operationId: "op-one", state: "completed", result: { body: "A useful finding.", citations: [], model: "synthetic" } });
+  assert.deepEqual(body(await handle(request("GET", resumePath, null, authorized))),
+    { job: { ...summary, state: "completed" } });
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights/cancel", { operationId: "op-one" }, authorized))), { cancelled: true });
   assert.equal((await handle(request("POST", "/v1/ai/insights/result", { operationId: "op-one" }, authorized))).status, 404);
+  assert.deepEqual(body(await handle(request("GET", resumePath, null, authorized))), { job: null });
+  assert.equal(cancellations, 0);
+  ai.dispose();
+});
+
+test("resumable private result expires from RAM after 30 minutes and stale work is hidden", async () => {
+  const { service, catalog, context } = fixture();
+  let clock = 1_000;
+  let cancellations = 0;
+  const ai = createChatGPTRuntime({ service, now: () => clock,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false }), dispose() {} },
+    insightsAdapter: { createInsight: async () => ({ body: "PRIVATE_RESULT_SENTINEL", citations: [], model: "synthetic" }),
+      cancel() { cancellations += 1; }, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const actor = { "x-demo-actor": "demo-alex" };
+  const input = { operationId: "resumable-expiry", model: "synthetic", context,
+    articleText: "PRIVATE_ARTICLE_SENTINEL", allowWebResearch: false, expected: catalog.version };
+  assert.equal((await handle(request("POST", "/v1/ai/insights", input, actor))).status, 200);
+  await Promise.resolve(); await Promise.resolve();
+  clock += 30 * 60_000 - 1;
+  const summary = body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor)));
+  assert.equal(summary.job.state, "completed");
+  assert.equal(JSON.stringify(summary).includes("PRIVATE_"), false);
+  clock += 1;
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor))), { job: null });
+  assert.equal((await handle(request("POST", "/v1/ai/insights/result", { operationId: input.operationId }, actor))).status, 404);
   assert.equal(cancellations, 0);
   ai.dispose();
 });
@@ -122,6 +160,10 @@ test("follow-up bridge sends only server-selected thread text and shares one exa
   assert.equal(providerInputs.length, 0);
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights", input, actor))),
     { operationId: input.operationId, state: "running" });
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor))),
+    { job: { operationId: input.operationId, state: "completed", expected: catalog.version,
+      topicId: rootCommand.topicId, originSourceId: rootCommand.originSourceId,
+      rootId, replyToId: questionId, discussionId } });
   await Promise.resolve(); await Promise.resolve();
   assert.equal(providerInputs.length, 1);
   assert.deepEqual(providerInputs[0].followup,
@@ -367,6 +409,7 @@ test("changed catalog version invalidates an in-flight result without exposing t
   await Promise.resolve(); await Promise.resolve();
   const result = body(await handle(request("POST", "/v1/ai/insights/result", { operationId: "stale-one" }, actor)));
   assert.deepEqual(result, { operationId: "stale-one", state: "failed", error: "stale-context" });
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor))), { job: null });
   assert.equal(JSON.stringify(result).includes("Sensitive"), false);
   ai.dispose();
 });
@@ -389,6 +432,7 @@ test("reset and disconnect clear late provider results and cannot replay operati
   finish({ body: "Late private finding", citations: [], model: "synthetic" });
   await Promise.resolve(); await Promise.resolve();
   assert.equal((await handle(request("POST", "/v1/ai/insights/result", { operationId: "reset-id" }, actor))).status, 404);
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor))), { job: null });
   assert.equal((await handle(request("POST", "/v1/ai/insights", { ...input, expected: service.catalog().version }, actor))).status, 409);
   const after = service.catalog();
   const nextContext = buildInsightContext({ catalog: after, discussion: service.discussion(context.topic.id),
@@ -399,6 +443,7 @@ test("reset and disconnect clear late provider results and cannot replay operati
   finish({ body: "Late disconnected finding", citations: [], model: "synthetic" });
   await Promise.resolve(); await Promise.resolve();
   assert.equal((await handle(request("POST", "/v1/ai/insights/result", { operationId: "disconnect-id" }, actor))).status, 404);
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor))), { job: null });
   assert.equal(cancelled, 2);
   ai.dispose();
 });

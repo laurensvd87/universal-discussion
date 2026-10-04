@@ -108,6 +108,11 @@ async function route(request, service, ai, durablePairing) {
   if (request.method === "GET" && request.body !== null && request.body !== "") fail("invalid", "Invalid request");
   if (ai && path.startsWith("/v1/ai/")) {
     if (request.method === "GET" && path === "/v1/ai/status") return { status: 200, value: ai.status() };
+    if (request.method === "GET" && path === "/v1/ai/insights/resumable") {
+      const actorId = request.headers["x-demo-actor"];
+      if (!actorId) fail("forbidden", "Actor unavailable");
+      return { status: 200, value: ai.resumable(actorId) };
+    }
     if (request.method === "GET" && path === "/v1/ai/diagnostics") return { status: 200, value: ai.diagnostics() };
     if (request.method === "GET" && path === "/v1/ai/models") return { status: 200, value: await ai.models() };
     if (request.method === "POST") {

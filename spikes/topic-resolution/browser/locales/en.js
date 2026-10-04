@@ -61,7 +61,7 @@ export const EN = Object.freeze({
   uiOriginDisclosure: "This post will link to {title}. Replies stay with this conversation.",
   uiOriginNone: "This post will have no source-page link.",
   uiFooter: "Local prototype · comments stay on this computer",
-  uiTopicManual: "Manually selected Topic · review before posting",
+  uiTopicManual: "Selected manually",
   uiTopicProvisional: "Experimental page association · this Topic may change or be wrong",
   uiTopicConfirmed: "Confirmed local page association",
   uiTopicFixture: "Example Topic · local discussion",

@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-03. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-04. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -32,6 +32,33 @@ loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/other-provider/moderation work and all external release gates remain separate.
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
+
+**2026-10-04 version 0.12.19 private Insight continuity and cleaner User Mode:**
+The owner requested that a started insight continue when the popup closes and
+that reopening preserve its private result. [ADR-036](../decisions/ADR-036-resumable-private-insights-and-clean-result.md)
+scopes this to the paired local service: popup closure detaches its polling,
+not the provider job; a bounded actor-bound lookup recovers the latest job for
+the same catalog revision, Topic and Source. Completed results live only in
+service RAM for up to 30 minutes; they are not written to SQLite or extension
+storage and are removed at Share, Discard, reset, disconnect, account switch,
+restart or expiry. No duplicate provider call or automatic publication follows
+reopen. User Mode now shows the generated message with inline source icons and
+Share/Discard, with routine pre/post prose hidden; concise activity states,
+small navigation/action icons and reduced-motion support improve the ordinary
+popup. Detailed controls/disclosures remain reachable in Settings/Developer.
+The extension suite passed 865/866 (one pre-existing skip), the service suite
+202/206 (four opt-in skips), and the extension secret scan found zero findings
+across 179 files. An isolated Chrome visual run passed all 13 synthetic screens
+at 410 px User/380 px Developer width with no horizontal overflow. A separate
+actual-Chrome/local-service synthetic smoke closed and reopened the popup after
+generating a private Insight, recovered it, and shared exactly once; it made
+one synthetic insight request, had zero runtime exceptions and zero external
+extension requests. A running-job detach/recover path and different-source
+refusal also have focused controller tests. The normal local service was
+restarted on port 4174 after integration. A live provider run of this new
+reopen behavior is not claimed. Independent trust review caught a startup
+race in which an initially `choose-topic` popup could miss later recovery;
+the ready-transition gate and its focused regression test now cover it.
 
 **2026-10-03 version 0.12.18 insight review simplification:** The owner found
 the separate Preview and Share steps redundant. The formatted private result

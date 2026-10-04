@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 current integration (0.12.19): ADR-036 adds RAM-only, 30-minute
+private Insight recovery after popup closure. The local service continues an
+already accepted user-triggered request; the reopened popup uses an authenticated
+actor-bound summary and the existing result endpoint, only for the same
+revision/Topic/Source. It never starts a second provider request or posts
+automatically. Share/Discard and account/session invalidation retain their
+proof and deletion behavior. The User Mode result is now a clean message card
+with inline source icons and Share/Discard. Full offline suites and isolated
+Chrome visual/local-service smoke pass; counts and limits are in STATUS. The
+normal owner-local service is running on port 4174 with the new code. Do not
+claim live-provider recovery or persistent drafts across service restart.
+
 2026-10-03 UI refinement complete (0.12.18): The owner chose one formatted private
 Insight preview with a direct Share or Discard action, removing the extra
 Preview button and duplicate text. The controller and service retain exact

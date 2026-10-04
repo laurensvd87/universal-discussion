@@ -93,6 +93,22 @@ test("mismatched operation and oversized body fail closed", async () => {
   await assert.rejects(oversized.status(), TypeError);
 });
 
+test("resumable insight lookup is actor-bound and accepts only bounded job metadata", async () => {
+  let request;
+  const job = { operationId: "op-a", state: "running", expected: { generation: "generation-a", revision: 2 },
+    topicId: "topic-a", originSourceId: "source-a", rootId: null, replyToId: null, discussionId: null };
+  const valid = client(async (url, options) => { request = { url, options }; return response(url, { job }); });
+  assert.deepEqual(await valid.resumable("demo-alex"), job);
+  assert.equal(request.url, "http://127.0.0.1:4174/v1/ai/insights/resumable");
+  assert.equal(request.options.headers["X-Demo-Actor"], "demo-alex");
+  assert.equal(await client(async (url) => response(url, { job: null })).resumable("demo-alex"), null);
+  for (const candidate of [
+    { ...job, state: "failed" }, { ...job, articleText: "Private page text" },
+    { ...job, expected: { generation: "generation-a", revision: -1 } },
+    { ...job, rootId: "root-a" }, { ...job, originSourceId: "source-a", replyToId: undefined },
+  ]) await assert.rejects(client(async (url) => response(url, { job: candidate })).resumable("demo-alex"), TypeError);
+});
+
 test("failed insight result exposes only fixed research details", async () => {
   const details = ["response-redirect", "response-content-type", "response-content-json",
     "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",

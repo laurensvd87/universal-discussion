@@ -10,7 +10,8 @@ import { readId } from "../domain/validation.js";
 
 const FILE = "chatgpt-registration.json";
 const OPERATION = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
-const RESULT_TTL_MS = 120_000;
+const RESULT_TTL_MS = 30 * 60_000;
+const FAILURE_TTL_MS = 120_000;
 const MAX_OPERATIONS = 1_024;
 const SAFE_ERRORS = new Set(["invalid-input", "model-unavailable", "unauthorized", "rate-limit", "busy", "timeout", "cancelled", "provider-unavailable", "invalid-response", "unsupported-capability"]);
 const MODEL_FAILURES = new Map([
@@ -133,14 +134,28 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
   let callbackGeneration = 0;
   function finish(job) {
     job.finishedAt = now();
-    job.expiry = setTimeout(() => { job.result = null; jobs.delete(job.operationId); }, RESULT_TTL_MS);
+    job.expiry = setTimeout(() => { job.result = null; jobs.delete(job.operationId); },
+      job.state === "completed" ? RESULT_TTL_MS : FAILURE_TTL_MS);
     job.expiry.unref?.();
+  }
+  function removeJob(job) {
+    if (job.state === "running" && active === job) insights.cancel();
+    clearTimeout(job.expiry);
+    job.result = null;
+    job.state = "failed";
+    jobs.delete(job.operationId);
+    if (active === job) active = null;
+  }
+  function expired(job) {
+    return job.finishedAt !== null && now() - job.finishedAt >=
+      (job.state === "completed" ? RESULT_TTL_MS : FAILURE_TTL_MS);
   }
   function owned(key, actorId) {
     service.actor(actorId);
     const job = jobs.get(operationId(key));
     if (!job) fail("not-found", "Object unavailable");
     if (job.actorId !== actorId) fail("forbidden", "Actor unavailable");
+    if (expired(job)) { removeJob(job); fail("not-found", "Object unavailable"); }
     return job;
   }
   function cancelJob(job) {
@@ -277,6 +292,19 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       if (job.state === "failed") return { operationId: job.operationId, state: job.state, error: job.error,
         ...(job.detail ? { detail: job.detail } : {}) };
       return { operationId: job.operationId, state: "running" };
+    },
+    resumable(actorId) {
+      service.actor(actorId);
+      const version = service.catalog().version;
+      for (const job of [...jobs.values()].reverse()) {
+        if (job.actorId !== actorId) continue;
+        if (expired(job) || !same(job.expected, version)) { removeJob(job); continue; }
+        if (job.state !== "running" && job.state !== "completed") continue;
+        return { job: { operationId: job.operationId, state: job.state,
+          expected: job.expected, topicId: job.topicId, originSourceId: job.originSourceId,
+          rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId } };
+      }
+      return { job: null };
     },
     share(value, actorId, persist) {
       exact(value, ["expected", "command"]);

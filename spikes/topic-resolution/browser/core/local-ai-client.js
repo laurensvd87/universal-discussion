@@ -116,6 +116,26 @@ function projectResult(value) {
   return { operationId: value.operationId, state: value.state, result: { body, model, citations } };
 }
 
+function projectResumable(value) {
+  keys(value, ["job"]);
+  if (value.job === null) return null;
+  const job = value.job;
+  keys(job, ["operationId", "state", "expected", "topicId", "originSourceId", "rootId", "replyToId", "discussionId"]);
+  id(job.operationId); id(job.topicId);
+  if (!["running", "completed"].includes(job.state)) invalid();
+  keys(job.expected, ["generation", "revision"]);
+  id(job.expected.generation);
+  if (!Number.isSafeInteger(job.expected.revision) || job.expected.revision < 0) invalid();
+  for (const field of ["originSourceId", "rootId", "replyToId", "discussionId"]) {
+    if (job[field] !== null) id(job[field]);
+  }
+  if ([job.rootId, job.replyToId, job.discussionId].filter((entry) => entry !== null).length !== 0 &&
+      [job.rootId, job.replyToId, job.discussionId].some((entry) => entry === null)) invalid();
+  return { operationId: job.operationId, state: job.state, expected: { ...job.expected },
+    topicId: job.topicId, originSourceId: job.originSourceId,
+    rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId };
+}
+
 export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = async () => {}, timeoutMs = 10000 }) {
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000) throw new TypeError("Invalid local AI client");
   async function request(path, body, actorId, signal, requestTimeoutMs = timeoutMs) {
@@ -192,6 +212,8 @@ export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = asyn
       const result = projectResult(await request("/insights/result", { operationId: id(operationId) }, readActorId(actorId), options.signal));
       if (result.operationId !== operationId) invalid(); return result;
     },
+    resumable: async (actorId, options = {}) => projectResumable(
+      await request("/insights/resumable", undefined, readActorId(actorId), options.signal)),
     cancel: async (operationId, actorId, options = {}) => {
       const value = await request("/insights/cancel", { operationId: id(operationId) }, readActorId(actorId), options.signal);
       keys(value, ["cancelled"]);

@@ -80,6 +80,12 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     },
     result: value => { const job = syntheticJobs.get(value.operationId);
       return job && { operationId: job.operationId, state: job.state, result: job.result }; },
+    resumable(actorId) {
+      const job = [...syntheticJobs.values()].reverse().find((item) => item.actorId === actorId);
+      return { job: job ? { operationId: job.operationId, state: job.state, expected: job.expected,
+        topicId: job.topicId, originSourceId: job.originSourceId,
+        rootId: null, replyToId: null, discussionId: null } : null };
+    },
     share(value, actorId, persist) {
       const job = syntheticJobs.get(value.command.operationId);
       assert.ok(job && job.actorId === actorId);
@@ -418,6 +424,9 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
       return link && link.href==='https://example.com/' && link.target==='_blank' &&
         link.rel==='noopener noreferrer' && link.referrerPolicy==='no-referrer';
     })()`));
+    await closePopup(); await bringPageForward(); await openPopup();
+    await waitExpression("!document.querySelector('#insight-composer').hidden && document.querySelector('#insight-citations').textContent.includes('Synthetic generated comparison')", "private insight recovered after popup closure");
+    assert.equal(syntheticInsightRequests, 1, "reopen must not start a second provider request");
     await click("#insight-share");
     await waitExpression(`${THREAD}.textContent.includes('Synthetic generated comparison') && ${THREAD}.textContent.includes('Robot')`, "generated insight explicitly shared");
     await waitStatus(EN.discussionReady);
@@ -471,7 +480,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     assert.equal(externalExtensionRequests, 0);
     assert.ok(extensionRequests > 0 && interceptedFixtureDocuments === 3);
     return { browser: version.product, result: "PASS", actualActionPopup: true,
-      covered: ["durable-pairing", "keyboard", "service-source-ranking", "source-selection-invalidation", "topic-create", "root", "reply", "edit", "popup-reopen", "disconnect", "outage-retains-pairing", "service-restart-same-token", "rotation-clears-old-token", "withdraw", "reset", "fixture-auto-load", "shared-topic", "inert-markup", "local-trusted-pairing-storage", "bounded-extension-network", "synthetic-AI-one-click-current-page-read-auto-model-citation-preview-attested-share-withdrawal", "source-icon-keyboard-opens-new-tab-without-opener-or-referrer"],
+      covered: ["durable-pairing", "keyboard", "service-source-ranking", "source-selection-invalidation", "topic-create", "root", "reply", "edit", "popup-reopen", "disconnect", "outage-retains-pairing", "service-restart-same-token", "rotation-clears-old-token", "withdraw", "reset", "fixture-auto-load", "shared-topic", "inert-markup", "local-trusted-pairing-storage", "bounded-extension-network", "synthetic-AI-one-click-current-page-read-auto-model-citation-private-reopen-attested-share-withdrawal", "source-icon-keyboard-opens-new-tab-without-opener-or-referrer"],
       runtimeExceptions, externalExtensionRequests, interceptedFixtureDocuments, syntheticInsightRequests,
       userModeScreenshot, userModeFooterScreenshot,
       scope: "Fresh profile; actual extension action popup; synthetic intercepted pages; no global browser firewall claim" };

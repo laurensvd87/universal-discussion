@@ -220,6 +220,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     });
     shareScope.textContent = text("shareScope");
     share.textContent = text("share");
+    const simplePreview = document.body?.dataset?.uiMode === "user";
+    for (const decoration of [draftSummary, draftHint, target, origin, shareScope]) decoration.hidden = simplePreview;
     target.textContent = exactGenerated ? text("selected").replace("{title}", state.context.topic.title) : "";
     origin.textContent = !exactGenerated ? "" : state.context.currentSource?.title
       ? text("origin").replace("{title}", `${state.context.currentSource.title} — ${state.context.currentSource.url ?? ""}`) : text("noOrigin");
@@ -238,23 +240,30 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     accountSwitchHint.hidden = !ai.connected;
     usage.hidden = !ai.planEnabled && ai.status !== "usageLimit";
     const generating = ai.status === "generating";
-    const aiPending = generating || ai.status === "preparingArticle" ||
+    const resuming = ai.status === "resuming";
+    const aiPending = generating || resuming || ai.status === "preparingArticle" ||
       ai.status === "disconnecting" || ai.status === "loadingModels";
-    include.disabled ||= generating;
-    prepare.disabled ||= generating;
-    share.disabled ||= generating;
-    discard.disabled ||= generating;
+    include.disabled ||= generating || resuming;
+    prepare.disabled ||= generating || resuming;
+    share.disabled ||= generating || resuming;
+    discard.disabled ||= generating || resuming;
     const generatedDraft = ai.status === "generated" && exactGenerated;
+    details.setAttribute("data-has-result", String(exactGenerated));
+    quickActions.setAttribute("data-phase", generating || resuming ? "generating" : "idle");
+    quickActions.setAttribute("aria-busy", String(generating || resuming));
+    create.textContent = text(resuming ? "resumingInsights" : generating ? "creatingInsights" : "createInsights");
+    composer.setAttribute("data-phase", state.status === "sharing" ? "sharing" : "idle");
+    composer.setAttribute("aria-busy", String(state.status === "sharing"));
     const workspaceOrder = [...details.children];
     if (generatedDraft && workspaceOrder[workspaceOrder.indexOf(draftDetails) + 1] !== quickActions)
       details.insertBefore(draftDetails, quickActions);
     else if (!generatedDraft && workspaceOrder.at(-1) !== draftDetails) details.append(draftDetails);
     draftDetails.setAttribute("data-has-draft", String(exactGenerated));
     draftSummary.textContent = text(generatedDraft ? "draftWorkspaceGenerated" : "draftWorkspace");
-    draftHint.textContent = text(generatedDraft ? "hint" : generating ? "draftGenerating" :
+    draftHint.textContent = text(generatedDraft ? "hint" : generating || resuming ? "draftGenerating" :
       RESEARCH_FAILURE_STATUSES.has(ai.status) ? "draftResearchFailed" : "draftManualHint");
     if (exactGenerated) draftDetails.open = true;
-    if (generating) draftDetails.open = false;
+    if (generating || resuming) draftDetails.open = false;
     const stageMessage = ai.status === "connectionFailed" && Object.hasOwn(FAILURE_STAGE_MESSAGES, ai.failureStage)
       ? FAILURE_STAGE_MESSAGES[ai.failureStage] : null;
     const substageMessage = ai.status === "connectionFailed" && ai.failureStage === "identity-verification-failed" &&
@@ -268,11 +277,13 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       aiStatus.textContent += ` ${text("researchFailureCode").replace("{code}", ai.researchFailureDetail)}`;
     }
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
+    aiStatus.setAttribute("data-attention", String(["connecting", "connectionFailed", "disconnectedUnconfirmed",
+      "planUnavailable", "unavailable"].includes(ai.status)));
     quickStatus.hidden = !RESEARCH_FAILURE_STATUSES.has(ai.status) && ai.status !== "preparingArticle";
     quickStatus.textContent = quickStatus.hidden ? "" :
       ai.status === "usageLimit" && document.body?.dataset?.uiMode === "user" ? text("usageLimitBrief") : aiStatus.textContent;
     quickStatus.setAttribute("data-state", ai.status === "preparingArticle" ? "preparing" : "failed");
-    nextStep.textContent = text(!state.context ? "nextPrepare" : generating ? "nextGenerating" :
+    nextStep.textContent = text(!state.context ? "nextPrepare" : resuming ? "nextResuming" : generating ? "nextGenerating" :
       RESEARCH_FAILURE_STATUSES.has(ai.status) ? "nextResearchFailed" :
       generatedDraft ? "nextReviewDraft" : !ai.planEnabled ? "nextConnect" :
       !ai.models.length ? "nextListModels" : !ai.model ? "nextChooseModel" :

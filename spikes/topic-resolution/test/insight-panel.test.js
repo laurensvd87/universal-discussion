@@ -92,6 +92,35 @@ test("one generic share label applies to both opener and follow-up results", () 
   assert.equal(ui.byId("insight-share").textContent, INSIGHT_EN.share);
 });
 
+test("User insight preview contains only the generated message, citation links, and separate actions", () => {
+  const ui = harness(undefined, "user");
+  const marker = "\uE200cite\uE202turn0search0\uE201";
+  const result = { body: `A concise finding ${marker}`, citations: [{
+    url: "https://example.org/article", title: "Source", startIndex: 18, endIndex: 18 + marker.length }] };
+  ui.panel.render(state({ draft: formatInsightCitations(result.body, result.citations),
+    ai: { status: "generated", result } }));
+  const card = ui.byId("insight-composer");
+  assert.equal(ui.byId("insight-workspace").attributes["data-has-result"], "true");
+  assert.deepEqual(card.children.filter((item) => !item.hidden).map((item) => item.id),
+    ["insight-citations", "insight-share", "insight-discard"]);
+  assert.equal(ui.descendants(ui.byId("insight-citations")).filter((item) => item.tag === "a").length, 1);
+  assert.equal(ui.byId("insight-draft-details").children[0].hidden, true);
+  assert.equal(ui.byId("insight-share").disabled, false);
+  assert.equal(ui.byId("insight-discard").disabled, false);
+});
+
+test("resumed research has concise visible progress and cannot create another request", () => {
+  const ui = harness(undefined, "user");
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,
+    models: [{ slug: "model-a", displayName: "A" }], model: "model-a",
+    article: null, articleText: "", status: "resuming", result: null } }));
+  assert.equal(ui.byId("insight-createInsights").textContent, INSIGHT_EN.resumingInsights);
+  assert.equal(ui.byId("insight-createInsights").disabled, true);
+  assert.equal(ui.byId("insight-quick-actions").attributes["data-phase"], "generating");
+  assert.equal(ui.byId("insight-quick-actions").attributes["aria-busy"], "true");
+  assert.equal(ui.byId("insight-ai-status").textContent, INSIGHT_EN.aiResuming);
+});
+
 test("unavailable, busy, manual, and altered results cannot share", () => {
   const ui = harness();
   const prepare = ui.byId("insight-prepare"), include = ui.byId("insight-include-discussion");

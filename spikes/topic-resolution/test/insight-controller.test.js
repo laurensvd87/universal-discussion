@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ModelListFailure } from "../browser/core/local-ai-client.js";
-import { createInsightController } from "../browser/core/insight-controller.js";
+import { createInsightController, createInsightResumeGate } from "../browser/core/insight-controller.js";
 import { createLocalDiscussionController } from "../browser/core/local-discussion-controller.js";
 import { createMemoryDemoService } from "../../../apps/local-service/src/application/create-demo-service.js";
 import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indicator-fixtures.js";
@@ -32,10 +32,12 @@ async function harness({ command, aiClient, readArticle, attestArticle, openAuth
     lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
     onStateChange: (state) => insight?.observe(state),
   });
-  insight = createInsightController({ shareInsight: discussion.shareInsight, aiClient, readArticle,
+  const newInsight = () => createInsightController({ shareInsight: discussion.shareInsight, aiClient, readArticle,
     attestArticle, openAuthorization, randomId });
+  insight = newInsight();
   await discussion.open();
-  return { service, insight, discussion, commands, navigate: () => changed() };
+  return { service, insight, discussion, commands, navigate: () => changed(),
+    reopenInsight: () => { insight = newInsight(); insight.observe(discussion.currentState()); return insight; } };
 }
 
 async function generatedHarness(options = {}) {
@@ -55,6 +57,25 @@ async function generatedHarness(options = {}) {
   assert.equal(await app.insight.createInsights({ automatic: true }), true);
   return { ...app, cancelled };
 }
+
+test("resume gate waits for a ready Topic after model startup and checks each context only once", async () => {
+  let attempts = 0;
+  const gate = createInsightResumeGate(() => { attempts++; });
+  const state = { phase: "choose-topic", catalog: { version: { generation: "g", revision: 1 } },
+    topicId: null, sourceId: null, actorId: "demo-alex", selection: "auto" };
+  assert.equal(gate.observe(state, true), false);
+  gate.prime();
+  assert.equal(gate.observe(state, true), false);
+  const ready = { ...state, phase: "ready", topicId: "topic-a", sourceId: "source-a" };
+  assert.equal(gate.observe(ready, false), false);
+  assert.equal(gate.observe(ready, true), true);
+  assert.equal(gate.observe(ready, true), false);
+  await Promise.resolve();
+  assert.equal(attempts, 1);
+  assert.equal(gate.observe({ ...ready, sourceId: "source-b" }, true), true);
+  await Promise.resolve();
+  assert.equal(attempts, 2);
+});
 
 test("formatted generated result -> one explicit immutable AI-labelled local root", async () => {
   const app = await generatedHarness(); const { insight, discussion, service } = app;
@@ -83,6 +104,103 @@ test("formatted generated result -> one explicit immutable AI-labelled local roo
   assert.equal(discussion.begin("edit", saved.id), false); assert.equal(await discussion.withdraw(saved.id), false);
   await discussion.selectActor("demo-alex"); assert.equal(await discussion.withdraw(saved.id), true);
   assert.equal(service.discussion("reserved-domain-demo").roots.length, 0);
+});
+
+test("closed popup detaches a running local insight; reopened popup restores it without a second provider start", async () => {
+  let request, starts = 0, firstResult;
+  const cancelled = [];
+  let first = true;
+  const aiClient = {
+    status: async () => ({ connected: true, planEnabled: true, pending: false,
+      account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a", displayName: "A" }],
+    start: async (value) => { request = value; starts++; return { operationId: value.operationId, state: "running" }; },
+    resumable: async () => ({ operationId: request.operationId, state: "running", expected: request.expected,
+      topicId: request.context.topic.id, originSourceId: request.context.currentSource.id,
+      rootId: null, replyToId: null, discussionId: null }),
+    result: async (operationId) => {
+      if (first) { first = false; return new Promise((resolve) => { firstResult = resolve; }); }
+      return { operationId, state: "completed", result: { body: "Recovered private insight.",
+        model: "model-a", citations: [] } };
+    },
+    cancel: async (operationId) => { cancelled.push(operationId); return true; },
+  };
+  const app = await harness({ aiClient, readArticle: async () => ({ url: "https://example.com/",
+    documentId: "doc-a", text: "Public synthetic article" }), attestArticle: async () => true,
+  randomId: () => "resumable-op" });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  const running = app.insight.createInsights({ automatic: true });
+  for (let attempt = 0; !firstResult && attempt < 20; attempt++) await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(typeof firstResult, "function");
+  app.insight.dispose();
+  firstResult({ operationId: request.operationId, state: "running" });
+  assert.equal(await running, false);
+  assert.deepEqual(cancelled, []);
+  const reopened = app.reopenInsight();
+  await reopened.checkConnection(); await reopened.loadModels();
+  assert.equal(await reopened.resumeInsights(), true);
+  assert.equal(reopened.currentState().draft, "Recovered private insight.");
+  assert.equal(starts, 1);
+  assert.equal(await reopened.share(), true);
+  assert.equal(app.service.discussion("reserved-domain-demo").roots[0].body, "Recovered private insight.");
+});
+
+test("a completed private insight survives popup closure only while the local service still holds it", async () => {
+  let request;
+  const cancelled = [];
+  const aiClient = {
+    status: async () => ({ connected: true, planEnabled: true, pending: false,
+      account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a", displayName: "A" }],
+    start: async (value) => { request = value; return { operationId: value.operationId, state: "running" }; },
+    resumable: async () => ({ operationId: request.operationId, state: "completed", expected: request.expected,
+      topicId: request.context.topic.id, originSourceId: request.context.currentSource.id,
+      rootId: null, replyToId: null, discussionId: null }),
+    result: async (operationId) => ({ operationId, state: "completed", result: {
+      body: "Saved only in service RAM.", model: "model-a", citations: [] } }),
+    cancel: async (operationId) => { cancelled.push(operationId); return true; },
+  };
+  const app = await harness({ aiClient, readArticle: async () => ({ url: "https://example.com/",
+    documentId: "doc-a", text: "Public synthetic article" }), attestArticle: async () => true,
+  randomId: () => "completed-op" });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  app.insight.dispose();
+  assert.deepEqual(cancelled, []);
+  const reopened = app.reopenInsight();
+  await reopened.checkConnection(); await reopened.loadModels();
+  assert.equal(await reopened.resumeInsights(), true);
+  assert.equal(reopened.currentState().draft, "Saved only in service RAM.");
+  reopened.discard();
+  assert.deepEqual(cancelled, ["completed-op"]);
+});
+
+test("reopen refuses a resumable result from another source without fetching its private body", async () => {
+  let request, resultReads = 0;
+  const aiClient = {
+    status: async () => ({ connected: true, planEnabled: true, pending: false,
+      account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a", displayName: "A" }],
+    start: async (value) => { request = value; return { operationId: value.operationId, state: "running" }; },
+    resumable: async () => ({ operationId: request.operationId, state: "completed", expected: request.expected,
+      topicId: request.context.topic.id, originSourceId: request.context.currentSource.id,
+      rootId: null, replyToId: null, discussionId: null }),
+    result: async (operationId) => { resultReads++; return { operationId, state: "completed", result: {
+      body: "Private old-page result.", model: "model-a", citations: [] } }; },
+    cancel: async () => true,
+  };
+  const app = await harness({ aiClient, readArticle: async () => ({ url: "https://example.com/",
+    documentId: "doc-a", text: "Public synthetic article" }), attestArticle: async () => true,
+  randomId: () => "old-page-op" });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  app.insight.dispose();
+  await app.discussion.selectSource("reserved-example-org");
+  const reopened = app.reopenInsight();
+  await reopened.checkConnection(); await reopened.loadModels();
+  assert.equal(await reopened.resumeInsights(), false);
+  assert.equal(resultReads, 1, "new popup must not read the old-page result");
+  assert.equal(reopened.currentState().draft, "");
 });
 
 test("own published question gets one unchanged private robot follow-up", async () => {

@@ -28,6 +28,27 @@ const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", 
   "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-incomplete",
   "response-failed", "response-http-400"]);
 
+// The local catalog may be available before the current page resolves to a
+// Topic. A one-shot startup check must wait for that later ready transition.
+export function createInsightResumeGate(resume) {
+  if (typeof resume !== "function") throw new TypeError("Invalid resume callback");
+  let primed = false;
+  let attemptedKey = null;
+  return Object.freeze({
+    prime() { primed = true; },
+    observe(state, accountReady) {
+      if (!primed || accountReady !== true || state?.phase !== "ready" || !state.catalog ||
+          !state.topicId || !state.sourceId || !state.actorId) return false;
+      const key = JSON.stringify([state.catalog.version, state.topicId, state.sourceId, state.actorId,
+        state.selection, state.resolution?.documentId ?? null]);
+      if (key === attemptedKey) return false;
+      attemptedKey = key;
+      void Promise.resolve().then(resume).catch(() => {});
+      return true;
+    },
+  });
+}
+
 // Private popup state only. Explicit actions invoke injected page/provider
 // adapters; only final sharing persists the reviewed discussion text.
 export function createInsightController({ shareInsight, onStateChange = () => {}, aiClient = null,
@@ -45,6 +66,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let modelsEpoch = 0;
   let diagnosticsBusy = false;
   let automaticStartBusy = false;
+  let resumeBusy = false;
   let job = null;
   let completedJob = null;
   let state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
@@ -91,6 +113,12 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const previous = job; job = null;
     if (previous) { previous.abort.abort(); void aiClient?.cancel(previous.id, previous.actorId).catch(() => {}); }
   }
+  function detachJob() {
+    // Closing a popup stops only its polling. The already-started local
+    // service request may complete in RAM and be recovered on reopen.
+    const previous = job; job = null;
+    previous?.abort.abort();
+  }
   function purgeCompleted() {
     const previous = completedJob; completedJob = null;
     if (previous) void aiClient?.cancel(previous.id, previous.actorId).catch(() => {});
@@ -118,7 +146,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     } catch { clear("failed"); return false; }
   }
   function setRelatedSourceIncluded(sourceId, included) {
-    if (disposed || pending || job || automaticStartBusy || !state.context ||
+    if (disposed || pending || job || automaticStartBusy || resumeBusy || !state.context ||
         !state.context.relatedSources.some((source) => source.id === sourceId) ||
         typeof included !== "boolean") return false;
     const excluded = new Set(state.excludedRelatedSourceIds);
@@ -127,7 +155,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     return true;
   }
   function setAllowWebResearch(value) {
-    if (disposed || pending || job || automaticStartBusy || typeof value !== "boolean") return false;
+    if (disposed || pending || job || automaticStartBusy || resumeBusy || typeof value !== "boolean") return false;
     publish({ allowWebResearch: value });
     return true;
   }
@@ -300,6 +328,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     aiPatch({ articleText: value, result: null }); return true;
   }
   async function createInsights({ automatic = false } = {}) {
+    if (resumeBusy) return false;
     if (automatic) {
       if (automaticStartBusy || completedJob || !readArticle || !eligible() || !state.ai.planEnabled ||
           !state.ai.models.some((item) => item.slug === state.ai.model) || job || pending) return false;
@@ -316,7 +345,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     return runInsights({ skipConsent: false });
   }
   async function createFollowup(questionId) {
-    if (disposed || pending || job || automaticStartBusy || !eligible() ||
+    if (disposed || pending || job || automaticStartBusy || resumeBusy || !eligible() ||
         state.ai.result || state.draft ||
         !state.ai.planEnabled || !state.ai.models.some((item) => item.slug === state.ai.model)) return false;
     const root = observed.discussion.roots.find((entry) => entry.state === "visible" &&
@@ -388,9 +417,66 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       return false;
     } finally { if (job?.id === operationId) { cancelJob(); if (!disposed) aiPatch({ status: failureStatus }); } }
   }
+  async function resumeInsights() {
+    if (!aiClient?.resumable || disposed || resumeBusy || job || completedJob || pending ||
+        !state.ai.planEnabled || !eligible()) return false;
+    if ((!state.context || key() !== boundKey) && !prepare()) return false;
+    const snapshot = observed, expectedKey = boundKey, current = epoch;
+    const previousStatus = state.ai.status;
+    resumeBusy = true;
+    aiPatch({ status: "resuming" });
+    const stillHere = () => !disposed && epoch === current && key() === expectedKey &&
+      observed.actorId === snapshot.actorId;
+    try {
+      const resumable = await aiClient.resumable(snapshot.actorId);
+      if (!stillHere() || !resumable || !sameVersion(resumable.expected, snapshot.catalog.version) ||
+          resumable.topicId !== snapshot.topicId ||
+          resumable.originSourceId !== (snapshot.sourceId ?? null)) return false;
+      const followup = resumable.replyToId === null ? null : {
+        discussionId: resumable.discussionId, rootId: resumable.rootId, replyToId: resumable.replyToId,
+      };
+      if (followup && !snapshot.discussion.roots.some((root) => root.id === followup.rootId &&
+          root.state === "visible" && root.insight?.kind === "generated" &&
+          root.replies.some((reply) => reply.id === followup.replyToId && reply.state === "visible" &&
+            reply.authorId === snapshot.actorId && reply.replyToId === root.id))) return false;
+      const abort = new AbortController();
+      job = { id: resumable.operationId, actorId: snapshot.actorId, abort };
+      aiPatch({ status: "generating", error: null, result: null, researchFailureDetail: null });
+      const active = () => stillHere() && job?.id === resumable.operationId;
+      const end = Date.now() + 95000;
+      while (active() && Date.now() < end) {
+        const outcome = await aiClient.result(resumable.operationId, snapshot.actorId, { signal: abort.signal });
+        if (!active()) return false;
+        if (outcome.state === "failed") {
+          const detail = RESEARCH_DETAILS.has(outcome.detail) ? outcome.detail : null;
+          aiPatch({ status: RESEARCH_FAILURE_STATUS[outcome.error] ?? "generationFailed",
+            result: null, researchFailureDetail: detail });
+          return false;
+        }
+        if (outcome.state === "completed") {
+          const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
+          job = null; review = null;
+          completedJob = { id: resumable.operationId, actorId: snapshot.actorId, followup };
+          publish({ draft, preview: null, status: "prepared", ai: { ...state.ai, result: outcome.result,
+            status: "generated", costConsent: false } });
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      if (active()) aiPatch({ status: "researchTimeout" });
+      return false;
+    } catch {
+      if (stillHere()) aiPatch({ status: "generationFailed", result: null });
+      return false;
+    } finally {
+      resumeBusy = false;
+      if (job && stillHere()) { detachJob(); }
+      if (stillHere() && state.ai.status === "resuming") aiPatch({ status: previousStatus });
+    }
+  }
   function cancelInsights() { if (!job) return false; cancelJob(); epoch++; aiPatch({ status: "cancelled", result: null }); return true; }
   function dispose() {
-    cancelJob(); purgeCompleted(); epoch++; connectionEpoch++; invalidateModels();
+    detachJob(); completedJob = null; epoch++; connectionEpoch++; invalidateModels();
     disposed = true; observed = null; boundKey = null; review = null;
     state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
       draft: "", preview: null, status: "idle", busy: false,
@@ -400,5 +486,5 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   return Object.freeze({ observe, currentState, prepare, setRelatedSourceIncluded, setAllowWebResearch,
     setDraft, preview, share, discard, dispose,
     checkConnection, connect, disconnect, loadModels, loadDiagnostics, selectModel, setCostConsent,
-    readPageText, setArticleText, createInsights, createFollowup, cancelInsights });
+    readPageText, setArticleText, createInsights, createFollowup, cancelInsights, resumeInsights });
 }
