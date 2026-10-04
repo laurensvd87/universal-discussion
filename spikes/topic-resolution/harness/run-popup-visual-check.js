@@ -17,7 +17,7 @@ mkdirSync(outputRoot, { recursive: true });
 let browser;
 async function evaluate(expression, sessionId) {
   const result = await browser.send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true }, sessionId);
-  if (result.exceptionDetails) throw Error("Visual evaluation failed");
+  if (result.exceptionDetails) throw Error(`Visual evaluation failed: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}`);
   return result.result.value;
 }
 async function capture(name, sessionId) {
@@ -116,10 +116,18 @@ try {
       window.dispatchEvent(new Event('pagehide'));
       document.querySelector('#page-matching').replaceWith(matchingVisual);
       document.querySelector('main').append(startVisual,chooseVisual);
+      const insightRoot=document.querySelector('#local-insights')??document.createElement('section');
+      insightRoot.id='local-insights';insightRoot.className='action-panel';
+      const settingsInsightHost=document.querySelector('#app-settings-insights');
+      if (!settingsInsightHost) throw Error('Missing remount target: settings host');
+      document.querySelector('#app-view-insights').append(insightRoot);
       for (const selector of ['#app-topic-header','#app-welcome-connection','#app-settings-connection','#app-pages-list'])
         document.querySelector(selector).replaceChildren();
       const discussionRoot=document.querySelector('#local-discussion'); discussionRoot.replaceChildren();
-      const insightRoot=document.querySelector('#local-insights'); insightRoot.replaceChildren();
+      const insightHost=document.createElement('div'); insightHost.id='app-discussion-insights-host'; discussionRoot.append(insightHost);
+      settingsInsightHost.replaceChildren();
+      const settingsInsightHeading=document.createElement('h2'); settingsInsightHeading.id='app-settings-insights-heading'; settingsInsightHost.append(settingsInsightHeading);
+      insightRoot.replaceChildren();
       const discussion=mountDiscussionPanel(document,discussionRoot);
       const insights=mountInsightPanel(document,insightRoot);
       const state={phase:'ready',busy:false,error:null,actorId:'demo-alex',topicId:'topic-visual',sourceId:null,selection:'manual',
@@ -136,8 +144,9 @@ try {
           articleText:'',article:null,costConsent:false,result:null,status:'connected'}};
       window.visualCreates=0;
       discussion.bind(new Proxy({currentState:()=>state},{get:(object,key)=>object[key]??(()=>{})}));
-      insights.bind(new Proxy({currentState:()=>insightState,createInsights:()=>{window.visualCreates++;return Promise.resolve(true)}},
-        {get:(object,key)=>object[key]??(()=>{})}));
+      const insightController=new Proxy({currentState:()=>insightState,createInsights:()=>{window.visualCreates++;return Promise.resolve(true)}},
+        {get:(object,key)=>object[key]??(()=>{})});
+      insights.bind(insightController);discussion.bindInsight(insightController);
       const shell=mountPopupShell(document,{onModeChange:value=>discussion.setMode(value)});
       window.visualDiscussionPanel=discussion;window.visualDiscussionState=state;
       window.visualInsightPanel=insights;window.visualInsightState=insightState;window.visualShell=shell;
@@ -153,7 +162,8 @@ try {
     await capture("discussion", sessionId);
     await evaluate("document.querySelector('#app-tab-discussion').focus()", sessionId);
     await tabTo("#app-tab-pages", sessionId);
-    await tabTo("#app-tab-insights", sessionId);
+    assert.equal(await evaluate("document.querySelector('#app-tab-insights') === null", sessionId), true,
+      "User navigation has no separate Insights tab");
     assert.equal(await evaluate("document.querySelector('#app-tab-discussion').getAttribute('aria-current')", sessionId), "page");
     await evaluate("document.querySelector('#app-tab-pages').click();scrollTo(0,0)", sessionId);
     await assertView("#app-view-pages");
@@ -169,15 +179,15 @@ try {
     await evaluate("window.visualDiscussionState.discussion={roots:[{id:'root-1',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',body:'Long synthetic comment: '+'neighborhood'.repeat(45),edited:false,replies:[]}]};window.visualDiscussionPanel.render(window.visualDiscussionState);document.querySelector('#selected-topic-title').textContent='A very long synthetic topic about shared public space, neighborhood transport, parks and community gathering places';scrollTo(0,0)", sessionId);
     await capture("long-discussion", sessionId);
     await evaluate("document.querySelector('#selected-topic-title').textContent='A quieter, greener city';document.querySelector('#discussion-ai-insights').click();scrollTo(0,0)", sessionId);
-    await assertView("#app-view-insights");
+    await assertView("#app-view-discussion");
     assert.equal(await evaluate("window.visualCreates", sessionId), 1, "primary Create forwards exactly once");
-    assert.equal(await evaluate("document.querySelector('#app-tab-insights').getAttribute('aria-current')", sessionId), "page");
-    await capture("insights", sessionId);
+    assert.equal(await evaluate("document.querySelector('#app-view-insights').hidden", sessionId), true);
+    await capture("compose-insight", sessionId);
     await evaluate("window.visualInsightState.draft='Synthetic private insight draft about shaded gathering places.';window.visualInsightState.ai.status='generated';window.visualInsightState.ai.result={body:window.visualInsightState.draft,model:'synthetic',citations:[]};window.visualInsightPanel.render(window.visualInsightState);document.querySelector('#insight-draft-details').scrollIntoView({block:'start'})", sessionId);
     await capture("private-draft", sessionId);
     await checkReachable("#insight-share", sessionId);
     await checkReachable("#insight-discard", sessionId);
-    await evaluate("document.querySelector('#insight-account-details').open=true;document.querySelector('#insight-account-details > summary').focus()", sessionId);
+    await evaluate("document.querySelector('#app-settings-button').click();document.querySelector('#insight-account-details').open=true;document.querySelector('#insight-account-details > summary').focus()", sessionId);
     await tabTo("#insight-checkConnection", sessionId);
     await tabTo("#insight-disconnect", sessionId);
     await evaluate("document.querySelector('#insight-account-details > summary').scrollIntoView({block:'start'})", sessionId);
@@ -188,11 +198,11 @@ try {
     await tabTo("#insight-disconnect", sessionId);
     await evaluate("document.querySelector('#insight-account-details > summary').scrollIntoView({block:'start'})", sessionId);
     await capture("account-no-model", sessionId);
-    await evaluate("document.querySelector('#app-tab-discussion').click();document.querySelector('#discussion-ai-insights').click()", sessionId);
+    await evaluate("document.querySelector('#app-settings-back').click();document.querySelector('#discussion-ai-insights').click()", sessionId);
     assert.equal(await evaluate("window.visualCreates", sessionId), 1, "missing model only opens setup");
     assert.equal(await evaluate("window.visualInsightState.draft === document.querySelector('#insight-citations').textContent", sessionId), true,
       "private draft survives navigation");
-    await evaluate("window.visualInsightState.ai.status='usageLimit';window.visualInsightPanel.render(window.visualInsightState);scrollTo(0,0)", sessionId);
+    await evaluate("window.visualInsightState.ai.status='usageLimit';window.visualInsightPanel.render(window.visualInsightState);window.visualDiscussionPanel.renderInsightState(window.visualInsightState);document.querySelector('#app-settings-back').click();scrollTo(0,0)", sessionId);
     await capture("usage-limit", sessionId);
     await evaluate("document.querySelector('#app-settings-button').click();scrollTo(0,0)", sessionId);
     await assertView("#app-settings-view");

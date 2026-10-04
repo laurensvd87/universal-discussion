@@ -102,11 +102,27 @@ test("User insight preview contains only the generated message, citation links, 
   const card = ui.byId("insight-composer");
   assert.equal(ui.byId("insight-workspace").attributes["data-has-result"], "true");
   assert.deepEqual(card.children.filter((item) => !item.hidden).map((item) => item.id),
-    ["insight-citations", "insight-share", "insight-discard"]);
+    ["insight-private-label", "insight-citations", "insight-share", "insight-discard"]);
+  assert.equal(ui.byId("insight-private-label").textContent, "Private draft · not shared");
   assert.equal(ui.descendants(ui.byId("insight-citations")).filter((item) => item.tag === "a").length, 1);
   assert.equal(ui.byId("insight-draft-details").children[0].hidden, true);
   assert.equal(ui.byId("insight-share").disabled, false);
   assert.equal(ui.byId("insight-discard").disabled, false);
+});
+
+test("only a newly generated private result in the same open popup gets entrance motion", () => {
+  const ui = harness(undefined, "user");
+  const generated = state({ draft: "A concise finding", ai: { status: "generated",
+    result: { body: "A concise finding", citations: [] } } });
+  ui.panel.render(generated);
+  assert.notEqual(ui.byId("insight-composer").className, "is-new", "a recovered result is not replayed");
+  ui.panel.render(state({ ai: { status: "generating", result: null } }));
+  ui.panel.render(generated);
+  assert.equal(ui.byId("insight-composer").className, "is-new");
+  ui.panel.render(generated);
+  assert.equal(ui.byId("insight-composer").className, "is-new", "ordinary rerender does not restart motion");
+  ui.panel.render(state({ ai: { status: "idle", result: null } }));
+  assert.equal(ui.byId("insight-composer").className, "");
 });
 
 test("resumed research has concise visible progress and cannot create another request", () => {

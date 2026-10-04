@@ -1,21 +1,19 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Current local build (0.12.16)
+## Current local build (0.12.20)
 
-The User popup now opens with a connection welcome, then shows a shared Topic
-header and three views: Discussion, Pages, and Insights. Settings holds local
-pairing, browsing-session, Topic/data, and display controls. Discussion has a
-compact composer and a prominent **Create insight** action. That action opens
-Insights and forwards exactly one Create click only when its existing model and
-current-page prerequisites are ready; otherwise it opens setup. Tabs and
-Settings never start capture or AI work. Pages links only validated public
-sources and distinguishes same-Topic pages from related reading. Generated
-insight drafts appear before model controls and remain private until separate
-review and share. **Using ChatGPT plan** and **Manage usage** stay by the model
-and Create controls. Synthetic actual-Chrome checks cover disconnected and
-ready views, long text, no horizontal overflow, and keyboard access to
-account and draft actions. This remains an owner-only local prototype with
-synthetic posting identities, not a hosted community.
+The User popup opens with a connection welcome, then a shared Topic and two
+views: Discussion and Pages. The composer sits above the conversation. Write a
+comment or click the small **Insight** button there; the private result appears
+under the composer with **Share insight** and **Discard insight**. If ChatGPT or
+a model is missing, that button opens setup instead. **Settings** holds local
+pairing, browsing session, Topic/data, ChatGPT account/model, source selection
+and display controls. Tabs and Settings never start AI work. Pages links only
+validated public sources and distinguishes same-Topic pages from related
+reading. Synthetic actual-Chrome checks cover disconnected and ready views,
+long text, no horizontal overflow, and keyboard access to account and draft
+actions. This remains an owner-only local build with synthetic posting
+identities, not a hosted community.
 
 The first AI result is prompted as a short forum opener about the displayed
 page. When the provider returns structured URL citations, the private preview

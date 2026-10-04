@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Universal Discussion local proof of concept</title>
+    <title>Universal Discussion</title>
     <link rel="stylesheet" href="popup.css">
   </head>
   <body data-ui-mode="user">
@@ -13,7 +13,7 @@
           <span class="brand-name">Universal Discussion</span>
           <span id="connection-status" class="connection-status" role="status" aria-live="polite"></span>
         </div>
-        <button id="app-settings-button" class="app-settings-button user-only" type="button" aria-controls="app-settings-view"></button>
+        <button id="app-settings-button" class="app-settings-button user-only" type="button" aria-label="Settings" aria-controls="app-settings-view"></button>
       </div>
       <button id="capture-controls-link" class="capture-controls-link developer-only" type="button"></button>
       <div class="scope-row developer-only" aria-label="Prototype scope">
@@ -37,9 +37,8 @@
       <nav id="app-navigation" class="user-only app-navigation" hidden>
         <button id="app-tab-discussion" type="button" aria-controls="app-view-discussion" aria-current="page"></button>
         <button id="app-tab-pages" type="button" aria-controls="app-view-pages"></button>
-        <button id="app-tab-insights" type="button" aria-controls="app-view-insights"></button>
       </nav>
-      <section id="app-view-discussion" class="app-view"><section id="local-discussion" class="action-panel"></section></section>
+      <section id="app-view-discussion" class="app-view"><section id="local-discussion" class="action-panel"><div id="app-discussion-insights-host"></div></section></section>
       <section id="app-view-pages" class="app-view user-only" aria-labelledby="app-pages-heading" hidden>
         <h2 id="app-pages-heading"></h2>
         <p id="app-pages-context" class="app-view-intro"></p>
@@ -54,6 +53,9 @@
         <p id="app-settings-intro" class="app-view-intro"></p>
         <div id="app-settings-connection"></div>
         <div id="app-settings-capture"></div>
+        <section id="app-settings-insights" aria-labelledby="app-settings-insights-heading">
+          <h3 id="app-settings-insights-heading">Insight settings</h3>
+        </section>
         <div id="app-settings-display"></div>
       </section>
       <button id="app-start-session" class="user-only app-session-link" type="button" hidden></button>

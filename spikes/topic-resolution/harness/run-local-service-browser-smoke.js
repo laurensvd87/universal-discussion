@@ -410,10 +410,11 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await select("#discussion-source", "reserved-example-org");
     await click("#ui-mode-user");
     await waitExpression("document.querySelector('#insight-model').value === 'synthetic-model'", "synthetic model listed and selected automatically");
-    await waitExpression("!document.querySelector('#insight-createInsights').disabled", "one-click insight ready");
+    await waitExpression("!document.querySelector('#discussion-ai-insights').disabled", "one-click composer insight ready");
     assert.equal(await evaluate("document.querySelector('#insight-composer').hidden"), true);
     assert.equal(await evaluate(`${THREAD}.textContent.includes('Synthetic generated comparison')`), false);
-    await click("#insight-createInsights");
+    assert.equal(await evaluate("document.querySelector('#app-tab-insights') === null"), true);
+    await click("#discussion-ai-insights");
     await waitExpression("!document.querySelector('#insight-composer').hidden && document.querySelector('#insight-citations').textContent.includes('Synthetic generated comparison')", "synthetic formatted private result received");
     assert.ok(await evaluate("document.querySelector('#insight-article-text').value.includes('Public synthetic article')"));
     assert.equal(await evaluate("document.querySelector('#insight-article-text').value.includes('excluded-form-value')"), false);
@@ -436,8 +437,8 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await select("#discussion-source", "reserved-example-com");
     assert.equal(syntheticInsightRequests, 1);
     await click("#ui-mode-user");
-    await click("#app-tab-insights");
-    await waitExpression("document.body.dataset.uiMode==='user' && !document.querySelector('#app-view-insights').hidden && document.querySelector('#insight-createInsights').getBoundingClientRect().width>0", "compact User Mode with fixed insight action");
+    await click("#app-tab-discussion");
+    await waitExpression("document.body.dataset.uiMode==='user' && !document.querySelector('#app-view-discussion').hidden && document.querySelector('#discussion-ai-insights').getBoundingClientRect().width>0", "compact User Mode with composer insight action");
     assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth"));
     assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic shared reserved-domain browser root')`));
     await evaluate("window.scrollTo(0, 0)");

@@ -33,6 +33,34 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-04 version 0.12.20 unified Discussion UI:** The owner asked to
+remove the separate Insights tab and make writing or requesting an insight one
+conversation workflow. [ADR-037](../decisions/ADR-037-unified-discussion-insights-ui.md)
+records the presentation boundary: User Mode has Discussion and Pages; the
+small Insight action sits beside the comment action, and an unchanged private
+result appears directly below the composer with separate Share/Discard.
+ChatGPT account, model, research-source and related-page settings are behind
+Settings; Developer Mode retains its detailed workspace. The composer is above
+long threads. The User view removes duplicate heading/counts and routine
+prototype prose, but preserves author/robot provenance, a visible private-
+draft marker, accessible completion status, and material scope/data controls
+in Settings/docs. New contribution IDs and locally completed private results
+receive a brief one-shot entrance; routine rerenders and restored results do
+not. Buttons give short feedback; reduced-motion removes movement. A pending
+post keeps its text and focus until confirmation. No AI call occurs on
+navigation, opening Settings or popup reopen, and nothing posts automatically.
+A read-only trust review found no new egress/publication path and requested
+the private marker and accessible completion announcement; both are present.
+The extension suite passed 871/872 (one pre-existing skip), the unchanged
+service suite 202/206 (four opt-in skips), and the extension secret scan found
+zero findings across 179 scanned files. Isolated Chrome visual checks passed 13/13
+states at 410 px User/380 px Developer content width with no horizontal
+overflow. A separate synthetic Chrome/local-service smoke passed pairing,
+discussion posts/replies/edits, one-click insight, private recovery, exact
+Share and withdrawal; it saw one synthetic insight request, zero runtime
+exceptions and zero external extension requests. No live provider or real-
+page quality pass is claimed for this UI change.
+
 **2026-10-04 version 0.12.19 private Insight continuity and cleaner User Mode:**
 The owner requested that a started insight continue when the popup closes and
 that reopening preserve its private result. [ADR-036](../decisions/ADR-036-resumable-private-insights-and-clean-result.md)

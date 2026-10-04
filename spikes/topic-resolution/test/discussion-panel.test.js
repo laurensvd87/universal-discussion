@@ -4,14 +4,17 @@ import { mountDiscussionPanel } from "../browser/chromium/discussion-panel.js";
 import { EN } from "../browser/locales/en.js";
 import { readFileSync } from "node:fs";
 
-function harness(messages, workspace, insightsTab) {
+function harness(messages, workspace, insightsTab, settingsButton, accountDetails, controllerOverrides = {}) {
   const created = [];
   const document = { querySelector: (selector) => selector === "#insight-workspace" ? workspace
-    : selector === "#app-tab-insights" ? insightsTab : null, createElement(tag) {
+    : selector === "#app-tab-insights" ? insightsTab : selector === "#app-settings-button" ? settingsButton
+      : selector === "#insight-account-details" ? accountDetails
+        : selector === "#insight-account-details > summary" ? accountDetails?.summary : null, createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
       append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; },
       insertBefore(item, sibling) {
         this.children = this.children.filter((child) => child !== item);
+        if (sibling == null) { this.children.push(item); return; }
         const index = this.children.indexOf(sibling);
         assert.notEqual(index, -1);
         this.children.splice(index, 0, item);
@@ -24,22 +27,62 @@ function harness(messages, workspace, insightsTab) {
   const root = document.createElement("section");
   const panel = mountDiscussionPanel(document, root, { messages });
   const calls = [];
-  const controller = new Proxy({ currentState: () => state(), begin: (...args) => { calls.push(["begin", ...args]); return true; } }, {
+  const controller = new Proxy({ currentState: () => state(), begin: (...args) => { calls.push(["begin", ...args]); return true; },
+    ...controllerOverrides }, {
     get(object, key) { return object[key] ?? ((...args) => { calls.push([key, ...args]); return Promise.resolve(true); }); } });
   panel.bind(controller);
   return { created, root, panel, calls, byId: (id) => created.find((item) => item.id === id) };
 }
-test("User insight shortcut opens the compact workspace near the Topic", () => {
+test("User insight action lives in the composer and starts one automatic private request", () => {
   const actions = [];
-  const workspace = { open: false, scrollIntoView: (options) => actions.push(["scroll", options]),
-    querySelector: (selector) => selector === "summary" ? { focus: (options) => actions.push(["focus", options]) } : null };
-  const ui = harness(undefined, workspace);
+  const ui = harness();
+  ui.panel.bindInsight({ currentState: () => ({ context: { currentSource: { id: "source-demo" } },
+    ai: { planEnabled: true, model: "chosen", status: "idle" } }),
+    createInsights: (options) => { actions.push(options); return Promise.resolve(true); } });
   ui.panel.render(state());
   const shortcut = ui.byId("discussion-ai-insights");
+  const composer = ui.byId("discussion-composer");
+  assert.equal(shortcut.type, "button");
+  assert.ok(composer.children.some((item) => item.children?.includes(shortcut)));
   assert.equal(shortcut.disabled, false);
   shortcut.listeners.get("click")();
+  assert.deepEqual(actions, [{ automatic: true }]);
+  ui.panel.renderInsightState({ context: { currentSource: { id: "source-demo" } },
+    ai: { planEnabled: true, model: "chosen", status: "generating" } });
+  assert.equal(shortcut.disabled, true);
+  assert.equal(shortcut.attributes["aria-busy"], "true");
+  assert.equal(ui.byId("discussion-insight-activity").textContent, "Generating insight…");
+  ui.panel.renderInsightState({ context: { currentSource: { id: "source-demo" } },
+    ai: { planEnabled: true, model: "chosen", status: "resuming" } });
+  assert.equal(ui.byId("discussion-insight-activity").textContent, "Resuming insight…");
+  ui.panel.renderInsightState({ context: { currentSource: { id: "source-demo" } },
+    ai: { planEnabled: true, model: "chosen", status: "generated", result: { body: "Message" } } });
+  assert.equal(shortcut.hidden, true);
+  assert.equal(ui.byId("discussion-insight-activity").textContent, "Insight ready. Review it below before sharing.");
+  shortcut.listeners.get("click")();
+  assert.equal(actions.length, 1);
+});
+test("User insight action opens account settings when ChatGPT is not ready", () => {
+  const actions = [];
+  const account = { open: false, summary: { focus: (options) => actions.push(["focus", options]) } };
+  const ui = harness(undefined, null, null, { click: () => actions.push(["settings"]) }, account);
+  ui.panel.bindInsight({ currentState: () => ({ context: { currentSource: { id: "source-demo" } },
+    ai: { planEnabled: false, model: "", status: "idle" } }),
+    createInsights: () => { actions.push(["create"]); } });
+  ui.byId("discussion-ai-insights").listeners.get("click")();
+  assert.equal(account.open, true);
+  assert.deepEqual(actions, [["settings"], ["focus", { preventScroll: true }]]);
+});
+test("Developer insight action still opens detailed workspace", () => {
+  const actions = [];
+  const workspace = { open: false, scrollIntoView: () => actions.push("scroll"),
+    querySelector: () => ({ focus: () => actions.push("focus") }) };
+  const ui = harness(undefined, workspace);
+  ui.panel.setMode("developer");
+  ui.panel.bindInsight({ currentState: () => ({ ai: { status: "idle" } }) });
+  ui.byId("discussion-ai-insights").listeners.get("click")();
   assert.equal(workspace.open, true);
-  assert.deepEqual(actions, [["scroll", { block: "start", behavior: "smooth" }], ["focus", { preventScroll: true }]]);
+  assert.deepEqual(actions, ["scroll", "focus"]);
 });
 test("no-topic User view shows no empty composer or Create shortcut, while drafts remain recoverable", () => {
   const ui = harness();
@@ -141,7 +184,7 @@ test("own published question under a generated robot opener offers one-click pri
   assert.equal(actions[0].attributes["data-contribution-id"], "own-question");
   assert.equal(actions[0].textContent, "Get insights");
   actions[0].listeners.get("click")();
-  assert.deepEqual(navigation, ["insights"]);
+  assert.deepEqual(navigation, []);
   assert.deepEqual(followups, ["own-question"]);
 });
 test("manual import, non-reply and withdrawn questions cannot initiate a robot follow-up", () => {
@@ -178,7 +221,7 @@ test("User related pages are a count disclosure; native open state survives poll
   assert.equal(details.open, false);
   ui.panel.render(state({ related: { results: [] }, discussion: { roots: [] } }));
   assert.equal(details.hidden, true);
-  assert.equal(ui.byId("discussion-counts").hidden, false);
+  assert.equal(ui.byId("discussion-counts").hidden, true);
   assert.equal(ui.byId("discussion-counts").textContent, "0 human · 0 AI");
   assert.ok(descendants(ui.root).some((item) => item.textContent === EN.uiDiscussionEmpty));
 });
@@ -190,7 +233,7 @@ test("only registered synthetic actors get compact User names; full names stay a
   const ui = harness(); ui.panel.render(current);
   const author = descendants(ui.root).find((item) => item.title === "Blair · synthetic");
   assert.equal(author.textContent, "Blair");
-  assert.match(ui.byId("discussion-demo-identity").textContent, /Posting as Alex · synthetic identity/u);
+  assert.equal(ui.byId("discussion-demo-identity").textContent, "Alex · local profile");
   current.discussion.roots[0].authorId = "owner-other"; ui.panel.render(current);
   assert.ok(descendants(ui.root).some((item) => item.textContent === "Other · synthetic"));
 });
@@ -416,7 +459,7 @@ test("display-mode toggles preserve draft/control nodes and actions while hiding
   options.forEach((option, index) => assert.equal(topic.children[index], option));
   assert.deepEqual(ui.calls, calls);
   assert.equal(ui.byId("selected-topic-title").textContent, "<script>hostile topic</script>");
-  assert.match(ui.byId("discussion-demo-identity").textContent, /Posting as Alex.*synthetic identity, not signed in/u);
+  assert.equal(ui.byId("discussion-demo-identity").textContent, "Alex · local profile");
   ui.panel.render({ ...snapshot, phase: "error", error: "unavailable" });
   assert.equal(ui.byId("selected-topic-title").textContent, EN.uiTopicUnavailable);
   assert.equal(ui.byId("discussion-connection-settings").open, true);
@@ -428,6 +471,12 @@ test("User copy stays concise while Developer labels and action IDs remain intac
   assert.equal(ui.byId("discussion-submit").textContent, EN.uiPostComment);
   assert.equal(ui.byId("discussion-discard").textContent, EN.uiDiscard);
   assert.equal(ui.byId("discussion-counts").textContent, "1 human · 0 AI");
+  for (const id of ["discussion-heading", "discussion-counts", "discussion-demo-identity", "discussion-origin-disclosure"]) {
+    assert.equal(ui.byId(id).hidden, true);
+  }
+  assert.equal(ui.byId("discussion-body").placeholder, EN.uiCommentPlaceholder);
+  assert.equal(ui.byId("discussion-body").attributes["aria-label"], EN.uiCommentBody);
+  assert.equal(ui.created.find((item) => item.tag === "label" && item.htmlFor === "discussion-body").hidden, true);
   assert.equal(ui.byId("discussion-status").hidden, true);
   assert.equal(ui.byId("discussion-advanced").children[0].textContent, EN.uiAdvanced);
   ui.panel.render(state({ draft: { body: "Edit", detached: false, mode: "edit", targetId: "root-1" } }));
@@ -437,10 +486,89 @@ test("User copy stays concise while Developer labels and action IDs remain intac
   ui.panel.render(state({ phase: "error", error: "unavailable" }));
   assert.equal(ui.byId("discussion-status").hidden, false);
   ui.panel.setMode("developer");
+  for (const id of ["discussion-heading", "discussion-counts", "discussion-demo-identity", "discussion-origin-disclosure"]) {
+    assert.equal(ui.byId(id).hidden, false);
+  }
+  assert.equal(ui.byId("discussion-body").placeholder, "");
   assert.equal(ui.byId("discussion-submit").textContent, EN.discussionSubmit);
   assert.equal(ui.byId("discussion-discard").textContent, EN.discussionDiscard);
   assert.equal(ui.byId("discussion-counts").textContent, "Human contributions: 1 · Agent contributions: 0");
   assert.equal(ui.byId("discussion-advanced").children[0].textContent, EN.uiAdvancedDeveloper);
+});
+
+test("only a later contribution in the same Topic receives a one-shot entrance cue", () => {
+  const ui = harness();
+  const cards = () => descendants(ui.root).filter((item) => item.tag === "article");
+  const isNew = (item) => item.className?.split(" ").includes("is-new");
+  assert.equal(cards().some(isNew), false);
+  ui.panel.render(state());
+  assert.equal(cards().some(isNew), false);
+  const withReply = state();
+  withReply.discussion.roots[0].replies.push({ id: "reply-2", rootId: "root-1", state: "visible",
+    authorId: "demo-alex", actorType: "human", body: "A new reply" });
+  ui.panel.render(withReply);
+  assert.equal(cards().filter(isNew).length, 1);
+  assert.equal(cards().find((item) => isNew(item)).children.some((item) => item.textContent === "A new reply"), true);
+  ui.panel.render({ ...withReply, busy: true });
+  assert.equal(cards().some(isNew), false);
+  ui.panel.render(withReply);
+  assert.equal(cards().some(isNew), false);
+  const busyArrival = state();
+  busyArrival.discussion.roots[0].replies.push(withReply.discussion.roots[0].replies.at(-1),
+    { id: "reply-during-write", rootId: "root-1", state: "visible", authorId: "demo-alex",
+      actorType: "human", body: "Posted during refresh" });
+  ui.panel.render({ ...busyArrival, busy: true });
+  assert.equal(cards().some(isNew), false);
+  ui.panel.render(busyArrival);
+  assert.equal(cards().filter(isNew).length, 1);
+  const newTopic = state({ topicId: "topic-other", discussion: { roots: [{ id: "new-topic-root", state: "visible",
+    authorId: "demo-alex", actorType: "human", body: "First seen in this Topic", replies: [] }] } });
+  ui.panel.render(newTopic);
+  assert.equal(cards().some(isNew), false);
+  newTopic.discussion.roots.push({ id: "later-root", state: "visible", authorId: "demo-alex",
+    actorType: "human", body: "Later", replies: [] });
+  ui.panel.render(newTopic);
+  assert.equal(cards().filter(isNew).length, 1);
+});
+
+test("human post provenance stays accessible without repeating counts or prose", () => {
+  const ui = harness();
+  const author = descendants(ui.root).find((item) => item.className === "human-provenance");
+  assert.equal(author.textContent, "Alex");
+  assert.equal(author.attributes["aria-label"], "Human · Alex");
+  assert.equal(ui.byId("discussion-counts").hidden, true);
+});
+
+test("a real composer submit shows pending feedback and preserves draft focus until the outcome", async () => {
+  let release;
+  let calls = 0;
+  const completion = new Promise((resolve) => { release = resolve; });
+  const ui = harness(undefined, null, null, null, null, { submitDraft: () => { calls += 1; return completion; } });
+  const draft = state({ draft: { body: "Keep this while posting", detached: false, mode: "root", targetId: null } });
+  ui.panel.render(draft);
+  const input = ui.byId("discussion-body");
+  input.focus();
+  const composer = ui.byId("discussion-composer");
+  const submit = ui.byId("discussion-submit");
+  const pending = composer.listeners.get("submit")({ preventDefault() {} });
+  ui.panel.render({ ...draft, busy: true });
+  assert.equal(calls, 1);
+  assert.equal(input.focused, true);
+  assert.equal(input.value, "Keep this while posting");
+  assert.equal(input.disabled, false);
+  assert.equal(input.readOnly, true);
+  assert.equal(submit.disabled, true);
+  assert.equal(submit.textContent, EN.uiPostSending);
+  assert.equal(submit.attributes["aria-busy"], "true");
+  await composer.listeners.get("submit")({ preventDefault() {} });
+  assert.equal(calls, 1);
+  release(false);
+  await pending;
+  assert.equal(input.readOnly, false);
+  assert.equal(submit.attributes["aria-busy"], "false");
+  assert.equal(input.value, "Keep this while posting");
+  ui.panel.render(state({ busy: true, draft: draft.draft }));
+  assert.notEqual(submit.textContent, EN.uiPostSending);
 });
 
 test("User details stay compact through transient choose-topic; connection collapses on success but permits inspection", () => {

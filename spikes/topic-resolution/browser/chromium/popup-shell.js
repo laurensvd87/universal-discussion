@@ -32,7 +32,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     ["#app-welcome-kicker", "uiWelcomeKicker"], ["#app-welcome-heading", "uiWelcomeTitle"],
     ["#app-welcome-intro", "uiWelcomeIntro"],
     ["#app-tab-discussion", "uiTabDiscussion"], ["#app-tab-pages", "uiTabPages"],
-    ["#app-tab-insights", "uiTabInsights"], ["#app-pages-heading", "uiTabPages"],
+    ["#app-pages-heading", "uiTabPages"],
     ["#app-pages-empty", "uiPagesEmpty"], ["#app-settings-back", "uiSettingsBack"],
     ["#app-settings-kicker", "uiSettingsKicker"], ["#app-settings-heading", "uiSettingsTitle"],
     ["#app-settings-intro", "uiSettingsIntro"], ["#app-start-session", "uiStartSession"],
@@ -42,6 +42,9 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     const element = find(selector);
     if (element) element.textContent = text(key);
   }
+  find("#app-settings-button")?.setAttribute("aria-label", text("uiSettingsTitle"));
+  const insightSettingsHeading = find("#app-settings-insights-heading");
+  if (insightSettingsHeading) insightSettingsHeading.textContent = messages?.uiInsightSettings ?? EN.uiInsightSettings ?? "Insight settings";
   find("#app-navigation")?.setAttribute("aria-label", text("uiNavigationLabel"));
   find("#app-view-discussion")?.setAttribute("aria-label", text("uiDiscussionViewLabel"));
   find("#app-view-insights")?.setAttribute("aria-label", text("uiInsightsViewLabel"));
@@ -65,8 +68,32 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     const element = find(selector);
     if (element && destination && element.parentElement !== destination) destination.append(element);
   };
+  const insightSettingsSelectors = ["#insight-account-details", "#insight-ai-status",
+    'label[for="insight-model"]', "#insight-model", "#insight-model-status", "#insight-plan-usage",
+    "#insight-source-details", "#insight-related-settings"];
+  const insightSettingsNodes = insightSettingsSelectors.map((selector) => find(selector)).filter(Boolean);
+  const originalInsightPlaces = new Map(insightSettingsNodes.map((element) =>
+    [element, { parent: element.parentElement, next: element.nextSibling }]));
+  function placeInsightWorkspace(mode) {
+    const host = find("#app-discussion-insights-host");
+    const composer = find("#discussion-composer");
+    const discussion = find("#local-discussion");
+    if (host && composer?.parentElement === discussion && host.parentElement === discussion &&
+        composer.nextSibling !== host) discussion.insertBefore(host, composer.nextSibling);
+    move("#local-insights", mode === "user" ? host : app.insights);
+    const settingsHost = find("#app-settings-insights");
+    if (mode === "user") {
+      for (const element of insightSettingsNodes) if (settingsHost && element.parentElement !== settingsHost) settingsHost.append(element);
+    } else {
+      for (const element of [...insightSettingsNodes].reverse()) {
+        const place = originalInsightPlaces.get(element);
+        if (!place?.parent || element.parentElement === place.parent) continue;
+        place.parent.insertBefore(element, place.next?.parentElement === place.parent ? place.next : null);
+      }
+    }
+  }
   function showView(view) {
-    if (!app.nav || !["discussion", "pages", "insights", "settings"].includes(view)) return;
+    if (!app.nav || !["discussion", "pages", "settings"].includes(view)) return;
     activeView = view;
     if (document.body.dataset.uiMode !== "user") return;
     const connected = Boolean(lastState?.catalog);
@@ -78,17 +105,14 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
       const related = find("#discussion-related");
       if (related) related.open = true;
     }
-    if (view === "insights") {
-      const workspace = find("#insight-workspace");
-      if (workspace) workspace.open = true;
-    }
     app.welcome.hidden = connected || view === "settings";
     app.nav.hidden = !connected;
     app.topicHeader.hidden = !connected || view === "settings";
-    for (const name of ["discussion", "pages", "insights", "settings"]) {
+    for (const name of ["discussion", "pages", "settings"]) {
       app[name].hidden = (name !== "settings" && !connected) || name !== view;
     }
-    for (const name of ["discussion", "pages", "insights"]) {
+    app.insights.hidden = true;
+    for (const name of ["discussion", "pages"]) {
       const tab = find(`#app-tab-${name}`);
       if (!tab) continue;
       if (name === view) tab.setAttribute("aria-current", "page");
@@ -99,18 +123,11 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   const navigate = (view) => { showView(view); document.defaultView?.scrollTo?.(0, 0); };
   on(find("#app-tab-discussion"), "click", () => navigate("discussion"));
   on(find("#app-tab-pages"), "click", () => navigate("pages"));
-  on(find("#app-tab-insights"), "click", () => navigate("insights"));
   on(find("#app-settings-button"), "click", () => {
     navigate("settings"); find("#app-settings-heading")?.focus?.({ preventScroll: true });
   });
   on(find("#app-settings-back"), "click", () => {
     navigate("discussion"); find("#app-tab-discussion")?.focus?.({ preventScroll: true });
-  });
-  on(find("#discussion-ai-insights"), "click", () => {
-    navigate("insights");
-    find("#insight-user-heading")?.focus?.({ preventScroll: true });
-    const create = find("#insight-createInsights");
-    if (create && !create.disabled && document.body.dataset.uiMode === "user") create.click();
   });
   on(app.startSession, "click", () => {
     navigate("settings");
@@ -149,6 +166,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     document.body.dataset.uiMode = mode;
     if (app.nav) {
       if (mode === "developer") {
+        placeInsightWorkspace(mode);
         app.welcome.hidden = app.nav.hidden = app.topicHeader.hidden = app.pages.hidden = app.settings.hidden = true;
         app.discussion.hidden = app.insights.hidden = false;
         for (const selector of [".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance"]) move(selector, find("#local-discussion"));
@@ -159,6 +177,8 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
         move("#capture-settings", find("main"));
         move("#popup-preferences", find("main"));
       } else {
+        if (activeView === "insights") activeView = "discussion";
+        placeInsightWorkspace(mode);
         if (lastState) render(lastState);
         showView(activeView);
       }
@@ -184,6 +204,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     const view = projectDiscussionShell(state, messages);
     connection.dataset.state = view.connection; connection.textContent = view.connectionText;
     if (app.nav && document.body.dataset.uiMode === "user") {
+      placeInsightWorkspace("user");
       const connected = Boolean(state.catalog);
       for (const selector of [".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance"]) move(selector, app.topicHeader);
       move("#discussion-advanced", find("#app-settings-connection"));

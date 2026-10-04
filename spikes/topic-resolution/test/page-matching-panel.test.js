@@ -237,7 +237,7 @@ test("broad permission prompt starts synchronously in gesture after disclosed ch
   assert.deepEqual(ui.calls.at(-1), { target: "page-matching", type: "start-session", windowId: 2, expectedRevision: "revision-1" });
   assert.equal(ui.byId("matching-consent").checked, false);
   assert.ok(ui.created.some((item) => item.textContent === EN.matchingDisclosure));
-  assert.match(EN.matchingDisclosure, /owner-only prototype, publisher metadata does not block matching/);
+  assert.match(EN.matchingDisclosure, /local build, publisher metadata does not block matching/);
   assert.match(EN.matchingDisclosure, /unverified working assumption, not legal or store clearance/);
   assert.ok(ui.created.some((item) => item.textContent === EN.matchingPartial));
 });

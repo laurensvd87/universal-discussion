@@ -46,6 +46,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   let controller;
   let disposed = false;
   let contextSignature;
+  let generationContext = null;
+  let previousResultContext = null;
+  let hadVisibleResult = false;
   let relatedSettingsSignature;
   let previousAccountReady;
   function node(tag, key, id) {
@@ -149,6 +152,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const draftSummary = node("summary", "draftWorkspace"); draftDetails.append(draftSummary); details.append(draftDetails);
   const composer = node("section", null, "insight-composer"); composer.hidden = true; draftDetails.append(composer);
   const draftHint = node("p", null, "insight-draft-hint"); composer.append(draftHint);
+  const privateDraftLabel = node("p", "uiPrivateInsightDraft", "insight-private-label"); composer.append(privateDraftLabel);
   const target = node("p", null, "insight-preview-topic"); composer.append(target);
   const origin = node("p", null, "insight-preview-origin"); composer.append(origin);
   const citations = node("p", null, "insight-citations"); citations.className = "insight-body"; composer.append(citations);
@@ -179,6 +183,20 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       exactGenerated = Boolean(state.context && state.ai?.result && state.draft?.trim() &&
         state.draft === formatInsightCitations(state.ai.result.body, state.ai.result.citations));
     } catch { /* An invalid result cannot be offered for sharing. */ }
+    const resultContext = state.context?.topic?.id && state.context?.currentSource?.id
+      ? `${state.context.topic.id}:${state.context.currentSource.id}` : null;
+    if (resultContext !== previousResultContext) {
+      hadVisibleResult = false;
+      generationContext = null;
+    }
+    if (["preparingArticle", "generating"].includes(state.ai?.status) && resultContext) generationContext = resultContext;
+    if (exactGenerated && !hadVisibleResult && generationContext === resultContext &&
+        document.body?.dataset?.uiMode === "user") {
+      composer.className = "is-new";
+      generationContext = null;
+    } else if (!exactGenerated) composer.className = "";
+    hadVisibleResult = exactGenerated;
+    previousResultContext = resultContext;
     draftDetails.hidden = composer.hidden = !exactGenerated;
     discard.disabled = state.busy;
     const signature = JSON.stringify(state.context);
@@ -222,6 +240,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     share.textContent = text("share");
     const simplePreview = document.body?.dataset?.uiMode === "user";
     for (const decoration of [draftSummary, draftHint, target, origin, shareScope]) decoration.hidden = simplePreview;
+    privateDraftLabel.hidden = !simplePreview;
     target.textContent = exactGenerated ? text("selected").replace("{title}", state.context.topic.title) : "";
     origin.textContent = !exactGenerated ? "" : state.context.currentSource?.title
       ? text("origin").replace("{title}", `${state.context.currentSource.title} — ${state.context.currentSource.url ?? ""}`) : text("noOrigin");
@@ -283,6 +302,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     quickStatus.textContent = quickStatus.hidden ? "" :
       ai.status === "usageLimit" && document.body?.dataset?.uiMode === "user" ? text("usageLimitBrief") : aiStatus.textContent;
     quickStatus.setAttribute("data-state", ai.status === "preparingArticle" ? "preparing" : "failed");
+    quickActions.hidden = document.body?.dataset?.uiMode === "user" && quickStatus.hidden;
     nextStep.textContent = text(!state.context ? "nextPrepare" : resuming ? "nextResuming" : generating ? "nextGenerating" :
       RESEARCH_FAILURE_STATUSES.has(ai.status) ? "nextResearchFailed" :
       generatedDraft ? "nextReviewDraft" : !ai.planEnabled ? "nextConnect" :

@@ -104,6 +104,8 @@ test("User layout keeps the Topic first and hides account identity and diagnosti
   const html = readFileSync(new URL("../browser/chromium/popup.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8");
   assert.ok(html.indexOf('id="local-discussion"') < html.indexOf('id="local-insights"'));
+  assert.doesNotMatch(html, /id="app-tab-insights"/u);
+  assert.match(html, /id="app-settings-insights"/u);
   assert.doesNotMatch(css, /#local-insights\s*\{\s*order\s*:/u);
   assert.match(css, /body\[data-ui-mode="user"\]\s+#insight-ai-account\s*\{\s*display:\s*none/u);
   assert.match(css, /body\[data-ui-mode="user"\]\s+#insight-diagnostics\s*\{\s*display:\s*none/u);
@@ -112,12 +114,15 @@ test("User layout keeps the Topic first and hides account identity and diagnosti
 test("app navigation rehomes controls without calling Create or losing drafts", () => {
   const selectors = ["main", "#ui-mode-user", "#ui-mode-developer", "#connection-status", "#ui-mode-toggle",
     "#capture-controls-link", "#capture-settings-summary", "#page-matching", "#capture-settings", "#popup-preferences",
-    "#insight-workspace", "#insight-account-details", "#insight-source-details", "#app-welcome", "#app-navigation",
+    "#insight-workspace", "#insight-account-details", "#insight-source-details", "#insight-ai-status",
+    "#insight-related-settings", "#insight-model", "#insight-model-status", "#insight-plan-usage",
+    'label[for="insight-model"]', "#insight-quick-actions", "#local-insights", "#app-discussion-insights-host",
+    "#app-settings-insights", "#app-settings-insights-heading", "#discussion-composer", "#app-welcome", "#app-navigation",
     "#app-topic-header", "#app-view-discussion", "#app-view-pages", "#app-view-insights", "#app-settings-view",
     "#app-welcome-kicker", "#app-welcome-heading", "#app-welcome-intro", "#app-pages-heading", "#app-settings-heading",
     "#app-settings-kicker", "#app-settings-intro",
     "#app-pages-list", "#app-pages-empty", "#app-pages-context", "#app-start-session", "#app-choose-topic", "#app-settings-button",
-    "#app-settings-back", "#app-tab-discussion", "#app-tab-pages", "#app-tab-insights", "#app-settings-connection",
+    "#app-settings-back", "#app-tab-discussion", "#app-tab-pages", "#app-settings-connection",
     "#app-welcome-connection", "#app-settings-capture", "#app-settings-display", "#local-discussion",
     "#discussion-connection-settings", "#discussion-status", "#discussion-advanced", "#discussion-related", "#discussion-counts", "#discussion-topic",
     ".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance", "#discussion-ai-insights",
@@ -125,13 +130,16 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   const elements = new Map();
   for (const selector of selectors) elements.set(selector, {
     children: [], dataset: {}, attributes: {}, listeners: new Map(), hidden: false,
-    append(child) {
-      if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
-      this.children.push(child); child.parentElement = this;
+    get nextSibling() { const siblings = this.parentElement?.children ?? []; return siblings[siblings.indexOf(this) + 1] ?? null; },
+    append(...children) {
+      for (const child of children) {
+        if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
+        this.children.push(child); child.parentElement = this;
+      }
     },
     insertBefore(child, sibling) {
       if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
-      const index = this.children.indexOf(sibling); assert.notEqual(index, -1);
+      const index = sibling === null ? this.children.length : this.children.indexOf(sibling); assert.notEqual(index, -1);
       this.children.splice(index, 0, child); child.parentElement = this;
     },
     setAttribute(key, value) { this.attributes[key] = value; },
@@ -144,9 +152,15 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   });
   const get = (selector) => elements.get(selector);
   for (const selector of ["#discussion-connection-settings", "#discussion-status", "#discussion-advanced",
-    "#discussion-related", ".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance", "#discussion-ai-insights", "#discussion-counts"])
+    "#discussion-related", ".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance", "#discussion-ai-insights", "#discussion-counts", "#discussion-composer", "#app-discussion-insights-host"])
     get("#local-discussion").append(get(selector));
   for (const selector of ["#capture-settings", "#popup-preferences"]) get("main").append(get(selector));
+  get("#app-view-insights").append(get("#local-insights"));
+  get("#local-insights").append(get("#insight-workspace"), get("#insight-related-settings"));
+  get("#insight-workspace").append(get("#insight-quick-actions"), get("#insight-account-details"),
+    get("#insight-ai-status"), get("#insight-source-details"));
+  get("#insight-quick-actions").append(get('label[for="insight-model"]'), get("#insight-model"),
+    get("#insight-model-status"), get("#insight-createInsights"), get("#insight-plan-usage"));
   const document = { body: { dataset: {} }, querySelector: get };
   const draft = get("#insight-body"); draft.value = "Private unsent draft";
   let creates = 0; get("#insight-createInsights").addEventListener("click", () => { creates++; });
@@ -160,6 +174,9 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   assert.equal(get("#app-settings-button").textContent, "Localized settings");
   assert.equal(get("#app-navigation").getAttribute("aria-label"), "Localized navigation");
   assert.equal(get("#app-tab-pages").textContent, EN.uiTabPages, "missing translation uses English fallback");
+  assert.equal(get("#app-settings-insights-heading").textContent, "Insight settings");
+  let modelChanges = 0;
+  get("#insight-model").addEventListener("change", () => { modelChanges++; });
   const disconnected = { phase: "disconnected", catalog: null, draft: { body: "" } };
   shell.render(disconnected);
   assert.equal(get("#app-welcome").hidden, false);
@@ -173,6 +190,12 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     related: { results: [] } };
   shell.render(connected);
   assert.equal(get("#app-navigation").hidden, false);
+  assert.equal(get("#local-insights").parentElement, get("#app-discussion-insights-host"));
+  assert.equal(get("#discussion-composer").nextSibling, get("#app-discussion-insights-host"));
+  assert.equal(get("#insight-model").parentElement, get("#app-settings-insights"));
+  assert.equal(get("#insight-account-details").parentElement, get("#app-settings-insights"));
+  get("#insight-model").listeners.get("change")();
+  assert.equal(modelChanges, 1, "reparenting keeps the original model control and handler");
   assert.equal(get("#app-pages-context").textContent, "Localized shared pages");
   assert.equal(get("#selected-topic-title").parentElement, get("#app-topic-header"));
   const noTopic = { ...connected, phase: "choose-topic", topicId: null };
@@ -189,19 +212,23 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   get("#app-tab-pages").click();
   assert.equal(get("#app-view-pages").hidden, false);
   assert.equal(get("#app-tab-pages").getAttribute("aria-current"), "page");
-  get("#app-tab-insights").click();
-  assert.equal(creates, 0);
   get("#app-tab-discussion").click();
   get("#discussion-ai-insights").click();
-  assert.equal(creates, 1);
+  assert.equal(creates, 0, "the discussion owns the generate action");
   get("#insight-createInsights").disabled = true;
   get("#app-tab-discussion").click(); get("#discussion-ai-insights").click();
-  assert.equal(creates, 1);
+  assert.equal(creates, 0);
   assert.equal(draft.value, "Private unsent draft");
   get("#ui-mode-developer").click();
   assert.equal(get("#discussion-connection-settings").parentElement, get("#local-discussion"));
+  assert.equal(get("#local-insights").parentElement, get("#app-view-insights"));
+  assert.equal(get("#insight-model").parentElement, get("#insight-quick-actions"));
+  assert.equal(get("#insight-account-details").parentElement, get("#insight-workspace"));
+  assert.ok(get("#insight-quick-actions").children.indexOf(get("#insight-model")) <
+    get("#insight-quick-actions").children.indexOf(get("#insight-createInsights")));
   get("#ui-mode-user").click();
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
+  assert.equal(get("#insight-model").parentElement, get("#app-settings-insights"));
   shell.render(disconnected);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-welcome-connection"));
   shell.render(connected);

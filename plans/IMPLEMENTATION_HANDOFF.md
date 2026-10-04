@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-04 current UI integration (0.12.20): ADR-037 unifies User Mode around
+Discussion and Pages. The comment composer offers a small explicit Insight
+action; its private result stays in Discussion with distinct Share/Discard.
+ChatGPT account/model and research-source choices are behind Settings.
+Developer Mode keeps detailed controls. No new provider call, automatic post,
+permission, storage path or release scope is authorized. The same 30-minute
+RAM-only result recovery and exact-share attestation from ADR-036 remain.
+The full extension suite passes 871/872 (one existing skip), the local service
+suite 202/206 (four opt-in skips), and the isolated
+Chrome visual run passes 13 states without horizontal overflow, and the
+synthetic local-service/Chrome smoke passes the post -> insight -> private
+reopen -> Share path with no runtime exceptions or external extension requests.
+The independent trust review found no new send/publication path; it prompted
+a visible private label and accessible completion status. Reload the unpacked
+extension after update; the
+backend does not need a restart for this UI-only change. Live provider quality,
+remote/public deployment and store-policy gates are still open.
+
 2026-10-04 current integration (0.12.19): ADR-036 adds RAM-only, 30-minute
 private Insight recovery after popup closure. The local service continues an
 already accepted user-triggered request; the reopened popup uses an authenticated

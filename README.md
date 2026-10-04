@@ -23,10 +23,12 @@ there is no automatic posting or retry. See also
 [ADR-029](decisions/ADR-029-ephemeral-insight-structure-trace.md) and
 [ADR-030](decisions/ADR-030-owner-opt-in-raw-insight-debug.md).
 
-Extension **0.12.19** organizes the popup around the current Topic and three
-views: Discussion, Pages and Insights. First-time pairing has a dedicated
-welcome state; settings and prototype diagnostics no longer crowd the main
-conversation. Create insight remains an explicit action. Its formatted result
+Extension **0.12.20** organizes the popup around the current Topic and two
+views: Discussion and Pages. The comment composer is above the conversation;
+its small **Insight** button explicitly starts a private insight for the
+current page. The result appears in Discussion, not a separate tab. Pairing
+has a welcome state; ChatGPT account, model, source and related-page options
+live behind **Settings**. Its formatted result
 is already the private preview; only a separate **Share** publishes it. If you
 close the popup after research starts, the paired local service can finish it
 and recover the result when you reopen the same Topic/source within 30 minutes.
@@ -36,9 +38,9 @@ the insight message, its inline source links, and Share/Discard controls;
 technical disclosures remain in Settings/Developer. Synthetic isolated-
 Chrome checks cover the actual popup width and height, keyboard navigation,
 account switching and no horizontal overflow. Reload the unpacked extension
-after updating. The local service was restarted to load the revised insight
-prompt; UI changes alone would not require it. The connected ChatGPT account controls remain reachable under
-**Insights > ChatGPT account settings > Disconnect to switch account**.
+after updating; this UI change alone does not require a service restart. The
+connected ChatGPT account controls remain reachable under **Settings > Insight
+settings > ChatGPT account > Disconnect to switch account**.
 
 The first AI result is prompted as a short, page-specific forum opener,
 not a long research report. Provider-returned citation references appear as

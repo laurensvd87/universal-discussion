@@ -255,7 +255,7 @@ const localDiscussion = createLocalDiscussionController({
 });
 insightController = createInsightController({
   shareInsight: localDiscussion.shareInsight,
-  onStateChange: insightPanel.render,
+  onStateChange: (state) => { insightPanel.render(state); discussionPanel.renderInsightState?.(state); },
   aiClient,
   readArticle: insightPageReader.read,
   attestArticle: insightPageReader.attest,

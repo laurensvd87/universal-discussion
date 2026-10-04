@@ -785,7 +785,7 @@ body[data-ui-mode="user"] .connection-status { margin-top: 4px; font-size: 11px;
 }
 .app-settings-button:hover, .app-back:hover { color: var(--forest-dark); background: #d9eadc; }
 body[data-ui-mode="user"] .app-navigation {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px;
   margin-top: 9px; margin-bottom: 11px; padding: 3px;
   border: 1px solid var(--line); border-radius: 12px; background: #eef0e9;
 }
@@ -798,8 +798,8 @@ body[data-ui-mode="user"] #insight-quick-actions:not([data-phase="generating"]) 
 }
 #app-tab-discussion::before { mask-image: url("icons/conversation.svg"); }
 #app-tab-pages::before { mask-image: url("icons/pages.svg"); }
-#app-tab-insights::before,
-body[data-ui-mode="user"] #insight-quick-actions:not([data-phase="generating"]) #insight-createInsights::before { mask-image: url("icons/spark.svg"); }
+body[data-ui-mode="user"] #insight-quick-actions:not([data-phase="generating"]) #insight-createInsights::before,
+body[data-ui-mode="user"] #discussion-ai-insights::before { mask-image: url("icons/spark.svg"); }
 .app-navigation button:hover { color: var(--forest); background: #e3e9dd; }
 .app-navigation button[aria-current="page"] { color: var(--forest-dark); background: var(--surface); box-shadow: 0 1px 4px #1b352219; }
 body[data-ui-mode="user"] .app-topic-header { display: grid; gap: 2px; margin-top: 12px; padding: 0 2px; }
@@ -885,6 +885,11 @@ body[data-ui-mode="user"] #insight-draft-details[data-has-draft="true"] {
 body[data-ui-mode="user"] #insight-composer {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
 }
+body[data-ui-mode="user"] #insight-private-label {
+  grid-column: 1 / -1; margin: 0; color: var(--forest);
+  font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase;
+}
 body[data-ui-mode="user"] #insight-citations {
   grid-column: 1 / -1; margin: 0; padding: 17px 16px;
   border: 1px solid var(--line); border-radius: 13px;
@@ -898,6 +903,56 @@ body[data-ui-mode="user"] #insight-discard {
 }
 body[data-ui-mode="user"] #insight-discard:hover { color: var(--forest-dark); background: #d9eadc; }
 body[data-ui-mode="user"] #product-footer { display: none; }
+/* The private insight is part of the conversation, not a third destination. */
+body[data-ui-mode="user"] #app-discussion-insights-host { min-width: 0; }
+body[data-ui-mode="user"] #app-discussion-insights-host #local-insights {
+  margin: 0; padding: 0; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none;
+}
+body[data-ui-mode="user"] #app-discussion-insights-host #insight-user-heading,
+body[data-ui-mode="user"] #app-discussion-insights-host #insight-workspace > summary,
+body[data-ui-mode="user"] #app-discussion-insights-host #insight-createInsights { display: none; }
+body[data-ui-mode="user"] #app-discussion-insights-host #insight-workspace { display: grid; gap: 0; }
+body[data-ui-mode="user"] #app-discussion-insights-host #insight-quick-actions[hidden] { display: none; }
+body[data-ui-mode="user"] #app-settings-insights {
+  display: grid; gap: 10px; min-width: 0; margin-top: 16px;
+  padding: 15px; border: 1px solid var(--line); border-radius: 13px;
+  background: var(--surface);
+}
+body[data-ui-mode="user"] #app-settings-insights h3 { margin: 0; font-size: 15px; }
+body[data-ui-mode="user"] #app-settings-insights #insight-source-details,
+body[data-ui-mode="user"] #app-settings-insights #insight-plan-usage { display: block; }
+body[data-ui-mode="user"] #app-settings-insights label[for="insight-model"] { margin: 0; }
+body[data-ui-mode="user"] #app-settings-insights #insight-model { width: 100%; }
+body[data-ui-mode="user"] #discussion-composer .discussion-composer-actions {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px;
+  align-items: center; min-width: 0;
+}
+body[data-ui-mode="user"] #discussion-composer #discussion-submit { width: 100%; margin: 0; }
+body[data-ui-mode="user"] #discussion-composer #discussion-insight-activity {
+  grid-column: 1 / -1; color: var(--ink-soft); font-size: 11px;
+}
+body[data-ui-mode="user"] #discussion-composer #discussion-insight-activity:empty { display: none; }
+body[data-ui-mode="user"] #discussion-ai-insights {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 38px; width: auto; min-height: 38px; padding: 0 10px;
+  border: 1px solid #bdd9c9; border-radius: 9px;
+  color: var(--forest); background: var(--forest-pale);
+}
+body[data-ui-mode="user"] #discussion-ai-insights::after { display: none; }
+body[data-ui-mode="user"] #discussion-ai-insights[data-phase="working"]:disabled { display: inline-flex; }
+body[data-ui-mode="user"] #discussion-ai-insights::before {
+  content: ""; display: inline-block; flex: none; width: 17px; height: 17px;
+  background: currentColor; mask-size: contain; mask-position: center; mask-repeat: no-repeat;
+}
+body[data-ui-mode="user"] #discussion-ai-insights[data-phase="working"]::before {
+  width: 14px; height: 14px; border: 2px solid currentColor;
+  border-right-color: transparent; border-radius: 50%;
+  background: transparent; mask: none; animation: insight-spin .8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-ui-mode="user"] #discussion-ai-insights[data-phase="working"]::before { animation: none; }
+}
 @keyframes insight-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   body[data-ui-mode="user"] #insight-quick-actions[data-phase="generating"] #insight-createInsights::before,
@@ -910,3 +965,94 @@ body[data-ui-mode="user"] #app-settings-display { margin-top: 18px; }
 body[data-ui-mode="user"] #app-settings-view .capture-settings { background: var(--surface-muted); }
 body[data-ui-mode="user"] #product-footer { margin-top: 20px; }
 [hidden], body[data-ui-mode="user"] [hidden] { display: none !important; }
+
+/* Conversation-first User Mode: the title and conversation carry the hierarchy. */
+body[data-ui-mode="user"] .popup-topbar { min-height: 58px; }
+body[data-ui-mode="user"] .brand-lockup { min-width: 0; }
+body[data-ui-mode="user"] .brand-name { display: block; line-height: 1.15; }
+body[data-ui-mode="user"] .app-settings-button {
+  display: inline-flex; flex: 0 0 44px; align-items: center; justify-content: center;
+  width: 44px; height: 44px; min-height: 44px; padding: 0;
+  border: 1px solid transparent; border-radius: 12px;
+  color: var(--forest); background: transparent; font-size: 0;
+}
+body[data-ui-mode="user"] .app-settings-button::before {
+  content: ""; width: 20px; height: 20px; background: currentColor;
+  mask: url("icons/settings.svg") center / contain no-repeat;
+}
+body[data-ui-mode="user"] .app-settings-button:hover,
+body[data-ui-mode="user"] .app-settings-button[aria-expanded="true"] {
+  border-color: #cbded0; background: var(--forest-pale);
+}
+body[data-ui-mode="user"] .app-settings-button:focus-visible { outline: 3px solid #7aab81; outline-offset: 2px; }
+body[data-ui-mode="user"] .app-topic-header { margin-top: 15px; margin-bottom: 4px; }
+body[data-ui-mode="user"] .app-topic-header .topic-eyebrow,
+body[data-ui-mode="user"] .app-topic-header .topic-selection-cue { display: none; }
+body[data-ui-mode="user"] .app-topic-header #selected-topic-title {
+  font-size: 23px; line-height: 1.22; letter-spacing: -.03em;
+}
+body[data-ui-mode="user"] #local-discussion { gap: 11px; }
+body[data-ui-mode="user"] #local-discussion > #discussion-composer {
+  gap: 10px; margin-top: 0; padding-top: 0; border-top: 0;
+}
+body[data-ui-mode="user"] #discussion-composer label[for="discussion-body"],
+body[data-ui-mode="user"] #discussion-demo-identity,
+body[data-ui-mode="user"] #discussion-origin-disclosure { display: none; }
+body[data-ui-mode="user"] #discussion-body {
+  min-height: 74px; max-height: 170px; padding: 11px 12px;
+  border-radius: 12px; background: #fff; font-size: 13px;
+}
+body[data-ui-mode="user"] #discussion-body::placeholder { color: #68776e; opacity: 1; }
+body[data-ui-mode="user"] .discussion-contribution .human-provenance,
+body[data-ui-mode="user"] .discussion-contribution .insight-provenance {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+}
+body[data-ui-mode="user"] .discussion-contribution .human-provenance::before,
+body[data-ui-mode="user"] .discussion-contribution .insight-provenance::before {
+  content: ""; display: inline-block; flex: none; width: 15px; height: 15px;
+  background: currentColor; mask-position: center; mask-size: contain; mask-repeat: no-repeat;
+}
+body[data-ui-mode="user"] .discussion-contribution .human-provenance::before { mask-image: url("icons/person.svg"); }
+body[data-ui-mode="user"] .discussion-contribution .insight-provenance::before { mask-image: url("icons/robot.svg"); }
+body[data-ui-mode="user"] #discussion-composer .discussion-composer-actions {
+  grid-template-columns: minmax(0, 1fr) 44px; gap: 8px;
+}
+body[data-ui-mode="user"] #discussion-composer #discussion-submit,
+body[data-ui-mode="user"] #discussion-ai-insights { min-height: 44px; }
+body[data-ui-mode="user"] #discussion-composer #discussion-submit { order: 0; }
+body[data-ui-mode="user"] #discussion-ai-insights {
+  order: 1;
+  width: 44px; min-width: 44px; padding: 0; border-radius: 11px;
+  font-size: 0; line-height: 1;
+}
+body[data-ui-mode="user"] #discussion-insight-activity { order: 2; }
+body[data-ui-mode="user"] #discussion-ai-insights::before { width: 19px; height: 19px; }
+body[data-ui-mode="user"] #discussion-ai-insights:hover { color: var(--forest-dark); background: #d9eadc; }
+body[data-ui-mode="user"] #discussion-composer #discussion-insight-activity:not(:empty) {
+  margin-top: -2px; line-height: 1.4;
+}
+
+/* Short, quiet interactions keep the popup responsive without distracting from text. */
+body[data-ui-mode="user"] button:not(:disabled),
+body[data-ui-mode="user"] .discussion-source-link,
+body[data-ui-mode="user"] .inline-citation {
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
+    box-shadow 150ms ease, transform 150ms ease;
+}
+body[data-ui-mode="user"] button:not(:disabled):active { transform: translateY(1px); }
+body[data-ui-mode="user"] .discussion-contribution.is-new,
+body[data-ui-mode="user"] #insight-composer.is-new {
+  animation: conversation-arrive 200ms ease-out both;
+}
+@keyframes conversation-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-ui-mode="user"] button:not(:disabled),
+  body[data-ui-mode="user"] .discussion-source-link,
+  body[data-ui-mode="user"] .inline-citation { transition: none; }
+  body[data-ui-mode="user"] button:not(:disabled):active { transform: none; }
+  body[data-ui-mode="user"] .discussion-contribution.is-new,
+  body[data-ui-mode="user"] #insight-composer.is-new { animation: none; }
+}

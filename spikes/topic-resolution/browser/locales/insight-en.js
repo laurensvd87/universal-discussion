@@ -24,6 +24,7 @@ export const INSIGHT_EN = Object.freeze({
   draftWorkspace: "Manual draft (empty until you write or paste)",
   draftWorkspaceManualFilled: "Review manually entered draft",
   draftWorkspaceGenerated: "Private insight",
+  uiPrivateInsightDraft: "Private draft · not shared",
   nextPrepare: "Next: prepare local context for this Topic.",
   nextConnect: "Next: connect ChatGPT for research. Write your own posts in Discussion.",
   nextListModels: "Next: list available ChatGPT models. Listing models does not generate an insight.",
