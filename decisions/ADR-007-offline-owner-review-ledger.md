@@ -1,9 +1,16 @@
 # ADR-007: Use a digest-bound local ledger for owner labeling
 
 Status: Accepted for the offline workflow and generated-only P1.2b-1 preflight;
-real/public acquisition and real review completion remain unauthorized
+ADR-045 supplies high-level owner acquisition permission, while exact-source,
+Trust, staffing and real review-completion gates remain open
 
 Date: 2026-09-21
+
+2026-10-05 continuation: [ADR-045](ADR-045-r5-public-pair-acquisition-checkpoint.md)
+supersedes only this decision's historical statement that owner permission
+for public-pair acquisition is absent. Its exact origin/field/rights plan,
+pilot-before-scale sequence and independent-human review requirements remain.
+No real task or corpus has been acquired under this ADR.
 
 Owners: Semantic Resolution, Trust, Quality, Lead / Product Orchestrator
 

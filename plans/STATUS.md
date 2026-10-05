@@ -35,6 +35,25 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-05 R5 review-set approval checkpoint:** The owner approved in
+principle assembling 200–250 local public-page pairs with URL/title,
+provenance, existing-model vectors and later human labels until manual
+deletion; no retained raw text, private pages, provider calls or publication.
+[ADR-045](../decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)
+records this as acquisition permission in principle without inventing an
+independent rating or repeating the finished 6/6 exercise. The older R5
+collection contract still requires exact permitted origins/date range/fields/
+method/rights evidence, Trust disposition and real independent reviewer
+staffing. Those operational specifics were not in the approval, so
+no real pair has been acquired, no owner database opened, no split frozen and
+no automatic grouping changed. A source-policy scan found licensed English
+Wikinews plausible for a pilot but insufficient alone for viewpoint diversity;
+institutional open-license pages are not editorial-news substitutes. Next:
+seek disposition on ADR-045's exact 24-page/30-pair three-origin pilot,
+derived-summary field and proposed reviewer-timing amendment; recruit an
+independent reader for the later blinded secondary sample (about 75 judgments),
+then resolve adjudication/provenance roles before R5 completion.
+
 **2026-10-05 bounded source-selection increment (extension 0.13.2):** The
 paired popup and service now request 20 local related nominations, but the
 validated Insight context still includes only the current Source plus up to

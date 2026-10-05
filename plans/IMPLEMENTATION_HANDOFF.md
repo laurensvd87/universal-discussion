@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-05 R5 checkpoint: The owner answered yes to the proposed local
+200–250-pair public-page review set with URL/title/provenance, existing-model
+vectors and later human labels, without raw page text, private pages,
+provider calls or publication. See [ADR-045](../decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md).
+This is owner permission for acquisition in principle, but it does not supply
+the exact origins, date range, title rights, derived-summary field decision,
+Trust disposition or independent people required by the existing acquisition
+plan.
+No real pair was acquired; do not treat the 6/6 synthetic exercise as the
+review. ADR-045 proposes a 24-page/30-pair three-origin pilot with no stored
+raw text, plus an explicit reviewer-timing amendment; neither is yet approved.
+Seek exact Owner/Trust disposition and a bounded independent-reader assignment
+before proceeding across the remaining gates.
+No model, threshold, Topic routing or owner DB change follows.
+
 2026-10-05 extension 0.13.2 checkpoint: Insight candidate selection now uses
 up to 20 local related nominations on both popup and service, with exact
 server-side context reconstruction. It keeps the current Source plus four

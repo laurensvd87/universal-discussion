@@ -10,6 +10,12 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The owner has approved in principle assembling a local 200–250-pair public-page
+review set for semantic matching. [ADR-045](decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)
+records the remaining exact-source, provenance and independent-review gates;
+no real pair has yet been collected or labeled. This does not change the live
+Topic matcher or reopen the completed six-pair synthetic review.
+
 The next matching direction is a graded, overlapping cloud of related pages
 across any subject, not a fixed Russia/Ukraine collection or a mandatory
 Topic/Collection tree. Opposing views on the same subject should remain close;

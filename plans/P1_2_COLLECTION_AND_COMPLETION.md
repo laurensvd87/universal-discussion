@@ -1,9 +1,16 @@
 # P1.2 Collection and Review-Completion Plan
 
-Status: Accepted for generated-fixture-only P1.2b-1 implementation; no
-real/public metadata collection is authorized or present.
+Status: Generated-fixture-only P1.2b-1 implemented; ADR-045 grants owner
+acquisition permission in principle, but exact-source/Trust/staffing
+prerequisites remain open and no real/public metadata has been collected.
 
 Date: 2026-09-21
+
+2026-10-05 continuation: [ADR-045](../decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)
+supersedes this plan's historical absence-of-owner-permission statements
+only. It does not waive the exact source/field/retention approval, Trust
+disposition, named independent reviewers, pilot-before-scale gate or
+completion receipt. The six-pair synthetic owner review remains finished.
 
 Owners: Semantic Resolution, Trust, Quality, and Lead / Product Orchestrator
 
