@@ -1,5 +1,25 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-05 extension 0.13.2 checkpoint: Insight candidate selection now uses
+up to 20 local related nominations on both popup and service, with exact
+server-side context reconstruction. It keeps the current Source plus four
+non-current slots and at most four anonymous related fetch attempts. Validated
+provisional Topic peers retain backend relevance order; a bounded lookahead
+prefers host/exact-title variety within same-Topic and related buckets.
+It does not classify viewpoints, change Topic IDs or move posts. Trust review
+found no blocking data-boundary issue; socket-denied extension tests 914/914,
+service 221/225 (four optional skips), and focused reader/context 58/58 pass.
+The isolated Chrome smoke was unavailable here (`spawn EPERM`, then local
+loopback bind failure on escalated retry); do not record a browser pass.
+Reload extension and restart service together. A separate synthetic-only
+[subject-rerank probe](../apps/local-service/experiments/topic-cloud/subject-rerank/RESULTS.md)
+found better opposing-view rank with small title cues, but 3/12 held-out hard
+negatives still led under its strongest rule; a post-measurement correction
+precludes a preregistered quality claim. Do not activate the reranker or alter
+automatic grouping from this. The 100-Source/Topic cap and owner-data
+migration gate remain. Reliable same-subject joins need provenance-approved
+real-pair review before a production rule.
+
 2026-10-05 Topic-cloud clarification: Russia/Ukraine was only a test, not a
 domain limit. The owner wants a growing, graded and overlapping cloud of pages
 for arbitrary subjects. Opposing views on the same subject must remain close

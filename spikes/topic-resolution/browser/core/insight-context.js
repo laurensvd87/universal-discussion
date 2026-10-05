@@ -45,6 +45,30 @@ function sourceFromCatalog(value) {
 }
 function sourceView(source) { return { id: source.id, url: source.url, title: source.title }; }
 function byId(left, right) { return left.id < right.id ? -1 : left.id > right.id ? 1 : 0; }
+function normalizedTitle(source) { return source.title.normalize("NFKC").toLowerCase().replace(/\s+/gu, " ").trim(); }
+function host(source) { return new URL(source.url).hostname.replace(/^www\./u, ""); }
+function diverseOrder(candidates, alreadySelected) {
+  const remaining = [...candidates];
+  const selected = [];
+  const seenTitles = new Set(alreadySelected.map(normalizedTitle));
+  const seenHosts = new Set(alreadySelected.map(host));
+  while (remaining.length) {
+    // Compare only the next three ranked alternatives; equal scores retain rank.
+    let best = 0;
+    let bestPenalty = Infinity;
+    for (let index = 0; index < Math.min(remaining.length, 4); index++) {
+      const candidate = remaining[index];
+      const penalty = Number(seenTitles.has(normalizedTitle(candidate))) * 2 +
+        Number(seenHosts.has(host(candidate)));
+      if (penalty < bestPenalty) { best = index; bestPenalty = penalty; }
+    }
+    const [chosen] = remaining.splice(best, 1);
+    selected.push(chosen);
+    seenTitles.add(normalizedTitle(chosen));
+    seenHosts.add(host(chosen));
+  }
+  return selected;
+}
 
 /** Build bounded, title/URL-only context from already loaded local projections. */
 export function buildInsightContext({ catalog, discussion, related, sourceId, topicId, includeDiscussion = false }) {
@@ -81,15 +105,16 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
           field(result, "topicId") !== source.topicId ||
           field(result, "url") !== source.url || field(result, "title") !== source.title) continue;
       const relationship = field(result, "relationship");
-      if (peerIds.has(id) && relationship === "same-topic" && !rankedPeerIds.has(id)) {
+      if (peerIds.has(id) && (relationship === "same-topic" || relationship === "related") && !rankedPeerIds.has(id)) {
         rankedPeers.push(source);
         rankedPeerIds.add(id);
       } else if (!peerIds.has(id) && relationship === "related") {
         relatedIds.add(id);
       }
     }
-    const sameTopicSources = [...rankedPeers, ...peers.filter((source) => !rankedPeerIds.has(source.id))];
-    const relatedSources = [...relatedIds].map((id) => catalogById.get(id));
+    const sameTopicSources = diverseOrder([...rankedPeers, ...peers.filter((source) => !rankedPeerIds.has(source.id))], current ? [current] : []);
+    const relatedSources = diverseOrder([...relatedIds].map((id) => catalogById.get(id)),
+      current ? [current, ...sameTopicSources.slice(0, DISPLAY_LIMIT - 1)] : sameTopicSources.slice(0, DISPLAY_LIMIT));
     const sourceSlots = DISPLAY_LIMIT - Number(current !== null);
 
     const posts = [];

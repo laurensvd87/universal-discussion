@@ -80,7 +80,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     try {
       const options = { signal: abort.signal };
       const [discussion, related] = await Promise.all([
-        topicId ? client.discussion(topicId, options) : null, sourceId ? client.related(sourceId, 5, options) : null,
+        topicId ? client.discussion(topicId, options) : null, sourceId ? client.related(sourceId, 20, options) : null,
       ]);
       if (ownEpoch !== epoch || disposed) return;
       publish({ discussion, related, phase: topicId ? "ready" : "choose-topic" });

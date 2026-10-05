@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildInsightContext } from "../browser/core/insight-context.js";
+import { createRelatedPageExcerptReader } from "../browser/core/related-page-excerpts.js";
 
 const source = (id, topicId = "topic-a", url = `https://example.com/${id}`) =>
   ({ id, topicId, url, title: `Title ${id}`, provenance: "owner-local-page-embedding/v1" });
@@ -71,6 +72,115 @@ test("ranked same-Topic and related results keep backend order within five total
   assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["related-5", "related-4"]);
   assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 5);
   assert.deepEqual(context.coverage, { sameTopicTotal: 2, relatedTotal: 8, discussionIncluded: false });
+});
+
+test("validated related nominations rank provisional catalog peers ahead of ID order", () => {
+  const value = input();
+  const peers = Array.from({ length: 5 }, (_, i) => source(`peer-${i}`));
+  value.catalog.sources.push(...peers);
+  value.related.results = [result(peers[4]), result(peers[3]), result(peers[2]), result(peers[1]), result(peers[0])];
+  const context = buildInsightContext(value);
+  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-4", "peer-3", "peer-2", "peer-1"]);
+  assert.deepEqual(context.relatedSources, []);
+  assert.equal(context.coverage.sameTopicTotal, 7);
+  assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 5);
+});
+
+test("bounded lookahead lifts distinct hosts and exact titles through a duplicate flood", () => {
+  const value = input();
+  value.catalog.sources = [value.catalog.sources[0]];
+  const peers = Array.from({ length: 6 }, (_, index) => ({
+    ...source(`peer-${index}`, "topic-a", `https://${index < 3 ? "repeat.example" : `independent-${index}.example`}/story`),
+    title: index < 3 ? "Shared   Report" : `Different report ${index}`,
+  }));
+  value.catalog.sources.push(...peers);
+  value.related.results = peers.map((entry) => result(entry));
+  const context = buildInsightContext(value);
+  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-0", "peer-3", "peer-4", "peer-5"]);
+  assert.equal(context.coverage.sameTopicTotal, 6);
+  assert.equal(context.relatedSources.length, 0);
+});
+
+test("exact title comparison retains negation, numbers and distinct languages", () => {
+  const value = input();
+  value.catalog.sources = [value.catalog.sources[0]];
+  const peers = [
+    { ...source("a", "topic-a", "https://a.example/story"), title: "Budget rises 10%" },
+    { ...source("b", "topic-a", "https://b.example/story"), title: "  BUDGET   RISES 10%  " },
+    { ...source("c", "topic-a", "https://c.example/story"), title: "Budget does not rise 10%" },
+    { ...source("d", "topic-a", "https://d.example/story"), title: "Budget rises 11%" },
+    { ...source("e", "topic-a", "https://e.example/story"), title: "Бюджет растёт на 10%" },
+  ];
+  value.catalog.sources.push(...peers);
+  value.related.results = peers.map((entry) => result(entry));
+  assert.deepEqual(buildInsightContext(value).sameTopicSources.map((entry) => entry.id), ["a", "c", "d", "e"]);
+});
+
+test("same-host nominees remain available when no comparable independent host exists", () => {
+  const value = input();
+  value.catalog.sources = [value.catalog.sources[0]];
+  const peers = Array.from({ length: 4 }, (_, index) => ({
+    ...source(`peer-${index}`, "topic-a", `https://same.example/${index}`), title: `Distinct ${index}`,
+  }));
+  value.catalog.sources.push(...peers);
+  value.related.results = peers.map((entry) => result(entry));
+  assert.deepEqual(buildInsightContext(value).sameTopicSources.map((entry) => entry.id), peers.map((entry) => entry.id));
+});
+
+test("related bucket diversifies within its own rank order and reader attempts at most four", async () => {
+  const value = input();
+  value.catalog.sources = [value.catalog.sources[0]];
+  const others = Array.from({ length: 20 }, (_, index) => ({
+    ...source(`other-${index}`, "topic-b", `https://${index < 3 ? "repeat.example.org" : `independent-${index}.example.org`}/${index}`),
+    title: index < 3 ? "Repeated story" : `Story ${index}`,
+  }));
+  value.catalog.sources.push(...others);
+  value.related.results = others.map((entry) => result(entry));
+  const context = buildInsightContext(value);
+  assert.deepEqual(context.sameTopicSources, []);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["other-0", "other-3", "other-4", "other-5"]);
+  assert.equal(context.coverage.relatedTotal, 20);
+  let attempts = 0;
+  const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async () => { attempts++; throw new Error("Synthetic fetch failure"); } });
+  assert.deepEqual(await reader.read(context), []);
+  assert.equal(attempts, 4);
+});
+
+test("mismatched nominations cannot rank peers or promote other Topics", () => {
+  const value = input();
+  const peer = value.catalog.sources[2];
+  const validPeer = value.catalog.sources[1];
+  const other = value.catalog.sources[3];
+  const unassigned = value.catalog.sources[4];
+  value.related.results = [
+    { ...result(peer), topicId: "topic-b" },
+    { ...result(peer), url: "https://attacker.example/" },
+    { ...result(peer), title: "Forged title" },
+    { ...result(peer), id: other.id },
+    { ...result(other), topicId: "topic-a" },
+    { ...result(unassigned), topicId: "topic-a" },
+    result(other), result(unassigned), result(validPeer), result(validPeer),
+  ];
+  const context = buildInsightContext(value);
+  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-b", "peer-a"]);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["other", "unassigned"]);
+  assert.deepEqual(context.coverage, { sameTopicTotal: 2, relatedTotal: 2, discussionIncluded: false });
+  assert.equal(JSON.stringify(context).includes("Forged title"), false);
+});
+
+test("unranked peers use stable ID order regardless of catalog order", () => {
+  const value = input();
+  const peer = source("peer-c");
+  value.catalog.sources.push(peer);
+  value.related.results = [result(peer), result(value.catalog.sources[3])];
+  const first = buildInsightContext(value);
+  value.catalog.sources.reverse();
+  const second = buildInsightContext(value);
+  for (const context of [first, second]) {
+    assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-c", "peer-a", "peer-b"]);
+    assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["other"]);
+  }
 });
 
 test("missing ranked peers fall back to safe catalog order ahead of related results", () => {

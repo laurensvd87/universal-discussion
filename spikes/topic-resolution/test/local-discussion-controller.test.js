@@ -52,7 +52,7 @@ test("paired popup automatically loads bridged service discussion and sends IDs 
   const ui = harness(); await ui.controller.open();
   assert.equal(ui.controller.currentState().topicId, "reserved-domain-demo");
   assert.equal(ui.controller.currentState().phase, "ready");
-  assert.deepEqual(ui.requests.find((entry) => entry[0] === "related"), ["related", "reserved-example-com", 5]);
+  assert.deepEqual(ui.requests.find((entry) => entry[0] === "related"), ["related", "reserved-example-com", 20]);
   assert.equal(JSON.stringify(ui.requests).includes("https:"), false);
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
 });

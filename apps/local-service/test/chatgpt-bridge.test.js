@@ -32,6 +32,36 @@ function fixture() {
   return { service, catalog, context };
 }
 
+test("paired bridge reconstructs the exact context from twenty local nominations", async () => {
+  const base = demoService();
+  const limits = [];
+  const service = { ...base, related(sourceId, limit) {
+    limits.push(limit);
+    return base.related(sourceId, limit);
+  } };
+  const catalog = service.catalog();
+  const sourceId = "harbor-overview";
+  const topicId = catalog.sources.find((source) => source.id === sourceId).topicId;
+  const context = buildInsightContext({ catalog, discussion: service.discussion(topicId),
+    related: service.related(sourceId, 20), sourceId, topicId });
+  const seen = [];
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
+    insightsAdapter: { createInsight: async ({ context: providerContext }) => {
+      seen.push(providerContext);
+      return { body: "Synthetic finding.", citations: [], model: "synthetic" };
+    }, cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const actor = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
+  const input = { operationId: "twenty-nominations", model: "synthetic", context,
+    articleText: "Public synthetic article.", allowWebResearch: false, expected: catalog.version };
+  assert.equal((await handle(request("POST", "/v1/ai/insights", input, actor))).status, 200);
+  assert.deepEqual(limits, [20, 20]);
+  assert.deepEqual(seen, [context]);
+  assert.ok(context.sameTopicSources.length + context.relatedSources.length <= 4);
+  ai.dispose();
+});
+
 test("registration persists only stable opaque host ID and non-secret account identity", async () => {
   const dir = mkdtempSync(path.join(tmpdir(), "discussion-chatgpt-registration-"));
   try {

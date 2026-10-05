@@ -30,6 +30,20 @@ An initial [synthetic v2 conversion rehearsal](apps/local-service/experiments/to
 passes rollback and round-trip checks, but is not ready to run on the current
 database.
 
+Extension **0.13.2** improves the source mix for a deliberate **Get insights**
+request. It considers up to 20 already-known local related-page nominations,
+then selects at most four non-current pages, gently preferring different
+hosts and non-identical titles within the existing Topic/related priority.
+Provisional Topic peers now retain their local relevance order instead of
+falling back to ID order. The existing four anonymous fetch-attempt limit,
+provider payload bounds, storage and automatic Topic assignment are unchanged.
+This does **not** identify opposing viewpoints or join same-subject pages into
+one discussion. Reload the unpacked extension **and restart the local service**
+to use the same context selection on both sides. A separate
+[synthetic title-cue probe](apps/local-service/experiments/topic-cloud/subject-rerank/RESULTS.md)
+improved opposing-view ranking on invented cases, but is not active: some
+distinct events still outrank the intended partner.
+
 Extension **0.13.1** removes manual Topic selection and the initial Start
 session/Choose Topic buttons from User Mode. With the already-granted HTTPS
 access and saved pairing, eligible public pages are discovered automatically

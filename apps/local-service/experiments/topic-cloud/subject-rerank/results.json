@@ -1,0 +1,484 @@
+{
+  "schema": "subject-rerank-report/v1",
+  "corpusDigest": "0487d1866c1dc115939fc996a363881997921ab49969116337cfabb0135f2950",
+  "provenance": {
+    "node": "v24.19.0",
+    "runtime": "1.31.0-dev.20260914-8d85527a0",
+    "modelSha256": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+    "tokenizerSha256": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39",
+    "execution": "Node CPU WASM; packaged body E5; synthetic only"
+  },
+  "variants": {
+    "body": {
+      "lexical": 0,
+      "conflict": 0
+    },
+    "title05": {
+      "lexical": 0.05,
+      "conflict": 0.08
+    },
+    "title10": {
+      "lexical": 0.1,
+      "conflict": 0.16
+    }
+  },
+  "elapsedMs": 2544.2948,
+  "evaluation": {
+    "body": {
+      "development": {
+        "queries": 20,
+        "positivePairs": 10,
+        "hardPairs": 20,
+        "recallAt1": 3,
+        "recallAt5": 20,
+        "positiveAboveAllHard": 3,
+        "meanReciprocalRank": 0.5416666666666667,
+        "ranks": [
+          {
+            "id": "bridge-a1",
+            "rank": 2
+          },
+          {
+            "id": "bridge-a2",
+            "rank": 2
+          },
+          {
+            "id": "bridge-b1",
+            "rank": 3
+          },
+          {
+            "id": "bridge-b2",
+            "rank": 2
+          },
+          {
+            "id": "tablet-a1",
+            "rank": 3
+          },
+          {
+            "id": "tablet-a2",
+            "rank": 1
+          },
+          {
+            "id": "tablet-b1",
+            "rank": 2
+          },
+          {
+            "id": "tablet-b2",
+            "rank": 1
+          },
+          {
+            "id": "tolls-a1",
+            "rank": 2
+          },
+          {
+            "id": "tolls-a2",
+            "rank": 1
+          },
+          {
+            "id": "tolls-b1",
+            "rank": 2
+          },
+          {
+            "id": "tolls-b2",
+            "rank": 2
+          },
+          {
+            "id": "merger-a1",
+            "rank": 2
+          },
+          {
+            "id": "merger-a2",
+            "rank": 2
+          },
+          {
+            "id": "merger-b1",
+            "rank": 3
+          },
+          {
+            "id": "merger-b2",
+            "rank": 3
+          },
+          {
+            "id": "study-a1",
+            "rank": 2
+          },
+          {
+            "id": "study-a2",
+            "rank": 2
+          },
+          {
+            "id": "study-b1",
+            "rank": 2
+          },
+          {
+            "id": "study-b2",
+            "rank": 2
+          }
+        ]
+      },
+      "heldOut": {
+        "queries": 12,
+        "positivePairs": 6,
+        "hardPairs": 12,
+        "recallAt1": 2,
+        "recallAt5": 12,
+        "positiveAboveAllHard": 2,
+        "meanReciprocalRank": 0.5694444444444444,
+        "ranks": [
+          {
+            "id": "flood-a1",
+            "rank": 2
+          },
+          {
+            "id": "flood-a2",
+            "rank": 2
+          },
+          {
+            "id": "flood-b1",
+            "rank": 2
+          },
+          {
+            "id": "flood-b2",
+            "rank": 2
+          },
+          {
+            "id": "energy-a1",
+            "rank": 2
+          },
+          {
+            "id": "energy-a2",
+            "rank": 1
+          },
+          {
+            "id": "energy-b1",
+            "rank": 2
+          },
+          {
+            "id": "energy-b2",
+            "rank": 1
+          },
+          {
+            "id": "rail-a1",
+            "rank": 2
+          },
+          {
+            "id": "rail-a2",
+            "rank": 2
+          },
+          {
+            "id": "rail-b1",
+            "rank": 2
+          },
+          {
+            "id": "rail-b2",
+            "rank": 3
+          }
+        ]
+      }
+    },
+    "title05": {
+      "development": {
+        "queries": 20,
+        "positivePairs": 10,
+        "hardPairs": 20,
+        "recallAt1": 10,
+        "recallAt5": 20,
+        "positiveAboveAllHard": 10,
+        "meanReciprocalRank": 0.7333333333333334,
+        "ranks": [
+          {
+            "id": "bridge-a1",
+            "rank": 1
+          },
+          {
+            "id": "bridge-a2",
+            "rank": 1
+          },
+          {
+            "id": "bridge-b1",
+            "rank": 1
+          },
+          {
+            "id": "bridge-b2",
+            "rank": 1
+          },
+          {
+            "id": "tablet-a1",
+            "rank": 2
+          },
+          {
+            "id": "tablet-a2",
+            "rank": 1
+          },
+          {
+            "id": "tablet-b1",
+            "rank": 1
+          },
+          {
+            "id": "tablet-b2",
+            "rank": 1
+          },
+          {
+            "id": "tolls-a1",
+            "rank": 1
+          },
+          {
+            "id": "tolls-a2",
+            "rank": 1
+          },
+          {
+            "id": "tolls-b1",
+            "rank": 2
+          },
+          {
+            "id": "tolls-b2",
+            "rank": 1
+          },
+          {
+            "id": "merger-a1",
+            "rank": 2
+          },
+          {
+            "id": "merger-a2",
+            "rank": 2
+          },
+          {
+            "id": "merger-b1",
+            "rank": 3
+          },
+          {
+            "id": "merger-b2",
+            "rank": 3
+          },
+          {
+            "id": "study-a1",
+            "rank": 2
+          },
+          {
+            "id": "study-a2",
+            "rank": 2
+          },
+          {
+            "id": "study-b1",
+            "rank": 2
+          },
+          {
+            "id": "study-b2",
+            "rank": 2
+          }
+        ]
+      },
+      "heldOut": {
+        "queries": 12,
+        "positivePairs": 6,
+        "hardPairs": 12,
+        "recallAt1": 7,
+        "recallAt5": 12,
+        "positiveAboveAllHard": 7,
+        "meanReciprocalRank": 0.7777777777777778,
+        "ranks": [
+          {
+            "id": "flood-a1",
+            "rank": 2
+          },
+          {
+            "id": "flood-a2",
+            "rank": 1
+          },
+          {
+            "id": "flood-b1",
+            "rank": 2
+          },
+          {
+            "id": "flood-b2",
+            "rank": 1
+          },
+          {
+            "id": "energy-a1",
+            "rank": 2
+          },
+          {
+            "id": "energy-a2",
+            "rank": 1
+          },
+          {
+            "id": "energy-b1",
+            "rank": 1
+          },
+          {
+            "id": "energy-b2",
+            "rank": 1
+          },
+          {
+            "id": "rail-a1",
+            "rank": 1
+          },
+          {
+            "id": "rail-a2",
+            "rank": 2
+          },
+          {
+            "id": "rail-b1",
+            "rank": 1
+          },
+          {
+            "id": "rail-b2",
+            "rank": 3
+          }
+        ]
+      }
+    },
+    "title10": {
+      "development": {
+        "queries": 20,
+        "positivePairs": 10,
+        "hardPairs": 20,
+        "recallAt1": 12,
+        "recallAt5": 20,
+        "positiveAboveAllHard": 12,
+        "meanReciprocalRank": 0.7833333333333334,
+        "ranks": [
+          {
+            "id": "bridge-a1",
+            "rank": 1
+          },
+          {
+            "id": "bridge-a2",
+            "rank": 1
+          },
+          {
+            "id": "bridge-b1",
+            "rank": 1
+          },
+          {
+            "id": "bridge-b2",
+            "rank": 1
+          },
+          {
+            "id": "tablet-a1",
+            "rank": 1
+          },
+          {
+            "id": "tablet-a2",
+            "rank": 1
+          },
+          {
+            "id": "tablet-b1",
+            "rank": 1
+          },
+          {
+            "id": "tablet-b2",
+            "rank": 1
+          },
+          {
+            "id": "tolls-a1",
+            "rank": 1
+          },
+          {
+            "id": "tolls-a2",
+            "rank": 1
+          },
+          {
+            "id": "tolls-b1",
+            "rank": 1
+          },
+          {
+            "id": "tolls-b2",
+            "rank": 1
+          },
+          {
+            "id": "merger-a1",
+            "rank": 2
+          },
+          {
+            "id": "merger-a2",
+            "rank": 2
+          },
+          {
+            "id": "merger-b1",
+            "rank": 3
+          },
+          {
+            "id": "merger-b2",
+            "rank": 3
+          },
+          {
+            "id": "study-a1",
+            "rank": 2
+          },
+          {
+            "id": "study-a2",
+            "rank": 2
+          },
+          {
+            "id": "study-b1",
+            "rank": 2
+          },
+          {
+            "id": "study-b2",
+            "rank": 2
+          }
+        ]
+      },
+      "heldOut": {
+        "queries": 12,
+        "positivePairs": 6,
+        "hardPairs": 12,
+        "recallAt1": 9,
+        "recallAt5": 12,
+        "positiveAboveAllHard": 9,
+        "meanReciprocalRank": 0.8611111111111112,
+        "ranks": [
+          {
+            "id": "flood-a1",
+            "rank": 1
+          },
+          {
+            "id": "flood-a2",
+            "rank": 1
+          },
+          {
+            "id": "flood-b1",
+            "rank": 1
+          },
+          {
+            "id": "flood-b2",
+            "rank": 1
+          },
+          {
+            "id": "energy-a1",
+            "rank": 2
+          },
+          {
+            "id": "energy-a2",
+            "rank": 1
+          },
+          {
+            "id": "energy-b1",
+            "rank": 1
+          },
+          {
+            "id": "energy-b2",
+            "rank": 1
+          },
+          {
+            "id": "rail-a1",
+            "rank": 1
+          },
+          {
+            "id": "rail-a2",
+            "rank": 2
+          },
+          {
+            "id": "rail-b1",
+            "rank": 1
+          },
+          {
+            "id": "rail-b2",
+            "rank": 3
+          }
+        ]
+      }
+    }
+  }
+}

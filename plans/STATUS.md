@@ -35,6 +35,33 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-05 bounded source-selection increment (extension 0.13.2):** The
+paired popup and service now request 20 local related nominations, but the
+validated Insight context still includes only the current Source plus up to
+four non-current Sources; anonymous related-page reading still attempts at
+most four. Provisional same-Topic peers use the backend's validated ranking
+instead of ID fallback. A deterministic three-alternative lookahead favors
+different hosts and exact-title variety within each Topic/related bucket;
+same-Topic priority remains. No provider call, new stored representation,
+automatic Topic grouping or owner-data migration was added. Host/title variety
+is **not** stance detection or independent corroboration. Trust review found
+no blocking boundary issue. Socket-denied checks: extension 914/914, service
+221/225 (four optional skips), focused related-reader/context 58/58. Reload
+extension and restart local service; actual owner-page quality is unverified.
+The isolated Chrome smoke could not complete in this environment: first Chrome
+spawn returned `EPERM`, then an escalated attempt could not bind the approved
+loopback endpoint. No browser-pass claim follows; the owner can test after
+reload, or rerun the smoke where Chrome and the loopback port are available.
+The isolated [title-cue rerank probe](../apps/local-service/experiments/topic-cloud/subject-rerank/RESULTS.md)
+measured the unchanged 32-document invented corpus with the packaged E5. On
+12 held-out query directions, an opposing-view partner ranked first in 2
+body-only cases versus 7/9 with two title-cue weights; distinct-subject hard
+negatives still ranked first in 5/3 cases. A post-measurement negation fix
+makes these exploratory, not preregistered validation. Its three socket-denied
+tests pass. The production matcher and 100-Source/Topic cap remain unchanged.
+The next semantic-identity evidence requires a separately approved
+provenance-reviewed real-pair task before claiming reliable automatic joins.
+
 **2026-10-05 cloud-first topic clarification (proposal, no activation):**
 Russia/Ukraine was a test case, not a product domain limit. The owner wants an
 unbounded, graded cloud of related pages across arbitrary subjects, including

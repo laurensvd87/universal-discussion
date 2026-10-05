@@ -1,7 +1,7 @@
 # ADR-044: Continuous Topic cloud, stable discussions and diverse Insights
 
 Date: 2026-10-05
-Status: revised proposal after owner clarification; no activation or migration
+Status: revised proposal after owner clarification; bounded Insight ordering only activated; no cloud/grouping/migration activation
 
 ## Owner direction and problem
 
@@ -202,3 +202,25 @@ pre-commit rollback under injected failures. Its independent Trust review
 identified missing `/v1`, learned/agent, lifecycle and post-commit recovery
 coverage, so it remains an incomplete migration checkpoint, not approval
 to open or convert retained owner data.
+
+## Bounded Insight selection and subject probe (2026-10-05)
+
+Extension 0.13.2 applies only a reversible, read-time selection improvement:
+the popup and service request 20 existing local nominations, validate against
+catalog records, retain the backend order for provisional Topic peers, then
+use a three-alternative lookahead for host and exact-title variety within
+same-Topic and related buckets. At most four non-current pages are selected
+and at most four anonymous fetches attempted. Catalog Topic membership alone
+determines the same-Topic bucket; related nominations cannot promote a Source
+or reroute a post. No retained field, permission, provider call or Topic
+assignment changes. Host/title variety does not establish independent
+reporting or differing positions.
+
+An isolated [32-document synthetic E5 probe](../apps/local-service/experiments/topic-cloud/subject-rerank/RESULTS.md)
+suggests that small title cues can rank an opposing-view partner above some
+same-family different-subject pages. The strongest variant still placed a
+hard negative first for 3 of 12 held-out query directions. A negation fix
+followed the first measurement, so the amended result is exploratory. It
+does not justify deploying title scoring, changing the 0.90/0.94 grouping
+rule or describing Topics as reliably stance-independent. Production
+discussion identity and the 100-Source/Topic ceiling remain unchanged.

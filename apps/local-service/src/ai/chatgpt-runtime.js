@@ -175,7 +175,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     if (!context || typeof context !== "object" || !context.topic || !context.currentSource) fail("invalid", "Invalid request");
     const sourceId = context.currentSource.id, topicId = context.topic.id;
     const discussion = service.discussion(topicId);
-    const related = service.related(sourceId, 5);
+    const related = service.related(sourceId, 20);
     if (!same(catalog.version, discussion.version) || !same(catalog.version, related.version)) fail("conflict", "State changed");
     let rebuilt;
     try { rebuilt = buildInsightContext({ catalog, discussion, related, sourceId, topicId,
