@@ -20,6 +20,9 @@ does not yet provide the scalable cloud or reliably stance-independent matches.
 An isolated [synthetic shadow experiment](apps/local-service/experiments/topic-cloud/README.md)
 tests the proposed cloud mechanics; it does not change the running extension
 or service and exposes a false-positive example.
+A separate [synthetic SQLite dry run](apps/local-service/experiments/topic-cloud/sqlite/README.md)
+persists 140 invented pages without that fixed cap, but it is not wired into
+the app or approved to migrate existing data.
 
 Extension **0.13.1** removes manual Topic selection and the initial Start
 session/Choose Topic buttons from User Mode. With the already-granted HTTPS

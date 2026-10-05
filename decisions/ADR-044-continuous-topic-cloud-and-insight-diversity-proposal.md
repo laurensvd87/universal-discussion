@@ -180,3 +180,12 @@ and consumes an Insight slot. Thus the architecture can preserve graded
 relationships without merging conversations, but the present experiment
 cannot justify activation, remove the live 100-Source cap or establish
 stance-independent semantic matching.
+
+The separate [normalized SQLite dry run](../apps/local-service/experiments/topic-cloud/sqlite/README.md)
+persists 140 invented Sources and vectors, supplies bounded indexed neighbor
+and paginated Source reads, and keeps discussion/root/reply IDs fixed when
+edges change. Four socket-denied tests cover reopen and transactional failure.
+It does not migrate the owner's JSON-row state or implement ADR-023's full
+source-anchor, Forget, withdrawal and legacy-pin lifecycle. It cannot by
+itself authorize a production schema change or prove large-scale retrieval
+quality.

@@ -25,6 +25,14 @@ diversity, but its deliberately misleading false friend still enters Insight
 selection. This is a mechanics checkpoint, not E5 calibration or production
 activation. Next, measure existing-vector recall and query cost on a safe
 synthetic corpus before proposing a data migration or new representation.
+An isolated [normalized SQLite dry run](../apps/local-service/experiments/topic-cloud/sqlite/README.md)
+also has 4 passing socket-denied tests: 140 synthetic Sources/vectors persist
+across reopen, indexed bounded neighbor/page queries work, edge changes do not
+change root/reply identity, and bad batches roll back. It deliberately lacks
+the full ADR-023 Forget/withdrawal/legacy-pin lifecycle and an owner-data
+migration. Do not point the prototype at `demo.sqlite` or assume its schema
+is production-ready. Prepare a complete synthetic legacy-state migration and
+recovery design before the explicit owner-data/security gate.
 
 2026-10-04 HLN Insight diagnosis: For the owner-provided public defence-budget
 page, the read-only local catalog has no same-Topic peer. Four of five related

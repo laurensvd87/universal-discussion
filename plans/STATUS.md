@@ -57,6 +57,13 @@ flooding and arrival-order invariance. Invented coordinates also rank one
 unrelated false friend above a relevant counterview; this deliberately shows
 that current-vector semantic reliability is unproven. It does not remove the
 production cap, migrate discussions or validate real multilingual recall.
+A separate [normalized SQLite dry run](../apps/local-service/experiments/topic-cloud/sqlite/README.md)
+persists 140 synthetic Sources/vectors across reopen, returns bounded indexed
+neighbors and paginated Sources, preserves discussion/root/reply IDs during
+edge changes, and rolls back invalid batches. Its 4 socket-denied tests pass.
+It is **not** a migration: source-anchor/Forget lifecycle, legacy pins, real
+owner-data backup policy, API pagination and query-quality scaling still need
+design and review before any production switch.
 
 **2026-10-04 Topic architecture review (proposal, no activation):** The owner
 requests a same-Topic algorithm that remains useful as embedded pages grow,
