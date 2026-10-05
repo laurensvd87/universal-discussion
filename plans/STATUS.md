@@ -72,6 +72,16 @@ controlled mutations, and rollback after commit needs an approved recovery
 method. The plan specifies a synthetic transactional conversion/rollback rehearsal,
 fault injection, lifecycle and pagination checks. No owner database was opened
 or copied; the full migration implementation and owner-data/security gate remain.
+The first [synthetic v2 normalization rehearsal](../apps/local-service/experiments/topic-cloud/sqlite/rehearsal/README.md)
+round-trips a valid invented state with source-root/reply provenance, a
+Topic-pinned legacy root, revisions and a withdrawn root. Seven socket-denied
+tests pass, including seven injected pre-commit failures, unknown schema/
+altered definition refusal, cross-kind ID collision rejection and safe cleanup
+retry. Independent Trust review found missing `/v1`, learned-Source/AI
+fixtures, full lifecycle,
+stale-version handling and post-commit recovery; these remain open and are
+listed in the rehearsal README. The actual local service and owner DB remain
+unchanged.
 
 **2026-10-04 Topic architecture review (proposal, no activation):** The owner
 requests a same-Topic algorithm that remains useful as embedded pages grow,

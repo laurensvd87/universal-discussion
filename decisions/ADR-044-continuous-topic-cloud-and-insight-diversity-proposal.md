@@ -195,3 +195,10 @@ maps the retained JSON state and shows that the dry-run schema cannot be
 promoted unchanged. It proposes fault-injected synthetic round trips and
 lists separate owner decisions for recovery copies, revision semantics and
 cutover. No retained owner database has been opened or copied.
+
+The first [synthetic v2 rehearsal](../apps/local-service/experiments/topic-cloud/sqlite/rehearsal/README.md)
+round-trips representative old IDs, origins, anchors and revisions and proves
+pre-commit rollback under injected failures. Its independent Trust review
+identified missing `/v1`, learned/agent, lifecycle and post-commit recovery
+coverage, so it remains an incomplete migration checkpoint, not approval
+to open or convert retained owner data.

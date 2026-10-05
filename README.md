@@ -26,6 +26,9 @@ the app or approved to migrate existing data.
 The [migration/recovery plan](apps/local-service/experiments/topic-cloud/sqlite/MIGRATION_RECOVERY_PLAN.md)
 lists what a safe conversion of existing discussions must preserve; no owner
 database has been converted or backed up.
+An initial [synthetic v2 conversion rehearsal](apps/local-service/experiments/topic-cloud/sqlite/rehearsal/README.md)
+passes rollback and round-trip checks, but is not ready to run on the current
+database.
 
 Extension **0.13.1** removes manual Topic selection and the initial Start
 session/Choose Topic buttons from User Mode. With the already-granted HTTPS

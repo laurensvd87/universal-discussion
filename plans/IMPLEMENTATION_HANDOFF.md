@@ -40,6 +40,14 @@ decision on one-time backup/shadow versus post-commit recovery risk. It is not
 an executable migration or permission to copy/open the owner database. Next
 safe slice: implement and verify the synthetic round-trip/lifecycle rehearsal;
 then present an exact recovery/cutover package for owner/security approval.
+First [synthetic v2 rehearsal](../apps/local-service/experiments/topic-cloud/sqlite/rehearsal/README.md)
+now passes 7 socket-denied tests for exact round-trip, injected transaction
+rollback, schema refusal and cross-kind ID collision. Independent Trust review
+was incorporated: the prototype now checks exact synthetic table definitions
+and cleans only its named temporary file/empty directory. This is **not** the
+complete migration rehearsal or production DDL; `/v1`, learned/agent cases,
+live lifecycle commands, stale-version handling and post-commit recovery
+remain. Do not ask for a real owner-data cutover yet without that package.
 
 2026-10-04 HLN Insight diagnosis: For the owner-provided public defence-budget
 page, the read-only local catalog has no same-Topic peer. Four of five related
