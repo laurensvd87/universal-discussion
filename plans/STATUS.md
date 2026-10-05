@@ -64,6 +64,14 @@ edge changes, and rolls back invalid batches. Its 4 socket-denied tests pass.
 It is **not** a migration: source-anchor/Forget lifecycle, legacy pins, real
 owner-data backup policy, API pagination and query-quality scaling still need
 design and review before any production switch.
+The [synthetic-only migration/recovery plan](../apps/local-service/experiments/topic-cloud/sqlite/MIGRATION_RECOVERY_PLAN.md)
+now maps every current JSON field and identifies why the first SQLite prototype
+cannot be promoted unchanged: current Discussions are Topic-based, historical
+anchors and revisions must survive, whole-root routing and Forget require
+controlled mutations, and rollback after commit needs an approved recovery
+method. The plan specifies a synthetic transactional conversion/rollback rehearsal,
+fault injection, lifecycle and pagination checks. No owner database was opened
+or copied; the full migration implementation and owner-data/security gate remain.
 
 **2026-10-04 Topic architecture review (proposal, no activation):** The owner
 requests a same-Topic algorithm that remains useful as embedded pages grow,

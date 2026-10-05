@@ -189,3 +189,9 @@ It does not migrate the owner's JSON-row state or implement ADR-023's full
 source-anchor, Forget, withdrawal and legacy-pin lifecycle. It cannot by
 itself authorize a production schema change or prove large-scale retrieval
 quality.
+
+The follow-up [synthetic-only migration/recovery plan](../apps/local-service/experiments/topic-cloud/sqlite/MIGRATION_RECOVERY_PLAN.md)
+maps the retained JSON state and shows that the dry-run schema cannot be
+promoted unchanged. It proposes fault-injected synthetic round trips and
+lists separate owner decisions for recovery copies, revision semantics and
+cutover. No retained owner database has been opened or copied.

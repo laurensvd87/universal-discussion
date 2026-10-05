@@ -23,6 +23,9 @@ or service and exposes a false-positive example.
 A separate [synthetic SQLite dry run](apps/local-service/experiments/topic-cloud/sqlite/README.md)
 persists 140 invented pages without that fixed cap, but it is not wired into
 the app or approved to migrate existing data.
+The [migration/recovery plan](apps/local-service/experiments/topic-cloud/sqlite/MIGRATION_RECOVERY_PLAN.md)
+lists what a safe conversion of existing discussions must preserve; no owner
+database has been converted or backed up.
 
 Extension **0.13.1** removes manual Topic selection and the initial Start
 session/Choose Topic buttons from User Mode. With the already-granted HTTPS

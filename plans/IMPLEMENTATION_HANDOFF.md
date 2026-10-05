@@ -33,6 +33,13 @@ the full ADR-023 Forget/withdrawal/legacy-pin lifecycle and an owner-data
 migration. Do not point the prototype at `demo.sqlite` or assume its schema
 is production-ready. Prepare a complete synthetic legacy-state migration and
 recovery design before the explicit owner-data/security gate.
+That [migration/recovery design](../apps/local-service/experiments/topic-cloud/sqlite/MIGRATION_RECOVERY_PLAN.md)
+is now documented. It maps all retained JSON fields and proposes synthetic
+transaction/fault-injection checks, no invented Source lineage, and a separate
+decision on one-time backup/shadow versus post-commit recovery risk. It is not
+an executable migration or permission to copy/open the owner database. Next
+safe slice: implement and verify the synthetic round-trip/lifecycle rehearsal;
+then present an exact recovery/cutover package for owner/security approval.
 
 2026-10-04 HLN Insight diagnosis: For the owner-provided public defence-budget
 page, the read-only local catalog has no same-Topic peer. Four of five related
