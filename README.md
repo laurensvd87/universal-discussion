@@ -12,7 +12,7 @@ This is a usable local discussion prototype, not a hosted or general-web product
 
 The owner has approved in principle assembling a local 200–250-pair public-page
 review set for semantic matching. [ADR-045](decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)
-records the pilot scope and remaining scale-up and independent-review gates;
+records the pilot scope and remaining scale-up gates;
 six real pilot Source records have been captured locally, but no pair has been
 human-labeled. This does not change the live
 Topic matcher or reopen the completed six-pair synthetic review.
@@ -22,6 +22,9 @@ deferring reviewer recruitment until labeling. Its isolated
 and page-level provenance checks passed for those six pages; expansion to
 the full review set is a separate decision. The real pilot records are
 Git-ignored and are not included in a clone of this repository.
+[ADR-046](decisions/ADR-046-owner-only-exploratory-r5-review.md) records the
+owner's subsequent decision to rate the local PoC alone. Those ratings can
+guide iteration, but will not be called independently validated.
 
 The next matching direction is a graded, overlapping cloud of related pages
 across any subject, not a fixed Russia/Ukraine collection or a mandatory

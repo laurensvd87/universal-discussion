@@ -1,7 +1,7 @@
 # ADR-045: R5 public-pair acquisition checkpoint
 
 Date: 2026-10-05
-Status: owner approved exact local pilot; Trust accepted isolated capture; six local Source records acquired, no labels
+Status: owner approved exact local pilot; Trust accepted isolated capture; six local Source records acquired, no labels; owner-only review superseded by ADR-046
 
 ## Owner disposition
 
@@ -160,6 +160,12 @@ report versus the broader African-response report scores 0.9010. These are
 descriptive unlabelled observations only and do not authorize a new threshold.
 
 ## Next owner assignment and stops
+
+[ADR-046](ADR-046-owner-only-exploratory-r5-review.md) subsequently removes
+the independent-person prerequisite for **owner-only exploratory PoC ratings**.
+The historical independent-review assignment below applies only to a later
+independently validated corpus claim, not to that owner-only path. Do not ask
+the owner to recruit someone merely to try the local pilot.
 
 The above exact pilot package has owner approval and Trust acceptance for
 the isolated capture path; keep applying per-page provenance controls to any

@@ -52,3 +52,28 @@ Run the synthetic checks from this directory:
 node --import ../../../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none capture.test.js one-url.test.js save-record.test.js
 node --test --test-isolation=none browser-capture.test.js
 ```
+
+## Local owner review
+
+`node owner-review.js prepare` reads the accepted records, verifies the existing
+inventory digest and creates one frozen, create-only task under the sibling
+Git-ignored `review/work/r5-owner-review/task.json` path. The task binds each
+source file's SHA-256 and the inventory SHA-256; its envelope binds the whole
+task with the existing canonical JSON SHA-256 algorithm. Preparation refuses
+an existing snapshot. Later captures cannot change the frozen pair IDs.
+
+`node owner-review.js view` (or no argument) reads only that frozen task and
+refuses if none exists or its digest fails. It shows up to 30 deterministic
+opaque pairs with public titles, URLs and source dates, followed by blank
+`Label` and `Rationale` fields. It does not compute similarity, generate labels,
+or show scores, vectors, input digests, rights details or construction hints.
+The owner has already seen some scores, so this is an exploratory owner review,
+not a blinded or independent quality benchmark. Save annotated output only
+inside the Git-ignored review workspace. The existing distinct-role completion
+ledger has different independence requirements and is not used here.
+
+Synthetic check:
+
+```powershell
+node --import ../../../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none owner-review.test.js
+```

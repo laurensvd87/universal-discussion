@@ -7,6 +7,13 @@ Source records from the approved origins are saved only in the Git-ignored
 pilot workspace; no relationship labels exist. Full task scale-up and
 completion gates remain open.
 
+2026-10-05 owner-only amendment: [ADR-046](../decisions/ADR-046-owner-only-exploratory-r5-review.md)
+permits the owner alone to rate a local exploratory pilot. Such answers must
+not be projected as an independently reviewed corpus, fulfill the distinct
+secondary/adjudication roles below, or activate AUTO. This completion plan
+continues to govern any later **independent-validation claim**; do not impose
+its independent-person staffing gate on owner-only PoC feedback.
+
 Date: 2026-09-21
 
 2026-10-05 continuation: [ADR-045](../decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)

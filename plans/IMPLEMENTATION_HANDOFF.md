@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-05 R5 reviewer decision: The owner explicitly chose to be the sole
+human reviewer for the local PoC. [ADR-046](../decisions/ADR-046-owner-only-exploratory-r5-review.md)
+permits owner-only exploratory pilot ratings; do not ask for an independent
+person just to try the pilot. No real-page labels yet. The owner has already
+seen some cosine scores, so hide scores in any task and do not claim blinded
+independent validation. The older distinct-role completion path remains a
+separate future quality gate, as do scale-up and AUTO activation.
+The owner-only task preparer passed 5/5 synthetic checks and read-only Trust
+review. Its create-only ignored snapshot is now frozen from six approved Sources
+into 15 pair prompts; no labels exist. `node owner-review.js view` in the R5
+pilot directory renders the task locally without scores or vectors. Never
+regenerate the pair IDs from a later inventory or call these judgments blind
+independent secondary ratings.
+
 2026-10-05 R5 checkpoint: The owner answered yes to the proposed local
 200–250-pair public-page review set with URL/title/provenance, existing-model
 vectors and later human labels, without raw page text, private pages,

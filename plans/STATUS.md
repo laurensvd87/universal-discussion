@@ -75,7 +75,7 @@ page-level operator-declared rights/provenance evidence, one 384-vector and
 an input digest; Wikinews's source date has `day` precision. No raw article
 body, summary, label or production DB write was made. The ignored inventory
 count is 3. The three cross-publisher cosine scores are 0.9099, 0.9042 and
-0.8907, but no same-Topic conclusion follows without blinded human review.
+0.8907, but no same-Topic conclusion follows from scores alone.
 One empty temporary pilot folder left by an earlier sandbox-denied Chrome
 test was verified empty and removed; the successful captures closed their
 own Chrome profiles. Continue only within the approved 24-page pilot;
@@ -92,9 +92,28 @@ the VOA declaration report versus the broader Africa-response article scores
 0.9010. Those scores illustrate why a fixed threshold cannot be treated as a
 human Topic judgment. No reviewer task, label, changed threshold, live DB
 mutation or provider call followed. Further capture remains within the exact
-pilot scope; before labeling, the owner must recruit a distinct independent
-reader for the blinded secondary sample. Full 200-250-pair scale-up and AUTO
-remain separately gated.
+pilot scope; ADR-046 subsequently supersedes the independent-reader
+prerequisite for owner-only exploratory ratings. Full 200-250-pair scale-up
+and AUTO remain separately gated.
+
+**2026-10-05 R5 reviewer decision:** The owner explicitly says he alone is
+sufficient for this local PoC. [ADR-046](../decisions/ADR-046-owner-only-exploratory-r5-review.md)
+opens an owner-only exploratory rating lane and supersedes the earlier request
+to recruit an independent person merely to label the pilot. No labels have
+been recorded yet. Because the owner has seen some pilot similarity scores,
+future rating views must hide scores and disclose this limitation; his answers
+must not be represented as a blinded independent secondary review. The
+distinct-role P1.2 completion contract remains only for a later independently
+validated corpus or AUTO-quality claim. Full 200–250-pair scale-up, production
+rule changes and all later privacy/security/provider/store gates remain open.
+
+**2026-10-05 R5 owner task prepared:** Five socket-denied synthetic checks
+and read-only Trust review accepted the create-only owner-review preparer.
+The ignored local snapshot now freezes six Sources and 15 pair IDs, bound to
+the inventory and canonical task digest. A read-only check confirmed these
+counts without printing real metadata. The view contains public title, URL,
+date and blank Label/Rationale fields only. No human labels, independent
+review claims, threshold change or production data change were made.
 
 **2026-10-05 bounded source-selection increment (extension 0.13.2):** The
 paired popup and service now request 20 local related nominations, but the
