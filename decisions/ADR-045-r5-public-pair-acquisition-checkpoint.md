@@ -1,7 +1,7 @@
 # ADR-045: R5 public-pair acquisition checkpoint
 
 Date: 2026-10-05
-Status: owner approved exact local pilot; Trust accepted isolated capture; three local Source records acquired, no labels
+Status: owner approved exact local pilot; Trust accepted isolated capture; six local Source records acquired, no labels
 
 ## Owner disposition
 
@@ -149,6 +149,15 @@ Existing 384-vector cosine scores are 0.9099 (Global Voices/Wikinews),
 0.9042 (Global Voices/VOA), and 0.8907 (VOA/Wikinews). These scores are not
 gold Topic identity or threshold calibration. The records and inventory digest
 are local only; no real article metadata or vector is committed to Git.
+
+The same page-level screen then added a second three-page theme: Wikinews and
+original VOA reports about the WHO pandemic declaration, plus a Global Voices
+report about African responses to the pandemic. The ignored inventory now
+contains six accepted Sources and no rejections. Their 15 possible pairs are
+not a prepared review task or human labels. The two WHO-declaration vectors
+score 0.9156 despite a three-day publication-date difference; the VOA WHO
+report versus the broader African-response report scores 0.9010. These are
+descriptive unlabelled observations only and do not authorize a new threshold.
 
 ## Next owner assignment and stops
 

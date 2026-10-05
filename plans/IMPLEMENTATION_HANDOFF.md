@@ -29,6 +29,11 @@ each approved origin, are now saved only in the Git-ignored local workspace.
 Their three cross-publisher comparisons are unlabeled; no review task, live
 database change or committed real data exists. Scale-up, independent labels,
 split and AUTO remain gated.
+Three additional page-level-screened Sources on the WHO pandemic declaration
+and African response brought the ignored inventory to six accepted records.
+The two declaration reports score 0.9156 cosine; no pair is labeled or
+prepared for blinded review yet. Before labeling, recruit an independent
+reader as specified by ADR-045 and the P1.2 plan.
 
 2026-10-05 extension 0.13.2 checkpoint: Insight candidate selection now uses
 up to 20 local related nominations on both popup and service, with exact

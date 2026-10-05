@@ -2,7 +2,7 @@
 
 Status: Generated-fixture-only P1.2b-1 implemented; ADR-045 grants exact
 owner/conditional Trust approval for a 24-page/30-pair public pilot with
-reviewer staffing deferred until labeling. Three provenance-screened real
+reviewer staffing deferred until labeling. Six provenance-screened real
 Source records from the approved origins are saved only in the Git-ignored
 pilot workspace; no relationship labels exist. Full task scale-up and
 completion gates remain open.

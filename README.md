@@ -13,13 +13,13 @@ This is a usable local discussion prototype, not a hosted or general-web product
 The owner has approved in principle assembling a local 200–250-pair public-page
 review set for semantic matching. [ADR-045](decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)
 records the pilot scope and remaining scale-up and independent-review gates;
-three real pilot Source records have been captured locally, but no pair has been
+six real pilot Source records have been captured locally, but no pair has been
 human-labeled. This does not change the live
 Topic matcher or reopen the completed six-pair synthetic review.
 The owner subsequently approved a small three-origin English-news pilot and
 deferring reviewer recruitment until labeling. Its isolated
 [one-page capture harness](apps/local-service/experiments/r5-pilot/README.md)
-and page-level provenance checks passed for those three pages; expansion to
+and page-level provenance checks passed for those six pages; expansion to
 the full review set is a separate decision. The real pilot records are
 Git-ignored and are not included in a clone of this repository.
 

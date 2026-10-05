@@ -82,6 +82,20 @@ own Chrome profiles. Continue only within the approved 24-page pilot;
 independent reviewer recruitment is required before any labeling, and full
 R5 scale-up requires a separate owner/Trust decision.
 
+**2026-10-05 R5 second-theme increment:** Three more screened public Sources
+were saved in the same ignored pilot inventory: Wikinews and original VOA
+reports on the WHO pandemic declaration, and a Global Voices article on
+African pandemic responses. The inventory now has six accepted Sources and
+15 possible, still-unselected/unlabeled pairs. The two declaration reports
+score 0.9156 cosine even though their publication dates differ by three days;
+the VOA declaration report versus the broader Africa-response article scores
+0.9010. Those scores illustrate why a fixed threshold cannot be treated as a
+human Topic judgment. No reviewer task, label, changed threshold, live DB
+mutation or provider call followed. Further capture remains within the exact
+pilot scope; before labeling, the owner must recruit a distinct independent
+reader for the blinded secondary sample. Full 200-250-pair scale-up and AUTO
+remain separately gated.
+
 **2026-10-05 bounded source-selection increment (extension 0.13.2):** The
 paired popup and service now request 20 local related nominations, but the
 validated Insight context still includes only the current Source plus up to
