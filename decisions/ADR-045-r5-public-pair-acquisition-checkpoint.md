@@ -1,7 +1,7 @@
 # ADR-045: R5 public-pair acquisition checkpoint
 
 Date: 2026-10-05
-Status: owner approved bounded local acquisition in principle; exact-source and reviewer prerequisites remain open
+Status: owner approved exact local pilot; Trust accepted isolated capture; three local Source records acquired, no labels
 
 ## Owner disposition
 
@@ -14,14 +14,24 @@ completed six-pair synthetic owner exercise remains closed.
 
 This is owner permission for the described local public-page acquisition, not
 merely permission to write a proposal. The existing collection plan still
-requires an exact origin/rights/Trust package before executing it; those
-implementation prerequisites are open. The answer is not permission to open
+required an exact origin/rights/Trust package before executing it; those
+implementation prerequisites were resolved for the bounded pilot below.
+The answer is not permission to open
 the retained owner database, copy owner browsing history, fetch pages in bulk,
 run a provider, publish a benchmark, invent gold labels, freeze a split or
-activate a new automatic Topic rule. No real pair has been acquired yet.
+activate a new automatic Topic rule. At that initial checkpoint no real
+pair had been acquired; the later three-page pilot is recorded below.
 This decision supersedes only the older documents' claim that owner
 authorization for real acquisition is absent; it does not waive their exact
 plan, provenance, pilot, staffing or later scale-up gates.
+
+On 2026-10-05 the owner explicitly answered **yes** to all three follow-up
+questions: the exact three-origin pilot below, retention of a short
+project-written factual summary, and deferral of independent reviewer names
+until *before labeling* rather than before pilot acquisition. Trust gave
+conditional acceptance for this pilot after requiring isolated capture and
+page-level provenance evidence. The full 200–250-pair scale-up, split,
+review-completion and AUTO gates remain separate.
 
 ## Existing R5 constraints
 
@@ -36,10 +46,10 @@ origins, fields, date range, method, retention, rights evidence, Trust review
 and distinct real review roles before real/public metadata collection. Its
 generated-only tooling and the 6/6 review are not a substitute.
 
-The owner's broad answer did not settle those exact origins, whether source
-titles can be retained under each source's terms, publication-time and
-project-written fact-summary fields in ADR-007, or reviewer staffing. These
-must be proposed and approved before real acquisition. The first R5 corpus
+The initial broad answer did not settle exact origins and fields. The owner's
+second answer approves the pilot specifics below and the summary field, but
+each page's title rights and provenance still need acceptance or rejection
+before retention. The first R5 corpus
 should therefore test the existing editorial policy; a broader product and
 cross-language policy needs a separate versioned decision and evidence.
 
@@ -63,7 +73,7 @@ automated collection method, settle other publishers' rights, or establish
 app-store/legal clearance. No articles, titles or vectors from any of these sources
 were retained for this task.
 
-## Proposed first pilot package (awaiting exact disposition)
+## Approved first pilot package (conditional Trust disposition)
 
 - Up to 24 public English editorial article pages, published 2020–2026,
   selected one by one from exactly `en.wikinews.org`, `globalvoices.org` and
@@ -76,7 +86,7 @@ were retained for this task.
   retain personal author profiles.
   Reject a page with an overriding notice, unclear ownership, agency byline
   or third-party title instead of assuming the site-wide policy covers it.
-  This is a proposed rights screen, not legal clearance or Trust approval.
+  This is a bounded rights screen, not legal or store clearance.
 - No account, private URL, comments, image, video or third-party wire copy.
   Each selected page needs its own rights/attribution and publication-time
   check. Discovery is manual source/archive navigation, not a crawler or
@@ -93,32 +103,60 @@ were retained for this task.
   URL and disposition, opaque Source/pair IDs, capture/preprocessing version,
   bounded input digest and one existing-model 384-dimensional vector. The
   rendered article prefix is processed transiently on-device and not stored.
-  A one- or two-sentence project-written factual summary would help blind
-  reviewers distinguish updates, but it is an **additional field awaiting
-  owner approval**; no summary is retained by this decision.
+  A one- or two-sentence original factual summary is approved as a retained
+  field. Leave it blank at acquisition; an authorized human may later write
+  it locally from the public page with author/time/provenance recorded. This
+  decision does not authorize sending article text to an AI provider for
+  drafting. No quotes or copied body passages belong in the summary.
 - Place records only in the existing Git-ignored local review workspace,
   `spikes/topic-resolution/review/work/`, not in the production database or
   Git. Retain until manual deletion under the owner's approved rule. Record
   a local inventory digest and reject pages with unclear provenance. No AI,
   external embedding provider, account session or publication.
 
-Even this pilot waits for the exact Owner/Trust disposition and the review-role
-staffing required by the existing plan. Its results cannot by themselves
-authorize scale-up to 250 candidates, a held-out split or AUTO matching.
-Because the owner is currently working alone, a practical amendment could
-permit the provenance pilot after Owner/Trust source approval while deferring
-named independent reviewers until before human labeling. This would change
-the existing plan's order and is **not approved** here; the owner must decide
-it explicitly. It would not relax independent review for a completed corpus.
+Operational Trust conditions before the first candidate is saved: run the
+production reader and packaged E5 in an isolated capture process which cannot
+write the live Source/Topic database. Do not use the extension's auto-ingest
+session for this pilot. Keep raw rendered text out of `web.run`, model context,
+prompts, logs, files and external services. Retain per-page rights-evidence
+URL, evidence capture time and digest, metadata origin, title-rights decision,
+publication time, publisher/originality check and an accepted/rejected reason.
+Reject ambiguous VOA agency/third-party content and overriding notices.
+The collector must not expand a supplied URL into a crawl or follow an
+unreviewed redirect.
+
+The owner approved deferring named independent reviewers until before human
+labeling; this narrowly supersedes the existing plan's pre-acquisition staffing
+order for this pilot only. It does not relax independent review for a completed
+corpus. The pilot's results cannot by themselves authorize scale-up to 250
+candidates, a held-out split or AUTO matching.
+
+## First capture checkpoint (2026-10-05)
+
+The isolated [R5 pilot harness](../apps/local-service/experiments/r5-pilot/README.md)
+passed 10 synthetic socket-denied checks and two actual-Chrome local-fixture
+checks, including packaged reader/E5 inference, a blocked subresource and a
+blocked redirect. Trust then accepted a one-page real capture subject to
+truthful page-level evidence. After checking the applicable publisher notices
+and each page's title, date and authorship indicators, the operator saved one
+public article each from Wikinews, Global Voices and original VOA reporting
+in the Git-ignored review workspace. Wikinews exposes a date, not an exact
+time; its record explicitly uses `day` precision. No raw article body,
+summary, reviewer label or live Source/Topic database entry was retained.
+
+The three possible cross-publisher pairs remain **unlabeled candidates**.
+Existing 384-vector cosine scores are 0.9099 (Global Voices/Wikinews),
+0.9042 (Global Voices/VOA), and 0.8907 (VOA/Wikinews). These scores are not
+gold Topic identity or threshold calibration. The records and inventory digest
+are local only; no real article metadata or vector is committed to Git.
 
 ## Next owner assignment and stops
 
-Before collecting real pairs, present a concrete small origin/domain allowlist,
-English-news date range, exact fields and on-device embedding method, local
-untracked storage/deletion rule and per-origin rights/terms evidence to Owner
-and Trust for explicit disposition. Do not retain article bodies or reviewer
-access to private pages. Reuse the existing review ledger; do not invent labels
-from source proximity or AI output.
+The above exact pilot package has owner approval and Trust acceptance for
+the isolated capture path; keep applying per-page provenance controls to any
+further candidate. Do not retain article bodies or reviewer access to private
+pages. Reuse the existing review ledger; do not invent labels from source
+proximity or AI output.
 After a small provenance-reviewed pilot, scale-up to the full set still needs
 the collection plan's separate owner/Trust disposition.
 
@@ -128,8 +166,8 @@ reader** willing to blindly rate at least the precommitted secondary-review
 sample (initially 30% of prepared pairs, about 75 judgments) as same Topic,
 different Topic or uncertain, using approved public URL/title/publication-time
 and project-written factual summaries plus the rubric, without model scores
-or construction labels. Retaining summaries is **not yet approved** under the
-owner's no-raw-text scope and needs explicit field disposition. This person
+or construction labels. The short original summary field is approved for
+later human authorship, not AI/provider generation. This person
 cannot be a renamed synthetic actor. Adjudication and provenance-review staffing must also be
 resolved before a completed real R5 corpus can be claimed; if unavailable,
 the outcome stays an owner-local exploratory set, not validated AUTO.

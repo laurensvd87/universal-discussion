@@ -8,12 +8,27 @@ This is owner permission for acquisition in principle, but it does not supply
 the exact origins, date range, title rights, derived-summary field decision,
 Trust disposition or independent people required by the existing acquisition
 plan.
-No real pair was acquired; do not treat the 6/6 synthetic exercise as the
-review. ADR-045 proposes a 24-page/30-pair three-origin pilot with no stored
-raw text, plus an explicit reviewer-timing amendment; neither is yet approved.
-Seek exact Owner/Trust disposition and a bounded independent-reader assignment
-before proceeding across the remaining gates.
+At that initial checkpoint no real pair was acquired; do not treat the 6/6
+synthetic exercise as the review. The exact pilot and reviewer-timing amendment were subsequently
+approved as recorded below; the full R5 task remains separately gated.
 No model, threshold, Topic routing or owner DB change follows.
+
+2026-10-05 R5 pilot follow-up: The owner then approved the exact three-origin
+24-page/30-pair English-news pilot, short original factual summaries, and
+deferring independent reviewer names until before labeling. Trust gave
+conditional acceptance: isolated production-reader/E5 capture must not write
+the live database; check and record page-level title rights, metadata origin,
+publication time, evidence time/digest and accepted/rejected reason. Raw page
+text is transient and must not enter web tools, model context, logs or files;
+summaries stay blank until an authorized human writes them locally. ADR-045
+and the P1.2 continuation narrowly supersede the old pre-acquisition reviewer
+staffing gate for this pilot only. The isolated capture harness then passed
+10 socket-denied checks and two local Chrome fixtures; Trust accepted the
+one-page real path. Three provenance-screened public Source records, one from
+each approved origin, are now saved only in the Git-ignored local workspace.
+Their three cross-publisher comparisons are unlabeled; no review task, live
+database change or committed real data exists. Scale-up, independent labels,
+split and AUTO remain gated.
 
 2026-10-05 extension 0.13.2 checkpoint: Insight candidate selection now uses
 up to 20 local related nominations on both popup and service, with exact

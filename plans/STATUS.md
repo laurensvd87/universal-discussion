@@ -44,15 +44,43 @@ records this as acquisition permission in principle without inventing an
 independent rating or repeating the finished 6/6 exercise. The older R5
 collection contract still requires exact permitted origins/date range/fields/
 method/rights evidence, Trust disposition and real independent reviewer
-staffing. Those operational specifics were not in the approval, so
-no real pair has been acquired, no owner database opened, no split frozen and
-no automatic grouping changed. A source-policy scan found licensed English
-Wikinews plausible for a pilot but insufficient alone for viewpoint diversity;
-institutional open-license pages are not editorial-news substitutes. Next:
-seek disposition on ADR-045's exact 24-page/30-pair three-origin pilot,
-derived-summary field and proposed reviewer-timing amendment; recruit an
-independent reader for the later blinded secondary sample (about 75 judgments),
-then resolve adjudication/provenance roles before R5 completion.
+staffing before a completed benchmark. Those specifics were not in the
+initial approval; the pilot follow-up below resolves the narrow acquisition
+scope, not the later review or scale-up gates. A source-policy scan found
+licensed English Wikinews plausible for a pilot but insufficient alone for
+viewpoint diversity; institutional open-license pages are not editorial-news
+substitutes.
+
+**2026-10-05 R5 pilot follow-up:** The owner explicitly approved all three
+specifics: up to 24 public English editorial pages (2020–2026) from English
+Wikinews, Global Voices and original VOA reporting, up to 30 candidate pairs,
+the short project-written factual-summary field, and deferring independent
+reviewer names until *before labeling*. Trust conditionally accepted this
+scope with isolated capture and page-level rights/provenance checks.
+[ADR-045](../decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)
+records the exact fields, exclusions and operational conditions. Summaries
+will stay blank at acquisition; an authorized human may write them locally
+later, without sending article text to an AI provider. The first three real
+Source records are now saved as described below; no live database was touched
+and no reviewer labels exist. The
+pilot's 24/30 limits are not approval to scale to the 250-candidate R5 task.
+
+**2026-10-05 R5 first real capture:** The isolated one-URL harness passed
+10/10 socket-denied synthetic checks and 2/2 actual-Chrome local fixtures
+(packaged reader/E5, blocked subresource and redirect). Trust accepted one
+real page subject to its per-page rights screen. We then saved three approved-
+origin public Source records locally: Wikinews, Global Voices and VOA original
+reporting on different angles of the February 2022 invasion. Each has
+page-level operator-declared rights/provenance evidence, one 384-vector and
+an input digest; Wikinews's source date has `day` precision. No raw article
+body, summary, label or production DB write was made. The ignored inventory
+count is 3. The three cross-publisher cosine scores are 0.9099, 0.9042 and
+0.8907, but no same-Topic conclusion follows without blinded human review.
+One empty temporary pilot folder left by an earlier sandbox-denied Chrome
+test was verified empty and removed; the successful captures closed their
+own Chrome profiles. Continue only within the approved 24-page pilot;
+independent reviewer recruitment is required before any labeling, and full
+R5 scale-up requires a separate owner/Trust decision.
 
 **2026-10-05 bounded source-selection increment (extension 0.13.2):** The
 paired popup and service now request 20 local related nominations, but the
