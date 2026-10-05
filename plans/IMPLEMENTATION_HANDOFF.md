@@ -1,21 +1,30 @@
 # Implementation handoff: local-service discussion MVP
 
-2026-10-04 Topic architecture proposal: ADR-044 separates scalable candidate
-retrieval, stance-independent precise Topic membership, related Collection
-links and four-slot Insight evidence selection. Independent review found
-history-dependent .92 triad grouping and ID-/publisher-biased source choice.
-Read-only aggregates: 92 total Sources/83 total Topics, including 84 learned
-Sources/70 learned Topics, 57 singletons and 185 cross-Topic pairs >=.90;
-these are unlabeled geometry, not merge targets.
-The 100-Source/Topic JSON-state ceiling is near. No grouping rule, schema,
-data, model, provider call or UI was changed. The proposal awaits the owner's
-one material scope decision: exact developments/opposing views in precise
-Topics, related developments in broader Collections with clearly attributed
-subthreads, rather than one broad undifferentiated Topic. Safe next coding
-slice after that decision is synthetic shadow evaluation of whole-neighborhood
-candidate construction and diversified four-slot selection. Normalized
-SQLite migration on owner data and any extra representations are separate
-approval gates.
+2026-10-05 Topic-cloud clarification: Russia/Ukraine was only a test, not a
+domain limit. The owner wants a growing, graded and overlapping cloud of pages
+for arbitrary subjects. Opposing views on the same subject must remain close
+in topical relevance; argument difference is a separate axis. The original
+mandatory precise-Topic/Collection hierarchy is withdrawn. Revised
+[ADR-044](../decisions/ADR-044-continuous-topic-cloud-and-insight-diversity-proposal.md)
+is a proposal, not activation: preserve stable discussion/root/reply identity
+while testing overlapping neighborhoods and diversified four-slot Insight
+selection. Independent review found history-dependent .92 triad grouping and
+ID-/publisher-biased source choice. Read-only aggregates: 92 total Sources/83
+total Topics, including 84 learned Sources/70 learned Topics, 57 singletons
+and 185 cross-Topic pairs >=.90; these are unlabeled geometry, not merge
+targets. The 100-Source/Topic JSON-state ceiling is near. No grouping rule,
+schema, data, model, provider call or UI changed. Safe next coding slice is
+synthetic shadow evaluation of candidate construction, graded relevance and
+diversified selection; no further taxonomy choice is needed for that slice.
+Normalized SQLite migration on owner data and any extra retained
+representations remain separate approval gates.
+The first isolated [synthetic Topic-cloud shadow](../apps/local-service/experiments/topic-cloud/README.md)
+is implemented with 9 passing socket-denied tests. It covers overlapping
+graded results, deterministic ranking, >100 synthetic nodes and four-slot
+diversity, but its deliberately misleading false friend still enters Insight
+selection. This is a mechanics checkpoint, not E5 calibration or production
+activation. Next, measure existing-vector recall and query cost on a safe
+synthetic corpus before proposing a data migration or new representation.
 
 2026-10-04 HLN Insight diagnosis: For the owner-provided public defence-budget
 page, the read-only local catalog has no same-Topic peer. Four of five related

@@ -10,6 +10,17 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The next matching direction is a graded, overlapping cloud of related pages
+across any subject, not a fixed Russia/Ukraine collection or a mandatory
+Topic/Collection tree. Opposing views on the same subject should remain close;
+written conversations must keep stable identity as the cloud changes. This is
+still a [proposal](decisions/ADR-044-continuous-topic-cloud-and-insight-diversity-proposal.md),
+not the current matcher. The present PoC has a 100-Source/100-Topic cap and
+does not yet provide the scalable cloud or reliably stance-independent matches.
+An isolated [synthetic shadow experiment](apps/local-service/experiments/topic-cloud/README.md)
+tests the proposed cloud mechanics; it does not change the running extension
+or service and exposes a false-positive example.
+
 Extension **0.13.1** removes manual Topic selection and the initial Start
 session/Choose Topic buttons from User Mode. With the already-granted HTTPS
 access and saved pairing, eligible public pages are discovered automatically

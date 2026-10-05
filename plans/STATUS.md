@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-04. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-05. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -35,6 +35,29 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-05 cloud-first topic clarification (proposal, no activation):**
+Russia/Ukraine was a test case, not a product domain limit. The owner wants an
+unbounded, graded cloud of related pages across arbitrary subjects, including
+high topical proximity for opposing views of the *same* subject. A mandatory
+precise-Topic/Collection hierarchy is therefore withdrawn; a Collection can
+later be a view, not the storage ontology. The revised
+[ADR-044](../decisions/ADR-044-continuous-topic-cloud-and-insight-diversity-proposal.md)
+separates topical affinity, argument difference and stable discussion identity,
+and proposes overlapping neighborhoods without transitive topic merges.
+There is no further taxonomy decision before synthetic shadow tests. The
+current single-vector algorithm and 100-Source/100-Topic cap remain unchanged;
+the cloud, scalable SQLite schema and stance-aware quality are **not yet
+implemented**. Migration of retained owner data and any additional stored
+representation still require their separate gates.
+An isolated [synthetic shadow](../apps/local-service/experiments/topic-cloud/README.md)
+now exercises graded overlapping neighbors and four-slot diversity without
+production imports or owner data. Its 9 socket-denied tests pass, including
+an over-100-node catalog, opposite views, multi-subject overlap, duplicate
+flooding and arrival-order invariance. Invented coordinates also rank one
+unrelated false friend above a relevant counterview; this deliberately shows
+that current-vector semantic reliability is unproven. It does not remove the
+production cap, migrate discussions or validate real multilingual recall.
+
 **2026-10-04 Topic architecture review (proposal, no activation):** The owner
 requests a same-Topic algorithm that remains useful as embedded pages grow,
 joins opposing views of the same subject, and gives Insights a diverse four-
@@ -47,16 +70,13 @@ learned Topics (57 singletons, 12 pairs, one triple), and 185 cross-Topic
 vector pairs at cosine >=0.90. These are not
 semantic labels or proof that those pairs should merge. The local catalog is
 also near the hard 100-Source/100-Topic PoC ceiling; merely lowering 0.90 or
-raising constants cannot meet the growth objective. [ADR-044](../decisions/ADR-044-topic-identity-collections-and-insight-diversity-proposal.md)
-proposes separate candidate retrieval, identity verification and diverse
-Insight selection, with precise Topics connected by broader Collections.
-It is not approved or implemented. Near-term safe work is synthetic shadow
-testing of the documented three-page margin bug and source diversification;
-normalized SQLite and any additional retained representation/provider call/
-real review corpus retain their explicit gates. The owner-facing product
-choice is whether related developments should appear in one broader
-Collection view while exact same developments and opposing views share a
-precise Topic.
+raising constants cannot meet the growth objective. The original ADR-044
+proposal separated candidate retrieval, identity verification and diverse
+Insight selection but prescribed precise Topics within broader Collections.
+The 2026-10-05 owner clarification above supersedes that hierarchy. Near-term
+safe work remains synthetic shadow testing of the documented three-page
+margin bug and source diversification; normalized SQLite and any additional
+retained representation/provider call/real review corpus retain their gates.
 
 **2026-10-04 owner-provided HLN Insight diagnostic (read-only):** The public
 Russian-defence-budget article supplied by the owner exists once in the local
