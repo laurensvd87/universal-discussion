@@ -1,9 +1,9 @@
 import { inspectPageUrl } from "./page-content-policy.js";
 
 const MAX_PAGES = 4;
-const MAX_BYTES = 96 * 1024;
+const MAX_BYTES = 768 * 1024;
 const MAX_TEXT = 2048;
-const MAX_TOKENS = 4096;
+const MAX_TOKENS = 8192;
 const MAX_DEPTH = 128;
 const TIMEOUT_MS = 5000;
 const HIDDEN = new Set(["head", "script", "style", "noscript", "textarea", "title", "iframe", "xmp", "noembed", "noframes", "plaintext", "svg", "template", "nav", "footer", "aside", "header"]);

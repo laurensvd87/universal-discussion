@@ -129,7 +129,47 @@ test("explicit paywall and authentication markers reject the whole related page"
 
 test("deep or token-heavy adversarial markup fails closed before quadratic traversal", () => {
   assert.equal(extractRelatedPageText(`<main>${"<div>".repeat(129)}${"Public paragraph ".repeat(12)}</main>`), "");
-  assert.equal(extractRelatedPageText(`<main>${"<br>".repeat(4100)}${"Public paragraph ".repeat(12)}</main>`), "");
+  assert.equal(extractRelatedPageText(`${"<!-- metadata -->".repeat(4100)}<main><p>Public paragraph.</p></main>`),
+    "Public paragraph.");
+  assert.equal(extractRelatedPageText(`<main>${"<br>".repeat(8192)}${"Public paragraph ".repeat(12)}</main>`), "");
+});
+
+test("a 583306-byte public HTML page with main beyond 239 KiB supplies only bounded visible article text", async () => {
+  const url = "https://news.example.org/large-article";
+  const lead = "A public article discusses the same development with additional context. ".repeat(45);
+  const prefix = `<html><head><!--${"x".repeat(240 * 1024)}--></head><body><main><section hidden>Hidden subscriber copy.</section><p>${lead}</p></main>`;
+  const suffix = "</body></html>";
+  const padding = "<!--" + "y".repeat(583306 - prefix.length - suffix.length - 7) + "-->";
+  const html = prefix + padding + suffix;
+  assert.equal(new TextEncoder().encode(html).byteLength, 583306);
+  assert.ok(html.indexOf("<main>") > 239 * 1024);
+  const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async () => response(url, html) });
+  const excerpts = await reader.read({ sameTopicSources: [], relatedSources: [{ id: "peer", url }] });
+  assert.equal(excerpts.length, 1);
+  assert.equal(excerpts[0].text.length, 2048);
+  assert.ok(excerpts[0].text.startsWith("A public article"));
+  assert.ok(!excerpts[0].text.includes("Hidden subscriber"));
+  assert.equal(extractRelatedPageText(html.replace("<main>", '<main data-paywall="true">')), "");
+});
+
+test("768 KiB plus one byte fails closed and cancels the response stream", async () => {
+  const url = "https://news.example.org/too-large";
+  let cancelled = false, requestSignal, diagnostic;
+  const body = new ReadableStream({
+    start(controller) { controller.enqueue(new Uint8Array(768 * 1024 + 1)); },
+    cancel() { cancelled = true; },
+  });
+  const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async (_url, options) => {
+      requestSignal = options.signal;
+      return { ok: true, redirected: false, url, headers: new Headers({ "content-type": "text/html" }), body };
+    } });
+  assert.deepEqual(await reader.read({ sameTopicSources: [], relatedSources: [{ id: "peer", url }] }, [], null,
+    (value) => { diagnostic = value; }), []);
+  assert.equal(requestSignal.aborted, true);
+  assert.equal(cancelled, true);
+  assert.equal(diagnostic.failures.sizeType, 1);
 });
 
 test("hidden, inert, aria-hidden and inline-style-hidden subtrees never enter the excerpt", () => {

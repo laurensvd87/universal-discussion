@@ -60,6 +60,12 @@ not ready to run on the current database. A separate
 [near-copy retrieval probe](apps/local-service/experiments/topic-cloud/related-retrieval-README.md)
 keeps duplicate-looking invented pages from crowding out a distinct related
 candidate; it is not active or evidence of real-world matching quality.
+An isolated [small learned embedding probe](apps/local-service/experiments/learned-embedding/README.md)
+trains a 256-dimensional text encoder on invented same-subject and
+different-subject examples. It did not improve held-out retrieval over its
+unweighted baseline. A second experiment learned a tiny projection on the
+already-packaged multilingual E5 vectors; it likewise did not improve
+held-out synthetic same-subject ranking. Neither is installed in the app.
 
 Extension **0.13.3** makes first connection and Insight progress clearer in
 User Mode: the first-run Connect action fits the popup at 410 and 320 px,
@@ -71,8 +77,19 @@ no new permission, provider call, Topic rule or stored field is involved.
 
 Extension **0.13.4** adds a Developer Mode diagnostic for related-page text:
 eligible, attempted and accepted counts plus coarse failure totals. It contains
-no page text, titles or URLs, and does not change the current 96 KiB fetch
-limit. Reload the extension to inspect it after an explicit Insight request.
+no page text, titles or URLs. Reload the extension to inspect it after an
+explicit Insight request.
+The current page text and successfully fetched related-page excerpts already
+reach the connected model on a deliberate **Get insights** click. Extension
+**0.13.5** raises the approved anonymous HTML ceiling to 768 KiB and parser
+ceiling to 8,192 tokens, so some previously skipped large pages can contribute
+an excerpt. Four attempts, 2,048 characters per page, five seconds, source
+exclusions and private-draft behavior stay the same. The owner approved one
+separate live provider quality test; the first attempt stopped before any
+Responses request because the protected ChatGPT connection could not be
+restored. Reconnect ChatGPT in the extension before a live quality check.
+The local service was restarted with the same extension Origin and persistent
+pairing. None of this is store-release approval.
 
 Extension **0.13.2** improves the source mix for a deliberate **Get insights**
 request. It considers up to 20 already-known local related-page nominations,
@@ -115,7 +132,7 @@ Extension **0.13.0** adds a conversation-first ivory/ink/mustard popup
 and optional related-page excerpts for **Get insights**. The related-text
 setting is on by default and can be changed in Settings; a saved off choice
 is honored before any fetch. Only an explicit Insight request tries up to
-four selected public HTTPS pages, anonymously and with a 96 KiB/5-second
+four selected public HTTPS pages, anonymously and with a 768 KiB/5-second
 fetch bound and at most 2,048 text characters per page. Failed or inaccessible
 pages are skipped. The current page remains the subject; the local service
 checks excerpt source IDs/URLs against the selected catalog context. Ordinary

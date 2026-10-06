@@ -35,6 +35,46 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-06 related-text and custom-embedding checkpoint:** The explicit
+Get insights path already passes the current article prefix plus up to four
+validated, anonymously fetched related-page excerpts to the connected model;
+focused extension and service checks passed 77/77 and 63/63. The unchanged
+96 KiB/4,096-token reader skipped some large public pages before their
+article starts. The owner then explicitly approved the exact 768 KiB/8,192-
+token owner-local expansion and one separate live provider quality test under
+ADR-041. Extension 0.13.5 applies only those reader ceilings; the four-attempt,
+2,048-character-per-excerpt and five-second bounds remain. The synthetic
+583,306-byte late-main and over-cap cancellation tests pass. Independent Trust
+review found no blocker, and the restricted extension suite passes 925/925.
+The local-service suite passes 221/225 with four optional skips; both secret
+scans found zero findings.
+An anonymous check of the previously supplied Vietnam.vn public candidate
+accepted one 2,048-character excerpt, with no text saved or printed. The
+single approved live ChatGPT QA attempt stopped before a Responses request:
+the protected connection could not be restored (`Connected ChatGPT plan
+unavailable`). The verified local service was restarted with the same Origin
+and durable pairing; port 4174 is listening again. The owner must reconnect
+ChatGPT before live quality can be assessed. The owner also requested a small
+custom Topic embedding trial. An isolated, dependency-free 256-dimensional
+hashed text encoder learned diagonal weights from 20 project-created synthetic
+documents and was evaluated on 12 held-out synthetic documents. Rank-one
+same-subject retrieval was 5/12 for both learned and unweighted variants;
+this negative result does not justify replacing E5 or changing Topics. Its
+[experiment](../apps/local-service/experiments/learned-embedding/README.md)
+has three socket-denied tests; no real content, owner database, provider,
+download or extension asset was used. A larger model/training-data package
+and any production activation retain their separate ADR-044/048 gates.
+The follow-up trained a 384-dimensional project-owned diagonal projection
+on the already-packaged multilingual E5 vectors, with the same frozen
+synthetic split and no new asset or retained vector. On 12 held-out queries,
+unmodified E5 and E5 plus the learned head both ranked the same-subject
+partner first for 2/12 and a distinct-subject hard negative first for 10/12.
+The head adds 1,536 float32 bytes but offers no held-out improvement; the
+existing E5 model/tokenizer remain about 135 MB together. Four combined
+socket-denied tests and the guarded E5 runner pass. This is a small
+negative feasibility result, not multilingual calibration or a production
+matching change.
+
 **2026-10-06 related-Insight availability diagnosis:** The existing local
 catalog already nominates real vector-related Sources, and an explicit
 Insight request can include up to four anonymously fetched excerpts. A

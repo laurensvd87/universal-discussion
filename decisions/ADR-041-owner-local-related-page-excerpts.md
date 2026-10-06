@@ -107,3 +107,28 @@ The unchanged-cap build may expose only bounded, content-free aggregate
 failure counts in Developer Mode to distinguish no access, network/HTTP,
 size/type and parse/short outcomes. It must not log or retain source URLs,
 titles, page text or exception details for that purpose.
+
+## 2026-10-06 bounded owner-local expansion
+
+The owner explicitly approved increasing only the anonymous related-page
+reader to 768 KiB of HTML and 8,192 parser tokens. The separate request for
+one live ChatGPT quality test using one public current page and at most four
+related excerpts was also explicitly approved. Neither permission changes the
+four-attempt, 2,048-character-per-page, 8,192-character-total, five-second,
+source-exclusion, transient-text or private-draft limits above. This is not
+store/public-release clearance or permission to cache related-page bodies.
+
+An independent Trust review of the exact reader diff found no blocking scope
+or egress issue. Synthetic checks confirm that a 583,306-byte HTML page with
+its main region after 239 KiB can yield only a bounded visible excerpt, while
+a 768 KiB+1 streamed response is rejected and cancelled. These checks do not
+prove that any particular publisher permits access or that the browser can
+fetch the live page. An anonymous local reader check of the previously
+supplied public Vietnam.vn candidate accepted one 2,048-character excerpt
+without printing or saving raw text; this does not prove Chrome access or
+rights. The single approved live ChatGPT QA attempt stopped before any
+Responses dispatch because the protected connection could not be restored
+(`Connected ChatGPT plan unavailable`). The verified project service was
+briefly stopped for the exclusive-port harness and restarted with the same
+extension Origin and durable pairing. A fresh ChatGPT sign-in is needed
+before live quality can be assessed; no provider result is claimed.
