@@ -4,6 +4,7 @@ import { mkdtempSync, realpathSync, unlinkSync, rmdirSync, existsSync } from "no
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { assertValidPersistedState } from "../../../../src/domain/persisted-state.js";
+import { LEARNED_SOURCE_PROVENANCE } from "../../../../src/domain/learned-sources.js";
 import { sourceStamp } from "../../../../src/domain/source-threads.js";
 
 const created = new Set();
@@ -276,4 +277,48 @@ export function readSyntheticDatabase(handle) {
 export function readLegacySyntheticDatabase(handle) {
   const db = open(handle.path);
   try { return readLegacy(db); } finally { db.close(); }
+}
+
+// Synthetic lifecycle proof only. The production command also replans adaptive
+// Topics; this narrow transaction deliberately exercises the storage invariants.
+export function forgetSyntheticSource(handle, { sourceId, expectedGeneration, expectedRevision, failAt } = {}) {
+  const db = open(handle.path);
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const before = project(db);
+      if (before.generation !== expectedGeneration || !Number.isSafeInteger(expectedRevision) ||
+          before.revision !== expectedRevision) throw new Error("Stale synthetic version");
+      const source = before.sources.find(source => source.id === sourceId);
+      if (!source || source.provenance !== LEARNED_SOURCE_PROVENANCE) throw new Error("Synthetic learned Source unavailable");
+      const roots = db.prepare(`SELECT a.root_id, d.topic_id FROM root_anchors a
+        JOIN contributions c ON c.id=a.root_id JOIN discussions d ON d.id=c.discussion_id
+        WHERE a.kind='source' AND a.source_id=?`).all(sourceId);
+      const pin = db.prepare(`UPDATE root_anchors SET kind='topic', topic_id=?, source_id=NULL, stamp=NULL WHERE root_id=?`);
+      for (const root of roots) pin.run(root.topic_id, root.root_id);
+      db.prepare("UPDATE contributions SET origin_source_id=NULL WHERE origin_source_id=?").run(sourceId);
+      if (failAt === "after-origins") throw new Error("Injected failure: after-origins");
+      db.prepare("DELETE FROM source_topic_links WHERE source_id=?").run(sourceId);
+      db.prepare("DELETE FROM source_vectors WHERE source_id=?").run(sourceId);
+      db.prepare("DELETE FROM sources WHERE id=?").run(sourceId);
+      db.prepare("UPDATE state_meta SET revision=revision+1 WHERE singleton=1").run();
+      if (db.prepare("PRAGMA foreign_key_check").all().length ||
+          db.prepare("PRAGMA integrity_check").get().integrity_check !== "ok") throw new Error("SQLite integrity failure");
+      const after = project(db);
+      const expected = structuredClone(before);
+      expected.revision += 1;
+      expected.sources = expected.sources.filter(source => source.id !== sourceId);
+      expected.sourceLinks = expected.sourceLinks.filter(link => link.sourceId !== sourceId);
+      for (const contribution of expected.contributions) {
+        if (contribution.rootId === null && contribution.anchor.kind === "source" && contribution.anchor.sourceId === sourceId) {
+          contribution.anchor = { kind: "topic", topicId: expected.discussions.find(d => d.id === contribution.discussionId).topicId };
+        }
+        if (contribution.originSourceId === sourceId) delete contribution.originSourceId;
+      }
+      if (!equal(after, expected)) throw new Error("Forget projection mismatch");
+      if (failAt === "before-commit") throw new Error("Injected failure: before-commit");
+      db.exec("COMMIT");
+      return { revision: after.revision, counts: counts(after) };
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+  } finally { db.close(); }
 }

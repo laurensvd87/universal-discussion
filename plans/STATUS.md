@@ -35,6 +35,31 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-06 extension 0.13.3 and isolated cloud-rehearsal checkpoint:**
+The User Mode first-run connection card now keeps the token field and Connect
+action visible without horizontal scrolling at 410 and 320 px popup widths;
+Enter uses the same pairing action. Plain disconnected text no longer repeats
+under that card, while actual errors remain visible. The main Insight action
+has honest setup/processing states, including related-source preparation; it
+does not launch research before the existing connection and plan gates.
+The full extension suite passes 633/633, the local service suite passes
+221/225 with four optional skips, and isolated Chrome visual states pass.
+This is a UI-only extension increment: reload the unpacked extension; the
+local service need not restart for it.
+
+Two further **offline-only** probes support later scale decisions. The
+[synthetic v2 rehearsal](../apps/local-service/experiments/topic-cloud/sqlite/rehearsal/README.md)
+now exercises learned-Source Forget atomically with revision/generation checks,
+root pinning and origin cleanup; 11/11 socket-denied tests pass, including
+failure rollback. The
+[near-copy nomination probe](../apps/local-service/experiments/topic-cloud/related-retrieval-README.md)
+retains same-Topic peers while preventing invented duplicate-title/vector
+related nominations from monopolizing a 20-candidate list; 4/4 socket-denied
+tests pass. Neither probe is imported into production. Real retrieval quality,
+full deletion/withdrawal/recovery, owner-data migration and matcher activation
+remain unapproved/unverified under ADR-044; no owner DB or provider data was
+used in these probes.
+
 **2026-10-05 R5 review-set approval checkpoint:** The owner approved in
 principle assembling 200–250 local public-page pairs with URL/title,
 provenance, existing-model vectors and later human labels until manual

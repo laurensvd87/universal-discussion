@@ -5,8 +5,9 @@ import { unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createDemoState } from "../../../../src/domain/demo-state.js";
 import { assertValidPersistedState } from "../../../../src/domain/persisted-state.js";
-import { sourceStamp } from "../../../../src/domain/source-threads.js";
-import { createSyntheticDatabase, migrateSyntheticDatabase, readLegacySyntheticDatabase, readSyntheticDatabase } from "./rehearsal.js";
+import { operationDigestFor, sourceStamp } from "../../../../src/domain/source-threads.js";
+import { BROWSER_MODEL_ID, EXTRACTOR_VERSION, LEARNED_SOURCE_PROVENANCE, MATCH_POLICY_VERSION } from "../../../../src/domain/learned-sources.js";
+import { createSyntheticDatabase, forgetSyntheticSource, migrateSyntheticDatabase, readLegacySyntheticDatabase, readSyntheticDatabase } from "./rehearsal.js";
 
 const TIME = "2026-10-05T10:00:00.000Z";
 function fixture() {
@@ -32,6 +33,23 @@ function fixture() {
       authorId: null, withdrawn: true, revisions: [], anchor: { kind: "topic", topicId: "topic-b" },
       originalTopicId: "deleted-topic-id", learnedOrigin: true },
   ];
+  return assertValidPersistedState(state);
+}
+
+function learnedFixture() {
+  const state = fixture();
+  const source = state.sources[0];
+  source.url = "https://example.org/synthetic-article";
+  source.provenance = LEARNED_SOURCE_PROVENANCE;
+  source.embedding = { modelId: BROWSER_MODEL_ID, values: [1, ...Array(383).fill(0)] };
+  source.extractorVersion = EXTRACTOR_VERSION;
+  source.operationId = "synthetic-operation";
+  source.policyVersion = MATCH_POLICY_VERSION;
+  source.operationDigest = operationDigestFor(source);
+  state.sourceLinks[0].method = "learned-provisional";
+  state.contributions[0].anchor.stamp = sourceStamp(source);
+  state.contributions[0].learnedOrigin = true;
+  state.contributions.push({ ...structuredClone(state.contributions[1]), id: "reply-same-source", originSourceId: "source-a" });
   return assertValidPersistedState(state);
 }
 
@@ -135,4 +153,61 @@ test("cleanup can be retried without deleting unexpected temp contents", () => {
     // If the assertion itself fails, remove only the named synthetic sidecar.
     try { unlinkSync(sidecar); } catch { /* Already removed. */ }
   }
+});
+
+test("synthetic Forget pins root, clears source origins and survives reopen", () => {
+  const state = learnedFixture();
+  const handle = createSyntheticDatabase(state);
+  try {
+    migrateSyntheticDatabase(handle);
+    const result = forgetSyntheticSource(handle, { sourceId: "source-a", expectedGeneration: state.generation, expectedRevision: 7 });
+    assert.equal(result.revision, 8);
+    const after = readSyntheticDatabase(handle);
+    assert.equal(after.sources.length, 1);
+    assert.equal(after.sourceLinks.length, 1);
+    assert.deepEqual(after.contributions[0].anchor, { kind: "topic", topicId: "topic-a" });
+    assert.equal(after.contributions[0].originalTopicId, "topic-a");
+    assert.equal(after.contributions[0].learnedOrigin, true);
+    assert.equal(Object.hasOwn(after.contributions[0], "originSourceId"), false);
+    assert.equal(after.contributions[1].originSourceId, "source-b");
+    assert.equal(Object.hasOwn(after.contributions[4], "originSourceId"), false);
+    assert.deepEqual(after.contributions.map(c => c.revisions), state.contributions.map(c => c.revisions));
+    assert.throws(() => readLegacySyntheticDatabase(handle), /Unsupported database schema/);
+    assert.throws(() => forgetSyntheticSource(handle, { sourceId: "source-b", expectedGeneration: state.generation, expectedRevision: 7 }), /Stale synthetic version/);
+    assert.deepEqual(readSyntheticDatabase(handle), after);
+  } finally { handle.dispose(); }
+});
+
+test("synthetic Forget failure rolls back roots, origins, Source and revision", () => {
+  for (const failAt of ["after-origins", "before-commit"]) {
+    const handle = createSyntheticDatabase(learnedFixture());
+    try {
+      migrateSyntheticDatabase(handle);
+      const before = readSyntheticDatabase(handle);
+      assert.throws(() => forgetSyntheticSource(handle, { sourceId: "source-a", expectedGeneration: before.generation, expectedRevision: 7, failAt }), /Injected failure/);
+      assert.deepEqual(readSyntheticDatabase(handle), before);
+    } finally { handle.dispose(); }
+  }
+});
+
+test("synthetic Forget refuses fixture Source without changing normalized state", () => {
+  const handle = createSyntheticDatabase(fixture());
+  try {
+    migrateSyntheticDatabase(handle);
+    const before = readSyntheticDatabase(handle);
+    assert.throws(() => forgetSyntheticSource(handle, { sourceId: "source-a", expectedGeneration: before.generation, expectedRevision: 7 }), /Synthetic learned Source unavailable/);
+    assert.deepEqual(readSyntheticDatabase(handle), before);
+  } finally { handle.dispose(); }
+});
+
+test("synthetic Forget rejects wrong generation at matching revision", () => {
+  const handle = createSyntheticDatabase(learnedFixture());
+  try {
+    migrateSyntheticDatabase(handle);
+    const before = readSyntheticDatabase(handle);
+    assert.throws(() => forgetSyntheticSource(handle, {
+      sourceId: "source-a", expectedGeneration: "different-synthetic-generation", expectedRevision: before.revision,
+    }), /Stale synthetic version/);
+    assert.deepEqual(readSyntheticDatabase(handle), before);
+  } finally { handle.dispose(); }
 });

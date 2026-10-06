@@ -20,7 +20,7 @@ async function evaluate(expression, sessionId) {
   if (result.exceptionDetails) throw Error(`Visual evaluation failed: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}`);
   return result.result.value;
 }
-async function capture(name, sessionId, { compact = false } = {}) {
+async function capture(name, sessionId, { compact = false, fluid = false } = {}) {
   const metrics = await evaluate(`(() => {
     const root=document.documentElement, body=document.body;
     const clientWidth=root.clientWidth;
@@ -33,7 +33,8 @@ async function capture(name, sessionId, { compact = false } = {}) {
       bodyWidth:body.getBoundingClientRect().width,scrollWidth:root.scrollWidth,
       clientWidth,escaped};
   })()`, sessionId);
-  if (compact) assert.ok(metrics.bodyWidth >= 300 && metrics.bodyWidth <= 320, `${name}: fluid compact body width`);
+  if (fluid) assert.equal(metrics.bodyWidth, metrics.clientWidth, `${name}: fluid body fills available width`);
+  else if (compact) assert.ok(metrics.bodyWidth >= 300 && metrics.bodyWidth <= 320, `${name}: fluid compact body width`);
   else assert.equal(metrics.bodyWidth, metrics.mode === "user" ? 410 : 380, `${name}: popup body width`);
   assert.ok(metrics.scrollWidth <= metrics.clientWidth, `${name}: no horizontal overflow`);
   assert.deepEqual(metrics.escaped, [], `${name}: visible elements stay within popup width`);
@@ -41,6 +42,31 @@ async function capture(name, sessionId, { compact = false } = {}) {
   const target = path.join(outputRoot, `${stage}-${name}.png`);
   writeFileSync(target, Buffer.from(screenshot.data, "base64"));
   process.stdout.write(`${JSON.stringify({name, target, metrics})}\n`);
+}
+async function checkWelcomeFirstViewport(sessionId, width) {
+  const result = await evaluate(`(() => {
+    const welcome=document.querySelector('#app-welcome');
+    const order=[...welcome.children].map(element=>element.id);
+    const controls=['#discussion-token','#discussion-token-help','#discussion-pair'].map(selector=>{
+      const element=document.querySelector(selector), rect=element.getBoundingClientRect();
+      return {selector,visible:element.getClientRects().length>0,top:rect.top,bottom:rect.bottom,
+        left:rect.left,right:rect.right,height:rect.height};
+    });
+    return {width:innerWidth,height:innerHeight,scrollY,scrollWidth:document.documentElement.scrollWidth,
+      clientWidth:document.documentElement.clientWidth,welcomeVisible:!welcome.hidden,order,controls};
+  })()`, sessionId);
+  assert.equal(result.width, width);
+  assert.equal(result.height, 510);
+  assert.equal(result.scrollY, 0, "first-run welcome starts at the top");
+  assert.equal(result.welcomeVisible, true);
+  assert.deepEqual(result.order, ["app-welcome-kicker", "app-welcome-heading", "app-welcome-connection", "app-welcome-intro"]);
+  assert.ok(result.scrollWidth <= result.clientWidth, `${width}px welcome has no horizontal overflow`);
+  for (const control of result.controls) {
+    assert.ok(control.visible && control.top >= 0 && control.bottom <= 510 &&
+      control.left >= 0 && control.right <= width && control.height > 0,
+    `${width}px ${control.selector} fits the first viewport: ${JSON.stringify(control)}`);
+  }
+  process.stdout.write(`${JSON.stringify({name:`welcome-${width}`,result})}\n`);
 }
 async function checkReachable(selector, sessionId) {
   const result = await evaluate(`(() => {
@@ -113,6 +139,13 @@ try {
   assert.ok(ready);
   assert.deepEqual(popupExceptions, [], "popup startup has no uncaught runtime exceptions");
   await capture("connection", sessionId);
+  let welcomeReady = false;
+  for (let attempt = 0; attempt < 100 && !welcomeReady; attempt++) {
+    welcomeReady = await evaluate("!!document.querySelector('#app-welcome:not([hidden]) #discussion-pair') && document.querySelector('#discussion-pair').getClientRects().length > 0", sessionId).catch(() => false);
+    if (!welcomeReady) await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.ok(welcomeReady, "isolated first-run welcome exposes Connect");
+  const welcomeMarkup = await evaluate("document.body.innerHTML", sessionId);
   if (stage === "after") {
     // Replace only renderers with synthetic states. Their callbacks are inert.
     await evaluate(`(async () => {
@@ -248,6 +281,13 @@ try {
     assert.equal(await evaluate("(() => { const card=document.querySelector('.discussion-contribution');card.classList.add('is-new');const button=document.querySelector('#discussion-ai-insights');return getComputedStyle(card).animationDuration==='0s' && getComputedStyle(button).transitionDuration==='0s' && getComputedStyle(document.body,'::before').animationDuration==='0s' && getComputedStyle(document.body,'::after').animationDuration==='0s'; })()", compactSession), true,
       "reduced motion suppresses entrance, hover and ambient effects");
     await capture("compact-reduced-motion", compactSession, { compact: true });
+    await evaluate(`document.body.innerHTML=${JSON.stringify(welcomeMarkup)};document.body.dataset.uiMode='user';document.body.style.zoom='';scrollTo(0,0)`, compactSession);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 410, height: 510, deviceScaleFactor: 1, mobile: false }, compactSession);
+    await checkWelcomeFirstViewport(compactSession, 410);
+    await capture("welcome-410", compactSession, { fluid: true });
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 510, deviceScaleFactor: 1, mobile: false }, compactSession);
+    await checkWelcomeFirstViewport(compactSession, 320);
+    await capture("welcome-320", compactSession, { fluid: true });
   } else {
   // Remount only the discussion renderer with invented state for visual review.
   // Controller callbacks are inert: this fixture cannot post or call a provider.

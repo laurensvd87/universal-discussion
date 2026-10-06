@@ -48,6 +48,16 @@ test("User insight action lives in the composer and starts one automatic private
   assert.equal(shortcut.disabled, false);
   shortcut.listeners.get("click")();
   assert.deepEqual(actions, [{ automatic: true }]);
+  for (const [status, label] of [["preparingArticle", EN.uiInsightPreparing],
+    ["fetchingRelated", EN.uiInsightFindingRelated]]) {
+    ui.panel.renderInsightState({ context: { currentSource: { id: "source-demo" } },
+      ai: { planEnabled: true, model: "chosen", status } });
+    assert.equal(shortcut.disabled, true);
+    assert.equal(shortcut.attributes["aria-busy"], "true");
+    assert.equal(shortcut.attributes["data-phase"], "working");
+    assert.equal(shortcut.attributes["aria-label"], label);
+    assert.equal(ui.byId("discussion-insight-activity").textContent, label);
+  }
   ui.panel.renderInsightState({ context: { currentSource: { id: "source-demo" } },
     ai: { planEnabled: true, model: "chosen", status: "generating" } });
   assert.equal(shortcut.disabled, true);
@@ -71,8 +81,55 @@ test("User insight action opens account settings when ChatGPT is not ready", () 
     ai: { planEnabled: false, model: "", status: "idle" } }),
     createInsights: () => { actions.push(["create"]); } });
   ui.byId("discussion-ai-insights").listeners.get("click")();
+  assert.equal(ui.byId("discussion-ai-insights").textContent, EN.uiInsightSetupButton);
+  assert.equal(ui.byId("discussion-ai-insights").attributes["aria-label"], EN.uiInsightSetupLabel);
+  assert.equal(ui.byId("discussion-insight-activity").textContent, EN.uiInsightSetupHint);
   assert.equal(account.open, true);
   assert.deepEqual(actions, [["settings"], ["focus", { preventScroll: true }]]);
+});
+test("connected account without insight plan shows accurate setup guidance", () => {
+  const actions = [];
+  const account = { open: false, summary: { focus: () => actions.push("focus") } };
+  const ui = harness(undefined, null, null, { click: () => actions.push("settings") }, account);
+  ui.panel.bindInsight({ currentState: () => ({ context: { currentSource: { id: "source-demo" } },
+    ai: { connected: true, planEnabled: false, model: "", status: "planUnavailable" } }),
+    createInsights: () => { actions.push("create"); } });
+  assert.equal(ui.byId("discussion-insight-activity").textContent, EN.uiInsightPlanUnavailableHint);
+  assert.equal(ui.byId("discussion-ai-insights").textContent, EN.uiInsightSetupButton);
+  ui.byId("discussion-ai-insights").listeners.get("click")();
+  assert.equal(account.open, true);
+  assert.deepEqual(actions, ["settings", "focus"]);
+});
+test("pairing token helper, Enter submit, and busy guard use one cleared token", async () => {
+  const received = [];
+  let finish;
+  const ui = harness(undefined, null, null, null, null, {
+    pair: (value) => { received.push(value); return new Promise((resolve) => { finish = resolve; }); },
+  });
+  const disconnected = state({ phase: "disconnected", catalog: null, discussion: null, related: null });
+  ui.panel.render(disconnected);
+  const token = ui.byId("discussion-token");
+  const pair = ui.byId("discussion-pair");
+  const form = ui.created.find((item) => item.tag === "form" && item.children.includes(pair));
+  assert.equal(token.attributes["aria-describedby"], "discussion-token-help");
+  assert.equal(ui.byId("discussion-token-help").textContent, EN.uiPairingTokenHelp);
+  token.value = "test-token";
+  let prevented = 0;
+  token.listeners.get("keydown")({ key: "Enter", preventDefault: () => { prevented += 1; } });
+  assert.equal(prevented, 1);
+  assert.deepEqual(received, ["test-token"]);
+  assert.equal(token.value, "");
+  assert.equal(token.disabled, true);
+  assert.equal(pair.disabled, true);
+  form.listeners.get("submit")({ preventDefault: () => { prevented += 1; } });
+  assert.deepEqual(received, ["test-token"]);
+  finish(true);
+  await Promise.resolve();
+  assert.equal(pair.disabled, false);
+  assert.equal(token.disabled, false);
+  assert.equal(token.value, "");
+  form.listeners.get("submit")({ preventDefault: () => { prevented += 1; } });
+  assert.deepEqual(received, ["test-token"]);
 });
 test("User Mode gives extension repair guidance without asking for a new token", () => {
   const ui = harness();
@@ -763,4 +820,20 @@ test("unpaired User view hides redundant buttons/empty composer while retained d
   assert.equal(ui.byId("discussion-disconnect").hidden, false);
   assert.equal(ui.byId("discussion-reload").hidden, false);
   assert.equal(composer.hidden, false);
+});
+test("User view hides plain disconnected status but keeps error and fresh-read guidance", () => {
+  const ui = harness();
+  const status = ui.byId("discussion-status");
+  const disconnected = state({ phase: "disconnected", catalog: null, discussion: null, related: null });
+  ui.panel.render(disconnected);
+  assert.equal(status.textContent, EN.discussionDisconnected);
+  assert.equal(status.hidden, true);
+  ui.panel.render({ ...disconnected, error: "unauthorized" });
+  assert.equal(status.textContent, EN.discussionUnauthorized);
+  assert.equal(status.hidden, false);
+  ui.panel.render({ ...disconnected, needsFreshRead: true });
+  assert.equal(status.hidden, false);
+  ui.panel.setMode("developer");
+  ui.panel.render(disconnected);
+  assert.equal(status.hidden, false);
 });

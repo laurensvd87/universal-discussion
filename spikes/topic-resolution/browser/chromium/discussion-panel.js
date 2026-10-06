@@ -78,13 +78,29 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const token = node("input"); token.type = "password"; token.autocomplete = "off";
   token.spellcheck = false; token.maxLength = 512;
   const tokenLabel = label(token, "discussionToken", "discussion-token", connectionSettings);
+  const tokenHelp = node("p", "uiPairingTokenHelp"); tokenHelp.id = "discussion-token-help";
+  token.setAttribute("aria-describedby", tokenHelp.id);
+  connectionSettings.append(tokenHelp);
   const pairForm = node("form"); const pair = node("button", "discussionPair"); pair.type = "submit";
   pair.id = "discussion-pair";
   // The input is intentionally outside the form: no native form serialization.
   pairForm.append(pair); connectionSettings.append(pairForm);
-  listen(pairForm, "submit", (event) => {
-    event.preventDefault(); const value = token.value; token.value = "";
-    void controller?.pair(value);
+  let pairing = false;
+  async function submitPair(event) {
+    event.preventDefault();
+    if (pairing || pair.disabled || token.disabled || !controller) return;
+    const value = token.value; token.value = "";
+    if (!value.trim()) return;
+    pairing = true; pair.disabled = token.disabled = true;
+    try { await controller.pair(value); }
+    finally {
+      pairing = false;
+      if (lastState && !disposed) render(lastState);
+    }
+  }
+  listen(pairForm, "submit", (event) => { void submitPair(event); });
+  listen(token, "keydown", (event) => {
+    if (event.key === "Enter") void submitPair(event);
   });
   const disconnect = button("discussionDisconnect", () => { token.value = ""; void controller?.disconnect(); }, connectionSettings);
   const reload = button("discussionReload", () => void controller?.open(), connectionSettings);
@@ -377,12 +393,13 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       ready: "discussionReady", disconnected: "discussionDisconnected", connecting: "discussionConnecting",
       loading: "discussionLoading", "choose-topic": uiMode === "user" ? "uiTopicAwaitingPage" : "discussionChooseStatus" }[state.phase] ?? "discussionUnavailable"));
     if (state.needsFreshRead) status.textContent += ` · ${text("discussionReload")}`;
-    status.hidden = uiMode === "user" && state.phase === "ready" && !state.error && !state.needsFreshRead;
+    status.hidden = uiMode === "user" && ["ready", "disconnected"].includes(state.phase) &&
+      !state.error && !state.needsFreshRead;
     const usable = ["ready", "choose-topic"].includes(state.phase) && !state.busy && !state.needsFreshRead;
     const showPairingInput = uiMode !== "user" || state.error !== "extension-connection-unavailable" &&
       (shellView.connection !== "connected" || state.error === "unauthorized");
-    tokenLabel.hidden = token.hidden = pairForm.hidden = !showPairingInput;
-    pair.disabled = state.busy || state.phase === "connecting";
+    tokenLabel.hidden = token.hidden = tokenHelp.hidden = pairForm.hidden = !showPairingInput;
+    pair.disabled = pairing || state.busy || state.phase === "connecting";
     token.disabled = pair.disabled; disconnect.disabled = state.busy;
     disconnect.hidden = reload.hidden = uiMode === "user" && state.phase === "disconnected";
     reload.disabled = state.busy || state.phase === "connecting";
@@ -511,17 +528,20 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const selectedTopicReady = lastState?.phase === "ready" && !lastState.busy && !lastState.needsFreshRead &&
       !lastState.error && lastState.catalog?.topics.some((entry) => entry.id === lastState.topicId);
     const aiStatus = state?.ai?.status;
-    const active = ["preparingArticle", "generating", "resuming"].includes(aiStatus);
+    const active = ["preparingArticle", "fetchingRelated", "generating", "resuming"].includes(aiStatus);
     const hasResult = Boolean(state?.ai?.result);
     const noCurrentSource = Boolean(state) && !state.context?.currentSource;
+    const setupNeeded = uiMode === "user" && Boolean(state?.ai) && (!state.ai.planEnabled || !state.ai.model);
+    const stageKey = { preparingArticle: "uiInsightPreparing", fetchingRelated: "uiInsightFindingRelated",
+      generating: "uiInsightGenerating", resuming: "uiInsightResuming" }[aiStatus];
     insightShortcut.hidden = uiMode === "user" && (!selectedTopicReady || noCurrentSource || hasResult);
     insightShortcut.disabled = !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
     insightShortcut.setAttribute("aria-busy", String(active));
     insightShortcut.setAttribute("data-phase", active ? "working" : "idle");
-    insightShortcut.setAttribute("aria-label", text(active ? aiStatus === "resuming" ? "uiInsightResuming" : "uiInsightGenerating" : "uiGenerateInsightLabel"));
-    insightShortcut.textContent = text("uiCreateInsights");
-    insightActivity.textContent = active ? text(aiStatus === "resuming" ? "uiInsightResuming" : "uiInsightGenerating")
-      : hasResult ? text("uiInsightReady") : "";
+    insightShortcut.setAttribute("aria-label", text(active ? stageKey : setupNeeded ? "uiInsightSetupLabel" : "uiGenerateInsightLabel"));
+    insightShortcut.textContent = text(setupNeeded ? "uiInsightSetupButton" : "uiCreateInsights");
+    insightActivity.textContent = active ? text(stageKey) : hasResult ? text("uiInsightReady")
+      : setupNeeded ? text(state.ai.connected && !state.ai.planEnabled ? "uiInsightPlanUnavailableHint" : "uiInsightSetupHint") : "";
   }
   function bind(value) { controller = value; render(controller.currentState()); }
   function bindInsight(value) { insightController = value; renderInsightState(value?.currentState?.()); }

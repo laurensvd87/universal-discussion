@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-06 bounded continuation: Extension 0.13.3 changes User Mode only:
+first-run Connect is above the fold at 410/320 px, Enter pairs through the
+existing guarded handler, and the main Insight button shows setup/related-
+preparation/research state. Reload the extension; no service restart is needed.
+Full extension checks pass 633/633, local-service checks pass 221/225 with
+four optional skips, and isolated Chrome visual checks pass. The
+synthetic v2 SQLite rehearsal adds transactional learned-Source Forget with
+11/11 socket-denied tests. An isolated near-copy nomination probe has 4/4
+socket-denied tests. **Neither probe is active in the local service**, changes
+the current grouping rule, or touches retained owner data. Their activation,
+full lifecycle/migration and any new data representation still require the
+separate ADR-044/Trust/owner decisions. Do not promote either on test counts
+alone.
+
 2026-10-05 R5 reviewer decision: The owner explicitly chose to be the sole
 human reviewer for the local PoC. [ADR-046](../decisions/ADR-046-owner-only-exploratory-r5-review.md)
 permits owner-only exploratory pilot ratings; do not ask for an independent

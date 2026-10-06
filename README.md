@@ -55,8 +55,19 @@ The [migration/recovery plan](apps/local-service/experiments/topic-cloud/sqlite/
 lists what a safe conversion of existing discussions must preserve; no owner
 database has been converted or backed up.
 An initial [synthetic v2 conversion rehearsal](apps/local-service/experiments/topic-cloud/sqlite/rehearsal/README.md)
-passes rollback and round-trip checks, but is not ready to run on the current
-database.
+passes rollback, round-trip and a narrow learned-Source Forget check, but is
+not ready to run on the current database. A separate
+[near-copy retrieval probe](apps/local-service/experiments/topic-cloud/related-retrieval-README.md)
+keeps duplicate-looking invented pages from crowding out a distinct related
+candidate; it is not active or evidence of real-world matching quality.
+
+Extension **0.13.3** makes first connection and Insight progress clearer in
+User Mode: the first-run Connect action fits the popup at 410 and 320 px,
+Enter connects with the local pairing token, the token is cleared immediately,
+and the main Insight action shows each preparation stage,
+including related-page lookup. A connected account without Insight access
+gets accurate Settings guidance. Reload the unpacked extension to see it;
+no new permission, provider call, Topic rule or stored field is involved.
 
 Extension **0.13.2** improves the source mix for a deliberate **Get insights**
 request. It considers up to 20 already-known local related-page nominations,

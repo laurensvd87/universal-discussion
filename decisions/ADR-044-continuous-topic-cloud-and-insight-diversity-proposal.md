@@ -205,6 +205,15 @@ the old 0.90 reference cutoff the fixed synthetic held-out challenge admitted
 10/12 distinct-Topic hard negatives for the 0.25 blend. That score space is
 uncalibrated and cannot support a new join rule; the experiment remains offline.
 
+An isolated [near-copy nomination probe](../apps/local-service/experiments/topic-cloud/related-retrieval-README.md)
+tests a different retrieval failure: 25 invented near-identical pages can
+occupy all 20 existing related nominations. Keeping the current 0.85 floor,
+one vector and same-Topic priority, a strict equal-title/0.995-vector copy
+check leaves room for the distinct candidate in the synthetic case. It can
+also omit a genuinely useful page with a generic shared title, so this is
+not activated without graded real relevance and Trust review. It does not
+change Topic identity or discussion routing.
+
 The separate [normalized SQLite dry run](../apps/local-service/experiments/topic-cloud/sqlite/README.md)
 persists 140 invented Sources and vectors, supplies bounded indexed neighbor
 and paginated Source reads, and keeps discussion/root/reply IDs fixed when
