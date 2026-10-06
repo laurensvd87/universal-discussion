@@ -60,6 +60,32 @@ async function generatedHarness(options = {}) {
   return { ...app, cancelled };
 }
 
+test("model list prefers a listed GPT-6 Luna, preserves an explicit choice, and otherwise uses the last entry", async () => {
+  let models = [{ slug: "gpt-6-sol" }, { slug: "gpt-6-astra" }];
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => models,
+  } });
+  await app.insight.checkConnection();
+  assert.equal(await app.insight.loadModels(), true);
+  assert.equal(app.insight.currentState().ai.model, "gpt-6-astra");
+  models = [{ slug: "gpt-6-sol" }, { slug: "gpt-6-luna" }, { slug: "gpt-6-astra" }];
+  assert.equal(await app.insight.loadModels(), true);
+  assert.equal(app.insight.currentState().ai.model, "gpt-6-luna");
+  assert.equal(app.insight.selectModel("gpt-6-sol"), true);
+  assert.equal(await app.insight.loadModels(), true);
+  assert.equal(app.insight.currentState().ai.model, "gpt-6-sol");
+  models = [{ slug: "gpt-6-sol" }, { slug: "luna-like" }, { slug: "gpt-6-astra" }];
+  assert.equal(await app.insight.loadModels(), true);
+  assert.equal(app.insight.currentState().ai.model, "gpt-6-sol");
+  models = [{ slug: "luna-like" }, { slug: "gpt-6-astra" }];
+  assert.equal(await app.insight.loadModels(), true);
+  assert.equal(app.insight.currentState().ai.model, "gpt-6-astra");
+  models = [{ slug: "gpt-5.6-luna" }, { slug: "model-other" }];
+  assert.equal(await app.insight.loadModels(), true);
+  assert.equal(app.insight.currentState().ai.model, "gpt-5.6-luna");
+});
+
 test("resume gate waits for a ready Topic after model startup and checks each context only once", async () => {
   let attempts = 0;
   const gate = createInsightResumeGate(() => { attempts++; });

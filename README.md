@@ -87,9 +87,17 @@ an excerpt. Four attempts, 2,048 characters per page, five seconds, source
 exclusions and private-draft behavior stay the same. The owner approved one
 separate live provider quality test; the first attempt stopped before any
 Responses request because the protected ChatGPT connection could not be
-restored. Reconnect ChatGPT in the extension before a live quality check.
-The local service was restarted with the same extension Origin and persistent
-pairing. None of this is store-release approval.
+restored in the default sandbox. After the owner reconnected, the test ran
+in the approved elevated environment with an actually listed model. One
+Responses request received three public PEP 257/20/7 excerpts and produced
+a private opening post comparing PEP 8 and PEP 257. It was not shared or
+retried. The local service was restarted with the same extension Origin and
+persistent pairing. This is not Chrome/news-page or store-release validation.
+
+Extension **0.13.6** prefers a listed Luna model for new model selection as a
+cost-sensitive default and keeps a deliberate user selection. If no Luna is
+listed, it falls back to the last listed model. Catalog order is not a
+documented price ranking; this is not a guarantee of the cheapest plan usage.
 
 Extension **0.13.2** improves the source mix for a deliberate **Get insights**
 request. It considers up to 20 already-known local related-page nominations,
@@ -332,8 +340,8 @@ Extension **0.12.8** includes owner-approved automatic local matching in a
 separate public-only browser profile and a one-click ChatGPT insight PoC. Once
 the local service is paired, Chrome HTTPS access is granted and ChatGPT is
 signed in, User Mode loads the current Topic and available models, selects the
-last listed model, and keeps **Create insights** visible. Clicking it reads the
-bounded current public-page text and sends it with selected related source
+last listed model in that original build, and keeps **Create insights** visible.
+Clicking it reads the bounded current public-page text and sends it with selected related source
 titles/URLs to ChatGPT; the result stays private until separately previewed
 and shared locally. Related pages can be excluded in Insight settings. No API
 key, automatic AI inference, automatic posting, new permission or cloud backend.

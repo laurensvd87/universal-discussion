@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractPublicArticle, oneResponseFetch, qualityMetrics, PUBLIC_PAGE, RELATED_TEXT_PAGE,
+import { chooseListedModel, extractPublicArticle, oneResponseFetch, qualityMetrics, PUBLIC_PAGE, RELATED_TEXT_PAGE,
   publicCitationSummary, readPublicPage, readRequiredRelatedExcerpts } from "../harness/run-live-insight-qa.js";
 import { inspectPageUrl } from "../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
@@ -87,6 +87,19 @@ test("provider wrapper caps Responses at one dispatch", async () => {
   assert.throws(() => guarded.fetch("https://example.com/v1/responses", { method: "POST" }), /Unexpected provider/u);
   assert.throws(() => guarded.fetch("https://api.openai.com:444/v1/responses", { method: "POST" }), /Unexpected provider/u);
   assert.deepEqual(calls, ["https://api.openai.com/v1/responses"]);
+});
+
+test("one-shot QA prefers a listed GPT-6 Luna and preserves explicit model choices", () => {
+  const listed = [{ slug: "first" }, { slug: "gpt-6-luna" }, { slug: "last" }];
+  assert.equal(chooseListedModel(listed, "auto"), "gpt-6-luna");
+  assert.equal(chooseListedModel(listed, "first"), "first");
+  assert.equal(chooseListedModel([{ slug: "luna-like" }, { slug: "last" }], "auto"), "last");
+  assert.equal(chooseListedModel([{ slug: "gpt-6-luna-ish" }, { slug: "last" }], "auto"), "last");
+  assert.equal(chooseListedModel([{ slug: "gpt-6-luna-2026-10-06" }, { slug: "last" }], "auto"), "gpt-6-luna-2026-10-06");
+  assert.equal(chooseListedModel([{ slug: "gpt-5.6-luna" }, { slug: "last" }], "auto"), "gpt-5.6-luna");
+  assert.equal(chooseListedModel([{ slug: "gpt-5.6-luna" }, { slug: "gpt-6-luna" }], "auto"), "gpt-6-luna");
+  assert.throws(() => chooseListedModel(listed, "missing"), /not listed/u);
+  assert.throws(() => chooseListedModel([], "auto"), /not listed/u);
 });
 
 test("quality metrics contain counts without body text", () => {

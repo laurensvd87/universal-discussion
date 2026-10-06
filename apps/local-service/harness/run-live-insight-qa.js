@@ -1,5 +1,5 @@
 // Owner-invoked, one-shot quality probe. This module has no I/O on import.
-// Run from apps/local-service: node harness/run-live-insight-qa.js --run-live --model <listed-slug> [--with-related-text] [--show-result]
+// Run from apps/local-service: node harness/run-live-insight-qa.js --run-live --model <listed-slug|auto> [--with-related-text] [--show-result]
 // Stop the regular service first. This program exclusively owns 127.0.0.1:4174
 // before restoring a rotating protected refresh token; an occupied port fails.
 // Fixed, signed-out public HTML fetches approximate the extension's isolated
@@ -35,6 +35,8 @@ const MAX_HTML_BYTES = 524_288;
 const MAX_ARTICLE_CHARS = 4_096;
 const MAX_PRINT_CHARS = 2_000;
 const MAX_CITATION_TITLE = 160;
+const LUNA_MODEL_SLUG = /^gpt-[0-9]+(?:\.[0-9]+)*-luna(?:-[0-9]{4}-[0-9]{2}-[0-9]{2})?$/u;
+const GPT_6_LUNA_SLUG = /^gpt-6-luna(?:-[0-9]{4}-[0-9]{2}-[0-9]{2})?$/u;
 
 function fail(message) { throw new Error(message); }
 function decodeEntities(value) {
@@ -110,6 +112,18 @@ export function oneResponseFetch(fetchImpl = fetch) {
     return fetchImpl(url, options);
   };
   return Object.freeze({ fetch: guarded, responsesSent: () => responses });
+}
+
+export function chooseListedModel(models, requested) {
+  if (!Array.isArray(models) || !models.length) fail("Selected model is not listed for this account");
+  const selected = requested === "auto"
+    ? models.find((entry) => typeof entry?.slug === "string" && GPT_6_LUNA_SLUG.test(entry.slug))?.slug ??
+      models.find((entry) => typeof entry?.slug === "string" && LUNA_MODEL_SLUG.test(entry.slug))?.slug ??
+      models.at(-1)?.slug
+    : requested;
+  if (typeof selected !== "string" || !models.some((entry) => entry?.slug === selected))
+    fail("Selected model is not listed for this account");
+  return selected;
 }
 
 export function qualityMetrics(result, articleText, relatedExcerpts = []) {
@@ -192,7 +206,7 @@ export async function runLiveInsightQa(args, { fetchImpl = fetch, print = consol
     if (!await connection.restore() || !connection.status().planEnabled) fail("Connected ChatGPT plan unavailable");
     insights = createChatGptInsights({ fetchImpl: provider.fetch, getAccessToken: connection.getAccessToken });
     const models = await insights.listModels();
-    if (!models.some((entry) => entry.slug === model)) fail("Selected model is not listed for this account");
+    const selectedModel = chooseListedModel(models, model);
     const page = withRelatedText ? RELATED_TEXT_PAGE : PUBLIC_PAGE;
     const articleText = await readPublicPage(fetchImpl, page);
     const context = { schema: "insight-context/v1", topic: withRelatedText
@@ -204,10 +218,10 @@ export async function runLiveInsightQa(args, { fetchImpl = fetch, print = consol
       coverage: { sameTopicTotal: page.related.length, relatedTotal: 0, discussionIncluded: false },
       limitations: ["grouping-provisional", "title-url-only", "sources-unverified"] };
     const relatedExcerpts = withRelatedText ? await readRequiredRelatedExcerpts(context, fetchImpl) : [];
-    const result = await insights.createInsight({ model, context, articleText, allowWebResearch: true,
+    const result = await insights.createInsight({ model: selectedModel, context, articleText, allowWebResearch: true,
       ...(withRelatedText ? { relatedExcerpts } : {}) });
     const metrics = qualityMetrics(result, articleText, relatedExcerpts);
-    print(JSON.stringify({ status: "completed", responsesSent: provider.responsesSent(), ...metrics }));
+    print(JSON.stringify({ status: "completed", model: selectedModel, responsesSent: provider.responsesSent(), ...metrics }));
     if (showResult) {
       print(`Private public-page QA excerpt: ${JSON.stringify(result.body.slice(0, MAX_PRINT_CHARS))}`);
       print(`${withRelatedText ? "PEP" : "MDN"} citations: ${JSON.stringify(publicCitationSummary(result.citations, page))}`);

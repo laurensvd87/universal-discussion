@@ -53,9 +53,18 @@ accepted one 2,048-character excerpt, with no text saved or printed. The
 single approved live ChatGPT QA attempt stopped before a Responses request:
 the protected connection could not be restored (`Connected ChatGPT plan
 unavailable`). The verified local service was restarted with the same Origin
-and durable pairing; port 4174 is listening again. The owner must reconnect
-ChatGPT before live quality can be assessed. The owner also requested a small
-custom Topic embedding trial. An isolated, dependency-free 256-dimensional
+and durable pairing; port 4174 was listening again. After the owner
+reconnected, safe diagnostics found that default-sandbox DPAPI reads failed
+but elevated reads succeeded. The old named model was not in the account's
+current list, so a tested one-shot `auto` option chose an actually listed
+model. Exactly one Responses request then completed using fixed public PEP 8
+current text and three bounded PEP 257/20/7 excerpts (5,567 characters).
+The private 71-word result made a concrete PEP 8/PEP 257 comparison; there
+were no provider citations, retries or Share. The local service was again
+restarted with the same Origin and durable pairing. This validates one
+backend/provider path, not Chrome-rendered capture or arbitrary news-page
+quality. The owner also requested a small custom Topic embedding trial. An
+isolated, dependency-free 256-dimensional
 hashed text encoder learned diagonal weights from 20 project-created synthetic
 documents and was evaluated on 12 held-out synthetic documents. Rank-one
 same-subject retrieval was 5/12 for both learned and unweighted variants;
@@ -74,6 +83,23 @@ existing E5 model/tokenizer remain about 135 MB together. Four combined
 socket-denied tests and the guarded E5 runner pass. This is a small
 negative feasibility result, not multilingual calibration or a production
 matching change.
+
+**2026-10-06 cost-sensitive Insight default:** The owner prefers the cheapest
+available model and suggested the bottom of the catalog. Extension 0.13.6
+applies this preference. Official OpenAI Docs preserve catalog order but do
+not define it as a price ranking; they describe Luna as cost-efficient. The
+extension and one-shot QA now prefer an actually
+listed Luna model when there is no valid explicit selection, preferring
+`gpt-6-luna` when present; otherwise they retain the last-listed fallback.
+Manual selections remain stable while available. This is a heuristic for the
+owner-local ChatGPT-plan workflow, not an absolute price or usage guarantee.
+It made no additional provider request. Focused socket-denied controller/QA
+checks pass, and the full restricted extension suite passes 926/926. The
+local-service suite passes 222/226 with four optional skips. Independent
+read-only review found no provider or data-scope blocker. It identified a
+manual-vs-automatic selection ambiguity, now fixed with a controller-local
+manual marker and a refresh regression; no selection is retained across
+account changes or disconnects.
 
 **2026-10-06 related-Insight availability diagnosis:** The existing local
 catalog already nominates real vector-related Sources, and an explicit

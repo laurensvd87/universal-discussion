@@ -131,4 +131,16 @@ Responses dispatch because the protected connection could not be restored
 (`Connected ChatGPT plan unavailable`). The verified project service was
 briefly stopped for the exclusive-port harness and restarted with the same
 extension Origin and durable pairing. A fresh ChatGPT sign-in is needed
-before live quality can be assessed; no provider result is claimed.
+before live quality can be assessed; no provider result was claimed at that
+checkpoint. After the owner's reconnection, safe diagnostics showed that the
+default sandbox could not read the Windows-protected record, whereas the
+approved elevated environment could. The first elevated preflight stopped
+before research because the old named model was no longer listed. A tested
+`auto` option then selected an actually listed model and completed exactly
+one Responses request with fixed public PEP 8 current text and three PEP
+257/20/7 excerpts (5,567 characters). The private 71-word result made a
+specific PEP 8/PEP 257 comparison. It had no provider citations and was not
+shared or retried. The local service was restarted with the same Origin and
+durable pairing. This is one positive fixed-public-page backend/prompt QA
+observation, not proof of Chrome rendering, arbitrary-publisher access,
+citation verification or repeatable quality.

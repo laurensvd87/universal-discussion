@@ -73,3 +73,18 @@ provider behavior, stop and report rather than widen scope.
 
 ADR-019 C durable pairing and every later security, privacy, spending,
 deployment, store/publication and provenance-review gate remain separate.
+
+## 2026-10-06 cost-sensitive default refinement
+
+The owner now prefers the cheapest available Insight model, suggesting the
+bottom of the list. The [official Sign in with ChatGPT model-catalog guide](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)
+documents preservation of server order but does **not** identify that order
+as a price or plan-usage ranking. [Official model guidance](https://developers.openai.com/api/docs/models/gpt-5.6-luna)
+describes Luna as optimized for cost-sensitive workloads; API token prices
+must not be presented as the effective cost of this ChatGPT-plan connection.
+For this owner-local default, prefer a listed Luna slug when no explicit valid
+user choice exists, otherwise retain the previously approved last-listed
+fallback. Preserve a user's deliberate model choice across list refreshes
+while it remains available. This is a cost-sensitive heuristic, **not** a
+guarantee of the absolute cheapest model or zero charge. No additional
+provider call, paid fallback or automatic Insight dispatch is authorized.

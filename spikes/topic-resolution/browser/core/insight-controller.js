@@ -28,6 +28,14 @@ const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", 
   "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-incomplete",
   "response-failed", "response-http-400"]);
 const EXCERPT_FAILURES = ["noHostAccess", "fetchHttpRedirect", "sizeType", "parseShort"];
+const LUNA_MODEL_SLUG = /^gpt-[0-9]+(?:\.[0-9]+)*-luna(?:-[0-9]{4}-[0-9]{2}-[0-9]{2})?$/u;
+const GPT_6_LUNA_SLUG = /^gpt-6-luna(?:-[0-9]{4}-[0-9]{2}-[0-9]{2})?$/u;
+
+function defaultListedModel(models) {
+  return models.find((item) => typeof item?.slug === "string" && GPT_6_LUNA_SLUG.test(item.slug))?.slug ??
+    models.find((item) => typeof item?.slug === "string" && LUNA_MODEL_SLUG.test(item.slug))?.slug ??
+    models.at(-1)?.slug ?? "";
+}
 
 function fixedExcerptDiagnostic(value) {
   const bounded = (count) => Number.isInteger(count) && count >= 0 && count <= 4;
@@ -76,6 +84,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let connectionBusy = false;
   let modelsBusy = false;
   let modelsEpoch = 0;
+  let manualModel = null;
   let diagnosticsBusy = false;
   let automaticStartBusy = false;
   let resumeBusy = false;
@@ -244,6 +253,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       invalidateModels();
       const accountChanged = value.account?.clientId !== state.ai.account?.clientId ||
         value.account?.label !== state.ai.account?.label;
+      if (accountChanged || !value.connected || !value.planEnabled) manualModel = null;
       if ((accountChanged || !value.connected || !value.planEnabled) && completedJob) clear("changed");
       aiPatch({ connected: value.connected, planEnabled: value.planEnabled, pending: value.pending, account: value.account,
         modelFailureDetail: null,
@@ -255,6 +265,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         ...(value.planEnabled && !accountChanged ? {} : { models: [], model: "", result: null, costConsent: false }) });
       return value.connected;
     } catch { if (!disposed && current === connectionEpoch) {
+      manualModel = null;
       invalidateModels();
       aiPatch({ status: "unavailable", failureStage: null, failureSubstage: null, connected: false,
         planEnabled: false, account: null, models: [], model: "" });
@@ -280,6 +291,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   }
   async function disconnect() {
     if (!aiClient || disposed) return false;
+    manualModel = null;
     const current = ++connectionEpoch;
     clear("changed"); connectionBusy = true; invalidateModels();
     aiPatch({ connected: false, planEnabled: false, pending: false, account: null, models: [], model: "",
@@ -301,8 +313,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     try {
       const models = await aiClient.models();
       if (disposed || current !== connectionEpoch || listEpoch !== modelsEpoch) return false;
-      const selectedModel = models.some((item) => item.slug === state.ai.model)
-        ? state.ai.model : models.at(-1)?.slug ?? "";
+      if (manualModel && !models.some((item) => item.slug === manualModel)) manualModel = null;
+      const selectedModel = manualModel ?? defaultListedModel(models);
       aiPatch({ models, model: selectedModel, status: models.length ? "chooseModel" : "noModels",
         modelFailureDetail: null });
       recordLocalModelOutcome("success");
@@ -339,6 +351,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   function selectModel(model) {
     if (!state.ai.planEnabled || !state.ai.models.some((item) => item.slug === model) ||
         job || completedJob || disposed) return false;
+    manualModel = model;
     aiPatch({ model, result: null }); return true;
   }
   function setCostConsent(value) { if (disposed || job) return false; aiPatch({ costConsent: value === true }); return true; }

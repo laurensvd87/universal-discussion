@@ -42,13 +42,15 @@ the number and total characters of included excerpts; `--show-result` adds a
 bounded private result preview and only validated PEP citation URLs.
 
 ```sh
-node harness/run-live-insight-qa.js --run-live --model <listed-model-slug> --with-related-text
+node harness/run-live-insight-qa.js --run-live --model auto --with-related-text
 ```
 
-It refuses an occupied fixed port, restores the protected local ChatGPT grant, checks that the model
-is on the account's list, fetches the signed-out page without cookies, and
-sends at most one Responses request. There is no retry, Share, SQLite/catalog
-read or saved answer. Omit `--show-result` for count-only output. The HTML
+It refuses an occupied fixed port, restores the protected local ChatGPT grant,
+and checks that the model is on the account's list. `auto` prefers a listed
+Luna model, then falls back to the last listed model. It fetches the signed-out
+page without cookies and sends at most one Responses request. There is no
+retry, Share, SQLite/catalog read or saved answer. Omit `--show-result` for
+count-only output. The HTML
 main-region extractor approximates public page prose; it cannot prove what
 the Chrome reader displayed. This is a backend/prompt quality check, not a
 full popup end-to-end test. The owner-approved ceiling is two deliberate
