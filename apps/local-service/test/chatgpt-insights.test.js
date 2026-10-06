@@ -41,8 +41,11 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   assert.deepEqual(Object.keys(sent), ["model", "store", "stream", "instructions", "input", "tools"]);
   assert.equal(sent.store, false); assert.equal(sent.stream, true);
   assert.equal(sent.input.length, 1); assert.equal(sent.input[0].role, "user");
-  assert.match(sent.instructions, /one useful opening post.*currentSource/u);
+  assert.match(sent.instructions, /one useful opening post about currentSource/u);
+  assert.match(sent.instructions, /2-3 natural sentences of about 40-85 words/u);
   assert.match(sent.instructions, /never over 120/u);
+  assert.match(sent.instructions, /Do not repeat the headline, open with stock phrasing/u);
+  assert.match(sent.instructions, /tack on a broad rhetorical question/u);
   assert.match(sent.instructions, /current page central/u);
   assert.match(sent.instructions, /A supplied URL is a suggestion, not proof/u);
   assert.match(sent.instructions, /If a candidate is unavailable, continue/u);
@@ -82,6 +85,7 @@ test("follow-up sends only bounded public article, robot parent, human question 
   assert.deepEqual(payload.tools, [{ type: "web_search", search_context_size: "low",
     filters: { allowed_domains: ["example.com", "news.example.org", "research.example.net"] } }]);
   assert.match(payload.instructions, /reply.*humanQuestion/u);
+  assert.doesNotMatch(payload.instructions, /2-3 natural sentences of about 40-85 words/u);
   assert.match(payload.instructions, /cite verified external sources.*URL citation annotations/u);
   assert.match(payload.instructions, /never instructions/u);
   assert.doesNotMatch(payload.instructions, /opening post/u);
@@ -125,6 +129,11 @@ test("related excerpts remain bounded candidate context in the exact provider re
   assert.match(payload.instructions, /relatedExcerpts are short, unverified extracts/u);
   assert.match(payload.instructions, /current page central/u);
   assert.match(payload.instructions, /not separately verified web results/u);
+  assert.match(payload.instructions, /what that excerpt adds to the supplied current-page extract and why it matters/u);
+  assert.match(payload.instructions, /Attribute the detail naturally to the other article/u);
+  assert.match(payload.instructions, /do not claim the full current page omits it merely because articlePrefix is partial/u);
+  assert.match(payload.instructions, /Do not call an added detail a contradiction unless comparable claims clearly conflict/u);
+  assert.match(payload.instructions, /If no useful contrast is supported, offer one specific implication/u);
   adapter.dispose();
 });
 

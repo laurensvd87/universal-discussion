@@ -36,22 +36,21 @@ test("trusted flags select opener/follow-up and optional web evidence contract",
   }
 });
 
-test("opener prioritizes supported same-Topic differences without forcing a contrast", () => {
+test("opener prioritizes supported cross-source additions without inventing an omission or question", () => {
   for (const allowWebResearch of [false, true]) {
     const prompt = buildInsightInstructions(false, allowWebResearch);
-    assert.match(prompt, /first examine excerpts whose sourceId matches sameTopicSources/u);
-    assert.match(prompt, /one concrete, discussion-worthy difference from the current-page extract/u);
-    assert.match(prompt, /A difference between two other same-Topic excerpts may help explain the angle, but keep the current page central/u);
-    assert.match(prompt, /same-Topic grouping as provisional/u);
-    assert.match(prompt, /not a contradiction or full-page difference inferred from titles, URLs, repeated points or partial text/u);
-    assert.match(prompt, /qualify it as excerpt context rather than independently verified evidence/u);
-    assert.match(prompt, /relatedSources excerpt may inform a relevant contrast without implying it shares the Topic/u);
-    assert.match(prompt, /If no useful contrast is supported, choose the strongest current-page observation/u);
-    assert.match(prompt, /without forcing a comparison/u);
+    assert.match(prompt, /First look for a relevant detail in a relatedExcerpt linked to sameTopicSources/u);
+    assert.match(prompt, /what that excerpt adds to the supplied current-page extract and why it matters/u);
+    assert.match(prompt, /Attribute the detail naturally to the other article/u);
+    assert.match(prompt, /A relatedSources excerpt may also help, but does not establish that the pages share a Topic/u);
+    assert.match(prompt, /Do not call an added detail a contradiction unless comparable claims clearly conflict/u);
+    assert.match(prompt, /do not claim the full current page omits it merely because articlePrefix is partial/u);
+    assert.match(prompt, /If no useful contrast is supported, offer one specific implication/u);
+    assert.match(prompt, /tack on a broad rhetorical question/u);
     assert.match(prompt, /Do not print raw URLs, invent citation markers/u);
     assert.match(prompt, /current page central/u);
   }
-  assert.doesNotMatch(buildInsightInstructions(true, false), /first examine excerpts whose sourceId matches sameTopicSources/u);
+  assert.doesNotMatch(buildInsightInstructions(true, false), /First look for a relevant detail in a relatedExcerpt linked to sameTopicSources/u);
 });
 
 test("hostile page and comment text remain JSON data in one tool-free request", async () => {

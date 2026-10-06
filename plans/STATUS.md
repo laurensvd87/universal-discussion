@@ -35,6 +35,21 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-06 Insight opener style refinement:** The owner reported a GTA 6
+draft that raised a potentially useful related-source detail but sounded
+formulaic and ended in a broad question. The static opener now prioritizes
+one supported addition from a related excerpt, explains why it matters for
+the current page, and uses a short, natural forum voice without a compulsory
+question. It still cannot infer a full-page omission from the bounded current
+extract or claim a contradiction without comparable evidence. No source,
+provider, storage, citation or Share scope changed. Focused socket-denied
+provider-envelope checks and the full restricted local-service suite pass
+(222/226, four optional skips); the service secret scan found zero findings.
+Independent read-only review found no data/provenance boundary regression.
+The verified local service was restarted with the same extension Origin and
+durable pairing, so the new prompt is active; live model quality is not yet
+re-tested.
+
 **2026-10-06 related-text and custom-embedding checkpoint:** The explicit
 Get insights path already passes the current article prefix plus up to four
 validated, anonymously fetched related-page excerpts to the connected model;

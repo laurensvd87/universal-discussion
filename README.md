@@ -153,17 +153,23 @@ remain accessible. Browsing already starts automatically on a fresh browser
 session when saved pairing, Chrome HTTPS access, local-service health and an
 eligible focused window are present; Stop still suppresses capture for the rest
 of that session. The opening-post prompt now selects a useful angle from the
-article and treats related excerpts as unverified context. This has
-offline/synthetic and isolated-Chrome coverage. Two separately owner-approved
-one-request GPT-5.5 tests used only public PEP 8 text plus three bounded public
+article and treats related excerpts as unverified context. A 2026-10-06
+refinement asks for a specific added detail from a related excerpt, why it
+matters to this page, and a natural short forum post rather than a routine
+rhetorical question. A partial extract cannot prove an omission from the full
+page; the revised style has offline checks but no new live quality test.
+Earlier behavior has offline/synthetic and isolated-Chrome coverage.
+Two separately owner-approved one-request GPT-5.5 tests used only public
+PEP 8 text plus three bounded public
 PEP excerpts: the first opener stayed on PEP 8, while a revised prompt produced
 a short PEP 8/PEP 257 comparison. Neither test shared a post, retried, or proves
 reliable cross-page quality on arbitrary sites. See
 [ADR-041](decisions/ADR-041-owner-local-related-page-excerpts.md),
 [ADR-042](decisions/ADR-042-conversation-first-popup-redesign.md) and
 [ADR-043](decisions/ADR-043-evidence-first-topic-sensitive-insight-prompts.md).
-The local service was restarted with the current code on 2026-10-04; reload
-the unpacked extension to test 0.13.0. New related text is sent only by a
+The local service was restarted with the revised opener prompt on 2026-10-06;
+the extension need not reload for this service-only change. New related text
+is sent only by a
 deliberate **Insight** click. No standing authorization for further live
 provider tests or public release follows from the two fixed QA requests.
 

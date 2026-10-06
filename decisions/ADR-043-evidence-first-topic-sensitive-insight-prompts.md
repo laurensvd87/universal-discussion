@@ -71,3 +71,19 @@ revision. No provider request was spent. This observation tests the input
 boundary, not model compliance: the same-Topic contrast instruction cannot
 operate without an eligible peer excerpt, and a prompt alone cannot recover
 unavailable source text.
+
+## 2026-10-06 natural cross-source opener refinement
+
+The owner's GTA 6 example showed an opener that supplied a potentially useful
+ESRB comparison but framed it with stock phrasing and ended in a broad, staged
+question. The opener prompt now starts with a concrete point from the current
+extract and, when a relevant excerpt supports it, explains what that other
+article adds and why it changes the reading of this page. It attributes the
+detail naturally, using a short title only when helpful. Extra context is
+not labelled a contradiction unless comparable claims clearly conflict.
+It must not describe a detail as missing from the full current page merely
+because our 4,096-character prefix lacks it. The intended output is usually
+two or three conversational sentences without a mandatory closing question.
+No request envelope, source selection, provider call, citation contract or
+publication behavior changes. Offline instruction-contract checks cannot
+establish that a live model follows the style; owner testing remains needed.
