@@ -130,50 +130,72 @@ export function extractRelatedPageText(html) {
 
 export function createRelatedPageExcerptReader({ fetchImpl, hasHostAccess }) {
   if (typeof fetchImpl !== "function" || typeof hasHostAccess !== "function") throw new TypeError("Related reader adapters required");
-  return Object.freeze({ async read(context, excludedIds = [], signal) {
-    if (!context || !Array.isArray(excludedIds)) return [];
-    try { if (!await hasHostAccess()) return []; }
-    catch { return []; }
-    if (signal?.aborted) return [];
+  return Object.freeze({ async read(context, excludedIds = [], signal, onDiagnostic = null) {
+    // Only fixed counters leave this reader. Never attach source IDs, URLs, text, or exception details.
+    const diagnostic = { eligible: 0, attempted: 0, accepted: 0,
+      failures: { noHostAccess: 0, fetchHttpRedirect: 0, sizeType: 0, parseShort: 0 } };
+    const report = () => {
+      if (typeof onDiagnostic === "function") {
+        try { onDiagnostic(diagnostic); } catch { /* Diagnostics cannot affect an Insight. */ }
+      }
+    };
+    if (!context || !Array.isArray(excludedIds)) { report(); return []; }
     const excluded = new Set(excludedIds);
     const candidates = [...(context.sameTopicSources ?? []), ...(context.relatedSources ?? [])]
-      .filter((source) => !excluded.has(source.id)).slice(0, MAX_PAGES);
-    const excerpts = [];
-    for (const source of candidates) {
-      if (signal?.aborted) break;
+      .filter((source) => !excluded.has(source?.id)).slice(0, MAX_PAGES);
+    const eligible = candidates.filter((source) => {
       const inspected = inspectPageUrl(source?.url);
-      if (!inspected.supported || inspected.url !== source.url || typeof source.id !== "string" ||
-          new URL(inspected.url).protocol !== "https:") continue;
+      return inspected.supported && inspected.url === source.url && typeof source.id === "string" &&
+        new URL(inspected.url).protocol === "https:";
+    });
+    diagnostic.eligible = eligible.length;
+    if (signal?.aborted) { report(); return []; }
+    try { if (!await hasHostAccess()) { diagnostic.failures.noHostAccess = eligible.length; report(); return []; } }
+    catch { diagnostic.failures.noHostAccess = eligible.length; report(); return []; }
+    if (signal?.aborted) { report(); return []; }
+    const excerpts = [];
+    for (const source of eligible) {
+      if (signal?.aborted) break;
       const timeout = new AbortController();
       const timer = setTimeout(() => timeout.abort(), TIMEOUT_MS);
       const abort = () => timeout.abort();
       signal?.addEventListener("abort", abort, { once: true });
       let reader;
       let response;
+      let failure = "fetchHttpRedirect";
       try {
+        diagnostic.attempted++;
         response = await fetchImpl(source.url, { method: "GET", credentials: "omit", redirect: "error",
           referrerPolicy: "no-referrer", cache: "no-store", signal: timeout.signal,
           headers: { Accept: "text/html" } });
-        if (!response?.ok || response.redirected || response.url !== source.url ||
-            !/^text\/html(?:\s*;|\s*$)/iu.test(response.headers.get("content-type") ?? "")) continue;
+        if (!response?.ok || response.redirected || response.url !== source.url) continue;
+        failure = "sizeType";
+        if (!/^text\/html(?:\s*;|\s*$)/iu.test(response.headers.get("content-type") ?? "")) continue;
         const length = response.headers.get("content-length");
         if (length !== null && (!/^\d+$/u.test(length) || Number(length) > MAX_BYTES)) continue;
         reader = response.body?.getReader();
         if (!reader) continue;
+        failure = "fetchHttpRedirect";
         const chunks = []; let size = 0;
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           size += value.byteLength;
-          if (size > MAX_BYTES) throw new TypeError("Related page too large");
+          if (size > MAX_BYTES) { failure = "sizeType"; throw new TypeError("Related page too large"); }
           chunks.push(value);
         }
         const bytes = new Uint8Array(size); let position = 0;
         for (const chunk of chunks) { bytes.set(chunk, position); position += chunk.byteLength; }
+        failure = "parseShort";
         const text = extractRelatedPageText(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-        if (text.length >= 80 && !signal?.aborted) excerpts.push({ sourceId: source.id, url: source.url, text });
+        if (text.length >= 80 && !signal?.aborted) {
+          excerpts.push({ sourceId: source.id, url: source.url, text });
+          diagnostic.accepted++;
+          failure = null;
+        }
       } catch { /* The candidate is optional; a failed page never blocks the current insight. */ }
       finally {
+        if (failure && !signal?.aborted) diagnostic.failures[failure]++;
         clearTimeout(timer); signal?.removeEventListener("abort", abort); timeout.abort();
         try {
           if (reader) void Promise.resolve(reader.cancel()).catch(() => {});
@@ -181,6 +203,7 @@ export function createRelatedPageExcerptReader({ fetchImpl, hasHostAccess }) {
         } catch { /* Rejected response cleanup remains best effort after abort. */ }
       }
     }
+    report();
     return excerpts;
   } });
 }

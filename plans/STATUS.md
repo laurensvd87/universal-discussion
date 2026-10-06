@@ -35,6 +35,25 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-06 related-Insight availability diagnosis:** The existing local
+catalog already nominates real vector-related Sources, and an explicit
+Insight request can include up to four anonymously fetched excerpts. A
+previously supplied public Vietnam.vn candidate is 583,306 bytes, with its
+`<main>` beginning after roughly 239 KiB. The current 96 KiB reader therefore
+cannot reach the article: an anonymous bounded run reported one eligible,
+one attempted, zero accepted, with a size/type rejection. An in-memory-only
+768 KiB/8,192-token variant accepted one 2,048-character excerpt, without a
+provider request or saved text. This is evidence for that public page in the
+Node path, not a Chrome or Insight-quality pass. ADR-044 requires a separate
+owner/Trust gate before activating the eightfold fetch-size expansion; a
+specific approval and one optional live provider QA approval are pending.
+Meanwhile, the unchanged-cap reader now reports only bounded eligible,
+attempted, accepted and fixed failure counts in Developer Mode popup memory;
+User Mode stays clean. No URL, title, page text or exception is logged or
+added to provider input by this diagnostic. The live 96 KiB limit remains.
+Extension 0.13.4 packages this diagnostic; its full test suite passes
+922/923 with one optional skip, and the secret scan reports zero findings.
+
 **2026-10-06 extension 0.13.3 and isolated cloud-rehearsal checkpoint:**
 The User Mode first-run connection card now keeps the token field and Connect
 action visible without horizontal scrolling at 410 and 320 px popup widths;

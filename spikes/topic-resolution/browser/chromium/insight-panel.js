@@ -120,9 +120,11 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   diagnosticStatus.setAttribute("role", "status"); diagnosticStatus.setAttribute("aria-live", "polite");
   const localDiagnosticHeading = node("h4", "diagnosticsExtension");
   const localDiagnosticEvents = node("ul", null, "insight-local-diagnostics-events");
+  const relatedExcerptDiagnostics = node("p", null, "insight-related-excerpt-diagnostics");
+  relatedExcerptDiagnostics.hidden = true;
   const serviceDiagnosticHeading = node("h4", "diagnosticsService");
   const diagnosticEvents = node("ul", null, "insight-diagnostics-events");
-  diagnostics.append(diagnosticStatus, localDiagnosticHeading, localDiagnosticEvents,
+  diagnostics.append(diagnosticStatus, localDiagnosticHeading, localDiagnosticEvents, relatedExcerptDiagnostics,
     serviceDiagnosticHeading, diagnosticEvents); details.append(diagnostics);
   const usage = node("p", "usingChatgptPlan", "insight-plan-usage");
   const manageUsage = node("a", "manageUsage", "insight-manage-usage");
@@ -372,6 +374,24 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     };
     localDiagnosticEvents.replaceChildren(...fixedEvents(diagnostic?.localEvents, true));
     diagnosticEvents.replaceChildren(...(diagnosticState === "ready" ? fixedEvents(diagnostic?.events) : []));
+    const excerpt = diagnostic?.relatedExcerpts;
+    const bounded = (count) => Number.isInteger(count) && count >= 0 && count <= 4;
+    const failures = excerpt?.failures;
+    const showExcerptDiagnostics = document.body?.dataset?.uiMode !== "user" &&
+      bounded(excerpt?.eligible) && bounded(excerpt?.attempted) && bounded(excerpt?.accepted) &&
+      excerpt.accepted <= excerpt.attempted && excerpt.attempted <= excerpt.eligible &&
+      [failures?.noHostAccess, failures?.fetchHttpRedirect, failures?.sizeType, failures?.parseShort].every(bounded) &&
+      failures.noHostAccess + failures.fetchHttpRedirect + failures.sizeType + failures.parseShort <= excerpt.eligible;
+    relatedExcerptDiagnostics.hidden = !showExcerptDiagnostics;
+    relatedExcerptDiagnostics.textContent = showExcerptDiagnostics
+      ? text("relatedExcerptDiagnostics")
+        .replace("{eligible}", String(excerpt.eligible))
+        .replace("{attempted}", String(excerpt.attempted))
+        .replace("{accepted}", String(excerpt.accepted))
+        .replace("{noHostAccess}", String(failures.noHostAccess))
+        .replace("{fetchHttpRedirect}", String(failures.fetchHttpRedirect))
+        .replace("{sizeType}", String(failures.sizeType))
+        .replace("{parseShort}", String(failures.parseShort)) : "";
     connect.disabled = ai.connected && ai.planEnabled || ai.pending || aiPending || state.busy;
     check.disabled = aiPending || state.busy;
     disconnect.disabled = (!ai.connected && !ai.pending) || ai.status === "disconnecting";

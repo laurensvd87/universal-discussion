@@ -52,6 +52,7 @@ export const INSIGHT_EN = Object.freeze({
   diagnosticsUnavailable: "Local diagnostics unavailable. Check the service connection.",
   diagnosticsExtension: "Extension (this popup)",
   diagnosticsService: "Local service (this run)",
+  relatedExcerptDiagnostics: "Related excerpts · eligible {eligible} · attempted {attempted} · accepted {accepted} · no host access {noHostAccess} · network/http/redirect {fetchHttpRedirect} · size/type {sizeType} · parse/short {parseShort}",
   modelFailureCode: "Code: {code}",
   usingChatgptPlan: "Using ChatGPT plan",
   manageUsage: "Manage usage",

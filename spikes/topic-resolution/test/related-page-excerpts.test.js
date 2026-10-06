@@ -50,6 +50,42 @@ test("case varied HTML content type is accepted within byte bounds", async () =>
   assert.equal((await reader.read({ sameTopicSources: [{ id: "peer", url }], relatedSources: [] })).length, 1);
 });
 
+test("excerpt diagnostics count only bounded outcomes and contain no page material", async () => {
+  const urls = ["https://news.example.org/one", "https://news.example.org/two",
+    "https://news.example.org/three", "https://news.example.org/four"];
+  const outcomes = [response(urls[0]), response(urls[1], article, { redirected: true }),
+    response(urls[2], article, { headers: { "content-length": "999999" } }),
+    response(urls[3], "<main>short</main>")];
+  let diagnostic;
+  const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async (_url, _options) => outcomes.shift() });
+  const sources = urls.map((url, index) => ({ id: `peer-${index}`, url }));
+  const excerpts = await reader.read({ sameTopicSources: sources, relatedSources: [] }, [], null,
+    (value) => { diagnostic = value; });
+  assert.equal(excerpts.length, 1);
+  assert.deepEqual(diagnostic, { eligible: 4, attempted: 4, accepted: 1,
+    failures: { noHostAccess: 0, fetchHttpRedirect: 1, sizeType: 1, parseShort: 1 } });
+  assert.ok(!JSON.stringify(diagnostic).includes("news.example.org"));
+  assert.ok(!JSON.stringify(diagnostic).includes("Public article"));
+});
+
+test("no host access and thrown fetch produce fixed diagnostics without changing optional-read behavior", async () => {
+  const url = "https://news.example.org/article";
+  const context = { sameTopicSources: [{ id: "peer", url }], relatedSources: [] };
+  let noAccess;
+  const denied = createRelatedPageExcerptReader({ hasHostAccess: async () => false,
+    fetchImpl: () => assert.fail("No fetch without access") });
+  assert.deepEqual(await denied.read(context, [], null, (value) => { noAccess = value; }), []);
+  assert.deepEqual(noAccess, { eligible: 1, attempted: 0, accepted: 0,
+    failures: { noHostAccess: 1, fetchHttpRedirect: 0, sizeType: 0, parseShort: 0 } });
+  let failed;
+  const fetchFailure = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async () => { throw new Error(`Failed fetching ${url}`); } });
+  assert.deepEqual(await fetchFailure.read(context, [], null, (value) => { failed = value; }), []);
+  assert.equal(failed.failures.fetchHttpRedirect, 1);
+  assert.ok(!JSON.stringify(failed).includes(url));
+});
+
 test("text tokenizer decodes prose without DOM execution or subresource loads", () => {
   const text = extractRelatedPageText(`<main>One &amp; two &#8212; three <script>attack()</script><style>body{}</style><p>More text.</p></main>`);
   assert.equal(text, "One & two — three More text.");
@@ -116,7 +152,7 @@ test("related fetch is HTTPS-only even when a local fixture URL passes general p
 
 test("rejected oversized response aborts its request and cancels the unread stream", async () => {
   const url = "https://news.example.org/article";
-  let cancelled = false, requestSignal;
+  let cancelled = false, requestSignal, diagnostic;
   const body = new ReadableStream({ cancel() { cancelled = true; } });
   const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
     fetchImpl: async (_url, options) => {
@@ -124,7 +160,23 @@ test("rejected oversized response aborts its request and cancels the unread stre
       return { ok: true, redirected: false, url,
         headers: new Headers({ "content-type": "text/html", "content-length": "999999" }), body };
     } });
-  assert.deepEqual(await reader.read({ sameTopicSources: [], relatedSources: [{ id: "peer", url }] }), []);
+  assert.deepEqual(await reader.read({ sameTopicSources: [], relatedSources: [{ id: "peer", url }] }, [], null,
+    (value) => { diagnostic = value; }), []);
   assert.equal(requestSignal.aborted, true);
   assert.equal(cancelled, true);
+  assert.equal(diagnostic.failures.sizeType, 1);
+});
+
+test("a stream read error counts as fetch failure without exposing its exception", async () => {
+  const url = "https://news.example.org/article";
+  let diagnostic;
+  const body = new ReadableStream({ pull(controller) { controller.error(new Error(`Private ${url}`)); } });
+  const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async () => ({ ok: true, redirected: false, url,
+      headers: new Headers({ "content-type": "text/html" }), body }) });
+  assert.deepEqual(await reader.read({ sameTopicSources: [{ id: "peer", url }], relatedSources: [] }, [], null,
+    (value) => { diagnostic = value; }), []);
+  assert.equal(diagnostic.failures.fetchHttpRedirect, 1);
+  assert.equal(diagnostic.failures.sizeType, 0);
+  assert.ok(!JSON.stringify(diagnostic).includes(url));
 });

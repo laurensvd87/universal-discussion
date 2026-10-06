@@ -530,6 +530,49 @@ test("diagnostics require an explicit click and render only fixed codes in Devel
     ["models · invalid-response · catalog-entry", "models · success", "insight · invalid-response · response-http-400"]);
 });
 
+test("Developer diagnostics show only fixed related-excerpt totals and clear with local state", () => {
+  const ui = harness();
+  const output = ui.byId("insight-related-excerpt-diagnostics");
+  assert.equal(output.hidden, true);
+  const diagnostic = { eligible: 4, attempted: 3, accepted: 1,
+    failures: { noHostAccess: 0, fetchHttpRedirect: 1, sizeType: 1, parseShort: 0,
+      url: "https://secret.example/page" }, text: "private article" };
+  ui.panel.render(state({ ai: { status: "generated", diagnostics: { status: "idle", events: [],
+    localEvents: [], relatedExcerpts: diagnostic } } }));
+  assert.equal(output.hidden, false);
+  assert.equal(output.textContent,
+    "Related excerpts · eligible 4 · attempted 3 · accepted 1 · no host access 0 · network/http/redirect 1 · size/type 1 · parse/short 0");
+  assert.equal(output.textContent.includes("secret.example"), false);
+  assert.equal(output.textContent.includes("private article"), false);
+  ui.panel.render(state({ ai: { status: "idle", diagnostics: { status: "idle", events: [],
+    localEvents: [], relatedExcerpts: null } } }));
+  assert.equal(output.hidden, true);
+  assert.equal(output.textContent, "");
+  ui.panel.render(state({ ai: { status: "generated", diagnostics: { status: "idle", events: [],
+    localEvents: [], relatedExcerpts: { ...diagnostic, attempted: "3" } } } }));
+  assert.equal(output.hidden, true);
+  assert.equal(output.textContent, "");
+});
+
+test("User Mode never renders related-excerpt diagnostic text", () => {
+  const ui = harness(undefined, "user");
+  ui.panel.render(state({ ai: { status: "generated", diagnostics: { status: "idle", events: [],
+    localEvents: [], relatedExcerpts: { eligible: 1, attempted: 1, accepted: 0,
+      failures: { noHostAccess: 0, fetchHttpRedirect: 0, sizeType: 0, parseShort: 1 } } } } }));
+  assert.equal(ui.byId("insight-diagnostics").className.includes("developer-only"), true);
+  assert.equal(ui.byId("insight-related-excerpt-diagnostics").hidden, true);
+  assert.equal(ui.byId("insight-related-excerpt-diagnostics").textContent, "");
+});
+
+test("related-excerpt diagnostic wording comes from the locale template", () => {
+  const ui = harness({ ...INSIGHT_EN,
+    relatedExcerptDiagnostics: "E {eligible}; T {attempted}; A {accepted}; H {noHostAccess}; N {fetchHttpRedirect}; S {sizeType}; P {parseShort}" });
+  ui.panel.render(state({ ai: { status: "generated", diagnostics: { status: "idle", events: [],
+    localEvents: [], relatedExcerpts: { eligible: 2, attempted: 2, accepted: 1,
+      failures: { noHostAccess: 0, fetchHttpRedirect: 0, sizeType: 1, parseShort: 0 } } } } }));
+  assert.equal(ui.byId("insight-related-excerpt-diagnostics").textContent, "E 2; T 2; A 1; H 0; N 0; S 1; P 0");
+});
+
 test("connected account identity is Developer-only while User setup remains available", () => {
   const ui = harness();
   ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,

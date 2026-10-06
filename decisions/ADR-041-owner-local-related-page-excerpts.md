@@ -90,3 +90,20 @@ so the excerpt was described as supplied context, not verified external
 research. This demonstrates one useful fixed-fixture behavior, not reliable
 cross-page reasoning, Chrome-rendered capture, publisher rights, or release
 compliance. Additional live tests need a separate scope approval.
+
+## 2026-10-06 availability diagnosis and pending scope gate
+
+The current anonymous reader has a 96 KiB HTML response ceiling and a
+4,096-token parser ceiling. One previously supplied public related page is
+583,306 bytes and places its main region after roughly 239 KiB. A bounded
+diagnostic classified its current rejection as size/type; a purely in-memory
+768 KiB/8,192-token variant produced a 2,048-character excerpt. This proves
+neither browser access nor provider usefulness, and does not establish rights.
+Raising the fetch ceiling eightfold is a data/network-scope expansion under
+ADR-044, so the exact owner-local change awaits explicit owner approval and
+Trust checks before activation. One further live ChatGPT quality test has a
+separate pending permission request. No Google Related fallback is added.
+The unchanged-cap build may expose only bounded, content-free aggregate
+failure counts in Developer Mode to distinguish no access, network/HTTP,
+size/type and parse/short outcomes. It must not log or retain source URLs,
+titles, page text or exception details for that purpose.

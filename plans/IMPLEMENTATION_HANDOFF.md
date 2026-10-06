@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-06 related-page followup: The real local catalog can nominate up to
+20 related Sources, but only four other selected pages can supply excerpts to
+an explicit Insight request. A prior HLN check got zero accepted anonymous
+excerpts. One previously supplied Vietnam.vn candidate is 583,306 bytes and
+starts its main region beyond the current 96 KiB response cap; an in-memory
+768 KiB/8,192-token reader variant accepted 2,048 characters without a
+provider call or persistence. That larger fetch scope is **not activated**:
+ADR-044/Trust require a narrow owner-local approval, which has been requested,
+as has separate permission for one live ChatGPT quality test. Do not infer
+approval from this diagnostic. The current reader now gives bounded,
+content-free eligible/attempted/accepted and fixed failure counts in Developer
+Mode memory; no raw data or User Mode diagnostic UI was added. The current
+96 KiB cap, four-page/2,048-character provider limits, source exclusions,
+public HTTPS guard and no-Google-fallback rule remain unchanged.
+Extension 0.13.4's full suite passes 922/923 with one optional skip; the
+secret scan found zero issues. Reload the extension to use Developer Mode
+diagnostics after a deliberate Insight attempt.
+
 2026-10-06 bounded continuation: Extension 0.13.3 changes User Mode only:
 first-run Connect is above the fold at 410/320 px, Enter pairs through the
 existing guarded handler, and the main Insight button shows setup/related-

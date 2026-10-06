@@ -69,6 +69,11 @@ including related-page lookup. A connected account without Insight access
 gets accurate Settings guidance. Reload the unpacked extension to see it;
 no new permission, provider call, Topic rule or stored field is involved.
 
+Extension **0.13.4** adds a Developer Mode diagnostic for related-page text:
+eligible, attempted and accepted counts plus coarse failure totals. It contains
+no page text, titles or URLs, and does not change the current 96 KiB fetch
+limit. Reload the extension to inspect it after an explicit Insight request.
+
 Extension **0.13.2** improves the source mix for a deliberate **Get insights**
 request. It considers up to 20 already-known local related-page nominations,
 then selects at most four non-current pages, gently preferring different

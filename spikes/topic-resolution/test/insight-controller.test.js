@@ -122,11 +122,14 @@ test("same-Topic linked pages can be excluded individually while the current pag
 
 test("related text is fetched only at explicit Insight click and default-on can be disabled", async () => {
   let fetches = 0, request;
-  const reader = async (context, excluded, signal) => {
+  const reader = async (context, excluded, signal, onDiagnostic) => {
     fetches++;
     assert.equal(context.currentSource.id, "reserved-example-com");
     assert.deepEqual(excluded, []);
     assert.equal(signal.aborted, false);
+    onDiagnostic({ eligible: 1, attempted: 1, accepted: 1,
+      failures: { noHostAccess: 0, fetchHttpRedirect: 0, sizeType: 0, parseShort: 0 },
+      url: "https://should-not-appear.example/", text: "should-not-appear" });
     return [{ sourceId: "reserved-example-org", url: "https://example.org/", text: "Public context ".repeat(12) }];
   };
   const aiClient = { status: async () => ({ connected: true, planEnabled: true, pending: false,
@@ -146,13 +149,19 @@ test("related text is fetched only at explicit Insight click and default-on can 
   assert.equal(fetches, 1);
   assert.equal(request.relatedExcerpts.length, 1);
   assert.equal(app.insight.currentState().relatedExcerptCount, 1);
+  assert.deepEqual(app.insight.currentState().ai.diagnostics.relatedExcerpts,
+    { eligible: 1, attempted: 1, accepted: 1,
+      failures: { noHostAccess: 0, fetchHttpRedirect: 0, sizeType: 0, parseShort: 0 } });
+  assert.equal(Object.hasOwn(request, "diagnostics"), false);
   app.insight.discard();
+  assert.equal(app.insight.currentState().ai.diagnostics.relatedExcerpts, null);
   assert.equal(app.insight.setRelatedPageTextEnabled(false), true);
   await Promise.resolve();
   assert.deepEqual(saved, [false]);
   assert.equal(await app.insight.createInsights({ automatic: true }), true);
   assert.equal(fetches, 1);
   assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+  assert.equal(app.insight.currentState().ai.diagnostics.relatedExcerpts, null);
 });
 
 test("saved related-text off is hydrated before a Get insights fetch can begin", async () => {
@@ -609,9 +618,11 @@ test("fixed catalog detail and explicit diagnostics remain bounded to local UI s
   assert.equal(await app.insight.loadDiagnostics(), true);
   assert.equal(reads, 1);
   assert.deepEqual(app.insight.currentState().ai.diagnostics, { status: "ready", events,
-    localEvents: [{ kind: "models", outcome: "invalid-response", detail: "catalog-shape" }] });
+    localEvents: [{ kind: "models", outcome: "invalid-response", detail: "catalog-shape" }],
+    relatedExcerpts: null });
   await app.insight.disconnect();
-  assert.deepEqual(app.insight.currentState().ai.diagnostics, { status: "idle", events: [], localEvents: [] });
+  assert.deepEqual(app.insight.currentState().ai.diagnostics,
+    { status: "idle", events: [], localEvents: [], relatedExcerpts: null });
 });
 
 test("fresh connection status fences stale model lists and preserves newer list busy state", async () => {

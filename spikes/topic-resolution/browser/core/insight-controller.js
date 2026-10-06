@@ -27,6 +27,17 @@ const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", 
   "response-message-unfinished", "response-refusal",
   "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-incomplete",
   "response-failed", "response-http-400"]);
+const EXCERPT_FAILURES = ["noHostAccess", "fetchHttpRedirect", "sizeType", "parseShort"];
+
+function fixedExcerptDiagnostic(value) {
+  const bounded = (count) => Number.isInteger(count) && count >= 0 && count <= 4;
+  if (!value || !bounded(value.eligible) || !bounded(value.attempted) || !bounded(value.accepted) ||
+      value.accepted > value.attempted || value.attempted > value.eligible ||
+      !EXCERPT_FAILURES.every((key) => bounded(value.failures?.[key]))) return null;
+  const failures = Object.fromEntries(EXCERPT_FAILURES.map((key) => [key, value.failures[key]]));
+  if (Object.values(failures).reduce((sum, count) => sum + count, 0) > value.eligible) return null;
+  return { eligible: value.eligible, attempted: value.attempted, accepted: value.accepted, failures };
+}
 
 // The local catalog may be available before the current page resolves to a
 // Topic. A one-shot startup check must wait for that later ready transition.
@@ -85,7 +96,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
       result: null, status: "idle", error: null, failureStage: null, failureSubstage: null,
       modelFailureDetail: null, researchFailureDetail: null,
-      diagnostics: { status: "idle", events: [], localEvents: [] } } };
+      diagnostics: { status: "idle", events: [], localEvents: [], relatedExcerpts: null } } };
 
   function eligible() {
     return observed?.phase === "ready" && !observed.busy && !observed.needsFreshRead &&
@@ -109,7 +120,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     cancelJob(); purgeCompleted(); epoch++;
     boundKey = null; review = null;
     publish({ context: null, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, status, ai: { ...state.ai, articleText: "", article: null,
-      result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null } });
+      result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null,
+      diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } } });
   }
   function aiPatch(patch) { publish({ ai: { ...state.ai, ...patch } }); }
   function recordLocalModelOutcome(outcome, detail = null) {
@@ -152,7 +164,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       boundKey = key(); review = null;
       cancelJob(); purgeCompleted(); epoch++;
       publish({ context, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, status: "prepared", ai: { ...state.ai, articleText: "", article: null,
-        result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null } });
+        result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null,
+        diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } } });
       return true;
     } catch { clear("failed"); return false; }
   }
@@ -175,7 +188,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (disposed || typeof value !== "boolean" || value && (pending || job || automaticStartBusy || resumeBusy)) return false;
     if (persist) relatedPreferenceTouched = true;
     if (!value) relatedReadAbort?.abort();
-    publish({ relatedPageTextEnabled: value, relatedExcerptCount: null });
+    publish({ relatedPageTextEnabled: value, relatedExcerptCount: null,
+      ai: { ...state.ai, diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } } });
     if (persist) void Promise.resolve().then(() => saveRelatedTextPreference(value)).catch(() => {});
     return true;
   }
@@ -270,7 +284,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     clear("changed"); connectionBusy = true; invalidateModels();
     aiPatch({ connected: false, planEnabled: false, pending: false, account: null, models: [], model: "",
       status: "disconnecting", failureStage: null, failureSubstage: null,
-      diagnostics: { status: "idle", events: [], localEvents: [] } });
+      diagnostics: { status: "idle", events: [], localEvents: [], relatedExcerpts: null } });
     let outcome;
     try { outcome = await aiClient.disconnect(); }
     catch { /* The local bridge may be unavailable. Clear private popup material anyway. */ }
@@ -396,7 +410,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const operationId = randomId(), actorId = observed.actorId;
     if (typeof operationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/u.test(operationId)) return false;
     const abort = new AbortController(); job = { id: operationId, actorId, abort };
-    aiPatch({ status: "generating", error: null, result: null, researchFailureDetail: null });
+    aiPatch({ status: "generating", error: null, result: null, researchFailureDetail: null,
+      diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } });
     let failureStatus = "generationFailed";
     let failureDetail = null;
     const active = () => !disposed && epoch === current && key() === expectedKey && job?.id === operationId;
@@ -412,9 +427,11 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         const cancelExcerpt = () => excerptAbort.abort();
         abort.signal.addEventListener("abort", cancelExcerpt, { once: true });
         let excerpts = [];
+        let excerptDiagnostic = null;
         try {
           excerpts = await readRelatedExcerpts(request.context,
-            request.excludedRelatedSourceIds, excerptAbort.signal);
+            request.excludedRelatedSourceIds, excerptAbort.signal,
+            (value) => { excerptDiagnostic = fixedExcerptDiagnostic(value); });
         } catch (error) {
           if (state.relatedPageTextEnabled) throw error;
         } finally {
@@ -425,6 +442,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         if (state.relatedPageTextEnabled) {
           request.relatedExcerpts = excerpts;
           publish({ relatedExcerptCount: excerpts.length });
+          if (excerptDiagnostic) aiPatch({ diagnostics: { ...state.ai.diagnostics,
+            relatedExcerpts: excerptDiagnostic } });
         }
         aiPatch({ status: "generating" });
       }
