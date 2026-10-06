@@ -43,8 +43,9 @@ node one-url.js --url https://en.wikinews.org/wiki/ARTICLE_NAME --published 2024
 For a rejection, use `--disposition rejected`, a reason such as
 `unclear-license`, and the actual `--title-rights` and `--originality` values.
 The rejected record contains no title, text, or vector. The real public
-network path has not yet been exercised; a publisher page may abstain if it
-requires blocked subresources or the reader cannot qualify its article region.
+network path was exercised for six screened articles; another page may still
+abstain if it requires blocked subresources or the reader cannot qualify its
+article region.
 
 Run the synthetic checks from this directory:
 

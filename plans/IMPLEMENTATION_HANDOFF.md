@@ -33,6 +33,15 @@ an ignored file, separate from the owner's answer and not human gold. The
 shadow comparison under `apps/local-service/experiments/r5-pilot/` is
 candidate-only; do not activate it as same-Topic joining, tune thresholds
 on six records, or change production data without another reviewed decision.
+An additional in-memory title-vector comparison with the installed E5 model
+was tested on the six pilot titles and the unchanged 32-document synthetic
+hard-negative corpus. The six-page blend looked better at the old 0.90
+reference cutoff, but the synthetic held-out split passed 10/12 distinct-
+Topic hard negatives at title weight 0.25. Seven socket-denied tests and a
+read-only Trust review accepted the experiment boundary, not activation.
+See [probe notes](../apps/local-service/experiments/r5-pilot/title-vector-README.md).
+Do not retain a second vector, use the old cutoff in the new score space or
+claim this solves same-Topic identity.
 
 2026-10-05 R5 checkpoint: The owner answered yes to the proposed local
 200–250-pair public-page review set with URL/title/provenance, existing-model

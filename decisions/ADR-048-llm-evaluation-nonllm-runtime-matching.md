@@ -39,3 +39,15 @@ failure-mode probes. Any production matcher activation or broader retained
 data representation still needs a separately reviewed decision. The full
 200–250-pair scale-up, owner/security/privacy/provider/deployment/spending and
 publication gates remain unchanged.
+
+## Bounded implementation evidence
+
+The [candidate shadow](../apps/local-service/experiments/r5-pilot/shadow-README.md)
+tests the existing vector, short title-token overlap and publication intervals
+without reading assistant labels. A separately reviewed
+[title-vector probe](../apps/local-service/experiments/r5-pilot/title-vector-README.md)
+uses the already packaged model and approved public titles transiently; no
+second vector is retained. Its six-page score increase did not yield a safe
+same-Topic rule on the fixed synthetic hard-negative corpus. Both remain
+offline. The owner-approved ADR-045 pilot still allows one-by-one screened
+acquisition within its 24-page/30-pair bounds; this ADR does not expand it.

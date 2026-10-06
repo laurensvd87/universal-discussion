@@ -34,6 +34,9 @@ the assistant to read these approved public articles for an offline reference
 judgment. The running matcher remains non-LLM; the
 [local shadow comparison](apps/local-service/experiments/r5-pilot/shadow-README.md)
 tests vector, keyword and publication-time signals without changing Topic IDs.
+An additional [transient title-vector probe](apps/local-service/experiments/r5-pilot/title-vector-README.md)
+improved some candidate scores on those six pages but also admitted many
+distinct-Topic hard negatives in a fixed synthetic challenge; it is not active.
 
 The next matching direction is a graded, overlapping cloud of related pages
 across any subject, not a fixed Russia/Ukraine collection or a mandatory

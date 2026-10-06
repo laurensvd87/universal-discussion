@@ -148,6 +148,30 @@ of nine unrelated pairs: useful for graded retrieval, not automatic Topic
 identity. These tiny, score-exposed pilot findings do not calibrate a new
 threshold. No production rule, stored data, Topic ID or discussion moved.
 
+**2026-10-06 ephemeral title-vector check:** The existing packaged E5 model
+embedded only the six approved public pilot titles in memory; it neither saved
+a second vector nor changed the live one. Predeclared title weights of 0,
+0.25, 0.5 and 1 were compared with the retained body-prefix vectors. At the
+old, uncalibrated 0.90 reference cutoff, the six-page 0.25 blend surfaced
+both assistant-same and all four assistant-related pairs, with no unrelated
+pairs in that tiny two-theme set. A separate fixed 32-document synthetic
+hard-negative challenge contradicted a safe join interpretation: at 0.90 the
+body baseline passed 5/6 held-out positives and 8/12 hard negatives, while
+the 0.25 blend passed 6/6 positives and 10/12 hard negatives. Most families
+still had positive/negative score overlap. [Experiment notes](../apps/local-service/experiments/r5-pilot/title-vector-README.md)
+and 7 socket-denied tests plus independent Trust review support only this
+failure-mode finding. No blend, second vector or revised cutoff was activated.
+Read-only source discovery identified a possible Kabul/Ghani-flight
+cross-publisher same-development pair at [Wikinews](https://en.wikinews.org/wiki/Afghan_Taliban_occupies_Kabul_as_president_Ghani_flees_the_country)
+and [original-reporting VOA](https://www.voanews.com/a/south-central-asia_ghani-leaves-afghanistan-taliban-enter-kabul-set-take-control/6209601.html),
+plus an earlier [VOA Kabul-arrival report](https://www.voanews.com/a/south-central-asia_taliban-arrive-kabul-await-power-transfer/6209598.html)
+as a possible distinct-outcome hard negative. This is a candidate shortlist,
+not an accepted Source, label or rights clearance. A proposed quake article
+mixing VOA and wire material was excluded from the shortlist, not captured.
+Further one-by-one capture remains
+within ADR-045's existing pilot approval; preserve the frozen six-Source task
+and its diagnostics when designing the next inventory increment.
+
 **2026-10-05 bounded source-selection increment (extension 0.13.2):** The
 paired popup and service now request 20 local related nominations, but the
 validated Insight context still includes only the current Source plus up to

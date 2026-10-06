@@ -198,6 +198,13 @@ possible without claiming those pages share one Discussion. The cloud should
 keep candidate retrieval, graded relevance and stable Discussion identity
 separate. No production algorithm, threshold or data migration changed.
 
+The follow-up [transient title-vector probe](../apps/local-service/experiments/r5-pilot/title-vector-README.md)
+tested the same packaged model without retaining a second vector. Blending
+title/body vectors improved the tiny real pilot's candidate counts, but at
+the old 0.90 reference cutoff the fixed synthetic held-out challenge admitted
+10/12 distinct-Topic hard negatives for the 0.25 blend. That score space is
+uncalibrated and cannot support a new join rule; the experiment remains offline.
+
 The separate [normalized SQLite dry run](../apps/local-service/experiments/topic-cloud/sqlite/README.md)
 persists 140 invented Sources and vectors, supplies bounded indexed neighbor
 and paginated Source reads, and keeps discussion/root/reply IDs fixed when
