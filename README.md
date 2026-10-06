@@ -601,6 +601,10 @@ may remain in an earlier Topic. In the current page's discussion, open **Earlier
 threads started here** to visit that Topic, then **Back to this page** to return.
 The earlier Topic can also contain other pages' threads; this view does not move
 old posts or claim that every post there began on the current page.
+Extension **0.13.8** retries a prior-thread read once if background matching
+updates local state between popup requests. If the earlier-thread path still
+cannot load, the popup shows a brief retry status; reopen it after the page
+finishes matching. The saved post is not deleted by a failed read.
 
 To try the discussion loop:
 

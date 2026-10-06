@@ -104,6 +104,54 @@ test("stale prior metadata is discarded without hiding the current discussion", 
   assert.equal(ui.controller.currentState().phase, "ready");
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
   assert.equal(ui.controller.currentState().priorDiscussions, null);
+  assert.equal(ui.controller.currentState().priorDiscussionsError, "stale-prior-discussions");
+});
+test("one bounded reread recovers prior topics when independent GETs straddle a write", async () => {
+  let reads = 0;
+  const ui = harness({ client: { async priorDiscussions(sourceId) {
+    const catalog = ui.service.catalog();
+    const prior = catalog.topics.find((entry) => entry.id === "harbor-s2");
+    return { version: { ...catalog.version, revision: catalog.version.revision + (++reads === 1 ? 1 : 0) },
+      sourceId, currentTopicId: "reserved-domain-demo",
+      topics: [{ id: prior.id, title: prior.title, kind: prior.kind, rootCount: 1 }] };
+  } } });
+  await ui.controller.open();
+  assert.equal(reads, 2);
+  assert.equal(ui.requests.filter((entry) => entry[0] === "related").length, 2);
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().priorDiscussions.topics[0].id, "harbor-s2");
+  assert.equal(ui.controller.currentState().priorDiscussionsError, null);
+});
+test("late reread cannot attach prior topics after a manual Topic change", async () => {
+  const pending = deferred();
+  let reads = 0;
+  const ui = harness({ client: { async priorDiscussions(sourceId) {
+    if (++reads === 2) return pending.promise;
+    const catalog = ui.service.catalog();
+    return { version: { ...catalog.version, revision: catalog.version.revision + 1 },
+      sourceId, currentTopicId: "reserved-domain-demo", topics: [] };
+  } } });
+  const loading = ui.controller.open();
+  while (reads < 2) await turn();
+  await ui.controller.selectTopic("harbor-s2");
+  pending.resolve({ version: ui.service.catalog().version, sourceId: "reserved-example-com",
+    currentTopicId: "reserved-domain-demo", topics: [] });
+  await loading;
+  assert.equal(ui.controller.currentState().topicId, "harbor-s2");
+  assert.equal(ui.controller.currentState().priorDiscussions, null);
+  assert.equal(ui.controller.currentState().phase, "ready");
+});
+test("prior lookup failure leaves current discussion ready and records diagnostic", async () => {
+  const ui = harness({ client: { async priorDiscussions() {
+    throw Object.assign(new Error("missing optional route"), { code: "unavailable" });
+  } } });
+  await ui.controller.open();
+  const state = ui.controller.currentState();
+  assert.equal(state.phase, "ready");
+  assert.equal(state.error, null);
+  assert.equal(state.discussion.roots.length, 0);
+  assert.equal(state.priorDiscussions, null);
+  assert.equal(state.priorDiscussionsError, "unavailable");
 });
 
 test("new pairing is not persisted until durable service validation succeeds", async () => {

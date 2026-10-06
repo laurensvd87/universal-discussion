@@ -59,6 +59,7 @@ export const EN = Object.freeze({
   uiDiscussions: "Discussion",
   uiEarlierDiscussionOnPage: "Earlier threads started here · {count}",
   uiEarlierDiscussionEntry: "Open {title} · {count} started here",
+  uiEarlierThreadsUnavailable: "Earlier threads could not load. Reopen this panel to retry.",
   uiBackToThisPage: "Back to this page",
   uiDemoIdentity: "{actor} · local profile",
   uiDataScope: "Comments stay on this computer. Local profiles are not signed-in accounts. Use public pages only; an insight sends page text to ChatGPT when you request it.",

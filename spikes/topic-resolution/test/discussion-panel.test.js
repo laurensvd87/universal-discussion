@@ -211,6 +211,14 @@ test("User prior disclosure shows only old-topic actions and a Back action while
   ui.panel.render(state({ sourceId: "source-demo", priorDiscussions: { ...prior, topics: [] } }));
   assert.equal(details.hidden, true);
   assert.equal(back.hidden, true);
+  ui.panel.render(state({ sourceId: "source-demo", priorDiscussions: null,
+    priorDiscussionsError: "stale-prior-discussions" }));
+  assert.equal(ui.byId("discussion-prior").hidden, true);
+  assert.equal(ui.byId("discussion-status").hidden, false);
+  assert.equal(ui.byId("discussion-status").textContent, EN.uiEarlierThreadsUnavailable);
+  ui.panel.render(state({ phase: "disconnected", sourceId: null, topicId: null,
+    priorDiscussionsError: "stale-prior-discussions" }));
+  assert.equal(ui.byId("discussion-status").hidden, true);
 });
 test("connected settings follow the composer in User DOM order and return before content when disconnected", () => {
   const ui = harness();

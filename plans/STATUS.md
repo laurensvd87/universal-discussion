@@ -35,6 +35,25 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-06 missing Golem message follow-up (extension 0.13.8):** The owner
+reported that the shared message was not visible from either open tab. Read-only
+SQLite inspection at revisions 363–365 confirmed one non-withdrawn agent root
+still projects in the earlier Topic and passes the extension discussion DTO;
+the Source is present under a newer empty Topic, and the backend prior view
+returns the earlier Topic with one page-started root. This rules out deletion
+but does not prove the owner's popup state. The popup previously discarded
+prior-topic metadata without notice whenever separate discussion/prior GETs
+straddled a service revision; local revision advanced during diagnosis.
+The controller now retries one bounded catalog/discussion/related/prior read
+after such a mismatch, keeps the current discussion readable if prior lookup
+fails, and shows a small retry status rather than silently hiding the path.
+Stale tab/manual-selection and authorization fences remain. Extension restricted
+tests pass 943/943, including race, late-selection, failure and visible-status
+cases. Actual Chrome confirmation from the owner remains pending. No Source,
+Topic, contribution, embedding or provider data was changed. The owner database
+currently has 100/100 Source slots and 97/100 Topic slots; new-page capacity
+is a separate local PoC limitation to address before broader testing.
+
 **2026-10-06 same-page earlier-discussion correction (0.13.7):**
 Read-only inspection of the owner's local SQLite state found the reported Golem
 post intact under an earlier Topic, anchored to the exact current Source ID;

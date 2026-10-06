@@ -430,9 +430,11 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     status.textContent = text(errorKey ?? (state.error ? "discussionUnavailable" : {
       ready: "discussionReady", disconnected: "discussionDisconnected", connecting: "discussionConnecting",
       loading: "discussionLoading", "choose-topic": uiMode === "user" ? "uiTopicAwaitingPage" : "discussionChooseStatus" }[state.phase] ?? "discussionUnavailable"));
+    if (selectedTopicReady && state.priorDiscussionsError && uiMode === "user")
+      status.textContent = text("uiEarlierThreadsUnavailable");
     if (state.needsFreshRead) status.textContent += ` · ${text("discussionReload")}`;
     status.hidden = uiMode === "user" && ["ready", "disconnected"].includes(state.phase) &&
-      !state.error && !state.needsFreshRead;
+      !state.error && !state.needsFreshRead && !(selectedTopicReady && state.priorDiscussionsError);
     const usable = ["ready", "choose-topic"].includes(state.phase) && !state.busy && !state.needsFreshRead;
     const showPairingInput = uiMode !== "user" || state.error !== "extension-connection-unavailable" &&
       (shellView.connection !== "connected" || state.error === "unauthorized");
