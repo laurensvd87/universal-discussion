@@ -22,6 +22,12 @@ ADR-023 now performs the versioned migration described below.
 
 Requirements: Node.js 24 or newer. No package installation is needed.
 
+If a paired service restarts while an extension popup remains open, an explicit
+Insight request may rebuild the empty in-memory ChatGPT model catalog with one
+bounded, content-free `/models` request before inference. A no-longer-listed
+selection fails without sending page text or starting a Responses request;
+the popup refreshes its picker and leaves any later Insight retry to the user.
+
 ## Opt-in live Insight quality probe
 
 `harness/run-live-insight-qa.js` is a developer-only, owner-approved one-shot
@@ -255,6 +261,15 @@ the short display title alone does not freeze them. The stable Source stamp
 cannot reconstruct earlier page content. Manual correction moves still-anchored
 roots and replies; stale expected revisions reject writes aimed at an old
 destination. IDs, authors, bodies and reply topology remain stable.
+
+Authenticated `GET /v1/sources/{sourceId}/prior-discussions` reports earlier
+Topics with visible root threads whose retained `originSourceId` is that Source,
+excluding its current Topic. It returns Topic ID/title/kind, matching-root count
+and the state version, but no bodies, root IDs or prior page snapshots. The
+normal Topic discussion route still opens the entire earlier Topic, including
+threads that may have started from other Sources. Forget/withdrawal remove the
+relevant origin/visible-root association. This is discovery only: it does not
+retarget or duplicate pinned threads.
 
 Versioned `/v1/commands` types: `correct-source`, `forget-source`,
 `delete-learned-topic` and `clear-learned-data`. Forget removes a Source and its

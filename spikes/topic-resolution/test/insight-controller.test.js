@@ -14,6 +14,7 @@ async function harness({ command, aiClient, readArticle, attestArticle, readRela
   const client = {
     health: async () => ({}), catalog: async () => service.catalog(),
     discussion: async (id) => service.discussion(id), related: async (id, limit) => service.related(id, limit),
+    priorDiscussions: async (id) => service.priorDiscussions(id),
     command: async (expected, value, actor) => {
       commands.push(value);
       if (command) return command(expected, value, actor);
@@ -409,6 +410,65 @@ test("reopen refuses a resumable result from another source without fetching its
   assert.equal(await reopened.resumeInsights(), false);
   assert.equal(resultReads, 1, "new popup must not read the old-page result");
   assert.equal(reopened.currentState().draft, "");
+});
+
+test("failed resumed insight refreshes unavailable model without starting another request", async () => {
+  let app, modelLists = 0, starts = 0;
+  const aiClient = {
+    status: async () => ({ connected: true, planEnabled: true, pending: false,
+      account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => ++modelLists === 1 ? [{ slug: "old-model" }] : [{ slug: "new-model" }],
+    resumable: async () => { const state = app.discussion.currentState(); return {
+      operationId: "resumed-op", expected: state.catalog.version, topicId: state.topicId,
+      originSourceId: state.sourceId, replyToId: null,
+    }; },
+    result: async () => ({ state: "failed", error: "model-unavailable" }),
+    start: async () => { starts++; return { state: "running" }; },
+    cancel: async () => true,
+  };
+  app = await harness({ aiClient });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.resumeInsights(), false);
+  const state = app.insight.currentState();
+  assert.equal(state.ai.status, "modelRefreshed");
+  assert.equal(state.ai.model, "new-model");
+  assert.equal(state.ai.result, null);
+  assert.equal(state.draft, "");
+  assert.equal(modelLists, 2);
+  assert.equal(starts, 0);
+});
+
+test("resumed insight recovery ignores a catalog returned after account or page changes", async () => {
+  for (const change of ["account", "page"]) {
+    let app, releaseList, modelLists = 0, resultReads = 0;
+    let account = { clientId: "client-a", label: "Owner A" };
+    app = await harness({ aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false, account }),
+      models: async () => ++modelLists === 1 ? [{ slug: "old-model" }] :
+        new Promise((resolve) => { releaseList = resolve; }),
+      resumable: async () => { const state = app.discussion.currentState(); return {
+        operationId: "resumed-op", expected: state.catalog.version, topicId: state.topicId,
+        originSourceId: state.sourceId, replyToId: null,
+      }; },
+      result: async () => { resultReads++; return { state: "failed", error: "model-unavailable" }; },
+      cancel: async () => true,
+    } });
+    await app.insight.checkConnection(); await app.insight.loadModels();
+    const running = app.insight.resumeInsights();
+    for (let i = 0; !releaseList && i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(typeof releaseList, "function");
+    assert.equal(await app.insight.resumeInsights(), false);
+    assert.equal(resultReads, 1);
+    if (change === "account") {
+      account = { clientId: "client-b", label: "Owner B" };
+      await app.insight.checkConnection();
+    } else app.navigate();
+    releaseList([{ slug: "new-model" }]);
+    assert.equal(await running, false);
+    assert.deepEqual(app.insight.currentState().ai.models, []);
+    assert.equal(app.insight.currentState().ai.model, "");
+    assert.notEqual(app.insight.currentState().ai.status, "modelRefreshed");
+  }
 });
 
 test("own published question gets one unchanged private robot follow-up", async () => {
@@ -813,7 +873,7 @@ test("duplicate Create clicks dispatch only one provider operation", async () =>
 
 test("safe research failures give actionable status without importing provider text or retrying", async () => {
   for (const [code, expected] of [
-    ["rate-limit", "usageLimit"], ["model-unavailable", "modelUnavailable"],
+    ["rate-limit", "usageLimit"], ["model-unavailable", "modelRefreshed"],
     ["unsupported-capability", "webResearchUnavailable"], ["unauthorized", "authorizationExpired"],
     ["timeout", "researchTimeout"], ["busy", "researchBusy"],
     ["provider-secret-detail", "generationFailed"],
@@ -836,6 +896,124 @@ test("safe research failures give actionable status without importing provider t
     assert.equal(outcome.draft, "", code);
     assert.equal(starts, 1, code);
   }
+});
+
+test("unavailable auto model refreshes the catalog and waits for a deliberate retry", async () => {
+  let listed = [{ slug: "old-model" }], modelLists = 0, starts = 0;
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => { modelLists++; return listed; },
+    start: async () => { starts++; return { state: "running" }; },
+    result: async () => starts === 1 ? { state: "failed", error: "model-unavailable" } :
+      { state: "completed", result: { body: "Private retry result", model: "new-model", citations: [] } },
+    cancel: async () => true,
+  }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+  attestArticle: async () => true, randomId: () => `op-${starts + 1}` });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  listed = [{ slug: "new-model" }];
+  assert.equal(await app.insight.createInsights({ automatic: true }), false);
+  const recovered = app.insight.currentState();
+  assert.equal(recovered.ai.status, "modelRefreshed");
+  assert.equal(recovered.ai.model, "new-model");
+  assert.equal(recovered.ai.result, null);
+  assert.equal(recovered.draft, "");
+  assert.ok(recovered.context);
+  assert.equal(starts, 1);
+  assert.equal(modelLists, 2);
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(starts, 2);
+});
+
+test("unavailable manual model is kept only when the refreshed catalog still lists it", async () => {
+  for (const keepManual of [true, false]) {
+    let listed = [{ slug: "model-a" }, { slug: "model-b" }], starts = 0;
+    const app = await harness({ aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+      models: async () => listed,
+      start: async () => { starts++; return { state: "running" }; },
+      result: async () => ({ state: "failed", error: "model-unavailable" }),
+      cancel: async () => true,
+    }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+    attestArticle: async () => true, randomId: () => "op-manual" });
+    await app.insight.checkConnection(); await app.insight.loadModels();
+    assert.equal(app.insight.selectModel("model-a"), true);
+    listed = keepManual ? [{ slug: "model-a" }, { slug: "model-c" }] : [{ slug: "model-c" }];
+    assert.equal(await app.insight.createInsights({ automatic: true }), false);
+    assert.equal(app.insight.currentState().ai.model, keepManual ? "model-a" : "model-c");
+    assert.equal(app.insight.currentState().ai.status, "modelRefreshed");
+    assert.equal(starts, 1);
+  }
+});
+
+test("unavailable model blocks duplicate research while catalog refresh is pending", async () => {
+  let releaseList, modelLists = 0, starts = 0;
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => ++modelLists === 1 ? [{ slug: "old-model" }] :
+      new Promise((resolve) => { releaseList = resolve; }),
+    start: async () => { starts++; return { state: "running" }; },
+    result: async () => ({ state: "failed", error: "model-unavailable" }),
+    cancel: async () => true,
+  }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+  attestArticle: async () => true, randomId: () => "op-pending" });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  const running = app.insight.createInsights({ automatic: true });
+  for (let i = 0; !releaseList && i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(typeof releaseList, "function");
+  assert.equal(app.insight.currentState().ai.model, "");
+  assert.equal(await app.insight.createInsights({ automatic: true }), false);
+  assert.equal(await app.insight.loadModels(), false);
+  assert.equal(starts, 1);
+  releaseList([{ slug: "new-model" }]);
+  assert.equal(await running, false);
+  assert.equal(app.insight.currentState().ai.status, "modelRefreshed");
+  assert.equal(app.insight.currentState().ai.model, "new-model");
+});
+
+test("failed recovery list clears the stale model and reports the list failure", async () => {
+  let modelLists = 0, starts = 0;
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => ++modelLists === 1 ? [{ slug: "old-model" }] :
+      Promise.reject(new ModelListFailure("provider-unavailable")),
+    start: async () => { starts++; return { state: "running" }; },
+    result: async () => ({ state: "failed", error: "model-unavailable" }),
+    cancel: async () => true,
+  }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+  attestArticle: async () => true, randomId: () => "op-failed-list" });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.createInsights({ automatic: true }), false);
+  const state = app.insight.currentState();
+  assert.equal(state.ai.status, "modelListProviderUnavailable");
+  assert.equal(state.ai.model, "");
+  assert.deepEqual(state.ai.models, []);
+  assert.equal(await app.insight.createInsights({ automatic: true }), false);
+  assert.equal(starts, 1);
+  assert.equal(modelLists, 2);
+});
+
+test("page change fences an in-flight recovery list", async () => {
+  let releaseList, modelLists = 0;
+  const app = await harness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+    models: async () => ++modelLists === 1 ? [{ slug: "old-model" }] :
+      new Promise((resolve) => { releaseList = resolve; }),
+    start: async () => ({ state: "running" }),
+    result: async () => ({ state: "failed", error: "model-unavailable" }),
+    cancel: async () => true,
+  }, readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public text" }),
+  attestArticle: async () => true, randomId: () => "op-navigation" });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  const running = app.insight.createInsights({ automatic: true });
+  for (let i = 0; !releaseList && i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(typeof releaseList, "function");
+  app.navigate();
+  assert.equal(app.insight.currentState().status, "changed");
+  releaseList([{ slug: "new-model" }]);
+  assert.equal(await running, false);
+  assert.equal(app.insight.currentState().status, "changed");
+  assert.deepEqual(app.insight.currentState().ai.models, []);
+  assert.equal(app.insight.currentState().ai.model, "");
 });
 
 test("research failure retains only a fixed diagnostic detail in popup memory", async () => {

@@ -99,6 +99,14 @@ cost-sensitive default and keeps a deliberate user selection. If no Luna is
 listed, it falls back to the last listed model. Catalog order is not a
 documented price ranking; this is not a guarantee of the cheapest plan usage.
 
+Extension **0.13.7** and the local service recover from a stale model choice
+after a service restart. On a deliberate Insight click, the service may reload
+its empty account-model catalog once without sending page text, then use the
+selected model only if it is still listed. If the choice has disappeared, the
+popup refreshes the picker and asks for a new click; it never retries research
+or shares a draft automatically. Reload the extension and restart the local
+service to use this recovery.
+
 Extension **0.13.2** improves the source mix for a deliberate **Get insights**
 request. It considers up to 20 already-known local related-page nominations,
 then selects at most four non-current pages, gently preferring different
@@ -587,6 +595,12 @@ No reset is needed. A changed stored page vector conservatively pins its old
 threads, rather than assuming they describe the changed page. Forget removes all
 post links to that page and keeps comments. Clear learned data also removes
 learned-source threads manually moved to another Topic; read the confirmation.
+
+If a page is re-captured with a changed vector, its older page-started threads
+may remain in an earlier Topic. In the current page's discussion, open **Earlier
+threads started here** to visit that Topic, then **Back to this page** to return.
+The earlier Topic can also contain other pages' threads; this view does not move
+old posts or claim that every post there began on the current page.
 
 To try the discussion loop:
 

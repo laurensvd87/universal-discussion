@@ -320,19 +320,108 @@ test("explicit tool-free mode omits web search and preserves the requested model
 
 test("clearing account models invalidates old selection without resetting the call quota", async () => {
   let dispatched = 0;
+  let catalogs = 0;
   const adapter = createChatGptInsights({ fetchImpl: async (url) => {
-    if (url.endsWith("/models")) return models();
+    if (url.endsWith("/models")) { catalogs += 1; return models(); }
     dispatched += 1;
     return stream(complete());
   }, getAccessToken: async () => ACCESS, now: () => 1_000 });
   await adapter.listModels();
   await adapter.createInsight(REQUEST);
   adapter.clearModels();
-  await assert.rejects(adapter.createInsight(REQUEST), errorCode("model-unavailable"));
-  await adapter.listModels();
   for (let i = 0; i < 4; i++) await adapter.createInsight(REQUEST);
   await assert.rejects(adapter.createInsight(REQUEST), errorCode("rate-limit"));
   assert.equal(dispatched, 5);
+  assert.equal(catalogs, 2);
+});
+
+test("cold catalog time is excluded from the rolling quota timestamp", async () => {
+  const hour = 3_600_000;
+  let clock = 0;
+  let catalogs = 0;
+  let responses = 0;
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+    if (url.endsWith("/models")) { catalogs += 1; clock = hour - 1_000; return models(); }
+    responses += 1; return stream(complete());
+  }, getAccessToken: async () => ACCESS, now: () => clock });
+  await adapter.createInsight(REQUEST);
+  clock = hour + 1_000;
+  for (let i = 0; i < 4; i++) await adapter.createInsight(REQUEST);
+  await assert.rejects(adapter.createInsight(REQUEST), errorCode("rate-limit"));
+  assert.equal(catalogs, 1);
+  assert.equal(responses, 5);
+  adapter.dispose();
+});
+
+test("explicit Insight restores an empty model catalog once without sending page content in the catalog request", async () => {
+  const calls = [];
+  const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+    calls.push({ url, options });
+    return url.endsWith("/models") ? models() : stream(complete());
+  }, getAccessToken: async () => ACCESS });
+  await adapter.createInsight(REQUEST);
+  await adapter.createInsight(REQUEST);
+  assert.deepEqual(calls.map(({ url }) => url.split("/").at(-1)), ["models", "responses", "responses"]);
+  assert.equal(calls[0].options.method, "GET");
+  assert.equal(calls[0].options.body, undefined);
+  assert.equal(calls[0].options.headers.Authorization, `Bearer ${ACCESS}`);
+  adapter.dispose();
+});
+
+test("empty-catalog recovery validates input and the current account list before inference", async () => {
+  for (const [request, catalog, expected, requests] of [
+    [{ ...REQUEST, articleText: "x".repeat(4_097) }, models(), "invalid-input", []],
+    [{ ...REQUEST, model: "other-model" }, models(), "model-unavailable", ["models"]],
+    [REQUEST, new Response("unavailable", { status: 503 }), "provider-unavailable", ["models"]],
+  ]) {
+    const calls = [];
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      calls.push(url.split("/").at(-1));
+      return url.endsWith("/models") ? catalog : stream(complete());
+    }, getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight(request), errorCode(expected));
+    assert.deepEqual(calls, requests);
+    adapter.dispose();
+  }
+});
+
+test("empty-catalog recovery keeps the 25-second catalog deadline without retrying inference", async () => {
+  const originalSetTimeout = globalThis.setTimeout;
+  let catalogs = 0;
+  let responses = 0;
+  globalThis.setTimeout = (callback, delay, ...args) =>
+    originalSetTimeout(callback, delay === 25_000 ? 0 : delay, ...args);
+  try {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+      if (url.endsWith("/models")) { catalogs += 1; return new Promise(() => {}); }
+      responses += 1; return stream(complete());
+    }, getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight(REQUEST), errorCode("timeout"));
+    assert.equal(catalogs, 1);
+    assert.equal(responses, 0);
+    adapter.dispose();
+  } finally { globalThis.setTimeout = originalSetTimeout; }
+});
+
+test("clearing models during empty-catalog recovery fences a late catalog and inference", async () => {
+  let release;
+  const calls = [];
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+    calls.push(url.split("/").at(-1));
+    if (!url.endsWith("/models")) return stream(complete());
+    return calls.length === 1 ? new Promise((resolve) => { release = resolve; }) : models();
+  }, getAccessToken: async () => ACCESS });
+  const pending = adapter.createInsight(REQUEST);
+  for (let i = 0; i < 8 && !release; i++) await Promise.resolve();
+  assert.equal(typeof release, "function");
+  adapter.clearModels();
+  await assert.rejects(pending, errorCode("cancelled"));
+  release(models());
+  await Promise.resolve(); await Promise.resolve();
+  assert.deepEqual(calls, ["models"]);
+  await assert.rejects(adapter.createInsight({ ...REQUEST, model: "missing-model" }), errorCode("model-unavailable"));
+  assert.deepEqual(calls, ["models", "models"]);
+  adapter.dispose();
 });
 
 test("cancellation while access token is pending prevents a later request", async () => {

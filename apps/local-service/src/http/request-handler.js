@@ -130,6 +130,12 @@ async function route(request, service, ai, durablePairing) {
     protocol: "local-service/v1", capability: durablePairing ? "paired-durable-v1" : "paired-demo",
   } };
   if (request.method === "GET" && path === "/v1/catalog") return { status: 200, value: service.catalog() };
+  const priorMatch = /^\/v1\/sources\/([^/]+)\/prior-discussions$/u.exec(path);
+  if (request.method === "GET" && priorMatch) {
+    let sourceId;
+    try { sourceId = decodeURIComponent(priorMatch[1]); } catch { fail("invalid", "Invalid request"); }
+    return { status: 200, value: service.priorDiscussions(sourceId) };
+  }
   const discussionMatch = /^\/v1\/topics\/([^/]+)\/discussion$/u.exec(path);
   if (request.method === "GET" && discussionMatch) {
     let topicId;

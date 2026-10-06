@@ -35,6 +35,38 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-06 same-page earlier-discussion correction (0.13.7):**
+Read-only inspection of the owner's local SQLite state found the reported Golem
+post intact under an earlier Topic, anchored to the exact current Source ID;
+the current Topic has no roots. A changed URL/vector/extractor stamp during
+same-URL ingestion pins prior roots under ADR-023. URL and extractor version
+were unchanged, so the vector differed, but old input/vector was not retained:
+the exact reason for the change is unproven. Repeated E5 inference on identical
+synthetic inputs was bitwise stable; a changed live DOM sample is plausible.
+An authenticated, read-only prior-discussion route and compact popup path now
+make earlier Source-started root threads discoverable without moving them.
+Selecting an entry opens the whole earlier Topic, which may contain other
+Sources' threads; UI counts only roots started from this page. Forget and
+withdrawal clear discoverability appropriately. A source/stamp policy change
+would require its own decision; none is made here. Focused synthetic SQLite
+coverage includes recapture/restart, auth/Origin/Host, Forget, withdrawal and
+stale popup state. Independent Trust review found a misleading count/open-topic
+label, corrected to say it counts only threads started here. Service tests
+229/233 (four optional skips), loopback integration 2/2, extension restricted
+940/940 and both secret scans pass. The updated service is listening again on
+the fixed loopback port; an owner Chrome reload/UX check remains.
+
+**2026-10-06 stale-model recovery (0.13.7):** A service restart
+empties its in-memory account-model set while an already-open popup may still
+hold the prior model selection. This reproduces the owner's
+`model-unavailable` message before any Responses dispatch. The service now
+rebuilds an empty catalog once, without page text, during a deliberate Insight
+request; a missing model sends no research. The popup refreshes its picker on
+that fixed failure and requires a new deliberate Insight click. Provider
+research is never auto-retried. Focused offline service/controller/panel tests
+pass with the full suites above. The service was restarted with the same
+Origin; no live ChatGPT request was made for this change.
+
 **2026-10-06 Insight opener style refinement:** The owner reported a GTA 6
 draft that raised a potentially useful related-source detail but sounded
 formulaic and ended in a broad question. The static opener now prioritizes

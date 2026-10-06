@@ -186,6 +186,32 @@ function state(patch = {}) {
       ] }] }, related: { results: [{ title: "<iframe>inert source</iframe>", url: "https://synthetic.example/", relationship: "related" }] },
     draft: { body: "", detached: false, mode: "root", targetId: null }, ...patch };
 }
+test("User prior disclosure shows only old-topic actions and a Back action while viewing one", () => {
+  const ui = harness();
+  const prior = { sourceId: "source-demo", currentTopicId: "topic-demo", topics: [
+    { id: "old-topic", title: "<img src=x>", kind: "general", rootCount: 3 },
+  ] };
+  ui.panel.render(state({ sourceId: "source-demo", priorDiscussions: prior }));
+  const details = ui.byId("discussion-prior");
+  assert.equal(details.hidden, false);
+  assert.equal(ui.byId("discussion-prior-summary").textContent, EN.uiEarlierDiscussionOnPage.replace("{count}", "3"));
+  const action = ui.byId("discussion-prior-list").children[0].children[0];
+  assert.equal(action.tag, "button");
+  assert.equal(action.textContent, EN.uiEarlierDiscussionEntry.replace("{title}", "<img src=x>").replace("{count}", "3"));
+  action.listeners.get("click")();
+  assert.deepEqual(ui.calls.at(-1), ["selectTopic", "old-topic"]);
+  ui.panel.render(state({ topicId: "old-topic", sourceId: null, priorDiscussions: null, viewingPriorDiscussion: true }));
+  assert.equal(details.hidden, true);
+  const back = ui.byId("discussion-back-to-page");
+  assert.ok(descendants(ui.root).includes(back));
+  assert.equal(back.hidden, false);
+  assert.equal(back.textContent, EN.uiBackToThisPage);
+  back.listeners.get("click")();
+  assert.deepEqual(ui.calls.at(-1), ["open"]);
+  ui.panel.render(state({ sourceId: "source-demo", priorDiscussions: { ...prior, topics: [] } }));
+  assert.equal(details.hidden, true);
+  assert.equal(back.hidden, true);
+});
 test("connected settings follow the composer in User DOM order and return before content when disconnected", () => {
   const ui = harness();
   const settings = ui.byId("discussion-connection-settings");

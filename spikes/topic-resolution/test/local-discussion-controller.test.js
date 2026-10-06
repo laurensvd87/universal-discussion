@@ -22,6 +22,9 @@ function harness(overrides = {}) {
     async health() { return {}; }, async catalog() { return service.catalog(); },
     async discussion(topicId) { requests.push(["discussion", topicId]); return service.discussion(topicId); },
     async related(sourceId, limit) { requests.push(["related", sourceId, limit]); return service.related(sourceId, limit); },
+    async priorDiscussions(sourceId) { requests.push(["priorDiscussions", sourceId]);
+      const source = service.catalog().sources.find((entry) => entry.id === sourceId);
+      return { version: service.catalog().version, sourceId, currentTopicId: source?.topicId ?? null, topics: [] }; },
     async command(expected, command, actor) { requests.push(["command", command]); return service.command(expected, command, actor); },
     async reset(expected, confirmation) { return { version: service.reset(expected, confirmation) }; },
     ...overrides.client,
@@ -55,6 +58,52 @@ test("paired popup automatically loads bridged service discussion and sends IDs 
   assert.deepEqual(ui.requests.find((entry) => entry[0] === "related"), ["related", "reserved-example-com", 20]);
   assert.equal(JSON.stringify(ui.requests).includes("https:"), false);
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
+});
+test("prior Source topics open manually and Back reattests the current page", async () => {
+  const next = harness({ client: { async priorDiscussions(sourceId) {
+    const source = next.service.catalog().sources.find((entry) => entry.id === sourceId);
+    const prior = next.service.catalog().topics.find((entry) => entry.id === "harbor-s2");
+    return { version: next.service.catalog().version, sourceId, currentTopicId: source.topicId,
+      topics: sourceId === "reserved-example-com" ? [{ id: prior.id, title: prior.title, kind: prior.kind, rootCount: 2 }] : [] };
+  } } });
+  await next.controller.open();
+  assert.equal(next.controller.currentState().priorDiscussions.topics[0].id, "harbor-s2");
+  await next.controller.selectTopic("harbor-s2");
+  assert.equal(next.controller.currentState().viewingPriorDiscussion, true);
+  assert.equal(next.controller.currentState().topicId, "harbor-s2");
+  assert.equal(next.controller.currentState().priorDiscussions, null);
+  await next.controller.open();
+  assert.equal(next.controller.currentState().topicId, "reserved-domain-demo");
+  assert.equal(next.controller.currentState().viewingPriorDiscussion, false);
+});
+test("late prior response cannot reappear after selection changes", async () => {
+  const pending = deferred();
+  let calls = 0;
+  const ui = harness({ client: { async priorDiscussions(sourceId) {
+    if (++calls > 1) return pending.promise;
+    const source = ui.service.catalog().sources.find((entry) => entry.id === sourceId);
+    return { version: ui.service.catalog().version, sourceId, currentTopicId: source.topicId, topics: [] };
+  } } });
+  await ui.controller.open();
+  const loading = ui.controller.selectSource("reserved-example-org");
+  await turn();
+  await ui.controller.selectTopic("harbor-s2");
+  pending.resolve({ version: ui.service.catalog().version, sourceId: "reserved-example-org",
+    currentTopicId: "reserved-domain-demo", topics: [] });
+  await loading;
+  assert.equal(ui.controller.currentState().topicId, "harbor-s2");
+  assert.equal(ui.controller.currentState().priorDiscussions, null);
+});
+test("stale prior metadata is discarded without hiding the current discussion", async () => {
+  const ui = harness({ client: { async priorDiscussions(sourceId) {
+    const source = ui.service.catalog().sources.find((entry) => entry.id === sourceId);
+    return { version: { ...ui.service.catalog().version, revision: ui.service.catalog().version.revision + 1 }, sourceId,
+      currentTopicId: source.topicId, topics: [] };
+  } } });
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().discussion.roots.length, 0);
+  assert.equal(ui.controller.currentState().priorDiscussions, null);
 });
 
 test("new pairing is not persisted until durable service validation succeeds", async () => {
@@ -114,6 +163,9 @@ test("a retained-only account Source can be viewed but cannot poison a new post 
     async related(sourceId) { return sourceId === retained.id
       ? { version: service.catalog().version, model: service.catalog().model, results: [] }
       : service.related(sourceId, 5); },
+    async priorDiscussions(sourceId) { return { version: service.catalog().version, sourceId,
+      currentTopicId: sourceId === retained.id ? retained.topicId
+        : service.catalog().sources.find((entry) => entry.id === sourceId)?.topicId ?? null, topics: [] }; },
     async command(expected, command, actorId) { posted = command; return service.command(expected, command, actorId); },
   };
   const controller = createLocalDiscussionController({ client,

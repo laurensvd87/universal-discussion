@@ -185,6 +185,19 @@ export function readRelated(value, limit) {
   }));
   return { version: readVersion(item.version), model: model(item.model), results };
 }
+export function readPriorDiscussions(value, sourceId) {
+  const item = record(value, ["version", "sourceId", "currentTopicId", "topics"]);
+  if (readId(item.sourceId) !== sourceId) invalid();
+  const currentTopicId = nullableId(item.currentTopicId);
+  const topics = unique(array(item.topics, 100, (value) => {
+    const entry = record(value, ["id", "title", "kind", "rootCount"]);
+    const projected = topic({ id: entry.id, title: entry.title, kind: entry.kind });
+    if (projected.id === currentTopicId || !Number.isSafeInteger(entry.rootCount) ||
+        entry.rootCount < 1 || entry.rootCount > 1000) invalid();
+    return { ...projected, rootCount: entry.rootCount };
+  }));
+  return { version: readVersion(item.version), sourceId, currentTopicId, topics };
+}
 function contribution(value, rootId, isRoot) {
   const state = Object.getOwnPropertyDescriptor(value ?? {}, "state")?.value;
   const fields = state === "deleted" ? ["id", "rootId", "replyToId", "state", "label"] :

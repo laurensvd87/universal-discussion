@@ -149,6 +149,7 @@ export const INSIGHT_EN = Object.freeze({
   aiGenerationFailed: "Research did not complete. No partial answer was imported or automatically retried.",
   aiUsageLimit: "Usage limit reached. Check Manage usage in ChatGPT settings; this app also limits local starts. No automatic retry was made.",
   aiModelUnavailable: "This model is unavailable. List models again and choose an eligible model before trying again.",
+  aiModelRefreshed: "Models refreshed. Check the selected model and try Get insights again; no research was retried.",
   aiWebResearchUnavailable: "Web research is unavailable for this account or model. No partial answer was imported. Check eligibility before trying again.",
   aiAuthorizationExpired: "ChatGPT authorization expired. Check connection and sign in again if needed.",
   aiResearchTimeout: "Research timed out. No partial answer was imported or automatically retried.",

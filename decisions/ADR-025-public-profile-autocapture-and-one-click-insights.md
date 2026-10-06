@@ -88,3 +88,18 @@ fallback. Preserve a user's deliberate model choice across list refreshes
 while it remains available. This is a cost-sensitive heuristic, **not** a
 guarantee of the absolute cheapest model or zero charge. No additional
 provider call, paid fallback or automatic Insight dispatch is authorized.
+
+## 2026-10-06 restart-safe model catalog recovery
+
+After the local service restarts, an already-open popup can retain its selected
+model while the new service process has no in-memory model catalog. A deliberate
+Insight click may make one bounded, content-free account `/models` request to
+rebuild that catalog before the existing single Responses request. The chosen
+slug must still be listed for this account. A missing slug or failed catalog
+request sends no page text and no Responses request. The 25-second catalog
+deadline, account cancellation fences and the rolling Insight quota remain.
+If the selected model is unavailable, the popup refreshes the catalog once
+and asks for a deliberate retry; it never repeats the Insight request or
+silently substitutes another model in an already-dispatched request. This is
+a repair of the approved model-list path, not authorization for extra research,
+new providers, paid fallback or background inference.

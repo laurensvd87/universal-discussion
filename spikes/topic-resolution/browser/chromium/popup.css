@@ -103,6 +103,7 @@ body[data-ui-mode="developer"] .capture-settings > summary { margin-bottom: 10px
 #insight-plan-usage { grid-column: 2; grid-row: 1; align-self: center; margin: 0; text-align: right; font-size: 10px; }
 #insight-quick-status { color: #8a3d2d; font-size: 11px; line-height: 1.35; }
 #insight-quick-status[data-state="preparing"] { color: #17578d; }
+#insight-quick-status[data-state="ready"] { color: #17578d; }
 .related-source-choice { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; font-size: 12px; font-weight: 500; letter-spacing: 0; line-height: 1.35; text-transform: none; }
 .related-source-choice input { flex: 0 0 18px; width: 18px; min-height: 18px; margin: 0; }
 .related-source-choice span { min-width: 0; overflow-wrap: anywhere; }
@@ -593,6 +594,7 @@ button:hover { background: #41443a; }
 #insight-plan-usage { color: var(--ink-soft); }
 #insight-quick-status { color: var(--attention); }
 #insight-quick-status[data-state="preparing"] { color: var(--ink); }
+#insight-quick-status[data-state="ready"] { color: var(--ink); }
 body :is(button, input, textarea, select, summary, a):focus-visible {
   outline: 3px solid #9d7620; outline-offset: 2px;
 }

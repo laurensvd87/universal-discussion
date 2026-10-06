@@ -22,6 +22,9 @@ const IDENTITY_FAILURE_SUBSTAGE_MESSAGES = Object.freeze({
 });
 const RESEARCH_FAILURE_STATUSES = new Set(["generationFailed", "usageLimit", "modelUnavailable",
   "webResearchUnavailable", "authorizationExpired", "researchTimeout", "researchBusy", "cancelled", "articleUnavailable"]);
+const MODEL_LIST_STATUSES = new Set(["loadingModels", "noModels", "modelListUnavailable",
+  "modelListAccessRejected", "modelListRateLimited", "modelListTimedOut", "modelListInvalidResponse",
+  "modelListProviderUnavailable", "modelListBusy"]);
 const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json",
   "response-content-html", "response-content-text", "response-content-missing", "response-content-other", "response-stream",
   "response-too-large", "response-encoding", "response-event", "response-no-final",
@@ -323,11 +326,13 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");
     aiStatus.setAttribute("data-attention", String(["connecting", "connectionFailed", "disconnectedUnconfirmed",
       "planUnavailable", "unavailable"].includes(ai.status)));
-    quickStatus.hidden = !RESEARCH_FAILURE_STATUSES.has(ai.status) && !["preparingArticle", "fetchingRelated"].includes(ai.status);
+    quickStatus.hidden = !RESEARCH_FAILURE_STATUSES.has(ai.status) && !MODEL_LIST_STATUSES.has(ai.status) &&
+      !["preparingArticle", "fetchingRelated", "modelRefreshed"].includes(ai.status);
     quickStatus.textContent = quickStatus.hidden ? "" :
       ai.status === "usageLimit" && document.body?.dataset?.uiMode === "user" ? text("usageLimitBrief") :
         ai.status === "fetchingRelated" ? text("aiFetchingRelated") : aiStatus.textContent;
-    quickStatus.setAttribute("data-state", ["preparingArticle", "fetchingRelated"].includes(ai.status) ? "preparing" : "failed");
+    quickStatus.setAttribute("data-state", ["preparingArticle", "fetchingRelated", "loadingModels"].includes(ai.status) ? "preparing" :
+      ai.status === "modelRefreshed" ? "ready" : "failed");
     quickActions.hidden = document.body?.dataset?.uiMode === "user" && quickStatus.hidden;
     nextStep.textContent = text(!state.context ? "nextPrepare" : resuming ? "nextResuming" : generating ? "nextGenerating" :
       RESEARCH_FAILURE_STATUSES.has(ai.status) ? "nextResearchFailed" :
@@ -335,9 +340,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       !ai.models.length ? "nextListModels" : !ai.model ? "nextChooseModel" :
       !ai.article ? "nextReadPage" : !ai.articleText?.trim() ? "nextEnterPageText" :
       !ai.costConsent ? "nextReviewConsent" : "nextCreateInsights");
-    modelStatus.hidden = !["loadingModels", "noModels", "modelListUnavailable", "modelListAccessRejected",
-      "modelListRateLimited", "modelListTimedOut", "modelListInvalidResponse",
-      "modelListProviderUnavailable", "modelListBusy"].includes(ai.status);
+    modelStatus.hidden = document.body?.dataset?.uiMode === "user" || !MODEL_LIST_STATUSES.has(ai.status);
     const allowedDetails = new Set(["catalog-redirect", "catalog-content-type", "catalog-body",
       "catalog-too-large", "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
     modelStatus.textContent = modelStatus.hidden ? "" :

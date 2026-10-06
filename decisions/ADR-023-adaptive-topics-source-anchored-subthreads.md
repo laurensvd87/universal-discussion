@@ -199,3 +199,28 @@ synthetic review or additional model. New real training/provenance corpora,
 private content, remote audiences, durable credentials and publication retain
 their separate gates. Report wrong joins/splits; increasing density alone does
 not establish correctness or justify an undisclosed representation change.
+
+## 2026-10-06 same-page recapture visibility correction
+
+An owner report showed a post missing after reopening the same Golem article in
+another tab. A read-only local database inspection found that the post still
+exists, with the exact current Source ID as its origin, in an earlier Topic.
+The current Source has a different Topic and its current discussion is empty.
+The same-URL ingestion path deliberately pins an anchored root to its former
+Topic when its URL/vector/extractor representation stamp changes. This honors
+the live-page-content boundary above, but made an earlier conversation hard to
+find. The prior input/vector was not retained, so the precise cause of this
+stamp change cannot be proven; repeated inference on identical synthetic input
+was bitwise stable locally, while live DOM sampling can vary.
+
+The local-only correction is read-only discovery, not migration: an authenticated
+Source route lists earlier Topics containing visible root threads started from
+that still-retained Source, with counts of those roots and no post bodies or
+root IDs. The popup offers a compact path to open an earlier Topic and return to
+the current page. Opening that Topic shows its whole discussion, which may also
+contain threads started from other Sources; labels must say the count is of
+threads started here, not all posts in the Topic. Withdrawn roots do not count;
+Forget removes the origin association and thus removes this discovery path.
+No stamp equivalence, source assignment, retained text, historical thread
+destination or external egress rule changes. A historical retargeting rule still
+requires a separate explicit decision and provenance design.

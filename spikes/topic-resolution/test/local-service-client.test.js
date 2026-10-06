@@ -4,7 +4,8 @@ import { createLocalServiceClient, LocalServiceClientError } from "../browser/co
 import { LocalServiceSessionProxyError } from "../browser/core/local-service-session.js";
 import { createRequestHandler } from "../../../apps/local-service/src/http/request-handler.js";
 import { demoService } from "../../../apps/local-service/test/helpers.js";
-import { readCommand, readDiscussion, readPostOrigin, readOutcome, readIngestionOutcome } from "../browser/core/local-service-contract.js";
+import { readCommand, readDiscussion, readPostOrigin, readOutcome, readIngestionOutcome,
+  readPriorDiscussions } from "../browser/core/local-service-contract.js";
 
 const TOKEN = "synthetic-test-capability-for-client-only";
 const VERSION = { generation: "generation-test", revision: 0 };
@@ -105,6 +106,26 @@ function json(value, status = 200, headers = {}) {
   return new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 }
 function client(fetchImpl, extras = {}) { return createLocalServiceClient({ fetchImpl, getToken: async () => TOKEN, ...extras }); }
+test("prior-discussion GET transfers only a Source ID and rejects malformed summaries", async () => {
+  const sourceId = "source-demo";
+  const valid = { version: VERSION, sourceId, currentTopicId: "topic-current",
+    topics: [{ id: "topic-old", title: "Earlier topic", kind: "general", rootCount: 2 }] };
+  const calls = [];
+  const adapter = client(async (url, options) => {
+    calls.push([url, options.method, options.body]);
+    return json(valid);
+  });
+  assert.deepEqual((await adapter.priorDiscussions(sourceId)).topics, valid.topics);
+  assert.deepEqual(calls, [["http://127.0.0.1:4174/v1/sources/source-demo/prior-discussions", "GET", undefined]]);
+  for (const bad of [
+    { ...valid, sourceId: "other-source" },
+    { ...valid, topics: [{ ...valid.topics[0], rootCount: 0 }] },
+    { ...valid, topics: [{ ...valid.topics[0], rootCount: 1.5 }] },
+    { ...valid, topics: [{ ...valid.topics[0], body: "hidden" }] },
+    { ...valid, topics: [{ ...valid.topics[0], id: "topic-current" }] },
+    { ...valid, topics: [valid.topics[0], valid.topics[0]] },
+  ]) assert.throws(() => readPriorDiscussions(bad, sourceId), TypeError);
+});
 function code(expected) {
   return (error) => error instanceof LocalServiceClientError && error.code === expected &&
     error.message === "Local service request failed" && !error.message.includes(TOKEN);

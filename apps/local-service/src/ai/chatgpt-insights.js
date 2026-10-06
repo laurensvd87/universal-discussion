@@ -636,41 +636,55 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
     if (typeof value !== "string" || value.length < 16 || value.length > 20_000 || /[\s\u0000-\u001f]/u.test(value)) fail("unauthorized");
     return value;
   }
+  async function loadModels(requestSignal) {
+    const before = modelEpoch;
+    const accessToken = await token();
+    check(requestSignal);
+    const response = await fetchImpl(`${API}/models`, { method: "GET", headers: { Authorization: `Bearer ${accessToken}` },
+      signal: requestSignal, redirect: "error", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
+    check(requestSignal);
+    if (response?.redirected || response?.url && response.url !== `${API}/models`) fail("invalid-response", "catalog-redirect");
+    if (!response?.ok) fail(errorForStatus(response?.status));
+    if (!/^application\/json(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) fail("invalid-response", "catalog-content-type");
+    let raw;
+    try { raw = await boundedBody(response, MAX_CATALOG_BYTES, requestSignal, true); } catch (error) {
+      if (error instanceof ChatGptInsightError && error.code === "invalid-response" && CATALOG_DETAILS.has(error.detail)) throw error;
+      if (error instanceof ChatGptInsightError && error.code === "invalid-response") fail("invalid-response", "catalog-body");
+      throw error;
+    }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { fail("invalid-response", "catalog-json"); }
+    check(requestSignal);
+    if (!parsed || !Array.isArray(parsed.models) || parsed.models.length > MAX_MODELS) fail("invalid-response", "catalog-shape");
+    const models = [];
+    const seen = new Set();
+    for (const entry of parsed.models) {
+      if (entry?.visibility !== "list") continue;
+      if (typeof entry.slug !== "string" || !SLUG.test(entry.slug) || seen.has(entry.slug) ||
+          typeof entry.display_name !== "string" || !entry.display_name.trim() || entry.display_name.length > 200 || UNSAFE.test(entry.display_name)) fail("invalid-response", "catalog-entry");
+      seen.add(entry.slug);
+      if (models.length < MAX_DISPLAY_MODELS) models.push({ slug: entry.slug, displayName: entry.display_name });
+    }
+    check(requestSignal);
+    if (modelEpoch !== before) fail("cancelled");
+    listed = new Set(models.map((entry) => entry.slug));
+    return models;
+  }
   async function listModels({ signal } = {}) {
-    return run(async (requestSignal) => {
-      const before = modelEpoch;
-      const accessToken = await token();
-      check(requestSignal);
-      const response = await fetchImpl(`${API}/models`, { method: "GET", headers: { Authorization: `Bearer ${accessToken}` },
-        signal: requestSignal, redirect: "error", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
-      check(requestSignal);
-      if (response?.redirected || response?.url && response.url !== `${API}/models`) fail("invalid-response", "catalog-redirect");
-      if (!response?.ok) fail(errorForStatus(response?.status));
-      if (!/^application\/json(?:;|$)/iu.test(response.headers?.get("content-type") ?? "")) fail("invalid-response", "catalog-content-type");
-      let raw;
-      try { raw = await boundedBody(response, MAX_CATALOG_BYTES, requestSignal, true); } catch (error) {
-        if (error instanceof ChatGptInsightError && error.code === "invalid-response" && CATALOG_DETAILS.has(error.detail)) throw error;
-        if (error instanceof ChatGptInsightError && error.code === "invalid-response") fail("invalid-response", "catalog-body");
-        throw error;
-      }
-      let parsed;
-      try { parsed = JSON.parse(raw); } catch { fail("invalid-response", "catalog-json"); }
-      check(requestSignal);
-      if (!parsed || !Array.isArray(parsed.models) || parsed.models.length > MAX_MODELS) fail("invalid-response", "catalog-shape");
-      const models = [];
-      const seen = new Set();
-      for (const entry of parsed.models) {
-        if (entry?.visibility !== "list") continue;
-        if (typeof entry.slug !== "string" || !SLUG.test(entry.slug) || seen.has(entry.slug) ||
-            typeof entry.display_name !== "string" || !entry.display_name.trim() || entry.display_name.length > 200 || UNSAFE.test(entry.display_name)) fail("invalid-response", "catalog-entry");
-        seen.add(entry.slug);
-        if (models.length < MAX_DISPLAY_MODELS) models.push({ slug: entry.slug, displayName: entry.display_name });
-      }
-      check(requestSignal);
-      if (modelEpoch !== before) fail("cancelled");
-      listed = new Set(models.map((entry) => entry.slug));
-      return models;
-    }, signal, MODEL_TIMEOUT);
+    return run(loadModels, signal, MODEL_TIMEOUT);
+  }
+  async function loadModelsForInsight(requestSignal) {
+    check(requestSignal);
+    const abort = new AbortController();
+    const cancel = () => abort.abort();
+    requestSignal.addEventListener("abort", cancel, { once: true });
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; abort.abort(); }, MODEL_TIMEOUT);
+    const aborted = new Promise((_, reject) => {
+      abort.signal.addEventListener("abort", () => reject(new ChatGptInsightError(timedOut ? "timeout" : "cancelled")), { once: true });
+    });
+    try { return await Promise.race([loadModels(abort.signal), aborted]); }
+    finally { clearTimeout(timer); requestSignal.removeEventListener("abort", cancel); }
   }
   async function createInsight(request, { signal } = {}) {
     return run(async (requestSignal) => {
@@ -680,7 +694,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         ...(Object.hasOwn(request, "relatedExcerpts") ? ["relatedExcerpts"] : []),
         ...(hasFollowup ? ["followup"] : [])]);
       const model = own(request, "model");
-      if (typeof model !== "string" || !listed.has(model)) fail("model-unavailable");
+      if (typeof model !== "string" || !SLUG.test(model)) fail("model-unavailable");
       const allowWebResearch = own(request, "allowWebResearch");
       if (typeof allowWebResearch !== "boolean") fail("invalid-input");
       const followup = hasFollowup ? followupValue(own(request, "followup")) : null;
@@ -694,14 +708,22 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const userText = JSON.stringify(followup ? followupContext(context, articleText, followup, relatedExcerpts) :
         { context, articlePrefix: articleText, relatedExcerpts });
       if (userText.length > MAX_INPUT) fail("invalid-input");
-      const instant = now();
-      if (!Number.isSafeInteger(instant) || instant < 0) fail("invalid-input");
-      calls = calls.filter((time) => time > instant - HOUR);
+      const preflightTime = now();
+      if (!Number.isSafeInteger(preflightTime) || preflightTime < 0) fail("invalid-input");
+      calls = calls.filter((time) => time > preflightTime - HOUR);
       if (calls.length >= 5) fail("rate-limit");
+      if (listed.size === 0) await loadModelsForInsight(requestSignal);
+      check(requestSignal);
+      if (modelEpoch !== before) fail("cancelled");
+      if (!listed.has(model)) fail("model-unavailable");
       const accessToken = await token();
       check(requestSignal);
       if (modelEpoch !== before) fail("cancelled");
-      calls.push(instant); // A dispatched call consumes a slot, even on failure or cancellation.
+      const dispatchTime = now();
+      if (!Number.isSafeInteger(dispatchTime) || dispatchTime < 0) fail("invalid-input");
+      calls = calls.filter((time) => time > dispatchTime - HOUR);
+      if (calls.length >= 5) fail("rate-limit");
+      calls.push(dispatchTime); // A dispatched call consumes a slot, even on failure or cancellation.
       const payload = { model, store: false, stream: true,
         instructions: buildInsightInstructions(Boolean(followup), allowWebResearch),
         input: [{ role: "user", content: userText }],

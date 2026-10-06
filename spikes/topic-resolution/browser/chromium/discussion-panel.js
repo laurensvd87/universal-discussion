@@ -129,7 +129,13 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     event.preventDefault(); if (await controller?.createTopic(title.value, kind.value)) title.value = "";
   });
   const counts = node("p"); counts.id = "discussion-counts"; const thread = node("div"); thread.className = "discussion-thread";
-  root.append(counts, thread);
+  const backToPage = button("uiBackToThisPage", () => void controller?.open());
+  backToPage.id = "discussion-back-to-page"; backToPage.className = "user-only";
+  const priorDetails = node("details"); priorDetails.id = "discussion-prior"; priorDetails.className = "compact-details";
+  const priorSummary = node("summary"); priorSummary.id = "discussion-prior-summary";
+  const priorList = node("ul"); priorList.id = "discussion-prior-list";
+  priorDetails.append(priorSummary, priorList);
+  root.append(priorDetails, backToPage, counts, thread);
   const composer = node("form"); composer.id = "discussion-composer";
   const mode = node("p"); root.append(composer);
   const replyContext = node("div"); replyContext.id = "discussion-reply-context";
@@ -233,9 +239,15 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     choiceStates.set(select, { signature, value });
   }
   let threadHandlers = [];
+  let priorHandlers = [];
+  let priorSignature;
   function clearThreadHandlers() {
     for (const [item, callback] of threadHandlers) item.removeEventListener("click", callback);
     threadHandlers = [];
+  }
+  function clearPriorHandlers() {
+    for (const [item, callback] of priorHandlers) item.removeEventListener("click", callback);
+    priorHandlers = [];
   }
   function actorName(actor) {
     const raw = actor?.displayName ?? actor?.id ?? "";
@@ -359,6 +371,32 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     learnedIntro.textContent = text(uiMode === "user" ? "uiDataControlsIntro" : "discussionCorrectionIntro");
     const selectedTopicReady = state.phase === "ready" && !state.busy && !state.needsFreshRead && !state.error &&
       state.catalog?.topics.some((entry) => entry.id === state.topicId);
+    backToPage.hidden = !state.viewingPriorDiscussion || uiMode !== "user";
+    backToPage.disabled = state.busy || state.phase === "connecting" || state.phase === "loading";
+    const priorTopics = selectedTopicReady && state.priorDiscussions?.sourceId === state.sourceId &&
+      state.priorDiscussions.currentTopicId === state.topicId ? state.priorDiscussions.topics : [];
+    priorDetails.hidden = priorTopics.length === 0;
+    if (!priorTopics.length) priorDetails.open = false;
+    priorSummary.textContent = text("uiEarlierDiscussionOnPage").replace("{count}",
+      String(priorTopics.reduce((count, entry) => count + entry.rootCount, 0)));
+    const nextPriorSignature = JSON.stringify(priorTopics);
+    if (nextPriorSignature !== priorSignature) {
+      clearPriorHandlers();
+      const priorEntries = priorTopics.map((entry) => {
+        const item = node("li");
+        const action = node("button"); action.type = "button";
+        action.textContent = text("uiEarlierDiscussionEntry").replace("{title}", entry.title)
+          .replace("{count}", String(entry.rootCount));
+        const callback = () => {
+          if (!action.disabled && lastState?.priorDiscussions?.topics.some((topic) => topic.id === entry.id))
+            void controller?.selectTopic(entry.id);
+        };
+        action.addEventListener("click", callback); priorHandlers.push([action, callback]);
+        item.append(action); return item;
+      });
+      priorList.replaceChildren(...priorEntries);
+      priorSignature = nextPriorSignature;
+    }
     renderInsightState(lastInsightState);
     relatedHeading.textContent = uiMode === "user"
       ? text("uiRelatedCount").replace("{count}", String(state.related?.results?.length ?? 0))
@@ -555,7 +593,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     renderInsightState(lastInsightState);
   }
   function dispose() {
-    if (disposed) return; disposed = true; token.value = ""; body.value = ""; clearThreadHandlers();
+    if (disposed) return; disposed = true; token.value = ""; body.value = ""; clearThreadHandlers(); clearPriorHandlers();
     for (const [item, event, callback] of handlers) item.removeEventListener(event, callback);
     root.replaceChildren();
   }

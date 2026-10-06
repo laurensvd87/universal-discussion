@@ -1,5 +1,5 @@
 import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDiscussion, readHealth,
-  readId, readLimit, readOutcome, readPairingToken, readRelated, readReset, readVersion,
+  readId, readLimit, readOutcome, readPairingToken, readRelated, readPriorDiscussions, readReset, readVersion,
   readIngestion, readIngestionOutcome } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 
@@ -118,6 +118,11 @@ export function createLocalServiceClient({ fetchImpl, getToken, onUnauthorized =
     async related(sourceId, limit = 5, { signal } = {}) {
       const body = input(() => ({ sourceId: readId(sourceId), limit: readLimit(limit) }));
       return request("/related", body, undefined, (value) => readRelated(value, body.limit), signal);
+    },
+    async priorDiscussions(sourceId, { signal } = {}) {
+      const id = input(() => readId(sourceId));
+      return request(`/sources/${encodeURIComponent(id)}/prior-discussions`, undefined, undefined,
+        (value) => readPriorDiscussions(value, id), signal);
     },
     async discussion(topicId, { signal } = {}) {
       const id = input(() => readId(topicId));

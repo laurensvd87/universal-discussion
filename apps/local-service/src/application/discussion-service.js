@@ -1,5 +1,6 @@
 import { applyCommand, createDemoState } from "../domain/demo-state.js";
 import { discussionView } from "../domain/discussion-view.js";
+import { priorDiscussionsView } from "../domain/prior-discussions.js";
 import { fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId } from "../domain/validation.js";
 import { operationDigestFor } from "../domain/source-threads.js";
@@ -66,6 +67,9 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       topicId = readId(topicId);
       const state = repository.load();
       return frozenClone(discussionView(state, topicId));
+    },
+    priorDiscussions(sourceId) {
+      return frozenClone(priorDiscussionsView(repository.load(), sourceId));
     },
     ingest(value) {
       const input = readLearnedIngest(value);

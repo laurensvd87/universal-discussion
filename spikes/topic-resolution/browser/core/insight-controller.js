@@ -306,21 +306,26 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       status: outcome?.revocationConfirmed === true ? "disconnected" : "disconnectedUnconfirmed" });
     return true;
   }
-  async function loadModels() {
+  async function loadModels({ afterUnavailable = false } = {}) {
     if (!aiClient || !state.ai.planEnabled || disposed || job || modelsBusy || connectionBusy) return false;
     const current = connectionEpoch, listEpoch = ++modelsEpoch;
+    const recoveryEpoch = afterUnavailable ? epoch : null;
+    const recoveryKey = afterUnavailable ? boundKey : null;
+    const activeList = () => !disposed && current === connectionEpoch && listEpoch === modelsEpoch &&
+      (!afterUnavailable || recoveryEpoch === epoch && recoveryKey === key());
     modelsBusy = true; aiPatch({ status: "loadingModels", modelFailureDetail: null });
     try {
       const models = await aiClient.models();
-      if (disposed || current !== connectionEpoch || listEpoch !== modelsEpoch) return false;
+      if (!activeList()) return false;
       if (manualModel && !models.some((item) => item.slug === manualModel)) manualModel = null;
       const selectedModel = manualModel ?? defaultListedModel(models);
-      aiPatch({ models, model: selectedModel, status: models.length ? "chooseModel" : "noModels",
+      aiPatch({ models, model: selectedModel, status: models.length
+        ? afterUnavailable ? "modelRefreshed" : "chooseModel" : "noModels",
         modelFailureDetail: null });
       recordLocalModelOutcome("success");
       return true;
     } catch (error) {
-      if (!disposed && current === connectionEpoch && listEpoch === modelsEpoch) {
+      if (activeList()) {
         const failure = error instanceof ModelListFailure && Object.hasOwn(MODEL_LIST_FAILURE_STATUS, error.failure)
           ? error.failure : null;
         const detail = failure === "invalid-response" && MODEL_LIST_DETAILS.has(error.detail) ? error.detail : null;
@@ -427,6 +432,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } });
     let failureStatus = "generationFailed";
     let failureDetail = null;
+    let refreshUnavailableModel = false;
     const active = () => !disposed && epoch === current && key() === expectedKey && job?.id === operationId;
     try {
       const request = { operationId, model: state.ai.model, context: structuredClone(state.context),
@@ -493,20 +499,34 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     } catch (error) {
       if (error instanceof Error && Object.hasOwn(RESEARCH_FAILURE_STATUS, error.message))
         failureStatus = RESEARCH_FAILURE_STATUS[error.message];
-      if (active()) aiPatch({ status: failureStatus, result: null, researchFailureDetail: failureDetail });
+      if (active()) {
+        refreshUnavailableModel = failureStatus === "modelUnavailable";
+        aiPatch({ status: failureStatus, result: null, researchFailureDetail: failureDetail,
+          ...(refreshUnavailableModel ? { models: [], model: "" } : {}) });
+      }
       return false;
-    } finally { if (job?.id === operationId) { cancelJob(); if (!disposed) aiPatch({ status: failureStatus }); } }
+    } finally {
+      if (job?.id === operationId) {
+        cancelJob();
+        if (!disposed && !refreshUnavailableModel) aiPatch({ status: failureStatus });
+      }
+      if (refreshUnavailableModel && !disposed && epoch === current && key() === expectedKey)
+        await loadModels({ afterUnavailable: true });
+    }
   }
   async function resumeInsights() {
-    if (!aiClient?.resumable || disposed || resumeBusy || job || completedJob || pending ||
+    if (!aiClient?.resumable || disposed || resumeBusy || modelsBusy || job || completedJob || pending ||
         !state.ai.planEnabled || !eligible()) return false;
     if ((!state.context || key() !== boundKey) && !prepare()) return false;
     const snapshot = observed, expectedKey = boundKey, current = epoch;
+    const account = state.ai.account;
     const previousStatus = state.ai.status;
+    let refreshUnavailableModel = false;
     resumeBusy = true;
     aiPatch({ status: "resuming" });
     const stillHere = () => !disposed && epoch === current && key() === expectedKey &&
-      observed.actorId === snapshot.actorId;
+      observed.actorId === snapshot.actorId && state.ai.planEnabled &&
+      state.ai.account?.clientId === account?.clientId && state.ai.account?.label === account?.label;
     try {
       const resumable = await aiClient.resumable(snapshot.actorId);
       if (!stillHere() || !resumable || !sameVersion(resumable.expected, snapshot.catalog.version) ||
@@ -529,8 +549,10 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         if (!active()) return false;
         if (outcome.state === "failed") {
           const detail = RESEARCH_DETAILS.has(outcome.detail) ? outcome.detail : null;
-          aiPatch({ status: RESEARCH_FAILURE_STATUS[outcome.error] ?? "generationFailed",
-            result: null, researchFailureDetail: detail });
+          const failureStatus = RESEARCH_FAILURE_STATUS[outcome.error] ?? "generationFailed";
+          refreshUnavailableModel = failureStatus === "modelUnavailable";
+          aiPatch({ status: failureStatus, result: null, researchFailureDetail: detail,
+            ...(refreshUnavailableModel ? { models: [], model: "" } : {}) });
           return false;
         }
         if (outcome.state === "completed") {
@@ -552,6 +574,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       resumeBusy = false;
       if (job && stillHere()) { detachJob(); }
       if (stillHere() && state.ai.status === "resuming") aiPatch({ status: previousStatus });
+      if (refreshUnavailableModel && stillHere()) await loadModels({ afterUnavailable: true });
     }
   }
   function cancelInsights() { if (!job) return false; cancelJob(); epoch++; aiPatch({ status: "cancelled", result: null }); return true; }

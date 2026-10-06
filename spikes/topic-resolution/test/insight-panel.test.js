@@ -320,6 +320,40 @@ test("User usage-limit summary comes from locale with English fallback", () => {
   assert.equal(fallback.byId("insight-quick-status").textContent, INSIGHT_EN.usageLimitBrief);
 });
 
+test("User Mode shows a refreshed-model retry cue without a false failure", () => {
+  const ui = harness(undefined, "user");
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false,
+    models: [{ slug: "model-a", displayName: "A" }], model: "model-a",
+    articleText: "", article: null, costConsent: false, result: null,
+    status: "modelRefreshed" } }));
+  const quick = ui.byId("insight-quick-status");
+  assert.equal(quick.hidden, false);
+  assert.equal(quick.textContent, INSIGHT_EN.aiModelRefreshed);
+  assert.equal(quick.attributes["data-state"], "ready");
+  assert.equal(ui.byId("insight-createInsights").disabled, false);
+});
+
+test("User Mode keeps model refresh progress and failure visible after recovery", () => {
+  const ui = harness(undefined, "user");
+  const ai = { connected: true, planEnabled: true, pending: false,
+    models: [], model: "", articleText: "", article: null, costConsent: false,
+    result: null };
+  for (const [status, message, phase] of [
+    ["loadingModels", INSIGHT_EN.aiLoadingModels, "preparing"],
+    ["modelListProviderUnavailable", INSIGHT_EN.aiModelListProviderUnavailable, "failed"],
+    ["noModels", INSIGHT_EN.aiNoModels, "failed"],
+  ]) {
+    ui.panel.render(state({ ai: { ...ai, status } }));
+    const quick = ui.byId("insight-quick-status");
+    assert.equal(quick.hidden, false);
+    assert.equal(quick.textContent, message);
+    assert.equal(quick.attributes["data-state"], phase);
+    assert.equal(ui.byId("insight-quick-actions").hidden, false);
+    assert.equal(ui.byId("insight-model-status").hidden, true);
+    assert.equal(ui.byId("insight-createInsights").disabled, true);
+  }
+});
+
 test("User Create click uses current page automatically and related-source settings stay local", () => {
   const ui = harness(undefined, "user");
   const ai = { connected: true, planEnabled: true, pending: false,
