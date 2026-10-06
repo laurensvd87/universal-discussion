@@ -25,6 +25,9 @@ Git-ignored and are not included in a clone of this repository.
 [ADR-046](decisions/ADR-046-owner-only-exploratory-r5-review.md) records the
 owner's subsequent decision to rate the local PoC alone. Those ratings can
 guide iteration, but will not be called independently validated.
+[ADR-047](decisions/ADR-047-metadata-only-llm-triage-for-r5-pilot.md) keeps
+the owner's first real-pair answer separate from title-only AI suggestions;
+neither changes the live matcher or constitutes a benchmark.
 
 The next matching direction is a graded, overlapping cloud of related pages
 across any subject, not a fixed Russia/Ukraine collection or a mandatory

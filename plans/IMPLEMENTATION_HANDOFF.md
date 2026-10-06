@@ -14,6 +14,14 @@ pilot directory renders the task locally without scores or vectors. Never
 regenerate the pair IDs from a later inventory or call these judgments blind
 independent secondary ratings.
 
+2026-10-06 R5 triage: The owner answered frozen pair 001 `different-topic`
+and asked the LLM to handle obvious cases. ADR-047 records this narrow
+title/date-only conversational triage: eight AI-suggested different, two same,
+four uncertain among the 14 remaining pairs. Owner answer and AI suggestions
+are separately stored under the frozen digest in ignored local files. Do not
+turn suggestions into human labels, claim a blind benchmark, or change the
+production threshold. No raw article body was supplied to the model for it.
+
 2026-10-05 R5 checkpoint: The owner answered yes to the proposed local
 200–250-pair public-page review set with URL/title/provenance, existing-model
 vectors and later human labels, without raw page text, private pages,

@@ -52,3 +52,7 @@ directory; its six-Source/15-pair counts and digest shape were checked without
 printing real metadata. No rating, score or vector was written to the task.
 This protects against accidental task drift, not a malicious local process
 racing filesystem operations or a cryptographic authenticity claim.
+
+[ADR-047](ADR-047-metadata-only-llm-triage-for-r5-pilot.md) records the
+owner's later instruction to let the assistant handle obvious pairs. Its
+title-only suggestions remain separate from the owner's one recorded answer.

@@ -115,6 +115,18 @@ counts without printing real metadata. The view contains public title, URL,
 date and blank Label/Rationale fields only. No human labels, independent
 review claims, threshold change or production data change were made.
 
+**2026-10-06 R5 obvious-pair triage:** The owner answered frozen
+`review-item-001` as `different-topic` and directed the assistant to handle
+obvious examples instead of asking him all 15. The answer is stored locally
+under the frozen task digest. [ADR-047](../decisions/ADR-047-metadata-only-llm-triage-for-r5-pilot.md)
+records metadata-only LLM triage of the other 14: eight suggested different,
+two suggested same and four uncertain. The title/date suggestions and owner
+answer live in separate Git-ignored files; a read-only check verified each
+file's task binding and counts. No article body entered model context for
+this step. Prior score visibility means these are not blind labels or a
+matching-quality metric. No production routing, thresholds, provider app
+integration, independent-review claim or full-scale gate changed.
+
 **2026-10-05 bounded source-selection increment (extension 0.13.2):** The
 paired popup and service now request 20 local related nominations, but the
 validated Insight context still includes only the current Source plus up to
