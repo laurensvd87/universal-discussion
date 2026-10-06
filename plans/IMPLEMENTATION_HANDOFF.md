@@ -1,5 +1,12 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-06 catalog-capacity correction: [ADR-049](../decisions/ADR-049-remove-prototype-catalog-count-ceiling.md)
+supersedes the historical 100-Source/100-Topic prototype cap below. Fixed
+Source/Topic counts are removed. The current snapshot, catalog-response and
+global planner-work guards remain; normalized storage and an indexed/incremental
+matcher need a separate reviewed migration before scale claims. Existing owner
+data was not migrated or reset.
+
 2026-10-06 related-page followup: The real local catalog can nominate up to
 20 related Sources, but only four other selected pages can supply excerpts to
 an explicit Insight request. A prior HLN check got zero accepted anonymous

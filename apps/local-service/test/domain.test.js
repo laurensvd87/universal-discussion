@@ -116,14 +116,13 @@ test("returned views are deeply frozen and cannot mutate repository state", () =
   assert.notEqual(service.catalog().sources[0].title, "Changed");
 });
 
-test("prototype topic, revision and body limits reject without mutation", () => {
+test("topics pass 100 while revision and body limits reject without mutation", () => {
   const service = demoService();
-  for (let index = 0; index < 100 - SYNTHETIC_TOPIC_SEEDS.length; index += 1) {
+  for (let index = 0; index < 101 - SYNTHETIC_TOPIC_SEEDS.length; index += 1) {
     service.command(service.catalog().version, { type: "create-topic", title: `Topic ${index}`, kind: "general" }, "demo-alex");
   }
   const fullVersion = service.catalog().version;
-  errorCode(() => service.command(fullVersion, { type: "create-topic", title: "One too many", kind: "general" }, "demo-alex"), "capacity");
-  assert.deepEqual(service.catalog().version, fullVersion);
+  assert.equal(service.catalog().topics.length, 101);
   errorCode(() => service.command(fullVersion, { type: "create-root", topicId: "harbor-s2", body: "x".repeat(8_001) }, "demo-alex"), "invalid");
 
   service.command(fullVersion, { type: "create-root", topicId: "harbor-s2", body: "Revision 1" }, "demo-alex");
@@ -134,6 +133,22 @@ test("prototype topic, revision and body limits reject without mutation", () => 
   const revisionLimit = service.catalog().version;
   errorCode(() => service.command(revisionLimit, { type: "edit", contributionId, body: "Revision 51" }, "demo-alex"), "capacity");
   assert.deepEqual(service.catalog().version, revisionLimit);
+});
+
+test("catalog byte ceiling rejects an oversized Topic growth before commit", () => {
+  const deps = deterministicDependencies();
+  const original = createDemoState({ generation: deps.nextId("generation"), createdAt: deps.now(),
+    sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
+  const repository = createMemoryRepository(original);
+  const oversized = structuredClone(original);
+  for (let index = 0; index < 5_000; index += 1) {
+    const id = `catalog-topic-${index}`;
+    oversized.topics.push({ id, title: "x".repeat(200), kind: "general", createdAt: "2026-10-06T00:00:00.000Z" });
+    oversized.discussions.push({ id: `discussion-${id}`, topicId: id });
+  }
+  oversized.revision += 1;
+  errorCode(() => repository.save({ generation: original.generation, revision: original.revision }, oversized), "capacity");
+  assert.deepEqual(repository.load(), original);
 });
 
 test("prototype contribution limit rejects before allocating another item", () => {

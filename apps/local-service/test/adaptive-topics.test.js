@@ -109,13 +109,13 @@ test('manual owner destination never expands automatically and conflicting pinne
   assert.equal(pinned.partitions[0].pinnedTopicId,'owner');
 });
 
-test('hundred bounded learned Sources terminate without unbounded result or order drift',()=>{
-  const sources=Array.from({length:100},(_,i)=>source(`s${String(i).padStart(2,'0')}`,i<50 ? [1,0] : [-1,0]));
+test('bounded learned Sources terminate without unbounded result or order drift',()=>{
+  const sources=Array.from({length:200},(_,i)=>source(`s${String(i).padStart(3,'0')}`,i<100 ? [1,0] : [-1,0]));
   const started=performance.now();
   const first=planAdaptiveTopics({sources,sourceLinks:[]});
-  assert.ok(performance.now()-started<10000,'100-Source local planner budget exceeded');
-  assert.equal(first.partitions.flatMap(part=>part.sourceIds).length,100);
-  assert.ok(first.decisions.length<=100);
+  assert.ok(performance.now()-started<10000,'local planner budget exceeded');
+  assert.equal(first.partitions.flatMap(part=>part.sourceIds).length,200);
+  assert.ok(first.decisions.length<=200);
   const reversed=planAdaptiveTopics({sources:[...sources].reverse(),sourceLinks:[]});
   assert.deepEqual(reversed,first);
 });

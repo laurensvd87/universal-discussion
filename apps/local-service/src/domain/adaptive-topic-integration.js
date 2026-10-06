@@ -1,6 +1,5 @@
 import { fail } from "./errors.js";
 import { LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE } from "./learned-sources.js";
-import { LIMITS } from "./demo-state.js";
 import { planAdaptiveTopics, ADAPTIVE_TOPIC_POLICY } from "./adaptive-topics.js";
 import { readId } from "./validation.js";
 import { routeSourceThreads } from "./source-threads.js";
@@ -21,7 +20,7 @@ export function applyAdaptiveTopicPlan(state, { nextId, now }, { planner = planA
       result.partitions.length > learned.length) fail("invalid", "Invalid adaptive Topic plan");
   const seen = new Set();
   for (const part of result.partitions) {
-    if (!Array.isArray(part?.sourceIds) || part.sourceIds.length === 0 || part.sourceIds.length > 100 ||
+    if (!Array.isArray(part?.sourceIds) || part.sourceIds.length === 0 ||
         typeof part.retainTight !== "boolean" || !(part.pinnedTopicId === null || typeof part.pinnedTopicId === "string")) {
       fail("invalid", "Invalid adaptive Topic plan");
     }
@@ -73,7 +72,6 @@ export function applyAdaptiveTopicPlan(state, { nextId, now }, { planner = planA
   for (const part of ordered) {
     let topicId = assignments.get(part);
     if (!topicId) {
-      if (state.topics.length >= LIMITS.topics) fail("capacity", "Capacity reached");
       topicId = freshId("topic");
       const source = state.sources.find((entry) => entry.id === part.sourceIds[0]);
       state.topics.push({ id: topicId, kind: "general", title: source.title, createdAt: now(),

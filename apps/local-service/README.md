@@ -226,9 +226,11 @@ The separate explicit ChatGPT insight action is described above. The browser mod
 space remains distinct from the earlier Node experiment.
 
 One current vector/title/link and current operation receipt per Source persist
-in SQLite until deletion. There is no visit history. The catalog is capped at
-100 Sources including fixtures, 100 Topics and the existing 8 MiB aggregate.
-At capacity, writes fail visibly; nothing is silently evicted.
+in SQLite until deletion. There is no visit history. No fixed Source or Topic
+count ceiling remains. The current 8 MiB aggregate snapshot, 1 MiB catalog
+response and 10-second global matching-work guards can still reject growth;
+writes fail visibly and atomically, without silently evicting old data. These
+are PoC operating boundaries, not the final scalable storage design (ADR-049).
 
 ADR-023's `adaptive-supported-partitions/v1` policy is an experimental local
 heuristic: sparse candidate joins require complete-link cosine >=0.90 and a

@@ -13,6 +13,7 @@ import { BROWSER_MODEL_ID, EXTRACTOR_VERSION, readLearnedIngest } from "../src/d
 import { ADAPTIVE_TOPIC_POLICY } from "../src/domain/adaptive-topics.js";
 import { operationDigestFor } from "../src/domain/source-threads.js";
 import { createMemoryRepository } from "../src/adapters/memory-repository.js";
+import { createSqliteRepository } from "../src/adapters/sqlite-repository.js";
 import { createFixtureRankingAdapter } from "../src/adapters/fixture-ranking.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../src/adapters/fixture-catalog.js";
 import { deterministicDependencies, demoService } from "./helpers.js";
@@ -22,7 +23,7 @@ function setup() {
   const state = createDemoState({ generation: dependencies.nextId("generation"), createdAt: dependencies.now(), sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
   const repository = createMemoryRepository(state);
   const service = createDiscussionService({ repository, ranking: createFixtureRankingAdapter(), sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS, ...dependencies });
-  return { service, repository };
+  return { service, repository, dependencies };
 }
 function vector(angle = 0) { const values = Array(384).fill(0); values[0] = Math.cos(angle); values[1] = Math.sin(angle); return values; }
 function input(service, suffix, angle = 0, overrides = {}) {
@@ -251,13 +252,32 @@ test("clear learned data purges orphan Topics, vectors, receipts and learned com
   assert.throws(() => service.ingest(pending), isCode("conflict"));
 });
 
-test("learned catalog capacity rejects before mutation and preserves existing readable data", () => {
-  const service = demoService();
+test("existing 100 Sources and a discussion survive a 101st SQLite ingestion", (t) => {
+  const { service, repository, dependencies } = setup();
   for (let index = 0; index < 100 - SYNTHETIC_SOURCES.length; index += 1) service.ingest(input(service, `capacity-${index}`));
   const before = service.catalog();
-  assert.throws(() => service.ingest(input(service, "over-capacity")), isCode("capacity"));
-  assert.deepEqual(service.catalog(), before);
   assert.equal(before.sources.length, 100);
+  // The fixture vectors are close, so the Topic count needs its own >100 check
+  // in domain.test.js. Preserve a real discussion while crossing Source 100.
+  const learnedTopic = before.sources.find((entry) => entry.provenance === "owner-local-page-embedding/v1").topicId;
+  command(service, { type: "create-root", topicId: learnedTopic, body: "Keep this existing discussion" });
+  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-learned-capacity-"));
+  const databasePath = path.join(directory, "demo.sqlite");
+  t.after(() => { assert.ok(directory.startsWith(os.tmpdir())); rmSync(directory, { recursive: true, force: true }); });
+  const sqlite = createSqliteRepository(databasePath, repository.load());
+  const durable = createDiscussionService({ repository: sqlite, ranking: createFixtureRankingAdapter(),
+    sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS, ...dependencies });
+  const added = durable.ingest(input(durable, "source-101", Math.PI / 2));
+  assert.equal(durable.catalog().sources.length, 101);
+  assert.equal(durable.discussion(learnedTopic).roots[0].body, "Keep this existing discussion");
+  sqlite.close();
+  const reopened = createSqliteRepository(databasePath, repository.load());
+  assert.equal(reopened.load().sources.length, 101);
+  assert.ok(reopened.load().sources.some((entry) => entry.id === added.sourceId));
+  const readable = createDiscussionService({ repository: reopened, ranking: createFixtureRankingAdapter(),
+    sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS, ...dependencies });
+  assert.equal(readable.discussion(learnedTopic).roots[0].body, "Keep this existing discussion");
+  reopened.close();
 });
 
 test("SQLite preserves learned state/assignment across reopen and durably clears matching material", (t) => {

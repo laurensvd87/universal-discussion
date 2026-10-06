@@ -21,11 +21,11 @@ function assertState(state, legacy) {
   record(state, ["schema", "generation", "revision", "topics", "discussions", "contributions", "sources", "sourceLinks"]);
   if (state.schema !== (legacy ? "demo-state/v1" : STATE_SCHEMA) || !integer(state.revision, 0)) invalid();
   text(state.generation, 128);
-  array(state.topics, LIMITS.topics);
-  array(state.discussions, LIMITS.topics);
+  array(state.topics);
+  array(state.discussions);
   array(state.contributions, LIMITS.contributions);
-  array(state.sources, 100);
-  array(state.sourceLinks, 100);
+  array(state.sources);
+  array(state.sourceLinks);
 
   const topicIds = unique(state.topics, (topic) => {
     record(topic, ["id", "kind", "title", "createdAt", ...(topic.provenance === LEARNED_TOPIC_PROVENANCE ? ["provenance", ...(!legacy ? ["retainTight"] : [])] : [])]);
@@ -166,7 +166,7 @@ function record(value, fields) {
   if (keys.length !== fields.length || keys.some((key) => !fields.includes(key))) invalid();
 }
 
-function array(value, maximum) {
+function array(value, maximum = Infinity) {
   if (!Array.isArray(value) || value.length > maximum) invalid();
 }
 

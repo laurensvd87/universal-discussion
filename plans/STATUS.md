@@ -35,6 +35,28 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-06 catalog capacity correction (extension 0.13.10):** The owner
+reported that new pages no longer found Topics and explicitly rejected an
+arbitrary catalog count limit. Read-only inspection found the live SQLite
+document at revision 377 with exactly 100 Sources/100 Topics but only
+862,696 bytes; existing discussions were not removed. ADR-049 removes the
+fixed Source/Topic count checks without changing the schema or matching
+threshold. Writes still fail atomically at the 8 MiB snapshot, 1 MiB catalog
+response, or 10-second global planner work budget; the popup now identifies
+capacity separately from connection failure. The service's synthetic SQLite
+test saves/reopens a 101st Source while preserving the older discussion,
+tests 101 Topics and rejects an unreadable oversized catalog before commit.
+Service restricted suite: 232 passed, four optional skipped; extension
+restricted suite: 952 passed; loopback integration 2/2 and both secret scans
+passed. Independent read-only Trust review found no blocking data-integrity
+issue. Owner data remains untouched by tests (revision 377, 100/100 and 13
+contributions after service restart). This removes the immediate fixed-count blocker, **not**
+the snapshot/global-replanning scale bottleneck. A normalized/indexed store,
+candidate retrieval, pagination and rehearsed live-data migration are a
+separate owner/trust gate; no migration is authorized. The service was
+restarted with the existing Origin and durable pairing; owner Chrome
+verification after extension reload remains pending.
+
 **2026-10-06 conversation-first thread layout (extension 0.13.9):** Owner
 confirmed the earlier Golem message is visible and requested a clearer
 discussion hierarchy plus brighter colours. User Mode now starts with a

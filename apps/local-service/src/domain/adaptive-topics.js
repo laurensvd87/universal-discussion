@@ -1,3 +1,6 @@
+import { performance } from 'node:perf_hooks';
+import { fail } from './errors.js';
+
 export const ADAPTIVE_TOPIC_POLICY = Object.freeze({ version: 'adaptive-supported-partitions/v1',
   floor: 0.90, tight: 0.94, competingMargin: 0.04, duplicateSimilarity: 0.995, minimumSupport: 2 });
 const LEARNED = 'owner-local-page-embedding/v1';
@@ -6,6 +9,9 @@ const MODEL = 'e5-small-q8-browser-main-prefix-v1';
 // become comparable just because another validation allowlist grows.
 const EXTRACTORS = new Set(['main-text-prefix/v1','article-container-prefix/v1']);
 const EPSILON = 1e-12;
+// A full regrouping runs synchronously on every ingestion. Bound CPU work while
+// retaining the snapshot and response byte limits as the data-size guards.
+const PLANNING_BUDGET_MS = 10_000;
 const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
 const validId = value => typeof value === 'string' && /^[A-Za-z0-9._:-]{1,128}$/u.test(value);
 const key = part => part.sourceIds.join('\0');
@@ -17,8 +23,12 @@ const dot = (a,b) => Math.max(-1,Math.min(1,a.reduce((sum,value,i)=>sum+value*b[
 // retainTight is one bounded sticky signal: persist it with the caller's Topic
 // partition metadata to prevent support removal immediately undoing a split.
 export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = [] }) {
-  if (!Array.isArray(sources) || sources.length > 100 || !Array.isArray(sourceLinks) || sourceLinks.length > 100 ||
-      !Array.isArray(previousPartitions) || previousPartitions.length > 100) invalid();
+  if (!Array.isArray(sources) || !Array.isArray(sourceLinks) || !Array.isArray(previousPartitions)) invalid();
+  const deadline = performance.now() + PLANNING_BUDGET_MS;
+  let checks = 0;
+  function checkBudget() {
+    if ((++checks & 1023) === 0 && performance.now() > deadline) fail('capacity', 'Matching work budget reached');
+  }
   const allIds = new Set();
   for (const source of sources) {
     if (!source || !validId(source.id) || allIds.has(source.id)) invalid();
@@ -42,7 +52,7 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
   const retained=new Set();
   const priorIds=new Set();
   for (const part of previousPartitions) {
-    if (!part || !Array.isArray(part.sourceIds) || part.sourceIds.length>100 ||
+    if (!part || !Array.isArray(part.sourceIds) ||
         typeof part.retainTight!=='boolean' || !(part.pinnedTopicId===null || validId(part.pinnedTopicId))) invalid();
     for (const id of part.sourceIds) {
       if (!validId(id) || priorIds.has(id)) invalid();
@@ -57,13 +67,31 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     if(!similarities.has(pair)) similarities.set(pair,dot(byId.get(a).embedding.values,byId.get(b).embedding.values));
     return similarities.get(pair);
   }
-  const minimum=(a,b)=>Math.min(...a.flatMap(id=>b.map(other=>similarity(id,other))));
-  const maximum=(a,b)=>Math.max(...a.flatMap(id=>b.map(other=>similarity(id,other))));
-  const cohesion=ids=>ids.length<2 ? 1 : Math.min(...ids.flatMap((id,i)=>ids.slice(i+1).map(other=>similarity(id,other))));
+  function minimum(a,b) {
+    let result=Infinity;
+    for(const id of a)for(const other of b) { checkBudget(); result=Math.min(result,similarity(id,other)); }
+    return result;
+  }
+  function maximum(a,b) {
+    let result=-Infinity;
+    for(const id of a)for(const other of b) { checkBudget(); result=Math.max(result,similarity(id,other)); }
+    return result;
+  }
+  function cohesion(ids) {
+    if(ids.length<2)return 1;
+    let result=Infinity;
+    for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++) {
+      checkBudget(); result=Math.min(result,similarity(ids[i],ids[j]));
+    }
+    return result;
+  }
   function support(ids) {
     const representatives=[];
-    for(const id of [...ids].sort(compare)) if(!representatives.some(other=>byId.get(id).url===byId.get(other).url ||
-        similarity(id,other)+EPSILON>=ADAPTIVE_TOPIC_POLICY.duplicateSimilarity)) representatives.push(id);
+    for(const id of [...ids].sort(compare)) if(!representatives.some(other=>{
+      checkBudget();
+      return byId.get(id).url===byId.get(other).url ||
+        similarity(id,other)+EPSILON>=ADAPTIVE_TOPIC_POLICY.duplicateSimilarity;
+    })) representatives.push(id);
     return representatives.length;
   }
   // Intrinsic complete-link neighborhood structure, independent of existing
@@ -72,6 +100,7 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
   for (;;) {
     const candidates=[];
     for(let i=0;i<intrinsic.length;i++)for(let j=i+1;j<intrinsic.length;j++) {
+      checkBudget();
       const score=minimum(intrinsic[i].sourceIds,intrinsic[j].sourceIds);
       if(score+EPSILON>=ADAPTIVE_TOPIC_POLICY.tight)candidates.push({i,j,score,key:key(intrinsic[i])+'\0'+key(intrinsic[j])});
     }
@@ -92,7 +121,11 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
       for(const id of b)markedBlocks.set(id,key(supported[j]));
     }
   }
-  const crossesBoundary=ids=>boundaries.some(([a,b])=>ids.some(id=>a.has(id)) && ids.some(id=>b.has(id)));
+  const crossesBoundary=ids=>boundaries.some(([a,b])=>{
+    checkBudget();
+    return ids.some(id=>{ checkBudget(); return a.has(id); }) &&
+      ids.some(id=>{ checkBudget(); return b.has(id); });
+  });
   const decisions=[];
   const initial=new Map();
   for(const source of eligible) {
@@ -115,6 +148,7 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     for (;;) {
       const candidates=[];
       for(let i=0;i<components.length;i++)for(let j=i+1;j<components.length;j++) {
+        checkBudget();
         // Multiple manual pins may be intentionally incoherent. Preserve them,
         // but never use that incoherent pinned set to absorb provisional members.
         if(cohesion(components[i])+EPSILON<ADAPTIVE_TOPIC_POLICY.floor ||
@@ -153,6 +187,7 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
   for (;;) {
     const candidates=[];
     for(let i=0;i<partitions.length;i++)for(let j=i+1;j<partitions.length;j++) {
+      checkBudget();
       const a=partitions[i],b=partitions[j],ids=[...a.sourceIds,...b.sourceIds];
       // A manually anchored Topic is owner-selected, not an automatic expansion
       // target, even when the other partition has a high-scoring vector.

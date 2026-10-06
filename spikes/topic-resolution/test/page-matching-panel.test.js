@@ -499,6 +499,15 @@ for (const phase of ["off", "checking", "not-enabled", "unpaired", "processing",
   });
 }
 
+test("catalog capacity has a clear compact status without exposing page details", async () => {
+  const ui = harness({ initialState: resolution({ phase: "error", reason: "capacity" }) });
+  await turn();
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingCapacity);
+  assert.equal(ui.byId("matching-user-status").textContent, EN.matchingCompactCapacity);
+  assert.equal(ui.byId("matching-detail").textContent, "");
+  ui.panel.dispose();
+});
+
 test("unsupported diagnostic clears on worker failure and permission denial", async () => {
   let failure = false;
   const ui = harness({ requestPermission: () => Promise.resolve(false), async sendMessage() {

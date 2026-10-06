@@ -43,8 +43,10 @@ across any subject, not a fixed Russia/Ukraine collection or a mandatory
 Topic/Collection tree. Opposing views on the same subject should remain close;
 written conversations must keep stable identity as the cloud changes. This is
 still a [proposal](decisions/ADR-044-continuous-topic-cloud-and-insight-diversity-proposal.md),
-not the current matcher. The present PoC has a 100-Source/100-Topic cap and
-does not yet provide the scalable cloud or reliably stance-independent matches.
+not the current matcher. The present PoC no longer has a fixed Source/Topic
+count cap, but snapshot size, catalog response size and global matching work
+still constrain growth; it does not yet provide the scalable cloud or reliably
+stance-independent matches.
 An isolated [synthetic shadow experiment](apps/local-service/experiments/topic-cloud/README.md)
 tests the proposed cloud mechanics; it does not change the running extension
 or service and exposes a false-positive example.
@@ -616,6 +618,14 @@ survive. Insight stays a new-thread action and its draft remains private until
 explicit sharing. The brighter cobalt/coral presentation and branch motion
 respect Reduced Motion. Reload the extension for these UI-only changes; the
 local service need not restart.
+
+Extension **0.13.10** identifies local catalog-capacity failures clearly.
+The companion service removes the old fixed 100-Source/100-Topic prototype
+ceiling without resetting saved data. It still rejects a write atomically if
+the current 8 MiB snapshot, 1 MiB catalog response, or bounded matching-work
+budget is reached. This is an immediate PoC unblock, not unlimited-scale
+storage; see [ADR-049](decisions/ADR-049-remove-prototype-catalog-count-ceiling.md).
+Restart the local service and reload the extension to activate both sides.
 
 To try the discussion loop:
 

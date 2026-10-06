@@ -143,6 +143,8 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
       : !activeHere ? "matchingCompactNotHere"
       : state.phase === "unsupported" && state.reason === "missing-region" ? "matchingCompactNoArticle"
       : state.phase === "unsupported" ? "matchingCompactUnsupported"
+      : state.phase === "error" && state.reason === "capacity" ? "matchingCompactCapacity"
+      : state.phase === "error" ? "matchingCompactUnavailable"
       : ["checking", "processing"].includes(state.phase) ? "matchingCompactChecking"
       : "matchingCompactActive";
     compactStatus.textContent = message(key);
@@ -185,7 +187,8 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     state = result;
     sessionUnavailable = false;
     status.textContent = message({ off: "matchingOff", checking: "matchingChecking", "not-enabled": "matchingNotEnabled", unpaired: "matchingUnpaired",
-      processing: "matchingProcessing", ready: "matchingReady", unsupported: "matchingUnsupported", error: "matchingUnavailable" }[result.phase]);
+      processing: "matchingProcessing", ready: "matchingReady", unsupported: "matchingUnsupported",
+      error: result.reason === "capacity" ? "matchingCapacity" : "matchingUnavailable" }[result.phase]);
     detail.textContent = "";
     if (result.phase === "unsupported" && Object.hasOwn(UNSUPPORTED_MESSAGES, result.reason)) {
       const [key, code] = UNSUPPORTED_MESSAGES[result.reason];

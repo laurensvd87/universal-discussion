@@ -4,7 +4,7 @@ import { contributionOrigin, rootAssociation, withdrawAssociation } from "./sour
 
 export const STATE_SCHEMA = "demo-state/v2";
 export const IMPORTED_INSIGHT_AUTHOR_ID = "demo-imported-ai";
-export const LIMITS = Object.freeze({ topics: 100, contributions: 1_000, revisions: 50 });
+export const LIMITS = Object.freeze({ contributions: 1_000, revisions: 50 });
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 
 export function createDemoState({ generation, createdAt, sources, topicSeeds }) {
@@ -71,7 +71,6 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
     const input = commandRecord(command, ["title", "kind"]);
     const title = readText(input.title, 200);
     if (!TOPIC_KINDS.has(input.kind)) fail("invalid", "Invalid request");
-    if (next.topics.length >= LIMITS.topics) fail("capacity", "Capacity reached");
     const topicId = readId(nextId("topic"));
     const discussionId = readId(nextId("discussion"));
     ensureUnused(next, topicId, discussionId);

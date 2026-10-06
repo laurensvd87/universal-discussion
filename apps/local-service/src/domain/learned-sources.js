@@ -1,6 +1,5 @@
 import { fail } from "./errors.js";
 import { clone, readExpectedVersion, readId, readRecord, readText } from "./validation.js";
-import { LIMITS } from "./demo-state.js";
 import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 import { pinSourceRoots, purgeLearnedThreads, removeSourceOrigins, sourceStamp } from "./source-threads.js";
 import { applyAdaptiveTopicPlan } from "./adaptive-topic-integration.js";
@@ -65,7 +64,6 @@ function freshId(state, nextId, kind) {
   return id;
 }
 function createLearnedTopic(state, title, { nextId, now }) {
-  if (state.topics.length >= LIMITS.topics) fail("capacity", "Capacity reached");
   const topicId = freshId(state, nextId, "topic");
   state.topics.push({ id: topicId, kind: "general", title, createdAt: now(), provenance: LEARNED_TOPIC_PROVENANCE, retainTight: false });
   const discussionId = freshId(state, nextId, "discussion");
@@ -82,7 +80,6 @@ export function applyLearnedIngest(state, input, operationDigest, dependencies) 
   const next = clone(state);
   let source = next.sources.find((item) => item.url === input.url);
   if (source && source.provenance !== LEARNED_SOURCE_PROVENANCE) fail("forbidden", "Source unavailable for ingestion");
-  if (!source && next.sources.length >= 100) fail("capacity", "Capacity reached");
   if (!source) {
     source = { id: freshId(next, dependencies.nextId, "source"), url: input.url, title: input.title,
       embedding: input.embedding, provenance: LEARNED_SOURCE_PROVENANCE,
