@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-05. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-06. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -126,6 +126,27 @@ file's task binding and counts. No article body entered model context for
 this step. Prior score visibility means these are not blind labels or a
 matching-quality metric. No production routing, thresholds, provider app
 integration, independent-review claim or full-scale gate changed.
+
+**2026-10-06 R5 content-based evaluation and non-LLM shadow:** The owner
+explicitly authorized the assistant to read the six already-approved public
+pilot articles to judge Topic overlap offline, while requiring the runtime
+algorithm to stay non-LLM. [ADR-048](../decisions/ADR-048-llm-evaluation-nonllm-runtime-matching.md)
+records the exception to the earlier title-only restriction. Fifteen
+assistant-only judgments, bound to the frozen task and kept separately from
+the one owner answer in Git-ignored local files, found two same atomic
+developments, four related-but-distinct developments, and nine unrelated
+pairs. They are not human gold; one broad survey is an especially imperfect
+atomic-Topic example. No raw article body was retained. The isolated
+[non-LLM shadow](../apps/local-service/experiments/r5-pilot/shadow-README.md)
+compares the unchanged adaptive planner against vector-floor, title-token,
+publication-time and top-three-vector-neighbor *candidate* signals. The
+current 0.90 pair floor catches one of the two assistant-same pairs and three
+of the four assistant-related pairs; the unchanged fresh six-Source planner
+joins none. The strict title-token channel adds no pilot candidate. Top-three
+neighbors find both assistant-same and all four related pairs, but also four
+of nine unrelated pairs: useful for graded retrieval, not automatic Topic
+identity. These tiny, score-exposed pilot findings do not calibrate a new
+threshold. No production rule, stored data, Topic ID or discussion moved.
 
 **2026-10-05 bounded source-selection increment (extension 0.13.2):** The
 paired popup and service now request 20 local related nominations, but the

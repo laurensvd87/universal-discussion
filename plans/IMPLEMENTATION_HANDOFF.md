@@ -3,14 +3,15 @@
 2026-10-05 R5 reviewer decision: The owner explicitly chose to be the sole
 human reviewer for the local PoC. [ADR-046](../decisions/ADR-046-owner-only-exploratory-r5-review.md)
 permits owner-only exploratory pilot ratings; do not ask for an independent
-person just to try the pilot. No real-page labels yet. The owner has already
-seen some cosine scores, so hide scores in any task and do not claim blinded
+person just to try the pilot. The owner has rated frozen pair 001 only. The
+owner has already seen some cosine scores, so hide scores in any task and do not claim blinded
 independent validation. The older distinct-role completion path remains a
 separate future quality gate, as do scale-up and AUTO activation.
 The owner-only task preparer passed 5/5 synthetic checks and read-only Trust
 review. Its create-only ignored snapshot is now frozen from six approved Sources
-into 15 pair prompts; no labels exist. `node owner-review.js view` in the R5
-pilot directory renders the task locally without scores or vectors. Never
+into 15 pair prompts; one owner answer was recorded later. In the R5 pilot
+directory, `node owner-review.js view` renders the task locally without scores
+or vectors. Never
 regenerate the pair IDs from a later inventory or call these judgments blind
 independent secondary ratings.
 
@@ -20,7 +21,18 @@ title/date-only conversational triage: eight AI-suggested different, two same,
 four uncertain among the 14 remaining pairs. Owner answer and AI suggestions
 are separately stored under the frozen digest in ignored local files. Do not
 turn suggestions into human labels, claim a blind benchmark, or change the
-production threshold. No raw article body was supplied to the model for it.
+production threshold. No raw article body was supplied to the model for that
+title-only step.
+
+2026-10-06 R5 content-evaluation exception: The owner subsequently authorized
+the assistant to read the approved public pilot articles transiently and judge
+Topic pairs for offline testing, while insisting that the actual matcher use
+no LLM. [ADR-048](../decisions/ADR-048-llm-evaluation-nonllm-runtime-matching.md)
+sets this narrow boundary. The six-source/15-pair assistant judgments are in
+an ignored file, separate from the owner's answer and not human gold. The
+shadow comparison under `apps/local-service/experiments/r5-pilot/` is
+candidate-only; do not activate it as same-Topic joining, tune thresholds
+on six records, or change production data without another reviewed decision.
 
 2026-10-05 R5 checkpoint: The owner answered yes to the proposed local
 200–250-pair public-page review set with URL/title/provenance, existing-model

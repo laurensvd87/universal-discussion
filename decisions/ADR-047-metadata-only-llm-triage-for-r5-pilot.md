@@ -31,3 +31,8 @@ claim threshold accuracy, change live Topic routing, or activate AUTO from
 this exercise. Human feedback from actual browsing and discussions remains
 the practical next quality signal. The full 200–250-pair scale-up and all
 provider/privacy/security/store gates remain separate.
+
+[ADR-048](ADR-048-llm-evaluation-nonllm-runtime-matching.md) records the
+owner's later explicit, bounded permission for the assistant to read approved
+public pilot pages' content as offline evaluation evidence. It does not
+retroactively turn this title-only triage into gold labels.

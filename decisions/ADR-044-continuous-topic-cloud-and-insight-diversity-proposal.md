@@ -181,6 +181,23 @@ relationships without merging conversations, but the present experiment
 cannot justify activation, remove the live 100-Source cap or establish
 stance-independent semantic matching.
 
+## First real-page candidate probe (2026-10-06)
+
+Under the later, bounded [ADR-048](ADR-048-llm-evaluation-nonllm-runtime-matching.md)
+evaluation permission, the assistant read six provenance-screened public pilot
+articles and assigned exploratory three-way pair judgments without using the
+vectors as labels. The fixed six-page set has only two broad news themes and
+one survey that is not a clean atomic event; it cannot validate general-web
+matching. Of 15 pairs, two were judged the same atomic development, four
+related but distinct, and nine unrelated. The unchanged fresh-batch adaptive
+planner joined none; its 0.90 pair floor retrieved one of two same and three
+of four related pairs. A strict title-token candidate rule added none.
+Per-page top-three vector neighbors retrieved both same and all four related
+pairs, but also four unrelated pairs. Thus wider retrieval is mechanically
+possible without claiming those pages share one Discussion. The cloud should
+keep candidate retrieval, graded relevance and stable Discussion identity
+separate. No production algorithm, threshold or data migration changed.
+
 The separate [normalized SQLite dry run](../apps/local-service/experiments/topic-cloud/sqlite/README.md)
 persists 140 invented Sources and vectors, supplies bounded indexed neighbor
 and paginated Source reads, and keeps discussion/root/reply IDs fixed when

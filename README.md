@@ -13,8 +13,9 @@ This is a usable local discussion prototype, not a hosted or general-web product
 The owner has approved in principle assembling a local 200–250-pair public-page
 review set for semantic matching. [ADR-045](decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)
 records the pilot scope and remaining scale-up gates;
-six real pilot Source records have been captured locally, but no pair has been
-human-labeled. This does not change the live
+six real pilot Source records have been captured locally. The owner rated one
+frozen pair; the other pairs have only exploratory assistant judgments, not
+human labels. This does not change the live
 Topic matcher or reopen the completed six-pair synthetic review.
 The owner subsequently approved a small three-origin English-news pilot and
 deferring reviewer recruitment until labeling. Its isolated
@@ -28,6 +29,11 @@ guide iteration, but will not be called independently validated.
 [ADR-047](decisions/ADR-047-metadata-only-llm-triage-for-r5-pilot.md) keeps
 the owner's first real-pair answer separate from title-only AI suggestions;
 neither changes the live matcher or constitutes a benchmark.
+[ADR-048](decisions/ADR-048-llm-evaluation-nonllm-runtime-matching.md) permits
+the assistant to read these approved public articles for an offline reference
+judgment. The running matcher remains non-LLM; the
+[local shadow comparison](apps/local-service/experiments/r5-pilot/shadow-README.md)
+tests vector, keyword and publication-time signals without changing Topic IDs.
 
 The next matching direction is a graded, overlapping cloud of related pages
 across any subject, not a fixed Russia/Ukraine collection or a mandatory
