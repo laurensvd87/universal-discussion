@@ -6,6 +6,7 @@ import { createMemoryRepository } from "../src/adapters/memory-repository.js";
 import { createSqliteRepository } from "../src/adapters/sqlite-repository.js";
 import { createDiscussionService } from "../src/application/discussion-service.js";
 import { createFixtureRankingAdapter } from "../src/adapters/fixture-ranking.js";
+import { assertValidPersistedState } from "../src/domain/persisted-state.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../src/adapters/fixture-catalog.js";
 import { createRequestHandler } from "../src/http/request-handler.js";
 import { validateStartupConfig } from "../src/http/startup-config.js";
@@ -53,6 +54,37 @@ function request(method, url, value) {
 }
 
 for (const [name, factory] of adapters) {
+  test(`${name}: nested replies retain ordered parent links after withdrawal`, (t) => {
+    const { repository, service } = setup(t, factory);
+    const rootId = service.command(service.catalog().version,
+      { type: "create-root", topicId: "harbor-s2", body: "Root" }, "demo-alex").result.contributionId;
+    const discussionId = service.discussion("harbor-s2").discussionId;
+    const reply = (replyToId, body, actor = "demo-blair") => service.command(service.catalog().version,
+      { type: "reply", discussionId, rootId, replyToId, body }, actor).result.contributionId;
+    const firstId = reply(rootId, "First");
+    const childId = reply(firstId, "Child", "demo-alex");
+    const siblingId = reply(firstId, "Sibling");
+    const grandchildId = reply(childId, "Grandchild");
+    let view = service.discussion("harbor-s2").roots[0];
+    assert.deepEqual(view.replies.map(({ id, replyToId }) => [id, replyToId]), [
+      [firstId, rootId], [childId, firstId], [siblingId, firstId], [grandchildId, childId],
+    ]);
+    assert.doesNotThrow(() => assertValidPersistedState(repository.load()));
+    const selfReference = structuredClone(repository.load());
+    selfReference.contributions.find(({ id }) => id === childId).replyToId = childId;
+    assert.throws(() => assertValidPersistedState(selfReference), /Invalid persisted state/u);
+    const cycle = structuredClone(repository.load());
+    cycle.contributions.find(({ id }) => id === firstId).replyToId = childId;
+    assert.throws(() => assertValidPersistedState(cycle), /Invalid persisted state/u);
+
+    service.command(service.catalog().version, { type: "withdraw", contributionId: firstId }, "demo-blair");
+    view = service.discussion("harbor-s2").roots[0];
+    assert.equal(view.replies[0].state, "deleted");
+    assert.deepEqual(view.replies.slice(1).map(({ replyToId }) => replyToId), [firstId, firstId, childId]);
+    assert.throws(() => reply(firstId, "Too late"), code("invalid"));
+    assert.doesNotThrow(() => assertValidPersistedState(repository.load()));
+  });
+
   test(`${name}: withdrawn thread disappears only after every descendant is withdrawn`, (t) => {
     const { repository, service } = setup(t, factory);
     const rootId = service.command(service.catalog().version,

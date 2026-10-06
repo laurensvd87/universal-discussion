@@ -129,6 +129,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     event.preventDefault(); if (await controller?.createTopic(title.value, kind.value)) title.value = "";
   });
   const counts = node("p"); counts.id = "discussion-counts"; const thread = node("div"); thread.className = "discussion-thread";
+  thread.setAttribute("role", "region"); thread.setAttribute("aria-label", text("uiDiscussionRegionLabel"));
+  thread.setAttribute("tabindex", "-1");
   const backToPage = button("uiBackToThisPage", () => void controller?.open());
   backToPage.id = "discussion-back-to-page"; backToPage.className = "user-only";
   const priorDetails = node("details"); priorDetails.id = "discussion-prior"; priorDetails.className = "compact-details";
@@ -137,6 +139,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   priorDetails.append(priorSummary, priorList);
   root.append(priorDetails, backToPage, counts, thread);
   const composer = node("form"); composer.id = "discussion-composer";
+  const newThreadHeading = node("h3", "uiNewThread"); newThreadHeading.className = "discussion-new-thread-heading";
+  composer.append(newThreadHeading);
   const mode = node("p"); root.append(composer);
   const replyContext = node("div"); replyContext.id = "discussion-reply-context";
   const replyAuthor = node("span"); replyAuthor.className = "discussion-reply-author";
@@ -249,6 +253,32 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     for (const [item, callback] of priorHandlers) item.removeEventListener("click", callback);
     priorHandlers = [];
   }
+  function branchToggle(id, count, expanded, bodyOnly = false) {
+    const label = (open) => bodyOnly ? text(open ? "uiReadLess" : "uiReadMore")
+      : text(open ? "uiHideReplies" : count === 1 ? "uiShowReply" : "uiShowReplies")
+        .replace("{count}", String(count));
+    const toggle = node("button"); toggle.type = "button";
+    toggle.className = bodyOnly ? "discussion-branch-toggle discussion-body-toggle" : "discussion-branch-toggle";
+    toggle.setAttribute("data-action", "expand");
+    toggle.setAttribute("data-contribution-id", id);
+    toggle.setAttribute("aria-expanded", String(expanded));
+    toggle.textContent = label(expanded);
+    const callback = () => {
+      const opening = (toggle.getAttribute?.("aria-expanded") ?? toggle.attributes?.["aria-expanded"]) !== "true";
+      const children = toggle.replyChildren;
+      if (opening) expandedBranches.add(id); else expandedBranches.delete(id);
+      toggle.setAttribute("aria-expanded", String(opening));
+      toggle.textContent = label(opening);
+      toggle.threadGroup?.setAttribute("data-expanded", String(opening));
+      if (children) {
+        children.setAttribute("data-open", String(opening));
+        children.setAttribute("aria-hidden", String(!opening));
+        children.inert = !opening;
+      }
+    };
+    toggle.addEventListener("click", callback); threadHandlers.push([toggle, callback]);
+    return toggle;
+  }
   function actorName(actor) {
     const raw = actor?.displayName ?? actor?.id ?? "";
     if (uiMode !== "user") return raw;
@@ -264,11 +294,17 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   }
   function contribution(entry, rootEntry, state, newlyArrived = false) {
     const card = node("article"); card.className = "discussion-contribution";
+    card.setAttribute("data-post-id", entry.id);
+    card.setAttribute("tabindex", "-1");
     card.setAttribute("data-ownership", ownsContribution(entry, state.actorId) ? "own" : "other");
     card.setAttribute("data-actor-type", entry.actorType);
     if (newlyArrived && entry.state === "visible") card.className += " is-new";
-    if (entry.state === "deleted") { card.append(node("p", "discussionDeleted")); return card; }
+    if (entry.state === "deleted") {
+      card.setAttribute("aria-label", text("discussionDeleted"));
+      card.append(node("p", "discussionDeleted")); return card;
+    }
     const actor = state.catalog.actors.find((item) => item.id === entry.authorId);
+    const metadata = node("div"); metadata.className = "discussion-post-metadata";
     const author = node("p"); author.textContent = actorName(actor) || entry.authorId;
     if (actor?.displayName && author.textContent !== actor.displayName) author.title = actor.displayName;
     if (entry.actorType === "human") {
@@ -282,10 +318,26 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
         .replace("{operator}", operator);
       author.className = "insight-provenance";
     }
+    card.setAttribute("aria-label", text("uiPostByAuthor").replace("{author}", author.textContent));
     const content = node("p"); content.className = "discussion-body";
     if (entry.actorType === "agent") appendInsightCitationNodes(document, content, entry.body, text("discussionCitationOpen"));
     else content.textContent = entry.body;
-    card.append(author, content);
+    metadata.append(author);
+    if (uiMode === "user") {
+      const type = node("span", entry.actorType === "agent" ? "uiAgentBadge" : "uiHumanBadge");
+      type.className = `discussion-actor-badge discussion-actor-badge-${entry.actorType}`;
+      metadata.append(type);
+    }
+    if (typeof entry.createdAt === "string") {
+      const date = new Date(entry.createdAt);
+      if (Number.isFinite(date.getTime())) {
+        const timestamp = node("time"); timestamp.className = "discussion-post-time";
+        timestamp.dateTime = entry.createdAt;
+        timestamp.textContent = date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+        metadata.append(timestamp);
+      }
+    }
+    card.append(metadata, content);
     const actions = node("div"); actions.className = "discussion-actions";
     let sourceLink = null;
     if (entry.origin) {
@@ -301,6 +353,17 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       } catch { /* Invalid projections never become navigable links. */ }
     }
     if (entry === rootEntry && entry.regrouped === true) card.append(node("p", "discussionRegrouped"));
+    if (uiMode === "user" && entry !== rootEntry && entry.replyToId && entry.replyToId !== rootEntry.id) {
+      const parent = rootEntry.replies?.find((item) => item.id === entry.replyToId);
+      const parentActor = state.catalog.actors.find((item) => item.id === parent?.authorId);
+      const parentName = parent?.state === "deleted" ? text("discussionDeleted")
+        : parent?.actorType === "agent" ? text("uiAgentBadge") : actorName(parentActor);
+      if (parentName) {
+        const parentCue = node("p"); parentCue.className = "discussion-parent-cue";
+        parentCue.textContent = text("uiInReplyTo").replace("{author}", compactText(parentName, 48));
+        metadata.append(parentCue);
+      }
+    }
     if (entry.edited) card.append(node("span", "discussionEdited"));
     function action(key, callback) {
       const item = node("button", key); item.type = "button"; item.disabled = state.busy || state.needsFreshRead || state.phase !== "ready";
@@ -337,6 +400,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let observedTopicId;
   let observedContributionIds = new Set();
   let observedDiscussion = false;
+  const expandedBranches = new Set();
   let confirmationContext;
   let connectionPosition = "before";
   function render(state) {
@@ -352,7 +416,17 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           root.insertBefore(insightHost, thread);
         }
       } else if (composer.nextSibling !== thread) root.insertBefore(composer, thread);
-    } else if (thread.nextSibling !== composer) root.insertBefore(composer, thread.nextSibling);
+      if (priorDetails.nextSibling !== backToPage || backToPage.nextSibling !== thread) {
+        root.insertBefore(priorDetails, thread);
+        root.insertBefore(backToPage, thread);
+      }
+    } else {
+      if (thread.nextSibling !== composer) root.insertBefore(composer, thread.nextSibling);
+      if (priorDetails.nextSibling !== backToPage || backToPage.nextSibling !== counts) {
+        root.insertBefore(priorDetails, counts);
+        root.insertBefore(backToPage, counts);
+      }
+    }
     const shellView = projectDiscussionShell(state, messages);
     connectionSummary.textContent = text(shellView.connection === "connected" ? "uiConnectionReady" : "uiConnectionSetup");
     connectionSettings.setAttribute("data-connection", shellView.connection);
@@ -465,6 +539,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     mode.textContent = text((uiMode === "user" ? { root: "discussionComposerRoot", reply: "uiReplyMode", edit: "uiEditMode" }
       : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])
       .replace("{id}", state.draft.targetId ?? "");
+    newThreadHeading.textContent = text(({ root: "uiNewThread", reply: "uiReplyThread", edit: "uiEditThread" })[state.draft.mode]);
+    newThreadHeading.hidden = uiMode !== "user";
     if (uiMode === "user" && state.draft.mode === "root") mode.textContent = text("uiComposerRoot");
     mode.hidden = uiMode === "user" && ["root", "reply"].includes(state.draft.mode);
     replyContext.hidden = state.draft.mode !== "reply";
@@ -506,6 +582,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       observedTopicId = state.topicId;
       observedContributionIds = new Set();
       observedDiscussion = false;
+      expandedBranches.clear();
     }
     const arrivals = new Set();
     if (state.discussion) {
@@ -523,14 +600,103 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     // Input updates leave contribution buttons in place so keyboard focus survives.
     const signature = JSON.stringify(state.discussion);
     if (signature !== renderedDiscussion || renderedActor !== state.actorId || renderedBusy !== state.busy || renderedFreshRead !== state.needsFreshRead || renderedUiMode !== uiMode) {
+      const focused = document.activeElement;
+      const focusKey = focused?.getAttribute?.("data-contribution-id") ?? focused?.attributes?.["data-contribution-id"] ??
+        focused?.getAttribute?.("data-post-id") ?? focused?.attributes?.["data-post-id"];
+      const focusAction = focused?.getAttribute?.("data-action") ?? focused?.attributes?.["data-action"];
+      const focusRootId = focused?.getAttribute?.("data-thread-root-id") ?? focused?.attributes?.["data-thread-root-id"] ??
+        (focusKey && previousState?.discussion?.roots.find((entry) =>
+          entry.id === focusKey || entry.replies?.some((reply) => reply.id === focusKey))?.id);
       clearThreadHandlers(); const cards = [];
+      let branchSerial = 0;
       for (const rootEntry of state.discussion?.roots ?? []) {
-        const group = node("section"); group.append(contribution(rootEntry, rootEntry, state, arrivals.has(rootEntry.id)));
-        for (const reply of rootEntry.replies) group.append(contribution(reply, rootEntry, state, arrivals.has(reply.id))); cards.push(group);
+        const group = node("section"); group.className = "discussion-thread-card";
+        group.setAttribute("data-thread-root-id", rootEntry.id);
+        group.setAttribute("tabindex", "-1");
+        group.setAttribute("aria-label", text("uiThreadFocusLabel"));
+        group.setAttribute("data-expanded", String(expandedBranches.has(rootEntry.id)));
+        group.setAttribute("data-has-replies", String(Boolean(rootEntry.replies?.length)));
+        group.append(contribution(rootEntry, rootEntry, state, arrivals.has(rootEntry.id)));
+        if (uiMode === "user") {
+          const replies = rootEntry.replies ?? [];
+          if (!replies.length && rootEntry.state === "visible" && rootEntry.body.length > 180) {
+            group.setAttribute("data-collapsible", "true");
+            const toggle = branchToggle(rootEntry.id, 0, expandedBranches.has(rootEntry.id), true);
+            const content = [...group.children[0].children].find((item) => item.className === "discussion-body");
+            content.id = `discussion-root-body-${++branchSerial}`;
+            toggle.setAttribute("aria-controls", content.id);
+            toggle.threadGroup = group;
+            group.append(toggle);
+          }
+          const byParent = new Map([[rootEntry.id, []]]);
+          for (const reply of replies) byParent.set(reply.id, []);
+          for (const reply of replies) {
+            const parentId = byParent.has(reply.replyToId) ? reply.replyToId : rootEntry.id;
+            byParent.get(parentId).push(reply);
+          }
+          // Create every node before linking parents and children. Same-time replies
+          // can sort before their parent by ID, so array position is not lineage.
+          const assembled = new Map();
+          const childContainers = new Map();
+          for (const reply of replies) {
+            const branch = node("div"); branch.className = "discussion-reply-branch";
+            branch.append(contribution(reply, rootEntry, state, arrivals.has(reply.id)));
+            const children = byParent.get(reply.id) ?? [];
+            if (children.length) {
+              const toggle = branchToggle(reply.id, children.length, expandedBranches.has(reply.id));
+              const childList = node("div"); childList.className = "discussion-reply-children";
+              childList.id = `discussion-branch-${++branchSerial}`;
+              toggle.setAttribute("aria-controls", childList.id);
+              childList.setAttribute("data-open", String(expandedBranches.has(reply.id)));
+              childList.setAttribute("aria-hidden", String(!expandedBranches.has(reply.id)));
+              childList.inert = !expandedBranches.has(reply.id);
+              toggle.replyChildren = childList;
+              const childContent = node("div"); childContent.className = "discussion-reply-content";
+              childList.append(childContent);
+              branch.append(toggle, childList);
+              childContainers.set(reply.id, childContent);
+            }
+            assembled.set(reply.id, branch);
+          }
+          if (replies.length) {
+            const toggle = branchToggle(rootEntry.id, replies.length, expandedBranches.has(rootEntry.id));
+            const replyList = node("div"); replyList.className = "discussion-replies";
+            replyList.id = `discussion-branch-${++branchSerial}`;
+            toggle.setAttribute("aria-controls", replyList.id);
+            toggle.threadGroup = group;
+            replyList.setAttribute("data-open", String(expandedBranches.has(rootEntry.id)));
+            replyList.setAttribute("aria-hidden", String(!expandedBranches.has(rootEntry.id)));
+            replyList.inert = !expandedBranches.has(rootEntry.id);
+            toggle.replyChildren = replyList;
+            const replyContent = node("div"); replyContent.className = "discussion-reply-content";
+            childContainers.set(rootEntry.id, replyContent);
+            replyList.append(replyContent);
+            group.append(toggle, replyList);
+            for (const reply of replies) {
+              const parentId = byParent.has(reply.replyToId) ? reply.replyToId : rootEntry.id;
+              childContainers.get(parentId).append(assembled.get(reply.id));
+            }
+          }
+        } else for (const reply of rootEntry.replies ?? []) group.append(contribution(reply, rootEntry, state, arrivals.has(reply.id)));
+        cards.push(group);
       }
       if (state.discussion && !cards.length) cards.push(node("p", uiMode === "user" ? "uiDiscussionEmpty" : "discussionEmpty"));
       thread.replaceChildren(...cards); renderedDiscussion = signature; renderedActor = state.actorId; renderedBusy = state.busy;
       renderedFreshRead = state.needsFreshRead; renderedUiMode = uiMode;
+      if (focusKey || focusRootId) {
+        const descendants = [...(thread.querySelectorAll?.("[data-action], [data-post-id], [data-thread-root-id]") ?? [])];
+        const replacement = descendants.find((item) => item.getAttribute("data-contribution-id") === focusKey &&
+          item.getAttribute("data-action") === focusAction);
+        const post = descendants.find((item) => item.getAttribute("data-post-id") === focusKey);
+        const group = descendants.find((item) => item.getAttribute("data-thread-root-id") === focusRootId);
+        const focusAvailable = (item) => {
+          if (!item || item.disabled || item.closest?.("[inert]")) return false;
+          item.focus?.({ preventScroll: true });
+          return document.activeElement === item;
+        };
+        if (!focusAvailable(replacement) && !focusAvailable(post) && !focusAvailable(group))
+          focusAvailable(thread);
+      }
     }
     const modelStatus = state.related?.model?.status ?? state.catalog?.model.status;
     model.textContent = !state.catalog ? "" : text(modelStatus === "experimental-local" ? "discussionModelLearned" : modelStatus === "model-unavailable" ? "discussionModelUnavailable" : "discussionModelFixture");
@@ -574,7 +740,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const setupNeeded = uiMode === "user" && Boolean(state?.ai) && (!state.ai.planEnabled || !state.ai.model);
     const stageKey = { preparingArticle: "uiInsightPreparing", fetchingRelated: "uiInsightFindingRelated",
       generating: "uiInsightGenerating", resuming: "uiInsightResuming" }[aiStatus];
-    insightShortcut.hidden = uiMode === "user" && (!selectedTopicReady || noCurrentSource || hasResult);
+    insightShortcut.hidden = uiMode === "user" && (!selectedTopicReady || noCurrentSource || hasResult ||
+      lastState?.draft.mode !== "root");
     insightShortcut.disabled = !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
     insightShortcut.setAttribute("aria-busy", String(active));
     insightShortcut.setAttribute("data-phase", active ? "working" : "idle");

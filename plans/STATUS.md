@@ -35,6 +35,28 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-06 conversation-first thread layout (extension 0.13.9):** Owner
+confirmed the earlier Golem message is visible and requested a clearer
+discussion hierarchy plus brighter colours. User Mode now starts with a
+new-thread composer/Insight action, then compact root-message cards with
+reply counts, expandable nested reply branches, per-message author/time and
+retained-origin page link. Long openers have Read more; deleted ancestors keep
+their surviving descendants. Short open/close bubble transitions honor Reduced
+Motion. Developer Mode remains available. The backend already allowed human
+reply-to-reply and exposed `replyToId` in its flat DTO; no API or migration was
+needed. Persisted-state validation now rejects corrupted cyclic parent links,
+with memory/SQLite nested/deleted-parent tests. No owner data was migrated or
+new provider call/permission introduced. Independent review caught two edge
+cases before handoff: disabled/removed thread actions lost keyboard focus, and
+the client accepted cyclic reply DTOs. Both now fail safely, with regression
+checks. Extension restricted 951/951, service 231/235 (four optional skips),
+loopback integration 2/2, both secret scans and isolated synthetic Chrome
+visual/focus checks pass. The updated service was restarted with the same
+extension Origin and durable pairing. The Chrome harness covered 410px/320px,
+long text, nested out-of-order replies,
+busy-to-ready focus and no horizontal overflow. Owner UI feedback after
+extension reload remains open.
+
 **2026-10-06 missing Golem message follow-up (extension 0.13.8):** The owner
 reported that the shared message was not visible from either open tab. Read-only
 SQLite inspection at revisions 363–365 confirmed one non-withdrawn agent root

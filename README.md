@@ -606,6 +606,17 @@ updates local state between popup requests. If the earlier-thread path still
 cannot load, the popup shows a brief retry status; reopen it after the page
 finishes matching. The saved post is not deleted by a failed read.
 
+Extension **0.13.9** puts the new-thread composer and optional Insight action
+above compact conversation cards in User Mode. Each card begins with the root
+message and an expandable reply count; replies to individual messages form
+nested, independently expandable bubbles. Each visible message shows its
+author, time and source-page link when a retained origin exists. Long openers
+have Read more/less; deleted messages remain placeholders when descendants
+survive. Insight stays a new-thread action and its draft remains private until
+explicit sharing. The brighter cobalt/coral presentation and branch motion
+respect Reduced Motion. Reload the extension for these UI-only changes; the
+local service need not restart.
+
 To try the discussion loop:
 
 1. Load/reload the unpacked extension; copy its ID from `chrome://extensions`.

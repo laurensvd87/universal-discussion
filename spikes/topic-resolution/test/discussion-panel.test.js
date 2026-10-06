@@ -20,7 +20,12 @@ function harness(messages, workspace, insightsTab, settingsButton, accountDetail
         this.children.splice(index, 0, item);
       },
       setAttribute(key, value) { this.attributes[key] = value; },
-      removeAttribute(key) { delete this.attributes[key]; }, focus() { this.focused = true; },
+      getAttribute(key) { return this.attributes[key] ?? null; },
+      querySelectorAll() { return descendants(this).filter((child) => child.attributes["data-action"] ||
+        child.attributes["data-post-id"] || child.attributes["data-thread-root-id"]); },
+      removeAttribute(key) { delete this.attributes[key]; },
+      focus(options) { if (this.disabled || this.inert) return; this.focused = true;
+        this.focusOptions = options; document.activeElement = this; },
       addEventListener(event, callback) { this.listeners.set(event, callback); },
       removeEventListener(event, callback) { if (this.listeners.get(event) === callback) this.listeners.delete(event); } };
     created.push(item); return item;
@@ -32,7 +37,7 @@ function harness(messages, workspace, insightsTab, settingsButton, accountDetail
     ...controllerOverrides }, {
     get(object, key) { return object[key] ?? ((...args) => { calls.push([key, ...args]); return Promise.resolve(true); }); } });
   panel.bind(controller);
-  return { created, root, panel, calls, byId: (id) => created.find((item) => item.id === id) };
+  return { created, document, root, panel, calls, byId: (id) => created.find((item) => item.id === id) };
 }
 test("User insight action lives in the composer and starts one automatic private request", () => {
   const actions = [];
@@ -72,6 +77,22 @@ test("User insight action lives in the composer and starts one automatic private
   assert.equal(ui.byId("discussion-insight-activity").textContent, "Insight ready. Review it below before sharing.");
   shortcut.listeners.get("click")();
   assert.equal(actions.length, 1);
+});
+test("Insight entry is offered only while composing a new thread in User Mode", () => {
+  const ui = harness();
+  ui.panel.bindInsight({ currentState: () => ({ context: { currentSource: { id: "source-demo" } },
+    ai: { planEnabled: true, model: "chosen", status: "idle" } }) });
+  const shortcut = ui.byId("discussion-ai-insights");
+  assert.equal(shortcut.hidden, false);
+  ui.panel.render(state({ draft: { body: "", detached: false, mode: "reply", targetId: "root-1" } }));
+  assert.equal(shortcut.hidden, true);
+  ui.panel.render(state({ draft: { body: "Edited", detached: false, mode: "edit", targetId: "root-1" } }));
+  assert.equal(shortcut.hidden, true);
+  ui.panel.render(state());
+  assert.equal(shortcut.hidden, false);
+  ui.panel.setMode("developer");
+  ui.panel.render(state({ draft: { body: "", detached: false, mode: "reply", targetId: "root-1" } }));
+  assert.equal(shortcut.hidden, false);
 });
 test("User insight action opens account settings when ChatGPT is not ready", () => {
   const actions = [];
@@ -233,6 +254,156 @@ test("connected settings follow the composer in User DOM order and return before
   assert.ok(ui.root.children.indexOf(settings) < ui.root.children.indexOf(counts));
 });
 const descendants = (node) => [node, ...node.children.flatMap(descendants)];
+test("User thread cards reveal nested replies, retain expansion and focus, and show post metadata", () => {
+  const ui = harness();
+  const discussion = { roots: [{ id: "root-1", rootId: null, replyToId: null, state: "visible",
+    authorId: "demo-alex", actorType: "human", body: "Opening message", edited: false,
+    createdAt: "2026-10-06T10:30:00.000Z", replies: [
+      { id: "reply-1", rootId: "root-1", replyToId: "root-1", state: "visible", authorId: "demo-alex",
+        actorType: "human", body: "First reply", edited: false, createdAt: "2026-10-06T10:31:00.000Z" },
+      { id: "reply-2", rootId: "root-1", replyToId: "reply-1", state: "visible", authorId: "demo-alex",
+        actorType: "human", body: "Nested reply", edited: false, createdAt: "2026-10-06T10:32:00.000Z" },
+      { id: "reply-3", rootId: "root-1", replyToId: "reply-2", state: "deleted" },
+      { id: "reply-4", rootId: "root-1", replyToId: "reply-3", state: "visible", authorId: "demo-alex",
+        actorType: "human", body: "Surviving reply", edited: false, createdAt: "2026-10-06T10:33:00.000Z" },
+    ] }] };
+  ui.panel.render(state({ discussion }));
+  const thread = descendants(ui.root).find((item) => item.className === "discussion-thread");
+  const card = thread.children[0];
+  assert.equal(card.className, "discussion-thread-card");
+  assert.equal(card.children[0].children.find((item) => item.className === "discussion-body").textContent, "Opening message");
+  assert.equal(card.children[1].textContent, EN.uiShowReplies.replace("{count}", "4"));
+  assert.equal(card.children[2].attributes["data-open"], "false");
+  assert.equal(card.children[2].inert, true);
+  assert.equal(descendants(card).filter((item) => item.tag === "time").length, 4);
+  card.children[1].listeners.get("click")();
+  assert.equal(card.children[2].attributes["data-open"], "true");
+  const firstBranch = card.children[2].children[0].children[0];
+  assert.equal(firstBranch.children[2].attributes["data-open"], "false");
+  firstBranch.children[1].listeners.get("click")();
+  assert.equal(firstBranch.children[2].attributes["data-open"], "true");
+  firstBranch.children[1].listeners.get("click")();
+  assert.equal(firstBranch.children[1].attributes["aria-expanded"], "false");
+  assert.equal(firstBranch.children[2].attributes["aria-hidden"], "true");
+  assert.equal(firstBranch.children[2].inert, true);
+  firstBranch.children[1].listeners.get("click")();
+  firstBranch.children[1].focus();
+  ui.panel.render(state({ discussion, busy: true }));
+  const updated = thread.children[0];
+  assert.equal(updated.children[2].attributes["data-open"], "true");
+  assert.equal(updated.children[2].children[0].children[0].children[2].attributes["data-open"], "true");
+  assert.equal(ui.document.activeElement.attributes["data-contribution-id"], "reply-1");
+  assert.equal(ui.document.activeElement.attributes["aria-expanded"], "true");
+  const replyAction = descendants(updated).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === "reply-2");
+  ui.panel.render(state({ discussion }));
+  const readyReplyAction = descendants(thread).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === "reply-2");
+  assert.equal(replyAction.disabled, true);
+  readyReplyAction.listeners.get("click")();
+  assert.deepEqual(ui.calls.at(-1), ["begin", "reply", "reply-2"]);
+});
+test("same-time child sorted before its parent still renders under that parent", () => {
+  const ui = harness();
+  const timestamp = "2026-10-06T10:30:00.000Z";
+  const discussion = { roots: [{ id: "root-1", rootId: null, replyToId: null, state: "visible",
+    authorId: "demo-alex", actorType: "human", body: "Root", edited: false, createdAt: timestamp,
+    replies: [
+      { id: "a-child", rootId: "root-1", replyToId: "z-parent", state: "visible",
+        authorId: "demo-alex", actorType: "human", body: "Child", edited: false, createdAt: timestamp },
+      { id: "z-parent", rootId: "root-1", replyToId: "root-1", state: "visible",
+        authorId: "demo-alex", actorType: "human", body: "Parent", edited: false, createdAt: timestamp },
+    ] }] };
+  ui.panel.render(state({ discussion }));
+  const card = descendants(ui.root).find((item) => item.className === "discussion-thread-card");
+  card.children[1].listeners.get("click")();
+  const parentBranch = card.children[2].children[0].children[0];
+  assert.equal(parentBranch.children[0].children.find((item) => item.className === "discussion-body").textContent, "Parent");
+  assert.equal(parentBranch.children[1].textContent, EN.uiShowReply.replace("{count}", "1"));
+  assert.equal(parentBranch.children[1].attributes["aria-expanded"], "false");
+  parentBranch.children[1].listeners.get("click")();
+  assert.equal(parentBranch.children[1].textContent, EN.uiHideReplies);
+  const childBranch = parentBranch.children[2].children[0].children[0];
+  assert.equal(childBranch.children[0].children.find((item) => item.className === "discussion-body").textContent, "Child");
+  const childReply = descendants(childBranch).find((item) => item.attributes["data-action"] === "reply");
+  childReply.focus();
+  ui.panel.render(state({ discussion, busy: true }));
+  assert.equal(ui.document.activeElement.attributes["data-post-id"], "a-child");
+  assert.equal(card.children[2].attributes["data-open"], "true");
+});
+test("focused action falls back to its post or discussion when disabled or removed", () => {
+  const ui = harness();
+  const original = state({ discussion: { roots: [{ id: "focus-root", rootId: null, replyToId: null,
+    state: "visible", authorId: "demo-alex", actorType: "human", body: "Message",
+    edited: false, createdAt: "2026-10-06T10:30:00.000Z", replies: [] }] } });
+  const action = () => descendants(ui.root).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === "focus-root");
+  ui.panel.render(original);
+  action().focus();
+  ui.panel.render({ ...original, busy: true });
+  assert.equal(ui.document.activeElement.attributes["data-post-id"], "focus-root");
+  assert.deepEqual(ui.document.activeElement.focusOptions, { preventScroll: true });
+  ui.panel.render(original);
+  assert.equal(ui.document.activeElement.attributes["data-post-id"], "focus-root");
+  assert.deepEqual(ui.document.activeElement.focusOptions, { preventScroll: true });
+  action().focus();
+  const withdrawn = { ...original, discussion: { roots: [{ id: "focus-root", rootId: null,
+    replyToId: null, state: "deleted", label: "Deleted", replies: [] }] } };
+  ui.panel.render(withdrawn);
+  assert.equal(ui.document.activeElement.attributes["data-post-id"], "focus-root");
+  assert.equal(ui.document.activeElement.attributes["aria-label"], EN.discussionDeleted);
+  ui.panel.render(original);
+  action().focus();
+  ui.panel.render({ ...original, discussion: { roots: [] } });
+  assert.equal(ui.document.activeElement.className, "discussion-thread");
+  assert.equal(ui.document.activeElement.attributes["tabindex"], "-1");
+  assert.deepEqual(ui.document.activeElement.focusOptions, { preventScroll: true });
+});
+test("focused thread card survives another discussion refresh after its reply disappears", () => {
+  const ui = harness();
+  const root = { id: "root-focus", rootId: null, replyToId: null, state: "visible",
+    authorId: "demo-alex", actorType: "human", body: "Root", edited: false,
+    createdAt: "2026-10-06T10:30:00.000Z", replies: [
+      { id: "reply-focus", rootId: "root-focus", replyToId: "root-focus", state: "visible",
+        authorId: "demo-alex", actorType: "human", body: "Reply", edited: false,
+        createdAt: "2026-10-06T10:31:00.000Z" },
+    ] };
+  const original = state({ discussion: { roots: [root] } });
+  ui.panel.render(original);
+  descendants(ui.root).find((item) => item.className === "discussion-thread-card").children[1].listeners.get("click")();
+  const replyAction = descendants(ui.root).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === "reply-focus");
+  replyAction.focus();
+  const withoutReply = state({ discussion: { roots: [{ ...root, replies: [] }] } });
+  ui.panel.render(withoutReply);
+  assert.equal(ui.document.activeElement.attributes["data-thread-root-id"], "root-focus");
+  ui.panel.render({ ...withoutReply, busy: true });
+  assert.equal(ui.document.activeElement.attributes["data-thread-root-id"], "root-focus");
+  assert.deepEqual(ui.document.activeElement.focusOptions, { preventScroll: true });
+});
+test("long root without replies has a separate Read more control", () => {
+  const ui = harness();
+  const discussion = { roots: [{ id: "root-long", rootId: null, replyToId: null, state: "visible",
+    authorId: "demo-alex", actorType: "human", body: "Long opening thought. ".repeat(25),
+    edited: false, createdAt: "2026-10-06T10:30:00.000Z", replies: [] }] };
+  ui.panel.render(state({ discussion }));
+  const card = descendants(ui.root).find((item) => item.className === "discussion-thread-card");
+  const toggle = card.children[1];
+  assert.equal(card.attributes["data-collapsible"], "true");
+  assert.equal(toggle.textContent, EN.uiReadMore);
+  assert.equal(toggle.attributes["aria-expanded"], "false");
+  assert.equal(toggle.attributes["aria-controls"], card.children[0].children.find((item) => item.className === "discussion-body").id);
+  toggle.listeners.get("click")();
+  assert.equal(toggle.textContent, EN.uiReadLess);
+  assert.equal(card.attributes["data-expanded"], "true");
+  ui.panel.render(state({ discussion, busy: true }));
+  assert.equal(descendants(ui.root).find((item) => item.className?.includes("discussion-body-toggle")).textContent, EN.uiReadLess);
+});
+test("reply disclosure motion respects reduced-motion preferences", () => {
+  const css = readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8");
+  assert.match(css, /\.discussion-reply-children\s*\{[\s\S]*?grid-template-rows: 0fr;[\s\S]*?transition: grid-template-rows 180ms/u);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.discussion-reply-children\) \{ transition: none; \}/u);
+});
 test("only AI-labelled posts render validated inline source icons", () => {
   const ui = harness();
   const marker = "A claim [↗](https://example.org/article) <img src=x>";

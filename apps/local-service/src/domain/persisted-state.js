@@ -126,20 +126,31 @@ function assertState(state, legacy) {
     }
     return contribution.id;
   });
+  const contributionsById = new Map(state.contributions.map((entry) => [entry.id, entry]));
   for (const contribution of state.contributions) {
     if (contribution.rootId === null) {
       if (contribution.replyToId !== null) invalid();
       continue;
     }
-    const root = state.contributions.find((entry) => entry.id === contribution.rootId);
+    const root = contributionsById.get(contribution.rootId);
     if (!root || root.rootId !== null || root.discussionId !== contribution.discussionId) invalid();
     if (contribution.replyToId !== null) {
       if (!contributionIds.has(contribution.replyToId)) invalid();
-      const target = state.contributions.find((entry) => entry.id === contribution.replyToId);
+      const target = contributionsById.get(contribution.replyToId);
       if (target.discussionId !== contribution.discussionId || (target.rootId ?? target.id) !== root.id) invalid();
+      // Command-time targets already exist, but a persisted state must also
+      // reject cycles introduced by corruption or a malformed import.
+      const ancestors = new Set([contribution.id]);
+      let ancestor = target;
+      while (ancestor !== null) {
+        if (ancestors.has(ancestor.id)) invalid();
+        ancestors.add(ancestor.id);
+        ancestor = ancestor.replyToId === null ? null : contributionsById.get(ancestor.replyToId);
+        if (ancestor === undefined) invalid();
+      }
     }
     if (contribution.actorType === "agent" && !contribution.withdrawn) {
-      const question = state.contributions.find((entry) => entry.id === contribution.replyToId);
+      const question = contributionsById.get(contribution.replyToId);
       if (!question || question.actorType !== "human" || question.replyToId !== root.id ||
           root.actorType !== "agent" ||
           (!root.withdrawn && root.insight?.kind !== "generated") ||

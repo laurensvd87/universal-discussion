@@ -279,6 +279,7 @@ input[type="checkbox"] { width: 24px; min-height: 24px; accent-color: #0b7285; }
 #matching-context { color: #8a3d2d; }
 textarea { resize: vertical; }
 .discussion-thread { display: grid; gap: 12px; }
+.discussion-thread:focus, .discussion-thread-card:focus, .discussion-contribution:focus { outline: 3px solid #0b7285; outline-offset: 2px; }
 .discussion-contribution { display: grid; gap: 7px; padding: 10px; border: 1px solid #d4dee3; border-radius: 8px; }
 .discussion-source-link { display: inline-flex; justify-self: end; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; border-radius: 5px; color: #17578d; text-decoration: none; font-size: 17px; }
 .discussion-source-link:hover { background: #e8f1fb; }
@@ -523,8 +524,12 @@ footer {
 }
 body { width: 380px; color: var(--ink); background: var(--canvas); font-size: 14px; line-height: 1.5; }
 body[data-ui-mode="user"] {
+  --canvas: #f4f2ff; --surface: #ffffff; --surface-muted: #efedff;
+  --ink: #172347; --ink-soft: #46547c; --line: #c9d1fa;
+  --accent: #3265ee; --accent-hover: #2049ca;
+  --own-human: #eef2ff; --agent: #fff2e8; --private: #ffdfc9;
   width: 410px; min-height: min(560px, 100vh); overflow-x: hidden;
-  background: linear-gradient(155deg, #f8f5e9 0%, var(--canvas) 48%, #f3efe2 100%);
+  background: linear-gradient(155deg, #eeebff 0%, var(--canvas) 48%, #e9f3ff 100%);
 }
 /* Quiet, overlapping topic orbits sit behind the reading surface. */
 body[data-ui-mode="user"]::before,
@@ -535,22 +540,22 @@ body[data-ui-mode="user"]::after {
 body[data-ui-mode="user"]::before {
   top: 86px; right: -126px; width: 340px; height: 290px;
   transform: rotate(-22deg) skewX(-9deg);
-  border: 1px solid #c5a84945;
-  background: radial-gradient(ellipse at 38% 42%, #e9cf7b30 0 32%, #d1b04c19 58%, transparent 72%);
-  box-shadow: inset 0 0 0 28px #f7edc349, inset 0 0 0 29px #b79b4840,
-    0 0 0 38px #e3cf8840, 0 0 0 39px #b49a4d30;
+  border: 1px solid #526bdf55;
+  background: radial-gradient(ellipse at 38% 42%, #80a6ff38 0 32%, #7a6fec20 58%, transparent 72%);
+  box-shadow: inset 0 0 0 28px #b7c6ff42, inset 0 0 0 29px #526bdf35,
+    0 0 0 38px #bdc9ff3d, 0 0 0 39px #526bdf30;
   opacity: .7;
-  animation: topic-orbit-far 7.2s cubic-bezier(.45, 0, .55, 1) infinite;
+  animation: topic-orbit-far 12s cubic-bezier(.45, 0, .55, 1) infinite;
 }
 body[data-ui-mode="user"]::after {
   top: 355px; left: -160px; width: 290px; height: 230px;
   transform: rotate(17deg) skewX(8deg);
-  border: 1px solid #a9966345;
-  background: radial-gradient(ellipse at 60% 44%, #fcf8eb72 0 38%, #dec77b24 67%, transparent 74%);
-  box-shadow: inset 0 0 0 24px #f2e6bb45, inset 0 0 0 25px #aa925045,
-    0 0 0 32px #d8c59033, 0 0 0 33px #a7915940;
+  border: 1px solid #f36c6550;
+  background: radial-gradient(ellipse at 60% 44%, #fff2e875 0 38%, #ffc6ae30 67%, transparent 74%);
+  box-shadow: inset 0 0 0 24px #ffd7c849, inset 0 0 0 25px #e8796b3c,
+    0 0 0 32px #ffc9bb3b, 0 0 0 33px #e8796b34;
   opacity: .68;
-  animation: topic-orbit-near 7.2s cubic-bezier(.45, 0, .55, 1) infinite;
+  animation: topic-orbit-near 12s cubic-bezier(.45, 0, .55, 1) infinite;
 }
 body[data-ui-mode="user"][data-topic-state="ready"]::before { opacity: .82; }
 body[data-ui-mode="user"][data-topic-state="ready"]::after { opacity: .76; }
@@ -605,7 +610,7 @@ body[data-ui-mode="user"] main > :is(.popup-topbar, .app-navigation, .app-topic-
   margin-inline: 18px;
 }
 body[data-ui-mode="user"] .popup-topbar {
-  min-height: 62px; margin-inline: 0 !important; padding: 9px 18px;
+  min-height: 56px; margin-inline: 0 !important; padding: 6px 18px;
   border-bottom: 1px solid var(--line); background: var(--canvas);
 }
 body[data-ui-mode="user"] .app-settings-button {
@@ -620,15 +625,15 @@ body[data-ui-mode="user"] .app-settings-button::before {
 }
 body[data-ui-mode="user"] .app-settings-button:hover,
 body[data-ui-mode="user"] .app-settings-button[aria-expanded="true"] {
-  border-color: var(--line); background: #ece8d9;
+  border-color: var(--line); background: #e6ebff;
 }
-body[data-ui-mode="user"] .app-topic-header { display: grid; gap: 2px; margin-top: 18px; margin-bottom: 13px; min-width: 0; }
+body[data-ui-mode="user"] .app-topic-header { display: grid; gap: 2px; margin-top: 12px; margin-bottom: 10px; min-width: 0; }
 body[data-ui-mode="user"] .app-topic-header :is(.topic-eyebrow, .topic-selection-cue) { display: none; }
 body[data-ui-mode="user"] #selected-topic-title {
   margin: 0; color: var(--ink); font-size: 25px; font-weight: 730;
   letter-spacing: -.035em; line-height: 1.16; overflow-wrap: anywhere;
 }
-body[data-ui-mode="user"] .app-topic-header { margin-bottom: 16px; }
+body[data-ui-mode="user"] .app-topic-header { margin-bottom: 10px; }
 body[data-ui-mode="user"] #app-navigation,
 body[data-ui-mode="user"] #app-view-pages { display: none !important; }
 body[data-ui-mode="user"] .app-navigation {
@@ -723,33 +728,41 @@ body[data-ui-mode="user"] #discussion-related .related-page-address { color: var
 #discussion-related a.related-page-title:focus-visible { outline: 3px solid #9d7620; outline-offset: 2px; }
 
 /* User Mode composer and bubbles. */
-body[data-ui-mode="user"] #local-discussion { display: grid; gap: 14px; padding: 0; border: 0; background: transparent; box-shadow: none; }
+body[data-ui-mode="user"] #local-discussion { display: grid; gap: 10px; padding: 0; border: 0; background: transparent; box-shadow: none; }
 body[data-ui-mode="user"] #local-discussion > #discussion-composer {
-  display: grid; gap: 10px; margin: 0; padding: 14px;
-  border: 1px solid var(--line); border-radius: 20px; background: var(--surface);
+  display: grid; gap: 8px; margin: 0; padding: 12px;
+  border: 1px solid #9aaaf7; border-top: 3px solid #2454d6; border-radius: 20px;
+  background: linear-gradient(145deg, #fff 62%, #eef1ff);
+  box-shadow: 0 8px 25px #3157c51c;
+}
+body[data-ui-mode="user"] .discussion-new-thread-heading {
+  margin: 0; color: #173fba; font-size: 15px; line-height: 1.3;
 }
 body[data-ui-mode="user"] #discussion-composer :is(label[for="discussion-body"], #discussion-demo-identity, #discussion-origin-disclosure) { display: none; }
 body[data-ui-mode="user"] #discussion-body {
-  min-height: 72px; max-height: 170px; padding: 11px 13px;
+  min-height: 64px; max-height: 170px; padding: 10px 12px;
   border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
   font: inherit; font-size: 14px; line-height: 21px;
 }
 body[data-ui-mode="user"] #discussion-body::placeholder { color: var(--ink-soft); opacity: 1; }
-body[data-ui-mode="user"] #discussion-reply-context { border-left: 3px solid var(--accent); background: #f7f1dc; color: var(--ink); }
+body[data-ui-mode="user"] #discussion-reply-context { border-left: 3px solid var(--accent); background: #eef1ff; color: var(--ink); }
 body[data-ui-mode="user"] #discussion-reply-context .discussion-reply-excerpt { color: var(--ink-soft); }
 body[data-ui-mode="user"] #discussion-composer .discussion-composer-actions {
   display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px;
 }
+body[data-ui-mode="user"] #discussion-composer .discussion-composer-actions:has(#discussion-ai-insights[hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+}
 body[data-ui-mode="user"] #discussion-composer #discussion-submit,
 body[data-ui-mode="user"] #discussion-ai-insights { min-height: 44px; margin: 0; border-radius: 999px; font-size: 13px; }
 body[data-ui-mode="user"] #discussion-composer #discussion-submit {
-  width: 100%; color: var(--ink); background: var(--accent); font-weight: 730;
+  width: 100%; color: #fff; background: var(--accent); font-weight: 730;
 }
 body[data-ui-mode="user"] #discussion-composer #discussion-submit:hover { background: var(--accent-hover); }
 body[data-ui-mode="user"] #discussion-ai-insights {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  width: auto; min-width: 94px; padding: 0 14px; border: 1px solid var(--line);
-  color: var(--ink); background: #f5f0df; font-weight: 650; white-space: nowrap;
+  width: auto; min-width: 94px; padding: 0 14px; border: 1px solid #ef8a62;
+  color: #63301f; background: #ffe4d0; font-weight: 650; white-space: nowrap;
 }
 body[data-ui-mode="user"] #discussion-ai-insights::before {
   content: ""; flex: none; width: 15px; height: 15px; background: currentColor;
@@ -766,11 +779,46 @@ body[data-ui-mode="user"] #discussion-insight-activity { grid-column: 1 / -1; co
 body[data-ui-mode="user"] #discussion-insight-activity:empty { display: none; }
 body[data-ui-mode="user"] #discussion-discard {
   width: auto; min-height: 44px; justify-self: start; border-radius: 999px;
-  color: var(--ink); background: #eee9d9; font-size: 12px;
+  border: 1px solid #a5b7fa; color: #153eac; background: #e9efff; font-size: 12px;
 }
+body[data-ui-mode="user"] #discussion-discard:hover { background: #d8e4ff; }
 body[data-ui-mode="user"] .discussion-thread { display: grid; gap: 14px; }
 body[data-ui-mode="user"] .discussion-thread section { display: grid; gap: 8px; min-width: 0; }
-body[data-ui-mode="user"] .discussion-thread section article + article { margin-left: 12px; }
+body[data-ui-mode="user"] .discussion-thread-card {
+  border: 1px solid #b9c6fb; border-radius: 20px; padding: 10px;
+  background: #fbfcff; box-shadow: 0 5px 16px #3157c514;
+}
+body[data-ui-mode="user"] .discussion-thread-card > .discussion-contribution { border: 0; padding: 6px 4px; }
+body[data-ui-mode="user"] .discussion-thread-card:is([data-has-replies="true"], [data-collapsible="true"])[data-expanded="false"] > .discussion-contribution .discussion-body {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+}
+body[data-ui-mode="user"] .discussion-replies,
+body[data-ui-mode="user"] .discussion-reply-children {
+  display: grid; grid-template-rows: 0fr; min-width: 0;
+  opacity: 0; transform: translateY(-4px);
+  transition: grid-template-rows 180ms ease, opacity 160ms ease, transform 180ms ease;
+}
+body[data-ui-mode="user"] :is(.discussion-replies, .discussion-reply-children)[data-open="true"] {
+  grid-template-rows: 1fr; opacity: 1; transform: translateY(0);
+}
+body[data-ui-mode="user"] .discussion-reply-content { display: grid; gap: 8px; min-height: 0; min-width: 0; overflow: hidden; }
+body[data-ui-mode="user"] .discussion-reply-branch { display: grid; gap: 6px; min-width: 0; }
+body[data-ui-mode="user"] .discussion-replies {
+  margin-left: 7px; border-left: 2px solid #7a96f5; padding-left: 9px;
+}
+body[data-ui-mode="user"] .discussion-reply-children {
+  margin-left: 8px; border-left: 2px solid #fa9c76; padding-left: 8px;
+}
+body[data-ui-mode="user"] .discussion-reply-children .discussion-reply-children {
+  margin-left: 0; border-left: 0; padding-left: 0;
+}
+body[data-ui-mode="user"] .discussion-branch-toggle {
+  width: auto; min-height: 44px; justify-self: start; padding: 0 12px;
+  border: 1px solid #a5b7fa; border-radius: 999px; background: #e9efff;
+  color: #153eac; font-size: 12px; font-weight: 700;
+}
+body[data-ui-mode="user"] .discussion-branch-toggle:hover,
+body[data-ui-mode="user"] .discussion-branch-toggle[aria-expanded="true"] { background: #d8e4ff; }
 body[data-ui-mode="user"] .discussion-contribution {
   display: grid; gap: 8px; min-width: 0; padding: 13px 14px;
   border: 1px solid var(--line); border-radius: 18px; background: var(--surface); overflow-wrap: anywhere;
@@ -780,7 +828,25 @@ body[data-ui-mode="user"] .discussion-contribution[data-ownership="own"] {
   border-bottom-right-radius: 6px; background: var(--own-human);
 }
 body[data-ui-mode="user"] .discussion-contribution[data-actor-type="agent"] { background: var(--agent); }
-body[data-ui-mode="user"] .discussion-contribution > p:first-child { margin: 0; color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1.4; }
+body[data-ui-mode="user"] .discussion-post-metadata { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 9px; min-width: 0; }
+body[data-ui-mode="user"] .discussion-post-metadata > p { margin: 0; color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1.4; }
+body[data-ui-mode="user"] .discussion-post-time { color: var(--ink-soft); font-size: 11px; }
+body[data-ui-mode="user"] .discussion-actor-badge {
+  border-radius: 999px; padding: 1px 7px; font-size: 10px; line-height: 1.5; font-weight: 750;
+}
+body[data-ui-mode="user"] .discussion-actor-badge-human { color: #1749b2; background: #e5edff; }
+body[data-ui-mode="user"] .discussion-actor-badge-agent { color: #a83220; background: #ffdfc9; }
+body[data-ui-mode="user"] .discussion-parent-cue {
+  flex-basis: 100%; color: var(--ink-soft) !important; font-size: 11px !important; font-weight: 500 !important;
+}
+body[data-ui-mode="user"] .discussion-branch-toggle:focus-visible,
+body[data-ui-mode="user"] .discussion-actions :is(button, a):focus-visible,
+body[data-ui-mode="user"] #discussion-composer :is(button, textarea):focus-visible {
+  outline: 3px solid #153eac; outline-offset: 2px;
+}
+body[data-ui-mode="user"] :is(.discussion-thread, .discussion-thread-card, .discussion-contribution):focus {
+  outline: 3px solid #153eac; outline-offset: 2px;
+}
 body[data-ui-mode="user"] .discussion-contribution :is(.human-provenance, .insight-provenance) { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 body[data-ui-mode="user"] .discussion-contribution :is(.human-provenance, .insight-provenance)::before {
   content: ""; flex: none; width: 15px; height: 15px; background: currentColor;
@@ -796,7 +862,8 @@ body[data-ui-mode="user"] .discussion-actions button {
 }
 body[data-ui-mode="user"] .discussion-actions button:hover { background: var(--private); }
 body[data-ui-mode="user"] .discussion-source-link {
-  flex: none; min-width: 44px; min-height: 44px; margin-left: auto; color: var(--ink); border-radius: 999px;
+  flex: none; min-width: 44px; min-height: 44px; margin-left: auto; color: #1548bd;
+  border: 1px solid #b8c6fa; background: #e9efff; border-radius: 999px;
 }
 body[data-ui-mode="user"] .discussion-source-link:hover { background: var(--private); }
 
@@ -857,6 +924,7 @@ body[data-ui-mode="user"] :is(.discussion-contribution.is-new, #insight-composer
   body[data-ui-mode="user"]::before,
   body[data-ui-mode="user"]::after { animation: none; }
   body[data-ui-mode="user"] :is(button:not(:disabled), .discussion-source-link, .inline-citation) { transition: none; }
+  body[data-ui-mode="user"] :is(.discussion-replies, .discussion-reply-children) { transition: none; }
   body[data-ui-mode="user"] button:not(:disabled):active { transform: none; }
   body[data-ui-mode="user"] :is(.discussion-contribution.is-new, #insight-composer.is-new) { animation: none; }
   body[data-ui-mode="user"] #discussion-ai-insights[data-phase="working"]::before { animation: none; }

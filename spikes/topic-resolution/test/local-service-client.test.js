@@ -64,6 +64,18 @@ test("origin DTO preserves distinct root/reply links and visible-root regrouping
   delete root.origin; delete root.regrouped; delete root.replies[0].origin;
   assert.deepEqual(readDiscussion(value, "topic-a").roots[0], root);
 });
+test("discussion DTO accepts out-of-order nested replies but rejects cyclic parent links", () => {
+  const child = { ...visiblePost("reply-child", "root-a"), replyToId: "reply-parent" };
+  const parent = { ...visiblePost("reply-parent", "root-a"), replyToId: "root-a" };
+  const root = { ...visiblePost("root-a"), replies: [child, parent] };
+  const value = { version: VERSION, topic: { id: "topic-a", title: "A", kind: "general" },
+    discussionId: "discussion-a", roots: [root] };
+  assert.deepEqual(readDiscussion(value, "topic-a").roots[0], root);
+  for (const replies of [
+    [{ ...child, replyToId: child.id }, parent],
+    [{ ...child, replyToId: parent.id }, { ...parent, replyToId: child.id }],
+  ]) assert.throws(() => readDiscussion({ ...value, roots: [{ ...root, replies }] }, "topic-a"));
+});
 test("post-origin policy rejects executable, local, private and credential-bearing URLs without getter access", () => {
   assert.deepEqual(readPostOrigin(origin()), origin());
   assert.doesNotThrow(() => readPostOrigin(origin("source-a", "https://synthetic.example/article")));

@@ -201,6 +201,42 @@ try {
     assert.equal(await evaluate("(() => document.body.dataset.topicState==='ready' && getComputedStyle(document.body,'::before').animationDuration!=='0s')()", sessionId), true,
       "resolved Topic exposes the animated ambient layer");
     await capture("discussion", sessionId);
+    assert.equal(await evaluate(`(() => {
+      const state = window.visualDiscussionState, panel = window.visualDiscussionPanel;
+      const reply = document.querySelector('[data-action="reply"][data-contribution-id="root-1"]');
+      reply.focus({preventScroll:true});
+      if (document.activeElement !== reply) return false;
+      state.busy = true; panel.render(state);
+      const during = document.querySelector('.discussion-thread').contains(document.activeElement) &&
+        document.activeElement !== document.body && !document.activeElement.disabled;
+      state.busy = false; panel.render(state);
+      const after = document.querySelector('.discussion-thread').contains(document.activeElement) &&
+        document.activeElement !== document.body;
+      return during && after;
+    })()`, sessionId), true, "focused thread control remains inside the thread across busy and ready renders");
+    await evaluate(`(() => {
+      const root = window.visualDiscussionState.discussion.roots[0];
+      root.createdAt = '2026-10-06T10:00:00.000Z';
+      root.origin = {sourceId:'source-visual',title:'Synthetic public article',url:'https://example.com/article'};
+      root.replies = [
+        {id:'reply-child',rootId:'root-1',replyToId:'reply-1',state:'visible',authorId:'demo-alex',actorType:'human',
+          body:'A nested reply to the first answer.',createdAt:'2026-10-06T10:01:00.000Z',edited:false,
+          origin:{sourceId:'source-visual',title:'Synthetic public article',url:'https://example.com/article'}},
+        {id:'reply-1',rootId:'root-1',replyToId:'root-1',state:'visible',authorId:'demo-blair',actorType:'human',
+          body:'I would start with quieter streets and more shade.',createdAt:'2026-10-06T10:01:00.000Z',edited:false},
+        {id:'reply-2',rootId:'root-1',replyToId:'root-1',state:'visible',authorId:'demo-alex',actorType:'human',
+          body:'More places to meet would help too.',createdAt:'2026-10-06T10:02:00.000Z',edited:false}
+      ];
+      window.visualDiscussionPanel.render(window.visualDiscussionState);
+      document.querySelector('[data-action="expand"][data-contribution-id="root-1"]').click();
+      document.querySelector('[data-action="expand"][data-contribution-id="reply-1"]').click();
+      document.querySelector('.discussion-thread-card')?.scrollIntoView({block:'start'});
+    })()`, sessionId);
+    assert.equal(await evaluate("(() => {const toggle=document.querySelector('[data-action=expand][data-contribution-id=reply-1]');return toggle?.getAttribute('aria-expanded')==='true' && document.querySelectorAll('.discussion-reply-branch').length===3 && document.querySelectorAll('.discussion-source-link').length===2})()", sessionId), true,
+      "nested reply bubbles preserve out-of-order parent lineage and per-post source links");
+    await new Promise((resolve) => setTimeout(resolve, 240));
+    await capture("nested-replies", sessionId);
+    await evaluate("window.visualDiscussionState.discussion.roots[0].replies=[];window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.draft={body:'A thoughtful reply',detached:false,mode:'reply',targetId:'root-1'};window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     assert.equal(await evaluate("(() => { const cue=document.querySelector('#discussion-reply-context'); return cue && !cue.hidden && cue.textContent.includes('Blair') && document.querySelector('#discussion-submit').textContent === 'Post reply'; })()", sessionId), true,
       "reply composer identifies its exact target before submission");

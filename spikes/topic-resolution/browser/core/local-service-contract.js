@@ -241,6 +241,17 @@ export function readDiscussion(value, topicId) {
   for (const root of roots) {
     const ids = new Set([root.id, ...root.replies.map((reply) => reply.id)]);
     if (root.replies.some((reply) => reply.replyToId !== null && !ids.has(reply.replyToId))) invalid();
+    const repliesById = new Map(root.replies.map((reply) => [reply.id, reply]));
+    for (const reply of root.replies) {
+      const seen = new Set();
+      let current = reply;
+      while (current.replyToId !== null && current.replyToId !== root.id) {
+        if (seen.has(current.id)) invalid();
+        seen.add(current.id);
+        current = repliesById.get(current.replyToId);
+        if (!current) invalid();
+      }
+    }
   }
   return { version: readVersion(item.version), topic: projectedTopic, discussionId: readId(item.discussionId), roots };
 }
