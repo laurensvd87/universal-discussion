@@ -12,13 +12,14 @@ const EVENTS = ["response.created", "response.in_progress", "response.output_ite
   "response.refusal.delta", "response.refusal.done", "response.completed",
   "response.failed", "response.incomplete", "error"];
 function trace() {
-  return { schema: "insight-response-trace/v1", outcome: "failure", detail: "response-item-prefix",
+  return { schema: "insight-response-trace/v2", outcome: "failure", detail: "response-item-prefix",
     events: { sequence: ["response.created", "response.completed"],
       counts: Object.fromEntries(EVENTS.map((event) => [event, event === "response.completed" ? 1 : 0])),
       otherCount: 0 }, createdCount: 1, createdFinalMatch: true, finalStatus: "completed",
     observedItems: [{ phase: "done", index: 0, type: "message", status: "completed" }],
     finalOutput: [], finalOutputCount: 0, candidateCount: 1, candidateIndex: 0,
-    textDoneCount: 0, contentDoneCount: 0, fallbackFailure: "response-item-prefix", fallbackBranch: "length" };
+    textDoneCount: 0, contentDoneCount: 0, fallbackFailure: "response-item-prefix", fallbackBranch: "length",
+    citationFailure: null };
 }
 function withTemp(run) {
   const tempDirectory = mkdtempSync(path.join(tmpdir(), "insight-log-test-"));
@@ -38,10 +39,13 @@ test("fixed temp path stores only a validated structural line", () => withTemp((
 test("accepts only fixed web research rejection details", () => withTemp((tempDirectory) => {
   const log = createInsightTraceLog({ tempDirectory });
   for (const detail of ["response-web-citation", "response-web-evidence", "response-unsafe-url"]) {
-    assert.equal(log.write({ ...trace(), detail, fallbackFailure: detail }), true);
+    assert.equal(log.write({ ...trace(), detail, fallbackFailure: detail,
+      citationFailure: detail === "response-web-citation" ? "unselected-url" : null }), true);
   }
+  assert.equal(log.write({ ...trace(), detail: "response-web-citation",
+    citationFailure: "current-source-url" }), true);
   const raw = readFileSync(log.filePath, "utf8");
-  assert.equal(raw.split("\n").filter(Boolean).length, 3);
+  assert.equal(raw.split("\n").filter(Boolean).length, 4);
   assert.equal(raw.includes("https://"), false);
 }));
 
@@ -51,6 +55,9 @@ test("rejects unknown fields and free strings before writing", () => withTemp((t
   for (const changed of [
     { ...trace(), pageText: secret },
     { ...trace(), detail: secret },
+    { ...trace(), citationFailure: secret },
+    { ...trace(), citationFailure: "unselected-url" },
+    { ...trace(), outcome: "success", detail: "response-web-citation", citationFailure: "unselected-url" },
     { ...trace(), events: { ...trace().events, sequence: [secret] } },
     { ...trace(), observedItems: [{ ...trace().observedItems[0], id: secret }] },
     { ...trace(), observedItems: [{ ...trace().observedItems[0], type: secret }] },
@@ -66,7 +73,7 @@ test("keeps one fixed file below the size cap", () => withTemp((tempDirectory) =
   assert.ok(raw.startsWith("INSIGHT_TRACE "));
   assert.ok(raw.endsWith("\n"));
   for (const line of raw.trimEnd().split("\n")) assert.equal(JSON.parse(line.slice("INSIGHT_TRACE ".length)).schema,
-    "insight-response-trace/v1");
+    "insight-response-trace/v2");
 }));
 
 test("rejects a linked log file without touching its target", { skip: process.platform === "win32" }, () => withTemp((tempDirectory) => {

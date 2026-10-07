@@ -35,6 +35,25 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-07 citation rejection diagnostic and non-LLM Topic-title review
+([ADR-056](../decisions/ADR-056-insight-citation-display-metadata.md)):** A
+provider citation to an exact selected URL with a missing or unusable display
+title was incorrectly rejected as `response-web-citation`; the parser now
+uses the already validated local Source title in that case. Exact selected
+URL and span checks remain strict. A fixed, content-free trace v2 identifies
+whether a later rejection is an invalid URL/span, the current Source URL, or
+another unselected URL. The owner's specific failure was not captured, so
+the root cause remains unconfirmed; canonical/redirect/current-Source URL
+relaxation is **not** approved or implemented. Full service 255 passed/four
+optional skips, loopback integration 2/2, secret scan zero, independent Trust
+review no blocker. One deliberate public-page live QA attempt stopped before
+any Responses call because the protected ChatGPT plan was unavailable. The
+local service was restarted with unchanged Origin and retained state. The
+[non-LLM naming review](../research/NON_LLM_TOPIC_TITLES_2026-10-07.md)
+recommends evaluating a stable representative headline from current Topic
+members; embeddings can rank labels but cannot generate words. No Topic
+title behavior changed yet.
+
 **2026-10-07 article-aware Insight source selection (extension 0.13.18,
 [ADR-055](../decisions/ADR-055-insight-specific-source-selection.md)):** The
 owner asked to remove duplicate article URLs, rank candidate sources for the

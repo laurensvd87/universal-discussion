@@ -1,5 +1,14 @@
 # Local service
 
+`response-web-citation` no longer rejects an exact selected URL solely
+because ChatGPT omitted an optional/unusable display title; it uses the
+locally validated Source title instead. The content-free `INSIGHT_TRACE` v2
+adds `citationFailure` (`invalid-url`, `current-source-url`,
+`unselected-url`, `invalid-span`) for later diagnosis. Exact selected-URL
+and span rules remain unchanged. The specific owner failure was not captured
+before this fix; a repeated error should be classified by its new terminal
+trace. See [ADR-056](../../decisions/ADR-056-insight-citation-display-metadata.md).
+
 ADR-054 changes new Insights to ChatGPT-only related-source research: the
 extension no longer fetches or extracts related pages. On an explicit Insight,
 up to five selected eligible public HTTPS candidate URLs can be sent to the
@@ -102,7 +111,8 @@ is per invocation, not a cross-process budget.
 The interactive backend terminal prints one `INSIGHT_TRACE` JSON line when an
 explicit Create insight request reaches the bounded Responses SSE parser. It
 lists recognized event order/counts, item type/status/index, terminal output
-shape and the exact local rejection boundary. It contains no provider/page
+shape, the exact local rejection boundary and a fixed citation-failure
+category when applicable. It contains no provider/page
 text, URLs, IDs, tokens, account/model, raw headers or usage counts, and is
 not written to a file or SQLite in normal mode. An earlier HTTP/format/timeout
 failure still has only its fixed result code.

@@ -10,6 +10,16 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The local-service citation parser now accepts an exact selected web citation
+even when ChatGPT omits or spoils its display title, using the validated local
+Source title instead. Exact URL/span checks remain; the original owner's
+`response-web-citation` case still needs a fresh trace to identify its cause.
+The service has been restarted; no extension reload or pairing reset is needed
+for this backend-only fix. See [ADR-056](decisions/ADR-056-insight-citation-display-metadata.md).
+A [non-LLM Topic-title review](research/NON_LLM_TOPIC_TITLES_2026-10-07.md)
+recommends a representative member headline as the first tested improvement;
+no production Topic naming changed yet.
+
 Extension **0.13.18** improves the five related links offered for an Insight:
 alternate URLs for the same article and recognizable search-result pages no
 longer consume slots, while distinctive headline and URL details can promote

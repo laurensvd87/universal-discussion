@@ -30,6 +30,8 @@ const TRACE_ITEM_TYPES = new Set(["message", "web_search_call", "reasoning"]);
 const TRACE_STATUSES = new Set(["in_progress", "completed", "incomplete", "failed"]);
 const TRACE_PREFIX_BRANCHES = new Set(["length", "candidate-repeated", "later-observed",
   "prior-id", "prior-shape"]);
+const TRACE_CITATION_FAILURES = new Set(["invalid-url", "current-source-url", "unselected-url", "invalid-span"]);
+const citationFailures = new WeakMap();
 const LIMITATIONS = new Set(["grouping-provisional", "related-not-same-topic", "title-url-only", "sources-unverified", "visible-roots-only"]);
 const CATALOG_DETAILS = new Set(["catalog-redirect", "catalog-content-type", "catalog-body", "catalog-too-large",
   "catalog-stream", "catalog-encoding", "catalog-json", "catalog-shape", "catalog-entry"]);
@@ -55,6 +57,11 @@ export class ChatGptInsightError extends Error {
   }
 }
 function fail(code, detail) { throw new ChatGptInsightError(code, detail); }
+function failCitation(reason) {
+  const error = new ChatGptInsightError("invalid-response", "response-web-citation");
+  citationFailures.set(error, reason);
+  throw error;
+}
 function object(value) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
       ![Object.prototype, null].includes(Object.getPrototypeOf(value))) fail("invalid-input");
@@ -206,17 +213,24 @@ async function responseError(response, signal) {
   }
   fail(errorForStatus(response?.status), response?.status === 400 ? "response-http-400" : undefined);
 }
-function safeCitation(value, body, offset, allowedWebUrls) {
+function safeCitation(value, body, offset, allowedWebUrls, context) {
   if (!value || value.type !== "url_citation") return null;
-  try {
-    const url = publicUrl(value.url);
-    const title = text(value.title, 512);
-    const startIndex = value.start_index, endIndex = value.end_index;
-    if (!Number.isSafeInteger(startIndex) || !Number.isSafeInteger(endIndex) ||
-        startIndex < 0 || endIndex <= startIndex || endIndex > body.length ||
-        !allowedWebUrls.has(url)) fail("invalid-response", "response-web-citation");
-    return { url, title, startIndex: offset + startIndex, endIndex: offset + endIndex };
-  } catch { fail("invalid-response", "response-web-citation"); }
+  let url;
+  try { url = publicUrl(value.url); } catch { failCitation("invalid-url"); }
+  if (!allowedWebUrls.has(url))
+    failCitation(url === context.currentSource.url ? "current-source-url" : "unselected-url");
+  const startIndex = value.start_index, endIndex = value.end_index;
+  if (!Number.isSafeInteger(startIndex) || !Number.isSafeInteger(endIndex) ||
+      startIndex < 0 || endIndex <= startIndex || endIndex > body.length)
+    failCitation("invalid-span");
+  // The URL and span establish the citation. A provider-supplied display
+  // title can be absent or unusable without making an exact citation unsafe.
+  const selected = [...context.sameTopicSources, ...context.relatedSources]
+    .find((source) => source.url === url);
+  if (!selected) failCitation("unselected-url");
+  let title = selected.title;
+  try { title = text(value.title, 512); } catch { /* Use the attested local title. */ }
+  return { url, title, startIndex: offset + startIndex, endIndex: offset + endIndex };
 }
 function validateOutputLinks(body, webCitations) {
   const coveringCitation = (start, length, url) => webCitations.some((citation) =>
@@ -275,7 +289,7 @@ function completed(value, model, streamShape, relatedExcerpts, context, allowedW
       if (Array.isArray(part.annotations)) {
         if (part.annotations.length > 50) fail("invalid-response", "response-output-too-large");
         for (const annotation of part.annotations) {
-          const citation = safeCitation(annotation, part.text, offset, allowedWebUrls);
+          const citation = safeCitation(annotation, part.text, offset, allowedWebUrls, context);
           if (citation) citations.push(citation);
         }
       }
@@ -446,6 +460,7 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, allowedWebUrls)
   let contentDoneCount = 0;
   let outcome = "success";
   let detail = null;
+  let citationFailure = null;
   try {
   for (const frame of frames) {
     const data = frame.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
@@ -552,11 +567,12 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, allowedWebUrls)
   } catch (error) {
     outcome = "failure";
     detail = INSIGHT_DETAILS.has(error?.detail) ? error.detail : null;
+    if (detail === "response-web-citation") citationFailure = citationFailures.get(error) ?? null;
     throw error;
   } finally {
     if (onTrace) {
       const output = Array.isArray(final?.output) ? final.output : [];
-      const trace = { schema: "insight-response-trace/v1", outcome, detail,
+      const trace = { schema: "insight-response-trace/v2", outcome, detail,
         events: { sequence: eventSequence, counts: eventCounts, otherCount: otherEventCount },
         createdCount: Math.min(streamShape.createdCount, 101),
         createdFinalMatch: typeof streamShape.createdId === "string" &&
@@ -567,7 +583,8 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, allowedWebUrls)
         candidateCount: Math.min(streamShape.candidateCount, 101),
         candidateIndex: traceIndex(streamShape.candidate?.index), textDoneCount, contentDoneCount,
         fallbackFailure: INSIGHT_DETAILS.has(streamShape.fallbackFailure) ? streamShape.fallbackFailure : null,
-        fallbackBranch: TRACE_PREFIX_BRANCHES.has(streamShape.fallbackBranch) ? streamShape.fallbackBranch : null };
+        fallbackBranch: TRACE_PREFIX_BRANCHES.has(streamShape.fallbackBranch) ? streamShape.fallbackBranch : null,
+        citationFailure: TRACE_CITATION_FAILURES.has(citationFailure) ? citationFailure : null };
       try {
         const sent = onTrace(trace);
         if (sent && typeof sent.then === "function") void Promise.resolve(sent).catch(() => {});

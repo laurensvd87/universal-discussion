@@ -314,6 +314,46 @@ test("provider citations reject every URL outside the exact request-scoped web c
   }
 });
 
+test("exact provider citation uses the selected title when display metadata is unusable", async () => {
+  const selected = CONTEXT.sameTopicSources[0];
+  for (const title of [undefined, "", "x".repeat(513), "unsafe\nmetadata"]) {
+    const annotation = { type: "url_citation", url: selected.url,
+      start_index: 0, end_index: 7, ...(title === undefined ? {} : { title }) };
+    const adapter = createChatGptInsights({ fetchImpl: async (endpoint) =>
+      endpoint.endsWith("/models") ? models() : stream(complete("Finding.", [annotation])),
+    getAccessToken: async () => ACCESS });
+    const result = await adapter.createInsight({ ...REQUEST, allowWebResearch: true });
+    assert.deepEqual(result.citations, [{ url: selected.url, title: selected.title,
+      startIndex: 0, endIndex: 7 }]);
+    adapter.dispose();
+  }
+});
+
+test("web citation rejection trace contains only a fixed reason", async () => {
+  const secret = "SECRET_CITATION_MATERIAL";
+  const selectedUrl = CONTEXT.sameTopicSources[0].url;
+  for (const [url, start_index, end_index, expected] of [
+    ["https://research.example.net/other", 0, 7, "unselected-url"],
+    [CONTEXT.currentSource.url, 0, 7, "current-source-url"],
+    [`javascript:${secret}`, 0, 7, "invalid-url"],
+    [selectedUrl, 0, 99, "invalid-span"],
+  ]) {
+    const traces = [];
+    const annotation = { type: "url_citation", url, title: secret, start_index, end_index };
+    const adapter = createChatGptInsights({ fetchImpl: async (endpoint) =>
+      endpoint.endsWith("/models") ? models() : stream(complete("Finding.", [annotation])),
+    getAccessToken: async () => ACCESS, onTrace: (trace) => traces.push(trace) });
+    await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true }),
+      (error) => error.detail === "response-web-citation");
+    assert.equal(traces.length, 1);
+    assert.equal(traces[0].schema, "insight-response-trace/v2");
+    assert.equal(traces[0].citationFailure, expected);
+    assert.equal(JSON.stringify(traces).includes(secret), false);
+    assert.equal(JSON.stringify(traces).includes(url), false);
+    adapter.dispose();
+  }
+});
+
 test("required web search without a completed tool call cannot create a private draft", async () => {
   const supplied = { sourceId: "same", url: CONTEXT.sameTopicSources[0].url, text: "Supplied excerpt." };
   const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
@@ -1162,7 +1202,8 @@ test("research response trace identifies a missing finalized item without provid
     return true;
   });
   assert.equal(traces.length, 1);
-  assert.equal(traces[0].schema, "insight-response-trace/v1");
+  assert.equal(traces[0].schema, "insight-response-trace/v2");
+  assert.equal(traces[0].citationFailure, null);
   assert.equal(traces[0].outcome, "failure");
   assert.equal(traces[0].detail, "response-item-prefix");
   assert.equal(traces[0].fallbackFailure, "response-item-prefix");

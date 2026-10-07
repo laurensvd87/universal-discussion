@@ -206,7 +206,12 @@ export async function runLiveInsightQa(args, { fetchImpl = fetch, print = consol
       readRegistration: store.readRegistration, writeRegistration: store.writeRegistration,
       fetchImpl: provider.fetch, refreshStore });
     if (!await connection.restore() || !connection.status().planEnabled) fail("Connected ChatGPT plan unavailable");
-    insights = createChatGptInsights({ fetchImpl: provider.fetch, getAccessToken: connection.getAccessToken });
+    insights = createChatGptInsights({ fetchImpl: provider.fetch, getAccessToken: connection.getAccessToken,
+      onTrace: (trace) => {
+        // Fixed categories only; never print page text, URLs or provider output.
+        if (trace?.outcome === "failure") print(JSON.stringify({ status: "rejected",
+          detail: trace.detail, citationFailure: trace.citationFailure ?? null }));
+      } });
     const models = await insights.listModels();
     const selectedModel = chooseListedModel(models, model);
     const page = withRelatedText || withWebSearch ? RELATED_TEXT_PAGE : PUBLIC_PAGE;

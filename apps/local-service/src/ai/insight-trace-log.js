@@ -15,6 +15,7 @@ const EVENT_SET = new Set([...EVENTS, "other"]);
 const TYPES = new Set(["message", "web_search_call", "reasoning", "other"]);
 const STATUSES = new Set(["in_progress", "completed", "incomplete", "failed", "other"]);
 const PREFIX_BRANCHES = new Set(["length", "candidate-repeated", "later-observed", "prior-id", "prior-shape"]);
+const CITATION_FAILURES = new Set(["invalid-url", "current-source-url", "unselected-url", "invalid-span"]);
 const DETAILS = new Set(["response-redirect", "response-content-type", "response-content-json", "response-content-html",
   "response-content-text", "response-content-missing", "response-content-other", "response-stream", "response-too-large",
   "response-encoding", "response-event", "response-no-final", "response-empty-output", "response-no-message",
@@ -40,10 +41,14 @@ function item(value) {
 function validTrace(value) {
   if (!exactKeys(value, ["schema", "outcome", "detail", "events", "createdCount", "createdFinalMatch",
     "finalStatus", "observedItems", "finalOutput", "finalOutputCount", "candidateCount",
-    "candidateIndex", "textDoneCount", "contentDoneCount", "fallbackFailure", "fallbackBranch"]) ||
-    value.schema !== "insight-response-trace/v1" || !["success", "failure"].includes(value.outcome) ||
+    "candidateIndex", "textDoneCount", "contentDoneCount", "fallbackFailure", "fallbackBranch",
+    "citationFailure"]) ||
+    value.schema !== "insight-response-trace/v2" || !["success", "failure"].includes(value.outcome) ||
     !detail(value.detail) || !detail(value.fallbackFailure) ||
     !(value.fallbackBranch === null || PREFIX_BRANCHES.has(value.fallbackBranch)) ||
+    !(value.citationFailure === null ||
+      value.outcome === "failure" && value.detail === "response-web-citation" &&
+      CITATION_FAILURES.has(value.citationFailure)) ||
     !exactKeys(value.events, ["sequence", "counts", "otherCount"]) ||
     !Array.isArray(value.events.sequence) || value.events.sequence.length > 24 ||
     !value.events.sequence.every((entry) => EVENT_SET.has(entry)) ||
