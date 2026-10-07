@@ -35,6 +35,36 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-07 related-text verification and Topic-matching shadow (extension
+0.13.13):** The owner reports that Insights still appear not to use reference
+pages and wants quicker, density-adaptive Topic matches. The related reader had
+a concrete parser bug: an `<article>` token inside a script/hidden area could
+make it ignore an otherwise usable visible `<main>`. The corrected bounded
+reader selects only visible regions; a socket-denied through-controller test
+now proves that its excerpt reaches exactly one explicit Insight request.
+Extension restricted suite 967/967 and independent read-only Trust review pass.
+No fetch, provider, retention or publication limit changed. A read-only test
+of the owner's HLN catalog entry found 20 vector nominations and inspected
+its selected four via anonymous Node fetch: Telegraaf and De Standaard returned
+403, Google redirected, and Vietnam.vn returned 200 in a later check; the
+bounded reader then accepted one 2,048-character Vietnam.vn excerpt. The
+first four-page attempt accepted zero; its coarse diagnostic grouped all
+failures as fetch/HTTP/redirect, so their exact causes were not established.
+These are terminal-path observations, not a Chrome-page attestation. One
+separately requested live, public PEP QA sent one Responses request with three
+accepted related excerpts (5,567 characters); its private 65-word result
+used a concrete PEP 8/PEP 257 contrast. No result was shared. The service was
+restarted with the same durable pairing afterward.
+
+An offline synthetic [whole-neighborhood shadow](../apps/local-service/experiments/topic-cloud/adaptive-neighborhood-README.md)
+passes 5/5: it joins three mutually .92-similar pages the current planner
+leaves separate, but also falsely joins an intentionally distinct .93 pair.
+No production Topic threshold, Source link, discussion, schema or owner data
+was changed. “Related” remains a candidate relation, not proof of identical
+Topic. An always-available *related discussion suggestion* without merging
+Topics is the safer next UX/data proposal; automatic identity changes need
+graded real evidence and ADR-044/049's lifecycle, Trust and owner-data gates.
+
 **2026-10-07 private Insight stability (extension 0.13.12):** The owner reported
 that Insights appeared to refresh repeatedly and Share often required multiple
 clicks. The immediate causes were repeated unchanged page/resolution projections

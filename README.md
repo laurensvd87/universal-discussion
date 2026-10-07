@@ -643,6 +643,17 @@ sharing; nothing is regenerated or published automatically. Restart the local
 service and reload the extension for both sides of this fix. See
 [ADR-050](decisions/ADR-050-stable-private-insights-across-unrelated-catalog-changes.md).
 
+Extension **0.13.13** fixes a reference-page parsing error: hidden/script
+`<article>` markup no longer masks visible `<main>` prose. The existing
+anonymous four-page, 2,048-character-per-page limits and explicit Insight
+click remain. A bounded test proves the extracted text reaches the Insight
+request; one public PEP live check used three excerpts, while some real news
+sites still returned 403 or a redirect and therefore supplied no text. Reload
+the extension for this reader fix; no local-service restart is required.
+Automatic Topic merging was **not** loosened: an isolated density-aware
+experiment improves one known split but also makes a false join. See the
+[shadow result](apps/local-service/experiments/topic-cloud/adaptive-neighborhood-README.md).
+
 To try the discussion loop:
 
 1. Load/reload the unpacked extension; copy its ID from `chrome://extensions`.

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ModelListFailure } from "../browser/core/local-ai-client.js";
 import { createInsightController, createInsightResumeGate } from "../browser/core/insight-controller.js";
+import { createRelatedPageExcerptReader } from "../browser/core/related-page-excerpts.js";
 import { createLocalDiscussionController } from "../browser/core/local-discussion-controller.js";
 import { createMemoryDemoService } from "../../../apps/local-service/src/application/create-demo-service.js";
 import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indicator-fixtures.js";
@@ -236,6 +237,48 @@ test("related text is fetched only at explicit Insight click and default-on can 
   assert.equal(fetches, 1);
   assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
   assert.equal(app.insight.currentState().ai.diagnostics.relatedExcerpts, null);
+});
+
+test("real related reader supplies visible main text to one explicit Insight request", async () => {
+  const peerUrl = "https://example.org/";
+  const prose = "This visible public article gives relevant background on the development. ".repeat(8);
+  const html = `<html><head><script>const preview = "<article>";</script></head><body>` +
+    `<div hidden><article>Hidden material.</article></div><main><p>${prose}</p></main></body></html>`;
+  let fetches = 0, starts = 0, request;
+  const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async (url, options) => {
+      fetches++;
+      assert.equal(url, peerUrl);
+      assert.equal(options.credentials, "omit");
+      assert.equal(options.redirect, "error");
+      return { ok: true, redirected: false, url, headers: new Headers({ "content-type": "text/html" }),
+        body: new ReadableStream({ start(controller) {
+          controller.enqueue(new TextEncoder().encode(html)); controller.close();
+        } }) };
+    } });
+  const aiClient = {
+    status: async () => ({ connected: true, planEnabled: true, pending: false,
+      account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a", displayName: "A" }],
+    start: async (value) => { starts++; request = value; return { operationId: value.operationId, state: "running" }; },
+    result: async (operationId) => ({ operationId, state: "completed",
+      result: { body: "Private draft", model: "model-a", citations: [] } }),
+    cancel: async () => true,
+  };
+  const app = await harness({ aiClient, readRelatedExcerpts: reader.read,
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc", text: "Current public article" }),
+    attestArticle: async () => true, randomId: () => "actual-reader-op" });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(fetches, 0);
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(fetches, 1);
+  assert.equal(starts, 1);
+  assert.equal(request.relatedExcerpts.length, 1);
+  assert.equal(request.relatedExcerpts[0].sourceId, "reserved-example-org");
+  assert.equal(request.relatedExcerpts[0].url, peerUrl);
+  assert.ok(request.relatedExcerpts[0].text.startsWith("This visible public article"));
+  assert.ok(!request.relatedExcerpts[0].text.includes("Hidden material"));
+  assert.equal(app.insight.currentState().relatedExcerptCount, 1);
 });
 
 test("saved related-text off is hydrated before a Get insights fetch can begin", async () => {

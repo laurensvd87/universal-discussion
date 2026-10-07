@@ -85,10 +85,17 @@ export function extractRelatedPageText(html) {
   for (const marker of html.matchAll(CLASS_OR_ID)) {
     if (LOCKED_MARKER.test(marker[1] ?? marker[2] ?? marker[3])) return "";
   }
-  const pieces = [];
+  const pieces = { article: [], main: [], body: [] };
+  const lengths = { article: 0, main: 0, body: 0 };
   const stack = [];
-  const region = /<\s*article\b/iu.test(html) ? "article" : /<\s*main\b/iu.test(html) ? "main" : null;
-  let length = 0;
+  let visibleArticle = false, visibleMain = false;
+  const append = (value, inArticle, inMain) => {
+    for (const region of ["body", ...(inMain ? ["main"] : []), ...(inArticle ? ["article"] : [])]) {
+      if (lengths[region] >= MAX_TEXT * 2) continue;
+      pieces[region].push(value);
+      lengths[region] += value.length;
+    }
+  };
   const tokens = tokenize(html);
   if (!tokens) return "";
   for (const token of tokens) {
@@ -109,23 +116,32 @@ export function extractRelatedPageText(html) {
       const selfClosing = /\/\s*>$/u.test(token);
       if (selfClosing && !VOID.has(tag) && tag !== "svg" && !stack.some((entry) => entry.tag === "svg")) return "";
       const hidden = HIDDEN.has(tag) || hiddenAttributes(attributes) || stack.some((entry) => entry.hidden);
+      if (!hidden && tag === "article") visibleArticle = true;
+      if (!hidden && tag === "main") visibleMain = true;
       if (!VOID.has(tag) && !selfClosing) {
         if (stack.length >= MAX_DEPTH) return "";
         stack.push({ tag, hidden });
       }
-      if (!hidden && (!region || stack.some((entry) => entry.tag === region && !entry.hidden)) &&
-          /^(?:p|div|article|main|section|h[1-6]|li|br)$/u.test(tag)) { pieces.push(" "); length++; }
+      if (!hidden && /^(?:p|div|article|main|section|h[1-6]|li|br)$/u.test(tag)) {
+        append(" ", stack.some((entry) => entry.tag === "article" && !entry.hidden),
+          stack.some((entry) => entry.tag === "main" && !entry.hidden));
+      }
       continue;
     }
-    if (!stack.some((entry) => entry.hidden) &&
-        (!region || stack.some((entry) => entry.tag === region && !entry.hidden))) {
+    if (!stack.some((entry) => entry.hidden)) {
       const decoded = decodeEntities(token);
-      pieces.push(decoded); length += decoded.length;
+      append(decoded, stack.some((entry) => entry.tag === "article" && !entry.hidden),
+        stack.some((entry) => entry.tag === "main" && !entry.hidden));
     }
-    if (length >= MAX_TEXT * 2) break;
+    if (lengths.body >= MAX_TEXT * 2 && lengths.main >= MAX_TEXT * 2 && lengths.article >= MAX_TEXT * 2) break;
   }
   if (stack.some((entry) => entry.hidden)) return "";
-  return pieces.join("").replace(/\s+/gu, " ").trim().slice(0, MAX_TEXT).trim();
+  const excerpt = (region) => pieces[region].join("").replace(/\s+/gu, " ").trim().slice(0, MAX_TEXT).trim();
+  const article = excerpt("article");
+  if (article.length >= 80) return article;
+  const main = excerpt("main");
+  if (main.length >= 80) return main;
+  return visibleArticle || visibleMain ? article || main : excerpt("body");
 }
 
 export function createRelatedPageExcerptReader({ fetchImpl, hasHostAccess }) {

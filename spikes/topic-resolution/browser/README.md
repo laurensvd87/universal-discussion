@@ -1,5 +1,13 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.13 (2026-10-07) corrects reference-page extraction when an
+inert/hidden `<article>` appears before real visible `<main>` text. It keeps
+the same four anonymous fetch attempts and 2,048-character excerpt cap.
+Reload the unpacked extension; the backend need not restart for this reader
+change. Some publishers still reject anonymous fetches, so not every selected
+reference can contribute text. Developer Mode's content-free excerpt counts
+distinguish a selected link from successfully read text.
+
 Extension 0.13.12 (2026-10-07) stabilizes private Insights during ordinary
 browsing. Unchanged page observations no longer create redundant ingests, and
 unrelated catalog updates do not discard an active or completed Insight. Share

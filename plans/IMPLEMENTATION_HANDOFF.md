@@ -1,5 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-07 reference-page follow-up: extension 0.13.13 fixes an inert/hidden
+`<article>` decoy masking a visible `<main>` excerpt. Socket-denied tests
+cover reader-to-Insight forwarding; a single public PEP ChatGPT QA used three
+excerpts. Anonymous news-site 403/redirects still cause zero-text context for
+those candidates; do not claim Chrome or general-site coverage. A synthetic
+adaptive whole-neighborhood shadow fixes the .92 three-page split but falsely
+joins a .93 different-event pair. Do not activate it or regroup owner data;
+see current STATUS and ADR-044/049 gates.
+
 2026-10-07 Insight stability correction: the owner approved
 [ADR-050](../decisions/ADR-050-stable-private-insights-across-unrelated-catalog-changes.md).
 An unrelated catalog revision must no longer discard a private Insight.

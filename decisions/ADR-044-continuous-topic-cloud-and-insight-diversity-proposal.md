@@ -257,3 +257,15 @@ followed the first measurement, so the amended result is exploratory. It
 does not justify deploying title scoring, changing the 0.90/0.94 grouping
 rule or describing Topics as reliably stance-independent. Production
 discussion identity and the 100-Source/Topic ceiling remain unchanged.
+
+## Additional adaptive-neighborhood shadow (2026-10-07)
+
+The later [synthetic comparison](../apps/local-service/experiments/topic-cloud/adaptive-neighborhood-README.md)
+removes the fresh-batch planner's global outside-member margin while keeping
+complete-link pair checks and supported tight-subgroup boundaries. Five
+socket-denied tests show that three mutually .92-similar pages join across
+tested arrival orders, and a bridge alone does not merge two distant
+endpoints. But a fixture-labeled different event at .93 falsely joins.
+These vectors are invented and cannot calibrate subject identity. The shadow
+does not run in production or touch retained owner data; activation still
+requires graded real evidence and ADR-023/044/049 lifecycle and data review.

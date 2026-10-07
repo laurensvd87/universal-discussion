@@ -91,6 +91,28 @@ test("text tokenizer decodes prose without DOM execution or subresource loads", 
   assert.equal(text, "One & two — three More text.");
 });
 
+test("inert article-looking markup cannot hide the visible main excerpt", async () => {
+  const url = "https://news.example.org/visible-main";
+  const prose = "A visible public report adds context to the current source. ".repeat(8);
+  const html = `<html><head><script>const card = "<article class='preview'>";</script></head><body>` +
+    `<div hidden><article>Hidden subscriber material.</article></div><main><p>${prose}</p></main></body></html>`;
+  const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async () => response(url, html) });
+  let diagnostic;
+  const excerpts = await reader.read({ sameTopicSources: [], relatedSources: [{ id: "peer", url }] }, [], null,
+    (value) => { diagnostic = value; });
+  assert.equal(excerpts.length, 1);
+  assert.ok(excerpts[0].text.startsWith("A visible public report"));
+  assert.ok(!excerpts[0].text.includes("Hidden subscriber"));
+  assert.equal(diagnostic.accepted, 1);
+});
+
+test("a short visible article card does not displace a substantive main region", () => {
+  const prose = "This public page gives the substantive account of the event. ".repeat(8);
+  const html = `<body><article>Related story card.</article><main><p>${prose}</p></main></body>`;
+  assert.ok(extractRelatedPageText(html).startsWith("This public page"));
+});
+
 test("raw script, style and noscript cannot break out through synthetic markup", () => {
   const visible = "Public article text. ".repeat(8);
   for (const tag of ["script", "style", "noscript", "textarea", "title", "iframe", "xmp", "noembed", "noframes"]) {
