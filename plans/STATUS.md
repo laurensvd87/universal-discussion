@@ -35,6 +35,29 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-07 101st-page client compatibility correction (extension 0.13.11):**
+The owner's next page did save at SQLite revision 378 (101 Sources, 101 Topics,
+13 contributions), proving the service-side fixed-count removal worked. The
+popup then showed `Local service unavailable` because `readCatalog` still
+rejected more than 100 Topics/Sources; related-source ranking and Insight
+context had the same stale catalog count assumption. No data disappeared and
+the durable pairing verifier/Origin remain active. Client catalog,
+prior-discussion and cleanup-result readers now use bounds derived from the
+existing 1 MiB HTTP response maximum, while related ranking accepts
+snapshot-sized candidates and still returns at most 100; Insight context
+retains its five-source display/provider scope. Regression tests cover 101+
+entries, malformed final entries and 120 related candidates. Full extension
+restricted suite 956/956 and service suite 232/236 (four optional skips) pass.
+A separate read-only projection of the owner's actual SQLite snapshot passes
+the updated client catalog parser (101/101 at diagnosis; 102 Sources/101 Topics
+at revision 381 after restart) and related-result parser without printing
+URLs, vectors or tokens. Owner browsing advanced the revision; tests did not
+edit owner data. Independent read-only Trust review found no blocker, noting
+that larger related scans can still block synchronously near technical limits.
+The service was restarted with the same Origin and durable pairing; the owner
+must reload extension 0.13.11 for the client fix. Owner Chrome confirmation
+remains open. The longer-term scale/migration gate in ADR-049 is unchanged.
+
 **2026-10-06 catalog capacity correction (extension 0.13.10):** The owner
 reported that new pages no longer found Topics and explicitly rejected an
 arbitrary catalog count limit. Read-only inspection found the live SQLite

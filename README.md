@@ -627,6 +627,13 @@ budget is reached. This is an immediate PoC unblock, not unlimited-scale
 storage; see [ADR-049](decisions/ADR-049-remove-prototype-catalog-count-ceiling.md).
 Restart the local service and reload the extension to activate both sides.
 
+Extension **0.13.11** fixes the client-side follow-up: the first 101st page
+was saved correctly, but the popup still rejected catalogs above 100 entries
+and misleadingly called the service unavailable. Catalog, earlier-discussion
+and Insight projections now accept the existing response-size bound, and
+related-page ranking accepts larger stored catalogs. Reload this version;
+neither the pairing token nor saved discussion data needs resetting.
+
 To try the discussion loop:
 
 1. Load/reload the unpacked extension; copy its ID from `chrome://extensions`.

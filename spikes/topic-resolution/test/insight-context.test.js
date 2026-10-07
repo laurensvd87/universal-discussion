@@ -34,6 +34,20 @@ test("catalog membership and related nominees remain distinct and deterministic"
   assert.ok(Object.isFrozen(value) && Object.isFrozen(value.topic) && Object.isFrozen(value.sameTopicSources[0]) && Object.isFrozen(value.coverage));
 });
 
+test("101 catalog Topics and Sources still produce bounded insight context", () => {
+  const value = input();
+  value.catalog.topics = Array.from({ length: 101 }, (_, index) =>
+    ({ id: index === 0 ? "topic-a" : `topic-${index}`, title: `Topic ${index}`, kind: "general" }));
+  value.catalog.sources = [source("current"), ...Array.from({ length: 100 }, (_, index) => source(`peer-${index}`))];
+  value.related.results = [];
+  const context = buildInsightContext(value);
+  assert.equal(context.coverage.sameTopicTotal, 100);
+  assert.equal(context.sameTopicSources.length, 4);
+  assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 5);
+  value.catalog.sources[100] = { ...value.catalog.sources[100], id: "current" };
+  assert.throws(() => buildInsightContext(value), /Invalid insight context/);
+});
+
 test("Topic-only selection accepts no related projection, but a selected Source requires one", () => {
   const selectedTopic = { ...input(), sourceId: null, related: null };
   const context = buildInsightContext(selectedTopic);

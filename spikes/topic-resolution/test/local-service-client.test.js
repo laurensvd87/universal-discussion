@@ -138,6 +138,39 @@ test("prior-discussion GET transfers only a Source ID and rejects malformed summ
     { ...valid, topics: [valid.topics[0], valid.topics[0]] },
   ]) assert.throws(() => readPriorDiscussions(bad, sourceId), TypeError);
 });
+test("catalog and prior discussions accept 101 rows while validating the final row", async () => {
+  const base = structuredClone(demoService().catalog());
+  const topics = Array.from({ length: 101 }, (_, index) =>
+    ({ id: `topic-${index}`, title: `Topic ${index}`, kind: "general" }));
+  const sources = Array.from({ length: 101 }, (_, index) =>
+    ({ id: `source-${index}`, url: `https://example.com/article-${index}`, title: `Article ${index}`,
+      provenance: "owner-local-page-embedding/v1", topicId: topics[index].id }));
+  const catalog = { ...base, topics, sources };
+  const api = client(async () => json(catalog));
+  const received = await api.catalog();
+  assert.equal(received.topics.length, 101);
+  assert.equal(received.sources.length, 101);
+  for (const changed of [
+    { ...catalog, topics: [...topics.slice(0, 100), { ...topics[100], kind: "unsupported" }] },
+    { ...catalog, sources: [...sources.slice(0, 100), { ...sources[100], provenance: "untrusted" }] },
+    { ...catalog, sources: [...sources.slice(0, 100), { ...sources[100], topicId: "missing" }] },
+    { ...catalog, sources: [...sources.slice(0, 100), { ...sources[100], id: sources[0].id }] },
+  ]) await assert.rejects(client(async () => json(changed)).catalog(), code("invalid-response"));
+
+  const sourceId = "source-current";
+  const prior = { version: VERSION, sourceId, currentTopicId: "topic-current",
+    topics: topics.map((topic) => ({ ...topic, rootCount: 1 })) };
+  assert.equal((await client(async () => json(prior)).priorDiscussions(sourceId)).topics.length, 101);
+  const malformed = { ...prior, topics: [...prior.topics.slice(0, 100), { ...prior.topics[100], rootCount: 0 }] };
+  await assert.rejects(client(async () => json(malformed)).priorDiscussions(sourceId), code("invalid-response"));
+});
+test("cleanup receipts accept more than 100 IDs and validate the final ID", () => {
+  const ids = Array.from({ length: 101 }, (_, index) => `source-${index}`);
+  const receipt = { version: VERSION, result: { topicId: "topic-old", forgottenSourceIds: ids } };
+  assert.equal(readOutcome(receipt, "delete-learned-topic").result.forgottenSourceIds.length, 101);
+  assert.throws(() => readOutcome({ ...receipt, result: { ...receipt.result,
+    forgottenSourceIds: [...ids.slice(0, 100), "invalid/id"] } }, "delete-learned-topic"), TypeError);
+});
 function code(expected) {
   return (error) => error instanceof LocalServiceClientError && error.code === expected &&
     error.message === "Local service request failed" && !error.message.includes(TOKEN);

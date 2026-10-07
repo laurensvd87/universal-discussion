@@ -1,5 +1,12 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-07 101st-page follow-up: the 0.13.10 service accepted the owner's
+101st Source/Topic, but the extension's catalog DTO still rejected >100 rows
+and displayed `Local service unavailable`. Extension 0.13.11 removes the
+coupled client/Insight/related-ranker count assumptions within the existing
+byte/result guards. No data or pairing reset is needed; reload the extension
+and restart the service for the shared ranker. See current STATUS.
+
 2026-10-06 catalog-capacity correction: [ADR-049](../decisions/ADR-049-remove-prototype-catalog-count-ceiling.md)
 supersedes the historical 100-Source/100-Topic prototype cap below. Fixed
 Source/Topic counts are removed. The current snapshot, catalog-response and

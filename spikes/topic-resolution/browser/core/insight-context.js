@@ -1,8 +1,8 @@
 // A local, pure projection for an eventual private insight preview. Nothing here
 // reads a page, contacts a provider, or treats relatedness as Topic membership.
-import { readId, readPostOrigin, freeze } from "./local-service-contract.js";
+import { readId, readPostOrigin, freeze, MAX_CATALOG_ENTRIES } from "./local-service-contract.js";
 
-const MAX_SOURCES = 100;
+const MAX_RELATED_RESULTS = 100;
 const MAX_ROOTS = 1000;
 const DISPLAY_LIMIT = 5;
 const BODY_LIMIT = 800;
@@ -47,12 +47,12 @@ function sourceView(source) { return { id: source.id, url: source.url, title: so
 function byId(left, right) { return left.id < right.id ? -1 : left.id > right.id ? 1 : 0; }
 function normalizedTitle(source) { return source.title.normalize("NFKC").toLowerCase().replace(/\s+/gu, " ").trim(); }
 function host(source) { return new URL(source.url).hostname.replace(/^www\./u, ""); }
-function diverseOrder(candidates, alreadySelected) {
+function diverseOrder(candidates, alreadySelected, maximum = candidates.length) {
   const remaining = [...candidates];
   const selected = [];
   const seenTitles = new Set(alreadySelected.map(normalizedTitle));
   const seenHosts = new Set(alreadySelected.map(host));
-  while (remaining.length) {
+  while (remaining.length && selected.length < maximum) {
     // Compare only the next three ranked alternatives; equal scores retain rank.
     let best = 0;
     let bestPenalty = Infinity;
@@ -77,12 +77,12 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
     readId(topicId);
     if (sourceId !== null) readId(sourceId);
 
-    const topics = entries(field(catalog, "topics"), MAX_SOURCES);
+    const topics = entries(field(catalog, "topics"), MAX_CATALOG_ENTRIES);
     const selected = topics.filter((entry) => field(entry, "id") === topicId);
     if (selected.length !== 1) invalid();
     const topic = { id: topicId, title: safeText(field(selected[0], "title"), 200) };
 
-    const sources = entries(field(catalog, "sources"), MAX_SOURCES).map(sourceFromCatalog);
+    const sources = entries(field(catalog, "sources"), MAX_CATALOG_ENTRIES).map(sourceFromCatalog);
     const ids = new Set();
     for (const source of sources) {
       if (ids.has(source.id)) invalid();
@@ -97,7 +97,7 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
     const rankedPeers = [];
     const rankedPeerIds = new Set();
     const relatedIds = new Set();
-    const nominated = related === null && sourceId === null ? [] : entries(field(related, "results"), MAX_SOURCES);
+    const nominated = related === null && sourceId === null ? [] : entries(field(related, "results"), MAX_RELATED_RESULTS);
     for (const result of nominated) {
       const id = readId(field(result, "id"));
       const source = catalogById.get(id);
@@ -112,7 +112,8 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
         relatedIds.add(id);
       }
     }
-    const sameTopicSources = diverseOrder([...rankedPeers, ...peers.filter((source) => !rankedPeerIds.has(source.id))], current ? [current] : []);
+    const sameTopicSources = diverseOrder([...rankedPeers, ...peers.filter((source) => !rankedPeerIds.has(source.id))],
+      current ? [current] : [], DISPLAY_LIMIT);
     const relatedSources = diverseOrder([...relatedIds].map((id) => catalogById.get(id)),
       current ? [current, ...sameTopicSources.slice(0, DISPLAY_LIMIT - 1)] : sameTopicSources.slice(0, DISPLAY_LIMIT));
     const sourceSlots = DISPLAY_LIMIT - Number(current !== null);

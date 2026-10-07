@@ -78,6 +78,19 @@ test("scores are cosine similarities with inclusive threshold and bounded result
   assert.equal(rankRelatedSources(query(), Array.from({ length: 8 }, (_, i) => source(`s${i}`))).length, 5);
 });
 
+test("more than 100 candidates rank in order while results remain capped at 100", () => {
+  const candidates = Array.from({ length: 120 }, (_, index) => source(`s${String(index).padStart(3, "0")}`, {
+    embedding: embedding([index === 119 ? 1 : 0.9, index === 119 ? 0 : Math.sqrt(0.19)]),
+  }));
+  const results = rankRelatedSources(query(), candidates, { limit: 100 });
+  assert.equal(results.length, 100);
+  assert.equal(results[0].id, "s119");
+  assert.deepEqual(results.slice(1).map(({ id }) => id),
+    Array.from({ length: 99 }, (_, index) => `s${String(index).padStart(3, "0")}`));
+  assert.deepEqual(rankRelatedSources(query(), candidates.toReversed(), { limit: 2 }).map(({ id }) => id),
+    ["s119", "s000"]);
+});
+
 test("finite extreme and subnormal coordinates produce finite bounded scores", () => {
   for (const value of [Number.MAX_VALUE, Number.MIN_VALUE]) {
     const result = rankRelatedSources(
@@ -196,8 +209,7 @@ test("sparse, decorated, subclassed arrays and symbolic/nonenumerable fields rej
   }
 });
 
-test("candidate, dimension and string bounds are enforced with generic errors", () => {
-  rejects(() => rankRelatedSources(query(), Array.from({ length: 101 }, (_, i) => source(`s${i}`))));
+test("dimension and string bounds are enforced with generic errors", () => {
   rejects(() => rankRelatedSources(query(), [source("candidate", { embedding: embedding(Array(1_537).fill(1)) })]));
   for (const overrides of [
     { id: "a".repeat(129) }, { title: "a".repeat(513) }, { topicId: "a".repeat(129) },

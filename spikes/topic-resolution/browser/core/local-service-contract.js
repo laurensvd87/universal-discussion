@@ -4,6 +4,12 @@ const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066
 const KINDS = ["general", "event", "product", "claim"];
 const ACTORS = ["demo-alex", "demo-blair"];
 const LEARNED_POLICIES = ["provisional-all-source-cosine/v1", "adaptive-supported-partitions/v1"];
+// Every valid catalog/prior-topic JSON row takes more than 32 bytes on the wire.
+// The HTTP client rejects responses over 1 MiB, so this bounds direct projections
+// without retaining the retired 100-row PoC ceiling.
+export const MAX_CATALOG_ENTRIES = Math.floor(1_048_576 / 32);
+// The shortest valid serialized ID array item is "a", plus its comma.
+const MAX_RESULT_IDS = Math.floor(1_048_576 / 4);
 function invalid() { throw new TypeError("Invalid local service value"); }
 
 export function record(value, fields) {
@@ -156,7 +162,7 @@ export function readCatalog(value) {
     const actor = record(value, ["id", "displayName", "type"]);
     return { id: readActorId(actor.id), displayName: text(actor.displayName, 200), type: oneOf(actor.type, ["human"]) };
   }));
-  const topics = unique(array(item.topics, 100, (value) => {
+  const topics = unique(array(item.topics, MAX_CATALOG_ENTRIES, (value) => {
     const hasMarker = Object.hasOwn(value ?? {}, "learned");
     if (!hasMarker) return topic(value);
     const marked = record(value, ["id", "title", "kind", "learned"]);
@@ -164,7 +170,7 @@ export function readCatalog(value) {
     return { ...topic({ id: marked.id, title: marked.title, kind: marked.kind }), learned: true };
   }));
   const topicIds = new Set(topics.map((item) => item.id));
-  const sources = unique(array(item.sources, 100, (value) => {
+  const sources = unique(array(item.sources, MAX_CATALOG_ENTRIES, (value) => {
     const source = record(value, ["id", "url", "title", "provenance", "topicId"]);
     const topicId = nullableId(source.topicId);
     if (topicId !== null && !topicIds.has(topicId)) invalid();
@@ -189,7 +195,7 @@ export function readPriorDiscussions(value, sourceId) {
   const item = record(value, ["version", "sourceId", "currentTopicId", "topics"]);
   if (readId(item.sourceId) !== sourceId) invalid();
   const currentTopicId = nullableId(item.currentTopicId);
-  const topics = unique(array(item.topics, 100, (value) => {
+  const topics = unique(array(item.topics, MAX_CATALOG_ENTRIES, (value) => {
     const entry = record(value, ["id", "title", "kind", "rootCount"]);
     const projected = topic({ id: entry.id, title: entry.title, kind: entry.kind });
     if (projected.id === currentTopicId || !Number.isSafeInteger(entry.rootCount) ||
@@ -266,7 +272,7 @@ export function readOutcome(value, commandType) {
   if (["forget-source", "delete-learned-topic", "clear-learned-data"].includes(commandType)) {
     const fields = commandType === "forget-source" ? ["sourceId"] : commandType === "delete-learned-topic" ? ["topicId", "forgottenSourceIds"] : ["forgottenSourceIds", "deletedTopicIds"];
     const result = record(item.result, fields);
-    for (const key of fields) result[key] = key.endsWith("Ids") ? array(result[key], 100, readId) : readId(result[key]);
+    for (const key of fields) result[key] = key.endsWith("Ids") ? array(result[key], MAX_RESULT_IDS, readId) : readId(result[key]);
     return { version: readVersion(item.version), result };
   }
   const fields = commandType === "create-topic" ? ["topicId", "discussionId"] : ["contributionId"];

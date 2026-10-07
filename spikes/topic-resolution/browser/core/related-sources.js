@@ -1,6 +1,10 @@
 // Pure candidate retrieval over caller-supplied data. This module neither creates
 // embeddings nor determines that semantically similar pages share a Topic.
-const MAXIMUM_CANDIDATES = 100;
+const MAXIMUM_RESULTS = 100;
+const MAXIMUM_INPUT_UNITS = 8 * 1024 * 1024;
+// Every valid source takes more than 64 bytes in the service's bounded JSON
+// snapshot. This preflight prevents huge arrays from reaching descriptor scans.
+const MAXIMUM_SOURCES = Math.floor(MAXIMUM_INPUT_UNITS / 64);
 const MAXIMUM_DIMENSIONS = 1_536;
 const RECORD_FIELDS = ["id", "url", "title", "topicId", "embedding"];
 const UNSAFE_TEXT = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
@@ -138,7 +142,7 @@ function compareCandidates(left, right) {
 }
 
 /**
- * Rank at most 100 offline sources using existing associations or compatible
+ * Rank offline sources using existing associations or compatible
  * vectors. Equal non-null topicId values are trusted caller associations, never
  * a conclusion from cosine similarity. Related results are suggestions only.
  * URLs ignore fragments but retain every query argument; no page is fetched.
@@ -151,13 +155,22 @@ export function rankRelatedSources(query, candidates, options = {}) {
       ? settings.minSimilarity
       : 0.65;
     if (
-      !Number.isInteger(limit) || limit < 0 || limit > MAXIMUM_CANDIDATES ||
+      !Number.isInteger(limit) || limit < 0 || limit > MAXIMUM_RESULTS ||
       !Number.isFinite(minSimilarity) || minSimilarity < -1 || minSimilarity > 1
     ) invalid();
     const source = readSource(query);
-    const sources = readArray(candidates, MAXIMUM_CANDIDATES).map(readSource);
+    const sources = readArray(candidates, MAXIMUM_SOURCES);
+    let inputUnits = 0;
     const ranked = [];
-    for (const candidate of sources) {
+    for (const value of sources) {
+      const candidate = readSource(value);
+      // A source's text code units and vector coordinates each consume at
+      // least one byte in its serialized snapshot. Bound total ranking work
+      // even for callers that bypass the service's snapshot limit.
+      inputUnits += candidate.id.length + candidate.url.length + candidate.title.length +
+        (candidate.topicId?.length ?? 0) +
+        (candidate.embedding === null ? 0 : candidate.embedding.modelId.length + candidate.embedding.values.length);
+      if (inputUnits > MAXIMUM_INPUT_UNITS) invalid();
       if (candidate.id === source.id || candidate.url === source.url) continue;
       const confirmed = source.topicId !== null && source.topicId === candidate.topicId;
       const similarity = confirmed ? null : cosine(source.embedding, candidate.embedding);
