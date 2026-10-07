@@ -35,6 +35,40 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-07 article-aware Insight source selection (extension 0.13.18,
+[ADR-055](../decisions/ADR-055-insight-specific-source-selection.md)):** The
+owner asked to remove duplicate article URLs, rank candidate sources for the
+specific event before choosing five (including the GTA 6/Game Informer case),
+and show a small no-outside-source cue. The shared pure context builder now
+collapses exact/tracking URLs and same-host alternate slugs with a stable
+article ID, skips recognizable search-result tabs in Insight source selection,
+and uses distinctive title plus weaker URL-path overlap to rerank candidates.
+The original embedding order remains the fallback when terms do not overlap;
+up to five such uncertain sources remain available to avoid losing translated
+or differently framed reports. This is not a verified same-event classifier
+and cannot guarantee a citation or publisher access. A read-only replay of
+the owner's public catalog selects only the matching GameStar Game Informer
+article for the PCGames GTA 6 page. The Kyiv page has no confirmed same-event
+outside source in the local pool and can still offer broad vector candidates
+for the model to reject. The generated private draft shows **No outside sources
+cited** when it has zero validated outside citations, rather than claiming
+the provider never inspected a link. It does not change post text. The five
+provider URLs remain a subset of the locally reversible 20-source pool after
+exclusions, and the service independently reconstructs the same choice.
+An isolated Chrome smoke exposed a previously intermittent coherent Source-
+switch issue: the old Insight cleared but the new ready Source was not
+immediately prepared, hiding Get insights until another discussion update.
+The controller now prepares the new Source synchronously after clearing stale
+state, without any AI call; focused tests and Trust review cover that fence.
+Full restricted extension **994/994**, service **253 passed/four optional skips**, loopback
+integration **2/2**, both secret scans zero. The isolated Chrome smoke **PASS**
+after the Source-switch fix, with zero runtime exceptions or external extension
+requests; three earlier runs timed out at the same late compact-view check
+and prompted the fix. The service is restored on 127.0.0.1:4174 with unchanged
+Origin, pairing and SQLite. No live ChatGPT request, new permission, Topic
+merge or retention change was made. Reload extension 0.13.18 for owner
+real-page verification.
+
 **2026-10-07 owner-directed related-source research revision (extension 0.13.17,
 ADR-054, implemented locally):** The owner now wants related-page content obtained only through
 ChatGPT, not anonymous extension/service fetches. The current tab's bounded

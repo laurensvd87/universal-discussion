@@ -930,6 +930,11 @@ body[data-ui-mode="user"] #insight-citations {
   grid-column: 1 / -1; margin: 0; padding: 0; border: 0;
   background: transparent; color: var(--ink); font-size: 14px; line-height: 1.5;
 }
+body[data-ui-mode="user"] #insight-current-page-only:not([hidden]) {
+  grid-column: 1 / -1; justify-self: start; margin: 0; padding: 3px 8px;
+  border: 1px solid #d5c784; border-radius: 999px;
+  color: var(--ink-soft); background: #fff9d9; font-size: 11px; line-height: 16px;
+}
 body[data-ui-mode="user"] #insight-related-excerpt-indicator { grid-column: 1 / -1; margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 16px; }
 body[data-ui-mode="user"] #insight-share,
 body[data-ui-mode="user"] #insight-discard { min-height: 44px; margin: 0; border-radius: 999px; font-size: 13px; }

@@ -189,7 +189,12 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     // Share. Do not revoke its completed-result proof mid-flight; the write
     // itself performs fresh context checks and this controller clears on exit.
     if (pending) { publish(); return; }
-    if (boundKey !== null && materiallyChanged(value)) clear("changed");
+    if (boundKey !== null && materiallyChanged(value)) {
+      clear("changed");
+      // A Source switch may already arrive as a coherent ready projection.
+      // No second discussion event is guaranteed, so bind that new context now.
+      if (boundKey === null && eligible()) prepare();
+    }
     else if (boundKey === null && eligible()) prepare();
     else publish();
   }

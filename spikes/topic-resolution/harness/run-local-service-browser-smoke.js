@@ -439,7 +439,12 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     assert.equal(syntheticInsightRequests, 1);
     await click("#ui-mode-user");
     await click("#app-tab-discussion");
-    await waitExpression("document.body.dataset.uiMode==='user' && !document.querySelector('#app-view-discussion').hidden && document.querySelector('#discussion-ai-insights').getBoundingClientRect().width>0", "compact User Mode with composer insight action");
+    try {
+      await waitExpression("document.body.dataset.uiMode==='user' && !document.querySelector('#app-view-discussion').hidden && document.querySelector('#discussion-ai-insights').getBoundingClientRect().width>0", "compact User Mode with composer insight action");
+    } catch (error) {
+      const state = await evaluate("({mode:document.body.dataset.uiMode,viewHidden:document.querySelector('#app-view-discussion')?.hidden,actionWidth:document.querySelector('#discussion-ai-insights')?.getBoundingClientRect().width,actionHidden:document.querySelector('#discussion-ai-insights')?.hidden,actionDisabled:document.querySelector('#discussion-ai-insights')?.disabled,source:document.querySelector('#discussion-source')?.value,topic:document.querySelector('#discussion-topic')?.value,status:document.querySelector('#discussion-status')?.textContent,previewHidden:document.querySelector('#insight-composer')?.hidden,replyContextHidden:document.querySelector('#discussion-reply-context')?.hidden})");
+      throw new Error(`${error.message}; compactState=${JSON.stringify(state)}`);
+    }
     assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth"));
     assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic shared reserved-domain browser root')`));
     await evaluate("window.scrollTo(0, 0)");

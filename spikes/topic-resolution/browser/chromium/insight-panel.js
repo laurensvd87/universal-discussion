@@ -167,6 +167,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const target = node("p", null, "insight-preview-topic"); composer.append(target);
   const origin = node("p", null, "insight-preview-origin"); composer.append(origin);
   const citations = node("p", null, "insight-citations"); citations.className = "insight-body"; composer.append(citations);
+  const currentPageOnly = node("p", "currentPageOnly", "insight-current-page-only");
+  currentPageOnly.className = "insight-source-note"; currentPageOnly.hidden = true;
+  composer.append(currentPageOnly);
   const relatedExcerptIndicator = node("p", null, "insight-related-excerpt-indicator");
   composer.append(relatedExcerptIndicator);
   const shareScope = node("p", "shareScope", "insight-share-scope");
@@ -272,6 +275,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       appendInsightCitationNodes(document, citations, exactGenerated ? state.draft : "", text("citationOpen"));
       renderedDraftSignature = draftSignature;
     }
+    currentPageOnly.hidden = !exactGenerated || !Array.isArray(state.ai?.result?.citations) ||
+      state.ai.result.citations.length !== 0;
     relatedExcerptIndicator.hidden = simplePreview || !exactGenerated || state.relatedExcerptCount === null ||
       state.relatedExcerptCount === undefined;
     relatedExcerptIndicator.textContent = relatedExcerptIndicator.hidden ? "" :

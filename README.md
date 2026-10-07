@@ -10,6 +10,18 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension **0.13.18** improves the five related links offered for an Insight:
+alternate URLs for the same article and recognizable search-result pages no
+longer consume slots, while distinctive headline and URL details can promote
+pages about the specific event (including the GTA 6/Game Informer case).
+This is metadata ranking, not proof of event identity; translated or differently
+framed reports may still rely on vector order. A private Insight without an
+outside citation shows a small **No outside sources cited** note. Reload the
+extension and restart the local service after updating; no data or pairing
+reset is needed. See [ADR-055](decisions/ADR-055-insight-specific-source-selection.md).
+The same update also restores the Get insights action immediately after
+switching to another ready page, without keeping the previous page's draft.
+
 Extension **0.13.17** and ADR-054 change related-source Insight research to ChatGPT-only. On a deliberate
 **Get insights** click, the extension supplies the current tab's bounded text
 and up to five selected, non-excluded public HTTPS related article URLs; it

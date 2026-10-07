@@ -75,6 +75,10 @@ No automatic AI call/post, private-page expansion, paid fallback, new model/
 permissions, remote service or release is authorized. ADR-027 separately
 approved protected Windows refresh-token persistence; access/ID tokens remain
 RAM-only.
+ADR-055 adds article-aware Insight source selection and a truthful no-outside-
+citation cue in local extension 0.13.18. It changes neither Topic membership
+nor the explicit Get insights/provider/Share gates. Read current STATUS for
+verification and the remaining owner Chrome check.
 ADR-050 supersedes ADR-036's blanket catalog-revision invalidation for private
 Insights: unrelated page additions may not discard a job, but current Source,
 Topic, account and follow-up binding and explicit Share remain mandatory.

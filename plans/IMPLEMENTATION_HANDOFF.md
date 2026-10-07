@@ -1,5 +1,26 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-07 owner-directed Insight source selection (ADR-055, extension
+0.13.18): exact/tracking URL and same-host stable-article-ID aliases now use
+one slot. Recognizable search-result tabs are omitted from Insight sources,
+not from background capture/Topic membership. Distinctive title and weaker
+URL-path overlap rerank candidates for the specific article/event before the
+20 locally reversible choices and five provider URLs are chosen. Zero overlap,
+including many translated or differently framed reports, retains embedding
+order; this is not verified event identity. The final five remain a subset of
+the displayed 20 and are independently rebuilt by the service. A generated
+private draft with no validated outside citation displays **No outside sources
+cited** separately from the post body; zero citations do not prove no link was
+consulted. No new provider call, permission, Topic migration, data retention
+or release approval follows. See current STATUS for tests and remaining owner
+Chrome verification.
+An isolated Chrome smoke also revealed that a coherent Source switch could
+clear the previous Insight without immediately preparing the new Source.
+The controller now clears stale material and prepares the new ready context
+without an AI call. Restricted extension 994/994, service 253 passed/four optional skips, loopback
+2/2, secret scans zero and isolated Chrome smoke PASS after that fix. The
+local service is restored with the same Origin, pairing and SQLite data.
+
 2026-10-07 newest owner direction (ADR-054, extension 0.13.17 implemented):
 related-source content for Insights should come only through the connected
 ChatGPT Responses `web_search` tool, not the extension's anonymous HTTP reader.

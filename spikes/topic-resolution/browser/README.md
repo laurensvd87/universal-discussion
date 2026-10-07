@@ -1,5 +1,16 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.18 (ADR-055) deduplicates article aliases and recognizes search
+result pages before filling the five Insight-source slots. It promotes
+distinctive article/event overlap in headline and URL path while retaining
+vector order when that evidence is absent. The final five always come from the
+locally visible 20-choice pool after exclusions. Generated private drafts with
+no validated outside citation show a small **No outside sources cited** note;
+this does not prove the provider never looked at a link. Reload the extension
+and restart the service; no SQLite or pairing reset is required.
+Switching directly to another ready Source now clears any old private draft
+and immediately prepares that Source, without starting an AI request.
+
 Extension 0.13.17 and ADR-054 replace related-page anonymous reads during **Get insights** with
 ChatGPT-only related-source research. After one explicit click, the current
 article's bounded text remains the subject and up to five selected eligible

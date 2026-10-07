@@ -43,8 +43,11 @@ test("paired bridge reconstructs the exact context from twenty local nominations
   const catalog = service.catalog();
   const sourceId = "harbor-overview";
   const topicId = catalog.sources.find((source) => source.id === sourceId).topicId;
-  const context = buildInsightContext({ catalog, discussion: service.discussion(topicId),
-    related: service.related(sourceId, 20), sourceId, topicId });
+  const projection = { catalog, discussion: service.discussion(topicId),
+    related: service.related(sourceId, 20), sourceId, topicId };
+  const local = buildInsightContext({ ...projection, sourceLimit: 21 });
+  const allowedRelatedSourceIds = [...local.sameTopicSources, ...local.relatedSources].map((source) => source.id);
+  const context = buildInsightContext({ ...projection, allowedRelatedSourceIds });
   const seen = [];
   const ai = createChatGPTRuntime({ service,
     connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
@@ -63,7 +66,7 @@ test("paired bridge reconstructs the exact context from twenty local nominations
   ai.dispose();
 });
 
-test("bridge backfills a sixth catalog candidate after the first choice is excluded", async () => {
+test("bridge backfills from visible candidates after the first choice is excluded", async () => {
   const base = demoService();
   const original = base.catalog();
   const sourceId = "harbor-overview";
@@ -72,19 +75,26 @@ test("bridge backfills a sixth catalog candidate after the first choice is exclu
   const added = Array.from({ length: 5 }, (_, index) => ({ ...seed,
     id: `extra-public-${index + 1}`, url: `https://maker.example/extra-public-${index + 1}`,
     title: `Extra public source ${index + 1}` }));
-  const catalog = { ...original, sources: [...original.sources, ...added] };
+  const catalog = { ...original, sources: [...original.sources.map((source) =>
+    source.id === sourceId ? { ...source, url: "https://maker.example/independent-astronomy-study",
+      title: "Independent astronomy study" } : source), ...added] };
   const service = { ...base, catalog: () => catalog };
   const projection = { catalog, discussion: service.discussion(topicId),
     related: service.related(sourceId, 20), sourceId, topicId };
   const local = buildInsightContext({ ...projection, sourceLimit: 21 });
   const choices = [...local.sameTopicSources, ...local.relatedSources];
   assert.ok(choices.length >= 6);
-  const excludedId = choices[0].id;
-  const filtered = buildInsightContext({ ...projection, excludedRelatedSourceIds: [excludedId] });
+  const allowedRelatedSourceIds = choices.map((source) => source.id);
+  const originalFive = buildInsightContext({ ...projection, allowedRelatedSourceIds });
+  const originalIds = new Set([...originalFive.sameTopicSources, ...originalFive.relatedSources].map((source) => source.id));
+  const excludedId = [...originalFive.sameTopicSources, ...originalFive.relatedSources][0].id;
+  const filtered = buildInsightContext({ ...projection, allowedRelatedSourceIds,
+    excludedRelatedSourceIds: [excludedId] });
   const finalChoices = [...filtered.sameTopicSources, ...filtered.relatedSources];
   assert.equal(finalChoices.length, 5);
   assert.equal(finalChoices.some((source) => source.id === excludedId), false);
-  assert.equal(finalChoices.some((source) => source.id === choices[5].id), true);
+  assert.equal(finalChoices.some((source) => !originalIds.has(source.id)), true);
+  assert.equal(finalChoices.every((source) => choices.some((choice) => choice.id === source.id)), true);
   const seen = [];
   const ai = createChatGPTRuntime({ service,
     connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
@@ -311,11 +321,16 @@ test("paired bridge filters only named related sources from an exact full contex
   const topicId = catalog.sources.find((source) => source.id === sourceId).topicId;
   const projection = { catalog, discussion: service.discussion(topicId),
     related: service.related(sourceId, 20), sourceId, topicId };
-  const context = buildInsightContext(projection);
-  assert.equal(context.relatedSources.length, 2);
+  const local = buildInsightContext({ ...projection, sourceLimit: 21 });
+  const allowedRelatedSourceIds = [...local.sameTopicSources, ...local.relatedSources].map((source) => source.id);
+  const context = buildInsightContext({ ...projection, allowedRelatedSourceIds });
+  assert.equal(local.relatedSources.length, 2);
   assert.ok(context.sameTopicSources.length > 0);
-  const excludedId = context.relatedSources[0].id;
-  const filtered = buildInsightContext({ ...projection, excludedRelatedSourceIds: [excludedId] });
+  const excludedId = local.relatedSources[0].id;
+  const excludedRelatedSourceIds = [context.sameTopicSources[0].id, excludedId];
+  const filtered = buildInsightContext({ ...projection, allowedRelatedSourceIds,
+    excludedRelatedSourceIds });
+  assert.ok(filtered.sameTopicSources.length > 0 && filtered.relatedSources.length > 0);
   const providerContexts = [];
   const ai = createChatGPTRuntime({ service,
     connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
@@ -327,7 +342,7 @@ test("paired bridge filters only named related sources from an exact full contex
   const actor = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
   const input = { operationId: "filtered-related", model: "synthetic", context: filtered,
     articleText: "Public synthetic article.", allowWebResearch: true, expected: catalog.version,
-    excludedRelatedSourceIds: [excludedId] };
+    excludedRelatedSourceIds };
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights", input, actor))),
     { operationId: "filtered-related", state: "running" });
   assert.deepEqual(providerContexts, [filtered]);

@@ -1327,7 +1327,59 @@ test("editing invalidates preview; navigation/actor/source/material changes clea
   insight.observe(fresh); assert.equal(insight.currentState().available, true);
   assert.equal(insight.currentState().draft, "Version bound");
   fresh.catalog.sources.find((entry) => entry.id === fresh.sourceId).title = "Different source title";
-  insight.observe(fresh); assert.equal(insight.currentState().context, null);
+  insight.observe(fresh);
+  assert.equal(insight.currentState().context.currentSource.title, "Different source title");
+  assert.equal(insight.currentState().draft, "");
+  assert.equal(insight.currentState().preview, null);
+  assert.equal(app.commands.length, 0);
+});
+
+test("coherent Source switch immediately prepares a clean Insight context", async () => {
+  let starts = 0;
+  const app = await harness({ aiClient: { start: async () => { starts++; throw new Error("unexpected provider call"); } } });
+  const { insight, discussion } = app;
+  assert.equal(insight.prepare(), true);
+  assert.equal(insight.setDraft("Unsent old Source text"), true);
+  const switched = structuredClone(discussion.currentState());
+  switched.sourceId = "reserved-example-org";
+  insight.observe(switched);
+  const state = insight.currentState();
+  assert.equal(state.available, true);
+  assert.equal(state.status, "prepared");
+  assert.equal(state.context.currentSource.id, "reserved-example-org");
+  assert.equal(state.draft, "");
+  assert.equal(state.preview, null);
+  assert.equal(state.ai.result, null);
+  assert.equal(await insight.share(), false);
+  assert.equal(starts, 0);
+});
+
+test("coherent Source switch purges a completed private result before Share", async () => {
+  let starts = 0;
+  const cancelled = [];
+  const app = await generatedHarness({ aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false,
+      account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a", displayName: "A" }],
+    start: async (request) => { starts++; return { operationId: request.operationId, state: "running" }; },
+    result: async (operationId) => ({ operationId, state: "completed",
+      result: { body: "Generated answer", model: "model-a", citations: [] } }),
+    cancel: async (operationId) => { cancelled.push(operationId); return true; },
+  } });
+  const { insight, discussion } = app;
+  assert.equal(starts, 1);
+  assert.equal(insight.currentState().draft, "Generated answer");
+  assert.ok(insight.currentState().ai.result);
+  const switched = structuredClone(discussion.currentState());
+  switched.sourceId = "reserved-example-org";
+  insight.observe(switched);
+  const state = insight.currentState();
+  assert.equal(state.context.currentSource.id, "reserved-example-org");
+  assert.equal(state.draft, "");
+  assert.equal(state.ai.result, null);
+  assert.equal(await insight.share(), false);
+  assert.equal(starts, 1);
+  assert.deepEqual(cancelled, ["generated-op"]);
   assert.equal(app.commands.length, 0);
 });
 

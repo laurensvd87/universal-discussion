@@ -104,11 +104,32 @@ test("User insight preview contains only the generated message, citation links, 
     ["insight-private-label", "insight-citations", "insight-share", "insight-discard"]);
   assert.equal(ui.byId("insight-private-label").textContent, "Only you");
   assert.equal(ui.byId("insight-related-excerpt-indicator").hidden, true);
+  assert.equal(ui.byId("insight-current-page-only").hidden, true);
   assert.equal(ui.byId("insight-related-excerpt-summary").textContent, "Linked pages read: 2");
   assert.equal(ui.descendants(ui.byId("insight-citations")).filter((item) => item.tag === "a").length, 1);
   assert.equal(ui.byId("insight-draft-details").children[0].hidden, true);
   assert.equal(ui.byId("insight-share").disabled, false);
   assert.equal(ui.byId("insight-discard").disabled, false);
+});
+
+test("generated insight without outside citations shows a separate current-page note only for the exact draft", () => {
+  const ui = harness(undefined, "user");
+  const note = ui.byId("insight-current-page-only");
+  const result = { body: "A concise finding", citations: [] };
+  ui.panel.render(state({ draft: result.body, ai: { status: "generated", result } }));
+  assert.equal(note.hidden, false);
+  assert.equal(note.textContent, INSIGHT_EN.currentPageOnly);
+  assert.equal(note.attributes.role, undefined);
+  assert.equal(ui.byId("insight-citations").textContent, result.body);
+  assert.equal(ui.byId("insight-share").disabled, false);
+  ui.panel.render(state({ draft: "Pasted manual text", ai: { status: "generated", result: null } }));
+  assert.equal(note.hidden, true);
+  ui.panel.render(state({ draft: "Edited finding", ai: { status: "generated", result } }));
+  assert.equal(note.hidden, true);
+  ui.panel.render(state({ draft: result.body, ai: { status: "generated", result } }));
+  assert.equal(note.hidden, false);
+  ui.panel.render(state({ context: null, draft: result.body, ai: { status: "generated", result } }));
+  assert.equal(note.hidden, true);
 });
 
 test("poll renders preserve a generated preview, citation focus, and one-click Share", () => {

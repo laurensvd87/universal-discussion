@@ -19,6 +19,11 @@ function input() {
     sourceId: "current", topicId: "topic-a",
   };
 }
+function finalFromVisible(value) {
+  const local = buildInsightContext({ ...value, sourceLimit: 21 });
+  const allowedRelatedSourceIds = [...local.sameTopicSources, ...local.relatedSources].map((entry) => entry.id);
+  return { local, final: buildInsightContext({ ...value, allowedRelatedSourceIds, sourceLimit: 6 }) };
+}
 
 test("catalog membership and related nominees remain distinct and deterministic", () => {
   const value = buildInsightContext(input());
@@ -113,7 +118,7 @@ test("validated related nominations rank provisional catalog peers ahead of ID o
   assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 6);
 });
 
-test("bounded lookahead lifts distinct hosts and exact titles through a duplicate flood", () => {
+test("bounded lookahead lifts distinct hosts and collapses duplicate article URLs", () => {
   const value = input();
   value.catalog.sources = [value.catalog.sources[0]];
   const peers = Array.from({ length: 6 }, (_, index) => ({
@@ -123,9 +128,187 @@ test("bounded lookahead lifts distinct hosts and exact titles through a duplicat
   value.catalog.sources.push(...peers);
   value.related.results = peers.map((entry) => result(entry));
   const context = buildInsightContext(value);
-  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-0", "peer-3", "peer-4", "peer-5", "peer-1"]);
+  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-0", "peer-3", "peer-4", "peer-5"]);
   assert.equal(context.coverage.sameTopicTotal, 6);
   assert.equal(context.relatedSources.length, 0);
+});
+
+test("Kyiv article aliases use one slot and a matching event outranks broad Putin stories", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a", "https://news.example.org/buitenland/poetin-gaat-voor-aleppo-aanpak-in-kiev/162649530.html"),
+    title: "Poetin gaat voor Aleppo aanpak in Kiev: totale destructie" };
+  const alias = { ...source("alias", "topic-a", "https://news.example.org/buitenland/poetin-wil-de-totale-destructie/162649530.html"),
+    title: "Poetin wil totale destructie in Kiev" };
+  const broad = Array.from({ length: 7 }, (_, index) => ({
+    ...source(`broad-${index}`, "topic-a", `https://other-${index}.example.org/nieuws/${500000 + index}.html`),
+    title: `Poetin wil Russische leger uitbreiden volgens bron ${index}`,
+  }));
+  const sameEvent = { ...source("same-event", "topic-b", "https://independent.example.org/news/aleppo-kiev"),
+    title: "Aleppo scenario in Kiev: what the destruction claim means" };
+  value.catalog.sources = [current, alias, ...broad, sameEvent];
+  value.related.results = [result(alias, "same-topic"), ...broad.map((entry) => result(entry, "same-topic")), result(sameEvent)];
+  const context = buildInsightContext(value);
+  assert.equal(context.sameTopicSources.some((entry) => entry.id === "alias"), false);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["same-event"]);
+  assert.equal(context.sameTopicSources.length + context.relatedSources.length, 5);
+});
+
+test("same-host article ID and tracking-query aliases cannot duplicate a selected page", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a", "https://pcgames.example/news/game-informer-details-1555194/?utm_source=feed"),
+    title: "Game Informer details" };
+  const alternateSlug = { ...source("slug", "topic-a", "https://pcgames.example/news/different-title-1555194/"),
+    title: "Different title for the same article" };
+  const tracked = { ...source("tracked", "topic-a", "https://pcgames.example/news/game-informer-details-1555194/?referrer=search"),
+    title: "The same article with another tracker" };
+  const next = { ...source("next", "topic-a", "https://pcgames.example/news/gta-6-new-item-1555195/"),
+    title: "Another GTA 6 item" };
+  value.catalog.sources = [current, alternateSlug, tracked, next];
+  value.related.results = [result(alternateSlug), result(tracked), result(next)];
+  assert.deepEqual(buildInsightContext(value).sameTopicSources.map((entry) => entry.id), ["next"]);
+});
+
+test("a matching Game Informer article displaces generic GTA 6 pages from the first five", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a", "https://pcgames.example/news/gta-6-game-informer-screenshots"),
+    title: "GTA 6: Game Informer reveals new screenshots of Vice City" };
+  const generic = Array.from({ length: 7 }, (_, index) => ({
+    ...source(`generic-${index}`, "topic-a", `https://games-${index}.example/news/gta-6-${index}`),
+    title: `GTA 6 release discussion and trailer update ${index}`,
+  }));
+  const sameEvent = { ...source("same-event", "topic-a", "https://gamestar.example/article/game-informer-gta-6"),
+    title: "Game Informer presents GTA 6 screenshots and Vice City details" };
+  value.catalog.sources = [current, ...generic, sameEvent];
+  value.related.results = [...generic.map((entry) => result(entry, "same-topic")), result(sameEvent, "same-topic")];
+  const context = buildInsightContext(value);
+  const visible = buildInsightContext({ ...value, sourceLimit: 21 });
+  const visibleIds = [...visible.sameTopicSources, ...visible.relatedSources].map((entry) => entry.id);
+  assert.equal(context.sameTopicSources[0].id, "same-event");
+  assert.equal(context.sameTopicSources.length, 5);
+  assert.ok([...context.sameTopicSources, ...context.relatedSources].every((entry) => visibleIds.includes(entry.id)));
+});
+
+test("Game Informer in a PCGames article slug rescues a generic headline", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a",
+    "https://pcgames.example/GTA-6-Spiel-55239/News/Game-Informer-Wetter-Tierwelt-Release-Infos-1555194/"),
+  title: "GTA 6: Bald gibt es exklusive Infos – das ist bereits bekannt" };
+  const generic = Array.from({ length: 7 }, (_, index) => ({
+    ...source(`generic-${index}`, "topic-a", `https://games-${index}.example/news/gta-6-release-${index}`),
+    title: `GTA 6 release date and trailer discussion ${index}`,
+  }));
+  const sameEvent = { ...source("same-event", "topic-b",
+    "https://gamestar.example/artikel/gta-6-game-informer-screenshots,3460205.html"),
+  title: "GTA 6: Alle neuen Game-Informer-Screenshots und Infos in der Zusammenfassung" };
+  value.catalog.sources = [current, ...generic, sameEvent];
+  value.related.results = [...generic.map((entry) => result(entry, "same-topic")), result(sameEvent)];
+  const context = buildInsightContext(value);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["same-event"]);
+  assert.equal(context.sameTopicSources.length + context.relatedSources.length, 5);
+});
+
+test("final GTA Insight sends the matching article without zero-evidence filler", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a",
+    "https://pcgames.example/GTA-6-Spiel-55239/News/Game-Informer-Wetter-Tierwelt-Release-Infos-1555194/"),
+  title: "GTA 6: Bald gibt es exklusive Infos – das ist bereits bekannt" };
+  const matching = { ...source("matching", "topic-b", "https://gamestar.example/artikel/game-informer-screenshots,3460205.html"),
+    title: "GTA 6: Alle neuen Game-Informer-Screenshots und Infos" };
+  const fillers = [
+    { ...source("golem", "topic-a", "https://golem.example/news/gta-6-rating"), title: "GTA 6 receives adult rating" },
+    { ...source("family", "topic-a", "https://family.example/gta-6-parents"), title: "What parents should know about GTA 6" },
+    { ...source("sonos", "topic-b", "https://sonos.example/products"), title: "Sonos speaker products" },
+    { ...source("crane", "topic-b", "https://classifieds.example/crane"), title: "Used crane for sale" },
+  ];
+  value.catalog.sources = [current, ...fillers, matching];
+  value.related.results = [...fillers.map((entry) => result(entry)), result(matching)];
+  const { local, final } = finalFromVisible(value);
+  assert.ok([...local.sameTopicSources, ...local.relatedSources].length >= 5);
+  assert.deepEqual([...final.sameTopicSources, ...final.relatedSources].map((entry) => entry.id), ["matching"]);
+});
+
+test("final Kyiv Insight keeps vector fallbacks when no event evidence exists", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a", "https://news.example/buitenland/aleppo-kiev/162649530.html"),
+    title: "Poetin gaat in Kiev voor totale destructie volgens Rusland" };
+  const alias = { ...source("alias", "topic-a", "https://news.example/buitenland/andere-kop/162649530.html"),
+    title: "Andere kop voor hetzelfde artikel" };
+  const home = { ...source("home", "topic-b", "https://news.example/"), title: "Nieuws vandaag" };
+  const broad = [
+    { ...source("estonia", "topic-b", "https://outside.example/estonia-factory"), title: "Estland beschuldigt Rusland van fabriek aanval" },
+    { ...source("kaliningrad", "topic-b", "https://outside.example/kaliningrad"), title: "Militairen in Kaliningrad oefenen" },
+    { ...source("football", "topic-b", "https://outside.example/football"), title: "Romeo Lavia speelt tegen Frankrijk" },
+    { ...source("army", "topic-b", "https://outside.example/army-spending"), title: "Leger uitgaven stijgen fors" },
+  ];
+  value.catalog.sources = [current, alias, home, ...broad];
+  value.related.results = [result(alias), result(home), ...broad.map((entry) => result(entry))];
+  const { local, final } = finalFromVisible(value);
+  const visibleIds = [...local.sameTopicSources, ...local.relatedSources].map((entry) => entry.id);
+  const selectedIds = [...final.sameTopicSources, ...final.relatedSources].map((entry) => entry.id);
+  assert.equal(visibleIds.includes("alias"), false);
+  assert.equal(selectedIds.length, 5);
+  assert.equal(selectedIds.includes("estonia"), true);
+  assert.ok(selectedIds.every((id) => visibleIds.includes(id)));
+});
+
+test("shared actor and country in a different event do not establish a specific Kyiv match", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a",
+    "https://www.standaard.be/buitenland/poetin-gaat-in-kiev-voor-de-totale-destructie-rusland-zal-zo-de-oorlog-niet-winnen-maar-voor-de-oekraners-wordt-het-verschrikkelijk/162649530.html"),
+  title: "Poetin gaat voor Aleppo-aanpak in Kiev: Rusland wil de totale destructie | De Standaard" };
+  const differentEvent = { ...source("different-event", "topic-b",
+    "https://www.standaard.be/buitenland/estland-beschuldigt-rusland-van-aanval-op-fabriek-van-militair-materiaal-president-poetin-beveelt-uitbreiding-russische-leger/35173633.html"),
+  title: "Estland beschuldigt Rusland van aanval op fabriek - President Poetin beveelt uitbreiding Russische leger | De Standaard" };
+  const other = { ...source("other", "topic-b", "https://other.example/kaliningrad-report"),
+    title: "Militaire oefeningen in Kaliningrad" };
+  const third = { ...source("third", "topic-b", "https://other.example/football-report"),
+    title: "Sportnieuws uit België" };
+  value.catalog.sources = [current, differentEvent, other, third];
+  value.related.results = [result(differentEvent), result(other), result(third)];
+  const { final } = finalFromVisible(value);
+  assert.equal(final.sameTopicSources.length + final.relatedSources.length, 3);
+});
+
+test("search-result tabs never take Insight article slots ahead of event articles", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a", "https://pcgames.example/news/gta-6-game-informer"),
+    title: "GTA 6 Game Informer interview about Vice City" };
+  const search = { ...source("search", "topic-a", "https://www.google.com/search?q=GTA+6+Game+Informer"),
+    title: "GTA 6 Game Informer interview - Google Search" };
+  const article = { ...source("article", "topic-b", "https://gamestar.example/news/game-informer-interview"),
+    title: "Game Informer interview explains GTA 6 Vice City changes" };
+  value.catalog.sources = [current, search, article];
+  value.related.results = [result(search, "same-topic"), result(article)];
+  const context = buildInsightContext(value);
+  assert.deepEqual(context.sameTopicSources, []);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["article"]);
+});
+
+test("a publisher /recherche/ article remains eligible beside a Google Search tab", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a", "https://publisher.example/news/satellite-report"),
+    title: "Satellite report on the Arctic ice shelf" };
+  const google = { ...source("google", "topic-b", "https://www.google.com/search?q=Arctic+satellite+report"),
+    title: "Arctic satellite report - Google Search" };
+  const article = { ...source("article", "topic-b", "https://publisher.example/recherche/arctic-satellite-report"),
+    title: "New satellite report details Arctic ice shelf changes" };
+  value.catalog.sources = [current, google, article];
+  value.related.results = [result(google), result(article)];
+  assert.deepEqual(buildInsightContext(value).relatedSources.map((entry) => entry.id), ["article"]);
+});
+
+test("translation and opposite viewpoints retain embedding fallback order", () => {
+  const value = input();
+  const current = { ...source("current", "topic-a", "https://english.example/news/army-decree"),
+    title: "Putin signs decree expanding Russian army to 1.5 million soldiers" };
+  const translation = { ...source("translation", "topic-b", "https://dutch.example/nieuws/leger"),
+    title: "Poetin beveelt uitbreiding Russisch leger tot 1,5 miljoen militairen" };
+  const opposingView = { ...source("opposing", "topic-b", "https://other.example/news/decree"),
+    title: "Putin army decree is reckless, critics say" };
+  value.catalog.sources = [current, translation, opposingView];
+  value.related.results = [result(translation), result(opposingView)];
+  const context = buildInsightContext(value);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["opposing", "translation"]);
 });
 
 test("exact title comparison retains negation, numbers and distinct languages", () => {
