@@ -223,6 +223,7 @@ test("related text is fetched only at explicit Insight click and default-on can 
   assert.equal(await app.insight.createInsights({ automatic: true }), true);
   assert.equal(fetches, 1);
   assert.equal(request.relatedExcerpts.length, 1);
+  assert.equal(request.allowWebResearch, false);
   assert.equal(app.insight.currentState().relatedExcerptCount, 1);
   assert.deepEqual(app.insight.currentState().ai.diagnostics.relatedExcerpts,
     { eligible: 1, attempted: 1, accepted: 1,
@@ -236,6 +237,7 @@ test("related text is fetched only at explicit Insight click and default-on can 
   assert.equal(await app.insight.createInsights({ automatic: true }), true);
   assert.equal(fetches, 1);
   assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+  assert.equal(request.allowWebResearch, false);
   assert.equal(app.insight.currentState().ai.diagnostics.relatedExcerpts, null);
 });
 
@@ -274,11 +276,107 @@ test("real related reader supplies visible main text to one explicit Insight req
   assert.equal(fetches, 1);
   assert.equal(starts, 1);
   assert.equal(request.relatedExcerpts.length, 1);
+  assert.equal(request.allowWebResearch, false);
   assert.equal(request.relatedExcerpts[0].sourceId, "reserved-example-org");
   assert.equal(request.relatedExcerpts[0].url, peerUrl);
   assert.ok(request.relatedExcerpts[0].text.startsWith("This visible public article"));
   assert.ok(!request.relatedExcerpts[0].text.includes("Hidden material"));
   assert.equal(app.insight.currentState().relatedExcerptCount, 1);
+});
+
+test("failed anonymous related fetch enables hosted search for one explicit private Insight", async () => {
+  let fetches = 0, starts = 0, request;
+  const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+    fetchImpl: async (url, options) => {
+      fetches++;
+      assert.equal(url, "https://example.org/");
+      assert.equal(options.credentials, "omit");
+      return { ok: false, status: 403, redirected: false, url };
+    } });
+  const app = await harness({ readRelatedExcerpts: reader.read,
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc", text: "Current public article" }),
+    attestArticle: async () => true, randomId: () => "failed-reader-op",
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (value) => { starts++; request = value; return { operationId: value.operationId }; },
+      result: async (operationId) => ({ operationId, state: "completed",
+        result: { body: "Private draft", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    } });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(fetches, 0);
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(fetches, 1);
+  assert.equal(starts, 1);
+  assert.deepEqual(request.relatedExcerpts, []);
+  assert.equal(request.allowWebResearch, true);
+  assert.equal(app.insight.currentState().draft, "Private draft");
+  assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 0);
+});
+
+test("one accepted excerpt does not hide another selected source's failed fetch", async () => {
+  let request, currentUrl, firstUrl, reads = 0;
+  const readRelatedExcerpts = async (context, excluded, _signal, onDiagnostic) => {
+    reads++;
+    assert.deepEqual(excluded, []);
+    assert.ok(context.sameTopicSources.length + context.relatedSources.length >= 2);
+    onDiagnostic({ eligible: 2, attempted: 2, accepted: 1,
+      failures: { noHostAccess: 0, fetchHttpRedirect: 1, sizeType: 0, parseShort: 0 } });
+    return [{ sourceId: [...context.sameTopicSources, ...context.relatedSources][0].id, url: firstUrl,
+      text: "Visible public background for this article. ".repeat(8) }];
+  };
+  const app = await harness({ readRelatedExcerpts,
+    readArticle: async () => ({ url: currentUrl, documentId: "doc", text: "Current public article" }),
+    attestArticle: async () => true, randomId: () => "partial-reader-op",
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (value) => { request = value; return { operationId: value.operationId }; },
+      result: async (operationId) => ({ operationId, state: "completed",
+        result: { body: "Private draft", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    } });
+  await app.discussion.selectSource("harbor-overview");
+  const context = app.insight.currentState().context;
+  currentUrl = context.currentSource.url;
+  const candidates = [...context.sameTopicSources, ...context.relatedSources];
+  assert.ok(candidates.length >= 2);
+  firstUrl = candidates[0].url;
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(reads, 1);
+  assert.equal(request.relatedExcerpts.length, 1);
+  assert.equal(request.relatedExcerpts[0].url, firstUrl);
+  assert.equal(request.allowWebResearch, true);
+});
+
+test("excluded and disabled related sources cannot enable hosted search", async () => {
+  for (const mode of ["excluded", "disabled"]) {
+    let fetches = 0, request;
+    const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,
+      fetchImpl: async () => { fetches++; throw new Error("unreachable"); } });
+    const app = await harness({ readRelatedExcerpts: reader.read,
+      readArticle: async () => ({ url: "https://example.com/", documentId: "doc", text: "Current public article" }),
+      attestArticle: async () => true, randomId: () => `no-search-${mode}`,
+      aiClient: {
+        status: async () => ({ connected: true, planEnabled: true, pending: false,
+          account: { clientId: "client-a", label: "Owner" } }),
+        models: async () => [{ slug: "model-a", displayName: "A" }],
+        start: async (value) => { request = value; return { operationId: value.operationId }; },
+        result: async (operationId) => ({ operationId, state: "completed",
+          result: { body: "Private draft", model: "model-a", citations: [] } }),
+        cancel: async () => true,
+      } });
+    await app.insight.checkConnection(); await app.insight.loadModels();
+    if (mode === "excluded") assert.equal(app.insight.setRelatedSourceIncluded("reserved-example-org", false), true);
+    else assert.equal(app.insight.setRelatedPageTextEnabled(false), true);
+    assert.equal(await app.insight.createInsights({ automatic: true }), true);
+    assert.equal(fetches, 0);
+    assert.equal(request.allowWebResearch, false);
+  }
 });
 
 test("saved related-text off is hydrated before a Get insights fetch can begin", async () => {
@@ -353,6 +451,7 @@ test("turning related-text off during its read aborts the read and omits its exc
     text: "Public context ".repeat(12) }]);
   assert.equal(await running, true);
   assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+  assert.equal(request.allowWebResearch, false);
   assert.equal(app.insight.currentState().relatedExcerptCount, null);
 });
 
@@ -402,6 +501,7 @@ test("turning related-text off during article attestation removes fetched excerp
   finishAttestation();
   assert.equal(await running, true);
   assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+  assert.equal(request.allowWebResearch, false);
   assert.equal(app.insight.currentState().relatedExcerptCount, null);
 });
 
@@ -1115,7 +1215,7 @@ test("research failure retains only a fixed diagnostic detail in popup memory", 
     "response-item-conflict", "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
     "response-content-json", "response-content-html",
     "response-content-text", "response-content-missing", "response-content-other", "response-content-type",
-    "response-excerpt-citation"]) {
+    "response-excerpt-citation", "response-web-citation", "response-web-evidence", "response-unsafe-url"]) {
     const app = await harness({ aiClient: {
       status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
       models: async () => [{ slug: "model-a", displayName: "Model A" }],

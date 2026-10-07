@@ -1,5 +1,5 @@
 // Owner-invoked, one-shot quality probe. This module has no I/O on import.
-// Run from apps/local-service: node harness/run-live-insight-qa.js --run-live --model <listed-slug|auto> [--with-related-text] [--show-result]
+// Run from apps/local-service: node harness/run-live-insight-qa.js --run-live --model <listed-slug|auto> [--with-related-text|--with-web-search] [--show-result]
 // Stop the regular service first. This program exclusively owns 127.0.0.1:4174
 // before restoring a rotating protected refresh token; an occupied port fails.
 // Fixed, signed-out public HTML fetches approximate the extension's isolated
@@ -183,15 +183,17 @@ function inspectArgs(args) {
   const expected = ["--run-live", "--model", args[modelIndex + 1]];
   if (args.includes("--show-result")) expected.push("--show-result");
   if (args.includes("--with-related-text")) expected.push("--with-related-text");
+  if (args.includes("--with-web-search")) expected.push("--with-web-search");
   if (args.length !== expected.length || args.some((arg) => !expected.includes(arg)) ||
       args.filter((arg) => arg === "--run-live").length !== 1 ||
-      args.filter((arg) => arg === "--model").length !== 1) fail("Unsupported QA option");
+      args.filter((arg) => arg === "--model").length !== 1 ||
+      (args.includes("--with-related-text") && args.includes("--with-web-search"))) fail("Unsupported QA option");
   return { model: args[modelIndex + 1], showResult: args.includes("--show-result"),
-    withRelatedText: args.includes("--with-related-text") };
+    withRelatedText: args.includes("--with-related-text"), withWebSearch: args.includes("--with-web-search") };
 }
 
 export async function runLiveInsightQa(args, { fetchImpl = fetch, print = console.log } = {}) {
-  const { model, showResult, withRelatedText } = inspectArgs(args);
+  const { model, showResult, withRelatedText, withWebSearch } = inspectArgs(args);
   if (!existsSync(path.join(DATA_DIR, "chatgpt-registration.json"))) fail("Existing ChatGPT registration unavailable");
   const release = await ownFixedPort();
   let connection, insights;
@@ -207,24 +209,24 @@ export async function runLiveInsightQa(args, { fetchImpl = fetch, print = consol
     insights = createChatGptInsights({ fetchImpl: provider.fetch, getAccessToken: connection.getAccessToken });
     const models = await insights.listModels();
     const selectedModel = chooseListedModel(models, model);
-    const page = withRelatedText ? RELATED_TEXT_PAGE : PUBLIC_PAGE;
+    const page = withRelatedText || withWebSearch ? RELATED_TEXT_PAGE : PUBLIC_PAGE;
     const articleText = await readPublicPage(fetchImpl, page);
-    const context = { schema: "insight-context/v1", topic: withRelatedText
+    const context = { schema: "insight-context/v1", topic: withRelatedText || withWebSearch
       ? { id: "qa-python-style", title: "Python style guides" } : { id: "qa-http", title: "HTTP" },
-      currentSource: { id: withRelatedText ? "qa-pep-8" : "qa-mdn-http-overview", url: page.url, title: page.title },
-      sameTopicSources: page.related.map((source, index) => ({ id: withRelatedText
+      currentSource: { id: withRelatedText || withWebSearch ? "qa-pep-8" : "qa-mdn-http-overview", url: page.url, title: page.title },
+      sameTopicSources: page.related.map((source, index) => ({ id: withRelatedText || withWebSearch
         ? `qa-pep-related-${index + 1}` : `qa-mdn-related-${index + 1}`, ...source })),
       relatedSources: [], discussion: [],
       coverage: { sameTopicTotal: page.related.length, relatedTotal: 0, discussionIncluded: false },
       limitations: ["grouping-provisional", "title-url-only", "sources-unverified"] };
     const relatedExcerpts = withRelatedText ? await readRequiredRelatedExcerpts(context, fetchImpl) : [];
-    const result = await insights.createInsight({ model: selectedModel, context, articleText, allowWebResearch: false,
+    const result = await insights.createInsight({ model: selectedModel, context, articleText, allowWebResearch: withWebSearch,
       ...(withRelatedText ? { relatedExcerpts } : {}) });
     const metrics = qualityMetrics(result, articleText, relatedExcerpts);
     print(JSON.stringify({ status: "completed", model: selectedModel, responsesSent: provider.responsesSent(), ...metrics }));
     if (showResult) {
       print(`Private public-page QA excerpt: ${JSON.stringify(result.body.slice(0, MAX_PRINT_CHARS))}`);
-      print(`${withRelatedText ? "PEP" : "MDN"} citations: ${JSON.stringify(publicCitationSummary(result.citations, page))}`);
+      print(`${withRelatedText || withWebSearch ? "PEP" : "MDN"} citations: ${JSON.stringify(publicCitationSummary(result.citations, page))}`);
     }
     return metrics;
   } finally {

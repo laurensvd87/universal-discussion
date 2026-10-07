@@ -1,11 +1,17 @@
 # Local service
 
-Extension 0.13.15 and ADR-052 remove the ChatGPT `web_search` tool from every
-Insight request, including requests from older extensions that still carry the
-legacy `allowWebResearch: true` flag. Only the bounded current-page prefix and
-validated related-page excerpts supplied by the extension can be used as page
-text. The service does not fetch related pages or retain their text. Restart
-the service after updating; no pairing or SQLite reset is needed.
+Extension 0.13.16 and ADR-053 restore the official ChatGPT `web_search` tool
+only for an explicit Insight whose validated selected public related pages
+lack an accepted extension-supplied excerpt. At most four missing candidate
+URLs can be researched, with the tool domain-filtered to their hosts. A
+private draft requires a completed web-search call and a provider citation to
+one of those **exact** URLs; an attempted open or a same-domain link alone is
+not accepted. If all selected excerpts were supplied, the user disabled
+related-page text, or no candidate exists, the request remains tool-free.
+Publisher robots/access rules can still block ChatGPT. The service neither
+fetches nor retains related article text itself. Restart after updating; no
+pairing or SQLite reset is needed. ADR-052's blanket no-search rule was
+superseded by the owner's later cross-user-source request.
 
 Local, service-owned prototype state for Sources, vectors, Topic links,
 Topics, Discussions and human/AI-assisted Contributions. S3a adds a deliberately started
@@ -66,9 +72,27 @@ retry, Share, SQLite/catalog read or saved answer. Omit `--show-result` for
 count-only output. The HTML
 main-region extractor approximates public page prose; it cannot prove what
 the Chrome reader displayed. This is a backend/prompt quality check, not a
-full popup end-to-end test. The owner-approved ceiling is two deliberate
-live Responses requests per relevant Insight change, with no private-page
-material. Restart the normal local service when finished.
+full popup end-to-end test. The owner later approved up to 100 Responses
+requests for ADR-053's bounded source investigation; six were used, with no
+private-page material. Restart the normal local service when finished.
+
+For repeatable public-page web-search diagnostics, the separate
+`harness/run-live-web-search-qa.js` has fixed `control`, `publisher` and
+`newsPair` cases. For example, with the normal service stopped:
+
+```sh
+node harness/run-live-web-search-qa.js --run-live --case control --model gpt-5.5
+```
+
+Each invocation permits one Responses POST, has no automatic retry and prints
+only bounded event/source metadata by default. `--show-result` additionally
+prints at most 800 characters of a generated answer about those fixed public
+pages. It does not bypass publisher access rules. The production Insight-path
+check uses `node harness/run-live-insight-qa.js --run-live --model auto
+--with-web-search --show-result` with public PEP fixtures only. Neither
+harness posts a discussion contribution or changes SQLite. Count all live
+invocations against the owner's explicit request ceiling; the one-shot guard
+is per invocation, not a cross-process budget.
 
 ## Content-free insight trace
 

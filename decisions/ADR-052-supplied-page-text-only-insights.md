@@ -1,7 +1,14 @@
 # ADR-052: Insights use supplied page text, not provider web search
 
 Date: 2026-10-07
-Status: implemented for owner-local prototype; cached-text expansion undecided
+Status: historically implemented in 0.13.15; narrow provider-search rule superseded by ADR-053 in 0.13.16
+
+The owner later clarified that the current user's visit cache cannot supply
+pages visited by other users, and explicitly approved bounded ChatGPT HTTP
+research. [ADR-053](ADR-053-bounded-chatgpt-source-research-fallback.md)
+supersedes only this ADR's blanket no-web-search rule when a deliberate
+Insight has selected eligible public related URLs without accepted excerpts.
+The no-raw-text-retention and explicit-share boundaries remain.
 
 ## Decision
 

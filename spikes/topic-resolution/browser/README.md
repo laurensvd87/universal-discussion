@@ -1,11 +1,18 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-Extension 0.13.15 (2026-10-07) removes provider web search from Insight
-requests and the popup setting that offered it. The request now uses only the
-current article prefix and accepted anonymous related-page excerpts; old
-preferences cannot re-enable the provider tool. Reload the extension and
-restart the local service. The existing four-page/2,048-character related
-excerpt limit and no-raw-text-retention rule remain. See ADR-052.
+Extension 0.13.16 (2026-10-07) uses the existing anonymous related-page
+reader first. On an explicit **Get insights** click, selected public URLs
+whose excerpts could not be read may be researched by the connected ChatGPT
+model. This happens only while **Include related-page text** is enabled;
+excluded sources are omitted. The service accepts only actual citations to
+the exact selected missing URLs in a private draft. Publisher blocks still
+apply: our De Standaard test remained inaccessible to ChatGPT. There is no
+automatic Insight, retry or sharing. Reload the extension and restart the
+local service; no pairing or SQLite reset. See ADR-053 and current STATUS.
+
+Extension 0.13.15 (2026-10-07) removed the earlier provider-search setting
+and temporarily disabled search under ADR-052. Its no-search rule was later
+superseded only for the bounded 0.13.16 fallback above.
 
 Extension 0.13.14 (2026-10-07) adds model-placed `[[ref:n]]` attribution for
 actually supplied related-page excerpts. The local service resolves markers

@@ -40,6 +40,7 @@ const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "
   "response-final-item-missing", "response-item-identity", "response-item-conflict",
   "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
   "response-unsafe-text", "response-output-too-large",
+  "response-web-citation", "response-web-evidence", "response-unsafe-url",
   "response-excerpt-citation",
   "response-incomplete", "response-failed", "response-http-400"]);
 
@@ -158,6 +159,17 @@ export function validateRelatedExcerpts(value, context) {
     return { sourceId, url, text: excerpt };
   });
 }
+function missingRelatedCandidates(context, relatedExcerpts) {
+  const supplied = new Set(relatedExcerpts.map((entry) => entry.url));
+  const selected = new Set([context.currentSource.url]);
+  const missing = [];
+  for (const entry of [...context.sameTopicSources, ...context.relatedSources].slice(0, MAX_RELATED_EXCERPTS)) {
+    if (supplied.has(entry.url) || selected.has(entry.url)) continue;
+    selected.add(entry.url);
+    missing.push(entry.url);
+  }
+  return missing;
+}
 function followupContext(context, articleText, followup, relatedExcerpts) {
   const sourceReference = ({ title, url }) => ({ title, url });
   return { currentSource: sourceReference(context.currentSource),
@@ -191,16 +203,30 @@ async function responseError(response, signal) {
   }
   fail(errorForStatus(response?.status), response?.status === 400 ? "response-http-400" : undefined);
 }
-function safeCitation(value, body, offset) {
+function safeCitation(value, body, offset, allowedWebUrls) {
   if (!value || value.type !== "url_citation") return null;
   try {
     const url = publicUrl(value.url);
     const title = text(value.title, 512);
     const startIndex = value.start_index, endIndex = value.end_index;
     if (!Number.isSafeInteger(startIndex) || !Number.isSafeInteger(endIndex) ||
-        startIndex < 0 || endIndex <= startIndex || endIndex > body.length) return null;
+        startIndex < 0 || endIndex <= startIndex || endIndex > body.length ||
+        !allowedWebUrls.has(url)) fail("invalid-response", "response-web-citation");
     return { url, title, startIndex: offset + startIndex, endIndex: offset + endIndex };
-  } catch { return null; }
+  } catch { fail("invalid-response", "response-web-citation"); }
+}
+function validateOutputLinks(body, webCitations) {
+  const coveringCitation = (start, length, url) => webCitations.some((citation) =>
+    citation.startIndex <= start && start + length <= citation.endIndex && citation.url === url);
+  for (const match of body.matchAll(/\]\(([^)\n]*)\)/gu)) {
+    const target = match[1];
+    if (!coveringCitation(match.index, match[0].length, target))
+      fail("invalid-response", "response-unsafe-url");
+  }
+  for (const match of body.matchAll(/(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/|www\.)[^\s<>()\]]+/giu)) {
+    if (!coveringCitation(match.index, match[0].length, match[0]))
+      fail("invalid-response", "response-unsafe-url");
+  }
 }
 function excerptCitations(body, relatedExcerpts, context) {
   const selected = new Map([...context.sameTopicSources, ...context.relatedSources]
@@ -221,7 +247,7 @@ function excerptCitations(body, relatedExcerpts, context) {
   }
   return citations;
 }
-function completed(value, model, streamShape, relatedExcerpts, context) {
+function completed(value, model, streamShape, relatedExcerpts, context, allowedWebUrls, searchCompleted) {
   if (!value || value.status !== "completed" || !Array.isArray(value.output)) fail("invalid-response", "response-event");
   // The response may report the resolved model behind an account-listed alias.
   if (value.model !== undefined && (typeof value.model !== "string" || !SLUG.test(value.model))) fail("invalid-response");
@@ -244,8 +270,9 @@ function completed(value, model, streamShape, relatedExcerpts, context) {
       body += part.text;
       if (body.length > MAX_OUTPUT) fail("invalid-response", "response-output-too-large");
       if (Array.isArray(part.annotations)) {
-        for (const annotation of part.annotations.slice(0, 50)) {
-          const citation = safeCitation(annotation, part.text, offset);
+        if (part.annotations.length > 50) fail("invalid-response", "response-output-too-large");
+        for (const annotation of part.annotations) {
+          const citation = safeCitation(annotation, part.text, offset, allowedWebUrls);
           if (citation) citations.push(citation);
         }
       }
@@ -266,13 +293,17 @@ function completed(value, model, streamShape, relatedExcerpts, context) {
   if (!outputText) fail("invalid-response", "response-no-text");
   if (!body.trim()) fail("invalid-response", "response-blank-text");
   if (UNSAFE.test(body)) fail("invalid-response", "response-unsafe-text");
+  const webCitations = citations.slice();
   citations.push(...excerptCitations(body, relatedExcerpts, context));
+  validateOutputLinks(body, webCitations);
+  if (allowedWebUrls.size > 0 && (!searchCompleted || webCitations.length === 0))
+    fail("invalid-response", "response-web-evidence");
   // The paired client accepts at most 50 annotations in one result. Reject
   // rather than silently dropping provider citations beside written claims.
   if (citations.length > 50) fail("invalid-response", "response-output-too-large");
   return { body, citations, model };
 }
-function completedStreamItemFallback(final, model, shape, relatedExcerpts, context) {
+function completedStreamItemFallback(final, model, shape, relatedExcerpts, context, allowedWebUrls, searchCompleted) {
   const reject = (detail, branch = null) => {
     shape.fallbackFailure = detail;
     shape.fallbackBranch = branch;
@@ -363,7 +394,7 @@ function completedStreamItemFallback(final, model, shape, relatedExcerpts, conte
   }
   // A finalized item may be used only after the terminal completed response;
   // no delta, tool result, conflicting final item or refused output is imported.
-  return completed({ ...final, output: [candidate.item] }, model, shape, relatedExcerpts, context);
+  return completed({ ...final, output: [candidate.item] }, model, shape, relatedExcerpts, context, allowedWebUrls, searchCompleted);
 }
 async function boundedBody(response, maximum, signal, catalog = false) {
   if (!response.body?.getReader) fail("invalid-response", catalog ? "catalog-stream" : "response-stream");
@@ -395,7 +426,7 @@ function traceItem(item, index, phase) {
   return { phase, index: traceIndex(index), type: TRACE_ITEM_TYPES.has(item?.type) ? item.type : "other",
     status: TRACE_STATUSES.has(item?.status) ? item.status : "other" };
 }
-function parseSse(raw, model, onTrace, relatedExcerpts, context) {
+function parseSse(raw, model, onTrace, relatedExcerpts, context, allowedWebUrls) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
   const streamShape = { finalAssistantItem: false, textDone: false, createdId: null,
@@ -505,9 +536,13 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context) {
     }
   }
   if (!final) fail("invalid-response", "response-no-final");
-  const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context);
+  const searchCompleted = !streamShape.conflict &&
+    (streamShape.doneItems.some((item) => item.type === "web_search_call" && item.status === "completed") ||
+      Array.isArray(final.output) && final.output.some((item) =>
+        item?.type === "web_search_call" && item.status === "completed"));
+  const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context, allowedWebUrls, searchCompleted);
   if (recovered) return recovered;
-  return completed(final, model, streamShape, relatedExcerpts, context);
+  return completed(final, model, streamShape, relatedExcerpts, context, allowedWebUrls, searchCompleted);
   } catch (error) {
     outcome = "failure";
     detail = INSIGHT_DETAILS.has(error?.detail) ? error.detail : null;
@@ -726,8 +761,12 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const articleText = text(own(request, "articleText"), MAX_TEXT, true);
       const relatedExcerpts = validateRelatedExcerpts(
         Object.hasOwn(request, "relatedExcerpts") ? own(request, "relatedExcerpts") : [], context);
-      const userText = JSON.stringify(followup ? followupContext(context, articleText, followup, relatedExcerpts) :
-        { context, articlePrefix: articleText, relatedExcerpts });
+      const missingCandidates = allowWebResearch ? missingRelatedCandidates(context, relatedExcerpts) : [];
+      const useWebResearch = missingCandidates.length > 0;
+      const userContext = followup ? followupContext(context, articleText, followup, relatedExcerpts) :
+        { context, articlePrefix: articleText, relatedExcerpts };
+      if (useWebResearch) userContext.missingRelatedCandidateUrls = missingCandidates;
+      const userText = JSON.stringify(userContext);
       if (userText.length > MAX_INPUT) fail("invalid-input");
       const preflightTime = now();
       if (!Number.isSafeInteger(preflightTime) || preflightTime < 0) fail("invalid-input");
@@ -746,10 +785,15 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       if (calls.length >= 5) fail("rate-limit");
       calls.push(dispatchTime); // A dispatched call consumes a slot, even on failure or cancellation.
       const payload = { model, store: false, stream: true,
-        instructions: buildInsightInstructions(Boolean(followup), allowWebResearch),
+        instructions: buildInsightInstructions(Boolean(followup), useWebResearch),
         input: [{ role: "user", content: userText }],
         tools: [],
       };
+      if (useWebResearch) {
+        payload.tools = [{ type: "web_search", external_web_access: true, search_context_size: "medium",
+          filters: { allowed_domains: [...new Set(missingCandidates.map((url) => new URL(url).hostname))] } }];
+        payload.tool_choice = "required";
+      }
       debug({ phase: "request", payload });
       const response = await fetchImpl(`${API}/responses`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: requestSignal,
@@ -770,7 +814,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         if (failureCode) fail(errorForCode(failureCode), "response-failed");
         fail("invalid-response", "response-content-missing");
       }
-      return parseSse(raw, model, onTrace, relatedExcerpts, context);
+      return parseSse(raw, model, onTrace, relatedExcerpts, context, new Set(missingCandidates));
     }, signal);
   }
   function cancel() { active?.abort(); }

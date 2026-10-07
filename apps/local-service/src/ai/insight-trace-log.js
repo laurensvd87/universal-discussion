@@ -22,6 +22,7 @@ const DETAILS = new Set(["response-redirect", "response-content-type", "response
   "response-output-empty", "response-search-only", "response-reasoning-only", "response-final-item-missing",
   "response-item-identity", "response-item-conflict", "response-item-prefix", "response-item-text",
   "response-stream-text-unfinalized", "response-unsafe-text", "response-output-too-large", "response-excerpt-citation",
+  "response-web-citation", "response-web-evidence", "response-unsafe-url",
   "response-incomplete", "response-failed", "response-http-400"]);
 
 function exactKeys(value, keys) {

@@ -35,6 +35,16 @@ test("fixed temp path stores only a validated structural line", () => withTemp((
   assert.equal(statSync(log.filePath).isFile(), true);
 }));
 
+test("accepts only fixed web research rejection details", () => withTemp((tempDirectory) => {
+  const log = createInsightTraceLog({ tempDirectory });
+  for (const detail of ["response-web-citation", "response-web-evidence", "response-unsafe-url"]) {
+    assert.equal(log.write({ ...trace(), detail, fallbackFailure: detail }), true);
+  }
+  const raw = readFileSync(log.filePath, "utf8");
+  assert.equal(raw.split("\n").filter(Boolean).length, 3);
+  assert.equal(raw.includes("https://"), false);
+}));
+
 test("rejects unknown fields and free strings before writing", () => withTemp((tempDirectory) => {
   const log = createInsightTraceLog({ tempDirectory });
   const secret = "SECRET_PAGE_TEXT_TOKEN_ID_URL";

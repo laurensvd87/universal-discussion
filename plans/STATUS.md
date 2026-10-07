@@ -35,6 +35,38 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-07 bounded provider-source fallback (extension 0.13.16, ADR-053):** The owner
+clarified that caching only this user's visited pages does not solve the
+cross-user source problem and explicitly authorized up to 100 ChatGPT HTTP
+research requests, preferring fewer. This reverses ADR-052 only for a
+deliberate Get insights action with missing selected public-source excerpts.
+Four isolated GPT-5.5 Responses requests found that hosted search works for
+PEP 8/257 (both exact pages cited) and cited RD in an RTL/RD news pair, but
+could not read the De Standaard Kyiv article: the provider reported a
+fetch/cache error and robots.txt block, with no citation. Two further
+Responses requests through the production Insight parser using an account-
+listed `gpt-5.6-luna` model each produced a private PEP 8/257 draft with one
+validated PEP 257 citation, including under the final strict parser. An
+attempted GPT-5.5 production QA stopped at model-list preflight and sent no
+Responses request. **Six actual Responses requests** were used; no draft was
+shared. Search runs only after an explicit Get insights click, for up to four
+missing selected eligible public URLs, with source exclusions preserved.
+The strict result path accepts provider citations only for those exact URLs,
+requires a completed web-search call plus at least one such citation, and
+rejects unannotated links. This can fail on a publisher block or canonical URL
+variation; it cannot prove a full article was read. Independent Trust re-review
+found no remaining blocker. The three fixed no-source/unsafe-citation error
+codes also propagate to the popup without raw material. Full restricted
+extension 976/976, service 248
+passed/four optional skipped, loopback integration 2/2, isolated web-probe
+3/3, isolated Chrome synthetic smoke PASS (zero runtime exceptions/external
+extension requests), and both secret scans with zero findings. The Chrome
+smoke's stale first-`ul` selector was corrected to target its Related-Pages
+list before the passing rerun. The owner service was restarted with the same
+Origin and durable pairing on port 4174; extension reload is still needed.
+No change to retained owner data, Topic grouping or store/publication scope.
+
+
 **2026-10-07 no-provider-search direction (extension 0.13.15, ADR-052):** After a
 De Standaard Kyiv Insight had no links, the owner explicitly directed that
 ChatGPT must make no web-search calls and asked to supply the main text of

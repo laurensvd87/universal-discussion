@@ -29,6 +29,7 @@ const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "
   "response-final-item-missing", "response-item-identity", "response-item-conflict",
   "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
   "response-unsafe-text", "response-output-too-large", "response-excerpt-citation",
+  "response-web-citation", "response-web-evidence", "response-unsafe-url",
   "response-incomplete", "response-failed", "response-http-400"]);
 const MAX_DIAGNOSTIC_EVENTS = 20;
 const FAILURE_STAGES = new Set(["callback-invalid", "callback-expired", "callback-busy", "token-exchange-rejected",

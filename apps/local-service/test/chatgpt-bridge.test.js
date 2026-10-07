@@ -369,6 +369,35 @@ test("paired research result and diagnostics retain fixed failure detail only", 
   ai.dispose();
 });
 
+test("paired research results expose fixed web rejection codes without provider content", async () => {
+  const { service, catalog, context } = fixture();
+  const secret = "SECRET_PROVIDER_RESEARCH_TEXT_URL_TOKEN";
+  let detail;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
+    insightsAdapter: { createInsight: async () => {
+      throw Object.assign(new ChatGptInsightError("invalid-response", detail),
+        { message: secret, requestId: secret, body: secret });
+    }, cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const actor = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
+  const details = ["response-web-citation", "response-web-evidence", "response-unsafe-url"];
+  for (const [index, code] of details.entries()) {
+    detail = code;
+    const operationId = `web-rejection-${index}`;
+    const input = { operationId, model: "synthetic", context,
+      articleText: "Public synthetic article.", allowWebResearch: true, expected: catalog.version };
+    assert.equal((await handle(request("POST", "/v1/ai/insights", input, actor))).status, 200);
+    await Promise.resolve(); await Promise.resolve();
+    const response = await handle(request("POST", "/v1/ai/insights/result", { operationId }, actor));
+    assert.deepEqual(body(response), { operationId, state: "failed", error: "invalid-response", detail: code });
+    assert.equal(response.body.includes(secret), false);
+  }
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/diagnostics", null, { origin: ORIGIN }))),
+    { events: details.map((code) => ({ kind: "insight", outcome: "invalid-response", detail: code })) });
+  ai.dispose();
+});
+
 test("verified account without plan permission cannot list models or create insight", async () => {
   const { service, catalog, context } = fixture();
   let providerCalls = 0;

@@ -1,5 +1,24 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-07 newest owner direction: a cache of the current user's past visits
+does not solve cross-user source context. The owner now authorizes testing up
+to 100 ChatGPT HTTP research requests (fewer preferred). ADR-053 supersedes
+ADR-052's no-search rule only for explicit Get insights when selected public
+related URLs have no accepted anonymous excerpt. Isolated live SIWC tests
+proved hosted search/citations on PEP pages and one RD article, while the
+De Standaard Kyiv article remained unavailable (provider-reported fetch/cache
+and robots.txt failure). Two production-path PEP QA requests returned private
+cited drafts with account-listed `gpt-5.6-luna`. The final path requires a
+completed web-search call and citations to exact missing candidate URLs;
+unannotated links are rejected. Six Responses requests total; no draft was
+shared. Trust re-review found no blocker; full service/extension/loopback/
+isolated-Chrome checks and secret scans pass. The owner service is again
+listening on 127.0.0.1:4174 with the same Origin and durable pairing. Reload
+extension 0.13.16. This is not universal publisher access: De Standaard
+remained blocked for ChatGPT, and a citation may reflect a snippet rather
+than the full article. See STATUS and ADR-053.
+
+
 2026-10-07 owner correction: ChatGPT must not make web-search calls. ADR-052
 implements the fail-closed no-tool request and text-only Insight boundary in
 extension 0.13.15. The extension already supplies up to 4,096

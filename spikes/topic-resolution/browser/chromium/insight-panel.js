@@ -33,6 +33,7 @@ const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", 
   "response-item-conflict", "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
   "response-message-unfinished", "response-refusal",
   "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-excerpt-citation", "response-incomplete",
+  "response-web-citation", "response-web-evidence", "response-unsafe-url",
   "response-failed", "response-http-400"]);
 const CONTENT_TYPE_MESSAGES = Object.freeze({
   "response-content-json": "aiResearchContentJson",

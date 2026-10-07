@@ -22,19 +22,21 @@ test("one static prompt covers topic-sensitive angles and evidence limits", () =
   assert.doesNotMatch(prompt, /Topic\.kind|classifier|second request/u);
 });
 
-test("trusted flags select opener/follow-up while legacy web flag cannot enable research", () => {
+test("trusted flags select opener/follow-up and bounded web instructions", () => {
   const opener = buildInsightInstructions(false, true);
   const followup = buildInsightInstructions(true, true);
   const offlineFollowup = buildInsightInstructions(true, false);
   assert.match(opener, /opening post.*currentSource/u);
-  assert.equal(opener, buildInsightInstructions(false, false));
-  assert.match(opener, /Do not use external research, search the web, or open any supplied URL/u);
+  assert.notEqual(opener, buildInsightInstructions(false, false));
+  assert.match(opener, /inspect only the exact URLs in missingRelatedCandidateUrls/u);
+  assert.match(opener, /provider's actual url_citation annotation/u);
+  assert.match(opener, /never imply that its full text was read from a snippet/u);
   assert.match(followup, /Answer that specific question directly/u);
   assert.match(followup, /assess robotParent's claims independently/u);
   assert.doesNotMatch(followup, /opening post/u);
   assert.match(offlineFollowup, /Do not use external research/u);
-  assert.equal(followup, offlineFollowup);
-  assert.doesNotMatch(followup, /Use web research selectively|web tool|web-search queries|Search with/u);
+  assert.notEqual(followup, offlineFollowup);
+  assert.match(followup, /Use the web_search tool/u);
   assert.equal(buildInsightInstructions(false, true), opener);
   for (const flags of [[null, false], [false, "true"], [0, false]]) {
     assert.throws(() => buildInsightInstructions(...flags), TypeError);
@@ -52,7 +54,7 @@ test("opener prioritizes supported cross-source additions without inventing an o
     assert.match(prompt, /do not claim the full current page omits it merely because articlePrefix is partial/u);
     assert.match(prompt, /If no useful contrast is supported, offer one specific implication/u);
     assert.match(prompt, /tack on a broad rhetorical question/u);
-    assert.match(prompt, /Do not print raw URLs, invent web citation markers/u);
+    assert.match(prompt, /(?:Do not print raw URLs, invent web citation markers|Never invent a citation, print a raw URL)/u);
     assert.match(prompt, /Shared vocabulary, a broad theme, or a provisional Topic match alone is insufficient/u);
     assert.match(prompt, /current page central/u);
   }

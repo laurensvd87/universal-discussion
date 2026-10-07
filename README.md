@@ -10,16 +10,23 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.15** removes ChatGPT web search from Insight requests and the
-misleading search toggle. The model receives a bounded prefix of the current
-public article (at most 4,096 characters) and, only when direct anonymous
-fetching succeeds, up to four selected related-page excerpts (2,048 characters
-each). Those excerpts are attached to the same request; ChatGPT does not open
-the links itself. A related URL or embedding match alone is not page text or
-evidence. The De Standaard Kyiv case had zero accepted excerpts in a read-only
-anonymous replay, so the absence of source links is plausible; the exact
-Chrome run was not logged. Reload the extension and restart the local service
-for the no-search enforcement. See [ADR-052](decisions/ADR-052-supplied-page-text-only-insights.md).
+Extension **0.13.16** adds a bounded ChatGPT research fallback to an explicit
+**Get insights** click. It first tries the existing anonymous reads for up to
+four selected related pages. If an eligible page supplies no excerpt, the
+connected ChatGPT model may search its exact public URL; provider citations
+must point to those selected missing URLs. Successfully supplied excerpts
+keep their own validated source links. The
+current page's at-most-4,096-character extract remains central; no related
+article text is retained in SQLite, and nothing is shared automatically.
+Some publishers still refuse the provider: the tested De Standaard article
+remained inaccessible even to ChatGPT, while public PEP and one RD page were
+citable. A linked URL or attempted open is not proof of page access. Reload
+the extension and restart the local service; pairing/data need no reset. See
+[ADR-053](decisions/ADR-053-bounded-chatgpt-source-research-fallback.md).
+
+Extension **0.13.15** had temporarily disabled provider web search under
+[ADR-052](decisions/ADR-052-supplied-page-text-only-insights.md); the owner's
+later cross-user-source request supersedes that specific no-search rule.
 
 Extension **0.13.14** attributes facts drawn from successfully retrieved
 related-page excerpts with clickable superscript numbers directly beside the

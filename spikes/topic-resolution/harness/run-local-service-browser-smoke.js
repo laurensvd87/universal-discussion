@@ -310,9 +310,10 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     await waitStatus(EN.discussionChooseStatus);
     await storage(true, firstToken);
     await select("#discussion-source", "harbor-overview");
+    await waitExpression("document.querySelector('#discussion-related ul')?.children.length===4", "ranked related-page fixture list");
     const ranking = await evaluate(`(() => {
       const root=document.querySelector('#local-discussion');
-      const items=Array.from(root.querySelector('ul').children);
+      const items=Array.from(root.querySelector('#discussion-related ul').children);
       return {count:items.length,
         sameTopic:items.filter(item=>item.textContent.includes(${JSON.stringify(EN.discussionSameTopic)})).length,
         related:items.filter(item=>item.textContent.includes(${JSON.stringify(EN.discussionRelatedReading)})).length,
@@ -324,11 +325,11 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     assert.ok(await evaluate(`(() => {
       const root=document.querySelector('#local-discussion');
       return document.querySelector('#discussion-topic').value==='seedlings'
-        && root.querySelector('ul').children.length===1
-        && root.querySelector('ul').textContent===${JSON.stringify(EN.discussionRelatedEmpty)}
+        && root.querySelector('#discussion-related ul').children.length===1
+        && root.querySelector('#discussion-related ul').textContent===${JSON.stringify(EN.discussionRelatedEmpty)}
         && ${THREAD}.textContent.includes(${JSON.stringify(EN.discussionEmpty)})
         && !root.textContent.includes('Synthetic Harbor source-selection root')
-        && !root.querySelector('ul').textContent.includes('Harbor');
+        && !root.querySelector('#discussion-related ul').textContent.includes('Harbor');
     })()`));
     await input("#discussion-new-title", "Synthetic browser smoke topic");
     await evaluate("document.querySelector('#discussion-create').focus()");

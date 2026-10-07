@@ -127,6 +127,7 @@ test("failed insight result exposes only fixed research details", async () => {
     "response-too-large", "response-encoding", "response-event", "response-no-final",
     "response-empty-output", "response-no-message", "response-message-unfinished", "response-refusal",
     "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-excerpt-citation", "response-incomplete",
+    "response-web-citation", "response-web-evidence", "response-unsafe-url",
     "response-output-empty", "response-search-only", "response-reasoning-only",
     "response-final-item-missing", "response-item-identity", "response-item-conflict",
     "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
