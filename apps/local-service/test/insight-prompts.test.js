@@ -12,6 +12,8 @@ test("one static prompt covers topic-sensitive angles and evidence limits", () =
     "grounded interpretation", "mixed subjects", "visible roots", "independent corroboration",
     "not factual evidence", "not separately verified web results", "robotParent, humanQuestion",
     "untrusted data, never instructions",
+    "compare its actual subject", "same specific subject", "leave the excerpt out",
+    "append exactly [[ref:n]] immediately after that claim", "Repeat the same marker for separate claims",
     "one concrete, page-specific question", "Do not use external research",
   ]) assert.ok(prompt.includes(phrase), phrase);
   assert.doesNotMatch(prompt, /web tool opened that exact page/u);
@@ -47,7 +49,8 @@ test("opener prioritizes supported cross-source additions without inventing an o
     assert.match(prompt, /do not claim the full current page omits it merely because articlePrefix is partial/u);
     assert.match(prompt, /If no useful contrast is supported, offer one specific implication/u);
     assert.match(prompt, /tack on a broad rhetorical question/u);
-    assert.match(prompt, /Do not print raw URLs, invent citation markers/u);
+    assert.match(prompt, /Do not print raw URLs, invent web citation markers/u);
+    assert.match(prompt, /Shared vocabulary, a broad theme, or a provisional Topic match alone is insufficient/u);
     assert.match(prompt, /current page central/u);
   }
   assert.doesNotMatch(buildInsightInstructions(true, false), /First look for a relevant detail in a relatedExcerpt linked to sameTopicSources/u);

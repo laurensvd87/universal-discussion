@@ -59,6 +59,77 @@ test("paired popup automatically loads bridged service discussion and sends IDs 
   assert.equal(JSON.stringify(ui.requests).includes("https:"), false);
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
 });
+
+test("distinct related Topics with visible posts load read-only below the current Topic", async () => {
+  const ui = harness({ client: { async related() {
+    const catalog = ui.service.catalog();
+    const candidates = ["harbor-overview", "harbor-review", "harbor-successor", "garden-guide"];
+    return { version: catalog.version, model: catalog.model, results: candidates.map((id) => {
+      const source = catalog.sources.find((entry) => entry.id === id);
+      return { ...source, relationship: "related", method: "synthetic" };
+    }) };
+  } } });
+  const current = ui.service.catalog().version;
+  ui.service.command(current, { type: "create-root", topicId: "harbor-s2",
+    body: "Synthetic sensor discussion" }, "demo-alex");
+  ui.service.command(ui.service.catalog().version, { type: "create-root", topicId: "harbor-s3",
+    body: "Synthetic successor discussion" }, "demo-blair");
+  await ui.controller.open();
+  await turn();
+  const state = ui.controller.currentState();
+  assert.equal(state.topicId, "reserved-domain-demo");
+  assert.deepEqual(state.relatedDiscussions.map((entry) => entry.topicId), ["harbor-s2", "harbor-s3"]);
+  assert.equal(state.relatedDiscussions[0].roots[0].body, "Synthetic sensor discussion");
+  assert.equal(state.relatedDiscussions[0].rootCount, 1);
+  assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id === "harbor-s2").length, 1);
+  ui.invalidate();
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+  await ui.controller.disconnect();
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+});
+
+test("slow related reads never delay the current discussion or survive navigation", async () => {
+  const pending = deferred();
+  const ui = harness({ client: { async related() {
+    const catalog = ui.service.catalog();
+    const source = catalog.sources.find((entry) => entry.id === "harbor-overview");
+    return { version: catalog.version, model: catalog.model,
+      results: [{ ...source, relationship: "related", method: "synthetic" }] };
+  }, async discussion(topicId) {
+    if (topicId === "harbor-s2") return pending.promise;
+    return ui.service.discussion(topicId);
+  } } });
+  ui.service.command(ui.service.catalog().version, { type: "create-root", topicId: "harbor-s2",
+    body: "Delayed supplemental post" }, "demo-alex");
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().discussion.topic.id, "reserved-domain-demo");
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+  ui.invalidate();
+  pending.resolve(ui.service.discussion("harbor-s2"));
+  await turn();
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+});
+
+test("stale or forged related Source associations cannot attach another Topic", async () => {
+  for (const violation of ["stale-version", "wrong-topic"]) {
+    const ui = harness({ client: { async related() {
+      const catalog = ui.service.catalog();
+      const source = catalog.sources.find((entry) => entry.id === "harbor-overview");
+      return { version: violation === "stale-version" ?
+        { ...catalog.version, revision: catalog.version.revision + 1 } : catalog.version,
+      model: catalog.model, results: [{ ...source,
+        topicId: violation === "wrong-topic" ? "harbor-s3" : source.topicId,
+        relationship: "related", method: "synthetic" }] };
+    } } });
+    ui.service.command(ui.service.catalog().version, { type: "create-root", topicId: "harbor-s2",
+      body: "Must remain hidden" }, "demo-alex");
+    await ui.controller.open();
+    assert.equal(ui.controller.currentState().phase, "ready");
+    assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+    assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id === "harbor-s2").length, 0);
+  }
+});
 test("prior Source topics open manually and Back reattests the current page", async () => {
   const next = harness({ client: { async priorDiscussions(sourceId) {
     const source = next.service.catalog().sources.find((entry) => entry.id === sourceId);

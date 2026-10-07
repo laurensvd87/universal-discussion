@@ -25,7 +25,7 @@ const RESEARCH_DETAILS = new Set(["response-redirect", "response-content-type", 
   "response-reasoning-only", "response-final-item-missing", "response-item-identity",
   "response-item-conflict", "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
   "response-message-unfinished", "response-refusal",
-  "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-incomplete",
+  "response-no-text", "response-blank-text", "response-unsafe-text", "response-output-too-large", "response-excerpt-citation", "response-incomplete",
   "response-failed", "response-http-400"]);
 const EXCERPT_FAILURES = ["noHostAccess", "fetchHttpRedirect", "sizeType", "parseShort"];
 const LUNA_MODEL_SLUG = /^gpt-[0-9]+(?:\.[0-9]+)*-luna(?:-[0-9]{4}-[0-9]{2}-[0-9]{2})?$/u;

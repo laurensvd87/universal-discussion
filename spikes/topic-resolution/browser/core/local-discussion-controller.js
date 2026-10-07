@@ -34,7 +34,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   observeTabLifecycle, lookupByNormalizedUrl, readPageResolution = null, pausePageMatching = null,
   validatePairing = async () => {}, onStateChange = () => {} }) {
   let state = { phase: "disconnected", error: null, catalog: null, discussion: null,
-    related: null, priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
+    related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
     sourceId: null, topicId: null, actorId: null, selection: null,
     draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null };
   let epoch = 0;
@@ -46,7 +46,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   let observationSequence = 0;
   let preparingLearned = false;
   function publish(patch = {}) {
-    state = { ...state, ...patch };
+    const contextChanged = patch.discussion === null || patch.related === null || patch.catalog === null ||
+      patch.sourceId === null || patch.topicId === null ||
+      (Object.hasOwn(patch, "sourceId") && patch.sourceId !== state.sourceId) ||
+      (Object.hasOwn(patch, "topicId") && patch.topicId !== state.topicId);
+    state = { ...state, ...patch, ...(contextChanged ? { relatedDiscussions: [] } : {}) };
     if (!disposed) onStateChange(currentState());
   }
   function currentState() { return freeze(structuredClone(state)); }
@@ -73,6 +77,48 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     } else if (ownEpoch === epoch && !disposed) {
       detach(); publish({ error: error?.code ?? "unavailable", phase: "error",
         discussion: null, related: null, priorDiscussions: null, priorDiscussionsError: null });
+    }
+  }
+  function sameVersion(left, right) {
+    return left?.generation === right?.generation && left?.revision === right?.revision;
+  }
+  async function loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options) {
+    if (!sourceId || !topicId || !discussion || !related ||
+        !sameVersion(catalog?.version, discussion.version) || !sameVersion(catalog.version, related.version) ||
+        catalog.sources.find((source) => source.id === sourceId)?.topicId !== topicId) return;
+    const ids = [];
+    for (const result of related.results) {
+      const source = catalog.sources.find((entry) => entry.id === result.id);
+      if (!source || source.topicId !== result.topicId || source.url !== result.url ||
+          source.title !== result.title || !source.topicId || source.topicId === topicId ||
+          !catalog.topics.some((topic) => topic.id === source.topicId) || ids.includes(source.topicId)) continue;
+      ids.push(source.topicId);
+      if (ids.length === 4) break;
+    }
+    if (!ids.length) return;
+    try {
+      const views = await Promise.all(ids.map((id) => client.discussion(id, options)));
+      if (ownEpoch !== epoch || disposed || state.phase !== "ready" || state.needsFreshRead ||
+          state.sourceId !== sourceId || state.topicId !== topicId ||
+          !sameVersion(state.catalog?.version, catalog.version) ||
+          !sameVersion(state.discussion?.version, discussion.version)) return;
+      if (!views.every((view, index) => sameVersion(catalog.version, view.version) &&
+          view.topic.id === ids[index] && catalog.topics.some((topic) => topic.id === view.topic.id &&
+            topic.title === view.topic.title && topic.kind === view.topic.kind))) return;
+      const relatedDiscussions = views.flatMap((view) => {
+        const visible = view.roots.filter((entry) => entry.state === "visible");
+        const roots = visible.slice(0, 3).map((entry) => ({
+          id: entry.id, body: entry.body, authorId: entry.authorId, actorType: entry.actorType,
+          insight: entry.insight ?? null, createdAt: entry.createdAt, origin: entry.origin ?? null,
+          replyCount: entry.replies.filter((reply) => reply.state === "visible").length,
+        }));
+        return roots.length ? [{ topicId: view.topic.id, title: view.topic.title,
+          rootCount: visible.length, roots }] : [];
+      });
+      if (relatedDiscussions.length) publish({ relatedDiscussions });
+    } catch (error) {
+      if (error?.code === "unauthorized") await failure(error, ownEpoch);
+      // Related reading errors otherwise leave the current Topic usable.
     }
   }
   async function loadSelection(ownEpoch) {
@@ -122,8 +168,9 @@ export function createLocalDiscussionController({ client, session, readActiveTab
           prior = { value: null, error: error?.code ?? "unavailable" };
         }
       }
-      publish({ catalog, discussion, related, priorDiscussions: prior?.value ?? null,
+      publish({ catalog, discussion, related, relatedDiscussions: [], priorDiscussions: prior?.value ?? null,
         priorDiscussionsError: prior?.error ?? null, phase: topicId ? "ready" : "choose-topic" });
+      void loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options);
     } catch (error) { await failure(error, ownEpoch); }
   }
   function setupObservation() {
@@ -456,7 +503,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   function dispose() {
     disposed = true; cancel(); observationSequence += 1; stopObservation();
     state = { ...state, phase: "disconnected", catalog: null, discussion: null,
-      related: null, priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
+      related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
       sourceId: null, topicId: null, actorId: null, selection: null, resolution: null,
       draft: { body: "", detached: false, mode: "root", targetId: null } };
   }

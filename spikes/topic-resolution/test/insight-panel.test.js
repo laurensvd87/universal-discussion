@@ -122,7 +122,7 @@ test("poll renders preserve a generated preview, citation focus, and one-click S
   ui.panel.render(initial);
   const citations = ui.byId("insight-citations");
   const children = [...citations.children];
-  const link = children.find((item) => item.tag === "a");
+  const link = ui.descendants(citations).find((item) => item.tag === "a");
   const workspace = ui.byId("insight-workspace");
   const draftDetails = ui.byId("insight-draft-details");
   const share = ui.byId("insight-share");
@@ -479,7 +479,7 @@ test("research failure exposes only allowlisted fixed detail and clears it on su
   assert.equal(ui.byId("insight-quick-status").textContent.includes("private-provider-body"), false);
   for (const detail of ["response-output-empty", "response-search-only", "response-reasoning-only",
     "response-final-item-missing", "response-item-identity", "response-item-conflict",
-    "response-item-prefix", "response-item-text", "response-stream-text-unfinalized"]) {
+    "response-item-prefix", "response-item-text", "response-stream-text-unfinalized", "response-excerpt-citation"]) {
     ui.panel.render(state({ ai: { ...ai, researchFailureDetail: detail } }));
     assert.equal(ui.byId("insight-quick-status").textContent.includes(`Code: ${detail}`), true, detail);
   }

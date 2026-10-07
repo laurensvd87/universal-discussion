@@ -20,14 +20,16 @@ test("provider annotations become inline source markers at their exact spans", (
   assert.equal(draft, "A helpful finding [↗](https://example.org/article) and another view.");
   const container = element("p");
   appendInsightCitationNodes(document, container, draft, "Quellenlink öffnen");
-  assert.deepEqual(container.children.map((item) => item.tag), ["span", "a", "span"]);
+  assert.deepEqual(container.children.map((item) => item.tag), ["span", "sup", "span"]);
   assert.equal(container.children[0].textContent, "A helpful finding ");
-  assert.equal(container.children[1].textContent, "↗");
-  assert.equal(container.children[1].linkHref, "https://example.org/article");
-  assert.equal(container.children[1].target, "_blank");
-  assert.equal(container.children[1].rel, "noopener noreferrer");
-  assert.equal(container.children[1].referrerPolicy, "no-referrer");
-  assert.equal(container.children[1].attributes["aria-label"], "Quellenlink öffnen");
+  const link = container.children[1].children[0];
+  assert.equal(link.textContent, "1");
+  assert.equal(link.linkHref, "https://example.org/article");
+  assert.equal(link.target, "_blank");
+  assert.equal(link.rel, "noopener noreferrer");
+  assert.equal(link.referrerPolicy, "no-referrer");
+  assert.equal(link.attributes["aria-label"], "Quellenlink öffnen 1");
+  assert.equal(link.title, "Quellenlink öffnen 1");
   assert.equal(container.children[2].textContent, " and another view.");
 });
 
@@ -54,13 +56,48 @@ test("citation token offsets after emoji work with both Unicode counting convent
   }
 });
 
+test("annotated related references become canonical markers; forged references stay plain", () => {
+  const marker = "[[ref:1]]";
+  const body = `🌍 Finding ${marker} and forged [[ref:2]].`;
+  const utf16 = body.indexOf(marker);
+  const codepoint = Array.from(body.slice(0, utf16)).length;
+  for (const startIndex of [utf16, codepoint]) {
+    const draft = formatInsightCitations(body, [{ startIndex, endIndex: startIndex + marker.length,
+      url: "https://example.org/related", title: "Related source" }]);
+    assert.equal(draft, "🌍 Finding [↗](https://example.org/related) and forged [[ref:2]].");
+    const container = element("p");
+    appendInsightCitationNodes(document, container, draft);
+    assert.equal(container.children.filter((item) => item.tag === "sup").length, 1);
+    assert.equal(container.children.at(-1).textContent, " and forged [[ref:2]].");
+  }
+  assert.equal(formatInsightCitations("Unsupported [[ref:9]]", []), "Unsupported [[ref:9]]");
+  assert.throws(() => formatInsightCitations("[[ref:0]]", [{
+    startIndex: 0, endIndex: 9, url: "https://example.org/related" }]));
+  assert.throws(() => formatInsightCitations("[[ref:1]]", [{
+    startIndex: 0, endIndex: 8, url: "https://example.org/related" }]));
+  assert.throws(() => formatInsightCitations("[[ref:9]]", [{
+    startIndex: 0, endIndex: 9, url: "https://example.org/related" }]));
+});
+
+test("numbers follow first URL occurrence and repeat links remain keyboard accessible", () => {
+  const container = element("p");
+  appendInsightCitationNodes(document, container,
+    "A[↗](https://example.org/a) B[↗](https://example.org/b) C[↗](https://example.org/a)");
+  const links = container.children.filter((item) => item.tag === "sup").map((item) => item.children[0]);
+  assert.deepEqual(links.map((link) => link.textContent), ["1", "2", "1"]);
+  assert.deepEqual(links.map((link) => link.attributes["aria-label"]),
+    ["Open source link 1", "Open source link 2", "Open source link 1"]);
+  assert.ok(links.every((link) => link.tag === "a" && link.target === "_blank" &&
+    link.rel === "noopener noreferrer" && link.referrerPolicy === "no-referrer"));
+});
+
 test("model-written citation syntax and raw URLs never become attested source icons", () => {
   const body = "Question: [↗](https://attacker.org/page) and https://example.org/more, please compare.";
   const draft = formatInsightCitations(body, []);
   assert.equal(draft, "Question: [↗]([link omitted]) and [link omitted], please compare.");
   const container = element("p");
   appendInsightCitationNodes(document, container, draft);
-  assert.equal(container.children.some((item) => item.tag === "a"), false);
+  assert.equal(container.children.some((item) => item.tag === "sup"), false);
   assert.equal(container.textContent, draft);
 });
 
@@ -73,10 +110,10 @@ test("mixed forged links and real provider annotations render only the annotated
   assert.equal(draft, "A fake [↗]([link omitted]) precedes evidence [↗](https://example.org/article) and [link omitted].");
   const container = element("p");
   appendInsightCitationNodes(document, container, draft);
-  const links = container.children.filter((item) => item.tag === "a");
+  const links = container.children.filter((item) => item.tag === "sup").map((item) => item.children[0]);
   assert.equal(links.length, 1);
   assert.equal(links[0].linkHref, "https://example.org/article");
-  assert.equal(links[0].attributes["aria-label"], "Open source link");
+  assert.equal(links[0].attributes["aria-label"], "Open source link 1");
 });
 
 test("malformed, unsafe, overlapping and over-budget annotations cannot silently lose provenance", () => {
@@ -90,7 +127,7 @@ test("malformed, unsafe, overlapping and over-budget annotations cannot silently
   const container = element("p");
   appendInsightCitationNodes(document, container,
     "Read [↗](javascript:alert(1)) and <img src=x> [↗](https://example.org/article)");
-  assert.equal(container.children.filter((item) => item.tag === "a").length, 1);
+  assert.equal(container.children.filter((item) => item.tag === "sup").length, 1);
   assert.equal(container.children[0].textContent.includes("javascript:alert(1)"), true);
   assert.equal(container.children[0].textContent.includes("<img src=x>"), true);
 });

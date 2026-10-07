@@ -50,7 +50,7 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   assert.match(sent.instructions, /A supplied URL is a suggestion, not proof/u);
   assert.match(sent.instructions, /If a candidate is unavailable, continue/u);
   assert.match(sent.instructions, /URL citation annotations immediately after the supported claim/u);
-  assert.match(sent.instructions, /Do not print raw URLs, invent citation markers, or add a source list/u);
+  assert.match(sent.instructions, /Do not print raw URLs, invent web citation markers, or add a source list/u);
   assert.deepEqual(sent.tools, [{ type: "web_search", search_context_size: "low",
     filters: { allowed_domains: ["example.com", "news.example.org", "research.example.net"] } }]);
   assert.ok(!JSON.stringify(sent).includes("synthetic-oauth-token"));
@@ -135,6 +135,73 @@ test("related excerpts remain bounded candidate context in the exact provider re
   assert.match(payload.instructions, /Do not call an added detail a contradiction unless comparable claims clearly conflict/u);
   assert.match(payload.instructions, /If no useful contrast is supported, offer one specific implication/u);
   adapter.dispose();
+});
+
+test("only exact markers for validated excerpts become citations beside web annotations", async () => {
+  const relatedExcerpts = [
+    { sourceId: "same", url: CONTEXT.sameTopicSources[0].url, text: "The same event had a second estimate." },
+    { sourceId: "related", url: CONTEXT.relatedSources[0].url, text: "A different event." },
+  ];
+  const body = "Current point. The second estimate differs[[ref:1]]. It used another method[[ref:1]]. A second source adds context[[ref:2]].";
+  const web = { type: "url_citation", url: "https://research.example.net/check", title: "Web check",
+    start_index: 0, end_index: 7 };
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
+    stream(complete(body, [web])), getAccessToken: async () => ACCESS });
+  await adapter.listModels();
+  const marker = body.indexOf("[[ref:1]]");
+  const secondMarker = body.indexOf("[[ref:1]]", marker + 1);
+  const otherMarker = body.indexOf("[[ref:2]]");
+  assert.deepEqual(await adapter.createInsight({ ...REQUEST, relatedExcerpts }), {
+    body, model: "synthetic-model", citations: [
+      { url: web.url, title: web.title, startIndex: 0, endIndex: 7 },
+      { url: relatedExcerpts[0].url, title: CONTEXT.sameTopicSources[0].title,
+        startIndex: marker, endIndex: marker + "[[ref:1]]".length },
+      { url: relatedExcerpts[0].url, title: CONTEXT.sameTopicSources[0].title,
+        startIndex: secondMarker, endIndex: secondMarker + "[[ref:1]]".length },
+      { url: relatedExcerpts[1].url, title: CONTEXT.relatedSources[0].title,
+        startIndex: otherMarker, endIndex: otherMarker + "[[ref:2]]".length },
+    ],
+  });
+  adapter.dispose();
+});
+
+test("unknown and malformed excerpt markers reject completed output without source leakage", async () => {
+  const relatedExcerpts = [{ sourceId: "same", url: CONTEXT.sameTopicSources[0].url, text: "Same event." }];
+  for (const body of ["Unknown[[ref:2]]",
+    "Zero[[ref:0]]", "Leading zero[[ref:01]]", "Forged[[REF:1]]", "Broken[[ref:1]",
+    "Raw URL[[ref:https://attacker.example]]", "Too many" + "[[ref:1]]".repeat(9)]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
+      stream(complete(body)), getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    await assert.rejects(adapter.createInsight({ ...REQUEST, relatedExcerpts }), (error) => {
+      assert.equal(errorCode("invalid-response")(error), true);
+      assert.equal(error.detail, "response-excerpt-citation");
+      assert.equal(JSON.stringify(error).includes(body), false);
+      return true;
+    });
+    adapter.dispose();
+  }
+});
+
+test("web and excerpt citations share the paired client's 50-annotation limit", async () => {
+  const relatedExcerpts = [{ sourceId: "same", url: CONTEXT.sameTopicSources[0].url, text: "Same event." }];
+  const body = `${"x".repeat(50)}[[ref:1]]`;
+  const web = Array.from({ length: 50 }, (_, index) => ({ type: "url_citation",
+    url: `https://research.example.net/check/${index}`, title: `Web check ${index}`,
+    start_index: index, end_index: index + 1 }));
+  for (const count of [49, 50]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
+      stream(complete(body, web.slice(0, count))), getAccessToken: async () => ACCESS });
+    await adapter.listModels();
+    if (count === 49) {
+      const result = await adapter.createInsight({ ...REQUEST, relatedExcerpts });
+      assert.equal(result.citations.length, 50);
+    } else {
+      await assert.rejects(adapter.createInsight({ ...REQUEST, relatedExcerpts }), (error) =>
+        errorCode("invalid-response")(error) && error.detail === "response-output-too-large");
+    }
+    adapter.dispose();
+  }
 });
 
 test("forged, duplicated and oversized related excerpts cannot reach the provider", async () => {
@@ -589,7 +656,8 @@ test("completed research without final usable text reports only a fixed structur
 test("one identity-matched finalized assistant item can become a private result after terminal completion", async () => {
   const responseId = "resp_synthetic_one";
   const itemId = "msg_synthetic_one";
-  const body = "A bounded synthetic insight.";
+  const body = "A bounded synthetic insight[[ref:1]].";
+  const relatedExcerpts = [{ sourceId: "same", url: CONTEXT.sameTopicSources[0].url, text: "Same event." }];
   const item = { id: itemId, type: "message", role: "assistant", status: "completed",
     content: [{ type: "output_text", text: body, annotations: [] }] };
   const textFinalized = streamEvent("response.output_text.done", { item_id: itemId, output_index: 7, content_index: 0, text: body });
@@ -618,7 +686,10 @@ test("one identity-matched finalized assistant item can become a private result 
       return reply;
     }, getAccessToken: async () => ACCESS });
     await adapter.listModels();
-    assert.deepEqual(await adapter.createInsight(REQUEST), { body, citations: [], model: "synthetic-model" });
+    assert.deepEqual(await adapter.createInsight({ ...REQUEST, relatedExcerpts }), { body, citations: [{
+      startIndex: body.indexOf("[[ref:1]]"), endIndex: body.indexOf("[[ref:1]]") + 9,
+      url: relatedExcerpts[0].url, title: CONTEXT.sameTopicSources[0].title,
+    }], model: "synthetic-model" });
     assert.equal(posts, 1);
     adapter.dispose();
   }

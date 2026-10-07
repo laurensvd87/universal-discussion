@@ -478,27 +478,59 @@ test("manual import, non-reply and withdrawn questions cannot initiate a robot f
     assert.equal(descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights").length, 0);
   }
 });
-test("User related pages are a count disclosure; native open state survives polling and resets on mode switch", () => {
+test("raw related pages stay in Developer Mode while native open state survives polling", () => {
   const ui = harness();
   const details = ui.byId("discussion-related");
   const related = state({ related: { results: Array.from({ length: 4 }, (_, index) => ({
     title: `Synthetic page ${index + 1}`, url: `https://example.com/${index + 1}`, relationship: "related",
   })) } });
   ui.panel.render(related);
+  assert.equal(details.hidden, true);
+  ui.panel.setMode("developer");
   assert.equal(details.hidden, false);
-  assert.equal(details.children[0].textContent, "Related pages (4)");
+  assert.equal(details.children[0].textContent, EN.discussionRelated);
   details.open = true;
   ui.panel.render(related);
   assert.equal(details.open, true);
-  ui.panel.setMode("developer");
-  assert.equal(details.open, true);
   ui.panel.setMode("user");
   assert.equal(details.open, false);
+  assert.equal(details.hidden, true);
   ui.panel.render(state({ related: { results: [] }, discussion: { roots: [] } }));
   assert.equal(details.hidden, true);
   assert.equal(ui.byId("discussion-counts").hidden, true);
   assert.equal(ui.byId("discussion-counts").textContent, "0 human · 0 AI");
   assert.ok(descendants(ui.root).some((item) => item.textContent === EN.uiDiscussionEmpty));
+});
+test("Related discussions sit below current threads, expand by keyboard, and offer no posting action", () => {
+  const ui = harness();
+  const relatedTopic = { topicId: "nearby-topic", title: "<img src=x> Nearby topic", rootCount: 1,
+    roots: [{ id: "nearby-root", body: "A distinct conversation", actorType: "human",
+      authorId: "demo-alex", createdAt: "2026-09-28T12:00:00.000Z", replyCount: 2,
+      origin: { sourceId: "nearby-source", url: "https://example.org/article", title: "Nearby article" } }] };
+  ui.panel.render(state({ relatedDiscussions: [relatedTopic] }));
+  const section = ui.byId("discussion-related-conversations");
+  const thread = ui.created.find((item) => item.className === "discussion-thread");
+  const composer = ui.byId("discussion-composer");
+  assert.equal(section.hidden, false);
+  assert.ok(ui.root.children.indexOf(section) > ui.root.children.indexOf(thread));
+  assert.ok(ui.root.children.indexOf(section) > ui.root.children.indexOf(composer));
+  assert.equal(section.children[0].textContent, EN.uiRelatedDiscussions);
+  const topic = section.children[1].children[0];
+  assert.equal(topic.tag, "details");
+  assert.equal(topic.children[0].tag, "summary");
+  assert.equal(topic.children[0].children[0].textContent, relatedTopic.title);
+  assert.equal(topic.children[1].children[1].textContent, "A distinct conversation");
+  assert.equal(topic.children[1].children[2].textContent, "2 replies");
+  assert.equal(descendants(topic).filter((item) => item.tag === "button").length, 0);
+  const link = descendants(topic).find((item) => item.tag === "a");
+  assert.equal(link.href, "https://example.org/article");
+  assert.equal(link.referrerPolicy, "no-referrer");
+  topic.open = true;
+  ui.panel.render(state({ relatedDiscussions: [relatedTopic] }));
+  assert.equal(topic.open, true);
+  ui.panel.render(state({ phase: "disconnected", catalog: null, discussion: null,
+    related: null, relatedDiscussions: [] }));
+  assert.equal(section.hidden, true);
 });
 test("safe related Page titles are keyboard-accessible links with hostnames and relationship labels", () => {
   const ui = harness();

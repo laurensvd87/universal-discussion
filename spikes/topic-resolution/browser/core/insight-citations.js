@@ -4,6 +4,7 @@ const MARKER = /\[↗\]\((https:\/\/[^\s)]{1,2048})\)/gu;
 const PROVIDER_MARKER = /^cite[^]{1,200}$/u;
 const UNRESOLVED_PROVIDER_MARKER = /cite[^]{1,200}/u;
 const RAW_URL = /https?:\/\/[^\s<>"'`]+/giu;
+const RELATED_MARKER = /^\[\[ref:([1-9]\d*)\]\]$/u;
 
 function neutralizeUnannotated(text) {
   // Page prose and model output can contain forged citation syntax. An URL in
@@ -40,12 +41,14 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
       throw new TypeError("Invalid citation annotation");
     // The provider may count Unicode code points while JavaScript slices UTF-16
     // code units. Resolve this only when it identifies a complete citation token.
-    if (!PROVIDER_MARKER.test(body.slice(startIndex, endIndex))) {
+    if (!PROVIDER_MARKER.test(body.slice(startIndex, endIndex)) &&
+        !RELATED_MARKER.test(body.slice(startIndex, endIndex))) {
       const points = Array.from(body);
       if (endIndex <= points.length) {
         const candidateStart = points.slice(0, startIndex).join("").length;
         const candidateEnd = points.slice(0, endIndex).join("").length;
-        if (PROVIDER_MARKER.test(body.slice(candidateStart, candidateEnd))) {
+        if (PROVIDER_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
+            RELATED_MARKER.test(body.slice(candidateStart, candidateEnd))) {
           startIndex = candidateStart; endIndex = candidateEnd;
         }
       }
@@ -59,7 +62,13 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
     if (first.startIndex < cursor) throw new TypeError("Overlapping citation annotations");
     const span = body.slice(first.startIndex, first.endIndex);
     const citationMarker = PROVIDER_MARKER.test(span);
-    result += neutralizeUnannotated(body.slice(cursor, citationMarker ? first.startIndex : first.endIndex));
+    const relatedMatch = span.match(RELATED_MARKER);
+    const relatedMarker = relatedMatch !== null;
+    if (span.startsWith("[[ref:") && !relatedMarker)
+      throw new TypeError("Invalid related citation annotation");
+    if (relatedMarker && Number(relatedMatch[1]) > 4)
+      throw new TypeError("Unknown related citation reference");
+    result += neutralizeUnannotated(body.slice(cursor, citationMarker || relatedMarker ? first.startIndex : first.endIndex));
     let next = index;
     while (next < ordered.length && ordered[next].startIndex === first.startIndex &&
         ordered[next].endIndex === first.endIndex) {
@@ -67,7 +76,7 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
       // persistable marker remains unambiguous when it is edited or rendered.
       const url = ordered[next].url.replaceAll("(", "%28").replaceAll(")", "%29");
       if (!safeInsightCitationUrl(url)) throw new TypeError("Invalid citation URL");
-      result += `${citationMarker || /\s$/u.test(result) ? "" : " "}[↗](${url})`;
+      result += `${citationMarker || relatedMarker || /\s$/u.test(result) ? "" : " "}[↗](${url})`;
       next++;
     }
     cursor = first.endIndex;
@@ -86,22 +95,28 @@ export function appendInsightCitationNodes(document, container, body,
   container.replaceChildren();
   let cursor = 0;
   let found = false;
+  const sourceNumbers = new Map();
   for (const match of body.matchAll(MARKER)) {
     const url = match[1];
     if (!safeInsightCitationUrl(url)) continue;
     found = true;
+    if (!sourceNumbers.has(url)) sourceNumbers.set(url, sourceNumbers.size + 1);
+    const number = sourceNumbers.get(url);
     const before = document.createElement("span");
     before.textContent = body.slice(cursor, match.index);
+    const superscript = document.createElement("sup");
+    superscript.className = "inline-citation-number";
     const link = document.createElement("a");
     link.className = "inline-citation";
-    link.textContent = "↗";
+    link.textContent = String(number);
     link.href = url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.referrerPolicy = "no-referrer";
-    link.setAttribute("aria-label", label);
-    link.title = label;
-    container.append(before, link);
+    link.setAttribute("aria-label", `${label} ${number}`);
+    link.title = `${label} ${number}`;
+    superscript.append(link);
+    container.append(before, superscript);
     cursor = match.index + match[0].length;
   }
   if (found) {

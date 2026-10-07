@@ -10,6 +10,21 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension **0.13.14** attributes facts drawn from successfully retrieved
+related-page excerpts with clickable superscript numbers directly beside the
+AI-written claim. The model emits `[[ref:n]]` for the excerpt it used; the
+service maps that number to the already-selected public Source URL instead of
+trusting a model-written URL. Existing provider web citations also remain
+clickable. The prompt asks the model to use an excerpt only when it clearly
+concerns the current page's specific subject. This is attribution, not proof
+that the claim is true or that a complete page was checked. At most four
+anonymous related-page fetches and an explicit **Get insights** click remain.
+The current Topic conversation stays first; a separate, read-only **Related
+discussions** section appears below it when nearby Topics contain posts. It
+does not merge Topics or let a related post be answered as if it belonged to
+the current Topic. Reload the extension and restart the local service for this
+version; no pairing or retained data reset is needed. See [ADR-051](decisions/ADR-051-inline-source-attribution-and-related-discussions.md).
+
 The owner has approved in principle assembling a local 200–250-pair public-page
 review set for semantic matching. [ADR-045](decisions/ADR-045-r5-public-pair-acquisition-checkpoint.md)
 records the pilot scope and remaining scale-up gates;
@@ -156,8 +171,8 @@ pages are skipped. The current page remains the subject; the local service
 checks excerpt source IDs/URLs against the selected catalog context. Ordinary
 use does not add those texts to SQLite; explicit raw Insight debug mode can
 record them in its local temp log. Related excerpts are supplied context, not
-proof that the whole pages were available, and citation icons still require
-validated provider annotations. The related-page list is no longer a main User
+proof that the whole pages were available. In 0.13.14, validated excerpt
+markers can also produce inline citations. The related-page list is no longer a main User
 view; individual source exclusions remain in Settings and post source links
 remain accessible. Browsing already starts automatically on a fresh browser
 session when saved pairing, Chrome HTTPS access, local-service health and an

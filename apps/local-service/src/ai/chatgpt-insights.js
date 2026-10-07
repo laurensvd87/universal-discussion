@@ -40,6 +40,7 @@ const INSIGHT_DETAILS = new Set(["response-redirect", "response-content-type", "
   "response-final-item-missing", "response-item-identity", "response-item-conflict",
   "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
   "response-unsafe-text", "response-output-too-large",
+  "response-excerpt-citation",
   "response-incomplete", "response-failed", "response-http-400"]);
 
 export class ChatGptInsightError extends Error {
@@ -201,7 +202,26 @@ function safeCitation(value, body, offset) {
     return { url, title, startIndex: offset + startIndex, endIndex: offset + endIndex };
   } catch { return null; }
 }
-function completed(value, model, streamShape) {
+function excerptCitations(body, relatedExcerpts, context) {
+  const selected = new Map([...context.sameTopicSources, ...context.relatedSources]
+    .map((entry) => [entry.id, entry]));
+  const citations = [];
+  const markerStart = /\[\[ref:/giu;
+  for (const match of body.matchAll(markerStart)) {
+    const startIndex = match.index;
+    const marker = /^\[\[ref:([1-9][0-9]*)\]\]/u.exec(body.slice(startIndex));
+    const index = marker ? Number(marker[1]) - 1 : -1;
+    if (!marker || !Number.isSafeInteger(index) || index < 0 || index >= relatedExcerpts.length || citations.length >= 8)
+      fail("invalid-response", "response-excerpt-citation");
+    const excerpt = relatedExcerpts[index];
+    const source = selected.get(excerpt.sourceId);
+    if (!source || source.url !== excerpt.url) fail("invalid-response", "response-excerpt-citation");
+    citations.push({ startIndex, endIndex: startIndex + marker[0].length,
+      url: source.url, title: source.title });
+  }
+  return citations;
+}
+function completed(value, model, streamShape, relatedExcerpts, context) {
   if (!value || value.status !== "completed" || !Array.isArray(value.output)) fail("invalid-response", "response-event");
   // The response may report the resolved model behind an account-listed alias.
   if (value.model !== undefined && (typeof value.model !== "string" || !SLUG.test(value.model))) fail("invalid-response");
@@ -246,9 +266,13 @@ function completed(value, model, streamShape) {
   if (!outputText) fail("invalid-response", "response-no-text");
   if (!body.trim()) fail("invalid-response", "response-blank-text");
   if (UNSAFE.test(body)) fail("invalid-response", "response-unsafe-text");
+  citations.push(...excerptCitations(body, relatedExcerpts, context));
+  // The paired client accepts at most 50 annotations in one result. Reject
+  // rather than silently dropping provider citations beside written claims.
+  if (citations.length > 50) fail("invalid-response", "response-output-too-large");
   return { body, citations, model };
 }
-function completedStreamItemFallback(final, model, shape) {
+function completedStreamItemFallback(final, model, shape, relatedExcerpts, context) {
   const reject = (detail, branch = null) => {
     shape.fallbackFailure = detail;
     shape.fallbackBranch = branch;
@@ -339,7 +363,7 @@ function completedStreamItemFallback(final, model, shape) {
   }
   // A finalized item may be used only after the terminal completed response;
   // no delta, tool result, conflicting final item or refused output is imported.
-  return completed({ ...final, output: [candidate.item] }, model, shape);
+  return completed({ ...final, output: [candidate.item] }, model, shape, relatedExcerpts, context);
 }
 async function boundedBody(response, maximum, signal, catalog = false) {
   if (!response.body?.getReader) fail("invalid-response", catalog ? "catalog-stream" : "response-stream");
@@ -371,7 +395,7 @@ function traceItem(item, index, phase) {
   return { phase, index: traceIndex(index), type: TRACE_ITEM_TYPES.has(item?.type) ? item.type : "other",
     status: TRACE_STATUSES.has(item?.status) ? item.status : "other" };
 }
-function parseSse(raw, model, onTrace) {
+function parseSse(raw, model, onTrace, relatedExcerpts, context) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
   const streamShape = { finalAssistantItem: false, textDone: false, createdId: null,
@@ -481,9 +505,9 @@ function parseSse(raw, model, onTrace) {
     }
   }
   if (!final) fail("invalid-response", "response-no-final");
-  const recovered = completedStreamItemFallback(final, model, streamShape);
+  const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context);
   if (recovered) return recovered;
-  return completed(final, model, streamShape);
+  return completed(final, model, streamShape, relatedExcerpts, context);
   } catch (error) {
     outcome = "failure";
     detail = INSIGHT_DETAILS.has(error?.detail) ? error.detail : null;
@@ -749,7 +773,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         if (failureCode) fail(errorForCode(failureCode), "response-failed");
         fail("invalid-response", "response-content-missing");
       }
-      return parseSse(raw, model, onTrace);
+      return parseSse(raw, model, onTrace, relatedExcerpts, context);
     }, signal);
   }
   function cancel() { active?.abort(); }

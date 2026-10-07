@@ -178,6 +178,12 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const relatedHeading = node("summary", "discussionRelated"); const model = node("p");
   model.className = "developer-only";
   const related = node("ul"); relatedDetails.append(relatedHeading, model, related); root.append(relatedDetails);
+  const relatedDiscussions = node("section"); relatedDiscussions.id = "discussion-related-conversations";
+  relatedDiscussions.className = "related-discussions user-only";
+  const relatedDiscussionsHeading = node("h3", "uiRelatedDiscussions");
+  const relatedDiscussionsList = node("div"); relatedDiscussionsList.className = "related-discussions-list";
+  relatedDiscussions.append(relatedDiscussionsHeading, relatedDiscussionsList);
+  root.append(relatedDiscussions);
   const provenance = node("p"); provenance.id = "discussion-provenance"; provenance.className = "developer-only"; root.append(provenance);
   const learnedControls = node("section"); learnedControls.id = "discussion-learned-controls";
   const learnedIntro = node("p", "discussionCorrectionIntro");
@@ -397,6 +403,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let renderedBusy;
   let renderedFreshRead;
   let renderedUiMode;
+  let renderedRelatedDiscussions;
   let observedTopicId;
   let observedContributionIds = new Set();
   let observedDiscussion = false;
@@ -698,6 +705,60 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           focusAvailable(thread);
       }
     }
+    const readOnlyRelated = selectedTopicReady ? state.relatedDiscussions ?? [] : [];
+    relatedDiscussions.hidden = uiMode !== "user" || readOnlyRelated.length === 0;
+    const relatedSignature = JSON.stringify(readOnlyRelated);
+    if (relatedSignature !== renderedRelatedDiscussions) {
+      const openTopics = new Set([...relatedDiscussionsList.children]
+        .filter((item) => item.open).map((item) => item.getAttribute("data-related-topic-id")));
+      const cards = readOnlyRelated.map((relatedTopic) => {
+        const group = node("details"); group.className = "related-discussion-topic";
+        group.setAttribute("data-related-topic-id", relatedTopic.topicId);
+        group.open = openTopics.has(relatedTopic.topicId);
+        const summary = node("summary"); summary.className = "related-discussion-summary";
+        const title = node("span"); title.textContent = relatedTopic.title;
+        const count = node("span"); count.className = "related-discussion-count";
+        count.textContent = text("uiRelatedThreadCount").replace("{count}", String(relatedTopic.rootCount));
+        summary.append(title, count); group.append(summary);
+        for (const entry of relatedTopic.roots) {
+          const card = node("article"); card.className = "related-discussion-card";
+          const actor = state.catalog.actors.find((item) => item.id === entry.authorId);
+          const author = node("span");
+          author.textContent = entry.actorType === "agent"
+            ? text("uiAgentBadge") : actorName(actor) || entry.authorId;
+          const meta = node("p"); meta.className = "related-discussion-meta"; meta.append(author);
+          if (typeof entry.createdAt === "string") {
+            const date = new Date(entry.createdAt);
+            if (Number.isFinite(date.getTime())) {
+              const time = node("time"); time.dateTime = entry.createdAt;
+              time.textContent = date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+              meta.append(time);
+            }
+          }
+          const content = node("p"); content.className = "related-discussion-body";
+          if (entry.actorType === "agent") appendInsightCitationNodes(document, content,
+            entry.body, text("discussionCitationOpen"));
+          else content.textContent = entry.body;
+          const footer = node("p"); footer.className = "related-discussion-footer";
+          footer.textContent = text("uiRelatedReplyCount").replace("{count}", String(entry.replyCount));
+          if (entry.origin) {
+            try {
+              const origin = readPostOrigin(entry.origin);
+              const link = node("a"); link.className = "discussion-source-link";
+              link.textContent = "↗"; link.href = origin.url; link.target = "_blank";
+              link.rel = "noopener noreferrer"; link.referrerPolicy = "no-referrer";
+              link.setAttribute("aria-label", text("discussionOriginOpen")
+                .replace("{title}", origin.title.slice(0, 160)).replace("{url}", origin.url.slice(0, 240)));
+              footer.append(link);
+            } catch { /* Invalid origins are never navigable. */ }
+          }
+          card.append(meta, content, footer); group.append(card);
+        }
+        return group;
+      });
+      relatedDiscussionsList.replaceChildren(...cards);
+      renderedRelatedDiscussions = relatedSignature;
+    }
     const modelStatus = state.related?.model?.status ?? state.catalog?.model.status;
     model.textContent = !state.catalog ? "" : text(modelStatus === "experimental-local" ? "discussionModelLearned" : modelStatus === "model-unavailable" ? "discussionModelUnavailable" : "discussionModelFixture");
     const selectedSource = state.catalog?.sources.find((source) => source.id === state.sourceId);
@@ -724,7 +785,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     });
     if (state.related && !suggestions.length && uiMode === "developer") suggestions.push(node("li", "discussionRelatedEmpty"));
     related.replaceChildren(...suggestions);
-    relatedDetails.hidden = !state.related || uiMode === "user" && !suggestions.length;
+    relatedDetails.hidden = !state.related || uiMode === "user";
     if (uiMode === "developer") relatedDetails.open = true;
     reset.disabled = !state.catalog || !usable || confirmation.value !== "RESET DEMO STATE";
   }

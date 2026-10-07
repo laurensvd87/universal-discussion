@@ -35,6 +35,29 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-07 claim-level excerpt attribution and related discussions (extension
+0.13.14):** The owner specified that the model, rather than the UI, chooses
+where each external source supports a claim. For an actually supplied bounded
+related-page excerpt it emits `[[ref:n]]` beside that claim; the local service
+resolves `n` against the exact validated excerpt array to a selected Source
+URL, and the popup renders a clickable superscript number. Arbitrary model
+URLs cannot become links through this path. Existing provider web citations
+remain supported. The prompt excludes broad-theme or uncertain excerpts from
+the current-page Insight. A separate read-only **Related discussions** view
+appears beneath the current Topic threads, without joining Topics or changing
+post origins. This is not a guarantee of factual accuracy or same-subject
+judgment, and inaccessible related pages still supply no excerpt. See
+[ADR-051](../decisions/ADR-051-inline-source-attribution-and-related-discussions.md).
+The current Topic renders without waiting for supplementary related-discussion
+reads. Full restricted extension suite 973/973 and service suite 238/242 (four
+optional skips) pass; both secret scans report zero findings. Independent
+read-only Trust review found no remaining citation-link or cross-Topic posting
+blocker. Loopback integration passed 2/2 after briefly stopping the service
+that occupied port 4174; it was restarted with the same Origin, durable
+pairing and owner SQLite database. No new live provider call was made for
+this change. The current Topic algorithm and owner SQLite data are unchanged.
+Owner real-page quality confirmation after extension reload remains open.
+
 **2026-10-07 related-text verification and Topic-matching shadow (extension
 0.13.13):** The owner reports that Insights still appear not to use reference
 pages and wants quicker, density-adaptive Topic matches. The related reader had

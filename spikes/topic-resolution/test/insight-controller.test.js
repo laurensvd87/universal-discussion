@@ -1114,7 +1114,8 @@ test("research failure retains only a fixed diagnostic detail in popup memory", 
     "response-reasoning-only", "response-final-item-missing", "response-item-identity",
     "response-item-conflict", "response-item-prefix", "response-item-text", "response-stream-text-unfinalized",
     "response-content-json", "response-content-html",
-    "response-content-text", "response-content-missing", "response-content-other", "response-content-type"]) {
+    "response-content-text", "response-content-missing", "response-content-other", "response-content-type",
+    "response-excerpt-citation"]) {
     const app = await harness({ aiClient: {
       status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
       models: async () => [{ slug: "model-a", displayName: "Model A" }],

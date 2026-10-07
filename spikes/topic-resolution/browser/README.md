@@ -1,5 +1,14 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.14 (2026-10-07) adds model-placed `[[ref:n]]` attribution for
+actually supplied related-page excerpts. The local service resolves markers
+to validated Source URLs and the popup renders superscript links beside the
+claims; web-search citations still work. Related discussions are shown below
+the current Topic as read-only suggestions, never merged into it. Reload the
+extension and restart the local service; no retained data or pairing reset.
+The model can still misjudge relevance or correctness; a citation shows its
+source, not independent fact checking. See ADR-051 and current STATUS.
+
 Extension 0.13.13 (2026-10-07) corrects reference-page extraction when an
 inert/hidden `<article>` appears before real visible `<main>` text. It keeps
 the same four anonymous fetch attempts and 2,048-character excerpt cap.
@@ -217,16 +226,19 @@ For a first test:
    visible retry in ChatGPT setup. No model download or API key is needed.
 3. In [ChatGPT usage settings](https://chatgpt.com/settings/usage), keep this app
    within your intended included-plan/paid-credit limits. The app cannot enforce
-   provider billing settings. On a matched public article, click **Create
-   insights** once. This reads and reattests at most 4,096 characters of that
-   current page, then sends it with up to ten same-Topic/related source titles
-   and URLs through the local service to OpenAI. The other pages' bodies and
-   your browser cookies are not sent. Use **Insight settings** to uncheck
-   related pages you do not want included. Keep the popup open during research.
-4. Read and edit the private draft and citations. It is not a discussion post.
-   Choose **Preview insight** and then **Share insight locally** only if you want
-   to add it. Visit another stored page in the same Topic to see the shared post.
-   Merely related pages in another Topic do not share its thread.
+   provider billing settings. On a matched public article, click **Get insights**
+   once. This reads and reattests at most 4,096 characters of the current page
+   and may fetch short public excerpts from up to four selected related pages.
+   The paired local service sends those excerpts with the current text and
+   selected titles/URLs to ChatGPT; browser cookies are not sent. Use **Insight
+   settings** to exclude sources or turn related text off. Research continues
+   in the local service if the popup closes; reopen the same page to recover a
+   finished private result while that service remains running.
+4. Read the private Insight and its inline numbered source links. It is not a
+   discussion post and cannot be edited under robot identity. Choose **Share**
+   to publish it unchanged in the current Topic, or **Discard**. Visit another
+   stored page in the same Topic to see the shared post. Related conversations
+   in other Topics appear separately below and are read-only.
 
 The model and Create action stay visible while the conversation scrolls; the
 popup should not scroll horizontally. Create remains disabled until the current

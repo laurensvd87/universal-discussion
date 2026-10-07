@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-07 ADR-051 continuation: extension 0.13.14 uses model-placed
+`[[ref:n]]` markers only for actually supplied related-page excerpts. The
+service resolves each number to its validated selected Source URL, and the
+popup turns it into a numbered, clickable superscript beside the claim;
+existing provider web citations coexist. The model prompt requires the same
+specific subject, but cannot guarantee it. The current Topic remains above a
+separately labeled read-only Related discussions section. No Topic merge,
+cross-Topic reply, new fetch/provider call, permission, retained page text or
+owner-data migration is implied. Reload extension and restart local service;
+no pairing/data reset. Restricted extension 973/973 and service 238/242 (four
+optional skips) and loopback integration 2/2 pass; independent Trust review
+found no remaining blocker. The owner service was restarted with the same
+Origin and durable pairing. Owner real-page behavior is still unverified;
+check STATUS for detail.
+
 2026-10-07 reference-page follow-up: extension 0.13.13 fixes an inert/hidden
 `<article>` decoy masking a visible `<main>` excerpt. Socket-denied tests
 cover reader-to-Insight forwarding; a single public PEP ChatGPT QA used three
