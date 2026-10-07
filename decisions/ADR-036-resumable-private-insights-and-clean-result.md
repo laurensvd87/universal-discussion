@@ -36,6 +36,11 @@ attests the exact generated body and target at Share. This is owner-local RAM
 retention, not a cross-device draft service or approval to archive page text,
 publish automatically, process private pages, spend, deploy or submit to stores.
 
+The blanket catalog-revision invalidation above is superseded by
+[ADR-050](ADR-050-stable-private-insights-across-unrelated-catalog-changes.md):
+unrelated writes may leave the private job intact, but its bound Source,
+Topic, account and follow-up target must still be current before Share.
+
 ## Verification
 
 The extension and service unit suites, an isolated 13-state Chrome visual

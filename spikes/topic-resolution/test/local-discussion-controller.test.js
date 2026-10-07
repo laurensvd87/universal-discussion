@@ -490,6 +490,46 @@ function backgroundHarness(overrides = {}) {
     setResolution(patch) { resolution = { ...resolution, ...patch }; }, publish: () => ui.controller.updatePageResolution(resolution) };
 }
 
+test("identical projected page polls do not publish; distinct status fields still do", async () => {
+  let publications = 0;
+  const ui = backgroundHarness({ onStateChange: () => { publications += 1; } });
+  await ui.controller.open();
+  let before = publications;
+  await ui.publish(); await ui.publish();
+  assert.equal(publications, before);
+
+  const changes = [
+    { reason: "checking" }, { sequence: 2 }, { documentId: "doc-2" },
+    { currentWindowId: 3 }, { sessionWindowId: 3 }, { currentTabId: 8 },
+    { currentUrl: ui.resolution().currentUrl + "?new=1" }, { tabId: 8 },
+    { blockedOrigins: ["https://example.com"] }, { assignment: "provisional" },
+    { phase: "error", reason: "unavailable" },
+  ];
+  for (const patch of changes) {
+    ui.setResolution(patch);
+    before = publications;
+    await ui.publish();
+    assert.equal(publications, before + 1, JSON.stringify(patch));
+    await ui.publish();
+    assert.equal(publications, before + 1, `identical ${JSON.stringify(patch)}`);
+  }
+});
+
+test("identical ready status can retry an unapplied selection after a read failure", async () => {
+  let catalogReads = 0;
+  const ui = backgroundHarness({ client: { async catalog() {
+    if (++catalogReads === 2) throw Object.assign(new Error(), { code: "unavailable" });
+    return ui.service.catalog();
+  } } });
+  await ui.controller.open();
+  const learned = ui.ingest();
+  await ui.publish();
+  assert.equal(ui.controller.currentState().phase, "error");
+  await ui.publish();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().topicId, learned.topicId);
+});
+
 test("delayed learned readiness loads real service Topic and comment; manual selection wins", async () => {
   const ui = backgroundHarness(); await ui.controller.open();
   assert.equal(ui.controller.currentState().phase, "choose-topic"); assert.equal(ui.controller.currentState().topicId, null);

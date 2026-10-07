@@ -634,6 +634,15 @@ and Insight projections now accept the existing response-size bound, and
 related-page ranking accepts larger stored catalogs. Reload this version;
 neither the pairing token nor saved discussion data needs resetting.
 
+Extension **0.13.12** keeps a generated private Insight visible through
+unrelated page-catalog updates and ordinary status polling. Unchanged page
+observations no longer create redundant service writes. Before an explicit
+Share, the local service rechecks the current Source, Topic, account and reply
+target and uses the current catalog revision. A changed context still blocks
+sharing; nothing is regenerated or published automatically. Restart the local
+service and reload the extension for both sides of this fix. See
+[ADR-050](decisions/ADR-050-stable-private-insights-across-unrelated-catalog-changes.md).
+
 To try the discussion loop:
 
 1. Load/reload the unpacked extension; copy its ID from `chrome://extensions`.

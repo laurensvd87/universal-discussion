@@ -497,7 +497,7 @@ test("forged context, stale revision, invalid actor and missing capability never
   ai.dispose();
 });
 
-test("changed catalog version invalidates an in-flight result without exposing the old finding", async () => {
+test("unrelated catalog revision preserves the private result and requires current CAS to share", async () => {
   const { service, catalog, context } = fixture();
   let finish;
   const ai = createChatGPTRuntime({ service,
@@ -509,12 +509,19 @@ test("changed catalog version invalidates an in-flight result without exposing t
     allowWebResearch: true, expected: catalog.version };
   assert.equal((await handle(request("POST", "/v1/ai/insights", input, actor))).status, 200);
   service.command(catalog.version, { type: "create-root", topicId: "reserved-domain-demo", body: "New post" }, "demo-alex");
-  finish({ body: "Sensitive stale finding", citations: [], model: "synthetic" });
+  finish({ body: "Synthetic finding", citations: [], model: "synthetic" });
   await Promise.resolve(); await Promise.resolve();
   const result = body(await handle(request("POST", "/v1/ai/insights/result", { operationId: "stale-one" }, actor)));
-  assert.deepEqual(result, { operationId: "stale-one", state: "failed", error: "stale-context" });
-  assert.deepEqual(body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor))), { job: null });
-  assert.equal(JSON.stringify(result).includes("Sensitive"), false);
+  assert.deepEqual(result, { operationId: "stale-one", state: "completed",
+    result: { body: "Synthetic finding", citations: [], model: "synthetic" } });
+  const current = service.catalog().version;
+  assert.deepEqual(body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor))).job.expected, current);
+  const command = { type: "share-insight", operationId: "stale-one", topicId: context.topic.id,
+    originSourceId: context.currentSource.id, body: "Synthetic finding" };
+  assert.equal((await handle(request("POST", "/v1/commands", { expected: catalog.version, command }, actor))).status, 409);
+  assert.equal(service.discussion(context.topic.id).roots.length, 1);
+  assert.equal((await handle(request("POST", "/v1/commands", { expected: current, command }, actor))).status, 200);
+  assert.equal(service.discussion(context.topic.id).roots.length, 2);
   ai.dispose();
 });
 

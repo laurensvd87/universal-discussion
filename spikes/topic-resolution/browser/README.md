@@ -1,5 +1,14 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.12 (2026-10-07) stabilizes private Insights during ordinary
+browsing. Unchanged page observations no longer create redundant ingests, and
+unrelated catalog updates do not discard an active or completed Insight. Share
+still rechecks the current page, Topic, ChatGPT account and reply target using
+the local service's current revision; it never publishes automatically. Restart
+the local service and reload the unpacked extension to use both halves. A
+changed Source representation can still make a visible draft unshareable until
+the popup refreshes. See ADR-050 and current STATUS for tests and boundaries.
+
 ## Current owner-local build (0.13.1)
 
 User Mode is conversation-first: the current Topic, comment composer and

@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-07 Insight stability correction: the owner approved
+[ADR-050](../decisions/ADR-050-stable-private-insights-across-unrelated-catalog-changes.md).
+An unrelated catalog revision must no longer discard a private Insight.
+The Source/Topic/account/follow-up binding and current-revision CAS remain
+mandatory at explicit Share. Extension 0.13.12 also avoids redundant identical
+page ingests and repeated unchanged resolution rendering. Restart the local
+service and reload the extension; no pairing or data reset is intended.
+
 2026-10-07 101st-page follow-up: the 0.13.10 service accepted the owner's
 101st Source/Topic, but the extension's catalog DTO still rejected >100 rows
 and displayed `Local service unavailable`. Extension 0.13.11 removes the

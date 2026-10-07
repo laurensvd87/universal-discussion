@@ -175,6 +175,14 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     publish({ catalog, actorId, resolution, sourceId: resolution.sourceId, topicId: resolution.topicId, selection: "background" });
     await loadSelection(ownEpoch);
   }
+  function sameProjectedResolution(left, right) {
+    if (left === null || right === null) return left === right;
+    const keys = Object.keys(left);
+    return keys.length === Object.keys(right).length && keys.every((key) => key === "blockedOrigins"
+      ? left.blockedOrigins.length === right.blockedOrigins.length &&
+        left.blockedOrigins.every((origin, index) => origin === right.blockedOrigins[index])
+      : left[key] === right[key]);
+  }
   async function updatePageResolution(input) {
     if (disposed || preparingLearned) return;
     let resolution;
@@ -191,7 +199,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       publish({ resolution, discussion: null, related: null, priorDiscussions: null, priorDiscussionsError: null,
         ...(keepManual ? {} : { topicId: null, sourceId: null, selection: null, viewingPriorDiscussion: false }),
         phase: state.catalog ? "choose-topic" : "disconnected", error: "context-changed" });
-    } else publish({ resolution });
+    } else if (!sameProjectedResolution(previous, resolution)) publish({ resolution });
     if (mutationPending || state.needsFreshRead || !state.catalog || state.selection === "manual") return;
     if (isReadyPageResolution(resolution) && !(state.selection === "background" && state.phase === "ready" && samePageResolution(previous, resolution))) {
       const ownEpoch = epoch, ownManual = manualSelection;

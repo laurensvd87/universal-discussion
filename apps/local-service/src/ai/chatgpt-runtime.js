@@ -5,7 +5,7 @@ import { ChatGPTConnectionFailure, createChatGPTConnection } from "./chatgpt-con
 import { ChatGptInsightError, createChatGptInsights, validateRelatedExcerpts } from "./chatgpt-insights.js";
 import { buildInsightContext } from "../../../../spikes/topic-resolution/browser/core/insight-context.js";
 import { formatInsightCitations } from "../../../../spikes/topic-resolution/browser/core/insight-citations.js";
-import { fail } from "../domain/errors.js";
+import { ServiceError, fail } from "../domain/errors.js";
 import { readId } from "../domain/validation.js";
 
 const FILE = "chatgpt-registration.json";
@@ -213,6 +213,29 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     }
     fail("not-found", "Object unavailable");
   }
+  function currentJobContext(job) {
+    const status = connection.status();
+    if (!status.connected || !status.planEnabled || !same(status.account ?? null, job.account)) return null;
+    let anchor;
+    try { anchor = service.insightAnchor(job.topicId, job.originSourceId); }
+    catch (error) {
+      if (error instanceof ServiceError && ["conflict", "not-found"].includes(error.code)) return null;
+      throw error;
+    }
+    if (anchor.version.generation !== job.expected.generation ||
+        !same({ ...anchor, version: null }, { ...job.anchor, version: null })) return null;
+    if (job.replyToId !== null) {
+      let followup;
+      try { followup = inspectFollowup(job.replyToId, job.actorId,
+        { topic: { id: job.topicId } }, anchor.version); }
+      catch (error) {
+        if (error instanceof ServiceError && ["conflict", "not-found", "forbidden"].includes(error.code)) return null;
+        throw error;
+      }
+      if (!same(followup, job.followup)) return null;
+    }
+    return anchor;
+  }
   return Object.freeze({
     restore: () => connection.restore?.() ?? Promise.resolve(false),
     diagnostics: () => ({ events: diagnosticEvents.map((event) => ({ ...event })) }),
@@ -271,10 +294,14 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       catch { fail("invalid", "Invalid request"); }
       const followup = Object.hasOwn(value, "followupQuestionId")
         ? inspectFollowup(value.followupQuestionId, actorId, context, value.expected) : null;
+      const anchor = service.insightAnchor(context.topic.id, context.currentSource.id);
+      if (!same(anchor.version, value.expected)) fail("conflict", "State changed");
       const job = { operationId: key, actorId, expected: value.expected, topicId: context.topic.id,
         originSourceId: context.currentSource?.id ?? null,
         rootId: followup?.rootId ?? null, replyToId: followup?.replyToId ?? null,
-        discussionId: followup?.discussionId ?? null, state: "running", result: null,
+        discussionId: followup?.discussionId ?? null, anchor, followup,
+        account: state.account ? { clientId: state.account.clientId, label: state.account.label } : null,
+        state: "running", result: null,
         error: null, detail: null, finishedAt: null };
       seen.add(key); jobs.set(key, job); active = job;
       void insights.createInsight({ model: value.model, context, articleText: value.articleText,
@@ -294,7 +321,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     },
     result(value, actorId) {
       exact(value, ["operationId"]); const job = owned(value.operationId, actorId);
-      if (!same(job.expected, service.catalog().version) && job.error !== "stale-context") {
+      if (!currentJobContext(job) && job.error !== "stale-context") {
         cancelJob(job); job.error = "stale-context";
       }
       if (job.state === "completed") return { operationId: job.operationId, state: job.state, result: job.result };
@@ -304,13 +331,13 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     },
     resumable(actorId) {
       service.actor(actorId);
-      const version = service.catalog().version;
       for (const job of [...jobs.values()].reverse()) {
         if (job.actorId !== actorId) continue;
-        if (expired(job) || !same(job.expected, version)) { removeJob(job); continue; }
+        const context = expired(job) ? null : currentJobContext(job);
+        if (!context) { removeJob(job); continue; }
         if (job.state !== "running" && job.state !== "completed") continue;
         return { job: { operationId: job.operationId, state: job.state,
-          expected: job.expected, topicId: job.topicId, originSourceId: job.originSourceId,
+          expected: context.version, topicId: job.topicId, originSourceId: job.originSourceId,
           rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId } };
       }
       return { job: null };
@@ -322,8 +349,9 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       if (!command || typeof command !== "object" || Array.isArray(command) ||
           !["share-insight", "share-insight-reply"].includes(command.type)) fail("invalid", "Invalid request");
       const job = owned(command.operationId, actorId);
-      if (job.state !== "completed" || !job.result || !same(job.expected, value.expected) ||
-          !same(job.expected, service.catalog().version) || command.topicId !== job.topicId ||
+      const context = currentJobContext(job);
+      if (job.state !== "completed" || !job.result || !context || !same(context.version, value.expected) ||
+          command.topicId !== job.topicId ||
           command.originSourceId !== job.originSourceId ||
           (job.replyToId === null ? command.type !== "share-insight" :
             command.type !== "share-insight-reply" ||

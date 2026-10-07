@@ -75,6 +75,9 @@ No automatic AI call/post, private-page expansion, paid fallback, new model/
 permissions, remote service or release is authorized. ADR-027 separately
 approved protected Windows refresh-token persistence; access/ID tokens remain
 RAM-only.
+ADR-050 supersedes ADR-036's blanket catalog-revision invalidation for private
+Insights: unrelated page additions may not discard a job, but current Source,
+Topic, account and follow-up binding and explicit Share remain mandatory.
 
 ## Original bootstrap task (completed; retained as history)
 

@@ -112,6 +112,35 @@ test("User insight preview contains only the generated message, citation links, 
   assert.equal(ui.byId("insight-discard").disabled, false);
 });
 
+test("poll renders preserve a generated preview, citation focus, and one-click Share", () => {
+  const ui = harness(undefined, "user");
+  const marker = "\uE200cite\uE202turn0search0\uE201";
+  const result = { body: `Finding ${marker}`, citations: [{
+    url: "https://example.org/article", title: "Source", startIndex: 8, endIndex: 8 + marker.length }] };
+  const draft = formatInsightCitations(result.body, result.citations);
+  const initial = state({ draft, ai: { status: "generated", result } });
+  ui.panel.render(initial);
+  const citations = ui.byId("insight-citations");
+  const children = [...citations.children];
+  const link = children.find((item) => item.tag === "a");
+  const workspace = ui.byId("insight-workspace");
+  const draftDetails = ui.byId("insight-draft-details");
+  const share = ui.byId("insight-share");
+  link.focus();
+  for (const aiStatus of ["generated", "idle", "generated", "idle"]) {
+    ui.panel.render(state({ draft, ai: { status: aiStatus, result: { ...result } } }));
+    assert.equal(citations.children.length, children.length);
+    children.forEach((child, index) => assert.equal(citations.children[index], child,
+      "unchanged citation nodes retain selection and focus"));
+    assert.equal(link.focused, true);
+    assert.equal(workspace.children.indexOf(draftDetails) + 1,
+      workspace.children.indexOf(ui.byId("insight-quick-actions")), "preview does not move on status polls");
+    assert.equal(share.disabled, false);
+  }
+  ui.click("insight-share");
+  assert.deepEqual(ui.calls.filter(([name]) => name === "share"), [["share"]]);
+});
+
 test("only a newly generated private result in the same open popup gets entrance motion", () => {
   const ui = harness(undefined, "user");
   const generated = state({ draft: "A concise finding", ai: { status: "generated",

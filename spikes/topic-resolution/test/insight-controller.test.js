@@ -99,6 +99,8 @@ test("resume gate waits for a ready Topic after model startup and checks each co
   assert.equal(gate.observe(ready, false), false);
   assert.equal(gate.observe(ready, true), true);
   assert.equal(gate.observe(ready, true), false);
+  assert.equal(gate.observe({ ...ready, catalog: { version: { generation: "g", revision: 2 } } }, true), false,
+    "unrelated catalog growth must not repeat the resume probe");
   await Promise.resolve();
   assert.equal(attempts, 1);
   assert.equal(gate.observe({ ...ready, sourceId: "source-b" }, true), true);
@@ -133,6 +135,51 @@ test("formatted generated result -> one explicit immutable AI-labelled local roo
   assert.equal(discussion.begin("edit", saved.id), false); assert.equal(await discussion.withdraw(saved.id), false);
   await discussion.selectActor("demo-alex"); assert.equal(await discussion.withdraw(saved.id), true);
   assert.equal(service.discussion("reserved-domain-demo").roots.length, 0);
+});
+
+test("unrelated catalog growth keeps a completed private insight and shares with the current revision", async () => {
+  const app = await generatedHarness();
+  const firstRevision = app.discussion.currentState().catalog.version.revision;
+  app.service.command(app.service.catalog().version,
+    { type: "create-topic", title: "Unrelated synthetic topic", kind: "general" }, "demo-alex");
+  await app.discussion.open();
+  const current = app.discussion.currentState();
+  assert.ok(current.catalog.version.revision > firstRevision);
+  assert.equal(app.insight.currentState().draft, "Generated answer");
+  assert.equal(app.insight.currentState().available, true);
+  assert.equal(await app.insight.share(), true);
+  assert.equal(app.service.discussion("reserved-domain-demo").roots[0].body, "Generated answer");
+  assert.deepEqual(app.cancelled, []);
+});
+
+test("a running insight survives a harmless catalog refresh without another provider start", async () => {
+  let releaseResult, starts = 0;
+  const cancelled = [];
+  const app = await harness({
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async () => { starts++; return { state: "running" }; },
+      result: async () => new Promise((resolve) => { releaseResult = resolve; }),
+      cancel: async (id) => { cancelled.push(id); return true; },
+    },
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public article" }),
+    attestArticle: async () => true, randomId: () => "running-op",
+  });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  const running = app.insight.createInsights({ automatic: true });
+  for (let i = 0; !releaseResult && i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(typeof releaseResult, "function");
+  app.service.command(app.service.catalog().version,
+    { type: "create-topic", title: "Independent synthetic topic", kind: "general" }, "demo-alex");
+  await app.discussion.open();
+  releaseResult({ state: "completed", result: { body: "Stable private insight", model: "model-a", citations: [] } });
+  assert.equal(await running, true);
+  assert.equal(app.insight.currentState().draft, "Stable private insight");
+  assert.equal(starts, 1);
+  assert.deepEqual(cancelled, []);
+  assert.equal(await app.insight.share(), true);
 });
 
 test("same-Topic linked pages can be excluded individually while the current page cannot", async () => {
@@ -355,27 +402,30 @@ test("closed popup detaches a running local insight; reopened popup restores it 
 });
 
 test("a completed private insight survives popup closure only while the local service still holds it", async () => {
-  let request;
+  let request, app;
   const cancelled = [];
   const aiClient = {
     status: async () => ({ connected: true, planEnabled: true, pending: false,
       account: { clientId: "client-a", label: "Owner" } }),
     models: async () => [{ slug: "model-a", displayName: "A" }],
     start: async (value) => { request = value; return { operationId: value.operationId, state: "running" }; },
-    resumable: async () => ({ operationId: request.operationId, state: "completed", expected: request.expected,
+    resumable: async () => ({ operationId: request.operationId, state: "completed", expected: app.service.catalog().version,
       topicId: request.context.topic.id, originSourceId: request.context.currentSource.id,
       rootId: null, replyToId: null, discussionId: null }),
     result: async (operationId) => ({ operationId, state: "completed", result: {
       body: "Saved only in service RAM.", model: "model-a", citations: [] } }),
     cancel: async (operationId) => { cancelled.push(operationId); return true; },
   };
-  const app = await harness({ aiClient, readArticle: async () => ({ url: "https://example.com/",
+  app = await harness({ aiClient, readArticle: async () => ({ url: "https://example.com/",
     documentId: "doc-a", text: "Public synthetic article" }), attestArticle: async () => true,
   randomId: () => "completed-op" });
   await app.insight.checkConnection(); await app.insight.loadModels();
   assert.equal(await app.insight.createInsights({ automatic: true }), true);
   app.insight.dispose();
   assert.deepEqual(cancelled, []);
+  app.service.command(app.service.catalog().version,
+    { type: "create-topic", title: "A later synthetic topic", kind: "general" }, "demo-alex");
+  await app.discussion.open();
   const reopened = app.reopenInsight();
   await reopened.checkConnection(); await reopened.loadModels();
   assert.equal(await reopened.resumeInsights(), true);
@@ -1040,7 +1090,7 @@ test("research failure retains only a fixed diagnostic detail in popup memory", 
   }
 });
 
-test("editing invalidates preview; navigation/actor/source/version changes clear private context", async () => {
+test("editing invalidates preview; navigation/actor/source/material changes clear private context", async () => {
   const app = await harness(); const { insight, discussion } = app;
   insight.prepare(); insight.setDraft("Before edit"); insight.preview(); insight.setDraft("After edit");
   assert.equal(insight.currentState().preview, null); assert.equal(await insight.share(), false);
@@ -1053,7 +1103,15 @@ test("editing invalidates preview; navigation/actor/source/version changes clear
   await discussion.selectSource("reserved-example-org"); assert.equal(insight.currentState().preview, null);
   insight.prepare(); insight.setDraft("Version bound"); insight.preview();
   const fresh = structuredClone(discussion.currentState()); fresh.catalog.version.revision += 1;
-  insight.observe(fresh); assert.equal(insight.currentState().available, false); assert.equal(insight.currentState().context, null);
+  insight.observe(fresh); assert.equal(insight.currentState().available, false);
+  assert.equal(insight.currentState().draft, "Version bound");
+  assert.equal(await insight.share(), false);
+  fresh.discussion.version.revision += 1;
+  fresh.related.version.revision += 1;
+  insight.observe(fresh); assert.equal(insight.currentState().available, true);
+  assert.equal(insight.currentState().draft, "Version bound");
+  fresh.catalog.sources.find((entry) => entry.id === fresh.sourceId).title = "Different source title";
+  insight.observe(fresh); assert.equal(insight.currentState().context, null);
   assert.equal(app.commands.length, 0);
 });
 

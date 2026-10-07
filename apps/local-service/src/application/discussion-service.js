@@ -3,7 +3,7 @@ import { discussionView } from "../domain/discussion-view.js";
 import { priorDiscussionsView } from "../domain/prior-discussions.js";
 import { fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId } from "../domain/validation.js";
-import { operationDigestFor } from "../domain/source-threads.js";
+import { operationDigestFor, sourceStamp } from "../domain/source-threads.js";
 import { rankRelatedSources } from "../../../../spikes/topic-resolution/browser/core/related-sources.js";
 import { applyLearnedCommand, applyLearnedIngest, BROWSER_MODEL_ID, compatibleExtractor, ingestionResult, LEARNED_COMMANDS, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, readLearnedIngest } from "../domain/learned-sources.js";
 
@@ -35,6 +35,19 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
           id, url, title, provenance, topicId: topicIdFor(state, id),
         })),
       });
+    },
+    // A private Insight can outlive unrelated catalog writes, but remains bound
+    // to the exact captured Source representation and its current Topic.
+    insightAnchor(topicId, sourceId) {
+      topicId = readId(topicId);
+      sourceId = readId(sourceId);
+      const state = repository.load();
+      const topic = state.topics.find((entry) => entry.id === topicId);
+      const source = state.sources.find((entry) => entry.id === sourceId);
+      if (!topic || !source || topicIdFor(state, sourceId) !== topicId) fail("conflict", "State changed");
+      return frozenClone({ version: version(state), topicId, sourceId,
+        topicTitle: topic.title, topicKind: topic.kind, sourceTitle: source.title,
+        sourceProvenance: source.provenance, sourceStamp: sourceStamp(source) });
     },
     related(sourceId, limit = 5) {
       sourceId = readId(sourceId);

@@ -9,12 +9,14 @@ const deferred = () => { let resolve; const promise = new Promise((done) => { re
 const tick = () => new Promise((done) => setImmediate(done));
 function fixture(overrides = {}) {
   const calls = [];
-  const state = { enabled: true, sessionWindowId: 1, blockedOrigins: [], tab: { tabId: 1, windowId: 1, url }, paired: true, permitted: true };
+  const state = { enabled: true, sessionWindowId: 1, sessionRevision: 1, blockedOrigins: [],
+    tab: { tabId: 1, windowId: 1, url }, paired: true, permitted: true };
   const capture = { documentId: "document-a", result: { status: "collected", url, title: "Synthetic article",
     text: "Project-created bounded article text.", extractorVersion: "main-text-prefix/v1" } };
   const result = { sourceId: "source-a", topicId: "topic-a", assignment: "provisional" };
   const dependencies = {
-    getPreferences: async () => ({ enabled: state.enabled, sessionWindowId: state.sessionWindowId, blockedOrigins: [...state.blockedOrigins] }),
+    getPreferences: async () => ({ enabled: state.enabled, sessionWindowId: state.sessionWindowId,
+      sessionRevision: state.sessionRevision, blockedOrigins: [...state.blockedOrigins] }),
     readForeground: async () => state.tab, hasPermission: async () => state.permitted,
     isPaired: async () => state.paired,
     reader: { read: async () => { calls.push("read"); return capture; }, attest: async () => ({ status: "attested", url }) },
@@ -50,6 +52,68 @@ test("fallback capture provenance reaches ingestion but raw sample never does", 
   assert.equal(payload.extractorVersion, "article-container-prefix/v1");
   assert.deepEqual(Object.keys(payload).sort(), ["embedding", "expected", "extractorVersion", "operationId", "title", "url"]);
   assert.equal(base.matcher.currentState().phase, "ready");
+});
+test("identical attested refresh reuses the current source without another write", async () => {
+  const base = fixture();
+  let revision = 4;
+  let attestations = 0;
+  base.dependencies.client.catalog = async () => ({ version: { generation: "g", revision },
+    sources: revision === 4 ? [] : [{ id: "source-a", url, topicId: "topic-a" }] });
+  base.dependencies.client.ingest = async (payload) => {
+    base.calls.push(payload); revision++;
+    return { sourceId: "source-a", topicId: "topic-a", assignment: "provisional",
+      version: { generation: "g", revision } };
+  };
+  base.dependencies.reader.attest = async () => { attestations++; return { status: "attested" }; };
+  await base.matcher.refresh();
+  await base.matcher.refresh();
+  assert.equal(revision, 5);
+  assert.equal(attestations, 2);
+  assert.deepEqual(base.calls.map((call) => typeof call === "string" ? call : "ingest"),
+    ["read", "embed", "ingest", "read", "embed"]);
+  assert.equal(base.matcher.currentState().phase, "ready");
+  assert.equal(base.matcher.currentState().topicId, "topic-a");
+});
+
+test("changed vector, catalog or session requires ingestion again", async () => {
+  for (const change of ["vector", "version", "link", "session"]) {
+    let vector = 1;
+    const base = fixture({ embed: async () => { base.calls.push("embed"); return { modelId: "browser", values: [vector] }; } });
+    let revision = 4;
+    let linkedTopic = "topic-a";
+    base.dependencies.client.catalog = async () => ({ version: { generation: "g", revision },
+      sources: revision === 4 ? [] : [{ id: "source-a", url, topicId: linkedTopic }] });
+    base.dependencies.client.ingest = async (payload) => {
+      base.calls.push(payload); revision++;
+      return { sourceId: "source-a", topicId: "topic-a", assignment: "provisional",
+        version: { generation: "g", revision } };
+    };
+    await base.matcher.refresh();
+    if (change === "vector") vector = 0.9;
+    if (change === "version") revision++;
+    if (change === "link") linkedTopic = "topic-b";
+    if (change === "session") base.state.sessionRevision++;
+    await base.matcher.refresh();
+    assert.equal(base.calls.filter((call) => typeof call === "object").length, 2, change);
+  }
+});
+
+test("a permission interruption clears reuse even after permission returns", async () => {
+  const base = fixture();
+  let revision = 4;
+  base.dependencies.client.catalog = async () => ({ version: { generation: "g", revision },
+    sources: revision === 4 ? [] : [{ id: "source-a", url, topicId: "topic-a" }] });
+  base.dependencies.client.ingest = async (payload) => {
+    base.calls.push(payload); revision++;
+    return { sourceId: "source-a", topicId: "topic-a", assignment: "provisional",
+      version: { generation: "g", revision } };
+  };
+  await base.matcher.refresh();
+  base.state.permitted = false;
+  await base.matcher.refresh();
+  base.state.permitted = true;
+  await base.matcher.refresh();
+  assert.equal(base.calls.filter((call) => typeof call === "object").length, 2);
 });
 
 for (const [label, setup, phase] of [

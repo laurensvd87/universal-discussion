@@ -54,6 +54,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   let hadVisibleResult = false;
   let relatedSettingsSignature;
   let previousAccountReady;
+  let renderedDraftSignature = null;
   function node(tag, key, id) {
     const item = document.createElement(tag);
     if (key) item.textContent = text(key);
@@ -268,8 +269,13 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     target.textContent = exactGenerated ? text("selected").replace("{title}", state.context.topic.title) : "";
     origin.textContent = !exactGenerated ? "" : state.context.currentSource?.title
       ? text("origin").replace("{title}", `${state.context.currentSource.title} — ${state.context.currentSource.url ?? ""}`) : text("noOrigin");
-    citations.textContent = "";
-    appendInsightCitationNodes(document, citations, exactGenerated ? state.draft : "", text("citationOpen"));
+    const draftSignature = exactGenerated ? JSON.stringify([
+      state.draft, state.context.topic, state.context.currentSource,
+    ]) : null;
+    if (draftSignature !== renderedDraftSignature) {
+      appendInsightCitationNodes(document, citations, exactGenerated ? state.draft : "", text("citationOpen"));
+      renderedDraftSignature = draftSignature;
+    }
     relatedExcerptIndicator.hidden = simplePreview || !exactGenerated || state.relatedExcerptCount === null ||
       state.relatedExcerptCount === undefined;
     relatedExcerptIndicator.textContent = relatedExcerptIndicator.hidden ? "" :
@@ -294,7 +300,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     prepare.disabled ||= generating || resuming;
     share.disabled ||= generating || resuming;
     discard.disabled ||= generating || resuming;
-    const generatedDraft = ai.status === "generated" && exactGenerated;
+    const generatedDraft = exactGenerated;
     details.setAttribute("data-has-result", String(exactGenerated));
     quickActions.setAttribute("data-phase", generating || resuming ? "generating" : "idle");
     quickActions.setAttribute("aria-busy", String(generating || resuming));
@@ -423,7 +429,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   }
   function bind(value) { controller = value; render(controller.currentState()); }
   function dispose() {
-    disposed = true; controller = null; article.value = ""; context.replaceChildren(); citations.replaceChildren(); citations.textContent = ""; account.textContent = "";
+    disposed = true; controller = null; article.value = ""; context.replaceChildren(); citations.replaceChildren(); citations.textContent = ""; renderedDraftSignature = null; account.textContent = "";
     target.textContent = origin.textContent = "";
     for (const [item, event, callback] of handlers) item.removeEventListener(event, callback);
   }

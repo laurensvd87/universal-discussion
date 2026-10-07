@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-06. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-07. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -34,6 +34,27 @@ loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/other-provider/moderation work and all external release gates remain separate.
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
+
+**2026-10-07 private Insight stability (extension 0.13.12):** The owner reported
+that Insights appeared to refresh repeatedly and Share often required multiple
+clicks. The immediate causes were repeated unchanged page/resolution projections
+and ADR-036's global catalog-revision invalidation of an otherwise unchanged
+private Insight. The owner explicitly approved the narrower rule in
+[ADR-050](../decisions/ADR-050-stable-private-insights-across-unrelated-catalog-changes.md).
+The extension now avoids redundant identical page ingests and resolution
+renders, retains a running/completed private Insight through unrelated catalog
+writes and transient discussion reloads, and uses a fresh coherent revision at
+explicit Share. The service rechecks the Source stamp/title/link, Topic,
+ChatGPT account, and any follow-up target/body before its existing atomic
+Share write; material changes still reject. No extra provider request, auto-
+retry/share, new retained page text or pairing reset was introduced. Full
+extension restricted suite 964/964, service suite 235/239 (four optional
+skips), loopback integration 2/2, and both secret scans pass. Independent
+read-only Trust review found no blocking publication/authorization issue. A
+same-title vector recapture may briefly leave Share visible in the popup,
+but the service rejects it. The fixed service was restarted on the same
+Origin with durable pairing; the owner must reload extension 0.13.12. Real
+Chrome confirmation of the reported workflow remains open.
 
 **2026-10-07 101st-page client compatibility correction (extension 0.13.11):**
 The owner's next page did save at SQLite revision 378 (101 Sources, 101 Topics,

@@ -58,7 +58,7 @@ export function createInsightResumeGate(resume) {
     observe(state, accountReady) {
       if (!primed || accountReady !== true || state?.phase !== "ready" || !state.catalog ||
           !state.topicId || !state.sourceId || !state.actorId) return false;
-      const key = JSON.stringify([state.catalog.version, state.topicId, state.sourceId, state.actorId,
+      const key = JSON.stringify([state.catalog.version.generation, state.topicId, state.sourceId, state.actorId,
         state.selection, state.resolution?.documentId ?? null]);
       if (key === attemptedKey) return false;
       attemptedKey = key;
@@ -114,10 +114,35 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       sameVersion(observed.catalog.version, observed.discussion.version) &&
       (!observed.related || sameVersion(observed.related.version, observed.catalog.version));
   }
+  function contextKey(value) {
+    const catalog = value?.catalog;
+    if (!catalog?.version?.generation || !value.topicId || !value.actorId ||
+        !Array.isArray(catalog.topics) || !Array.isArray(catalog.sources)) return null;
+    const topic = catalog.topics.find((entry) => entry.id === value.topicId);
+    const source = value.sourceId === null ? null : catalog.sources.find((entry) => entry.id === value.sourceId);
+    if (!topic || value.sourceId !== null && (!source || source.topicId !== value.topicId)) return null;
+    return JSON.stringify([catalog.version.generation, value.topicId, value.sourceId, value.actorId,
+      value.selection, value.resolution?.documentId ?? null, topic.title,
+      source?.url ?? null, source?.title ?? null]);
+  }
   function key() {
     if (!eligible()) return null;
-    return JSON.stringify([observed.catalog.version, observed.topicId, observed.sourceId,
-      observed.actorId, observed.selection, observed.resolution?.documentId ?? null]);
+    return contextKey(observed);
+  }
+  function accountKey(account = state.ai.account) {
+    return JSON.stringify([account?.clientId ?? null, account?.label ?? null]);
+  }
+  function materiallyChanged(value) {
+    if (value?.phase === "disconnected" || value?.error === "context-changed") return true;
+    const [generation, topicId, sourceId, actorId, selection, documentId] = JSON.parse(boundKey);
+    if (value?.catalog?.version?.generation && value.catalog.version.generation !== generation) return true;
+    if (value?.topicId && value.topicId !== topicId || value?.sourceId && value.sourceId !== sourceId ||
+        value?.actorId && value.actorId !== actorId || value?.selection && value.selection !== selection ||
+        value?.resolution?.documentId && value.resolution.documentId !== documentId) return true;
+    const current = contextKey(value);
+    // A coherent ready projection can prove a change. During connecting and
+    // loading, the discussion controller temporarily drops the selection.
+    return value?.phase === "ready" ? current !== boundKey : current !== null && current !== boundKey;
   }
   function currentState() { return structuredClone(state); }
   function publish(patch = {}) {
@@ -162,7 +187,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     // Share. Do not revoke its completed-result proof mid-flight; the write
     // itself performs fresh context checks and this controller clears on exit.
     if (pending) { publish(); return; }
-    if (boundKey !== null && key() !== boundKey) clear("changed");
+    if (boundKey !== null && materiallyChanged(value)) clear("changed");
     else if (boundKey === null && eligible()) prepare();
     else publish();
   }
@@ -211,8 +236,18 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   }
   function preparedReview() {
     if (disposed || pending || job || boundKey === null || key() !== boundKey ||
+        !state.ai.connected || !state.ai.planEnabled ||
         !state.ai.result || state.draft !== formatInsightCitations(state.ai.result.body, state.ai.result.citations) ||
-        !state.draft.trim() || UNSAFE.test(state.draft) || !completedJob) return null;
+        !state.draft.trim() || UNSAFE.test(state.draft) || !completedJob ||
+        completedJob.account !== accountKey()) return null;
+    if (completedJob.followup) {
+      const root = observed.discussion.roots.find((entry) => entry.id === completedJob.followup.rootId);
+      const question = root?.replies.find((entry) => entry.id === completedJob.followup.replyToId);
+      if (observed.discussion.discussionId !== completedJob.followup.discussionId ||
+          root?.state !== "visible" || root.insight?.kind !== "generated" ||
+          question?.state !== "visible" || question.actorType !== "human" ||
+          question.authorId !== observed.actorId || question.replyToId !== root.id) return null;
+    }
     return { body: state.draft, operationId: completedJob.id, expected: { ...observed.discussion.version },
       topicId: observed.topicId, sourceId: observed.sourceId ?? null, actorId: observed.actorId,
       ...(completedJob.followup ? { ...completedJob.followup } : {}) };
@@ -234,12 +269,17 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (!exactReview) return false;
     pending = true; publish({ status: "sharing" });
     let success = false;
+    let uncertain = false;
     try { success = await shareInsight(exactReview) === true; }
-    catch { /* A failed/uncertain write is never retried automatically. */ }
+    catch { uncertain = true; /* An uncertain write is never retried automatically. */ }
     finally {
       pending = false;
       if (success) completedJob = null;
-      if (!disposed) clear(success ? "shared" : "failed");
+      if (!disposed) {
+        if (!success && !uncertain && !observed?.needsFreshRead && key() === boundKey)
+          publish({ status: "failed" });
+        else clear(success ? "shared" : "failed");
+      }
     }
     return success;
   }
@@ -254,7 +294,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       const accountChanged = value.account?.clientId !== state.ai.account?.clientId ||
         value.account?.label !== state.ai.account?.label;
       if (accountChanged || !value.connected || !value.planEnabled) manualModel = null;
-      if ((accountChanged || !value.connected || !value.planEnabled) && completedJob) clear("changed");
+      if ((accountChanged || !value.connected || !value.planEnabled) && (job || completedJob)) clear("changed");
       aiPatch({ connected: value.connected, planEnabled: value.planEnabled, pending: value.pending, account: value.account,
         modelFailureDetail: null,
         failureStage: value.error === "connection-failed" ? value.failureStage ?? null : null,
@@ -312,7 +352,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const recoveryEpoch = afterUnavailable ? epoch : null;
     const recoveryKey = afterUnavailable ? boundKey : null;
     const activeList = () => !disposed && current === connectionEpoch && listEpoch === modelsEpoch &&
-      (!afterUnavailable || recoveryEpoch === epoch && recoveryKey === key());
+      (!afterUnavailable || recoveryEpoch === epoch && recoveryKey === boundKey && !materiallyChanged(observed));
     modelsBusy = true; aiPatch({ status: "loadingModels", modelFailureDetail: null });
     try {
       const models = await aiClient.models();
@@ -433,7 +473,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     let failureStatus = "generationFailed";
     let failureDetail = null;
     let refreshUnavailableModel = false;
-    const active = () => !disposed && epoch === current && key() === expectedKey && job?.id === operationId;
+    const active = () => !disposed && epoch === current && boundKey === expectedKey &&
+      !materiallyChanged(observed) && job?.id === operationId;
     try {
       const request = { operationId, model: state.ai.model, context: structuredClone(state.context),
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
@@ -472,6 +513,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         delete request.relatedExcerpts;
         publish({ relatedExcerptCount: null });
       }
+      if (!eligible() || key() !== expectedKey) return false;
       await aiClient.start(request, actorId, { signal: abort.signal });
       const end = Date.now() + 95000;
       while (active() && Date.now() < end) {
@@ -486,7 +528,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
           review = null; job = null;
           // Keep the short-lived service result until Share or Discard so the
           // service can attest the exact generated body before publication.
-          completedJob = { id: operationId, actorId, followup: followup ? {
+          completedJob = { id: operationId, actorId, account: accountKey(), followup: followup ? {
             discussionId: followup.discussionId, rootId: followup.rootId, replyToId: followup.replyToId,
           } : null };
           publish({ draft, preview: null, status: "prepared", ai: { ...state.ai, result: outcome.result,
@@ -510,7 +552,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         cancelJob();
         if (!disposed && !refreshUnavailableModel) aiPatch({ status: failureStatus });
       }
-      if (refreshUnavailableModel && !disposed && epoch === current && key() === expectedKey)
+      if (refreshUnavailableModel && !disposed && epoch === current && boundKey === expectedKey &&
+          !materiallyChanged(observed))
         await loadModels({ afterUnavailable: true });
     }
   }
@@ -524,12 +567,14 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     let refreshUnavailableModel = false;
     resumeBusy = true;
     aiPatch({ status: "resuming" });
-    const stillHere = () => !disposed && epoch === current && key() === expectedKey &&
+    const stillHere = () => !disposed && epoch === current && boundKey === expectedKey &&
+      !materiallyChanged(observed) &&
       observed.actorId === snapshot.actorId && state.ai.planEnabled &&
       state.ai.account?.clientId === account?.clientId && state.ai.account?.label === account?.label;
     try {
       const resumable = await aiClient.resumable(snapshot.actorId);
-      if (!stillHere() || !resumable || !sameVersion(resumable.expected, snapshot.catalog.version) ||
+      if (!stillHere() || !resumable ||
+          resumable.expected?.generation !== snapshot.catalog.version.generation ||
           resumable.topicId !== snapshot.topicId ||
           resumable.originSourceId !== (snapshot.sourceId ?? null)) return false;
       const followup = resumable.replyToId === null ? null : {
@@ -558,7 +603,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         if (outcome.state === "completed") {
           const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
           job = null; review = null;
-          completedJob = { id: resumable.operationId, actorId: snapshot.actorId, followup };
+          completedJob = { id: resumable.operationId, actorId: snapshot.actorId, account: accountKey(), followup };
           publish({ draft, preview: null, status: "prepared", ai: { ...state.ai, result: outcome.result,
             status: "generated", costConsent: false } });
           return true;
