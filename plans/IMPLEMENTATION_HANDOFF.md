@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-07 owner correction: ChatGPT must not make web-search calls. ADR-052
+implements the fail-closed no-tool request and text-only Insight boundary in
+extension 0.13.15. The extension already supplies up to 4,096
+characters from the current article and, when anonymous direct fetches
+succeed, up to four 2,048-character related excerpts. A De Standaard Kyiv
+case replay accepted zero of its four selected excerpts; no source link can
+be guaranteed. Do not expand raw-text retention, provider payload or fetch
+budget without a separate owner decision. The updated service is running with
+the same Origin and durable pairing; extension reload remains for the owner.
+Restricted extension 973/973, service 238/242 (four optional skips), loopback
+2/2, both secret scans and independent Trust review pass. No live provider
+request was made. See current STATUS.
+
 2026-10-07 ADR-051 continuation: extension 0.13.14 uses model-placed
 `[[ref:n]]` markers only for actually supplied related-page excerpts. The
 service resolves each number to its validated selected Source URL, and the

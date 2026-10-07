@@ -10,6 +10,17 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension **0.13.15** removes ChatGPT web search from Insight requests and the
+misleading search toggle. The model receives a bounded prefix of the current
+public article (at most 4,096 characters) and, only when direct anonymous
+fetching succeeds, up to four selected related-page excerpts (2,048 characters
+each). Those excerpts are attached to the same request; ChatGPT does not open
+the links itself. A related URL or embedding match alone is not page text or
+evidence. The De Standaard Kyiv case had zero accepted excerpts in a read-only
+anonymous replay, so the absence of source links is plausible; the exact
+Chrome run was not logged. Reload the extension and restart the local service
+for the no-search enforcement. See [ADR-052](decisions/ADR-052-supplied-page-text-only-insights.md).
+
 Extension **0.13.14** attributes facts drawn from successfully retrieved
 related-page excerpts with clickable superscript numbers directly beside the
 AI-written claim. The model emits `[[ref:n]]` for the excerpt it used; the
@@ -271,10 +282,10 @@ and [ADR-034](decisions/ADR-034-published-followups-and-robot-provenance.md).
 
 Insight context is limited to the current page plus at most four other ranked
 source references. ADR-035 initially supplied title/URL only for the other
-pages; ADR-041's next local build may also supply short anonymous public-page
-excerpts on a deliberate click. ChatGPT's web search remains optional: the
-earlier captured completed request made **zero web-search calls**, so it did
-not fetch related content in that request. A URL alone is not evidence, and
+pages; ADR-041 later added short anonymous public-page excerpts on a deliberate
+click. Older builds offered optional ChatGPT web search, but ADR-052 removes
+that tool entirely. An earlier completed request made **zero web-search calls**
+and therefore did not fetch related content. A URL alone is not evidence, and
 even a citation does not prove the whole linked article was read. There is no
 Google-related or SimilarSites fallback. See
 [ADR-035](decisions/ADR-035-bounded-related-source-context.md).

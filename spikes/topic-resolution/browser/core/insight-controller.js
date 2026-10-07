@@ -99,7 +99,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (!disposed && !relatedPreferenceTouched)
       publish({ relatedPageTextEnabled: false, relatedExcerptCount: null });
   });
-  let state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
+  let state = { available: false, context: null, excludedRelatedSourceIds: [],
     relatedPageTextEnabled: true, relatedExcerptCount: null,
     draft: "", preview: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
@@ -211,11 +211,6 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const excluded = new Set(state.excludedRelatedSourceIds);
     if (included) excluded.delete(sourceId); else excluded.add(sourceId);
     publish({ excludedRelatedSourceIds: [...excluded].sort() });
-    return true;
-  }
-  function setAllowWebResearch(value) {
-    if (disposed || pending || job || automaticStartBusy || resumeBusy || typeof value !== "boolean") return false;
-    publish({ allowWebResearch: value });
     return true;
   }
   function setRelatedPageTextEnabled(value, { persist = true } = {}) {
@@ -478,7 +473,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     try {
       const request = { operationId, model: state.ai.model, context: structuredClone(state.context),
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
-        allowWebResearch: state.allowWebResearch, expected: { ...observed.catalog.version },
+        allowWebResearch: false, expected: { ...observed.catalog.version },
         ...(followup ? { followupQuestionId: followup.questionId } : {}) };
       if (state.relatedPageTextEnabled && readRelatedExcerpts) {
         aiPatch({ status: "fetchingRelated" });
@@ -626,13 +621,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   function dispose() {
     detachJob(); completedJob = null; epoch++; connectionEpoch++; invalidateModels();
     disposed = true; observed = null; boundKey = null; review = null;
-    state = { available: false, context: null, excludedRelatedSourceIds: [], allowWebResearch: true,
+    state = { available: false, context: null, excludedRelatedSourceIds: [],
       relatedPageTextEnabled: true, relatedExcerptCount: null,
       draft: "", preview: null, status: "idle", busy: false,
       ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
         result: null, status: "idle", error: null, diagnostics: { status: "idle", events: [], localEvents: [] } } };
   }
-  return Object.freeze({ observe, currentState, prepare, setRelatedSourceIncluded, setAllowWebResearch,
+  return Object.freeze({ observe, currentState, prepare, setRelatedSourceIncluded,
     setRelatedPageTextEnabled,
     setDraft, preview, share, discard, dispose,
     checkConnection, connect, disconnect, loadModels, loadDiagnostics, selectModel, setCostConsent,

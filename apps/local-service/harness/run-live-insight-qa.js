@@ -218,7 +218,7 @@ export async function runLiveInsightQa(args, { fetchImpl = fetch, print = consol
       coverage: { sameTopicTotal: page.related.length, relatedTotal: 0, discussionIncluded: false },
       limitations: ["grouping-provisional", "title-url-only", "sources-unverified"] };
     const relatedExcerpts = withRelatedText ? await readRequiredRelatedExcerpts(context, fetchImpl) : [];
-    const result = await insights.createInsight({ model: selectedModel, context, articleText, allowWebResearch: true,
+    const result = await insights.createInsight({ model: selectedModel, context, articleText, allowWebResearch: false,
       ...(withRelatedText ? { relatedExcerpts } : {}) });
     const metrics = qualityMetrics(result, articleText, relatedExcerpts);
     print(JSON.stringify({ status: "completed", model: selectedModel, responsesSent: provider.responsesSent(), ...metrics }));

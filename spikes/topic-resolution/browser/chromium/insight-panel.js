@@ -83,11 +83,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const relatedSettings = node("details", null, "insight-related-settings");
   relatedSettings.className = "insight-subdetails";
   relatedSettings.append(node("summary", "relatedSettings"));
-  const webResearch = node("input", null, "insight-allow-web-research");
-  webResearch.type = "checkbox"; webResearch.checked = true;
-  const webResearchLabel = node("label", "allowWebResearch"); webResearchLabel.htmlFor = webResearch.id;
-  relatedSettings.append(webResearchLabel, webResearch, node("p", "relatedSettingsScope"));
-  listen(webResearch, "change", () => controller?.setAllowWebResearch(webResearch.checked));
+  relatedSettings.append(node("p", "relatedSettingsScope"));
   const relatedPageText = node("input", null, "insight-related-page-text");
   relatedPageText.type = "checkbox"; relatedPageText.checked = true;
   const relatedPageTextLabel = node("label", "relatedPageText"); relatedPageTextLabel.htmlFor = relatedPageText.id;
@@ -235,8 +231,6 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       .filter((source, index, all) => source.id !== state.context?.currentSource?.id &&
         all.findIndex((candidate) => candidate.id === source.id) === index);
     relatedSettings.hidden = !state.context;
-    webResearch.checked = state.allowWebResearch !== false;
-    webResearch.disabled = state.busy || state.ai?.status === "generating" || state.ai?.status === "preparingArticle";
     relatedPageText.checked = state.relatedPageTextEnabled !== false;
     // Switching this off remains available while an Insight is preparing or reading pages.
     relatedPageText.disabled = !relatedPageText.checked &&

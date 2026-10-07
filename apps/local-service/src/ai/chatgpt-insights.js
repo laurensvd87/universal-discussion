@@ -726,9 +726,6 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const articleText = text(own(request, "articleText"), MAX_TEXT, true);
       const relatedExcerpts = validateRelatedExcerpts(
         Object.hasOwn(request, "relatedExcerpts") ? own(request, "relatedExcerpts") : [], context);
-      const domains = [...new Set([context.currentSource, ...context.sameTopicSources, ...context.relatedSources]
-        .map((entry) => new URL(entry.url).hostname))];
-      if (!domains.length || domains.length > 11) fail("invalid-input");
       const userText = JSON.stringify(followup ? followupContext(context, articleText, followup, relatedExcerpts) :
         { context, articlePrefix: articleText, relatedExcerpts });
       if (userText.length > MAX_INPUT) fail("invalid-input");
@@ -751,7 +748,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const payload = { model, store: false, stream: true,
         instructions: buildInsightInstructions(Boolean(followup), allowWebResearch),
         input: [{ role: "user", content: userText }],
-        tools: allowWebResearch ? [{ type: "web_search", search_context_size: "low", filters: { allowed_domains: domains } }] : [],
+        tools: [],
       };
       debug({ phase: "request", payload });
       const response = await fetchImpl(`${API}/responses`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`,

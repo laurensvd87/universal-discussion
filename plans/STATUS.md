@@ -35,6 +35,28 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-07 no-provider-search direction (extension 0.13.15, ADR-052):** After a
+De Standaard Kyiv Insight had no links, the owner explicitly directed that
+ChatGPT must make no web-search calls and asked to supply the main text of
+related pages. The current app already sends up to 4,096 characters from the
+active public article and up to four anonymously fetched related-page excerpts
+of 2,048 characters each when accepted; it does not send whole related
+articles or retain them for later visits. A read-only replay of this page's
+four selected catalog URLs accepted zero excerpts (three fetch/HTTP/redirect,
+one parse/short). The catalog's same-Topic candidate shares the article ID
+under another slug; other selected candidates are broader military stories.
+The two recent successful content-free service traces show zero web-search
+calls, but are not conclusively tied to the owner's exact click. ADR-052
+records disabling the provider search tool unconditionally. The backend now
+sends `tools: []` even for legacy true flags; the extension hides the old
+search setting and sends false. Full restricted extension suite 973/973,
+service suite 238/242 (four optional skips), loopback integration 2/2 and
+both secret scans pass. Independent read-only Trust review found no blocker.
+The service was restarted with the same Origin and durable pairing; reload
+the extension to remove the old control. No live provider request was made.
+Do not infer permission for longer/cached related texts or more anonymous
+fetch attempts; the owner was asked separately about a bounded session cache.
+
 **2026-10-07 claim-level excerpt attribution and related discussions (extension
 0.13.14):** The owner specified that the model, rather than the UI, chooses
 where each external source supports a claim. For an actually supplied bounded

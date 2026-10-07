@@ -1,5 +1,12 @@
 # Local service
 
+Extension 0.13.15 and ADR-052 remove the ChatGPT `web_search` tool from every
+Insight request, including requests from older extensions that still carry the
+legacy `allowWebResearch: true` flag. Only the bounded current-page prefix and
+validated related-page excerpts supplied by the extension can be used as page
+text. The service does not fetch related pages or retain their text. Restart
+the service after updating; no pairing or SQLite reset is needed.
+
 Local, service-owned prototype state for Sources, vectors, Topic links,
 Topics, Discussions and human/AI-assisted Contributions. S3a adds a deliberately started
 loopback listener around the reviewed S1/S2 application. Imports have no listener

@@ -612,7 +612,7 @@ test("AI research requires page text, model and credit consent; answer stays pri
   app.insight.setCostConsent(true);
   assert.equal(await app.insight.createInsights(), true);
   assert.equal(calls.length, 1); assert.equal(calls[0].articleText, "Public text");
-  assert.equal(calls[0].allowWebResearch, true);
+  assert.equal(calls[0].allowWebResearch, false);
   assert.equal(app.insight.currentState().draft, "Useful synthetic finding.");
   assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 0);
   app.insight.discard();
@@ -673,8 +673,8 @@ test("one User click reads the current page and omits unchecked related links fr
   const excluded = before.context.relatedSources[0].id;
   assert.equal(app.insight.setRelatedSourceIncluded(excluded, false), true);
   assert.equal(app.insight.setRelatedSourceIncluded(before.context.currentSource.id, false), false);
-  assert.equal(app.insight.setAllowWebResearch(false), true);
-  assert.equal(app.insight.currentState().allowWebResearch, false);
+  assert.equal(app.insight.setAllowWebResearch, undefined);
+  assert.equal(app.insight.currentState().relatedPageTextEnabled, true);
   assert.equal(await app.insight.createInsights({ automatic: true }), true);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].articleText, "The public current page");
@@ -688,7 +688,7 @@ test("one User click reads the current page and omits unchecked related links fr
   assert.equal(app.insight.prepare(), false);
   app.insight.discard();
   assert.equal(app.insight.prepare(), true);
-  assert.equal(app.insight.currentState().allowWebResearch, false);
+  assert.equal(app.insight.currentState().relatedPageTextEnabled, true);
 });
 
 test("navigation during automatic page reading prevents provider send", async () => {

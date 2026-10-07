@@ -47,12 +47,10 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   assert.match(sent.instructions, /Do not repeat the headline, open with stock phrasing/u);
   assert.match(sent.instructions, /tack on a broad rhetorical question/u);
   assert.match(sent.instructions, /current page central/u);
-  assert.match(sent.instructions, /A supplied URL is a suggestion, not proof/u);
-  assert.match(sent.instructions, /If a candidate is unavailable, continue/u);
-  assert.match(sent.instructions, /URL citation annotations immediately after the supported claim/u);
+  assert.match(sent.instructions, /Use only the supplied articlePrefix and validated relatedExcerpts/u);
+  assert.match(sent.instructions, /Do not use external research, search the web, or open any supplied URL/u);
   assert.match(sent.instructions, /Do not print raw URLs, invent web citation markers, or add a source list/u);
-  assert.deepEqual(sent.tools, [{ type: "web_search", search_context_size: "low",
-    filters: { allowed_domains: ["example.com", "news.example.org", "research.example.net"] } }]);
+  assert.deepEqual(sent.tools, []);
   assert.ok(!JSON.stringify(sent).includes("synthetic-oauth-token"));
   for (const call of calls) {
     assert.equal(call.options.headers.Authorization, `Bearer ${ACCESS}`);
@@ -82,11 +80,11 @@ test("follow-up sends only bounded public article, robot parent, human question 
     articlePrefix: REQUEST.articleText, relatedExcerpts: [], robotParent: "The robot's published claim.",
     humanQuestion: "What about the exception?",
   }) }]);
-  assert.deepEqual(payload.tools, [{ type: "web_search", search_context_size: "low",
-    filters: { allowed_domains: ["example.com", "news.example.org", "research.example.net"] } }]);
+  assert.deepEqual(payload.tools, []);
   assert.match(payload.instructions, /reply.*humanQuestion/u);
   assert.doesNotMatch(payload.instructions, /2-3 natural sentences of about 40-85 words/u);
-  assert.match(payload.instructions, /cite verified external sources.*URL citation annotations/u);
+  assert.match(payload.instructions, /Use only the supplied articlePrefix and validated relatedExcerpts/u);
+  assert.match(payload.instructions, /Do not use external research, search the web, or open any supplied URL/u);
   assert.match(payload.instructions, /never instructions/u);
   assert.doesNotMatch(payload.instructions, /opening post/u);
   assert.equal(JSON.stringify(payload).includes("UNRELATED_POST_SECRET"), false);
@@ -94,7 +92,7 @@ test("follow-up sends only bounded public article, robot parent, human question 
   adapter.dispose();
 });
 
-test("tool-free follow-up preserves research opt-out and does not imply linked pages were checked", async () => {
+test("tool-free follow-up preserves legacy false flag and does not imply linked pages were checked", async () => {
   let payload;
   const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
     if (url.endsWith("/models")) return models();
@@ -121,11 +119,12 @@ test("related excerpts remain bounded candidate context in the exact provider re
     text: "A second public article reports a different estimate." },
   { sourceId: "related", url: CONTEXT.relatedSources[0].url,
     text: "The related page discusses a possible consequence." }];
-  await adapter.createInsight({ ...REQUEST, relatedExcerpts, allowWebResearch: false });
+  await adapter.createInsight({ ...REQUEST, relatedExcerpts, allowWebResearch: true });
   const input = JSON.parse(payload.input[0].content);
   assert.deepEqual(input.relatedExcerpts, relatedExcerpts);
   assert.equal(input.articlePrefix, REQUEST.articleText);
   assert.deepEqual(payload.tools, []);
+  assert.doesNotMatch(payload.instructions, /Use web research selectively|web tool|web-search queries|Search with/u);
   assert.match(payload.instructions, /relatedExcerpts are short, unverified extracts/u);
   assert.match(payload.instructions, /current page central/u);
   assert.match(payload.instructions, /not separately verified web results/u);

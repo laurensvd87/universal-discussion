@@ -1,9 +1,16 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.15 (2026-10-07) removes provider web search from Insight
+requests and the popup setting that offered it. The request now uses only the
+current article prefix and accepted anonymous related-page excerpts; old
+preferences cannot re-enable the provider tool. Reload the extension and
+restart the local service. The existing four-page/2,048-character related
+excerpt limit and no-raw-text-retention rule remain. See ADR-052.
+
 Extension 0.13.14 (2026-10-07) adds model-placed `[[ref:n]]` attribution for
 actually supplied related-page excerpts. The local service resolves markers
 to validated Source URLs and the popup renders superscript links beside the
-claims; web-search citations still work. Related discussions are shown below
+claims; previously shared web-search citations still render. Related discussions are shown below
 the current Topic as read-only suggestions, never merged into it. Reload the
 extension and restart the local service; no retained data or pairing reset.
 The model can still misjudge relevance or correctness; a citation shows its

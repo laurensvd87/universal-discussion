@@ -37,7 +37,6 @@ function harness(messages, uiMode) {
     preview: () => { calls.push(["preview"]); return true; },
     discard: () => { calls.push(["discard"]); },
     setRelatedSourceIncluded: (id, included) => { calls.push(["setRelatedSourceIncluded", id, included]); return true; },
-    setAllowWebResearch: (allowed) => { calls.push(["setAllowWebResearch", allowed]); return true; },
     createInsights: (options) => { calls.push(["createInsights", options]); return Promise.resolve(true); },
     loadDiagnostics: () => { calls.push(["loadDiagnostics"]); },
     share: () => { calls.push(["share"]); return Promise.resolve(true); } };
@@ -393,15 +392,10 @@ test("User Create click uses current page automatically and related-source setti
   const settings = ui.byId("insight-related-settings");
   const choices = ui.byId("insight-related-choices");
   assert.equal(settings.hidden, false);
-  const webResearch = ui.byId("insight-allow-web-research");
-  assert.equal(webResearch.checked, true);
-  assert.equal(ui.created.some((item) => item.tag === "label" && item.htmlFor === webResearch.id &&
-    item.textContent === INSIGHT_EN.allowWebResearch), true);
-  webResearch.checked = false;
-  webResearch.listeners.get("change")();
-  assert.deepEqual(ui.calls.at(-1), ["setAllowWebResearch", false]);
-  ui.panel.render(state({ ai, allowWebResearch: false }));
-  assert.equal(webResearch.checked, false);
+  assert.equal(ui.byId("insight-allow-web-research"), undefined);
+  assert.equal(ui.byId("insight-related-page-text").checked, true);
+  assert.equal(ui.created.some((item) => item.textContent === INSIGHT_EN.aiScope &&
+    item.textContent.includes("ChatGPT web search is off")), true);
   assert.equal(choices.children.length, 2);
   const sameTopicCheckbox = choices.children[0].children[0];
   assert.equal(sameTopicCheckbox.value, "source-b");
@@ -415,7 +409,7 @@ test("User Create click uses current page automatically and related-source setti
   checkbox.checked = false;
   choices.listeners.get("change")({ target: checkbox });
   assert.deepEqual(ui.calls.at(-1), ["setRelatedSourceIncluded", "source-c", false]);
-  ui.panel.render(state({ ai, excludedRelatedSourceIds: ["source-c"], allowWebResearch: false }));
+  ui.panel.render(state({ ai, excludedRelatedSourceIds: ["source-c"] }));
   assert.equal(checkbox.checked, false);
   assert.equal(sameTopicCheckbox.checked, true);
   ui.click("insight-createInsights");
@@ -423,11 +417,11 @@ test("User Create click uses current page automatically and related-source setti
   assert.equal(ui.calls.some(([name]) => name === "share"), false);
 });
 
-test("linked-page search setting remains available when no related pages are listed", () => {
+test("related-page settings remain available when no related pages are listed", () => {
   const ui = harness(undefined, "user");
-  ui.panel.render(state({ context: { ...context(), sameTopicSources: [], relatedSources: [] }, allowWebResearch: false }));
+  ui.panel.render(state({ context: { ...context(), sameTopicSources: [], relatedSources: [] } }));
   assert.equal(ui.byId("insight-related-settings").hidden, false);
-  assert.equal(ui.byId("insight-allow-web-research").checked, false);
+  assert.equal(ui.byId("insight-related-page-text").checked, true);
   assert.equal(ui.byId("insight-related-choices").children.length, 0);
 });
 
