@@ -12,6 +12,7 @@ const MAX_OUTPUT = 8_000;
 const MAX_MODELS = 2_048;
 const MAX_DISPLAY_MODELS = 100;
 const MAX_TEXT = 4_096;
+const MAX_WEB_CANDIDATES = 5;
 const MAX_RELATED_EXCERPTS = 4;
 const MAX_RELATED_EXCERPT_TEXT = 2_048;
 const MAX_RELATED_EXCERPT_TOTAL = 8_192;
@@ -163,8 +164,10 @@ function missingRelatedCandidates(context, relatedExcerpts) {
   const supplied = new Set(relatedExcerpts.map((entry) => entry.url));
   const selected = new Set([context.currentSource.url]);
   const missing = [];
-  for (const entry of [...context.sameTopicSources, ...context.relatedSources].slice(0, MAX_RELATED_EXCERPTS)) {
-    if (supplied.has(entry.url) || selected.has(entry.url)) continue;
+  for (const entry of [...context.sameTopicSources, ...context.relatedSources]) {
+    if (missing.length === MAX_WEB_CANDIDATES) break;
+    // Eligibility is syntactic only. It cannot predict publisher or provider access.
+    if (!inspectPageUrl(entry.url).supported || supplied.has(entry.url) || selected.has(entry.url)) continue;
     selected.add(entry.url);
     missing.push(entry.url);
   }
@@ -296,7 +299,10 @@ function completed(value, model, streamShape, relatedExcerpts, context, allowedW
   const webCitations = citations.slice();
   citations.push(...excerptCitations(body, relatedExcerpts, context));
   validateOutputLinks(body, webCitations);
-  if (allowedWebUrls.size > 0 && (!searchCompleted || webCitations.length === 0))
+  // Search can finish without opening any publisher page. A private draft may
+  // then use the current article alone, provided it has no unsafe links or
+  // invalid citations; the instruction constrains factual grounding.
+  if (allowedWebUrls.size > 0 && !searchCompleted)
     fail("invalid-response", "response-web-evidence");
   // The paired client accepts at most 50 annotations in one result. Reject
   // rather than silently dropping provider citations beside written claims.
@@ -763,8 +769,12 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         Object.hasOwn(request, "relatedExcerpts") ? own(request, "relatedExcerpts") : [], context);
       const missingCandidates = allowWebResearch ? missingRelatedCandidates(context, relatedExcerpts) : [];
       const useWebResearch = missingCandidates.length > 0;
-      const userContext = followup ? followupContext(context, articleText, followup, relatedExcerpts) :
-        { context, articlePrefix: articleText, relatedExcerpts };
+      // A disabled research preference must not send candidate URLs to the
+      // provider even though the service used them to attest the local request.
+      const providerContext = allowWebResearch ? context :
+        { ...context, sameTopicSources: [], relatedSources: [] };
+      const userContext = followup ? followupContext(providerContext, articleText, followup, relatedExcerpts) :
+        { context: providerContext, articlePrefix: articleText, relatedExcerpts };
       if (useWebResearch) userContext.missingRelatedCandidateUrls = missingCandidates;
       const userText = JSON.stringify(userContext);
       if (userText.length > MAX_INPUT) fail("invalid-input");

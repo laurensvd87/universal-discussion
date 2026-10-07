@@ -10,7 +10,20 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.16** adds a bounded ChatGPT research fallback to an explicit
+Extension **0.13.17** and ADR-054 change related-source Insight research to ChatGPT-only. On a deliberate
+**Get insights** click, the extension supplies the current tab's bounded text
+and up to five selected, non-excluded public HTTPS related article URLs; it
+does not fetch those related pages itself. ChatGPT may search those URLs; any
+external evidence needs a citation to an exact selected URL. If none can be
+reached, the Insight can still use the current article text only. Known
+sensitive/login URLs are removed before filling the five
+slots. The local catalog does not know which publishers allow ChatGPT access;
+a blocked article can still yield no cited Insight. Nothing is shared
+automatically. Reload the extension and restart the service after updating;
+pairing and stored discussions need no reset. See
+[ADR-054](decisions/ADR-054-chatgpt-only-related-source-research.md).
+
+Historical extension **0.13.16** added a bounded ChatGPT research fallback to an explicit
 **Get insights** click. It first tries the existing anonymous reads for up to
 four selected related pages. If an eligible page supplies no excerpt, the
 connected ChatGPT model may search its exact public URL; provider citations

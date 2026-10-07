@@ -1,6 +1,7 @@
 import { buildInsightContext } from "./insight-context.js";
 import { ModelListFailure } from "./local-ai-client.js";
 import { formatInsightCitations } from "./insight-citations.js";
+import { inspectPageUrl } from "./page-content-policy.js";
 
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const sameVersion = (a, b) => a && b && a.generation === b.generation && a.revision === b.revision;
@@ -195,7 +196,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   function prepare({ includeDiscussion = false } = {}) {
     if (disposed || pending || job || completedJob || !eligible()) return false;
     try {
-      const context = buildInsightContext({ ...observed, includeDiscussion: includeDiscussion === true });
+      const context = buildInsightContext({ ...observed, includeDiscussion: includeDiscussion === true,
+        sourceLimit: observed.sourceId === null ? 20 : 21 });
       boundKey = key(); review = null;
       cancelJob(); purgeCompleted(); epoch++;
       publish({ context, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, status: "prepared", ai: { ...state.ai, articleText: "", article: null,
@@ -472,7 +474,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const active = () => !disposed && epoch === current && boundKey === expectedKey &&
       !materiallyChanged(observed) && job?.id === operationId;
     try {
-      const request = { operationId, model: state.ai.model, context: structuredClone(state.context),
+      const requestContext = buildInsightContext({ ...observed,
+        includeDiscussion: state.context.coverage.discussionIncluded,
+        excludedRelatedSourceIds: state.excludedRelatedSourceIds,
+        allowedRelatedSourceIds: [...state.context.sameTopicSources, ...state.context.relatedSources]
+          .map((source) => source.id),
+        sourceLimit: observed.sourceId === null ? 5 : 6 });
+      const request = { operationId, model: state.ai.model, context: requestContext,
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
         allowWebResearch: false, expected: { ...observed.catalog.version },
         ...(followup ? { followupQuestionId: followup.questionId } : {}) };
@@ -509,6 +517,14 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       }
       await attestArticle(observed, state.ai.article);
       if (!active()) return false;
+      // The production popup supplies no related-page reader. The bounded
+      // context contains title/URL candidates only; the provider may inspect
+      // up to five eligible selected URLs after the deliberate Insight click.
+      if (state.relatedPageTextEnabled && !readRelatedExcerpts) {
+        const excluded = new Set(request.excludedRelatedSourceIds);
+        request.allowWebResearch = [...request.context.sameTopicSources, ...request.context.relatedSources]
+          .some((source) => !excluded.has(source.id) && inspectPageUrl(source.url).supported);
+      }
       if (!state.relatedPageTextEnabled) {
         delete request.relatedExcerpts;
         request.allowWebResearch = false;

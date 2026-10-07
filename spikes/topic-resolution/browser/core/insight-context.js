@@ -4,7 +4,10 @@ import { readId, readPostOrigin, freeze, MAX_CATALOG_ENTRIES } from "./local-ser
 
 const MAX_RELATED_RESULTS = 100;
 const MAX_ROOTS = 1000;
-const DISPLAY_LIMIT = 5;
+// One current Source and up to five selected public related Sources.
+const DISPLAY_LIMIT = 6;
+const MAX_LOCAL_CHOICES = 21;
+const DISCUSSION_LIMIT = 5;
 const BODY_LIMIT = 800;
 const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 
@@ -71,9 +74,15 @@ function diverseOrder(candidates, alreadySelected, maximum = candidates.length) 
 }
 
 /** Build bounded, title/URL-only context from already loaded local projections. */
-export function buildInsightContext({ catalog, discussion, related, sourceId, topicId, includeDiscussion = false }) {
+export function buildInsightContext({ catalog, discussion, related, sourceId, topicId,
+  includeDiscussion = false, excludedRelatedSourceIds = [], allowedRelatedSourceIds = null,
+  sourceLimit = DISPLAY_LIMIT }) {
   try {
     if (typeof includeDiscussion !== "boolean") invalid();
+    if (!Number.isInteger(sourceLimit) || sourceLimit < 1 || sourceLimit > MAX_LOCAL_CHOICES) invalid();
+    const excluded = new Set(entries(excludedRelatedSourceIds, MAX_LOCAL_CHOICES).map(readId));
+    const allowed = allowedRelatedSourceIds === null ? null :
+      new Set(entries(allowedRelatedSourceIds, MAX_LOCAL_CHOICES).map(readId));
     readId(topicId);
     if (sourceId !== null) readId(sourceId);
 
@@ -92,7 +101,8 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
     const current = sourceId === null ? null : catalogById.get(sourceId);
     if (sourceId !== null && (!current || current.unsafe || current.topicId !== topicId)) invalid();
 
-    const peers = sources.filter((source) => !source.unsafe && source.topicId === topicId && source.id !== sourceId).sort(byId);
+    const peers = sources.filter((source) => !source.unsafe && source.topicId === topicId &&
+      source.id !== sourceId && (allowed === null || allowed.has(source.id))).sort(byId);
     const peerIds = new Set(peers.map((source) => source.id));
     const rankedPeers = [];
     const rankedPeerIds = new Set();
@@ -101,7 +111,8 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
     for (const result of nominated) {
       const id = readId(field(result, "id"));
       const source = catalogById.get(id);
-      if (!source || source.unsafe || id === sourceId ||
+      if (!source || source.unsafe || id === sourceId || excluded.has(id) ||
+          allowed !== null && !allowed.has(id) ||
           field(result, "topicId") !== source.topicId ||
           field(result, "url") !== source.url || field(result, "title") !== source.title) continue;
       const relationship = field(result, "relationship");
@@ -112,11 +123,11 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
         relatedIds.add(id);
       }
     }
-    const sameTopicSources = diverseOrder([...rankedPeers, ...peers.filter((source) => !rankedPeerIds.has(source.id))],
-      current ? [current] : [], DISPLAY_LIMIT);
+    const sameTopicSources = diverseOrder([...rankedPeers, ...peers.filter((source) => !excluded.has(source.id) && !rankedPeerIds.has(source.id))],
+      current ? [current] : [], sourceLimit);
     const relatedSources = diverseOrder([...relatedIds].map((id) => catalogById.get(id)),
-      current ? [current, ...sameTopicSources.slice(0, DISPLAY_LIMIT - 1)] : sameTopicSources.slice(0, DISPLAY_LIMIT));
-    const sourceSlots = DISPLAY_LIMIT - Number(current !== null);
+      current ? [current, ...sameTopicSources.slice(0, sourceLimit - 1)] : sameTopicSources.slice(0, sourceLimit));
+    const sourceSlots = sourceLimit - Number(current !== null);
 
     const posts = [];
     if (includeDiscussion) {
@@ -133,7 +144,7 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
         if (typeof body !== "string" || !body.trim() || body.length > 8000 ||
             UNSAFE.test(body.replace(/[\r\n\t]/gu, ""))) invalid();
         posts.push({ id, actorType, body: body.slice(0, BODY_LIMIT) });
-        if (posts.length === DISPLAY_LIMIT) break;
+        if (posts.length === DISCUSSION_LIMIT) break;
       }
     }
 

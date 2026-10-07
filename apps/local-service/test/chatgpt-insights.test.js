@@ -115,6 +115,11 @@ test("tool-free follow-up preserves legacy false flag and does not imply linked 
   await adapter.createInsight({ ...REQUEST, allowWebResearch: false,
     followup: { parentBody: "A published robot answer.", questionBody: "Why?" } });
   assert.deepEqual(payload.tools, []);
+  const sent = JSON.parse(payload.input[0].content);
+  assert.deepEqual(sent.sameTopicSources, []);
+  assert.deepEqual(sent.relatedSources, []);
+  assert.equal(JSON.stringify(sent).includes(CONTEXT.sameTopicSources[0].url), false);
+  assert.equal(JSON.stringify(sent).includes(CONTEXT.relatedSources[0].url), false);
   assert.equal(Object.hasOwn(payload, "tool_choice"), false);
   assert.match(payload.instructions, /Do not use external research/u);
   assert.match(payload.instructions, /do not imply that linked pages were checked/u);
@@ -122,7 +127,23 @@ test("tool-free follow-up preserves legacy false flag and does not imply linked 
   adapter.dispose();
 });
 
-test("related excerpts remain bounded candidate context in the exact provider request", async () => {
+test("disabled related research sends no candidate URLs in an opening post", async () => {
+  let payload;
+  const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+    if (url.endsWith("/models")) return models();
+    payload = JSON.parse(options.body); return stream(complete("Current page insight."));
+  }, getAccessToken: async () => ACCESS });
+  await adapter.createInsight(REQUEST);
+  const input = JSON.parse(payload.input[0].content);
+  assert.deepEqual(input.context.sameTopicSources, []);
+  assert.deepEqual(input.context.relatedSources, []);
+  assert.equal(JSON.stringify(payload).includes(CONTEXT.sameTopicSources[0].url), false);
+  assert.equal(JSON.stringify(payload).includes(CONTEXT.relatedSources[0].url), false);
+  assert.deepEqual(payload.tools, []);
+  adapter.dispose();
+});
+
+test("legacy adapter excerpt fixtures do not change the provider-only instructions", async () => {
   let payload;
   const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
     if (url.endsWith("/models")) return models();
@@ -140,10 +161,10 @@ test("related excerpts remain bounded candidate context in the exact provider re
   assert.deepEqual(payload.tools, []);
   assert.equal(Object.hasOwn(payload, "tool_choice"), false);
   assert.doesNotMatch(payload.instructions, /Use web research selectively|web tool|web-search queries|Search with/u);
-  assert.match(payload.instructions, /relatedExcerpts are short, unverified extracts/u);
+  assert.doesNotMatch(payload.instructions, /relatedExcerpts are short, unverified extracts/u);
   assert.match(payload.instructions, /current page central/u);
-  assert.match(payload.instructions, /not separately verified web results/u);
-  assert.match(payload.instructions, /what that excerpt adds to the supplied current-page extract and why it matters/u);
+  assert.match(payload.instructions, /Use only the supplied articlePrefix for page facts/u);
+  assert.match(payload.instructions, /what it adds to the supplied current-page extract and why it matters/u);
   assert.match(payload.instructions, /Attribute the detail naturally to the other article/u);
   assert.match(payload.instructions, /do not claim the full current page omits it merely because articlePrefix is partial/u);
   assert.match(payload.instructions, /Do not call an added detail a contradiction unless comparable claims clearly conflict/u);
@@ -151,7 +172,7 @@ test("related excerpts remain bounded candidate context in the exact provider re
   adapter.dispose();
 });
 
-test("web search uses only the first four selected slots, excluding supplied and duplicate URLs", async () => {
+test("web search selects five eligible URLs after excluding supplied and duplicate URLs", async () => {
   const payloads = [];
   const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
     if (url.endsWith("/models")) return models();
@@ -171,17 +192,58 @@ test("web search uses only the first four selected slots, excluding supplied and
   await adapter.createInsight({ ...REQUEST, context, allowWebResearch: true, relatedExcerpts: [
     { sourceId: "supplied", url: context.sameTopicSources[0].url, text: "Supplied excerpt." }] });
   assert.deepEqual(JSON.parse(payloads[0].input[0].content).missingRelatedCandidateUrls,
-    ["https://news.example.org/one", "https://news.example.org/two"]);
-  assert.deepEqual(payloads[0].tools[0].filters.allowed_domains, ["news.example.org"]);
+    ["https://news.example.org/one", "https://news.example.org/two", "https://research.example.net/three",
+      "https://four.example.edu/four", "https://fifth.example.edu/fifth"]);
+  assert.deepEqual(payloads[0].tools[0].filters.allowed_domains,
+    ["news.example.org", "research.example.net", "four.example.edu", "fifth.example.edu"]);
   assert.equal(payloads[0].tool_choice, "required");
   const firstFour = { ...context, sameTopicSources: context.sameTopicSources.slice(2),
     relatedSources: context.relatedSources, coverage: { ...context.coverage, sameTopicTotal: 3 } };
   await adapter.createInsight({ ...REQUEST, context: firstFour, allowWebResearch: true });
   assert.deepEqual(JSON.parse(payloads[1].input[0].content).missingRelatedCandidateUrls,
     ["https://news.example.org/one", "https://news.example.org/two",
-      "https://research.example.net/three", "https://four.example.edu/four"]);
+      "https://research.example.net/three", "https://four.example.edu/four", "https://fifth.example.edu/fifth"]);
   assert.deepEqual(payloads[1].tools[0].filters.allowed_domains,
-    ["news.example.org", "research.example.net", "four.example.edu"]);
+    ["news.example.org", "research.example.net", "four.example.edu", "fifth.example.edu"]);
+});
+
+test("one cited candidate suffices when four of five searched pages are unavailable", async () => {
+  const selected = Array.from({ length: 5 }, (_, index) => source(`candidate-${index + 1}`,
+    `https://public-${index + 1}.example.org/story`));
+  const context = { ...CONTEXT, sameTopicSources: selected, relatedSources: [],
+    coverage: { ...CONTEXT.coverage, sameTopicTotal: 5, relatedTotal: 0 } };
+  let payload;
+  const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+    if (url.endsWith("/models")) return models();
+    payload = JSON.parse(options.body);
+    return stream(complete("One sourced finding.", [{ type: "url_citation", url: selected[3].url,
+      title: "Accessible article", start_index: 0, end_index: 3 }]));
+  }, getAccessToken: async () => ACCESS });
+  const result = await adapter.createInsight({ ...REQUEST, context, allowWebResearch: true });
+  assert.deepEqual(JSON.parse(payload.input[0].content).missingRelatedCandidateUrls,
+    selected.map((entry) => entry.url));
+  assert.deepEqual(result.citations, [{ url: selected[3].url, title: "Accessible article",
+    startIndex: 0, endIndex: 3 }]);
+  assert.equal(result.body, "One sourced finding.");
+  adapter.dispose();
+});
+
+test("completed search with no accessible candidate yields a private current-page draft", async () => {
+  const selected = Array.from({ length: 5 }, (_, index) => source(`unavailable-${index + 1}`,
+    `https://unavailable-${index + 1}.example.org/story`));
+  const context = { ...CONTEXT, sameTopicSources: selected, relatedSources: [],
+    coverage: { ...CONTEXT.coverage, sameTopicTotal: 5, relatedTotal: 0 } };
+  let responseCalls = 0;
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => {
+    if (url.endsWith("/models")) return models();
+    responseCalls += 1;
+    return stream(complete("A grounded point from the current article.", [], true));
+  }, getAccessToken: async () => ACCESS });
+  assert.deepEqual(await adapter.createInsight({ ...REQUEST, context, allowWebResearch: true }), {
+    body: "A grounded point from the current article.", citations: [], model: "synthetic-model",
+  });
+  assert.equal(responseCalls, 1);
+  adapter.dispose();
 });
 
 test("true flag with every selected page supplied keeps the offline request envelope", async () => {
@@ -252,7 +314,7 @@ test("provider citations reject every URL outside the exact request-scoped web c
   }
 });
 
-test("required web search without an exact provider citation cannot create a private draft", async () => {
+test("required web search without a completed tool call cannot create a private draft", async () => {
   const supplied = { sourceId: "same", url: CONTEXT.sameTopicSources[0].url, text: "Supplied excerpt." };
   const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
     stream(complete("A supplied detail[[ref:1]] but no verified web evidence.")), getAccessToken: async () => ACCESS });

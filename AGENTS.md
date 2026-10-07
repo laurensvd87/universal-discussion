@@ -78,10 +78,13 @@ RAM-only.
 ADR-050 supersedes ADR-036's blanket catalog-revision invalidation for private
 Insights: unrelated page additions may not discard a job, but current Source,
 Topic, account and follow-up binding and explicit Share remain mandatory.
-ADR-052 records the owner's 2026-10-07 direction: ChatGPT Insights must not
-offer or call provider web search. Only bounded current-page text and accepted
-related-page excerpts are supplied. Do not re-enable web tools through an old
-extension preference or broaden raw-text retention without a new owner gate.
+ADR-052's no-provider-search rule was superseded by ADR-053 and then ADR-054.
+For an explicit owner-local Get insights action, the current-page extract stays
+central and up to five non-excluded public related URLs may go to ChatGPT's
+hosted web_search; the extension does not fetch their page text. A completed
+search with no usable related source may yield a private current-page-only
+draft. No automatic call/retry/share, private-page expansion, broader retention,
+new permission, remote service or release is authorized. See current STATUS.
 
 ## Original bootstrap task (completed; retained as history)
 

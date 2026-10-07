@@ -1,5 +1,28 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-07 newest owner direction (ADR-054, extension 0.13.17 implemented):
+related-source content for Insights should come only through the connected
+ChatGPT Responses `web_search` tool, not the extension's anonymous HTTP reader.
+Keep the bounded current-tab extract as subject and background vector matching
+unchanged. Use up to five selected eligible public HTTPS URLs after exclusions
+and sensitive URL/path checks; no page-fetch preflight. The catalog has no
+reliable access/paywall marker. Old related excerpts must not be relayed to
+ChatGPT. Keep one explicit Get insights request, exact URL citation checks for
+external claims, private draft and separate Share. The owner also requires a
+current-page-only private draft after a completed search if all selected URLs
+are inaccessible; no uncited external claim should be solicited. The UI keeps
+20 reversible choices locally; only the post-exclusion five reach the paired
+service/ChatGPT. Excluding all 20 cannot pull in an unseen 21st choice. The service rebuilds that selection from its own catalog and
+rejects older clients' locally fetched related excerpts. Turning research off
+strips related URLs/titles from the provider payload. Independent Trust review
+found no remaining blocker. Restricted extension 981/981, service 253 passed
+plus four optional skips, integration 2/2, zero secret findings and isolated
+Chrome smoke PASS on second run (first late UI wait timed out). One additional
+approved public PEP ChatGPT request returned a private exact-cited draft;
+**seven** Responses requests total, none shared. The owner service was
+restarted with the same Origin and data. Reload extension 0.13.17 for
+real-page confirmation; no general publisher access is promised.
+
 2026-10-07 newest owner direction: a cache of the current user's past visits
 does not solve cross-user source context. The owner now authorizes testing up
 to 100 ChatGPT HTTP research requests (fewer preferred). ADR-053 supersedes

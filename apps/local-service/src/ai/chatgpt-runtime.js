@@ -178,25 +178,27 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     const discussion = service.discussion(topicId);
     const related = service.related(sourceId, 20);
     if (!same(catalog.version, discussion.version) || !same(catalog.version, related.version)) fail("conflict", "State changed");
-    let rebuilt;
-    try { rebuilt = buildInsightContext({ catalog, discussion, related, sourceId, topicId,
-      includeDiscussion: context.coverage?.discussionIncluded === true }); }
-    catch { fail("invalid", "Invalid request"); }
-    if (!same(rebuilt, context)) fail("invalid", "Invalid request");
     const excluded = input.excludedRelatedSourceIds ?? [];
-    const selected = [...rebuilt.sameTopicSources, ...rebuilt.relatedSources];
-    const selectedIds = new Set(selected.map((source) => source.id));
-    if (!Array.isArray(excluded) || excluded.length > selectedIds.size ||
-        excluded.some((id) => typeof id !== "string" || !selectedIds.has(id)) ||
-        new Set(excluded).size !== excluded.length) fail("invalid", "Invalid request");
-    if (!excluded.length) return rebuilt;
-    const hidden = new Set(excluded);
-    const sameTopicSources = rebuilt.sameTopicSources.filter((source) => !hidden.has(source.id));
-    const relatedSources = rebuilt.relatedSources.filter((source) => !hidden.has(source.id));
-    return { ...rebuilt, sameTopicSources, relatedSources,
-      coverage: { ...rebuilt.coverage,
-        sameTopicTotal: rebuilt.coverage.sameTopicTotal - (rebuilt.sameTopicSources.length - sameTopicSources.length),
-        relatedTotal: rebuilt.coverage.relatedTotal - (rebuilt.relatedSources.length - relatedSources.length) } };
+    let rebuilt;
+    try {
+      // The popup offers a larger local choice pool. Exclusions are permitted
+      // only from that exact catalog-derived pool; rebuild the bounded request
+      // after exclusion so the next eligible source fills a freed slot.
+      const localChoices = buildInsightContext({ catalog, discussion, related, sourceId, topicId,
+        includeDiscussion: context.coverage?.discussionIncluded === true, sourceLimit: sourceId === null ? 20 : 21 });
+      const allowedRelatedSourceIds = [...localChoices.sameTopicSources, ...localChoices.relatedSources]
+        .map((source) => source.id);
+      const selectedIds = new Set(allowedRelatedSourceIds);
+      if (!Array.isArray(excluded) || excluded.length > selectedIds.size ||
+          excluded.some((id) => typeof id !== "string" || !selectedIds.has(id)) ||
+          new Set(excluded).size !== excluded.length) fail("invalid", "Invalid request");
+      rebuilt = buildInsightContext({ catalog, discussion, related, sourceId, topicId,
+        includeDiscussion: context.coverage?.discussionIncluded === true,
+        allowedRelatedSourceIds, excludedRelatedSourceIds: excluded,
+        sourceLimit: sourceId === null ? 5 : 6 });
+    } catch { fail("invalid", "Invalid request"); }
+    if (!same(rebuilt, context)) fail("invalid", "Invalid request");
+    return rebuilt;
   }
   function inspectFollowup(questionId, actorId, context, expected) {
     const id = readId(questionId);
@@ -293,6 +295,9 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       try { relatedExcerpts = validateRelatedExcerpts(
         Object.hasOwn(value, "relatedExcerpts") ? value.relatedExcerpts : [], context); }
       catch { fail("invalid", "Invalid request"); }
+      // Older clients may still submit locally fetched related-page text. Reject it
+      // at the API boundary so Insight evidence can only come from hosted research.
+      if (relatedExcerpts.length) fail("invalid", "Invalid request");
       const followup = Object.hasOwn(value, "followupQuestionId")
         ? inspectFollowup(value.followupQuestionId, actorId, context, value.expected) : null;
       const anchor = service.insightAnchor(context.topic.id, context.currentSource.id);

@@ -8,12 +8,13 @@ import { createMemoryDemoService } from "../../../apps/local-service/src/applica
 import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indicator-fixtures.js";
 
 async function harness({ command, aiClient, readArticle, attestArticle, readRelatedExcerpts,
-  loadRelatedTextPreference, saveRelatedTextPreference, openAuthorization, randomId } = {}) {
+  loadRelatedTextPreference, saveRelatedTextPreference, openAuthorization, randomId,
+  catalogTransform } = {}) {
   let sequence = 0;
   const service = createMemoryDemoService({ nextId: (kind) => `${kind}-${++sequence}`, now: () => "2026-09-29T12:00:00.000Z" });
   const commands = []; let changed;
   const client = {
-    health: async () => ({}), catalog: async () => service.catalog(),
+    health: async () => ({}), catalog: async () => catalogTransform ? catalogTransform(service.catalog()) : service.catalog(),
     discussion: async (id) => service.discussion(id), related: async (id, limit) => service.related(id, limit),
     priorDiscussions: async (id) => service.priorDiscussions(id),
     command: async (expected, value, actor) => {
@@ -181,6 +182,76 @@ test("a running insight survives a harmless catalog refresh without another prov
   assert.equal(starts, 1);
   assert.deepEqual(cancelled, []);
   assert.equal(await app.insight.share(), true);
+});
+
+test("excluding a leading linked article backfills five provider candidates and remains reversible", async () => {
+  let request;
+  const extra = Array.from({ length: 6 }, (_, index) => ({
+    id: `aaa-peer-${index}`, topicId: "reserved-domain-demo",
+    url: `https://news.example.com/articles/${index}`, title: `Public article ${index}`,
+    provenance: "owner-local-page-embedding/v1",
+  }));
+  const app = await harness({
+    catalogTransform: (catalog) => ({ ...catalog, sources: [...catalog.sources, ...extra] }),
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public article" }),
+    attestArticle: async () => true, randomId: () => "backfill-op",
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (value) => { request = value; return { operationId: value.operationId, state: "running" }; },
+      result: async (operationId) => ({ operationId, state: "completed",
+        result: { body: "Private insight", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    },
+  });
+  const uiCandidates = app.insight.currentState().context.sameTopicSources;
+  assert.ok(uiCandidates.length >= 6);
+  const excluded = uiCandidates[0].id;
+  assert.equal(app.insight.setRelatedSourceIncluded(excluded, false), true);
+  assert.equal(app.insight.setRelatedSourceIncluded(excluded, true), true);
+  assert.equal(app.insight.setRelatedSourceIncluded(excluded, false), true);
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.equal(request.context.sameTopicSources.length + request.context.relatedSources.length, 5);
+  assert.equal(request.context.sameTopicSources.some((source) => source.id === excluded), false);
+  assert.deepEqual(request.excludedRelatedSourceIds, [excluded]);
+  assert.equal(request.allowWebResearch, true);
+  assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+  assert.equal(app.insight.currentState().context.sameTopicSources.some((source) => source.id === excluded), true);
+});
+
+test("excluding every visible link cannot pull an unseen catalog source into research", async () => {
+  let request;
+  const extra = Array.from({ length: 25 }, (_, index) => ({
+    id: `aaa-peer-${String(index).padStart(2, "0")}`, topicId: "reserved-domain-demo",
+    url: `https://news.example.com/articles/${index}`, title: `Public article ${index}`,
+    provenance: "owner-local-page-embedding/v1",
+  }));
+  const app = await harness({
+    catalogTransform: (catalog) => ({ ...catalog, sources: [...catalog.sources, ...extra] }),
+    readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public article" }),
+    attestArticle: async () => true, randomId: () => "exclude-all-op",
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false,
+        account: { clientId: "client-a", label: "Owner" } }),
+      models: async () => [{ slug: "model-a", displayName: "A" }],
+      start: async (value) => { request = value; return { operationId: value.operationId, state: "running" }; },
+      result: async (operationId) => ({ operationId, state: "completed",
+        result: { body: "Current-page insight", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    },
+  });
+  const visible = [...app.insight.currentState().context.sameTopicSources,
+    ...app.insight.currentState().context.relatedSources];
+  assert.equal(visible.length, 20);
+  for (const source of visible) assert.equal(app.insight.setRelatedSourceIncluded(source.id, false), true);
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.createInsights({ automatic: true }), true);
+  assert.deepEqual(request.context.sameTopicSources, []);
+  assert.deepEqual(request.context.relatedSources, []);
+  assert.equal(request.allowWebResearch, false);
+  assert.equal(app.insight.currentState().context.sameTopicSources.length, 20);
 });
 
 test("same-Topic linked pages can be excluded individually while the current page cannot", async () => {
@@ -712,7 +783,8 @@ test("AI research requires page text, model and credit consent; answer stays pri
   app.insight.setCostConsent(true);
   assert.equal(await app.insight.createInsights(), true);
   assert.equal(calls.length, 1); assert.equal(calls[0].articleText, "Public text");
-  assert.equal(calls[0].allowWebResearch, false);
+  assert.equal(calls[0].allowWebResearch, true);
+  assert.equal(Object.hasOwn(calls[0], "relatedExcerpts"), false);
   assert.equal(app.insight.currentState().draft, "Useful synthetic finding.");
   assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 0);
   app.insight.discard();
@@ -779,7 +851,7 @@ test("one User click reads the current page and omits unchecked related links fr
   assert.equal(calls.length, 1);
   assert.equal(calls[0].articleText, "The public current page");
   assert.equal(calls[0].context.currentSource.id, before.context.currentSource.id);
-  assert.equal(calls[0].context.relatedSources.some((source) => source.id === excluded), true);
+  assert.equal(calls[0].context.relatedSources.some((source) => source.id === excluded), false);
   assert.deepEqual(calls[0].excludedRelatedSourceIds, [excluded]);
   assert.equal(calls[0].allowWebResearch, false);
   assert.equal(app.insight.currentState().context.relatedSources.some((source) => source.id === excluded), true);

@@ -102,7 +102,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.13.16",
+    version: "0.13.17",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -130,6 +130,11 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   const popupPath = path.resolve(browserDirectory, manifest.action.default_popup);
   assert.equal(popupPath, popupHtmlPath);
   assert.equal((await stat(popupPath)).isFile(), true);
+});
+
+test("production popup does not wire anonymous related-page fetching into Insights", async () => {
+  const script = await readFile(path.resolve(browserDirectory, "chromium/popup.js"), "utf8");
+  assert.doesNotMatch(script, /createRelatedPageExcerptReader|readRelatedExcerpts/u);
 });
 
 test("every runtime import and document resource remains inside the unpacked root", async () => {

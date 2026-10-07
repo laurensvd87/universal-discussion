@@ -1,13 +1,16 @@
 # Local service
 
-Extension 0.13.16 and ADR-053 restore the official ChatGPT `web_search` tool
-only for an explicit Insight whose validated selected public related pages
-lack an accepted extension-supplied excerpt. At most four missing candidate
-URLs can be researched, with the tool domain-filtered to their hosts. A
-private draft requires a completed web-search call and a provider citation to
-one of those **exact** URLs; an attempted open or a same-domain link alone is
-not accepted. If all selected excerpts were supplied, the user disabled
-related-page text, or no candidate exists, the request remains tool-free.
+ADR-054 changes new Insights to ChatGPT-only related-source research: the
+extension no longer fetches or extracts related pages. On an explicit Insight,
+up to five selected eligible public HTTPS candidate URLs can be sent to the
+official ChatGPT `web_search` tool, domain-filtered to their hosts. A
+private draft requires a completed web-search call. Any claim from another
+page needs a provider citation to one of those **exact** URLs; an attempted
+open or same-domain link alone is not evidence. If no selected page is
+accessible, a completed response may still form a current-page-only private
+draft with no external citations. If related-source research is off or no candidate exists, the
+request remains tool-free. The current tab's bounded article extract remains
+the subject. Older clients' related excerpts are not relayed to ChatGPT.
 Publisher robots/access rules can still block ChatGPT. The service neither
 fetches nor retains related article text itself. Restart after updating; no
 pairing or SQLite reset is needed. ADR-052's blanket no-search rule was

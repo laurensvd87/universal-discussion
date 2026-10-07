@@ -35,6 +35,32 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-07 owner-directed related-source research revision (extension 0.13.17,
+ADR-054, implemented locally):** The owner now wants related-page content obtained only through
+ChatGPT, not anonymous extension/service fetches. The current tab's bounded
+visible extract remains the Insight subject. Select up to five related public
+HTTPS URL candidates after user exclusions and existing sensitive-URL filtering;
+do not spend slots on known rejected paths. The local catalog does not retain
+paywall/access status, so publisher reachability cannot be known from URL alone.
+This change removes the direct related-page read-first Insight path; hosted
+search remains one explicit Get insights request with exact selected-URL
+citations for external claims and no automatic retry/share. The owner further
+directed that if no selected related page is accessible, a current-page-only
+private draft is allowed after a completed search; that cannot guarantee
+perfect factual grounding. A local 20-choice list keeps exclusions reversible;
+the extension and service independently rebuild/validate the post-exclusion
+five-source request. Excluding all visible choices cannot silently introduce
+an unseen 21st Source. Old-client related excerpts are rejected, and turning
+research off strips related URLs/titles from the provider payload. Independent
+Trust review found no remaining blocker. Restricted extension 981/981,
+service 253 passed/four optional skips, loopback 2/2, both secret scans zero,
+and isolated Chrome smoke PASS on second run (first timed out at a late UI
+wait). One additional owner-approved public PEP ChatGPT request with
+`gpt-6-luna` produced a private PEP-257-cited draft without local related
+extraction; **seven** Responses research requests total, no draft shared.
+The local service is restarted with the same Origin, pairing and SQLite data.
+Owner Chrome extension reload and real-page confirmation remain open.
+
 **2026-10-07 bounded provider-source fallback (extension 0.13.16, ADR-053):** The owner
 clarified that caching only this user's visited pages does not solve the
 cross-user source problem and explicitly authorized up to 100 ChatGPT HTTP

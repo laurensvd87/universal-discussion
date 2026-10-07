@@ -42,10 +42,23 @@ test("101 catalog Topics and Sources still produce bounded insight context", () 
   value.related.results = [];
   const context = buildInsightContext(value);
   assert.equal(context.coverage.sameTopicTotal, 100);
-  assert.equal(context.sameTopicSources.length, 4);
-  assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 5);
+  assert.equal(context.sameTopicSources.length, 5);
+  assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 6);
   value.catalog.sources[100] = { ...value.catalog.sources[100], id: "current" };
   assert.throws(() => buildInsightContext(value), /Invalid insight context/);
+});
+
+test("known private paths are skipped before filling five related article slots", () => {
+  const value = input();
+  value.catalog.sources = [value.catalog.sources[0]];
+  const blocked = source("blocked", "topic-b", "https://news.example.com/account/inbox");
+  const publicPages = Array.from({ length: 5 }, (_, index) =>
+    source(`public-${index}`, "topic-b", `https://news.example.com/articles/${index}`));
+  value.catalog.sources.push(blocked, ...publicPages);
+  value.related.results = [result(blocked), ...publicPages.map((entry) => result(entry))];
+  const context = buildInsightContext(value);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), publicPages.map((entry) => entry.id));
+  assert.equal(context.relatedSources.length, 5);
 });
 
 test("Topic-only selection accepts no related projection, but a selected Source requires one", () => {
@@ -58,19 +71,19 @@ test("Topic-only selection accepts no related projection, but a selected Source 
   assert.throws(() => buildInsightContext({ ...selectedTopic, sourceId: "current" }), /Invalid insight context/);
 });
 
-test("five total source slots prioritize all same-Topic catalog sources", () => {
+test("six total source slots prioritize all same-Topic catalog sources", () => {
   const value = input();
   const peers = Array.from({ length: 7 }, (_, i) => source(`peer-${i}`));
   const others = Array.from({ length: 7 }, (_, i) => source(`other-${i}`, "topic-b"));
   value.catalog.sources.push(...peers, ...others);
   value.related.results.push(...others.toReversed().map((entry) => result(entry)), ...others.map((entry) => result(entry)));
   const context = buildInsightContext(value);
-  assert.deepEqual(context.sameTopicSources.map((item) => item.id), ["peer-b", "peer-0", "peer-1", "peer-2"]);
+  assert.deepEqual(context.sameTopicSources.map((item) => item.id), ["peer-b", "peer-0", "peer-1", "peer-2", "peer-3"]);
   assert.deepEqual(context.relatedSources, []);
   assert.deepEqual(context.coverage, { sameTopicTotal: 9, relatedTotal: 9, discussionIncluded: false });
 });
 
-test("ranked same-Topic and related results keep backend order within five total slots", () => {
+test("ranked same-Topic and related results keep backend order within six total slots", () => {
   const value = input();
   const others = Array.from({ length: 6 }, (_, i) => source(`related-${i}`, "topic-b"));
   value.catalog.sources.push(...others);
@@ -83,8 +96,8 @@ test("ranked same-Topic and related results keep backend order within five total
   ];
   const context = buildInsightContext(value);
   assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-b", "peer-a"]);
-  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["related-5", "related-4"]);
-  assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 5);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["related-5", "related-4", "related-3"]);
+  assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 6);
   assert.deepEqual(context.coverage, { sameTopicTotal: 2, relatedTotal: 8, discussionIncluded: false });
 });
 
@@ -94,10 +107,10 @@ test("validated related nominations rank provisional catalog peers ahead of ID o
   value.catalog.sources.push(...peers);
   value.related.results = [result(peers[4]), result(peers[3]), result(peers[2]), result(peers[1]), result(peers[0])];
   const context = buildInsightContext(value);
-  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-4", "peer-3", "peer-2", "peer-1"]);
+  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-4", "peer-3", "peer-2", "peer-1", "peer-0"]);
   assert.deepEqual(context.relatedSources, []);
   assert.equal(context.coverage.sameTopicTotal, 7);
-  assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 5);
+  assert.equal(1 + context.sameTopicSources.length + context.relatedSources.length, 6);
 });
 
 test("bounded lookahead lifts distinct hosts and exact titles through a duplicate flood", () => {
@@ -110,7 +123,7 @@ test("bounded lookahead lifts distinct hosts and exact titles through a duplicat
   value.catalog.sources.push(...peers);
   value.related.results = peers.map((entry) => result(entry));
   const context = buildInsightContext(value);
-  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-0", "peer-3", "peer-4", "peer-5"]);
+  assert.deepEqual(context.sameTopicSources.map((entry) => entry.id), ["peer-0", "peer-3", "peer-4", "peer-5", "peer-1"]);
   assert.equal(context.coverage.sameTopicTotal, 6);
   assert.equal(context.relatedSources.length, 0);
 });
@@ -127,7 +140,7 @@ test("exact title comparison retains negation, numbers and distinct languages", 
   ];
   value.catalog.sources.push(...peers);
   value.related.results = peers.map((entry) => result(entry));
-  assert.deepEqual(buildInsightContext(value).sameTopicSources.map((entry) => entry.id), ["a", "c", "d", "e"]);
+  assert.deepEqual(buildInsightContext(value).sameTopicSources.map((entry) => entry.id), ["a", "c", "d", "e", "b"]);
 });
 
 test("same-host nominees remain available when no comparable independent host exists", () => {
@@ -152,7 +165,7 @@ test("related bucket diversifies within its own rank order and reader attempts a
   value.related.results = others.map((entry) => result(entry));
   const context = buildInsightContext(value);
   assert.deepEqual(context.sameTopicSources, []);
-  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["other-0", "other-3", "other-4", "other-5"]);
+  assert.deepEqual(context.relatedSources.map((entry) => entry.id), ["other-0", "other-3", "other-4", "other-5", "other-6"]);
   assert.equal(context.coverage.relatedTotal, 20);
   let attempts = 0;
   const reader = createRelatedPageExcerptReader({ hasHostAccess: async () => true,

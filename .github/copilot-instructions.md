@@ -47,4 +47,11 @@ new permissions/model, remote service or release is authorized.
 
 Preserve these invariants: semantic topics sit between content and discussions; AI identity and provenance are explicit; private AI output never becomes public silently; browsing data and provider credentials are minimized and protected; and irreversible external actions require owner approval.
 
+ADR-053/054 supersede the historical statement above that external web search
+is deferred: explicit owner-local Get insights may use connected ChatGPT hosted
+web_search for up to five selected eligible related URLs, without locally
+fetching those related pages. A completed search with no accessible related
+evidence may produce a private current-page-only draft. Do not infer wider
+provider use, automatic publication, store clearance, or deployment approval.
+
 Prefer small, testable changes with focused validation. Do not invent a stack or provider before the relevant research and ADR exist.

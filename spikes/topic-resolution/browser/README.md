@@ -1,6 +1,19 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-Extension 0.13.16 (2026-10-07) uses the existing anonymous related-page
+Extension 0.13.17 and ADR-054 replace related-page anonymous reads during **Get insights** with
+ChatGPT-only related-source research. After one explicit click, the current
+article's bounded text remains the subject and up to five selected eligible
+public HTTPS related URLs may be sent to the connected ChatGPT model. Known
+sensitive/login paths and excluded sources do not use candidate slots. The
+extension does not prefetch their article bodies; the catalog does not know
+whether ChatGPT can reach a given publisher. An exact source citation is
+required for external claims in a private Insight. If none is available, a
+completed ChatGPT result may still yield a current-page-only private draft.
+There is no automatic retry or
+sharing. Reload the extension and restart the paired local service; retained
+data and pairing are unchanged. See ADR-054 and current STATUS.
+
+Historical extension 0.13.16 (2026-10-07) used the existing anonymous related-page
 reader first. On an explicit **Get insights** click, selected public URLs
 whose excerpts could not be read may be researched by the connected ChatGPT
 model. This happens only while **Include related-page text** is enabled;

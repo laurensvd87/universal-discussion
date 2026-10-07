@@ -42,6 +42,7 @@ const CONTENT_TYPE_MESSAGES = Object.freeze({
   "response-content-missing": "aiResearchContentMissing",
   "response-content-other": "aiResearchContentOther",
   "response-content-type": "aiResearchContentType",
+  "response-web-evidence": "aiResearchWebEvidence",
 });
 
 export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}) {
@@ -321,7 +322,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       `ai${ai.status?.[0]?.toUpperCase() ?? "I"}${ai.status?.slice(1) ?? "dle"}`) ?? ai.status;
     if (RESEARCH_FAILURE_STATUSES.has(ai.status) && RESEARCH_DETAILS.has(ai.researchFailureDetail)) {
       const contentMessage = CONTENT_TYPE_MESSAGES[ai.researchFailureDetail];
-      if (contentMessage) aiStatus.textContent += ` ${text(contentMessage)}`;
+      if (contentMessage) aiStatus.textContent = document.body?.dataset?.uiMode === "user"
+        ? text(contentMessage) : `${aiStatus.textContent} ${text(contentMessage)}`;
       aiStatus.textContent += ` ${text("researchFailureCode").replace("{code}", ai.researchFailureDetail)}`;
     }
     aiStatus.setAttribute("data-state", ai.pending ? "connecting" : ai.planEnabled ? "connected" : "disconnected");

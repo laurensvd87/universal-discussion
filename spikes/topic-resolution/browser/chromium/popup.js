@@ -13,7 +13,6 @@ import { createInsightController, createInsightResumeGate } from "../core/insigh
 import { createReadOnlyServiceRetry } from "../core/read-only-service-retry.js";
 import { createLocalAiClient } from "../core/local-ai-client.js";
 import { createInsightPageReader } from "./insight-page-reader.js";
-import { createRelatedPageExcerptReader } from "../core/related-page-excerpts.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { mountPopupShell } from "./popup-shell.js";
 import { connectPopupFocusResponder } from "./popup-focus.js";
@@ -211,8 +210,6 @@ const localClient = createLocalServiceClient({ fetchImpl: localTransport, getTok
 const aiClient = createLocalAiClient({ fetchImpl: localTransport, getToken: localSession.getToken,
   onUnauthorized: localSession.clearIfCurrent });
 const permissionsApi = globalThis.chrome.permissions;
-const relatedExcerptReader = createRelatedPageExcerptReader({ fetchImpl: localTransport,
-  hasHostAccess: () => permissionsApi.contains({ origins: ["https://*/*"] }) });
 let matchingPanel;
 // Ask for fresh background evidence only when a service projection changes.
 // No Topic, post count or connection claim crosses this authenticated message.
@@ -264,7 +261,6 @@ insightController = createInsightController({
   aiClient,
   readArticle: insightPageReader.read,
   attestArticle: insightPageReader.attest,
-  readRelatedExcerpts: relatedExcerptReader.read,
   loadRelatedTextPreference: async () => {
     const stored = await storageLocal.get("relatedPageTextEnabled");
     return typeof stored.relatedPageTextEnabled === "boolean" ? stored.relatedPageTextEnabled : null;

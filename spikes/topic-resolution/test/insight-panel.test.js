@@ -622,6 +622,17 @@ test("User Mode never renders related-excerpt diagnostic text", () => {
   assert.equal(ui.byId("insight-related-excerpt-diagnostics").textContent, "");
 });
 
+test("User Mode explains incomplete related research without showing raw provider data", () => {
+  const ui = harness(undefined, "user");
+  ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, models: [], model: "",
+    article: null, articleText: "", result: null, status: "generationFailed",
+    researchFailureDetail: "response-web-evidence" } }));
+  const message = ui.byId("insight-ai-status").textContent;
+  assert.match(message, /could not complete research/u);
+  assert.match(message, /turn off related research/u);
+  assert.equal(message.includes("provider output"), false);
+});
+
 test("related-excerpt diagnostic wording comes from the locale template", () => {
   const ui = harness({ ...INSIGHT_EN,
     relatedExcerptDiagnostics: "E {eligible}; T {attempted}; A {accepted}; H {noHostAccess}; N {fetchHttpRedirect}; S {sizeType}; P {parseShort}" });
