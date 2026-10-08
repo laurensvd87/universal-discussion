@@ -1,0 +1,19 @@
+# Offline v6 event-cohort checkpoint — not activated
+
+This is a frozen research candidate, not a production Topic rule. It reads transient E5 focus vectors and title/lead facets; it does not fetch, retain, upload, or change any live page data. `matchEventV6(sources, facets, options)` returns `{ partitions, relatedEdges, exemplarCounts }`. The `seedPartitions` option is a test-only injection for isolating cover behavior. Defaults use the frozen v5 model for initial event seeds; v5's reciprocal-top-3 rule is **not** a final membership limit, but an event with no seed cannot gain an automatic group here.
+
+After seeding, v6 compares nearby **groups**, not each unrelated catalog page. Each group chooses distinct-title semantic exemplars, adding one when its current cover falls below 0.94. Same-publisher articles with different titles may cover distinct semantic regions; exact-title syndication, even across hosts, does not increase cover. Automatic expansion requires independent-host evidence in at least one group, no detected action/product conflict between exemplars, strong cross-group mean/min focus similarity, and an event bridge for two established groups. A competing established nearby event can force abstention. Every unjoined near pair remains a `relatedEdge`. The count of members or exemplars has no fixed ceiling.
+
+Reproduce without external access:
+
+```
+node apps/local-service/experiments/topic-encoder/topic-event-v6/test.js
+node apps/local-service/experiments/topic-encoder/topic-event-v6/growth.js
+node apps/local-service/experiments/topic-encoder/topic-event-v6/run.js
+```
+
+English TRAIN: 73/84 true pairs joined, 0/3076 false pairs, 55/80 sources in nonsingleton groups (54 at v5 seed). Family-disjoint English VALIDATION: 24/24 true, 0/166 false; 16/20 covered. Multilingual TRAIN: 55/160 true, 0/3000 false; 52/80 covered (50 at seed). Family-disjoint multilingual VALIDATION: 21/80 true, 0/700 false, 15/64 opposing-view pairs joined; 27/40 covered, no gain over v5. All four sets were order-invariant under canonical, reverse and interleaved input. The validation families were consulted during v6 development; these are development metrics, **not independent holdout evidence**. The separate frozen v3 holdout and Luna test/challenge were not opened or scored here.
+
+Synthetic density: 3, 7, 20 and 100 related same-event reports remained one group, with no adjacent-event mixture. The 100 reports have distinct hosts/titles and gradually varied vectors; runtime was about 0.2–0.6 s on this machine. A separate six-page injected-seed test spans three semantic regions and confirms an unbounded cover can select at least three exemplars. Three adjacent pages with an explicit action conflict did not join. Two deliberately weak but true outliers added to the 100-page event **did not join**: the conservative minimum cross-exemplar score was below the gate, so the event split 100+2. This is a known failure, not proof of density robustness across viewpoints/languages. Relaxing the all-exemplar support on TRAIN gave 8 multilingual false pairs, so the precision-first rule was retained. Synthetic exact-title copies cannot create new exemplars, but rewritten syndication across hosts remains unresolved.
+
+Production gaps: full O(N²) pair materialization, repeated group recomputation and potentially O(N²) related edges are unsuitable for a large catalog. A future version needs indexed/batched local retrieval, affected-neighborhood updates and a compact event hypothesis with robust conflict evidence that does not become complete-link as exemplar cover grows. Current hard conflicts inspect only the chosen exemplars, so a conflicting nonexemplar could be missed. No raw-text retention is needed by this experiment, but additional focus vectors/facets would still require the owner/Trust gate before live use. Do not promote this candidate merely because the sampled false-join count is zero.

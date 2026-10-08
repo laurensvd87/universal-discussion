@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 offline grouping update: [v5](../apps/local-service/experiments/topic-encoder/topic-event-v5/README.md)
+demonstrated that fixed reciprocal top-three seeds and complete-link can
+fracture a 20-report synthetic event into ten Topics. [V6](../apps/local-service/experiments/topic-encoder/topic-event-v6/README.md)
+has no fixed member/exemplar count and kept 100 varied synthetic same-event
+reports together beside three adjacent reports, but split two weak true
+outliers. On five-language family-disjoint development validation it joined
+21/80 true pairs and no false pairs, with no complete gold Topics recovered;
+this is no improvement over v5. V6 still scans all catalog pairs and uses v5
+seeds. It is a frozen offline negative/partial checkpoint, not a live matcher
+or migration. A separate 60-article multilingual v3 holdout is sealed and
+unscored; do not tune on it. Next test a candidate that can establish a
+high-evidence cross-language event group from unseeded pages, with local
+competing-event checks and no fixed Topic-size/top-K identity gate. Later
+service design needs indexed expandable retrieval and affected-neighborhood
+updates; a retrieval batch limit may not become an identity or Source-count
+limit. New retained focus representation, historical regroup and root moves
+remain owner/Trust-gated, as do real-data validation and activation.
+
 2026-10-08 extension 0.13.27 fixes read-only related-discussion visibility:
 the popup checks the existing ranked related-result list in batches of four
 until it finds four nonempty discussions or exhausts the list. It previously

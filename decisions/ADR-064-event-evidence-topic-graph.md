@@ -38,7 +38,12 @@ root posts remain anchored to their Source, not to a reply's origin.
    evidence for event news only, not a blanket rule for products.
 3. Make groups from direct evidence, not transitive cosine chains. A seed
    needs independent corroboration of a specific event cue; expansion checks
-   multiple independent group exemplars and incompatible members. Repeated
+   multiple independent group exemplars and incompatible members. The exemplar
+   cover must expand when language, framing or event details add a genuinely
+   new region; it is not a fixed-size proxy for all Topic members. A Topic may
+   contain hundreds or more Sources. Do not require every new Source to clear
+   a complete-link comparison against every old member, and do not let a
+   fixed top-three/top-K neighbor rank decide identity. Repeated
    URLs/syndication do not create extra support. Co-occurring phrases can
    form a *group-local* bridge, never a manually maintained global alias
    table or a per-website integration. An ambiguous page remains provisional.
@@ -84,8 +89,14 @@ The eventual service must update a bounded affected neighborhood rather than
 replan every pair in the entire catalog. Candidate retrieval can be exact for
 small local catalogs; a larger service needs an indexed top-K vector search
 and title postings with exact reranking, versioned rebuilds and a recall
-audit. No approximate index is introduced by this offline candidate. The
-current SQLite JSON snapshot, response sizes and 10-second planner budget
+audit. Here top-K means one *retrieval batch*, not a fixed candidate or Topic
+membership ceiling: expand batches while plausible event evidence remains at
+the search boundary. If a work budget prevents that check, mark the result
+unresolved rather than asserting a singleton or merging by guess. Previously
+supported Source membership must not disappear solely because more reports
+enter the same neighborhood. No approximate index is introduced by this
+offline candidate. The current SQLite JSON snapshot, response sizes and
+10-second planner budget
 are separate scaling limits; changing only the join rule does not solve them.
 
 The first candidate uses only already retained URL, short title and vector.
@@ -131,6 +142,23 @@ latency as catalog size grows. Preserve an untouched real cross-publisher
 set; synthetic and CDEC-WN storyline proxies alone cannot authorize live
 Topic changes. Report uncertainty and compare against unchanged body-E5 and
 title/lead-E5 baselines. Do not tune on a challenge after its results are seen.
+
+Two further offline checkpoints test the no-fixed-count requirement without
+changing the live matcher. [V5](../apps/local-service/experiments/topic-encoder/topic-event-v5/README.md)
+used a small train-fitted pair reranker, but reciprocal top-three seeds and
+complete-link split a varied 20-page event into ten groups. On its five-language
+family-disjoint development validation, it joined 21/80 true pairs with zero
+false pairs. [V6](../apps/local-service/experiments/topic-encoder/topic-event-v6/README.md)
+added an unbounded exemplar cover and group-local expansion. A synthetic
+100-report event stayed together beside three adjacent-event reports, but two
+weaker true outliers remained a separate group. Multilingual validation stayed
+at 21/80 true pairs and zero false; no gold multilingual Topic was wholly
+recovered. V6 still depends on V5 seeds and materializes all catalog pairs,
+so it is not a scalable or multilingual activation candidate. These are
+development results, not independent real-page validation. The next candidate
+must overcome singleton seed abstention without making an actor/theme-only
+join, and its eventual service implementation must work on indexed affected
+neighborhoods. The separately frozen multilingual v3 holdout remains sealed.
 
 Before live activation, review the exact policy version, affected retained
 Sources/Topics, migration and rollback, manual pins, whole-subthread moves,

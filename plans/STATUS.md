@@ -118,6 +118,25 @@ Moreover, v4's triangle rule still compares against any outside page, so it
 can recreate the scaling failure for dense crowds. It remains **offline and
 unapproved**. All results and commands are in the [report](../apps/local-service/experiments/topic-encoder/topic-benchmark/RESULTS.md).
 
+**Count-independent grouping research checkpoint (ADR-064, offline only):**
+The new five-language development corpus contains 120 invented articles over
+24 developments with entity families separated between train and validation.
+An independent 60-article, five-language v3 challenge is hash-frozen and has
+not been used for tuning or scoring. [V5](../apps/local-service/experiments/topic-encoder/topic-event-v5/README.md)
+made 21/80 true pair joins and zero false joins on multilingual validation,
+but its reciprocal top-three seed and complete-link split 20 varied reports
+of one event into ten groups. [V6](../apps/local-service/experiments/topic-encoder/topic-event-v6/README.md)
+removed the fixed group/exemplar count: 100 gradually varied same-event
+reports stayed together beside three adjacent-event reports, with no mix.
+However two weaker true reports stayed separate (100+2), and multilingual
+validation was unchanged at 21/80 true, zero false, with zero complete gold
+Topics recovered. Its 100-page synthetic run took about 0.3 seconds here,
+but it still materializes all Source pairs and repeatedly rescans groups.
+Neither method is live, scalable to a large catalog or validated on
+cross-publisher real web pages. The next offline experiment targets unseeded
+cross-language evidence and competing event hypotheses. Do not change the
+owner database, retain another representation or infer an activation approval.
+
 ## 2026-10-08 Topic-focused embedding shadow (ADR-063)
 
 **Latest independent shadow checkpoint (2026-10-08):** A GPT-6 Luna Low

@@ -54,6 +54,13 @@ English synthetic challenge pairs with no false joins, but none of 72 true
 pairs on a fresh multilingual challenge. The latter still had a correct
 related candidate among the top three for 46/48 articles; reliable
 cross-language *thread admission*, not candidate search alone, is unresolved.
+Further offline checks tested growing Topics without a fixed membership limit:
+an [unbounded-exemplar prototype](apps/local-service/experiments/topic-encoder/topic-event-v6/README.md)
+kept 100 varied synthetic reports together, but split off two weakly worded
+true reports and joined only 21/80 true pairs in five-language development
+validation (zero false pairs there). It still scans all catalog pairs. It is
+not in the extension or service; an independent multilingual holdout remains
+untouched while a stronger method is developed.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and
