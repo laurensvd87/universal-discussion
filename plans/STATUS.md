@@ -137,6 +137,26 @@ cross-publisher real web pages. The next offline experiment targets unseeded
 cross-language evidence and competing event hypotheses. Do not change the
 owner database, retain another representation or infer an activation approval.
 
+**Follow-up offline checks:** [V7](../apps/local-service/experiments/topic-encoder/topic-event-v7/README.md)
+eliminated the fixed seed count and held a 102-report synthetic event
+together without adjacent mixing, but joined 0/80 translated true pairs in
+multilingual validation. An attempted shared-anchor bridge made false joins
+and was removed. A [small learned diagonal metric](../apps/local-service/experiments/topic-encoder/multilingual-metric-v1/README.md)
+did not improve E5: both rank a true partner first for 38/40 multilingual
+validation articles and admit only 1/80 true pairs at a train-zero-false
+cutoff. An [offline exact retrieval cursor](../apps/local-service/experiments/topic-encoder/expandable-retrieval/README.md)
+returns expandable ranked batches; work-budget exhaustion is unresolved, not
+a singleton. Six focused tests, including a 137-report crowd and exact
+brute-force rank comparison, passed. The favorable 5,000-item speed check
+used unrealistic two-active-coordinate vectors and is not a production
+latency claim. None of these experiments changes the app. Stronger training
+data and event-specific cross-language evidence remain necessary; the
+independent v3 multilingual holdout remains sealed.
+A stronger [rank-eight learned projection](../apps/local-service/experiments/topic-encoder/multilingual-projection-v2/README.md)
+raised multilingual validation admission from 1/80 to 31/80 true pairs, but
+also made six adjacent-event false pair admissions; it is frozen and rejected
+for live use. All settings/cutoffs came from train, not that validation.
+
 ## 2026-10-08 Topic-focused embedding shadow (ADR-063)
 
 **Latest independent shadow checkpoint (2026-10-08):** A GPT-6 Luna Low

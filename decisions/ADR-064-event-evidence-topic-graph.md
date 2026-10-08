@@ -160,6 +160,39 @@ must overcome singleton seed abstention without making an actor/theme-only
 join, and its eventual service implementation must work on indexed affected
 neighborhoods. The separately frozen multilingual v3 holdout remains sealed.
 
+V7 removed the V5 seed dependency and let a 102-report synthetic cohort
+grow without an adjacent-event join, but its language-dependent lexical
+event cue admitted **0/80** true pairs in five-language validation. A relaxed
+shared-anchor bridge introduced false joins and was removed. A train-fitted
+384-weight diagonal E5 metric left validation rank and high-precision
+admission unchanged (38/40 nearest true partners; 1/80 true pair admissions,
+zero false). Both are frozen negative results, not reasons to relax the
+precision-first gate. [V7 report](../apps/local-service/experiments/topic-encoder/topic-event-v7/README.md),
+[metric report](../apps/local-service/experiments/topic-encoder/multilingual-metric-v1/README.md).
+A rank-eight [low-rank residual projection](../apps/local-service/experiments/topic-encoder/multilingual-projection-v2/README.md)
+then increased multilingual development-validation admissions to 31/80 true
+pairs at a train-zero-false cutoff, but also admitted six adjacent-event false
+pairs. It is a frozen negative result under the owner's precision-first rule;
+the 64,944-byte weight artifact is research-only and not shipped.
+
+An [exact expandable retrieval prototype](../apps/local-service/experiments/topic-encoder/expandable-retrieval/README.md)
+proves that fixed retrieval batches need not impose a Source count: a
+resumable cursor returns exact ranked prefixes and reports `unresolved` on
+work-budget exhaustion. It retrieved a 137-report synthetic cohort beside
+adjacent/noise items without an arbitrary top-K cutoff. Its favorable timings
+use two-active-coordinate vectors, not realistic E5 geometry, and building
+the static index remains expensive. It neither establishes event identity
+nor meets the future incremental-service design by itself.
+
+For independent real multilingual evaluation, the published
+[GlobeSumm dataset card](https://huggingface.co/datasets/TommyYe/GlobeSumm)
+describes 370 event groups and 4,687 reports across 26 languages, labeled
+CC BY-SA 4.0. Its underlying publisher-article rights and suitability for
+product model training need separate review; nothing was downloaded or
+incorporated here. The [OG2021 repository record](https://www.clarin.si/repository/xmlui/handle/11356/1921)
+is explicitly academic-use/noncommercial, so it is not silently adopted as
+a product training corpus. Synthetic validation remains insufficient.
+
 Before live activation, review the exact policy version, affected retained
 Sources/Topics, migration and rollback, manual pins, whole-subthread moves,
 security/privacy and actual Chrome behavior. Ask the owner explicitly at that

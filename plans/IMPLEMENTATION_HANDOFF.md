@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 later offline checkpoint: [v7](../apps/local-service/experiments/topic-encoder/topic-event-v7/README.md)
+kept a 102-report varied synthetic Topic together without adjacent mixing,
+but joined 0/80 multilingual validation true pairs. A permissive bridge
+produced false joins and was rejected. A [384-weight metric head](../apps/local-service/experiments/topic-encoder/multilingual-metric-v1/README.md)
+also gave no gain over raw E5 (38/40 true rank-one partners, 1/80 admitted
+true pairs, zero false at a train-only cutoff). Neither is activation-ready.
+An [offline exact cursor](../apps/local-service/experiments/topic-encoder/expandable-retrieval/README.md)
+supports expandable batches and `unresolved` work exhaustion without a fixed
+Source count. Its static, synthetic benchmark is not production scalability.
+Next: broader original multilingual training data and a learned event-specific
+representation, then untouched holdout and separate real cross-publisher
+evidence. Do not lower a threshold just to force Topic joins. The owner/Trust
+representation, retention, migration and live regrouping gates remain.
+A [rank-eight projection](../apps/local-service/experiments/topic-encoder/multilingual-projection-v2/README.md)
+also remains offline: it admitted 31/80 multilingual true validation pairs
+but six adjacent-event false pairs at a train-zero-false cutoff. This fails
+the precision-first gate despite improved recall. Its weights are not shipped.
+
 2026-10-08 offline grouping update: [v5](../apps/local-service/experiments/topic-encoder/topic-event-v5/README.md)
 demonstrated that fixed reciprocal top-three seeds and complete-link can
 fracture a 20-report synthetic event into ten Topics. [V6](../apps/local-service/experiments/topic-encoder/topic-event-v6/README.md)

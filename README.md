@@ -61,6 +61,14 @@ true reports and joined only 21/80 true pairs in five-language development
 validation (zero false pairs there). It still scans all catalog pairs. It is
 not in the extension or service; an independent multilingual holdout remains
 untouched while a stronger method is developed.
+A subsequent offline event graph still missed every translated validation
+pair, and a small trained metric did not outperform the packaged E5 vectors.
+An [expandable retrieval experiment](apps/local-service/experiments/topic-encoder/expandable-retrieval/README.md)
+shows how search can continue past any batch size while treating exhausted
+work as unresolved; it does not decide Topic identity or run in the app.
+A more flexible offline projection found more translated same-event pairs,
+but also made six wrong adjacent-event pair joins in validation, so it was
+not activated.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and
