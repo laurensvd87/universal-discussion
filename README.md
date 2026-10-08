@@ -30,6 +30,11 @@ article lead** beat the newly trained compact heads: it retrieved the right
 development for 48/48 paired queries and accepted 40/48 true pairs at a
 validation-selected cutoff without a hard false join. This is encouraging
 but not a real-web guarantee; the app still uses its existing vector input.
+The current grouping rule also has a known scale problem: a page near many
+others can remain a singleton because it must beat *every* outside page by
+0.04. An [offline grouping comparison](apps/local-service/experiments/topic-encoder/grouping-shadow/README.md)
+shows that removing this rule alone can join different events, so the live
+discussion routing is unchanged while a replacement is evaluated.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

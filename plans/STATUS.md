@@ -77,6 +77,20 @@ exist, and the synthetic challenge shows a trained candidate making a hard
 false join. A candidate fix needs a frozen multi-page event benchmark and
 separate provisional grouping vs. related-page presentation rules.
 
+**Follow-on grouping shadow:** The owner rejects the catalog-wide 0.04
+competing-page margin as non-scalable. A six-test, socket-denied
+[invented-vector comparison](../apps/local-service/experiments/topic-encoder/grouping-shadow/README.md)
+confirms that seven mutually compatible same-event pages remain seven
+singletons under the live rule (0/21 joined pairs), while removing the margin
+and using 0.90 complete link joins 21/21. But a three-page case shaped like
+the observed true pair plus a 0.91400 different-event neighbor joins the
+wrong pair when the margin is simply removed. An intentionally narrow
+title/date cue succeeds only because its fabricated headlines expose the
+event explicitly; the owner's real headlines do not. ADR-023 now retires
+the global margin *as a future design requirement*, while retaining the
+current production policy until a tested replacement and routing review.
+No owner data, Source link, root thread, vector or running matcher changed.
+
 **Follow-on 2026-10-08:** The owner explicitly directed a longer autonomous
 attempt at a new topic-focused model and permitted local training tooling. A
 supervised 384D, 768-parameter E5-plus-local-title/lead projection is now

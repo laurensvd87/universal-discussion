@@ -1,5 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 grouping correction boundary: the owner rejects the existing
+catalog-wide .04 outside-neighbor lead. [ADR-023](../decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md)
+records its structural scaling failure; a new
+[offline shadow](../apps/local-service/experiments/topic-encoder/grouping-shadow/README.md)
+shows that simply deleting the lead creates an adjacent-event false join.
+Design/test a replacement using full event neighborhoods and event-specific
+conflict evidence, preserving manual pins, supported splits and whole-root
+routing. Do not activate an untested rule or silently regroup owner data.
+
 2026-10-08 further Topic-encoder checkpoint: two compact, genuinely trained
 dual-view E5 heads and a single-pass head remain offline experiments. A frozen
 56-page Luna-authored English challenge favored **unchanged title + lead E5**:

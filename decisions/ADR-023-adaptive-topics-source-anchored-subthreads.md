@@ -224,3 +224,28 @@ Forget removes the origin association and thus removes this discovery path.
 No stamp equivalence, source assignment, retained text, historical thread
 destination or external egress rule changes. A historical retargeting rule still
 requires a separate explicit decision and provenance design.
+
+## 2026-10-08 catalog-wide margin reassessment (shadow only)
+
+The owner correctly challenged the `0.04` lead over **every other saved
+Source**: at a true-pair cosine of 0.90963, even an unrelated outside page
+at 0.87 can veto the join. A read-only owner-selected contrasting-view pair
+about one tariff announcement is separated in precisely this way. This
+global veto gets more restrictive as the catalog grows and should not be
+carried into the next grouping policy.
+
+An [offline invented-vector comparison](../apps/local-service/experiments/topic-encoder/grouping-shadow/README.md)
+confirms both sides of the tradeoff. With seven same-event pages, the current
+rule joins 0/21 same-event pairs; complete link at 0.90 joins all 21. In a
+three-page case shaped like the observed 0.90963 true pair and 0.91400
+different-event competitor, merely removing the margin joins the *wrong*
+pair. A narrow title/date cue fixes that fabricated case, but the owner's
+actual headlines lack those explicit cues. It is not a deployable classifier.
+
+Decision: retire the catalog-wide margin as a design requirement, but do
+**not** remove it from the running matcher until a replacement has passed a
+frozen multi-page, cross-view and adjacent-development benchmark plus
+thread-routing/Trust review. Candidate evidence should be local to an event
+neighborhood, not a comparison with every unrelated catalog entry. This
+amendment does not authorize a many-to-many schema migration, revectorization
+or reassignment of retained discussions. The live policy remains unchanged.
