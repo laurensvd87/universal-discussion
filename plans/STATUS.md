@@ -35,6 +35,22 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 popup-closed capture audit (no scope/code change):** The owner
+asked whether each new page can be embedded and uploaded while the app is
+not actively used. This already happens for eligible **active** tabs in the
+one focused, leased normal window after saved pairing, the existing Chrome
+HTTPS grant and authenticated local-service health. Popup use is unnecessary;
+navigation/activation events wake the service worker and schedule bounded
+read, local E5 embedding and URL/title/vector ingestion. Focused
+`background-adapter` tests passed **89/89**, including blank-new-tab ->
+navigation, switchback, popup-closed auto-start and inactive-tab exclusion.
+The reader can abstain and a stopped/unavailable local service prevents
+ingestion. Inactive tabs, other windows and pages visited while the service
+is down are not silently queued for later scanning. ADR-025's active-tab,
+one-window owner approval remains the boundary; processing inactive tabs
+requires a new explicit privacy/product decision. No new permission or
+automatic provider call was introduced.
+
 **2026-10-08 visual loading scene (extension 0.13.23):** The owner wanted an
 attractive loading state without visible prose. User Mode now shows two
 subtle blue/lavender and warm-mustard conversation placeholders that breathe

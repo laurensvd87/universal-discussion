@@ -517,21 +517,26 @@ local SQLite database is not encrypted. No web search or crawler is included.
    replacement automatically. The unpacked model/runtime payload is about 150 MB.
 2. Reload `browser/` at `chrome://extensions` (Chrome 116+), then start the local
    service with your extension Origin as described in the service README. Pair
-   using the terminal token under **Connection settings**. A service/browser restart
-   requires a new pairing. The popup's Developer switch is unrelated to Chrome's
+   using the terminal token under **Connection settings** if this computer is not
+   already paired or the saved token was rejected. Pairing is retained locally
+   across normal service/browser restarts. The popup's Developer switch is unrelated to Chrome's
    **Developer mode**, which must remain enabled for an unpacked extension.
 3. Use a dedicated non-sensitive browser profile. Visit an eligible public HTTPS
-   article/product page. Open the popup, review the cross-site session disclosure,
-   tick the consent checkbox and select **Start browsing session**.
-   Accept Chrome's broad HTTPS-access prompt if shown. Do not browse mail,
+   article/product page. Grant broad HTTPS access once from the extension's
+   matching settings if Chrome has not already granted it. Pairing, access and
+   local-service health then start matching automatically for the active page;
+   no per-page button or popup opening is needed. Do not browse mail,
    banking, health/account dashboards or confidential pages in this profile:
    private/authenticated pages cannot be reliably identified. This uses one generic reader, not per-site
    integrations; missing structure or resource limits can make a page unsupported.
 4. Browse eligible sites in that same window, even with the popup closed. Only
    its active tab while focused is processed. No additional domain grant is
-   needed. Other windows are excluded. Popup closure/worker suspension keep the
-   session; Stop, closing its window, browser restart or extension reload ends it.
-   Start a new session explicitly after that; stored Chrome access is not consent.
+   needed. Tabs opened in the background wait until activated; other windows
+   are excluded. Popup closure/worker suspension keep the session. Stop is
+   sticky for this browser session; closing the bound window, browser restart
+   or extension reload ends the current lease. With retained pairing and Chrome
+   access, a fresh session auto-starts on the next eligible active page unless
+   Stop was used in the current browser session.
    Reopen the popup: it shows processing, then selects the experimental Topic
    when ready. First model startup takes longer; it is not an instant lookup.
 5. Visit two pages about the same specific topic and an unrelated page. Add a
