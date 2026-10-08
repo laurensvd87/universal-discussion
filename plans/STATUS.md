@@ -35,6 +35,25 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 bound-window auto-rebind (extension 0.13.26, ADR-060):** The owner
+approved automatically continuing matching in the next focused eligible normal
+window of the same separate public-only profile after the bound window closes.
+Window closure now releases and fences the old lease without setting the sticky
+explicit-Stop state. Missed close events during worker reconstruction and
+snapshot validation follow the same missing-window rule. Explicit Stop,
+permission loss, unpairing, site blocks, incognito and inactive/other-window
+exclusion remain. The 40/40 session tests and 107/107 adapter tests cover
+explicit and missed close events, site-block/Stop races, access loss and
+failed persistence. The restricted suite passed **1033/1033** and the secret
+scan found zero issues. Actual owner Chrome confirmation after extension
+reload remains open. No new permission,
+provider call, data field or capacity increase. The local catalog has no fixed
+page-count cap: a read-only check found 110 learned Sources (118 total), a
+1,038,423-byte snapshot against the 8 MiB ceiling and a 76,481-byte catalog
+projection against its roughly 1 MiB ceiling. These are finite size and
+processing limits, not a 100-page quota; reaching them currently stops new
+ingestion rather than evicting existing pages.
+
 **2026-10-08 owner Chrome diagnosis and off-state clarity (extension 0.13.25):**
 The owner reported no automatic Topic on a public De Standaard article, then
 found **Matching off** and confirmed it works after Resume. A read-only exact

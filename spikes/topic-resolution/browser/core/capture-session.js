@@ -3,6 +3,8 @@ export const BLOCKED_ORIGINS_KEY = "pageMatchingBlockedOrigins";
 export const HTTPS_ACCESS = "https://*/*";
 const validWindow = (id) => Number.isSafeInteger(id) && id >= 0;
 const validRevision = (value) => typeof value === "string" && /^[a-zA-Z0-9-]{16,80}$/u.test(value);
+const missingWindowError = (error, id) => error instanceof Error &&
+  error.message.replace(/\.$/u, "") === `No window with id: ${id}`;
 
 // Live authority never comes from persistent preferences or a native grant alone.
 export function createCaptureSession({ storageSession, storageLocal, getWindow, hasAccess,
@@ -18,8 +20,13 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
   const closedWindows = new Set();
   let failed = false;
   let pendingConfiguration = 0;
+  let closedConfigurationRevision = null;
   let writes = Promise.resolve();
   const record = () => ({ schema: "capture-session/2", revision, windowId, autoStart });
+  async function checkedWindow(id) {
+    try { return await getWindow(id); }
+    catch (error) { if (missingWindowError(error, id)) return null; throw error; }
+  }
   function fence() { revision = nonce(); windowId = null; pendingWindowId = null; onInvalidate(); }
   function enqueue(area, value) {
     const work = writes.then(() => area.set(value));
@@ -60,11 +67,18 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
         autoStart = legacy ? value.windowId !== null : value.autoStart;
         const restoringRevision = revision;
         if (value.windowId !== null) {
-          const window = await getWindow(value.windowId);
-          if (window?.id === value.windowId && window.type === "normal" && !window.incognito && await hasAccess()) {
-            if (revision === restoringRevision && !closedWindows.has(value.windowId)) windowId = value.windowId;
-            else if (revision === restoringRevision) { fence(); await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() }); }
-          } else if (revision === restoringRevision) { fence(); await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() }); }
+          const window = await checkedWindow(value.windowId);
+          const access = await hasAccess();
+          if (revision !== restoringRevision) return;
+          if (window?.id === value.windowId && window.type === "normal" && !window.incognito && access &&
+              !closedWindows.has(value.windowId)) windowId = value.windowId;
+          else {
+            // A window may have closed while the service worker was asleep.
+            // Only a missing window preserves the owner's auto-start choice.
+            if (access && (window === null || window === undefined || closedWindows.has(value.windowId))) closedWindows.add(value.windowId);
+            else autoStart = false;
+            fence(); await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
+          }
         }
       } else await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
     } catch { failed = true; fence(); }
@@ -74,9 +88,13 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
     if (windowId !== null && !failed) {
       const bound = windowId;
       try {
-        const window = await getWindow(bound);
-        if (window?.id !== bound || window.type !== "normal" || window.incognito || !await hasAccess()) {
-          if (windowId === bound) await stop();
+        const window = await checkedWindow(bound);
+        const access = await hasAccess();
+        if (window?.id !== bound || window.type !== "normal" || window.incognito || !access) {
+          if (windowId === bound) {
+            if (access && (window === null || window === undefined)) await closeWindow(bound);
+            else await stop();
+          }
         }
       } catch { if (windowId === bound) await stop(); }
     }
@@ -114,7 +132,18 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
   function closeWindow(id) {
     if (validWindow(id)) closedWindows.add(id);
     if (id !== windowId && id !== pendingWindowId) return Promise.resolve();
-    return stop();
+    const closingConfiguration = pendingConfiguration === 1 && id === pendingWindowId;
+    // Fence synchronously, including while Start or reconstruction is pending.
+    // A closed window cannot keep its lease; the saved auto-start choice may
+    // bind a later, independently checked normal window.
+    fence();
+    const ticket = revision;
+    if (closingConfiguration) closedConfigurationRevision = ticket;
+    return (async () => {
+      await ready;
+      if (ticket !== revision) return;
+      await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
+    })();
   }
   async function setBlocked(origin, blocked) {
     if (!validOrigin(origin)) throw new Error("invalid");
@@ -134,6 +163,16 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
     autoStart = false; fence();
     pendingWindowId = previousWindowId;
     const ticket = revision;
+    const restoreAutoStartAfterClose = async () => {
+      const closedRevision = closedConfigurationRevision;
+      if (revision !== closedRevision || failed || pendingConfiguration !== 1) return false;
+      // The site change is durable before this can re-enable future windows.
+      const access = await hasAccess().catch(() => false);
+      if (revision !== closedRevision || failed || pendingConfiguration !== 1) return false;
+      autoStart = previousAutoStart && access;
+      await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
+      return true;
+    };
     try {
       await ready;
       const next = blocked ? [...new Set([...blockedOrigins, origin])] : blockedOrigins.filter((value) => value !== origin);
@@ -146,20 +185,34 @@ export function createCaptureSession({ storageSession, storageLocal, getWindow, 
       await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
       await enqueue(storageLocal, { [BLOCKED_ORIGINS_KEY]: [...blockedOrigins] });
       pendingBlocks.delete(origin);
-      if (revision !== ticket || failed) return;
+      if (revision !== ticket || failed) { await restoreAutoStartAfterClose(); return; }
       autoStart = previousAutoStart;
       const restorable = async () => {
         if (previousWindowId === null || revision !== ticket || failed || pendingConfiguration !== 1 || closedWindows.has(previousWindowId)) return false;
-        const [window, access] = await Promise.all([getWindow(previousWindowId), hasAccess()]);
+        const [window, access] = await Promise.all([checkedWindow(previousWindowId), hasAccess()]);
+        if (revision === ticket && !failed && pendingConfiguration === 1 && access &&
+            (window === null || window === undefined)) {
+          // The window disappeared before onRemoved reached this worker.
+          // Its lease must end, but a successful site write can preserve
+          // automatic Start for a later eligible window.
+          closedWindows.add(previousWindowId);
+          fence();
+          closedConfigurationRevision = revision;
+          return false;
+        }
         return revision === ticket && !failed && pendingConfiguration === 1 && !closedWindows.has(previousWindowId) &&
           window?.id === previousWindowId && window.type === "normal" && !window.incognito && access;
       };
       if (await restorable()) {
         await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: { schema: "capture-session/2", revision: ticket, windowId: previousWindowId, autoStart } });
         if (await restorable()) { windowId = previousWindowId; pendingWindowId = null; }
-        else { autoStart = false; await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() }); }
+        else if (!await restoreAutoStartAfterClose()) {
+          autoStart = false; await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
+        }
       } else if (previousWindowId === null) await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
-      else { autoStart = false; await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() }); }
+      else if (!await restoreAutoStartAfterClose()) {
+        autoStart = false; await enqueue(storageSession, { [CAPTURE_SESSION_KEY]: record() });
+      }
     } catch (error) { fence(); throw error; }
     finally { pendingConfiguration--; }
   }

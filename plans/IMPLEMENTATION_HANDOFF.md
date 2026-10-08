@@ -1,5 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 latest owner-approved window behavior: ADR-060/extension 0.13.26
+preserves auto-start eligibility when the bound normal browser window closes.
+The next focused eligible window in the same separate public-only profile can
+bind after existing pairing, grant, service and page checks. Deliberate Stop
+remains sticky, and the old in-flight work is fenced. Focused offline tests
+pass; owner Chrome confirmation is open. There is no fixed page-count quota,
+but snapshot/response size and processing ceilings remain. Do not run a
+fixed-port synthetic Chrome service over the owner's live 4174 service.
+
 2026-10-08 latest owner finding: the missing Topic was caused by **Matching
 off** in the owner's session; after Resume, the supplied public article was
 stored and Topic-linked. Default auto-start for a fresh eligible session was

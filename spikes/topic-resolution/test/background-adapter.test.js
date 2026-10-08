@@ -549,14 +549,41 @@ test("bound window removal and native permission revocation cancel late inferenc
   h.state.embedGate.resolve({ embedding: embedding() }); h.state.embedGate = null; await flush();
   assert.equal((await h.send("status")).enabled, false);
   assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
-  // A genuinely new window gets its own fresh Start; a closed ID never rebinds.
+  // A genuinely new focused window may start automatically; the closed ID cannot rebind.
   h.state.window.id = 2;
-  const before = await h.send("status"); await h.send("start-session", { windowId: 2, expectedRevision: before.sessionRevision });
+  const next = await h.send("status");
+  assert.equal(next.sessionWindowId, 2);
   h.state.embedGate = h.createGate(); await h.advance();
   h.state.permitted = false; h.events.permissionRemoved.emit({ origins: ["https://*/*"] }); await flush();
   h.state.permitted = true; h.state.embedGate.resolve({ embedding: embedding() }); await flush();
   assert.equal((await h.send("status")).enabled, false);
   assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
+});
+
+test("closing the leased window automatically binds the next focused public window", async (t) => {
+  const h = await harness(t, { autoEligible: true }); await h.advance();
+  assert.equal(h.calls.reads, 1);
+  h.state.window = null; h.events.windowRemoved.emit(1); await flush();
+  assert.equal(h.state.capture.windowId, null);
+  assert.equal(h.state.capture.autoStart, true);
+  h.state.window = { id: 2, focused: true, type: "normal" };
+  h.state.tab = { id: 8, active: true, incognito: false, status: "complete", url: `${ORIGIN}/second-article` };
+  h.events.focus.emit(2); await h.advance();
+  assert.equal(h.state.capture.windowId, 2);
+  assert.equal(h.calls.reads, 2);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 2);
+});
+
+test("explicit Stop after window closure prevents automatic binding to the next window", async (t) => {
+  const h = await harness(t, { autoEligible: true }); await h.advance();
+  h.state.window = null; h.events.windowRemoved.emit(1); await flush();
+  await h.send("stop-session");
+  h.state.window = { id: 2, focused: true, type: "normal" };
+  h.state.tab = { id: 8, active: true, incognito: false, status: "complete", url: `${ORIGIN}/second-article` };
+  h.events.focus.emit(2); await h.advance();
+  assert.equal(h.state.capture.windowId, null);
+  assert.equal(h.state.capture.autoStart, false);
+  assert.equal(h.calls.reads, 1);
 });
 
 for (const action of ["stop-session", "block-site"]) test(`late start cannot undo completed ${action}`, async (t) => {
@@ -826,7 +853,9 @@ function assertRejected(status, reason, calls) {
   assert.equal(status.currentTabId, null);
   assert.equal(calls.reads, 0);
   assert.equal(calls.embeddings, 0);
-  assert.equal(calls.fetches.length, 0);
+  // An inactive auto-start choice may probe authenticated health while waiting
+  // for a new focused window, but it must not ingest the rejected page.
+  assert.equal(calls.fetches.filter((call) => !call.url.endsWith("/health")).length, 0);
   assert.ok(!JSON.stringify(status).includes("private"));
 }
 

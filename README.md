@@ -10,6 +10,15 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension 0.13.26 keeps automatic matching eligible when its bound browser
+window closes. The next focused, eligible normal window in the same public-only
+profile can resume matching after the existing pairing, permission and local
+service checks. A deliberate **Stop** remains off until **Resume matching**;
+closing a window does not override it. No inactive tabs or other windows are
+scanned. There is no fixed stored-page count limit, but the local snapshot and
+catalog response have size limits, so browsing cannot grow the catalog forever
+without a later capacity change.
+
 Extension 0.13.25 makes a stopped matching session unmistakable in the
 toolbar tooltip: **Matching off — open the popup and choose Resume matching.**
 It keeps the grey icon because the local service may still be connected.

@@ -1,5 +1,12 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.26 releases the bound-window lease on closure while preserving
+automatic matching for the next focused, eligible normal window in the same
+public-only profile. An explicit Stop stays sticky; permission removal,
+unpairing, site blocks, incognito and inactive tabs remain excluded. Reload the
+unpacked extension to use the change. This has focused offline tests; owner
+Chrome confirmation is still pending.
+
 Extension 0.13.25 distinguishes **matching off** from connected-but-unresolved
 in the grey toolbar tooltip without changing the five-color palette. A
 stopped session remains stopped until **Resume matching**; fresh eligible

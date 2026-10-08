@@ -8,7 +8,7 @@ const tick = () => new Promise((done) => setImmediate(done));
 function fixture({ saved, blocked = [], validOrigin = (value) => value === origin } = {}) {
   let sequence = 0;
   const state = { saved, blocked, window: { id: 1, type: "normal", incognito: false }, foreground: { windowId: 1 },
-    permitted: true, gate: null, localGate: null, restoreGate: null, fail: null, fences: 0, writes: [] };
+    permitted: true, gate: null, localGate: null, restoreGate: null, windowFailure: null, fail: null, fences: 0, writes: [] };
   const area = (name) => ({
     setAccessLevel: async ({ accessLevel }) => { assert.equal(accessLevel, "TRUSTED_CONTEXTS"); if (state.fail === "access") throw Error("denied"); },
     get: async (key) => ({ [key]: structuredClone(name === "session" ? state.saved : state.blocked) }),
@@ -23,7 +23,7 @@ function fixture({ saved, blocked = [], validOrigin = (value) => value === origi
     remove: async (key) => { assert.equal(key, KEY); state.saved = undefined; },
   });
   const dependencies = { storageSession: area("session"), storageLocal: area("local"),
-    getWindow: async (id) => state.window?.id === id ? state.window : null,
+    getWindow: async (id) => { if (state.windowFailure) throw state.windowFailure; return state.window?.id === id ? state.window : null; },
     hasAccess: async () => state.permitted, readForeground: async () => state.foreground,
     validOrigin, nonce: () => `synthetic-revision-${String(++sequence).padStart(6, "0")}`,
     onInvalidate: () => { state.fences++; } };
@@ -99,6 +99,16 @@ test("window-close event beats delayed window validation during worker reconstru
   await tick(); await reconstructed.closeWindow(1); gate.resolve(oldWindow);
   assert.equal((await reconstructed.snapshot()).enabled, false);
   assert.equal(h.state.saved.windowId, null);
+  assert.equal(h.state.saved.autoStart, true);
+});
+test("window-close event before saved lease loads preserves automatic Start", async () => {
+  const h = fixture({ saved: { schema: "capture-session/2", revision: "saved-control-revision-0001",
+    windowId: 1, autoStart: true } });
+  await h.session.closeWindow(1);
+  assert.equal((await h.session.snapshot()).enabled, false);
+  assert.equal(h.state.saved.windowId, null);
+  assert.equal(h.state.saved.autoStart, true);
+  assert.equal(h.session.mayAutoStart(), true);
 });
 test("Stop and bound-window closure beat an in-flight Start session write", async () => {
   for (const control of ["stop", "close"]) {
@@ -110,14 +120,56 @@ test("Stop and bound-window closure beat an in-flight Start session write", asyn
     h.state.gate.resolve(); h.state.gate = null;
     await ending; await rejected;
     assert.equal(h.state.saved.windowId, null); assert.equal((await h.reconstruct().snapshot()).enabled, false);
+    assert.equal(h.state.saved.autoStart, control === "close");
   }
 });
-test("closed bound window never authorizes a new window and revocation ends the lease", async () => {
+test("closed bound window releases the lease and keeps automatic Start eligible", async () => {
   const h = fixture(); await h.start(); h.state.window = { id: 2, type: "normal" };
   await h.session.closeWindow(1); assert.equal((await h.session.snapshot()).enabled, false);
+  assert.equal(h.state.saved.autoStart, true);
+  assert.equal(h.session.mayAutoStart(), true);
+  assert.equal((await h.reconstruct().snapshot()).enabled, false);
+  const reconstructed = h.reconstruct(); await reconstructed.snapshot();
+  assert.equal(reconstructed.mayAutoStart(), true);
   h.state.foreground.windowId = 2;
-  await h.session.start(2, (await h.session.snapshot()).sessionRevision); h.state.permitted = false;
+  await assert.rejects(h.session.start(1, (await h.session.snapshot()).sessionRevision));
+  await h.session.start(2, (await h.session.snapshot()).sessionRevision);
+  assert.equal((await h.session.snapshot()).sessionWindowId, 2);
+});
+test("missing bound window before removal event releases the lease; permission loss stays off", async () => {
+  const h = fixture(); await h.start(); h.state.window = null;
+  assert.equal((await h.session.snapshot()).enabled, false);
+  assert.equal(h.state.saved.autoStart, true);
+  assert.equal(h.session.mayAutoStart(), true);
+  h.state.window = { id: 2, type: "normal", incognito: false }; h.state.foreground.windowId = 2;
+  await h.session.start(2, (await h.session.snapshot()).sessionRevision);
+  h.state.permitted = false;
   assert.equal((await h.session.snapshot()).enabled, false); assert.equal(h.state.saved.windowId, null);
+  assert.equal(h.state.saved.autoStart, false);
+});
+test("Chrome's exact missing-window rejection releases the lease without an onRemoved event", async () => {
+  const h = fixture(); await h.start();
+  h.state.windowFailure = new Error("No window with id: 1.");
+  assert.equal((await h.session.snapshot()).enabled, false);
+  assert.equal(h.state.saved.autoStart, true);
+  assert.equal(h.session.mayAutoStart(), true);
+});
+test("unrecognized window lookup error remains fail-closed", async () => {
+  const h = fixture(); await h.start();
+  h.state.windowFailure = new Error("Window API temporarily unavailable");
+  assert.equal((await h.session.snapshot()).enabled, false);
+  assert.equal(h.state.saved.autoStart, false);
+  assert.equal(h.session.mayAutoStart(), false);
+});
+test("Stop during delayed window closure remains sticky", async () => {
+  const h = fixture(); await h.start(); h.state.gate = deferred();
+  const closing = h.session.closeWindow(1); await tick();
+  const stopping = h.session.stop();
+  h.state.gate.resolve(); h.state.gate = null;
+  await Promise.all([closing, stopping]);
+  assert.equal(h.state.saved.autoStart, false);
+  assert.equal(h.session.mayAutoStart(), false);
+  assert.equal((await h.reconstruct().snapshot()).enabled, false);
 });
 test("blocking is immediate while serialized writes wait; unblock changes only local consent", async () => {
   const h = fixture(); await h.start(); h.state.gate = deferred();
@@ -209,12 +261,123 @@ for (const stage of ["block-write", "restore-write"]) {
       gate.resolve(); h.state.localGate = null; h.state.restoreGate = null;
       await blocking; await ending;
       assert.equal((await h.session.snapshot()).enabled, false); assert.equal(h.state.saved.windowId, null);
+      assert.equal(h.state.saved.autoStart, control === "close");
       h.state.permitted = true; h.state.window = { id: 1, type: "normal", incognito: false };
       const reconstructed = await h.reconstruct().snapshot(); assert.equal(reconstructed.enabled, false);
       assert.deepEqual(reconstructed.blockedOrigins, [origin]);
+      if (control === "close") {
+        assert.equal(h.session.mayAutoStart(), true);
+        h.state.window = { id: 2, type: "normal", incognito: false };
+        h.state.foreground.windowId = 2;
+        await h.session.start(2, (await h.session.snapshot()).sessionRevision);
+        assert.equal((await h.session.snapshot()).sessionWindowId, 2);
+      }
     });
   }
 }
+
+test("permission loss during closed-window block transaction keeps automatic Start off", async () => {
+  const h = fixture(); await h.start(); h.state.localGate = deferred();
+  const blocking = h.session.setBlocked(origin, true); await tick();
+  h.state.window = null;
+  const closing = h.session.closeWindow(1);
+  h.state.permitted = false;
+  h.state.localGate.resolve(); h.state.localGate = null;
+  await Promise.all([blocking, closing]);
+  assert.equal(h.state.saved.autoStart, false);
+  assert.equal(h.session.mayAutoStart(), false);
+  assert.deepEqual(h.state.blocked, [origin]);
+});
+
+test("failed block persistence after window closure cannot restore automatic Start", async () => {
+  const h = fixture(); await h.start(); h.state.localGate = deferred();
+  const blocking = h.session.setBlocked(origin, true); const rejected = assert.rejects(blocking);
+  await tick(); h.state.window = null;
+  const closing = h.session.closeWindow(1);
+  h.state.fail = "local";
+  h.state.localGate.resolve(); h.state.localGate = null;
+  await rejected; await closing;
+  assert.equal(h.session.mayAutoStart(), false);
+  assert.equal(h.state.saved?.autoStart, false);
+  assert.equal((await h.reconstruct().snapshot()).enabled, false);
+});
+
+test("unblocking completes before a closed window can preserve automatic Start", async () => {
+  const h = fixture({ blocked: [origin] }); await h.start(); h.state.localGate = deferred();
+  const unblocking = h.session.setBlocked(origin, false); await tick();
+  h.state.window = null; const closing = h.session.closeWindow(1);
+  h.state.localGate.resolve(); h.state.localGate = null;
+  await Promise.all([unblocking, closing]);
+  assert.deepEqual(h.state.blocked, []);
+  assert.equal(h.state.saved.autoStart, true);
+  assert.equal(h.session.mayAutoStart(), true);
+});
+
+test("explicit Stop during closed-window block transaction remains sticky", async () => {
+  const h = fixture(); await h.start(); h.state.localGate = deferred();
+  const blocking = h.session.setBlocked(origin, true); await tick();
+  h.state.window = null; const closing = h.session.closeWindow(1);
+  const stopping = h.session.stop();
+  h.state.localGate.resolve(); h.state.localGate = null;
+  await Promise.all([blocking, closing, stopping]);
+  assert.deepEqual(h.state.blocked, [origin]);
+  assert.equal(h.state.saved.autoStart, false);
+  assert.equal(h.session.mayAutoStart(), false);
+});
+
+for (const blocked of [true, false]) {
+  for (const stage of ["block-write", "restore-write"]) {
+    test(`missing window without removal event preserves auto-start after ${blocked ? "block" : "unblock"} ${stage}`, async () => {
+      const h = fixture({ blocked: blocked ? [] : [origin] });
+      await h.start();
+      const gate = deferred();
+      if (stage === "block-write") h.state.localGate = gate;
+      else h.state.restoreGate = gate;
+      const changing = h.session.setBlocked(origin, blocked); await tick();
+      h.state.window = null;
+      gate.resolve(); h.state.localGate = null; h.state.restoreGate = null;
+      await changing;
+      assert.equal((await h.session.snapshot()).enabled, false);
+      assert.equal(h.state.saved.windowId, null);
+      assert.equal(h.state.saved.autoStart, true);
+      assert.equal(h.session.mayAutoStart(), true);
+      assert.deepEqual(h.state.blocked, blocked ? [origin] : []);
+      const reconstructed = h.reconstruct(); await reconstructed.snapshot();
+      assert.equal(reconstructed.mayAutoStart(), true);
+    });
+  }
+}
+
+test("permission loss during a missed-close block transaction keeps automatic Start off", async () => {
+  const h = fixture(); await h.start(); h.state.localGate = deferred();
+  const blocking = h.session.setBlocked(origin, true); await tick();
+  h.state.window = null; h.state.permitted = false;
+  h.state.localGate.resolve(); h.state.localGate = null;
+  await blocking;
+  assert.equal(h.state.saved.autoStart, false);
+  assert.equal(h.session.mayAutoStart(), false);
+  assert.deepEqual(h.state.blocked, [origin]);
+});
+
+test("Stop during a missed-close block transaction remains sticky", async () => {
+  const h = fixture(); await h.start(); h.state.localGate = deferred();
+  const blocking = h.session.setBlocked(origin, true); await tick();
+  h.state.window = null; const stopping = h.session.stop();
+  h.state.localGate.resolve(); h.state.localGate = null;
+  await Promise.all([blocking, stopping]);
+  assert.equal(h.state.saved.autoStart, false);
+  assert.equal(h.session.mayAutoStart(), false);
+});
+
+test("failed block write during a missed close cannot restore automatic Start", async () => {
+  const h = fixture(); await h.start(); h.state.localGate = deferred();
+  const blocking = h.session.setBlocked(origin, true); const rejected = assert.rejects(blocking);
+  await tick(); h.state.window = null; h.state.fail = "local";
+  h.state.localGate.resolve(); h.state.localGate = null;
+  await rejected;
+  assert.equal(h.session.mayAutoStart(), false);
+  assert.equal((await h.reconstruct().snapshot()).enabled, false);
+});
 
 test("native access lost without an event during restore write leaves persisted capture off", async () => {
   const h = fixture(); await h.start(); h.state.restoreGate = deferred();
