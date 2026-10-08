@@ -33,6 +33,53 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/other-provider/moderation work and all external release gates remain separate.
 
+## 2026-10-08 Topic-focused embedding shadow (ADR-063)
+
+The owner asked for a project-owned, English-first Topic encoder rather than
+semantic-cosine-only matching. An isolated experiment now trains a small
+rank-12 residual head over the already-packaged E5 vectors on 240 invented
+documents / 60 subjects; whole families are disjoint across train/validation.
+Its second frozen, independently generated English holdout has 80 documents /
+40 unseen subjects, with differing views and same-entity/different-development
+hard negatives. Both datasets are synthetic, not real-page or human gold. No
+provider request, model download, live DB read/write, extension asset,
+retained vector, threshold or Topic routing changed.
+
+First independent held-out result: raw E5 places the same subject first for
+**48/80** queries; the learned head gets **40/80**. A separate fixed text-cue
+hybrid gets **61/80**, but it uses both pages' body leads, which the current
+service does not retain. A validation-selected zero-false-pair cutoff accepts
+**0/40** positive holdout pairs for all three approaches. Thus the head is a
+negative result, while the hybrid is only candidate-retrieval evidence and
+not a safe/deployable same-Topic join. The experiments and frozen digests are
+in `apps/local-service/experiments/topic-encoder/`; 14 offline checks passed
+before the additional fused-vector work. An independent read-only review found
+no production/egress path and flagged synthetic transfer, the hybrid body-text
+gap, an ignored synthetic-data commit risk and training workload bounds; the
+trainer now has a 30-second budget, and only explicit synthetic files will be
+force-added. A client-computed 896D fused one-vector variant and a third frozen
+104-document / 52-subject English holdout were then tested. Raw E5 found the
+same-subject partner first for **76/104** queries; the residual head got
+**63/104**, the fused vector **46/104**. At validation-selected strict cutoffs,
+raw E5 accepted five correct/three false pairs, the head three/two, and the
+fused vector zero/zero. The V2 hybrid gain failed on V3 (43/104 for the
+title+lead variant). These deliberately synthetic tests do not establish
+real-page accuracy or a safe automatic join. The custom representations stay
+inactive. See the [measured report](../apps/local-service/experiments/topic-encoder/RESULTS.md).
+An additional read-only check of the six already-approved public R5 pilot
+Sources and 15 separate assistant judgments found same-development top-1
+nominations for **2/6** raw-E5 queries versus **1/6** with the head. No page
+fetch/provider request, raw body, DB write or individual Source result was
+produced. The two same-development pairs and assistant labels are too few for
+calibration; no human-validation claim or production change follows.
+Final offline checks: **22/22** Topic-encoder tests pass; the unchanged
+local-service suite reports **262 pass / 4 platform-optional skips / 0 fail**.
+The service secret scan reports zero findings, and the four deliberately
+force-staged synthetic corpus files separately have zero key-pattern matches.
+No actual browser/integration smoke is claimed because no runtime app path
+changed. Production vector dimensions, saved Source associations and all
+existing Discussions remain untouched.
+
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
 **2026-10-08 dynamic Topic Atlas refresh (ADR-062):** The owner requested a

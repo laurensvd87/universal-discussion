@@ -10,6 +10,17 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+A new [offline Topic-embedding experiment](apps/local-service/experiments/topic-encoder/README.md)
+tests matching the *subject* across different opinions rather than relying on
+raw semantic closeness. Its first independent synthetic English test found
+that a small learned head performed worse than the current E5 vector at
+first-neighbor retrieval (40/80 versus 48/80). An explanatory text-cue
+comparator found 61/80 but needs source prose that the backend does not retain.
+On a second, harder synthetic holdout the current E5 vector found 76/104
+correct first neighbors; both tested custom vectors did worse (63/104 and
+46/104). No experimental model or cutoff is active in the extension; the
+local app continues to work as before. Real-page accuracy is still open.
+
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and
 `npm start` opens a read-only interactive map and keeps it updated while its

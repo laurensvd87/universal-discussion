@@ -5,6 +5,16 @@ readable web conversations next, then Android and iOS, sharing Topic/discussion
 contracts (owner-confirmed sequencing on 2026-09-29). Core model:
 `Content -> Semantic Topic -> Discussion`.
 
+2026-10-08 owner-directed matching-quality increment: [ADR-063](../decisions/ADR-063-topic-focused-embedding-shadow.md)
+tests a compact project-owned Topic representation against the packaged E5
+baseline, viewpoint pairs and same-entity/different-development negatives.
+This is an offline synthetic shadow, not a new capture or grouping milestone.
+Proceed from frozen synthetic comparisons to provenance-approved real-page
+evaluation, then make a separate model/data/security/owner activation decision
+before changing saved vectors or discussion routing. The initial trained E5
+head did not improve held-out first-neighbor retrieval; do not advance it as
+the production encoder on the strength of training loss.
+
 The [historical roadmap](archive/ROADMAP_2026-09-25.md) preserves the old sequence.
 This is the active execution order. Do not restart Phase 0 or the completed 6/6
 owner review. More synthetic review machinery is not on the critical path.

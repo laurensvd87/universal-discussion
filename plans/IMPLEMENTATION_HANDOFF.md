@@ -1,5 +1,25 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 owner-directed Topic encoder shadow: [ADR-063](../decisions/ADR-063-topic-focused-embedding-shadow.md)
+adds synthetic-only E5 topic-head, fused-vector and text-cue comparator
+experiments under `apps/local-service/experiments/topic-encoder/`. The first
+independent 80-document English holdout is negative for the learned head
+(same-subject rank 1: 40/80 versus raw E5 48/80); the text-cue scorer reaches
+61/80 but requires historical body text the service does not retain. All
+validation-selected zero-false-pair cutoffs accept zero held-out positive
+pairs in that set. A later independent 104-document stress set found raw E5
+76/104 same-subject rank-1, learned head 63/104, and fused one-vector 46/104;
+even raw E5 had three false pairs at its validation-selected strict cutoff.
+The read-only six-public-Source pilot shadow also favors raw E5 (2/6 same-
+development first neighbors versus 1/6 for the head), but has only two such
+assistant-judged pairs and is not independent human gold.
+**Do not**
+replace live embeddings, re-vectorize owner data, change the .90/.94 routing,
+store a second vector/body text, migrate discussions or infer real-page
+accuracy from these synthetic checks. The current extension/local service
+remains the testable product. Any activation needs the ADR-063/044 data,
+quality, security and owner gates; external search is still parked.
+
 2026-10-08 owner-directed dynamic Topic Atlas refresh (ADR-062): `npm start`
 keeps the separate dashboard program running, polls only the read-only SQLite
 generation/revision, atomically updates sibling `snapshot.js` on change, and
