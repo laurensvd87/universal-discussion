@@ -1,5 +1,12 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 extension 0.13.27 fixes read-only related-discussion visibility:
+the popup checks the existing ranked related-result list in batches of four
+until it finds four nonempty discussions or exhausts the list. It previously
+stopped after four candidates regardless of posts. Topic routing, ranking,
+matching and data retention are unchanged. This is a UI mitigation, not an
+answer to multilingual same-event admission or backend search coverage.
+
 2026-10-08 precision-first Topic method checkpoint: the owner prefers missed
 automatic joins to false discussion joins, but rejects static global
 catalog-size/neighbor-margin gates and wants related discussions to soften

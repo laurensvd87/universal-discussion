@@ -26,6 +26,17 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-08 related-discussion visibility (extension 0.13.27):** A read-only
+popup bug hid useful conversations when the first four related Topics were
+empty. The popup now reads candidates in four-request batches until four
+nonempty cards are found or the existing related-result list is exhausted.
+Failures of an optional related read do not hide later candidates; stale
+navigation/version responses cannot attach old cards. The primary Topic and
+post routing are unchanged. The 49 focused controller tests, 744 indicator
+tests and 1,039 restricted tests pass; the secret scan found zero issues in
+183 files. This reduces empty-forum presentation but is not broader related
+retrieval or a new matcher.
+
 We have a tested local service and a usable on-device semantic discussion prototype.
 The core product hypotheses—semantic concentration, personal AI utility and
 community adoption—remain unvalidated. Stop expanding review infrastructure.

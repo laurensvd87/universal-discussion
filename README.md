@@ -65,6 +65,11 @@ pages** spread across **95 represented Topics** (132 Topics in total, including
 fixtures/empty Topics). Click a page to open its original URL. Map distances
 are approximate; nearest-neighbor edges use the original vectors.
 
+Extension 0.13.27 searches past empty related Topics before showing up to four
+read-only related discussions below the current Topic. It does not loosen
+automatic Topic joins or move posts. Reload the unpacked extension; no service
+restart or data reset is needed.
+
 Extension 0.13.26 keeps automatic matching eligible when its bound browser
 window closes. The next focused, eligible normal window in the same public-only
 profile can resume matching after the existing pairing, permission and local

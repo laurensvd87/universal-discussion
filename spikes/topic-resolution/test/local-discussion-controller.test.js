@@ -41,6 +41,30 @@ function harness(overrides = {}) {
     clears: () => clears, stopped: () => stopped };
 }
 
+function relatedCandidates(service, count, visibleIndexes = []) {
+  const catalog = structuredClone(service.catalog());
+  const topics = Array.from({ length: count }, (_, index) => ({
+    id: `related-topic-${index}`, title: `Related synthetic topic ${index}`, kind: "general",
+  }));
+  const sources = topics.map((topic, index) => ({ id: `related-source-${index}`,
+    url: `https://synthetic.example/articles/${index}`, title: topic.title, topicId: topic.id }));
+  catalog.topics.push(...topics);
+  catalog.sources.push(...sources);
+  return {
+    catalog,
+    related: { version: catalog.version, model: catalog.model,
+      results: sources.map((source) => ({ ...source, relationship: "related", method: "synthetic" })) },
+    discussion(topicId) {
+      const topic = topics.find((entry) => entry.id === topicId);
+      if (!topic) return service.discussion(topicId);
+      const index = topics.indexOf(topic);
+      return { version: catalog.version, topic, roots: visibleIndexes.includes(index)
+        ? [{ id: `root-${index}`, state: "visible", body: `Synthetic post ${index}`,
+          authorId: "demo-alex", actorType: "human", createdAt: "2026-09-28T12:00:00.000Z", replies: [] }] : [] };
+    },
+  };
+}
+
 test("bridge pins both original validated reserved-domain fixtures without Harbor relabeling", async () => {
   for (const [domain, id] of [["com", "reserved-example-com"], ["org", "reserved-example-org"]]) {
     const input = { normalizedUrl: `https://example.${domain}/`, requestToken: "activation-000001" };
@@ -122,6 +146,121 @@ test("distinct related Topics with visible posts load read-only below the curren
   ui.invalidate();
   assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
   await ui.controller.disconnect();
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+});
+
+test("related discussions keep searching after four empty Topics", async () => {
+  let candidates;
+  const ui = harness({ client: {
+    async catalog() { return candidates.catalog; },
+    async related() { return candidates.related; },
+    async discussion(id) { ui.requests.push(["discussion", id]); return candidates.discussion(id); },
+  } });
+  candidates = relatedCandidates(ui.service, 7, [4, 6]);
+  await ui.controller.open();
+  await turn();
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions.map((entry) => entry.topicId),
+    ["related-topic-4", "related-topic-6"]);
+  assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id.startsWith("related-topic-")).length, 7);
+});
+
+test("related discussion reads continue beyond twelve empty Topics", async () => {
+  let candidates;
+  const ui = harness({ client: {
+    async catalog() { return candidates.catalog; },
+    async related() { return candidates.related; },
+    async discussion(id) { ui.requests.push(["discussion", id]); return candidates.discussion(id); },
+  } });
+  candidates = relatedCandidates(ui.service, 17, [12, 13]);
+  await ui.controller.open();
+  await turn();
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions.map((entry) => entry.topicId),
+    ["related-topic-12", "related-topic-13"]);
+  assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id.startsWith("related-topic-")).length, 17);
+});
+
+test("an unavailable related Topic does not hide later posts; unauthorized still disconnects", async () => {
+  for (const code of ["unavailable", "unauthorized"]) {
+    let candidates;
+    const ui = harness({ client: {
+      async catalog() { return candidates.catalog; },
+      async related() { return candidates.related; },
+      async discussion(id) {
+        if (id === "related-topic-1") throw Object.assign(new Error(), { code });
+        return candidates.discussion(id);
+      },
+    } });
+    candidates = relatedCandidates(ui.service, 5, [4]);
+    await ui.controller.open();
+    await turn();
+    if (code === "unavailable") {
+      assert.equal(ui.controller.currentState().phase, "ready");
+      assert.deepEqual(ui.controller.currentState().relatedDiscussions.map((entry) => entry.topicId),
+        ["related-topic-4"]);
+    } else {
+      assert.equal(ui.controller.currentState().phase, "disconnected");
+      assert.equal(ui.controller.currentState().error, "unauthorized");
+      assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+    }
+  }
+});
+
+test("an unauthorized result in the same batch overrides a filled related-card quota", async () => {
+  let candidates;
+  const ui = harness({ client: {
+    async catalog() { return candidates.catalog; },
+    async related() { return candidates.related; },
+    async discussion(id) {
+      if (id === "related-topic-5") throw Object.assign(new Error(), { code: "unauthorized" });
+      return candidates.discussion(id);
+    },
+  } });
+  candidates = relatedCandidates(ui.service, 6, [0, 1, 2, 4]);
+  await ui.controller.open();
+  await turn();
+  assert.equal(ui.controller.currentState().phase, "disconnected");
+  assert.equal(ui.controller.currentState().error, "unauthorized");
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+});
+
+test("late batch after navigation or version change cannot publish old related cards", async () => {
+  for (const stale of ["tab", "version"]) {
+    let candidates;
+    const pending = deferred();
+    const ui = harness({ client: {
+      async catalog() { return candidates.catalog; },
+      async related() { return candidates.related; },
+      async discussion(id) {
+        if (id === "related-topic-4") return pending.promise;
+        return candidates.discussion(id);
+      },
+    } });
+    candidates = relatedCandidates(ui.service, 5, [0, 4]);
+    await ui.controller.open();
+    await turn();
+    if (stale === "tab") ui.invalidate();
+    else pending.resolve({ ...candidates.discussion("related-topic-4"),
+      version: { ...candidates.catalog.version, revision: candidates.catalog.version.revision + 1 } });
+    if (stale === "tab") pending.resolve(candidates.discussion("related-topic-4"));
+    await turn();
+    assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+  }
+});
+
+test("malformed optional related view is ignored without affecting the current discussion", async () => {
+  let candidates;
+  const ui = harness({ client: {
+    async catalog() { return candidates.catalog; },
+    async related() { return candidates.related; },
+    async discussion(id) {
+      const view = candidates.discussion(id);
+      return id === "related-topic-0" ? { ...view, roots: [null] } : view;
+    },
+  } });
+  candidates = relatedCandidates(ui.service, 5, [4]);
+  await ui.controller.open();
+  await turn();
+  assert.equal(ui.controller.currentState().phase, "ready");
   assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
 });
 

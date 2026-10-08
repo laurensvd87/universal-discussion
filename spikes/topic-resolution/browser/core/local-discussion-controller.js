@@ -93,33 +93,54 @@ export function createLocalDiscussionController({ client, session, readActiveTab
           source.title !== result.title || !source.topicId || source.topicId === topicId ||
           !catalog.topics.some((topic) => topic.id === source.topicId) || ids.includes(source.topicId)) continue;
       ids.push(source.topicId);
-      if (ids.length === 4) break;
     }
     if (!ids.length) return;
-    try {
-      const views = await Promise.all(ids.map((id) => client.discussion(id, options)));
-      if (ownEpoch !== epoch || disposed || state.phase !== "ready" || state.needsFreshRead ||
-          state.sourceId !== sourceId || state.topicId !== topicId ||
-          !sameVersion(state.catalog?.version, catalog.version) ||
-          !sameVersion(state.discussion?.version, discussion.version)) return;
-      if (!views.every((view, index) => sameVersion(catalog.version, view.version) &&
-          view.topic.id === ids[index] && catalog.topics.some((topic) => topic.id === view.topic.id &&
-            topic.title === view.topic.title && topic.kind === view.topic.kind))) return;
-      const relatedDiscussions = views.flatMap((view) => {
+    function stillCurrent() {
+      return ownEpoch === epoch && !disposed && state.phase === "ready" && !state.needsFreshRead &&
+          state.sourceId === sourceId && state.topicId === topicId &&
+          sameVersion(state.catalog?.version, catalog.version) &&
+          sameVersion(state.discussion?.version, discussion.version) &&
+          sameVersion(state.related?.version, related.version);
+    }
+    const relatedDiscussions = [];
+    for (let offset = 0; offset < ids.length && relatedDiscussions.length < 4; offset += 4) {
+      if (!stillCurrent()) return;
+      const batch = ids.slice(offset, offset + 4);
+      const outcomes = await Promise.allSettled(batch.map((id) => client.discussion(id, options)));
+      if (!stillCurrent()) return;
+      const unauthorized = outcomes.find((outcome) => outcome.status === "rejected" &&
+        outcome.reason?.code === "unauthorized");
+      if (unauthorized) {
+        await failure(unauthorized.reason, ownEpoch);
+        return;
+      }
+      for (let index = 0; index < outcomes.length; index += 1) {
+        const outcome = outcomes[index];
+        if (outcome.status === "rejected") {
+          // A single unavailable related Topic does not hide later candidates.
+          continue;
+        }
+        const view = outcome.value;
+        if (!sameVersion(catalog.version, view?.version) ||
+            view?.topic?.id !== batch[index] || !catalog.topics.some((topic) =>
+              topic.id === view.topic.id && topic.title === view.topic.title && topic.kind === view.topic.kind)) return;
+        if (!Array.isArray(view.roots) || view.roots.some((entry) => !entry ||
+          typeof entry !== "object" || (entry.state === "visible" &&
+          (!Array.isArray(entry.replies) || entry.replies.some((reply) =>
+            !reply || typeof reply !== "object"))))) return;
         const visible = view.roots.filter((entry) => entry.state === "visible");
+        if (!visible.length) continue;
         const roots = visible.slice(0, 3).map((entry) => ({
           id: entry.id, body: entry.body, authorId: entry.authorId, actorType: entry.actorType,
           insight: entry.insight ?? null, createdAt: entry.createdAt, origin: entry.origin ?? null,
           replyCount: entry.replies.filter((reply) => reply.state === "visible").length,
         }));
-        return roots.length ? [{ topicId: view.topic.id, title: view.topic.title,
-          rootCount: visible.length, roots }] : [];
-      });
-      if (relatedDiscussions.length) publish({ relatedDiscussions });
-    } catch (error) {
-      if (error?.code === "unauthorized") await failure(error, ownEpoch);
-      // Related reading errors otherwise leave the current Topic usable.
+        relatedDiscussions.push({ topicId: view.topic.id, title: view.topic.title,
+          rootCount: visible.length, roots });
+        if (relatedDiscussions.length === 4) break;
+      }
     }
+    if (relatedDiscussions.length && stillCurrent()) publish({ relatedDiscussions });
   }
   async function loadSelection(ownEpoch) {
     const topicId = state.topicId;

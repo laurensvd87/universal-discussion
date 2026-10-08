@@ -20,8 +20,12 @@ root posts remain anchored to their Source, not to a reply's origin.
 
 ## Proposed method
 
-1. Retrieve a bounded set of neighbors from the existing 384D vector plus
-   Unicode-normalized title/URL token postings; rerank with exact cosine.
+1. Retrieve neighbors from the existing 384D vector plus Unicode-normalized
+   title/URL token postings; rerank with exact cosine. Expand the inspected
+   neighborhood when its boundary still contains plausible event evidence,
+   rather than deciding from a fixed number of nearest pages. An exhausted
+   work budget yields an unresolved result, never an automatic join. A larger
+   catalog must not silently make an early neighbor cutoff the Topic boundary.
    Search pages, home pages and near-duplicate copies cannot supply independent
    evidence. The catalog-wide margin is removed from this candidate. The
    bounded search is an implementation work budget, not a global page-count
@@ -39,9 +43,13 @@ root posts remain anchored to their Source, not to a reply's origin.
    form a *group-local* bridge, never a manually maintained global alias
    table or a per-website integration. An ambiguous page remains provisional.
    Adapt the evidence demand to *competing event hypotheses in that local
-   neighborhood*, not the total count of similar pages: more reports about
-   the same event add support; a distinct nearby development adds a conflict
-   to resolve. A mere crowd of compatible pages does not veto its own match.
+   neighborhood*, not the total count of similar pages: more independent
+   reports about the same event add support; a distinct nearby development
+   adds a conflict to resolve. Density alone never forces a join or a split.
+   If two plausible events remain indistinguishable, keep separate primary
+   Topics and show them as related. A crowd of compatible pages does not veto
+   its own match, and a fixed global cosine/margin cannot override event
+   evidence.
 4. Keep one primary Topic for current discussion/root routing, with separate
    bounded related links that can expose useful nearby discussions without
    falsely merging them. Manual pins and protected legacy roots are never

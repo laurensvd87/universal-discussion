@@ -1,5 +1,11 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.27 looks past empty nearby Topics for discussions that actually
+contain posts. It reads related candidates in batches of four until it has four
+nonempty discussion cards or exhausts the existing related-result list. These
+cards stay read-only and below the current Topic; this does not merge Topics or
+reroute comments. Reload the unpacked extension to use the change.
+
 Extension 0.13.26 releases the bound-window lease on closure while preserving
 automatic matching for the next focused, eligible normal window in the same
 public-only profile. An explicit Stop stays sticky; permission removal,
