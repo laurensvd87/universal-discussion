@@ -1,0 +1,108 @@
+{
+  "kind": "offline-multilingual-pair-v4",
+  "codeSha256": "d0e7c4046526f829a71eaf74beb33b1c28ecbae002ded303cd3842e9812de482",
+  "trainSha256": {
+    "multilingual-train-v1/train.jsonl": "008ff6c9d3b93d6b6a8cf08b1579a4a6c11cf010c97963f02aa5b276d6e03c8b",
+    "multilingual-train-v2/train-part-1.jsonl": "94a14a36b016795b504e22be9c5c3e1aadb372bdd6d013b9b791e09ac5d81254",
+    "multilingual-train-v2/train-part-2.jsonl": "7240a9848cee76a2857a737740e4f280f9a9cd7c15d1b38689c9246ff2160db6"
+  },
+  "validationSha256Expected": "ef9f405df2f8c98054e4f5b465f4fec3d06287d537e9a08be3455ce36d35db99",
+  "assets": {
+    "modelSha256": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+    "tokenizerSha256": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39",
+    "runtime": "1.31.0-dev.20260914-8d85527a0"
+  },
+  "features": [
+    "focusCos",
+    "titleCos",
+    "numberOverlap",
+    "numberConflict",
+    "nameOverlap",
+    "nameConflict"
+  ],
+  "model": {
+    "bias": -1.9843765202670645,
+    "weights": [
+      1.1967500109340221,
+      0.5393958624693187,
+      1.3983116170449668,
+      -0.36303344442030394,
+      1.5409261697328582,
+      -0.9705719096206585
+    ],
+    "cutoff": 1.1784066220041067
+  },
+  "baselines": {
+    "focus": {
+      "bias": 0,
+      "weights": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cutoff": 0.9247644536740477
+    },
+    "title": {
+      "bias": 0,
+      "weights": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cutoff": 0.920693311745382
+    }
+  },
+  "train": {
+    "model": {
+      "tp": 32,
+      "possibleTrue": 400,
+      "fp": 0,
+      "possibleFalse": 19500,
+      "crossTp": 32,
+      "possibleCross": 400,
+      "opposedTp": 26,
+      "possibleOpposed": 345,
+      "hardFp": 0,
+      "possibleHard": 800,
+      "accepted": 32
+    },
+    "partitions": {
+      "groups": 186,
+      "impureGroups": 0,
+      "completeEvents": 3,
+      "possibleEvents": 40
+    },
+    "focus": {
+      "tp": 2,
+      "possibleTrue": 400,
+      "fp": 0,
+      "possibleFalse": 19500,
+      "crossTp": 2,
+      "possibleCross": 400,
+      "opposedTp": 2,
+      "possibleOpposed": 345,
+      "hardFp": 0,
+      "possibleHard": 800,
+      "accepted": 2
+    },
+    "title": {
+      "tp": 2,
+      "possibleTrue": 400,
+      "fp": 0,
+      "possibleFalse": 19500,
+      "crossTp": 2,
+      "possibleCross": 400,
+      "opposedTp": 2,
+      "possibleOpposed": 345,
+      "hardFp": 0,
+      "possibleHard": 800,
+      "accepted": 2
+    }
+  }
+}

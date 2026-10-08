@@ -1,5 +1,36 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 owner-approved local real-data research: [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
+allows a private, offline GlobeSumm evaluation only; the corpus is outside
+Git and no publisher-rights/product-training or release clearance follows.
+The first deterministic 1,192-article/96-event sample from 4,687 articles
+showed the offline E5 title+lead/complete-link-0.94 baseline joining
+14/7,049 true same-event pairs and one different-event pair, leaving 1,177
+groups. There is one exact title/lead duplicate across gold events, and no
+viewpoint/family gold. The 1,200-article compute budget is not a Topic-size
+limit. At least one true-event partner ranked in the first three candidates
+for 1,141/1,192 scored reports, but rank three is a diagnostic rather than
+a fixed identity cutoff. The next research question is candidate admission, not
+another unvalidated threshold; no live matcher or owner DB changed.
+The first train-only pair classifier admitted 20/803 correct pairs and
+0/10,372 incorrect pairs on 150 event-disjoint validation articles; its
+2.5% recall is inadequate. The 293 selected test reports remain untouched,
+no trained weights were persisted, and no live code changed.
+
+2026-10-08 fresh synthetic validation after the frozen 180-article
+[multilingual corpus v2](../apps/local-service/experiments/topic-encoder/multilingual-train-v2/README.md):
+the [hard-negative projection v3](../apps/local-service/experiments/topic-encoder/multilingual-projection-v3/README.md)
+joined 0/120 true pairs, zero false, and the independently designed
+[two-view pair classifier v4](../apps/local-service/experiments/topic-encoder/multilingual-pair-v4/README.md)
+joined 2/120 true, zero false. Neither recovered any of 12 whole events.
+The older projection v2 joined 9/120 true and zero false on this fresh slice,
+but it already made six hard false joins on another family-disjoint slice.
+All remain offline negative results; do not activate or lower a threshold
+based on one split. The owner-approved local-only real multilingual benchmark
+is recorded above; the independent synthetic v3 holdout remains unscored.
+Data/rights, retained representation,
+owner DB migration and live activation gates remain intact.
+
 2026-10-08 later offline checkpoint: [v7](../apps/local-service/experiments/topic-encoder/topic-event-v7/README.md)
 kept a 102-report varied synthetic Topic together without adjacent mixing,
 but joined 0/80 multilingual validation true pairs. A permissive bridge

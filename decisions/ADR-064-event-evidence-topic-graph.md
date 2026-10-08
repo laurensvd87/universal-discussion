@@ -174,6 +174,15 @@ then increased multilingual development-validation admissions to 31/80 true
 pairs at a train-zero-false cutoff, but also admitted six adjacent-event false
 pairs. It is a frozen negative result under the owner's precision-first rule;
 the 64,944-byte weight artifact is research-only and not shipped.
+With a separately frozen 180-article five-language corpus, a new
+[hard-negative projection](../apps/local-service/experiments/topic-encoder/multilingual-projection-v3/README.md)
+avoided false joins on its 60 fresh validation pages but recovered zero of
+12 complete events (0/120 true pair joins). A different
+[two-view pair classifier](../apps/local-service/experiments/topic-encoder/multilingual-pair-v4/README.md)
+joined 2/120 true pairs and zero false, still 0/12 complete events. These
+train-frozen one-shot checks show that a small synthetic-only metric/head is
+not enough; more threshold tweaks would not make a credible multilingual
+Topic model. The independent v3 holdout remains unscored.
 
 An [exact expandable retrieval prototype](../apps/local-service/experiments/topic-encoder/expandable-retrieval/README.md)
 proves that fixed retrieval batches need not impose a Source count: a
@@ -188,8 +197,11 @@ For independent real multilingual evaluation, the published
 [GlobeSumm dataset card](https://huggingface.co/datasets/TommyYe/GlobeSumm)
 describes 370 event groups and 4,687 reports across 26 languages, labeled
 CC BY-SA 4.0. Its underlying publisher-article rights and suitability for
-product model training need separate review; nothing was downloaded or
-incorporated here. The [OG2021 repository record](https://www.clarin.si/repository/xmlui/handle/11356/1921)
+product model training need separate review. The owner approved a private
+local download and offline research only in [ADR-065](ADR-065-local-multilingual-corpus-research.md).
+The first 1,192-article sample made 14/7,049 same-event joins and one
+different-event join under the strict focus-E5 baseline; the decision is
+not product clearance. The [OG2021 repository record](https://www.clarin.si/repository/xmlui/handle/11356/1921)
 is explicitly academic-use/noncommercial, so it is not silently adopted as
 a product training corpus. Synthetic validation remains insufficient.
 

@@ -26,6 +26,35 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-08 real multilingual research gate and first result:** The owner
+approved [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
+for local-only offline evaluation of GlobeSumm, not publication, provider
+transfer, product training or publisher-rights clearance. The 14,972,999-byte
+JSONL corpus is in a private Temp directory outside Git (SHA-256 in ADR-065).
+The content-free adapter structurally checked 370 events/4,687 articles in
+26 languages and deterministically scored 1,192 articles in 96 whole events;
+3,495 articles/274 events were marked unscored due a test compute budget,
+not a Topic-size cap. The offline E5 title+lead/complete-link-0.94 baseline
+joined only **14/7,049** same-event pairs and one different-event pair,
+leaving 1,177 groups. One cross-event exact duplicate suggests a gold-label
+overlap, so the lone false pair needs careful interpretation. Viewpoint and
+precise adjacent-event gold are absent. This is strong evidence against the
+baseline's multilingual usefulness, not evidence that a replacement is safe.
+The first same-event partner ranked in the top three for 1,141/1,192 scored
+articles, so candidate retrieval is promising; top three is diagnostic, not
+a fixed Source/Topic limit or a join rule. Aggregate details are in the
+[private-corpus evaluation result](../apps/local-service/experiments/topic-encoder/real-event-eval/RESULTS.md).
+No live matcher, saved Topic, discussion or extension asset changed.
+
+**First train-only real-pair follow-up:** An isolated regularized pair
+classifier trained on 749 selected reports and scored 150 event-disjoint
+validation reports. It admitted 20/803 true pairs and zero of 10,372 false
+pairs, versus 0/803 true for cosine-0.94 on that slice. Another 293 selected
+test reports remain untouched. Pair recall is only 2.5%, so this is not a
+usable Topic matcher and was not activated. No learned weight was saved or
+shipped. A train-only contrastive projection is the next offline hypothesis;
+fresh independent validation and rights clearance remain necessary.
+
 **2026-10-08 related-discussion visibility (extension 0.13.27):** A read-only
 popup bug hid useful conversations when the first four related Topics were
 empty. The popup now reads candidates in four-request batches until four
@@ -161,6 +190,16 @@ is now hash-frozen before the next projection score: 180 original short
 reports, 36 precise developments, five languages, with eight training and
 four disjoint validation entity families. Its corpus-only integrity check
 passes. These author labels are not real-web accuracy evidence.
+
+**Post-freeze v2 validation:** The [hard-negative rank-eight projection](../apps/local-service/experiments/topic-encoder/multilingual-projection-v3/README.md)
+joined 0/120 true and 0/1,650 false pairs among 60 fresh multilingual
+articles; the prior v2 projection joined 9/120 true and zero false there,
+but had made six false adjacent-event joins on earlier v1 validation. A
+separate [two-view pair classifier](../apps/local-service/experiments/topic-encoder/multilingual-pair-v4/README.md),
+frozen before that same fresh slice, joined 2/120 true and zero false, with
+0/12 whole events recovered. It failed to make usable Topics, despite
+passing its focused tests. Neither candidate is active. The owner-approved
+local-only real multilingual benchmark and first result are recorded above.
 
 ## 2026-10-08 Topic-focused embedding shadow (ADR-063)
 

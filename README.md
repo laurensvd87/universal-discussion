@@ -69,6 +69,17 @@ work as unresolved; it does not decide Topic identity or run in the app.
 A more flexible offline projection found more translated same-event pairs,
 but also made six wrong adjacent-event pair joins in validation, so it was
 not activated.
+Fresh synthetic five-language checks with a larger training corpus still
+found too few safe matches: one new projection joined 0/120 true pairs and
+a two-view classifier 2/120, with no false joins on that slice. Neither
+recovered a complete event. The live matcher remains unchanged; the next
+evidence should come from a rights-reviewed real multilingual benchmark.
+With owner-approved local-only research, the first [GlobeSumm offline check](decisions/ADR-065-local-multilingual-corpus-research.md)
+then scored 1,192 real multilingual articles from 96 events. The strict
+E5 title+lead baseline joined just 14/7,049 same-event pairs and one
+different-event pair, leaving 1,177 groups. This is a research warning,
+not a change to the extension; publisher rights and any product use remain
+separate decisions.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

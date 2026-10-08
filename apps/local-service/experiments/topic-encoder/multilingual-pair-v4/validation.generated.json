@@ -1,0 +1,53 @@
+{
+  "kind": "offline-multilingual-pair-v4",
+  "codeSha256": "d0e7c4046526f829a71eaf74beb33b1c28ecbae002ded303cd3842e9812de482",
+  "validationSha256": "ef9f405df2f8c98054e4f5b465f4fec3d06287d537e9a08be3455ce36d35db99",
+  "model": {
+    "tp": 2,
+    "possibleTrue": 120,
+    "fp": 0,
+    "possibleFalse": 1650,
+    "crossTp": 2,
+    "possibleCross": 120,
+    "opposedTp": 1,
+    "possibleOpposed": 108,
+    "hardFp": 0,
+    "possibleHard": 300,
+    "accepted": 2
+  },
+  "partitions": {
+    "groups": 58,
+    "impureGroups": 0,
+    "completeEvents": 0,
+    "possibleEvents": 12
+  },
+  "baselines": {
+    "focus": {
+      "tp": 0,
+      "possibleTrue": 120,
+      "fp": 0,
+      "possibleFalse": 1650,
+      "crossTp": 0,
+      "possibleCross": 120,
+      "opposedTp": 0,
+      "possibleOpposed": 108,
+      "hardFp": 0,
+      "possibleHard": 300,
+      "accepted": 0
+    },
+    "title": {
+      "tp": 0,
+      "possibleTrue": 120,
+      "fp": 0,
+      "possibleFalse": 1650,
+      "crossTp": 0,
+      "possibleCross": 120,
+      "opposedTp": 0,
+      "possibleOpposed": 108,
+      "hardFp": 0,
+      "possibleHard": 300,
+      "accepted": 0
+    }
+  },
+  "embeddingMs": 4465.4935
+}
