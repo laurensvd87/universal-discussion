@@ -26,6 +26,13 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-08 owner idea inbox:** Two future concepts are preserved in
+[IDEA_INBOX.md](IDEA_INBOX.md): bounded startup-phase online discovery when
+new eligible pages are visited, and user-invoked AI answers to discussion
+questions whose cited pages may supply new candidate Sources. These are not
+active work or new capture/search/provider approvals; multilingual matching
+and the pending Wikinews research gate remain the current priority.
+
 **2026-10-08 next data gate:** After the negative real-E5 experiments, a
 potential [CC BY-labelled multilingual Wikinews event corpus](../decisions/ADR-066-wikinews-multilingual-research-gate.md)
 was identified: the source card says 15,200 linked articles in 33 languages.
