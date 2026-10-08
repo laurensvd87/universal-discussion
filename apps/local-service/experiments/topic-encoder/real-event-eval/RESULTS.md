@@ -47,6 +47,22 @@ candidate true joins were cross-language, but 783 true pairs remained missed.
 This is an improvement in a narrow sample, not a usable Topic model or proof
 of production precision; the untouched test split was deliberately not scored.
 
+A separately frozen [contrastive projection](../real-contrastive-v1/README.md)
+used the same train/validation split and a train-only choice among four
+projection strengths. It selected strength zero (the original vector space),
+then admitted only 3/803 true validation pairs and 0/10,372 false pairs.
+The learned directions did not pass their own train-only selection criterion;
+we rejected this projection rather than activating or retuning it on
+validation. Its 293 selected test articles were not used in this candidate.
+
+An [expandable-radius neighborhood experiment](../real-neighborhood-v1/README.md)
+then measured shared nearby Sources rather than limiting candidate count.
+It admitted 34/803 true validation pairs and 0/10,372 false pairs at its
+train-only zero-false threshold. That 4.2% pair recall improves on the
+pair-only candidate but remains far too weak to create useful shared Topics.
+There is no fixed number of Sources per Topic in the experiment. The result
+does not warrant live activation or validation-driven threshold relaxation.
+
 The raw corpus remains in the owner's private Temp folder for this local
 research. To reproduce, provide the explicit private directory and JSONL
 path to `run.js --inspect` (no model) and then `run.js` (local E5 only).

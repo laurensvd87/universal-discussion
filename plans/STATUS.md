@@ -54,6 +54,15 @@ test reports remain untouched. Pair recall is only 2.5%, so this is not a
 usable Topic matcher and was not activated. No learned weight was saved or
 shipped. A train-only contrastive projection is the next offline hypothesis;
 fresh independent validation and rights clearance remain necessary.
+The frozen contrastive follow-up selected **no projection** on train and
+joined only 3/803 true, zero false pairs on the same event-disjoint
+validation slice. It was rejected; no test split or production code changed.
+An expandable-radius shared-neighborhood follow-up (no fixed Source count)
+joined 34/803 true and 0/10,372 false validation pairs. Its 4.2% pair
+recall is the best of these research candidates, but still not a useful
+replacement; no test split or production Topic was changed. Next check:
+whether title plus more body context improves separation, using train-only
+policy selection and the same untouched candidate test split.
 
 **2026-10-08 related-discussion visibility (extension 0.13.27):** A read-only
 popup bug hid useful conversations when the first four related Topics were

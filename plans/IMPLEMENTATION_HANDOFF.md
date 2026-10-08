@@ -16,6 +16,13 @@ The first train-only pair classifier admitted 20/803 correct pairs and
 0/10,372 incorrect pairs on 150 event-disjoint validation articles; its
 2.5% recall is inadequate. The 293 selected test reports remain untouched,
 no trained weights were persisted, and no live code changed.
+The separately frozen low-rank contrastive projection selected strength
+zero on train and reached 3/803 correct, 0/10,372 incorrect pairs on the
+same validation slice. It is rejected, not activation evidence.
+An expandable-radius neighborhood method admitted 34/803 true and zero
+false validation pairs without a fixed Topic-member count; its 4.2% pair
+recall is also inadequate and remains offline. The next isolated experiment
+tests longer body context, not a product input change.
 
 2026-10-08 fresh synthetic validation after the frozen 180-article
 [multilingual corpus v2](../apps/local-service/experiments/topic-encoder/multilingual-train-v2/README.md):

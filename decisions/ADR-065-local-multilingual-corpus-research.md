@@ -38,7 +38,10 @@ labels, so the observed false join may reflect a labeling overlap; do not
 treat that as proof of zero or one genuine product errors. GlobeSumm has no
 explicit viewpoint/family labels here, so neither opposing-view performance
 nor hard adjacent-event identity is established. Event granularity may differ
-from the app's desired Topic boundary.
+from the app's desired Topic boundary. Splits keep gold events apart, but
+without a reliable family key, closely related developments or publisher
+templates may still occur on both sides. A favorable validation score would
+therefore still need an independently sourced holdout before activation.
 
 Candidate retrieval found a same-event partner in the first three neighbors
 for 1,141/1,192 scored reports (cross-language-only: 1,181/1,192).
@@ -55,7 +58,16 @@ made 20/803 true joins and 0/10,372 false joins on an event-disjoint
 That 2.5% pair recall is too low for useful shared Topics. Zero observed
 false joins on this slice is not a general precision guarantee; no live
 activation follows.
-Further offline work should measure whether the correct event is retrieved
-nearby before altering admission. Production activation still requires the
+An independent [low-rank contrastive experiment](../apps/local-service/experiments/topic-encoder/real-contrastive-v1/README.md)
+selected projection strength zero on train; validation admitted only
+3/803 true pairs and no false pairs. It does not justify a replacement.
+An [expandable-radius neighborhood experiment](../apps/local-service/experiments/topic-encoder/real-neighborhood-v1/README.md)
+used shared-neighbor evidence without a fixed Source count. It admitted
+34/803 true and 0/10,372 false validation pairs at a train-only cutoff.
+This is better than the pair-only candidate but 4.2% pair recall is still
+too sparse for a useful shared-Topic product. No live activation follows.
+Further offline work should test whether a longer page-body input improves
+event separation, with policy selection confined to training. Production
+activation still requires the
 ADR-064 owner/Trust gate, representative cross-publisher error review,
 retention/model-rights decision, migration/rollback and actual app QA.
