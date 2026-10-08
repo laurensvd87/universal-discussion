@@ -35,6 +35,27 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 owner-approved model refs ([ADR-059](../decisions/ADR-059-model-reported-selected-links-unverified.md),
+extension 0.13.20):** The owner explicitly accepts `[refN]` as a
+**model-written, unverified** link hint, with `ref1`–`ref5` mapped only to the
+five server-selected public URLs. It is not a claim that ChatGPT read or
+verified those pages. The service no longer requires an exact URL in the
+tool's consulted-source list for these hints, but still requires a completed
+search, rejects unknown/malformed IDs and foreign provider annotations, and
+does not auto-share or retry. The popup and any later explicitly shared agent
+post render the distinct `1?`-style link plus a visible unverified-sources
+note. The unnecessary full search-source-list response include was removed.
+After the owner-format `[refN]` prompt change, **one** public PCGames/GameStar
+live QA returned a private 78-word result with one selected model-ref link;
+no answer text or raw provider data was logged, and nothing was shared. This
+shows the one-shot flow can finish; it does not validate the Insight's factual
+quality or selected-page access. The normal service was restarted on 4174
+with unchanged Origin, pairing and SQLite. Full suites and security scans
+passed: extension **996/996**, service **262 passed/four optional skips**,
+both secret scans zero; independent read-only Trust re-review found no
+blocker. No automatic second provider call or broader store/publication
+approval follows.
+
 **2026-10-08 selected URL IDs ([ADR-058](../decisions/ADR-058-selected-web-reference-ids.md),
 extension 0.13.19):** The owner directed `ref1`–`ref5` links only to the
 five supplied public URLs, not same-publisher substitutions. The service now
@@ -46,9 +67,10 @@ Two further one-shot PCGames/GameStar live calls tested this: the first still
 cited another GameStar article; the stricter prompt in the second produced
 one `webref` but **zero** selected-URL source hits. Both were correctly
 rejected, with no raw page/provider data logged or post shared. Thus the
-owner's ref-only idea is implemented safely but does **not yet fix PCGames**;
+owner's ref-only idea did **not yet fix PCGames at that checkpoint**;
 an automatic retry, model-only source assertion or unselected-source link
-remains unapproved. The normal service was restarted with unchanged Origin,
+was not approved there. ADR-059 later approves model-only refs as visibly
+unverified hints. The normal service was restarted with unchanged Origin,
 pairing and SQLite. Full restricted extension **995/995**, local service
 **259 passed/four optional skips** after the final error-detail refinement;
 focused service tests **78/78** after the strict prompt. Both secret scans

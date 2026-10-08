@@ -198,7 +198,7 @@ export function classifyCitationUrl(value, page = PCGAMES_PAGE) {
 export function classifyResponseAnnotations(raw, page = PCGAMES_PAGE) {
   const counts = Object.fromEntries(ANNOTATION_CATEGORIES.map((name) => [name, 0]));
   if (typeof raw !== "string" || Buffer.byteLength(raw, "utf8") > 262_144)
-    return { observed: false, terminalCompleted: false, total: 0, webRefMarkers: 0,
+    return { observed: false, terminalCompleted: false, total: 0, webRefMarkers: 0, ownerRefMarkers: 0,
       selectedSourceHits: 0, ...counts };
   let finalOutput = null;
   let terminalCompleted = false;
@@ -221,10 +221,12 @@ export function classifyResponseAnnotations(raw, page = PCGAMES_PAGE) {
     ? finalOutput : [...done.values()];
   let total = 0;
   let webRefMarkers = 0;
+  let ownerRefMarkers = 0;
   for (const item of output) {
     if (item?.type !== "message" || item.role !== "assistant") continue;
     for (const part of Array.isArray(item.content) ? item.content : []) {
       if (typeof part?.text === "string") webRefMarkers += [...part.text.matchAll(/\[\[webref:/giu)].length;
+      if (typeof part?.text === "string") ownerRefMarkers += [...part.text.matchAll(/(?<!\[)\[ref[1-9][0-9]*\]/gu)].length;
       for (const annotation of Array.isArray(part?.annotations) ? part.annotations : []) {
         if (annotation?.type !== "url_citation") continue;
         if (total >= 100) break;
@@ -241,7 +243,8 @@ export function classifyResponseAnnotations(raw, page = PCGAMES_PAGE) {
     for (const source of item.action.sources) if (selected.has(source?.url)) selectedHits.add(source.url);
   }
   return { observed: finalOutput !== null || done.size > 0, terminalCompleted, total,
-    webRefMarkers: Math.min(webRefMarkers, 100), selectedSourceHits: selectedHits.size, ...counts };
+    webRefMarkers: Math.min(webRefMarkers, 100), ownerRefMarkers: Math.min(ownerRefMarkers, 100),
+    selectedSourceHits: selectedHits.size, ...counts };
 }
 
 async function ownFixedPort() {

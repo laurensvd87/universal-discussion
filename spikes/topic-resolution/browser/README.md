@@ -1,11 +1,14 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-Extension 0.13.19 renders service-attested `[[webref:n]]` research markers for
-up to five selected public URLs as clickable superscripts. A model-written ID
-is not itself a source link: the service requires an exact selected URL in
-the completed ChatGPT search source list. The public PCGames test still
-failed that check, so this is not a general publisher-access fix; see
-[ADR-058](../../../decisions/ADR-058-selected-web-reference-ids.md).
+Extension 0.13.20 renders server-mapped `[refN]` hints for up to five selected
+public URLs as clickable `1?`-style superscripts, with an accessible label
+and visible **AI-suggested links · sources not verified** note. The marker
+and qualifier persist into deliberately shared agent posts. The service no
+longer requires the exact URL in ChatGPT's consulted-source list for this
+model-written hint, but never accepts a model-provided destination URL. A
+one-shot public PCGames QA returned a private Insight with one such link;
+article access and factual support remain unverified. See
+[ADR-059](../../../decisions/ADR-059-model-reported-selected-links-unverified.md).
 
 Extension 0.13.18 (ADR-055) deduplicates article aliases and recognizes search
 result pages before filling the five Insight-source slots. It promotes

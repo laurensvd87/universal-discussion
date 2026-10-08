@@ -272,7 +272,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
       state.draft, state.context.topic, state.context.currentSource,
     ]) : null;
     if (draftSignature !== renderedDraftSignature) {
-      appendInsightCitationNodes(document, citations, exactGenerated ? state.draft : "", text("citationOpen"));
+      appendInsightCitationNodes(document, citations, exactGenerated ? state.draft : "", text("citationOpen"),
+        text("citationUnverifiedOpen"), text("citationUnverifiedNote"));
       renderedDraftSignature = draftSignature;
     }
     currentPageOnly.hidden = !exactGenerated || !Array.isArray(state.ai?.result?.citations) ||

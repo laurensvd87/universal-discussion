@@ -1,11 +1,12 @@
 import { inspectPageUrl } from "./page-content-policy.js";
 
-const MARKER = /\[↗\]\((https:\/\/[^\s)]{1,2048})\)/gu;
+const MARKER = /\[(\??↗)\]\((https:\/\/[^\s)]{1,2048})\)/gu;
 const PROVIDER_MARKER = /^cite[^]{1,200}$/u;
 const UNRESOLVED_PROVIDER_MARKER = /cite[^]{1,200}/u;
 const RAW_URL = /https?:\/\/[^\s<>"'`]+/giu;
 const RELATED_MARKER = /^\[\[ref:([1-9]\d*)\]\]$/u;
 const WEB_MARKER = /^\[\[webref:([1-9]\d*)\]\]$/u;
+const MODEL_REF_MARKER = /^\[ref([1-9]\d*)\]$/u;
 
 function neutralizeUnannotated(text) {
   // Page prose and model output can contain forged citation syntax. An URL in
@@ -23,8 +24,8 @@ export function safeInsightCitationUrl(url) {
   return inspected.supported && inspected.url === url;
 }
 
-// The provider's url_citation annotations, rather than model-written links,
-// define where these narrow, persistable citation markers are placed.
+// Provider url_citation annotations place attested links; server-mapped
+// model reference spans place distinct, visibly unverified link hints.
 export function formatInsightCitations(body, citations, maxLength = 8000) {
   if (typeof body !== "string" || !Array.isArray(citations) || !Number.isSafeInteger(maxLength))
     throw new TypeError("Invalid citation result");
@@ -44,14 +45,16 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
     // code units. Resolve this only when it identifies a complete citation token.
     if (!PROVIDER_MARKER.test(body.slice(startIndex, endIndex)) &&
         !RELATED_MARKER.test(body.slice(startIndex, endIndex)) &&
-        !WEB_MARKER.test(body.slice(startIndex, endIndex))) {
+        !WEB_MARKER.test(body.slice(startIndex, endIndex)) &&
+        !MODEL_REF_MARKER.test(body.slice(startIndex, endIndex))) {
       const points = Array.from(body);
       if (endIndex <= points.length) {
         const candidateStart = points.slice(0, startIndex).join("").length;
         const candidateEnd = points.slice(0, endIndex).join("").length;
         if (PROVIDER_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
             RELATED_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
-            WEB_MARKER.test(body.slice(candidateStart, candidateEnd))) {
+            WEB_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
+            MODEL_REF_MARKER.test(body.slice(candidateStart, candidateEnd))) {
           startIndex = candidateStart; endIndex = candidateEnd;
         }
       }
@@ -69,15 +72,22 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
     const relatedMarker = relatedMatch !== null;
     const webMatch = span.match(WEB_MARKER);
     const webMarker = webMatch !== null;
+    const modelRefMatch = span.match(MODEL_REF_MARKER);
+    const modelRefMarker = modelRefMatch !== null;
     if (span.startsWith("[[ref:") && !relatedMarker)
       throw new TypeError("Invalid related citation annotation");
     if (span.startsWith("[[webref:") && !webMarker)
       throw new TypeError("Invalid web citation annotation");
+    if (span.startsWith("[ref") && !span.startsWith("[[ref:") && !modelRefMarker)
+      throw new TypeError("Invalid model reference annotation");
     if (relatedMarker && Number(relatedMatch[1]) > 4)
       throw new TypeError("Unknown related citation reference");
     if (webMarker && Number(webMatch[1]) > 5)
       throw new TypeError("Unknown web citation reference");
-    result += neutralizeUnannotated(body.slice(cursor, citationMarker || relatedMarker || webMarker ? first.startIndex : first.endIndex));
+    if (modelRefMarker && Number(modelRefMatch[1]) > 5)
+      throw new TypeError("Unknown model reference");
+    const unverifiedMarker = webMarker || modelRefMarker;
+    result += neutralizeUnannotated(body.slice(cursor, citationMarker || relatedMarker || unverifiedMarker ? first.startIndex : first.endIndex));
     let next = index;
     while (next < ordered.length && ordered[next].startIndex === first.startIndex &&
         ordered[next].endIndex === first.endIndex) {
@@ -85,7 +95,7 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
       // persistable marker remains unambiguous when it is edited or rendered.
       const url = ordered[next].url.replaceAll("(", "%28").replaceAll(")", "%29");
       if (!safeInsightCitationUrl(url)) throw new TypeError("Invalid citation URL");
-      result += `${citationMarker || relatedMarker || webMarker || /\s$/u.test(result) ? "" : " "}[↗](${url})`;
+      result += `${citationMarker || relatedMarker || unverifiedMarker || /\s$/u.test(result) ? "" : " "}[${unverifiedMarker ? "?↗" : "↗"}](${url})`;
       next++;
     }
     cursor = first.endIndex;
@@ -99,16 +109,20 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
 
 // Render only this exact marker form. All other Markdown and HTML remain text.
 export function appendInsightCitationNodes(document, container, body,
-  label = "Open source link") {
+  label = "Open source link", unverifiedLabel = "Unverified AI-suggested link",
+  unverifiedNote = "AI-suggested links · sources not verified") {
   MARKER.lastIndex = 0;
   container.replaceChildren();
   let cursor = 0;
   let found = false;
+  let foundUnverified = false;
   const sourceNumbers = new Map();
   for (const match of body.matchAll(MARKER)) {
-    const url = match[1];
+    const url = match[2];
     if (!safeInsightCitationUrl(url)) continue;
     found = true;
+    const unverified = match[1] === "?↗";
+    if (unverified) foundUnverified = true;
     if (!sourceNumbers.has(url)) sourceNumbers.set(url, sourceNumbers.size + 1);
     const number = sourceNumbers.get(url);
     const before = document.createElement("span");
@@ -116,14 +130,14 @@ export function appendInsightCitationNodes(document, container, body,
     const superscript = document.createElement("sup");
     superscript.className = "inline-citation-number";
     const link = document.createElement("a");
-    link.className = "inline-citation";
-    link.textContent = String(number);
+    link.className = unverified ? "inline-citation inline-citation-unverified" : "inline-citation";
+    link.textContent = `${number}${unverified ? "?" : ""}`;
     link.href = url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.referrerPolicy = "no-referrer";
-    link.setAttribute("aria-label", `${label} ${number}`);
-    link.title = `${label} ${number}`;
+    link.setAttribute("aria-label", `${unverified ? unverifiedLabel : label} ${number}`);
+    link.title = `${unverified ? unverifiedLabel : label} ${number}`;
     superscript.append(link);
     container.append(before, superscript);
     cursor = match.index + match[0].length;
@@ -132,5 +146,11 @@ export function appendInsightCitationNodes(document, container, body,
     const after = document.createElement("span");
     after.textContent = body.slice(cursor);
     container.append(after);
+    if (foundUnverified) {
+      const note = document.createElement("span");
+      note.className = "unverified-source-note";
+      note.textContent = unverifiedNote;
+      container.append(note);
+    }
   } else container.textContent = body;
 }

@@ -326,7 +326,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     }
     card.setAttribute("aria-label", text("uiPostByAuthor").replace("{author}", author.textContent));
     const content = node("p"); content.className = "discussion-body";
-    if (entry.actorType === "agent") appendInsightCitationNodes(document, content, entry.body, text("discussionCitationOpen"));
+    if (entry.actorType === "agent") appendInsightCitationNodes(document, content, entry.body,
+      text("discussionCitationOpen"), text("discussionCitationUnverifiedOpen"),
+      text("discussionCitationUnverifiedNote"));
     else content.textContent = entry.body;
     metadata.append(author);
     if (uiMode === "user") {
@@ -737,7 +739,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           }
           const content = node("p"); content.className = "related-discussion-body";
           if (entry.actorType === "agent") appendInsightCitationNodes(document, content,
-            entry.body, text("discussionCitationOpen"));
+            entry.body, text("discussionCitationOpen"), text("discussionCitationUnverifiedOpen"),
+            text("discussionCitationUnverifiedNote"));
           else content.textContent = entry.body;
           const footer = node("p"); footer.className = "related-discussion-footer";
           footer.textContent = text("uiRelatedReplyCount").replace("{count}", String(entry.replyCount));

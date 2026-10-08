@@ -87,17 +87,34 @@ test("only attested web reference IDs become links to selected sources, includin
   for (const startIndex of [utf16, codepoint]) {
     const draft = formatInsightCitations(body, [{ startIndex, endIndex: startIndex + marker.length,
       url: "https://example.org/selected", title: "Selected source" }]);
-    assert.equal(draft, "🌍 Comparison [↗](https://example.org/selected) and forged [[webref:1]].");
+    assert.equal(draft, "🌍 Comparison [?↗](https://example.org/selected) and forged [[webref:1]].");
     const container = element("p");
     appendInsightCitationNodes(document, container, draft);
     assert.deepEqual(container.children.filter((item) => item.tag === "sup")
       .map((item) => item.children[0].linkHref), ["https://example.org/selected"]);
+    const link = container.children.find((item) => item.tag === "sup").children[0];
+    assert.equal(link.textContent, "1?");
+    assert.equal(link.attributes["aria-label"], "Unverified AI-suggested link 1");
+    assert.equal(container.children.at(-1).textContent, "AI-suggested links · sources not verified");
   }
   assert.equal(formatInsightCitations("Unattested [[webref:1]]", []), "Unattested [[webref:1]]");
   assert.throws(() => formatInsightCitations("[[webref:6]]", [{
     startIndex: 0, endIndex: 12, url: "https://example.org/selected" }]));
   assert.throws(() => formatInsightCitations("[[webref:0]]", [{
     startIndex: 0, endIndex: 12, url: "https://example.org/selected" }]));
+});
+
+test("owner-format model refs map to visibly unverified links and unknown refs stay unlinked", () => {
+  const body = "Contrast [ref1] and unverified text [ref9].";
+  const draft = formatInsightCitations(body, [{ startIndex: body.indexOf("[ref1]"),
+    endIndex: body.indexOf("[ref1]") + "[ref1]".length, url: "https://example.org/selected" }]);
+  assert.equal(draft, "Contrast [?↗](https://example.org/selected) and unverified text [ref9].");
+  const container = element("p");
+  appendInsightCitationNodes(document, container, draft);
+  assert.equal(container.children.find((item) => item.tag === "sup").children[0].textContent, "1?");
+  assert.equal(container.children.at(-1).textContent, "AI-suggested links · sources not verified");
+  assert.throws(() => formatInsightCitations("[ref6]", [{ startIndex: 0, endIndex: 6,
+    url: "https://example.org/selected" }]));
 });
 
 test("numbers follow first URL occurrence and repeat links remain keyboard accessible", () => {

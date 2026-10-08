@@ -29,8 +29,10 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
   assert.match(opener, /inspect only the exact URLs in missingRelatedCandidateUrls/u);
   assert.match(opener, /Use only these selected reference IDs in the written post/u);
   assert.match(opener, /selectedWebReferences assigns ref1, ref2/u);
-  assert.match(opener, /matching \[\[webref:n\]\] marker/u);
-  assert.match(opener, /a marker alone proves nothing/u);
+  assert.match(opener, /matching \[refN\] marker immediately after the claim/u);
+  assert.match(opener, /\[ref1\], \[ref2\], and so on/u);
+  assert.match(opener, /Do not make unsupported claims about a selected page/u);
+  assert.match(opener, /A marker is only a model-written reference hint, not proof/u);
   assert.match(opener, /never imply that its full text was read from a snippet/u);
   assert.match(opener, /If one candidate cannot be opened, continue checking the remaining candidate URLs/u);
   assert.match(opener, /If none of the candidate pages yields usable evidence, still write using only articlePrefix/u);

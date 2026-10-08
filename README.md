@@ -10,13 +10,13 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-The latest public PCGames Insight failure is reproduced: hosted search cited
-a different publisher article than the exact related URL selected by the app.
-The owner's [selected-reference decision](decisions/ADR-058-selected-web-reference-ids.md)
-now binds `ref1`–`ref5` to our URLs and verifies each displayed link against
-the search's exact consulted URLs. Two live checks still produced no safe
-PCGames draft: a foreign citation, then a model-written ref without a matching
-consulted URL. Neither was relabeled or shared; no automatic retry was added.
+A [new owner-approved reference mode](decisions/ADR-059-model-reported-selected-links-unverified.md)
+maps model-written `[ref1]`–`[ref5]` only to the five selected public URLs.
+These are visibly **unverified AI-suggested links**, including after deliberate
+Share; they do not assert that ChatGPT read or confirmed those pages. A
+one-shot public PCGames test returned a private Insight with one such link;
+its factual accuracy remains for the owner to review. No automatic retry or
+sharing was added. Reload extension 0.13.20 to see the distinct `?` link.
 A separate
 [non-LLM multilingual Topic-title experiment](experiments/topic-titles/README.md)
 works on supported repeated phrases and can rank a representative headline
@@ -26,9 +26,10 @@ supported keyphrase labels. Neither experimental title behavior is active.
 The local-service citation parser now accepts an exact selected web citation
 even when ChatGPT omits or spoils its display title, using the validated local
 Source title instead. Exact URL/span checks remain; the original owner's
-`response-web-citation` case still needs a fresh trace to identify its cause.
-The service has been restarted; no extension reload or pairing reset is needed
-for this backend-only fix. See [ADR-056](decisions/ADR-056-insight-citation-display-metadata.md).
+`response-web-citation` case was later traced to a different, unselected
+article; ADR-057 and ADR-059 record the resulting source policy. See
+[ADR-056](decisions/ADR-056-insight-citation-display-metadata.md) for the
+earlier display-title correction.
 A [non-LLM Topic-title review](research/NON_LLM_TOPIC_TITLES_2026-10-07.md)
 recommends a representative member headline as the first tested improvement;
 no production Topic naming changed yet.

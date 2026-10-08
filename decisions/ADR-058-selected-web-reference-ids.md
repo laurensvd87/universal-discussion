@@ -1,9 +1,16 @@
 # ADR-058: Selected URL reference IDs for ChatGPT research
 
 Date: 2026-10-08
-Status: implemented locally; PCGames remains a verified provider-access limit
+Status: exact-source requirement for model markers superseded by ADR-059;
+PCGames diagnosis retained
 
 ## Owner direction and boundary
+
+On 2026-10-08 the owner explicitly approved
+[ADR-059](ADR-059-model-reported-selected-links-unverified.md): model-written
+selected-ID links may appear as visibly **unverified** hints even without an
+exact consulted-source hit. The strict requirement below is historical for
+that marker type; foreign provider URL annotations still reject.
 
 After the PCGames `response-web-citation` diagnosis, the owner directed that
 ChatGPT name only the URLs supplied by the app as `ref1`, `ref2`, and so on.

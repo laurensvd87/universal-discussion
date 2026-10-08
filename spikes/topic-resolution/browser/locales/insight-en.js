@@ -107,6 +107,8 @@ export const INSIGHT_EN = Object.freeze({
   cancelInsights: "Cancel research",
   citations: "Research citations (links open public pages)",
   citationOpen: "Open source link",
+  citationUnverifiedOpen: "Open unverified AI-suggested link",
+  citationUnverifiedNote: "AI-suggested links · sources not verified",
   aiIdle: "ChatGPT connection has not been checked.",
   aiResuming: "Checking current insight…",
   aiDisconnected: "ChatGPT is disconnected. Local manual drafting remains available.",

@@ -9,9 +9,11 @@ Insight. Stop the normal service first and restart it afterward. Three
 initial agent-run requests reproduced a different-article citation. Two
 subsequent selected-ref tests still yielded no safe PCGames draft: one
 foreign provider citation and one model-written ref without an exact
-consulted-source hit. [ADR-058](../../decisions/ADR-058-selected-web-reference-ids.md)
-records why refs are bound to exact selected URLs and cannot by themselves
-prove page access. No raw provider output is printed or automatically retried.
+consulted-source hit. [ADR-059](../../decisions/ADR-059-model-reported-selected-links-unverified.md)
+now allows only server-mapped `[refN]` links as **unverified** hints. A further
+one-shot PCGames request produced one private model-ref Insight; the answer
+was not printed or shared and factual quality remains unverified. No raw
+provider output is printed or automatically retried.
 
 `response-web-citation` no longer rejects an exact selected URL solely
 because ChatGPT omitted an optional/unusable display title; it uses the
@@ -26,8 +28,9 @@ ADR-054 changes new Insights to ChatGPT-only related-source research: the
 extension no longer fetches or extracts related pages. On an explicit Insight,
 up to five selected eligible public HTTPS candidate URLs can be sent to the
 official ChatGPT `web_search` tool, domain-filtered to their hosts. A
-private draft requires a completed web-search call. Any claim from another
-page needs a provider citation to one of those **exact** URLs; an attempted
+private draft requires a completed web-search call. A link to another page
+is either an exact provider citation or an owner-approved, visibly unverified
+model-written `[refN]` hint bound to one of the selected URLs; an attempted
 open or same-domain link alone is not evidence. If no selected page is
 accessible, a completed response may still form a current-page-only private
 draft with no external citations. If related-source research is off or no candidate exists, the

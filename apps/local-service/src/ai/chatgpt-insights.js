@@ -270,29 +270,20 @@ function excerptCitations(body, relatedExcerpts, context) {
   }
   return citations;
 }
-function consultedWebUrls(value, streamShape, selectedReferences, searchCompleted) {
-  const selected = new Set(selectedReferences.map((entry) => entry.url));
-  const consulted = new Set();
-  if (!searchCompleted) return consulted;
-  const calls = [...value.output, ...streamShape.doneItems.map((entry) => entry.item)]
-    .filter((item) => item?.type === "web_search_call" && item.status === "completed");
-  for (const call of calls) {
-    const sources = call.action?.sources;
-    if (!Array.isArray(sources) || sources.length > 100) continue;
-    for (const source of sources) {
-      if (source && typeof source.url === "string" && selected.has(source.url)) consulted.add(source.url);
-    }
-  }
-  return consulted;
-}
-function webReferenceCitations(body, references, consulted) {
+function webReferenceCitations(body, references) {
   const selected = new Map(references.map((entry) => [entry.id, entry]));
   const citations = [];
-  for (const match of body.matchAll(/\[\[webref/giu)) {
-    const marker = /^\[\[webref:([1-9][0-9]*)\]\]/u.exec(body.slice(match.index));
+  // Keep the older webref spelling readable, while leaving [[ref:n]] to the
+  // separately validated supplied-excerpt path.
+  for (const match of body.matchAll(/\[\[webref|\[\[ref(?!:)|(?<!\[)\[ref/giu)) {
+    const tail = body.slice(match.index);
+    const marker = match[0].toLowerCase().startsWith("[[webref") ?
+      /^\[\[webref:([1-9][0-9]*)\]\]/u.exec(tail) :
+      /^\[ref([1-9][0-9]*)\]/u.exec(tail);
     const entry = marker && selected.get(`ref${marker[1]}`);
     if (!entry) fail("invalid-response", "response-web-citation");
-    if (!consulted.has(entry.url)) fail("invalid-response", "response-web-evidence");
+    // The model's selected ID is a link hint, not an attestation that this
+    // exact page was consulted or supports the adjacent claim.
     citations.push({ startIndex: match.index, endIndex: match.index + marker[0].length,
       url: entry.url, title: entry.title });
   }
@@ -347,8 +338,7 @@ function completed(value, model, streamShape, relatedExcerpts, context, selected
   if (UNSAFE.test(body)) fail("invalid-response", "response-unsafe-text");
   const webCitations = citations.slice();
   citations.push(...excerptCitations(body, relatedExcerpts, context));
-  citations.push(...webReferenceCitations(body, selectedReferences,
-    consultedWebUrls(value, streamShape, selectedReferences, searchCompleted)));
+  citations.push(...webReferenceCitations(body, selectedReferences));
   validateOutputLinks(body, webCitations);
   // Search can finish without opening any publisher page. A private draft may
   // then use the current article alone, provided it has no unsafe links or
@@ -858,7 +848,6 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         tools: [],
       };
       if (useWebResearch) {
-        payload.include = ["web_search_call.action.sources"];
         payload.tools = [{ type: "web_search", external_web_access: true, search_context_size: "medium",
           filters: { allowed_domains: [...new Set(missingCandidates.map((url) => new URL(url).hostname))] } }];
         payload.tool_choice = "required";

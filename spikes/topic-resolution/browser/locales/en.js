@@ -181,6 +181,8 @@ export const EN = Object.freeze({
   discussionComposerRoot: "New root contribution",
   discussionOriginOpen: "Open linked source in a new tab: {title} — {url}",
   discussionCitationOpen: "Open source link",
+  discussionCitationUnverifiedOpen: "Open unverified AI-suggested link",
+  discussionCitationUnverifiedNote: "AI-suggested links · sources not verified",
   discussionOriginDisclosure: "Linked source: {title}. New posts here link this Source in the local demo; replies stay with their root conversation.",
   discussionOriginNone: "No linked source. Your new post will have no page link in this local demo.",
   discussionOriginEdit: "Editing keeps the post's original linked source.",

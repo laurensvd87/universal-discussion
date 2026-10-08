@@ -43,7 +43,7 @@ test("PCGames annotation classifier reports only fixed URL categories", () => {
     event("response.completed", { response: { status: "completed", output: [item] } });
   const summary = classifyResponseAnnotations(raw);
   assert.deepEqual(summary, { observed: true, terminalCompleted: true, total: 8,
-    webRefMarkers: 0, selectedSourceHits: 0, exactSelected: 1, currentPage: 1,
+    webRefMarkers: 0, ownerRefMarkers: 0, selectedSourceHits: 0, exactSelected: 1, currentPage: 1,
     sameHostSameArticleId: 2, sameSelectedHostOther: 1, sameCurrentHostOther: 1, foreignHost: 1, invalid: 1 });
   assert.ok(!JSON.stringify(summary).includes("Private provider"));
   assert.ok(!JSON.stringify(summary).includes("https://"));
@@ -59,9 +59,13 @@ test("PCGames annotation classifier reports only fixed URL categories", () => {
       annotations: [] }] },
   ] } });
   assert.deepEqual(classifyResponseAnnotations(evidence), {
-    observed: true, terminalCompleted: true, total: 0, webRefMarkers: 1, selectedSourceHits: 1,
+    observed: true, terminalCompleted: true, total: 0, webRefMarkers: 1, ownerRefMarkers: 0, selectedSourceHits: 1,
     exactSelected: 0, currentPage: 0, sameHostSameArticleId: 0, sameCurrentHostOther: 0,
     sameSelectedHostOther: 0, foreignHost: 0, invalid: 0,
+  });
+  const ownerStyle = evidence.replace("Detail[[webref:1]].", "Detail[ref1].");
+  assert.deepEqual(classifyResponseAnnotations(ownerStyle), {
+    ...classifyResponseAnnotations(evidence), webRefMarkers: 0, ownerRefMarkers: 1,
   });
 });
 

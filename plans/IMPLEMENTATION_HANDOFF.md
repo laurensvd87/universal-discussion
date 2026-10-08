@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 latest: [ADR-059](../decisions/ADR-059-model-reported-selected-links-unverified.md)
+records the owner's explicit acceptance of model-written `[refN]` links as
+**unverified** hints, not attested citations. `ref1`–`ref5` resolve only to
+server-selected public URLs; malformed/unknown IDs and foreign provider
+annotations reject, and completed search plus deliberate Share remain.
+The preview and later shared agent posts retain a visible `?` and unverified
+source note. A one-shot public PCGames/GameStar QA returned one private
+78-word result with one selected model-ref link, without raw answer logging
+or sharing. Factual support/page access is not proven. The service was
+restored with unchanged state; extension 0.13.20 needs reload for the new
+marker presentation. No automatic fallback/retry or publication gate follows.
+
 2026-10-08 continuation: The owner chose strict selected-URL IDs rather than
 same-publisher citations. [ADR-058](../decisions/ADR-058-selected-web-reference-ids.md)
 implements server-assigned `ref1`–`ref5` and accepts `[[webref:n]]` only with
@@ -9,7 +21,8 @@ as a clickable superscript. Two public PCGames/GameStar live calls after the
 change did **not** yield a safe draft: one still cited another GameStar page,
 the stricter prompt then wrote one ref without an exact selected source hit.
 Do not assume a model-written ID verifies page access, or hide the foreign
-provider citation. No automatic fallback/retry, publication or broader
+provider citation. ADR-059 later permits only visibly unverified model-ID
+links. No automatic fallback/retry, publication or broader
 provider permission follows. The local service is restored with existing
 state. Gather an explicit owner trust/usage choice before changing these
 boundaries; user-visible current-page-only research remains opt-in.
