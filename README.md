@@ -10,6 +10,11 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension 0.13.23 replaces the visible loading sentence with two gently
+animated conversation placeholders. Screenreaders still receive the loading
+status, and reduced-motion settings stop the animation. No source data or
+comments are shown in these decorative placeholders.
+
 Extension 0.13.22 simplifies the discussion view: it no longer displays the
 current page title as a Topic heading. While a selected page's discussion is
 loading, the view says **Loading discussions…** and lets you type a new thread.

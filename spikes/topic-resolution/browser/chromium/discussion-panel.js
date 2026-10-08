@@ -64,6 +64,19 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   sectionBar.append(heading);
   root.append(sectionBar, scope);
   const status = node("p"); status.id = "discussion-status"; status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); root.append(status);
+  const loadingScene = node("div"); loadingScene.id = "discussion-loading-scene";
+  loadingScene.setAttribute("aria-hidden", "true"); loadingScene.hidden = true;
+  for (const variant of ["opening", "reply"]) {
+    const card = node("div"); card.className = `discussion-loading-card discussion-loading-${variant}`;
+    const avatar = node("span"); avatar.className = "discussion-loading-avatar";
+    const lines = node("span"); lines.className = "discussion-loading-lines";
+    for (let index = 0; index < 2; index += 1) {
+      const line = node("span"); line.className = `discussion-loading-line discussion-loading-line-${index + 1}`;
+      lines.append(line);
+    }
+    card.append(avatar, lines); loadingScene.append(card);
+  }
+  root.append(loadingScene);
   const connectionSettings = node("details"); connectionSettings.id = "discussion-connection-settings";
   connectionSettings.className = "compact-details";
   const connectionSummary = node("summary", "uiConnectionSetup");
@@ -509,8 +522,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       ["checking", "processing"].includes(state.resolution?.phase);
     const loadingDiscussions = uiMode === "user" && !state.needsFreshRead &&
       (["connecting", "loading"].includes(state.phase) || state.phase === "choose-topic" && resolving)
-      && (!state.error || state.error === "context-changed");
+      && (!state.error || state.error === "context-changed") && !(selectedTopicReady && state.priorDiscussionsError);
     status.setAttribute("data-loading", String(loadingDiscussions));
+    loadingScene.hidden = !loadingDiscussions;
     status.textContent = text(loadingDiscussions ? "uiLoadingDiscussions" : errorKey ?? (state.error ? "discussionUnavailable" : {
       ready: "discussionReady", disconnected: "discussionDisconnected", connecting: "discussionConnecting",
       loading: "discussionLoading", "choose-topic": uiMode === "user" ? "uiTopicAwaitingPage" : "discussionChooseStatus" }[state.phase] ?? "discussionUnavailable"));

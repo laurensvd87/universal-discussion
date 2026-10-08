@@ -710,6 +710,14 @@ test("selected discussion loading permits a root draft while posting and Insight
   ui.panel.render(loading);
   assert.equal(ui.byId("discussion-status").textContent, EN.uiLoadingDiscussions);
   assert.equal(ui.byId("discussion-status").attributes["data-loading"], "true");
+  assert.equal(ui.byId("discussion-status").attributes.role, "status");
+  assert.equal(ui.byId("discussion-status").attributes["aria-live"], "polite");
+  const loadingScene = ui.byId("discussion-loading-scene");
+  assert.equal(loadingScene.hidden, false);
+  assert.equal(loadingScene.attributes["aria-hidden"], "true");
+  assert.equal(loadingScene.children.length, 2);
+  assert.ok(loadingScene.children.every((card) => card.children.length === 2 &&
+    card.children[1].children.length === 2));
   assert.equal(ui.created.find((item) => item.className === "discussion-thread").hidden, true);
   assert.equal(ui.byId("discussion-composer").hidden, false);
   assert.equal(ui.byId("discussion-body").disabled, false);
@@ -718,7 +726,12 @@ test("selected discussion loading permits a root draft while posting and Insight
     ai: { planEnabled: true, model: "chosen", status: "idle" } }) });
   assert.equal(ui.byId("discussion-ai-insights").hidden, false);
   assert.equal(ui.byId("discussion-ai-insights").disabled, true);
+  ui.panel.render(state());
+  assert.equal(loadingScene.hidden, true);
+  ui.panel.render(state({ phase: "choose-topic", topicId: null, sourceId: null, discussion: null }));
+  assert.equal(loadingScene.hidden, true);
   ui.panel.render({ ...loading, draft: { body: "Detached after navigation", detached: true, mode: "root", targetId: null } });
+  assert.equal(loadingScene.hidden, false);
   assert.equal(ui.byId("discussion-composer").hidden, false);
   assert.equal(ui.byId("discussion-body").value, "Detached after navigation");
   assert.equal(ui.byId("discussion-body").disabled, true);
@@ -733,7 +746,9 @@ test("selected discussion loading permits a root draft while posting and Insight
   }
   ui.panel.render(state({ phase: "error", error: "unavailable", discussion: null }));
   assert.equal(ui.byId("discussion-status").attributes["data-loading"], "false");
+  assert.equal(loadingScene.hidden, true);
   ui.panel.render(state({ phase: "loading", sourceId: null, discussion: null, related: null }));
+  assert.equal(loadingScene.hidden, false);
   assert.equal(ui.byId("discussion-body").disabled, true);
   const confirmation = ui.byId("discussion-reset-confirmation"); confirmation.value = "RESET DEMO STATE";
   ui.panel.render(state({ needsFreshRead: true }));
@@ -741,6 +756,7 @@ test("selected discussion loading permits a root draft while posting and Insight
   assert.equal(ui.byId("discussion-create").disabled, true);
   assert.equal(ui.byId("discussion-reset").disabled, true);
   confirmation.listeners.get("input")(); assert.equal(ui.byId("discussion-reset").disabled, true);
+  assert.equal(loadingScene.hidden, true);
 });
 
 test("learned source UI labels provenance/partial inference and explicit correction/deletion confirmations", async () => {

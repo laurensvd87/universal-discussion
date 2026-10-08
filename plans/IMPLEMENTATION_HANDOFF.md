@@ -1,5 +1,11 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 latest visual refinement: extension 0.13.23 replaces visible
+"Loading discussions" prose with two decorative animated conversation-card
+placeholders. The live text remains screen-reader accessible; reduced-motion
+settings stop animation. The scene appears only during active loading and
+does not alter draft, Post or Insight gates from 0.13.22.
+
 2026-10-08 latest UI loading refinement: extension 0.13.22 removes the
 page-title Topic header in User Mode. Active page resolution/read says
 **Loading discussions…**. Once a Source/Topic selection exists, the root

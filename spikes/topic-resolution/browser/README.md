@@ -1,5 +1,13 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.23 shows two compact, softly animated conversation-card
+placeholders during active discussion loading instead of visible loading
+prose. They are decorative and `aria-hidden`; the clipped live status still
+announces "Loading discussions" to assistive technology. Reduced-motion
+preferences disable the animation. Error, idle and ready states hide the
+placeholders. The staged draft and disabled Post/Insight behavior from 0.13.22
+are unchanged.
+
 Extension 0.13.22 removes the page-title Topic header from User Mode. A
 selected Source/Topic shows **Loading discussions…** while its discussion
 snapshot loads. The new-thread field is editable during that read, but Post

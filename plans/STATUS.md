@@ -35,6 +35,17 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 visual loading scene (extension 0.13.23):** The owner wanted an
+attractive loading state without visible prose. User Mode now shows two
+subtle blue/lavender and warm-mustard conversation placeholders that breathe
+gently only during active resolution/read. The status remains a polite live
+region but is visually clipped; placeholders are hidden from assistive
+technology. `prefers-reduced-motion` removes animation. Ready, idle, error
+and stale-read states hide the scene. Isolated Chrome screenshots/overflow
+and reduced-motion checks passed. Full restricted extension **998/998** and
+secret scan zero. No provider, permission, persistence or posting-boundary
+change.
+
 **2026-10-08 discussion-first loading UI (extension 0.13.22):** The owner
 requested removing the misleading page-title Topic header and "looking for
 topic" copy. User Mode now presents **Loading discussions…** for active
