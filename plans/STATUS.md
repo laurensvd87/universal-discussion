@@ -156,6 +156,11 @@ A stronger [rank-eight learned projection](../apps/local-service/experiments/top
 raised multilingual validation admission from 1/80 to 31/80 true pairs, but
 also made six adjacent-event false pair admissions; it is frozen and rejected
 for live use. All settings/cutoffs came from train, not that validation.
+An independently authored [v2 synthetic corpus](../apps/local-service/experiments/topic-encoder/multilingual-train-v2/README.md)
+is now hash-frozen before the next projection score: 180 original short
+reports, 36 precise developments, five languages, with eight training and
+four disjoint validation entity families. Its corpus-only integrity check
+passes. These author labels are not real-web accuracy evidence.
 
 ## 2026-10-08 Topic-focused embedding shadow (ADR-063)
 
