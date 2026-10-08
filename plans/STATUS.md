@@ -45,8 +45,13 @@ invented omission, or forced contradiction. If hosted search cannot provide
 usable evidence from the exact selected page, it still falls back to the
 current extract. Full restricted extension **996/996** and local-service
 **262 passed/four optional skips**; both secret scans found zero. The normal
-service was restarted with unchanged Origin, pairing and SQLite state. Live
-comparative quality remains to be checked by owner browsing. No new provider request,
+service was restarted with unchanged Origin, pairing and SQLite state. One
+owner-authorized public PCGames/GameStar QA with the revised prompt completed
+on `gpt-6-luna`: 68 words and one selected `[refN]` link in a private result,
+with no Share or raw answer logging. This shows a cross-source link was
+returned; it does not establish that the exact article was read or that the
+comparison is factually useful. Owner browsing remains the quality check.
+No automatic provider retry,
 permission, data transfer, or automatic Share was added.
 
 **2026-10-08 owner-approved model refs ([ADR-059](../decisions/ADR-059-model-reported-selected-links-unverified.md),
