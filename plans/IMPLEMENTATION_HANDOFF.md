@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 follow-on Topic-encoder research: the owner authorized extended
+autonomous local training. [ADR-063](../decisions/ADR-063-topic-focused-embedding-shadow.md)
+now also records a supervised 384D E5/title-lead projection, two new frozen
+synthetic checks and a CC BY 4.0 CDEC-WN Wikinews storyline check. The
+projection did not beat raw E5 on unseen retrieval (24/24 tied; 76/76 tied;
+165/176 versus E5 168/176 on full real-storyline gallery). A reciprocal-
+neighbor dynamic rule made false joins in the fresh synthetic challenge.
+Keep both inactive; neither score calibration nor same-Topic identity is
+validated. See [measured report](../apps/local-service/experiments/topic-encoder/next-eval/RESULTS.md).
+The real dataset archive is hash-pinned and Git-ignored under experiment
+`.work/`; no app/owner data or provider transfer follows. No owner-data
+revectorization, database migration, new extension asset, permission or
+discussion move is authorized or performed.
+
 2026-10-08 owner-directed Topic encoder shadow: [ADR-063](../decisions/ADR-063-topic-focused-embedding-shadow.md)
 adds synthetic-only E5 topic-head, fused-vector and text-cue comparator
 experiments under `apps/local-service/experiments/topic-encoder/`. The first

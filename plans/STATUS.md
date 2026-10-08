@@ -35,6 +35,35 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## 2026-10-08 Topic-focused embedding shadow (ADR-063)
 
+**Follow-on 2026-10-08:** The owner explicitly directed a longer autonomous
+attempt at a new topic-focused model and permitted local training tooling. A
+supervised 384D, 768-parameter E5-plus-local-title/lead projection is now
+frozen and repeatably trained on 242 invented documents, with 68 disjoint
+synthetic validation documents. Its artifact is 15,667 bytes JSON (3,072
+bytes of float32 weights). No PyTorch install or new base model download was
+needed; this is an actually trained projection, not a new language model from
+scratch. On a frozen 30-document unseen set, raw E5 and the projection both
+ranked the right same-development partner first for **24/24** matched queries;
+both accepted **0/12** true pairs at validation-zero-false cosine cutoffs. On
+a second independently authored 95-document / 19-family challenge, both got
+**76/76** rank-1; the reciprocal-nearest-margin rule made **two false joins**
+with the projection and two with raw E5 (one with title+lead E5), despite none
+on validation. Thus the candidate has no safe automatic-join result.
+
+A separate, attribution-required [CDEC-WN research dataset](https://github.com/adithya7/cdec-wikinews)
+(CC BY 4.0; Pratapa et al., 2021) gave a limited real-language check: the
+frozen synthetic-trained projection retrieved a same-storyline article first
+for **165/176** in the full gallery, versus **168/176** raw E5 body and
+**169/176** title+lead E5. The curated 48-document test subset was 48/48 for
+all three. These are Wikinews disaster storylines, not independently verified
+atomic discussion Topics, cross-publisher viewpoints, or no-match tests. The
+downloaded 573,230-byte archive is hash-pinned and ignored under the
+experiment's `.work/`; only aggregate results and original code are tracked.
+No raw dataset text, owner browsing material, URL, vector, provider call,
+service DB write, production vector change, threshold change or discussion
+migration occurred. The experimental model stays inactive. Details and exact
+digests are in [the follow-on report](../apps/local-service/experiments/topic-encoder/next-eval/RESULTS.md).
+
 The owner asked for a project-owned, English-first Topic encoder rather than
 semantic-cosine-only matching. An isolated experiment now trains a small
 rank-12 residual head over the already-packaged E5 vectors on 240 invented

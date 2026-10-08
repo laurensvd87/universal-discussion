@@ -1,0 +1,2 @@
+# Downloaded open research corpora and derived local vectors are never committed.
+.work/

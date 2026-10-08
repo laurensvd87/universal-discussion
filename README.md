@@ -19,7 +19,12 @@ comparator found 61/80 but needs source prose that the backend does not retain.
 On a second, harder synthetic holdout the current E5 vector found 76/104
 correct first neighbors; both tested custom vectors did worse (63/104 and
 46/104). No experimental model or cutoff is active in the extension; the
-local app continues to work as before. Real-page accuracy is still open.
+local app continues to work as before. A follow-on trained 384D projection
+also failed to beat E5: both got 24/24 and 76/76 on two new synthetic
+matched-query checks; on a CC BY 4.0 Wikinews storyline corpus the projection
+ranked 165/176 versus raw E5's 168/176. An experimental dynamic join rule made
+false joins on its independent test. These are offline research results, not
+validated same-Topic accuracy; no live matching or stored discussion changed.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

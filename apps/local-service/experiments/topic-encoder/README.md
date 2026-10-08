@@ -51,3 +51,12 @@ development-only now that its results have been seen.
 The independent v2/v3 results are [recorded here](RESULTS.md). A useful retrieval
 rank is not a safe automatic same-Topic join. Further tests need real-page
 provenance/rights and separate activation review under [ADR-063](../../../../decisions/ADR-063-topic-focused-embedding-shadow.md).
+
+The follow-on [compact trained projection](next-model/README.md) and
+[frozen evaluation](next-eval/RESULTS.md) are also shadow-only. A 384D
+supervised lexical/E5 fusion was trained and independently tested against two
+new synthetic sets and the CC BY 4.0 CDEC-WN Wikinews research dataset. It
+did not beat raw E5 on unseen retrieval; an adaptive neighbor-margin candidate
+made false joins. No model or Topic policy was activated. The downloaded
+research archive is confined to ignored `.work/`, not included in Git or the
+app.

@@ -72,6 +72,53 @@ raw E5 and one of six under the head. Its 15 pair labels came from exploratory
 assistant review, not independent human gold; it is corroborating failure-
 mode evidence, not calibration.
 
+## Follow-on disposition: supervised projection still inactive
+
+After the owner asked for an autonomous, longer model-building attempt, a
+second experimental 384D encoder was genuinely trained: it combines the
+existing packaged E5 body vector with bounded, local title/lead hashed
+features, fitting 768 diagonal weights by opposing-viewpoint positives and
+same-entity/different-development triplets. The output is one 384D unit
+vector per page, and the artifact is 15,667 bytes JSON / 3,072 bytes of
+float32 weights. It is a project-trained projection, **not** a base language
+encoder trained from scratch. The existing E5 asset is still required. A
+simple heuristic 768D fusion and raw E5 body/title+lead inputs were fixed
+comparators. All code is isolated under `experiments/topic-encoder/next-*`.
+
+Training used 242 invented English documents; family-disjoint validation used
+68. A 30-document sealed synthetic set tied raw E5 at 24/24 rank-1 matched
+queries, and strict validation-zero-false cutoffs accepted no true pair for
+either. A later independently authored 95-document / 19-family synthetic
+challenge tied at 76/76 rank-1. A separate reciprocal-nearest-margin rule,
+fixed before the second challenge, recovered many positive pairs but made
+one or two false joins depending on the vector, so it is not safe to activate.
+The first holdout is not independent evidence for that later-devised margin
+rule; only the second is. Exact digests and metrics are in
+[the report](../apps/local-service/experiments/topic-encoder/next-eval/RESULTS.md).
+
+For a rights-clearer reality check, the fixed synthetic-trained model was
+tested read-only on the [CDEC-WN Wikinews corpus](https://github.com/adithya7/cdec-wikinews),
+released under CC BY 4.0 and described by
+[Pratapa et al.](https://aclanthology.org/2021.conll-1.39/). Its 176 articles
+represent 55 curated disaster/accident storylines. In the full gallery,
+same-storyline rank-1 was raw E5 body 168/176, raw E5 title+lead 169/176,
+and the new projection **165/176**. The original curated 48-document test
+subset was tied at 48/48. This is a *proxy* for Topic retrieval, not an
+atomic-topic, cross-publisher viewpoint, no-match or join-safety benchmark.
+The downloaded archive is hash-pinned in Git-ignored `.work/`; the runner
+reads it directly in memory, logs aggregates only, and does not persist or
+ship its text/vectors. No CDEC text or annotations are committed, and no
+real dataset served as training input.
+
+Therefore **do not activate this projection, the heuristic fusion or the
+margin rule**. Equal dimensions do not imply compatibility with stored E5
+vectors or the existing `.90/.94` routing. Any future attempt needs a
+cross-publisher, viewpoint-diverse, provenance-cleared, genuinely held-out
+real-page benchmark aligned to the app's precise Topic policy. Dataset
+permissions, app privacy and release/store review remain separate; the
+owner's tooling latitude did not authorize a live vector migration or
+collection-scope change.
+
 ## Activation boundary
 
 Before changing production: demonstrate an improvement over raw E5 and a

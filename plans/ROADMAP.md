@@ -1,6 +1,6 @@
 # Product-first roadmap
 
-Updated: 2026-09-29. Governing decisions: ADR-014/015/016. Browser extension first;
+Updated: 2026-10-08. Governing decisions: ADR-014/015/016. Browser extension first;
 readable web conversations next, then Android and iOS, sharing Topic/discussion
 contracts (owner-confirmed sequencing on 2026-09-29). Core model:
 `Content -> Semantic Topic -> Discussion`.
@@ -13,7 +13,14 @@ Proceed from frozen synthetic comparisons to provenance-approved real-page
 evaluation, then make a separate model/data/security/owner activation decision
 before changing saved vectors or discussion routing. The initial trained E5
 head did not improve held-out first-neighbor retrieval; do not advance it as
-the production encoder on the strength of training loss.
+the production encoder on the strength of training loss. The follow-on
+supervised 384D projection also did not beat raw E5 on two independent
+synthetic checks or a limited CC BY 4.0 Wikinews storyline gallery; a
+reciprocal-margin grouping rule made false joins. Keep them inactive. The
+next useful model-quality milestone is a provenance-cleared, cross-publisher,
+viewpoint-diverse real-page benchmark with Topic labels aligned to the app,
+not further tuning to the now-exposed synthetic holdouts. Its collection,
+rights, provider and activation boundaries remain separate owner/Trust gates.
 
 The [historical roadmap](archive/ROADMAP_2026-09-25.md) preserves the old sequence.
 This is the active execution order. Do not restart Phase 0 or the completed 6/6
