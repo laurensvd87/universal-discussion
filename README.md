@@ -10,6 +10,13 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension 0.13.22 simplifies the discussion view: it no longer displays the
+current page title as a Topic heading. While a selected page's discussion is
+loading, the view says **Loading discussions…** and lets you type a new thread.
+Posting waits for the completed discussion read; **Get insights** is greyed out
+until the discussion and related-page context are ready. Text staged during a
+tab change is detached rather than silently attached to another page.
+
 A [new owner-approved reference mode](decisions/ADR-059-model-reported-selected-links-unverified.md)
 maps model-written `[ref1]`–`[ref5]` only to the five selected public URLs.
 These are visibly **unverified AI-suggested links**, including after deliberate

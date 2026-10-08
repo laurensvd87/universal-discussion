@@ -13,16 +13,9 @@ export function projectDiscussionShell(state, messages = EN) {
   const selected = ["ready", "loading"].includes(state.phase) && !state.error
     ? state.catalog?.topics.find((topic) => topic.id === state.topicId) : null;
   const processing = state.resolution?.enabled === true && ["checking", "processing"].includes(state.resolution?.phase);
-  const source = state.catalog?.sources?.find((item) => item.id === state.sourceId);
-  const selectionCue = !selected ? "" : text(state.selection === "manual" ? "uiTopicManual"
-    : source?.provenance === "owner-local-page-embedding/v1"
-      ? state.resolution?.assignment === "confirmed" ? "uiTopicConfirmed" : "uiTopicProvisional"
-      : "uiTopicFixture");
   return Object.freeze({ connection,
     connectionText: text({ connected: "uiConnected", connecting: "uiConnecting", disconnected: "uiDisconnected", unavailable: "uiServiceUnavailable", "extension-unavailable": "uiExtensionUnavailable", unverified: "uiConnectionUnverified" }[connection]),
-    topicTitle: selected?.title ?? text(connection === "disconnected" ? "uiTopicDisconnected" : ["unavailable", "extension-unavailable"].includes(connection) ? "uiTopicUnavailable" : processing ? "uiTopicProcessing" : "uiTopicEmpty"),
     topicState: selected ? "ready" : !["disconnected", "unavailable", "extension-unavailable"].includes(connection) && processing ? "working" : "idle",
-    selectionCue,
   });
 }
 
@@ -50,7 +43,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   find("#app-view-discussion")?.setAttribute("aria-label", text("uiDiscussionViewLabel"));
   find("#app-view-insights")?.setAttribute("aria-label", text("uiInsightsViewLabel"));
   const app = {
-    welcome: find("#app-welcome"), nav: find("#app-navigation"), topicHeader: find("#app-topic-header"),
+    welcome: find("#app-welcome"), nav: find("#app-navigation"),
     discussion: find("#app-view-discussion"), pages: find("#app-view-pages"),
     insights: find("#app-view-insights"), settings: find("#app-settings-view"),
     pageList: find("#app-pages-list"), pageEmpty: find("#app-pages-empty"),
@@ -108,7 +101,6 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     }
     app.welcome.hidden = connected || view === "settings";
     app.nav.hidden = true;
-    app.topicHeader.hidden = !connected || view === "settings";
     for (const name of ["discussion", "pages", "settings"]) {
       app[name].hidden = (name !== "settings" && !connected) || name !== view;
     }
@@ -156,9 +148,8 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     if (app.nav) {
       if (mode === "developer") {
         placeInsightWorkspace(mode);
-        app.welcome.hidden = app.nav.hidden = app.topicHeader.hidden = app.pages.hidden = app.settings.hidden = true;
+        app.welcome.hidden = app.nav.hidden = app.pages.hidden = app.settings.hidden = true;
         app.discussion.hidden = app.insights.hidden = false;
-        for (const selector of [".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance"]) move(selector, find("#local-discussion"));
         move("#discussion-connection-settings", find("#local-discussion"));
         move("#discussion-advanced", find("#local-discussion"));
         move("#discussion-related", find("#local-discussion"));
@@ -198,7 +189,6 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     if (app.nav && document.body.dataset.uiMode === "user") {
       placeInsightWorkspace("user");
       const connected = Boolean(state.catalog);
-      for (const selector of [".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance"]) move(selector, app.topicHeader);
       move("#discussion-advanced", find("#app-settings-connection"));
       move("#discussion-related", app.pageList);
       move("#capture-settings", find("#app-settings-capture"));

@@ -60,6 +60,43 @@ test("paired popup automatically loads bridged service discussion and sends IDs 
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
 });
 
+test("root text can be staged while a selected discussion loads but cannot post before the read", async () => {
+  const pending = deferred(); let reads = 0;
+  const ui = harness({ client: { async discussion(topicId) {
+    return ++reads === 1 ? pending.promise : ui.service.discussion(topicId);
+  } } });
+  const opening = ui.controller.open();
+  await turn();
+  const loading = ui.controller.currentState();
+  assert.equal(loading.phase, "loading");
+  assert.equal(loading.topicId, "reserved-domain-demo");
+  assert.equal(loading.sourceId, "reserved-example-com");
+  ui.controller.setDraft("A new thread written while discussions load");
+  assert.equal(ui.controller.currentState().draft.body, "A new thread written while discussions load");
+  assert.equal(await ui.controller.submitDraft(), false);
+  pending.resolve(ui.service.discussion("reserved-domain-demo"));
+  await opening;
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().draft.detached, false);
+  assert.equal(await ui.controller.submitDraft(), true);
+  assert.equal(ui.controller.currentState().discussion.roots[0].body, "A new thread written while discussions load");
+});
+
+test("a staged loading draft detaches if the source tab changes before the read finishes", async () => {
+  const pending = deferred();
+  const ui = harness({ client: { async discussion() { return pending.promise; } } });
+  const opening = ui.controller.open();
+  await turn();
+  assert.equal(ui.controller.currentState().phase, "loading");
+  ui.controller.setDraft("Do not attach this to another page");
+  ui.invalidate();
+  assert.equal(ui.controller.currentState().draft.detached, true);
+  pending.resolve(ui.service.discussion("reserved-domain-demo"));
+  await opening;
+  assert.equal(await ui.controller.submitDraft(), false);
+  assert.equal(ui.controller.currentState().draft.body, "Do not attach this to another page");
+});
+
 test("distinct related Topics with visible posts load read-only below the current Topic", async () => {
   const ui = harness({ client: { async related() {
     const catalog = ui.service.catalog();

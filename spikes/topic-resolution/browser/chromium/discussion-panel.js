@@ -35,9 +35,6 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     listen(item, "click", callback); parent.append(item); return item;
   }
   const heading = node("h2", "discussionHeading"); heading.id = "discussion-heading";
-  const topicLabel = node("p", "uiTopicLabel"); topicLabel.className = "topic-eyebrow user-only";
-  const topicTitle = node("h1"); topicTitle.id = "selected-topic-title"; topicTitle.className = "user-only";
-  const selectionCue = node("p"); selectionCue.id = "selected-topic-provenance"; selectionCue.className = "user-only topic-selection-cue";
   const insightShortcut = node("button", "uiCreateInsights"); insightShortcut.type = "button";
   insightShortcut.id = "discussion-ai-insights"; insightShortcut.className = "insight-shortcut";
   listen(insightShortcut, "click", () => {
@@ -65,7 +62,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const scope = node("p", "discussionScope"); scope.className = "developer-only";
   const sectionBar = node("div"); sectionBar.className = "discussion-section-bar";
   sectionBar.append(heading);
-  root.append(topicLabel, topicTitle, selectionCue, sectionBar, scope);
+  root.append(sectionBar, scope);
   const status = node("p"); status.id = "discussion-status"; status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); root.append(status);
   const connectionSettings = node("details"); connectionSettings.id = "discussion-connection-settings";
   connectionSettings.className = "compact-details";
@@ -445,8 +442,6 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       root.insertBefore(connectionSettings, nextConnectionPosition === "after" ? advanced : counts);
       connectionPosition = nextConnectionPosition;
     }
-    topicTitle.textContent = shellView.topicTitle;
-    selectionCue.textContent = shellView.selectionCue; selectionCue.hidden = !shellView.selectionCue;
     heading.textContent = text(uiMode === "user" ? "uiDiscussions" : "discussionHeading");
     heading.hidden = uiMode === "user";
     advancedSummary.textContent = text(uiMode === "user" ? "uiAdvanced" : "uiAdvancedDeveloper");
@@ -510,7 +505,13 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const errorKey = { unauthorized: "discussionUnauthorized", "extension-connection-unavailable": "discussionExtensionUnavailable", "durable-pairing-required": "discussionDurableRequired",
       conflict: "discussionConflict", capacity: "discussionCapacity",
       "invalid-request": "discussionInvalid", "invalid-response": "discussionInvalid", "context-changed": "discussionContextChanged" }[state.error];
-    status.textContent = text(errorKey ?? (state.error ? "discussionUnavailable" : {
+    const resolving = state.resolution?.enabled === true &&
+      ["checking", "processing"].includes(state.resolution?.phase);
+    const loadingDiscussions = uiMode === "user" && !state.needsFreshRead &&
+      (["connecting", "loading"].includes(state.phase) || state.phase === "choose-topic" && resolving)
+      && (!state.error || state.error === "context-changed");
+    status.setAttribute("data-loading", String(loadingDiscussions));
+    status.textContent = text(loadingDiscussions ? "uiLoadingDiscussions" : errorKey ?? (state.error ? "discussionUnavailable" : {
       ready: "discussionReady", disconnected: "discussionDisconnected", connecting: "discussionConnecting",
       loading: "discussionLoading", "choose-topic": uiMode === "user" ? "uiTopicAwaitingPage" : "discussionChooseStatus" }[state.phase] ?? "discussionUnavailable"));
     if (selectedTopicReady && state.priorDiscussionsError && uiMode === "user")
@@ -534,9 +535,13 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     title.disabled = kind.disabled = create.disabled = !state.catalog || !usable;
     const ready = state.phase === "ready" && !state.busy && !state.needsFreshRead;
     if (body.value !== state.draft.body) body.value = state.draft.body;
-    composer.hidden = uiMode === "user" && !posting && !selectedTopicReady && !state.draft.body.trim() &&
-      !state.draft.detached && state.draft.mode === "root";
-    body.disabled = !ready && !(posting && state.phase === "ready" && !state.needsFreshRead);
+    const loadingSelected = state.phase === "loading" && Boolean(state.topicId && state.sourceId) &&
+      state.catalog?.sources.some((entry) => entry.id === state.sourceId && entry.topicId === state.topicId);
+    composer.hidden = uiMode === "user" && !posting && !selectedTopicReady && !loadingSelected &&
+      !state.draft.body.trim() && !state.draft.detached && state.draft.mode === "root";
+    const stagingRoot = uiMode === "user" && state.draft.mode === "root" && !state.draft.detached && loadingSelected &&
+      !state.busy && !state.needsFreshRead;
+    body.disabled = !ready && !stagingRoot && !(posting && state.phase === "ready" && !state.needsFreshRead);
     body.readOnly = posting;
     detached.hidden = !state.draft.detached;
     reattach.hidden = !state.draft.detached; reattach.disabled = !ready;
@@ -585,6 +590,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       .replace("{human}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "human").length))
       .replace("{agent}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "agent").length)) : "";
     counts.hidden = uiMode === "user";
+    thread.hidden = uiMode === "user" && !state.discussion;
     // A discussion snapshot establishes the baseline for this Topic. Only a genuinely
     // new ID arriving later in that same Topic receives the entrance animation.
     if (observedTopicId !== state.topicId) {
@@ -796,7 +802,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (disposed) return;
     lastInsightState = state;
     const selectedTopicReady = lastState?.phase === "ready" && !lastState.busy && !lastState.needsFreshRead &&
-      !lastState.error && lastState.catalog?.topics.some((entry) => entry.id === lastState.topicId);
+      !lastState.error && Boolean(lastState.discussion && lastState.related) &&
+      lastState.catalog?.topics.some((entry) => entry.id === lastState.topicId);
     const aiStatus = state?.ai?.status;
     const active = ["preparingArticle", "fetchingRelated", "generating", "resuming"].includes(aiStatus);
     const hasResult = Boolean(state?.ai?.result);
@@ -804,7 +811,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const setupNeeded = uiMode === "user" && Boolean(state?.ai) && (!state.ai.planEnabled || !state.ai.model);
     const stageKey = { preparingArticle: "uiInsightPreparing", fetchingRelated: "uiInsightFindingRelated",
       generating: "uiInsightGenerating", resuming: "uiInsightResuming" }[aiStatus];
-    insightShortcut.hidden = uiMode === "user" && (!selectedTopicReady || noCurrentSource || hasResult ||
+    const loadingSelected = lastState?.phase === "loading" && Boolean(lastState.topicId && lastState.sourceId) &&
+      lastState.catalog?.sources.some((entry) => entry.id === lastState.sourceId && entry.topicId === lastState.topicId);
+    insightShortcut.hidden = uiMode === "user" && ((!selectedTopicReady && !loadingSelected) || hasResult ||
       lastState?.draft.mode !== "root");
     insightShortcut.disabled = !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
     insightShortcut.setAttribute("aria-busy", String(active));

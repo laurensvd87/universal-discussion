@@ -35,6 +35,21 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 discussion-first loading UI (extension 0.13.22):** The owner
+requested removing the misleading page-title Topic header and "looking for
+topic" copy. User Mode now presents **Loading discussions…** for active
+resolution/read and no Topic title. A new root draft may be typed once a
+specific Source and Topic are selected but the discussion GET is still
+pending. Post remains blocked until the ready snapshot and existing mutation guards;
+navigation detaches the staged text. **Get insights** is visible but disabled
+until both discussion and related-page snapshots arrive. Unsupported or
+unselected pages do not gain an attachable draft. A read-only Trust review
+found the posting boundary intact; its detached-draft editing concern was
+fixed before release. Full restricted extension **998/998**, secret scan zero,
+and isolated Chrome visual/overflow check passed. The visual check showed
+neutral loading copy and clearly disabled Post/Insight buttons. No provider
+request, permission or stored-data change follows from this UI adjustment.
+
 **2026-10-08 Insight presentation and comparison prompt (extension 0.13.21):**
 The owner rejected visible numbered/question-mark citation badges. All rendered
 Insight source links now use a small raised `↗`; accessible labels and the

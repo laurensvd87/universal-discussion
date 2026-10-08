@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 latest UI loading refinement: extension 0.13.22 removes the
+page-title Topic header in User Mode. Active page resolution/read says
+**Loading discussions…**. Once a Source/Topic selection exists, the root
+composer accepts memory-only draft text during the discussion read, but
+submit is gated on the ready snapshot and navigation detaches staged text.
+**Get insights** is greyed out until both discussion and related-page context
+are loaded. No Topic identity, backend association or provider behavior changed.
+
 2026-10-08 latest UI/prompt refinement: extension 0.13.21 shows each Insight
 source as a raised `↗` link rather than a number or `?`, retaining the visible
 unverified-source note and accessible label. The opener prompt prioritizes a

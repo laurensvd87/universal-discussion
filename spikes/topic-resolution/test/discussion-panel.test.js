@@ -703,13 +703,38 @@ test("typing preserves contribution button focus; language fallback and disposal
   assert.equal(ui.created.some((item) => item.listeners.size > 0), false);
 });
 
-test("composer disabled during loading/choose-topic and latched writes disable create/reset", () => {
+test("selected discussion loading permits a root draft while posting and Insights remain gated", () => {
   const ui = harness();
-  for (const phase of ["connecting", "loading", "choose-topic", "disconnected", "error"]) {
+  const loading = state({ phase: "loading", sourceId: "source-demo", discussion: null, related: null });
+  loading.catalog.sources[0].topicId = loading.topicId;
+  ui.panel.render(loading);
+  assert.equal(ui.byId("discussion-status").textContent, EN.uiLoadingDiscussions);
+  assert.equal(ui.byId("discussion-status").attributes["data-loading"], "true");
+  assert.equal(ui.created.find((item) => item.className === "discussion-thread").hidden, true);
+  assert.equal(ui.byId("discussion-composer").hidden, false);
+  assert.equal(ui.byId("discussion-body").disabled, false);
+  assert.equal(ui.byId("discussion-submit").disabled, true);
+  ui.panel.bindInsight({ currentState: () => ({ context: { currentSource: { id: "source-demo" } },
+    ai: { planEnabled: true, model: "chosen", status: "idle" } }) });
+  assert.equal(ui.byId("discussion-ai-insights").hidden, false);
+  assert.equal(ui.byId("discussion-ai-insights").disabled, true);
+  ui.panel.render({ ...loading, draft: { body: "Detached after navigation", detached: true, mode: "root", targetId: null } });
+  assert.equal(ui.byId("discussion-composer").hidden, false);
+  assert.equal(ui.byId("discussion-body").value, "Detached after navigation");
+  assert.equal(ui.byId("discussion-body").disabled, true);
+  assert.equal(ui.byId("discussion-submit").disabled, true);
+  assert.equal(ui.byId("discussion-reattach").disabled, true);
+  ui.panel.render(state({ related: null }));
+  assert.equal(ui.byId("discussion-ai-insights").disabled, true);
+  for (const phase of ["connecting", "choose-topic", "disconnected", "error"]) {
     ui.panel.render(state({ phase }));
     assert.equal(ui.byId("discussion-body").disabled, true);
     assert.equal(ui.byId("discussion-submit").disabled, true);
   }
+  ui.panel.render(state({ phase: "error", error: "unavailable", discussion: null }));
+  assert.equal(ui.byId("discussion-status").attributes["data-loading"], "false");
+  ui.panel.render(state({ phase: "loading", sourceId: null, discussion: null, related: null }));
+  assert.equal(ui.byId("discussion-body").disabled, true);
   const confirmation = ui.byId("discussion-reset-confirmation"); confirmation.value = "RESET DEMO STATE";
   ui.panel.render(state({ needsFreshRead: true }));
   assert.equal(ui.byId("discussion-body").disabled, true);
@@ -818,10 +843,10 @@ test("display-mode toggles preserve draft/control nodes and actions while hiding
   assert.equal(ui.byId("discussion-body"), body); assert.equal(body.value, "Unsent words");
   options.forEach((option, index) => assert.equal(topic.children[index], option));
   assert.deepEqual(ui.calls, calls);
-  assert.equal(ui.byId("selected-topic-title").textContent, "<script>hostile topic</script>");
+  assert.equal(ui.byId("selected-topic-title"), undefined);
   assert.equal(ui.byId("discussion-demo-identity").textContent, "Alex · local profile");
   ui.panel.render({ ...snapshot, phase: "error", error: "unavailable" });
-  assert.equal(ui.byId("selected-topic-title").textContent, EN.uiTopicUnavailable);
+  assert.equal(ui.byId("selected-topic-title"), undefined);
   assert.equal(ui.byId("discussion-connection-settings").open, true);
 });
 

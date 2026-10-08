@@ -39,29 +39,24 @@ test("saved modes load, storage failures stay usable and disposed reads cannot p
   assert.deepEqual(changes, ["user"]);
 });
 
-test("connection relies on successful catalog state; titles clear on context/error and reflect processing", () => {
+test("connection and discussion-loading state rely on current catalog and resolution", () => {
   const catalog = { topics: [{ id: "topic", title: "<script>plain title</script>" }] };
   const ready = { phase: "ready", catalog, topicId: "topic", error: null };
-  assert.deepEqual(projectDiscussionShell(ready), { connection: "connected", connectionText: EN.uiConnected, topicTitle: "<script>plain title</script>", topicState: "ready", selectionCue: EN.uiTopicFixture });
+  assert.deepEqual(projectDiscussionShell(ready), { connection: "connected", connectionText: EN.uiConnected, topicState: "ready" });
   assert.equal(projectDiscussionShell({ ...ready, phase: "connecting" }).connection, "connecting");
   assert.equal(projectDiscussionShell({ phase: "disconnected", token: "presence is irrelevant" }).connection, "disconnected");
   const unavailable = projectDiscussionShell({ ...ready, phase: "error", error: "unavailable" });
   const extensionUnavailable = projectDiscussionShell({ ...ready, phase: "error", error: "extension-connection-unavailable" });
   assert.equal(extensionUnavailable.connection, "extension-unavailable");
   assert.equal(extensionUnavailable.connectionText, EN.uiExtensionUnavailable);
-  assert.equal(extensionUnavailable.topicTitle, EN.uiTopicUnavailable);
-  assert.equal(unavailable.connection, "unavailable"); assert.equal(unavailable.topicTitle, EN.uiTopicUnavailable);
-  assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", error: "context-changed" }).topicTitle, EN.uiTopicEmpty);
-  assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", resolution: { phase: "processing", enabled: true } }).topicTitle, EN.uiTopicProcessing);
+  assert.equal(unavailable.connection, "unavailable");
   assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", resolution: { phase: "processing", enabled: true } }).topicState, "working");
   assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic" }).topicState, "idle");
-  assert.equal(projectDiscussionShell({ ...ready, phase: "disconnected", catalog: null, resolution: { phase: "checking", enabled: false } }).topicTitle, EN.uiTopicDisconnected);
-  assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", resolution: { phase: "checking", enabled: false } }).topicTitle, EN.uiTopicEmpty);
-  assert.equal(projectDiscussionShell({ ...ready, phase: "error", error: "unavailable", resolution: { phase: "processing", enabled: true } }).topicTitle, EN.uiTopicUnavailable);
-  assert.equal(projectDiscussionShell({ ...ready, phase: "disconnected", error: "unauthorized" }).topicTitle, EN.uiTopicDisconnected);
+  assert.equal(projectDiscussionShell({ ...ready, phase: "disconnected", catalog: null, resolution: { phase: "checking", enabled: false } }).topicState, "idle");
+  assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", resolution: { phase: "checking", enabled: false } }).topicState, "idle");
+  assert.equal(projectDiscussionShell({ ...ready, phase: "error", error: "unavailable", resolution: { phase: "processing", enabled: true } }).topicState, "idle");
+  assert.equal(projectDiscussionShell({ ...ready, phase: "disconnected", error: "unauthorized" }).topicState, "idle");
   assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", resolution: { phase: "error", reason: "unavailable" } }).connection, "unverified");
-  assert.equal(projectDiscussionShell({ ...ready, selection: "manual" }).selectionCue, EN.uiTopicManual);
-  assert.equal(projectDiscussionShell({ ...ready, catalog: { ...catalog, sources: [{ id: "source", provenance: "owner-local-page-embedding/v1" }] }, sourceId: "source", selection: "background" }).selectionCue, EN.uiTopicProvisional);
 });
 
 test("shell uses native keyboard buttons, accessible pressed state, visible connection text and removes listeners", async () => {
@@ -107,11 +102,13 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
   assert.deepEqual(modes, ["user", "developer", "user"]);
 });
 
-test("User layout keeps the Topic first and hides account identity and diagnostics", () => {
+test("User layout removes the page-title Topic header and hides account identity and diagnostics", () => {
   const html = readFileSync(new URL("../browser/chromium/popup.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8");
   const panel = readFileSync(new URL("../browser/chromium/discussion-panel.js", import.meta.url), "utf8");
   assert.ok(html.indexOf('id="local-discussion"') < html.indexOf('id="local-insights"'));
+  assert.doesNotMatch(html, /id="app-topic-header"/u);
+  assert.doesNotMatch(panel, /id = "selected-topic-title"/u);
   assert.doesNotMatch(html, /id="app-(?:start-session|choose-topic)"/u);
   assert.match(panel, /manualTopicControls\.className = "developer-only"/u);
   assert.match(panel, /label\(topic, "discussionTopic", "discussion-topic", manualTopicControls\)/u);
@@ -132,14 +129,14 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     "#insight-related-settings", "#insight-model", "#insight-model-status", "#insight-plan-usage",
     'label[for="insight-model"]', "#insight-quick-actions", "#local-insights", "#app-discussion-insights-host",
     "#app-settings-insights", "#app-settings-insights-heading", "#discussion-composer", "#app-welcome", "#app-navigation",
-    "#app-topic-header", "#app-view-discussion", "#app-view-pages", "#app-view-insights", "#app-settings-view",
+    "#app-view-discussion", "#app-view-pages", "#app-view-insights", "#app-settings-view",
     "#app-welcome-kicker", "#app-welcome-heading", "#app-welcome-intro", "#app-pages-heading", "#app-settings-heading",
     "#app-settings-kicker", "#app-settings-intro",
     "#app-pages-list", "#app-pages-empty", "#app-pages-context", "#app-settings-button",
     "#app-settings-back", "#app-tab-discussion", "#app-tab-pages", "#app-settings-connection",
     "#app-welcome-connection", "#app-settings-capture", "#app-settings-display", "#local-discussion",
     "#discussion-connection-settings", "#discussion-status", "#discussion-advanced", "#discussion-related", "#discussion-counts", "#discussion-topic",
-    ".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance", "#discussion-ai-insights",
+    "#discussion-ai-insights",
     "#insight-createInsights", "#insight-body"];
   const elements = new Map();
   for (const selector of selectors) elements.set(selector, {
@@ -166,7 +163,7 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   });
   const get = (selector) => elements.get(selector);
   for (const selector of ["#discussion-connection-settings", "#discussion-status", "#discussion-advanced",
-    "#discussion-related", ".topic-eyebrow", "#selected-topic-title", "#selected-topic-provenance", "#discussion-ai-insights", "#discussion-counts", "#discussion-composer", "#app-discussion-insights-host"])
+    "#discussion-related", "#discussion-ai-insights", "#discussion-counts", "#discussion-composer", "#app-discussion-insights-host"])
     get("#local-discussion").append(get(selector));
   for (const selector of ["#capture-settings", "#popup-preferences"]) get("main").append(get(selector));
   get("#app-view-insights").append(get("#local-insights"));
@@ -211,7 +208,6 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   get("#insight-model").listeners.get("change")();
   assert.equal(modelChanges, 1, "reparenting keeps the original model control and handler");
   assert.equal(get("#app-pages-context").textContent, "Localized shared pages");
-  assert.equal(get("#selected-topic-title").parentElement, get("#app-topic-header"));
   const noTopic = { ...connected, phase: "choose-topic", topicId: null };
   shell.render(noTopic);
   assert.equal(document.body.dataset.topicState, "idle");

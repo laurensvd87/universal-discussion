@@ -1,5 +1,13 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.22 removes the page-title Topic header from User Mode. A
+selected Source/Topic shows **Loading discussions…** while its discussion
+snapshot loads. The new-thread field is editable during that read, but Post
+remains disabled until a ready, attested selection; navigation detaches
+staged text. **Get insights** stays visible but disabled until both discussion
+and related-page snapshots are ready. An unresolved/unsupported page still
+cannot receive a draft post.
+
 Extension 0.13.21 renders server-mapped `[refN]` hints for up to five selected
 public URLs as small clickable raised `↗` links, with an accessible label
 and visible **AI-suggested links · sources not verified** note. The marker

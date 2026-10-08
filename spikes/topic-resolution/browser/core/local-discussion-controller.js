@@ -349,7 +349,10 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     await loadSelection(epoch);
   }
   function setDraft(body) {
-    if (mutationPending || state.phase !== "ready" || state.needsFreshRead ||
+    const selectedDiscussionLoading = state.phase === "loading" && state.catalog?.sources.some((source) =>
+      source.id === state.sourceId && source.topicId === state.topicId) &&
+      state.draft.mode === "root" && !state.draft.detached;
+    if (mutationPending || !(state.phase === "ready" || selectedDiscussionLoading) || state.needsFreshRead ||
         typeof body !== "string" || body.length > 8000) return;
     publish({ draft: { ...state.draft, body } });
   }
