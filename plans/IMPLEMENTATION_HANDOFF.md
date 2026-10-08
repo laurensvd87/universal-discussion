@@ -1,5 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 standalone owner visualization: ADR-061 adds
+`apps/topic-dashboard`, a separate read-only SQLite-to-self-contained-HTML
+Topic Atlas. It displays learned public pages, their current Topic links and
+nearest-vector edges; generated output lives in OS temp, not Git. Re-run for
+fresh data. It does not bind a listener, contact provider, change the extension
+or mutate the service DB. Current read-only count: 118 total Sources, 110
+learned pages, 95 represented Topics, 132 total Topics. See its README for
+launch and privacy/capacity limitations.
+
 2026-10-08 latest owner-approved window behavior: ADR-060/extension 0.13.26
 preserves auto-start eligibility when the bound normal browser window closes.
 The next focused eligible window in the same separate public-only profile can

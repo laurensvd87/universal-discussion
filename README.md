@@ -10,6 +10,14 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
+current local catalog without a server: `cd apps/topic-dashboard` and
+`npm start` generates and opens a read-only interactive snapshot. A read-only
+check on 2026-10-08 found **118 saved Sources**, including **110 learned public
+pages** spread across **95 represented Topics** (132 Topics in total, including
+fixtures/empty Topics). Click a page to open its original URL. Map distances
+are approximate; nearest-neighbor edges use the original vectors.
+
 Extension 0.13.26 keeps automatic matching eligible when its bound browser
 window closes. The next focused, eligible normal window in the same public-only
 profile can resume matching after the existing pairing, permission and local

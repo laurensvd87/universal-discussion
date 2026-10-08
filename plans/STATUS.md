@@ -35,6 +35,31 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 standalone Topic Atlas (ADR-061):** The owner requested a visual
+dashboard of stored pages, their Topic neighborhoods and clickable originals.
+A read-only SQLite check found **118 Sources**, **110 learned public Sources**,
+**95 Topics represented by those pages** and **132 total Topics**. The separate
+`apps/topic-dashboard` program exports only learned public URL/title/host,
+current Topic links, approximate PCA coordinates and original-vector cosine
+neighbor scores into a self-contained local HTML file in the OS temporary
+directory. No vector, page body, comment, account credential or provider data
+is exported. It adds no listener or remote request and never writes SQLite.
+The report is a moment-in-time file; rerun to refresh, delete its temp file
+when no longer needed. Five synthetic tests passed under the repository's
+network/process-denial guard; the real database read-only export completed in
+under one second with 110 pages and 253 neighbor edges. `npm start` generated
+the owner-local report and invoked the default-browser opener successfully.
+A separate synthetic
+headless-Chrome smoke verified rendered nodes, links and the restart hint, and
+an owner-data screenshot was reviewed then deleted together with its temporary
+Chrome profile. Trust review found no critical injection, listener or provider
+issue; a predictable temp-directory ownership concern was addressed with
+canonical-path and owner/mode checks (Unix) and the report remains owner-local
+on Windows. Owner visual feedback is still open; no store/legal/remote release
+is implied. The dashboard explicitly
+refuses more than 1,000 learned pages rather than silently truncating its
+all-pairs graph; that is not a catalog storage limit.
+
 **2026-10-08 bound-window auto-rebind (extension 0.13.26, ADR-060):** The owner
 approved automatically continuing matching in the next focused eligible normal
 window of the same separate public-only profile after the bound window closes.

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Topic Atlas · Lokales Dashboard</title>
+  <link rel="stylesheet" href="./style.css" data-dashboard-style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">◈</span><div><span class="eyebrow">UNIVERSAL DISCUSSION</span><h1>Topic Atlas</h1></div></div>
+      <div class="top-actions"><span id="data-age" class="data-age">Lokale Momentaufnahme</span><span id="refresh-hint" class="refresh-hint" hidden>Für neue Daten Dashboard erneut starten</span><label id="load-label" class="button button-secondary" for="file-input">JSON laden</label><input id="file-input" type="file" accept=".json,application/json" hidden><button id="reload-button" class="button button-secondary" type="button">Aktualisieren</button></div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="Filter und Topics">
+        <div class="sidebar-intro"><span class="eyebrow">DEIN LOKALER KATALOG</span><h2>Seiten im Zusammenhang sehen.</h2><p>Eine Karte der erfassten Seiten, ihrer Topics und ihrer nächsten Nachbarn.</p></div>
+        <div class="metrics" aria-label="Katalogzahlen">
+          <div class="metric"><strong id="count-learned">—</strong><span>gelernte Seiten</span></div>
+          <div class="metric"><strong id="count-topics">—</strong><span>Topics</span></div>
+        </div>
+        <p id="count-context" class="count-context">Lade lokalen Datenstand …</p>
+        <label class="search-label" for="search-input">Suchen</label>
+        <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Titel, Website oder Topic" autocomplete="off"></div>
+        <div class="section-heading"><span>TOPICS</span><button id="clear-filter" class="text-button" type="button" hidden>Alle zeigen</button></div>
+        <div id="topic-list" class="topic-list" role="list"></div>
+      </aside>
+
+      <section class="map-section" aria-label="Interaktive Themenkarte">
+        <div class="map-header"><div><span class="eyebrow">SEMANTISCHE LANDKARTE</span><h2 id="map-title">Alle Seiten</h2></div><span id="visible-count" class="visible-count">—</span></div>
+        <div id="map-stage" class="map-stage">
+          <svg id="map" viewBox="0 0 1000 700" role="img" aria-label="Interaktive Karte von Seiten und Topics"><g id="map-viewport"></g></svg>
+          <div id="empty-state" class="empty-state" hidden><span class="empty-symbol" aria-hidden="true">◎</span><strong>Keine passenden Seiten</strong><span>Suche oder Topic-Auswahl ändern.</span></div>
+          <div class="map-controls"><button id="zoom-in" type="button" aria-label="Vergrößern">+</button><button id="zoom-out" type="button" aria-label="Verkleinern">−</button><button id="zoom-reset" type="button" aria-label="Ansicht zurücksetzen">⌑</button></div>
+          <div class="map-key"><span><i class="key-topic"></i> Topic</span><span><i class="key-page"></i> Seite</span><span><i class="key-edge"></i> nächste Seiten</span></div>
+        </div>
+        <p class="map-note">Abstände in 2D sind eine Annäherung. Die Verbindungslinien beruhen auf Ähnlichkeit der ursprünglichen Vektoren. Topic-Zuordnungen sind vorläufig und keine bestätigte semantische Identität.</p>
+      </section>
+
+      <aside class="detail-panel" aria-label="Auswahl und Seiten">
+        <div class="detail-top"><span class="eyebrow">AUSWAHL</span><button id="close-selection" class="icon-button" type="button" aria-label="Auswahl schließen" hidden>×</button></div>
+        <div id="selection" class="selection"><div class="selection-placeholder"><span aria-hidden="true">↗</span><h2>Ein Punkt, eine Geschichte.</h2><p>Wähle eine Seite oder ein Topic auf der Karte. Hier findest du den Zusammenhang und den Weg zur Originalseite.</p></div></div>
+        <div class="section-heading pages-heading"><span id="pages-heading">SEITEN</span><span id="list-count">—</span></div>
+        <div id="page-list" class="page-list" role="list"></div>
+      </aside>
+    </main>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+  <script id="dashboard-data" type="application/json"></script>
+  <script src="./app.js" defer data-dashboard-script></script>
+</body>
+</html>

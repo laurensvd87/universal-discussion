@@ -1,0 +1,15 @@
+{
+  "name": "@universal-discussion/topic-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node --test --test-isolation=none test/*.test.js",
+    "test:restricted": "node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none test/*.test.js",
+    "test:browser": "node test/web-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
