@@ -25,6 +25,11 @@ matched-query checks; on a CC BY 4.0 Wikinews storyline corpus the projection
 ranked 165/176 versus raw E5's 168/176. An experimental dynamic join rule made
 false joins on its independent test. These are offline research results, not
 validated same-Topic accuracy; no live matching or stored discussion changed.
+In the latest 56-page synthetic challenge, plain E5 applied to **title plus
+article lead** beat the newly trained compact heads: it retrieved the right
+development for 48/48 paired queries and accepted 40/48 true pairs at a
+validation-selected cutoff without a hard false join. This is encouraging
+but not a real-web guarantee; the app still uses its existing vector input.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

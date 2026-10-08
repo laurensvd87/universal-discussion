@@ -35,6 +35,48 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## 2026-10-08 Topic-focused embedding shadow (ADR-063)
 
+**Latest independent shadow checkpoint (2026-10-08):** A GPT-6 Luna Low
+author created 120 original, split-family-isolated English article snippets
+and then a separate 56-article challenge. Labels deliberately include
+opposing views of the same precise development and same-entity/different-
+development hard negatives. A 6,144-weight dual-view E5 metric head was
+trained on CDEC-WN real Wikinews storylines, another on the Luna training
+split, and a single-pass title/lead head on both training splits. The
+single-pass head failed its predeclared validation promotion gate and was
+not scored on the 56-page challenge. On that challenge, unchanged E5 with
+**title + lead** retrieved a correct same-Topic partner for **48/48** paired
+queries and accepted **40/48** true pairs at a validation-selected cutoff,
+with **0/72** same-entity/different-Topic hard false pairs and **8/8**
+separate-family unmatched pages abstaining. Raw E5 body accepted 18/48;
+the CDEC-trained head 24/48 (46/48 rank-1); the Luna-trained head 32/48
+but made one hard false join. Independent read-only QA reproduced the pair
+counts and scores. The eight abstentions do *not* test a new development of
+an already represented entity. These are synthetic assistant labels, not
+human or cross-publisher-web evidence. No new cross-publisher real-web
+benchmark was completed. Training a
+full E5 LoRA replacement is technically possible but would require a new
+roughly 118 MB browser model and stronger labeled real-page evidence; no
+framework/model was installed or downloaded. **No learned candidate or
+title/lead input change is active in the app.** See the
+[frozen results](../apps/local-service/experiments/topic-encoder/real-model/README.md).
+
+**Owner-selected contrasting-view real-page check:** The Guardian opinion
+and Fox News report about Trump's 2 April 2025 reciprocal-tariff
+announcement are two different, provisional singleton Topics in the owner's
+read-only local catalog. Direct inspection confirms the same announcement
+despite contrasting framing. Their current body-E5 cosine is **0.90963**,
+above the 0.90 floor but below the 0.94 tight gate. The planner still
+refuses a merge because its global competing-neighbor rule requires a
+0.04 margin over every other saved page, whereas another nearby page scores
+**0.91400** against one member. A Google Search result was also among the
+nearby saved Sources. Replaying the pure planner read-only kept them separate;
+no owner database or Topic link was changed. This is concrete evidence that
+the global margin can suppress genuine same-event joins as the catalog grows.
+Do not simply lower the cosine floor: nearby different developments also
+exist, and the synthetic challenge shows a trained candidate making a hard
+false join. A candidate fix needs a frozen multi-page event benchmark and
+separate provisional grouping vs. related-page presentation rules.
+
 **Follow-on 2026-10-08:** The owner explicitly directed a longer autonomous
 attempt at a new topic-focused model and permitted local training tooling. A
 supervised 384D, 768-parameter E5-plus-local-title/lead projection is now

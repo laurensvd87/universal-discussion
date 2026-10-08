@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 further Topic-encoder checkpoint: two compact, genuinely trained
+dual-view E5 heads and a single-pass head remain offline experiments. A frozen
+56-page Luna-authored English challenge favored **unchanged title + lead E5**:
+48/48 paired-query rank-1 and 40/48 true pairs accepted at a validation-only
+cutoff, with 0/72 same-entity hard false pairs and 8/8 separate-family
+singletons abstaining. The CDEC-trained dual head accepted 24/48; the
+Luna-trained dual head 32/48 with one hard false join. The single-pass head
+failed its validation gate and was not challenge-scored. Read-only QA
+reproduced the results. These labels are synthetic and the unmatched pages
+do not test a new development of a represented entity. No public-page
+snapshot was collected, no new real-web result is claimed, and no app input,
+stored vector, threshold or Topic assignment changed. Further labels and a
+separate owner/Trust migration decision are required before activation;
+see [the experiment](../apps/local-service/experiments/topic-encoder/real-model/README.md).
+
 2026-10-08 follow-on Topic-encoder research: the owner authorized extended
 autonomous local training. [ADR-063](../decisions/ADR-063-topic-focused-embedding-shadow.md)
 now also records a supervised 384D E5/title-lead projection, two new frozen

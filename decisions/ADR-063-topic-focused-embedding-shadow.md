@@ -121,6 +121,46 @@ collection-scope change.
 
 ## Activation boundary
 
+### Further frozen-model disposition, 2026-10-08
+
+An additional rank-8, 6,144-weight dual-view head trained on CDEC-WN
+storylines and a separate head trained on 80 Luna-authored synthetic articles
+both failed to outperform a single unchanged E5 pass over title + lead.
+On an independently authored 56-article synthetic challenge, title/lead E5
+ranked the correct precise development first for 48/48 paired queries and
+accepted 40/48 same-Topic pairs at its validation-only cutoff, with no hard
+false pair among 72 same-entity/different-development pairs. The Luna head
+accepted 32/48 and made one hard false join; the CDEC head accepted 24/48.
+All eight unmatched queries abstained, but they are separate-family
+singletons, not unmatched developments of represented entities. A combined
+single-pass learned head lost one accepted true pair on each validation
+corpus and was not promoted to the independent challenge. An independent
+read-only audit reproduced the aggregate results and checked split/cutoff
+isolation. Exact artifacts, corpus digests and commands are in the
+[experiment record](../apps/local-service/experiments/topic-encoder/real-model/README.md).
+
+The disposition remains **shadow only**. In particular, title/lead E5 is
+an input *candidate*, not a production change: it changes vector meanings
+for retained Sources even though dimensions stay at 384, so mixed old/new
+matching and discussion routing need a migration/rollback design and a
+separate owner/Trust decision. This synthetic result cannot establish
+real-page viewpoint recall or safe joins. A full E5 LoRA fine-tune is
+technically feasible but would replace the roughly 118 MB packaged model,
+need full-precision weights, and currently lacks an adequate labeled
+real-page benchmark; no dependency or model download was made. No new
+cross-publisher web claim follows.
+
+A read-only check of the owner's newly selected Guardian/Fox contrasting-view
+pair found a current body-E5 cosine of 0.90963. They cover the same 2 April
+2025 tariff announcement but remain separate provisional Topics: the current
+0.04 global competing-neighbor margin is defeated by another page scoring
+0.91400 against one member. This is a grouping-rule miss as well as an
+imperfect vector; dropping the floor alone is not an adequate correction.
+No owner Source, Topic or discussion was moved. A later candidate should
+separate high-recall event neighborhoods from conservative shared-discussion
+attachment, and test adjacent but distinct developments plus search-page
+contamination on frozen multi-page groups.
+
 Before changing production: demonstrate an improvement over raw E5 and a
 text-available baseline on provenance-approved, independent real-page evidence,
 including viewpoint, same-actor/different-event, no-match and multilingual

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "description": "Independent challenge labels. Each row's family is the broad invented entity; each topicLabel is one exact development. Paired entity families have two distinct developments with three articles each. Singleton entities have one no-match article.",
+  "groups": [
+    {"family":"lattice_health","kind":"paired-entity","topicLabels":["Whether Lattice Health should lower the high-glucose alert threshold in version 4.2","Whether Lattice should replace adhesive patches from lot H17 after edge lifting reports"]},
+    {"family":"alto_metro","kind":"paired-entity","topicLabels":["Whether Alto Metro should keep the weekend express shuttle after its six-month pilot","Whether Alto Metro should replace the East Terminal elevators before winter"]},
+    {"family":"meridian_foods","kind":"paired-entity","topicLabels":["Whether Meridian should recall oat drink cartons from production line 3 after undeclared almond traces","Whether Meridian should reverse the spring price increase on its oat drink"]},
+    {"family":"kite_harbor_authority","kind":"paired-entity","topicLabels":["Whether Kite Harbor should award the east-channel dredging contract to the lowest bidder","Whether Kite Harbor should install a linked storm-siren system along the north quay"]},
+    {"family":"solstice_forest_board","kind":"paired-entity","topicLabels":["Whether Solstice Forest Board should close the North Ridge lookout during nesting season","Whether Solstice Forest Board should conduct a controlled burn in the Cedar Basin this autumn"]},
+    {"family":"juno_learning","kind":"paired-entity","topicLabels":["Whether Juno Learning should include detachable keyboards in the ClassTab 3 school bundle","Whether Juno should replace ClassTab 2 batteries after reports of swelling in storage"]},
+    {"family":"hearthgrid_energy","kind":"paired-entity","topicLabels":["Whether HearthGrid should add peak-hour rates to its residential heat-pump tariff","Whether HearthGrid should compensate households for the four-hour Pine Ward outage"]},
+    {"family":"vela_orbital","kind":"paired-entity","topicLabels":["Whether Vela Orbital should delay the Ardent satellite launch after antenna vibration tests","Whether Vela should replace the cloud filter in Ardent's coastal image release pipeline"]},
+    {"family":"singleton_winter_tire","kind":"singleton-no-match","topicLabels":["Whether Bramley should require winter tire storage lockers at apartment garages"]},
+    {"family":"singleton_cave_survey","kind":"singleton-no-match","topicLabels":["What the limestone survey found in the lower chambers of Bell Cave"]},
+    {"family":"singleton_civic_archive","kind":"singleton-no-match","topicLabels":["How Eastmere will digitize handwritten minutes from its first town council"]},
+    {"family":"singleton_chess_clock","kind":"singleton-no-match","topicLabels":["Whether the Vale Chess Open should introduce a no-phone check-in table"]},
+    {"family":"singleton_theater_roof","kind":"singleton-no-match","topicLabels":["Whether the Lantern Theater should replace its aging balcony rail before the autumn season"]},
+    {"family":"singleton_salt_marsh","kind":"singleton-no-match","topicLabels":["How salt levels changed in the North Marsh pond after last year's drought"]},
+    {"family":"singleton_tennis_lines","kind":"singleton-no-match","topicLabels":["Whether Larkspur Tennis Club should repaint its outdoor court lines with a lighter pigment"]},
+    {"family":"singleton_beacon_library","kind":"singleton-no-match","topicLabels":["Whether Beacon Library should lend portable reading lamps to homebound patrons"]}
+  ]
+}
