@@ -1,5 +1,14 @@
 # Local service
 
+For the owner-approved PCGames citation diagnosis, the optional one-shot
+`node harness/run-live-insight-qa.js --run-live --with-web-search --pcgames`
+case uses the public PCGames page and one fixed GameStar candidate. It prints
+only fixed citation categories, status and counts (no provider text, URL or
+token), has one Responses POST maximum, and does not share or persist an
+Insight. Stop the normal service first and restart it afterward. Three
+agent-run requests reproduced a different-article citation; the exact-URL
+product rule remains unchanged pending [ADR-057](../../decisions/ADR-057-hosted-search-citation-scope-open.md).
+
 `response-web-citation` no longer rejects an exact selected URL solely
 because ChatGPT omitted an optional/unusable display title; it uses the
 locally validated Source title instead. The content-free `INSIGHT_TRACE` v2

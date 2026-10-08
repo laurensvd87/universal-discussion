@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-07. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-08. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -34,6 +34,27 @@ loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/other-provider/moderation work and all external release gates remain separate.
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
+
+**2026-10-08 PCGames citation reproduction and multilingual title PoC:** The
+owner's repeated `response-web-citation` was classified from the running
+service trace as `unselected-url` after completed search/output. A fixed
+public PCGames plus one selected GameStar QA case reproduced the same failure
+in three owner-authorized, one-shot Responses calls; none cited the exact
+selected URL or its stable article-ID alias. The final bounded diagnostic
+identified another GameStar article, not the selected one; the first two
+probes did not distinguish which of the two known hosts was cited. No raw
+response, page text or token was logged and nothing was shared. The exact-URL
+rule remains active. [ADR-057](../decisions/ADR-057-hosted-search-citation-scope-open.md)
+records the pending explicit owner choice between bounded same-publisher
+private citations and a separate manual current-page-only fallback. The
+service was restored on port 4174 with unchanged Origin, pairing and SQLite.
+The isolated [non-LLM title PoC](../experiments/topic-titles/README.md)
+passes 12 network-denied checks. A read-only aggregate replay found 85 learned
+Topics (71 singleton, 13 pairs, one triple); conservative shared phrases
+appeared in **zero**, while existing-vector representative selection would
+change six headings. This is a viable narrow proof of concept but not a
+general multilingual abstract title solution or production activation; see
+the [research update](../research/NON_LLM_TOPIC_TITLES_2026-10-07.md).
 
 **2026-10-07 citation rejection diagnostic and non-LLM Topic-title review
 ([ADR-056](../decisions/ADR-056-insight-citation-display-metadata.md)):** A

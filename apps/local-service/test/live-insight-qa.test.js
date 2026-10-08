@@ -1,13 +1,55 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chooseListedModel, extractPublicArticle, oneResponseFetch, qualityMetrics, PUBLIC_PAGE, RELATED_TEXT_PAGE,
+import { chooseListedModel, classifyCitationUrl, classifyResponseAnnotations, extractPublicArticle, inspectArgs,
+  oneResponseFetch, qualityMetrics, PCGAMES_PAGE, PUBLIC_PAGE, RELATED_TEXT_PAGE,
   publicCitationSummary, readPublicPage, readRequiredRelatedExcerpts } from "../harness/run-live-insight-qa.js";
 import { inspectPageUrl } from "../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
 test("curated current and related URLs pass the app's public URL policy", () => {
-  for (const source of [PUBLIC_PAGE, ...PUBLIC_PAGE.related, RELATED_TEXT_PAGE, ...RELATED_TEXT_PAGE.related]) {
+  for (const source of [PUBLIC_PAGE, ...PUBLIC_PAGE.related, RELATED_TEXT_PAGE, ...RELATED_TEXT_PAGE.related,
+    PCGAMES_PAGE, ...PCGAMES_PAGE.related]) {
     assert.deepEqual(inspectPageUrl(source.url).supported, true, source.url);
   }
+});
+
+test("PCGames probe requires web search and suppresses provider result printing", () => {
+  const args = ["--run-live", "--model", "auto", "--with-web-search", "--pcgames"];
+  assert.equal(inspectArgs(args).pcgames, true);
+  assert.equal(inspectArgs(["--run-live", "--with-web-search", "--pcgames"]).model, "auto");
+  assert.throws(() => inspectArgs(["--run-live", "--model", "auto", "--pcgames"]), /Unsupported QA option/u);
+  assert.throws(() => inspectArgs([...args, "--show-result"]), /Unsupported QA option/u);
+  assert.throws(() => inspectArgs([...args, "--pcgames-show-public-url"]), /Unsupported QA option/u);
+  assert.equal(PCGAMES_PAGE.related.length, 1);
+});
+
+test("PCGames annotation classifier reports only fixed URL categories", () => {
+  const selected = PCGAMES_PAGE.related[0].url;
+  const current = PCGAMES_PAGE.url;
+  const urls = [selected, current,
+    "https://www.gamestar.de/artikel/alternate-cover,3460312.html",
+    "https://www.pcgames.de/GTA-6-Spiel-55239/News/another-slug-1555194/",
+    "https://www.gamestar.de/artikel/other,3460313.html",
+    "https://www.pcgames.de/News/other-story-1555195/",
+    "https://example.org/news/other", "http://www.gamestar.de/artikel/other,3460312.html"];
+  assert.deepEqual(urls.map((url) => classifyCitationUrl(url)), ["exactSelected", "currentPage",
+    "sameHostSameArticleId", "sameHostSameArticleId", "sameSelectedHostOther",
+    "sameCurrentHostOther", "foreignHost", "invalid"]);
+  const annotations = urls.map((url) => ({ type: "url_citation", url, title: "Private provider title",
+    start_index: 0, end_index: 3 }));
+  const item = { type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Private provider text", annotations }] };
+  const event = (type, data) => `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`;
+  const raw = event("response.output_item.done", { output_index: 0, item }) +
+    event("response.completed", { response: { status: "completed", output: [item] } });
+  const summary = classifyResponseAnnotations(raw);
+  assert.deepEqual(summary, { observed: true, terminalCompleted: true, total: 8, exactSelected: 1, currentPage: 1,
+    sameHostSameArticleId: 2, sameSelectedHostOther: 1, sameCurrentHostOther: 1, foreignHost: 1, invalid: 1 });
+  assert.ok(!JSON.stringify(summary).includes("Private provider"));
+  assert.ok(!JSON.stringify(summary).includes("https://"));
+  assert.deepEqual(classifyResponseAnnotations(event("response.output_item.done", { output_index: 0, item })),
+    { ...summary, terminalCompleted: false });
+  assert.equal(classifyResponseAnnotations(event("response.completed", { response: {
+    status: "incomplete", output: [item] } })).terminalCompleted, false);
 });
 
 test("PEP current page uses the fixed URL and anonymous bounded fetch", async () => {

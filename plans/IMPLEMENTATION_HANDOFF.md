@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 checkpoint: [ADR-057](../decisions/ADR-057-hosted-search-citation-scope-open.md)
+records a reproduced PCGames `response-web-citation`: ChatGPT cited an
+unselected same-publisher article after completed search. Exact selected-URL
+validation remains in force; do not loosen it or add automatic retries before
+the pending explicit owner trust choice. Three one-shot public QA Responses
+calls were made, none shared; service is restored. In parallel, the isolated
+[Topic-title PoC](../experiments/topic-titles/README.md) passes 12 offline
+checks using shared phrases and existing-vector representative ranking.
+The owner-local catalog is too sparse for its strict keyphrase rule (zero
+supported titles across 85 learned Topics); no production title behavior,
+second vector, migration or model was added. A frozen multilingual label
+evaluation and owner approval precede activation.
+
 2026-10-07 owner-directed Insight source selection (ADR-055, extension
 0.13.18): exact/tracking URL and same-host stable-article-ID aliases now use
 one slot. Recognizable search-result tabs are omitted from Insight sources,

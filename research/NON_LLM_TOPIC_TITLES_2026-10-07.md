@@ -51,3 +51,33 @@ negation/date/model-number conflicts, clickbait/blank titles and output
 sanitization. Never use the label itself as grouping evidence or infer
 historical source lineage. A separate owner decision is needed for a second
 vector/model, title persistence or migration, or off-device title generation.
+
+## 2026-10-08 offline proof of concept
+
+The isolated [experiment](../experiments/topic-titles/README.md) now selects a
+verbatim phrase only when 60% of distinct current members on at least two
+publishers repeat three content words, including a small event cue. It
+preserves negation, dates and model numbers from supporting headlines. With
+no supported phrase it selects a real member headline; existing normalized
+384-D page vectors can rank that representative across languages, with a
+deterministic lexical fallback if any vector is missing or incompatible.
+It uses no additional model, network, persisted vector, SQLite change or LLM.
+Twelve network-denied synthetic checks cover EN/DE/NL/Cyrillic wording,
+Japanese and script-control safety, cross-language vector ranking, duplicate
+flooding and same-person/product different-event traps.
+
+A read-only aggregate replay of the owner's local catalog found 85 provisional
+learned Topics: 71 singletons, 13 pairs and one three-page Topic. The strict
+phrase rule produced **zero** keyphrase titles; representative selection
+would change six saved headings (five multi-page Topics and one stale
+singleton title). This is a useful negative result: the
+current catalog is too sparse and lexically varied for this conservative
+keyphrase method to improve the user-visible heading often. The replay
+reported only aggregate counts, not browsing history or titles. It is not an
+independent accuracy evaluation. Vector medoid selection is a viable
+non-LLM improvement, but still displays a page headline rather than a
+language-neutral abstract Topic title. Do not activate either method until
+misleading-label and read-time behavior are evaluated on a frozen,
+provenance-approved multilingual set and the owner approves the new display
+behavior. A broad unsupervised phrase generator without that evidence could
+turn related-but-different events into a falsely specific shared label.

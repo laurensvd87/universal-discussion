@@ -10,6 +10,17 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The latest public PCGames Insight failure is now reproduced: hosted search
+cited a different publisher article than the exact related URL selected by
+the app. The strict citation rule still rejects it; a safer fallback versus
+bounded same-publisher citations is awaiting the owner's explicit choice in
+[ADR-057](decisions/ADR-057-hosted-search-citation-scope-open.md). No automatic
+retry or sharing was added. A separate
+[non-LLM multilingual Topic-title experiment](experiments/topic-titles/README.md)
+works on supported repeated phrases and can rank a representative headline
+using existing vectors, but the current sparse local catalog yielded no
+supported keyphrase labels. Neither experimental title behavior is active.
+
 The local-service citation parser now accepts an exact selected web citation
 even when ChatGPT omits or spoils its display title, using the validated local
 Source title instead. Exact URL/span checks remain; the original owner's
