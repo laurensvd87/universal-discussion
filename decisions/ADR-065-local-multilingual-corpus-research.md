@@ -66,8 +66,13 @@ used shared-neighbor evidence without a fixed Source count. It admitted
 34/803 true and 0/10,372 false validation pairs at a train-only cutoff.
 This is better than the pair-only candidate but 4.2% pair recall is still
 too sparse for a useful shared-Topic product. No live activation follows.
-Further offline work should test whether a longer page-body input improves
-event separation, with policy selection confined to training. Production
-activation still requires the
+The [long-body two-input experiment](../apps/local-service/experiments/topic-encoder/real-input-v2/README.md)
+completed after sanitizing one contract-forbidden control-character input.
+On the same event-disjoint validation it admitted only 5/803 true and no
+false pairs; the long E5 pass cost about 497 seconds versus 102 seconds for
+the short pass. It is rejected. The preliminary 298-article sample's 45/331
+true-pair result did not generalize to the larger event selection. Longer
+input and small train-only score adjustments have not solved the admission
+problem. Production activation still requires the
 ADR-064 owner/Trust gate, representative cross-publisher error review,
 retention/model-rights decision, migration/rollback and actual app QA.

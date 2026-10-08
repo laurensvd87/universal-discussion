@@ -2,7 +2,9 @@
 import { createHash } from 'node:crypto';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
-const normalized = value => value.normalize('NFKC').replace(/\s+/gu, ' ').trim();
+const normalized = value => value.normalize('NFKC')
+  .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/gu, ' ')
+  .replace(/\s+/gu, ' ').trim();
 const splitOf = key => ['train', 'validation', 'test'][parseInt(sha(key).slice(0, 8), 16) % 10 < 6 ? 0 : parseInt(sha(key).slice(0, 8), 16) % 10 < 8 ? 1 : 2];
 
 export class EvalError extends Error {
@@ -18,7 +20,9 @@ export const safeDiagnostic = error => error instanceof EvalError
   ? { phase: error.phase, code: error.code }
   : { phase: 'internal', code: 'UNCLASSIFIED_FAILURE' };
 
-export function parseCorpus(bytes, { maxBytes = 64 * 1024 * 1024, maxArticles = 10000 } = {}) {
+export function parseCorpus(bytes, { maxBytes = 64 * 1024 * 1024, maxArticles = 10000,
+  leadCharacters = 384 } = {}) {
+  if (leadCharacters !== 384 && leadCharacters !== 4096) fail('input', 'LEAD_LENGTH_OPTION');
   if (!Buffer.isBuffer(bytes) || bytes.length > maxBytes || !bytes.length) fail('input', 'INPUT_SIZE');
   const source = bytes.toString('utf8');
   const first = source.trimStart()[0];
@@ -73,10 +77,10 @@ export function parseCorpus(bytes, { maxBytes = 64 * 1024 * 1024, maxArticles = 
         ? article.viewpoint : null;
       if (!viewpoint) viewpointGold = false;
       const title = normalized(article.title);
-      const lead = normalized(article.article).slice(0, 384);
+      const lead = normalized(article.article).slice(0, leadCharacters);
       documents.push({ id: `d${documents.length}`, eventKey, familyKey: family ? `family:${family}` : `event:${eventKey}`,
         category: event.category, lang: article.lang_abbr.toLowerCase(), viewpoint,
-        duplicateKey: sha(`${title}\0${lead}`), title, lead });
+        duplicateKey: sha(`${title}\0${lead.slice(0, 384)}`), title, lead });
     }
   }
   const eventSplit = new Map();

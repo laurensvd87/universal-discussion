@@ -63,6 +63,17 @@ recall is the best of these research candidates, but still not a useful
 replacement; no test split or production Topic was changed. Next check:
 whether title plus more body context improves separation, using train-only
 policy selection and the same untouched candidate test split.
+**Long-body check completed:** The explicit 4,096-character offline E5 view
+needed one narrowly sanitized control-character input; tokenizer-only
+preflight then passed 899/899 train/validation inputs. The full 1,192-selected
+report run admitted 5/803 correct and 0/10,372 incorrect validation pairs
+with its train-selected two-view score, less than the neighborhood result.
+Embedding the 899 train/validation reports took ~102 seconds for short input
+and ~497 seconds for the long input. The earlier 298-report sample's 45/331
+true-pair result was not representative. We rejected the extra pass; no live
+reader, embedding, Topic or discussion changed. Next work needs a materially
+better label/model design and rights-safe product dataset, not more tuning of
+this strict E5 score on the same validation set.
 
 **2026-10-08 related-discussion visibility (extension 0.13.27):** A read-only
 popup bug hid useful conversations when the first four related Topics were

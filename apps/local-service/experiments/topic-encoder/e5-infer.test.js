@@ -1,7 +1,7 @@
 import '../../../../spikes/topic-resolution/harness/deny-external-capabilities.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { topicInput, embedDocuments } from './e5-infer.js';
+import { topicInput, embedDocuments, runPooledArticle, InferenceStageError } from './e5-infer.js';
 
 test('experiment input is bounded and title mode is explicit', () => {
   const document = { title: '  Ferry   decision  ', body: '  The   invented ferry closes.  ' };
@@ -22,4 +22,26 @@ test('hash-pinned offline E5 returns one normalized vector per synthetic documen
   assert.ok(assets.modelSha256 && assets.tokenizerSha256);
   await assert.rejects(embedDocuments([{ id: 'same', title: 'A', body: 'A' },
     { id: 'same', title: 'B', body: 'B' }]), /Invalid/);
+});
+
+test('per-article tensors are disposed on success and inference failure', async () => {
+  const made = [];
+  class FakeTensor {
+    constructor() { this.disposed = false; made.push(this); }
+    dispose() { this.disposed = true; }
+  }
+  const encoded = { ids: [0, 2], attention_mask: [1, 1], token_type_ids: [0, 0] };
+  const output = new FakeTensor();
+  const session = { inputNames: ['input_ids', 'attention_mask', 'token_type_ids'],
+    run: async () => ({ last_hidden_state: output }) };
+  const value = await runPooledArticle(session, FakeTensor, encoded, () => [0.25]);
+  assert.deepEqual(value, [0.25]);
+  assert.equal(made.length, 4);
+  assert.ok(made.every(t => t.disposed));
+  made.length = 0;
+  session.run = async () => { throw new Error('fictional private error'); };
+  await assert.rejects(runPooledArticle(session, FakeTensor, encoded),
+    error => error instanceof InferenceStageError && error.code === 'SESSION_RUN');
+  assert.equal(made.length, 3);
+  assert.ok(made.every(t => t.disposed));
 });

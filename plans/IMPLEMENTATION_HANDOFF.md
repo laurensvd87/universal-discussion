@@ -23,6 +23,13 @@ An expandable-radius neighborhood method admitted 34/803 true and zero
 false validation pairs without a fixed Topic-member count; its 4.2% pair
 recall is also inadequate and remains offline. The next isolated experiment
 tests longer body context, not a product input change.
+That two-input offline test has now completed on the same 150-article
+validation split: 5/803 true and zero false pairs, versus 34/803 for the
+neighborhood method, with a 497-second long-input pass versus 102-second
+short pass. A tokenization preflight caught one forbidden control character;
+the research parser sanitizes only contract-forbidden controls. The 298-report
+preliminary sample looked better but did not generalize. Reject extra E5
+body pass for now; no live code or owner data changed.
 
 2026-10-08 fresh synthetic validation after the frozen 180-article
 [multilingual corpus v2](../apps/local-service/experiments/topic-encoder/multilingual-train-v2/README.md):

@@ -80,6 +80,11 @@ E5 title+lead baseline joined just 14/7,049 same-event pairs and one
 different-event pair, leaving 1,177 groups. This is a research warning,
 not a change to the extension; publisher rights and any product use remain
 separate decisions.
+Further real-event checks found that shared-neighborhood evidence admitted
+34/803 correct validation pairs without a wrong pair on that slice. A second,
+much slower pass over longer article text admitted only 5/803. Neither is
+useful enough to replace the live matcher; more body text alone did not solve
+multilingual same-Topic matching.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

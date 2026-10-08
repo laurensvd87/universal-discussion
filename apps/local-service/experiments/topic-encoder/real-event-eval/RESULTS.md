@@ -63,6 +63,19 @@ pair-only candidate but remains far too weak to create useful shared Topics.
 There is no fixed number of Sources per Topic in the experiment. The result
 does not warrant live activation or validation-driven threshold relaxation.
 
+A [two-input E5 experiment](../real-input-v2/README.md) compared title plus
+384 lead characters with title plus up to 4,096 article characters. A
+content-free tokenizer preflight found one contract-forbidden control-character
+case among 899 train/validation inputs; the offline parser now replaces only
+those forbidden controls with spaces. After that hygiene fix, preflight
+accepted all 899 inputs and the unchanged train-selected candidate completed.
+On the same 150-article validation split it admitted **5/803** true pairs
+and **0/10,372** false pairs, worse than the shorter-input pair and
+neighborhood experiments. E5 embedding time was about 102 seconds for the
+short view and 497 seconds for the long view. The smaller 298-article work
+sample had misleadingly shown 45/331 true, zero false; that result should
+not guide product selection. A second full E5 pass is rejected for now.
+
 The raw corpus remains in the owner's private Temp folder for this local
 research. To reproduce, provide the explicit private directory and JSONL
 path to `run.js --inspect` (no model) and then `run.js` (local E5 only).

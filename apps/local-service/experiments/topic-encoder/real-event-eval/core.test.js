@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EvalError, safeDiagnostic, parseCorpus, selectEventDisjoint, inspectCorpus,
   diagnoseRetrieval, scorePartition, matcherInputs, evaluate } from './core.js';
+import { inputText } from '../../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js';
 
 // Fictional event copy is embedded in test code. No real dataset or articles.
 const event = (description, category, titles, extra = {}) => ({
@@ -107,6 +108,38 @@ test('strict JSONL and JSON array yield equivalent validated events', () => {
     { phase: 'parse', code: 'JSONL_SYNTAX' });
   assert.deepEqual(diagnostic('[{"private":broken}]'),
     { phase: 'parse', code: 'JSON_SYNTAX' });
+});
+
+test('explicit longer transient lead preserves default and duplicate identity', () => {
+  const longBody = 'Fictional opening. '.repeat(300);
+  const rows = [event('Fictional extended report', 'culture', ['Invented title'])];
+  rows[0].news[0].article = longBody;
+  const bytes = Buffer.from(JSON.stringify(rows));
+  const standard = parseCorpus(bytes);
+  const extended = parseCorpus(bytes, { leadCharacters: 4096 });
+  assert.equal(standard.documents[0].lead.length, 384);
+  assert.equal(extended.documents[0].lead.length, 4096);
+  assert.equal(extended.documents[0].lead.slice(0, 384), standard.documents[0].lead);
+  assert.equal(extended.documents[0].duplicateKey, standard.documents[0].duplicateKey);
+  assert.equal(extended.documents[0].split, standard.documents[0].split);
+  assert.throws(() => parseCorpus(bytes, { leadCharacters: 4097 }),
+    { phase: 'input', code: 'LEAD_LENGTH_OPTION' });
+});
+
+test('forbidden controls beyond the default lead are sanitized for long E5 input', () => {
+  const rows = [event('Fictional clean event', 'culture', ['Invented\u0085 headline'])];
+  rows[0].news[0].article = `${'A'.repeat(390)}\u0001\u009f B\nC`;
+  const bytes = Buffer.from(JSON.stringify(rows));
+  const standard = parseCorpus(bytes);
+  const extended = parseCorpus(bytes, { leadCharacters: 4096 });
+  const short = standard.documents[0], long = extended.documents[0];
+  assert.equal(short.lead, 'A'.repeat(384));
+  assert.equal(long.title, 'Invented headline');
+  assert.equal(long.lead, `${'A'.repeat(390)} B C`);
+  assert.equal(long.lead.slice(0, 384), short.lead);
+  assert.equal(long.duplicateKey, short.duplicateKey);
+  assert.equal(long.split, short.split);
+  assert.doesNotThrow(() => inputText(`${long.title}\n${long.lead}`.slice(0, 4096)));
 });
 
 test('retrieval diagnostics report ranks, quantiles and conflicting duplicates only', () => {
