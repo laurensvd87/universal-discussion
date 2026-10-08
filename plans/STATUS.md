@@ -26,6 +26,17 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-08 next data gate:** After the negative real-E5 experiments, a
+potential [CC BY-labelled multilingual Wikinews event corpus](../decisions/ADR-066-wikinews-multilingual-research-gate.md)
+was identified: the source card says 15,200 linked articles in 33 languages.
+Its 45.3 MB file was **not downloaded**. The acquisition request was rejected
+because the owner approved only GlobeSumm for local real-data research. A
+[fixture-only adapter](../apps/local-service/experiments/topic-encoder/wikinews-event-eval/README.md)
+now passes four fictional tests and a no-data dry run; schema compatibility
+is unverified. Actual Wikinews data use, model
+training from it and any product rights decision await explicit owner
+approval. No new model or live matcher is active.
+
 **2026-10-08 real multilingual research gate and first result:** The owner
 approved [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 for local-only offline evaluation of GlobeSumm, not publication, provider

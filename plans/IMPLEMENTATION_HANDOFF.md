@@ -1,5 +1,12 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 next research gate: [ADR-066](../decisions/ADR-066-wikinews-multilingual-research-gate.md)
+records a promising Wikinews cross-language event corpus but **no acquisition
+approval**. Its download was blocked at the separate owner data/rights gate;
+do not retry or access it indirectly. Fixture-only code is safe to prepare.
+GlobeSumm remains local evaluation-only, and no real-trained model may ship.
+The current live matcher and saved discussions are unchanged.
+
 2026-10-08 owner-approved local real-data research: [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 allows a private, offline GlobeSumm evaluation only; the corpus is outside
 Git and no publisher-rights/product-training or release clearance follows.
