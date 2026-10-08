@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 latest capture reliability: extension 0.13.24 adds bounded
+popup-closed retries for transient authenticated service/foreground/matcher
+failure on the same eligible active tab. It does not scan inactive tabs,
+continuously observe page DOM, or add permissions. Stop/block/window close,
+permission revocation, unpairing and navigation fence retries. Chrome MV3
+may suspend the worker, so long outages still need a later tab/focus event
+or explicit retry; owner Chrome confirmation remains open. See STATUS.
+
 2026-10-08 latest visual refinement: extension 0.13.23 replaces visible
 "Loading discussions" prose with two decorative animated conversation-card
 placeholders. The live text remains screen-reader accessible; reduced-motion

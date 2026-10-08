@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { projectPageResolution } from "../browser/core/page-resolution-contract.js";
+import { EN } from "../browser/locales/en.js";
 
 const KEY = "pageMatchingPreferences";
 const CAPTURE_KEY = "pageMatchingCaptureSession";
@@ -37,8 +38,8 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
       : { schema: "capture-session/1", revision: "synthetic-control-revision-0001", windowId: enabled ? 1 : null }, blocked,
     tab: { id: 7, active: true, incognito: false, status: "complete", url: PAGE },
     window: { id: 1, focused: true, type: "normal" }, permitted: true, exists: false,
-    writeGate: null, permissionGate: null, embedGate: null, unauthorized: false, healthUnavailable: false,
-    windowError: false, tabQueryError: false,
+    writeGate: null, permissionGate: null, embedGate: null, unauthorized: false, healthUnavailable: false, catalogUnavailable: false,
+    windowError: false, tabQueryError: false, startWindowFailures: 0,
     popupContexts: [], popupAnswer: null,
     now: 0, windowQueryHook: null, tabQueryHook: null,
     toolbarTabId: undefined, catalog: null, roots: [],
@@ -92,7 +93,10 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
         } },
       onChanged: events.storageChanged,
     },
-    windows: { get: async (id) => state.window?.id === id ? structuredClone(state.window) : null, onRemoved: events.windowRemoved,
+    windows: { get: async (id) => {
+      if (state.startWindowFailures > 0) { state.startWindowFailures--; return null; }
+      return state.window?.id === id ? structuredClone(state.window) : null;
+    }, onRemoved: events.windowRemoved,
       getLastFocused: async (options) => { assert.deepEqual(options, { populate: false });
       calls.windowQueries++;
       if (state.windowQueryHook) return state.windowQueryHook(calls.windowQueries);
@@ -129,7 +133,10 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
       if (state.healthUnavailable) throw new Error("Synthetic local service unavailable");
       return new Response(JSON.stringify({ protocol: "local-service/v1", capability: "paired-demo" }), { headers });
     }
-    if (url.endsWith("/catalog")) return new Response(JSON.stringify(state.catalog ?? { version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] }), { headers });
+    if (url.endsWith("/catalog")) {
+      if (state.catalogUnavailable) throw new Error("Synthetic catalog unavailable");
+      return new Response(JSON.stringify(state.catalog ?? { version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] }), { headers });
+    }
     if (url.endsWith("/topics/topic-a/discussion")) return new Response(JSON.stringify({ version: state.catalog.version, topic: { id: "topic-a", title: "Synthetic Topic", kind: "general" }, discussionId: "discussion-a", roots: state.roots }), { headers });
     assert.ok(url.endsWith("/sources/ingest"));
     assert.ok(!options.body.includes("bounded public article sample"));
@@ -153,6 +160,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
     return work;
   }
   async function advance() { t.mock.timers.tick(400); await flush(); }
+  async function advanceBy(milliseconds) { t.mock.timers.tick(milliseconds); await flush(); }
   async function unpair() { await api.storage.local.remove(TOKEN_KEY); await flush(); }
   t.after(async () => {
     state.local.enabled = false; state.capture.windowId = null; state.token = undefined;
@@ -177,7 +185,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
     events.connect.emit(port);
     return port;
   }
-  return { state, calls, events, api, send, advance, createGate, unpair, connectPopup };
+  return { state, calls, events, api, send, advance, advanceBy, createGate, unpair, connectPopup };
 }
 
 test("adapter pause remains fail-closed across delayed storage and navigation", async (t) => {
@@ -275,6 +283,136 @@ test("automatic capture waits for authenticated local health instead of sampling
   await h.advance();
   assert.equal(h.calls.reads, 1);
 });
+test("a transient initial health failure recovers on the focused page without opening the popup", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true });
+  h.state.healthUnavailable = true;
+  await h.advance();
+  assert.equal(h.calls.reads, 0);
+  assert.equal(h.state.capture.windowId, null);
+  h.state.healthUnavailable = false;
+  await h.advanceBy(2000);
+  assert.equal(h.state.capture.windowId, 1);
+  assert.equal(h.calls.reads, 1);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 1);
+});
+test("failed authenticated health clears a previously grey verified-connection icon", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true }); await flush();
+  await h.send("toolbar-refresh");
+  assert.equal(h.calls.titles.at(-1).title, EN.toolbarConnected);
+  h.state.healthUnavailable = true;
+  await h.advance();
+  assert.equal(h.calls.titles.at(-1).title, EN.toolbarDisconnected);
+  assert.equal(h.calls.reads, 0);
+  h.state.healthUnavailable = false;
+  await h.advanceBy(2000);
+  assert.equal(h.calls.reads, 1);
+});
+test("a transient catalog failure recovers inside the active lease without opening the popup", async (t) => {
+  const h = await harness(t);
+  h.state.catalogUnavailable = true;
+  await h.advance();
+  assert.equal(h.calls.reads, 0);
+  const lease = structuredClone(h.state.capture);
+  h.state.catalogUnavailable = false;
+  await h.advanceBy(2000);
+  assert.deepEqual(h.state.capture, lease);
+  assert.equal(h.calls.reads, 1);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 1);
+});
+test("a missed foreground observation recovers without popup focus or another tab event", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true });
+  h.state.windowError = true;
+  await h.advance();
+  assert.equal(h.calls.reads, 0);
+  h.state.windowError = false;
+  await h.advanceBy(2000);
+  assert.equal(h.state.capture.windowId, 1);
+  assert.equal(h.calls.reads, 1);
+});
+test("a missed page-complete observation recovers inside the active lease", async (t) => {
+  const h = await harness(t);
+  h.state.tab.status = "loading";
+  await h.advance();
+  assert.equal(h.calls.reads, 0);
+  h.state.tab.status = "complete";
+  await h.advanceBy(2000);
+  assert.equal(h.calls.reads, 1);
+});
+test("an automatic Start race recovers without a later tab event or popup", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true }); await flush();
+  h.state.startWindowFailures = 1;
+  await h.advance();
+  assert.equal(h.state.capture.windowId, null);
+  assert.equal(h.calls.reads, 0);
+  await h.advanceBy(2000);
+  assert.equal(h.state.capture.windowId, 1);
+  assert.equal(h.calls.reads, 1);
+});
+test("repeated automatic Start races exhaust the bounded retry window", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true }); await flush();
+  h.state.startWindowFailures = 5;
+  await h.advance();
+  for (const delay of [2000, 4000, 8000, 16000]) await h.advanceBy(delay);
+  assert.equal(h.state.startWindowFailures, 0);
+  assert.equal(h.calls.reads, 0);
+  await h.advanceBy(32000);
+  assert.equal(h.calls.reads, 0);
+  assert.equal(h.state.capture.windowId, null);
+});
+for (const change of ["stop", "block", "window-close", "unpair", "permission-revoked"]) {
+  test(`a pending automatic retry cannot capture after ${change}`, async (t) => {
+    const h = await harness(t);
+    h.state.catalogUnavailable = true;
+    await h.advance();
+    h.state.catalogUnavailable = false;
+    if (change === "stop") await h.send("stop-session");
+    if (change === "block") await h.send("block-site", { origin: ORIGIN });
+    if (change === "window-close") h.events.windowRemoved.emit(1);
+    if (change === "unpair") await h.unpair();
+    if (change === "permission-revoked") {
+      h.state.permitted = false; h.events.permissionRemoved.emit({ origins: ["https://*/*"] });
+    }
+    await h.advanceBy(2400);
+    assert.equal(h.calls.reads, 0);
+    assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest")).length, 0);
+  });
+}
+test("navigation replaces a pending retry with a fresh active-tab observation", async (t) => {
+  const h = await harness(t);
+  h.state.catalogUnavailable = true;
+  await h.advance();
+  h.state.catalogUnavailable = false;
+  h.state.tab.url = "https://example.org/new-article";
+  h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab);
+  await h.advance();
+  await h.advanceBy(2000);
+  assert.equal(h.calls.reads, 1);
+  const ingestions = h.calls.fetches.filter((call) => call.url.endsWith("/sources/ingest"));
+  assert.equal(ingestions.length, 1);
+  assert.equal(JSON.parse(ingestions[0].body).url, h.state.tab.url);
+});
+test("automatic transient retries stop after four attempts without a new browser event", async (t) => {
+  const h = await harness(t);
+  h.state.catalogUnavailable = true;
+  await h.advance();
+  for (const delay of [2000, 4000, 8000, 16000]) await h.advanceBy(delay);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/catalog")).length, 5);
+  await h.advanceBy(32000);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/catalog")).length, 5);
+  assert.equal(h.calls.reads, 0);
+});
+for (const change of ["unsupported-url", "incognito"]) {
+  test(`a ${change} page does not trigger automatic foreground retries`, async (t) => {
+    const h = await harness(t, { enabled: false, autoEligible: true });
+    if (change === "unsupported-url") h.state.tab.url = "chrome://extensions/";
+    else h.state.tab.incognito = true;
+    await h.advance();
+    const healthChecks = h.calls.fetches.filter((call) => call.url.endsWith("/health")).length;
+    await h.advanceBy(30000);
+    assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/health")).length, healthChecks);
+    assert.equal(h.calls.reads, 0);
+  });
+}
 test("automatic start waits for pairing and native grant; Stop survives popup polling and navigation", async (t) => {
   const h = await harness(t, { enabled: false, paired: false, autoEligible: true });
   await h.advance();

@@ -10,6 +10,14 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension 0.13.24 improves popup-closed matching reliability. When the paired
+local service or focused page is briefly unavailable during navigation, the
+background worker makes a few bounded attempts to process the same active
+page without opening the popup. It does not scan inactive tabs or monitor
+in-place content changes. Chrome may suspend the worker; a prolonged outage
+still needs a later tab/focus event or a manual retry. A failed authenticated
+health check now clears a stale grey connection indicator.
+
 Extension 0.13.23 replaces the visible loading sentence with two gently
 animated conversation placeholders. Screenreaders still receive the loading
 status, and reduced-motion settings stop the animation. No source data or

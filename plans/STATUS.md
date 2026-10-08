@@ -35,6 +35,24 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 popup-closed transient recovery (extension 0.13.24):** The owner
+reported that page processing appeared to start only when opening the popup.
+The worker previously tried one authenticated service/foreground observation
+per navigation, while popup status polling made a later attempt. Bounded
+background retries now cover short service, foreground and matching failures
+for the active eligible page, with all existing session, site-block,
+permission, focus and document-attestation checks. Explicit Stop, block,
+window closure, access removal, unpairing and navigation cancel/replace a
+pending attempt. Failed authenticated health clears a stale grey connection
+indicator to red. This does **not** detect same-URL in-place DOM changes,
+capture inactive tabs, guarantee retries after MV3 worker suspension, or
+backfill pages visited during a long outage. Focused adapter tests and trust
+review found no privacy-scope blocker: **105/105** adapter tests, **5/5**
+package checks, **1014/1014** restricted extension tests and a zero-finding
+secret scan passed. The paired owner service remains running; an isolated
+Chrome smoke would require briefly taking its fixed port, so actual owner
+Chrome confirmation remains open.
+
 **2026-10-08 popup-closed capture audit (no scope/code change):** The owner
 asked whether each new page can be embedded and uploaded while the app is
 not actively used. This already happens for eligible **active** tabs in the

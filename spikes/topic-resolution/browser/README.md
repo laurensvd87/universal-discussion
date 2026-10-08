@@ -1,5 +1,14 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.24 retries short transient service, foreground and matching
+failures for the eligible active tab while the popup is closed. Attempts are
+bounded (2, 4, 8 and 16 seconds), recheck the existing session/permission and
+focused-tab guards, and are cancelled by Stop, blocking, access removal or
+navigation. This is best-effort: MV3 may suspend the worker, and a longer
+outage requires another browser event or manual retry. No inactive-tab capture,
+new host access, content-change observer or AI call was added. Failed
+authenticated health changes a stale grey icon to red.
+
 Extension 0.13.23 shows two compact, softly animated conversation-card
 placeholders during active discussion loading instead of visible loading
 prose. They are decorative and `aria-hidden`; the clipped live status still

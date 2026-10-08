@@ -14,7 +14,7 @@ const session = createLocalServiceSession({ storageLocal: api.storage.local, sto
 const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: session.getToken,
   onUnauthorized: async (token) => {
     if (await session.clearIfCurrent(token)) {
-      matcher.invalidate(); clearTimeout(timer); void inference.close().catch(() => {});
+      matcher.invalidate(); clearTimeout(timer); cancelRetry(); void inference.close().catch(() => {});
       await captureSession.stop();
     }
   } });
@@ -32,9 +32,21 @@ let presentationTabId = null;
 let presentationEpoch = 0;
 let removingAccess = false;
 let autoStartFlight = null;
+let retryTimer;
+let retryCount = 0;
+let retryRuns = 0;
+let lastForegroundReason = null;
+const RETRY_DELAYS = [2000, 4000, 8000, 16000];
+const TRANSIENT_CONTEXT_REASONS = new Set(["window-query-failed", "window-unavailable", "window-unfocused",
+  "page-loading", "url-unavailable", "tab-query-failed", "tab-unavailable", "context-unavailable",
+  "window-changed", "tab-changed", "focus-changed", "focus-expired"]);
+function cancelRetry(resetCount = true) {
+  clearTimeout(retryTimer); retryTimer = undefined;
+  if (resetCount) retryCount = 0;
+}
 const captureSession = createCaptureSession({ storageSession: api.storage.session, storageLocal: api.storage.local,
   getWindow: (id) => api.windows.get(id), hasAccess: permission, readForeground, validOrigin,
-  onInvalidate: () => { matcher.invalidate(); clearTimeout(timer); void inference.close().catch(() => {}); } });
+  onInvalidate: () => { matcher.invalidate(); clearTimeout(timer); cancelRetry(retryRuns === 0); void inference.close().catch(() => {}); } });
 async function preferences() { return captureSession.snapshot(); }
 function validOrigin(origin) {
   if (origin === "http://127.0.0.1:4173") return true;
@@ -95,7 +107,11 @@ async function inspectForeground() {
     return { foreground: null, contextReason: "context-unavailable" };
   }
 }
-async function readForeground() { return (await inspectForeground()).foreground; }
+async function readForeground() {
+  const observed = await inspectForeground();
+  lastForegroundReason = observed.contextReason;
+  return observed.foreground;
+}
 async function permission() { return api.permissions.contains({ origins: [HTTPS_ACCESS] }); }
 const matcher = createBackgroundMatcher({ getPreferences: preferences, readForeground,
   hasPermission: permission, isPaired: session.isPaired, reader: createPageContentReader(api.scripting),
@@ -112,20 +128,60 @@ async function ensureAutoSession() {
     if (!await session.isPaired() || !await permission() || !captureSession.mayAutoStart()) return;
     // A remembered token alone is not proof that this local service is running
     // and accepts it. Do not sample a page before authenticated health succeeds.
-    try { await client.health(); } catch { return; }
+    try { await client.health(); } catch { return "health-unavailable"; }
     if (!captureSession.mayAutoStart()) return;
-    const foreground = await readForeground();
-    if (!foreground || !captureSession.mayAutoStart()) return;
-    await captureSession.start(foreground.windowId, settings.sessionRevision);
+    const { foreground, contextReason } = await inspectForeground();
+    if (!foreground) return TRANSIENT_CONTEXT_REASONS.has(contextReason) ? "foreground-unavailable" : undefined;
+    if (!captureSession.mayAutoStart()) return;
+    try { await captureSession.start(foreground.windowId, settings.sessionRevision); }
+    catch {
+      if (!captureSession.mayAutoStart()) return;
+      const current = await inspectForeground();
+      return current.foreground || TRANSIENT_CONTEXT_REASONS.has(current.contextReason) ? "start-unavailable" : undefined;
+    }
     return true;
   })().catch(() => {}).finally(() => { autoStartFlight = null; });
   return autoStartFlight;
 }
 function schedule(observation) {
   presentationEpoch++;
+  cancelRetry();
   if (Number.isSafeInteger(observation?.tabId) && observation.tabId >= 0) presentationTabId = observation.tabId;
   matcher.invalidate(); clearTimeout(timer);
-  timer = setTimeout(() => { void ensureAutoSession().then(() => matcher.refresh()); }, 400);
+  timer = setTimeout(() => { void refreshAndRetry(presentationEpoch); }, 400);
+}
+async function refreshAndRetry(own) {
+  retryRuns++;
+  let start;
+  try { start = await ensureAutoSession(); }
+  finally { retryRuns--; }
+  if (own !== presentationEpoch) return;
+  if (start === "health-unavailable") void toolbar.update({ phase: "error", presentationTabId });
+  await matcher.refresh();
+  if (own !== presentationEpoch) return;
+  const state = matcher.currentState();
+  const missingForeground = state.phase === "unsupported" && state.reason === "no-focused-page";
+  const transientError = state.phase === "error" && state.reason === "unavailable";
+  if (start !== "health-unavailable" && start !== "foreground-unavailable" &&
+      start !== "start-unavailable" && !missingForeground && !transientError) return;
+  if (missingForeground && !TRANSIENT_CONTEXT_REASONS.has(lastForegroundReason)) return;
+  try {
+    const settings = await preferences();
+    if (own !== presentationEpoch) return;
+    if (!settings.enabled && !captureSession.mayAutoStart()) return;
+    if (!await session.isPaired() || !await permission()) return;
+    if (start === "health-unavailable" || start === "start-unavailable") {
+      const { foreground, contextReason } = await inspectForeground();
+      if (!foreground && !TRANSIENT_CONTEXT_REASONS.has(contextReason)) return;
+      if (foreground && (settings.blockedOrigins.includes(foreground.origin) ||
+        (settings.enabled && settings.sessionWindowId !== foreground.windowId))) return;
+    }
+    if (transientError && state.url && settings.blockedOrigins.includes(inspectPageUrl(state.url).origin)) return;
+  } catch { return; }
+  if (own !== presentationEpoch) return;
+  const delay = RETRY_DELAYS[retryCount++];
+  if (delay === undefined) return;
+  retryTimer = setTimeout(() => { retryTimer = undefined; void refreshAndRetry(own); }, delay);
 }
 async function observePresentation(windowId, own = presentationEpoch) {
   // Only the focused normal window's single active tab is observed. This can
@@ -209,7 +265,7 @@ api.runtime.onMessage.addListener((message, sender, reply) => {
     }
     const stopAfterClear = async (removed) => {
       if (removed === false) return false;
-      matcher.invalidate(); clearTimeout(timer);
+      matcher.invalidate(); clearTimeout(timer); cancelRetry();
       void inference.close().catch(() => {});
       await captureSession.stop();
       return true;
@@ -246,7 +302,7 @@ api.windows.onFocusChanged.addListener((id) => {
 });
 api.windows.onRemoved.addListener((id) => { void captureSession.closeWindow(id).then(schedule).catch(() => {}); });
 api.permissions.onRemoved.addListener((removed) => {
-  matcher.invalidate(); clearTimeout(timer); void inference.close().catch(() => {});
+  matcher.invalidate(); clearTimeout(timer); cancelRetry(); void inference.close().catch(() => {});
   // Fence before any asynchronous contains() observation: a fast regrant must
   // not revive a Start ticket that predates native access removal.
   if (removed?.origins?.length) {
