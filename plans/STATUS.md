@@ -33,6 +33,80 @@ The requested browsing -> local embedding -> provisional Topic -> shared-comment
 loop is built. Next gather owner feedback within the approved scope; broader
 private/remote/other-provider/moderation work and all external release gates remain separate.
 
+## 2026-10-08 precision-first Topic matching research (ADR-064)
+
+The owner clarified that a missed automatic match is preferable to a false
+match. The current catalog-wide 0.04 neighbor lead does not scale with a large
+catalog, but deleting it alone makes an adjacent-event false join. A new
+offline, source-record-only benchmark now scores whole Topic partitions,
+opposing-view pairs, same-entity/different-event negatives, unmatched pages,
+input order and catalog growth. It does not alter the live matcher or owner DB.
+
+The live baseline joined 0/84, 0/24, 0/24 and 0/48 true pairs across the
+frozen Luna train/validation/test/challenge splits, with no false joins. All
+48 challenge positives were above the live 0.90 vector floor; 22/1,492
+different-Topic pairs were too. A first explicit title-cue candidate also
+joined 0/24 validation positives with no false joins. A less strict group-local
+cue candidate joined 15/24, but made four false pair joins by conflating a
+vehicle's navigation-software issue with a charging-port issue. It fails the
+owner's precision-first requirement and remains inactive. Its held-out
+test/challenge have not been scored. Details and exact reproduction commands
+are in the [offline benchmark](../apps/local-service/experiments/topic-encoder/topic-benchmark/README.md)
+and [candidate report](../apps/local-service/experiments/topic-encoder/topic-method/README.md).
+
+The design direction is a bounded same-event evidence graph for primary Topics
+and a separate related-page/discussion overlay for ambiguous neighbors. Shared
+brand, actor or embedding closeness is candidate evidence, not proof of same
+event. The owner additionally rejects a static global catalog-size limit:
+decision evidence should adapt to *competing developments in a local
+neighborhood*, while a crowd of reports about one event should strengthen,
+not veto, it. Related discussions can reduce empty-forum UX without falsely
+merging the primary Topic. No second retained vector, historical migration,
+live regrouping or release is authorized by this research. The precision-first
+retained-data candidate has been frozen and scored; no production acceptance
+claim follows from synthetic labels alone.
+
+An [ephemeral title/lead shadow](../apps/local-service/experiments/topic-encoder/topic-focus-shadow/README.md)
+compared a second locally computed E5 vector, made from the title plus 384
+lead characters, on train/validation only. Plain 0.90 complete-link got
+24/24 validation true pairs but made 12 same-entity false joins on training.
+A train-zero-false lexical/product/action gate cut validation recall to 9/24
+with zero false joins there and on training; adding the body vector did not
+help. This is an English synthetic diagnostic, not a production method. The
+focus vector and lead terms were not saved, and the held-out article texts
+were not used to tune this experiment.
+
+**Frozen holdout result:** The retained-data V3 candidate joined 7/24 true
+Luna test pairs and 6/48 opposing-view challenge pairs, with zero false
+joins in those invented sets. The ephemeral focus/facet candidate joined
+10/24 and 33/48 respectively, also zero false. Both kept all test/challenge
+singleton no-match pages separate. A separately authored 24-page, four-family
+multilingual challenge exposed a major gap: both candidates joined **0/24**
+same-development translated pairs (zero false). Yet focus E5 ranked a true
+partner first for 22/24 articles and both true partners first/second for
+21/24; the admission logic, not just retrieval, needs multilingual work.
+Body E5 ranked a true partner first for 15/24 and had three wrong reciprocal
+first-neighbor pairs. These are small synthetic labels, not a real-web
+precision guarantee. See the [one-shot report](../apps/local-service/experiments/topic-encoder/topic-benchmark/RESULTS.md).
+The scored holdouts are no longer available for tuning those frozen methods.
+A second independently authored multilingual challenge was frozen for the
+later method below. No live matcher activation, owner-data regrouping or
+second retained vector follows from this checkpoint.
+
+**Later same-day check:** The new focus graph v4 was frozen before a fresh
+48-page multilingual challenge was scored. It found 44/48 English Luna
+challenge true pairs with zero false joins, but **0/72** translated true
+pairs on that fresh set (zero false). Its authoring agent corrected the
+new corpus to genuinely English/Dutch/German/French/Spanish articles before
+freezing it and never saw the matching code/results. Focus E5 still placed a
+correct partner in the top three for 46/48 multilingual articles; the
+admission logic remains the bottleneck. A hash-pinned real-language CDEC-WN
+storyline proxy gave 33/54 same-storyline joins and zero cross-storyline
+joins, but it is single-publisher and not atomic discussion Topic gold.
+Moreover, v4's triangle rule still compares against any outside page, so it
+can recreate the scaling failure for dense crowds. It remains **offline and
+unapproved**. All results and commands are in the [report](../apps/local-service/experiments/topic-encoder/topic-benchmark/RESULTS.md).
+
 ## 2026-10-08 Topic-focused embedding shadow (ADR-063)
 
 **Latest independent shadow checkpoint (2026-10-08):** A GPT-6 Luna Low

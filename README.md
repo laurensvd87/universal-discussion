@@ -35,6 +35,25 @@ others can remain a singleton because it must beat *every* outside page by
 0.04. An [offline grouping comparison](apps/local-service/experiments/topic-encoder/grouping-shadow/README.md)
 shows that removing this rule alone can join different events, so the live
 discussion routing is unchanged while a replacement is evaluated.
+The [new partition benchmark](apps/local-service/experiments/topic-encoder/topic-benchmark/README.md)
+tests whole Topic groups rather than only nearest neighbors. The owner now
+prioritizes avoiding false joins over finding every possible match. One
+conservative title-cue candidate missed all 24 same-Topic validation pairs;
+a more permissive one found 15/24 but wrongly joined a vehicle's charging
+issue to its separate navigation-software issue. Neither is live. The
+proposed [event-evidence method](decisions/ADR-064-event-evidence-topic-graph.md)
+keeps uncertain pages separate while still making them discoverable as
+related. Two later frozen candidates made no false joins on an invented
+English challenge: the current-data variant joined 6/48 true pairs, while
+an additional title/lead representation joined 33/48. Neither joined a
+translated same-development pair in a separate 24-pair synthetic challenge,
+despite promising nearest-neighbor retrieval. See the [full checkpoint](apps/local-service/experiments/topic-encoder/topic-benchmark/RESULTS.md).
+No matcher, stored vector or discussion in the running app changed; a
+dynamic-local follow-up remains offline. That follow-up joined 44/48 true
+English synthetic challenge pairs with no false joins, but none of 72 true
+pairs on a fresh multilingual challenge. The latter still had a correct
+related candidate among the top three for 46/48 articles; reliable
+cross-language *thread admission*, not candidate search alone, is unresolved.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

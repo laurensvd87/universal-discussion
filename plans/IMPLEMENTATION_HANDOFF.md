@@ -1,5 +1,27 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 precision-first Topic method checkpoint: the owner prefers missed
+automatic joins to false discussion joins, but rejects static global
+catalog-size/neighbor-margin gates and wants related discussions to soften
+an empty primary Topic. [ADR-064](../decisions/ADR-064-event-evidence-topic-graph.md)
+proposes broad local candidate retrieval followed by conservative
+same-event evidence, with uncertain matches kept as related. The new
+[partition benchmark](../apps/local-service/experiments/topic-encoder/topic-benchmark/RESULTS.md)
+shows a frozen body-E5/title-cue v3 at 6/48 true and zero false on a synthetic
+English challenge; an ephemeral title/lead-E5 + facet focus graph at 44/48
+true and zero false there and 33/54 same-storyline, zero cross-storyline on
+a limited single-publisher CDEC-WN set. However the focus graph joined
+**0/72** true translated pairs on a fresh 48-page multilingual challenge,
+despite focus E5 retrieving a true top-3 neighbor for 46/48 queries. Its
+triangle rule still checks every outsider and is not the final scalable
+method. Do not tune frozen candidates on the scored sets, activate them,
+retain a second vector/facets, change the existing body-E5 extractor, or
+regroup owner data from this evidence. The app already has a related-discussion
+read path; improve retrieval there without treating vector rank as identity.
+Any new focus representation or routing policy requires explicit owner/Trust
+review, stamp/recapture/Forget and whole-root migration design, real
+cross-publisher labels and scale tests.
+
 2026-10-08 grouping correction boundary: the owner rejects the existing
 catalog-wide .04 outside-neighbor lead. [ADR-023](../decisions/ADR-023-adaptive-topics-source-anchored-subthreads.md)
 records its structural scaling failure; a new
