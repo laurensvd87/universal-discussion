@@ -23,7 +23,8 @@ test("provider annotations become inline source markers at their exact spans", (
   assert.deepEqual(container.children.map((item) => item.tag), ["span", "sup", "span"]);
   assert.equal(container.children[0].textContent, "A helpful finding ");
   const link = container.children[1].children[0];
-  assert.equal(link.textContent, "1");
+  assert.equal(link.textContent, "↗");
+  assert.equal(container.children[1].className, "inline-citation-sup");
   assert.equal(link.linkHref, "https://example.org/article");
   assert.equal(link.target, "_blank");
   assert.equal(link.rel, "noopener noreferrer");
@@ -93,7 +94,8 @@ test("only attested web reference IDs become links to selected sources, includin
     assert.deepEqual(container.children.filter((item) => item.tag === "sup")
       .map((item) => item.children[0].linkHref), ["https://example.org/selected"]);
     const link = container.children.find((item) => item.tag === "sup").children[0];
-    assert.equal(link.textContent, "1?");
+    assert.equal(link.textContent, "↗");
+    assert.equal(link.className, "inline-citation inline-citation-unverified");
     assert.equal(link.attributes["aria-label"], "Unverified AI-suggested link 1");
     assert.equal(container.children.at(-1).textContent, "AI-suggested links · sources not verified");
   }
@@ -111,18 +113,18 @@ test("owner-format model refs map to visibly unverified links and unknown refs s
   assert.equal(draft, "Contrast [?↗](https://example.org/selected) and unverified text [ref9].");
   const container = element("p");
   appendInsightCitationNodes(document, container, draft);
-  assert.equal(container.children.find((item) => item.tag === "sup").children[0].textContent, "1?");
+  assert.equal(container.children.find((item) => item.tag === "sup").children[0].textContent, "↗");
   assert.equal(container.children.at(-1).textContent, "AI-suggested links · sources not verified");
   assert.throws(() => formatInsightCitations("[ref6]", [{ startIndex: 0, endIndex: 6,
     url: "https://example.org/selected" }]));
 });
 
-test("numbers follow first URL occurrence and repeat links remain keyboard accessible", () => {
+test("repeated arrow links retain distinct accessible source labels", () => {
   const container = element("p");
   appendInsightCitationNodes(document, container,
     "A[↗](https://example.org/a) B[↗](https://example.org/b) C[↗](https://example.org/a)");
   const links = container.children.filter((item) => item.tag === "sup").map((item) => item.children[0]);
-  assert.deepEqual(links.map((link) => link.textContent), ["1", "2", "1"]);
+  assert.deepEqual(links.map((link) => link.textContent), ["↗", "↗", "↗"]);
   assert.deepEqual(links.map((link) => link.attributes["aria-label"]),
     ["Open source link 1", "Open source link 2", "Open source link 1"]);
   assert.ok(links.every((link) => link.tag === "a" && link.target === "_blank" &&

@@ -493,16 +493,16 @@ footer {
 .insight-sources p { margin: 4px 0; overflow-wrap: anywhere; }
 .insight-preview { border-left: 3px solid #28738a; padding-left: 14px; margin-top: 16px; }
 .insight-body { white-space: pre-wrap; overflow-wrap: anywhere; }
-.inline-citation-number { vertical-align: super; font-size: .78em; line-height: 0; }
+.inline-citation-sup { vertical-align: super; font-size: .78em; line-height: 0; }
 .inline-citation {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 1.35em; height: 1.35em; padding: 0 .18em; margin: 0 .12em;
-  border-radius: 50%; color: #17578d; background: #e8f1fb;
-  font-size: 1em; font-weight: 750; line-height: 1; text-decoration: none;
+  min-width: 1.35em; height: 1.35em; padding: 0 .08em; margin: 0 .1em;
+  color: #17578d; font-size: 1em; font-weight: 750; line-height: 1;
+  text-decoration: underline;
 }
 .inline-citation:hover { background: #d5e6f8; }
 .inline-citation:focus-visible { outline: 3px solid #0b7285; outline-offset: 2px; }
-.inline-citation-unverified { border: 1px dashed currentColor; }
+.inline-citation-unverified { text-decoration-style: dashed; }
 .unverified-source-note {
   display: block; margin-top: .55em; color: #69591f;
   font-size: .76rem; line-height: 1.35;

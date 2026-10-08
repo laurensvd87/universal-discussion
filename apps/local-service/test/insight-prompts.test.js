@@ -51,18 +51,21 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
 test("opener prioritizes supported cross-source additions without inventing an omission or question", () => {
   for (const allowWebResearch of [false, true]) {
     const prompt = buildInsightInstructions(false, allowWebResearch);
-    assert.match(prompt, /look first for a relevant detail from a sameTopicSources candidate/u);
-    assert.match(prompt, /what it adds to the supplied current-page extract and why it matters/u);
-    assert.match(prompt, /Attribute the detail naturally to the other article/u);
-    assert.match(prompt, /A relatedSources candidate may also help, but its provisional relation does not establish the same Topic/u);
-    assert.match(prompt, /Do not call an added detail a contradiction unless comparable claims clearly conflict/u);
-    assert.match(prompt, /do not claim the full current page omits it merely because articlePrefix is partial/u);
-    assert.match(prompt, /If no useful contrast is supported, offer one specific implication/u);
+    assert.match(prompt, /Before writing, compare the current extract/u);
+    assert.match(prompt, /Look first at sameTopicSources, then at relatedSources only if their actual content proves relevant/u);
+    assert.match(prompt, /make that comparison the post's main point/u);
+    assert.match(prompt, /what the other page adds or interprets differently/u);
+    assert.match(prompt, /matching reference marker immediately beside its claim/u);
+    assert.match(prompt, /Do not settle for a current-page recap/u);
+    assert.match(prompt, /a different emphasis or viewpoint is not a factual contradiction/u);
+    assert.match(prompt, /not a definitive omission from the full article/u);
+    assert.match(prompt, /Vary the sentence structure/u);
+    assert.match(prompt, /If no selected page supplies a useful supported difference/u);
     assert.match(prompt, /tack on a broad rhetorical question/u);
     assert.match(prompt, /(?:Do not print raw URLs, invent citations|invent a citation, print a raw URL)/u);
     assert.match(prompt, /current page central/u);
   }
-  assert.doesNotMatch(buildInsightInstructions(true, false), /look first for a relevant detail from a sameTopicSources candidate/u);
+  assert.doesNotMatch(buildInsightInstructions(true, false), /make that comparison the post's main point/u);
 });
 
 test("hostile page and comment text remain JSON data in one tool-free request", async () => {

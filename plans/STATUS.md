@@ -35,6 +35,20 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 Insight presentation and comparison prompt (extension 0.13.21):**
+The owner rejected visible numbered/question-mark citation badges. All rendered
+Insight source links now use a small raised `↗`; accessible labels and the
+visible unverified-source qualifier remain. The opener prompt now makes a
+concrete, supported addition or different interpretation from a reachable
+selected article the main point when available, without a canned phrase,
+invented omission, or forced contradiction. If hosted search cannot provide
+usable evidence from the exact selected page, it still falls back to the
+current extract. Full restricted extension **996/996** and local-service
+**262 passed/four optional skips**; both secret scans found zero. The normal
+service was restarted with unchanged Origin, pairing and SQLite state. Live
+comparative quality remains to be checked by owner browsing. No new provider request,
+permission, data transfer, or automatic Share was added.
+
 **2026-10-08 owner-approved model refs ([ADR-059](../decisions/ADR-059-model-reported-selected-links-unverified.md),
 extension 0.13.20):** The owner explicitly accepts `[refN]` as a
 **model-written, unverified** link hint, with `ref1`–`ref5` mapped only to the

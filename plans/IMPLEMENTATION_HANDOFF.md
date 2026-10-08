@@ -1,16 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 latest UI/prompt refinement: extension 0.13.21 shows each Insight
+source as a raised `↗` link rather than a number or `?`, retaining the visible
+unverified-source note and accessible label. The opener prompt prioritizes a
+supported cross-source difference when exact selected-page evidence is
+available; otherwise it stays grounded in the current extract. This is a
+prompt/UI change, not proof of provider access or improved live quality.
+
 2026-10-08 latest: [ADR-059](../decisions/ADR-059-model-reported-selected-links-unverified.md)
 records the owner's explicit acceptance of model-written `[refN]` links as
 **unverified** hints, not attested citations. `ref1`–`ref5` resolve only to
 server-selected public URLs; malformed/unknown IDs and foreign provider
 annotations reject, and completed search plus deliberate Share remain.
-The preview and later shared agent posts retain a visible `?` and unverified
-source note. A one-shot public PCGames/GameStar QA returned one private
+At 0.13.20 the preview and shared posts used a visible `?`; 0.13.21 replaces
+that badge with `↗` while retaining the unverified-source note. A one-shot
+public PCGames/GameStar QA returned one private
 78-word result with one selected model-ref link, without raw answer logging
 or sharing. Factual support/page access is not proven. The service was
-restored with unchanged state; extension 0.13.20 needs reload for the new
-marker presentation. No automatic fallback/retry or publication gate follows.
+restored with unchanged state. No automatic fallback/retry or publication gate follows.
 
 2026-10-08 continuation: The owner chose strict selected-URL IDs rather than
 same-publisher citations. [ADR-058](../decisions/ADR-058-selected-web-reference-ids.md)

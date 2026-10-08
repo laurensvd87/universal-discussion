@@ -128,10 +128,10 @@ export function appendInsightCitationNodes(document, container, body,
     const before = document.createElement("span");
     before.textContent = body.slice(cursor, match.index);
     const superscript = document.createElement("sup");
-    superscript.className = "inline-citation-number";
+    superscript.className = "inline-citation-sup";
     const link = document.createElement("a");
     link.className = unverified ? "inline-citation inline-citation-unverified" : "inline-citation";
-    link.textContent = `${number}${unverified ? "?" : ""}`;
+    link.textContent = "↗";
     link.href = url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";

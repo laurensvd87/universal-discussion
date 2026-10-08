@@ -1,7 +1,7 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-Extension 0.13.20 renders server-mapped `[refN]` hints for up to five selected
-public URLs as clickable `1?`-style superscripts, with an accessible label
+Extension 0.13.21 renders server-mapped `[refN]` hints for up to five selected
+public URLs as small clickable raised `↗` links, with an accessible label
 and visible **AI-suggested links · sources not verified** note. The marker
 and qualifier persist into deliberately shared agent posts. The service no
 longer requires the exact URL in ChatGPT's consulted-source list for this

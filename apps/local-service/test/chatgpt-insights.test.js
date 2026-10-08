@@ -173,11 +173,11 @@ test("legacy adapter excerpt fixtures do not change the provider-only instructio
   assert.doesNotMatch(payload.instructions, /relatedExcerpts are short, unverified extracts/u);
   assert.match(payload.instructions, /current page central/u);
   assert.match(payload.instructions, /Use only the supplied articlePrefix for page facts/u);
-  assert.match(payload.instructions, /what it adds to the supplied current-page extract and why it matters/u);
-  assert.match(payload.instructions, /Attribute the detail naturally to the other article/u);
-  assert.match(payload.instructions, /do not claim the full current page omits it merely because articlePrefix is partial/u);
-  assert.match(payload.instructions, /Do not call an added detail a contradiction unless comparable claims clearly conflict/u);
-  assert.match(payload.instructions, /If no useful contrast is supported, offer one specific implication/u);
+  assert.match(payload.instructions, /make that comparison the post's main point/u);
+  assert.match(payload.instructions, /Attribute the detail naturally/u);
+  assert.match(payload.instructions, /not a definitive omission from the full article/u);
+  assert.match(payload.instructions, /a different emphasis or viewpoint is not a factual contradiction/u);
+  assert.match(payload.instructions, /If no selected page supplies a useful supported difference/u);
   adapter.dispose();
 });
 

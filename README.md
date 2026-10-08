@@ -16,7 +16,12 @@ These are visibly **unverified AI-suggested links**, including after deliberate
 Share; they do not assert that ChatGPT read or confirmed those pages. A
 one-shot public PCGames test returned a private Insight with one such link;
 its factual accuracy remains for the owner to review. No automatic retry or
-sharing was added. Reload extension 0.13.20 to see the distinct `?` link.
+sharing was added. Extension 0.13.21 renders each link as a small raised
+`↗` instead of a number; unverified links retain a visible qualifier. Its
+Insight prompt now prioritizes a concrete, supported difference between the
+current extract and a reachable selected article. This improves the request,
+but cannot guarantee a comparison when ChatGPT cannot access a candidate.
+Reload the extension to see the new link style.
 A separate
 [non-LLM multilingual Topic-title experiment](experiments/topic-titles/README.md)
 works on supported repeated phrases and can rank a representative headline
