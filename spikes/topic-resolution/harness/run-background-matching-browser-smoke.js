@@ -18,7 +18,7 @@ const SECOND_TOKEN = 'owned-background-smoke-second-pairing';
 const COMMENT = 'Owned browser test: the replaceable Cedar battery is useful.';
 const DEMO_COMMENT = 'Owned browser test: retained demo discussion contribution.';
 const CROSS_PAGE_REPLY = 'Owned browser reply from A follows the root created on B.';
-const STATUS = "document.querySelector('#local-discussion [role=status]')?.textContent";
+const STATUS = "document.querySelector('#discussion-status')?.textContent";
 const THREAD = "document.querySelector('#local-discussion .discussion-thread')";
 const TEXTS = {
   a: 'Cedar Slate 2 launches in September 2026. The tablet has an ink screen and a removable battery.',
@@ -160,7 +160,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await writeFile(path.join(destination, `${name}.png`), Buffer.from(result.data, 'base64'), { flag: 'wx' });
   }
   async function toolbar(state) {
-    const expected = { disconnected: EN.toolbarDisconnected, connected: EN.toolbarConnected,
+    const expected = { disconnected: EN.toolbarDisconnected, connected: EN.toolbarConnected, off: EN.toolbarMatchingOff,
       topic: EN.toolbarTopic, shared: EN.toolbarShared, posts: EN.toolbarPosts }[state];
     assert.ok(expected, 'Known toolbar test state');
     await waitExpression(`(async () => {
@@ -172,7 +172,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await wait(() => evaluate(`(() => {
       const evidence=globalThis.__toolbarNativeEvidence??[];
       const effective=evidence.findLast(item=>item.tabId===${JSON.stringify(currentTab)})??evidence.findLast(item=>item.tabId===null);
-      return effective?.state===${JSON.stringify(state)};
+      return effective?.state===${JSON.stringify(state === 'off' ? 'connected' : state)};
     })()`, toolbarSession), `successful native ${state} icon bitmap`);
   }
   async function observeNativeIcons() {
@@ -224,8 +224,18 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   }
   async function pair(token) {
     await input('#discussion-token', token); await click('#discussion-pair');
-    await wait(() => evaluate(`[${JSON.stringify(EN.discussionReady)},${JSON.stringify(EN.discussionChooseStatus)}].includes(${STATUS})`), 'UI pairing');
-    assert.ok(await evaluate("document.querySelector('#discussion-token').value===''"));
+    try {
+      await waitExpression("document.querySelector('#connection-status')?.dataset.state==='connected' && document.querySelector('#discussion-token')?.value===''", 'UI pairing');
+    } catch (error) {
+      if (!error.message.startsWith('Background smoke timeout: UI pairing')) throw error;
+      const safe = await evaluate(`(async () => {
+        let matchingPhase = null;
+        try { matchingPhase = (await chrome.runtime.sendMessage({target:'page-matching',type:'status'}))?.phase ?? null; } catch {}
+        return {status:document.querySelector('#discussion-status')?.textContent?.slice(0,200) ?? null,
+          connection:document.querySelector('#connection-status')?.dataset.state ?? null, matchingPhase};
+      })()`);
+      throw new Error(`UI pairing did not complete: ${JSON.stringify(safe)}`);
+    }
   }
   async function postComment(body = COMMENT) {
     await input('#discussion-body', body); await click('#discussion-submit');
@@ -355,7 +365,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await screenshot('user-disconnected');
     await pair(FIRST_TOKEN);
     await waitExpression("document.querySelector('#connection-status').dataset.state==='connected'", 'honest paired connection indicator');
-    await toolbar('connected');
+    await toolbar('off');
     await waitExpression(`document.querySelector('#matching-origin').textContent===${JSON.stringify(ORIGIN)}`, 'eligible disclosed origin');
     // The fresh test profile has no native HTTPS grant. One explicit Chrome
     // permission gesture is still required; subsequent pairing auto-starts.
@@ -400,7 +410,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     checks.push('page-c-stays-separate');
     stage = 'stop-and-new-explicit-session';
     await click('#matching-pause'); await waitMatching(EN.matchingOff);
-    await toolbar('connected');
+    await toolbar('off');
     const pausedCount = ingestions.length;
     await navigate('d'); await openPopup(); await waitMatching(EN.matchingOff);
     // Longer than the production debounce, without supplying a capture/retry command.
@@ -440,7 +450,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await toolbar('disconnected');
     await pair(SECOND_TOKEN); await chooseSource(b.id);
     // A manual Topic selection while capture is stopped is not current-page evidence.
-    await toolbar('connected');
+    await toolbar('off');
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     assert.equal((await source('b')).topicId, a.topicId);
     checks.push('sqlite-comment-survives-restart-and-new-pairing');
@@ -481,7 +491,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await chooseSource(b.id); await click('#discussion-forget');
     await wait(async () => !(await catalog()).sources.some(item => item.id === b.id), 'forgotten learned Source');
     assert.ok((await catalog()).topics.some(item => item.id === corrected.topicId));
-    await wait(() => evaluate(`[${JSON.stringify(EN.discussionReady)},${JSON.stringify(EN.discussionChooseStatus)}].includes(${STATUS})`), 'fresh catalog after Forget');
+    await wait(() => evaluate(`[${JSON.stringify(EN.discussionReady)},${JSON.stringify(EN.uiTopicAwaitingPage)}].includes(${STATUS})`), 'fresh catalog after Forget');
     await select('#discussion-topic', corrected.topicId); await waitStatus(EN.discussionReady);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     await postOrigin(COMMENT, null);
@@ -493,12 +503,12 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await input('#discussion-delete-confirmation', 'DELETE TOPIC AND DISCUSSION'); await click('#discussion-delete');
     await wait(async () => !(await catalog()).topics.some(item => item.id === c.topicId), 'confirmed learned Topic deletion');
     assert.ok(!(await catalog()).sources.some(item => item.id === c.id));
-    await wait(() => evaluate(`[${JSON.stringify(EN.discussionReady)},${JSON.stringify(EN.discussionChooseStatus)}].includes(${STATUS})`), 'fresh catalog after delete');
+    await wait(() => evaluate(`[${JSON.stringify(EN.discussionReady)},${JSON.stringify(EN.uiTopicAwaitingPage)}].includes(${STATUS})`), 'fresh catalog after delete');
     await chooseSource(a.id);
     assert.ok(await evaluate("document.querySelector('#discussion-clear').disabled"));
     await input('#discussion-clear-confirmation', 'CLEAR LEARNED DATA'); await click('#discussion-clear');
     await wait(async () => !(await catalog()).sources.some(item => item.provenance === 'owner-local-page-embedding/v1'), 'confirmed learned data clear');
-    await wait(() => evaluate(`[${JSON.stringify(EN.discussionReady)},${JSON.stringify(EN.discussionChooseStatus)}].includes(${STATUS})`), 'fresh catalog after clear');
+    await wait(() => evaluate(`[${JSON.stringify(EN.discussionReady)},${JSON.stringify(EN.uiTopicAwaitingPage)}].includes(${STATUS})`), 'fresh catalog after clear');
     await chooseSource(demo.id);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(DEMO_COMMENT)})`));
     assert.ok(!(await catalog()).topics.some(item => item.learned === true));

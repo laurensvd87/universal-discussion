@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Universal Discussion - Local PoC",
-  "version": "0.13.24",
+  "version": "0.13.25",
   "description": "Opt-in on-device page matching and shared local Topic discussions.",
   "minimum_chrome_version": "116",
   "incognito": "not_allowed",

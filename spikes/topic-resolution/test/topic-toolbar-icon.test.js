@@ -12,7 +12,8 @@ class FakeCanvas {
   }
 }
 
-test("actual icon images contain all five speech bubble colors at both toolbar scales", () => {
+test("actual icon images contain all toolbar colors at both scales", () => {
+  assert.equal(TOOLBAR_COLORS.off, TOOLBAR_COLORS.connected);
   for (const state of Object.keys(TOOLBAR_COLORS)) {
     const images = drawTopicToolbarIcon(state, FakeCanvas);
     assert.deepEqual(Object.keys(images), ["16", "32"]);
@@ -25,13 +26,16 @@ test("actual icon images contain all five speech bubble colors at both toolbar s
 
 test("painter sets localized title and actual imageData only on intended tab", async () => {
   assert.equal(typeof EN.toolbarDisconnected, "string"); assert.equal(typeof EN.toolbarPosts, "string");
+  assert.equal(EN.toolbarMatchingOff, "Universal Discussion — matching off. Open the popup and choose Resume matching.");
   const calls = [];
   const paint = createTopicToolbarPainter({ setTitle: async (value) => calls.push(["title", value]), setIcon: async (value) => calls.push(["icon", value]) }, FakeCanvas);
-  await paint(null, "disconnected"); await paint(7, "posts");
+  await paint(null, "disconnected"); await paint(7, "posts"); await paint(7, "off");
   assert.deepEqual(calls[0], ["title", { title: EN.toolbarDisconnected }]);
   assert.deepEqual(calls[2], ["title", { tabId: 7, title: EN.toolbarPosts }]);
   assert.equal(calls[1][1].tabId, undefined); assert.equal(calls[3][1].tabId, 7);
   assert.equal(calls[3][1].imageData[16].fills[0], TOOLBAR_COLORS.posts);
+  assert.deepEqual(calls[4], ["title", { tabId: 7, title: EN.toolbarMatchingOff }]);
+  assert.equal(calls[5][1].imageData[16].fills[0], TOOLBAR_COLORS.connected);
 });
 
 test("invalidation during asynchronous title update cannot submit a stale page icon", async () => {

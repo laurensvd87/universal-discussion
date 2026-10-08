@@ -3,6 +3,7 @@ export const EN = Object.freeze({
   discussionGeneratedInsight: "Robot · shared by {operator}",
   toolbarDisconnected: "Universal Discussion — disconnected or connection not yet verified",
   toolbarConnected: "Universal Discussion — last verified connection; no current page Topic",
+  toolbarMatchingOff: "Universal Discussion — matching off. Open the popup and choose Resume matching.",
   toolbarTopic: "Universal Discussion — current page has a local Topic; no other learned page",
   toolbarShared: "Universal Discussion — another learned page shares this Topic; no published posts",
   toolbarPosts: "Universal Discussion — another learned page shares this Topic with published posts",

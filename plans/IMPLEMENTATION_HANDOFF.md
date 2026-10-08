@@ -1,5 +1,16 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 latest owner finding: the missing Topic was caused by **Matching
+off** in the owner's session; after Resume, the supplied public article was
+stored and Topic-linked. Default auto-start for a fresh eligible session was
+already implemented; explicit Stop persists for the current browser session.
+Extension 0.13.25 clarifies the grey toolbar tooltip when matching is off.
+The exact reason the owner session was off remains unproven. A fixed-port
+synthetic Chrome smoke must not replace the owner service while the owner
+browser is active: a concurrent 401 could clear pairing and Stop capture.
+The harness was updated for current User Mode but not rerun end-to-end. See
+STATUS for evidence and remaining owner verification.
+
 2026-10-08 latest capture reliability: extension 0.13.24 adds bounded
 popup-closed retries for transient authenticated service/foreground/matcher
 failure on the same eligible active tab. It does not scan inactive tabs,

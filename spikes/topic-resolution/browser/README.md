@@ -1,5 +1,12 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.25 distinguishes **matching off** from connected-but-unresolved
+in the grey toolbar tooltip without changing the five-color palette. A
+stopped session remains stopped until **Resume matching**; fresh eligible
+sessions still auto-start with saved pairing and granted HTTPS access. The
+owner confirmed that after resuming, the supplied public De Standaard article
+was ingested and linked to a Topic. No capture/permission behavior changed.
+
 Extension 0.13.24 retries short transient service, foreground and matching
 failures for the eligible active tab while the popup is closed. Attempts are
 bounded (2, 4, 8 and 16 seconds), recheck the existing session/permission and

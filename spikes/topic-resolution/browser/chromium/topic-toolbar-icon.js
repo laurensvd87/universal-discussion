@@ -1,8 +1,8 @@
 import { EN } from "../locales/en.js";
 import { TOOLBAR_STATES } from "../core/topic-toolbar-controller.js";
 
-export const TOOLBAR_COLORS = Object.freeze({ disconnected: "#dc2626", connected: "#64748b", topic: "#16a34a", shared: "#38bdf8", posts: "#1d4ed8" });
-const TITLES = { disconnected: "toolbarDisconnected", connected: "toolbarConnected", topic: "toolbarTopic", shared: "toolbarShared", posts: "toolbarPosts" };
+export const TOOLBAR_COLORS = Object.freeze({ disconnected: "#dc2626", connected: "#64748b", off: "#64748b", topic: "#16a34a", shared: "#38bdf8", posts: "#1d4ed8" });
+const TITLES = { disconnected: "toolbarDisconnected", connected: "toolbarConnected", off: "toolbarMatchingOff", topic: "toolbarTopic", shared: "toolbarShared", posts: "toolbarPosts" };
 
 // Code-native bitmap art: no remote assets, DOM/offscreen document or permission.
 export function drawTopicToolbarIcon(state, Canvas = globalThis.OffscreenCanvas) {

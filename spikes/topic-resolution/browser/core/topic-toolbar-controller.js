@@ -1,7 +1,7 @@
 import { readCatalog, readDiscussion } from "./local-service-contract.js";
 
 export const TOOLBAR_TAB_KEY = "pageMatchingToolbarTabId";
-export const TOOLBAR_STATES = Object.freeze(["disconnected", "connected", "topic", "shared", "posts"]);
+export const TOOLBAR_STATES = Object.freeze(["disconnected", "connected", "off", "topic", "shared", "posts"]);
 const LEARNED = "owner-local-page-embedding/v1";
 const tabId = (value) => Number.isSafeInteger(value) && value >= 0;
 function hasCurrentTopic(state, value) {
@@ -32,10 +32,11 @@ export function createTopicToolbarController({ catalog, discussion, paint, readM
   let marked = null;
   let candidate = null;
   let connected = false;
+  let matchingOff = false;
   let initialized = false;
   let initializationFailed = false;
   const removed = new Set();
-  const base = () => connected ? "connected" : "disconnected";
+  const base = () => connected ? (matchingOff ? "off" : "connected") : "disconnected";
   function serial(operation) {
     const result = pending.then(operation);
     pending = result.catch(() => {});
@@ -73,6 +74,7 @@ export function createTopicToolbarController({ catalog, discussion, paint, readM
     const snapshot = { ...state };
     const presentationTabId = tabId(snapshot.presentationTabId) ? snapshot.presentationTabId : null;
     if (pairingChanged || ["unpaired", "error"].includes(snapshot.phase)) connected = false;
+    matchingOff = snapshot.phase === "off";
     candidate = presentationTabId ?? (snapshot.phase === "ready" && tabId(snapshot.tabId) ? snapshot.tabId : null);
     async function paintBase() {
       await paint(null, base());

@@ -35,6 +35,31 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 owner Chrome diagnosis and off-state clarity (extension 0.13.25):**
+The owner reported no automatic Topic on a public De Standaard article, then
+found **Matching off** and confirmed it works after Resume. A read-only exact
+SQLite check found the supplied article absent before Resume, then stored and
+Topic-linked afterward. The fresh-session default is already auto-start after
+saved pairing, native HTTPS access, local health and eligible focused tab;
+explicit Stop intentionally persists for the current browser session. The
+reason the owner session was off was not proven. The grey toolbar tooltip now
+says matching is off and names the Resume action, rather than implying the
+current page simply has no Topic. No capture scope, permission or data policy
+changed. The current owner service remains on 127.0.0.1:4174 with the same
+Origin and persisted data. Focused toolbar/background checks passed **132/132**;
+the restricted extension suite passed **1015/1015**, harness syntax and
+diff checks passed, and the secret scan found zero issues. Owner verification
+of the new tooltip remains open.
+
+Two attempted isolated-Chrome smokes stopped before matching because their
+old UI selector and pairing-completion expectation no longer matched User
+Mode; the harness was repaired but has not been rerun end-to-end. Importantly,
+its temporary service uses the same fixed loopback port as the owner's live
+extension. While the owner browser is active, do **not** replace the live
+service with that synthetic instance: a concurrent request could receive a
+401 and clear durable pairing/Stop capture. Use a truly isolated test
+environment or explicit owner coordination before another fixed-port smoke.
+
 **2026-10-08 popup-closed transient recovery (extension 0.13.24):** The owner
 reported that page processing appeared to start only when opening the popup.
 The worker previously tried one authenticated service/foreground observation
@@ -49,9 +74,9 @@ capture inactive tabs, guarantee retries after MV3 worker suspension, or
 backfill pages visited during a long outage. Focused adapter tests and trust
 review found no privacy-scope blocker: **105/105** adapter tests, **5/5**
 package checks, **1014/1014** restricted extension tests and a zero-finding
-secret scan passed. The paired owner service remains running; an isolated
-Chrome smoke would require briefly taking its fixed port, so actual owner
-Chrome confirmation remains open.
+secret scan passed. The owner has now confirmed matching on one public article
+after manually resuming an off session; popup-closed behavior after a fresh
+auto-start remains to be verified separately.
 
 **2026-10-08 popup-closed capture audit (no scope/code change):** The owner
 asked whether each new page can be embedded and uploaded while the app is

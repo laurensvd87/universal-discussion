@@ -32,11 +32,11 @@ test("catalog sharing requires exact learned Source, URL, Topic and distinct lea
   for (const sources of [[], [a], [a, source("source-b", a.url)], [a, source("source-b", "https://example.org/b", null)], [a, source("source-b", "https://example.org/b", "topic-a", "project-created-hand-authored-demo/1")], [source("source-a", "https://example.com/stale"), source("source-b", "https://example.org/b")]]) assert.equal(hasSharedLearnedTopic(ready(), catalog(sources)), false);
   for (const patch of [{ phase: "processing" }, { tabId: -1 }, { documentId: null }, { sequence: undefined }]) assert.equal(hasSharedLearnedTopic(ready(patch), catalog()), false);
 });
-test("five states use verified connection and visible published posts, independent of peer count", async () => {
+test("verified connection and visible published posts determine toolbar states independently of peer count", async () => {
   const h = harness(); await h.controller.initialized();
   assert.equal(h.painted.get(null), "disconnected");
   await h.controller.update({ phase: "off" }, { verify: true });
-  assert.equal(h.painted.get(null), "connected"); assert.equal(h.discussionReads(), 0);
+  assert.equal(h.painted.get(null), "off"); assert.equal(h.discussionReads(), 0);
   const lone = harness({ catalog: () => catalog([source("source-a", ready().url)]), discussion: () => discussion([{ ...visible("post-a"), replies: [] }]) });
   await lone.controller.update(ready()); assert.equal(lone.painted.get(7), "topic");
   await h.controller.update(ready()); assert.equal(h.painted.get(7), "shared");
@@ -62,8 +62,19 @@ test("post addition and withdrawal refresh current evidence without capture", as
 });
 for (const phase of ["off", "checking", "processing", "unsupported", "not-enabled"]) test(`${phase} clears page evidence but preserves last observed connection without requests`, async () => {
   const h = harness(); await h.controller.update(ready()); const reads = h.reads();
-  await h.controller.update({ phase }); assert.equal(h.painted.get(7), "connected"); assert.equal(h.painted.get(null), "connected");
+  await h.controller.update({ phase }); assert.equal(h.painted.get(7), phase === "off" ? "off" : "connected"); assert.equal(h.painted.get(null), phase === "off" ? "off" : "connected");
   assert.equal(h.marker(), undefined); assert.equal(h.reads(), reads);
+});
+test("stopped matching retains grey until resumed, while unverified service remains red", async () => {
+  const h = harness(); await h.controller.initialized();
+  await h.controller.update({ phase: "off", presentationTabId: 7 });
+  assert.equal(h.painted.get(7), "disconnected");
+  await h.controller.update({ phase: "off", presentationTabId: 7 }, { verify: true });
+  assert.equal(h.painted.get(7), "off");
+  await h.controller.update({ phase: "checking", presentationTabId: 7 });
+  assert.equal(h.painted.get(7), "connected");
+  await h.controller.update(ready({ presentationTabId: 7 }));
+  assert.equal(h.painted.get(7), "shared");
 });
 for (const phase of ["unpaired", "error"]) test(`${phase} clears connection and page states`, async () => {
   const h = harness(); await h.controller.update(ready()); await h.controller.update({ phase });

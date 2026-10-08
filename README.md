@@ -10,6 +10,13 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension 0.13.25 makes a stopped matching session unmistakable in the
+toolbar tooltip: **Matching off — open the popup and choose Resume matching.**
+It keeps the grey icon because the local service may still be connected.
+After pairing and Chrome HTTPS access, a fresh eligible browser session
+normally starts matching automatically. An explicit Stop remains off until
+you resume it; opening the popup alone does not override Stop.
+
 Extension 0.13.24 improves popup-closed matching reliability. When the paired
 local service or focused page is briefly unavailable during navigation, the
 background worker makes a few bounded attempts to process the same active

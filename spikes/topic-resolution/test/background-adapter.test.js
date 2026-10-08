@@ -643,6 +643,7 @@ test("paired but capture off verifies connection only on trusted refresh and fai
   const h = await harness(t, { enabled: false }); await h.advance();
   assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#dc2626");
   await h.send("toolbar-refresh"); assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#64748b");
+  assert.equal(h.calls.titles.at(-1).title, EN.toolbarMatchingOff);
   assert.equal(h.calls.reads, 0); assert.equal(h.calls.embeddings, 0);
   h.state.unauthorized = true; await h.send("toolbar-refresh"); assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#dc2626");
 });
