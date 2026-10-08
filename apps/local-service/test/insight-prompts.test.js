@@ -27,7 +27,10 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
   assert.match(opener, /opening post.*currentSource/u);
   assert.notEqual(opener, buildInsightInstructions(false, false));
   assert.match(opener, /inspect only the exact URLs in missingRelatedCandidateUrls/u);
-  assert.match(opener, /provider's actual url_citation annotation/u);
+  assert.match(opener, /Use only these selected reference IDs in the written post/u);
+  assert.match(opener, /selectedWebReferences assigns ref1, ref2/u);
+  assert.match(opener, /matching \[\[webref:n\]\] marker/u);
+  assert.match(opener, /a marker alone proves nothing/u);
   assert.match(opener, /never imply that its full text was read from a snippet/u);
   assert.match(opener, /If one candidate cannot be opened, continue checking the remaining candidate URLs/u);
   assert.match(opener, /If none of the candidate pages yields usable evidence, still write using only articlePrefix/u);
@@ -54,7 +57,7 @@ test("opener prioritizes supported cross-source additions without inventing an o
     assert.match(prompt, /do not claim the full current page omits it merely because articlePrefix is partial/u);
     assert.match(prompt, /If no useful contrast is supported, offer one specific implication/u);
     assert.match(prompt, /tack on a broad rhetorical question/u);
-    assert.match(prompt, /(?:Do not print raw URLs, invent citations|Never invent a citation, print a raw URL)/u);
+    assert.match(prompt, /(?:Do not print raw URLs, invent citations|invent a citation, print a raw URL)/u);
     assert.match(prompt, /current page central/u);
   }
   assert.doesNotMatch(buildInsightInstructions(true, false), /look first for a relevant detail from a sameTopicSources candidate/u);

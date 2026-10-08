@@ -79,6 +79,27 @@ test("annotated related references become canonical markers; forged references s
     startIndex: 0, endIndex: 9, url: "https://example.org/related" }]));
 });
 
+test("only attested web reference IDs become links to selected sources, including the fifth", () => {
+  const marker = "[[webref:5]]";
+  const body = `🌍 Comparison ${marker} and forged [[webref:1]].`;
+  const utf16 = body.indexOf(marker);
+  const codepoint = Array.from(body.slice(0, utf16)).length;
+  for (const startIndex of [utf16, codepoint]) {
+    const draft = formatInsightCitations(body, [{ startIndex, endIndex: startIndex + marker.length,
+      url: "https://example.org/selected", title: "Selected source" }]);
+    assert.equal(draft, "🌍 Comparison [↗](https://example.org/selected) and forged [[webref:1]].");
+    const container = element("p");
+    appendInsightCitationNodes(document, container, draft);
+    assert.deepEqual(container.children.filter((item) => item.tag === "sup")
+      .map((item) => item.children[0].linkHref), ["https://example.org/selected"]);
+  }
+  assert.equal(formatInsightCitations("Unattested [[webref:1]]", []), "Unattested [[webref:1]]");
+  assert.throws(() => formatInsightCitations("[[webref:6]]", [{
+    startIndex: 0, endIndex: 12, url: "https://example.org/selected" }]));
+  assert.throws(() => formatInsightCitations("[[webref:0]]", [{
+    startIndex: 0, endIndex: 12, url: "https://example.org/selected" }]));
+});
+
 test("numbers follow first URL occurrence and repeat links remain keyboard accessible", () => {
   const container = element("p");
   appendInsightCitationNodes(document, container,

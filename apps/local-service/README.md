@@ -6,8 +6,12 @@ case uses the public PCGames page and one fixed GameStar candidate. It prints
 only fixed citation categories, status and counts (no provider text, URL or
 token), has one Responses POST maximum, and does not share or persist an
 Insight. Stop the normal service first and restart it afterward. Three
-agent-run requests reproduced a different-article citation; the exact-URL
-product rule remains unchanged pending [ADR-057](../../decisions/ADR-057-hosted-search-citation-scope-open.md).
+initial agent-run requests reproduced a different-article citation. Two
+subsequent selected-ref tests still yielded no safe PCGames draft: one
+foreign provider citation and one model-written ref without an exact
+consulted-source hit. [ADR-058](../../decisions/ADR-058-selected-web-reference-ids.md)
+records why refs are bound to exact selected URLs and cannot by themselves
+prove page access. No raw provider output is printed or automatically retried.
 
 `response-web-citation` no longer rejects an exact selected URL solely
 because ChatGPT omitted an optional/unusable display title; it uses the

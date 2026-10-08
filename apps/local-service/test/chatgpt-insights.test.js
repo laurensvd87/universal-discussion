@@ -44,7 +44,7 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   }], model: "synthetic-model" });
   assert.deepEqual(calls.map((item) => item.url), ["https://api.openai.com/v1/models", "https://api.openai.com/v1/responses"]);
   const sent = JSON.parse(calls[1].options.body);
-  assert.deepEqual(Object.keys(sent), ["model", "store", "stream", "instructions", "input", "tools", "tool_choice"]);
+  assert.deepEqual(Object.keys(sent), ["model", "store", "stream", "instructions", "input", "tools", "include", "tool_choice"]);
   assert.equal(sent.store, false); assert.equal(sent.stream, true);
   assert.equal(sent.input.length, 1); assert.equal(sent.input[0].role, "user");
   assert.match(sent.instructions, /one useful opening post about currentSource/u);
@@ -54,10 +54,15 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   assert.match(sent.instructions, /tack on a broad rhetorical question/u);
   assert.match(sent.instructions, /current page central/u);
   assert.match(sent.instructions, /inspect only the exact URLs in missingRelatedCandidateUrls/u);
-  assert.match(sent.instructions, /provider's actual url_citation annotation/u);
+  assert.match(sent.instructions, /Use only these selected reference IDs in the written post/u);
   assert.match(sent.instructions, /never imply that its full text was read from a snippet/u);
   assert.deepEqual(JSON.parse(sent.input[0].content).missingRelatedCandidateUrls,
     [CONTEXT.sameTopicSources[0].url, CONTEXT.relatedSources[0].url]);
+  assert.deepEqual(JSON.parse(sent.input[0].content).selectedWebReferences, [
+    { id: "ref1", url: CONTEXT.sameTopicSources[0].url, title: CONTEXT.sameTopicSources[0].title },
+    { id: "ref2", url: CONTEXT.relatedSources[0].url, title: CONTEXT.relatedSources[0].title },
+  ]);
+  assert.deepEqual(sent.include, ["web_search_call.action.sources"]);
   assert.deepEqual(sent.tools, [{ type: "web_search", external_web_access: true, search_context_size: "medium",
     filters: { allowed_domains: ["news.example.org", "research.example.net"] } }]);
   assert.equal(sent.tool_choice, "required");
@@ -83,7 +88,7 @@ test("follow-up sends only bounded public article, robot parent, human question 
   const result = await adapter.createInsight({ ...REQUEST, context, allowWebResearch: true,
     followup: { parentBody: "The robot's published claim.", questionBody: "What about the exception?" } });
   assert.equal(result.body, "A researched reply.");
-  assert.deepEqual(Object.keys(payload), ["model", "store", "stream", "instructions", "input", "tools", "tool_choice"]);
+  assert.deepEqual(Object.keys(payload), ["model", "store", "stream", "instructions", "input", "tools", "include", "tool_choice"]);
   assert.equal(payload.store, false); assert.equal(payload.stream, true);
   assert.deepEqual(payload.input, [{ role: "user", content: JSON.stringify({
     currentSource: { title: "Title current", url: "https://example.com/current" },
@@ -92,6 +97,10 @@ test("follow-up sends only bounded public article, robot parent, human question 
     articlePrefix: REQUEST.articleText, relatedExcerpts: [], robotParent: "The robot's published claim.",
     humanQuestion: "What about the exception?",
     missingRelatedCandidateUrls: [CONTEXT.sameTopicSources[0].url, CONTEXT.relatedSources[0].url],
+    selectedWebReferences: [
+      { id: "ref1", url: CONTEXT.sameTopicSources[0].url, title: CONTEXT.sameTopicSources[0].title },
+      { id: "ref2", url: CONTEXT.relatedSources[0].url, title: CONTEXT.relatedSources[0].title },
+    ],
   }) }]);
   assert.equal(payload.tool_choice, "required");
   assert.equal(payload.tools[0].type, "web_search");
@@ -222,6 +231,8 @@ test("one cited candidate suffices when four of five searched pages are unavaila
   const result = await adapter.createInsight({ ...REQUEST, context, allowWebResearch: true });
   assert.deepEqual(JSON.parse(payload.input[0].content).missingRelatedCandidateUrls,
     selected.map((entry) => entry.url));
+  assert.deepEqual(JSON.parse(payload.input[0].content).selectedWebReferences,
+    selected.map((entry, index) => ({ id: `ref${index + 1}`, url: entry.url, title: entry.title })));
   assert.deepEqual(result.citations, [{ url: selected[3].url, title: "Accessible article",
     startIndex: 0, endIndex: 3 }]);
   assert.equal(result.body, "One sourced finding.");
@@ -431,6 +442,47 @@ test("exact provider URL annotation without a completed web search call is insuf
     stream(complete("Finding.", [annotation], false)), getAccessToken: async () => ACCESS });
   await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true }),
     (error) => error.code === "invalid-response" && error.detail === "response-web-evidence");
+});
+
+test("webref resolves only to a selected exact URL reported by a completed search", async () => {
+  const body = "One researched detail[[webref:2]].";
+  const selected = CONTEXT.relatedSources[0];
+  const response = event("response.completed", { status: "completed", output: [
+    { type: "web_search_call", status: "completed", action: { type: "search", sources: [
+      { type: "url", url: selected.url }, { type: "url", url: "https://research.example.net/other" },
+    ] } },
+    { type: "message", role: "assistant", status: "completed",
+      content: [{ type: "output_text", text: body, annotations: [] }] },
+  ] });
+  const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
+    stream(response), getAccessToken: async () => ACCESS });
+  assert.deepEqual(await adapter.createInsight({ ...REQUEST, allowWebResearch: true }), {
+    body, model: REQUEST.model, citations: [{ startIndex: body.indexOf("[[webref:2]]"),
+      endIndex: body.indexOf("[[webref:2]]") + "[[webref:2]]".length,
+      url: selected.url, title: selected.title }],
+  });
+});
+
+test("webref cannot invent access, select another URL, or hide a foreign provider citation", async () => {
+  const selected = CONTEXT.sameTopicSources[0].url;
+  for (const [body, sources, annotations, detail] of [
+    ["Unconsulted[[webref:1]]", [], [], "response-web-evidence"],
+    ["Wrong article[[webref:1]]", [{ url: "https://news.example.org/other" }], [], "response-web-evidence"],
+    ["Unknown[[webref:3]]", [{ url: selected }], [], "response-web-citation"],
+    ["Malformed[[webref:01]]", [{ url: selected }], [], "response-web-citation"],
+    ["Foreign annotation[[webref:1]]", [{ url: selected }], [{ type: "url_citation",
+      url: "https://news.example.org/other", start_index: 0, end_index: 7 }], "response-web-citation"],
+  ]) {
+    const raw = event("response.completed", { status: "completed", output: [
+      { type: "web_search_call", status: "completed", action: { type: "search", sources } },
+      { type: "message", role: "assistant", status: "completed",
+        content: [{ type: "output_text", text: body, annotations }] },
+    ] });
+    const adapter = createChatGptInsights({ fetchImpl: async (url) => url.endsWith("/models") ? models() :
+      stream(raw), getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true }),
+      (error) => error.code === "invalid-response" && error.detail === detail);
+  }
 });
 
 test("unknown and malformed excerpt markers reject completed output without source leakage", async () => {

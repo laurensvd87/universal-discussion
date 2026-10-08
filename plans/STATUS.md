@@ -35,6 +35,26 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 selected URL IDs ([ADR-058](../decisions/ADR-058-selected-web-reference-ids.md),
+extension 0.13.19):** The owner directed `ref1`–`ref5` links only to the
+five supplied public URLs, not same-publisher substitutions. The service now
+assigns those IDs and accepts a model's `[[webref:n]]` only when a completed
+web search reports that **exact** selected URL in its consulted source list.
+Foreign provider URL annotations still reject; a ref by itself is not proof.
+The popup renders attested markers as its existing clickable superscripts.
+Two further one-shot PCGames/GameStar live calls tested this: the first still
+cited another GameStar article; the stricter prompt in the second produced
+one `webref` but **zero** selected-URL source hits. Both were correctly
+rejected, with no raw page/provider data logged or post shared. Thus the
+owner's ref-only idea is implemented safely but does **not yet fix PCGames**;
+an automatic retry, model-only source assertion or unselected-source link
+remains unapproved. The normal service was restarted with unchanged Origin,
+pairing and SQLite. Full restricted extension **995/995**, local service
+**259 passed/four optional skips** after the final error-detail refinement;
+focused service tests **78/78** after the strict prompt. Both secret scans
+reported zero findings. Independent read-only Trust review found no blocker. A tool
+source entry is not proof the full page or a specific claim was checked.
+
 **2026-10-08 PCGames citation reproduction and multilingual title PoC:** The
 owner's repeated `response-web-citation` was classified from the running
 service trace as `unselected-url` after completed search/output. A fixed
@@ -45,8 +65,7 @@ identified another GameStar article, not the selected one; the first two
 probes did not distinguish which of the two known hosts was cited. No raw
 response, page text or token was logged and nothing was shared. The exact-URL
 rule remains active. [ADR-057](../decisions/ADR-057-hosted-search-citation-scope-open.md)
-records the pending explicit owner choice between bounded same-publisher
-private citations and a separate manual current-page-only fallback. The
+records the diagnosis; the owner's subsequent strict-ID choice is in ADR-058. The
 service was restored on port 4174 with unchanged Origin, pairing and SQLite.
 The isolated [non-LLM title PoC](../experiments/topic-titles/README.md)
 passes 12 network-denied checks. A read-only aggregate replay found 85 learned

@@ -198,7 +198,8 @@ export function classifyCitationUrl(value, page = PCGAMES_PAGE) {
 export function classifyResponseAnnotations(raw, page = PCGAMES_PAGE) {
   const counts = Object.fromEntries(ANNOTATION_CATEGORIES.map((name) => [name, 0]));
   if (typeof raw !== "string" || Buffer.byteLength(raw, "utf8") > 262_144)
-    return { observed: false, terminalCompleted: false, total: 0, ...counts };
+    return { observed: false, terminalCompleted: false, total: 0, webRefMarkers: 0,
+      selectedSourceHits: 0, ...counts };
   let finalOutput = null;
   let terminalCompleted = false;
   const done = new Map();
@@ -219,9 +220,11 @@ export function classifyResponseAnnotations(raw, page = PCGAMES_PAGE) {
   const output = finalOutput?.some((item) => item?.type === "message" && item.role === "assistant")
     ? finalOutput : [...done.values()];
   let total = 0;
+  let webRefMarkers = 0;
   for (const item of output) {
     if (item?.type !== "message" || item.role !== "assistant") continue;
     for (const part of Array.isArray(item.content) ? item.content : []) {
+      if (typeof part?.text === "string") webRefMarkers += [...part.text.matchAll(/\[\[webref:/giu)].length;
       for (const annotation of Array.isArray(part?.annotations) ? part.annotations : []) {
         if (annotation?.type !== "url_citation") continue;
         if (total >= 100) break;
@@ -230,7 +233,15 @@ export function classifyResponseAnnotations(raw, page = PCGAMES_PAGE) {
       }
     }
   }
-  return { observed: finalOutput !== null || done.size > 0, terminalCompleted, total, ...counts };
+  const selected = new Set(page.related.map((source) => source.url));
+  const selectedHits = new Set();
+  for (const item of [...(finalOutput ?? []), ...done.values()]) {
+    if (item?.type !== "web_search_call" || item.status !== "completed" ||
+        !Array.isArray(item.action?.sources) || item.action.sources.length > 100) continue;
+    for (const source of item.action.sources) if (selected.has(source?.url)) selectedHits.add(source.url);
+  }
+  return { observed: finalOutput !== null || done.size > 0, terminalCompleted, total,
+    webRefMarkers: Math.min(webRefMarkers, 100), selectedSourceHits: selectedHits.size, ...counts };
 }
 
 async function ownFixedPort() {

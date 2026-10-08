@@ -10,12 +10,14 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-The latest public PCGames Insight failure is now reproduced: hosted search
-cited a different publisher article than the exact related URL selected by
-the app. The strict citation rule still rejects it; a safer fallback versus
-bounded same-publisher citations is awaiting the owner's explicit choice in
-[ADR-057](decisions/ADR-057-hosted-search-citation-scope-open.md). No automatic
-retry or sharing was added. A separate
+The latest public PCGames Insight failure is reproduced: hosted search cited
+a different publisher article than the exact related URL selected by the app.
+The owner's [selected-reference decision](decisions/ADR-058-selected-web-reference-ids.md)
+now binds `ref1`–`ref5` to our URLs and verifies each displayed link against
+the search's exact consulted URLs. Two live checks still produced no safe
+PCGames draft: a foreign citation, then a model-written ref without a matching
+consulted URL. Neither was relabeled or shared; no automatic retry was added.
+A separate
 [non-LLM multilingual Topic-title experiment](experiments/topic-titles/README.md)
 works on supported repeated phrases and can rank a representative headline
 using existing vectors, but the current sparse local catalog yielded no

@@ -5,6 +5,7 @@ const PROVIDER_MARKER = /^cite[^]{1,200}$/u;
 const UNRESOLVED_PROVIDER_MARKER = /cite[^]{1,200}/u;
 const RAW_URL = /https?:\/\/[^\s<>"'`]+/giu;
 const RELATED_MARKER = /^\[\[ref:([1-9]\d*)\]\]$/u;
+const WEB_MARKER = /^\[\[webref:([1-9]\d*)\]\]$/u;
 
 function neutralizeUnannotated(text) {
   // Page prose and model output can contain forged citation syntax. An URL in
@@ -42,13 +43,15 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
     // The provider may count Unicode code points while JavaScript slices UTF-16
     // code units. Resolve this only when it identifies a complete citation token.
     if (!PROVIDER_MARKER.test(body.slice(startIndex, endIndex)) &&
-        !RELATED_MARKER.test(body.slice(startIndex, endIndex))) {
+        !RELATED_MARKER.test(body.slice(startIndex, endIndex)) &&
+        !WEB_MARKER.test(body.slice(startIndex, endIndex))) {
       const points = Array.from(body);
       if (endIndex <= points.length) {
         const candidateStart = points.slice(0, startIndex).join("").length;
         const candidateEnd = points.slice(0, endIndex).join("").length;
         if (PROVIDER_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
-            RELATED_MARKER.test(body.slice(candidateStart, candidateEnd))) {
+            RELATED_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
+            WEB_MARKER.test(body.slice(candidateStart, candidateEnd))) {
           startIndex = candidateStart; endIndex = candidateEnd;
         }
       }
@@ -64,11 +67,17 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
     const citationMarker = PROVIDER_MARKER.test(span);
     const relatedMatch = span.match(RELATED_MARKER);
     const relatedMarker = relatedMatch !== null;
+    const webMatch = span.match(WEB_MARKER);
+    const webMarker = webMatch !== null;
     if (span.startsWith("[[ref:") && !relatedMarker)
       throw new TypeError("Invalid related citation annotation");
+    if (span.startsWith("[[webref:") && !webMarker)
+      throw new TypeError("Invalid web citation annotation");
     if (relatedMarker && Number(relatedMatch[1]) > 4)
       throw new TypeError("Unknown related citation reference");
-    result += neutralizeUnannotated(body.slice(cursor, citationMarker || relatedMarker ? first.startIndex : first.endIndex));
+    if (webMarker && Number(webMatch[1]) > 5)
+      throw new TypeError("Unknown web citation reference");
+    result += neutralizeUnannotated(body.slice(cursor, citationMarker || relatedMarker || webMarker ? first.startIndex : first.endIndex));
     let next = index;
     while (next < ordered.length && ordered[next].startIndex === first.startIndex &&
         ordered[next].endIndex === first.endIndex) {
@@ -76,7 +85,7 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
       // persistable marker remains unambiguous when it is edited or rendered.
       const url = ordered[next].url.replaceAll("(", "%28").replaceAll(")", "%29");
       if (!safeInsightCitationUrl(url)) throw new TypeError("Invalid citation URL");
-      result += `${citationMarker || relatedMarker || /\s$/u.test(result) ? "" : " "}[↗](${url})`;
+      result += `${citationMarker || relatedMarker || webMarker || /\s$/u.test(result) ? "" : " "}[↗](${url})`;
       next++;
     }
     cursor = first.endIndex;

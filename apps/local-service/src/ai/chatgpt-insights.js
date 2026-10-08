@@ -180,6 +180,12 @@ function missingRelatedCandidates(context, relatedExcerpts) {
   }
   return missing;
 }
+function selectedWebReferences(context, urls) {
+  const selected = new Map([...context.sameTopicSources, ...context.relatedSources]
+    .map((entry) => [entry.url, entry]));
+  return urls.map((url, index) => ({ id: `ref${index + 1}`, url,
+    title: selected.get(url).title }));
+}
 function followupContext(context, articleText, followup, relatedExcerpts) {
   const sourceReference = ({ title, url }) => ({ title, url });
   return { currentSource: sourceReference(context.currentSource),
@@ -264,7 +270,36 @@ function excerptCitations(body, relatedExcerpts, context) {
   }
   return citations;
 }
-function completed(value, model, streamShape, relatedExcerpts, context, allowedWebUrls, searchCompleted) {
+function consultedWebUrls(value, streamShape, selectedReferences, searchCompleted) {
+  const selected = new Set(selectedReferences.map((entry) => entry.url));
+  const consulted = new Set();
+  if (!searchCompleted) return consulted;
+  const calls = [...value.output, ...streamShape.doneItems.map((entry) => entry.item)]
+    .filter((item) => item?.type === "web_search_call" && item.status === "completed");
+  for (const call of calls) {
+    const sources = call.action?.sources;
+    if (!Array.isArray(sources) || sources.length > 100) continue;
+    for (const source of sources) {
+      if (source && typeof source.url === "string" && selected.has(source.url)) consulted.add(source.url);
+    }
+  }
+  return consulted;
+}
+function webReferenceCitations(body, references, consulted) {
+  const selected = new Map(references.map((entry) => [entry.id, entry]));
+  const citations = [];
+  for (const match of body.matchAll(/\[\[webref/giu)) {
+    const marker = /^\[\[webref:([1-9][0-9]*)\]\]/u.exec(body.slice(match.index));
+    const entry = marker && selected.get(`ref${marker[1]}`);
+    if (!entry) fail("invalid-response", "response-web-citation");
+    if (!consulted.has(entry.url)) fail("invalid-response", "response-web-evidence");
+    citations.push({ startIndex: match.index, endIndex: match.index + marker[0].length,
+      url: entry.url, title: entry.title });
+  }
+  return citations;
+}
+function completed(value, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted) {
+  const allowedWebUrls = new Set(selectedReferences.map((entry) => entry.url));
   if (!value || value.status !== "completed" || !Array.isArray(value.output)) fail("invalid-response", "response-event");
   // The response may report the resolved model behind an account-listed alias.
   if (value.model !== undefined && (typeof value.model !== "string" || !SLUG.test(value.model))) fail("invalid-response");
@@ -312,6 +347,8 @@ function completed(value, model, streamShape, relatedExcerpts, context, allowedW
   if (UNSAFE.test(body)) fail("invalid-response", "response-unsafe-text");
   const webCitations = citations.slice();
   citations.push(...excerptCitations(body, relatedExcerpts, context));
+  citations.push(...webReferenceCitations(body, selectedReferences,
+    consultedWebUrls(value, streamShape, selectedReferences, searchCompleted)));
   validateOutputLinks(body, webCitations);
   // Search can finish without opening any publisher page. A private draft may
   // then use the current article alone, provided it has no unsafe links or
@@ -323,7 +360,7 @@ function completed(value, model, streamShape, relatedExcerpts, context, allowedW
   if (citations.length > 50) fail("invalid-response", "response-output-too-large");
   return { body, citations, model };
 }
-function completedStreamItemFallback(final, model, shape, relatedExcerpts, context, allowedWebUrls, searchCompleted) {
+function completedStreamItemFallback(final, model, shape, relatedExcerpts, context, selectedReferences, searchCompleted) {
   const reject = (detail, branch = null) => {
     shape.fallbackFailure = detail;
     shape.fallbackBranch = branch;
@@ -414,7 +451,7 @@ function completedStreamItemFallback(final, model, shape, relatedExcerpts, conte
   }
   // A finalized item may be used only after the terminal completed response;
   // no delta, tool result, conflicting final item or refused output is imported.
-  return completed({ ...final, output: [candidate.item] }, model, shape, relatedExcerpts, context, allowedWebUrls, searchCompleted);
+  return completed({ ...final, output: [candidate.item] }, model, shape, relatedExcerpts, context, selectedReferences, searchCompleted);
 }
 async function boundedBody(response, maximum, signal, catalog = false) {
   if (!response.body?.getReader) fail("invalid-response", catalog ? "catalog-stream" : "response-stream");
@@ -446,7 +483,7 @@ function traceItem(item, index, phase) {
   return { phase, index: traceIndex(index), type: TRACE_ITEM_TYPES.has(item?.type) ? item.type : "other",
     status: TRACE_STATUSES.has(item?.status) ? item.status : "other" };
 }
-function parseSse(raw, model, onTrace, relatedExcerpts, context, allowedWebUrls) {
+function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferences) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
   const streamShape = { finalAssistantItem: false, textDone: false, createdId: null,
@@ -561,9 +598,9 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, allowedWebUrls)
     (streamShape.doneItems.some((item) => item.type === "web_search_call" && item.status === "completed") ||
       Array.isArray(final.output) && final.output.some((item) =>
         item?.type === "web_search_call" && item.status === "completed"));
-  const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context, allowedWebUrls, searchCompleted);
+  const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted);
   if (recovered) return recovered;
-  return completed(final, model, streamShape, relatedExcerpts, context, allowedWebUrls, searchCompleted);
+  return completed(final, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted);
   } catch (error) {
     outcome = "failure";
     detail = INSIGHT_DETAILS.has(error?.detail) ? error.detail : null;
@@ -785,6 +822,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const relatedExcerpts = validateRelatedExcerpts(
         Object.hasOwn(request, "relatedExcerpts") ? own(request, "relatedExcerpts") : [], context);
       const missingCandidates = allowWebResearch ? missingRelatedCandidates(context, relatedExcerpts) : [];
+      const webReferences = selectedWebReferences(context, missingCandidates);
       const useWebResearch = missingCandidates.length > 0;
       // A disabled research preference must not send candidate URLs to the
       // provider even though the service used them to attest the local request.
@@ -792,7 +830,10 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         { ...context, sameTopicSources: [], relatedSources: [] };
       const userContext = followup ? followupContext(providerContext, articleText, followup, relatedExcerpts) :
         { context: providerContext, articlePrefix: articleText, relatedExcerpts };
-      if (useWebResearch) userContext.missingRelatedCandidateUrls = missingCandidates;
+      if (useWebResearch) {
+        userContext.missingRelatedCandidateUrls = missingCandidates;
+        userContext.selectedWebReferences = webReferences;
+      }
       const userText = JSON.stringify(userContext);
       if (userText.length > MAX_INPUT) fail("invalid-input");
       const preflightTime = now();
@@ -817,6 +858,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         tools: [],
       };
       if (useWebResearch) {
+        payload.include = ["web_search_call.action.sources"];
         payload.tools = [{ type: "web_search", external_web_access: true, search_context_size: "medium",
           filters: { allowed_domains: [...new Set(missingCandidates.map((url) => new URL(url).hostname))] } }];
         payload.tool_choice = "required";
@@ -841,7 +883,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         if (failureCode) fail(errorForCode(failureCode), "response-failed");
         fail("invalid-response", "response-content-missing");
       }
-      return parseSse(raw, model, onTrace, relatedExcerpts, context, new Set(missingCandidates));
+      return parseSse(raw, model, onTrace, relatedExcerpts, context, webReferences);
     }, signal);
   }
   function cancel() { active?.abort(); }

@@ -1,7 +1,7 @@
 # ADR-057: Hosted search citations outside selected article URLs
 
 Date: 2026-10-08
-Status: diagnosis complete; owner trust choice pending
+Status: diagnosis complete; owner chose strict selected-URL IDs in ADR-058
 
 ## Evidence
 
@@ -28,11 +28,16 @@ one of the exact URLs supplied in a prompt. A different same-publisher article
 may be relevant or may concern another event; a citation by itself does not
 establish same-Topic identity or full-page access.
 
-## Boundary and pending decision
+## Boundary and historical decision point
+
+The owner subsequently directed strict `ref1`/`ref2` links only to supplied
+URLs. [ADR-058](ADR-058-selected-web-reference-ids.md) records the bounded
+implementation and live evidence; same-publisher citations were not approved.
+The options below are retained as the historical decision point.
 
 ADR-054's exact-selected-URL rule remains active. No parser relaxation,
 automatic retry, second provider call, unselected-source retention or sharing
-is implemented. The owner is explicitly being asked whether to allow bounded
+is implemented. At this point the owner was asked whether to allow bounded
 public same-publisher citations as **private, editable** drafts with exact
 clickable links and exclusion/sensitive-path checks, or to keep exact URLs
 and offer a separate user-invoked current-page-only fallback. The former

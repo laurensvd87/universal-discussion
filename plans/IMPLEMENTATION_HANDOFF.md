@@ -1,10 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 continuation: The owner chose strict selected-URL IDs rather than
+same-publisher citations. [ADR-058](../decisions/ADR-058-selected-web-reference-ids.md)
+implements server-assigned `ref1`–`ref5` and accepts `[[webref:n]]` only with
+an exact selected URL in a completed ChatGPT search's consulted source list.
+Foreign provider annotations still reject; the popup formats an attested ref
+as a clickable superscript. Two public PCGames/GameStar live calls after the
+change did **not** yield a safe draft: one still cited another GameStar page,
+the stricter prompt then wrote one ref without an exact selected source hit.
+Do not assume a model-written ID verifies page access, or hide the foreign
+provider citation. No automatic fallback/retry, publication or broader
+provider permission follows. The local service is restored with existing
+state. Gather an explicit owner trust/usage choice before changing these
+boundaries; user-visible current-page-only research remains opt-in.
+
 2026-10-08 checkpoint: [ADR-057](../decisions/ADR-057-hosted-search-citation-scope-open.md)
 records a reproduced PCGames `response-web-citation`: ChatGPT cited an
 unselected same-publisher article after completed search. Exact selected-URL
-validation remains in force; do not loosen it or add automatic retries before
-the pending explicit owner trust choice. Three one-shot public QA Responses
+validation remains in force; do not loosen it or add automatic retries. Three one-shot public QA Responses
 calls were made, none shared; service is restored. In parallel, the isolated
 [Topic-title PoC](../experiments/topic-titles/README.md) passes 12 offline
 checks using shared phrases and existing-vector representative ranking.

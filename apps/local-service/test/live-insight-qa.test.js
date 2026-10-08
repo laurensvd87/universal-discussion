@@ -42,7 +42,8 @@ test("PCGames annotation classifier reports only fixed URL categories", () => {
   const raw = event("response.output_item.done", { output_index: 0, item }) +
     event("response.completed", { response: { status: "completed", output: [item] } });
   const summary = classifyResponseAnnotations(raw);
-  assert.deepEqual(summary, { observed: true, terminalCompleted: true, total: 8, exactSelected: 1, currentPage: 1,
+  assert.deepEqual(summary, { observed: true, terminalCompleted: true, total: 8,
+    webRefMarkers: 0, selectedSourceHits: 0, exactSelected: 1, currentPage: 1,
     sameHostSameArticleId: 2, sameSelectedHostOther: 1, sameCurrentHostOther: 1, foreignHost: 1, invalid: 1 });
   assert.ok(!JSON.stringify(summary).includes("Private provider"));
   assert.ok(!JSON.stringify(summary).includes("https://"));
@@ -50,6 +51,18 @@ test("PCGames annotation classifier reports only fixed URL categories", () => {
     { ...summary, terminalCompleted: false });
   assert.equal(classifyResponseAnnotations(event("response.completed", { response: {
     status: "incomplete", output: [item] } })).terminalCompleted, false);
+  const evidence = event("response.completed", { response: { status: "completed", output: [
+    { type: "web_search_call", status: "completed", action: { sources: [
+      { url: PCGAMES_PAGE.related[0].url }, { url: "https://www.gamestar.de/artikel/other,3460313.html" },
+    ] } },
+    { type: "message", role: "assistant", content: [{ type: "output_text", text: "Detail[[webref:1]].",
+      annotations: [] }] },
+  ] } });
+  assert.deepEqual(classifyResponseAnnotations(evidence), {
+    observed: true, terminalCompleted: true, total: 0, webRefMarkers: 1, selectedSourceHits: 1,
+    exactSelected: 0, currentPage: 0, sameHostSameArticleId: 0, sameCurrentHostOther: 0,
+    sameSelectedHostOther: 0, foreignHost: 0, invalid: 0,
+  });
 });
 
 test("PEP current page uses the fixed URL and anonymous bounded fetch", async () => {
