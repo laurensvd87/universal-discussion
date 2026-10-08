@@ -1,5 +1,12 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-08 owner-directed dynamic Topic Atlas refresh (ADR-062): `npm start`
+keeps the separate dashboard program running, polls only the read-only SQLite
+generation/revision, atomically updates sibling `snapshot.js` on change, and
+the local-file dashboard checks it automatically and via Refresh. No listener
+or provider. `--no-open` remains one-shot. Keep the terminal open for live
+updates; Ctrl+C stops monitoring but retains last local HTML/JS snapshots.
+
 2026-10-08 standalone owner visualization: ADR-061 adds
 `apps/topic-dashboard`, a separate read-only SQLite-to-self-contained-HTML
 Topic Atlas. It displays learned public pages, their current Topic links and

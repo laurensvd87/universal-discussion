@@ -7,20 +7,24 @@ From this directory, with Node.js 24 or newer, run:
 npm start
 ```
 
-It opens a self-contained HTML dashboard in your default browser. Search for
+It opens the HTML dashboard in your default browser and keeps the terminal
+running. Search for
 pages or Topics, click a dot or list entry, inspect its nearest vector
 neighbors, and choose **Open original page** to visit the source. The program
 does not need the local service to be running and does not open a server port.
-Re-run `npm start` after browsing to generate a fresh snapshot. For a headless
-export without opening a browser, use `npm start -- --no-open`.
+As new pages reach the SQLite catalog, the running program updates a local
+snapshot file and the open dashboard picks it up automatically. **Refresh**
+checks that file immediately. Keep the terminal open for new snapshots; Ctrl+C
+stops monitoring and leaves the last view readable. For a one-shot export
+without opening a browser or monitoring, use `npm start -- --no-open`.
 
 The generated file is
 `%LOCALAPPDATA%\Temp\universal-discussion-dashboard\dashboard.html` on a
-typical Windows installation; the command prints the exact path. It is
-overwritten on the next run, not automatically deleted. It contains retained
-public-page URLs and titles, so do not share it casually. Delete that single
-file if you no longer want the extra copy. The source SQLite database remains
-unchanged.
+typical Windows installation; the command prints the exact path. A sibling
+`snapshot.js` holds the latest view. Both are overwritten on the next run,
+not automatically deleted. They contain retained page URLs and titles, so do
+not share them casually. Delete both files if you no longer want the extra
+copies. The source SQLite database remains unchanged.
 
 The counts distinguish all saved Sources from learned pages. Only the
 latter are plotted; synthetic demonstration data is omitted from the map.

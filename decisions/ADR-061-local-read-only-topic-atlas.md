@@ -25,6 +25,9 @@ temporary directory; the owner can delete it and must avoid sharing it if
 their catalog contains sensitive browsing. The original public-profile policy
 cannot prove every retained URL/title is public; historical captures may
 include unwanted material. The temporary file is outside Git.
+[ADR-062](ADR-062-dynamic-local-dashboard-refresh.md) later adds a sibling
+local snapshot file and a read-only watcher for dynamic refresh; it does not
+add a listener.
 
 ## Limitations and gates
 

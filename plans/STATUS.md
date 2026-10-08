@@ -35,6 +35,27 @@ private/remote/other-provider/moderation work and all external release gates rem
 
 ## Latest request: valuable user-owned AI research as the cold-start hypothesis
 
+**2026-10-08 dynamic Topic Atlas refresh (ADR-062):** The owner requested a
+true Refresh button and then preferred dynamic map updates. The separate
+dashboard now keeps a read-only revision watcher running after `npm start`,
+atomically writes only its allowlisted local `snapshot.js`, and the browser
+loads that sibling file periodically and on Refresh without rebuilding the
+whole view. No network listener, service API, extension permission or
+provider is added. The terminal must stay open for new snapshots; the last
+snapshot remains readable after it stops. Synthetic watcher/browser and
+owner-data verification: **8/8** restricted tests pass for the private
+file bridge, SQLite generation/revision watcher, retry and Stop. A synthetic
+headless-Chrome smoke passes with dynamic replacement, preserved selection,
+search and zoom, and a same-timestamp content change. The owner database
+one-shot export still reports 110 pages / 95 represented Topics and writes
+both HTML and sibling JS without touching SQLite. A real `npm start` remained
+active for ten seconds without an error and was then stopped with Ctrl+C;
+an actual owner-db-change-while-open was not performed. Security review found
+no high/medium issue; its timestamp-collision note was addressed by comparing
+the complete allowlisted snapshot, and the manual button briefly waits for
+the one-second watcher poll before checking the latest file. Owner visual
+confirmation remains open.
+
 **2026-10-08 standalone Topic Atlas (ADR-061):** The owner requested a visual
 dashboard of stored pages, their Topic neighborhoods and clickable originals.
 A read-only SQLite check found **118 Sources**, **110 learned public Sources**,

@@ -3,7 +3,7 @@
 
   const NS = 'http://www.w3.org/2000/svg';
   const $ = (id) => document.getElementById(id);
-  const state = { data: null, topicId: null, pageId: null, query: '', view: { x: 0, y: 0, w: 1000, h: 700 }, drag: null, moved: false };
+  const state = { data: null, snapshotKey: null, topicId: null, pageId: null, query: '', view: { x: 0, y: 0, w: 1000, h: 700 }, drag: null, moved: false };
   const format = new Intl.NumberFormat('de-DE');
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const svg = (name, attributes = {}) => {
@@ -214,15 +214,24 @@
   }
   function selectTopic(id) { state.topicId = state.topicId === id ? null : id; state.pageId = null; render(); }
   function selectPage(id) { state.pageId = id; render(); }
-  function load(raw) {
-    state.data = normalize(raw); state.topicId = null; state.pageId = null; state.query = ''; $('search-input').value = '';
+  function load(raw, { preserve = false, announce = true } = {}) {
+    const next = normalize(raw);
+    state.data = next;
+    state.snapshotKey = JSON.stringify(raw);
+    state.topicId = preserve && next.byTopic.has(state.topicId) ? state.topicId : null;
+    state.pageId = preserve && next.byPage.has(state.pageId) ? state.pageId : null;
+    if (state.pageId && state.topicId && next.byPage.get(state.pageId).topicId !== state.topicId) {
+      state.topicId = next.byPage.get(state.pageId).topicId;
+    }
+    if (!preserve) { state.query = ''; $('search-input').value = ''; }
     $('count-learned').textContent = format.format(state.data.counts.learnedSources);
     $('count-topics').textContent = format.format(state.data.counts.topics);
     $('count-context').textContent = `${format.format(state.data.counts.totalSources)} Sources gesamt · ${format.format(state.data.counts.totalTopics)} Topics gesamt`;
     const date = new Date(state.data.generatedAt);
     $('data-age').textContent = Number.isNaN(date.getTime()) ? 'Lokale Momentaufnahme' : `Stand ${new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' }).format(date)}`;
-    state.view = { x: 0, y: 0, w: 1000, h: 700 }; updateView(); render();
-    showStatus(`${format.format(state.data.pages.length)} erfasste Seiten geladen.`);
+    if (!preserve) state.view = { x: 0, y: 0, w: 1000, h: 700 };
+    updateView(); render();
+    if (announce) showStatus(`${format.format(state.data.pages.length)} erfasste Seiten geladen.`);
   }
 
   function updateView() { const v = state.view; $('map').setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`); }
@@ -261,13 +270,45 @@
     catch (error) { showStatus(`Laden fehlgeschlagen: ${error.message}`); }
     event.target.value = '';
   });
+  let embeddedReport = false;
+  let bridgePending = false;
+  let manualPending = false;
+  function refreshBridge(manual = false) {
+    if (bridgePending) { if (manual) manualPending = true; return; }
+    bridgePending = true;
+    delete globalThis.__topicAtlasSnapshot;
+    const script = document.createElement('script');
+    script.src = `./snapshot.js?refresh=${Date.now()}`;
+    const finish = () => { script.remove(); bridgePending = false; manualPending = false; };
+    script.onload = () => {
+      try {
+        const next = globalThis.__topicAtlasSnapshot;
+        if (!next || typeof next.generatedAt !== 'string' || !next.generatedAt) throw new Error('Ungültiger Snapshot.');
+        if (JSON.stringify(next) === state.snapshotKey) {
+          if (manual || manualPending) showStatus('Kein neuer Datenstand. Prüfe, ob der Watcher läuft.');
+        } else {
+          load(next, { preserve: true, announce: false });
+          showStatus(`Neuer Datenstand geladen: ${$('data-age').textContent}.`);
+        }
+      } catch (error) {
+        if (manual || manualPending) showStatus(`Aktualisierung fehlgeschlagen: ${error.message}`);
+      } finally { finish(); }
+    };
+    script.onerror = () => {
+      if (manual || manualPending) showStatus('Kein neuer Datenstand gefunden. Prüfe, ob der Watcher läuft.');
+      finish();
+    };
+    document.head.append(script);
+  }
   async function loadSnapshot() {
     const embedded = $('dashboard-data');
     if (embedded?.textContent.trim()) {
       load(JSON.parse(embedded.textContent));
-      $('reload-button').hidden = true;
+      embeddedReport = true;
       $('load-label').hidden = true;
       $('refresh-hint').hidden = false;
+      refreshBridge();
+      setInterval(() => refreshBridge(), 3000);
       return;
     }
     const response = await fetch('./snapshot.json', { cache: 'no-store' });
@@ -277,7 +318,14 @@
     $('load-label').hidden = false;
     $('refresh-hint').hidden = true;
   }
+  let manualTimer;
   $('reload-button').addEventListener('click', async () => {
+    if (embeddedReport) {
+      if (manualTimer) return;
+      showStatus('Prüfe den neuesten lokalen Datenstand …');
+      manualTimer = setTimeout(() => { manualTimer = undefined; refreshBridge(true); }, 1200);
+      return;
+    }
     try { await loadSnapshot(); } catch (error) { showStatus(`Aktualisierung fehlgeschlagen: ${error.message}`); }
   });
   loadSnapshot().catch(() => {
