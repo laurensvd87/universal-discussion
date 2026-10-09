@@ -42,6 +42,8 @@ assert.deepEqual([...familySplits.values()].filter(s=>s==='test').length,2);
 assert.equal(developments.size,24);
 for(const [key,rs] of developments){
  assert.equal(rs.length,10,`${key} records`);
+ assert.equal(new Set(rs.map(r=>r.topicLabel)).size,1,`${key}: language-independent gold Topic`);
+ assert.ok(rs.every(r=>r.topicLabel===r.development),`${key}: stable event identifier`);
  for(const lang of langs){const pair=rs.filter(r=>r.language===lang);assert.equal(pair.length,2);assert.equal(new Set(pair.map(r=>r.viewpoint)).size,2,`${key}/${lang} viewpoints`);assert.equal(new Set(pair.map(r=>r.viewpointStyle)).size,2);
   const [support,question]=[pair.find(r=>r.viewpoint==='supportive'),pair.find(r=>r.viewpoint==='questioning')];
   assert.ok(support.eventCore&&question.eventCore,`${key}/${lang}: event core`);

@@ -71,7 +71,7 @@ for (const [fi,family,events,labels] of rows) for (let ei=0;ei<2;ei++) for (let 
     const core=stanceIndex===0?cores[ei]:paraphrase(lang,cores[ei]);
     const body=`${core} ${t.view[stanceIndex]}`;
     const split=splitFor(rows.findIndex(x=>x[0]===fi));
-    output[split].push({id:`mb1-${fi}-${ei+1}-${lang}-${vi+1}`,family:fi,development:`${fi}-${ei+1}`,topicLabel:labelsByLang[ei],language:lang,viewpoint:stanceIndex===0?'supportive':'questioning',viewpointStyle:`${lang}-${stanceIndex?'skeptical':'community'}`,split,title,eventCore:core,body});
+    output[split].push({id:`mb1-${fi}-${ei+1}-${lang}-${vi+1}`,family:fi,development:`${fi}-${ei+1}`,topicLabel:`${fi}-${ei+1}`,language:lang,viewpoint:stanceIndex===0?'supportive':'questioning',viewpointStyle:`${lang}-${stanceIndex?'skeptical':'community'}`,split,title,eventCore:core,body});
   }
 }
 for(const [name,data] of Object.entries(output)) writeFileSync(join(dir,`${name}.jsonl`),data.map(x=>JSON.stringify(x)).join('\n')+'\n','utf8');
