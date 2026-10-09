@@ -14,7 +14,13 @@ Keep all candidates offline; no Topic/database/extension changes were made.
 The [real-benchmark note](../research/TOPIC_MATCHING_REAL_BENCHMARK_2026-10-09.md)
 identifies a JRC cross-publisher title/cluster dataset but its acquisition
 needs explicit owner approval and a rights review. Already-approved private
-GlobeSumm research can continue now. ADR-064/067's separate owner/Trust live
+GlobeSumm research has now produced a frozen real-data graph comparison:
+[results](../apps/local-service/experiments/topic-encoder/globesumm-graph-v1/RESULTS.md)
+show 256/1,710 true and zero false joins on one-shot test for the
+nearest-veto rule, but 25 false train joins/five mixed groups and 0/96
+complete events across all splits. It uses title+lead E5, not live body E5,
+lacks viewpoint gold and violates ADR-064's local-scale design through its
+global veto. Keep it inactive. ADR-064/067's separate owner/Trust live
 activation and migration gate remains binding.
 
 2026-10-09 local Wikinews research: the owner explicitly approved the one

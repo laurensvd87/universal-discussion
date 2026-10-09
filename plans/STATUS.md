@@ -45,9 +45,24 @@ upper bound requires text the backend does not retain. No model, live matcher,
 Topic assignment or discussion changed. Local catalog read-only aggregates
 and a candidate cross-publisher benchmark/rights gate are in
 [the research note](../research/TOPIC_MATCHING_REAL_BENCHMARK_2026-10-09.md).
-The next offline line tests the graph on the **already approved** private
-GlobeSumm corpus; new JRC benchmark acquisition and any live regrouping or
+New JRC benchmark acquisition and any live regrouping or
 retained-representation change still require distinct review/approval.
+
+**2026-10-09 frozen real-corpus graph check:** The unchanged graph rules were
+tested on the approved private GlobeSumm event-disjoint splits with only
+aggregate output. The nearest-neighbor veto joined **108/803** true
+validation pairs and **256/1,710** true one-shot test pairs, with no false
+joins on those two splits. But on the larger train split it joined
+**537/4,536** true and **25/275,590** false pairs across five mixed groups.
+It recovered **0/96** complete events across all splits, and its global
+nearest check violates ADR-064's affected-neighborhood scale design. The
+strict triangle made zero false joins but only **30/1,710** true test joins.
+[Full frozen results](../apps/local-service/experiments/topic-encoder/globesumm-graph-v1/RESULTS.md)
+document the data and representation limits: no viewpoint/family gold,
+title+lead E5 rather than live body E5, and unclear underlying publisher
+rights for product training. The selected test split is now spent for this
+candidate. No production changes; a separate retained-compatible offline
+attempt is in progress.
 
 **2026-10-08 owner idea inbox:** Two future concepts are preserved in
 [IDEA_INBOX.md](IDEA_INBOX.md): bounded startup-phase online discovery when

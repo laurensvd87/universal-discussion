@@ -71,3 +71,24 @@ current retained fields, and neither rule supports activation. The v6 set is
 now spent for these candidates. Continue with already approved real-corpus
 research and a separately rights-reviewed cross-publisher benchmark rather
 than selecting yet another threshold on v6.
+
+## 2026-10-09 approved real-corpus cross-check
+
+The unchanged graph rules were then applied to the already owner-approved
+private GlobeSumm corpus, with event-disjoint 749/150/293 article
+train/validation/test partitions. Code and settings were hash-frozen before
+the selected test split was scored once. The loose nearest-veto graph made
+**537/4,536** true and **25/275,590** false pair joins on train, five mixed
+groups, and no complete event. Validation and test happened to have zero
+false joins, with **108/803** and **256/1,710** true joins respectively;
+neither recovered a complete event. The strict triangle made zero false
+joins on these partitions but only **30/1,710** true test joins. Details,
+freeze hashes and limitations are in the
+[aggregate-only report](../apps/local-service/experiments/topic-encoder/globesumm-graph-v1/RESULTS.md).
+
+The train false joins independently disqualify the nearest-veto rule under
+the owner's precision-first policy. Its global nearest check is also not
+the bounded local-hypothesis comparison required by ADR-064. GlobeSumm lacks
+viewpoint/family labels and this experiment used title+lead E5 rather than
+the current live body E5. No activation, migration, extra retention or new
+model follows. The selected test partition is now spent for this rule.
