@@ -148,11 +148,22 @@ before use. A/B now have checked structure and explicit **event versus direct
 page-pair relevance** labels; A's relevance can be non-transitive and overlap,
 while B's stages share tentative evolving-story relevance. These are not
 product Topic-routing gold labels. Smaller independently authored C1/C2/C3
-development replacements are undergoing language, chronology and balance QA.
+development replacements passed independent AI-only language/fact/date/balance
+QA and a hash-pinned
+[cross-chunk integrity check](../apps/local-service/experiments/topic-encoder/multilingual-authored-v2/README.md):
+324 reports total, 216 A+B train/calibration and 108 C development, all
+family/event/ID disjoint. This is synthetic evidence only, not publisher
+validation. The separately authored 105-report holdout remains unscored.
 The new dynamic-mining attention core is fictional-tested and fail-closed before
 corpus ingestion; **no authored corpus, balanced test or new holdout has been
-used to train or select it**. Next: annotate story-versus-event relations,
-repair/audit data, and settle the exact Topic boundary before any model run.
+used to train or select it**. The owner clarified on 2026-10-09 that
+non-transitive overlap is optional and need not be built now. Accordingly the
+PoC retains ADR-064's narrower principal-event primary Topic target: a later
+stage may have a separate primary Topic and appear as Related discussion.
+This is a provisional research label choice, not a claim that every stage
+should always be split. Next: freeze the event-level v3 adapter and run
+development once; do not invest further in
+overlap routing unless asked.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at

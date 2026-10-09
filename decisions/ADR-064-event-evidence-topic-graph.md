@@ -18,6 +18,17 @@ time is not a universal cutoff. A page covering multiple matters can have
 one primary discussion destination and several related destinations. Existing
 root posts remain anchored to their Source, not to a reply's origin.
 
+Owner clarification, 2026-10-09: a page overlapping two follow-up stories
+without transitively merging those follow-ups is acceptable, but **not a
+required near-term capability**. The owner asked not to work toward that
+architecture now. For this PoC, keep the narrower principal-event primary
+Topic target for news; different follow-up stages may remain separate primary
+Topics and appear under Related discussions. This resolves the immediate
+offline-label target, not the accuracy of any model or permission to change
+the live routing/storage architecture. The longer-term overlap analysis is
+recorded separately in
+[the research note](../research/TOPIC_STORY_EVENT_BOUNDARY_2026-10-09.md).
+
 ## Proposed method
 
 1. Retrieve neighbors from the existing 384D vector plus Unicode-normalized

@@ -1,6 +1,11 @@
 # Topic boundary: evolving story versus factual event (research note)
 
-Date: 2026-10-09. Status: **owner decision required; no matcher or product change**.
+Date: 2026-10-09. Status: **research only; overlap work deferred by owner**.
+The owner clarified after this analysis that both overlap-compatible and
+separate-primary-Topic UX are acceptable and asked us not to work toward
+overlap now. ADR-064's narrower principal-event target remains the PoC
+working definition; this note preserves the tradeoff, not an active blocker
+or mandate for a new architecture. No matcher or product change follows.
 Evidence here is limited to the authored A/B [fact-sheet READMEs](../apps/local-service/experiments/topic-encoder/multilingual-authored-v2/chunk-a/README.md) and [B README](../apps/local-service/experiments/topic-encoder/multilingual-authored-v2/chunk-b/README.md), not their article records or model scores. The original chunk C failed language-content QA and is excluded. No corpus training or holdout evaluation was performed for this note.
 
 ## Why the current labels are unsafe
@@ -66,7 +71,13 @@ The current v3 trainer's **optimizer, attention vector and token extraction can 
 - **Event-level primary Topic** (closer to current ADR-064 wording): each factual development has its own route; adjacent stages appear under **Related discussions** but do not share the primary thread. This does not satisfy the stronger "same Topic across follow-up stages" goal without changing the product requirement.
 - **Unresolved boundary**: keep separate primary Topics and offer a related-navigation cue rather than silently merging. Related discussions is navigation, not evidence that posts may be rerouted. Existing discussion roots/subthreads must not be migrated on a research label change without a separately reviewed provenance and migration decision.
 
-The owner needs to specify which follow-up stages belong to one primary Topic, especially expansions, repairs, results and reversals, and whether a report may have more than one primary story. Then an ADR update, audited labels, and a new offline experiment can be considered. This note authorizes no live grouping, new retained field, historical migration, provider/data egress or holdout run.
+If story-level routing becomes a future requirement, the owner would need to
+specify which follow-up stages belong to one primary Topic, especially
+expansions, repairs, results and reversals, and whether a report may have
+more than one primary story. That would require an ADR update, audited labels
+and a new offline experiment. For the current event-level PoC this question
+is deferred. This note authorizes no live grouping, new retained field,
+historical migration, provider/data egress or holdout run.
 
 ## Minimal overlap-compatible alternative for later review
 
