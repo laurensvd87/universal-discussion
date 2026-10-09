@@ -51,9 +51,13 @@ coarse-feature probe. But first-fit complete-link grouping recovered just
 **1/12** complete developments, below the predeclared **2/12** minimum, so
 this candidate also failed its usefulness screen. The same validation labels
 selected its cutoff; no independent precision claim follows. No unopened
-holdout, private real corpus, saved weights or live data was used. A balanced
-synthetic corpus is being prepared to remove language/viewpoint confounding
-before another independent method test; it is not yet product evidence.
+holdout, private real corpus, saved weights or live data was used. A separate
+[counterbalanced fictional corpus](../apps/local-service/experiments/topic-encoder/multilingual-balanced-v1/README.md)
+now has 240 records in five languages, both viewpoints in every
+development/language, and whole-family 8/2/2 train/development/test splits.
+Its generated paraphrases are not independent publisher reports or fluent-
+reviewed prose; the test split is unscored. It is a controlled research
+fixture, not product evidence.
 
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;

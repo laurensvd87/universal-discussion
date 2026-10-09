@@ -17,6 +17,11 @@ admitted 70/120 true and 0/1,650 false validation pairs at its
 development-selected gate, but completed only 1/12 developments; it failed
 its frozen >=2/12 complete-event screen and remains inactive. This is a
 pair-geometry signal, not independent accuracy or a shippable Topic model.
+The [new 240-record fictional corpus](../apps/local-service/experiments/topic-encoder/multilingual-balanced-v1/README.md)
+counterbalances five languages and two viewpoints within each development,
+with whole-family 8/2/2 splits. Its generated paraphrases are controlled,
+not independent publisher writing; the test is unscored and no product claim
+follows from its structural checks.
 
 2026-10-09 JRC research gate: the owner explicitly approved only private,
 local acquisition and evaluation of the official UA-RU News CSV. The file is

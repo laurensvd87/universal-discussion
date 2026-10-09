@@ -19,6 +19,9 @@ sharing a Topic across all viewpoints/languages is not yet reliable.
 A [full-coordinate follow-up](apps/local-service/experiments/topic-encoder/offline-pair-verifier-v2/RESULTS.md)
 found more correct multilingual pairs in synthetic development data, but
 still recovered only 1 of 12 complete Topics; it also remains offline.
+A [new fictional five-language corpus](apps/local-service/experiments/topic-encoder/multilingual-balanced-v1/README.md)
+counterbalances viewpoints for the next offline check, but its generated
+paraphrases are not a substitute for independent publisher evidence.
 
 A new [offline Topic-embedding experiment](apps/local-service/experiments/topic-encoder/README.md)
 tests matching the *subject* across different opinions rather than relying on
