@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseCorpus, inspectCorpus, safeDiagnostic } from './core.js';
+import { parseCorpus, inspectCorpus, diagnoseSchema, safeDiagnostic } from './core.js';
 
 const fictional = (pageid, lang, extra = {}) => ({ title: 'Fictional harbor council vote',
   pageid, categories: ['Local news'], lang, url: `https://${lang}.wikinews.org/wiki/Fictional_${pageid}`,
@@ -42,13 +42,14 @@ test('accepts bounded string text and rejects malformed records with fixed diagn
 test('counts empty text and accepts nullable date and old HTTP Wikinews URLs', () => {
   const corpus = parseCorpus(encode([
     fictional(1, 'en', { text: '', date: null, url: 'http://en.wikinews.org/wiki/Fictional_1' }),
-    fictional(1, 'fr', { text: [], date: null }),
+    fictional(1, 'fr', { text: [], date: '' }),
     fictional(2, 'nl', { text: [' ', 'A fictional update.'] }),
   ]));
   const report = inspectCorpus(corpus);
   assert.equal(report.articles, 3);
   assert.equal(report.events, 2);
   assert.equal(report.emptyTextArticles, 2);
+  assert.equal(report.emptyDateArticles, 2);
 });
 
 test('bounds total input and forbids blank JSONL records', () => {
@@ -57,4 +58,22 @@ test('bounds total input and forbids blank JSONL records', () => {
     { phase: 'parse', code: 'LINE_BOUND' });
   assert.throws(() => parseCorpus(encode([fictional(1, 'en', { text: 'x'.repeat(100001) })])),
     { phase: 'schema', code: 'TEXT_LENGTH' });
+});
+
+test('schema probe reports only bounded aggregate counts', () => {
+  const report = diagnoseSchema(encode([
+    fictional(1, 'en', { date: '', title: 'SECRET_TITLE' }),
+    fictional(2, 'fr', { date: null, text: ['SECRET_TEXT'], categories: [] }),
+    fictional(3, 'nl', { date: 42, url: 'SECRET_URL', pageid: { secret: true } }),
+  ]));
+  assert.equal(report.articles, 3);
+  assert.equal(report.fields.date.types.string, 1);
+  assert.equal(report.fields.date.types.null, 1);
+  assert.equal(report.fields.date.types.number, 1);
+  assert.equal(report.fields.date.empty, 2);
+  assert.equal(report.fields.categories.empty, 1);
+  assert.equal(report.fields.pageid.types.object, 1);
+  assert.doesNotMatch(JSON.stringify(report), /SECRET|wikinews\.org|harbor|2020-01-01/iu);
+  assert.throws(() => diagnoseSchema(Buffer.alloc(0)),
+    { phase: 'input', code: 'INPUT_SIZE' });
 });

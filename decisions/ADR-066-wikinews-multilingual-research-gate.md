@@ -1,6 +1,7 @@
-# ADR-066: Wikinews multilingual event corpus — proposed research gate
+# ADR-066: Wikinews multilingual event corpus — local research gate
 
-Status: **not approved for acquisition or use**. Date: 2026-10-08.
+Status: **owner-approved for private local research only** on 2026-10-09;
+product training/release rights and live activation remain unapproved.
 
 ## Why this source
 
@@ -23,29 +24,33 @@ GlobeSumm remains a
 private, local-only evaluation corpus under [ADR-065](ADR-065-local-multilingual-corpus-research.md),
 not product training material.
 
-## Pending owner decision and scope
+## Owner decision and scope
 
-The owner approved **GlobeSumm only** for its previous local research task.
-The attempted Wikinews download was rejected at the separate data/rights
-acquisition gate. Do not retry it, use an indirect route, access a cached
-copy, or use the dataset in training until the owner explicitly approves this
-new source. A [fixture-only adapter](../apps/local-service/experiments/topic-encoder/wikinews-event-eval/README.md)
-is prepared without obtaining data. Its assumed schema and safe aggregate
-output are tested only with fictional rows; compatibility with the real file
-has not been verified.
+The first acquisition attempt was rejected because the previous approval
+covered only GlobeSumm. The owner then explicitly approved this Wikinews
+file for private local download, event-matching evaluation and model-training
+research on 2026-10-09. The 45,258,115-byte JSONL file now resides in a
+private Temp directory outside Git; exact-byte SHA-256 is
+`b03da8d71ada96779e860e29a523a7e9f8bf5de3b595b45fd3c12d53b81958fa`.
+The [offline adapter](../apps/local-service/experiments/topic-encoder/wikinews-event-eval/README.md)
+was prepared with fictional rows. Its first real `--inspect` stopped at a
+nullable/blank-date schema assumption; only a fixed error code was emitted.
+The bounded adapter was corrected and `--inspect` then passed: 15,200
+articles, 5,240 page-ID event groups across 33 languages, group sizes 2–22,
+127 empty text fields and 3,549 empty dates. Five fictional tests pass.
+No real article content was printed or sent to a provider; no model was loaded.
 
-Requested first step: download that one approximately 45.3 MB JSONL file to
-a named private Temp directory outside Git, verify its hash and schema, and
-perform offline aggregate-only evaluation/training research. No article text,
+Approved research: verify this one file's hash and schema and perform offline,
+aggregate-only evaluation/training research. No article text,
 URL, per-article vector, model weight or generated derivative enters Git,
 logs, the local service, the extension or any AI provider. No new model asset
 is downloaded. No product model trained from it is shipped. Before any
 product training, retained data, model release or public use, conduct a
 separate rights/attribution and Trust review plus the existing ADR-064 live
-activation gate. A download for local research would not itself clear those
+activation gate. This local research approval does not clear those
 later gates.
 
-If approved, evaluate event-disjoint and, where possible, family-disjoint
+Evaluate event-disjoint and, where possible, family-disjoint
 splits; include same-category neighboring-event hard negatives and report
 cross-language pair and whole-Topic quality separately. A finite offline
 compute budget must never become a fixed number of Sources per Topic. Avoid

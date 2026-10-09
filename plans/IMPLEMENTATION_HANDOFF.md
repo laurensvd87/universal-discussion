@@ -1,11 +1,15 @@
 # Implementation handoff: local-service discussion MVP
 
-2026-10-08 next research gate: [ADR-066](../decisions/ADR-066-wikinews-multilingual-research-gate.md)
-records a promising Wikinews cross-language event corpus but **no acquisition
-approval**. Its download was blocked at the separate owner data/rights gate;
-do not retry or access it indirectly. Fixture-only code is safe to prepare.
-GlobeSumm remains local evaluation-only, and no real-trained model may ship.
-The current live matcher and saved discussions are unchanged.
+2026-10-09 local Wikinews research: the owner explicitly approved the one
+cross-language corpus in [ADR-066](../decisions/ADR-066-wikinews-multilingual-research-gate.md)
+after an earlier download request was blocked. The 45,258,115-byte JSONL is
+in private Temp outside Git. The bounded adapter's corrected real inspection
+passed: 15,200 articles, 5,240 page-ID events, 33 languages, 127 empty text
+fields and 3,549 empty dates; five fictional tests pass. No model was loaded.
+No raw page content/provider transfer or product model is
+authorized. GlobeSumm remains local evaluation-only; product-training rights,
+shipping and live activation have separate gates. The current live matcher
+and saved discussions are unchanged.
 
 2026-10-08 owner-approved local real-data research: [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 allows a private, offline GlobeSumm evaluation only; the corpus is outside

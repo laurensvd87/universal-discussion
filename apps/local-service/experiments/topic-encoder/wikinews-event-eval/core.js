@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 const LIMITS = Object.freeze({ bytes: 64 * 1024 * 1024, lineBytes: 256 * 1024,
   articles: 20000, text: 100000, paragraphs: 256, paragraph: 20000 });
 const hash = value => createHash('sha256').update(value).digest('hex');
+const FIELDS = Object.freeze(['pageid', 'title', 'categories', 'lang', 'url', 'text', 'date', 'type']);
 
 export class CorpusError extends Error {
   constructor(phase, code) {
@@ -44,7 +45,7 @@ function eventKey(value) {
   fail('schema', 'PAGEID_FORMAT');
 }
 
-export function parseCorpus(bytes) {
+function corpusLines(bytes) {
   if (!Buffer.isBuffer(bytes) || !bytes.length || bytes.length > LIMITS.bytes)
     fail('input', 'INPUT_SIZE');
   const source = bytes.toString('utf8');
@@ -52,15 +53,65 @@ export function parseCorpus(bytes) {
   const lines = source.split(/\r?\n/u);
   if (lines.at(-1) === '') lines.pop();
   if (!lines.length || lines.length > LIMITS.articles) fail('parse', 'LINE_COUNT');
-  const events = new Map(), languages = new Map();
-  let emptyTextArticles = 0;
+  return lines;
+}
+
+function articleFromLine(line) {
+  if (!line.trim() || Buffer.byteLength(line, 'utf8') > LIMITS.lineBytes)
+    fail('parse', 'LINE_BOUND');
+  let article;
+  try { article = JSON.parse(line); } catch { fail('parse', 'JSONL_SYNTAX'); }
+  if (!article || typeof article !== 'object' || Array.isArray(article))
+    fail('schema', 'ARTICLE_OBJECT');
+  return article;
+}
+
+const valueType = value => value === undefined ? 'missing' : value === null ? 'null'
+  : Array.isArray(value) ? 'array' : typeof value;
+
+// Aggregate-only schema probe: field values and per-row details never enter the report.
+export function diagnoseSchema(bytes) {
+  const lines = corpusLines(bytes);
+  const fields = Object.fromEntries(FIELDS.map(field => [field, {
+    types: { missing: 0, null: 0, string: 0, number: 0, array: 0,
+      object: 0, boolean: 0 }, empty: 0, overlimit: 0,
+  }]));
+  const max = { title: 1000, lang: 32, url: 2048, date: 100, type: 100 };
   for (const line of lines) {
-    if (!line.trim() || Buffer.byteLength(line, 'utf8') > LIMITS.lineBytes)
-      fail('parse', 'LINE_BOUND');
-    let article;
-    try { article = JSON.parse(line); } catch { fail('parse', 'JSONL_SYNTAX'); }
-    if (!article || typeof article !== 'object' || Array.isArray(article))
-      fail('schema', 'ARTICLE_OBJECT');
+    const article = articleFromLine(line);
+    for (const field of FIELDS) {
+      const value = article[field];
+      const stats = fields[field];
+      const type = valueType(value);
+      stats.types[type]++;
+      if (type === 'missing' || type === 'null' ||
+          (type === 'string' && !value.trim()) || (type === 'array' && value.length === 0))
+        stats.empty++;
+      if (type === 'string' && value.length > (max[field] ??
+          (field === 'pageid' ? 100 : LIMITS.text))) stats.overlimit++;
+      if (type === 'array') {
+        if (value.length > (field === 'categories' ? 64 : LIMITS.paragraphs))
+          stats.overlimit++;
+        if (field === 'text' || field === 'categories') {
+          const memberLimit = field === 'text' ? LIMITS.paragraph : 200;
+          if (value.some(member => typeof member !== 'string' || member.length > memberLimit) ||
+              (field === 'text' && value.reduce((sum, member) =>
+                sum + (typeof member === 'string' ? member.length : 0), 0) > LIMITS.text))
+            stats.overlimit++;
+        }
+      }
+    }
+  }
+  return { mode: 'diagnose-schema', inputSha256: hash(bytes), articles: lines.length,
+    fields, modelLoaded: false };
+}
+
+export function parseCorpus(bytes) {
+  const lines = corpusLines(bytes);
+  const events = new Map(), languages = new Map();
+  let emptyTextArticles = 0, emptyDateArticles = 0;
+  for (const line of lines) {
+    const article = articleFromLine(line);
     const key = eventKey(article.pageid);
     boundedString(article.title, 1000, 'TITLE');
     const lang = boundedString(article.lang, 32, 'LANG').toLowerCase();
@@ -71,7 +122,9 @@ export function parseCorpus(bytes) {
     if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password ||
         !parsed.hostname.toLowerCase().endsWith('.wikinews.org'))
       fail('schema', 'URL_FORMAT');
-    if (article.date !== null) boundedString(article.date, 100, 'DATE');
+    if (article.date === null) emptyDateArticles++;
+    else if (!boundedString(article.date, 100, 'DATE', { nonempty: false }).trim())
+      emptyDateArticles++;
     boundedString(article.type, 100, 'TYPE');
     if (!Array.isArray(article.categories) || article.categories.length > 64)
       fail('schema', 'CATEGORIES_ARRAY');
@@ -80,7 +133,8 @@ export function parseCorpus(bytes) {
     events.set(key, (events.get(key) ?? 0) + 1);
     languages.set(lang, (languages.get(lang) ?? 0) + 1);
   }
-  return { inputSha256: hash(bytes), articles: lines.length, emptyTextArticles, events, languages };
+  return { inputSha256: hash(bytes), articles: lines.length,
+    emptyTextArticles, emptyDateArticles, events, languages };
 }
 
 export function inspectCorpus(corpus) {
@@ -89,7 +143,7 @@ export function inspectCorpus(corpus) {
   for (const size of eventSizes) distribution.set(size, (distribution.get(size) ?? 0) + 1);
   return { mode: 'inspect', inputSha256: corpus.inputSha256,
     articles: corpus.articles, events: corpus.events.size,
-    emptyTextArticles: corpus.emptyTextArticles,
+    emptyTextArticles: corpus.emptyTextArticles, emptyDateArticles: corpus.emptyDateArticles,
     eventSize: { min: Math.min(...eventSizes), max: Math.max(...eventSizes),
       distribution: Object.fromEntries([...distribution].sort((a, b) => a[0] - b[0])) },
     languages: Object.fromEntries([...corpus.languages].sort(([a], [b]) => a.localeCompare(b))),

@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-08. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-09. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -31,18 +31,23 @@ Previous detailed chronology is preserved in
 new eligible pages are visited, and user-invoked AI answers to discussion
 questions whose cited pages may supply new candidate Sources. These are not
 active work or new capture/search/provider approvals; multilingual matching
-and the pending Wikinews research gate remain the current priority.
+and the now-approved local Wikinews research remain the current priority.
 
-**2026-10-08 next data gate:** After the negative real-E5 experiments, a
+**2026-10-09 Wikinews research approval:** After the negative real-E5 experiments, a
 potential [CC BY-labelled multilingual Wikinews event corpus](../decisions/ADR-066-wikinews-multilingual-research-gate.md)
 was identified: the source card says 15,200 linked articles in 33 languages.
-Its 45.3 MB file was **not downloaded**. The acquisition request was rejected
-because the owner approved only GlobeSumm for local real-data research. A
-[fixture-only adapter](../apps/local-service/experiments/topic-encoder/wikinews-event-eval/README.md)
-now passes four fictional tests and a no-data dry run; schema compatibility
-is unverified. Actual Wikinews data use, model
-training from it and any product rights decision await explicit owner
-approval. No new model or live matcher is active.
+The first acquisition attempt was rejected because the earlier approval
+covered GlobeSumm only. The owner then explicitly approved this single
+Wikinews file for private local research. The 45,258,115-byte JSONL file
+now resides outside Git in a private Temp directory; SHA-256 is in ADR-066.
+A [bounded local adapter](../apps/local-service/experiments/topic-encoder/wikinews-event-eval/README.md)
+now passes five fictional tests. Its first real inspection stopped at a
+date-field assumption with a fixed error code; the corrected inspection passed
+with 15,200 articles in 5,240 page-ID event groups across 33 languages,
+127 empty text fields and 3,549 empty dates. Event sizes range from 2 to 22;
+no model was loaded. No Wikinews text or URL was logged or sent to a provider.
+Product-training rights, model release and live activation
+remain separate owner/Trust gates. No new model or live matcher is active.
 
 **2026-10-08 real multilingual research gate and first result:** The owner
 approved [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)

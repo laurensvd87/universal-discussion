@@ -2,7 +2,7 @@ import '../../../../../spikes/topic-resolution/harness/deny-external-capabilitie
 import { readFile, lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CorpusError, safeDiagnostic, parseCorpus, inspectCorpus } from './core.js';
+import { CorpusError, safeDiagnostic, parseCorpus, inspectCorpus, diagnoseSchema } from './core.js';
 
 const ownDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(ownDir, '../../../../..');
@@ -33,11 +33,13 @@ async function main() {
       modelLoaded: false, externalCapabilities: 'denied', inputRequired: true })}\n`);
     return;
   }
-  if (process.argv.length !== 7 || process.argv[2] !== '--inspect' ||
+  if (process.argv.length !== 7 || !['--inspect', '--diagnose-schema'].includes(process.argv[2]) ||
       process.argv[3] !== '--private-dir' || process.argv[5] !== '--input')
-    throw new CorpusError('arguments', 'EXPECTED_INSPECT_PRIVATE_DIR_INPUT');
+    throw new CorpusError('arguments', 'EXPECTED_MODE_PRIVATE_DIR_INPUT');
   const bytes = await privateInput(process.argv[4], process.argv[6]);
-  process.stdout.write(`${JSON.stringify(inspectCorpus(parseCorpus(bytes)), null, 2)}\n`);
+  const report = process.argv[2] === '--diagnose-schema'
+    ? diagnoseSchema(bytes) : inspectCorpus(parseCorpus(bytes));
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
 
 try { await main(); } catch (error) {
