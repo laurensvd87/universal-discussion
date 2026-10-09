@@ -27,6 +27,15 @@ is modest and limited to Wikinews interlanguage editions. No weights,
 article data or new product asset were saved. Do not activate; future
 cross-publisher/viewpoint checks and rights/security gates remain.
 
+2026-10-09 frozen cross-corpus transfer: the Wiki-trained metric and cutoff
+were applied without retuning to a synthetic five-language, varied-viewpoint
+challenge. It joined 22/120 true Topic pairs, calibrated raw E5 20/120;
+neither reconstructed any of 12 complete gold Topics. Both pair gates
+admitted one adjacent-event false pair before conservative grouping.
+[Results](../apps/local-service/experiments/topic-encoder/wikinews-transfer-v1/RESULTS.md)
+are aggregate-only. Keep this model inactive. More robust viewpoint/event
+data or a different admission architecture is needed before reconsidering.
+
 2026-10-08 owner-approved local real-data research: [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 allows a private, offline GlobeSumm evaluation only; the corpus is outside
 Git and no publisher-rights/product-training or release clearance follows.

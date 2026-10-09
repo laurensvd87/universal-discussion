@@ -76,6 +76,20 @@ All model weights remained in memory, no product matcher changed, and
 Wikinews translations cannot establish different-viewpoint robustness.
 The four fictional tests pass; this is not an activation candidate.
 
+**2026-10-09 frozen cross-corpus viewpoint diagnostic:** The Wikinews
+adapter/thresholds were fixed before opening a separately frozen synthetic
+60-report, 12-event, five-language set with multiple viewpoints and adjacent
+events. The learned metric joined **22/120** same-event pairs as complete-link
+Topics, versus **20/120** for Wikinews-calibrated raw E5; neither recovered
+any of the 12 complete five-report Topics. Both calibrated pair gates admitted
+one same-family false pair, though complete-link avoided false Topic joins
+here. True-event retrieval stayed strong (learned top-three **59/60**).
+See [transfer results](../apps/local-service/experiments/topic-encoder/wikinews-transfer-v1/RESULTS.md).
+This is negative evidence for activation and confirms that Wikinews
+translation training does not solve differing-viewpoint admission.
+Three fictional transfer tests and the synthetic corpus hash check pass;
+no product code, provider request or saved model changed.
+
 **2026-10-08 real multilingual research gate and first result:** The owner
 approved [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 for local-only offline evaluation of GlobeSumm, not publication, provider

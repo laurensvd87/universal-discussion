@@ -58,6 +58,15 @@ Topic join in this slice. This ten-pair gain is insufficient for activation
 and says nothing conclusive about independent publisher viewpoints. No
 learned weights, source text or per-article vectors were persisted.
 
+The frozen [cross-corpus transfer diagnostic](../apps/local-service/experiments/topic-encoder/wikinews-transfer-v1/RESULTS.md)
+then applied that unchanged Wiki-selected model/cutoff to a separate
+synthetic multi-viewpoint challenge. It joined 22/120 true Topic pairs,
+versus 20/120 for Wiki-calibrated raw E5; neither recovered any complete
+five-report Topic, and both pair gates admitted one adjacent-event false
+pair. Thus this training route is rejected as a live matching upgrade.
+Cross-publisher real-world behavior remains unmeasured, not proven by
+synthetic data; later product gates remain intact.
+
 Approved research: verify this one file's hash and schema and perform offline,
 aggregate-only evaluation/training research. No article text,
 URL, per-article vector, model weight or generated derivative enters Git,
