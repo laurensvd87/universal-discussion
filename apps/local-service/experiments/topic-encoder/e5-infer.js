@@ -52,7 +52,33 @@ export function topicInput(document, mode = 'body') {
   throw new TypeError('Invalid experiment input mode');
 }
 
-export async function runPooledArticle(session, Tensor, encoded, pool = poolHidden) {
+// Offline-only bounded copy. The model's 0/2 special IDs and exact tokenizer
+// query prefix are checked before copying content positions out of WASM memory.
+export function copyContentTokenStates(hidden, encoded, queryPrefixIds, limit = 64) {
+  if (!hidden || !Array.isArray(hidden.dims) || hidden.dims.length !== 3 ||
+      hidden.dims[0] !== 1 || hidden.dims[2] !== 384 ||
+      !Number.isInteger(hidden.dims[1]) || hidden.dims[1] < 1 || hidden.dims[1] > 512 ||
+      !(hidden.data instanceof Float32Array) ||
+      hidden.data.length !== hidden.dims[1] * 384 ||
+      !Array.isArray(encoded?.ids) || hidden.dims[1] !== encoded.ids.length ||
+      !Array.isArray(queryPrefixIds) || queryPrefixIds.length < 1 || queryPrefixIds.length > 16 ||
+      !Number.isInteger(limit) || limit < 1 || limit > 64 ||
+      encoded.ids[0] !== 0 || encoded.ids.at(-1) !== 2 ||
+      queryPrefixIds.some((id, index) => encoded.ids[index + 1] !== id))
+    throw new TypeError('Invalid token-state contract');
+  const start = 1 + queryPrefixIds.length;
+  const count = Math.min(limit, encoded.ids.length - 1 - start);
+  if (count < 1) throw new TypeError('No content token states');
+  const states = new Float32Array(count * 384);
+  const selected = hidden.data.subarray(start * 384, (start + count) * 384);
+  for (let i = 0; i < selected.length; i++) {
+    if (!Number.isFinite(selected[i])) throw new TypeError('Invalid token state');
+    states[i] = selected[i];
+  }
+  return { states, count };
+}
+
+export async function runPooledArticle(session, Tensor, encoded, pool = poolHidden, extractTokens = null) {
   const feeds = {};
   let result;
   try {
@@ -63,9 +89,12 @@ export async function runPooledArticle(session, Tensor, encoded, pool = poolHidd
       }
       result = await session.run(feeds);
     } catch { throw new InferenceStageError('SESSION_RUN'); }
-    try {
-      return pool(result.last_hidden_state, encoded.attention_mask);
-    } catch { throw new InferenceStageError('POOL'); }
+    let vector;
+    try { vector = pool(result.last_hidden_state, encoded.attention_mask); }
+    catch { throw new InferenceStageError('POOL'); }
+    if (!extractTokens) return vector;
+    try { return { vector, tokenStates: extractTokens(result.last_hidden_state, encoded) }; }
+    catch { throw new InferenceStageError('TOKEN_STATES'); }
   } finally {
     // ORT holds WASM-backed buffers for both feeds and outputs. Releasing the
     // session alone leaves article-level tensors alive until GC.
@@ -103,7 +132,7 @@ export async function preflightLongInput(documents) {
     sampledInputs, modelSha256: MODEL_SHA256, tokenizerSha256: TOKENIZER_SHA256 };
 }
 
-export async function embedDocuments(documents, mode = 'body') {
+export async function embedDocuments(documents, mode = 'body', includeTokenStates = false) {
   if (!Array.isArray(documents) || documents.length < 1 || documents.length > 1200 ||
       new Set(documents.map(item => item?.id)).size !== documents.length ||
       documents.some(item => typeof item?.id !== 'string' || !item.id))
@@ -113,6 +142,10 @@ export async function embedDocuments(documents, mode = 'body') {
   const ort = await import('../../../../spikes/topic-resolution/browser/embedding/.assets/ort.wasm.min.mjs');
   if (ort.env.versions.web !== ORT_VERSION) throw new Error('Runtime version mismatch');
   const tokenizer = await packagedTokenizer(verified);
+  // The trailing space joins the first content token in this tokenizer; the
+  // stable prefix is `query:` without that space (fixture-tested below).
+  const queryPrefixIds = includeTokenStates
+    ? tokenizer.encode('query:', { add_special_tokens: false }).ids : null;
   ort.env.logLevel = 'error';
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.proxy = false;
@@ -133,17 +166,27 @@ export async function embedDocuments(documents, mode = 'body') {
     try { await session.release(); } catch { throw new InferenceStageError('CLEANUP'); }
     throw new Error('Packaged graph mismatch');
   }
-  const vectors = new Map();
+  const vectors = new Map(), tokenStates = includeTokenStates ? new Map() : null;
   try {
     for (const document of documents) {
       let encoded;
       try { encoded = prefixTokenInput(tokenizer, topicInput(document, mode)); }
       catch { throw new InferenceStageError('TOKENIZE'); }
-      vectors.set(document.id, await runPooledArticle(session, ort.Tensor, encoded));
+      const output = await runPooledArticle(session, ort.Tensor, encoded, poolHidden,
+        includeTokenStates ? (hidden, input) =>
+          copyContentTokenStates(hidden, input, queryPrefixIds) : null);
+      if (includeTokenStates) {
+        vectors.set(document.id, output.vector);
+        tokenStates.set(document.id, output.tokenStates);
+      } else vectors.set(document.id, output);
     }
   } finally {
     try { await session.release(); } catch { throw new InferenceStageError('CLEANUP'); }
   }
-  return { vectors, elapsedMs: performance.now() - started,
+  return { vectors, ...(includeTokenStates ? { tokenStates } : {}),
+    elapsedMs: performance.now() - started,
     assets: { modelSha256: MODEL_SHA256, tokenizerSha256: TOKENIZER_SHA256, runtime: ORT_VERSION } };
 }
+
+export const embedDocumentsWithTokens = (documents, mode = 'title-lead') =>
+  embedDocuments(documents, mode, true);
