@@ -25,14 +25,16 @@ found true nearest neighbors for 145/150 real validation articles but only
 15/803 true admitted pairs, zero observed false pairs, and 0/13 complete
 events under double support. This reused split is exploratory, not
 independent precision evidence; the method is rejected for live promotion.
-The selected 293-article test remains unembedded.
+This transfer runner did not embed the selected 293-article test; the split
+had already been used in the earlier GlobeSumm graph experiment.
 The follow-up [real-data diagonal adapter](../apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/RESULTS.md)
 found a stronger but still incomplete signal on the same reused validation:
 126/803 true and zero observed false pair admissions versus 35/803 for
 separately calibrated raw E5, with 0/13 complete events. It failed its
 predeclared screen and its calibration had no eligible negative candidates,
 so there is no precision or product claim. Its trained 384 parameters were
-RAM-only and never saved or shipped; the selected test remains untouched.
+RAM-only and never saved or shipped; this adapter-validation runner did not
+score the selected test.
 The next evaluation should use the separately tested
 [Topic coverage metrics](../apps/local-service/experiments/topic-encoder/topic-coverage-metrics/README.md)
 on a **fresh** provenance-reviewed set, emphasizing false grouped reach and
@@ -62,7 +64,15 @@ in pure multi-page groups and 214 versus 57 correct grouped pairs for the
 RAM-only diagonal adapter versus separately calibrated raw E5. Both had zero
 observed false grouped pairs on this slice. This is a relative exploratory
 gain, not independent precision, product rights or production body-E5 parity;
-the selected 293 test articles remain unopened.
+the adapter-validation runner did not score the selected 293 test articles.
+The subsequently frozen [diagonal-protocol comparison](../apps/local-service/experiments/topic-encoder/real-diagonal-holdout-v1/RESULTS.md)
+scored that **previously used** 293-report GlobeSumm split once for this
+method: 148 versus 74 articles in pure multi-page groups and 343 versus 82
+correct grouped pairs, with zero observed false grouped pairs for both. This
+passes the E5-relative exploratory rule on those cases but is not a fresh
+independent holdout: `globesumm-graph-v1` had already evaluated the same
+split. It is now spent for adapter selection. No live or product rights
+decision follows.
 
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline

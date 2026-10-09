@@ -248,7 +248,20 @@ pairs. Both had zero observed false grouped pairs and mixed-group articles on
 this slice. This meets the owner's relative *exploratory* criterion here,
 while the frozen 0/13 complete-event screen stays failed; no publisher or
 viewpoint gold, independent precision proof, live body-E5 parity or product
-rights follow. The 293 selected test articles remain unopened.
+rights follow. At that adapter-validation checkpoint its runner did not score
+the 293 selected test articles; the split had already been evaluated by the
+earlier GlobeSumm graph experiment described below.
+The frozen diagonal-protocol [one-shot comparison](../apps/local-service/experiments/topic-encoder/real-diagonal-holdout-v1/RESULTS.md)
+has now scored that **previously used** 293-report split once more, without
+retuning: 148 versus 74 articles in pure multi-page groups and 343 versus
+82 correct grouped pairs for the adapter versus separately calibrated raw
+title/lead E5. Both had zero observed false grouped pairs and mixed-group
+articles. This passes ADR-069's relative **exploratory** research rule on
+these cases, but is **not independent holdout confirmation**: the same split
+was already opened under `globesumm-graph-v1`. It is definitively spent for
+adapter selection. No root-route churn, publisher/viewpoint robustness,
+live body-E5 parity or product-training rights were established, and no
+weights or page text were saved or activated.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at

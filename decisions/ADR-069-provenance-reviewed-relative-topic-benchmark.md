@@ -69,5 +69,12 @@ a separate safe alternative. The initial eligible-source survey produced
 same-article translations and adjacent legislative-stage negatives, not
 verified independent-publisher same-event positives.
 
+Research checkpoint: a hash-frozen diagonal-adapter comparison met the
+E5-relative rule on the same 293 GlobeSumm title/lead articles (148 versus
+74 pages in pure multi-page groups, no observed false group for either).
+That split had **already been used** by a different GlobeSumm graph study;
+the result is exploratory, not independent confirmation. No rights-cleared
+new article set was acquired, and no live or product model change follows.
+
 Source candidates and caveats are in
 [the rights-review note](../research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md).

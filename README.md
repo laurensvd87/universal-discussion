@@ -159,6 +159,12 @@ On the reused 150-article real validation slice, the adapter connected
 83 articles into pure multi-page groups versus 46 for a separately calibrated
 E5 baseline, with no observed mixed group in either method. That is an
 exploratory gain, not independent accuracy evidence or a production change.
+The frozen [diagonal-protocol comparison](apps/local-service/experiments/topic-encoder/real-diagonal-holdout-v1/RESULTS.md)
+then found 148 versus 74 pages in correctly pure multi-page groups on the
+same 293-report GlobeSumm split, with no observed false grouping for either
+method. That split had **already been evaluated by an earlier graph
+experiment**; this is a useful E5-relative exploratory result, not a fresh
+independent holdout, live browser comparison or product activation.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and
