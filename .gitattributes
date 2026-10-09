@@ -1,3 +1,4 @@
 spikes/topic-resolution/fixtures/html/*.html text eol=lf
 spikes/topic-resolution/review/fixtures/*.tsv text eol=lf
 apps/local-service/experiments/topic-encoder/*/*.generated.json text eol=lf
+apps/local-service/experiments/topic-encoder/multilingual-independent-v1/records.json text eol=lf

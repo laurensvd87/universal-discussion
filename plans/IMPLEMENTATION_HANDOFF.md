@@ -33,6 +33,10 @@ on the same development scores recovered 3/4 complete events with
 triangle-supported edges, but this is in-sample and not an independent
 safety result. Only that triangle rule is selected for a separate one-shot
 synthetic holdout; the live matcher stays unchanged.
+The [80-record separately authored holdout](../apps/local-service/experiments/topic-encoder/multilingual-independent-v1/README.md)
+is structurally checked and hash-frozen, but still unscored. Its generated
+fictional prose is not real publisher evidence. Do not inspect it to tune the
+selected triangle rule or cutoff before its one-shot run.
 
 2026-10-09 JRC research gate: the owner explicitly approved only private,
 local acquisition and evaluation of the official UA-RU News CSV. The file is

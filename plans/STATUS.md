@@ -80,6 +80,11 @@ Because the cutoff was selected from these validation negatives, its
 zero-false edges are in-sample by construction. The triangle policy alone
 is frozen for a forthcoming separately authored one-shot synthetic holdout;
 no active Topic-routing change is authorized or made.
+That [independent fictional holdout](../apps/local-service/experiments/topic-encoder/multilingual-independent-v1/README.md)
+now contains 80 as-yet-unscored reports: eight developments in four families,
+five languages and both viewpoints per development/language. An independent
+Luna agent authored it without inspecting the matcher or development scores;
+structural checks pass, but the prose has no independent linguistic review.
 
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
