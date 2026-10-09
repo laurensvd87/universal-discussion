@@ -10,6 +10,7 @@ import { prepareGraph, calibrate, admit, evaluate, denominators } from
 import { retrievalRanks, cosine } from '../event-token-pool-v1/core.js';
 import { splitTrainEvents, omitConflictingInputs, fitDiagonal, transform,
   normalizeVectors } from './core.js';
+import { coverageForGraph } from './coverage.js';
 import { createHash } from 'node:crypto';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -48,7 +49,11 @@ const sourceFiles = [
   'apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/README.md',
   'apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/core.js',
   'apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/core.test.js',
+  'apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/coverage.js',
+  'apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/coverage.test.js',
   'apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/run.js',
+  'apps/local-service/experiments/topic-encoder/topic-coverage-metrics/core.js',
+  'apps/local-service/experiments/topic-encoder/topic-coverage-metrics/core.test.js',
   'apps/local-service/experiments/topic-encoder/real-event-eval/core.js',
   'apps/local-service/experiments/topic-encoder/synthetic-to-globesumm-v1/scope.js',
   'apps/local-service/experiments/topic-encoder/local-contrast-gate-v1/core.js',
@@ -74,7 +79,9 @@ async function main() {
     return;
   }
   const args = process.argv.slice(2);
-  if (args.length !== 4 || args[0] !== '--private-dir' || args[2] !== '--input')
+  const coverageMode = args.length === 5 && args[4] === '--coverage';
+  if ((args.length !== 4 && !coverageMode) ||
+      args[0] !== '--private-dir' || args[2] !== '--input')
     fail('arguments', 'EXPECTED_PRIVATE_DIR_AND_INPUT');
   const started = performance.now();
   const sourceSha256 = await sourceDigests();
@@ -119,9 +126,12 @@ async function main() {
     if (denominator.articles !== 150 || denominator.events !== 13 ||
         denominator.truePairs !== 803 || denominator.falsePairs !== 10372)
       fail('selection', 'DENOMINATOR_MISMATCH');
+    const admitted = admit(graph, 'double-support', setting);
+    const admission = evaluate(graph, admitted);
     methods[name] = { calibration: setting,
       retrieval: retrievalRanks(validation, vectors),
-      admission: evaluate(graph, admit(graph, 'double-support', setting)) };
+      admission,
+      ...(coverageMode && { coverage: coverageForGraph(graph, admitted, admission) }) };
   }
   const score = methods.diagonal;
   const reference = methods['raw-E5'];
@@ -132,7 +142,8 @@ async function main() {
     score.admission.falseEdges <= reference.admission.falseEdges &&
     score.admission.mixedGroups <= reference.admission.mixedGroups;
   process.stdout.write(`${JSON.stringify({
-    mode: 'real-diagonal-adapter-v1-exploratory-validation', researchOnly: true,
+    mode: coverageMode ? 'real-diagonal-adapter-v1-relative-coverage' :
+      'real-diagonal-adapter-v1-exploratory-validation', researchOnly: true,
     representation: 'packaged-E5-title-plus-384-lead',
     sourceSha256, privateCorpusSha256: REAL_HASH,
     assetManifestSha256: sourceSha256['spikes/topic-resolution/browser/embedding/.assets/manifest.json'],

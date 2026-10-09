@@ -215,12 +215,40 @@ groups, false/mixed reach, cross-language reach and duplicate-adjusted
 independent Source support. Its eight fictional tests pass. It does not
 retroactively change failed screens or score private data. A
 [candidate rights-review path](../research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md)
-identifies possible multilingual public-text sources, but **no new source
-collection or product training is approved**. The next substantive step is
-the roadmap's provenance-approved 200–250-pair review/acquisition gate:
-stop and ask the owner for exact scope, retention and labeling/provider
-approval before collecting or sending text. The completed 6/6 synthetic
-owner review must not be repeated.
+identifies possible multilingual public-text sources but does not clear each
+item or product training. The next substantive step was the roadmap's
+provenance-approved 200–250-pair review/acquisition gate. The owner has now
+approved a bounded local-only scope in ADR-069 below; the completed 6/6
+synthetic owner review must not be repeated.
+The owner then explicitly approved the bounded local-only corpus/review scope
+and E5-relative research criterion on 2026-10-09; see
+[ADR-069](../decisions/ADR-069-provenance-reviewed-relative-topic-benchmark.md).
+Up to 250 public comparison pairs from item-reviewed EU institution, Global
+Voices and Wikinews sources may be kept privately outside Git for no longer
+than 30 days; no article text may go to an AI labeling provider. A research
+candidate can be useful if it improves correct partial discussion reach over
+the same-case E5 baseline without worse false Topic exposure; complete-event
+recovery is diagnostic rather than an extra selection quota. This is not a
+live matcher, product-training, release or R5 independent-human/AUTO approval.
+The [local rights-corpus intake](../apps/local-service/experiments/topic-encoder/rights-corpus-v1/README.md)
+now validates bounded operator-supplied items/pairs without network or provider
+access (7 focused tests pass; one Windows symlink test is unavailable). An
+independent Trust review cleared its bounded read path after fixes, but a
+separately verified 30-day **deletion** process is still missing. Expiry only
+blocks reads; therefore **no new article text has been collected** under
+ADR-069. A small source survey found five useful EU legislative-stage
+negative families and translation pairs but no verified independent-publisher
+same-event positives within that pilot. Do not treat translations as diverse
+viewpoints or force cross-institution stages into one event label.
+A retrospective, source-hash-audited [coverage run](../apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/RESULTS.md)
+on the **same already-used 150 GlobeSumm validation articles** found 83/150
+articles in pure multi-page groups for the RAM-only diagonal adapter versus
+46/150 for separately calibrated raw E5, and 214 versus 57 correct grouped
+pairs. Both had zero observed false grouped pairs and mixed-group articles on
+this slice. This meets the owner's relative *exploratory* criterion here,
+while the frozen 0/13 complete-event screen stays failed; no publisher or
+viewpoint gold, independent precision proof, live body-E5 parity or product
+rights follow. The 293 selected test articles remain unopened.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at

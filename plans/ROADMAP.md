@@ -280,10 +280,19 @@ Owner: Semantic; independent human labels plus Trust/Quality review.
 Dependencies: useful R2 candidate and versioned Topic policy. May precede or run
 alongside curated-only R4 after its own approval; R4 does not require AUTO.
 
-STOP before the 200–250-pair provenance-approved acquisition/review task. Ask for
-sources/provenance/retention approval and give the solo owner a bounded assignment
-for an independent reviewer. The 6/6 synthetic task stays finished. Reuse existing
-tooling as needed; add no speculative machinery.
+The 200–250-pair provenance-approved acquisition/review task required an owner
+stop for sources, retention and provider transfer. That bounded local-research
+approval has now been given in ADR-069. Give the solo owner a bounded
+independent-review assignment if someone is available; otherwise owner-only
+labels remain exploratory. The 6/6 synthetic task stays finished. Reuse
+existing tooling as needed; add no speculative machinery.
+
+The owner supplied that bounded **local-research** approval on 2026-10-09 in
+[ADR-069](../decisions/ADR-069-provenance-reviewed-relative-topic-benchmark.md).
+The comparative research screen is E5-relative: more correctly reachable
+same-event Sources with no worse false Topic exposure is useful even when a
+whole event is not recovered. This does not waive the separate AUTO gate below
+or make owner-only exploratory labels independent human evidence.
 
 Freeze model/preprocessing, dataset/split and thresholds before held-out results.
 Measure retrieval separately from verification, false joins and abstention; test

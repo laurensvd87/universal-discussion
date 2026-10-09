@@ -37,3 +37,38 @@ capture. Publisher/product-training rights and a separate owner/Trust live
 activation gate remain. No retained field, service matcher, Topic,
 discussion, extension or permission changed. The learned 384 values existed
 only in process RAM and were not shipped or stored.
+
+## Retrospective partial-coverage comparison, same validation
+
+The owner subsequently clarified the research choice in ADR-069: correct
+partial discussion reach may count if false Topic exposure does not worsen
+against the same-case E5 baseline. An offline `--coverage` run reused the
+exact 150 validation articles and the original train fit/calibration. The
+private source still matched ADR-065's exact size and SHA-256. No selected
+test article was embedded or scored. The coverage evaluator cross-checked
+the runner's direct edges, false grouped pairs and singleton counts.
+
+| Validation metric | Raw pooled E5 | Diagonal adapter |
+| --- | ---: | ---: |
+| Correct direct edges | 35 | 126 |
+| Correct grouped pairs, including transitive | 57 | 214 |
+| Articles in pure multi-page groups | 46/150 | 83/150 |
+| Other correct pages per possible root, mean | 0.76 | 2.85 |
+| False direct / grouped pairs | 0 / 0 | 0 / 0 |
+| Articles exposed to a mixed group | 0 | 0 |
+| Complete events | 0/13 | 0/13 |
+
+All grouped true pairs are cross-language. The 150 validation inputs have
+150 distinct exact title-and-lead keys; duplicate-adjusted *exact-input*
+counts and means therefore equal the article counts above. These keys do
+not establish 150 independent publishers or editorial sources. The
+adapter reaches 37 more articles in pure groups and 157 more correct grouped
+pairs with no observed increase in false or mixed exposure on this reused
+slice. This satisfies the owner's *relative exploratory* research criterion
+on these cases, while the original frozen complete-event screen remains
+failed. The adapter's calibration had zero eligible negative candidates,
+and both methods observed zero false joins on only 10,372 different-event
+validation pairs. Neither result establishes safe precision outside this
+split. There is no publisher or viewpoint gold and the title-plus-384-lead
+input is not the current live body-derived E5 input. A fresh independent,
+rights-cleared comparison remains necessary before any activation decision.

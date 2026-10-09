@@ -39,9 +39,30 @@ on a **fresh** provenance-reviewed set, emphasizing false grouped reach and
 safe multi-page article coverage rather than demanding every event be
 complete. This does not revise any failed preregistered screen. The
 [candidate corpus source review](../research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md)
-is a proposal only: before collecting/labeling the roadmap's 200–250 pairs,
-ask the owner explicitly for scope, local retention and any AI-provider
-text transfer, then Trust for later product rights/model distribution.
+was the pre-approval proposal for the roadmap's 200–250-pair task. Its source
+classes still require item-level checks. Trust remains required for later
+product rights/model distribution.
+
+That bounded local-research approval was supplied on 2026-10-09 in
+[ADR-069](../decisions/ADR-069-provenance-reviewed-relative-topic-benchmark.md):
+at most 250 public comparison pairs, item-level rights/provenance, private
+outside-Git storage for at most 30 days and no article-text AI-provider
+transfer. Compare on the same cases against actual E5, counting partial
+pure-group reach and false group exposure; a complete-event quota is not a
+research selection requirement. Trust/product rights and live activation
+remain separate gates.
+The rights-corpus intake code is tested and read-only, but it does not delete
+expired data. No ADR-069 article text was collected: arrange a verified
+30-day deletion process first, or use a separately reviewed RAM-only pilot.
+The initial EU-source survey supplies translations and adjacent legislative
+stages, not independent-publisher same-event positives.
+The optional, retrospective [coverage comparison](../apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/RESULTS.md)
+on the reused 150-article GlobeSumm validation found 83 versus 46 articles
+in pure multi-page groups and 214 versus 57 correct grouped pairs for the
+RAM-only diagonal adapter versus separately calibrated raw E5. Both had zero
+observed false grouped pairs on this slice. This is a relative exploratory
+gain, not independent precision, product rights or production body-E5 parity;
+the selected 293 test articles remain unopened.
 
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline

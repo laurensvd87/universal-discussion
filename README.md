@@ -148,9 +148,17 @@ screen and was **not** saved, shipped or activated. These are research signals,
 not a reliable multilingual Topic matcher. [Current status](plans/STATUS.md),
 [coverage metrics](apps/local-service/experiments/topic-encoder/topic-coverage-metrics/README.md),
 and the [candidate rights-review path](research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md)
-explain the next evidence step. The roadmap's provenance-approved 200–250-pair
-task still needs explicit owner approval before new collection/review; the
-completed six-pair synthetic review is not repeated.
+explain the next evidence step. The owner has now approved the bounded,
+local-only 200–250-pair research scope and an E5-relative quality comparison
+in [ADR-069](decisions/ADR-069-provenance-reviewed-relative-topic-benchmark.md).
+A method may be the better research candidate when it safely connects more
+relevant pages than E5, even without finding every page. Product model rights
+and live Topic activation remain separate decisions; the completed six-pair
+synthetic review is not repeated.
+On the reused 150-article real validation slice, the adapter connected
+83 articles into pure multi-page groups versus 46 for a separately calibrated
+E5 baseline, with no observed mixed group in either method. That is an
+exploratory gain, not independent accuracy evidence or a production change.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

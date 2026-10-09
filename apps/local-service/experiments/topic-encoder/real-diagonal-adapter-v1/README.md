@@ -29,3 +29,21 @@ node apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/run.j
 ```
 
 The private file location in the example is a placeholder. Never redirect output into the repository. No selected test row may be embedded or scored in this experiment.
+
+## Retrospective relative-coverage diagnostic
+
+The owner later approved a comparison against the same-case E5 baseline that
+credits correct partial pure groups. `--coverage` appends aggregate group
+metrics from `topic-coverage-metrics` to the frozen validation procedure:
+
+```powershell
+node apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/run.js --private-dir C:\private\corpus --input C:\private\corpus\news_only.json --coverage
+```
+
+Both methods still use the same 150 previously examined validation records,
+input, double-support rule and their separately calibrated train thresholds.
+The original predeclared screen remains failed. This diagnostic cannot turn
+reused validation into independent precision evidence or authorize live use.
+The selected 293 test records remain unembedded. Duplicate-adjusted support
+uses distinct exact title-and-lead keys, **not** verified independent
+publishers; it is suppressed if one key has conflicting validation labels.
