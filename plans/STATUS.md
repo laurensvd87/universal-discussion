@@ -26,6 +26,22 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-09 offline pair-verifier stop:** A frozen 33-feature, eight-hidden-unit
+[local pair verifier](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v1/RESULTS.md)
+was trained in memory on the separately approved private Wikinews research
+split plus project-created synthetic training reports. Its cutoff used the
+maximum negative score on the two development splits, so zero observed false
+admissions there is *not* independent precision evidence. At that gate it
+admitted only **61/328** true Wikinews validation pairs and **1/120** true
+synthetic validation pairs, recovering **6/66** and **0/12** complete events.
+Previously published raw-E5/diagonal comparison gates recovered more true
+pairs but each admitted a false synthetic pair. This verifier is rejected,
+without retuning or opening any selected test; no weights, vectors, article
+text or model were saved or shipped. The packaged E5, live Topic assignment,
+extension, stored data and discussion routing are unchanged. A different
+representation or admission method still needs genuinely independent evidence
+and the existing rights/owner/Trust gates before product use.
+
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
 [ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)

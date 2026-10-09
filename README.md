@@ -10,6 +10,13 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The latest [offline pair-verifier probe](apps/local-service/experiments/topic-encoder/offline-pair-verifier-v1/RESULTS.md)
+failed to improve precise multilingual Topic grouping: its cautious
+development gate recovered only 1/120 true pairs on the synthetic
+five-language validation split. It was rejected; browsing, discussions and
+the live matcher are unchanged. Related-page discovery remains useful, but
+sharing a Topic across all viewpoints/languages is not yet reliable.
+
 A new [offline Topic-embedding experiment](apps/local-service/experiments/topic-encoder/README.md)
 tests matching the *subject* across different opinions rather than relying on
 raw semantic closeness. Its first independent synthetic English test found

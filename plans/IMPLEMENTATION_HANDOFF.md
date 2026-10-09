@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-09 offline verifier result: the frozen
+[33-feature pair probe](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v1/RESULTS.md)
+trained only in memory on the ADR-066-approved private Wikinews research split
+and project-created synthetic train. A development-selected zero-observed-false
+gate admitted just 61/328 true Wikinews validation pairs and 1/120 synthetic
+ones, with 6/66 and 0/12 complete events. This is worse than prior raw-E5
+reference gates for useful recall and is rejected without retuning. Its
+validation false-join count is not an independent precision estimate. No
+selected test was embedded, no weights or vectors were saved, and no live
+matcher or Topic data changed. Do not promote this probe or train on JRC;
+rights, model/retention, owner and Trust gates remain separate.
+
 2026-10-09 JRC research gate: the owner explicitly approved only private,
 local acquisition and evaluation of the official UA-RU News CSV. The file is
 outside Git; SHA-256, license caveat and content-free structure are in
