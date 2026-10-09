@@ -90,6 +90,19 @@ translation training does not solve differing-viewpoint admission.
 Three fictional transfer tests and the synthetic corpus hash check pass;
 no product code, provider request or saved model changed.
 
+**2026-10-09 adaptive admission research:** [ADR-067](../decisions/ADR-067-adaptive-topic-admission-research.md)
+records an offline graph experiment. The strict zero-false development choice
+joined **0/200** true validation pairs. A looser, frozen triangle rule joined
+**118/200** validation pairs without a false join there, but **10** false
+train joins (at least seven adjacent-event hard negatives). On a separately
+generated and semantically audited 50-report multilingual viewpoint holdout,
+the loose rule joined **76/100** true pairs, **0/1,125** false pairs and
+recovered **4/10** exact Topics; the strict choice joined **9/100** and
+recovered none. See [aggregate results](../apps/local-service/experiments/topic-encoder/adaptive-topic-graph-v1/RESULTS.md).
+The holdout's language/viewpoint cells are all represented but uneven;
+synthetic scores are not real-page precision. Four graph tests and the
+holdout exact-byte/structure test pass. No production rule was activated.
+
 **2026-10-08 real multilingual research gate and first result:** The owner
 approved [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 for local-only offline evaluation of GlobeSumm, not publication, provider

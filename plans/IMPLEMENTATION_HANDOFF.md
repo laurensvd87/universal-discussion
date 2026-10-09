@@ -36,6 +36,17 @@ admitted one adjacent-event false pair before conservative grouping.
 are aggregate-only. Keep this model inactive. More robust viewpoint/event
 data or a different admission architecture is needed before reconsidering.
 
+2026-10-09 adaptive Topic admission: [ADR-067](../decisions/ADR-067-adaptive-topic-admission-research.md)
+rejects immediate activation of an offline triangle/graph grouping rule.
+Its strict zero-false development setting had 0/200 true validation joins;
+an exploratory setting had 118/200 true, 0 false validation joins but ten
+false train joins. On a separately frozen, independently text-audited
+50-report holdout it scored 76/100 true, 0/1,125 false joins and 4/10 exact
+Topics. The holdout is synthetic and viewpoint-language cells are uneven.
+Keep hard Topic admission distinct from related-source retrieval, and do not
+change existing Source-anchored discussions without a separate owner/Trust
+activation review. Product logic remains unchanged.
+
 2026-10-08 owner-approved local real-data research: [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 allows a private, offline GlobeSumm evaluation only; the corpus is outside
 Git and no publisher-rights/product-training or release clearance follows.
