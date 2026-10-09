@@ -40,6 +40,15 @@ articles, 5,240 page-ID event groups across 33 languages, group sizes 2–22,
 127 empty text fields and 3,549 empty dates. Five fictional tests pass.
 No real article content was printed or sent to a provider; no model was loaded.
 
+The subsequent [offline E5 baseline](../apps/local-service/experiments/topic-encoder/wikinews-benchmark-v1/RESULTS.md)
+sampled 1,200 articles from 392 intact event groups across 32 languages,
+with event-disjoint partitions. On the test partition, the frozen 0.94
+complete-link rule joined only 9/534 true pairs (0/32,106 false); pooled
+results had 3 false joins. A true-event partner nevertheless ranked in the
+top three for 245/254 eligible test articles. This distinguishes good
+candidate retrieval from poor safe admission and does not establish
+cross-publisher viewpoint performance. No new product model is activated.
+
 Approved research: verify this one file's hash and schema and perform offline,
 aggregate-only evaluation/training research. No article text,
 URL, per-article vector, model weight or generated derivative enters Git,

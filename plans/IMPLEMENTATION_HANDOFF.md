@@ -11,6 +11,14 @@ authorized. GlobeSumm remains local evaluation-only; product-training rights,
 shipping and live activation have separate gates. The current live matcher
 and saved discussions are unchanged.
 
+2026-10-09 offline baseline: [Wikinews E5 results](../apps/local-service/experiments/topic-encoder/wikinews-benchmark-v1/RESULTS.md)
+cover a deterministic 1,200-article/392-whole-eligible-event/32-language sample with
+event-disjoint splits. The frozen 0.94 rule joins just 9/534 same-event test
+pairs (0/32,106 false test pairs); pooled, 34/1,988 true and 3/717,412 false.
+Test top-three retrieval finds a true partner for 245/254 eligible articles.
+This is research evidence for a retrieval/admission gap, not activation or
+cross-publisher viewpoint proof. No private corpus rows or vectors are in Git.
+
 2026-10-08 owner-approved local real-data research: [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 allows a private, offline GlobeSumm evaluation only; the corpus is outside
 Git and no publisher-rights/product-training or release clearance follows.

@@ -49,6 +49,20 @@ no model was loaded. No Wikinews text or URL was logged or sent to a provider.
 Product-training rights, model release and live activation
 remain separate owner/Trust gates. No new model or live matcher is active.
 
+**2026-10-09 offline Wikinews E5 baseline:** The owner-approved private file
+supported a deterministic 1,200-article, 392-whole-eligible-event, 32-language
+benchmark with event-disjoint train/validation/test partitions. The packaged
+E5 model and frozen 0.94 complete-link baseline joined only **9/534**
+same-event test pairs and **0/32,106** different-event test pairs. In the
+pooled exploratory sample it joined **34/1,988** true pairs and **3/717,412**
+false pairs. Yet a true-event partner appeared in the test top three for
+**245/254** eligible articles. See the aggregate-only
+[results](../apps/local-service/experiments/topic-encoder/wikinews-benchmark-v1/RESULTS.md).
+The corpus mainly tests cross-language Wikinews interlinks, not independent
+publisher viewpoints. This baseline is rejected for activation; product
+matching, model assets and discussions are unchanged. Four fictional
+benchmark tests and a real aggregate-only inspection pass.
+
 **2026-10-08 real multilingual research gate and first result:** The owner
 approved [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 for local-only offline evaluation of GlobeSumm, not publication, provider
