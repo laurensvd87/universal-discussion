@@ -154,16 +154,21 @@ QA and a hash-pinned
 324 reports total, 216 A+B train/calibration and 108 C development, all
 family/event/ID disjoint. This is synthetic evidence only, not publisher
 validation. The separately authored 105-report holdout remains unscored.
-The new dynamic-mining attention core is fictional-tested and fail-closed before
-corpus ingestion; **no authored corpus, balanced test or new holdout has been
-used to train or select it**. The owner clarified on 2026-10-09 that
+The owner clarified on 2026-10-09 that
 non-transitive overlap is optional and need not be built now. Accordingly the
 PoC retains ADR-064's narrower principal-event primary Topic target: a later
 stage may have a separate primary Topic and appear as Related discussion.
 This is a provisional research label choice, not a claim that every stage
-should always be split. Next: freeze the event-level v3 adapter and run
-development once; do not invest further in
-overlap routing unless asked.
+should always be split. The reviewed, hash-pinned
+[v3 dynamic attention experiment](../apps/local-service/experiments/topic-encoder/event-token-pool-v3/RESULTS.md)
+then ran once on A/B fit/calibration and C1/C2/C3 development: it retrieved
+the correct event first for **106/108** reports but admitted **0/270** true
+and **0/5,508** false edges, leaving **0/18** complete events. The
+preregistered continuation screen failed. Static attention also admitted
+zero edges. This is a calibration/admission failure, not evidence of safe
+precision or product readiness. The v5 holdout remains unopened; a new
+local-relative gate is being researched on development data only. Do not
+invest further in overlap routing unless asked.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at

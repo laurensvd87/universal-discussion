@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-09 event-vector research checkpoint: the hash-frozen
+[authored five-language corpus](../apps/local-service/experiments/topic-encoder/multilingual-authored-v2/README.md)
+has 216 A+B fit/calibration and 108 C1+C2+C3 development reports, with an
+independent 105-report v5 holdout still unscored. The reviewed
+[v3 dynamic attention experiment](../apps/local-service/experiments/topic-encoder/event-token-pool-v3/RESULTS.md)
+found the correct event as nearest neighbor for 106/108 development reports
+but admitted **no** links at its frozen train-calibrated cutoff; it failed
+its continuation screen and is not live. Do not open v5 for this candidate.
+Owner clarified that non-transitive Topic overlap is optional and need not
+be built now: use ADR-064's provisional principal-event target for offline
+research, with separate later stages discoverable as Related discussions.
+Any new retained representation, live Topic routing/migration, or data-rights
+expansion still requires its separate owner/Trust gate.
+
 2026-10-09 offline verifier result: the frozen
 [33-feature pair probe](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v1/RESULTS.md)
 trained only in memory on the ADR-066-approved private Wikinews research split

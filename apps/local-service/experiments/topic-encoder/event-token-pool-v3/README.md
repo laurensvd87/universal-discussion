@@ -1,5 +1,8 @@
 # Event-token-pool v3 — frozen event-level development protocol
 
+The frozen development run is complete and failed its continuation screen;
+see [RESULTS.md](RESULTS.md). The fresh v5 holdout remains unopened.
+
 This is one offline, RAM-only token-attention experiment. It does not change
 the live app, retain a new field, download a model, call a provider, or save
 weights/vectors/token states. Do not run authored-corpus development until
