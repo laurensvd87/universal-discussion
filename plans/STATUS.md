@@ -262,6 +262,18 @@ was already opened under `globesumm-graph-v1`. It is definitively spent for
 adapter selection. No root-route churn, publisher/viewpoint robustness,
 live body-E5 parity or product-training rights were established, and no
 weights or page text were saved or activated.
+An independently reviewed, hash-frozen
+[owned-synthetic diagonal transfer](../apps/local-service/experiments/topic-encoder/owned-diagonal-transfer-v1/RESULTS.md)
+then fit and calibrated **only** on project-authored reports, and scored the
+already-spent 150 GlobeSumm validation reports once. Against its separately
+synthetic-calibrated raw title/lead E5 baseline it admitted **1 versus 0**
+correct pairs, reaching **2 versus 0** pages in pure multi-page groups; both
+admitted zero observed false pairs, with 148/150 adapter pages still singleton.
+The narrow relative coverage check passes but transfer is far too sparse to
+justify product use. This differs from the earlier real-trained adapter's
+83-versus-46 result; do not conflate their training/calibration. No weights
+were saved and no live matching changed. A fresh rights-reviewed benchmark,
+useful coverage and live-input/root-route evidence remain open.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at

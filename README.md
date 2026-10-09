@@ -165,6 +165,11 @@ same 293-report GlobeSumm split, with no observed false grouping for either
 method. That split had **already been evaluated by an earlier graph
 experiment**; this is a useful E5-relative exploratory result, not a fresh
 independent holdout, live browser comparison or product activation.
+A separate [owned-synthetic transfer check](apps/local-service/experiments/topic-encoder/owned-diagonal-transfer-v1/RESULTS.md)
+trained and calibrated without real article text. On the already-used
+150-article slice it connected only one correct pair (two pages), versus none
+for its separately calibrated E5 baseline, with no observed false join. This
+is too little coverage for a product change; no adapter was saved or enabled.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

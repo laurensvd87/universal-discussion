@@ -73,6 +73,15 @@ passes the E5-relative exploratory rule on those cases but is not a fresh
 independent holdout: `globesumm-graph-v1` had already evaluated the same
 split. It is now spent for adapter selection. No live or product rights
 decision follows.
+The follow-up [owned-only transfer probe](../apps/local-service/experiments/topic-encoder/owned-diagonal-transfer-v1/RESULTS.md)
+was frozen and reviewed before one exploratory run. Training and calibration
+used only project-authored A/B; on the already-spent 150 GlobeSumm validation
+reports it joined 1 correct pair/2 pages versus 0/0 for separately calibrated
+raw title/lead E5, with no observed false joins. Almost all pages remained
+singletons, so this setup fails to transfer at useful coverage despite a
+narrow relative improvement; the cause is not isolated. Do not ship or
+activate the adapter. No model weights
+were saved and the 293 selected test reports were not embedded by this run.
 
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline

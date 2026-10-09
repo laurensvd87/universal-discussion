@@ -76,5 +76,13 @@ That split had **already been used** by a different GlobeSumm graph study;
 the result is exploratory, not independent confirmation. No rights-cleared
 new article set was acquired, and no live or product model change follows.
 
+Further checkpoint: the independently reviewed owned-synthetic diagonal
+adapter was fit and calibrated without real article training. On the
+already-spent 150-article GlobeSumm validation it reached 2 pure-group pages
+versus zero for separately calibrated title/lead E5, with zero observed false
+joins for either. With 148 adapter singletons, that narrow relative research
+gain is not useful product coverage or independent confirmation. No model
+weight was saved, and this does not pass the live/root-route or rights gates.
+
 Source candidates and caveats are in
 [the rights-review note](../research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md).
