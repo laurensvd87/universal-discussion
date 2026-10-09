@@ -135,6 +135,30 @@ The next offline path is therefore independently authored, broader training
 material and a quality-audited fresh holdout, not further tuning against the
 spent v3 holdout or the small balanced validation set. This is research only.
 
+**2026-10-09 authored-corpus quality gate:** The new 216-report A+B training
+draft has diverse fictional facts and five-language coverage, but an independent
+audit found that several `eventKey` negatives are successive stages of one
+unfolding story (for example approval, implementation and outcome). Training
+them all as hard *different-Topic* negatives would encode an unresolved
+product-boundary choice. Viewpoint/style labels are also partly language-
+conditioned, and some prose artificially contrasts a sibling development.
+The first 108-report C development draft failed multilingual-content QA because
+English factual prose remained in non-English rows; it was excluded and removed
+before use. A/B now have checked structure and explicit **event versus direct
+page-pair relevance** labels; A's relevance can be non-transitive and overlap,
+while B's stages share tentative evolving-story relevance. These are not
+product Topic-routing gold labels. Smaller independently authored C1/C2/C3
+development replacements are undergoing language, chronology and balance QA.
+The new dynamic-mining attention core is fictional-tested and fail-closed before
+corpus ingestion; **no authored corpus, balanced test or new holdout has been
+used to train or select it**. Next: annotate story-versus-event relations,
+repair/audit data, and settle the exact Topic boundary before any model run.
+This does not delay the already usable local app or authorize a live matcher
+change. The independently quality-audited 105-report five-language-plus-
+singleton synthetic holdout is hash-frozen at
+[`topic-benchmark/multilingual-holdout-v5`](../apps/local-service/experiments/topic-encoder/topic-benchmark/multilingual-holdout-v5/README.md)
+and remains unopened for scoring.
+
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
 [ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)
