@@ -80,6 +80,13 @@ A later retained design needs an app-owned isolated directory, handle/file-ID
 checks, allowlisted deletion, an external expiry registry and failure tests,
 plus a realistic provision for periods when the PC is off. No such mechanism
 is implemented for use yet.
+The bounded RAM-only pair-pilot code now exists as an inert scaffold. Eleven
+fictional tests and independent Trust review clear a code commit only: there
+is no real transport/extractor or new article acquisition. Before any live
+research fetch, separately verify item-level rights, abort-cooperative
+transport including hanging streams, article-only extraction, and trusted
+callback no-egress/no-persistence. Its pair-only output cannot establish
+transitive Topic safety or complete this ADR's grouped E5 comparison.
 
 Research checkpoint: a hash-frozen diagonal-adapter comparison met the
 E5-relative rule on the same 293 GlobeSumm title/lead articles (148 versus

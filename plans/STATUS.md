@@ -244,6 +244,14 @@ An independent expiry-design review recommends an exploratory RAM-only pilot
 instead of deleting an operator-selected Windows tree; it does not yet satisfy
 the auditable 200–250-pair task or create a deletion guarantee. No retained
 acquisition has started.
+The [RAM-only pair-pilot scaffold](../apps/local-service/experiments/topic-encoder/rights-ram-pilot-v1/README.md)
+is now implemented with 11 fictional tests and independent Trust clearance
+**for an inert commit only**. It accepts an in-memory reviewed manifest and
+injected local functions, bounds input/fetch size, requires extracted prose,
+and returns aggregate pair counts. It has no real transport, extractor,
+network run or page acquisition. A real pilot still needs separate transport/
+extractor and cooperative-abort review plus item-level rights verification;
+pair counts alone do not establish group or discussion-route quality.
 A retrospective, source-hash-audited [coverage run](../apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/RESULTS.md)
 on the **same already-used 150 GlobeSumm validation articles** found 83/150
 articles in pure multi-page groups for the RAM-only diagonal adapter versus

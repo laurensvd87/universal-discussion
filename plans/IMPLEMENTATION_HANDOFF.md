@@ -61,6 +61,13 @@ recursive deletion of an operator-supplied Windows path is unsafe under
 directory/link swaps, and RAM-only processing is not forensic erasure or
 completion of the auditable 200–250-pair review. No new article text was
 collected under this option yet.
+The [inert RAM-only pair-pilot scaffold](../apps/local-service/experiments/topic-encoder/rights-ram-pilot-v1/README.md)
+passed 11 fictional tests and independent Trust review for commit. It has no
+real network adapter or article extractor and has not acquired a page. Before
+real use, review a concrete abort-cooperative transport, bounded public-article
+extractor, rights evidence and callback no-egress/no-persistence behavior.
+Its aggregate pair counts cannot replace ADR-069 grouped reach/false-exposure
+or root-route evaluation.
 The initial EU-source survey supplies translations and adjacent legislative
 stages, not independent-publisher same-event positives.
 The optional, retrospective [coverage comparison](../apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/RESULTS.md)

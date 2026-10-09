@@ -173,6 +173,10 @@ is too little coverage for a product change; no adapter was saved or enabled.
 An offline [multi-triplet follow-up](apps/local-service/experiments/topic-encoder/owned-diagonal-mining-v1/RESULTS.md)
 did not beat that simpler adapter on previously used synthetic development
 data, so it was stopped without using the independent holdout.
+An [in-memory rights-reviewed pair-pilot scaffold](apps/local-service/experiments/topic-encoder/rights-ram-pilot-v1/README.md)
+is tested with fictional data, but has no real page-fetch adapter. It has not
+collected article text or changed the extension; real collection awaits
+separate source-rights and transport/extraction checks.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and
