@@ -49,6 +49,15 @@ top three for 245/254 eligible test articles. This distinguishes good
 candidate retrieval from poor safe admission and does not establish
 cross-publisher viewpoint performance. No new product model is activated.
 
+A subsequent [in-memory diagonal adapter](../apps/local-service/experiments/topic-encoder/wikinews-train-v1/RESULTS.md)
+learned from train events only and chose strength/cutoff on validation.
+It joined 103/534 same-event held-out test pairs as complete-link Topics,
+compared with 93/534 for separately validation-calibrated raw E5; both
+admitted one false pair before grouping, though neither produced a false
+Topic join in this slice. This ten-pair gain is insufficient for activation
+and says nothing conclusive about independent publisher viewpoints. No
+learned weights, source text or per-article vectors were persisted.
+
 Approved research: verify this one file's hash and schema and perform offline,
 aggregate-only evaluation/training research. No article text,
 URL, per-article vector, model weight or generated derivative enters Git,

@@ -19,6 +19,14 @@ Test top-three retrieval finds a true partner for 245/254 eligible articles.
 This is research evidence for a retrieval/admission gap, not activation or
 cross-publisher viewpoint proof. No private corpus rows or vectors are in Git.
 
+2026-10-09 in-memory learned diagonal adapter: [result](../apps/local-service/experiments/topic-encoder/wikinews-train-v1/RESULTS.md)
+shows 103/534 true complete-link test-pair joins, 0 false Topic joins;
+equally validation-calibrated raw E5 gets 93/534, 0 false Topic joins.
+Both calibrated pair gates admit one false pair before grouping. The gain
+is modest and limited to Wikinews interlanguage editions. No weights,
+article data or new product asset were saved. Do not activate; future
+cross-publisher/viewpoint checks and rights/security gates remain.
+
 2026-10-08 owner-approved local real-data research: [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 allows a private, offline GlobeSumm evaluation only; the corpus is outside
 Git and no publisher-rights/product-training or release clearance follows.

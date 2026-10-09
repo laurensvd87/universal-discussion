@@ -63,6 +63,19 @@ publisher viewpoints. This baseline is rejected for activation; product
 matching, model assets and discussions are unchanged. Four fictional
 benchmark tests and a real aggregate-only inspection pass.
 
+**2026-10-09 private learned-metric probe:** A 384-dimensional diagonal
+adapter trained only on the Wikinews train split, then selected strength and
+cutoff on validation before one test evaluation. On the same 256-article,
+73-event test pool, the learned complete-link rule joined **103/534**
+same-event pairs versus **93/534** for validation-calibrated raw E5 and
+**9/534** at the older fixed 0.94 cutoff. Neither calibrated rule made a
+false complete-link Topic join in this slice, but **each admitted one false
+pair** before grouping. The learned gain over equally calibrated raw E5 is
+only ten additional true joins. See the [aggregate-only result](../apps/local-service/experiments/topic-encoder/wikinews-train-v1/RESULTS.md).
+All model weights remained in memory, no product matcher changed, and
+Wikinews translations cannot establish different-viewpoint robustness.
+The four fictional tests pass; this is not an activation candidate.
+
 **2026-10-08 real multilingual research gate and first result:** The owner
 approved [ADR-065](../decisions/ADR-065-local-multilingual-corpus-research.md)
 for local-only offline evaluation of GlobeSumm, not publication, provider
