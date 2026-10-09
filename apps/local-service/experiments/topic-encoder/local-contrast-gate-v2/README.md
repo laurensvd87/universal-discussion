@@ -1,5 +1,9 @@
 # Local contrast gate v2: frozen development protocol
 
+The frozen development run produced no eligible attachment and failed its
+continuation screen; see [RESULTS.md](RESULTS.md). The v5 holdout remains
+sealed.
+
 This offline, event-level follow-up starts with v1's failed double-support
 grouping: 84/270 true direct edges, 69/252 cross-language true edges,
 0/5,508 false direct edges, and 2/18 complete events on C development.

@@ -13,6 +13,14 @@ admitted 84/270 true edges and zero observed false edges under its
 double-support rule, but completed only 2/18 events versus the preregistered
 four-event floor; all three variants failed. Do not open v5 for either
 candidate.
+
+The separately frozen v2 group-attachment test found no eligible orphan
+attachments and did not improve that baseline; its
+[aggregate result](../apps/local-service/experiments/topic-encoder/local-contrast-gate-v2/RESULTS.md)
+keeps v5 sealed. The next bounded diagnostic is transfer of the unchanged
+synthetic-fitted method to already-approved private GlobeSumm validation
+data, not a new live rule.
+
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline
 research, with separate later stages discoverable as Related discussions.

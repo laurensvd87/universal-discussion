@@ -177,6 +177,12 @@ and zero false edges, also 2/18 complete. **All three failed** their
 predeclared screen; v5 remains unopened. No live matching change follows.
 Further group-attachment research needs a fresh independent check. Do not
 invest further in overlap routing unless asked.
+The frozen [v2 singleton-attachment follow-up](../apps/local-service/experiments/topic-encoder/local-contrast-gate-v2/RESULTS.md)
+then found **zero eligible attachments** on C development and exactly
+reproduced the v1 double-support 84 true/0 false edges and 2/18 complete
+events. Its continuation screen failed too; v5 remains unopened. A local,
+rights-approved, already-used real-corpus split is being prepared as an
+exploratory transfer check before further synthetic rule changes.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at
