@@ -7,7 +7,12 @@ independent 105-report v5 holdout still unscored. The reviewed
 [v3 dynamic attention experiment](../apps/local-service/experiments/topic-encoder/event-token-pool-v3/RESULTS.md)
 found the correct event as nearest neighbor for 106/108 development reports
 but admitted **no** links at its frozen train-calibrated cutoff; it failed
-its continuation screen and is not live. Do not open v5 for this candidate.
+its continuation screen and is not live. A separately frozen
+[local-contrast follow-up](../apps/local-service/experiments/topic-encoder/local-contrast-gate-v1/RESULTS.md)
+admitted 84/270 true edges and zero observed false edges under its
+double-support rule, but completed only 2/18 events versus the preregistered
+four-event floor; all three variants failed. Do not open v5 for either
+candidate.
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline
 research, with separate later stages discoverable as Related discussions.

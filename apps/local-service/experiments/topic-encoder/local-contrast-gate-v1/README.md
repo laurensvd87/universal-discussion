@@ -1,5 +1,8 @@
 # Local contrast gate v1: frozen exploratory development protocol
 
+The frozen development run failed its continuation screen; see
+[RESULTS.md](RESULTS.md). The sealed v5 holdout remains unopened.
+
 This is an offline research branch after the v3 global cutoff admitted zero
 links despite 106/108 correct nearest-event retrieval. It does not alter the
 extension, service, SQLite, permissions, retained vectors, or discussion routes.

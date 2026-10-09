@@ -167,7 +167,15 @@ and **0/5,508** false edges, leaving **0/18** complete events. The
 preregistered continuation screen failed. Static attention also admitted
 zero edges. This is a calibration/admission failure, not evidence of safe
 precision or product readiness. The v5 holdout remains unopened; a new
-local-relative gate is being researched on development data only. Do not
+local-relative gate was then frozen and tested on development data only.
+Its [aggregate result](../apps/local-service/experiments/topic-encoder/local-contrast-gate-v1/RESULTS.md)
+is a useful but insufficient partial improvement: triangle support admitted
+85/270 true edges and one false hard-negative edge; double support admitted
+84/270 true and zero observed false edges, but only **2/18** complete events
+versus the preregistered four-event floor. Seed expansion admitted 50 true
+and zero false edges, also 2/18 complete. **All three failed** their
+predeclared screen; v5 remains unopened. No live matching change follows.
+Further group-attachment research needs a fresh independent check. Do not
 invest further in overlap routing unless asked.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
