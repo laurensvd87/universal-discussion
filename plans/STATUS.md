@@ -59,6 +59,18 @@ Its generated paraphrases are not independent publisher reports or fluent-
 reviewed prose; the test split is unscored. It is a controlled research
 fixture, not product evidence.
 
+**2026-10-09 balanced-corpus development result:** The unchanged
+[full-coordinate verifier](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v3/RESULTS.md)
+was trained on that corpus's eight training families and scored once on its
+two development families. At a cutoff selected from those same development
+negatives it admitted **113/180** true pairs and **0/600** false pairs,
+including 93/160 cross-language true pairs. But both frozen complete-link
+partitioners recovered **0/4** complete developments; the primary
+predeclared screen failed. The test split was not opened. Pair-level geometry
+looks more promising than raw E5 at a similarly broad gate, but the result
+does not establish independent precision, whole-Topic correctness or
+cross-publisher transfer. No live matcher, vectors or discussions changed.
+
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
 [ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)

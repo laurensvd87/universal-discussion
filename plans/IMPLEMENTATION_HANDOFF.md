@@ -23,6 +23,12 @@ with whole-family 8/2/2 splits. Its generated paraphrases are controlled,
 not independent publisher writing; the test is unscored and no product claim
 follows from its structural checks.
 
+The [one-shot balanced-corpus development run](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v3/RESULTS.md)
+found 113/180 true and 0/600 false pair admissions, but 0/4 complete
+developments under the frozen primary partition. Its cutoff used those same
+development negatives; zero false observations are not independent precision.
+The sealed test was not opened. No live Topic or retention policy changed.
+
 2026-10-09 JRC research gate: the owner explicitly approved only private,
 local acquisition and evaluation of the official UA-RU News CSV. The file is
 outside Git; SHA-256, license caveat and content-free structure are in

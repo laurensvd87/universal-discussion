@@ -22,6 +22,10 @@ still recovered only 1 of 12 complete Topics; it also remains offline.
 A [new fictional five-language corpus](apps/local-service/experiments/topic-encoder/multilingual-balanced-v1/README.md)
 counterbalances viewpoints for the next offline check, but its generated
 paraphrases are not a substitute for independent publisher evidence.
+On this corpus's development split, the unchanged full-coordinate verifier
+[found 113/180 true pairs](apps/local-service/experiments/topic-encoder/offline-pair-verifier-v3/RESULTS.md)
+without an observed false pair at its development-selected gate, yet recovered
+none of the four complete events. The matcher remains unchanged.
 
 A new [offline Topic-embedding experiment](apps/local-service/experiments/topic-encoder/README.md)
 tests matching the *subject* across different opinions rather than relying on
