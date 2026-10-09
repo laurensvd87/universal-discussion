@@ -1,0 +1,29 @@
+{
+  "schema": "owned-diagonal-transfer-freeze/v1",
+  "files": {
+    "apps/local-service/experiments/topic-encoder/owned-diagonal-transfer-v1/README.md": "caaefe2113490ecbfa3b6e618cdd3238651afdadf9b02ac89029c91b4d215a87",
+    "apps/local-service/experiments/topic-encoder/owned-diagonal-transfer-v1/runner.js": "9eb2fe921b5b079d249c695e0781c2d9583687b5fac9100c0bb86c57b198feb9",
+    "apps/local-service/experiments/topic-encoder/owned-diagonal-transfer-v1/runner.test.js": "ea3a3dd65753dbad2d80e45feb925daa165911f0cd0c0fdd676834607f145e50",
+    "apps/local-service/experiments/topic-encoder/owned-diagonal-transfer-v1/run.js": "45fd578f6f4990e9301176da9a8d9c9e7bf133790ba2cf4c11261f2f55e39f5f",
+    "apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/core.js": "6c01b5c9562e7784ca59811610e6dbce4bffc817ef5668a4b7afe0f0a93b35d0",
+    "apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/coverage.js": "60bfccc3494bb32653d1eb4d350d117a93883b030d16420015f3635bd490d5a2",
+    "apps/local-service/experiments/topic-encoder/local-contrast-gate-v1/core.js": "290e52e66abf3f1849b24a2e1e47f122ff991e768a335f8dc620a8048efbcffd",
+    "apps/local-service/experiments/topic-encoder/topic-coverage-metrics/core.js": "1a6622c6c18fed4fec0715342a3395ea15e7a88514c8992583445bd38f69f86f",
+    "apps/local-service/experiments/topic-encoder/real-event-eval/core.js": "4c5e4d1b1e9f543b6ab837e4467e18b3ce5b5c4a0b14172699ef355eaca3496c",
+    "apps/local-service/experiments/topic-encoder/e5-infer.js": "4292c83b462d8fa1bd109e6b94f575c52d13a9a89717cad64a1f8300a5208a17",
+    "apps/local-service/experiments/topic-encoder/event-token-pool-v1/core.js": "3453361da649cd1386a89820ad873333ae14d9936fc6c0ae36ee6291d2f93e33",
+    "apps/local-service/experiments/topic-encoder/synthetic-to-globesumm-v1/scope.js": "79371873ec5ee0c15c31c6f91f2f595f9055610bf2fe49866313fb8c5d6c2092",
+    "spikes/topic-resolution/browser/embedding/embedding-contract.js": "6b26cc2766acdbcba39259d1459e703995c3b5ae5a6fd4a4c78b7a968d0b3920",
+    "spikes/topic-resolution/harness/deny-external-capabilities.js": "b37675f06d3d7961f2498d663189120302263cf2bba0b79cb3668892a4ef92cc",
+    "spikes/topic-resolution/browser/embedding/.assets/manifest.json": "5766e675660a8fbe74842a69b670a84ce5f9eb457b77032337e4a69d6180b984",
+    "spikes/topic-resolution/browser/embedding/.assets/model.onnx": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+    "spikes/topic-resolution/browser/embedding/.assets/tokenizer.json": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39",
+    "spikes/topic-resolution/browser/embedding/.assets/tokenizer_config.json": "a1d6bc8734a6f635dc158508bef000f8e2e5a759c7d92f984b2c86e5ff53425b",
+    "spikes/topic-resolution/browser/embedding/.assets/config.json": "cb99455288675345e1a4f411438d5d0adbba5fbd3a67ea4fb03c015433b996c1",
+    "spikes/topic-resolution/browser/embedding/.assets/special_tokens_map.json": "d05497f1da52c5e09554c0cd874037a083e1dc1b9cfd48034d1c717f1afc07a7",
+    "spikes/topic-resolution/browser/embedding/.assets/tokenizers.mjs": "1c4a848f86156201c033d6cd08c4cf81ae1088552acec3367f31ef086edf5af0",
+    "spikes/topic-resolution/browser/embedding/.assets/ort.wasm.min.mjs": "1617c813ada08592706d29a9963ab6258864dce4299bd402d2196bd648b63bfe",
+    "spikes/topic-resolution/browser/embedding/.assets/ort-wasm-simd-threaded.mjs": "c57ca56328877353a575e51bbca6f18450027d6c9bf2307a2cb2c41363b4de9f",
+    "spikes/topic-resolution/browser/embedding/.assets/ort-wasm-simd-threaded.wasm": "06ba057753da3847e4c24f02d91ab133455b0817c69a44993a9a53a2146df9e3"
+  }
+}
