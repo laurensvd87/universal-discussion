@@ -183,6 +183,20 @@ reproduced the v1 double-support 84 true/0 false edges and 2/18 complete
 events. Its continuation screen failed too; v5 remains unopened. A local,
 rights-approved, already-used real-corpus split is being prepared as an
 exploratory transfer check before further synthetic rule changes.
+That independently reviewed, frozen
+[GlobeSumm transfer check](../apps/local-service/experiments/topic-encoder/synthetic-to-globesumm-v1/RESULTS.md)
+has now run once under ADR-065: synthetic-fitted attention retrieved a true
+same-event neighbor first for **145/150** real validation articles, but
+double-support admitted only **15/803** true pairs, zero observed false
+pairs, and **0/13** complete events; 129 articles stayed singletons.
+Triangle admitted 16 true/0 false, seed expansion 3 true/0 false. This
+previously used split is diagnostic, not independent validation; the method
+is rejected for live promotion. It demonstrates that synthetic nearest-
+neighbor gains do not by themselves solve real-web Topic admission. No real
+article was used for training, saved to Git, or sent to a provider; the
+selected 293-article test was not embedded or scored. Product training
+rights, retained-vector/input changes, and live routing still require their
+separate owner/Trust gates.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at

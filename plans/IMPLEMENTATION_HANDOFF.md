@@ -19,7 +19,13 @@ attachments and did not improve that baseline; its
 [aggregate result](../apps/local-service/experiments/topic-encoder/local-contrast-gate-v2/RESULTS.md)
 keeps v5 sealed. The next bounded diagnostic is transfer of the unchanged
 synthetic-fitted method to already-approved private GlobeSumm validation
-data, not a new live rule.
+data, not a new live rule. The frozen
+[transfer result](../apps/local-service/experiments/topic-encoder/synthetic-to-globesumm-v1/RESULTS.md)
+found true nearest neighbors for 145/150 real validation articles but only
+15/803 true admitted pairs, zero observed false pairs, and 0/13 complete
+events under double support. This reused split is exploratory, not
+independent precision evidence; the method is rejected for live promotion.
+The selected 293-article test remains unembedded.
 
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline

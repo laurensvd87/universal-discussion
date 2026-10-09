@@ -1,5 +1,8 @@
 # Synthetic attention to GlobeSumm: frozen transfer diagnostic
 
+The frozen transfer run is complete; see [RESULTS.md](RESULTS.md). It did
+not establish useful real-event grouping or product readiness.
+
 This is private, offline research under ADR-065. It asks whether the event
 representation fitted on original fictional reports transfers to a real
 multilingual event corpus. It does not change the local service or extension.
