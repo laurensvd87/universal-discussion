@@ -31,12 +31,19 @@ The sealed test was not opened. No live Topic or retention policy changed.
 A [frozen graph follow-up](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v4/RESULTS.md)
 on the same development scores recovered 3/4 complete events with
 triangle-supported edges, but this is in-sample and not an independent
-safety result. Only that triangle rule is selected for a separate one-shot
-synthetic holdout; the live matcher stays unchanged.
+safety result. Only that triangle rule was selected for a separate one-shot
+synthetic holdout; the live matcher stayed unchanged.
 The [80-record separately authored holdout](../apps/local-service/experiments/topic-encoder/multilingual-independent-v1/README.md)
-is structurally checked and hash-frozen, but still unscored. Its generated
-fictional prose is not real publisher evidence. Do not inspect it to tune the
-selected triangle rule or cutoff before its one-shot run.
+was structurally checked and hash-frozen before scoring. Its generated
+fictional prose is not real publisher evidence. It was not inspected to tune
+the selected triangle rule or cutoff before its one-shot run.
+That [one-shot run](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v5/RESULTS.md)
+has now failed: 194/400 adjacent-event hard-negative edges, four mixed
+Topics, 400 false grouped pairs, 0/8 complete events. The holdout is spent;
+do not use it for tuning or rerun. The current pair-verifier/triangle route
+is rejected, and no live policy or stored representation changed. A new
+event-action representation plus fresh independent validation is needed
+before revisiting activation; synthetic prose needs a separate quality audit.
 
 2026-10-09 JRC research gate: the owner explicitly approved only private,
 local acquisition and evaluation of the official UA-RU News CSV. The file is

@@ -29,6 +29,18 @@ current evidence that a new encoder alone solves that second problem.
 
 ## Evidence read
 
+- **Independent synthetic pair-verifier rejection, 2026-10-09.** A 769-feature
+  symmetric classifier on existing E5 vectors admitted 113/180 true and
+  0/600 false pairs on its own development set, but complete-link made no
+  whole events. A triangle-supported graph then appeared to recover 3/4
+  complete development events. On a separately authored, frozen 80-report
+  holdout, the unchanged model/cutoff/graph retained 282/360 same-event
+  edges **and 194/400 adjacent-event hard false edges**, collapsing all four
+  event families into mixed groups (0/8 exact events). The holdout is spent;
+  this route is rejected, not a basis for another cutoff search. The result
+  does not estimate real-site error, but directly falsifies the assumption
+  that pooled E5 coordinate comparison plus triangle corroboration safely
+  separates nearby actions [one-shot result](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v5/RESULTS.md).
 - **JRC title-only pilot, real corpus, exploratory and negative.** The
   deterministic 1,200-title sample used packaged E5 on titles. Cross-language
   top-three retrieval was strong, but cross-language hard admission at cosine

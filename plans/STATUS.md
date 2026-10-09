@@ -78,13 +78,27 @@ edge graph recovered **3/4** complete developments, versus 0/4 under
 complete-link, without an observed mixed group on those same records.
 Because the cutoff was selected from these validation negatives, its
 zero-false edges are in-sample by construction. The triangle policy alone
-is frozen for a forthcoming separately authored one-shot synthetic holdout;
+was frozen for a separately authored one-shot synthetic holdout;
 no active Topic-routing change is authorized or made.
 That [independent fictional holdout](../apps/local-service/experiments/topic-encoder/multilingual-independent-v1/README.md)
 now contains 80 as-yet-unscored reports: eight developments in four families,
 five languages and both viewpoints per development/language. An independent
 Luna agent authored it without inspecting the matcher or development scores;
 structural checks pass, but the prose has no independent linguistic review.
+
+**2026-10-09 independent holdout stop:** The frozen pair verifier, fixed
+cutoff and triangle-supported graph were run **once** on that holdout
+([aggregate result](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v5/RESULTS.md)).
+They retained **282/360** true edges but also **194/400** same-family
+hard-negative edges, creating **four mixed Topics**, **400 false grouped
+pairs**, and **0/8** complete events. The predeclared screen failed. The
+holdout is now spent; do not tune or rerun against it. This is a decisive
+counterexample to promoting the current pooled-E5 pair verifier/triangle
+route, not a calibrated real-web error rate. No live matcher, Topic,
+discussion, embedding payload or extension changed. Future work needs
+better event-action representation and genuinely independent evidence;
+synthetic label/prose quality also deserves a blinded audit before broader
+claims.
 
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;

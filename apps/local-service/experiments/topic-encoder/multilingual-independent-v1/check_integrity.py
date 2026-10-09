@@ -11,7 +11,7 @@ assert len(records) == 80, f"expected 80 records, got {len(records)}"
 assert len({r["id"] for r in records}) == 80, "IDs must be unique"
 assert {r["event_id"] for r in records} == {f"E{i:02}" for i in range(1, 9)}
 assert {r["family_id"] for r in records} == {f"F{i:02}" for i in range(1, 5)}
-assert all(r["event_id"][1] == r["family_id"][1] for r in records)
+assert all((int(r["event_id"][1:]) + 1) // 2 == int(r["family_id"][1:]) for r in records), "event/family mapping"
 
 by_event = defaultdict(list)
 for r in records:

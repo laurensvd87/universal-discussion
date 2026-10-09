@@ -27,8 +27,12 @@ On this corpus's development split, the unchanged full-coordinate verifier
 without an observed false pair at its development-selected gate, yet recovered
 none of the four complete events. The matcher remains unchanged.
 A [triangle-supported grouping diagnostic](apps/local-service/experiments/topic-encoder/offline-pair-verifier-v4/RESULTS.md)
-recovered 3/4 of those events on the *same* development data; it now awaits
-an independent synthetic test and is not active in the app.
+recovered 3/4 of those events on the *same* development data, but remained
+offline pending an independent synthetic test.
+That [one-shot test failed](apps/local-service/experiments/topic-encoder/offline-pair-verifier-v5/RESULTS.md):
+the experimental rule mixed all four pairs of related-but-distinct events.
+It will not replace the current matcher; this points to a need for better
+event/action evidence before automatic Topic joins can be trusted.
 
 A new [offline Topic-embedding experiment](apps/local-service/experiments/topic-encoder/README.md)
 tests matching the *subject* across different opinions rather than relying on
