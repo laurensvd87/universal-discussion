@@ -85,6 +85,17 @@ Further real-event checks found that shared-neighborhood evidence admitted
 much slower pass over longer article text admitted only 5/803. Neither is
 useful enough to replace the live matcher; more body text alone did not solve
 multilingual same-Topic matching.
+The owner has also approved one [private local JRC news benchmark](decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)
+for cross-host, multilingual Topic research. Its CSV and any derived row data
+stay outside Git and the app. An [aggregate-only offline harness](apps/local-service/experiments/topic-encoder/jrc-story-v1/README.md)
+has an [offline result](apps/local-service/experiments/topic-encoder/jrc-story-v1/RESULTS.md):
+candidate retrieval is strong, but fixed 0.90 grouping completely recovered
+only 2/16 train labels and made 22 false direct/687 false grouped pairs in
+exploratory validation. That title-only rule is rejected; the test split
+remains unopened. It does not change the live matcher. The dataset has
+repeated headlines and potentially broad story labels, so nearest-neighbor
+scores alone cannot validate shared discussions. Product training, new saved
+vectors and live regrouping remain separate decisions.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

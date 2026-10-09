@@ -1,6 +1,8 @@
 # Real cross-publisher Topic benchmark candidates (2026-10-09)
 
-Status: research only. No new corpus was downloaded or used to train a model.
+Status: JRC CSV owner-approved and acquired for private local research on
+2026-10-09; no product training or release approval. See
+[ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md).
 
 ## Why another benchmark is needed
 
@@ -34,7 +36,9 @@ lists one CSV distribution marked CC BY 4.0. Its English description lists
 article GUID, location entities, publication date, language, original URL,
 title, integer cluster label and analyst-written cluster description; it
 does **not** list full article bodies. We inspected metadata only and did not
-download the CSV. The distribution's CC BY label does not by itself settle
+download the CSV at that point. The CSV was subsequently obtained under the
+owner's explicit private-local approval; its hash and aggregate inspection
+are recorded in ADR-068. The distribution's CC BY label does not by itself settle
 rights over original publisher headlines or commercial model training. The
 domain/month and gold-label granularity also need review. Before obtaining
 the CSV, request explicit owner approval for private local research. Product
@@ -65,6 +69,12 @@ content is pulled into this project by this note.
    requests. Publish only aggregate metrics and error categories unless rights
    clearance explicitly allows more.
 
-Next gate: corpus-license/provenance review and explicit owner approval before
-any new real-publisher download. Continue synthetic and code-only experiments
-while that gate is unanswered.
+The first [aggregate-only JRC result](../apps/local-service/experiments/topic-encoder/jrc-story-v1/RESULTS.md)
+has now rejected title-only E5 at the frozen 0.90/0.94 admission gates after
+false exploratory-validation joins. It does not settle body-E5 performance,
+and the selected test split remains sealed. Next research needs a materially
+different, predeclared event-evidence method and a better independent
+cross-publisher/viewpoint benchmark; do not tune repeatedly on five
+validation labels. Product training, any new retained representation and
+live matcher activation still require separate rights, owner and Trust
+decisions.

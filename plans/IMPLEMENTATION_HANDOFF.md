@@ -1,5 +1,26 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-09 JRC research gate: the owner explicitly approved only private,
+local acquisition and evaluation of the official UA-RU News CSV. The file is
+outside Git; SHA-256, license caveat and content-free structure are in
+[ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md).
+It has title/URL/cluster metadata, not full article bodies or viewpoint gold;
+its largest label contains 423 records, so exact app Topic identity is not
+guaranteed. The [train-only pilot](../apps/local-service/experiments/topic-encoder/jrc-story-v1/RESULTS.md)
+shows good candidate retrieval but only 2/16 complete labels at a fixed
+0.90 graph; cross-language pair admission is sparse and one 423-row label
+dominates pair counts. The aggregate-only leakage proxy found no detected
+cross-label overlap, but did not verify event disjointness. The frozen
+exploratory validation found 22 false direct and 687 false grouped pairs at
+0.90, so this title-only candidate is rejected; the test remains unopened.
+This is not live body-E5 parity. Do not use a new validation-tuned threshold
+as independent evidence.
+The [precision-first decision framework](../research/TOPIC_MATCHING_DECISION_FRAMEWORK_2026-10-09.md)
+is an offline architecture target, not authorization to change the matcher.
+Do not send publisher rows to a provider, train/release a product model from
+this approval, or activate matching/migration. The existing owner/Trust,
+rights and representation gates remain.
+
 2026-10-09 focused Topic sprint: the independent, hash-frozen
 [v6 five-language holdout](../apps/local-service/experiments/topic-encoder/multilingual-holdout-v6/README.md)
 exposed eight false same-family joins from the prior loose triangle rule
@@ -12,8 +33,8 @@ whole-Topic pairs with either a body-text upper bound or current retained
 body-E5/title fields; both had zero false v6 joins and zero complete Topics.
 Keep all candidates offline; no Topic/database/extension changes were made.
 The [real-benchmark note](../research/TOPIC_MATCHING_REAL_BENCHMARK_2026-10-09.md)
-identifies a JRC cross-publisher title/cluster dataset but its acquisition
-needs explicit owner approval and a rights review. Already-approved private
+identifies a JRC cross-publisher title/cluster dataset; its private local
+acquisition is now explicitly approved under ADR-068. Already-approved private
 GlobeSumm research has now produced a frozen real-data graph comparison:
 [results](../apps/local-service/experiments/topic-encoder/globesumm-graph-v1/RESULTS.md)
 show 256/1,710 true and zero false joins on one-shot test for the
@@ -34,10 +55,9 @@ stopped before validation. [Retained probe](../apps/local-service/experiments/to
 [title-only probe](../apps/local-service/experiments/topic-encoder/globesumm-title-v1/RESULTS.md),
 and [representation direction](../research/TOPIC_MATCHING_REPRESENTATION_2026-10-09.md)
 are aggregate-only. No second vector, extra capture, live regrouping or new
-model asset is approved. The next meaningful independent test needs a
-rights-reviewed cross-publisher story benchmark; the candidate JRC CSV is
-documented in the research note and requires explicit owner approval for
-private local acquisition.
+model asset is approved. The next meaningful independent test is the
+now-approved, local-only JRC cross-publisher story benchmark. Its product-
+training rights and exact-Topic gold granularity remain unverified.
 
 2026-10-09 local Wikinews research: the owner explicitly approved the one
 cross-language corpus in [ADR-066](../decisions/ADR-066-wikinews-multilingual-research-gate.md)

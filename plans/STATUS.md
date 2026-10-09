@@ -26,6 +26,38 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
+approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
+[ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)
+records the official distribution, exact-byte hash and boundaries. The
+1,952,279-byte file is outside Git in a private Temp directory. Content-free
+inspection found 4,251 rows, 110 labels, 39 language values and 1,514 URL
+hosts; the largest label holds 423 records, so its gold granularity may be
+broader than one app Topic. The [aggregate-only title-E5 pilot](../apps/local-service/experiments/topic-encoder/jrc-story-v1/RESULTS.md)
+scored only 702 train titles across 16 whole labels, leaving validation and
+test unopened. At cosine 0.90 it admitted 27,793/92,886 cross-host
+same-label pairs and 0/152,347 different-label pairs on this train slice;
+without the largest label, 858/4,042 same-label pairs. Cross-language
+admission was only 4,554/49,488; connected-component grouping completely
+recovered just 2/16 labels. Candidate top-three retrieval was high, but
+duplicate headlines, one huge label, host-as-publisher proxy and unverified
+cross-label event leakage prevent a Topic-quality conclusion. A frozen
+content-free audit found no detectable cross-label exact/near-title, URL or
+high-overlap description pairs, but did not certify event disjointness. One
+exploratory validation of 286 titles/five labels then found **22 false direct
+pairs and 687 false grouped pairs** at 0.90; even 0.94 made one false pair.
+The title-only candidate is rejected for live activation; the test split
+remains unopened. No CSV row, title, URL,
+vector or model weight was committed, logged or sent to a provider. No live
+matcher, extension or discussion changed. Product-training rights, a new
+retained vector and any live Topic/migration change still require their
+distinct reviews/gates.
+The [decision framework](../research/TOPIC_MATCHING_DECISION_FRAMEWORK_2026-10-09.md)
+keeps related retrieval separate from high-evidence same-story admission,
+proposes expandable indexed local neighborhoods instead of a catalog-wide
+veto, and preserves Source-anchored conversation migration. It is an offline
+design hypothesis, not implemented or approved product behavior.
+
 **2026-10-09 topic-matching sprint, independent v6:** A new, balanced
 [60-report/five-language holdout](../apps/local-service/experiments/topic-encoder/multilingual-holdout-v6/README.md)
 was authored and hash-frozen independently of the matcher. The prior graph
@@ -45,8 +77,9 @@ upper bound requires text the backend does not retain. No model, live matcher,
 Topic assignment or discussion changed. Local catalog read-only aggregates
 and a candidate cross-publisher benchmark/rights gate are in
 [the research note](../research/TOPIC_MATCHING_REAL_BENCHMARK_2026-10-09.md).
-New JRC benchmark acquisition and any live regrouping or
-retained-representation change still require distinct review/approval.
+JRC acquisition is now approved for private local research only. Any live
+regrouping or retained-representation change still requires distinct
+review/approval.
 
 **2026-10-09 frozen real-corpus graph check:** The unchanged graph rules were
 tested on the approved private GlobeSumm event-disjoint splits with only
