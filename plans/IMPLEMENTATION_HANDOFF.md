@@ -17,6 +17,12 @@ This is not live body-E5 parity. Do not use a new validation-tuned threshold
 as independent evidence.
 The [precision-first decision framework](../research/TOPIC_MATCHING_DECISION_FRAMEWORK_2026-10-09.md)
 is an offline architecture target, not authorization to change the matcher.
+An offline [group-local JRC graph](../apps/local-service/experiments/topic-encoder/jrc-event-graph-v1/RESULTS.md)
+then reduced false validation grouped pairs 687 to 348 but still mixed labels
+and lost correct joins, so it is also rejected. A
+[compact multilingual event-encoder research path](../research/COMPACT_EVENT_ENCODER_PATH_2026-10-09.md)
+is drafted; new model/training data, retained vectors and live use retain
+their distinct rights, owner and Trust gates. The JRC test split is sealed.
 Do not send publisher rows to a provider, train/release a product model from
 this approval, or activate matching/migration. The existing owner/Trust,
 rights and representation gates remain.

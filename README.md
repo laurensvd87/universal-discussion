@@ -96,6 +96,11 @@ remains unopened. It does not change the live matcher. The dataset has
 repeated headlines and potentially broad story labels, so nearest-neighbor
 scores alone cannot validate shared discussions. Product training, new saved
 vectors and live regrouping remain separate decisions.
+An offline [local-corroboration graph follow-up](apps/local-service/experiments/topic-encoder/jrc-event-graph-v1/RESULTS.md)
+still made a false mixed group on that already-used validation slice and was
+stopped. A [compact multilingual event-encoder path](research/COMPACT_EVENT_ENCODER_PATH_2026-10-09.md)
+now frames the next rights-cleared research; no model was downloaded or
+activated.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

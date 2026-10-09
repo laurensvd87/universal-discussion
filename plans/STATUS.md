@@ -58,6 +58,15 @@ proposes expandable indexed local neighborhoods instead of a catalog-wide
 veto, and preserves Source-anchored conversation migration. It is an offline
 design hypothesis, not implemented or approved product behavior.
 
+**2026-10-09 group-local graph follow-up:** A fixed, label-blind
+[JRC graph prototype](../apps/local-service/experiments/topic-encoder/jrc-event-graph-v1/RESULTS.md)
+used title-E5 candidates plus title/host corroboration. On the same already-
+spent exploratory validation it reduced false grouped pairs from 687 to 348,
+but still made one mixed group and lost many true joins; it is rejected for
+precision-first activation. It touched neither the selected test split nor
+the live matcher. The [compact event-encoder path](../research/COMPACT_EVENT_ENCODER_PATH_2026-10-09.md)
+is a rights-gated research proposal: no new model was downloaded or trained.
+
 **2026-10-09 topic-matching sprint, independent v6:** A new, balanced
 [60-report/five-language holdout](../apps/local-service/experiments/topic-encoder/multilingual-holdout-v6/README.md)
 was authored and hash-frozen independently of the matcher. The prior graph
