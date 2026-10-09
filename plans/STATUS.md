@@ -42,6 +42,19 @@ extension, stored data and discussion routing are unchanged. A different
 representation or admission method still needs genuinely independent evidence
 and the existing rights/owner/Trust gates before product use.
 
+**2026-10-09 full-coordinate synthetic follow-up:** A separate frozen
+[769-feature symmetric pair probe](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v2/RESULTS.md)
+trained only on project-created synthetic reports. At its development-selected
+zero-observed-false-pair cutoff it found **70/120** true multilingual pairs
+and **0/1,650** false pairs, substantially better pair admission than the
+coarse-feature probe. But first-fit complete-link grouping recovered just
+**1/12** complete developments, below the predeclared **2/12** minimum, so
+this candidate also failed its usefulness screen. The same validation labels
+selected its cutoff; no independent precision claim follows. No unopened
+holdout, private real corpus, saved weights or live data was used. A balanced
+synthetic corpus is being prepared to remove language/viewpoint confounding
+before another independent method test; it is not yet product evidence.
+
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
 [ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)

@@ -16,6 +16,9 @@ development gate recovered only 1/120 true pairs on the synthetic
 five-language validation split. It was rejected; browsing, discussions and
 the live matcher are unchanged. Related-page discovery remains useful, but
 sharing a Topic across all viewpoints/languages is not yet reliable.
+A [full-coordinate follow-up](apps/local-service/experiments/topic-encoder/offline-pair-verifier-v2/RESULTS.md)
+found more correct multilingual pairs in synthetic development data, but
+still recovered only 1 of 12 complete Topics; it also remains offline.
 
 A new [offline Topic-embedding experiment](apps/local-service/experiments/topic-encoder/README.md)
 tests matching the *subject* across different opinions rather than relying on

@@ -12,6 +12,12 @@ selected test was embedded, no weights or vectors were saved, and no live
 matcher or Topic data changed. Do not promote this probe or train on JRC;
 rights, model/retention, owner and Trust gates remain separate.
 
+A subsequent [synthetic-only full-coordinate probe](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v2/RESULTS.md)
+admitted 70/120 true and 0/1,650 false validation pairs at its
+development-selected gate, but completed only 1/12 developments; it failed
+its frozen >=2/12 complete-event screen and remains inactive. This is a
+pair-geometry signal, not independent accuracy or a shippable Topic model.
+
 2026-10-09 JRC research gate: the owner explicitly approved only private,
 local acquisition and evaluation of the official UA-RU News CSV. The file is
 outside Git; SHA-256, license caveat and content-free structure are in
