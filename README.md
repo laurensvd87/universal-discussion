@@ -39,6 +39,11 @@ synthetic holdout without a false join there, but recovered only 4 of 15 whole
 events and missed its preregistered continuation floor. It is also **not**
 active in the app. The holdout is spent; another independent test and stronger
 real-source evidence are needed before changing Topic assignment.
+A [second offline comparison](apps/local-service/experiments/topic-encoder/event-token-pool-v2/RESULTS.md)
+of a shorter token window and pooled-E5 residual found no development gain,
+so neither variant advanced. Work is moving to more independently written
+multilingual training examples; the existing synthetic training text reused
+templates that may have made its development split too easy.
 
 A new [offline Topic-embedding experiment](apps/local-service/experiments/topic-encoder/README.md)
 tests matching the *subject* across different opinions rather than relying on

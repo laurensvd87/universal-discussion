@@ -40,6 +40,14 @@ current evidence that a new encoder alone solves that second problem.
   further study of token-level event representations, **not** a safe live
   matcher; the v3 holdout is spent and cannot guide a v1 revision
   [aggregate result](../apps/local-service/experiments/topic-encoder/event-token-pool-v1/RESULTS.md).
+- **Token-pooling v2 development check: no gain.** Reducing the first-token
+  window from 64 to 32 lost many true edges; a fixed 25% pooled-E5 residual
+  tied the v1 head exactly on the four-event synthetic validation. Neither
+  was selected and no independent test was opened. A separate corpus audit
+  found fixed viewpoint templates and near-duplicate event prose in that
+  training/development set, so better-authored data is a more informative
+  next experiment than continuing small pooling tweaks
+  [development result](../apps/local-service/experiments/topic-encoder/event-token-pool-v2/RESULTS.md).
 - **Independent synthetic pair-verifier rejection, 2026-10-09.** A 769-feature
   symmetric classifier on existing E5 vectors admitted 113/180 true and
   0/600 false pairs on its own development set, but complete-link made no

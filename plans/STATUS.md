@@ -120,6 +120,21 @@ holdout and a separate offline v2 representation path are being prepared; any
 live retained representation change still requires the recorded owner/Trust,
 privacy/storage and migration gates.
 
+**2026-10-09 v2 and training-data audit:** A bounded development-only
+[token-pooling comparison](../apps/local-service/experiments/topic-encoder/event-token-pool-v2/RESULTS.md)
+tested a 32-token window and a fixed 25% pooled-E5 residual against frozen
+v1, with the same train/calibration/validation families. The shorter window
+fell to 53/180 true edges and 1/4 complete events; the residual exactly tied
+v1's 135/180 and 3/4. Neither met the preregistered strict-improvement
+screen, so **no v2 candidate was selected** and no test/holdout was opened.
+An independent read-only audit found the original balanced training corpus
+uses repeated supportive/questioning templates, near-duplicate event cores,
+and only four validation developments. Its family split is sound, but these
+fixtures may reward shortcuts that do not transfer to independent prose.
+The next offline path is therefore independently authored, broader training
+material and a quality-audited fresh holdout, not further tuning against the
+spent v3 holdout or the small balanced validation set. This is research only.
+
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
 [ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)
