@@ -136,6 +136,21 @@ still made a false mixed group on that already-used validation slice and was
 stopped. A [compact multilingual event-encoder path](research/COMPACT_EVENT_ENCODER_PATH_2026-10-09.md)
 now frames the next rights-cleared research; no model was downloaded or
 activated.
+The 2026-10-09 offline sprint found a sharper boundary: a small event-vector
+head ranked the correct synthetic event first for 106/108 reports, but a
+global safety cutoff admitted no links. A local double-support gate admitted
+84/270 correct synthetic pairs without observed false joins, yet completed
+only 2/18 events. On already-used real GlobeSumm validation, a RAM-only
+384-parameter adapter admitted 126/803 correct pairs versus 35/803 for
+separately calibrated raw E5, with zero observed false joins for both, but
+0/13 complete events and weak negative calibration. It failed its frozen
+screen and was **not** saved, shipped or activated. These are research signals,
+not a reliable multilingual Topic matcher. [Current status](plans/STATUS.md),
+[coverage metrics](apps/local-service/experiments/topic-encoder/topic-coverage-metrics/README.md),
+and the [candidate rights-review path](research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md)
+explain the next evidence step. The roadmap's provenance-approved 200–250-pair
+task still needs explicit owner approval before new collection/review; the
+completed six-pair synthetic review is not repeated.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

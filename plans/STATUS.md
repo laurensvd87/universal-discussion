@@ -209,6 +209,18 @@ screen. Its calibration had **zero eligible negative candidates**, so the
 zero observed false joins are especially weak safety evidence. The selected
 293 test remained unembedded. No weight, source text or vector was saved or
 shipped, and this is not product-training clearance or a live change.
+A new [pure coverage evaluator](../apps/local-service/experiments/topic-encoder/topic-coverage-metrics/README.md)
+now measures product-relevant discussion reach: articles in pure multi-page
+groups, false/mixed reach, cross-language reach and duplicate-adjusted
+independent Source support. Its eight fictional tests pass. It does not
+retroactively change failed screens or score private data. A
+[candidate rights-review path](../research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md)
+identifies possible multilingual public-text sources, but **no new source
+collection or product training is approved**. The next substantive step is
+the roadmap's provenance-approved 200–250-pair review/acquisition gate:
+stop and ask the owner for exact scope, retention and labeling/provider
+approval before collecting or sending text. The completed 6/6 synthetic
+owner review must not be repeated.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at

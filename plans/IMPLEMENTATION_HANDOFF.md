@@ -33,6 +33,15 @@ separately calibrated raw E5, with 0/13 complete events. It failed its
 predeclared screen and its calibration had no eligible negative candidates,
 so there is no precision or product claim. Its trained 384 parameters were
 RAM-only and never saved or shipped; the selected test remains untouched.
+The next evaluation should use the separately tested
+[Topic coverage metrics](../apps/local-service/experiments/topic-encoder/topic-coverage-metrics/README.md)
+on a **fresh** provenance-reviewed set, emphasizing false grouped reach and
+safe multi-page article coverage rather than demanding every event be
+complete. This does not revise any failed preregistered screen. The
+[candidate corpus source review](../research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md)
+is a proposal only: before collecting/labeling the roadmap's 200–250 pairs,
+ask the owner explicitly for scope, local retention and any AI-provider
+text transfer, then Trust for later product rights/model distribution.
 
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline
