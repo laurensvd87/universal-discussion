@@ -170,6 +170,9 @@ trained and calibrated without real article text. On the already-used
 150-article slice it connected only one correct pair (two pages), versus none
 for its separately calibrated E5 baseline, with no observed false join. This
 is too little coverage for a product change; no adapter was saved or enabled.
+An offline [multi-triplet follow-up](apps/local-service/experiments/topic-encoder/owned-diagonal-mining-v1/RESULTS.md)
+did not beat that simpler adapter on previously used synthetic development
+data, so it was stopped without using the independent holdout.
 
 The separate [Topic Atlas](apps/topic-dashboard/README.md) visualizes the
 current local catalog without a server: `cd apps/topic-dashboard` and

@@ -69,6 +69,18 @@ a separate safe alternative. The initial eligible-source survey produced
 same-article translations and adjacent legislative-stage negatives, not
 verified independent-publisher same-event positives.
 
+An independent read-only expiry review favors a bounded RAM-only pilot next:
+keep article text, URLs, labels and vectors in process memory only, emit
+aggregate metrics, and lose the run on crash/restart. This avoids an
+application-managed raw-text copy but is not forensic erasure (swap/crash
+dumps can exist) and does not complete the auditable 200–250-pair task by
+itself. Do not add a recursive Windows purge over an operator-supplied path:
+reparse points and directory swaps can redirect deletion outside the corpus.
+A later retained design needs an app-owned isolated directory, handle/file-ID
+checks, allowlisted deletion, an external expiry registry and failure tests,
+plus a realistic provision for periods when the PC is off. No such mechanism
+is implemented for use yet.
+
 Research checkpoint: a hash-frozen diagonal-adapter comparison met the
 E5-relative rule on the same 293 GlobeSumm title/lead articles (148 versus
 74 pages in pure multi-page groups, no observed false group for either).

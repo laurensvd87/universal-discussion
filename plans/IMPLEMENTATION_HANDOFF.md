@@ -56,6 +56,11 @@ remain separate gates.
 The rights-corpus intake code is tested and read-only, but it does not delete
 expired data. No ADR-069 article text was collected: arrange a verified
 30-day deletion process first, or use a separately reviewed RAM-only pilot.
+Independent expiry review favors the latter for an exploratory next step;
+recursive deletion of an operator-supplied Windows path is unsafe under
+directory/link swaps, and RAM-only processing is not forensic erasure or
+completion of the auditable 200–250-pair review. No new article text was
+collected under this option yet.
 The initial EU-source survey supplies translations and adjacent legislative
 stages, not independent-publisher same-event positives.
 The optional, retrospective [coverage comparison](../apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/RESULTS.md)
@@ -82,6 +87,11 @@ singletons, so this setup fails to transfer at useful coverage despite a
 narrow relative improvement; the cause is not isolated. Do not ship or
 activate the adapter. No model weights
 were saved and the 293 selected test reports were not embedded by this run.
+The separate [multi-triplet synthetic development probe](../apps/local-service/experiments/topic-encoder/owned-diagonal-mining-v1/RESULTS.md)
+did not improve on the static owned fit: 21 correct grouped pairs for both,
+but 4 versus 2 false grouped pairs on previously used C. Do not spend the
+independent v5 synthetic holdout on this candidate. Neither result authorizes
+live matching, model distribution or product rights assumptions.
 
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline

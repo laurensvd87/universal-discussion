@@ -240,6 +240,10 @@ ADR-069. A small source survey found five useful EU legislative-stage
 negative families and translation pairs but no verified independent-publisher
 same-event positives within that pilot. Do not treat translations as diverse
 viewpoints or force cross-institution stages into one event label.
+An independent expiry-design review recommends an exploratory RAM-only pilot
+instead of deleting an operator-selected Windows tree; it does not yet satisfy
+the auditable 200–250-pair task or create a deletion guarantee. No retained
+acquisition has started.
 A retrospective, source-hash-audited [coverage run](../apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/RESULTS.md)
 on the **same already-used 150 GlobeSumm validation articles** found 83/150
 articles in pure multi-page groups for the RAM-only diagonal adapter versus
@@ -274,6 +278,13 @@ justify product use. This differs from the earlier real-trained adapter's
 83-versus-46 result; do not conflate their training/calibration. No weights
 were saved and no live matching changed. A fresh rights-reviewed benchmark,
 useful coverage and live-input/root-route evidence remain open.
+An offline [multi-triplet follow-up](../apps/local-service/experiments/topic-encoder/owned-diagonal-mining-v1/RESULTS.md)
+then used only the authored A/B/C data, never private real text or v5. On the
+already-used C development set it tied the static owned adapter's 21 correct
+grouped pairs but worsened false grouped pairs from 2 to 4 and pure-group
+reach from 29 to 27 pages. The multi-mined version is rejected without an
+independent holdout or live change. This negative result does not alter the
+E5-relative criterion or imply that the static adapter is ready to ship.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at
