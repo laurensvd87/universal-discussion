@@ -92,3 +92,29 @@ the bounded local-hypothesis comparison required by ADR-064. GlobeSumm lacks
 viewpoint/family labels and this experiment used title+lead E5 rather than
 the current live body E5. No activation, migration, extra retention or new
 model follows. The selected test partition is now spent for this rule.
+
+## 2026-10-09 representation check before any new retention
+
+A separate train-selected graph probed the fields closest to the current
+backend: title cues and the packaged body-E5 vector. On the approved
+GlobeSumm train/validation selection, its 384-character body surrogate
+grouped zero of 803 true validation pairs with no false group. Repeating
+without validation retuning on a 4,096-character body prefix, closer to the
+extension's capture budget, grouped only **1/803** true and zero false,
+with **0/13** complete events. Yet a true event appeared in the first three
+E5 neighbors for **150/150** validation articles. The latter body pass cost
+about 501 seconds for 899 reports in this offline setup. See the
+[aggregate results](../apps/local-service/experiments/topic-encoder/globesumm-retained-v1/RESULTS.md).
+The corpus input is normalized publisher article text, not the extension's
+rendered main-region capture, so even the long pass is not exact Chrome
+parity. It still rejects this particular rule, not all possible methods
+using retained fields. No fresh holdout was consumed.
+
+A separate title-only E5 ablation stopped on train: against title+lead it
+reduced true joins under every frozen graph rule, retained 11 false joins
+and five mixed groups with the loose veto, and recovered no complete event.
+It does not justify another retained vector. The
+[representation note](../research/TOPIC_MATCHING_REPRESENTATION_2026-10-09.md)
+records a possible future event/story representation and its owner/Trust
+gate. Do not turn a negative ablation into a claim that a new model is
+already necessary or that the current data have a known impossibility bound.

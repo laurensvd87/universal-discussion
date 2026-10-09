@@ -23,6 +23,22 @@ lacks viewpoint gold and violates ADR-064's local-scale design through its
 global veto. Keep it inactive. ADR-064/067's separate owner/Trust live
 activation and migration gate remains binding.
 
+2026-10-09 retained-input stop: a train-selected body-E5/title graph on the
+approved GlobeSumm corpus grouped just 1/803 true validation pairs with the
+full 4,096-character/512-token input budget, zero false, 0/13 complete
+events, despite 150/150 top-three true-event retrieval. An earlier
+384-character lead surrogate grouped 0/803, zero false; do not label that
+short pass equivalent to live capture. Title-only E5 was also worse than
+title+lead on the train split under all three frozen graph rules, so it was
+stopped before validation. [Retained probe](../apps/local-service/experiments/topic-encoder/globesumm-retained-v1/RESULTS.md),
+[title-only probe](../apps/local-service/experiments/topic-encoder/globesumm-title-v1/RESULTS.md),
+and [representation direction](../research/TOPIC_MATCHING_REPRESENTATION_2026-10-09.md)
+are aggregate-only. No second vector, extra capture, live regrouping or new
+model asset is approved. The next meaningful independent test needs a
+rights-reviewed cross-publisher story benchmark; the candidate JRC CSV is
+documented in the research note and requires explicit owner approval for
+private local acquisition.
+
 2026-10-09 local Wikinews research: the owner explicitly approved the one
 cross-language corpus in [ADR-066](../decisions/ADR-066-wikinews-multilingual-research-gate.md)
 after an earlier download request was blocked. The 45,258,115-byte JSONL is

@@ -61,8 +61,26 @@ strict triangle made zero false joins but only **30/1,710** true test joins.
 document the data and representation limits: no viewpoint/family gold,
 title+lead E5 rather than live body E5, and unclear underlying publisher
 rights for product training. The selected test split is now spent for this
-candidate. No production changes; a separate retained-compatible offline
-attempt is in progress.
+candidate. No production changes.
+
+**2026-10-09 input-ablation stop:** A train-selected local graph using
+retained-style title cues plus packaged body E5 was evaluated on the approved
+GlobeSumm train/validation split, first with a 384-character body surrogate
+and then with the **4,096-character/512-token** input budget closer to the
+extension. The longer-input rule found a true partner in the top three for
+**150/150** validation reports, yet grouped only **1/803** true pairs,
+zero false pairs and **0/13** whole events. The shorter surrogate grouped
+0/803; the longer embedding pass took about 501 seconds for 899 articles.
+No selected test or previously unselected article was used. This specific
+rule fails; it does not prove the retained fields can never work. An
+independent [title-only E5 check](../apps/local-service/experiments/topic-encoder/globesumm-title-v1/RESULTS.md)
+stopped on train: compared with title+lead, it lost correct joins under all
+three frozen rules, still made 11 false joins under the loose rule, and
+recovered no full event. A second stored/uploaded vector is not approved.
+Neither input experiment changed live matching or stored data. The
+[representation direction](../research/TOPIC_MATCHING_REPRESENTATION_2026-10-09.md)
+keeps same-story identity separate from related themes and records the
+compact-client/model-size and new-retention gates.
 
 **2026-10-08 owner idea inbox:** Two future concepts are preserved in
 [IDEA_INBOX.md](IDEA_INBOX.md): bounded startup-phase online discovery when
