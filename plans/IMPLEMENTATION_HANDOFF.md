@@ -1,5 +1,22 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-09 focused Topic sprint: the independent, hash-frozen
+[v6 five-language holdout](../apps/local-service/experiments/topic-encoder/multilingual-holdout-v6/README.md)
+exposed eight false same-family joins from the prior loose triangle rule
+(79/120 correct; three mixed Topics). The strict graph rule recovered only
+21/120 correct pairs. A prior nearest-neighbor veto was false-free on v6
+(63/120) but had seven known false train joins. A separate
+[relation experiment](../apps/local-service/experiments/topic-encoder/topic-relation-v1/RESULTS.md)
+found true candidates for 60/60 v6 reports yet recovered only 11/120 true
+whole-Topic pairs with either a body-text upper bound or current retained
+body-E5/title fields; both had zero false v6 joins and zero complete Topics.
+Keep all candidates offline; no Topic/database/extension changes were made.
+The [real-benchmark note](../research/TOPIC_MATCHING_REAL_BENCHMARK_2026-10-09.md)
+identifies a JRC cross-publisher title/cluster dataset but its acquisition
+needs explicit owner approval and a rights review. Already-approved private
+GlobeSumm research can continue now. ADR-064/067's separate owner/Trust live
+activation and migration gate remains binding.
+
 2026-10-09 local Wikinews research: the owner explicitly approved the one
 cross-language corpus in [ADR-066](../decisions/ADR-066-wikinews-multilingual-research-gate.md)
 after an earlier download request was blocked. The 45,258,115-byte JSONL is

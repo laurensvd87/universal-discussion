@@ -26,6 +26,29 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-09 topic-matching sprint, independent v6:** A new, balanced
+[60-report/five-language holdout](../apps/local-service/experiments/topic-encoder/multilingual-holdout-v6/README.md)
+was authored and hash-frozen independently of the matcher. The prior graph
+rules were run without retuning: the loose triangle joined **79/120** true
+pairs but **8/1,650** false pairs, all same-family hard negatives, creating
+three mixed Topics. A nearest-neighbor veto joined **63/120** true and zero
+false here, but had seven false train joins, so it is not a safe activation
+rule. The strict graph joined only **21/120** true; the current empty-history
+matcher joined none. See [one-shot results](../apps/local-service/experiments/topic-encoder/adaptive-topic-graph-v1/RESULTS.md).
+
+A separate [six-feature relation experiment](../apps/local-service/experiments/topic-encoder/topic-relation-v1/RESULTS.md)
+froze its rules before v6. Its synthetic title/body upper bound and its
+retained-compatible body-E5/title ablation each found a true neighbor in
+the top three for **60/60** v6 reports, made zero false joins, yet joined
+only **11/120** true Topic pairs and recovered **0/12** whole Topics. The
+upper bound requires text the backend does not retain. No model, live matcher,
+Topic assignment or discussion changed. Local catalog read-only aggregates
+and a candidate cross-publisher benchmark/rights gate are in
+[the research note](../research/TOPIC_MATCHING_REAL_BENCHMARK_2026-10-09.md).
+The next offline line tests the graph on the **already approved** private
+GlobeSumm corpus; new JRC benchmark acquisition and any live regrouping or
+retained-representation change still require distinct review/approval.
+
 **2026-10-08 owner idea inbox:** Two future concepts are preserved in
 [IDEA_INBOX.md](IDEA_INBOX.md): bounded startup-phase online discovery when
 new eligible pages are visited, and user-invoked AI answers to discussion

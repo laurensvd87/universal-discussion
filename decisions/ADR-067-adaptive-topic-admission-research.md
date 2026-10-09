@@ -46,3 +46,28 @@ address existing discussions and pass the owner/Trust activation gate in
 [ADR-064](ADR-064-event-evidence-topic-graph.md) plus relevant rights,
 security, privacy and store review. No fixed offline sample or three-source
 evidence requirement becomes a product Topic-size cap.
+
+## 2026-10-09 second holdout and retained-data check
+
+The graph rules remained frozen for a separate balanced 60-report,
+12-development, five-language viewpoint holdout (exact hash and tests in
+[its README](../apps/local-service/experiments/topic-encoder/multilingual-holdout-v6/README.md)).
+The exploratory triangle made **79/120** true joins but **8/1,650** false
+joins, all between neighboring developments of the same family; three
+predicted groups mixed gold Topics. The nearest-neighbor veto made **63/120**
+true joins and zero false on this holdout, but its seven known false train
+joins remain. The strict selected rule made **21/120** true joins and zero
+false, with no complete gold Topic. These are one-shot synthetic results, not
+new tuning targets or cross-publisher reliability estimates.
+
+A separate offline [relation-model experiment](../apps/local-service/experiments/topic-encoder/topic-relation-v1/RESULTS.md)
+trained on the older fictional train slice and froze two rules before the
+same v6 holdout: an information upper bound using article body text, and a
+retained-compatible rule using only existing body-E5 vectors and titles.
+Both made zero false v6 joins but only **11/120** true whole-Topic pair joins
+and **0/12** complete Topics. Retrieval still found a true neighbor in the
+first three for **60/60** reports. The upper bound cannot run on the backend's
+current retained fields, and neither rule supports activation. The v6 set is
+now spent for these candidates. Continue with already approved real-corpus
+research and a separately rights-reviewed cross-publisher benchmark rather
+than selecting yet another threshold on v6.
