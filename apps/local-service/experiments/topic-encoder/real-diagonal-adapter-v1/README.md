@@ -1,5 +1,8 @@
 # Private GlobeSumm diagonal adapter v1 — frozen protocol
 
+The frozen exploratory run improved pair admission but failed its continuation
+screen; see [RESULTS.md](RESULTS.md). No trained weights were retained.
+
 Research-only, offline experiment under ADR-065. The private GlobeSumm JSONL stays outside Git; no private text, URL, event label, vector, model weight, or content digest is printed or saved. The selected test split is never embedded. The already examined validation split is exploratory and cannot establish independent precision. No product matcher, storage or permissions change.
 
 ## Fixed experiment

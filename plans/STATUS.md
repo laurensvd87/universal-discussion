@@ -197,6 +197,18 @@ article was used for training, saved to Git, or sent to a provider; the
 selected 293-article test was not embedded or scored. Product training
 rights, retained-vector/input changes, and live routing still require their
 separate owner/Trust gates.
+An additional ADR-065-approved, RAM-only
+[real-data diagonal-adapter probe](../apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/RESULTS.md)
+fitted 384 log-scale parameters on 475 GlobeSumm train reports and calibrated
+on 274 other whole-event train reports. On the same already-used 150-report
+validation, separately calibrated raw E5 admitted **35/803** true/0 false
+pairs, while the diagonal adapter admitted **126/803** true/0 false, with
+147/150 true nearest-neighbor retrieval for both. But both recovered
+**0/13** complete events; the adapter failed its predeclared continuation
+screen. Its calibration had **zero eligible negative candidates**, so the
+zero observed false joins are especially weak safety evidence. The selected
+293 test remained unembedded. No weight, source text or vector was saved or
+shipped, and this is not product-training clearance or a live change.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at
