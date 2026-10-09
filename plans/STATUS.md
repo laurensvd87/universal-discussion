@@ -100,6 +100,26 @@ better event-action representation and genuinely independent evidence;
 synthetic label/prose quality also deserves a blinded audit before broader
 claims.
 
+**2026-10-09 token-level event-vector experiment:** An offline, RAM-only
+[attention pooling head](../apps/local-service/experiments/topic-encoder/event-token-pool-v1/RESULTS.md)
+over the already packaged E5 contextual token states passed its balanced-corpus
+development screen (135/180 true retained edges, 0/600 false, 3/4 complete
+developments). The exact code, train-only cutoffs and one-shot v3 holdout
+protocol were independently reviewed, committed and pushed as `014e434`
+before opening the holdout. On the untouched, independently authored 60-report
+v3 challenge, the frozen method found **26/90** true retained edges and
+**4/15** complete developments, with no observed false retained edge or mixed
+group. It missed the predeclared 30-edge/5-development continuation floor and
+is **rejected for Topic admission**. Raw pooled E5 at both fixed 0.94 and its
+own train-calibrated cutoff found 0/90 retained true edges on this challenge;
+the learned head is a useful research signal, not a product-ready matcher.
+The v3 holdout is now spent: no threshold, token-rule, loss or grouping tuning
+against it. No weights or token states were saved and no live capture, stored
+vectors, Topics, discussions or extension behavior changed. A fresh independent
+holdout and a separate offline v2 representation path are being prepared; any
+live retained representation change still requires the recorded owner/Trust,
+privacy/storage and migration gates.
+
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
 [ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)

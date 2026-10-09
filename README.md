@@ -33,6 +33,12 @@ That [one-shot test failed](apps/local-service/experiments/topic-encoder/offline
 the experimental rule mixed all four pairs of related-but-distinct events.
 It will not replace the current matcher; this points to a need for better
 event/action evidence before automatic Topic joins can be trusted.
+An offline [token-level E5 attention experiment](apps/local-service/experiments/topic-encoder/event-token-pool-v1/RESULTS.md)
+then improved cautious same-event retrieval on a fresh, independently written
+synthetic holdout without a false join there, but recovered only 4 of 15 whole
+events and missed its preregistered continuation floor. It is also **not**
+active in the app. The holdout is spent; another independent test and stronger
+real-source evidence are needed before changing Topic assignment.
 
 A new [offline Topic-embedding experiment](apps/local-service/experiments/topic-encoder/README.md)
 tests matching the *subject* across different opinions rather than relying on

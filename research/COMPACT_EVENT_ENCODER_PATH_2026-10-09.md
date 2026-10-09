@@ -29,6 +29,17 @@ current evidence that a new encoder alone solves that second problem.
 
 ## Evidence read
 
+- **Contextual-token attention, independently rejected for admission.** A
+  384-parameter attention pooling head on packaged E5 token states, trained
+  only on original synthetic reports, passed its 40-report development screen
+  with 135/180 true and 0/600 false retained edges. On a separately authored
+  frozen 60-report holdout it retrieved a same-event first neighbor for 50/60
+  reports versus raw E5's 29/60, but admitted only 26/90 true edges and
+  recovered 4/15 exact whole events, below the preregistered 30/90 and 5/15
+  floors. No false joins were observed in that small challenge. This supports
+  further study of token-level event representations, **not** a safe live
+  matcher; the v3 holdout is spent and cannot guide a v1 revision
+  [aggregate result](../apps/local-service/experiments/topic-encoder/event-token-pool-v1/RESULTS.md).
 - **Independent synthetic pair-verifier rejection, 2026-10-09.** A 769-feature
   symmetric classifier on existing E5 vectors admitted 113/180 true and
   0/600 false pairs on its own development set, but complete-link made no
