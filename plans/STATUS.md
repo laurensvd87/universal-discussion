@@ -71,6 +71,16 @@ looks more promising than raw E5 at a similarly broad gate, but the result
 does not establish independent precision, whole-Topic correctness or
 cross-publisher transfer. No live matcher, vectors or discussions changed.
 
+**2026-10-09 grouping follow-up:** A separately frozen
+[graph diagnostic](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v4/RESULTS.md)
+used exactly the same development scores and cutoff. A triangle-supported
+edge graph recovered **3/4** complete developments, versus 0/4 under
+complete-link, without an observed mixed group on those same records.
+Because the cutoff was selected from these validation negatives, its
+zero-false edges are in-sample by construction. The triangle policy alone
+is frozen for a forthcoming separately authored one-shot synthetic holdout;
+no active Topic-routing change is authorized or made.
+
 **2026-10-09 JRC cross-publisher benchmark approved:** The owner explicitly
 approved private local acquisition/evaluation of the one JRC UA-RU News CSV;
 [ADR-068](../decisions/ADR-068-jrc-cross-publisher-local-benchmark.md)

@@ -28,6 +28,11 @@ found 113/180 true and 0/600 false pair admissions, but 0/4 complete
 developments under the frozen primary partition. Its cutoff used those same
 development negatives; zero false observations are not independent precision.
 The sealed test was not opened. No live Topic or retention policy changed.
+A [frozen graph follow-up](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v4/RESULTS.md)
+on the same development scores recovered 3/4 complete events with
+triangle-supported edges, but this is in-sample and not an independent
+safety result. Only that triangle rule is selected for a separate one-shot
+synthetic holdout; the live matcher stays unchanged.
 
 2026-10-09 JRC research gate: the owner explicitly approved only private,
 local acquisition and evaluation of the official UA-RU News CSV. The file is
