@@ -6,14 +6,28 @@ import { readFileSync } from "node:fs";
 
 function harness(messages, workspace, insightsTab, settingsButton, accountDetails, controllerOverrides = {}) {
   const created = [];
+  const contains = (parent, target) => parent === target || parent.children?.some((child) => contains(child, target));
+  const detach = (item) => {
+    if (!item.parentElement) return;
+    if (contains(item, document.activeElement)) document.activeElement = document.body;
+    item.parentElement.children = item.parentElement.children.filter((child) => child !== item);
+    item.parentElement = null;
+  };
   const document = { querySelector: (selector) => selector === "#insight-workspace" ? workspace
     : selector === "#app-tab-insights" ? insightsTab : selector === "#app-settings-button" ? settingsButton
       : selector === "#insight-account-details" ? accountDetails
-        : selector === "#insight-account-details > summary" ? accountDetails?.summary : null, createElement(tag) {
+        : selector === "#insight-account-details > summary" ? accountDetails?.summary
+          : selector === "#app-discussion-insights-host" ? descendants(root).find((item) => item.id === "app-discussion-insights-host") : null, createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
-      append(...items) { this.children.push(...items); }, replaceChildren(...items) { this.children = items; },
+      get nextSibling() { if (!this.parentElement) return null;
+        return this.parentElement.children[this.parentElement.children.indexOf(this) + 1] ?? null; },
+      contains(target) { return contains(this, target); },
+      append(...items) { for (const child of items) { detach(child); child.parentElement = this; this.children.push(child); } },
+      replaceChildren(...items) { for (const child of [...this.children]) detach(child);
+        this.children = []; this.append(...items); },
       insertBefore(item, sibling) {
-        this.children = this.children.filter((child) => child !== item);
+        detach(item);
+        item.parentElement = this;
         if (sibling == null) { this.children.push(item); return; }
         const index = this.children.indexOf(sibling);
         assert.notEqual(index, -1);
@@ -29,7 +43,7 @@ function harness(messages, workspace, insightsTab, settingsButton, accountDetail
       addEventListener(event, callback) { this.listeners.set(event, callback); },
       removeEventListener(event, callback) { if (this.listeners.get(event) === callback) this.listeners.delete(event); } };
     created.push(item); return item;
-  } };
+  }, body: {} };
   const root = document.createElement("section");
   const panel = mountDiscussionPanel(document, root, { messages });
   const calls = [];
@@ -990,6 +1004,99 @@ test("reply context follows the exact selected author, including a reply to a re
   assert.equal(ui.byId("discussion-submit").textContent, EN.uiPostComment);
   assert.deepEqual(ui.calls.at(-1), ["discardDraft"]);
   assert.equal(ui.calls.some(([method]) => method === "submitDraft"), false);
+});
+
+test("stable root ordering keeps the live textarea focused through synchronous typing", () => {
+  const ui = harness();
+  const composer = ui.byId("discussion-composer"), body = ui.byId("discussion-body");
+  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const insightHost = ui.document.createElement("div"); insightHost.id = "app-discussion-insights-host";
+  ui.root.insertBefore(insightHost, thread);
+  const snapshot = state();
+  ui.panel.render(snapshot);
+  body.focus();
+  let value = "";
+  for (const character of "reply") {
+    value += character;
+    body.value = value;
+    ui.panel.render({ ...snapshot, draft: { ...snapshot.draft, body: value } });
+    assert.equal(ui.document.activeElement, body);
+    assert.equal(body.parentElement, composer);
+    assert.equal(composer.nextSibling, insightHost);
+    assert.equal(insightHost.nextSibling, thread);
+  }
+});
+
+test("one inline composer follows exact nested target, keeps selection on refresh, and recovers when target vanishes", () => {
+  const ui = harness();
+  const root = { id: "root-inline", rootId: null, state: "visible", actorType: "human",
+    authorId: "demo-alex", body: "Opening", replies: [
+      { id: "reply-parent", rootId: "root-inline", replyToId: "root-inline", state: "visible",
+        actorType: "human", authorId: "demo-alex", body: "Parent" },
+      { id: "reply-child", rootId: "root-inline", replyToId: "reply-parent", state: "visible",
+        actorType: "human", authorId: "demo-alex", body: "Child" },
+    ] };
+  const snapshot = state({ discussion: { roots: [root] }, draft: {
+    mode: "reply", targetId: "reply-child", body: "Draft answer", detached: false } });
+  ui.panel.render(snapshot);
+  const composer = ui.byId("discussion-composer"), body = ui.byId("discussion-body");
+  const card = descendants(ui.root).find((item) => item.attributes["data-post-id"] === "reply-child");
+  assert.equal(card.nextSibling, composer);
+  assert.equal(descendants(ui.root).filter((item) => item === composer).length, 1);
+  assert.equal(ui.byId("discussion-discard").hidden, true);
+  assert.equal(ui.byId("discussion-back-to-new-thread").hidden, false);
+  assert.equal(ui.byId("discussion-back-to-new-thread").textContent, EN.uiDiscardDraftToNewThread);
+  const replyLists = descendants(ui.root).filter((item) => item.className === "discussion-reply-children" ||
+    item.className === "discussion-replies");
+  assert.ok(replyLists.every((item) => item.inert === false));
+  body.selectionStart = 2; body.selectionEnd = 7; body.selectionDirection = "forward";
+  body.setSelectionRange = (...selection) => { [body.selectionStart, body.selectionEnd, body.selectionDirection] = selection; };
+  body.focus();
+  ui.panel.render({ ...snapshot, discussion: { roots: [{ ...root, replies: [
+    ...root.replies, { id: "sibling", rootId: "root-inline", replyToId: "root-inline",
+      state: "visible", actorType: "human", authorId: "demo-alex", body: "New" },
+  ] }] } });
+  assert.equal(ui.document.activeElement, body);
+  assert.deepEqual([body.selectionStart, body.selectionEnd, body.selectionDirection], [2, 7, "forward"]);
+  assert.equal(body.value, "Draft answer");
+  const removed = { ...snapshot, discussion: { roots: [{ ...root, replies: root.replies.map((reply) =>
+    reply.id === "reply-child" ? { ...reply, state: "deleted" } : reply) }] } };
+  ui.panel.render(removed);
+  assert.equal(composer.parentElement, ui.root);
+  assert.equal(body.value, "Draft answer");
+  assert.equal(ui.byId("discussion-submit").disabled, true);
+  assert.equal(ui.byId("discussion-back-to-new-thread").hidden, false);
+  ui.panel.setMode("developer");
+  assert.equal(ui.byId("discussion-discard").hidden, false);
+  assert.equal(ui.byId("discussion-back-to-new-thread").hidden, true);
+});
+
+test("composition defers same-context thread replacement and an inline ancestor stays open", () => {
+  const ui = harness();
+  const root = { id: "root-ime", rootId: null, state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Opening", replies: [{ id: "reply-ime", rootId: "root-ime", replyToId: "root-ime",
+      state: "visible", actorType: "human", authorId: "demo-alex", body: "Answer" }] };
+  const snapshot = state({ discussion: { roots: [root] }, draft: {
+    mode: "reply", targetId: "reply-ime", body: "", detached: false } });
+  ui.panel.render(snapshot);
+  const body = ui.byId("discussion-body"), card = descendants(ui.root).find((item) =>
+    item.attributes["data-post-id"] === "reply-ime");
+  const rootToggle = descendants(ui.root).find((item) => item.attributes["data-action"] === "expand" &&
+    item.attributes["data-contribution-id"] === "root-ime");
+  rootToggle.listeners.get("click")();
+  assert.equal(rootToggle.attributes["aria-expanded"], "true");
+  body.focus(); body.listeners.get("compositionstart")(); body.value = "語";
+  ui.panel.render({ ...snapshot, discussion: { roots: [{ ...root, body: "Updated opening" }] } });
+  assert.equal(ui.document.activeElement, body);
+  assert.equal(body.value, "語");
+  assert.equal(card.nextSibling, ui.byId("discussion-composer"));
+  body.listeners.get("compositionend")();
+  assert.deepEqual(ui.calls.at(-1), ["setDraft", "語"]);
+  assert.equal(body.value, "語");
+  ui.panel.render({ ...snapshot, draft: { ...snapshot.draft, body: "語" },
+    discussion: { roots: [{ ...root, body: "Updated opening" }] } });
+  assert.equal(body.value, "語");
+  assert.equal(ui.document.activeElement, body);
 });
 
 test("reply context renders hostile long text as bounded plain text and never guesses a missing target", async () => {

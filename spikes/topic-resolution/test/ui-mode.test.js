@@ -176,6 +176,7 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     "#insight-related-settings", "#insight-model", "#insight-model-status", "#insight-plan-usage",
     'label[for="insight-model"]', "#insight-quick-actions", "#local-insights", "#app-discussion-insights-host",
     "#app-settings-insights", "#app-settings-insights-heading", "#discussion-composer", "#app-welcome", "#app-navigation",
+    ".discussion-thread", "#test-reply-target", "#discussion-body",
     "#app-view-discussion", "#app-view-pages", "#app-view-insights", "#app-settings-view",
     "#app-welcome-kicker", "#app-welcome-heading", "#app-welcome-intro", "#app-pages-heading", "#app-settings-heading",
     "#app-settings-kicker", "#app-settings-intro",
@@ -188,18 +189,18 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     "#app-source-context", "#app-source-title", "#app-source-domain"];
   const elements = new Map();
   for (const selector of selectors) elements.set(selector, {
-    children: [], dataset: {}, attributes: {}, listeners: new Map(), hidden: false,
+    children: [], dataset: {}, attributes: {}, listeners: new Map(), hidden: false, moves: 0,
     get nextSibling() { const siblings = this.parentElement?.children ?? []; return siblings[siblings.indexOf(this) + 1] ?? null; },
     append(...children) {
       for (const child of children) {
         if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
-        this.children.push(child); child.parentElement = this;
+        this.children.push(child); child.parentElement = this; child.moves++;
       }
     },
     insertBefore(child, sibling) {
       if (child.parentElement) child.parentElement.children = child.parentElement.children.filter((item) => item !== child);
       const index = sibling === null ? this.children.length : this.children.indexOf(sibling); assert.notEqual(index, -1);
-      this.children.splice(index, 0, child); child.parentElement = this;
+      this.children.splice(index, 0, child); child.parentElement = this; child.moves++;
     },
     setAttribute(key, value) { this.attributes[key] = value; },
     removeAttribute(key) { delete this.attributes[key]; },
@@ -207,16 +208,17 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     addEventListener(key, value) { this.listeners.set(key, value); },
     removeEventListener(key) { this.listeners.delete(key); },
     click() { if (!this.disabled) this.listeners.get("click")?.(); },
-    focus() {}, scrollIntoView() {}, querySelector() { return { focus() {} }; },
+    focus() { document.activeElement = this; }, scrollIntoView() {}, querySelector() { return { focus() {} }; },
   });
   const get = (selector) => elements.get(selector);
   for (const selector of ["#discussion-connection-settings", "#discussion-status", "#discussion-advanced",
-    "#discussion-related", "#discussion-ai-insights", "#discussion-counts", "#discussion-composer", "#app-discussion-insights-host"])
+    "#discussion-related", "#discussion-ai-insights", "#discussion-counts", "#discussion-composer", "#app-discussion-insights-host", ".discussion-thread"])
     get("#local-discussion").append(get(selector));
+  get(".discussion-thread").append(get("#test-reply-target"));
   for (const selector of ["#capture-settings", "#popup-preferences"]) get("main").append(get(selector));
   get("#app-view-insights").append(get("#local-insights"));
   get("#local-insights").append(get("#insight-workspace"), get("#insight-related-settings"));
-  get("#discussion-composer").append(get("#discussion-model-host"));
+  get("#discussion-composer").append(get("#discussion-body"), get("#discussion-model-host"));
   get("#insight-workspace").append(get("#insight-quick-actions"), get("#insight-account-details"),
     get("#insight-ai-status"), get("#insight-source-details"));
   get("#insight-quick-actions").append(get('label[for="insight-model"]'), get("#insight-model"),
@@ -261,7 +263,13 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   assert.equal(get("#app-navigation").hidden, true);
   assert.equal(get("#local-insights").parentElement, get("#app-discussion-insights-host"));
   assert.equal(get("#discussion-composer").nextSibling, get("#app-discussion-insights-host"));
+  assert.equal(get("#app-discussion-insights-host").nextSibling, get(".discussion-thread"));
   assert.equal(get("#insight-model").parentElement, get("#discussion-model-host"));
+  const rootPlacementMoves = [get("#discussion-composer").moves, get("#app-discussion-insights-host").moves,
+    get("#insight-model").moves];
+  shell.render(connected);
+  assert.deepEqual([get("#discussion-composer").moves, get("#app-discussion-insights-host").moves,
+    get("#insight-model").moves], rootPlacementMoves, "same-context root render preserves node placement");
   assert.equal(get("#insight-account-details").parentElement, get("#app-settings-insights"));
   get("#insight-model").listeners.get("change")();
   assert.equal(modelChanges, 1, "reparenting keeps the original model control and handler");
@@ -294,6 +302,24 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   get("#ui-mode-user").click();
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
   assert.equal(get("#insight-model").parentElement, get("#discussion-model-host"));
+  const composer = get("#discussion-composer");
+  const insightHost = get("#app-discussion-insights-host");
+  const model = get("#insight-model");
+  const body = get("#discussion-body");
+  body.value = "Unsent reply"; body.selectionStart = 5; body.selectionEnd = 5;
+  get(".discussion-thread").insertBefore(composer, get("#test-reply-target").nextSibling);
+  body.focus();
+  const inlineMoves = [composer.moves, insightHost.moves, model.moves];
+  shell.render(connected); shell.render(connected);
+  assert.equal(composer.parentElement, get(".discussion-thread"));
+  assert.equal(get("#test-reply-target").nextSibling, composer);
+  assert.equal(insightHost.parentElement, get("#local-discussion"));
+  assert.equal(insightHost.nextSibling, get(".discussion-thread"));
+  assert.deepEqual([composer.moves, insightHost.moves, model.moves], inlineMoves,
+    "same-context renders do not reparent the active composer or its controls");
+  assert.equal(body.value, "Unsent reply");
+  assert.equal(document.activeElement, body);
+  assert.deepEqual([body.selectionStart, body.selectionEnd], [5, 5]);
   shell.render(disconnected);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-welcome-connection"));
   shell.render(connected);

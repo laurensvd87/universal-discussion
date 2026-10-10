@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.31** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.32** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -22,6 +22,11 @@ Closing the panel does not stop background matching; **Settings → Browsing
 session settings** retains Stop, site exclusions and access removal. An unsent
 comment stays detached after changing pages, so it cannot silently post elsewhere.
 No provider request or sharing happens just because the panel opens.
+Click **Reply** on a message to write directly beneath it, including nested
+replies. Typing and same-page discussion refreshes preserve focus and cursor
+position. The single active editor returns to the top for a new thread; its
+return action explicitly discards the reply draft. A removed target blocks
+posting without discarding your text.
 In a fresh Chrome profile, grant website access once under those browsing
 settings; the explicit Chrome prompt is separate from connecting the local service.
 

@@ -1,6 +1,6 @@
 # ADR-074: Persistent browser side panel and discussion-first redesign
 
-Status: explicitly owner approved; implemented with independent Trust and actual Chrome verification (0.13.31).
+Status: explicitly owner approved; implemented with independent Trust and actual Chrome verification (0.13.31); layout-only reply refinement in 0.13.32.
 Date: 2026-10-10.
 
 ## Owner request
@@ -104,6 +104,24 @@ Existing matching default and SQLite data stay unchanged. Owner permission gate,
 implementation and Trust/native checks are complete; the owner still needs to
 reload their installed extension and confirm its real-profile experience.
 No foundation or 6/6 review is repeated, and no release/provider gate is waived.
+
+### Stable inline reply refinement (0.13.32)
+
+The owner requests a reply box directly under the selected post and reports
+focus loss on every typed character. Keep one existing composer, not per-post
+forms or retained draft copies. The panel solely owns stable composer/Insight
+host ordering; the shell no longer competes to reparent them during every input
+update. Visible canonical reply/edit targets host the form inline, with required
+ancestors opened. Same-context snapshot rebuilding restores focus/selection;
+IME composition waits for committed input. Returning to a new thread explicitly
+discards the draft. Removed targets keep text visible but disable Submit, and
+page changes preserve the existing detached-draft and fresh pre-write checks.
+
+This is a UI refinement within the approved surface, not new authority, provider
+generation, draft retention or matching policy. Focused/offline suites and real
+Chrome synthetic companion typing, refresh, nesting and narrow-layout checks
+pass; the active owner service is untouched. Shared-UI Chrome evidence does not
+replace the native authentication evidence above or owner installed-profile QA.
 
 ## Primary platform reference
 

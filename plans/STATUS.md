@@ -1,5 +1,32 @@
 # Project status
 
+**2026-10-10 stable typing and inline replies, complete (0.13.32):**
+The owner reports focus loss on every reply character and requests the editor
+directly under the selected message. Sol Medium coding/QA slices reproduce the
+layout cause: the discussion renderer and shell repeatedly reparented the form
+and Insight host in competing orders. The discussion panel now solely owns
+stable ordering; the shell only places its existing Insight/model controls.
+One composer moves below the exact visible canonical reply/edit target, including
+nested replies, and opens the required ancestors. Same-context snapshot updates
+restore focus/selection, while IME composition defers rebuilding until commit.
+Root writing stays at the top; one explicit return/discard action replaces
+duplicate inline discard controls. A removed target blocks Submit and retains
+text; page changes retain existing detachment and pre-write context guards.
+No controller, authentication, matching, retention, API or permission changes.
+
+Verification: focused panel **55 pass**, shell **8 pass**; full extension
+**1,073 pass/1 skipped**, restricted **1,074 pass**. Actual Chrome synthetic
+companion QA passes character-by-character typing, mid-caret insertion,
+same-context catalog/discussion refresh, root/nested placement, one form,
+cancel, detached/deleted targets and 320 px reduced-motion/no-overflow checks.
+Root reviewed the diff and screenshots; the companion is not native-panel
+authentication or a live owner-profile test. Secret scan and diff checks pass.
+No provider request, credential
+read/rotation, database edit or service interruption. Fixed-port native/loopback
+smokes were deliberately not rerun against the active owner service. ADR-074
+records this layout-only refinement; all later gates remain unchanged.
+Next owner step: reload unpacked extension 0.13.32 and reopen the sidebar.
+
 **2026-10-10 approved owner pairing recovery, complete:**
 The owner explicitly approves rotating the lost pairing token and saving the
 replacement in a Git-ignored local file. The verified project service was stopped

@@ -1,5 +1,16 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 reply checkpoint (0.13.32): owner typing/focus regression fixed and
+single reply/edit composer placed under its exact target, including nested posts.
+Panel owns form/Insight-host ordering; shell must not move them on each render.
+Same-context refresh restores focus/caret; IME rebuild waits for commit. Target
+loss retains draft but blocks Submit; page changes still detach and require fresh
+context. Controller, native authentication, matching and persistence unchanged.
+Sol Medium coding/Chrome QA, root review; full extension 1,073 pass/1 skipped,
+restricted 1,074 pass. Real Chrome shared-UI synthetic typing/nesting/320 px checks
+pass without touching the owner service; not a new native-auth proof. Reload the
+extension to activate. Fixed-port isolation restrictions below remain mandatory.
+
 2026-10-10 approved lost-token recovery completed: pairing rotated through the
 existing exclusive-port administration flow; new bearer saved only in ignored
 `apps/local-service/data/pairing-recovery/pairing-token.txt` with protected

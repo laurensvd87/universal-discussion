@@ -102,6 +102,14 @@ async function pressEnter(sessionId) {
   await browser.send("Input.dispatchKeyEvent", { type: "char", key: "Enter", code: "Enter", text: "\r", unmodifiedText: "\r", windowsVirtualKeyCode: 13 }, sessionId);
   await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 }, sessionId);
 }
+async function typeCharacters(value, sessionId) {
+  for (const character of value) {
+    await browser.send("Input.insertText", { text: character }, sessionId);
+    const result = await evaluate("(() => {const body=document.querySelector('#discussion-body');return {focused:document.activeElement===body,same:body===window.visualComposerBody,value:body.value,start:body.selectionStart,end:body.selectionEnd}})()", sessionId);
+    assert.equal(result.focused && result.same, true,
+      `real Chrome typing keeps the same focused textarea after ${JSON.stringify(character)}: ${JSON.stringify(result)}`);
+  }
+}
 try {
   assert.ok(existsSync(executable));
   browser = launchChromiumPipe({ executable, profileDirectory: path.join(profileRoot, "profile") });
@@ -174,7 +182,13 @@ try {
         ai:{connected:true,planEnabled:true,pending:false,models:[{slug:'synthetic',displayName:'Synthetic model'}],model:'synthetic',
           articleText:'',article:null,costConsent:false,result:null,status:'connected'}};
       window.visualCreates=0;
-      discussion.bind(new Proxy({currentState:()=>state},{get:(object,key)=>object[key]??(()=>{})}));
+      const discussionController={
+        currentState:()=>state,
+        setDraft:value=>{state.draft={...state.draft,body:value};discussion.render(state)},
+        begin:(mode,targetId)=>{state.draft={body:'',detached:false,mode,targetId};discussion.render(state);return true},
+        discardDraft:()=>{state.draft={body:'',detached:false,mode:'root',targetId:null};discussion.render(state)}
+      };
+      discussion.bind(new Proxy(discussionController,{get:(object,key)=>object[key]??(()=>{})}));
       const insightController=new Proxy({currentState:()=>insightState,createInsights:()=>{window.visualCreates++;return Promise.resolve(true)}},
         {get:(object,key)=>object[key]??(()=>{})});
       insights.bind(insightController);discussion.bindInsight(insightController);
@@ -197,6 +211,47 @@ try {
     assert.equal(await evaluate("(() => document.body.dataset.topicState==='ready' && document.querySelector('#app-source-title').textContent==='Synthetic public article' && document.querySelector('#app-source-domain').textContent==='example.com' && getComputedStyle(document.body,'::before').display==='none')()", sessionId), true,
       "resolved Source appears in the compact header without an ambient layer");
     await capture("discussion", sessionId);
+    // Exercise the real DOM input path. The synthetic controller synchronously
+    // republishes each input, just as the live controller does after setDraft.
+    await evaluate("(() => {const state=window.visualDiscussionState;state.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(state);const body=document.querySelector('#discussion-body');body.focus();window.visualComposerBody=body})()", sessionId);
+    await typeCharacters("A careful draft", sessionId);
+    assert.equal(await evaluate("document.querySelector('#discussion-body').value === 'A careful draft'", sessionId), true,
+      "every character reaches the root draft");
+    await evaluate("document.querySelector('#discussion-body').setSelectionRange(2,2)", sessionId);
+    await typeCharacters(" very", sessionId);
+    assert.deepEqual(await evaluate("(() => {const body=document.querySelector('#discussion-body');return [body.value,body.selectionStart,body.selectionEnd]})()", sessionId),
+      ["A  verycareful draft", 7, 7], "editing in the middle preserves the caret");
+    await evaluate("(() => {const state=window.visualDiscussionState;state.catalog={...state.catalog,topics:state.catalog.topics.map(topic=>({...topic}))};state.discussion={roots:state.discussion.roots.map(root=>({...root,replies:[...root.replies]}))};window.visualDiscussionPanel.render(state)})()", sessionId);
+    assert.equal(await evaluate("(() => {const body=document.querySelector('#discussion-body');return body===window.visualComposerBody && document.activeElement===body && body.value==='A  verycareful draft' && body.selectionStart===7 && body.selectionEnd===7})()", sessionId), true,
+      "same-context catalog and discussion refresh preserve focus, draft and selection");
+    await evaluate("document.querySelector('[data-action=reply][data-contribution-id=root-1]').click()", sessionId);
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),target=document.querySelector('[data-post-id=root-1]');return form.previousElementSibling===target && form.parentElement===target.parentElement && document.activeElement===document.querySelector('#discussion-body') && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+      "Reply to root moves the single focused composer directly under that post");
+    await capture("inline-reply-root", sessionId);
+    await evaluate("(() => {const state=window.visualDiscussionState;state.discussion.roots[0].replies=[{id:'reply-visual',rootId:'root-1',replyToId:'root-1',state:'visible',authorId:'demo-alex',actorType:'human',body:'I would start with more shade.',edited:false}];window.visualDiscussionPanel.render(state);const toggle=document.querySelector('[data-action=expand][data-contribution-id=root-1]');if(toggle.getAttribute('aria-expanded')!=='true')toggle.click();document.querySelector('[data-action=reply][data-contribution-id=reply-visual]').click()})()", sessionId);
+    const nestedPlacement = await evaluate("(() => {const form=document.querySelector('#discussion-composer'),target=document.querySelector('[data-post-id=reply-visual]');return {inline:form.previousElementSibling===target,sameParent:form.parentElement===target?.parentElement,focused:document.activeElement===document.querySelector('#discussion-body'),count:document.querySelectorAll('#discussion-composer').length,mode:window.visualDiscussionState.draft.mode,targetId:window.visualDiscussionState.draft.targetId}})()", sessionId);
+    assert.deepEqual(nestedPlacement, {inline:true,sameParent:true,focused:true,count:1,mode:"reply",targetId:"reply-visual"},
+      "Reply to a reply places the composer under the nested target without duplication");
+    await typeCharacters("Nested answer", sessionId);
+    await evaluate("(() => {const state=window.visualDiscussionState,body=document.querySelector('#discussion-body');body.setSelectionRange(6,6);state.catalog={...state.catalog,actors:state.catalog.actors.map(actor=>({...actor}))};state.discussion={roots:state.discussion.roots.map(root=>({...root,replies:root.replies.map(reply=>({...reply}))}))};window.visualDiscussionPanel.render(state)})()", sessionId);
+    assert.equal(await evaluate("(() => {const body=document.querySelector('#discussion-body'),form=document.querySelector('#discussion-composer'),target=document.querySelector('[data-post-id=reply-visual]');return body===window.visualComposerBody && document.activeElement===body && body.value==='Nested answer' && body.selectionStart===6 && body.selectionEnd===6 && form.previousElementSibling===target})()", sessionId), true,
+      "same-context refresh preserves nested reply focus, draft, caret and inline placement");
+    await capture("inline-reply-nested", sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
+    await capture("inline-reply-nested-320-reduced-motion", sessionId);
+    await browser.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await evaluate("document.querySelector('#discussion-back-to-new-thread').click()", sessionId);
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),thread=document.querySelector('.discussion-thread');return window.visualDiscussionState.draft.mode==='root' && form.parentElement===thread.parentElement && Boolean(form.compareDocumentPosition(thread)&Node.DOCUMENT_POSITION_FOLLOWING) && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+      "Return to new thread cancels the reply and restores the root composer");
+    await evaluate("(() => {const state=window.visualDiscussionState;state.draft={body:'Unsent reply',detached:false,mode:'reply',targetId:'reply-visual'};window.visualDiscussionPanel.render(state);state.draft={...state.draft,detached:true};window.visualDiscussionPanel.render(state)})()", sessionId);
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),thread=document.querySelector('.discussion-thread');return form.parentElement===thread.parentElement && Boolean(form.compareDocumentPosition(thread)&Node.DOCUMENT_POSITION_FOLLOWING) && window.visualDiscussionState.draft.body==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+      "detached reply retains unsent text in the top composer");
+    await evaluate("(() => {const state=window.visualDiscussionState;state.draft={body:'Unsent reply',detached:false,mode:'reply',targetId:'reply-visual'};state.discussion.roots[0].replies[0].state='deleted';window.visualDiscussionPanel.render(state)})()", sessionId);
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),thread=document.querySelector('.discussion-thread');return form.parentElement===thread.parentElement && Boolean(form.compareDocumentPosition(thread)&Node.DOCUMENT_POSITION_FOLLOWING) && document.querySelector('#discussion-submit').disabled && document.querySelector('#discussion-body').value==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+      "deleted reply target leaves the draft visible and blocks submission");
+    await evaluate("(() => {const state=window.visualDiscussionState;state.discussion.roots[0].replies=[];state.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(state)})()", sessionId);
     assert.equal(await evaluate(`(() => {
       const state = window.visualDiscussionState, panel = window.visualDiscussionPanel;
       const reply = document.querySelector('[data-action="reply"][data-contribution-id="root-1"]');

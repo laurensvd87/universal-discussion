@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.31)
+## Persistent discussion sidebar (0.13.32)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -14,6 +14,15 @@ site exclusions and data controls are behind the settings icon. Unsent text is
 detached on page changes, not silently rebound. Closing this UI does not stop
 the already-approved background matching session. Provider generation and local
 sharing still require their separate deliberate actions.
+
+**Reply** moves the existing editor directly below that message, including
+nested replies. Same-context updates preserve typing focus, selection and IME
+composition; no second editor or draft storage is created. Return to a new
+thread explicitly discards the reply/edit draft. If the target disappears or
+the page changes, unsent text remains visible and cannot silently post elsewhere.
+`node harness/run-popup-visual-check.js after` covers real Chrome per-character
+typing and inline placement using inert synthetic controllers, without touching
+the owner's service. This is shared UI evidence, not a new native-auth test.
 
 Chrome 154 omits native-panel sender document IDs and reports context window ID
 `-1`. The panel therefore navigates once to a unique packaged document URL using
@@ -34,8 +43,9 @@ synthetic articles, disposable pairing/profile/SQLite and no provider calls.
 `node harness/run-popup-layout-smoke.js` checks the shared visual system using
 inert synthetic renderers in a companion extension tab; it is not native Trust
 evidence. Historical popup browser smokes deliberately opt only their disposable
-profiles back into the packaged popup. Stop the normal service before isolated
-loopback browser QA and restore it afterward.
+profiles back into the packaged popup. Fixed-port loopback QA additionally needs
+the owner's Chrome extension closed or genuinely isolated networking before
+stopping/replacing the normal service; a disposable profile alone is not isolation.
 
 ## Matching default
 

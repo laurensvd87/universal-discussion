@@ -77,6 +77,8 @@ export const EN = Object.freeze({
   uiPostReply: "Post reply",
   uiSaveChanges: "Save changes",
   uiDiscard: "Discard",
+  uiBackToNewThread: "Back to new thread",
+  uiDiscardDraftToNewThread: "Discard draft and start a new thread",
   uiComposerRoot: "New comment",
   uiNewThread: "Start a new thread",
   uiReplyThread: "Write a reply",
