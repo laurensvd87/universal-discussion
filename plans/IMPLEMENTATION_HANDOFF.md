@@ -1,5 +1,16 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 activation follow-up: owner reports generic failure from both reply
+sparkles. The verified backend still ran from 16:07, before 17:21 commit 6ce2484,
+so it lacked the approved any-message reply eligibility. Normal project service
+has now been restarted with the same Origin/pairing/provider store/SQLite;
+loopback returns expected unauthenticated 401. No inference retry, data reset
+or credential export. Current offline bridge/reply tests 33/33 pass. Exact owner
+failure was not captured; next step is one deliberate owner sparkle retry.
+Do not replace the listener with fixed-port synthetic QA or claim live provider
+success. Service is the normal CLI (raw debug off); no persistent raw/trace logs
+exist for this process. Top STATUS distinguishes observations from inference.
+
 2026-10-10 reply scope (0.13.35): ADR-077's explicitly approved any-visible-message
 reply replaces the owned-human-question/generated-opener restriction. Sparkles
 on canonical roots, nested and other-author messages and the reply composer

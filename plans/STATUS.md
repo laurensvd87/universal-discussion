@@ -1,5 +1,29 @@
 # Project status
 
+**2026-10-10 owner sparkle failure follow-up: backend update activated:**
+The owner reports the same generic Research failure from both sparkle locations.
+Read-only process evidence shows the active project backend started at 16:07:54,
+before the 17:21:03 commit `6ce2484`; it had not loaded ADR-077's broader reply
+eligibility. That old runtime rejects ordinary human-root/nested targets before
+provider generation. Both UI actions intentionally use the same request path.
+The generic client exception obscures this distinction; the exact failed owner
+request was not captured. Existing terminal structure traces show successful
+completed responses, not an observed provider failure for these attempts.
+Raw-debug mode was not active and no persistent trace/raw log directory exists.
+
+The verified project PTY was stopped and the normal service restarted with the
+same extension Origin, persistent pairing, protected provider store and SQLite.
+No pairing rotation, database reset, credential export or inference retry.
+The new listener is bound to `127.0.0.1:4174`; the unauthenticated catalog probe
+returns the expected 401 (availability, not owner-auth verification). Current
+bridge/generated-reply capability-denied tests pass **33/33**. No application
+code or provider request contract changed in this follow-up. Official OpenAI
+Docs error guidance was checked; it provides no evidence of a provider error
+here and does not justify changing billing or retrying the failed request.
+The previous checkpoint's backend-restart activation step is now complete;
+the owner should deliberately try one sparkle again. Live reply success remains
+an owner check, not claimed from offline tests or the unauthenticated probe.
+
 **2026-10-10 any-message Insight replies and sparkle-only local marking, complete (0.13.35):**
 The owner explicitly approves [ADR-077](../decisions/ADR-077-bounded-insight-replies-to-any-message.md):
 a deliberate sparkle may answer any visible canonical root or nested post,
