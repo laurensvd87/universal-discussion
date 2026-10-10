@@ -40,3 +40,38 @@ Run `npm run test:restricted` for synthetic data, read-only, and safe
 HTML-export checks with network/process calls denied. `npm run test:browser`
 runs a separate synthetic headless-Chrome smoke when Chrome is installed.
 No npm dependencies or model download are needed.
+
+## Optional grouping preview
+
+For a local, read-only comparison, open the generated `dashboard.html` with
+`?preview=1` appended to its file URL. **Vorschau laden** accepts a separately
+prepared JSON file. A validated preview reveals an **Aktuell / Experimentell**
+switch; the default dashboard and its live Source/Topic/discussion routes stay
+unchanged. The preview exists only in the open browser tab. It is not written
+to `dashboard.html`, `snapshot.js`, SQLite, or browser storage. A catalog
+revision change discards it, and a page reload requires loading it again.
+
+The producer is intentionally unconnected. No GlobeSumm corpus, model weights,
+or private research data belong in the preview. Only approved future research
+could supply it after the separate rights, owner, and Trust decisions.
+For synthetic testing, use this exact content-free shape, with the 64-character
+`catalogRevision` from the current dashboard snapshot and a complete partition
+of its displayed Source IDs:
+
+```json
+{
+  "schemaVersion": "grouping-preview/v1",
+  "catalogRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "groups": [
+    { "sourceIds": ["synthetic-source-1", "synthetic-source-2"] },
+    { "sourceIds": ["synthetic-source-3"] }
+  ]
+}
+```
+
+The example revision and IDs are placeholders, not a working preview for the
+owner's catalog. The loader rejects extra fields, unknown or duplicate IDs,
+missing displayed Sources, and a stale revision. Group labels and positions
+are derived in memory from the current dashboard view; source-page links and
+nearest-neighbor scores stay attached to their original Sources. The switch
+does not route discussions or revise canonical Topics.

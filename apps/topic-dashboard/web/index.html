@@ -11,7 +11,7 @@
   <div class="app">
     <header class="topbar">
       <div class="brand"><span class="brand-mark" aria-hidden="true">◈</span><div><span class="eyebrow">UNIVERSAL DISCUSSION</span><h1>Topic Atlas</h1></div></div>
-      <div class="top-actions"><span id="data-age" class="data-age">Lokale Momentaufnahme</span><span id="refresh-hint" class="refresh-hint" hidden>Prüft alle 3 s · neue Daten nur bei laufendem Watcher</span><label id="load-label" class="button button-secondary" for="file-input">JSON laden</label><input id="file-input" type="file" accept=".json,application/json" hidden><button id="reload-button" class="button button-secondary" type="button">Aktualisieren</button></div>
+      <div class="top-actions"><span id="data-age" class="data-age">Lokale Momentaufnahme</span><span id="refresh-hint" class="refresh-hint" hidden>Prüft alle 3 s · neue Daten nur bei laufendem Watcher</span><label id="load-label" class="button button-secondary" for="file-input">JSON laden</label><label id="preview-load-label" class="button button-secondary" for="file-input" hidden>Vorschau laden</label><input id="file-input" type="file" accept=".json,application/json" hidden><button id="reload-button" class="button button-secondary" type="button">Aktualisieren</button></div>
     </header>
 
     <main class="workspace">
@@ -19,12 +19,19 @@
         <div class="sidebar-intro"><span class="eyebrow">DEIN LOKALER KATALOG</span><h2>Seiten im Zusammenhang sehen.</h2><p>Eine Karte der erfassten Seiten, ihrer Topics und ihrer nächsten Nachbarn.</p></div>
         <div class="metrics" aria-label="Katalogzahlen">
           <div class="metric"><strong id="count-learned">—</strong><span>gelernte Seiten</span></div>
-          <div class="metric"><strong id="count-topics">—</strong><span>Topics</span></div>
+          <div class="metric"><strong id="count-topics">—</strong><span id="topic-metric-label">Topics</span></div>
         </div>
         <p id="count-context" class="count-context">Lade lokalen Datenstand …</p>
+        <div id="grouping-preview" class="grouping-preview" hidden>
+          <span class="search-label">Gruppierung (nur Vorschau)</span>
+          <div class="grouping-options" role="group" aria-label="Gruppierung anzeigen">
+            <button id="grouping-current" type="button" aria-pressed="true">Aktuell</button>
+            <button id="grouping-experimental" type="button" aria-pressed="false">Experimentell</button>
+          </div>
+        </div>
         <label class="search-label" for="search-input">Suchen</label>
         <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Titel, Website oder Topic" autocomplete="off"></div>
-        <div class="section-heading"><span>TOPICS</span><button id="clear-filter" class="text-button" type="button" hidden>Alle zeigen</button></div>
+        <div class="section-heading"><span id="topic-heading">TOPICS</span><button id="clear-filter" class="text-button" type="button" hidden>Alle zeigen</button></div>
         <div id="topic-list" class="topic-list" role="list"></div>
       </aside>
 
@@ -36,7 +43,7 @@
           <div class="map-controls"><button id="zoom-in" type="button" aria-label="Vergrößern">+</button><button id="zoom-out" type="button" aria-label="Verkleinern">−</button><button id="zoom-reset" type="button" aria-label="Ansicht zurücksetzen">⌑</button></div>
           <div class="map-key"><span><i class="key-topic"></i> Topic</span><span><i class="key-page"></i> Seite</span><span><i class="key-edge"></i> nächste Seiten</span></div>
         </div>
-        <p class="map-note">Abstände in 2D sind eine Annäherung. Die Verbindungslinien beruhen auf Ähnlichkeit der ursprünglichen Vektoren. Topic-Zuordnungen sind vorläufig und keine bestätigte semantische Identität.</p>
+        <p class="map-note">Abstände in 2D sind eine Annäherung. Die Verbindungslinien beruhen auf Ähnlichkeit der ursprünglichen Vektoren. Topic-Zuordnungen sind vorläufig und keine bestätigte semantische Identität.<span id="preview-note" hidden> Experimentelle Gruppen sind nur eine lokale Anzeige. Diskussionen und Source-Links folgen weiter den aktuellen Topics.</span></p>
       </section>
 
       <aside class="detail-panel" aria-label="Auswahl und Seiten">

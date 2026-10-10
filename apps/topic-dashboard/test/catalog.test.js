@@ -50,6 +50,9 @@ test("snapshot returns only allowlisted metadata and ranks cosine neighbors acro
   const snapshot = buildDashboardSnapshot(commented, { now: () => new Date("2026-01-02T00:00:00.000Z") });
   assert.deepEqual(snapshot.counts, { totalSources: 3, learnedSources: 3, displayedPages: 3, topics: 2, totalTopics: 3 });
   assert.equal(snapshot.generatedAt, "2026-01-02T00:00:00.000Z");
+  assert.match(snapshot.catalogRevision, /^[a-f0-9]{64}$/u);
+  const revised = { ...commented, revision: commented.revision + 1 };
+  assert.notEqual(buildDashboardSnapshot(revised).catalogRevision, snapshot.catalogRevision);
   assert.equal(snapshot.topics.length, 2);
   assert.deepEqual(Object.keys(snapshot.pages[0]), ["id", "title", "url", "host", "topicId", "x", "y"]);
   assert.ok(snapshot.pages.every((page) => page.x >= 0 && page.x <= 1 && page.y >= 0 && page.y <= 1));

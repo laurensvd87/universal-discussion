@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { assertValidPersistedState } from "../../../local-service/src/domain/persisted-state.js";
@@ -69,7 +70,9 @@ export function buildDashboardSnapshot(state, { now = () => new Date() } = {}) {
       x: mean(members.map((page) => page.x)), y: mean(members.map((page) => page.y)) };
   });
   const edges = nearestNeighborEdges(learned, unitVectors);
-  return { schemaVersion: 1, generatedAt: now().toISOString(),
+  const catalogRevision = createHash("sha256")
+    .update(JSON.stringify([state.generation, state.revision]), "utf8").digest("hex");
+  return { schemaVersion: 1, generatedAt: now().toISOString(), catalogRevision,
     counts: { totalSources: state.sources.length, learnedSources: learned.length,
       displayedPages: pages.length, topics: topics.length, totalTopics: state.topics.length }, topics, pages, edges };
 }

@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 switch checkpoint: the unchanged GlobeSumm-trained diagonal
+adapter's [fresh body-prefix transfer](../apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/RESULTS.md)
+improved correct grouped pairs over raw body E5, 255 versus 20 on the same
+300 reports, but made one false grouped join and exposed two mixed-group
+pages versus zero. It **fails** ADR-069's relative safety choice; do not
+activate it, save trained weights, or reinterpret the title/lead result as
+live browser evidence. [ADR-070](../decisions/ADR-070-inert-topic-grouping-preview.md)
+adds an optional browser-memory-only Topic Atlas preview shell with no real
+producer or routing effect. A live extension/backend switch is not built or
+approved. Further work needs new, rights-reviewed browser-equivalent evidence
+and separate owner/Trust/model-rights and root-migration decisions.
+
 2026-10-09 event-vector research checkpoint: the hash-frozen
 [authored five-language corpus](../apps/local-service/experiments/topic-encoder/multilingual-authored-v2/README.md)
 has 216 A+B fit/calibration and 108 C1+C2+C3 development reports, with an

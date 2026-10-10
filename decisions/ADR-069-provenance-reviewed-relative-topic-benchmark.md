@@ -118,3 +118,13 @@ follows. See the [aggregate result](../apps/local-service/experiments/topic-enco
 
 Source candidates and caveats are in
 [the rights-review note](../research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md).
+
+2026-10-10 body-input follow-up: on 300 other GlobeSumm whole-event reports,
+the unchanged adapter recovered 255 versus 20 correct grouped pairs with a
+normalized 4,096-character body-prefix surrogate, but caused **one false
+grouped join and two mixed-group article exposures** versus zero for raw
+body E5. Its calibration had zero eligible negatives. This fails the
+relative no-worse-false-exposure criterion even though coverage improved.
+See the [aggregate result](../apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/RESULTS.md).
+No live switch or model use follows; ADR-070 only allows an inert dashboard
+comparison shell.

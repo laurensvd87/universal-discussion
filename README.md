@@ -179,6 +179,12 @@ within GlobeSumm: 151 versus 66 correctly grouped pages and 324 versus 60
 correct grouped pairs against raw E5, with no observed false grouping for
 either. This reinforces the research signal but does not clear model rights,
 live browser-input quality or a change to discussion routing.
+The subsequent frozen [body-prefix transfer](apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/RESULTS.md)
+reached 255 versus 20 correct grouped pairs on 300 other reports, but also
+made one false join where raw body E5 made none. It is therefore **not**
+an approved live Topic matcher. An optional [dashboard comparison preview](decisions/ADR-070-inert-topic-grouping-preview.md)
+is available for content-free, read-only local partitions; no trained-model
+producer or app routing switch is active.
 An [in-memory rights-reviewed pair-pilot scaffold](apps/local-service/experiments/topic-encoder/rights-ram-pilot-v1/README.md)
 is tested with fictional data, but has no real page-fetch adapter. It has not
 collected article text or changed the extension; real collection awaits

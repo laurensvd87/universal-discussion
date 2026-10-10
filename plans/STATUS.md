@@ -26,6 +26,23 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-10 body-transfer and switch checkpoint:** The independently
+reviewed, hash-frozen [one-shot body-input comparison](../apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/RESULTS.md)
+tested the unchanged GlobeSumm-trained diagonal adapter against raw E5 on
+300 other whole-event reports, with both separately calibrated for normalized
+body-prefix input. It found **255 versus 20 correct grouped pairs** and
+**135 versus 29 pages in pure multi-page groups**, but **one false grouped
+pair and two mixed-group pages versus zero** for E5. It therefore fails
+ADR-069's no-worse-false-exposure criterion. This is a corpus-body surrogate,
+not Chrome capture, independent publisher/viewpoint evidence, or product
+rights clearance. The trained weights remain RAM-only and are not shipped.
+An optional, tested [read-only dashboard comparison shell](../decisions/ADR-070-inert-topic-grouping-preview.md)
+can import a content-free grouping partition in browser memory; no real
+adapter producer, extension switch, SQLite write or live Topic/discussion
+reroute is enabled. The next research task is to improve calibration/admission
+on development data and verify on genuinely fresh rights-reviewed browser-
+equivalent cases; active routing remains a separate owner/Trust gate.
+
 **2026-10-09 offline pair-verifier stop:** A frozen 33-feature, eight-hidden-unit
 [local pair verifier](../apps/local-service/experiments/topic-encoder/offline-pair-verifier-v1/RESULTS.md)
 was trained in memory on the separately approved private Wikinews research

@@ -3,7 +3,8 @@
 
   const NS = 'http://www.w3.org/2000/svg';
   const $ = (id) => document.getElementById(id);
-  const state = { data: null, snapshotKey: null, topicId: null, pageId: null, query: '', view: { x: 0, y: 0, w: 1000, h: 700 }, drag: null, moved: false };
+  const state = { data: null, currentData: null, preview: null, grouping: 'current', snapshotKey: null, topicId: null, pageId: null, query: '', view: { x: 0, y: 0, w: 1000, h: 700 }, drag: null, moved: false };
+  const previewOptIn = new URL(location.href).searchParams.get('preview') === '1';
   const format = new Intl.NumberFormat('de-DE');
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const svg = (name, attributes = {}) => {
@@ -56,11 +57,74 @@
     const number = (value, fallback) => Number.isInteger(value) && value >= 0 ? value : fallback;
     return {
       generatedAt: typeof input.generatedAt === 'string' ? input.generatedAt : '',
+      catalogRevision: typeof input.catalogRevision === 'string' && /^[a-f0-9]{64}$/u.test(input.catalogRevision) ? input.catalogRevision : null,
       topics, pages, edges,
       counts: { totalSources: number(counts.totalSources, pages.length), learnedSources: number(counts.learnedSources, pages.length), displayedPages: pages.length, topics: number(counts.topics, topics.length), totalTopics: number(counts.totalTopics, topics.length) },
       byTopic: new Map(topics.map((topic) => [topic.id, topic])),
       byPage: new Map(pages.map((page) => [page.id, page])),
     };
+  }
+
+  // This file is an untrusted, content-free partition of the exact displayed Source IDs.
+  // Never persist it or use its groups for canonical Topic/discussion navigation.
+  function normalizePreview(input, current) {
+    const exact = (value, names) => value && typeof value === 'object' && !Array.isArray(value) &&
+      Object.keys(value).sort().join(',') === [...names].sort().join(',');
+    if (!current.catalogRevision || !exact(input, ['schemaVersion', 'catalogRevision', 'groups']) ||
+        input.schemaVersion !== 'grouping-preview/v1' || input.catalogRevision !== current.catalogRevision ||
+        !Array.isArray(input.groups) || input.groups.length === 0 || input.groups.length > current.pages.length) {
+      throw new Error('Vorschau passt nicht zum aktuellen Katalogstand.');
+    }
+    const seen = new Set();
+    const groups = input.groups.map((group) => {
+      if (!exact(group, ['sourceIds']) || !Array.isArray(group.sourceIds) || group.sourceIds.length === 0) {
+        throw new Error('Ungültige Vorschaugruppen.');
+      }
+      for (const id of group.sourceIds) {
+        if (typeof id !== 'string' || !current.byPage.has(id) || seen.has(id)) {
+          throw new Error('Vorschau enthält unbekannte oder doppelte Source-IDs.');
+        }
+        seen.add(id);
+      }
+      return [...group.sourceIds];
+    });
+    if (seen.size !== current.pages.length) throw new Error('Vorschau muss alle angezeigten Sources genau einmal enthalten.');
+    return groups;
+  }
+
+  function previewData(current, groups) {
+    const assignment = new Map();
+    const topics = groups.map((ids, index) => {
+      const id = `preview-group-${index + 1}`;
+      const members = ids.map((sourceId) => current.byPage.get(sourceId));
+      for (const sourceId of ids) assignment.set(sourceId, id);
+      return { id, title: `Experimentelle Gruppe ${index + 1}`, kind: 'preview', pageCount: ids.length,
+        x: members.reduce((sum, page) => sum + page.x, 0) / ids.length,
+        y: members.reduce((sum, page) => sum + page.y, 0) / ids.length };
+    });
+    const pages = current.pages.map((page) => ({ ...page, topicId: assignment.get(page.id) }));
+    return { ...current, topics, pages, byTopic: new Map(topics.map((topic) => [topic.id, topic])),
+      byPage: new Map(pages.map((page) => [page.id, page])),
+      counts: { ...current.counts, topics: topics.length } };
+  }
+
+  function updateGrouping() {
+    state.data = state.grouping === 'experimental' && state.preview ? previewData(state.currentData, state.preview) : state.currentData;
+    $('grouping-preview').hidden = !state.preview;
+    $('grouping-current').setAttribute('aria-pressed', String(state.grouping === 'current'));
+    $('grouping-experimental').setAttribute('aria-pressed', String(state.grouping === 'experimental'));
+    $('preview-note').hidden = state.grouping !== 'experimental';
+    $('count-topics').textContent = format.format(state.data.counts.topics);
+    $('topic-metric-label').textContent = state.grouping === 'experimental' ? 'Vorschaugruppen' : 'Topics';
+    $('topic-heading').textContent = state.grouping === 'experimental' ? 'VORSCHAUGRUPPEN' : 'TOPICS';
+    render();
+  }
+
+  function selectGrouping(grouping) {
+    if (grouping === state.grouping || (grouping === 'experimental' && !state.preview)) return;
+    state.grouping = grouping;
+    state.topicId = null;
+    updateGrouping();
   }
 
   function color(topicId) {
@@ -176,7 +240,7 @@
         container.append(list, textElement('span', 'detail-hint', 'Werte stammen aus den ursprünglichen Seitenvektoren.'));
       }
     } else if (topic) {
-      container.append(textElement('span', 'detail-kicker', 'TOPIC'), textElement('h2', '', topic.title), textElement('p', 'detail-host', `${format.format(topic.pageCount)} zugeordnete Seiten`));
+      container.append(textElement('span', 'detail-kicker', state.grouping === 'experimental' ? 'VORSCHAUGRUPPE' : 'TOPIC'), textElement('h2', '', topic.title), textElement('p', 'detail-host', `${format.format(topic.pageCount)} zugeordnete Seiten`));
       container.append(textElement('span', 'detail-hint', 'Wähle einen Seitenpunkt oder einen Eintrag unten, um zur Quelle zu gelangen.'));
     } else {
       const placeholder = textElement('div', 'selection-placeholder', '');
@@ -216,12 +280,17 @@
   function selectPage(id) { state.pageId = id; render(); }
   function load(raw, { preserve = false, announce = true } = {}) {
     const next = normalize(raw);
-    state.data = next;
+    if (!preserve || !state.currentData || state.currentData.catalogRevision !== next.catalogRevision || !next.catalogRevision) {
+      state.preview = null;
+      state.grouping = 'current';
+    }
+    state.currentData = next;
+    state.data = state.grouping === 'experimental' && state.preview ? previewData(next, state.preview) : next;
     state.snapshotKey = JSON.stringify(raw);
-    state.topicId = preserve && next.byTopic.has(state.topicId) ? state.topicId : null;
-    state.pageId = preserve && next.byPage.has(state.pageId) ? state.pageId : null;
-    if (state.pageId && state.topicId && next.byPage.get(state.pageId).topicId !== state.topicId) {
-      state.topicId = next.byPage.get(state.pageId).topicId;
+    state.topicId = preserve && state.data.byTopic.has(state.topicId) ? state.topicId : null;
+    state.pageId = preserve && state.data.byPage.has(state.pageId) ? state.pageId : null;
+    if (state.pageId && state.topicId && state.data.byPage.get(state.pageId).topicId !== state.topicId) {
+      state.topicId = state.data.byPage.get(state.pageId).topicId;
     }
     if (!preserve) { state.query = ''; $('search-input').value = ''; }
     $('count-learned').textContent = format.format(state.data.counts.learnedSources);
@@ -230,7 +299,7 @@
     const date = new Date(state.data.generatedAt);
     $('data-age').textContent = Number.isNaN(date.getTime()) ? 'Lokale Momentaufnahme' : `Stand ${new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' }).format(date)}`;
     if (!preserve) state.view = { x: 0, y: 0, w: 1000, h: 700 };
-    updateView(); render();
+    updateView(); updateGrouping();
     if (announce) showStatus(`${format.format(state.data.pages.length)} erfasste Seiten geladen.`);
   }
 
@@ -264,9 +333,23 @@
   $('search-input').addEventListener('input', (event) => { state.query = event.target.value.trim().toLocaleLowerCase('de'); render(); });
   $('clear-filter').addEventListener('click', () => { state.topicId = null; state.pageId = null; render(); });
   $('close-selection').addEventListener('click', () => { state.topicId = null; state.pageId = null; render(); });
+  $('grouping-current').addEventListener('click', () => selectGrouping('current'));
+  $('grouping-experimental').addEventListener('click', () => selectGrouping('experimental'));
   $('file-input').addEventListener('change', async (event) => {
     const file = event.target.files?.[0]; if (!file) return;
-    try { if (file.size > 8 * 1024 * 1024) throw new Error('Datei ist zu groß.'); load(JSON.parse(await file.text())); }
+    try {
+      if (file.size > 8 * 1024 * 1024) throw new Error('Datei ist zu groß.');
+      const input = JSON.parse(await file.text());
+      if (input?.schemaVersion === 'grouping-preview/v1') {
+        if (!previewOptIn || !state.currentData || file.size > 256 * 1024) throw new Error('Vorschau ist nicht verfügbar.');
+        state.preview = normalizePreview(input, state.currentData);
+        state.grouping = 'experimental';
+        state.topicId = null;
+        updateGrouping();
+        showStatus('Experimentelle Gruppierung nur für diese Ansicht geladen.');
+      } else if (!previewOptIn || !embeddedReport) load(input);
+      else throw new Error('Hier ist nur eine Gruppierungsvorschau zulässig.');
+    }
     catch (error) { showStatus(`Laden fehlgeschlagen: ${error.message}`); }
     event.target.value = '';
   });
@@ -306,6 +389,7 @@
       load(JSON.parse(embedded.textContent));
       embeddedReport = true;
       $('load-label').hidden = true;
+      $('preview-load-label').hidden = !previewOptIn;
       $('refresh-hint').hidden = false;
       refreshBridge();
       setInterval(() => refreshBridge(), 3000);
