@@ -1,5 +1,36 @@
 # Project status
 
+**2026-10-10 inline Insight replies and immediate local sharing, complete (0.13.33):**
+The owner requests generated reply drafts at their reply location, a compact
+robot action and immediate shared visibility. After an explicit scope question,
+the owner approves [ADR-075](../decisions/ADR-075-click-authorized-immediate-local-insights.md),
+including existing strict completed-stream fallback results. New deliberate
+Insight/robot clicks carry one invocation-local intent to share the exact
+completed message through existing account/Source/Topic/target attestation and
+revision CAS. Default controller callers and old/resumed jobs stay private.
+Failed/incomplete results cannot post; stale context and unknown write outcomes
+cannot trigger automatic retry. Successful posts clear proof/text and locally
+prepare the same eligible Source for the next explicit click, without inference.
+
+One Insight workspace now follows the validated owned question through article
+preparation, generation, posting and private recovery. The robot button is
+icon-only with localized posting label and keyboard focus; only its deliberate
+click scrolls inline progress into view. No background scroll or duplicate top
+progress cue. The human editor retains text/focus/caret. Root and reply writes
+show compact posting feedback, not a duplicate private Share card. Removed or
+mismatched targets return to the safe top location and cannot gain write authority.
+
+Verification: controller **61 pass**, focused panel/shell **101 pass**; full
+extension **1,087 pass/1 skipped**, restricted **1,088 pass**. Independent Trust
+and final readiness-delta review pass. Actual Chrome synthetic shared-UI QA passes
+typing/caret/refresh, robot keyboard generation, inline loading/result/posting,
+single workspace, removed target, 320 px/reduced motion and existing 320–480 px/
+zoom checks. Root reviewed screenshots; secret scan/diff checks pass. No live
+provider request, owner credential/database edit, listener replacement or service
+interruption. This is not native-auth or owner-account live evidence. Matching,
+parser acceptance, retention, website access and later release gates unchanged.
+Next owner step: reload unpacked extension 0.13.33 and reopen the sidebar.
+
 **2026-10-10 stable typing and inline replies, complete (0.13.32):**
 The owner reports focus loss on every reply character and requests the editor
 directly under the selected message. Sol Medium coding/QA slices reproduce the

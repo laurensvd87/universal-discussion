@@ -107,7 +107,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.13.32",
+    version: "0.13.33",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -327,6 +327,7 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(html, /id="metadata-button"/u);
   assert.match(html, /id="related-pages-demo"/u);
   assert.match(script, /mountRelatedPagesDemo\(/u);
+  assert.match(script, /createInsightController\(\{\s*shareInsight: localDiscussion\.shareInsight,[\s\S]*?shareOnCompletion: true,/u);
   assert.match(script, /relatedPagesDemo\.dispose\(\);/u);
   assert.match(html, /Do not invoke this proof of concept on a signed-in or sensitive page\./u);
   assert.match(html, /this prototype does not inspect\s*\n\s*login or paywall state\./u);

@@ -14,6 +14,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let disposed = false;
   let uiMode = "user";
   let lastInsightState;
+  let insightHost;
+  let rendering = false;
   let posting = false;
   function node(tag, key) {
     const item = document.createElement(tag);
@@ -422,11 +424,16 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       }
     }
     if (entry.edited) card.append(node("span", "discussionEdited"));
-    function action(key, callback) {
+    function action(key, callback, { iconOnly = false } = {}) {
       const item = node("button", key); item.type = "button";
       item.className = `discussion-action discussion-action-${key.replace(/^discussion/u, "").toLowerCase()}`;
-      item.setAttribute("aria-label", text(key));
-      item.title = text(key);
+      if (iconOnly && uiMode === "user") {
+        item.className += " discussion-action-icon discussion-action-robot";
+        item.textContent = "";
+      }
+      const actionLabel = iconOnly && uiMode === "user" ? text("uiGenerateInsightReplyLabel") : text(key);
+      item.setAttribute("aria-label", actionLabel);
+      item.title = actionLabel;
       item.disabled = !canonicalRoot || state.busy || state.needsFreshRead || state.phase !== "ready";
       item.setAttribute("data-action", key.replace(/^discussion/u, "").toLowerCase());
       item.setAttribute("data-contribution-id", entry.id);
@@ -444,7 +451,14 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
             if (workspace) workspace.open = true;
           }
           void insightController.createFollowup(entry.id);
-        });
+          // The controller publishes the validated target before its first
+          // await. Scroll only for this deliberate click, never for polling.
+          if (followupTarget() === entry.id) {
+            const progress = document.querySelector?.("#insight-followup-progress");
+            if (progress && !progress.hidden && insightHost?.contains?.(progress))
+              progress.scrollIntoView?.({ block: "nearest", behavior: "instant" });
+          }
+        }, { iconOnly: true });
       }
       if (entry.actorType !== "agent") action("discussionEdit", () => { if (controller?.begin("edit", entry.id)) body.focus(); });
       action("discussionWithdraw", () => void controller?.withdraw(entry.id));
@@ -473,21 +487,42 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     }
     return null;
   }
+  function followupTarget(insightState = lastInsightState, discussionState = lastState) {
+    const binding = insightState?.followup;
+    const discussion = discussionState?.discussion;
+    if (uiMode !== "user" || !binding || !discussion ||
+        discussionState.phase !== "ready" || discussionState.needsFreshRead ||
+        insightState.context?.topic?.id !== discussionState.topicId ||
+        insightState.context?.currentSource?.id !== discussionState.sourceId ||
+        discussion.discussionId !== binding.discussionId) return null;
+    const rootEntry = discussion.roots.find((entry) => entry.id === binding.rootId &&
+      entry.state === "visible" && entry.actorType === "agent" && entry.insight?.kind === "generated");
+    const reply = rootEntry?.replies.find((entry) => entry.id === binding.replyToId);
+    return reply?.state === "visible" && reply.actorType === "human" &&
+      reply.authorId === discussionState.actorId && reply.rootId === rootEntry.id &&
+      reply.replyToId === rootEntry.id ? reply.id : null;
+  }
   function placeComposer(inlineTarget) {
-    const insightHost = document.querySelector?.("#app-discussion-insights-host");
-    const hostedInsight = insightHost?.parentElement === root ? insightHost : null;
+    insightHost ??= document.querySelector?.("#app-discussion-insights-host");
     if (uiMode === "user") {
-      if (hostedInsight && hostedInsight.nextSibling !== thread) root.insertBefore(hostedInsight, thread);
+      const insightSlot = followupTarget() ? postSlot(thread, followupTarget()) : null;
+      if (insightHost && !insightSlot && (insightHost.parentElement !== root || insightHost.nextSibling !== thread))
+        root.insertBefore(insightHost, thread);
       const slot = inlineTarget ? postSlot(thread, inlineTarget) : null;
       if (slot) {
         if (composer.parentElement !== slot.parent || slot.card.nextSibling !== composer)
           slot.parent.insertBefore(composer, slot.card.nextSibling);
       } else {
-        const afterComposer = hostedInsight ?? thread;
+        const afterComposer = insightHost?.parentElement === root ? insightHost : thread;
         if (composer.parentElement !== root || composer.nextSibling !== afterComposer)
           root.insertBefore(composer, afterComposer);
       }
-      const afterBack = composer.parentElement === root ? composer : hostedInsight ?? thread;
+      if (insightSlot && insightHost) {
+        const after = insightSlot.card.nextSibling === composer ? composer : insightSlot.card;
+        if (insightHost.parentElement !== insightSlot.parent || after.nextSibling !== insightHost)
+          insightSlot.parent.insertBefore(insightHost, after.nextSibling);
+      }
+      const afterBack = composer.parentElement === root ? composer : insightHost?.parentElement === root ? insightHost : thread;
       if (backToPage.nextSibling !== afterBack) root.insertBefore(backToPage, afterBack);
       if (priorDetails.nextSibling !== backToPage) root.insertBefore(priorDetails, backToPage);
     } else {
@@ -499,6 +534,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   }
   function render(state) {
     if (disposed) return;
+    rendering = true;
+    insightHost ??= document.querySelector?.("#app-discussion-insights-host");
     const previousState = lastState;
     lastState = state;
     const shellView = projectDiscussionShell(state, messages);
@@ -721,17 +758,18 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     // A reply composer must remain reachable even when its parent branch was
     // previously collapsed. Open the selected post's lineage without closing
     // any branch the reader opened deliberately.
-    if (inlineTarget) {
-      const rootEntry = displayRoots.find((entry) => entry.id === inlineTarget ||
-        entry.replies?.some((reply) => reply.id === inlineTarget));
+    for (const target of [inlineTarget, followupTarget()]) {
+      if (!target) continue;
+      const rootEntry = displayRoots.find((entry) => entry.id === target ||
+        entry.replies?.some((reply) => reply.id === target));
       if (rootEntry) {
         expandedBranches.add(rootEntry.id);
         const byId = new Map((rootEntry.replies ?? []).map((entry) => [entry.id, entry]));
-        let parent = byId.get(inlineTarget);
+        let parent = byId.get(target);
         const visited = new Set();
         while (parent && !visited.has(parent.id)) {
           visited.add(parent.id);
-          if (parent.id !== inlineTarget) expandedBranches.add(parent.id);
+          if (parent.id !== target) expandedBranches.add(parent.id);
           parent = byId.get(parent.replyToId);
         }
       }
@@ -747,6 +785,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (changedThread && !(composing && sameDraftContext && (inlineTarget || state.draft.mode === "root"))) {
       const focused = document.activeElement;
       const composerFocused = focused === body || focused === composer || composer.contains?.(focused);
+      const insightFocused = insightHost?.contains?.(focused) ? focused : null;
       const selection = focused === body ? [body.selectionStart, body.selectionEnd, body.selectionDirection] : null;
       const focusKey = focused?.getAttribute?.("data-contribution-id") ?? focused?.attributes?.["data-contribution-id"] ??
         focused?.getAttribute?.("data-post-id") ?? focused?.attributes?.["data-post-id"];
@@ -856,6 +895,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
         focused.focus?.({ preventScroll: true });
         if (focused === body && Number.isInteger(selection?.[0]) && Number.isInteger(selection?.[1]))
           body.setSelectionRange?.(...selection);
+      } else if (insightFocused && followupTarget() && insightHost?.contains?.(insightFocused) &&
+          (document.activeElement === focused || !document.activeElement || document.activeElement === document.body)) {
+        insightFocused.focus?.({ preventScroll: true });
       }
     }
     placeComposer(inlineTarget);
@@ -946,9 +988,11 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     relatedDetails.hidden = !state.related || uiMode === "user";
     if (uiMode === "developer") relatedDetails.open = true;
     reset.disabled = !state.catalog || !usable || confirmation.value !== "RESET DEMO STATE";
+    rendering = false;
   }
   function renderInsightState(state) {
     if (disposed) return;
+    const previousTarget = followupTarget();
     lastInsightState = state;
     const selectedTopicReady = lastState?.phase === "ready" && !lastState.busy && !lastState.needsFreshRead &&
       !lastState.error && Boolean(lastState.discussion && lastState.related) &&
@@ -969,8 +1013,14 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     insightShortcut.setAttribute("data-phase", active ? "working" : "idle");
     insightShortcut.setAttribute("aria-label", text(active ? stageKey : setupNeeded ? "uiInsightSetupLabel" : "uiGenerateInsightLabel"));
     insightShortcut.textContent = text(setupNeeded ? "uiInsightSetupButton" : "uiCreateInsights");
-    insightActivity.textContent = active ? text(stageKey) : hasResult ? text("uiInsightReady")
+    const inlineFollowup = Boolean(followupTarget());
+    insightActivity.hidden = inlineFollowup;
+    insightActivity.textContent = inlineFollowup ? "" : active ? text(stageKey) : hasResult ? text("uiInsightReady")
       : setupNeeded ? text(state.ai.connected && !state.ai.planEnabled ? "uiInsightPlanUnavailableHint" : "uiInsightSetupHint") : "";
+    if (!rendering && lastState && previousTarget !== followupTarget()) {
+      renderedDiscussion = undefined;
+      render(lastState);
+    }
   }
   function bind(value) { controller = value; render(controller.currentState()); }
   function bindInsight(value) { insightController = value; renderInsightState(value?.currentState?.()); }

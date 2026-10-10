@@ -299,6 +299,9 @@ const localDiscussion = createLocalDiscussionController({
 popupShell.bindTopicView(localDiscussion);
 insightController = createInsightController({
   shareInsight: localDiscussion.shareInsight,
+  // ADR-075: a deliberate generation click also authorizes one local post.
+  // Recovered jobs never inherit that one-shot publication intent.
+  shareOnCompletion: true,
   onStateChange: (state) => { insightPanel.render(state); discussionPanel.renderInsightState?.(state); },
   aiClient,
   readArticle: insightPageReader.read,

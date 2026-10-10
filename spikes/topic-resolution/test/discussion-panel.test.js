@@ -17,7 +17,9 @@ function harness(messages, workspace, insightsTab, settingsButton, accountDetail
     : selector === "#app-tab-insights" ? insightsTab : selector === "#app-settings-button" ? settingsButton
       : selector === "#insight-account-details" ? accountDetails
         : selector === "#insight-account-details > summary" ? accountDetails?.summary
-          : selector === "#app-discussion-insights-host" ? descendants(root).find((item) => item.id === "app-discussion-insights-host") : null, createElement(tag) {
+      : selector === "#app-discussion-insights-host" ? descendants(root).find((item) => item.id === "app-discussion-insights-host")
+        : selector === "#insight-followup-progress" ? descendants(root).find((item) => item.id === "insight-followup-progress")
+          : null, createElement(tag) {
     const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
       get nextSibling() { if (!this.parentElement) return null;
         return this.parentElement.children[this.parentElement.children.indexOf(this) + 1] ?? null; },
@@ -88,7 +90,7 @@ test("User insight action lives in the composer and starts one automatic private
   ui.panel.renderInsightState({ context: { currentSource: { id: "source-demo" } },
     ai: { planEnabled: true, model: "chosen", status: "generated", result: { body: "Message" } } });
   assert.equal(shortcut.hidden, true);
-  assert.equal(ui.byId("discussion-insight-activity").textContent, "Insight ready. Review it below before sharing.");
+  assert.equal(ui.byId("discussion-insight-activity").textContent, EN.uiInsightReady);
   shortcut.listeners.get("click")();
   assert.equal(actions.length, 1);
 });
@@ -513,10 +515,104 @@ test("own published question under a generated robot opener offers one-click pri
   const actions = descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights");
   assert.equal(actions.length, 1);
   assert.equal(actions[0].attributes["data-contribution-id"], "own-question");
-  assert.equal(actions[0].textContent, "Get insights");
+  assert.equal(actions[0].textContent, "");
+  assert.match(actions[0].className, /discussion-action-robot/u);
+  assert.equal(actions[0].attributes["aria-label"], EN.uiGenerateInsightReplyLabel);
+  assert.equal(actions[0].title, EN.uiGenerateInsightReplyLabel);
   actions[0].listeners.get("click")();
   assert.deepEqual(navigation, []);
   assert.deepEqual(followups, ["own-question"]);
+});
+test("follow-up Insight host stays beneath the exact question through generation and result", () => {
+  const ui = harness();
+  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
+  const workspace = ui.document.createElement("details"); workspace.id = "insight-workspace";
+  const focusedControl = ui.document.createElement("button"); workspace.append(focusedControl); host.append(workspace);
+  ui.root.insertBefore(host, thread);
+  const robot = { id: "robot-root", rootId: null, state: "visible", actorType: "agent",
+    authorId: "demo-imported-ai", insight: { kind: "generated", operatorId: "demo-alex" }, body: "Answer",
+    replies: [{ id: "question-one", rootId: "robot-root", replyToId: "robot-root", state: "visible",
+      actorType: "human", authorId: "demo-alex", body: "First question" },
+    { id: "question-two", rootId: "robot-root", replyToId: "robot-root", state: "visible",
+      actorType: "human", authorId: "demo-alex", body: "Second question" }] };
+  const snapshot = state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", roots: [robot] } });
+  ui.panel.render(snapshot);
+  const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
+  const followup = { discussionId: "discussion-demo", rootId: "robot-root", replyToId: "question-two" };
+  for (const status of ["preparingArticle", "generating", "generated"]) {
+    ui.panel.renderInsightState({ context, followup, ai: { status, result: status === "generated" ? { body: "Draft" } : null } });
+    const question = descendants(ui.root).find((item) => item.attributes["data-post-id"] === "question-two");
+    assert.equal(question.nextSibling, host);
+    assert.equal(descendants(ui.root).filter((item) => item === host).length, 1);
+    assert.equal(ui.byId("discussion-composer").parentElement, ui.root);
+    assert.equal(ui.byId("discussion-insight-activity").hidden, true);
+    assert.equal(ui.byId("discussion-insight-activity").textContent, "");
+  }
+  focusedControl.focus();
+  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion,
+    roots: [{ ...robot, replies: [...robot.replies, { id: "question-three", rootId: "robot-root",
+      replyToId: "robot-root", state: "visible", actorType: "human", authorId: "demo-alex", body: "Third" }] }] } });
+  assert.equal(ui.document.activeElement, focusedControl);
+  assert.equal(descendants(ui.root).find((item) => item.attributes["data-post-id"] === "question-two").nextSibling, host);
+  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion,
+    roots: [{ ...robot, replies: robot.replies.map((reply) => reply.id === "question-two"
+      ? { ...reply, state: "deleted" } : reply) }] } });
+  assert.equal(host.parentElement, ui.root);
+  assert.equal(host.nextSibling, thread);
+  assert.equal(ui.byId("discussion-insight-activity").hidden, false);
+});
+test("deliberate robot click scrolls only its validated inline progress into view", () => {
+  const ui = harness();
+  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
+  const progress = ui.document.createElement("p"); progress.id = "insight-followup-progress";
+  progress.hidden = true;
+  const scrolls = [];
+  progress.scrollIntoView = (options) => scrolls.push(options);
+  host.append(progress); ui.root.insertBefore(host, thread);
+  const robot = { id: "robot-root", rootId: null, state: "visible", actorType: "agent",
+    authorId: "demo-imported-ai", insight: { kind: "generated", operatorId: "demo-alex" }, body: "Answer",
+    replies: [{ id: "question", rootId: "robot-root", replyToId: "robot-root", state: "visible",
+      actorType: "human", authorId: "demo-alex", body: "Why?" }] };
+  const snapshot = state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", roots: [robot] } });
+  ui.panel.render(snapshot);
+  const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
+  const followup = { discussionId: "discussion-demo", rootId: "robot-root", replyToId: "question" };
+  ui.panel.bindInsight({ currentState: () => ({ context, followup: null, ai: { status: "idle" } }),
+    createFollowup: () => {
+      progress.hidden = false;
+      ui.panel.renderInsightState({ context, followup, ai: { status: "preparingArticle" } });
+      return Promise.resolve(true);
+    } });
+  const action = descendants(ui.root).find((item) => item.attributes["data-action"] === "getinsights");
+  action.listeners.get("click")();
+  assert.deepEqual(scrolls, [{ block: "nearest", behavior: "instant" }]);
+  assert.equal(ui.byId("discussion-insight-activity").hidden, true);
+  ui.panel.renderInsightState({ context, followup, ai: { status: "generating" } });
+  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion, roots: [{ ...robot }] } });
+  assert.equal(scrolls.length, 1);
+});
+test("follow-up host rejects a foreign or stale canonical context", () => {
+  const ui = harness();
+  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
+  ui.root.insertBefore(host, thread);
+  const robot = { id: "robot-root", rootId: null, state: "visible", actorType: "agent",
+    authorId: "demo-imported-ai", insight: { kind: "generated", operatorId: "demo-alex" }, body: "Answer",
+    replies: [{ id: "question", rootId: "robot-root", replyToId: "robot-root", state: "visible",
+      actorType: "human", authorId: "demo-alex", body: "Why?" }] };
+  const snapshot = state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", roots: [robot] } });
+  ui.panel.render(snapshot);
+  const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
+  const binding = { discussionId: "other-discussion", rootId: "robot-root", replyToId: "question" };
+  for (const [otherContext, followup] of [[context, binding],
+    [{ ...context, currentSource: { id: "other-source" } }, { ...binding, discussionId: "discussion-demo" }],
+    [context, { ...binding, discussionId: "discussion-demo", replyToId: "missing" }]]) {
+    ui.panel.renderInsightState({ context: otherContext, followup, ai: { status: "generating" } });
+    assert.equal(host.parentElement, ui.root);
+    assert.equal(host.nextSibling, thread);
+  }
 });
 test("manual import, non-reply and withdrawn questions cannot initiate a robot follow-up", () => {
   const ui = harness();

@@ -8,6 +8,15 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current Insight approval (2026-10-10, ADR-075): an explicit generation/robot click
+may immediately share its completed exact result in the local discussion,
+including the existing strict completed-stream fallback. This narrowly replaces
+the separate Share gate for new deliberate requests, not background generation,
+retry, old drafts, resumed jobs or remote publication. Use one-shot invocation
+intent and the existing exact-body/account/Source/Topic/target attestations.
+Recovered operations stay private; presentation-only followup IDs are not write
+authority. Read current STATUS/HANDOFF and ADR-075 before historical Share notes.
+
 Current surface (2026-10-10, ADR-074): the owner approved the native Chrome
 `sidePanel` permission and persistent discussion-first redesign. Version 0.13.31
 replaces the action popup with the docked native panel; packaged popup remains

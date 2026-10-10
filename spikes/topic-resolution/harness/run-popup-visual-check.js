@@ -189,7 +189,13 @@ try {
         discardDraft:()=>{state.draft={body:'',detached:false,mode:'root',targetId:null};discussion.render(state)}
       };
       discussion.bind(new Proxy(discussionController,{get:(object,key)=>object[key]??(()=>{})}));
-      const insightController=new Proxy({currentState:()=>insightState,createInsights:()=>{window.visualCreates++;return Promise.resolve(true)}},
+      const insightController=new Proxy({currentState:()=>structuredClone(insightState),createInsights:()=>{window.visualCreates++;return Promise.resolve(true)},
+        createFollowup:questionId=>{
+          window.visualFollowups=(window.visualFollowups??0)+1;
+          insightState.followup={discussionId:state.discussion.discussionId,rootId:'robot-visual',replyToId:questionId};
+          insightState.ai.status='preparingArticle'; insights.render(structuredClone(insightState)); discussion.renderInsightState(structuredClone(insightState));
+          return Promise.resolve(true);
+        }},
         {get:(object,key)=>object[key]??(()=>{})});
       insights.bind(insightController);discussion.bindInsight(insightController);
       const shell=mountPopupShell(document,{onModeChange:value=>discussion.setMode(value)});
@@ -295,6 +301,61 @@ try {
     await evaluate("window.visualDiscussionState.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(window.visualDiscussionState)", sessionId);
     assert.equal(await evaluate("(() => document.querySelector('#app-navigation').hidden && document.querySelector('#app-view-pages').hidden)()", sessionId), true,
       "User Mode has one Discussion view and no visible related-pages list");
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState, insight=window.visualInsightState;
+      window.visualBeforeFollowup=structuredClone(state); window.visualBeforeFollowupInsight=structuredClone(insight);
+      state.discussion={discussionId:'discussion-visual',roots:[{id:'robot-visual',rootId:null,state:'visible',authorId:'demo-imported-ai',
+        actorType:'agent',body:'More shaded streets could make this city easier to walk in.',
+        insight:{kind:'generated',operatorId:'demo-alex',model:'synthetic'},replies:[{id:'question-visual',rootId:'robot-visual',
+          replyToId:'robot-visual',state:'visible',authorId:'demo-alex',actorType:'human',body:'What about the costs?',edited:false}]}]};
+      state.draft={body:'Human draft stays untouched',mode:'root',targetId:null,detached:false};
+      window.visualDiscussionPanel.render(state); window.visualShell.render(state);
+      const toggle=document.querySelector('[data-action=expand][data-contribution-id=robot-visual]');
+      if(toggle.getAttribute('aria-expanded')!=='true')toggle.click();
+    })()`, sessionId);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    await checkReachable('[data-action="getinsights"][data-contribution-id="question-visual"]', sessionId);
+    assert.equal(await evaluate(`(() => {
+      const button=document.querySelector('[data-action=getinsights][data-contribution-id=question-visual]');
+      const icon=getComputedStyle(button,'::before');return button.textContent==='' &&
+        button.getAttribute('aria-label')==='Generate and post reply' && icon.maskImage.includes('icons/robot.svg') &&
+        button.getBoundingClientRect().width>=44;
+    })()`, sessionId), true, "reply generation uses a reachable labelled robot icon rather than visible Get insights text");
+    await pressEnter(sessionId);
+    assert.deepEqual(await evaluate(`(() => {
+      const host=document.querySelector('#app-discussion-insights-host'),card=document.querySelector('[data-post-id=question-visual]'),
+        progress=document.querySelector('#insight-followup-progress');
+      return {calls:window.visualFollowups??0,inline:host.previousElementSibling===card,sameParent:host.parentElement===card.parentElement,
+        progress:!progress.hidden && progress.getClientRects().length>0,draft:document.querySelector('#discussion-body').value};
+    })()`, sessionId), {calls:1,inline:true,sameParent:true,progress:true,draft:'Human draft stays untouched'},
+      "keyboard generation starts one inline follow-up without replacing the human draft");
+    assert.equal(await evaluate("(() => {const rect=document.querySelector('#insight-followup-progress').getBoundingClientRect();return rect.top>=0 && rect.bottom<=innerHeight && document.querySelector('#discussion-insight-activity').hidden})()", sessionId), true,
+      "deliberate robot click brings inline progress into view and suppresses the redundant top cue");
+    await capture("inline-insight-loading", sessionId);
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState, insight=window.visualInsightState;
+      state.catalog={...state.catalog}; state.discussion=structuredClone(state.discussion);
+      window.visualDiscussionPanel.render(state);window.visualShell.render(state);
+      insight.ai.status='generated'; insight.draft='Planting along existing sidewalks avoids rebuilding whole streets.';
+      insight.ai.result={body:insight.draft,model:'synthetic',citations:[]};
+      window.visualInsightPanel.render(insight);window.visualDiscussionPanel.renderInsightState(insight);
+    })()`, sessionId);
+    assert.equal(await evaluate("(() => {const host=document.querySelector('#app-discussion-insights-host'),card=document.querySelector('[data-post-id=question-visual]');return host.previousElementSibling===card && document.querySelectorAll('#local-insights').length===1 && document.querySelectorAll('#app-discussion-insights-host').length===1 && !document.querySelector('#insight-composer').hidden})()", sessionId), true,
+      "a recovered/private follow-up result stays beneath its exact question through a snapshot refresh");
+    await capture("inline-insight-result", sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
+    await capture("inline-insight-result-320", sessionId);
+    await evaluate("window.visualInsightState.status='sharing';window.visualInsightPanel.render(window.visualInsightState)", sessionId);
+    assert.equal(await evaluate("(() => {const progress=document.querySelector('#insight-followup-progress');return !progress.hidden && progress.textContent==='Posting insight…' && document.querySelector('#insight-composer').hidden && getComputedStyle(progress,'::before').animationName==='none'})()", sessionId), true,
+      "immediate posting shows inline progress rather than a duplicate Share card and respects reduced motion");
+    await capture("inline-insight-posting-320", sessionId);
+    await evaluate("window.visualDiscussionState.discussion.roots[0].replies[0].state='deleted';window.visualDiscussionPanel.render(window.visualDiscussionState)", sessionId);
+    assert.equal(await evaluate("document.querySelector('#app-discussion-insights-host').parentElement===document.querySelector('#local-discussion')", sessionId), true,
+      "a removed follow-up target cannot keep an actionable workspace beneath a stale message");
+    await browser.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await evaluate("Object.assign(window.visualDiscussionState,window.visualBeforeFollowup);Object.assign(window.visualInsightState,window.visualBeforeFollowupInsight);window.visualInsightPanel.render(window.visualInsightState);window.visualDiscussionPanel.renderInsightState(window.visualInsightState);window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.phase='choose-topic';window.visualDiscussionState.topicId=null;window.visualDiscussionState.discussion=null;window.visualDiscussionState.related={results:[]};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);document.querySelector('#app-tab-discussion').click()", sessionId);
     assert.equal(await evaluate("(() => { const status=document.querySelector('#discussion-status');return !document.querySelector('#app-topic-header') && !document.querySelector('#app-start-session') && !document.querySelector('#app-choose-topic') && status.textContent.includes('see its discussions') && document.body.dataset.topicState==='idle' && document.querySelector('#discussion-composer').hidden && document.querySelector('#discussion-ai-insights').hidden; })()", sessionId), true,
       "no-topic view explains automatic discovery without manual controls or empty composer");

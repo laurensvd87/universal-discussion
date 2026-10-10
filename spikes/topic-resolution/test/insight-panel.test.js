@@ -90,6 +90,50 @@ test("one generic share label applies to both opener and follow-up results", () 
   assert.equal(ui.byId("insight-share-scope").textContent, INSIGHT_EN.shareScope);
   assert.equal(ui.byId("insight-share").textContent, INSIGHT_EN.share);
 });
+test("User follow-up shows progress inline and keeps the generated reply available", () => {
+  const ui = harness(undefined, "user");
+  const followup = { discussionId: "discussion-a", rootId: "root-a", replyToId: "question-a" };
+  const progress = ui.byId("insight-followup-progress");
+  for (const [status, label] of [["preparingArticle", INSIGHT_EN.creatingInsights],
+    ["fetchingRelated", INSIGHT_EN.aiFetchingRelated], ["generating", INSIGHT_EN.creatingInsights],
+    ["resuming", INSIGHT_EN.resumingInsights]]) {
+    ui.panel.render(state({ followup, ai: { status, result: null } }));
+    assert.equal(progress.hidden, false);
+    assert.equal(progress.textContent, label);
+    assert.equal(ui.byId("insight-workspace").open, true);
+  }
+  const result = { body: "Follow-up answer", citations: [] };
+  ui.panel.render(state({ followup, draft: result.body, ai: { status: "generated", result } }));
+  assert.equal(progress.hidden, true);
+  assert.equal(progress.textContent, "");
+  assert.equal(ui.byId("insight-composer").hidden, false);
+  assert.equal(ui.byId("insight-citations").textContent, result.body);
+  ui.panel.render(state({ followup, busy: true, status: "sharing", draft: result.body,
+    ai: { status: "generated", result } }));
+  assert.equal(progress.hidden, false);
+  assert.equal(progress.textContent, INSIGHT_EN.sharing);
+  assert.equal(ui.byId("insight-composer").hidden, true);
+  ui.panel.render(state({ followup, status: "failed", draft: result.body,
+    ai: { status: "generated", result } }));
+  assert.equal(progress.hidden, true);
+  assert.equal(ui.byId("insight-composer").hidden, false);
+  ui.panel.render(state({ ai: { status: "idle", result: null } }));
+  assert.equal(progress.hidden, true);
+});
+test("User root write shows posting progress until a private result needs review", () => {
+  const ui = harness(undefined, "user");
+  const result = { body: "Opening insight", citations: [] };
+  ui.panel.render(state({ status: "sharing", busy: true, draft: result.body,
+    ai: { status: "generated", result } }));
+  assert.equal(ui.byId("insight-followup-progress").hidden, false);
+  assert.equal(ui.byId("insight-followup-progress").textContent, INSIGHT_EN.sharing);
+  assert.equal(ui.byId("insight-workspace").open, true);
+  assert.equal(ui.byId("insight-composer").hidden, true);
+  ui.panel.render(state({ status: "failed", draft: result.body,
+    ai: { status: "generated", result } }));
+  assert.equal(ui.byId("insight-followup-progress").hidden, true);
+  assert.equal(ui.byId("insight-composer").hidden, false);
+});
 
 test("User insight preview contains only the generated message, citation links, and separate actions", () => {
   const ui = harness(undefined, "user");

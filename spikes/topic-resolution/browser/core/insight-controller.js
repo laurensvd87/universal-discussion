@@ -70,12 +70,12 @@ export function createInsightResumeGate(resume) {
   });
 }
 
-// Private popup state only. Explicit actions invoke injected page/provider
-// adapters; only final sharing persists the reviewed discussion text.
+// Explicit actions invoke injected page/provider adapters; only the guarded
+// discussion share persists the exact generated text.
 export function createInsightController({ shareInsight, onStateChange = () => {}, aiClient = null,
   readArticle = null, attestArticle = null, readRelatedExcerpts = null,
   loadRelatedTextPreference = async () => null, saveRelatedTextPreference = () => {}, openAuthorization = null,
-  randomId = () => globalThis.crypto.randomUUID() }) {
+  randomId = () => globalThis.crypto.randomUUID(), shareOnCompletion = false }) {
   let observed = null;
   let boundKey = null;
   let disposed = false;
@@ -103,7 +103,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   });
   let state = { available: false, context: null, excludedRelatedSourceIds: [],
     relatedPageTextEnabled: true, relatedExcerptCount: null,
-    draft: "", preview: null, status: "idle", busy: false,
+    draft: "", preview: null, followup: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
       result: null, status: "idle", error: null, failureStage: null, failureSubstage: null,
       modelFailureDetail: null, researchFailureDetail: null,
@@ -155,7 +155,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   function clear(status = "idle") {
     cancelJob(); purgeCompleted(); epoch++;
     boundKey = null; review = null;
-    publish({ context: null, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, status, ai: { ...state.ai, articleText: "", article: null,
+    publish({ context: null, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, followup: null, status, ai: { ...state.ai, articleText: "", article: null,
       result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null,
       diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } } });
   }
@@ -205,7 +205,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         sourceLimit: observed.sourceId === null ? 20 : 21 });
       boundKey = key(); review = null;
       cancelJob(); purgeCompleted(); epoch++;
-      publish({ context, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, status: "prepared", ai: { ...state.ai, articleText: "", article: null,
+      publish({ context, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, followup: null, status: "prepared", ai: { ...state.ai, articleText: "", article: null,
         result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null,
         diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } } });
       return true;
@@ -266,10 +266,11 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     return true;
   }
   async function share() {
-    // The already formatted private draft is the review. Share remains one
-    // explicit action, and the service independently attests the exact result.
+    // Use the exact result for a separate Share click or ADR-075's consumed
+    // creation-click intent. The service independently attests the body.
     const exactReview = preparedReview();
     if (!exactReview) return false;
+    const sharedKey = boundKey;
     pending = true; publish({ status: "sharing" });
     let success = false;
     let uncertain = false;
@@ -281,7 +282,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       if (!disposed) {
         if (!success && !uncertain && !observed?.needsFreshRead && key() === boundKey)
           publish({ status: "failed" });
-        else clear(success ? "shared" : "failed");
+        else {
+          clear(success ? "shared" : "failed");
+          // A successful discussion refresh may already have been observed
+          // while pending. Restore only the same current Source for another
+          // deliberate action; no provider operation starts here.
+          if (success && key() === sharedKey && prepare()) publish({ status: "shared" });
+        }
       }
     }
     return success;
@@ -433,11 +440,11 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         if (!state.context?.currentSource) return false;
         aiPatch({ status: "preparingArticle", error: null, researchFailureDetail: null });
         if (!await readPageText()) return false;
-        return await runInsights({ skipConsent: true });
+        return await runInsights({ skipConsent: true, publishOnCompletion: shareOnCompletion === true });
       } finally { automaticStartBusy = false; }
     }
     if (automaticStartBusy || completedJob) return false;
-    return runInsights({ skipConsent: false });
+    return runInsights({ skipConsent: false, publishOnCompletion: shareOnCompletion === true });
   }
   async function createFollowup(questionId) {
     if (disposed || pending || job || automaticStartBusy || resumeBusy || !eligible() ||
@@ -454,14 +461,17 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (!state.context?.currentSource) return false;
     automaticStartBusy = true;
     try {
+      const followup = { questionId, discussionId: observed.discussion.discussionId,
+        rootId: root.id, replyToId: question.id };
+      publish({ followup: { discussionId: followup.discussionId,
+        rootId: followup.rootId, replyToId: followup.replyToId } });
       aiPatch({ status: "preparingArticle", error: null, researchFailureDetail: null });
       if (!await readPageText()) return false;
-      return await runInsights({ skipConsent: true, followup: {
-        questionId, discussionId: observed.discussion.discussionId, rootId: root.id, replyToId: question.id,
-      } });
+      return await runInsights({ skipConsent: true, followup,
+        publishOnCompletion: shareOnCompletion === true });
     } finally { automaticStartBusy = false; }
   }
-  async function runInsights({ skipConsent, followup = null }) {
+  async function runInsights({ skipConsent, followup = null, publishOnCompletion = false }) {
     await relatedPreferenceReady;
     if (!aiClient || !attestArticle || disposed || job || completedJob || pending || !state.ai.planEnabled ||
         (!skipConsent && !state.ai.costConsent) ||
@@ -471,8 +481,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const operationId = randomId(), actorId = observed.actorId;
     if (typeof operationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/u.test(operationId)) return false;
     const abort = new AbortController(); job = { id: operationId, actorId, abort };
-    aiPatch({ status: "generating", error: null, result: null, researchFailureDetail: null,
-      diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } });
+    // This intent exists only in this explicit invocation; recovered jobs
+    // enter through resumeInsights and never receive it.
+    let publicationIntent = publishOnCompletion;
+    publish({ followup: followup ? { discussionId: followup.discussionId,
+      rootId: followup.rootId, replyToId: followup.replyToId } : null,
+    ai: { ...state.ai, status: "generating", error: null, result: null, researchFailureDetail: null,
+      diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } } });
     let failureStatus = "generationFailed";
     let failureDetail = null;
     let refreshUnavailableModel = false;
@@ -555,6 +570,13 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
           } : null };
           publish({ draft, preview: null, status: "prepared", ai: { ...state.ai, result: outcome.result,
             status: "generated", costConsent: false } });
+          // The opt-in belongs only to this live, explicit generation. A
+          // recovered result never replays it, and a changed binding cannot
+          // pass the same exact-result review used by manual Share.
+          const shouldShare = publicationIntent;
+          publicationIntent = false;
+          if (shouldShare && !disposed && epoch === current &&
+              completedJob?.id === operationId && preparedReview()) await share();
           return true;
         }
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -608,7 +630,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
             reply.authorId === snapshot.actorId && reply.replyToId === root.id))) return false;
       const abort = new AbortController();
       job = { id: resumable.operationId, actorId: snapshot.actorId, abort };
-      aiPatch({ status: "generating", error: null, result: null, researchFailureDetail: null });
+      publish({ followup, ai: { ...state.ai, status: "generating", error: null,
+        result: null, researchFailureDetail: null } });
       const active = () => stillHere() && job?.id === resumable.operationId;
       const end = Date.now() + 95000;
       while (active() && Date.now() < end) {
@@ -626,7 +649,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
           const draft = formatInsightCitations(outcome.result.body, outcome.result.citations);
           job = null; review = null;
           completedJob = { id: resumable.operationId, actorId: snapshot.actorId, account: accountKey(), followup };
-          publish({ draft, preview: null, status: "prepared", ai: { ...state.ai, result: outcome.result,
+          publish({ draft, preview: null, followup, status: "prepared", ai: { ...state.ai, result: outcome.result,
             status: "generated", costConsent: false } });
           return true;
         }
@@ -650,7 +673,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     disposed = true; observed = null; boundKey = null; review = null;
     state = { available: false, context: null, excludedRelatedSourceIds: [],
       relatedPageTextEnabled: true, relatedExcerptCount: null,
-      draft: "", preview: null, status: "idle", busy: false,
+      draft: "", preview: null, followup: null, status: "idle", busy: false,
       ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
         result: null, status: "idle", error: null, diagnostics: { status: "idle", events: [], localEvents: [] } } };
   }

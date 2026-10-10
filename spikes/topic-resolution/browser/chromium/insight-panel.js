@@ -78,6 +78,9 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const accountDetails = node("details", null, "insight-account-details"); accountDetails.className = "insight-subdetails";
   const accountSummary = node("summary", "accountWorkspace"); accountDetails.append(accountSummary); details.append(accountDetails);
   const aiStatus = node("p", null, "insight-ai-status"); aiStatus.setAttribute("role", "status"); details.append(aiStatus);
+  const inlineProgress = node("p", null, "insight-followup-progress");
+  inlineProgress.setAttribute("role", "status"); inlineProgress.setAttribute("aria-live", "polite");
+  inlineProgress.hidden = true; details.append(inlineProgress);
   const include = node("input", null, "insight-include-discussion"); include.type = "checkbox"; include.checked = false;
   const includeLabel = node("label", "includeDiscussion"); includeLabel.htmlFor = include.id;
   const sourceDetails = node("details", null, "insight-source-details"); sourceDetails.className = "insight-subdetails";
@@ -190,6 +193,13 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   }
   function render(state) {
     if (disposed) return;
+    const inlineFollowup = document.body?.dataset?.uiMode === "user" && Boolean(state.followup);
+    const progress = state.status === "sharing" ? "sharing" :
+      { preparingArticle: "creatingInsights", fetchingRelated: "aiFetchingRelated",
+        generating: "creatingInsights", resuming: "resumingInsights" }[state.ai?.status];
+    inlineProgress.hidden = !(inlineFollowup || document.body?.dataset?.uiMode === "user" && state.status === "sharing") || !progress;
+    inlineProgress.textContent = inlineProgress.hidden ? "" : text(progress);
+    if (inlineFollowup || document.body?.dataset?.uiMode === "user" && state.status === "sharing") details.open = true;
     const blocked = !state.available || state.busy;
     status.textContent = text(state.status === "idle" && !state.available ? "unavailable" : state.status);
     include.disabled = prepare.disabled = blocked;
@@ -213,7 +223,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     } else if (!exactGenerated) composer.className = "";
     hadVisibleResult = exactGenerated;
     previousResultContext = resultContext;
-    draftDetails.hidden = composer.hidden = !exactGenerated;
+    draftDetails.hidden = composer.hidden = !exactGenerated ||
+      document.body?.dataset?.uiMode === "user" && state.status === "sharing";
     discard.disabled = state.busy;
     const signature = JSON.stringify(state.context);
     if (signature !== contextSignature) {

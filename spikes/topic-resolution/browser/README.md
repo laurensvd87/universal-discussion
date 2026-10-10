@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.32)
+## Persistent discussion sidebar (0.13.33)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -13,13 +13,23 @@ one model selector, Insight action and expandable threads. Settings, capture Sto
 site exclusions and data controls are behind the settings icon. Unsent text is
 detached on page changes, not silently rebound. Closing this UI does not stop
 the already-approved background matching session. Provider generation and local
-sharing still require their separate deliberate actions.
+New **Insight**/robot clicks authorize generation and one immediate local post;
+opening the panel never generates or publishes an Insight by itself. Human Post
+and sharing old/recovered private results remain separate deliberate actions.
 
 **Reply** moves the existing editor directly below that message, including
 nested replies. Same-context updates preserve typing focus, selection and IME
 composition; no second editor or draft storage is created. Return to a new
 thread explicitly discards the reply/edit draft. If the target disappears or
 the page changes, unsent text remains visible and cannot silently post elsewhere.
+The robot action on your question under a generated opener shows loading at
+that question, followed by the posted message or an unshared recovery draft.
+It is icon-only in User Mode with a keyboard-accessible generation/posting label.
+Finished new requests use the existing exact-result proof and fresh context
+checks before writing, without a second Share click. Invalid/changed context
+blocks posting; failed or uncertain writes never retry automatically. Resumed
+jobs do not inherit publication intent. See
+[ADR-075](../../../decisions/ADR-075-click-authorized-immediate-local-insights.md).
 `node harness/run-popup-visual-check.js after` covers real Chrome per-character
 typing and inline placement using inert synthetic controllers, without touching
 the owner's service. This is shared UI evidence, not a new native-auth test.

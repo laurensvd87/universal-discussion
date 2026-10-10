@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.32** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.33** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -27,6 +27,13 @@ replies. Typing and same-page discussion refreshes preserve focus and cursor
 position. The single active editor returns to the top for a new thread; its
 return action explicitly discards the reply draft. A removed target blocks
 posting without discarding your text.
+Click **Insight**, or the robot icon on your question under a generated opener,
+to generate and immediately post the finished message in the shared local
+discussion. No separate Share is needed for a new request. Reply generation
+and recovery drafts appear beneath the question being answered. Page/account/
+target changes prevent posting; old or recovered drafts still require Share.
+This is local sharing, not a publicly hosted service. See
+[ADR-075](decisions/ADR-075-click-authorized-immediate-local-insights.md).
 In a fresh Chrome profile, grant website access once under those browsing
 settings; the explicit Chrome prompt is separate from connecting the local service.
 

@@ -2,6 +2,13 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current Insight approval (2026-10-10, ADR-075): an explicit generation/robot click
+may immediately share its exact completed result locally, including the existing
+strict stream fallback. Per-invocation intent only; existing proof, fresh Source,
+Topic, account and reply-target checks remain. No background calls, retries,
+automatic sharing of old/resumed jobs or remote publication. Recovered jobs stay
+private. Read top STATUS/HANDOFF before historical separate-Share instructions.
+
 Current surface (2026-10-10, 0.13.31): ADR-074's explicitly approved native Chrome
 side panel replaces the action popup. Read top STATUS/HANDOFF for verification.
 The unique real-document URL must join one live SIDE_PANEL context; native

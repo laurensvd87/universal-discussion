@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 Insight checkpoint (0.13.33): owner explicitly approved ADR-075's
+click-authorized immediate local sharing, including strict completed-stream
+fallbacks. Only trusted production composition opts into `shareOnCompletion`;
+each explicit generation has one consumed invocation-local intent. Preserve the
+existing exact-body, provider account, Source/Topic/target and current revision
+write checks. Resume/open/render never replays publication intent. Failed or
+uncertain writes cannot retry. Followup metadata is presentation-only: one
+workspace moves below the validated owned question, including loading/recovery;
+the robot action is icon-only with localized posting label. Human editor/focus
+and generated provenance remain intact. No API/storage/permission/provider
+scope change; owner service untouched. Current exact checks are in top STATUS.
+Read ADR-075 before older private-first/separate-Share instructions below.
+
 2026-10-10 reply checkpoint (0.13.32): owner typing/focus regression fixed and
 single reply/edit composer placed under its exact target, including nested posts.
 Panel owns form/Insight-host ordering; shell must not move them on each render.

@@ -959,7 +959,7 @@ body[data-ui-mode="user"] .discussion-source-link {
 }
 body[data-ui-mode="user"] .discussion-source-link:hover { background: var(--private); }
 
-/* The private result is in the stream and requires an explicit share. */
+/* Generation progress and unshared recovery drafts live in the conversation. */
 body[data-ui-mode="user"] #app-discussion-insights-host { min-width: 0; }
 body[data-ui-mode="user"] #app-discussion-insights-host #local-insights { margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 body[data-ui-mode="user"] #app-discussion-insights-host :is(#insight-user-heading, #insight-workspace > summary, #insight-createInsights) { display: none; }
@@ -1143,15 +1143,20 @@ body[data-ui-mode="user"] .discussion-actions button { color: var(--ink); border
 body[data-ui-mode="user"] #discussion-discard:hover,
 body[data-ui-mode="user"] .discussion-branch-toggle:hover,
 body[data-ui-mode="user"] .discussion-actions button:hover { background: #303445; }
-body[data-ui-mode="user"] .discussion-actions :is(.discussion-action-edit, .discussion-action-withdraw) {
+body[data-ui-mode="user"] .discussion-branch-toggle[aria-expanded="true"] {
+  color: var(--ink); border-color: #656994; background: #303445;
+}
+body[data-ui-mode="user"] .discussion-actions :is(.discussion-action-edit, .discussion-action-withdraw, .discussion-action-getinsights) {
   display: inline-flex; align-items: center; justify-content: center;
   flex: 0 0 44px; width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 0;
 }
-body[data-ui-mode="user"] .discussion-actions :is(.discussion-action-edit, .discussion-action-withdraw)::before {
+body[data-ui-mode="user"] .discussion-actions :is(.discussion-action-edit, .discussion-action-withdraw, .discussion-action-getinsights)::before {
   content: ""; width: 17px; height: 17px; background: currentColor;
   mask-position: center; mask-size: contain; mask-repeat: no-repeat;
 }
 body[data-ui-mode="user"] .discussion-actions .discussion-action-edit::before { mask-image: url("icons/edit.svg"); }
+body[data-ui-mode="user"] .discussion-actions .discussion-action-getinsights { color: #d7c1ff; }
+body[data-ui-mode="user"] .discussion-actions .discussion-action-getinsights::before { mask-image: url("icons/robot.svg"); }
 body[data-ui-mode="user"] .discussion-actions .discussion-action-withdraw { color: #efb7b7; }
 body[data-ui-mode="user"] .discussion-actions .discussion-action-withdraw::before { mask-image: url("icons/trash.svg"); }
 body[data-ui-mode="user"] #discussion-model-host {
@@ -1195,6 +1200,19 @@ body[data-ui-mode="user"] .related-discussion-summary,
 body[data-ui-mode="user"] .related-discussion-body { color: var(--ink); }
 body[data-ui-mode="user"] #insight-composer {
   gap: 10px; padding: 12px; border: 1px solid #8a7340; border-radius: 12px; background: #29251c;
+}
+body[data-ui-mode="user"] #insight-followup-progress:not([hidden]) {
+  display: flex; align-items: center; gap: 9px; margin: 8px 0; padding: 12px;
+  min-width: 0; border: 1px solid #61517c; border-radius: 12px;
+  background: #252035; color: #e0ceff; font-size: 13px; overflow-wrap: anywhere;
+}
+body[data-ui-mode="user"] #insight-followup-progress::before {
+  content: ""; flex: 0 0 14px; width: 14px; height: 14px;
+  border: 2px solid #8b72b3; border-top-color: #e0ceff; border-radius: 50%;
+  animation: insight-spin 850ms linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-ui-mode="user"] #insight-followup-progress::before { animation: none; }
 }
 body[data-ui-mode="user"] #insight-private-label,
 body[data-ui-mode="user"] #insight-citations { color: var(--ink); }
