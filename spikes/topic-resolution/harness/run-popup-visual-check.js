@@ -306,6 +306,7 @@ try {
       window.visualBeforeFollowup=structuredClone(state); window.visualBeforeFollowupInsight=structuredClone(insight);
       state.discussion={discussionId:'discussion-visual',roots:[{id:'robot-visual',rootId:null,state:'visible',authorId:'demo-imported-ai',
         actorType:'agent',body:'More shaded streets could make this city easier to walk in.',
+        createdAt:'2026-10-06T10:00:00.000Z',origin:{sourceId:'source-visual',title:'Synthetic public article',url:'https://example.com/article'},
         insight:{kind:'generated',operatorId:'demo-alex',model:'synthetic'},replies:[{id:'question-visual',rootId:'robot-visual',
           replyToId:'robot-visual',state:'visible',authorId:'demo-alex',actorType:'human',body:'What about the costs?',edited:false}]}]};
       state.draft={body:'Human draft stays untouched',mode:'root',targetId:null,detached:false};
@@ -314,13 +315,25 @@ try {
       if(toggle.getAttribute('aria-expanded')!=='true')toggle.click();
     })()`, sessionId);
     await new Promise(resolve => setTimeout(resolve, 250));
+    assert.equal(await evaluate(`(() => {
+      const card=document.querySelector('[data-post-id=robot-visual]'),author=card.querySelector('.insight-provenance');
+      const icon=getComputedStyle(author,'::before');
+      const rootButton=document.querySelector('#discussion-ai-insights');
+      return author.textContent==='Alex · AI-generated' && /generated/i.test(author.getAttribute('aria-label')) &&
+        icon.maskImage.includes('icons/spark.svg') && icon.width!=='0px' &&
+        !card.querySelector('.discussion-actor-badge-agent') && !/Robot/.test(card.querySelector('.discussion-post-metadata').innerText) &&
+        card.querySelector('time').dateTime==='2026-10-06T10:00:00.000Z' &&
+        card.querySelector('.discussion-source-link').href==='https://example.com/article' &&
+        getComputedStyle(rootButton,'::before').maskImage.includes('icons/spark.svg');
+    })()`, sessionId), true, "generated headers have one explicit AI disclosure and sparkle, not duplicated Robot/AI labels; source and time remain");
+    await capture("compact-ai-disclosure", sessionId);
     await checkReachable('[data-action="getinsights"][data-contribution-id="question-visual"]', sessionId);
     assert.equal(await evaluate(`(() => {
       const button=document.querySelector('[data-action=getinsights][data-contribution-id=question-visual]');
       const icon=getComputedStyle(button,'::before');return button.textContent==='' &&
-        button.getAttribute('aria-label')==='Generate and post reply' && icon.maskImage.includes('icons/robot.svg') &&
+        button.getAttribute('aria-label')==='Generate and post reply' && icon.maskImage.includes('icons/spark.svg') &&
         button.getBoundingClientRect().width>=44;
-    })()`, sessionId), true, "reply generation uses a reachable labelled robot icon rather than visible Get insights text");
+    })()`, sessionId), true, "reply generation uses a reachable labelled sparkle icon rather than visible Get insights text");
     await pressEnter(sessionId);
     assert.deepEqual(await evaluate(`(() => {
       const host=document.querySelector('#app-discussion-insights-host'),card=document.querySelector('[data-post-id=question-visual]'),

@@ -1,5 +1,15 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 disclosure checkpoint (0.13.34): User generated headers use one
+sparkle and `operator · AI-generated`, without duplicated Robot text or AI badge.
+Manual imports remain visibly AI-assisted/unverified; related excerpts preserve
+the distinction. Root/follow-up controls also use sparkle. Read ADR-076 for
+official legal evidence and its no-compliance-certification boundary. Keep
+accessible provenance, stored actor/Insight types and ADR-075 write guards;
+this is presentation only, with no provider/service/permission changes.
+Full extension 1,091 pass/1 skipped; restricted 1,092 pass, independent Trust
+and real Chrome synthetic shared-UI checks pass. Reload unpacked extension.
+
 2026-10-10 Insight checkpoint (0.13.33): owner explicitly approved ADR-075's
 click-authorized immediate local sharing, including strict completed-stream
 fallbacks. Only trusted production composition opts into `shareOnCompletion`;

@@ -1,5 +1,28 @@
 # Project status
 
+**2026-10-10 compact AI-origin disclosure, complete (0.13.34):**
+The owner requests removing repeated Robot/AI metadata, chooses the sparkle,
+and flags AI-content transparency legislation. [ADR-076](../decisions/ADR-076-compact-ai-origin-disclosure.md)
+records official Article 50/Commission evidence and the conservative design,
+not legal/store certification: one sparkle plus `Alex · AI-generated` replaces
+Robot wording and the separate agent badge in User Mode. Manual imports remain
+visibly AI-assisted/unverified. Localized accessible names/tooltips retain
+detailed provenance; Developer contribution diagnostics remain unchanged.
+Related-discussion excerpts and reply headings use the same compact disclosure. Root and
+follow-up actions use the same bundled sparkle. Names, time, source links,
+citations, stored actor/provenance types and ADR-075's sharing guards remain.
+
+Sol Medium slice and independent Trust provenance review pass. Focused renderer
+**62 pass**; full extension **1,091 pass/1 optional skip**, restricted
+**1,092 pass**. Actual Chrome synthetic shared-UI QA verifies the computed sparkle,
+single explicit visible generated disclosure, preserved source/time, labelled
+keyboard action, inline replies/progress and existing narrow/reduced-motion/zoom
+checks. Root reviewed the screenshot. Secret scan and diff checks pass.
+An initial restricted audit caught `import (unverified)` in localized text as
+a dynamic-import pattern; changing copy to `import · unverified` fixes the false
+positive without weakening the audit. No live provider, owner credential/data,
+service interruption, permission or release change. Reload extension 0.13.34.
+
 **2026-10-10 inline Insight replies and immediate local sharing, complete (0.13.33):**
 The owner requests generated reply drafts at their reply location, a compact
 robot action and immediate shared visibility. After an explicit scope question,

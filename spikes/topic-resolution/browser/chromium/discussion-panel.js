@@ -355,11 +355,20 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (entry.actorType === "agent") {
       const operatorActor = state.catalog.actors.find((item) => item.id === entry.insight?.operatorId);
       const operator = actorName(operatorActor);
-      author.textContent = text(entry.insight?.kind === "generated" ? "discussionGeneratedInsight" : "discussionImportedInsight")
-        .replace("{operator}", operator);
+      const generated = entry.insight?.kind === "generated";
+      const developerKey = generated ? "discussionGeneratedInsight" : "discussionImportedInsight";
+      const visibleKey = uiMode === "user"
+        ? generated ? "uiGeneratedInsightOperator" : "uiImportedInsightOperator"
+        : developerKey;
+      const provenanceKey = generated && uiMode === "user" ? "uiGeneratedInsightProvenance" : developerKey;
+      const provenance = text(provenanceKey).replace("{operator}", operator);
+      author.textContent = text(visibleKey).replace("{operator}", operator);
       author.className = "insight-provenance";
+      author.setAttribute("aria-label", provenance);
+      author.title = provenance;
     }
-    card.setAttribute("aria-label", text("uiPostByAuthor").replace("{author}", author.textContent));
+    card.setAttribute("aria-label", text("uiPostByAuthor").replace("{author}",
+      entry.actorType === "agent" ? author.getAttribute("aria-label") : author.textContent));
     const content = node("p"); content.className = "discussion-body";
     if (entry.actorType === "agent") appendInsightCitationNodes(document, content, entry.body,
       text("discussionCitationOpen"), text("discussionCitationUnverifiedOpen"),
@@ -372,9 +381,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       demo.setAttribute("aria-label", text("uiDemoBadgeLabel"));
       metadata.append(demo);
     }
-    if (uiMode === "user") {
-      const type = node("span", entry.actorType === "agent" ? "uiAgentBadge" : "uiHumanBadge");
-      type.className = `discussion-actor-badge discussion-actor-badge-${entry.actorType}`;
+    if (uiMode === "user" && entry.actorType === "human") {
+      const type = node("span", "uiHumanBadge");
+      type.className = "discussion-actor-badge discussion-actor-badge-human";
       metadata.append(type);
     }
     if (typeof entry.createdAt === "string") {
@@ -683,7 +692,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       const author = replyTarget && state.catalog?.actors.find((entry) => entry.id === replyTarget.authorId);
       const authorText = author && replyTarget.actorType === "human" ? actorName(author)
         : author && replyTarget.actorType === "agent" ? text(replyTarget.insight?.kind === "generated"
-          ? "discussionGeneratedInsight" : "discussionImportedInsight")
+          ? uiMode === "user" ? "uiGeneratedInsightOperator" : "discussionGeneratedInsight"
+          : uiMode === "user" ? "uiImportedInsightOperator" : "discussionImportedInsight")
           .replace("{operator}", actorName(state.catalog.actors.find((entry) => entry.id === replyTarget.insight?.operatorId))) : "";
       replyAuthor.textContent = !replyTarget ? text("uiReplyTargetUnavailable")
         : text("uiReplyToAuthor").replace("{author}", compactText(authorText || text("uiReplyUnknownAuthor"), 48));
@@ -922,8 +932,18 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           const card = node("article"); card.className = "related-discussion-card";
           const actor = state.catalog.actors.find((item) => item.id === entry.authorId);
           const author = node("span");
-          author.textContent = entry.actorType === "agent"
-            ? text("uiAgentBadge") : actorName(actor) || entry.authorId;
+          if (entry.actorType === "agent") {
+            const generated = entry.insight?.kind === "generated";
+            const operator = actorName(state.catalog.actors.find((item) => item.id === entry.insight?.operatorId));
+            const provenance = text(generated ? "uiGeneratedInsightProvenance" : "discussionImportedInsight")
+              .replace("{operator}", operator);
+            author.textContent = text(generated ? "uiGeneratedInsightOperator" : "uiImportedInsightOperator")
+              .replace("{operator}", operator);
+            author.className = "insight-provenance";
+            author.setAttribute("aria-label", provenance);
+            author.title = provenance;
+            card.setAttribute("aria-label", text("uiPostByAuthor").replace("{author}", provenance));
+          } else author.textContent = actorName(actor) || entry.authorId;
           const meta = node("p"); meta.className = "related-discussion-meta"; meta.append(author);
           if (typeof entry.createdAt === "string") {
             const date = new Date(entry.createdAt);

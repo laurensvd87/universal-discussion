@@ -1102,6 +1102,31 @@ test("reply context follows the exact selected author, including a reply to a re
   assert.equal(ui.calls.some(([method]) => method === "submitDraft"), false);
 });
 
+test("reply context uses compact User AI provenance and full Developer provenance", () => {
+  const ui = harness();
+  const roots = [
+    { id: "generated", state: "visible", actorType: "agent", authorId: "demo-ai",
+      insight: { kind: "generated", operatorId: "demo-alex" }, body: "Generated answer", replies: [] },
+    { id: "imported", state: "visible", actorType: "agent", authorId: "demo-ai",
+      insight: { kind: "manual-import", operatorId: "demo-alex" }, body: "Imported answer", replies: [] },
+  ];
+  const snapshot = state({ catalog: { ...state().catalog, actors: [
+    ...state().catalog.actors, { id: "demo-ai", displayName: "Demo AI" },
+  ] }, discussion: { roots } });
+  const context = ui.byId("discussion-reply-context");
+  const author = context.children[0];
+  const replyTo = (targetId) => ui.panel.render({ ...snapshot,
+    draft: { body: "", detached: false, mode: "reply", targetId } });
+  replyTo("generated");
+  assert.equal(author.textContent, "Replying to Alex · AI-generated");
+  replyTo("imported");
+  assert.equal(author.textContent, "Replying to Alex · AI-assisted import · unverified");
+  ui.panel.setMode("developer");
+  assert.equal(author.textContent, "Replying to AI-assisted · unverified manual import · shared …");
+  replyTo("generated");
+  assert.equal(author.textContent, "Replying to Robot · shared by Alex · synthetic");
+});
+
 test("stable root ordering keeps the live textarea focused through synchronous typing", () => {
   const ui = harness();
   const composer = ui.byId("discussion-composer"), body = ui.byId("discussion-body");
@@ -1306,6 +1331,78 @@ test("human post provenance stays accessible without repeating counts or prose",
   assert.equal(demo.attributes["aria-label"], EN.uiDemoBadgeLabel);
   assert.equal(author.attributes["aria-label"], "Human · Alex");
   assert.equal(ui.byId("discussion-counts").hidden, true);
+});
+
+test("User contribution headers keep generated and imported provenance distinct", () => {
+  const ui = harness();
+  const current = state({ discussion: { roots: [
+    { id: "generated", state: "visible", actorType: "agent", authorId: "demo-ai",
+      insight: { kind: "generated", operatorId: "demo-alex" }, body: "Generated answer",
+      createdAt: "2026-10-10T12:00:00.000Z", replies: [],
+      origin: { sourceId: "source-demo", url: "https://example.org/generated", title: "Generated source" } },
+    { id: "imported", state: "visible", actorType: "agent", authorId: "demo-ai",
+      insight: { kind: "manual-import", operatorId: "demo-alex" }, body: "Imported answer", replies: [] },
+    { id: "human", state: "visible", actorType: "human", authorId: "demo-alex",
+      body: "Human answer", replies: [] },
+  ] } });
+  ui.panel.render(current);
+  const renderedCards = () => Object.fromEntries(descendants(ui.root)
+    .filter((item) => item.attributes?.["data-post-id"])
+    .map((item) => [item.attributes["data-post-id"], item]));
+  let cards = renderedCards();
+  const author = (id) => descendants(cards[id]).find((item) =>
+    item.className === "insight-provenance" || item.className === "human-provenance");
+  const generated = author("generated");
+  const imported = author("imported");
+  assert.equal(generated.textContent, "Alex · AI-generated");
+  assert.equal(generated.attributes["aria-label"], "AI-generated · shared by Alex");
+  assert.equal(generated.title, generated.attributes["aria-label"]);
+  assert.equal(cards.generated.attributes["aria-label"], "Post by AI-generated · shared by Alex");
+  assert.equal(imported.textContent, "Alex · AI-assisted import · unverified");
+  assert.equal(imported.attributes["aria-label"], "AI-assisted · unverified manual import · shared by Alex");
+  assert.equal(imported.title, imported.attributes["aria-label"]);
+  assert.equal(author("human").textContent, "Alex");
+  assert.equal(descendants(cards.generated).some((item) => item.className?.includes("discussion-actor-badge-agent")), false);
+  assert.equal(descendants(cards.imported).some((item) => item.className?.includes("discussion-actor-badge-agent")), false);
+  assert.equal(descendants(cards.human).some((item) => item.className?.includes("discussion-actor-badge-human")), true);
+  assert.equal(descendants(cards.generated).some((item) => item.tag === "time"), true);
+  assert.equal(descendants(cards.generated).find((item) => item.className === "discussion-source-link").href,
+    "https://example.org/generated");
+  ui.panel.setMode("developer");
+  cards = renderedCards();
+  assert.equal(author("generated").textContent, "Robot · shared by Alex · synthetic");
+  assert.equal(author("imported").textContent, "AI-assisted · unverified manual import · shared by Alex · synthetic");
+  assert.equal(descendants(cards.generated).some((item) => item.className?.includes("discussion-actor-badge-agent")), false);
+});
+
+test("related discussion generated and imported headers keep operator and provenance", () => {
+  const ui = harness();
+  const current = state({ relatedDiscussions: [{ topicId: "nearby", title: "Nearby", rootCount: 2,
+    roots: [{ id: "nearby-generated", actorType: "agent", authorId: "demo-ai",
+      insight: { kind: "generated", operatorId: "demo-alex" }, body: "Generated", replyCount: 0 },
+    { id: "nearby-imported", actorType: "agent", authorId: "demo-ai",
+      insight: { kind: "manual-import", operatorId: "demo-alex" }, body: "Imported", replyCount: 0 }] }] });
+  ui.panel.render(current);
+  const cards = descendants(ui.byId("discussion-related-conversations"))
+    .filter((item) => item.className === "related-discussion-card");
+  assert.equal(cards.length, 2);
+  const generated = cards[0].children[0].children[0];
+  const imported = cards[1].children[0].children[0];
+  assert.equal(generated.className, "insight-provenance");
+  assert.equal(generated.textContent, "Alex · AI-generated");
+  assert.equal(generated.attributes["aria-label"], "AI-generated · shared by Alex");
+  assert.equal(imported.textContent, "Alex · AI-assisted import · unverified");
+  assert.equal(imported.attributes["aria-label"], "AI-assisted · unverified manual import · shared by Alex");
+  assert.equal(cards[0].attributes["aria-label"], "Post by AI-generated · shared by Alex");
+  assert.equal(descendants(ui.byId("discussion-related-conversations"))
+    .some((item) => item.textContent === EN.uiAgentBadge), false);
+});
+
+test("User generated markers and creation actions use the same bundled sparkle", () => {
+  const css = readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8");
+  assert.match(css, /#discussion-ai-insights::before\s*\{[^}]*icons\/spark\.svg/su);
+  assert.match(css, /\.discussion-contribution \.insight-provenance::before,[^}]*icons\/spark\.svg/su);
+  assert.match(css, /\.discussion-action-getinsights::before\s*\{[^}]*icons\/spark\.svg/su);
 });
 
 test("a real composer submit shows pending feedback and preserves draft focus until the outcome", async () => {
