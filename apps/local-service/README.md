@@ -181,6 +181,13 @@ bearer; keep this PC's browser profile and service data private. **Forget
 connection** removes only this browser's token, not other copies or discussion
 data. A service outage preserves the saved token; a confirmed 401 clears it.
 
+Owner-local recovery on 2026-10-10 separately approved one plaintext backup at
+`data/pairing-recovery/pairing-token.txt`, inside the already ignored `data/`.
+Its directory is restricted to the owner Windows account and SYSTEM. This is
+not encryption; the owner and local administrators can read it. Copy its single
+line directly into the extension, never into chat, logs or Git. Normal CLI/API
+behavior is unchanged; see ADR-019 C and current STATUS for the recovery record.
+
 The approved insight fallback accepts one fully finalized, identity-consistent
 assistant message as a private draft only after a valid terminal completed
 stream when the terminal output omitted that item. It rejects contradictory

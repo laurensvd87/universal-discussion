@@ -203,6 +203,19 @@ response. That separate question was subsequently approved under ADR-028.
 This local pairing package is implemented with synthetic checks and independent
 Trust review; owner-browser restart behavior remains to be confirmed.
 
+**Owner-local recovery exception, explicitly approved 2026-10-10:** The owner
+lost the bearer and approves stopping the existing service, rotating it, saving
+the replacement in a Git-ignored local file, and restarting. For this single
+recovery, `apps/local-service/data/pairing-recovery/pairing-token.txt` may retain
+the plaintext bearer. It is not a new automatic export, recovery endpoint or
+provider credential store. The parent directory has a protected Windows ACL
+allowing only the current owner account and SYSTEM; independent Trust confirms
+those rules. The owner and local administrators can still recover it. Git ignore
+is not encryption or protection from backups. The file may be manually removed
+after browser pairing, or retained locally at the owner's request; never commit,
+log, send in chat or include it in test fixtures. The backend still stores only
+the verifier and all normal CLI/API behavior below remains unchanged.
+
 - One fresh pairing after upgrade; no idle expiry or automatic logout on browser
   or service restart. The owner still starts the service manually; this package
   does not install OS auto-start, a background service, native messaging or accounts.

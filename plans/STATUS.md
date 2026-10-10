@@ -1,5 +1,26 @@
 # Project status
 
+**2026-10-10 approved owner pairing recovery, complete:**
+The owner explicitly approves rotating the lost pairing token and saving the
+replacement in a Git-ignored local file. The verified project service was stopped
+gracefully; a one-off ignored helper claimed the fixed port, rotated through the
+existing pairing store and saved/flush-verified the 44-byte token file at
+`apps/local-service/data/pairing-recovery/pairing-token.txt`. No credential was
+printed, logged, placed in command arguments or committed. Independent Trust
+confirmed the protected directory ACL: owner Windows account and SYSTEM only.
+The file inherits those rules; it remains plaintext and accessible to the owner
+and local administrators, not encrypted by Git ignore. ADR-019 C records this
+narrow owner-local exception, not a new CLI/API export or provider-token store.
+The stopped SQLite hash is unchanged across rotation. The normal service is
+running again with the original extension Origin; authenticated loopback health
+returns 200 and `paired-durable-v1` using the new token. Five focused pairing
+tests pass; ignore/untracked/diff checks pass. Protected ChatGPT login was not
+reset and no provider inference was requested. The old bearer is invalid.
+Next owner step: open the local file, copy its one line into the extension and
+connect once. Browser Connected confirmation remains pending; the agent has not
+read or injected credentials into the owner's Chrome profile. Fixed-port test
+isolation restrictions in the follow-up below still apply.
+
 **2026-10-10 owner connection follow-up (0.13.31):**
 The owner reports a disconnected header and a token input after native sidebar
 activation. The existing service is reachable on `127.0.0.1:4174` and returns

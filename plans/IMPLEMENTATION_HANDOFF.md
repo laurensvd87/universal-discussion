@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 approved lost-token recovery completed: pairing rotated through the
+existing exclusive-port administration flow; new bearer saved only in ignored
+`apps/local-service/data/pairing-recovery/pairing-token.txt` with protected
+owner/SYSTEM ACL. See ADR-019 C and top STATUS for the narrow plaintext-file
+approval, unchanged SQLite hash and successful authenticated health check.
+Owner must paste the file's one line into extension UI once; browser Connected
+confirmation remains pending. No provider login reset, API change or deployment.
+
 2026-10-10 owner connection follow-up: service remains reachable, but owner
 reports disconnected/token input; saved pairing is not verified. Read top STATUS
 before further fixed-port QA: a disposable Chrome profile does not isolate a
