@@ -39,6 +39,8 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
   assert.match(opener, /If none of the candidate pages yields usable evidence, still write using only articlePrefix/u);
   assert.match(followup, /Address that message directly/u);
   assert.match(followup, /Assess claims independently/u);
+  assert.match(followup, /related or discovered sources only under the applicable research rules/u);
+  assert.doesNotMatch(followup, /selected related sources only/u);
   assert.doesNotMatch(followup, /opening post/u);
   assert.match(offlineFollowup, /Do not use external research/u);
   assert.notEqual(followup, offlineFollowup);
@@ -46,6 +48,9 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
   assert.match(followup, /Derive concise search terms/u);
   assert.match(followup, /Cite at most five distinct public sources/u);
   assert.match(followup, /selectedWebReferences maps \[refN\] only to those selected URLs/u);
+  assert.match(followup, /citation immediately beside each named retailer, product listing, price or shipping claim/u);
+  assert.match(followup, /newly discovered listing, include the web_search provider citation to its actual page/u);
+  assert.match(followup, /no supported citation to its exact page, do not present that retailer or offer as found or actionable/u);
   assert.match(followup, /Do not print raw URLs or add a source list/u);
   assert.match(followup, /exact SKU or variant, condition, currency, region, availability and delivered total/u);
   assert.match(followup, /delivery country is missing, ask for it/u);

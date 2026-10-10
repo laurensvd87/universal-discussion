@@ -252,13 +252,13 @@ try {
     await browser.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
     await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
     await evaluate("document.querySelector('#discussion-back-to-new-thread').click()", sessionId);
-    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),thread=document.querySelector('.discussion-thread');return window.visualDiscussionState.draft.mode==='root' && form.parentElement===thread.parentElement && Boolean(form.compareDocumentPosition(thread)&Node.DOCUMENT_POSITION_FOLLOWING) && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),feed=document.querySelector('#discussion-feed'),dock=document.querySelector('#discussion-root-dock');return window.visualDiscussionState.draft.mode==='root' && form.parentElement===dock && feed.parentElement===dock.parentElement && Boolean(feed.compareDocumentPosition(dock)&Node.DOCUMENT_POSITION_FOLLOWING) && feed.contains(document.querySelector('.discussion-thread')) && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
       "Return to new thread cancels the reply and restores the root composer");
     await evaluate("(() => {const state=window.visualDiscussionState;state.draft={body:'Unsent reply',detached:false,mode:'reply',targetId:'reply-visual'};window.visualDiscussionPanel.render(state);state.draft={...state.draft,detached:true};window.visualDiscussionPanel.render(state)})()", sessionId);
-    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),thread=document.querySelector('.discussion-thread');return form.parentElement===thread.parentElement && Boolean(form.compareDocumentPosition(thread)&Node.DOCUMENT_POSITION_FOLLOWING) && window.visualDiscussionState.draft.body==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
-      "detached reply retains unsent text in the top composer");
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),feed=document.querySelector('#discussion-feed'),dock=document.querySelector('#discussion-root-dock');return form.parentElement===dock && feed.parentElement===dock.parentElement && Boolean(feed.compareDocumentPosition(dock)&Node.DOCUMENT_POSITION_FOLLOWING) && window.visualDiscussionState.draft.body==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+      "detached reply retains unsent text in the bottom dock");
     await evaluate("(() => {const state=window.visualDiscussionState;state.draft={body:'Unsent reply',detached:false,mode:'reply',targetId:'reply-visual'};state.discussion.roots[0].replies[0].state='deleted';window.visualDiscussionPanel.render(state)})()", sessionId);
-    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),thread=document.querySelector('.discussion-thread');return form.parentElement===thread.parentElement && Boolean(form.compareDocumentPosition(thread)&Node.DOCUMENT_POSITION_FOLLOWING) && document.querySelector('#discussion-submit').disabled && document.querySelector('#discussion-body').value==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),feed=document.querySelector('#discussion-feed'),dock=document.querySelector('#discussion-root-dock');return form.parentElement===dock && feed.parentElement===dock.parentElement && Boolean(feed.compareDocumentPosition(dock)&Node.DOCUMENT_POSITION_FOLLOWING) && document.querySelector('#discussion-submit').disabled && document.querySelector('#discussion-body').value==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
       "deleted reply target leaves the draft visible and blocks submission");
     await evaluate("(() => {const state=window.visualDiscussionState;state.discussion.roots[0].replies=[];state.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(state)})()", sessionId);
     assert.equal(await evaluate(`(() => {
@@ -368,7 +368,7 @@ try {
       "immediate posting shows inline progress rather than a duplicate Share card and respects reduced motion");
     await capture("inline-insight-posting-320", sessionId);
     await evaluate("window.visualDiscussionState.discussion.roots[0].replies[0].state='deleted';window.visualDiscussionPanel.render(window.visualDiscussionState)", sessionId);
-    assert.equal(await evaluate("document.querySelector('#app-discussion-insights-host').parentElement===document.querySelector('#local-discussion')", sessionId), true,
+    assert.equal(await evaluate("document.querySelector('#app-discussion-insights-host').parentElement===document.querySelector('#discussion-feed')", sessionId), true,
       "a removed follow-up target cannot keep an actionable workspace beneath a stale message");
     await browser.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
     await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
@@ -590,6 +590,171 @@ try {
     await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 510, deviceScaleFactor: 1, mobile: false }, compactSession);
     await checkWelcomeFirstViewport(compactSession, 320);
     await capture("welcome-320", compactSession, { fluid: true });
+
+    // Exercise the live inert renderers with a panel-sized viewport. This is
+    // layout and focus evidence only, not native sidePanel binding evidence.
+    await evaluate(`(() => {
+      document.body.dataset.uiSurface='sidepanel';
+      const state=window.visualDiscussionState;
+      state.sourceId='source-visual';
+      state.createdPost=null;
+      state.draft={body:'',detached:false,mode:'root',targetId:null};
+      state.discussion={discussionId:'discussion-visual',roots:Array.from({length:9},(_,index)=>({
+        id:'root-scroll-'+index,rootId:null,state:'visible',authorId:index%2?'demo-alex':'demo-blair',
+        actorType:'human',body:'Synthetic canonical thread '+(index+1)+': '+
+          'This longer discussion text makes the reading feed scroll independently. '.repeat(3),
+        edited:false,replies:[]}))};
+      state.relatedDiscussions=[{topicId:'related-visual',title:'Another synthetic discussion',rootCount:2,
+        roots:[{id:'related-one',authorId:'demo-blair',actorType:'human',body:'A related public topic.',replyCount:1},
+          {id:'related-two',authorId:'demo-alex',actorType:'human',body:'A second related view.',replyCount:0}]}];
+      window.visualDiscussionPanel.render(state);window.visualShell.render(state);
+    })()`, sessionId);
+    for (const [width, height] of [[390, 600], [320, 600], [320, 400]]) {
+      await browser.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false }, sessionId);
+      const layout = await evaluate(`(() => {
+        const root=document.documentElement,feed=document.querySelector('#discussion-feed'),
+          dock=document.querySelector('#discussion-root-dock'),composer=document.querySelector('#discussion-composer');
+        feed.scrollTop=feed.scrollHeight;
+        const box=element=>{const rect=element.getBoundingClientRect();return {top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right}};
+        const model=document.querySelector('#insight-model'),post=document.querySelector('#discussion-submit'),
+          sparkle=document.querySelector('#discussion-ai-insights');
+        return {viewport:{width:innerWidth,height:innerHeight},pageScrollY:scrollY,
+          documentHeight:root.scrollHeight,documentWidth:root.scrollWidth,clientWidth:root.clientWidth,
+          feedScrollTop:feed.scrollTop,feedScrollable:feed.scrollHeight>feed.clientHeight,
+          dockScrollable:dock.scrollHeight>dock.clientHeight+1,
+          feed:box(feed),dock:box(dock),composerParent:composer.parentElement?.id,
+          relatedInFeed:feed.contains(document.querySelector('#discussion-related-conversations')),
+          relatedAfterThreads:Boolean(document.querySelector('.discussion-thread').compareDocumentPosition(
+            document.querySelector('#discussion-related-conversations'))&Node.DOCUMENT_POSITION_FOLLOWING),
+          relatedVisible:document.querySelector('#discussion-related-conversations').getClientRects().length>0,
+          model:box(model),post:box(post),sparkle:box(sparkle),
+          postLabel:post.getAttribute('aria-label'),postTitle:post.title,
+          sparkleLabel:sparkle.getAttribute('aria-label'),sparkleTitle:sparkle.title,
+          compactPost:getComputedStyle(post).fontSize==='0px',
+          compactSparkle:getComputedStyle(sparkle).fontSize==='0px',
+          modelVisible:model.getClientRects().length>0,postVisible:post.getClientRects().length>0,
+          sparkleVisible:sparkle.getClientRects().length>0};
+      })()`, sessionId);
+      assert.deepEqual(layout.viewport, {width, height});
+      assert.ok(layout.feedScrollable && layout.feedScrollTop>0 && layout.relatedInFeed &&
+        layout.relatedAfterThreads && layout.relatedVisible, `long canonical feed precedes related discussions: ${JSON.stringify(layout)}`);
+      assert.equal(layout.composerParent, "discussion-root-dock");
+      assert.equal(layout.dockScrollable, false, `compact dock fits without its own scroll: ${JSON.stringify(layout)}`);
+      assert.ok(layout.postLabel && layout.postLabel===layout.postTitle &&
+        layout.sparkleLabel && layout.sparkleLabel===layout.sparkleTitle &&
+        layout.compactPost && layout.compactSparkle,
+      `compact icon controls keep accessible names and tooltips: ${JSON.stringify(layout)}`);
+      assert.equal(layout.pageScrollY, 0);
+      assert.ok(layout.documentHeight<=height+1 && layout.documentWidth<=layout.clientWidth,
+        `panel document itself does not scroll: ${JSON.stringify(layout)}`);
+      assert.ok(layout.feed.bottom<=layout.dock.top+1 && layout.dock.bottom<=height+1,
+        `dock remains below feed and within viewport: ${JSON.stringify(layout)}`);
+      if (height === 400) await capture(`panel-docked-feed-${width}x${height}-initial`, sessionId, { fluid: true });
+      for (const [name, selector] of [["model", "#insight-model"], ["post", "#discussion-submit"],
+        ["sparkle", "#discussion-ai-insights"]]) {
+        const reach = await evaluate(`(() => {
+          const control=document.querySelector(${JSON.stringify(selector)}),dock=document.querySelector('#discussion-root-dock');
+          control.scrollIntoView({block:'nearest'});
+          const rect=control.getBoundingClientRect(),bounds=dock.getBoundingClientRect();
+          return {visible:control.getClientRects().length>0,top:rect.top,bottom:rect.bottom,
+            left:rect.left,right:rect.right,dockTop:bounds.top,dockBottom:bounds.bottom,
+            pageScrollY:scrollY,feedScrollTop:document.querySelector('#discussion-feed').scrollTop};
+        })()`, sessionId);
+        assert.ok(reach.visible && reach.top>=reach.dockTop-1 && reach.bottom<=reach.dockBottom+1 &&
+          reach.left>=-1 && reach.right<=width+1 && reach.pageScrollY===0 && reach.feedScrollTop>0,
+        `${name} stays reachable in the bottom dock after feed scroll: ${JSON.stringify(reach)}`);
+      }
+      await capture(`panel-docked-feed-${width}x${height}`, sessionId, { fluid: true });
+    }
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState;
+      state.draft={body:'Inline synthetic reply',detached:false,mode:'reply',targetId:'root-scroll-4'};
+      window.visualDiscussionPanel.render(state);
+    })()`, sessionId);
+    assert.equal(await evaluate(`(() => {
+      const form=document.querySelector('#discussion-composer'),target=document.querySelector('[data-post-id=root-scroll-4]'),
+        dock=document.querySelector('#discussion-root-dock'),shortcut=document.querySelector('#discussion-back-to-new-thread');
+      return form.previousElementSibling===target && form.parentElement===target.parentElement &&
+        document.querySelector('#discussion-feed').contains(form) && shortcut.parentElement===dock &&
+        !shortcut.hidden && shortcut.getBoundingClientRect().bottom<=innerHeight &&
+        document.querySelectorAll('#discussion-composer').length===1;
+    })()`, sessionId), true, "reply composer stays under the target while the new-thread shortcut stays in the dock");
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState;
+      state.draft={body:'',detached:false,mode:'root',targetId:null};
+      state.createdPost=null;
+      state.discussion.roots.unshift({id:'root-reveal',rootId:null,state:'visible',authorId:'demo-blair',
+        actorType:'human',body:'A synthetic thread with nested replies.',edited:false,replies:[
+          {id:'parent-reveal',rootId:'root-reveal',replyToId:'root-reveal',state:'visible',
+            authorId:'demo-blair',actorType:'human',body:'An existing parent reply.',edited:false},
+          {id:'generated-reveal',rootId:'root-reveal',replyToId:'parent-reveal',state:'visible',
+            authorId:'demo-imported-ai',actorType:'agent',body:'A new synthetic generated answer.',
+            insight:{kind:'generated',operatorId:'demo-alex'},edited:false}]
+      });
+      window.visualDiscussionPanel.render(state);
+      for(const id of ['parent-reveal','root-reveal']){
+        const toggle=document.querySelector('[data-action=expand][data-contribution-id='+id+']');
+        if(toggle.getAttribute('aria-expanded')==='true')toggle.click();
+      }
+      document.querySelector('#discussion-feed').scrollTop=0;
+      state.createdPost={id:'generated-reveal',actorId:state.actorId,topicId:state.topicId,sourceId:state.sourceId,
+        discussionId:state.discussion.discussionId};
+      window.visualDiscussionPanel.render(state);
+    })()`, sessionId);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const generatedReveal = await evaluate(`(() => {
+      const feed=document.querySelector('#discussion-feed'),card=document.querySelector('[data-post-id=generated-reveal]'),
+        root=document.querySelector('[data-action=expand][data-contribution-id=root-reveal]'),
+        parent=document.querySelector('[data-action=expand][data-contribution-id=parent-reveal]'),
+        a=card.getBoundingClientRect(),b=feed.getBoundingClientRect();
+      return {focused:document.activeElement===card,rootOpen:root.getAttribute('aria-expanded')==='true',
+        parentOpen:parent.getAttribute('aria-expanded')==='true',visible:a.top>=b.top-1&&a.bottom<=b.bottom+1,
+        feedScrollTop:feed.scrollTop,feedScrollHeight:feed.scrollHeight,feedClientHeight:feed.clientHeight,
+        phase:window.visualDiscussionState.phase,
+        busy:window.visualDiscussionState.busy,needsFreshRead:window.visualDiscussionState.needsFreshRead,
+        actorId:window.visualDiscussionState.actorId,createdPost:window.visualDiscussionState.createdPost,
+        rootId:window.visualDiscussionState.discussion.roots[0]?.id,
+        activeId:document.activeElement?.id,cardBox:{top:a.top,bottom:a.bottom},feedBox:{top:b.top,bottom:b.bottom}};
+    })()`, sessionId);
+    assert.ok(generatedReveal.focused && generatedReveal.rootOpen && generatedReveal.parentOpen &&
+      generatedReveal.visible, `generated nested post is revealed and focused: ${JSON.stringify(generatedReveal)}`);
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState,panel=window.visualDiscussionPanel;
+      const parent=document.querySelector('[data-action=expand][data-contribution-id=parent-reveal]');
+      parent.click();
+      document.querySelector('#discussion-body').focus();
+      const body=document.querySelector('#discussion-body');body.value='New unsent human draft';
+      state.draft={...state.draft,body:body.value};
+      state.catalog={...state.catalog,actors:state.catalog.actors.map(actor=>({...actor}))};
+      state.discussion={...state.discussion,roots:state.discussion.roots.map(root=>({
+        ...root,replies:[...root.replies]}))};
+      panel.render(state);
+    })()`, sessionId);
+    assert.equal(await evaluate(`(() => {
+      const parent=document.querySelector('[data-action=expand][data-contribution-id=parent-reveal]');
+      const body=document.querySelector('#discussion-body');
+      return parent.getAttribute('aria-expanded')==='false' &&
+        document.activeElement===body && body.value==='New unsent human draft';
+    })()`, sessionId), true, "same-context poll respects manual recollapse and does not steal a new draft's focus");
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState,panel=window.visualDiscussionPanel;
+      const root=state.discussion.roots.find(entry=>entry.id==='root-reveal');
+      root.replies.push({id:'human-reveal',rootId:'root-reveal',replyToId:'parent-reveal',state:'visible',
+        authorId:'demo-alex',actorType:'human',body:'A new synthetic human answer.',edited:false});
+      state.createdPost={id:'human-reveal',actorId:state.actorId,topicId:state.topicId,sourceId:state.sourceId,
+        discussionId:state.discussion.discussionId};
+      panel.render(state);
+    })()`, sessionId);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    assert.equal(await evaluate(`(() => {
+      const feed=document.querySelector('#discussion-feed'),card=document.querySelector('[data-post-id=human-reveal]'),
+        root=document.querySelector('[data-action=expand][data-contribution-id=root-reveal]'),
+        parent=document.querySelector('[data-action=expand][data-contribution-id=parent-reveal]'),
+        a=card.getBoundingClientRect(),b=feed.getBoundingClientRect();
+      return document.activeElement===card && root.getAttribute('aria-expanded')==='true' &&
+        parent.getAttribute('aria-expanded')==='true' && a.top>=b.top-1 && a.bottom<=b.bottom+1;
+    })()`, sessionId), true, "new human nested post opens collapsed ancestors and becomes visible and focused");
   } else {
   // Remount only the discussion renderer with invented state for visual review.
   // Controller callbacks are inert: this fixture cannot post or call a provider.

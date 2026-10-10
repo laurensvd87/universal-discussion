@@ -1,5 +1,54 @@
 # Project status
 
+**2026-10-10 bottom composer, post reveal and listing citations, complete (0.13.38):**
+The owner requests a compact new-thread composer always below the scrolling
+threads/related discussions, and unfolding/focus of newly posted human or
+generated replies. [ADR-080](../decisions/ADR-080-bottom-composer-post-reveal-and-actionable-citations.md)
+records the product refinement and the missing merchant-link diagnosis.
+
+User Mode now has an independently scrolling feed and a compact bottom dock:
+short editor, model selector, sparkle and accessible Post icon. The single
+reply/edit form stays under its exact target; a bottom shortcut returns to a new
+thread. Settings/welcome scroll separately. A successful command's accepted
+post ID becomes only a RAM presentation cue after a fresh canonical read with
+the original actor, Source, Topic, discussion and active-context checks. Visible
+root/reply membership is required. Its ancestors open and the exact new post
+scrolls into view/focus once; subsequent polling preserves typing focus and
+manual collapse. Same-page experimental cloud growth no longer resets expansion.
+Detached text and canonical write/Insight authority are unchanged.
+
+A read-only count of the exact owner-reported price post finds zero persisted
+citation links. The saved content-free success trace confirms completed search/
+assistant and strict stream fallback, not original annotation contents or price
+accuracy; raw original provider output is unavailable. No merchant URL is guessed
+or backfilled. Broad replies are now instructed to put an adjacent exact-page
+citation beside every researched listing/price/shipping claim, including uncertain
+delivered totals, and not describe uncitable offers as found/actionable. Followup
+instructions no longer contradict ADR-078's permitted discovered sources. This
+improves instructions, not a guarantee of citation compliance or factual quality;
+the citation parser and existing five-source/trust bounds are unchanged.
+
+Sol Medium implementation and independent Trust review pass. Focused panel/
+controller **127 pass** and prompt/SQLite citation round-trip **7 pass**. Full
+service **392 pass/4 optional skips**; extension **1,107 pass/1 optional skip**;
+restricted extension **1,108 pass**. Synthetic real-adapter/runtime/SQLite reopen/
+renderer tests preserve two exact listing links under normal and strict fallback
+streams and reject altered links before persistence. Disposable actual Chrome
+QA passes scrolling, compact reachable dock at 390x600/320x600/320x400, exact nested
+human/generated post reveal, later manual collapse/focus, inline form, keyboard,
+citations, zoom and reduced motion. Root reviews compact 390x600 and 320x400
+screenshots. This companion layout QA is not new native panel authentication
+evidence. Secret scans (service 623, extension 189 files) and diff checks pass.
+Official OpenAI Docs inform the inline annotation/clickable-citation contract.
+
+No additional live inference or owner database mutation is made for diagnosis/QA;
+the new price prompt's live quality remains unverified. The prior project process
+is no longer running and port 4174 is free. The normal service is started with the
+same extension Origin, durable pairing, protected login and SQLite, raw debug off;
+expected unauthenticated catalog **401** confirms availability only. Reload the
+unpacked extension to **0.13.38**. No new provider/data scope, permission, model,
+automatic retry, migration, catalog ingestion, deployment or store clearance.
+
 **2026-10-10 current-page citation correction, complete (0.13.37):**
 The owner's `response-web-citation` failure is classified by the running
 service's content-free trace as `current-source-url`: the existing strict

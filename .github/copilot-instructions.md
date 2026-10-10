@@ -2,6 +2,13 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current presentation refinement (2026-10-10, ADR-080): compact bottom root
+composer, scrolling threads/related feed, inline replies and confirmed-post
+one-time reveal. Created-post cues remain RAM presentation only; actor/Source/
+Topic/context/write checks and later polling focus/manual collapse remain.
+Broad-reply listing claims require adjacent citations in the prompt; do not
+guess merchant URLs or backfill uncited historical posts. Read top STATUS.
+
 Current citation correction (2026-10-10, ADR-079): observed owner rejection is
 `current-source-url`. The exact supplied primary Source may be a provider
 citation with safe URL, valid span and consistent completed search/assistant;

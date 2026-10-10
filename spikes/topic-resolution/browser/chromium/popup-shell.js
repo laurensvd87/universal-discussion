@@ -82,6 +82,9 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     .map((selector) => find(selector)).filter(Boolean));
   function placeInsightWorkspace(mode) {
     const host = find("#app-discussion-insights-host");
+    if (mode === "developer") move("#app-discussion-insights-host", find("#local-discussion"));
+    else if (host?.parentElement === find("#local-discussion"))
+      move("#app-discussion-insights-host", find("#discussion-feed"));
     move("#local-insights", mode === "user" ? host : app.insights);
     const settingsHost = find("#app-settings-insights");
     if (mode === "user") {

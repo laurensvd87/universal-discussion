@@ -8,6 +8,15 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current presentation refinement (2026-10-10, ADR-080): the owner requests a
+compact bottom root-composer dock with scrolling threads/related discussions
+above, inline replies and one-time reveal/focus of confirmed created posts.
+Created-post cues are RAM-only presentation, not write authority or extra
+provider context. Preserve canonical accepted IDs, actor/Source/Topic/context
+fences, detached drafts, polling focus and later manual collapse. Broad replies
+are prompted to cite every researched listing, including uncertain totals;
+never guess/backfill a merchant URL. Read top STATUS/HANDOFF for verification.
+
 Current citation correction (2026-10-10, ADR-079): actual owner terminal trace
 identifies `current-source-url`. The exact already supplied primary Source may
 be a safe provider citation after consistent completed search/assistant and

@@ -38,7 +38,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     topicViewMode: "experimental", alternateDiscussion: null, alternateError: null,
     related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
     sourceId: null, topicId: null, actorId: null, selection: null,
-    draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null };
+    draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null,
+    createdPost: null };
   let epoch = 0;
   let abort = new AbortController();
   let stopObservation = () => {};
@@ -55,7 +56,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       (Object.hasOwn(patch, "sourceId") && patch.sourceId !== state.sourceId) ||
       (Object.hasOwn(patch, "topicId") && patch.topicId !== state.topicId);
     state = { ...state, ...patch, ...(contextChanged ? { relatedDiscussions: [],
-      alternateDiscussion: null, alternateError: null } : {}) };
+      alternateDiscussion: null, alternateError: null, createdPost: null } : {}) };
     if (!disposed) onStateChange(currentState());
   }
   function currentState() { return freeze(structuredClone(state)); }
@@ -512,6 +513,9 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         if (ownEpoch !== epoch || disposed) return false;
         if (!trusted) { contextInvalidated = true; invalidateContext(); return false; }
       }
+      const acceptedContext = { topicId: state.topicId, sourceId: state.sourceId,
+        actorId: state.actorId, discussionId: state.discussion?.discussionId,
+        activeContext: activeContext ? { ...activeContext } : null };
       const outcome = reset ? await client.reset(expected, "RESET DEMO STATE", { signal: abort.signal })
         : await client.command(expected, command, state.actorId, { signal: abort.signal });
       if (ownEpoch !== epoch || disposed) return false;
@@ -531,7 +535,24 @@ export function createLocalDiscussionController({ client, session, readActiveTab
           sourceId: command.type === "correct-source" ? command.sourceId : null,
           selection: command.type === "correct-source" ? "manual" : null, resolution: null });
       }
-      await open(); return true;
+      const createdId = ["create-root", "reply", "share-insight", "share-insight-reply"].includes(command.type)
+        && typeof outcome?.result?.contributionId === "string" ? outcome.result.contributionId : null;
+      await open();
+      if (createdId && state.phase === "ready" && !state.needsFreshRead &&
+          state.topicId === acceptedContext.topicId && state.sourceId === acceptedContext.sourceId &&
+          state.actorId === acceptedContext.actorId &&
+          state.discussion?.discussionId === acceptedContext.discussionId &&
+          JSON.stringify(activeContext) === JSON.stringify(acceptedContext.activeContext) &&
+          state.discussion?.roots.some((root) => root.state === "visible" &&
+            (root.id === createdId || root.replies?.some((reply) => reply.id === createdId &&
+              reply.state === "visible")))) {
+        // The accepted command result identifies the post. This is a UI cue only;
+        // it never participates in a later write or survives context invalidation.
+        publish({ createdPost: { id: createdId, topicId: state.topicId,
+          sourceId: state.sourceId, actorId: state.actorId,
+          discussionId: state.discussion.discussionId } });
+      }
+      return true;
     } catch (error) {
       if (!disposed) publish({ needsFreshRead: true });
       await failure(error, ownEpoch); return false;

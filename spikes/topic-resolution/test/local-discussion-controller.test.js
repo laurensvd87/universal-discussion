@@ -686,6 +686,28 @@ test("human CRUD, actor ownership, reply topology, edited state and reset use se
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
 });
 
+test("accepted root and nested reply IDs become scoped one-shot presentation cues", async () => {
+  const ui = harness(); await ui.controller.open();
+  ui.controller.setDraft("New root");
+  assert.equal(await ui.controller.submitDraft(), true);
+  const rootState = ui.controller.currentState();
+  const root = rootState.discussion.roots.find((entry) => entry.body === "New root");
+  assert.deepEqual(rootState.createdPost, { id: root.id, topicId: rootState.topicId,
+    sourceId: rootState.sourceId, actorId: rootState.actorId,
+    discussionId: rootState.discussion.discussionId });
+  assert.equal(ui.controller.begin("reply", root.id), true);
+  ui.controller.setDraft("Nested human reply");
+  assert.equal(await ui.controller.submitDraft(), true);
+  const replyState = ui.controller.currentState();
+  const reply = replyState.discussion.roots.find((entry) => entry.id === root.id).replies
+    .find((entry) => entry.body === "Nested human reply");
+  assert.equal(replyState.createdPost.id, reply.id);
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().createdPost, null);
+  await ui.controller.selectActor("demo-blair");
+  assert.equal(ui.controller.currentState().createdPost, null);
+});
+
 test("actor change detaches text; late unauthorized read cannot wipe fresh session", async () => {
   const oldRead = deferred(); let reads = 0;
   const ui = harness({ client: { async discussion(topicId) {

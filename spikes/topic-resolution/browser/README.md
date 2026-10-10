@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.37)
+## Persistent discussion sidebar (0.13.38)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -13,6 +13,11 @@ one model selector, Insight action and expandable threads. Settings, capture Sto
 site exclusions and data controls are behind the settings icon. Unsent text is
 detached on page changes, not silently rebound. Closing this UI does not stop
 the already-approved background matching session.
+Threads and related discussions occupy the scrolling feed above a compact
+bottom new-thread composer. Replies keep the editor at the target, with a bottom
+shortcut to return to a new thread. A confirmed new post expands its ancestor
+branches, scrolls into view and receives focus once; later polling preserves
+typing and the reader's later collapse choices. Reduced motion applies.
 New **Insight**/sparkle clicks authorize generation and one immediate local post;
 opening the panel never generates or publishes an Insight by itself. Human Post
 and sharing old/recovered private results remain separate deliberate actions.
@@ -32,8 +37,11 @@ full history are not included. Foreign Topic excerpts remain read-only. See
 Replies may use ChatGPT-hosted public web search beyond catalog links, including
 when no related pages are known. Up to five distinct sources appear as clickable
 citation arrows; discovered pages are not automatically ingested. Specify the
-product variant and delivery country for useful price comparisons. Opening
-Insights still use only selected related pages. **Settings → Use web research**
+product variant and delivery country for useful price comparisons. Reply
+research asks for a citation to each researched listing even when its delivered
+total is uncertain; unsupported merchant links are never invented. See
+[ADR-080](../../../decisions/ADR-080-bottom-composer-post-reveal-and-actionable-citations.md).
+Opening Insights still use only selected related pages. **Settings → Use web research**
 disables research for both. Per-source exclusions prevent accepting links to
 those exact pages, not a guarantee the hosted search never encounters them. See
 [ADR-078](../../../decisions/ADR-078-deliberate-reply-web-discovery.md).

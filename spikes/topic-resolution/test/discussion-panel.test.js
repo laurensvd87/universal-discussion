@@ -40,6 +40,7 @@ function harness(messages, workspace, insightsTab, settingsButton, accountDetail
       querySelectorAll() { return descendants(this).filter((child) => child.attributes["data-action"] ||
         child.attributes["data-post-id"] || child.attributes["data-thread-root-id"]); },
       removeAttribute(key) { delete this.attributes[key]; },
+      scrollIntoView(options) { (this.scrollCalls ??= []).push(options); },
       focus(options) { if (this.disabled || this.inert) return; this.focused = true;
         this.focusOptions = options; document.activeElement = this; },
       addEventListener(event, callback) { this.listeners.set(event, callback); },
@@ -198,7 +199,7 @@ test("Developer insight action still opens detailed workspace", () => {
 });
 test("no-topic User view shows no empty composer or Create shortcut, while drafts remain recoverable", () => {
   const ui = harness();
-  const composer = ui.root.children.find((item) => item.tag === "form" && item.children.some((child) => child.id === "discussion-body"));
+  const composer = ui.byId("discussion-composer");
   const shortcut = ui.byId("discussion-ai-insights");
   const discard = ui.byId("discussion-discard");
   const noTopic = state({ phase: "choose-topic", topicId: null, discussion: null });
@@ -265,6 +266,24 @@ test("experimental view shows grouped and pinned roots while cross-topic actions
   assert.equal(ui.byId("discussion-alternate-notice").textContent, EN.uiTopicViewUnavailable);
   assert.equal(ui.byId("discussion-related-conversations").hidden, false);
 });
+test("experimental related-source growth preserves an opened reply branch", () => {
+  const ui = harness();
+  const root = { id: "root-cloud", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Question", canonicalTopicId: "topic-demo", canonicalDiscussionId: "discussion-demo",
+    replies: [{ id: "reply-cloud", rootId: "root-cloud", replyToId: "root-cloud",
+      state: "visible", actorType: "human", authorId: "demo-alex", body: "Reply" }] };
+  const base = state({ sourceId: "source-demo", topicViewMode: "experimental",
+    discussion: { discussionId: "discussion-demo", roots: [root] },
+    alternateDiscussion: { sourceId: "source-demo", sourceIds: ["source-demo"],
+      roots: [root], pinnedRoots: [] } });
+  ui.panel.render(base);
+  const branch = () => descendants(ui.root).find((item) => item.attributes?.["data-action"] === "expand" &&
+    item.attributes?.["data-contribution-id"] === root.id);
+  branch().listeners.get("click")();
+  ui.panel.render({ ...base, alternateDiscussion: { ...base.alternateDiscussion,
+    sourceIds: ["source-demo", "source-new"] } });
+  assert.equal(branch().attributes["aria-expanded"], "true");
+});
 test("User prior disclosure shows only old-topic actions and a Back action while viewing one", () => {
   const ui = harness();
   const prior = { sourceId: "source-demo", currentTopicId: "topic-demo", topics: [
@@ -299,17 +318,17 @@ test("User prior disclosure shows only old-topic actions and a Back action while
     priorDiscussionsError: "stale-prior-discussions" }));
   assert.equal(ui.byId("discussion-status").hidden, true);
 });
-test("connected settings follow the composer in User DOM order and return before content when disconnected", () => {
+test("connected settings and persistent composer dock retain their DOM order", () => {
   const ui = harness();
   const settings = ui.byId("discussion-connection-settings");
   const counts = ui.byId("discussion-counts");
-  const composer = ui.root.children.find((item) => item.tag === "form" && item.children.some((child) => child.id === "discussion-body"));
-  assert.ok(ui.root.children.indexOf(settings) > ui.root.children.indexOf(composer));
+  const dock = ui.byId("discussion-root-dock");
+  assert.ok(ui.root.children.indexOf(settings) < ui.root.children.indexOf(dock));
   const sameChildren = [...ui.root.children];
   ui.panel.render(state());
   assert.deepEqual(ui.root.children, sameChildren);
   ui.panel.render(state({ phase: "disconnected", catalog: null, discussion: null, related: null }));
-  assert.ok(ui.root.children.indexOf(settings) < ui.root.children.indexOf(counts));
+  assert.ok(ui.root.children.indexOf(settings) < ui.root.children.indexOf(ui.byId("discussion-feed")));
 });
 const descendants = (node) => [node, ...node.children.flatMap(descendants)];
 test("User thread cards reveal nested replies, retain expansion and focus, and show post metadata", () => {
@@ -525,11 +544,11 @@ test("each visible canonical message offers one-click follow-up", () => {
 });
 test("follow-up Insight host stays beneath the exact question through generation and result", () => {
   const ui = harness();
-  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const thread = ui.byId("discussion-feed").children.find((item) => item.className === "discussion-thread");
   const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
   const workspace = ui.document.createElement("details"); workspace.id = "insight-workspace";
   const focusedControl = ui.document.createElement("button"); workspace.append(focusedControl); host.append(workspace);
-  ui.root.insertBefore(host, thread);
+  ui.byId("discussion-feed").insertBefore(host, thread);
   const robot = { id: "robot-root", rootId: null, state: "visible", actorType: "agent",
     authorId: "demo-imported-ai", insight: { kind: "generated", operatorId: "demo-alex" }, body: "Answer",
     replies: [{ id: "question-one", rootId: "robot-root", replyToId: "robot-root", state: "visible",
@@ -545,7 +564,7 @@ test("follow-up Insight host stays beneath the exact question through generation
     const question = descendants(ui.root).find((item) => item.attributes["data-post-id"] === "question-two");
     assert.equal(question.nextSibling, host);
     assert.equal(descendants(ui.root).filter((item) => item === host).length, 1);
-    assert.equal(ui.byId("discussion-composer").parentElement, ui.root);
+    assert.equal(ui.byId("discussion-composer").parentElement, ui.byId("discussion-root-dock"));
     assert.equal(ui.byId("discussion-insight-activity").hidden, true);
     assert.equal(ui.byId("discussion-insight-activity").textContent, "");
   }
@@ -558,15 +577,15 @@ test("follow-up Insight host stays beneath the exact question through generation
   ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion,
     roots: [{ ...robot, replies: robot.replies.map((reply) => reply.id === "question-two"
       ? { ...reply, state: "deleted" } : reply) }] } });
-  assert.equal(host.parentElement, ui.root);
+  assert.equal(host.parentElement, ui.byId("discussion-feed"));
   assert.equal(host.nextSibling, thread);
   assert.equal(ui.byId("discussion-insight-activity").hidden, false);
 });
 test("follow-up host accepts exact canonical root and nested targets through posting", () => {
   const ui = harness();
-  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const thread = ui.byId("discussion-feed").children.find((item) => item.className === "discussion-thread");
   const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
-  ui.root.insertBefore(host, thread);
+  ui.byId("discussion-feed").insertBefore(host, thread);
   const root = { id: "human-root", state: "visible", actorType: "human", authorId: "demo-blair",
     body: "Opening", replies: [
       { id: "human-reply", rootId: "human-root", replyToId: "human-root", state: "visible",
@@ -590,18 +609,18 @@ test("follow-up host accepts exact canonical root and nested targets through pos
   }
   ui.panel.renderInsightState({ context, followup: { discussionId: "discussion-demo",
     rootId: "human-root", replyToId: "missing" }, ai: { status: "generating" } });
-  assert.equal(host.parentElement, ui.root);
+  assert.equal(host.parentElement, ui.byId("discussion-feed"));
   assert.equal(host.nextSibling, thread);
 });
 test("deliberate robot click scrolls only its validated inline progress into view", () => {
   const ui = harness();
-  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const thread = ui.byId("discussion-feed").children.find((item) => item.className === "discussion-thread");
   const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
   const progress = ui.document.createElement("p"); progress.id = "insight-followup-progress";
   progress.hidden = true;
   const scrolls = [];
   progress.scrollIntoView = (options) => scrolls.push(options);
-  host.append(progress); ui.root.insertBefore(host, thread);
+  host.append(progress); ui.byId("discussion-feed").insertBefore(host, thread);
   const robot = { id: "robot-root", rootId: null, state: "visible", actorType: "agent",
     authorId: "demo-imported-ai", insight: { kind: "generated", operatorId: "demo-alex" }, body: "Answer",
     replies: [{ id: "question", rootId: "robot-root", replyToId: "robot-root", state: "visible",
@@ -627,9 +646,9 @@ test("deliberate robot click scrolls only its validated inline progress into vie
 });
 test("follow-up host rejects a foreign or stale canonical context", () => {
   const ui = harness();
-  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const thread = ui.byId("discussion-feed").children.find((item) => item.className === "discussion-thread");
   const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
-  ui.root.insertBefore(host, thread);
+  ui.byId("discussion-feed").insertBefore(host, thread);
   const robot = { id: "robot-root", rootId: null, state: "visible", actorType: "agent",
     authorId: "demo-imported-ai", insight: { kind: "generated", operatorId: "demo-alex" }, body: "Answer",
     replies: [{ id: "question", rootId: "robot-root", replyToId: "robot-root", state: "visible",
@@ -642,7 +661,7 @@ test("follow-up host rejects a foreign or stale canonical context", () => {
     [{ ...context, currentSource: { id: "other-source" } }, { ...binding, discussionId: "discussion-demo" }],
     [context, { ...binding, discussionId: "discussion-demo", replyToId: "missing" }]]) {
     ui.panel.renderInsightState({ context: otherContext, followup, ai: { status: "generating" } });
-    assert.equal(host.parentElement, ui.root);
+    assert.equal(host.parentElement, ui.byId("discussion-feed"));
     assert.equal(host.nextSibling, thread);
   }
 });
@@ -794,8 +813,8 @@ test("Related discussions sit below current threads, expand by keyboard, and off
   const thread = ui.created.find((item) => item.className === "discussion-thread");
   const composer = ui.byId("discussion-composer");
   assert.equal(section.hidden, false);
-  assert.ok(ui.root.children.indexOf(section) > ui.root.children.indexOf(thread));
-  assert.ok(ui.root.children.indexOf(section) > ui.root.children.indexOf(composer));
+  assert.ok(ui.byId("discussion-feed").children.indexOf(section) > ui.byId("discussion-feed").children.indexOf(thread));
+  assert.ok(ui.root.children.indexOf(ui.byId("discussion-feed")) < ui.root.children.indexOf(ui.byId("discussion-root-dock")));
   assert.equal(section.children[0].textContent, EN.uiRelatedDiscussions);
   const topic = section.children[1].children[0];
   assert.equal(topic.tag, "details");
@@ -1288,9 +1307,9 @@ test("nested replies name their agent parent without visible AI badge text", () 
 test("stable root ordering keeps the live textarea focused through synchronous typing", () => {
   const ui = harness();
   const composer = ui.byId("discussion-composer"), body = ui.byId("discussion-body");
-  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const thread = ui.byId("discussion-feed").children.find((item) => item.className === "discussion-thread");
   const insightHost = ui.document.createElement("div"); insightHost.id = "app-discussion-insights-host";
-  ui.root.insertBefore(insightHost, thread);
+  ui.byId("discussion-feed").insertBefore(insightHost, thread);
   const snapshot = state();
   ui.panel.render(snapshot);
   body.focus();
@@ -1301,9 +1320,59 @@ test("stable root ordering keeps the live textarea focused through synchronous t
     ui.panel.render({ ...snapshot, draft: { ...snapshot.draft, body: value } });
     assert.equal(ui.document.activeElement, body);
     assert.equal(body.parentElement, composer);
-    assert.equal(composer.nextSibling, insightHost);
+    assert.equal(composer.parentElement, ui.byId("discussion-root-dock"));
     assert.equal(insightHost.nextSibling, thread);
   }
+});
+
+test("accepted nested human and generated posts reveal once without polling stealing focus", () => {
+  for (const actorType of ["human", "agent"]) {
+    const ui = harness();
+    const parent = { id: "reply-parent", rootId: "root-created", replyToId: "root-created",
+      state: "visible", actorType: "human", authorId: "demo-alex", body: "Parent" };
+    const root = { id: "root-created", state: "visible", actorType: "human", authorId: "demo-alex",
+      body: "Opener", replies: [parent] };
+    const base = state({ discussion: { discussionId: "discussion-created", roots: [root] } });
+    ui.panel.render(base);
+    const child = { id: `${actorType}-created`, rootId: root.id, replyToId: parent.id,
+      state: "visible", actorType, authorId: "demo-alex", body: "New answer",
+      ...(actorType === "agent" ? { insight: { kind: "generated", operatorId: "demo-alex" } } : {}) };
+    const arrival = { ...base, discussion: { ...base.discussion,
+      roots: [{ ...root, replies: [parent, child] }] },
+      createdPost: { id: child.id, topicId: base.topicId, sourceId: base.sourceId,
+        actorId: base.actorId, discussionId: base.discussion.discussionId } };
+    ui.panel.render(arrival);
+    const post = descendants(ui.root).find((item) => item.attributes["data-post-id"] === child.id);
+    assert.equal(ui.document.activeElement, post);
+    assert.equal(post.scrollCalls?.length, 1);
+    const toggle = (id) => descendants(ui.root).find((item) =>
+      item.attributes["data-action"] === "expand" && item.attributes["data-contribution-id"] === id);
+    assert.equal(toggle(root.id).attributes["aria-expanded"], "true");
+    assert.equal(toggle(parent.id).attributes["aria-expanded"], "true");
+    toggle(parent.id).listeners.get("click")();
+    const editor = ui.byId("discussion-body"); editor.focus();
+    ui.panel.render({ ...arrival, discussion: { ...arrival.discussion,
+      roots: [{ ...root, body: "Opener after polling", replies: [parent, child] }] } });
+    assert.equal(ui.document.activeElement, editor);
+    assert.equal(toggle(parent.id).attributes["aria-expanded"], "false");
+    assert.equal(post.scrollCalls?.length, 1);
+  }
+});
+
+test("created-post cue rejects changed account and withdrawn targets", () => {
+  const ui = harness();
+  const root = { id: "new-root", state: "visible", actorType: "agent", authorId: "demo-alex",
+    insight: { kind: "generated", operatorId: "demo-alex" }, body: "Generated", replies: [] };
+  const base = state({ discussion: { discussionId: "discussion-created", roots: [root] } });
+  const createdPost = { id: root.id, topicId: base.topicId, sourceId: base.sourceId,
+    actorId: base.actorId, discussionId: base.discussion.discussionId };
+  ui.panel.render({ ...base, actorId: "different-actor", createdPost });
+  assert.notEqual(ui.document.activeElement?.attributes?.["data-post-id"], root.id);
+  ui.panel.render({ ...base, discussion: { ...base.discussion,
+    roots: [{ ...root, state: "deleted" }] }, createdPost });
+  assert.notEqual(ui.document.activeElement?.attributes?.["data-post-id"], root.id);
+  ui.panel.render({ ...base, createdPost });
+  assert.equal(ui.document.activeElement?.attributes?.["data-post-id"], root.id);
 });
 
 test("one inline composer follows exact nested target, keeps selection on refresh, and recovers when target vanishes", () => {
@@ -1341,7 +1410,7 @@ test("one inline composer follows exact nested target, keeps selection on refres
   const removed = { ...snapshot, discussion: { roots: [{ ...root, replies: root.replies.map((reply) =>
     reply.id === "reply-child" ? { ...reply, state: "deleted" } : reply) }] } };
   ui.panel.render(removed);
-  assert.equal(composer.parentElement, ui.root);
+  assert.equal(composer.parentElement, ui.byId("discussion-root-dock"));
   assert.equal(body.value, "Draft answer");
   assert.equal(ui.byId("discussion-submit").disabled, true);
   assert.equal(ui.byId("discussion-back-to-new-thread").hidden, false);

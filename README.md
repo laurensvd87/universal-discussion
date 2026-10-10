@@ -10,12 +10,15 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.37** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.38** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
 reduced-motion-aware animation. Connection status stays in the header; advanced
 controls live behind the settings icon. Chrome controls left/right placement.
+Threads and related discussions scroll above a compact bottom new-thread composer.
+Successful deliberate posts/replies unfold their branch and focus the new message
+once; later refreshes do not take focus away from typing.
 Reload the unpacked extension after updating and accept the new `sidePanel`
 permission if Chrome asks. Existing pairing, login and saved discussions remain.
 Closing the panel does not stop background matching; **Settings → Browsing
@@ -24,7 +27,7 @@ comment stays detached after changing pages, so it cannot silently post elsewher
 No provider request or sharing happens just because the panel opens.
 Click **Reply** on a message to write directly beneath it, including nested
 replies. Typing and same-page discussion refreshes preserve focus and cursor
-position. The single active editor returns to the top for a new thread; its
+position. The single active editor returns to the bottom for a new thread; its
 return action explicitly discards the reply draft. A removed target blocks
 posting without discarding your text.
 Click **Insight**, or the sparkle beside any message or in its reply composer,
@@ -41,6 +44,10 @@ related pages are known. Newly discovered sources appear as clickable citation
 arrows (at most five distinct sources); they are not automatically added to the
 catalog. For price questions, specify the exact variant and delivery country.
 Answers compare available offers, not a guarantee of the cheapest price anywhere.
+The reply prompt requires a clickable citation beside each researched listing,
+including offers whose delivered total is unknown; it must not invent a listing
+link. Existing uncited posts cannot be backfilled from a retailer name. See
+[ADR-080](decisions/ADR-080-bottom-composer-post-reveal-and-actionable-citations.md).
 Opening Insights still compare selected related pages. **Settings → Use web
 research** disables both paths. See
 [ADR-078](decisions/ADR-078-deliberate-reply-web-discovery.md).

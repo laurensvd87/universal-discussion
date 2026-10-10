@@ -1,5 +1,15 @@
 # Local service
 
+Extension 0.13.38 adds an actionable-listing prompt requirement to broad replies:
+each researched retailer/product/price/shipping claim needs an adjacent exact
+listing citation, even when delivered total is unknown. Without such a citation,
+the reply must not describe the offer as found/actionable. This improves the
+instruction, not a guarantee of provider compliance or price correctness. The
+parser, exact proof and five-source bound are unchanged. An offline real-adapter,
+runtime, SQLite-reopen and arrow-renderer round trip tests annotated listing
+links; existing uncited messages are not rewritten or given guessed URLs. See
+[ADR-080](../../decisions/ADR-080-bottom-composer-post-reveal-and-actionable-citations.md).
+
 Extension 0.13.37 fixes the observed `current-source-url` rejection: a provider
 may cite the exact primary Source already supplied for the deliberate request,
 with safe HTTPS URL, valid span and consistent completed search/assistant.

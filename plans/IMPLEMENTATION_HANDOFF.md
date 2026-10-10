@@ -1,5 +1,37 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 bottom-composer/citation checkpoint (0.13.38), complete: read ADR-080.
+Threads/related discussions scroll above a compact bottom root dock. One reply/
+edit form stays at its exact target, with a bottom new-thread shortcut. An
+accepted contribution ID becomes a RAM-only presentation cue after fresh visible
+canonical membership and original actor/Source/Topic/discussion/active-context
+checks. Reveal/focus occurs once; later polls preserve typing and manual collapse.
+Experimental same-page cloud growth preserves branch expansion. Do not use this
+cue as write/Insight authority or persist it; detached text remains detached.
+
+The exact saved retailer-price post has zero citation links; raw original output
+is unavailable. This is not proof of every intermediate provider annotation or
+price accuracy. Do not guess a merchant URL or rewrite that old post. The broad
+reply prompt now requires adjacent exact-page listing citations, even with
+uncertain delivered totals, and refuses to describe uncitable offers as found/
+actionable. General followup wording respects approved discovered sources.
+Parser, safe URL/span validation, five-source cap and sharing proof are unchanged.
+No new live inference was made; revised live price quality is still unverified.
+
+Focused panel/controller 127 pass; prompt and real-adapter/runtime/SQLite-reopen/
+arrow-renderer tests 7 pass, including normal/strict fallback and altered-link
+rejection. Full service 392 pass/4 optional skips; extension 1,107 pass/1 skip,
+restricted 1,108 pass. Independent Trust and actual disposable Chrome compact
+dock/feed/inline/reveal/typing/accessibility/zoom/reduced-motion QA pass. Root
+reviews 390x600/320x400 screenshots. Companion layout QA is not new native panel
+authentication evidence. Secret scans and diff checks pass.
+
+The prior normal project process is absent and port 4174 free; normal service is
+started with the same Origin, durable pairing, protected login and SQLite, raw
+debug off. Catalog unauthenticated 401 verifies listener availability only.
+Reload extension 0.13.38. Preserve data/login; no migration, new permissions,
+provider scope, automatic retries or deployment/release approval follows.
+
 2026-10-10 current-page citation checkpoint (0.13.37), complete: read ADR-079.
 The owner failure's live structural trace identifies `current-source-url`, not
 missing metadata or a malformed span. Raw original output is unavailable; do not
