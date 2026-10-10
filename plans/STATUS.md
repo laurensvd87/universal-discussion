@@ -1,5 +1,27 @@
 # Project status
 
+**2026-10-10 owner connection follow-up (0.13.31):**
+The owner reports a disconnected header and a token input after native sidebar
+activation. The existing service is reachable on `127.0.0.1:4174` and returns
+the expected unauthenticated 401; this proves listener availability, not valid
+owner pairing. No service, database or pairing reset was performed.
+Read-only controller/session review distinguishes no saved pairing or an
+authenticated 401 from network failure and extension RPC failure. Temporary
+fixed-port Chrome QA uses the same unpacked-extension identity with a synthetic
+pairing verifier; a concurrent owner request could therefore clear Chrome's
+saved token on 401. This is a plausible cause, not a verified owner-profile trace.
+The already documented fixed-port isolation warning remains mandatory: do not
+substitute a synthetic listener while the owner's Chrome extension can request
+it. Before further fixed-port QA, coordinate actual owner-browser closure or
+use genuinely isolated networking. A disposable Chrome profile alone does not
+isolate the loopback service.
+Next owner step: reload the extension and, if still disconnected, enter the
+existing original pairing token once. Do not send it to the agent. The backend
+keeps only a one-way verifier; no token extraction or unapproved rotation is
+used. If the original token is unavailable/rejected, ask explicitly before
+rotation. Real-profile restoration is pending; earlier synthetic QA does not
+establish it.
+
 **2026-10-10 persistent discussion sidebar, implemented (0.13.31):**
 The owner's explicitly approved [ADR-074](../decisions/ADR-074-proposed-persistent-side-panel.md)
 replaces the action popup with Chrome's native docked side panel. Astra High

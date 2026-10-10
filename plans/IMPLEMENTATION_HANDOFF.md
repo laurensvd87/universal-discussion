@@ -1,5 +1,12 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 owner connection follow-up: service remains reachable, but owner
+reports disconnected/token input; saved pairing is not verified. Read top STATUS
+before further fixed-port QA: a disposable Chrome profile does not isolate a
+temporary listener from the active owner extension. Restore through ordinary
+extension UI with the original token; never extract credentials or rotate without
+explicit owner approval. Owner Chrome reload/connection check remains pending.
+
 2026-10-10 surface checkpoint (0.13.31): owner-approved native Chrome side panel
 and discussion-first dark redesign are implemented. Read ADR-074 and top STATUS.
 Astra High orchestrated design; Sol Medium coded; root and independent Trust
