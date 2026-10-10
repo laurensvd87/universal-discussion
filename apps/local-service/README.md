@@ -1,5 +1,16 @@
 # Local service
 
+Extension 0.13.35 adds owner-approved sparkle replies to any visible canonical
+root or nested message, including other authors. The service resolves the
+selected published target from its own state; only its 2,000-character prefix
+and the opener's 2,000-character prefix join the existing current-page/related
+source context. Full-body RAM digests invalidate edits outside those prefixes.
+No full thread history, unsent editor text, schema migration or new retention.
+Exact result/account/Source/Topic/target checks and one-use local sharing remain;
+resumed results stay private. See
+[ADR-077](../../decisions/ADR-077-bounded-insight-replies-to-any-message.md).
+Restart the normal service after updating code; pairing/login/posts are retained.
+
 The 0.13.30 owner-approved default discussion view uses the pinned Ridge1
 teacher-transfer map on retained E5 vectors, with exact indexed/refined grouping
 and snapshot caching. Legacy E5 remains a reversible canonical view. This

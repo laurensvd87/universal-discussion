@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.34)
+## Persistent discussion sidebar (0.13.35)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -22,19 +22,26 @@ nested replies. Same-context updates preserve typing focus, selection and IME
 composition; no second editor or draft storage is created. Return to a new
 thread explicitly discards the reply/edit draft. If the target disappears or
 the page changes, unsent text remains visible and cannot silently post elsewhere.
-The sparkle action on your question under a generated opener shows loading at
-that question, followed by the posted message or an unshared recovery draft.
+The sparkle beside any visible canonical message, or in its reply composer,
+answers that published message, including nested or other-author posts. Loading
+appears there, followed by the posted message or an unshared recovery draft.
+Only the selected message and thread opener (2,000 characters each), current
+page text and up to five approved related links are sent; unsent draft text and
+full history are not included. Foreign Topic excerpts remain read-only. See
+[ADR-077](../../../decisions/ADR-077-bounded-insight-replies-to-any-message.md).
+Restart the normal backend after updating as well as reloading the extension;
+pairing, protected login and saved posts are retained.
 It is icon-only in User Mode with a keyboard-accessible generation/posting label.
 Finished new requests use the existing exact-result proof and fresh context
 checks before writing, without a second Share click. Invalid/changed context
 blocks posting; failed or uncertain writes never retry automatically. Resumed
 jobs do not inherit publication intent. See
 [ADR-075](../../../decisions/ADR-075-click-authorized-immediate-local-insights.md).
-User-mode generated posts show a single sparkle, the operator's name and one
-**AI-generated** disclosure instead of Robot wording plus an AI badge. Manual
-imports remain visibly AI-assisted and unverified; accessibility labels and
-Developer diagnostics retain detailed provenance. This is not a legal/store
-compliance certification; see
+User-mode generated posts show a single sparkle and the operator's name,
+without Robot/AI text or an extra badge. AI-generated provenance stays in the
+tooltip and accessible label; manual imports retain an unverified-import note.
+Developer diagnostics retain detailed provenance. This explicit owner-local
+design choice is not a legal/store compliance certification; see
 [ADR-076](../../../decisions/ADR-076-compact-ai-origin-disclosure.md).
 `node harness/run-popup-visual-check.js after` covers real Chrome per-character
 typing and inline placement using inert synthetic controllers, without touching

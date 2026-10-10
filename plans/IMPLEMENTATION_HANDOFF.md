@@ -1,5 +1,29 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 reply scope (0.13.35): ADR-077's explicitly approved any-visible-message
+reply replaces the owned-human-question/generated-opener restriction. Sparkles
+on canonical roots, nested and other-author messages and the reply composer
+target the exact published post. Backend resolves target/root from its own state,
+clips each to 2,000 characters and checks full-message changes, including beyond
+those prefixes. Current-page/Source/Topic/account checks, exact generated proof,
+one-shot sharing and private resumed jobs remain. Foreign experimental roots
+stay read-only; no full history, unsent draft text, new permissions or retention.
+Verified: panel 67, Insight controller 65, discussion controller 56 and backend
+focused 126 pass. Full service 374 pass/4 skipped; extension 1,100 pass/1 skipped,
+restricted 1,101 pass. Independent Trust and real Chrome synthetic shared-UI QA
+pass; root reviewed screenshots. No live provider request or owner-service
+interruption. Reload extension and normally restart backend to activate changed
+code; pairing/login/posts are preserved. Details are in top STATUS.
+
+2026-10-10 owner presentation override (0.13.35): the owner explicitly selects
+sparkle-only AI marking in the local User UI. Generated author/reply/related cues
+show the operator's name; full AI-origin remains in localized accessible labels
+and tooltips. Imports still show unverified import; Developer unchanged.
+Read ADR-076's latest override, not the superseded visible AI-generated choice.
+This is not legal sufficiency or public-release approval; actual release needs
+disclosure/accessibility review. The disclosure change itself does not change
+provider, backend or sharing guards; ADR-077 separately changes reply eligibility.
+
 2026-10-10 disclosure checkpoint (0.13.34): User generated headers use one
 sparkle and `operator · AI-generated`, without duplicated Robot text or AI badge.
 Manual imports remain visibly AI-assisted/unverified; related excerpts preserve

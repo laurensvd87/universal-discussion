@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { ChatGPTConnectionFailure, createChatGPTConnection } from "./chatgpt-connection.js";
@@ -46,6 +46,7 @@ function operationId(value) {
   return value;
 }
 function same(left, right) { return JSON.stringify(left) === JSON.stringify(right); }
+function bodyDigest(body) { return createHash("sha256").update(body, "utf8").digest("hex"); }
 
 /** Non-secret installation mapping only. Access, refresh and ID tokens never reach this file. */
 export function createChatGPTRegistrationStore(dataDir) {
@@ -200,19 +201,18 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     if (!same(rebuilt, context)) fail("invalid", "Invalid request");
     return rebuilt;
   }
-  function inspectFollowup(questionId, actorId, context, expected) {
+  function inspectFollowup(questionId, context, expected) {
     const id = readId(questionId);
     const discussion = service.discussion(context.topic.id);
     if (!same(discussion.version, expected)) fail("conflict", "State changed");
     for (const root of discussion.roots) {
-      if (root.state !== "visible" || root.actorType !== "agent" || root.insight?.kind !== "generated") continue;
-      const question = root.replies.find((entry) => entry.id === id);
-      if (!question) continue;
-      if (question.state !== "visible" || question.actorType !== "human" ||
-          question.authorId !== actorId || question.replyToId !== root.id ||
-          root.body.length > 2_000 || question.body.length > 2_000) fail("forbidden", "Action unavailable");
-      return { parentBody: root.body, questionBody: question.body,
-        rootId: root.id, replyToId: question.id, discussionId: discussion.discussionId };
+      const target = root.id === id ? root : root.replies.find((entry) => entry.id === id);
+      if (!target) continue;
+      if (root.state !== "visible" || target.state !== "visible" ||
+          typeof root.body !== "string" || typeof target.body !== "string") fail("forbidden", "Action unavailable");
+      return { parentBody: root.body.slice(0, 2_000), questionBody: target.body.slice(0, 2_000),
+        parentDigest: bodyDigest(root.body), questionDigest: bodyDigest(target.body),
+        rootId: root.id, replyToId: target.id, discussionId: discussion.discussionId };
     }
     fail("not-found", "Object unavailable");
   }
@@ -229,7 +229,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         !same({ ...anchor, version: null }, { ...job.anchor, version: null })) return null;
     if (job.replyToId !== null) {
       let followup;
-      try { followup = inspectFollowup(job.replyToId, job.actorId,
+      try { followup = inspectFollowup(job.replyToId,
         { topic: { id: job.topicId } }, anchor.version); }
       catch (error) {
         if (error instanceof ServiceError && ["conflict", "not-found", "forbidden"].includes(error.code)) return null;
@@ -299,7 +299,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       // at the API boundary so Insight evidence can only come from hosted research.
       if (relatedExcerpts.length) fail("invalid", "Invalid request");
       const followup = Object.hasOwn(value, "followupQuestionId")
-        ? inspectFollowup(value.followupQuestionId, actorId, context, value.expected) : null;
+        ? inspectFollowup(value.followupQuestionId, context, value.expected) : null;
       const anchor = service.insightAnchor(context.topic.id, context.currentSource.id);
       if (!same(anchor.version, value.expected)) fail("conflict", "State changed");
       const job = { operationId: key, actorId, expected: value.expected, topicId: context.topic.id,

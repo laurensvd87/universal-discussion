@@ -279,8 +279,6 @@ test("follow-up bridge sends only server-selected thread text and shares one exa
     articleText: "Public synthetic current-page text.", allowWebResearch: false,
     expected: catalog.version, followupQuestionId: questionId };
   assert.equal((await handle(request("POST", "/v1/ai/insights",
-    { ...input, operationId: "other-question", followupQuestionId: otherQuestionId }, actor))).status, 403);
-  assert.equal((await handle(request("POST", "/v1/ai/insights",
     { ...input, operationId: "forged-question", followupQuestionId: "missing-question" }, actor))).status, 404);
   assert.equal(providerInputs.length, 0);
   assert.deepEqual(body(await handle(request("POST", "/v1/ai/insights", input, actor))),

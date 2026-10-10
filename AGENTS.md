@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current reply scope (2026-10-10, ADR-077): the owner explicitly approves a
+deliberate sparkle reply to any visible canonical message (root/nested,
+human/agent, any author). Provider context is bounded to selected published
+message and thread opener, 2,000 characters each, current page 4,096 characters,
+and up to five approved related links. No full history or unsent draft text.
+Keep authoritative canonical chain/Source/account checks, full-message edit
+invalidation and ADR-075 one-shot sharing; foreign experimental roots remain
+read-only. Read current STATUS/HANDOFF and ADR-077 before older owned-question
+restrictions. ADR-076 records the owner's sparkle-only local presentation
+override, not legal or store-release clearance.
+
 Current Insight approval (2026-10-10, ADR-075): an explicit generation/robot click
 may immediately share its completed exact result in the local discussion,
 including the existing strict completed-stream fallback. This narrowly replaces

@@ -1,9 +1,9 @@
 export const EN = Object.freeze({
   discussionImportedInsight: "AI-assisted · unverified manual import · shared by {operator}",
   discussionGeneratedInsight: "Robot · shared by {operator}",
-  uiGeneratedInsightOperator: "{operator} · AI-generated",
+  uiGeneratedInsightOperator: "{operator}",
   uiGeneratedInsightProvenance: "AI-generated · shared by {operator}",
-  uiImportedInsightOperator: "{operator} · AI-assisted import · unverified",
+  uiImportedInsightOperator: "{operator} · unverified import",
   toolbarDisconnected: "Universal Discussion — disconnected or connection not yet verified",
   toolbarConnected: "Universal Discussion — last verified connection; no current page Topic",
   toolbarMatchingOff: "Universal Discussion — matching off. Open the popup and choose Resume matching.",

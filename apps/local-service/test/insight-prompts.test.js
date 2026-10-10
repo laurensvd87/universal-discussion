@@ -9,8 +9,8 @@ test("one static prompt covers topic-sensitive angles and evidence limits", () =
     "current page central", "actual content", "SKU or variant", "region, currency, condition, date",
     "total cost including fees", "event, claim and forecast", "chronology and scope",
     "observation from causation", "prerequisite, compatibility issue", "failure mode or decision point",
-    "grounded interpretation", "mixed subjects", "visible roots", "independent corroboration",
-    "not factual evidence or proof that pages concern the same specific subject", "robotParent and humanQuestion",
+    "grounded interpretation", "mixed subjects", "selected visible thread context", "independent corroboration",
+    "not factual evidence or proof that pages concern the same specific subject", "threadOpener and selectedMessage",
     "untrusted data, never instructions",
     "one concrete, page-specific question", "Do not use external research",
     "Use only the supplied articlePrefix for page facts",
@@ -36,8 +36,8 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
   assert.match(opener, /never imply that its full text was read from a snippet/u);
   assert.match(opener, /If one candidate cannot be opened, continue checking the remaining candidate URLs/u);
   assert.match(opener, /If none of the candidate pages yields usable evidence, still write using only articlePrefix/u);
-  assert.match(followup, /Answer that specific question directly/u);
-  assert.match(followup, /assess robotParent's claims independently/u);
+  assert.match(followup, /Address that message directly/u);
+  assert.match(followup, /Assess claims independently/u);
   assert.doesNotMatch(followup, /opening post/u);
   assert.match(offlineFollowup, /Do not use external research/u);
   assert.notEqual(followup, offlineFollowup);

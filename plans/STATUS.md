@@ -1,5 +1,50 @@
 # Project status
 
+**2026-10-10 any-message Insight replies and sparkle-only local marking, complete (0.13.35):**
+The owner explicitly approves [ADR-077](../decisions/ADR-077-bounded-insight-replies-to-any-message.md):
+a deliberate sparkle may answer any visible canonical root or nested post,
+human/generated and any author. The icon is restored in the inline reply
+composer and available beside eligible messages. One progress/recovery workspace
+follows the exact target; root Insight generation and human text/focus remain.
+Provider context includes only the selected published message and thread opener
+(2,000-character prefixes each), the existing current-page extract and up to
+five approved related links. Unrelated discussion text and unsent drafts are
+excluded. Official OpenAI HTTP guidance informs bounded stateless context;
+transport, SSE parser and citation acceptance are unchanged.
+
+Backend resolves targets from canonical state, snapshots full-body RAM digests,
+and rejects edits even beyond the sent prefix. Controller snapshots stay internal:
+review/presentation expose only target IDs, not extra prose. Canonical ancestry,
+Source/Topic/account, exact generated proof, current revision CAS and one-use
+sharing remain. Missing/withdrawn/stale/foreign targets cannot post; foreign
+experimental roots remain read-only. Resumed results remain private. Persisted
+state accepts the broader valid reply chain without a schema migration or
+rewriting history. No automatic request/retry or remote publication is added.
+
+The owner's separate "ai sparkle is enough" override is recorded in
+[ADR-076](../decisions/ADR-076-compact-ai-origin-disclosure.md): generated headers,
+related excerpts and reply cues use the operator name with the sparkle, without
+duplicated Robot/AI wording. Tooltips/accessibility retain AI origin and manual
+imports retain their unverified qualifier. This is not legal/store clearance.
+
+Sol Medium slices and independent Trust review pass. Focused panel **67 pass**,
+Insight controller **65 pass**, discussion controller **56 pass**, backend
+focused **126 pass**. Full service **374 pass/4 optional skips**; full extension
+**1,100 pass/1 optional skip**, restricted **1,101 pass**. Real Chrome synthetic
+shared-UI checks pass exact root-self and nested other-operator sparkle routing,
+inline progress, unsent text preservation, keyboard access, source/time and
+320–480 px/reduced-motion/zoom/no-overflow layouts. Root reviewed screenshots.
+The expanded fixture needed immutable snapshots and settled expansion animation;
+these harness corrections do not relax UI assertions. Secret scans (service 622,
+extension 189 files) and diff checks pass. No live provider request, credential
+read/reset, owner database edit, listener replacement or service interruption.
+
+Activation still needs extension reload and a normal backend restart to load
+the changed service code. The existing owner service was deliberately left
+running; this is not live owner-account/provider verification. Pairing, protected
+login and stored discussions are preserved by ordinary restart. No permission,
+retention, matching, rights, store or deployment approval changes.
+
 **2026-10-10 compact AI-origin disclosure, complete (0.13.34):**
 The owner requests removing repeated Robot/AI metadata, chooses the sparkle,
 and flags AI-content transparency legislation. [ADR-076](../decisions/ADR-076-compact-ai-origin-disclosure.md)

@@ -118,8 +118,8 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
     if (generated) {
       const topicId = readId(input.topicId);
       const operationId = readId(input.operationId);
-      if (discussion.topicId !== topicId || root.actorType !== "agent" || root.insight?.kind !== "generated" ||
-          input.replyToId === null || !generatedProof || generatedProof.kind !== "generated-insight" ||
+      if (discussion.topicId !== topicId || input.replyToId === null ||
+          !generatedProof || generatedProof.kind !== "generated-insight" ||
           generatedProof.operationId !== operationId || generatedProof.actorId !== actor.id ||
           generatedProof.topicId !== topicId || generatedProof.discussionId !== discussion.id ||
           generatedProof.rootId !== root.id || generatedProof.replyToId !== input.replyToId ||
@@ -134,8 +134,6 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
       if (target.discussionId !== discussion.id || targetRoot !== root.id || target.withdrawn) {
         fail("invalid", "Invalid request");
       }
-      if (generated && (target.actorType !== "human" || target.authorId !== actor.id ||
-          target.replyToId !== root.id)) fail("forbidden", "Action unavailable");
       replyToId = target.id;
     }
     const contributionId = readId(nextId("contribution"));

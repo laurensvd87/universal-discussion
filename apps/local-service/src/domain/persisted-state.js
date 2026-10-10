@@ -149,13 +149,10 @@ function assertState(state, legacy) {
         if (ancestor === undefined) invalid();
       }
     }
-    if (contribution.actorType === "agent" && !contribution.withdrawn) {
-      const question = contributionsById.get(contribution.replyToId);
-      if (!question || question.actorType !== "human" || question.replyToId !== root.id ||
-          root.actorType !== "agent" ||
-          (!root.withdrawn && root.insight?.kind !== "generated") ||
-          (!question.withdrawn && question.authorId !== contribution.insight?.operatorId)) invalid();
-    }
+    // Generated replies may address any canonical message in this thread.
+    // The existence, discussion, root ancestry and cycle checks above apply
+    // equally to human and generated replies, including older withdrawn targets.
+    if (contribution.actorType === "agent" && !contribution.withdrawn && contribution.replyToId === null) invalid();
   }
   return state;
 }

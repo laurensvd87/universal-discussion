@@ -580,13 +580,13 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         typeof review.operationId !== "string") return Promise.resolve(false);
     if (review.replyToId) {
       const root = state.discussion.roots.find((entry) => entry.id === review.rootId);
-      const question = root?.replies.find((entry) => entry.id === review.replyToId);
-      if (!root || root.state !== "visible" || root.insight?.kind !== "generated" ||
-          !question || question.state !== "visible" || question.actorType !== "human" ||
-          question.authorId !== state.actorId || question.replyToId !== root.id ||
+      const target = root?.id === review.replyToId ? root :
+        root?.replies.find((entry) => entry.id === review.replyToId);
+      if (!root || root.state !== "visible" || !target || target.state !== "visible" ||
+          target !== root && target.rootId !== root.id ||
           review.discussionId !== state.discussion.discussionId) return Promise.resolve(false);
       return mutate({ type: "share-insight-reply", topicId: state.topicId,
-        discussionId: review.discussionId, rootId: root.id, replyToId: question.id,
+        discussionId: review.discussionId, rootId: root.id, replyToId: target.id,
         body: review.body, originSourceId: review.sourceId, operationId: review.operationId });
     }
     return mutate({ type: "share-insight", topicId: state.topicId, body: review.body,

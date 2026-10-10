@@ -40,8 +40,11 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const insightShortcut = node("button", "uiCreateInsights"); insightShortcut.type = "button";
   insightShortcut.id = "discussion-ai-insights"; insightShortcut.className = "insight-shortcut";
   listen(insightShortcut, "click", () => {
-    if (insightShortcut.disabled || !insightController) return;
+    if (insightShortcut.hidden || insightShortcut.disabled || !insightController) return;
     if (uiMode === "user") {
+      const replyMode = lastState?.draft?.mode === "reply";
+      const questionId = replyMode ? composerFollowupTarget() : null;
+      if (replyMode && !questionId || !replyMode && lastState?.draft?.mode !== "root") return;
       const ai = lastInsightState?.ai ?? insightController.currentState?.()?.ai;
       if (!ai?.planEnabled || !ai?.model) {
         document.querySelector?.("#app-settings-button")?.click?.();
@@ -50,7 +53,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
         document.querySelector?.("#insight-account-details > summary")?.focus?.({ preventScroll: true });
         return;
       }
-      void insightController.createInsights({ automatic: true });
+      if (questionId) void insightController.createFollowup(questionId);
+      else void insightController.createInsights({ automatic: true });
       return;
     }
     const workspace = document.querySelector?.("#insight-workspace");
@@ -424,11 +428,21 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (uiMode === "user" && entry !== rootEntry && entry.replyToId && entry.replyToId !== rootEntry.id) {
       const parent = rootEntry.replies?.find((item) => item.id === entry.replyToId);
       const parentActor = state.catalog.actors.find((item) => item.id === parent?.authorId);
+      const parentGenerated = parent?.insight?.kind === "generated";
+      const operator = actorName(state.catalog.actors.find((item) => item.id === parent?.insight?.operatorId));
       const parentName = parent?.state === "deleted" ? text("discussionDeleted")
-        : parent?.actorType === "agent" ? text("uiAgentBadge") : actorName(parentActor);
+        : parent?.actorType === "agent" ? text(parentGenerated ? "uiGeneratedInsightOperator" : "uiImportedInsightOperator")
+          .replace("{operator}", operator) : actorName(parentActor);
       if (parentName) {
         const parentCue = node("p"); parentCue.className = "discussion-parent-cue";
         parentCue.textContent = text("uiInReplyTo").replace("{author}", compactText(parentName, 48));
+        if (parent?.state === "visible" && parent.actorType === "agent") {
+          const provenance = text(parentGenerated ? "uiGeneratedInsightProvenance" : "discussionImportedInsight")
+            .replace("{operator}", operator);
+          const description = text("uiInReplyTo").replace("{author}", provenance);
+          parentCue.setAttribute("aria-label", description);
+          parentCue.title = description;
+        }
         metadata.append(parentCue);
       }
     }
@@ -449,26 +463,24 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       item.addEventListener("click", callback); threadHandlers.push([item, callback]); actions.append(item);
     }
     if (rootEntry.state === "visible" && canonicalRoot) action("discussionReply", () => { if (controller?.begin("reply", entry.id)) body.focus(); });
+    if (canonicalRoot && insightTarget(entry.id, state)) {
+      action("discussionGetInsights", () => {
+        if (!insightController || !insightTarget(entry.id, lastState)) return;
+        if (uiMode === "developer") {
+          const workspace = document.querySelector?.("#insight-workspace");
+          if (workspace) workspace.open = true;
+        }
+        void insightController.createFollowup(entry.id);
+        // The controller publishes the validated target before its first
+        // await. Scroll only for this deliberate click, never for polling.
+        if (followupTarget() === entry.id) {
+          const progress = document.querySelector?.("#insight-followup-progress");
+          if (progress && !progress.hidden && insightHost?.contains?.(progress))
+            progress.scrollIntoView?.({ block: "nearest", behavior: "instant" });
+        }
+      }, { iconOnly: true });
+    }
     if (canonicalRoot && ownsContribution(entry, state.actorId)) {
-      if (entry !== rootEntry && entry.rootId === rootEntry.id && entry.replyToId === rootEntry.id &&
-          entry.actorType === "human" &&
-          rootEntry.actorType === "agent" && rootEntry.insight?.kind === "generated") {
-        action("discussionGetInsights", () => {
-          if (!insightController) return;
-          if (uiMode === "developer") {
-            const workspace = document.querySelector?.("#insight-workspace");
-            if (workspace) workspace.open = true;
-          }
-          void insightController.createFollowup(entry.id);
-          // The controller publishes the validated target before its first
-          // await. Scroll only for this deliberate click, never for polling.
-          if (followupTarget() === entry.id) {
-            const progress = document.querySelector?.("#insight-followup-progress");
-            if (progress && !progress.hidden && insightHost?.contains?.(progress))
-              progress.scrollIntoView?.({ block: "nearest", behavior: "instant" });
-          }
-        }, { iconOnly: true });
-      }
       if (entry.actorType !== "agent") action("discussionEdit", () => { if (controller?.begin("edit", entry.id)) body.focus(); });
       action("discussionWithdraw", () => void controller?.withdraw(entry.id));
     }
@@ -496,6 +508,17 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     }
     return null;
   }
+  function insightTarget(targetId, discussionState = lastState) {
+    if (!discussionState?.sourceId || !discussionState.discussion ||
+        discussionState.phase !== "ready" || discussionState.busy || discussionState.needsFreshRead ||
+        discussionState.error) return null;
+    const rootEntry = discussionState.discussion.roots.find((entry) => entry.id === targetId ||
+      entry.replies?.some((reply) => reply.id === targetId));
+    const selected = rootEntry?.id === targetId ? rootEntry
+      : rootEntry?.replies.find((reply) => reply.id === targetId);
+    return rootEntry?.state === "visible" && selected?.state === "visible" &&
+      typeof rootEntry.body === "string" && typeof selected.body === "string" ? selected : null;
+  }
   function followupTarget(insightState = lastInsightState, discussionState = lastState) {
     const binding = insightState?.followup;
     const discussion = discussionState?.discussion;
@@ -504,12 +527,16 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
         insightState.context?.topic?.id !== discussionState.topicId ||
         insightState.context?.currentSource?.id !== discussionState.sourceId ||
         discussion.discussionId !== binding.discussionId) return null;
-    const rootEntry = discussion.roots.find((entry) => entry.id === binding.rootId &&
-      entry.state === "visible" && entry.actorType === "agent" && entry.insight?.kind === "generated");
-    const reply = rootEntry?.replies.find((entry) => entry.id === binding.replyToId);
-    return reply?.state === "visible" && reply.actorType === "human" &&
-      reply.authorId === discussionState.actorId && reply.rootId === rootEntry.id &&
-      reply.replyToId === rootEntry.id ? reply.id : null;
+    const rootEntry = discussion.roots.find((entry) => entry.id === binding.rootId && entry.state === "visible");
+    const selected = rootEntry?.id === binding.replyToId ? rootEntry
+      : rootEntry?.replies.find((entry) => entry.id === binding.replyToId);
+    return selected?.state === "visible" ? selected.id : null;
+  }
+  function composerFollowupTarget(insightState = lastInsightState, discussionState = lastState) {
+    if (uiMode !== "user" || discussionState?.draft?.mode !== "reply" || discussionState.draft.detached ||
+        insightState?.context?.topic?.id !== discussionState.topicId ||
+        insightState.context?.currentSource?.id !== discussionState.sourceId) return null;
+    return insightTarget(discussionState.draft.targetId, discussionState)?.id ?? null;
   }
   function placeComposer(inlineTarget) {
     insightHost ??= document.querySelector?.("#app-discussion-insights-host");
@@ -1026,13 +1053,21 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       generating: "uiInsightGenerating", resuming: "uiInsightResuming" }[aiStatus];
     const loadingSelected = lastState?.phase === "loading" && Boolean(lastState.topicId && lastState.sourceId) &&
       lastState.catalog?.sources.some((entry) => entry.id === lastState.sourceId && entry.topicId === lastState.topicId);
-    insightShortcut.hidden = uiMode === "user" && ((!selectedTopicReady && !loadingSelected) || hasResult ||
-      lastState?.draft.mode !== "root");
+    const followupQuestionId = composerFollowupTarget(state);
+    const replyMode = lastState?.draft?.mode === "reply";
+    insightShortcut.hidden = uiMode === "user" && (hasResult || (replyMode
+      ? !followupQuestionId || !selectedTopicReady
+      : ((!selectedTopicReady && !loadingSelected) || lastState?.draft?.mode !== "root")));
     insightShortcut.disabled = !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
     insightShortcut.setAttribute("aria-busy", String(active));
     insightShortcut.setAttribute("data-phase", active ? "working" : "idle");
-    insightShortcut.setAttribute("aria-label", text(active ? stageKey : setupNeeded ? "uiInsightSetupLabel" : "uiGenerateInsightLabel"));
-    insightShortcut.textContent = text(setupNeeded ? "uiInsightSetupButton" : "uiCreateInsights");
+    insightShortcut.setAttribute("data-followup", String(Boolean(replyMode && followupQuestionId)));
+    const shortcutLabel = text(active ? stageKey : setupNeeded ? "uiInsightSetupLabel"
+      : replyMode ? "uiGenerateInsightReplyLabel" : "uiGenerateInsightLabel");
+    insightShortcut.setAttribute("aria-label", shortcutLabel);
+    insightShortcut.title = shortcutLabel;
+    insightShortcut.textContent = uiMode === "user" && replyMode ? ""
+      : text(setupNeeded ? "uiInsightSetupButton" : "uiCreateInsights");
     const inlineFollowup = Boolean(followupTarget());
     insightActivity.hidden = inlineFollowup;
     insightActivity.textContent = inlineFollowup ? "" : active ? text(stageKey) : hasResult ? text("uiInsightReady")

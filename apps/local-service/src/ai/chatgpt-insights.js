@@ -191,8 +191,8 @@ function followupContext(context, articleText, followup, relatedExcerpts) {
   return { currentSource: sourceReference(context.currentSource),
     sameTopicSources: context.sameTopicSources.map(sourceReference),
     relatedSources: context.relatedSources.map(sourceReference),
-    articlePrefix: articleText, relatedExcerpts, robotParent: followup.parentBody,
-    humanQuestion: followup.questionBody };
+    articlePrefix: articleText, relatedExcerpts, threadOpener: followup.parentBody,
+    selectedMessage: followup.questionBody };
 }
 function errorForStatus(status) {
   return status === 401 || status === 403 ? "unauthorized" : status === 429 ? "rate-limit" : "provider-unavailable";

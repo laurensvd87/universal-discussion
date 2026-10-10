@@ -128,3 +128,99 @@ test("follow-up target edits invalidate the generated reply while unrelated writ
     { operationId: first.operationId, state: "failed", error: "stale-context" });
   ai.dispose();
 });
+
+test("visible human roots, other-author replies and nested agent replies are exact generated targets", async () => {
+  const service = demoService();
+  const topicId = "reserved-domain-demo", sourceId = "reserved-example-com";
+  const rootId = service.command(service.catalog().version,
+    { type: "create-root", topicId, body: "Human thread opener" }, "demo-blair").result.contributionId;
+  const discussionId = service.discussion(topicId).discussionId;
+  const humanId = service.command(service.catalog().version,
+    { type: "reply", discussionId, rootId, replyToId: rootId, body: "Blair's question" }, "demo-blair").result.contributionId;
+  const agentCommand = { type: "share-insight-reply", operationId: "seed-agent", topicId,
+    discussionId, rootId, replyToId: humanId, body: "Prior generated reply" };
+  const agentProof = { kind: "generated-insight", operationId: "seed-agent", actorId: "demo-alex",
+    topicId, discussionId, rootId, replyToId: humanId, body: agentCommand.body, originSourceId: null };
+  const agentId = service.command(service.catalog().version, agentCommand, "demo-alex", agentProof).result.contributionId;
+  const sent = [];
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true,
+      account: { clientId: "synthetic", label: "One" } }), dispose() {} },
+    insightsAdapter: { createInsight: async (value) => { sent.push(value); return {
+      body: "A fresh answer", citations: [], model: "synthetic" }; }, cancel() {}, dispose() {} } });
+  for (const [index, targetId] of [rootId, humanId, agentId].entries()) {
+    const input = insightInput(service, sourceId, topicId, `any-target-${index}`, targetId);
+    ai.create(input, "demo-alex");
+    await Promise.resolve(); await Promise.resolve();
+    assert.equal(ai.result({ operationId: input.operationId }, "demo-alex").state, "completed");
+    const command = { type: "share-insight-reply", operationId: input.operationId,
+      topicId, discussionId, rootId, replyToId: targetId,
+      originSourceId: sourceId, body: "A fresh answer" };
+    const outcome = ai.share({ expected: service.catalog().version, command }, "demo-alex",
+      (proof) => service.command(service.catalog().version, command, "demo-alex", proof));
+    assert.equal(service.discussion(topicId).roots.find((entry) => entry.id === rootId)
+      .replies.find((entry) => entry.id === outcome.result.contributionId).replyToId, targetId);
+    assert.throws(() => ai.share({ expected: service.catalog().version, command }, "demo-alex", () => {}),
+      (error) => error instanceof ServiceError && error.code === "not-found");
+  }
+  assert.deepEqual(sent.map((item) => item.followup), [
+    { parentBody: "Human thread opener", questionBody: "Human thread opener" },
+    { parentBody: "Human thread opener", questionBody: "Blair's question" },
+    { parentBody: "Human thread opener", questionBody: "Prior generated reply" },
+  ]);
+  ai.dispose();
+});
+
+test("long selected prose is capped for the provider and an edit beyond that cap invalidates sharing", async () => {
+  const service = demoService();
+  const topicId = "reserved-domain-demo", sourceId = "reserved-example-com";
+  const rootId = service.command(service.catalog().version,
+    { type: "create-root", topicId, body: "R".repeat(2_100) }, "demo-blair").result.contributionId;
+  const discussionId = service.discussion(topicId).discussionId;
+  const targetId = service.command(service.catalog().version,
+    { type: "reply", discussionId, rootId, replyToId: rootId, body: "Q".repeat(2_100) }, "demo-blair").result.contributionId;
+  let sent;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true,
+      account: { clientId: "synthetic", label: "One" } }), dispose() {} },
+    insightsAdapter: { createInsight: async (value) => { sent = value; return {
+      body: "A fresh answer", citations: [], model: "synthetic" }; }, cancel() {}, dispose() {} } });
+  const input = insightInput(service, sourceId, topicId, "late-tail-edit", targetId);
+  ai.create(input, "demo-alex");
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(sent.followup.parentBody, "R".repeat(2_000));
+  assert.equal(sent.followup.questionBody, "Q".repeat(2_000));
+  service.command(service.catalog().version,
+    { type: "edit", contributionId: targetId, body: "Q".repeat(2_099) + "X" }, "demo-blair");
+  assert.deepEqual(ai.result({ operationId: input.operationId }, "demo-alex"),
+    { operationId: input.operationId, state: "failed", error: "stale-context" });
+  ai.dispose();
+});
+
+test("foreign and withdrawn targets cannot start or complete a generated reply", async () => {
+  const service = demoService();
+  const topicId = "reserved-domain-demo", sourceId = "reserved-example-com";
+  const rootId = service.command(service.catalog().version,
+    { type: "create-root", topicId, body: "Current thread" }, "demo-blair").result.contributionId;
+  const foreignId = service.command(service.catalog().version,
+    { type: "create-root", topicId: "harbor-s2", body: "Foreign thread" }, "demo-blair").result.contributionId;
+  let calls = 0;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true,
+      account: { clientId: "synthetic", label: "One" } }), dispose() {} },
+    insightsAdapter: { createInsight: async () => { calls += 1; return {
+      body: "A fresh answer", citations: [], model: "synthetic" }; }, cancel() {}, dispose() {} } });
+  assert.throws(() => ai.create(insightInput(service, sourceId, topicId, "foreign-target", foreignId), "demo-alex"),
+    (error) => error instanceof ServiceError && error.code === "not-found");
+  assert.equal(calls, 0);
+  const input = insightInput(service, sourceId, topicId, "withdrawn-target", rootId);
+  ai.create(input, "demo-alex");
+  await Promise.resolve(); await Promise.resolve();
+  service.command(service.catalog().version, { type: "withdraw", contributionId: rootId }, "demo-blair");
+  assert.deepEqual(ai.result({ operationId: input.operationId }, "demo-alex"),
+    { operationId: input.operationId, state: "failed", error: "stale-context" });
+  assert.throws(() => ai.create(insightInput(service, sourceId, topicId, "already-withdrawn", rootId), "demo-alex"),
+    (error) => error instanceof ServiceError && error.code === "not-found");
+  assert.equal(calls, 1);
+  ai.dispose();
+});

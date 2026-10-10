@@ -498,7 +498,7 @@ test("owned robot post can be withdrawn but never edited; withdrawn root retains
   assert.ok(descendants(ui.root).some((item) => item.textContent === "Deleted by user"));
   assert.ok(descendants(ui.root).some((item) => item.textContent === "Question"));
 });
-test("own published question under a generated robot opener offers one-click private follow-up", () => {
+test("each visible canonical message offers one-click follow-up", () => {
   const navigation = [];
   const ui = harness(undefined, null, { click: () => navigation.push("insights") });
   const followups = [];
@@ -511,15 +511,15 @@ test("own published question under a generated robot opener offers one-click pri
       { id: "other-question", rootId: "robot-root", replyToId: "robot-root", state: "visible", actorType: "human",
         authorId: "demo-blair", body: "How?" },
     ] };
-  ui.panel.render(state({ discussion: { roots: [root] } }));
+  ui.panel.render(state({ sourceId: "source-demo", discussion: { roots: [root] } }));
   const actions = descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights");
-  assert.equal(actions.length, 1);
-  assert.equal(actions[0].attributes["data-contribution-id"], "own-question");
-  assert.equal(actions[0].textContent, "");
-  assert.match(actions[0].className, /discussion-action-robot/u);
-  assert.equal(actions[0].attributes["aria-label"], EN.uiGenerateInsightReplyLabel);
-  assert.equal(actions[0].title, EN.uiGenerateInsightReplyLabel);
-  actions[0].listeners.get("click")();
+  assert.deepEqual(actions.map((item) => item.attributes["data-contribution-id"]),
+    ["robot-root", "own-question", "other-question"]);
+  assert.equal(actions[1].textContent, "");
+  assert.match(actions[1].className, /discussion-action-robot/u);
+  assert.equal(actions[1].attributes["aria-label"], EN.uiGenerateInsightReplyLabel);
+  assert.equal(actions[1].title, EN.uiGenerateInsightReplyLabel);
+  actions[1].listeners.get("click")();
   assert.deepEqual(navigation, []);
   assert.deepEqual(followups, ["own-question"]);
 });
@@ -562,6 +562,37 @@ test("follow-up Insight host stays beneath the exact question through generation
   assert.equal(host.nextSibling, thread);
   assert.equal(ui.byId("discussion-insight-activity").hidden, false);
 });
+test("follow-up host accepts exact canonical root and nested targets through posting", () => {
+  const ui = harness();
+  const thread = ui.root.children.find((item) => item.className === "discussion-thread");
+  const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
+  ui.root.insertBefore(host, thread);
+  const root = { id: "human-root", state: "visible", actorType: "human", authorId: "demo-blair",
+    body: "Opening", replies: [
+      { id: "human-reply", rootId: "human-root", replyToId: "human-root", state: "visible",
+        actorType: "human", authorId: "demo-alex", body: "First" },
+      { id: "nested-agent", rootId: "human-root", replyToId: "human-reply", state: "visible",
+        actorType: "agent", authorId: "demo-ai", insight: { kind: "generated", operatorId: "demo-alex" },
+        body: "Nested" },
+    ] };
+  const snapshot = state({ sourceId: "source-demo",
+    discussion: { discussionId: "discussion-demo", roots: [root] } });
+  const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
+  ui.panel.render(snapshot);
+  for (const targetId of ["human-root", "nested-agent"]) {
+    const binding = { discussionId: "discussion-demo", rootId: "human-root", replyToId: targetId };
+    ui.panel.renderInsightState({ context, followup: binding, ai: { status: "generating" } });
+    const selected = descendants(ui.root).find((item) => item.attributes["data-post-id"] === targetId);
+    assert.equal(selected.nextSibling, host);
+    ui.panel.render({ ...snapshot, busy: true });
+    assert.equal(descendants(ui.root).find((item) => item.attributes["data-post-id"] === targetId).nextSibling, host);
+    ui.panel.render(snapshot);
+  }
+  ui.panel.renderInsightState({ context, followup: { discussionId: "discussion-demo",
+    rootId: "human-root", replyToId: "missing" }, ai: { status: "generating" } });
+  assert.equal(host.parentElement, ui.root);
+  assert.equal(host.nextSibling, thread);
+});
 test("deliberate robot click scrolls only its validated inline progress into view", () => {
   const ui = harness();
   const thread = ui.root.children.find((item) => item.className === "discussion-thread");
@@ -585,7 +616,8 @@ test("deliberate robot click scrolls only its validated inline progress into vie
       ui.panel.renderInsightState({ context, followup, ai: { status: "preparingArticle" } });
       return Promise.resolve(true);
     } });
-  const action = descendants(ui.root).find((item) => item.attributes["data-action"] === "getinsights");
+  const action = descendants(ui.root).find((item) => item.attributes["data-action"] === "getinsights" &&
+    item.attributes["data-contribution-id"] === "question");
   action.listeners.get("click")();
   assert.deepEqual(scrolls, [{ block: "nearest", behavior: "instant" }]);
   assert.equal(ui.byId("discussion-insight-activity").hidden, true);
@@ -614,21 +646,119 @@ test("follow-up host rejects a foreign or stale canonical context", () => {
     assert.equal(host.nextSibling, thread);
   }
 });
-test("manual import, non-reply and withdrawn questions cannot initiate a robot follow-up", () => {
+test("manual imports can start follow-ups but withdrawn targets cannot", () => {
   const ui = harness();
   const directReply = { id: "question", rootId: "robot-root", replyToId: "robot-root", state: "visible", actorType: "human",
     authorId: "demo-alex", body: "Why?" };
   const root = { id: "robot-root", rootId: null, state: "visible", authorId: "demo-imported-ai",
     actorType: "agent", insight: { kind: "manual-import", operatorId: "demo-alex" }, body: "Opener",
     replies: [directReply] };
-  for (const mutation of [
-    () => {},
-    () => { root.insight.kind = "generated"; directReply.state = "deleted"; },
-    () => { directReply.state = "visible"; directReply.replyToId = "other-reply"; },
-  ]) {
-    mutation(); ui.panel.render(state({ discussion: { roots: [root] } }));
-    assert.equal(descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights").length, 0);
+  const snapshot = () => state({ sourceId: "source-demo", discussion: { roots: [root] } });
+  ui.panel.render(snapshot());
+  const actions = () => descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights");
+  assert.deepEqual(actions().map((item) => item.attributes["data-contribution-id"]), ["robot-root", "question"]);
+  directReply.state = "deleted"; ui.panel.render(snapshot());
+  assert.deepEqual(actions().map((item) => item.attributes["data-contribution-id"]), ["robot-root"]);
+  root.state = "deleted"; ui.panel.render(snapshot());
+  assert.equal(actions().length, 0);
+});
+test("reply composer sparkle targets the exact visible canonical message without sending draft text", () => {
+  const ui = harness();
+  const calls = [];
+  const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
+  ui.panel.bindInsight({ currentState: () => ({ context,
+    ai: { planEnabled: true, model: "chosen", status: "idle" } }),
+    createFollowup: (id) => { calls.push(["followup", id]); return Promise.resolve(true); },
+    createInsights: (options) => { calls.push(["root", options]); return Promise.resolve(true); } });
+  const root = { id: "root", state: "visible", actorType: "human", authorId: "demo-blair",
+    body: "Blair's opener", replies: [
+      { id: "other-reply", rootId: "root", replyToId: "root", state: "visible", actorType: "human",
+        authorId: "demo-blair", body: "Blair's reply" },
+      { id: "nested-ai", rootId: "root", replyToId: "other-reply", state: "visible", actorType: "agent",
+        authorId: "demo-ai", insight: { kind: "generated", operatorId: "demo-alex" }, body: "AI reply" },
+    ] };
+  const snapshot = (mode, targetId) => state({ sourceId: "source-demo",
+    discussion: { discussionId: "discussion-demo", roots: [root] },
+    draft: { mode, targetId, body: "Unsent human text", detached: false } });
+  const shortcut = ui.byId("discussion-ai-insights");
+  for (const target of ["root", "other-reply", "nested-ai"]) {
+    ui.panel.render(snapshot("reply", target));
+    assert.equal(shortcut.hidden, false);
+    assert.equal(shortcut.disabled, false);
+    assert.equal(shortcut.textContent, "");
+    assert.equal(shortcut.attributes["aria-label"], EN.uiGenerateInsightReplyLabel);
+    assert.equal(shortcut.title, EN.uiGenerateInsightReplyLabel);
+    assert.equal(shortcut.attributes["data-followup"], "true");
+    const body = ui.byId("discussion-body");
+    body.focus();
+    shortcut.listeners.get("click")();
+    assert.equal(body.value, "Unsent human text");
+    assert.equal(ui.document.activeElement, body);
   }
+  assert.deepEqual(calls, [["followup", "root"], ["followup", "other-reply"], ["followup", "nested-ai"]]);
+  ui.panel.render(snapshot("root", null));
+  assert.equal(shortcut.attributes["data-followup"], "false");
+  shortcut.listeners.get("click")();
+  assert.deepEqual(calls.at(-1), ["root", { automatic: true }]);
+});
+
+test("reply composer sparkle closes on removed, foreign, detached and stale targets", () => {
+  const ui = harness();
+  const calls = [];
+  const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
+  ui.panel.bindInsight({ currentState: () => ({ context,
+    ai: { planEnabled: true, model: "chosen", status: "idle" } }),
+    createFollowup: (id) => { calls.push(id); return Promise.resolve(true); },
+    createInsights: () => { calls.push("wrong-root"); return Promise.resolve(true); } });
+  const root = { id: "root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Opener", replies: [{ id: "reply", rootId: "root", replyToId: "root", state: "visible",
+      actorType: "human", authorId: "demo-blair", body: "Published" }] };
+  const snapshot = (overrides = {}) => state({ sourceId: "source-demo",
+    discussion: { discussionId: "discussion-demo", roots: [root] },
+    draft: { mode: "reply", targetId: "reply", body: "Do not send this", detached: false }, ...overrides });
+  const shortcut = ui.byId("discussion-ai-insights");
+  ui.panel.render(snapshot());
+  assert.equal(shortcut.hidden, false);
+  for (const changed of [
+    snapshot({ draft: { mode: "reply", targetId: "missing", body: "Do not send this", detached: false } }),
+    snapshot({ draft: { mode: "reply", targetId: "reply", body: "Do not send this", detached: true } }),
+    snapshot({ phase: "loading" }),
+    snapshot({ needsFreshRead: true }),
+    snapshot({ sourceId: "other-source" }),
+    snapshot({ discussion: { discussionId: "discussion-demo", roots: [] },
+      alternateDiscussion: { sourceId: "source-demo", roots: [root], pinnedRoots: [] } }),
+  ]) {
+    ui.panel.render(changed);
+    assert.equal(shortcut.hidden, true);
+    shortcut.listeners.get("click")();
+  }
+  root.replies[0].state = "deleted";
+  ui.panel.render(snapshot());
+  assert.equal(shortcut.hidden, true);
+  shortcut.listeners.get("click")();
+  assert.deepEqual(calls, []);
+});
+test("long visible canonical posts retain per-post and composer follow-up actions", () => {
+  const ui = harness();
+  const calls = [];
+  const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
+  ui.panel.bindInsight({ currentState: () => ({ context,
+    ai: { planEnabled: true, model: "chosen", status: "idle" } }),
+    createFollowup: (id) => { calls.push(id); return Promise.resolve(true); } });
+  const root = { id: "long-root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "R".repeat(2_001), replies: [{ id: "long-reply", rootId: "long-root",
+      replyToId: "long-root", state: "visible", actorType: "human", authorId: "demo-blair",
+      body: "Q".repeat(2_001) }] };
+  ui.panel.render(state({ sourceId: "source-demo",
+    discussion: { discussionId: "discussion-demo", roots: [root] },
+    draft: { mode: "reply", targetId: "long-reply", body: "Unsent", detached: false } }));
+  const actions = descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights");
+  assert.deepEqual(actions.map((item) => item.attributes["data-contribution-id"]), ["long-root", "long-reply"]);
+  const shortcut = ui.byId("discussion-ai-insights");
+  assert.equal(shortcut.hidden, false);
+  shortcut.listeners.get("click")();
+  assert.deepEqual(calls, ["long-reply"]);
+  assert.equal(ui.byId("discussion-body").value, "Unsent");
 });
 test("raw related pages stay in Developer Mode while native open state survives polling", () => {
   const ui = harness();
@@ -1118,13 +1248,41 @@ test("reply context uses compact User AI provenance and full Developer provenanc
   const replyTo = (targetId) => ui.panel.render({ ...snapshot,
     draft: { body: "", detached: false, mode: "reply", targetId } });
   replyTo("generated");
-  assert.equal(author.textContent, "Replying to Alex · AI-generated");
+  assert.equal(author.textContent, "Replying to Alex");
   replyTo("imported");
-  assert.equal(author.textContent, "Replying to Alex · AI-assisted import · unverified");
+  assert.equal(author.textContent, "Replying to Alex · unverified import");
   ui.panel.setMode("developer");
   assert.equal(author.textContent, "Replying to AI-assisted · unverified manual import · shared …");
   replyTo("generated");
   assert.equal(author.textContent, "Replying to Robot · shared by Alex · synthetic");
+});
+
+test("nested replies name their agent parent without visible AI badge text", () => {
+  const ui = harness();
+  const root = { id: "root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Opening", replies: [
+      { id: "generated-parent", rootId: "root", replyToId: "root", state: "visible",
+        actorType: "agent", authorId: "demo-ai", insight: { kind: "generated", operatorId: "demo-alex" },
+        body: "Generated" },
+      { id: "generated-child", rootId: "root", replyToId: "generated-parent", state: "visible",
+        actorType: "human", authorId: "demo-alex", body: "Reply" },
+      { id: "imported-parent", rootId: "root", replyToId: "root", state: "visible",
+        actorType: "agent", authorId: "demo-ai", insight: { kind: "manual-import", operatorId: "demo-alex" },
+        body: "Imported" },
+      { id: "imported-child", rootId: "root", replyToId: "imported-parent", state: "visible",
+        actorType: "human", authorId: "demo-alex", body: "Reply" },
+    ] };
+  ui.panel.render(state({ discussion: { roots: [root] } }));
+  const cue = (id) => descendants(descendants(ui.root)
+    .find((item) => item.attributes["data-post-id"] === id))
+    .find((item) => item.className === "discussion-parent-cue");
+  assert.equal(cue("generated-child").textContent, "Reply to Alex");
+  assert.equal(cue("generated-child").attributes["aria-label"], "Reply to AI-generated · shared by Alex");
+  assert.equal(cue("generated-child").title, cue("generated-child").attributes["aria-label"]);
+  assert.equal(cue("imported-child").textContent, "Reply to Alex · unverified import");
+  assert.equal(cue("imported-child").attributes["aria-label"],
+    "Reply to AI-assisted · unverified manual import · shared by Alex");
+  assert.equal(cue("imported-child").title, cue("imported-child").attributes["aria-label"]);
 });
 
 test("stable root ordering keeps the live textarea focused through synchronous typing", () => {
@@ -1354,11 +1512,11 @@ test("User contribution headers keep generated and imported provenance distinct"
     item.className === "insight-provenance" || item.className === "human-provenance");
   const generated = author("generated");
   const imported = author("imported");
-  assert.equal(generated.textContent, "Alex · AI-generated");
+  assert.equal(generated.textContent, "Alex");
   assert.equal(generated.attributes["aria-label"], "AI-generated · shared by Alex");
   assert.equal(generated.title, generated.attributes["aria-label"]);
   assert.equal(cards.generated.attributes["aria-label"], "Post by AI-generated · shared by Alex");
-  assert.equal(imported.textContent, "Alex · AI-assisted import · unverified");
+  assert.equal(imported.textContent, "Alex · unverified import");
   assert.equal(imported.attributes["aria-label"], "AI-assisted · unverified manual import · shared by Alex");
   assert.equal(imported.title, imported.attributes["aria-label"]);
   assert.equal(author("human").textContent, "Alex");
@@ -1389,9 +1547,9 @@ test("related discussion generated and imported headers keep operator and proven
   const generated = cards[0].children[0].children[0];
   const imported = cards[1].children[0].children[0];
   assert.equal(generated.className, "insight-provenance");
-  assert.equal(generated.textContent, "Alex · AI-generated");
+  assert.equal(generated.textContent, "Alex");
   assert.equal(generated.attributes["aria-label"], "AI-generated · shared by Alex");
-  assert.equal(imported.textContent, "Alex · AI-assisted import · unverified");
+  assert.equal(imported.textContent, "Alex · unverified import");
   assert.equal(imported.attributes["aria-label"], "AI-assisted · unverified manual import · shared by Alex");
   assert.equal(cards[0].attributes["aria-label"], "Post by AI-generated · shared by Alex");
   assert.equal(descendants(ui.byId("discussion-related-conversations"))

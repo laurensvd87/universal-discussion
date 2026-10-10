@@ -801,6 +801,9 @@ body[data-ui-mode="user"] #discussion-composer .discussion-composer-actions:has(
 }
 body[data-ui-mode="user"] #discussion-composer #discussion-submit,
 body[data-ui-mode="user"] #discussion-ai-insights { min-height: 44px; margin: 0; border-radius: 999px; font-size: 13px; }
+body[data-ui-mode="user"] #discussion-ai-insights[data-followup="true"] {
+  flex: 0 0 44px; width: 44px; min-width: 44px; padding: 0;
+}
 body[data-ui-mode="user"] #discussion-composer #discussion-submit {
   width: 100%; color: #fff; background: var(--accent); font-weight: 730;
 }

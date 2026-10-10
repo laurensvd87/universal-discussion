@@ -172,7 +172,7 @@ try {
       const state={phase:'ready',busy:false,error:null,actorId:'demo-alex',topicId:'topic-visual',sourceId:'source-visual',selection:'background',
         catalog:{model:{status:'fixture-only'},actors:[{id:'demo-alex',displayName:'Alex · synthetic'},{id:'demo-blair',displayName:'Blair · synthetic'}],
           topics:[{id:'topic-visual',title:'A quieter, greener city'}],sources:[{id:'source-visual',topicId:'topic-visual',title:'Synthetic public article',url:'https://example.com/article'}]},
-        discussion:{roots:[{id:'root-1',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',
+        discussion:{discussionId:'discussion-visual',roots:[{id:'root-1',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',
           body:'What would make your neighborhood a better place to spend time?',edited:false,replies:[]}]},
         related:{results:[1,2,3,4].map(index=>({title:'Synthetic page '+index,
           url:'https://example.com/related/'+index,relationship:index===1?'same-topic':'related'}))},
@@ -191,8 +191,11 @@ try {
       discussion.bind(new Proxy(discussionController,{get:(object,key)=>object[key]??(()=>{})}));
       const insightController=new Proxy({currentState:()=>structuredClone(insightState),createInsights:()=>{window.visualCreates++;return Promise.resolve(true)},
         createFollowup:questionId=>{
+          const targetRoot=state.discussion.roots.find(root=>root.id===questionId || root.replies.some(reply=>reply.id===questionId));
+          if(!targetRoot)return Promise.resolve(false);
           window.visualFollowups=(window.visualFollowups??0)+1;
-          insightState.followup={discussionId:state.discussion.discussionId,rootId:'robot-visual',replyToId:questionId};
+          window.visualFollowupIds=[...(window.visualFollowupIds??[]),questionId];
+          insightState.followup={discussionId:state.discussion.discussionId,rootId:targetRoot.id,replyToId:questionId};
           insightState.ai.status='preparingArticle'; insights.render(structuredClone(insightState)); discussion.renderInsightState(structuredClone(insightState));
           return Promise.resolve(true);
         }},
@@ -319,13 +322,14 @@ try {
       const card=document.querySelector('[data-post-id=robot-visual]'),author=card.querySelector('.insight-provenance');
       const icon=getComputedStyle(author,'::before');
       const rootButton=document.querySelector('#discussion-ai-insights');
-      return author.textContent==='Alex · AI-generated' && /generated/i.test(author.getAttribute('aria-label')) &&
+      return author.textContent==='Alex' && /AI-generated/.test(author.getAttribute('aria-label')) &&
+        /AI-generated/.test(author.title) &&
         icon.maskImage.includes('icons/spark.svg') && icon.width!=='0px' &&
-        !card.querySelector('.discussion-actor-badge-agent') && !/Robot/.test(card.querySelector('.discussion-post-metadata').innerText) &&
+        !card.querySelector('.discussion-actor-badge-agent') && !/Robot|AI-generated/.test(card.querySelector('.discussion-post-metadata').innerText) &&
         card.querySelector('time').dateTime==='2026-10-06T10:00:00.000Z' &&
         card.querySelector('.discussion-source-link').href==='https://example.com/article' &&
         getComputedStyle(rootButton,'::before').maskImage.includes('icons/spark.svg');
-    })()`, sessionId), true, "generated headers have one explicit AI disclosure and sparkle, not duplicated Robot/AI labels; source and time remain");
+    })()`, sessionId), true, "generated headers have a sparkle-only AI marker, with accessible/tooltip origin; operator, source and time remain");
     await capture("compact-ai-disclosure", sessionId);
     await checkReachable('[data-action="getinsights"][data-contribution-id="question-visual"]', sessionId);
     assert.equal(await evaluate(`(() => {
@@ -368,7 +372,56 @@ try {
       "a removed follow-up target cannot keep an actionable workspace beneath a stale message");
     await browser.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
     await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
-    await evaluate("Object.assign(window.visualDiscussionState,window.visualBeforeFollowup);Object.assign(window.visualInsightState,window.visualBeforeFollowupInsight);window.visualInsightPanel.render(window.visualInsightState);window.visualDiscussionPanel.renderInsightState(window.visualInsightState);window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
+    await evaluate("Object.assign(window.visualDiscussionState,structuredClone(window.visualBeforeFollowup));Object.assign(window.visualInsightState,structuredClone(window.visualBeforeFollowupInsight),{followup:null});window.visualInsightPanel.render(structuredClone(window.visualInsightState));window.visualDiscussionPanel.renderInsightState(structuredClone(window.visualInsightState));window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState;
+      state.discussion={discussionId:'discussion-visual',roots:[{id:'human-any',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',
+        body:'Other-author public opener. '.repeat(80),edited:false,replies:[
+          {id:'human-answer',rootId:'human-any',replyToId:'human-any',state:'visible',authorId:'demo-blair',actorType:'human',body:'A different perspective.',edited:false},
+          {id:'agent-any',rootId:'human-any',replyToId:'human-answer',state:'visible',authorId:'demo-imported-ai',actorType:'agent',
+            insight:{kind:'generated',operatorId:'demo-blair',model:'synthetic'},body:'Shaded public spaces may matter more than parking.',edited:false}]}]};
+      state.draft={body:'',detached:false,mode:'root',targetId:null};
+      window.visualDiscussionPanel.render(state);
+      document.querySelector('[data-action=reply][data-contribution-id=human-any]').click();
+      window.visualDiscussionState.draft.body='Unsent words must not replace the selected message';
+      window.visualDiscussionPanel.render(state);
+    })()`, sessionId);
+    assert.equal(await evaluate(`(() => {
+      const button=document.querySelector('#discussion-ai-insights');
+      return !button.hidden && !button.disabled && button.textContent==='' &&
+        button.getAttribute('aria-label')==='Generate and post reply' &&
+        getComputedStyle(button,'::before').maskImage.includes('icons/spark.svg');
+    })()`, sessionId), true, "another author's long human opener has an icon-only reply-composer sparkle");
+    await evaluate("document.querySelector('#discussion-ai-insights').click()", sessionId);
+    assert.deepEqual(await evaluate(`(() => {
+      const insight=window.visualInsightState,host=document.querySelector('#app-discussion-insights-host'),composer=document.querySelector('#discussion-composer');
+      return {rootId:insight.followup?.rootId,replyToId:insight.followup?.replyToId,
+        inline:host.previousElementSibling===composer,sameParent:host.parentElement===composer.parentElement,
+        draft:document.querySelector('#discussion-body').value,selected:window.visualFollowupIds.at(-1)};
+    })()`, sessionId), {rootId:'human-any',replyToId:'human-any',inline:true,sameParent:true,
+      draft:'Unsent words must not replace the selected message',selected:'human-any'},
+      "reply-composer sparkle selects the published root itself, places progress inline and preserves unsent text");
+    await capture("any-message-insight-root", sessionId);
+    await evaluate(`(() => {
+      Object.assign(window.visualInsightState,structuredClone(window.visualBeforeFollowupInsight),{followup:null});
+      window.visualInsightPanel.render(structuredClone(window.visualInsightState));window.visualDiscussionPanel.renderInsightState(structuredClone(window.visualInsightState));
+      document.querySelector('#discussion-back-to-new-thread').click();
+      for(const id of ['human-any','human-answer']){
+        const toggle=document.querySelector('[data-action=expand][data-contribution-id='+id+']');
+        if(toggle.getAttribute('aria-expanded')!=='true')toggle.click();
+      }
+    })()`, sessionId);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    await checkReachable('[data-action="getinsights"][data-contribution-id="agent-any"]', sessionId);
+    await pressEnter(sessionId);
+    assert.equal(await evaluate(`(() => {
+      const insight=window.visualInsightState,host=document.querySelector('#app-discussion-insights-host'),card=document.querySelector('[data-post-id=agent-any]');
+      return insight.followup.rootId==='human-any' && insight.followup.replyToId==='agent-any' &&
+        host.previousElementSibling===card && host.parentElement===card.parentElement &&
+        window.visualFollowupIds.at(-1)==='agent-any';
+    })()`, sessionId), true, "a nested generated message from another operator has an exact-target keyboard sparkle and inline progress");
+    await capture("any-message-insight-nested", sessionId);
+    await evaluate("Object.assign(window.visualDiscussionState,structuredClone(window.visualBeforeFollowup));Object.assign(window.visualInsightState,structuredClone(window.visualBeforeFollowupInsight),{followup:null});window.visualInsightPanel.render(structuredClone(window.visualInsightState));window.visualDiscussionPanel.renderInsightState(structuredClone(window.visualInsightState));window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.phase='choose-topic';window.visualDiscussionState.topicId=null;window.visualDiscussionState.discussion=null;window.visualDiscussionState.related={results:[]};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);document.querySelector('#app-tab-discussion').click()", sessionId);
     assert.equal(await evaluate("(() => { const status=document.querySelector('#discussion-status');return !document.querySelector('#app-topic-header') && !document.querySelector('#app-start-session') && !document.querySelector('#app-choose-topic') && status.textContent.includes('see its discussions') && document.body.dataset.topicState==='idle' && document.querySelector('#discussion-composer').hidden && document.querySelector('#discussion-ai-insights').hidden; })()", sessionId), true,
       "no-topic view explains automatic discovery without manual controls or empty composer");
@@ -402,7 +455,7 @@ try {
     await tabTo("#insight-disconnect", sessionId);
     await evaluate("document.querySelector('#insight-account-details > summary').scrollIntoView({block:'start'})", sessionId);
     await capture("account-ready-switch", sessionId);
-    await evaluate("window.visualInsightState.ai.model='';window.visualInsightPanel.render(window.visualInsightState);document.querySelector('#insight-account-details > summary').focus()", sessionId);
+    await evaluate("window.visualInsightState.ai.model='';window.visualInsightPanel.render(structuredClone(window.visualInsightState));window.visualDiscussionPanel.renderInsightState(structuredClone(window.visualInsightState));document.querySelector('#insight-account-details > summary').focus()", sessionId);
     await evaluate("document.querySelector('#insight-account-details > summary').focus()", sessionId);
     await tabTo("#insight-checkConnection", sessionId);
     await tabTo("#insight-disconnect", sessionId);

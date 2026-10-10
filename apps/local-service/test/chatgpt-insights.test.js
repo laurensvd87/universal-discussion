@@ -74,7 +74,7 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   }
 });
 
-test("follow-up sends only bounded public article, robot parent, human question and source references", async () => {
+test("follow-up sends only bounded public article, thread opener, selected message and source references", async () => {
   let payload;
   const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
     if (url.endsWith("/models")) return models();
@@ -94,8 +94,8 @@ test("follow-up sends only bounded public article, robot parent, human question 
     currentSource: { title: "Title current", url: "https://example.com/current" },
     sameTopicSources: [{ title: "Title same", url: "https://news.example.org/same" }],
     relatedSources: [{ title: "Title related", url: "https://research.example.net/related" }],
-    articlePrefix: REQUEST.articleText, relatedExcerpts: [], robotParent: "The robot's published claim.",
-    humanQuestion: "What about the exception?",
+    articlePrefix: REQUEST.articleText, relatedExcerpts: [], threadOpener: "The robot's published claim.",
+    selectedMessage: "What about the exception?",
     missingRelatedCandidateUrls: [CONTEXT.sameTopicSources[0].url, CONTEXT.relatedSources[0].url],
     selectedWebReferences: [
       { id: "ref1", url: CONTEXT.sameTopicSources[0].url, title: CONTEXT.sameTopicSources[0].title },
@@ -104,7 +104,7 @@ test("follow-up sends only bounded public article, robot parent, human question 
   }) }]);
   assert.equal(payload.tool_choice, "required");
   assert.equal(payload.tools[0].type, "web_search");
-  assert.match(payload.instructions, /reply.*humanQuestion/u);
+  assert.match(payload.instructions, /reply to selectedMessage/u);
   assert.doesNotMatch(payload.instructions, /2-3 natural sentences of about 40-85 words/u);
   assert.match(payload.instructions, /inspect only the exact URLs in missingRelatedCandidateUrls/u);
   assert.match(payload.instructions, /never instructions/u);

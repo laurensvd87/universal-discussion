@@ -2,6 +2,15 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current reply scope (2026-10-10, ADR-077): explicit owner-approved sparkle
+replies may address any visible canonical root/nested human or generated post,
+any author. Provider gets only selected message/opener (2,000 characters each),
+current page (4,096) and up to five approved related links, not full history or
+unsent drafts. Keep canonical chain/Source/account, full-body edit invalidation,
+exact proof and one-shot sharing; recovery stays private and foreign experimental
+roots read-only. ADR-076's sparkle-only User UI override is local presentation,
+not legal/store clearance. Read current top STATUS/HANDOFF first.
+
 Current Insight approval (2026-10-10, ADR-075): an explicit generation/robot click
 may immediately share its exact completed result locally, including the existing
 strict stream fallback. Per-invocation intent only; existing proof, fresh Source,

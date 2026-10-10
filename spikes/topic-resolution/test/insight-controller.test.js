@@ -12,7 +12,7 @@ async function harness({ command, aiClient, readArticle, attestArticle, readRela
   catalogTransform, shareOnCompletion = false } = {}) {
   let sequence = 0;
   const service = createMemoryDemoService({ nextId: (kind) => `${kind}-${++sequence}`, now: () => "2026-09-29T12:00:00.000Z" });
-  const commands = []; let changed;
+  const commands = [], reviews = []; let changed;
   const client = {
     health: async () => ({}), catalog: async () => catalogTransform ? catalogTransform(service.catalog()) : service.catalog(),
     discussion: async (id) => service.discussion(id), related: async (id, limit) => service.related(id, limit),
@@ -36,12 +36,14 @@ async function harness({ command, aiClient, readArticle, attestArticle, readRela
     lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
     onStateChange: (state) => insight?.observe(state),
   });
-  const newInsight = () => createInsightController({ shareInsight: discussion.shareInsight, aiClient, readArticle,
+  const newInsight = () => createInsightController({ shareInsight: (review) => {
+    reviews.push(review); return discussion.shareInsight(review);
+  }, aiClient, readArticle,
     attestArticle, readRelatedExcerpts, loadRelatedTextPreference, saveRelatedTextPreference,
     openAuthorization, randomId, shareOnCompletion });
   insight = newInsight();
   await discussion.open();
-  return { service, insight, discussion, commands, navigate: () => changed(),
+  return { service, insight, discussion, commands, reviews, navigate: () => changed(),
     reopenInsight: () => { insight = newInsight(); insight.observe(discussion.currentState()); return insight; } };
 }
 
@@ -749,6 +751,10 @@ test("own published question gets one unchanged private robot follow-up", async 
   assert.equal(await insight.createFollowup(question.id), true);
   assert.equal(insight.currentState().draft, "Generated answer");
   assert.equal(insight.currentState().preview, null);
+  assert.equal(insight.preview(), true);
+  for (const field of ["questionId", "rootBody", "targetBody"]) {
+    assert.equal(Object.hasOwn(insight.currentState().preview, field), false, field);
+  }
   assert.equal(await insight.share(), true);
   const replies = service.discussion("reserved-domain-demo").roots[0].replies;
   assert.equal(replies.length, 2);
@@ -758,6 +764,108 @@ test("own published question gets one unchanged private robot follow-up", async 
   assert.equal(discussion.begin("edit", replies[1].id), false);
   assert.equal(await discussion.withdraw(replies[1].id), true);
   assert.equal(service.discussion("reserved-domain-demo").roots[0].replies[1].label, "Deleted by user");
+});
+
+test("explicit AI reply accepts a human root, another author's nested reply, and a generated reply", async () => {
+  for (const kind of ["human-root", "other-author-nested", "generated-reply"]) {
+    let request;
+    const app = await harness({ shareOnCompletion: true,
+      aiClient: {
+        status: async () => ({ connected: true, planEnabled: true, pending: false,
+          account: { clientId: "client-a", label: "Owner" } }),
+        models: async () => [{ slug: "model-a" }],
+        start: async (value) => { request = value; return { state: "running" }; },
+        result: async () => ({ state: "completed", result: { body: "Exact reply", model: "model-a", citations: [] } }),
+        cancel: async () => true,
+      },
+      readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public article" }),
+      attestArticle: async () => true, randomId: () => `reply-${kind}` });
+    const create = (command, actor = "demo-alex", proof = null) => app.service.command(
+      app.service.catalog().version, command, actor, proof).result.contributionId;
+    const rootId = create({ type: "create-root", topicId: "reserved-domain-demo", body: "R".repeat(2_500) });
+    const discussionId = app.service.discussion("reserved-domain-demo").discussionId;
+    let targetId = rootId;
+    if (kind !== "human-root") {
+      targetId = create({ type: "reply", discussionId, rootId, replyToId: rootId,
+        body: "T".repeat(2_500) }, "demo-blair");
+    }
+    if (kind === "generated-reply") {
+      const proof = { kind: "generated-insight", operationId: "seed-generated", actorId: "demo-alex",
+        topicId: "reserved-domain-demo", originSourceId: null, body: "Generated nested reply",
+        rootId, replyToId: targetId, discussionId };
+      targetId = create({ type: "share-insight-reply", topicId: "reserved-domain-demo", discussionId,
+        rootId, replyToId: targetId, body: proof.body, operationId: proof.operationId }, "demo-alex", proof);
+    }
+    await app.discussion.open();
+    await app.insight.checkConnection(); await app.insight.loadModels();
+    assert.equal(app.insight.prepare({ includeDiscussion: true }), true);
+    assert.ok(app.insight.currentState().context.discussion.length > 0);
+    assert.equal(await app.insight.createFollowup(targetId), true, kind);
+    assert.equal(request.followupQuestionId, targetId, kind);
+    assert.deepEqual(request.context.discussion, [], kind);
+    assert.equal(Object.hasOwn(request, "questionBody"), false);
+    const answer = app.service.discussion("reserved-domain-demo").roots[0].replies.at(-1);
+    assert.equal(answer.replyToId, targetId, kind);
+    assert.equal(answer.insight.kind, "generated", kind);
+    assert.equal(app.commands.filter((command) => command.type === "share-insight-reply").length, 1, kind);
+    for (const field of ["questionId", "rootBody", "targetBody"]) {
+      assert.equal(Object.hasOwn(app.reviews[0], field), false, `${kind}: ${field} in review`);
+    }
+  }
+});
+
+test("reply target is checked again before sharing, including edited and withdrawn targets", async () => {
+  for (const change of ["edited", "withdrawn", "missing", "foreign-root"]) {
+    let releaseResult;
+    const app = await harness({ shareOnCompletion: true,
+      aiClient: {
+        status: async () => ({ connected: true, planEnabled: true, pending: false,
+          account: { clientId: "client-a", label: "Owner" } }),
+        models: async () => [{ slug: "model-a" }], start: async () => ({ state: "running" }),
+        result: async () => new Promise((resolve) => { releaseResult = resolve; }), cancel: async () => true,
+      },
+      readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Public article" }),
+      attestArticle: async () => true, randomId: () => `stale-${change}` });
+    const result = app.service.command(app.service.catalog().version,
+      { type: "create-root", topicId: "reserved-domain-demo", body: "Original" }, "demo-alex");
+    await app.discussion.open(); await app.insight.checkConnection(); await app.insight.loadModels();
+    const running = app.insight.createFollowup(result.result.contributionId);
+    for (let i = 0; !releaseResult && i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
+    const changed = structuredClone(app.discussion.currentState());
+    if (change === "edited") changed.discussion.roots[0].body = "Edited";
+    if (change === "withdrawn") changed.discussion.roots[0].state = "deleted";
+    if (change === "missing") changed.discussion.roots = [];
+    if (change === "foreign-root") changed.discussion.roots[0].id = "foreign-root";
+    app.insight.observe(changed);
+    releaseResult({ state: "completed", result: { body: "Do not post", model: "model-a", citations: [] } });
+    assert.equal(await running, true, change);
+    assert.equal(app.commands.filter((command) => command.type === "share-insight-reply").length, 0, change);
+  }
+});
+
+test("discussion share accepts only a visible canonical root and matching selected target", async () => {
+  const app = await harness();
+  const service = app.service;
+  const first = service.command(service.catalog().version,
+    { type: "create-root", topicId: "reserved-domain-demo", body: "First" }, "demo-alex").result.contributionId;
+  const second = service.command(service.catalog().version,
+    { type: "create-root", topicId: "reserved-domain-demo", body: "Second" }, "demo-blair").result.contributionId;
+  await app.discussion.open();
+  const state = app.discussion.currentState();
+  const base = { body: "Exact generated reply", operationId: "review-op", topicId: state.topicId,
+    sourceId: state.sourceId, actorId: state.actorId, expected: state.discussion.version,
+    discussionId: state.discussion.discussionId, rootId: first, replyToId: first };
+  for (const review of [
+    { ...base, rootId: second }, { ...base, replyToId: "missing" },
+    { ...base, discussionId: "foreign-discussion" },
+  ]) assert.equal(await app.discussion.shareInsight(review), false);
+  assert.equal(app.commands.length, 0);
+  // The root itself is a valid reply target through the existing proof path.
+  assert.equal(await app.discussion.shareInsight(base), true);
+  assert.equal(app.commands.at(-1).rootId, first);
+  assert.equal(app.commands.at(-1).replyToId, first);
+  assert.equal(service.discussion("reserved-domain-demo").roots.find((root) => root.id === first)
+    .replies[0].replyToId, first);
 });
 
 test("resumed follow-up exposes its validated target while polling and remains private", async () => {
@@ -799,6 +907,36 @@ test("resumed follow-up exposes its validated target while polling and remains p
   assert.equal(await running, true);
   assert.equal(reopened.currentState().draft, "Private follow-up");
   assert.equal(app.commands.length, previousCommands);
+});
+
+test("a resumed reply to another author's root stays private", async () => {
+  let app, starts = 0;
+  app = await harness({ shareOnCompletion: true, aiClient: {
+    status: async () => ({ connected: true, planEnabled: true, pending: false,
+      account: { clientId: "client-a", label: "Owner" } }),
+    models: async () => [{ slug: "model-a" }],
+    resumable: async () => {
+      const snapshot = app.discussion.currentState();
+      const root = snapshot.discussion.roots[0];
+      return { operationId: "resumed-root-reply", expected: snapshot.catalog.version,
+        topicId: snapshot.topicId, originSourceId: snapshot.sourceId,
+        discussionId: snapshot.discussion.discussionId, rootId: root.id, replyToId: root.id };
+    },
+    result: async () => ({ state: "completed", result: { body: "Recovered reply", model: "model-a", citations: [] } }),
+    start: async () => { starts++; throw new Error("unexpected start"); }, cancel: async () => true,
+  } });
+  const rootId = app.service.command(app.service.catalog().version,
+    { type: "create-root", topicId: "reserved-domain-demo", body: "Blair's root" },
+    "demo-blair").result.contributionId;
+  await app.discussion.open();
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(await app.insight.resumeInsights(), true);
+  assert.deepEqual(app.insight.currentState().followup, {
+    discussionId: app.discussion.currentState().discussion.discussionId,
+    rootId, replyToId: rootId });
+  assert.equal(app.insight.currentState().draft, "Recovered reply");
+  assert.equal(app.commands.length, 0);
+  assert.equal(starts, 0);
 });
 
 test("opted-in deliberate result shares its exact root once and a follow-up keeps its target visible", async () => {

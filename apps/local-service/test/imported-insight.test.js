@@ -66,7 +66,7 @@ test("generated share requires matching server proof and cannot be edited", () =
   assert.equal(JSON.stringify(view).includes("operatorId"), false);
 });
 
-test("generated follow-up can answer only its operator's published direct question", () => {
+test("generated follow-up accepts an attested canonical target while preserving exact proof", () => {
   const service = demoService();
   const rootId = share(service, service.catalog().version).result.contributionId;
   const discussionId = service.discussion("harbor-s2").discussionId;
@@ -88,8 +88,8 @@ test("generated follow-up can answer only its operator's published direct questi
   const nestedId = service.command(expected, { type: "reply", discussionId,
     rootId, replyToId: questionId, body: "Nested question" }, "demo-blair").result.contributionId;
   const nested = { ...response, replyToId: nestedId };
-  assert.throws(() => service.command(service.catalog().version, nested, "demo-blair",
-    { ...responseProof, replyToId: nestedId }), code("forbidden"));
+  assert.ok(service.command(service.catalog().version, nested, "demo-blair",
+    { ...responseProof, replyToId: nestedId }).result.contributionId);
   const answerId = service.command(service.catalog().version, response, "demo-blair", responseProof).result.contributionId;
   let view = service.discussion("harbor-s2");
   const answer = view.roots[0].replies.find((entry) => entry.id === answerId);
@@ -169,7 +169,7 @@ test("persisted validator rejects spoofed agent variants and human insight metad
   assert.throws(() => assertValidPersistedState(legacy), TypeError);
 });
 
-test("persisted validator rejects a robot reply detached from its published question", () => {
+test("persisted validator accepts canonical generated targets and rejects broken ancestry or provenance", () => {
   const deps = deterministicDependencies();
   const alex = { id: "demo-alex", type: "human", demo: true };
   const blair = { id: "demo-blair", type: "human", demo: true };
@@ -191,9 +191,11 @@ test("persisted validator rejects a robot reply detached from its published ques
   state = outcome.state;
   assert.doesNotThrow(() => assertValidPersistedState(state));
   for (const corrupt of [
-    (copy) => { copy.contributions.at(-1).replyToId = rootId; },
-    (copy) => { copy.contributions.at(-1).insight.operatorId = alex.id; },
-    (copy) => { copy.contributions[1].actorType = "agent"; },
+    (copy) => { copy.contributions.at(-1).replyToId = null; },
+    (copy) => { copy.contributions.at(-1).replyToId = "missing-target"; },
+    (copy) => { copy.contributions.at(-1).rootId = "missing-root"; },
+    (copy) => { copy.contributions.at(-1).insight.operatorId = "unknown-operator"; },
+    (copy) => { copy.contributions.at(-1).insight.kind = "manual-import"; },
   ]) {
     const copy = structuredClone(state);
     corrupt(copy);
