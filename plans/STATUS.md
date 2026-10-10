@@ -493,6 +493,11 @@ articles, so candidate retrieval is promising; top three is diagnostic, not
 a fixed Source/Topic limit or a join rule. Aggregate details are in the
 [private-corpus evaluation result](../apps/local-service/experiments/topic-encoder/real-event-eval/RESULTS.md).
 No live matcher, saved Topic, discussion or extension asset changed.
+Retrospective selection audit (2026-10-10): a separate preliminary
+298-article run with a 300-budget greedy selector may overlap that remainder;
+it is not globally untouched. Future one-shot selection excludes whole events
+from both the 1,192- and 298-article cohorts and verifies disjointness before
+embedding. The earlier per-run count remains correct.
 
 **First train-only real-pair follow-up:** An isolated regularized pair
 classifier trained on 749 selected reports and scored 150 event-disjoint

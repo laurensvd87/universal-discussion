@@ -10,6 +10,10 @@ budget**: 1,192 reports in 96 events. The remaining 3,495 reports/274 events
 were unscored. This limit is not a proposed Source count per Topic. No
 family or viewpoint labels were available; event-level splits are disjoint,
 but adjacent-development and opposing-view performance cannot be inferred.
+Retrospective clarification (2026-10-10): “unscored” describes this initial
+run only. A later 298-article preliminary run used a different greedy
+compute budget; its selected events may overlap this run's remainder. Do not
+treat all 3,495 as globally untouched.
 
 With the already packaged local multilingual E5 model, each report was
 represented by its title and first 384 normalized lead characters (an

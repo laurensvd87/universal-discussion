@@ -43,6 +43,14 @@ without a reliable family key, closely related developments or publisher
 templates may still occur on both sides. A favorable validation score would
 therefore still need an independently sourced holdout before activation.
 
+Retrospective correction (2026-10-10): “unscored” above refers to that
+initial 1,200-budget run, **not** every later experiment. A documented
+298-article preliminary run used a separate 300-budget greedy selection and
+may overlap that remainder. New one-shot selection must exclude the union of
+both earlier whole-event selections before claiming its articles were not
+previously embedded or scored. Corpus-wide metadata were also inspected;
+“entirely untouched” would be inaccurate.
+
 Candidate retrieval found a same-event partner in the first three neighbors
 for 1,141/1,192 scored reports (cross-language-only: 1,181/1,192).
 These ranks are diagnostic: no fixed top-three identity gate or maximum
