@@ -1,5 +1,54 @@
 # Project status
 
+**2026-10-10 owner-local alternate Topic integration (extension 0.13.28):**
+The owner-approved local weights are installed in a Git-ignored service file.
+The paired service now exposes a revision-bound, source-scoped alternate
+discussion read; extension Settings provides **Current / New · experimental**
+and Topic Atlas previews the same planner. Current remains the default.
+Experimental grouping changes display and toolbar color only: canonical
+Source links, post writes, AI Insight proofs and SQLite records stay intact.
+Foreign Topic roots are read-only from the current page and link to their
+origin; manual/legacy roots stay pinned. Invalid/missing weights or planner
+capacity fail to Current. The planner has a one-million-pair/ten-second work
+budget, so this is not a scalable no-limit matcher. On 149 retained Sources,
+141 eligible provisional, the translated pair shares a candidate group and
+displayed root set. A focused backend-to-extension contract test validates
+the actual alternate DTO. Exploratory title-only audit found 4 clearly wrong
+adapter groups among 17 multi-page groups; no accuracy or model-quality win
+is claimed. Offline checks: local service 282 pass/4 skipped; extension
+1,050 pass; dashboard 10 pass. Existing actual-Chrome extension regression
+smoke passed with zero runtime exceptions/external extension requests, and
+dashboard Chrome smoke passed. The dedicated alternate-switch smoke also
+passed in actual Chrome 154: two actual 384-dimensional synthetic captures,
+the Extension's Source-B-bound alternate request, unchanged draft/post/source
+link, unchanged canonical DTO and Source membership, and switch-back without
+writes. Zero runtime exceptions/external Extension requests. Run
+`npm run test:browser:alternate` with the normal service stopped. Owner visual
+review and real-page quality evaluation remain. The running local service was temporarily stopped for the isolated
+smoke and restarted with the same Origin, without pairing/database reset.
+No model weights, article text or credentials entered Git. Distribution,
+rights, store and scale gates remain open; see ADR-071.
+
+**2026-10-10 owner-local alternate Topic shadow (earlier checkpoint):** The owner approved
+project use of fitted weights, not a rights or release conclusion. The
+reviewed private installer produced one ignored local 384-parameter adapter
+from 475 fit articles; no corpus or weights entered Git, and it is not active
+in routing. An authenticated API/UI switch is in progress. A read-only shadow
+on the saved catalog (149 Sources; 141 eligible provisional) grouped the two
+owner-provided French/Dutch De Standaard versions under both a raw-E5
+neighborhood planner and the fitted adapter. The adapter formed 17 multi-page
+groups covering 42 Sources. A title-only agent audit judged 9 clearly related,
+4 questionable and 4 clearly wrong; current canonical grouping had 9/5/3,
+and the raw-E5 candidate 9/4/3. Those labels are exploratory, not an
+independent precision test. In particular, the adapter added no clear
+catalog benefit and one wrong product/category grouping; do not call it a
+quality win or default it silently. The first reversible integration will
+leave canonical Source links and posts unchanged and expose an explicit
+experimental view only after trust/API/Chrome checks.
+An exploratory E5-title veto would remove two known local false joins, but a
+fixed 0.90 floor removed **all** correct groups from an existing five-language
+synthetic holdout (raw 2→0, adapter 7→0 pairs). It is rejected for live use.
+
 Updated: 2026-10-10. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
@@ -26,7 +75,7 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
-**2026-10-10 requested switch checkpoint:** The owner requests a reversible
+**2026-10-10 requested switch checkpoint (superseded by the integration above):** The owner requests a reversible
 local old/new Topic policy in the backend and extension. The current fixed
 0.04 competing-neighbor lead remains live despite the owner's earlier
 objection; two retained De Standaard language versions are mutual nearest

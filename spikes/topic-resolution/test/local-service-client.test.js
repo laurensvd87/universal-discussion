@@ -4,7 +4,7 @@ import { createLocalServiceClient, LocalServiceClientError } from "../browser/co
 import { LocalServiceSessionProxyError } from "../browser/core/local-service-session.js";
 import { createRequestHandler } from "../../../apps/local-service/src/http/request-handler.js";
 import { demoService } from "../../../apps/local-service/test/helpers.js";
-import { readCommand, readDiscussion, readPostOrigin, readOutcome, readIngestionOutcome,
+import { readCommand, readDiscussion, readPostOrigin, readOutcome, readIngestionOutcome, readAlternateDiscussion,
   readPriorDiscussions } from "../browser/core/local-service-contract.js";
 
 const TOKEN = "synthetic-test-capability-for-client-only";
@@ -137,6 +137,32 @@ test("prior-discussion GET transfers only a Source ID and rejects malformed summ
     { ...valid, topics: [{ ...valid.topics[0], id: "topic-current" }] },
     { ...valid, topics: [valid.topics[0], valid.topics[0]] },
   ]) assert.throws(() => readPriorDiscussions(bad, sourceId), TypeError);
+});
+test("alternate discussion GET validates canonical bindings and never sends page content", async () => {
+  const service = demoService();
+  const canonicalDiscussion = service.discussion("reserved-domain-demo");
+  const catalog = structuredClone(service.catalog());
+  catalog.sources.push({ id: "learned-a", url: "https://example.com/article-a", title: "Synthetic article",
+    provenance: "owner-local-page-embedding/v1", topicId: canonicalDiscussion.topic.id });
+  const root = { ...visiblePost("alternate-root"), origin: origin("learned-a"), replies: [],
+    canonicalTopicId: canonicalDiscussion.topic.id, canonicalDiscussionId: canonicalDiscussion.discussionId };
+  const valid = { mode: "alternate-provisional", policyVersion: "alternate-local-neighborhood/v1",
+    representation: "owner-local-diagonal-adapter/v1", version: catalog.version, sourceId: "learned-a",
+    canonical: { topic: canonicalDiscussion.topic, discussionId: canonicalDiscussion.discussionId },
+    sourceIds: ["learned-a"], roots: [root], pinnedRoots: [] };
+  const calls = [];
+  const api = client(async (url, options) => { calls.push([url, options.method, options.body]); return json(valid); });
+  assert.deepEqual(await api.alternateDiscussion("learned-a", catalog, canonicalDiscussion), valid);
+  assert.deepEqual(calls, [["http://127.0.0.1:4174/v1/sources/learned-a/alternate-discussion", "GET", undefined]]);
+  for (const malformed of [
+    { ...valid, sourceId: "other" }, { ...valid, version: { ...valid.version, revision: valid.version.revision + 1 } },
+    { ...valid, sourceIds: ["other"] }, { ...valid, sourceIds: ["learned-a", "learned-a"] },
+    { ...valid, canonical: { ...valid.canonical, discussionId: "forged-discussion" } },
+    { ...valid, roots: [{ ...root, canonicalTopicId: "forged-topic" }] },
+    { ...valid, roots: [{ ...root, extra: "payload" }] },
+    { ...valid, roots: [root, root] },
+    { ...valid, mode: "canonical-pinned", sourceIds: ["learned-a", "other"] },
+  ]) assert.throws(() => readAlternateDiscussion(malformed, "learned-a", catalog, canonicalDiscussion), TypeError);
 });
 test("catalog and prior discussions accept 101 rows while validating the final row", async () => {
   const base = structuredClone(demoService().catalog());

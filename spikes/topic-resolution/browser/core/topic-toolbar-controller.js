@@ -22,10 +22,13 @@ export function hasPublishedPosts(value, topicId) {
   const projection = readDiscussion(value, topicId);
   return projection.roots.some((root) => root.state === "visible" || root.replies.some((reply) => reply.state === "visible"));
 }
+function hasVisibleRoot(roots) {
+  return roots.some((root) => root.state === "visible" || root.replies?.some((reply) => reply.state === "visible"));
+}
 
 // One inert tab integer survives worker suspension, allowing reconstruction to
 // clear Chrome's override. Connection means a last verified read, never a token.
-export function createTopicToolbarController({ catalog, discussion, paint, readMarker, writeMarker, removeMarker }) {
+export function createTopicToolbarController({ catalog, discussion, alternateDiscussion, readMode, paint, readMarker, writeMarker, removeMarker }) {
   let epoch = 0;
   let abort = new AbortController();
   let pending = Promise.resolve();
@@ -35,6 +38,7 @@ export function createTopicToolbarController({ catalog, discussion, paint, readM
   let matchingOff = false;
   let initialized = false;
   let initializationFailed = false;
+  let alternateCache = null;
   const removed = new Set();
   const base = () => connected ? (matchingOff ? "off" : "connected") : "disconnected";
   function serial(operation) {
@@ -74,6 +78,7 @@ export function createTopicToolbarController({ catalog, discussion, paint, readM
     const snapshot = { ...state };
     const presentationTabId = tabId(snapshot.presentationTabId) ? snapshot.presentationTabId : null;
     if (pairingChanged || ["unpaired", "error"].includes(snapshot.phase)) connected = false;
+    if (pairingChanged || snapshot.phase !== "ready") alternateCache = null;
     matchingOff = snapshot.phase === "off";
     candidate = presentationTabId ?? (snapshot.phase === "ready" && tabId(snapshot.tabId) ? snapshot.tabId : null);
     async function paintBase() {
@@ -110,7 +115,38 @@ export function createTopicToolbarController({ catalog, discussion, paint, readM
           if (!hasCurrentTopic(snapshot, value)) return;
         }
         const shared = hasSharedLearnedTopic(snapshot, value);
-        const color = shared ? (hasPublishedPosts(projection, snapshot.topicId) ? "posts" : "shared") : "topic";
+        let color = shared ? (hasPublishedPosts(projection, snapshot.topicId) ? "posts" : "shared") : "topic";
+        // The alternate view is a read-only presentation over canonical posts.
+        // If it is unavailable, the canonical icon still reports verified facts.
+        let mode = "classic";
+        try { if (typeof readMode === "function") mode = await readMode(); }
+        catch { /* A local preference read cannot invalidate verified canonical evidence. */ }
+        if (epoch !== own) return;
+        if (mode === "experimental" && typeof alternateDiscussion === "function") {
+          try {
+            const key = `${value.version.generation}:${value.version.revision}:${snapshot.sourceId}`;
+            let alternate = alternateCache?.key === key && alternateCache.expiresAt > Date.now() ? alternateCache.value : null;
+            if (!alternate) {
+              alternate = await alternateDiscussion(snapshot.sourceId, value, projection, { signal });
+              if (epoch !== own) return;
+              if (alternate?.sourceId !== snapshot.sourceId ||
+                  alternate.version?.generation !== value.version.generation ||
+                  alternate.version?.revision !== value.version.revision ||
+                  !["alternate-provisional", "canonical-pinned"].includes(alternate.mode) ||
+                  !Array.isArray(alternate.sourceIds) || !alternate.sourceIds.includes(snapshot.sourceId) ||
+                  !Array.isArray(alternate.roots) || !Array.isArray(alternate.pinnedRoots)) throw new Error("invalid-alternate");
+              alternateCache = { key, value: alternate, expiresAt: Date.now() + 15_000 };
+            }
+            if (alternate.mode === "alternate-provisional") {
+              const hasPeer = alternate.sourceIds.length > 1;
+              color = hasPeer ? (hasVisibleRoot(alternate.roots) || hasVisibleRoot(alternate.pinnedRoots) ? "posts" : "shared") : "topic";
+            }
+          } catch {
+            if (epoch !== own) return;
+            alternateCache = null;
+          }
+        }
+        if (epoch !== own) return;
         await serial(async () => {
           if (epoch !== own || removed.has(snapshot.tabId)) return;
           await writeMarker(snapshot.tabId);

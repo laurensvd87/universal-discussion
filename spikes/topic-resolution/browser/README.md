@@ -1,5 +1,19 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.28 adds a reversible **Current / New · experimental** Topic
+view switch under Settings. The new view asks the paired local service for a
+source-scoped grouping made from retained E5 vectors and a validated,
+owner-local adapter. It can show Source-anchored conversations from different
+canonical Topics together without rewriting saved Topics or posts. Posts from
+the current page still use its canonical Topic; a conversation from another
+Topic is read-only here, with a link to open its source before replying.
+Manual Topics and their posts remain pinned. If the adapter is missing,
+invalid or exceeds the bounded planner budget, Current remains available.
+Current is the default; the new grouping has known false joins and is **not**
+validated Topic identity. Restart the local service and reload the unpacked
+extension to try the switch. No new permission, page reread or model download
+is needed. See [ADR-071](../../../decisions/ADR-071-proposed-reversible-local-topic-policy.md).
+
 Extension 0.13.27 looks past empty nearby Topics for discussions that actually
 contain posts. It reads related candidates in batches of four until it has four
 nonempty discussion cards or exhausts the existing related-result list. These

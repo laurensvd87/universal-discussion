@@ -1,6 +1,6 @@
 import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDiscussion, readHealth,
   readId, readLimit, readOutcome, readPairingToken, readRelated, readPriorDiscussions, readReset, readVersion,
-  readIngestion, readIngestionOutcome } from "./local-service-contract.js";
+  readIngestion, readIngestionOutcome, readAlternateDiscussion } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 
 const BASE = "http://127.0.0.1:4174/v1";
@@ -127,6 +127,11 @@ export function createLocalServiceClient({ fetchImpl, getToken, onUnauthorized =
     async discussion(topicId, { signal } = {}) {
       const id = input(() => readId(topicId));
       return request(`/topics/${encodeURIComponent(id)}/discussion`, undefined, undefined, (value) => readDiscussion(value, id), signal);
+    },
+    async alternateDiscussion(sourceId, catalog, canonicalDiscussion, { signal } = {}) {
+      const id = input(() => readId(sourceId));
+      return request(`/sources/${encodeURIComponent(id)}/alternate-discussion`, undefined, undefined,
+        (value) => readAlternateDiscussion(value, id, catalog, canonicalDiscussion), signal);
     },
     async command(expected, command, actorId, { signal } = {}) {
       const body = input(() => ({ expected: readVersion(expected), command: readCommand(command) }));

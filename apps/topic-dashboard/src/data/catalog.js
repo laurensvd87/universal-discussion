@@ -10,6 +10,10 @@ const NEIGHBORS_PER_PAGE = 3;
 
 // Opens the existing service database without creating, migrating, or writing it.
 export function loadDashboardData(databasePath, { now = () => new Date() } = {}) {
+  return buildDashboardSnapshot(loadDashboardState(databasePath), { now });
+}
+
+export function loadDashboardState(databasePath) {
   if (!statSync(databasePath).isFile()) throw new Error("Dashboard database is not a file");
   const database = new DatabaseSync(databasePath, { readOnly: true });
   try {
@@ -33,7 +37,7 @@ export function loadDashboardData(databasePath, { now = () => new Date() } = {})
       throw new Error("Dashboard snapshot metadata is inconsistent");
     }
     assertValidPersistedState(state);
-    return buildDashboardSnapshot(state, { now });
+    return state;
   } finally {
     database.close();
   }

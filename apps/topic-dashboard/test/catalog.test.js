@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { buildDashboardSnapshot, loadDashboardData } from "../src/data/catalog.js";
+import { buildGroupingPreview, readOwnerAdapter } from "../src/data/grouping-preview.js";
+import { makeDiagonalAdapter } from "../../local-service/src/domain/diagonal-adapter.js";
 import { operationDigestFor } from "../../local-service/src/domain/source-threads.js";
 import { applyCommand } from "../../local-service/src/domain/demo-state.js";
 import { ADAPTIVE_TOPIC_POLICY } from "../../local-service/src/domain/adaptive-topics.js";
@@ -88,4 +90,30 @@ test("edge scores remain cosine similarities when retained vectors have permitte
   const edge = snapshot.edges.find((item) => item.sourceId === "page-a" && item.targetId === "page-b");
   assert.ok(edge);
   assert.ok(Math.abs(edge.score - Math.cos(0.1)) < 1e-12);
+});
+
+test("alternate preview covers every displayed Source once, preserving manual pins as singletons", () => {
+  const input = state();
+  input.sourceLinks[2].method = "manual-confirmed";
+  const snapshot = buildDashboardSnapshot(input);
+  const adapter = makeDiagonalAdapter(Array(384).fill(0), { triplets: 100 });
+  const preview = buildGroupingPreview(input, snapshot, adapter);
+  assert.equal(preview.catalogRevision, snapshot.catalogRevision);
+  assert.deepEqual(preview.groups, [{ sourceIds: ["page-a", "page-b"] }, { sourceIds: ["page-c"] }]);
+  assert.deepEqual(Object.keys(preview), ["schemaVersion", "catalogRevision", "groups"]);
+  assert.ok(!JSON.stringify(preview).includes("parameters"));
+  assert.ok(!JSON.stringify(preview).includes("Synthetic"));
+  assert.deepEqual(input.sourceLinks[2], { sourceId: "page-c", topicId: "topic-b", method: "manual-confirmed" });
+});
+
+test("owner adapter loader accepts only bounded, valid local file", () => {
+  const directory = mkdtempSync(join(tmpdir(), "topic-dashboard-adapter-"));
+  try {
+    const filename = join(directory, "adapter.json");
+    assert.equal(readOwnerAdapter(filename), null);
+    writeFileSync(filename, JSON.stringify(makeDiagonalAdapter(Array(384).fill(0), { triplets: 100 })));
+    assert.equal(readOwnerAdapter(filename).parameters.length, 384);
+    writeFileSync(filename, JSON.stringify({ parameters: Array(384).fill(0) }));
+    assert.equal(readOwnerAdapter(filename), null);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
 });

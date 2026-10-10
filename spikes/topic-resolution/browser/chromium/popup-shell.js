@@ -39,6 +39,12 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   find("#app-settings-button")?.setAttribute("aria-label", text("uiSettingsTitle"));
   const insightSettingsHeading = find("#app-settings-insights-heading");
   if (insightSettingsHeading) insightSettingsHeading.textContent = messages?.uiInsightSettings ?? EN.uiInsightSettings ?? "Insight settings";
+  const topicClassic = find("#app-topic-view-classic");
+  const topicExperimental = find("#app-topic-view-experimental");
+  const topicStatus = find("#app-topic-view-status");
+  if (find("#app-topic-view-heading")) find("#app-topic-view-heading").textContent = text("uiTopicViewHeading");
+  if (topicClassic) topicClassic.textContent = text("uiTopicViewClassic");
+  if (topicExperimental) topicExperimental.textContent = text("uiTopicViewExperimental");
   find("#app-navigation")?.setAttribute("aria-label", text("uiNavigationLabel"));
   find("#app-view-discussion")?.setAttribute("aria-label", text("uiDiscussionViewLabel"));
   find("#app-view-insights")?.setAttribute("aria-label", text("uiInsightsViewLabel"));
@@ -51,6 +57,9 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   };
   let activeView = "discussion";
   let lastState;
+  let topicController;
+  let topicChoiceRevision = 0;
+  let requestedTopicMode = "classic";
   const appListeners = [];
   const on = (element, event, handler) => {
     if (!element) return;
@@ -124,6 +133,29 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     const composer = find("#discussion-body");
     (composer && !composer.hidden ? composer : find("#app-settings-button"))?.focus?.({ preventScroll: true });
   });
+  function renderTopicView(state) {
+    const mode = state?.topicViewMode ?? requestedTopicMode;
+    topicClassic?.setAttribute("aria-pressed", String(mode === "classic"));
+    topicExperimental?.setAttribute("aria-pressed", String(mode === "experimental"));
+    if (!topicStatus) return;
+    const active = mode === "experimental" && state?.alternateDiscussion?.sourceId === state?.sourceId &&
+      state?.phase === "ready" && !state?.needsFreshRead;
+    topicStatus.dataset.state = mode === "classic" ? "current" : active ? "active"
+      : state?.alternateError || state?.phase !== "ready" ? "unavailable" : "loading";
+    topicStatus.textContent = text({ current: "uiTopicViewCurrent", active: "uiTopicViewActive",
+      unavailable: "uiTopicViewUnavailable", loading: "uiTopicViewLoading" }[topicStatus.dataset.state])
+      .replace("{count}", String(state?.alternateDiscussion?.sourceIds?.length ?? 0));
+  }
+  function chooseTopicMode(mode) {
+    if (mode !== "classic" && mode !== "experimental") return;
+    topicChoiceRevision += 1;
+    requestedTopicMode = mode;
+    renderTopicView({ ...lastState, topicViewMode: mode, alternateDiscussion: null, alternateError: null });
+    void storageLocal?.set?.({ topicViewMode: mode }).catch?.(() => {});
+    void topicController?.setTopicViewMode(mode);
+  }
+  on(topicClassic, "click", () => chooseTopicMode("classic"));
+  on(topicExperimental, "click", () => chooseTopicMode("experimental"));
   const user = document.querySelector("#ui-mode-user");
   const developer = document.querySelector("#ui-mode-developer");
   const connection = document.querySelector("#connection-status");
@@ -183,6 +215,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   void preference.load();
   function render(state) {
     lastState = state;
+    renderTopicView(state);
     const view = projectDiscussionShell(state, messages);
     connection.dataset.state = view.connection; connection.textContent = view.connectionText;
     document.body.dataset.topicState = view.topicState;
@@ -199,7 +232,20 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
       showView(activeView);
     }
   }
-  return Object.freeze({ render, dispose() {
+  return Object.freeze({ render, bindTopicView(controller) {
+    topicController = controller;
+    const revision = topicChoiceRevision;
+    void (async () => {
+      let saved;
+      try { saved = await storageLocal?.get?.("topicViewMode"); } catch { return; }
+      if (revision !== topicChoiceRevision || !topicController) return;
+      if (saved?.topicViewMode === "experimental") {
+        requestedTopicMode = "experimental";
+        await topicController.setTopicViewMode("experimental");
+      }
+    })();
+  }, dispose() {
+    topicController = null;
     preference.dispose(); user.removeEventListener("click", chooseUser); developer.removeEventListener("click", chooseDeveloper);
     captureControls.removeEventListener("click", showCaptureControls);
     for (const [element, event, handler] of appListeners) element.removeEventListener(event, handler);

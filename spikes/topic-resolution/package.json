@@ -20,6 +20,7 @@
     "test:browser:session": "node harness/run-session-capture-browser-smoke.js",
     "test:browser:eligibility": "node harness/run-page-eligibility-browser-smoke.js",
     "test:browser:matching": "node harness/run-local-service-browser-smoke.js --matching",
+    "test:browser:alternate": "node harness/run-background-matching-browser-smoke.js --alternate-only",
     "test:restricted": "node --import ./harness/deny-external-capabilities.js --test --test-isolation=none",
     "test:watch": "node --test --test-isolation=none --watch"
   },

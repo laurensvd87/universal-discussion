@@ -18,7 +18,10 @@ const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globa
       await captureSession.stop();
     }
   } });
-const toolbar = createTopicToolbarController({ catalog: client.catalog, discussion: client.discussion, paint: createTopicToolbarPainter(api.action),
+const toolbar = createTopicToolbarController({ catalog: client.catalog, discussion: client.discussion,
+  alternateDiscussion: client.alternateDiscussion,
+  readMode: async () => (await api.storage.local.get("topicViewMode")).topicViewMode === "experimental" ? "experimental" : "classic",
+  paint: createTopicToolbarPainter(api.action),
   readMarker: async () => {
     await api.storage.session.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
     return (await api.storage.session.get(TOOLBAR_TAB_KEY))[TOOLBAR_TAB_KEY];
@@ -312,6 +315,9 @@ api.permissions.onRemoved.addListener((removed) => {
   void permission().then((access) => access ? undefined : captureSession.stop()).then(schedule).catch(() => {});
 });
 api.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.topicViewMode) {
+    void toolbar.update({ ...matcher.currentState(), presentationTabId }, { verify: true });
+  }
   if (area === "local" && changes[PAIRING_KEY]) {
     void toolbar.update({ phase: "unpaired", presentationTabId }, { pairingChanged: true });
     schedule(); void inference.close().catch(() => {});

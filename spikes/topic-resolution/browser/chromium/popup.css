@@ -682,6 +682,16 @@ body[data-ui-mode="user"] #app-settings-insights {
 body[data-ui-mode="user"] #app-settings-insights > * { grid-column: 1 !important; min-width: 0; }
 body[data-ui-mode="user"] #app-settings-insights h3 { margin: 0; color: var(--ink); font-size: 16px; line-height: 1.3; }
 body[data-ui-mode="user"] #app-settings-insights #insight-plan-usage { grid-row: auto; margin: 0; text-align: left; font-size: 11px; }
+body[data-ui-mode="user"] #app-settings-topic-view { display: grid; gap: 9px; min-width: 0; }
+body[data-ui-mode="user"] #app-settings-topic-view h3 { margin: 0; font-size: 14px; color: var(--ink); }
+body[data-ui-mode="user"] #app-topic-view-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: #ede9dc; }
+body[data-ui-mode="user"] #app-topic-view-choices button { min-width: 0; min-height: 40px; padding: 5px 8px; border-radius: 11px; background: transparent; color: var(--ink-soft); font-size: 12px; }
+body[data-ui-mode="user"] #app-topic-view-choices button[aria-pressed="true"] { background: #fffdf4; color: var(--ink); box-shadow: 0 2px 7px #544a2822; }
+body[data-ui-mode="user"] #app-topic-view-status { margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.4; }
+body[data-ui-mode="user"] #discussion-alternate-notice { margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.4; }
+body[data-ui-mode="user"] #discussion-alternate-notice[hidden] { display: none; }
+body[data-ui-mode="user"] .discussion-pinned-heading { margin: 8px 0 0; color: var(--ink-soft); font-size: 12px; font-weight: 650; }
+body[data-ui-mode="user"] .discussion-actions .discussion-open-to-reply { width: auto; padding: 7px 10px; border-radius: 999px; font-size: 11px; font-weight: 650; text-decoration: none; }
 body[data-ui-mode="user"] #app-settings-insights :is(#insight-account-details, #insight-source-details, #insight-related-settings, #insight-model) {
   width: 100%; min-width: 0; border-color: var(--line); background: var(--surface);
 }

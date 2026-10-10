@@ -14,18 +14,26 @@ const discussion = (roots = [], revision = 2) => ({ version: { generation: "gene
 function deferred() { let resolve; let reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 const flush = async () => { await new Promise((done) => setImmediate(done)); };
 function harness(options = {}) {
-  const writes = []; let marker = options.marker; let reads = 0; let discussionReads = 0;
+  const writes = []; let marker = options.marker; let reads = 0; let discussionReads = 0; let alternateReads = 0;
   const painted = new Map();
   const controller = createTopicToolbarController({
     catalog: async (request) => { reads++; return options.catalog ? options.catalog(request) : catalog(); },
     discussion: async (id, request) => { discussionReads++; return options.discussion ? options.discussion(id, request) : discussion(); },
+    alternateDiscussion: async (id, catalogValue, projection, request) => {
+      alternateReads++;
+      return options.alternateDiscussion ? options.alternateDiscussion(id, catalogValue, projection, request) : alternate();
+    },
+    readMode: () => options.readMode ? options.readMode() : "classic",
     paint: async (id, state) => { writes.push([id, state]); if (options.paint) await options.paint(id, state); painted.set(id, state); },
     readMarker: async () => { if (options.readMarker) await options.readMarker(); return marker; },
     writeMarker: async (id) => { if (options.writeMarker) await options.writeMarker(id); marker = id; },
     removeMarker: async () => { if (options.removeMarker) await options.removeMarker(); marker = undefined; },
   });
-  return { controller, writes, painted, marker: () => marker, reads: () => reads, discussionReads: () => discussionReads };
+  return { controller, writes, painted, marker: () => marker, reads: () => reads, discussionReads: () => discussionReads,
+    alternateReads: () => alternateReads };
 }
+const alternate = (patch = {}) => ({ mode: "alternate-provisional", sourceId: "source-a", version: { generation: "generation-a", revision: 2 },
+  sourceIds: ["source-a", "source-b"], roots: [], pinnedRoots: [], ...patch });
 test("catalog sharing requires exact learned Source, URL, Topic and distinct learned page", () => {
   assert.equal(hasSharedLearnedTopic(ready(), catalog()), true);
   const a = source("source-a", ready().url);
@@ -59,6 +67,57 @@ test("post addition and withdrawal refresh current evidence without capture", as
   await h.controller.update(ready()); assert.equal(h.painted.get(7), "shared");
   roots = [{ ...visible("post-a"), replies: [] }]; await h.controller.update(ready(), { verify: true }); assert.equal(h.painted.get(7), "posts");
   roots = [{ ...deleted("post-a"), replies: [] }]; await h.controller.update(ready(), { verify: true }); assert.equal(h.painted.get(7), "shared");
+});
+test("experimental group drives color, including pinned posts, and reuses a same-revision view", async () => {
+  let group = alternate();
+  const h = harness({ readMode: () => "experimental", alternateDiscussion: () => group,
+    catalog: () => catalog([source("source-a", ready().url)]) });
+  await h.controller.update(ready()); assert.equal(h.painted.get(7), "shared"); assert.equal(h.alternateReads(), 1);
+  await h.controller.update(ready(), { verify: true }); assert.equal(h.alternateReads(), 1);
+  group = alternate({ sourceIds: ["source-a"], roots: [{ ...visible("post-a"), replies: [] }] });
+  const solo = harness({ readMode: () => "experimental", alternateDiscussion: () => group });
+  await solo.controller.update(ready()); assert.equal(solo.painted.get(7), "topic");
+  const posted = harness({ readMode: () => "experimental", alternateDiscussion: () =>
+    alternate({ pinnedRoots: [{ ...visible("post-a"), replies: [] }] }) });
+  await posted.controller.update(ready()); assert.equal(posted.painted.get(7), "posts");
+});
+test("classic preference skips alternate reads; unavailable or incoherent alternate keeps truthful canonical icon", async () => {
+  const classic = harness({ readMode: () => "classic", alternateDiscussion: () => { throw new Error("unexpected"); } });
+  await classic.controller.update(ready()); assert.equal(classic.painted.get(7), "shared"); assert.equal(classic.alternateReads(), 0);
+  for (const alternateDiscussion of [() => { throw new Error("adapter-unavailable"); },
+    () => alternate({ version: { generation: "generation-a", revision: 3 } }),
+    () => alternate({ sourceId: "source-stale" }),
+    () => alternate({ mode: "unknown-mode", sourceIds: ["source-a"] })]) {
+    const h = harness({ readMode: () => "experimental", alternateDiscussion });
+    await h.controller.update(ready()); assert.equal(h.painted.get(7), "shared");
+  }
+});
+test("canonical-pinned alternate preserves the verified canonical color", async () => {
+  const h = harness({ readMode: () => "experimental", alternateDiscussion: () =>
+    alternate({ mode: "canonical-pinned", sourceIds: ["source-a"] }) });
+  await h.controller.update(ready()); assert.equal(h.painted.get(7), "shared");
+});
+test("switching modes repaints the same tab from its selected view", async () => {
+  let mode = "classic";
+  const h = harness({ readMode: () => mode, alternateDiscussion: () => alternate({ sourceIds: ["source-a"] }) });
+  await h.controller.update(ready()); assert.equal(h.painted.get(7), "shared");
+  mode = "experimental";
+  await h.controller.update(ready(), { verify: true }); assert.equal(h.painted.get(7), "topic");
+  mode = "classic";
+  await h.controller.update(ready(), { verify: true }); assert.equal(h.painted.get(7), "shared");
+  assert.equal(h.alternateReads(), 1);
+});
+test("late alternate response and mode change cannot repaint a stale tab", async () => {
+  const gate = deferred(); let mode = "experimental"; let signal;
+  const h = harness({ readMode: () => mode, alternateDiscussion: (_id, _catalog, _projection, request) => {
+    signal = request.signal; return gate.promise;
+  } });
+  const first = h.controller.update(ready()); await flush();
+  mode = "classic";
+  await h.controller.update(ready({ tabId: 8, sequence: 2 }));
+  assert.equal(signal.aborted, true);
+  gate.resolve(alternate({ roots: [{ ...visible("post-a"), replies: [] }] })); await first;
+  assert.ok(!["topic", "shared", "posts"].includes(h.painted.get(7))); assert.equal(h.painted.get(8), "shared");
 });
 for (const phase of ["off", "checking", "processing", "unsupported", "not-enabled"]) test(`${phase} clears page evidence but preserves last observed connection without requests`, async () => {
   const h = harness(); await h.controller.update(ready()); const reads = h.reads();

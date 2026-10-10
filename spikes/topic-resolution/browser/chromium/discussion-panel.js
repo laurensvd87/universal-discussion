@@ -141,13 +141,15 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const counts = node("p"); counts.id = "discussion-counts"; const thread = node("div"); thread.className = "discussion-thread";
   thread.setAttribute("role", "region"); thread.setAttribute("aria-label", text("uiDiscussionRegionLabel"));
   thread.setAttribute("tabindex", "-1");
+  const alternateNotice = node("p"); alternateNotice.id = "discussion-alternate-notice";
+  alternateNotice.setAttribute("role", "status");
   const backToPage = button("uiBackToThisPage", () => void controller?.open());
   backToPage.id = "discussion-back-to-page"; backToPage.className = "user-only";
   const priorDetails = node("details"); priorDetails.id = "discussion-prior"; priorDetails.className = "compact-details";
   const priorSummary = node("summary"); priorSummary.id = "discussion-prior-summary";
   const priorList = node("ul"); priorList.id = "discussion-prior-list";
   priorDetails.append(priorSummary, priorList);
-  root.append(priorDetails, backToPage, counts, thread);
+  root.append(priorDetails, backToPage, counts, alternateNotice, thread);
   const composer = node("form"); composer.id = "discussion-composer";
   const newThreadHeading = node("h3", "uiNewThread"); newThreadHeading.className = "discussion-new-thread-heading";
   composer.append(newThreadHeading);
@@ -198,6 +200,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const learnedControls = node("section"); learnedControls.id = "discussion-learned-controls";
   const learnedIntro = node("p", "discussionCorrectionIntro");
   learnedControls.append(node("h3", "discussionCorrectionHeading"), learnedIntro); advanced.append(learnedControls);
+  const savedTopicHint = node("p", "uiTopicViewSavedTopicHint"); savedTopicHint.id = "discussion-saved-topic-hint";
+  learnedControls.append(savedTopicHint);
   const correctionTarget = node("select"); correctionTarget.id = "discussion-correction-topic";
   const correctionLabel = node("label", "discussionCorrectionTarget"); correctionLabel.htmlFor = correctionTarget.id;
   const correctConfirm = node("input"); correctConfirm.id = "discussion-correction-confirm"; correctConfirm.type = "checkbox";
@@ -206,7 +210,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   correctionControls.append(correctionLabel, correctionTarget, correctLabel, correctConfirm);
   learnedControls.append(correctionControls);
   const correct = button("discussionCorrect", async () => {
-    if (!correctConfirm.checked) return;
+    if (correct.disabled || !correctConfirm.checked) return;
     if (await controller?.correctSource(correctionTarget.value || null, "CONFIRM SOURCE TOPIC")) correctConfirm.checked = false;
   }, correctionControls);
   const forget = button("discussionForget", () => void controller?.forgetSource(), learnedControls);
@@ -214,6 +218,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const deleteLabel = node("label", "discussionDeleteLabel"); deleteLabel.htmlFor = deleteInput.id;
   learnedControls.append(deleteLabel, deleteInput);
   const deleteTopic = button("discussionDelete", async () => {
+    if (deleteTopic.disabled) return;
     if (await controller?.deleteLearnedTopic(deleteInput.value)) deleteInput.value = "";
   }, learnedControls);
   const clearInput = node("input"); clearInput.id = "discussion-clear-confirmation"; clearInput.autocomplete = "off";
@@ -224,11 +229,14 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   }, learnedControls);
   function learnedActions() {
     const usable = lastState?.catalog && ["ready", "choose-topic"].includes(lastState.phase) && !lastState.busy && !lastState.needsFreshRead;
+    const virtual = lastState?.topicViewMode === "experimental";
     const selectedLearned = lastState?.catalog?.sources.some((source) => source.id === lastState.sourceId && source.provenance === "owner-local-page-embedding/v1");
     const selectedLearnedTopic = lastState?.catalog?.topics.some((topic) => topic.id === lastState.topicId && topic.learned === true);
-    correct.disabled = !usable || !selectedLearned || !correctConfirm.checked;
+    correctionTarget.disabled = correctConfirm.disabled = !usable || virtual || !selectedLearned;
+    deleteInput.disabled = !usable || virtual || !selectedLearnedTopic;
+    correct.disabled = !usable || virtual || !selectedLearned || !correctConfirm.checked;
     forget.disabled = !usable || !selectedLearned;
-    deleteTopic.disabled = !usable || !selectedLearnedTopic || deleteInput.value !== "DELETE TOPIC AND DISCUSSION";
+    deleteTopic.disabled = !usable || virtual || !selectedLearnedTopic || deleteInput.value !== "DELETE TOPIC AND DISCUSSION";
     clear.disabled = !usable || clearInput.value !== "CLEAR LEARNED DATA";
   }
   listen(correctConfirm, "change", learnedActions); listen(deleteInput, "input", learnedActions); listen(clearInput, "input", learnedActions);
@@ -357,16 +365,26 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     }
     card.append(metadata, content);
     const actions = node("div"); actions.className = "discussion-actions";
+    const alternateRoot = state.topicViewMode === "experimental" && state.alternateDiscussion &&
+      state.alternateDiscussion.sourceId === state.sourceId;
+    const canonicalRoot = !alternateRoot || rootEntry.canonicalDiscussionId === state.discussion?.discussionId &&
+      rootEntry.canonicalTopicId === state.topicId && state.discussion?.roots.some((item) => item.id === rootEntry.id);
     let sourceLink = null;
     if (entry.origin) {
       try {
         const origin = readPostOrigin(entry.origin);
         const link = node("a"); link.className = "discussion-source-link";
         link.textContent = "↗";
+        const openToReply = alternateRoot && !canonicalRoot && entry === rootEntry;
+        if (openToReply) {
+          link.textContent = text("uiTopicViewOpenToReply");
+          link.className += " discussion-open-to-reply";
+        }
         link.href = origin.url; link.target = "_blank"; link.rel = "noopener noreferrer";
         link.referrerPolicy = "no-referrer";
         const destination = text("discussionOriginOpen").replace("{title}", origin.title.slice(0, 160)).replace("{url}", origin.url.slice(0, 240));
-        link.setAttribute("aria-label", destination); link.title = destination;
+        link.setAttribute("aria-label", openToReply ? text("uiTopicViewOpenToReply") : destination);
+        link.title = destination;
         sourceLink = link;
       } catch { /* Invalid projections never become navigable links. */ }
     }
@@ -384,13 +402,14 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     }
     if (entry.edited) card.append(node("span", "discussionEdited"));
     function action(key, callback) {
-      const item = node("button", key); item.type = "button"; item.disabled = state.busy || state.needsFreshRead || state.phase !== "ready";
+      const item = node("button", key); item.type = "button";
+      item.disabled = !canonicalRoot || state.busy || state.needsFreshRead || state.phase !== "ready";
       item.setAttribute("data-action", key.replace(/^discussion/u, "").toLowerCase());
       item.setAttribute("data-contribution-id", entry.id);
       item.addEventListener("click", callback); threadHandlers.push([item, callback]); actions.append(item);
     }
-    if (rootEntry.state === "visible") action("discussionReply", () => { if (controller?.begin("reply", entry.id)) body.focus(); });
-    if (ownsContribution(entry, state.actorId)) {
+    if (rootEntry.state === "visible" && canonicalRoot) action("discussionReply", () => { if (controller?.begin("reply", entry.id)) body.focus(); });
+    if (canonicalRoot && ownsContribution(entry, state.actorId)) {
       if (entry !== rootEntry && entry.rootId === rootEntry.id && entry.replyToId === rootEntry.id &&
           entry.actorType === "human" &&
           rootEntry.actorType === "agent" && rootEntry.insight?.kind === "generated") {
@@ -416,7 +435,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let renderedFreshRead;
   let renderedUiMode;
   let renderedRelatedDiscussions;
-  let observedTopicId;
+  let observedViewKey;
   let observedContributionIds = new Set();
   let observedDiscussion = false;
   const expandedBranches = new Set();
@@ -514,6 +533,10 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       clearInput.value = "";
       confirmation.value = "";
     }
+    if (state.topicViewMode === "experimental" && previousState?.topicViewMode !== "experimental") {
+      correctConfirm.checked = false;
+      deleteInput.value = "";
+    }
     confirmationContext = nextConfirmationContext;
     const errorKey = { unauthorized: "discussionUnauthorized", "extension-connection-unavailable": "discussionExtensionUnavailable", "durable-pairing-required": "discussionDurableRequired",
       conflict: "discussionConflict", capacity: "discussionCapacity",
@@ -599,7 +622,18 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       ? text(uiMode === "user" ? "uiOriginDisclosure" : "discussionOriginDisclosure").replace("{title}", postingSource.title)
       : text(uiMode === "user" ? "uiOriginNone" : "discussionOriginNone");
     originDisclosure.hidden = uiMode === "user";
-    const entries = state.discussion?.roots.flatMap((entry) => [entry, ...entry.replies]) ?? [];
+    const alternateView = state.topicViewMode === "experimental" && state.phase === "ready" &&
+      !state.needsFreshRead && state.alternateDiscussion?.sourceId === state.sourceId
+      ? state.alternateDiscussion : null;
+    const displayRoots = alternateView
+      ? [...alternateView.roots, ...alternateView.pinnedRoots] : state.discussion?.roots ?? [];
+    const entries = displayRoots.flatMap((entry) => [entry, ...(entry.replies ?? [])]);
+    alternateNotice.hidden = state.topicViewMode !== "experimental";
+    alternateNotice.textContent = alternateNotice.hidden ? "" : text(alternateView
+      ? "uiTopicViewActive" : state.alternateError || state.phase !== "ready"
+        ? "uiTopicViewUnavailable" : "uiTopicViewLoading")
+      .replace("{count}", String(alternateView?.sourceIds.length ?? 0));
+    alternateNotice.setAttribute("data-state", alternateView ? "active" : "fallback");
     counts.textContent = state.discussion ? text(uiMode === "user" ? "uiContributionCounts" : "discussionCounts")
       .replace("{human}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "human").length))
       .replace("{agent}", String(entries.filter((entry) => entry.state === "visible" && entry.actorType === "agent").length)) : "";
@@ -607,8 +641,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     thread.hidden = uiMode === "user" && !state.discussion;
     // A discussion snapshot establishes the baseline for this Topic. Only a genuinely
     // new ID arriving later in that same Topic receives the entrance animation.
-    if (observedTopicId !== state.topicId) {
-      observedTopicId = state.topicId;
+    const viewKey = alternateView ? `experimental:${state.sourceId}:${alternateView.sourceIds.join(",")}` : `classic:${state.topicId}`;
+    if (observedViewKey !== viewKey) {
+      observedViewKey = viewKey;
       observedContributionIds = new Set();
       observedDiscussion = false;
       expandedBranches.clear();
@@ -627,7 +662,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       observedDiscussion = true;
     }
     // Input updates leave contribution buttons in place so keyboard focus survives.
-    const signature = JSON.stringify(state.discussion);
+    const signature = JSON.stringify([state.discussion, alternateView]);
     if (signature !== renderedDiscussion || renderedActor !== state.actorId || renderedBusy !== state.busy || renderedFreshRead !== state.needsFreshRead || renderedUiMode !== uiMode) {
       const focused = document.activeElement;
       const focusKey = focused?.getAttribute?.("data-contribution-id") ?? focused?.attributes?.["data-contribution-id"] ??
@@ -638,7 +673,11 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           entry.id === focusKey || entry.replies?.some((reply) => reply.id === focusKey))?.id);
       clearThreadHandlers(); const cards = [];
       let branchSerial = 0;
-      for (const rootEntry of state.discussion?.roots ?? []) {
+      for (const [index, rootEntry] of displayRoots.entries()) {
+        if (alternateView?.pinnedRoots.length && index === alternateView.roots.length) {
+          const divider = node("h3", "uiTopicViewPinned"); divider.className = "discussion-pinned-heading";
+          cards.push(divider);
+        }
         const group = node("section"); group.className = "discussion-thread-card";
         group.setAttribute("data-thread-root-id", rootEntry.id);
         group.setAttribute("tabindex", "-1");
@@ -727,7 +766,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           focusAvailable(thread);
       }
     }
-    const readOnlyRelated = selectedTopicReady ? state.relatedDiscussions ?? [] : [];
+    const alternateTopicIds = new Set((alternateView?.roots ?? []).map((entry) => entry.canonicalTopicId));
+    const readOnlyRelated = selectedTopicReady ? (state.relatedDiscussions ?? [])
+      .filter((entry) => !alternateTopicIds.has(entry.topicId)) : [];
     relatedDiscussions.hidden = uiMode !== "user" || readOnlyRelated.length === 0;
     const relatedSignature = JSON.stringify(readOnlyRelated);
     if (relatedSignature !== renderedRelatedDiscussions) {
@@ -789,6 +830,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     provenance.textContent = !selectedSource ? "" : text(learned ? "discussionProvenanceLearned" : "discussionProvenanceFixture");
     learnedControls.hidden = !(state.catalog?.sources.some((source) => source.provenance === "owner-local-page-embedding/v1") ||
       state.catalog?.topics.some((topic) => topic.learned === true));
+    savedTopicHint.hidden = state.topicViewMode !== "experimental" || learnedControls.hidden;
     choices(correctionTarget, state.catalog?.topics ?? [], correctionTarget.value, "discussionSeparate");
     learnedActions();
     const suggestions = (state.related?.results ?? []).map((source) => {

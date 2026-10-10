@@ -1,5 +1,37 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 alternate-view implementation checkpoint: extension 0.13.28,
+the paired local service and Topic Atlas now share the owner-local diagonal
+adapter's bounded neighborhood planner. The authenticated source-scoped API
+returns revision-bound candidate Sources and rendered Source-anchored roots.
+Extension Settings defaults to Current and offers New · experimental; the
+dashboard has an automatically available local preview. Canonical SQLite
+Topics/posts, writes and AI Insight authority are unchanged. Foreign Topic
+roots are read-only until their source is opened; manual pins remain canonical.
+The adapter is an ignored local file and is not distributed. The saved-catalog
+shadow joins the owner's translation pair, but title-only audit found four
+clearly wrong adapter groups among seventeen multi-page groups; do not claim
+accuracy or default promotion. Planner work stops at one million comparisons
+or ten seconds. Service 282 pass/4 skipped, extension 1,050 pass, dashboard
+10 pass; ordinary extension and dashboard actual-Chrome smokes pass. The
+dedicated `test:browser:alternate` also passes with two actual browser-vector
+captures, a Source-bound alternate GET, unchanged draft/post/source links and
+canonical data, and no writes on switch-back. Next: owner visual test, independent
+precision evaluation, and an indexed/incremental strategy before scale.
+No release/rights/remote-service gate is closed by this local experiment.
+
+2026-10-10 owner-local shadow checkpoint: the reviewed installer created one
+Git-ignored 384-parameter adapter from 475 fit articles after the owner's
+explicit project-use approval. The read-only catalog shadow saw 149 Sources,
+141 eligible provisional, and grouped the owner-provided translated De
+Standaard pair under both raw E5 and adapter neighborhood policies. A
+title-only audit of multi-page groups was mixed: canonical 9 clear/5
+questionable/3 wrong, raw candidate 9/4/3, adapter 9/4/4. The adapter added
+one wrong product/category join and has no demonstrated live-catalog quality
+advantage. These judgments are not independent precision evidence. Weights
+remain ignored and inactive; the next increment is an authenticated,
+source-scoped read view with canonical post routing untouched.
+
 2026-10-10 proposed integration checkpoint: the owner requests a reversible
 local old/new Topic policy. [ADR-071](../decisions/ADR-071-proposed-reversible-local-topic-policy.md)
 separates preparation from activation. The existing E5 + 0.04 lead remains
@@ -22,8 +54,9 @@ adapter's [fresh body-prefix transfer](../apps/local-service/experiments/topic-e
 improved correct grouped pairs over raw body E5, 255 versus 20 on the same
 300 reports, but made one false grouped join and exposed two mixed-group
 pages versus zero. It **fails** ADR-069's relative safety choice; do not
-activate it, save trained weights, or reinterpret the title/lead result as
-live browser evidence. [ADR-070](../decisions/ADR-070-inert-topic-grouping-preview.md)
+activate it on that evidence or reinterpret the title/lead result as
+live browser evidence. The owner later explicitly approved local fitting;
+the resulting ignored artifact is still not active. [ADR-070](../decisions/ADR-070-inert-topic-grouping-preview.md)
 adds an optional browser-memory-only Topic Atlas preview shell with no real
 producer or routing effect. A live extension/backend switch is not built or
 approved. Further work needs new, rights-reviewed browser-equivalent evidence

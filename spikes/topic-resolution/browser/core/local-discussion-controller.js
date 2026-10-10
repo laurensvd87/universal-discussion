@@ -34,6 +34,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   observeTabLifecycle, lookupByNormalizedUrl, readPageResolution = null, pausePageMatching = null,
   validatePairing = async () => {}, onStateChange = () => {} }) {
   let state = { phase: "disconnected", error: null, catalog: null, discussion: null,
+    topicViewMode: "classic", alternateDiscussion: null, alternateError: null,
     related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
     sourceId: null, topicId: null, actorId: null, selection: null,
     draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null };
@@ -45,16 +46,18 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   let manualSelection = 0;
   let observationSequence = 0;
   let preparingLearned = false;
+  let alternateRequest = 0;
   function publish(patch = {}) {
     const contextChanged = patch.discussion === null || patch.related === null || patch.catalog === null ||
       patch.sourceId === null || patch.topicId === null ||
       (Object.hasOwn(patch, "sourceId") && patch.sourceId !== state.sourceId) ||
       (Object.hasOwn(patch, "topicId") && patch.topicId !== state.topicId);
-    state = { ...state, ...patch, ...(contextChanged ? { relatedDiscussions: [] } : {}) };
+    state = { ...state, ...patch, ...(contextChanged ? { relatedDiscussions: [],
+      alternateDiscussion: null, alternateError: null } : {}) };
     if (!disposed) onStateChange(currentState());
   }
   function currentState() { return freeze(structuredClone(state)); }
-  function cancel() { epoch += 1; abort.abort(); abort = new AbortController(); }
+  function cancel() { epoch += 1; alternateRequest += 1; abort.abort(); abort = new AbortController(); }
   function detach() {
     state.draft = { ...state.draft, detached: state.draft.body.length > 0,
       mode: "root", targetId: null };
@@ -81,6 +84,38 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   function sameVersion(left, right) {
     return left?.generation === right?.generation && left?.revision === right?.revision;
+  }
+  async function loadAlternateView(ownEpoch) {
+    const sourceId = state.sourceId, catalog = state.catalog, discussion = state.discussion;
+    const requestNumber = ++alternateRequest;
+    const source = catalog?.sources.find((entry) => entry.id === sourceId);
+    if (state.topicViewMode !== "experimental" || state.phase !== "ready" || !sourceId ||
+        source?.provenance !== "owner-local-page-embedding/v1" || !discussion ||
+        !sameVersion(catalog.version, discussion.version)) {
+      publish({ alternateDiscussion: null, alternateError: state.topicViewMode === "experimental" ? "unavailable" : null });
+      return;
+    }
+    publish({ alternateDiscussion: null, alternateError: null });
+    try {
+      if (typeof client.alternateDiscussion !== "function") throw { code: "unavailable" };
+      const view = await client.alternateDiscussion(sourceId, catalog, discussion, { signal: abort.signal });
+      if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || state.topicViewMode !== "experimental" ||
+          state.sourceId !== sourceId || state.phase !== "ready" || state.needsFreshRead ||
+          !sameVersion(state.catalog?.version, catalog.version) ||
+          !sameVersion(state.discussion?.version, discussion.version)) return;
+      publish({ alternateDiscussion: view, alternateError: null });
+    } catch (error) {
+      if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || state.topicViewMode !== "experimental") return;
+      if (error?.code === "unauthorized") { await failure(error, ownEpoch); return; }
+      publish({ alternateDiscussion: null, alternateError: error?.code ?? "unavailable" });
+    }
+  }
+  async function setTopicViewMode(mode) {
+    if (mode !== "classic" && mode !== "experimental") return false;
+    alternateRequest += 1;
+    publish({ topicViewMode: mode, alternateDiscussion: null, alternateError: null });
+    if (mode === "experimental") await loadAlternateView(epoch);
+    return true;
   }
   async function loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options) {
     if (!sourceId || !topicId || !discussion || !related ||
@@ -191,6 +226,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       }
       publish({ catalog, discussion, related, relatedDiscussions: [], priorDiscussions: prior?.value ?? null,
         priorDiscussionsError: prior?.error ?? null, phase: topicId ? "ready" : "choose-topic" });
+      if (state.topicViewMode === "experimental") void loadAlternateView(ownEpoch);
       void loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options);
     } catch (error) { await failure(error, ownEpoch); }
   }
@@ -381,6 +417,12 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     if (state.phase !== "ready" || state.needsFreshRead || mutationPending) return;
     publish({ draft: { ...state.draft, detached: false, mode: "root", targetId: null } });
   }
+  function canReplyToAlternate(root) {
+    return state.phase === "ready" && !state.needsFreshRead && !state.busy &&
+      root?.state === "visible" && root.canonicalTopicId === state.topicId &&
+      root.canonicalDiscussionId === state.discussion?.discussionId &&
+      state.discussion.roots.some((entry) => entry.id === root.id && entry.state === "visible");
+  }
   function begin(mode, targetId = null) {
     if (state.phase !== "ready" || state.needsFreshRead || mutationPending || state.draft.body) return false;
     const entries = state.discussion.roots.flatMap((root) => [root, ...root.replies]);
@@ -400,7 +442,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     mutationPending = true; const ownEpoch = epoch;
     let confirmed = false;
     let expected = state.discussion?.version ?? state.catalog.version;
-    publish({ busy: true, error: null });
+    alternateRequest += 1;
+    publish({ busy: true, error: null, alternateDiscussion: null, alternateError: null });
     try {
       if (learned) {
         if (!pausePageMatching) return false;
@@ -532,6 +575,6 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       draft: { body: "", detached: false, mode: "root", targetId: null } };
   }
   return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor,
-    selectSource, setDraft, reattachDraft, begin, discardDraft, submitDraft, shareInsight, withdraw, createTopic, reset,
+    selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, shareInsight, withdraw, createTopic, reset,
     updatePageResolution, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

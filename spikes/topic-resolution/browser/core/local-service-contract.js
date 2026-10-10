@@ -261,6 +261,60 @@ export function readDiscussion(value, topicId) {
   }
   return { version: readVersion(item.version), topic: projectedTopic, discussionId: readId(item.discussionId), roots };
 }
+export function readAlternateDiscussion(value, sourceId, catalog, canonicalDiscussion) {
+  const item = record(value, ["mode", "policyVersion", "representation", "version", "sourceId", "canonical", "sourceIds", "roots", "pinnedRoots"]);
+  const mode = oneOf(item.mode, ["alternate-provisional", "canonical-pinned"]);
+  if (item.policyVersion !== "alternate-local-neighborhood/v1" || item.representation !== "owner-local-diagonal-adapter/v1" ||
+      readId(item.sourceId) !== sourceId) invalid();
+  const version = readVersion(item.version);
+  if (!catalog || !canonicalDiscussion || version.generation !== catalog.version?.generation ||
+      version.revision !== catalog.version?.revision || version.generation !== canonicalDiscussion.version?.generation ||
+      version.revision !== canonicalDiscussion.version?.revision) invalid();
+  const canonical = record(item.canonical, ["topic", "discussionId"]);
+  const canonicalTopic = topic(canonical.topic);
+  const current = catalog.sources.find((source) => source.id === sourceId);
+  if (current?.provenance !== "owner-local-page-embedding/v1" || current.topicId !== canonicalTopic.id ||
+      canonicalTopic.id !== canonicalDiscussion.topic.id || canonicalTopic.title !== canonicalDiscussion.topic.title ||
+      canonicalTopic.kind !== canonicalDiscussion.topic.kind ||
+      readId(canonical.discussionId) !== canonicalDiscussion.discussionId) invalid();
+  const sourceIds = array(item.sourceIds, MAX_CATALOG_ENTRIES, readId);
+  if (!sourceIds.includes(sourceId) || new Set(sourceIds).size !== sourceIds.length ||
+      (mode === "canonical-pinned" && (sourceIds.length !== 1 || sourceIds[0] !== sourceId)) ||
+      sourceIds.some((id) => !catalog.sources.some((source) => source.id === id &&
+        source.provenance === "owner-local-page-embedding/v1" && source.topicId !== null))) invalid();
+  const allIds = new Set();
+  function roots(value, pinned) {
+    return array(value, 1000, (raw) => {
+      const state = Object.getOwnPropertyDescriptor(raw ?? {}, "state")?.value;
+      const fields = state === "deleted" ? ["id", "rootId", "replyToId", "state", "label", "replies"] :
+        ["id", "rootId", "replyToId", "state", "authorId", "actorType", "body", "createdAt", "edited", "replies"];
+      if (state === "visible" && Object.hasOwn(raw, "origin")) fields.push("origin");
+      if (state === "visible" && Object.hasOwn(raw, "insight")) fields.push("insight");
+      if (state === "visible" && Object.hasOwn(raw, "regrouped")) fields.push("regrouped");
+      const { canonicalTopicId, canonicalDiscussionId, ...post } = record(raw,
+        [...fields, "canonicalTopicId", "canonicalDiscussionId"]);
+      const id = readId(canonicalTopicId);
+      const topicRow = catalog.topics.find((entry) => entry.id === id);
+      if (!topicRow || (pinned && id !== canonicalTopic.id)) invalid();
+      const discussionId = readId(canonicalDiscussionId);
+      if (id === canonicalTopic.id && discussionId !== canonicalDiscussion.discussionId) invalid();
+      const rendered = readDiscussion({ version, topic: { id: topicRow.id, title: topicRow.title, kind: topicRow.kind },
+        discussionId, roots: [post] }, id).roots[0];
+      for (const entry of [rendered, ...rendered.replies]) {
+        if (allIds.has(entry.id)) invalid();
+        allIds.add(entry.id);
+      }
+      if (!pinned && mode === "alternate-provisional" && rendered.origin && !sourceIds.includes(rendered.origin.sourceId)) invalid();
+      return { ...rendered, canonicalTopicId: id, canonicalDiscussionId: discussionId };
+    });
+  }
+  const projectedRoots = roots(item.roots, false);
+  const pinnedRoots = roots(item.pinnedRoots, true);
+  if (allIds.size > 1000 || (mode === "canonical-pinned" && pinnedRoots.length !== 0)) invalid();
+  return { mode, policyVersion: item.policyVersion, representation: item.representation, version,
+    sourceId, canonical: { topic: canonicalTopic, discussionId: canonical.discussionId }, sourceIds,
+    roots: projectedRoots, pinnedRoots };
+}
 export function readOutcome(value, commandType) {
   const item = record(value, ["version", "result"]);
   if (commandType === "correct-source") {

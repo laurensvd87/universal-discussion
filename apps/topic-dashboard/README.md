@@ -21,7 +21,8 @@ without opening a browser or monitoring, use `npm start -- --no-open`.
 The generated file is
 `%LOCALAPPDATA%\Temp\universal-discussion-dashboard\dashboard.html` on a
 typical Windows installation; the command prints the exact path. A sibling
-`snapshot.js` holds the latest view. Both are overwritten on the next run,
+`snapshot.js` holds the latest view and, when available, its experimental
+grouping preview. Both are overwritten on the next run,
 not automatically deleted. They contain retained page URLs and titles, so do
 not share them casually. Delete both files if you no longer want the extra
 copies. The source SQLite database remains unchanged.
@@ -41,22 +42,24 @@ HTML-export checks with network/process calls denied. `npm run test:browser`
 runs a separate synthetic headless-Chrome smoke when Chrome is installed.
 No npm dependencies or model download are needed.
 
-## Optional grouping preview
+## Experimental grouping preview
 
-For a local, read-only comparison, open the generated `dashboard.html` with
-`?preview=1` appended to its file URL. **Vorschau laden** accepts a separately
-prepared JSON file. A validated preview reveals an **Aktuell / Experimentell**
-switch; the default dashboard and its live Source/Topic/discussion routes stay
-unchanged. The preview exists only in the open browser tab. It is not written
-to `dashboard.html`, `snapshot.js`, SQLite, or browser storage. A catalog
-revision change discards it, and a page reload requires loading it again.
+When the validated owner-local diagonal adapter is installed in the local
+service's ignored `data/diagonal-adapter-v1.json`, Topic Atlas computes a
+read-only grouping preview from the already retained public-page vectors.
+The **Aktuell / Experimentell** switch appears automatically. No file upload
+or extra browser query is needed. A snapshot refresh updates both the map and
+the preview together. If the adapter is absent, invalid, or the planner runs
+out of its work budget, the switch disappears and Current remains available.
 
-The producer is intentionally unconnected. No GlobeSumm corpus, model weights,
-or private research data belong in the preview. Only approved future research
-could supply it after the separate rights, owner, and Trust decisions.
-For synthetic testing, use this exact content-free shape, with the 64-character
-`catalogRevision` from the current dashboard snapshot and a complete partition
-of its displayed Source IDs:
+The preview is saved beside the report as Source IDs and group membership,
+without article text, embeddings, fitted parameters, comments, or accounts.
+Pinned/manual Sources are displayed as separate preview groups. The preview
+does not update SQLite or change the extension's canonical Topic and
+discussion routing. The catalog export itself still contains retained page
+URLs and titles. Its preview has this shape, with the 64-character
+`catalogRevision` from the same snapshot and a complete partition of its
+displayed Source IDs:
 
 ```json
 {
@@ -69,9 +72,9 @@ of its displayed Source IDs:
 }
 ```
 
-The example revision and IDs are placeholders, not a working preview for the
-owner's catalog. The loader rejects extra fields, unknown or duplicate IDs,
-missing displayed Sources, and a stale revision. Group labels and positions
-are derived in memory from the current dashboard view; source-page links and
-nearest-neighbor scores stay attached to their original Sources. The switch
-does not route discussions or revise canonical Topics.
+The example revision and IDs are placeholders. The browser rejects extra
+fields, unknown or duplicate IDs, missing displayed Sources, and a stale
+revision. Group labels and positions are derived from the current map;
+source-page links and nearest-neighbor scores stay attached to their original
+Sources. The experimental adapter is an owner-local candidate and can group
+unrelated pages. It is not a quality or publication clearance.

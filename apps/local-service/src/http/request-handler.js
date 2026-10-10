@@ -130,6 +130,12 @@ async function route(request, service, ai, durablePairing) {
     protocol: "local-service/v1", capability: durablePairing ? "paired-durable-v1" : "paired-demo",
   } };
   if (request.method === "GET" && path === "/v1/catalog") return { status: 200, value: service.catalog() };
+  const alternateMatch = /^\/v1\/sources\/([^/]+)\/alternate-discussion$/u.exec(path);
+  if (request.method === "GET" && alternateMatch) {
+    let sourceId;
+    try { sourceId = decodeURIComponent(alternateMatch[1]); } catch { fail("invalid", "Invalid request"); }
+    return { status: 200, value: service.alternateDiscussion(sourceId) };
+  }
   const priorMatch = /^\/v1\/sources\/([^/]+)\/prior-discussions$/u.exec(path);
   if (request.method === "GET" && priorMatch) {
     let sourceId;
@@ -204,6 +210,7 @@ function mapError(error) {
     invalid: [400, "invalid-request"], method: [400, "invalid-request"],
     unauthorized: [401, "unauthorized"], origin: [403, "forbidden"], host: [403, "forbidden"], forbidden: [403, "forbidden"],
     "not-found": [404, "not-found"], conflict: [409, "conflict"], capacity: [413, "capacity"], oversize: [413, "request-too-large"],
+    unavailable: [503, "alternate-unavailable"],
   };
   const [status, label] = mapping[error.code] ?? [500, "internal"];
   return { status, label };

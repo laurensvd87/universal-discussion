@@ -4,7 +4,6 @@
   const NS = 'http://www.w3.org/2000/svg';
   const $ = (id) => document.getElementById(id);
   const state = { data: null, currentData: null, preview: null, grouping: 'current', snapshotKey: null, topicId: null, pageId: null, query: '', view: { x: 0, y: 0, w: 1000, h: 700 }, drag: null, moved: false };
-  const previewOptIn = new URL(location.href).searchParams.get('preview') === '1';
   const format = new Intl.NumberFormat('de-DE');
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const svg = (name, attributes = {}) => {
@@ -278,15 +277,21 @@
   }
   function selectTopic(id) { state.topicId = state.topicId === id ? null : id; state.pageId = null; render(); }
   function selectPage(id) { state.pageId = id; render(); }
-  function load(raw, { preserve = false, announce = true } = {}) {
+  function load(raw, { preserve = false, announce = true, preview = null } = {}) {
     const next = normalize(raw);
-    if (!preserve || !state.currentData || state.currentData.catalogRevision !== next.catalogRevision || !next.catalogRevision) {
-      state.preview = null;
+    let nextPreview = null;
+    if (preview !== null) {
+      try { nextPreview = normalizePreview(preview, next); }
+      catch { /* A stale or malformed preview never affects the current view. */ }
+    }
+    if (!nextPreview || !preserve || !state.currentData ||
+        state.currentData.catalogRevision !== next.catalogRevision || !next.catalogRevision) {
       state.grouping = 'current';
     }
+    state.preview = nextPreview;
     state.currentData = next;
     state.data = state.grouping === 'experimental' && state.preview ? previewData(next, state.preview) : next;
-    state.snapshotKey = JSON.stringify(raw);
+    state.snapshotKey = JSON.stringify([raw, preview]);
     state.topicId = preserve && state.data.byTopic.has(state.topicId) ? state.topicId : null;
     state.pageId = preserve && state.data.byPage.has(state.pageId) ? state.pageId : null;
     if (state.pageId && state.topicId && state.data.byPage.get(state.pageId).topicId !== state.topicId) {
@@ -340,15 +345,8 @@
     try {
       if (file.size > 8 * 1024 * 1024) throw new Error('Datei ist zu groß.');
       const input = JSON.parse(await file.text());
-      if (input?.schemaVersion === 'grouping-preview/v1') {
-        if (!previewOptIn || !state.currentData || file.size > 256 * 1024) throw new Error('Vorschau ist nicht verfügbar.');
-        state.preview = normalizePreview(input, state.currentData);
-        state.grouping = 'experimental';
-        state.topicId = null;
-        updateGrouping();
-        showStatus('Experimentelle Gruppierung nur für diese Ansicht geladen.');
-      } else if (!previewOptIn || !embeddedReport) load(input);
-      else throw new Error('Hier ist nur eine Gruppierungsvorschau zulässig.');
+      if (embeddedReport) throw new Error('Der lokale Watcher liefert diesen Datenstand.');
+      load(input);
     }
     catch (error) { showStatus(`Laden fehlgeschlagen: ${error.message}`); }
     event.target.value = '';
@@ -360,17 +358,19 @@
     if (bridgePending) { if (manual) manualPending = true; return; }
     bridgePending = true;
     delete globalThis.__topicAtlasSnapshot;
+    delete globalThis.__topicAtlasPreview;
     const script = document.createElement('script');
     script.src = `./snapshot.js?refresh=${Date.now()}`;
     const finish = () => { script.remove(); bridgePending = false; manualPending = false; };
     script.onload = () => {
       try {
         const next = globalThis.__topicAtlasSnapshot;
+        const preview = globalThis.__topicAtlasPreview ?? null;
         if (!next || typeof next.generatedAt !== 'string' || !next.generatedAt) throw new Error('Ungültiger Snapshot.');
-        if (JSON.stringify(next) === state.snapshotKey) {
+        if (JSON.stringify([next, preview]) === state.snapshotKey) {
           if (manual || manualPending) showStatus('Kein neuer Datenstand. Prüfe, ob der Watcher läuft.');
         } else {
-          load(next, { preserve: true, announce: false });
+          load(next, { preserve: true, announce: false, preview });
           showStatus(`Neuer Datenstand geladen: ${$('data-age').textContent}.`);
         }
       } catch (error) {
@@ -386,10 +386,12 @@
   async function loadSnapshot() {
     const embedded = $('dashboard-data');
     if (embedded?.textContent.trim()) {
-      load(JSON.parse(embedded.textContent));
+      const previewElement = $('dashboard-preview-data');
+      const preview = previewElement?.textContent.trim() ? JSON.parse(previewElement.textContent) : null;
+      load(JSON.parse(embedded.textContent), { preview });
       embeddedReport = true;
       $('load-label').hidden = true;
-      $('preview-load-label').hidden = !previewOptIn;
+      $('preview-load-label').hidden = true;
       $('refresh-hint').hidden = false;
       refreshBridge();
       setInterval(() => refreshBridge(), 3000);

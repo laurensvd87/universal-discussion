@@ -10,6 +10,19 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The owner-local build now offers a reversible **Current / New · experimental**
+discussion view in extension Settings, plus the same grouping preview in
+[Topic Atlas](apps/topic-dashboard/README.md). The local service applies a
+private adapter to already saved E5 vectors; visiting pages again is not
+required. The new view joins Source-anchored conversations for display, but
+does not rewrite Topic assignments or posts. A post on the current page is
+saved to its existing Topic; posts from other Topics are read-only until you
+open their source. Current remains the default. The experimental grouping
+brings the owner's translated De Standaard test pair together, but a small
+title audit also found false joins, so it is not yet a quality improvement
+claim or publication-ready matcher. See [ADR-071](decisions/ADR-071-proposed-reversible-local-topic-policy.md)
+and current [status](plans/STATUS.md).
+
 The latest [offline pair-verifier probe](apps/local-service/experiments/topic-encoder/offline-pair-verifier-v1/RESULTS.md)
 failed to improve precise multilingual Topic grouping: its cautious
 development gate recovered only 1/120 true pairs on the synthetic

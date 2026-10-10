@@ -6,13 +6,15 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { APP_DATABASE_PATH } from "../../local-service/src/startup.js";
-import { loadDashboardData } from "./data/catalog.js";
+import { buildDashboardSnapshot, loadDashboardState } from "./data/catalog.js";
+import { buildGroupingPreview, LOCAL_ADAPTER_PATH, readOwnerAdapter } from "./data/grouping-preview.js";
 
 const webPath = fileURLToPath(new URL("../web/", import.meta.url));
 export const DEFAULT_REPORT_PATH = path.join(tmpdir(), "universal-discussion-dashboard", "dashboard.html");
 const styleTag = '<link rel="stylesheet" href="./style.css" data-dashboard-style>';
 const scriptTag = '<script src="./app.js" defer data-dashboard-script></script>';
 const dataTag = '<script id="dashboard-data" type="application/json"></script>';
+const previewTag = '<script id="dashboard-preview-data" type="application/json"></script>';
 const SNAPSHOT_FILE = "snapshot.js";
 
 function replaceOnce(document, needle, replacement) {
@@ -20,11 +22,14 @@ function replaceOnce(document, needle, replacement) {
   return document.replace(needle, replacement);
 }
 
-export function renderDashboardDocument({ template, style, script, snapshot }) {
+export function renderDashboardDocument({ template, style, script, snapshot, preview = null }) {
   const safeJson = serializeSnapshot(snapshot);
   let document = replaceOnce(template, styleTag, `<style>${style}</style>`);
   document = replaceOnce(document, scriptTag, `<script>${script}</script>`);
-  return replaceOnce(document, dataTag, `<script id="dashboard-data" type="application/json">${safeJson}</script>`);
+  document = replaceOnce(document, dataTag, `<script id="dashboard-data" type="application/json">${safeJson}</script>`);
+  if (document.includes(previewTag)) document = replaceOnce(document, previewTag,
+    `<script id="dashboard-preview-data" type="application/json">${serializeSnapshot(preview)}</script>`);
+  return document;
 }
 
 function serializeSnapshot(snapshot) {
@@ -32,8 +37,25 @@ function serializeSnapshot(snapshot) {
     .replaceAll("\u2028", "\\u2028").replaceAll("\u2029", "\\u2029");
 }
 
-export function renderSnapshotScript(snapshot) {
-  return `globalThis.__topicAtlasSnapshot = ${serializeSnapshot(snapshot)};\n`;
+export function renderSnapshotScript(snapshot, preview = null) {
+  return `globalThis.__topicAtlasSnapshot = ${serializeSnapshot(snapshot)};\n` +
+    `globalThis.__topicAtlasPreview = ${serializeSnapshot(preview)};\n`;
+}
+
+function readDashboardBundle(databasePath, now, adapter) {
+  const state = loadDashboardState(databasePath);
+  const snapshot = buildDashboardSnapshot(state, { now });
+  const preview = buildGroupingPreview(state, snapshot, adapter);
+  return { snapshot, preview };
+}
+
+export function readDashboardRefreshKey(databasePath = APP_DATABASE_PATH) {
+  let adapterKey = "absent";
+  try {
+    const info = lstatSync(LOCAL_ADAPTER_PATH);
+    adapterKey = JSON.stringify([info.size, info.mtimeMs, info.isFile(), info.isSymbolicLink()]);
+  } catch { /* Missing adapter remains unavailable. */ }
+  return JSON.stringify([readDashboardRevision(databasePath), adapterKey]);
 }
 
 // The revision includes generation because a reset can start again at revision zero.
@@ -52,23 +74,23 @@ export function readDashboardRevision(databasePath = APP_DATABASE_PATH) {
 }
 
 export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
-  now = () => new Date() } = {}) {
-  const snapshot = loadDashboardData(databasePath, { now });
+  now = () => new Date(), adapter = readOwnerAdapter() } = {}) {
+  const { snapshot, preview } = readDashboardBundle(databasePath, now, adapter);
   const document = renderDashboardDocument({
     template: readFileSync(path.join(webPath, "index.html"), "utf8"),
     style: readFileSync(path.join(webPath, "style.css"), "utf8"),
     script: readFileSync(path.join(webPath, "app.js"), "utf8"),
-    snapshot,
+    snapshot, preview,
   });
-  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot));
+  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview));
   writePrivateAtomic(outputPath, document);
   return { outputPath, counts: snapshot.counts };
 }
 
 export function generateDashboardSnapshot({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
-  now = () => new Date() } = {}) {
-  const snapshot = loadDashboardData(databasePath, { now });
-  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot));
+  now = () => new Date(), adapter = readOwnerAdapter() } = {}) {
+  const { snapshot, preview } = readDashboardBundle(databasePath, now, adapter);
+  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview));
   return { outputPath, counts: snapshot.counts };
 }
 
@@ -93,7 +115,7 @@ function writePrivateAtomic(outputPath, contents) {
   renameSync(pending, outputPath);
 }
 
-export function watchDashboard({ readRevision = readDashboardRevision, generate = generateDashboardSnapshot,
+export function watchDashboard({ readRevision = readDashboardRefreshKey, generate = generateDashboardSnapshot,
   intervalMs = 1_000, initialRevision, onError = () => {},
   setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
   let revision = initialRevision;
@@ -135,7 +157,7 @@ function openReport(reportPath) {
 export async function runDashboardCli(args = process.argv.slice(2)) {
   if (args.some((arg) => arg !== "--no-open")) throw new Error("Use only --no-open, or run without arguments");
   const oneShot = args.includes("--no-open");
-  const initialRevision = oneShot ? undefined : readDashboardRevision();
+  const initialRevision = oneShot ? undefined : readDashboardRefreshKey();
   const result = generateDashboard();
   if (!oneShot) await openReport(result.outputPath);
   process.stdout.write(`Dashboard ready: ${result.counts.displayedPages} captured pages in ${result.counts.topics} Topics.\n${result.outputPath}\n`);

@@ -207,6 +207,40 @@ function state(patch = {}) {
       ] }] }, related: { results: [{ title: "<iframe>inert source</iframe>", url: "https://synthetic.example/", relationship: "related" }] },
     draft: { body: "", detached: false, mode: "root", targetId: null }, ...patch };
 }
+test("experimental view shows grouped and pinned roots while cross-topic actions stay disabled", () => {
+  const ui = harness();
+  const canonical = { id: "root-1", rootId: null, state: "visible", authorId: "demo-alex",
+    actorType: "human", body: "Canonical post", replies: [], canonicalTopicId: "topic-demo",
+    canonicalDiscussionId: "discussion-demo" };
+  const foreign = { ...canonical, id: "foreign-root", body: "From another page",
+    canonicalTopicId: "topic-other", canonicalDiscussionId: "discussion-other",
+    origin: { sourceId: "source-other", url: "https://example.org/story", title: "Other article" } };
+  const snapshot = state({ sourceId: "source-demo", topicViewMode: "experimental",
+    discussion: { discussionId: "discussion-demo", roots: [canonical] },
+    relatedDiscussions: [{ topicId: "topic-other", title: "Other discussion", rootCount: 1, roots: [] }],
+    alternateDiscussion: { sourceId: "source-demo", sourceIds: ["source-demo", "source-other"],
+      roots: [foreign], pinnedRoots: [canonical] } });
+  ui.panel.render(snapshot);
+  const cards = descendants(ui.byId("discussion-alternate-notice").parentElement ?? ui.root)
+    .filter((item) => item.attributes?.["data-thread-root-id"]);
+  assert.deepEqual(cards.map((card) => card.attributes["data-thread-root-id"]), ["foreign-root", "root-1"]);
+  const foreignReply = descendants(cards[0]).find((item) => item.attributes?.["data-action"] === "reply");
+  const canonicalReply = descendants(cards[1]).find((item) => item.attributes?.["data-action"] === "reply");
+  assert.equal(foreignReply, undefined);
+  const openToReply = descendants(cards[0]).find((item) => item.className?.includes("discussion-open-to-reply"));
+  assert.equal(openToReply.textContent, EN.uiTopicViewOpenToReply);
+  assert.equal(openToReply.href, foreign.origin.url);
+  assert.equal(openToReply.referrerPolicy, "no-referrer");
+  assert.equal(canonicalReply.disabled, false);
+  assert.equal(ui.byId("discussion-alternate-notice").textContent, EN.uiTopicViewActive.replace("{count}", "2"));
+  assert.ok(descendants(ui.root).some((item) => item.textContent === EN.uiTopicViewPinned));
+  assert.equal(ui.byId("discussion-related-conversations").hidden, true);
+  ui.panel.render({ ...snapshot, alternateDiscussion: null, alternateError: "unavailable" });
+  const fallbackCards = descendants(ui.root).filter((item) => item.attributes?.["data-thread-root-id"]);
+  assert.deepEqual(fallbackCards.map((card) => card.attributes["data-thread-root-id"]), ["root-1"]);
+  assert.equal(ui.byId("discussion-alternate-notice").textContent, EN.uiTopicViewUnavailable);
+  assert.equal(ui.byId("discussion-related-conversations").hidden, false);
+});
 test("User prior disclosure shows only old-topic actions and a Back action while viewing one", () => {
   const ui = harness();
   const prior = { sourceId: "source-demo", currentTopicId: "topic-demo", topics: [
@@ -781,6 +815,40 @@ test("learned source UI labels provenance/partial inference and explicit correct
   await ui.byId("discussion-clear").listeners.get("click")(); assert.deepEqual(ui.calls.at(-1), ["clearLearnedData", "CLEAR LEARNED DATA"]);
   ui.panel.render({ ...learned, needsFreshRead: true });
   assert.equal(ui.byId("discussion-forget").disabled, true); assert.equal(ui.byId("discussion-clear").disabled, true);
+});
+
+test("experimental matching disables saved Topic correction and deletion but keeps source and global controls", async () => {
+  const ui = harness();
+  const learned = state({ sourceId: "learned-source" });
+  learned.catalog.topics[0].learned = true;
+  learned.catalog.sources = [{ id: "learned-source", title: "Learned page",
+    provenance: "owner-local-page-embedding/v1", topicId: "topic-demo" }];
+  ui.panel.render(learned);
+  const confirm = ui.byId("discussion-correction-confirm");
+  const deletion = ui.byId("discussion-delete-confirmation");
+  confirm.checked = true; confirm.listeners.get("change")();
+  deletion.value = "DELETE TOPIC AND DISCUSSION"; deletion.listeners.get("input")();
+  assert.equal(ui.byId("discussion-correct").disabled, false);
+  assert.equal(ui.byId("discussion-delete").disabled, false);
+  ui.panel.render({ ...learned, topicViewMode: "experimental" });
+  assert.equal(ui.byId("discussion-saved-topic-hint").textContent, EN.uiTopicViewSavedTopicHint);
+  assert.equal(ui.byId("discussion-saved-topic-hint").hidden, false);
+  assert.equal(confirm.checked, false);
+  assert.equal(deletion.value, "");
+  for (const id of ["discussion-correction-topic", "discussion-correction-confirm", "discussion-correct",
+    "discussion-delete-confirmation", "discussion-delete"]) assert.equal(ui.byId(id).disabled, true);
+  assert.equal(ui.byId("discussion-forget").disabled, false);
+  const clearing = ui.byId("discussion-clear-confirmation");
+  clearing.value = "CLEAR LEARNED DATA"; clearing.listeners.get("input")();
+  assert.equal(ui.byId("discussion-clear").disabled, false);
+  const before = ui.calls.length;
+  await ui.byId("discussion-correct").listeners.get("click")();
+  await ui.byId("discussion-delete").listeners.get("click")();
+  assert.equal(ui.calls.length, before);
+  ui.panel.render(learned);
+  assert.equal(ui.byId("discussion-saved-topic-hint").hidden, true);
+  assert.equal(confirm.disabled, false);
+  assert.equal(deletion.disabled, false);
 });
 
 test("forgotten-source orphan learned Topic retains Delete/Clear controls without any learned Source", () => {

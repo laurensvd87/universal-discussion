@@ -24,11 +24,13 @@ try {
     ],
     edges: [{ sourceId: 'page-1', targetId: 'page-2', score: .92 }],
   };
+  const preview = { schemaVersion: 'grouping-preview/v1', catalogRevision: snapshot.catalogRevision,
+    groups: [{ sourceIds: ['page-1'] }, { sourceIds: ['page-2'] }] };
   let html = renderDashboardDocument({
     template: readFileSync(path.join(directory, 'index.html'), 'utf8'),
     style: readFileSync(path.join(directory, 'style.css'), 'utf8'),
     script: readFileSync(path.join(directory, 'app.js'), 'utf8'),
-    snapshot,
+    snapshot, preview,
   });
   html = html.replace('</body>', `<script>
     document.body.dataset.defaultPreviewHidden = document.getElementById('grouping-preview').hidden;
@@ -38,29 +40,9 @@ try {
     search.value = 'Erste';
     search.dispatchEvent(new Event('input', { bubbles: true }));
     document.getElementById('zoom-in').click();
-    const previewInput = document.getElementById('file-input');
-    const choose = (value) => {
-      const transfer = new DataTransfer();
-      transfer.items.add(new File([JSON.stringify(value)], 'preview.json', { type: 'application/json' }));
-      previewInput.files = transfer.files;
-      previewInput.dispatchEvent(new Event('change', { bubbles: true }));
-    };
-    const status = document.getElementById('status');
-    const observer = new MutationObserver(() => {
-      if (!status.textContent.includes('doppelte Source-IDs')) return;
-      observer.disconnect();
-      document.body.dataset.invalidPreviewRejected = document.getElementById('grouping-preview').hidden;
-      setTimeout(() => {
-      choose({ schemaVersion: 'grouping-preview/v1', catalogRevision: '${'a'.repeat(64)}',
-        groups: [{ sourceIds: ['page-1'] }, { sourceIds: ['page-2'] }] });
-      }, 0);
-    });
-    observer.observe(status, { childList: true, characterData: true, subtree: true });
-    choose({ schemaVersion: 'grouping-preview/v1', catalogRevision: '${'a'.repeat(64)}',
-      groups: [{ sourceIds: ['page-1', 'page-1'] }] });
     setTimeout(() => {
-      document.body.dataset.previewStatus = document.getElementById('status').textContent;
       document.body.dataset.previewShown = !document.getElementById('grouping-preview').hidden;
+      document.getElementById('grouping-experimental').click();
       document.body.dataset.previewTopicCount = document.getElementById('count-topics').textContent;
       document.getElementById('grouping-current').click();
       document.body.dataset.currentTopicCount = document.getElementById('count-topics').textContent;
@@ -81,10 +63,11 @@ globalThis.__topicAtlasSnapshot = globalThis.__smokeBridgeReads === 1 ? ${JSON.s
     catalogRevision: 'b'.repeat(64),
     topics: [...snapshot.topics, { id: 'topic-2', title: 'Neues Topic', kind: 'general', pageCount: 1, x: .3, y: .5 }],
     pages: snapshot.pages.map((page) => page.id === 'page-1' ? { ...page, title: 'Neue erste Seite', topicId: 'topic-2' } : page),
-  })};\n`, { mode: 0o600 });
+  })};
+globalThis.__topicAtlasPreview = globalThis.__smokeBridgeReads === 1 ? ${JSON.stringify(preview)} : null;\n`, { mode: 0o600 });
   const result = spawnSync(browser, [
     '--headless=new', '--disable-gpu', '--disable-background-networking', '--no-first-run',
-    `--user-data-dir=${path.join(temporary, 'profile')}`, '--virtual-time-budget=3600', '--dump-dom', `${pathToFileURL(file).href}?preview=1`,
+    `--user-data-dir=${path.join(temporary, 'profile')}`, '--virtual-time-budget=3600', '--dump-dom', pathToFileURL(file).href,
   ], { encoding: 'utf8', timeout: 20000, maxBuffer: 2 * 1024 * 1024, windowsHide: true });
   if (result.error) throw result.error;
   assert.equal(result.status, 0, result.stderr.slice(-1000));
@@ -97,8 +80,6 @@ globalThis.__topicAtlasSnapshot = globalThis.__smokeBridgeReads === 1 ? ${JSON.s
   assert.match(result.stdout, /id="load-label"[^>]*hidden/u);
   assert.doesNotMatch(result.stdout, /id="reload-button"[^>]*hidden/u);
   assert.match(result.stdout, /data-smoke-search="Erste"/u);
-  assert.match(result.stdout, /data-default-preview-hidden="true"/u);
-  assert.match(result.stdout, /data-invalid-preview-rejected="true"/u);
   assert.ok(result.stdout.includes('data-preview-shown="true"'), JSON.stringify({
     body: result.stdout.match(/<body[^>]*>/u)?.[0],
     status: result.stdout.match(/<div id="status"[^>]*>[^<]*/u)?.[0],
@@ -118,8 +99,7 @@ globalThis.__topicAtlasSnapshot = globalThis.__smokeBridgeReads === 1 ? ${JSON.s
   if (ordinary.error) throw ordinary.error;
   assert.equal(ordinary.status, 0, ordinary.stderr.slice(-1000));
   assert.match(ordinary.stdout, /id="preview-load-label"[^>]*hidden/u);
-  assert.match(ordinary.stdout, /id="grouping-preview"[^>]*hidden/u);
-  assert.match(ordinary.stdout, /data-preview-shown="false"/u);
+  assert.match(ordinary.stdout, /data-preview-shown="true"/u);
   assert.match(ordinary.stdout, /Neue erste Seite/u);
   process.stdout.write('Dashboard headless Chrome smoke passed.\n');
 } finally {

@@ -4,6 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createProcessDependencies, startLocalApplication } from '../../../apps/local-service/src/startup.js';
+import { makeDiagonalAdapter } from '../../../apps/local-service/src/domain/diagonal-adapter.js';
+import { changePairing } from '../../../apps/local-service/src/http/pairing-store.js';
 import { EN } from '../browser/locales/en.js';
 import { launchChromiumPipe } from './chromium-pipe.js';
 import { prepareSessionPermission } from './prepare-session-permission.js';
@@ -13,11 +15,11 @@ const BROWSER_ROOT = fileURLToPath(new URL('../browser/', import.meta.url));
 const DEFAULT_CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const ORIGIN = 'https://example.com';
 const API = 'http://127.0.0.1:4174/v1';
-const FIRST_TOKEN = 'owned-background-smoke-first-pairing';
-const SECOND_TOKEN = 'owned-background-smoke-second-pairing';
+const SYNTHETIC_ADAPTER = makeDiagonalAdapter(Array(384).fill(0), { triplets: 100 });
 const COMMENT = 'Owned browser test: the replaceable Cedar battery is useful.';
 const DEMO_COMMENT = 'Owned browser test: retained demo discussion contribution.';
 const CROSS_PAGE_REPLY = 'Owned browser reply from A follows the root created on B.';
+const SWITCH_DRAFT = 'Owned private draft survives the experimental Topic view switch.';
 const STATUS = "document.querySelector('#discussion-status')?.textContent";
 const THREAD = "document.querySelector('#local-discussion .discussion-thread')";
 const TEXTS = {
@@ -50,14 +52,15 @@ const CHILD_FILTER = ROOT_FILTER.filter(item => item.type !== 'service_worker');
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 function fixtureUrl(name) { return `${name === 'b' ? 'https://example.org' : ORIGIN}/background-fixture/${name}`; }
 
-export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME) {
+export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME, { alternateOnly = false } = {}) {
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
   const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-background-smoke-'));
   const databasePath = path.join(directory, 'demo.sqlite');
+  const pairingPath = path.join(directory, 'pairing.json');
   const targets = new Map(), sessionTargets = new Map(), tasks = new Set(), workers = [], requests = [], errors = [], ingestions = [];
   const checks = [];
   let browser, application, extensionId, pageSession, popupSession, popupTarget, deadline, progress, toolbarSession;
-  let capability = FIRST_TOKEN;
+  let capability = null;
   let stage = 'initializing';
   let permissionPreparationTarget;
   let closing = false, runtimeExceptions = 0, interceptedDocuments = 0;
@@ -105,7 +108,12 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   }
   async function evaluate(expression, sessionId = popupSession) {
     const result = await browser.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: true }, sessionId, 15000);
-    if (result.exceptionDetails) throw new Error(`Browser evaluation failed during ${stage}`);
+    if (result.exceptionDetails) {
+      const controls = [...new Set([...expression.matchAll(/#[a-z-]+/gu)].map(match => match[0]))];
+      const category = ['Error', 'TypeError', 'ReferenceError', 'SyntaxError'].includes(result.exceptionDetails.exception?.className)
+        ? result.exceptionDetails.exception.className : 'evaluation-error';
+      throw new Error(`Browser evaluation failed during ${stage} (${category}; controls ${controls.join(',') || 'none'})`);
+    }
     return result.result.value;
   }
   const waitExpression = (expression, label, timeout = 15000) => wait(() => evaluate(expression), label, timeout);
@@ -126,6 +134,9 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   async function input(selector, value) {
     await reveal(selector);
     await evaluate(`(() => {const item=document.querySelector(${JSON.stringify(selector)});item.focus();item.value='';item.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    // Rendering the empty draft may move focus to the shell's current action.
+    // Restore the actual field focus before CDP emits the user's text input.
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`);
     await browser.send('Input.insertText', { text: value }, popupSession);
   }
   async function select(selector, value) {
@@ -200,10 +211,12 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await browser.send('Page.navigate', { url }, pageSession);
     await wait(() => evaluate(`location.href===${JSON.stringify(url)} && document.readyState==='complete'`, pageSession), 'owned document navigation');
   }
-  async function startService(token) {
-    const dependencies = createProcessDependencies(); capability = token;
+  async function startService(action = 'init') {
+    const dependencies = createProcessDependencies();
+    capability = changePairing({ filePath: pairingPath, origin: `chrome-extension://${extensionId}`, action });
     application = await startLocalApplication({ databasePath, nextId: dependencies.nextId, now: dependencies.now,
-      config: { host: '127.0.0.1', port: 4174, origin: `chrome-extension://${extensionId}`, capability: token } });
+      config: { host: '127.0.0.1', port: 4174, origin: `chrome-extension://${extensionId}`, capability: dependencies.capability },
+      pairingPath, alternateAdapter: SYNTHETIC_ADAPTER });
   }
   async function backend(route) {
     const response = await fetch(API + route, { headers: { Authorization: `Bearer ${capability}`, Origin: `chrome-extension://${extensionId}` },
@@ -246,7 +259,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.ok(await evaluate(`(() => {
       const card=[...document.querySelectorAll('#local-discussion .discussion-contribution')]
         .find(item=>item.querySelector(':scope > .discussion-body')?.textContent===${JSON.stringify(body)});
-      const link=card?.querySelector(':scope > a.discussion-source-link');
+      const link=card?.querySelector(':scope > .discussion-actions > a.discussion-source-link');
       return ${expectedUrl === null ? '!link' : `link?.href===${JSON.stringify(expectedUrl)} && link.target==='_blank' && link.rel==='noopener noreferrer' && link.referrerPolicy==='no-referrer'`};
     })()`), 'Post origin matches its own publication context');
   }
@@ -330,7 +343,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       for (const [id, target] of targets) if (target.sessionId === sessionId) targets.delete(id);
     });
     browser.on('Runtime.exceptionThrown', (_, sessionId) => { const target = [...targets.values()].find(item => item.sessionId === sessionId); if (selfUrl(target?.url)) runtimeExceptions++; });
-    browser.on('Network.requestWillBeSent', ({ request }, sessionId) => { const target = [...targets.values()].find(item => item.sessionId === sessionId); requests.push({ context: target?.url, url: request.url }); });
+    browser.on('Network.requestWillBeSent', ({ request }, sessionId) => { const target = [...targets.values()].find(item => item.sessionId === sessionId); requests.push({ context: target?.url, url: request.url, method: request.method }); });
     browser.on('Fetch.requestPaused', ({ requestId, request, resourceType }, sessionId) => schedule(async () => {
       await identityReady;
       const target = [...targets.values()].find(item => item.sessionId === sessionId);
@@ -348,7 +361,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await browser.send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true, filter: ROOT_FILTER });
     extensionId = (await browser.send('Extensions.loadUnpacked', { path: BROWSER_ROOT })).id;
     resolveIdentity(); assert.match(extensionId, /^[a-p]{32}$/u);
-    await startService(FIRST_TOKEN);
+    await startService();
     const page = await wait(() => [...targets.values()].find(item => item.ready && item.url === 'about:blank'), 'owned foreground page');
     pageSession = page.sessionId;
     await observeNativeIcons();
@@ -363,23 +376,29 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.equal(await evaluate("document.querySelector('#connection-status').dataset.state"), 'disconnected');
     await toolbar('disconnected');
     await screenshot('user-disconnected');
-    await pair(FIRST_TOKEN);
+    await pair(capability);
     await waitExpression("document.querySelector('#connection-status').dataset.state==='connected'", 'honest paired connection indicator');
     await toolbar('off');
     await waitExpression(`document.querySelector('#matching-origin').textContent===${JSON.stringify(ORIGIN)}`, 'eligible disclosed origin');
-    // The fresh test profile has no native HTTPS grant. One explicit Chrome
-    // permission gesture is still required; subsequent pairing auto-starts.
-    await click('#matching-enable'); await confirmStart(); await closePopup();
+    // In the disposable profile, exercise Chrome's real optional-permission
+    // grant from a user gesture. The management API above only prepares its
+    // otherwise unautomated native dialog; capture then auto-starts.
+    assert.equal(await evaluate("(async () => chrome.permissions.request({origins:['https://*/*']}))()"), true);
+    await confirmStart(); await closePopup();
     stage = 'popup-closed-first-inference';
     const a = await automatic('a');
     assert.equal(a.provenance, 'owner-local-page-embedding/v1');
     await toolbar('topic');
-    assert.equal(await evaluate("document.querySelector('#selected-topic-title').textContent"), (await catalog()).topics.find(topic => topic.id === a.topicId).title);
-    await input('#discussion-body', COMMENT);
-    await click('#ui-mode-developer'); await click('#ui-mode-user');
-    assert.equal(await evaluate("document.querySelector('#discussion-body').value"), COMMENT);
-    assert.equal(await evaluate("document.querySelector('#ui-mode-user').getAttribute('aria-pressed')"), 'true');
-    checks.push('default-user-connection-topic-and-draft-preserving-mode-switch');
+    assert.equal(await evaluate("document.querySelector('#discussion-topic').selectedOptions[0].textContent"), (await catalog()).topics.find(topic => topic.id === a.topicId).title);
+    if (!alternateOnly) {
+      await input('#discussion-body', COMMENT);
+      await click('#app-settings-button');
+      await click('#ui-mode-developer'); await click('#ui-mode-user');
+      await click('#app-settings-back');
+      assert.equal(await evaluate("document.querySelector('#discussion-body').value"), COMMENT);
+      assert.equal(await evaluate("document.querySelector('#ui-mode-user').getAttribute('aria-pressed')"), 'true');
+      checks.push('default-user-connection-topic-and-draft-preserving-mode-switch');
+    } else checks.push('default-user-connection-and-current-topic');
     await postComment(); checks.push('actual-pairing-session-consent', 'popup-closed-capture-inference-ingestion', 'comment-on-page-a');
     await postOrigin(COMMENT, fixtureUrl('a'));
     await toolbar('topic'); // A lone learned page remains green even with posts.
@@ -389,6 +408,51 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     await toolbar('posts');
     await screenshot('user-shared-topic');
+    stage = 'alternate-source-view-and-reversible-switch';
+    const canonicalBeforeSwitch = await backend(`/topics/${b.topicId}/discussion`);
+    const writesBeforeSwitch = requests.filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)).length;
+    const alternateRequestsBeforeSwitch = requests.filter(request => apiUrl(request.url) && request.url.endsWith('/alternate-discussion')).length;
+    await input('#discussion-body', SWITCH_DRAFT);
+    await click('#app-settings-button');
+    await click('#app-topic-view-experimental');
+    await waitExpression("document.querySelector('#app-topic-view-status')?.dataset.state==='active'", 'source-scoped alternate view');
+    const alternateRequests = requests.filter(request => selfUrl(request.context) && apiUrl(request.url) && request.url.endsWith('/alternate-discussion'));
+    assert.ok(alternateRequests.length > alternateRequestsBeforeSwitch, 'Switch must cause an actual extension alternate read');
+    assert.equal(alternateRequests.at(-1).url, `${API}/sources/${b.id}/alternate-discussion`, 'Alternate read must bind the current page Source B');
+    const alternate = await backend(`/sources/${b.id}/alternate-discussion`);
+    assert.equal(alternate.sourceId, b.id);
+    assert.ok(alternate.sourceIds.includes(b.id));
+    assert.ok(alternate.roots.some(root => root.body === COMMENT));
+    await click('#app-settings-back');
+    assert.equal(await evaluate("document.querySelector('#discussion-source').value"), b.id);
+    assert.equal(await evaluate("document.querySelector('#discussion-body').value"), SWITCH_DRAFT);
+    assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
+    await postOrigin(COMMENT, fixtureUrl('a'));
+    await click('#app-settings-button');
+    await click('#app-topic-view-classic');
+    await waitExpression("document.querySelector('#app-topic-view-status')?.dataset.state==='current'", 'canonical view restored');
+    await click('#app-settings-back');
+    assert.equal(await evaluate("document.querySelector('#discussion-source').value"), b.id);
+    assert.equal(await evaluate("document.querySelector('#discussion-body').value"), SWITCH_DRAFT);
+    assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
+    assert.deepEqual(await backend(`/topics/${b.topicId}/discussion`), canonicalBeforeSwitch);
+    assert.equal(requests.filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)).length, writesBeforeSwitch, 'View switches and private draft must not write posts or change membership');
+    assert.equal((await source('b')).topicId, b.topicId);
+    await postOrigin(COMMENT, fixtureUrl('a'));
+    await input('#discussion-body', '');
+    checks.push('actual-alternate-source-view-and-reversible-current-switch');
+    checks.push('source-bound-alternate-read-preserves-private-draft-source-links-and-canonical-posts');
+    if (alternateOnly) {
+      // End the real window lease before checking settled request protection.
+      await evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'stop-session'})");
+      await wait(() => tasks.size === 0, 'settled targeted alternate tasks', 5000);
+      const externalExtensionRequests = requests.filter(request => selfUrl(request.context) && !selfUrl(request.url) && !apiUrl(request.url)).length;
+      assert.equal(externalExtensionRequests, 0); assert.equal(runtimeExceptions, 0);
+      return { browser: version.product, result: 'PASS', actualActionPopup: true, checks,
+        vectorsSent: ingestions.length, vectorDimensions: 384, externalExtensionRequests,
+        runtimeExceptions, interceptedDocuments, elapsedMs: performance.now() - began,
+        scope: 'Targeted alternate view; owned intercepted articles; disposable profile/pairing/SQLite; synthetic zero-log adapter; no provider calls' };
+    }
     checks.push('toolbar-dark-blue-requires-distinct-learned-peer-and-visible-post');
     const capturesBeforeWithdraw = ingestions.length;
     await evaluate(`Array.from(document.querySelectorAll('#local-discussion .discussion-thread button')).find(button=>button.textContent===${JSON.stringify(EN.discussionWithdraw)}).click()`);
@@ -444,11 +508,11 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     stage = 'sqlite-restart-and-new-pairing';
     await click('#matching-pause'); await waitMatching(EN.matchingOff);
     await chooseSource(b.id);
-    await application.close(); application = null; await startService(SECOND_TOKEN);
+    await application.close(); application = null; await startService('rotate');
     await click('#discussion-reload'); await waitStatus(EN.discussionUnauthorized);
     assert.equal(await evaluate("document.querySelector('#connection-status').dataset.state"), 'disconnected');
     await toolbar('disconnected');
-    await pair(SECOND_TOKEN); await chooseSource(b.id);
+    await pair(capability); await chooseSource(b.id);
     // A manual Topic selection while capture is stopped is not current-page evidence.
     await toolbar('off');
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
@@ -556,6 +620,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  runBackgroundMatchingBrowserSmoke(process.argv[2]).then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
+  runBackgroundMatchingBrowserSmoke(process.argv[2]?.startsWith('--') ? undefined : process.argv[2],
+    { alternateOnly: process.argv.includes('--alternate-only') }).then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
     .catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });
 }

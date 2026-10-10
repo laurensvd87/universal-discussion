@@ -83,6 +83,77 @@ test("paired popup automatically loads bridged service discussion and sends IDs 
   assert.equal(JSON.stringify(ui.requests).includes("https:"), false);
   assert.equal(ui.controller.currentState().discussion.roots.length, 0);
 });
+test("experimental view remains display-only and stale alternate reads cannot attach after navigation", async () => {
+  const pending = deferred();
+  let reads = 0;
+  const ui = harness({ client: {
+    async catalog() {
+      const catalog = structuredClone(ui.service.catalog());
+      catalog.sources.push({ id: "learned-a", url: "https://example.com/article-a", title: "Synthetic article",
+        provenance: "owner-local-page-embedding/v1", topicId: "reserved-domain-demo" });
+      return catalog;
+    },
+    async related(sourceId) {
+      if (sourceId !== "learned-a") return ui.service.related(sourceId, 20);
+      const catalog = ui.service.catalog();
+      return { version: catalog.version, model: catalog.model, results: [] };
+    },
+    async alternateDiscussion(sourceId, catalog, discussion) {
+      assert.equal(sourceId, "learned-a");
+      reads += 1;
+      if (reads === 2) return pending.promise;
+      return { mode: "alternate-provisional", sourceId, version: catalog.version,
+        canonical: { topic: discussion.topic, discussionId: discussion.discussionId },
+        sourceIds: [sourceId], roots: [{ id: "foreign-root", canonicalTopicId: "other-topic" }], pinnedRoots: [] };
+    },
+  } });
+  await ui.controller.open();
+  await ui.controller.selectSource("learned-a");
+  ui.controller.setDraft("Unsent synthetic draft");
+  assert.equal(ui.controller.currentState().topicViewMode, "classic");
+  assert.equal(ui.controller.currentState().alternateDiscussion, null);
+  await ui.controller.setTopicViewMode("experimental");
+  const experimental = ui.controller.currentState();
+  assert.equal(experimental.alternateDiscussion.mode, "alternate-provisional");
+  assert.equal(experimental.discussion.topic.id, "reserved-domain-demo");
+  assert.equal(experimental.draft.body, "Unsent synthetic draft");
+  assert.equal(ui.controller.canReplyToAlternate(experimental.alternateDiscussion.roots[0]), false);
+  assert.equal(ui.controller.begin("reply", "foreign-root"), false);
+  assert.equal(await ui.controller.setTopicViewMode("classic"), true);
+  assert.equal(ui.controller.currentState().alternateDiscussion, null);
+  assert.equal(ui.controller.currentState().draft.body, "Unsent synthetic draft");
+  const loading = ui.controller.setTopicViewMode("experimental");
+  ui.invalidate();
+  pending.resolve(experimental.alternateDiscussion);
+  await loading;
+  assert.equal(ui.controller.currentState().alternateDiscussion, null);
+  assert.equal(ui.controller.currentState().sourceId, null);
+});
+test("unavailable alternate view is visible while canonical discussion stays usable", async () => {
+  const ui = harness({ client: {
+    async catalog() {
+      const catalog = structuredClone(ui.service.catalog());
+      catalog.sources.push({ id: "learned-b", url: "https://example.com/article-b", title: "Synthetic article",
+        provenance: "owner-local-page-embedding/v1", topicId: "reserved-domain-demo" });
+      return catalog;
+    },
+    async related(sourceId) {
+      if (sourceId !== "learned-b") return ui.service.related(sourceId, 20);
+      const catalog = ui.service.catalog();
+      return { version: catalog.version, model: catalog.model, results: [] };
+    },
+    async alternateDiscussion() { throw Object.assign(new Error("offline"), { code: "unavailable" }); },
+  } });
+  await ui.controller.open();
+  await ui.controller.selectSource("learned-b");
+  await ui.controller.setTopicViewMode("experimental");
+  const state = ui.controller.currentState();
+  assert.equal(state.phase, "ready");
+  assert.equal(state.topicViewMode, "experimental");
+  assert.equal(state.alternateDiscussion, null);
+  assert.equal(state.alternateError, "unavailable");
+  assert.equal(state.discussion.topic.id, "reserved-domain-demo");
+});
 
 test("root text can be staged while a selected discussion loads but cannot post before the read", async () => {
   const pending = deferred(); let reads = 0;

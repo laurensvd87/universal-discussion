@@ -102,6 +102,49 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
   assert.deepEqual(modes, ["user", "developer", "user"]);
 });
 
+test("topic matching choice persists and a delayed saved choice cannot undo a click", async () => {
+  const nodes = new Map();
+  for (const id of ["#ui-mode-user", "#ui-mode-developer", "#ui-mode-toggle", "#connection-status",
+    "#capture-controls-link", "#app-topic-view-heading", "#app-topic-view-classic",
+    "#app-topic-view-experimental", "#app-topic-view-status"]) nodes.set(id, {
+    attributes: {}, dataset: {}, listeners: new Map(),
+    setAttribute(key, value) { this.attributes[key] = value; },
+    addEventListener(key, callback) { this.listeners.set(key, callback); },
+    removeEventListener(key) { this.listeners.delete(key); },
+  });
+  let resolveSaved;
+  const writes = [], modes = [];
+  const storageLocal = { get: (key) => key === "topicViewMode"
+    ? new Promise((resolve) => { resolveSaved = resolve; }) : Promise.resolve({ uiMode: "user" }),
+  set: async (record) => { writes.push(record); } };
+  const document = { body: { dataset: {} }, querySelector: (selector) => nodes.get(selector) };
+  const shell = mountPopupShell(document, { storageLocal });
+  shell.bindTopicView({ setTopicViewMode: async (mode) => { modes.push(mode); return true; } });
+  shell.render({ phase: "ready", topicViewMode: "classic", sourceId: "source-a",
+    catalog: { topics: [] }, alternateDiscussion: null });
+  nodes.get("#app-topic-view-experimental").listeners.get("click")();
+  resolveSaved({ topicViewMode: "classic" });
+  await Promise.resolve(); await Promise.resolve();
+  assert.deepEqual(modes, ["experimental"]);
+  assert.deepEqual(writes, [{ topicViewMode: "experimental" }]);
+  assert.equal(nodes.get("#app-topic-view-experimental").attributes["aria-pressed"], "true");
+  assert.equal(nodes.get("#app-topic-view-status").textContent, EN.uiTopicViewLoading);
+  shell.render({ phase: "ready", topicViewMode: "experimental", sourceId: "source-a",
+    catalog: { topics: [] }, alternateDiscussion: { sourceId: "source-a", sourceIds: ["source-a", "source-b"] } });
+  assert.equal(nodes.get("#app-topic-view-status").textContent,
+    EN.uiTopicViewActive.replace("{count}", "2"));
+  shell.dispose();
+  const restored = mountPopupShell(document, { storageLocal: {
+    get: async (key) => key === "topicViewMode" ? { topicViewMode: "experimental" } : { uiMode: "user" },
+    set: async () => {},
+  } });
+  const restoredModes = [];
+  restored.bindTopicView({ setTopicViewMode: async (mode) => { restoredModes.push(mode); return true; } });
+  await Promise.resolve(); await Promise.resolve();
+  assert.deepEqual(restoredModes, ["experimental"]);
+  restored.dispose();
+});
+
 test("User layout removes the page-title Topic header and hides account identity and diagnostics", () => {
   const html = readFileSync(new URL("../browser/chromium/popup.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8");

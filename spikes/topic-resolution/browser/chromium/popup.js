@@ -255,6 +255,7 @@ const localDiscussion = createLocalDiscussionController({
     serviceRetry.observe(state);
   },
 });
+popupShell.bindTopicView(localDiscussion);
 insightController = createInsightController({
   shareInsight: localDiscussion.shareInsight,
   onStateChange: (state) => { insightPanel.render(state); discussionPanel.renderInsightState?.(state); },
