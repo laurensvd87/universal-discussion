@@ -176,6 +176,22 @@ test("generated insight without outside citations shows a separate current-page 
   assert.equal(note.hidden, true);
 });
 
+test("off-catalog provider citation hides the no-outside-sources cue", () => {
+  const ui = harness(undefined, "user");
+  const marker = "\uE200cite\uE202turn0search0\uE201";
+  const body = `Lowest found offer ${marker}`;
+  const startIndex = body.indexOf(marker);
+  const result = { body, citations: [{ url: "https://prices.example.net/item",
+    title: "Public offer", startIndex, endIndex: startIndex + marker.length }] };
+  ui.panel.render(state({ draft: formatInsightCitations(body, result.citations),
+    ai: { status: "generated", result } }));
+  assert.equal(ui.byId("insight-current-page-only").hidden, true);
+  assert.deepEqual(ui.descendants(ui.byId("insight-citations"))
+    .filter((item) => item.tag === "a").map((item) => item.linkHref),
+  ["https://prices.example.net/item"]);
+  assert.deepEqual(ui.calls, []);
+});
+
 test("poll renders preserve a generated preview, citation focus, and one-click Share", () => {
   const ui = harness(undefined, "user");
   const marker = "\uE200cite\uE202turn0search0\uE201";

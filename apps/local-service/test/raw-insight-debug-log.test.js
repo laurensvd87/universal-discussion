@@ -47,6 +47,24 @@ test("rejects auth and arbitrary header fields without writing them", () => with
   assert.equal(readFileSync(log.filePath, "utf8"), "");
 }));
 
+test("explicit debug accepts only the two supported tool choices without credentials", () => withTemp((tempDirectory) => {
+  const log = createRawInsightDebugLog({ enabled: true, tempDirectory });
+  for (const tool_choice of ["auto", "required"]) {
+    const payload = { ...request("Public reply context").payload,
+      tools: [{ type: "web_search", external_web_access: true, search_context_size: "medium" }],
+      tool_choice };
+    assert.equal(log.captureRequest({ phase: "request", payload }), true);
+    assert.equal(log.captureResponse(response()), true);
+  }
+  assert.equal(log.captureRequest({ phase: "request", payload: {
+    ...request().payload, tool_choice: "none" } }), false);
+  assert.equal(log.captureRequest({ phase: "request", payload: {
+    ...request().payload, tool_choice: "auto", Authorization: "Bearer secret" } }), false);
+  const contents = readFileSync(log.filePath, "utf8");
+  assert.equal(contents.includes("Bearer secret"), false);
+  assert.equal(contents.split("\n").filter(Boolean).length, 4);
+}));
+
 test("keeps at most three requests across restarts and one MiB total", () => withTemp((tempDirectory) => {
   let log = createRawInsightDebugLog({ enabled: true, tempDirectory });
   for (let i = 0; i < 2; i += 1) {

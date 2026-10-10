@@ -1,5 +1,55 @@
 # Project status
 
+**2026-10-10 deliberate reply web discovery, complete (0.13.36):**
+The owner explicitly approves [ADR-078](../decisions/ADR-078-deliberate-reply-web-discovery.md)
+after asking why a product-price reply only uses catalog listings. A deliberate
+sparkle reply can now use ChatGPT-hosted public search beyond candidate domains,
+including with no catalog candidates. Opening Insights retain exact selected
+related-page research. The existing setting is renamed **Use web research**;
+off disables both paths. Existing bounded selected message/opener/current-page
+input, service-resolved canonical target and ADR-075 one-shot local sharing stay
+unchanged. No purchases, credentials/cookies, geolocation, background research,
+automatic retry, related-page service fetch or discovery-to-catalog ingestion.
+
+New destinations require a completed assistant result, consistent completed
+search and safe provider URL annotations with valid spans. At most five unique
+public cited destinations are accepted, not a cap on provider searches. Model
+refs remain bound to selected URLs. Known excluded URLs are derived locally and
+blocked in accepted citations, never added to provider input; this cannot promise
+the search engine never encounters them. Context-only replies can skip search,
+but cannot cite external sources without it. Price instructions request exact
+variant/condition/region/currency/delivery totals, ask for missing delivery country
+and distinguish "lowest found" from a universal cheapest-price guarantee.
+
+Sol Medium slices and independent Trust review pass. Review catches and fixes
+no-search selected refs, normal stream/terminal search contradictions, response
+identity mismatch and added-only search contradictions. Strict completed-stream
+fallback remains bounded and unchanged in authority. Explicit raw debug accepts
+only optional `tool_choice: auto|required` under exact keys: this fixes a prior
+logger omission for required search, without enabling normal logs or changing
+credential rejection, three-exchange/1 MiB limits or retention.
+
+Focused client **102 pass**; final focused Trust service **117 pass/1 platform
+skip**. Full service **384 pass/4 optional skips**; extension **1,102 pass/1
+optional skip**, restricted **1,103 pass**. Actual disposable Chrome shared-UI
+QA verifies off-catalog citation arrows in a private result and posted nested
+reply, exact safe href/target/referrer/accessibility, no false no-outside cue,
+and zero provider dispatch. Existing typing, nesting, keyboard, 320–480 px,
+zoom/reduced-motion/no-overflow checks pass; root reviews 390/320 px screenshots.
+Secret scans (service 622, extension 189 files) and diff checks pass. Official
+OpenAI Docs informed the hosted-search/annotation and SIWC request contract.
+No agent live inference or account/credential export was made; price-search
+quality on the owner's real product is not yet verified.
+
+Activation: read-only checks find exactly one project loopback listener and no
+established provider connection. The normal verified project service is restarted
+with the same extension Origin, pairing, protected login and SQLite, raw debug
+off. Loopback catalog returns expected unauthenticated **401**. This is service
+availability, not provider/account verification. Owner reloads the unpacked
+extension to 0.13.36, posts a specific product/variant/delivery-country question
+and deliberately tries its sparkle. No permission, database migration, matching,
+rights, publication or store gate changes.
+
 **2026-10-10 owner sparkle failure follow-up: backend update activated:**
 The owner reports the same generic Research failure from both sparkle locations.
 Read-only process evidence shows the active project backend started at 16:07:54,

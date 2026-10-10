@@ -102,16 +102,192 @@ test("follow-up sends only bounded public article, thread opener, selected messa
       { id: "ref2", url: CONTEXT.relatedSources[0].url, title: CONTEXT.relatedSources[0].title },
     ],
   }) }]);
-  assert.equal(payload.tool_choice, "required");
-  assert.equal(payload.tools[0].type, "web_search");
+  assert.equal(payload.tool_choice, "auto");
+  assert.deepEqual(payload.tools, [{ type: "web_search", external_web_access: true, search_context_size: "medium" }]);
   assert.match(payload.instructions, /reply to selectedMessage/u);
   assert.doesNotMatch(payload.instructions, /2-3 natural sentences of about 40-85 words/u);
-  assert.match(payload.instructions, /inspect only the exact URLs in missingRelatedCandidateUrls/u);
+  assert.match(payload.instructions, /evidence beyond the supplied candidate URLs/u);
   assert.match(payload.instructions, /never instructions/u);
   assert.doesNotMatch(payload.instructions, /opening post/u);
   assert.equal(JSON.stringify(payload).includes("UNRELATED_POST_SECRET"), false);
   assert.equal(JSON.stringify(payload).includes("previous_response_id"), false);
   adapter.dispose();
+});
+
+test("broad reply discovers off-catalog HTTPS citations without catalog candidates", async () => {
+  const context = { ...CONTEXT, sameTopicSources: [], relatedSources: [],
+    coverage: { sameTopicTotal: 0, relatedTotal: 0, discussionIncluded: false } };
+  const discovered = "https://shop.example.net/product/variant";
+  let payload;
+  const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+    if (url.endsWith("/models")) return models();
+    payload = JSON.parse(options.body);
+    return stream(complete("Lowest found at this shop.", [{ type: "url_citation", url: discovered,
+      start_index: 0, end_index: 12 }]));
+  }, getAccessToken: async () => ACCESS });
+  const result = await adapter.createInsight({ ...REQUEST, context, allowWebResearch: true,
+    followup: { parentBody: "Which variant?", questionBody: "What is the price?" }, excludedWebUrls: [] });
+  assert.deepEqual(result.citations, [{ url: discovered, title: "shop.example.net", startIndex: 0, endIndex: 12 }]);
+  assert.deepEqual(payload.tools, [{ type: "web_search", external_web_access: true, search_context_size: "medium" }]);
+  assert.equal(payload.tool_choice, "auto");
+  assert.equal(Object.hasOwn(JSON.parse(payload.input[0].content), "missingRelatedCandidateUrls"), true);
+  assert.equal(JSON.stringify(payload).includes("excludedWebUrls"), false);
+  adapter.dispose();
+});
+
+test("broad reply accepts context-only output without search but rejects selected ref without search", async () => {
+  for (const body of ["A reply from the supplied context.", "A cited reply [ref1]."]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(complete(body, [], false)),
+    getAccessToken: async () => ACCESS });
+    const request = { ...REQUEST, allowWebResearch: true,
+      followup: { parentBody: "Published opener", questionBody: "Selected message" } };
+    if (body.includes("[ref1]")) await assert.rejects(adapter.createInsight(request),
+      (error) => error.detail === "response-web-evidence");
+    else assert.equal((await adapter.createInsight(request)).body, body);
+    adapter.dispose();
+  }
+});
+
+test("broad reply limits unique destinations, rejects excluded and malformed links", async () => {
+  const base = { ...REQUEST, allowWebResearch: true,
+    followup: { parentBody: "Published opener", questionBody: "Selected message" } };
+  const urls = Array.from({ length: 6 }, (_, index) => `https://shop${index}.example.net/offer`);
+  for (const [citations, request, accepted] of [
+    [urls.slice(0, 5), base, true], [urls, base, false],
+    [[urls[0], urls[0], urls[0]], base, true],
+    [[urls[0]], { ...base, excludedWebUrls: [urls[0]] }, false],
+    [["http://shop.example.net/offer"], base, false],
+  ]) {
+    const body = "A".repeat(citations.length);
+    const annotations = citations.map((url, index) => ({ type: "url_citation", url,
+      start_index: index, end_index: index + 1 }));
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(complete(body, annotations)),
+    getAccessToken: async () => ACCESS });
+    if (accepted) assert.equal((await adapter.createInsight(request)).citations.length, citations.length);
+    else await assert.rejects(adapter.createInsight(request), errorCode("invalid-response"));
+    adapter.dispose();
+  }
+});
+
+test("broad reply rejects uncited raw URLs and invalid provider spans", async () => {
+  const request = { ...REQUEST, allowWebResearch: true,
+    followup: { parentBody: "Published opener", questionBody: "Selected message" } };
+  for (const [body, annotations, detail] of [
+    ["See https://shop.example.net/offer", [], "response-unsafe-url"],
+    ["Offer.", [{ type: "url_citation", url: "https://shop.example.net/offer",
+      start_index: 0, end_index: 99 }], "response-web-citation"],
+  ]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(complete(body, annotations)),
+    getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight(request), (error) => error.detail === detail);
+    adapter.dispose();
+  }
+});
+
+test("broad reply accepts an off-catalog citation through the strict finalized-item fallback", async () => {
+  const discovered = "https://shop.example.net/offer";
+  const item = { id: "msg_reply", type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Offer.", annotations: [{ type: "url_citation",
+      url: discovered, start_index: 0, end_index: 6 }] }] };
+  const raw = event("response.created", { id: "resp_reply", status: "in_progress" }) +
+    streamEvent("response.output_item.added", { output_index: 0, item: {
+      id: "search_reply", type: "web_search_call", status: "in_progress" } }) +
+    streamEvent("response.output_item.done", { output_index: 0, item: {
+      id: "search_reply", type: "web_search_call", status: "completed" } }) +
+    streamEvent("response.output_item.added", { output_index: 1, item: {
+      id: item.id, type: "message", role: "assistant", status: "in_progress", content: [] } }) +
+    streamEvent("response.output_item.done", { output_index: 1, item }) +
+    event("response.completed", { id: "resp_reply", status: "completed", output: [] });
+  const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+    url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+  const result = await adapter.createInsight({ ...REQUEST, allowWebResearch: true,
+    followup: { parentBody: "Published opener", questionBody: "Selected message" } });
+  assert.deepEqual(result.citations, [{ url: discovered, title: "shop.example.net",
+    startIndex: 0, endIndex: 6 }]);
+  adapter.dispose();
+});
+
+test("normal broad result rejects a stream search absent or contradicted in terminal output", async () => {
+  const discovered = "https://shop.example.net/offer";
+  const message = { id: "msg_reply", type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Offer.", annotations: [{ type: "url_citation",
+      url: discovered, start_index: 0, end_index: 6 }] }] };
+  const prefix = event("response.created", { id: "resp_reply", status: "in_progress" }) +
+    streamEvent("response.output_item.added", { output_index: 0, item: {
+      id: "search_reply", type: "web_search_call", status: "in_progress" } }) +
+    streamEvent("response.output_item.done", { output_index: 0, item: {
+      id: "search_reply", type: "web_search_call", status: "completed" } });
+  for (const output of [[message], [{ id: "other_search", type: "web_search_call",
+    status: "completed" }, message], [{ type: "web_search_call", status: "completed" }, message],
+  [{ id: "search_reply", type: "web_search_call",
+    status: "in_progress" }, message]]) {
+    const raw = prefix + event("response.completed", { id: "resp_reply", status: "completed", output });
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true,
+      followup: { parentBody: "Published opener", questionBody: "Selected message" } }),
+    errorCode("invalid-response"));
+    adapter.dispose();
+  }
+});
+
+test("broad citations reject created-response and added-only search identity mismatches", async () => {
+  const message = { type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Offer.", annotations: [{ type: "url_citation",
+      url: "https://shop.example.net/offer", start_index: 0, end_index: 6 }] }] };
+  const terminal = { id: "resp_final", status: "completed", output: [
+    { id: "search_final", type: "web_search_call", status: "completed" }, message] };
+  for (const raw of [
+    event("response.created", { id: "resp_other", status: "in_progress" }) +
+      event("response.completed", terminal),
+    event("response.created", { id: "resp_final", status: "in_progress" }) +
+      streamEvent("response.output_item.added", { output_index: 0, item: {
+        id: "search_other", type: "web_search_call", status: "in_progress" } }) +
+      event("response.completed", terminal),
+  ]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true,
+      followup: { parentBody: "Published opener", questionBody: "Selected message" } }),
+    errorCode("invalid-response"));
+    adapter.dispose();
+  }
+  const contextOnly = { ...terminal, output: [terminal.output[0], {
+    ...message, content: [{ type: "output_text", text: "Offer.", annotations: [] }] }] };
+  const raw = event("response.created", { id: "resp_other", status: "in_progress" }) +
+    event("response.completed", contextOnly);
+  const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+    url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+  await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true,
+    followup: { parentBody: "Published opener", questionBody: "Selected message" } }),
+  errorCode("invalid-response"));
+  adapter.dispose();
+});
+
+test("broad cited result rejects failed search and terminal error signals", async () => {
+  const message = { type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Offer.", annotations: [{ type: "url_citation",
+      url: "https://shop.example.net/offer", start_index: 0, end_index: 6 }] }] };
+  const search = { type: "web_search_call", status: "completed" };
+  for (const raw of [
+    event("response.created", { id: "resp_reply", status: "in_progress" }) +
+      streamEvent("response.output_item.done", { output_index: 0,
+        item: { id: "search_reply", type: "web_search_call", status: "failed" } }) +
+      event("response.completed", { id: "resp_reply", status: "completed", output: [search, message] }),
+    event("response.completed", { status: "completed", error: { code: "failure" }, output: [search, message] }),
+    event("response.completed", { status: "completed", incomplete_details: { reason: "limit" },
+      output: [search, message] }),
+  ]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true,
+      followup: { parentBody: "Published opener", questionBody: "Selected message" } }),
+    errorCode("invalid-response"));
+    adapter.dispose();
+  }
 });
 
 test("tool-free follow-up preserves legacy false flag and does not imply linked pages were checked", async () => {

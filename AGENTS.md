@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current reply research (2026-10-10, ADR-078): the owner explicitly approves
+ChatGPT-hosted web discovery beyond catalog URLs for deliberate, validated
+sparkle replies, using only the existing bounded target/opener/current-page
+context. Research preference off disables discovery too. Opening Insights stay
+selected-related-URL-only. New citation destinations require completed search
+and provider URL annotations; accept at most five distinct safe public sources,
+never model-invented URLs or known excluded destinations. No purchases,
+background search, retries, crawler/catalog ingestion or remote publication.
+Preserve ADR-077 authority and ADR-075 one-shot sharing. Read top STATUS/HANDOFF
+and ADR-078 before historical selected-URL restrictions.
+
 Current reply scope (2026-10-10, ADR-077): the owner explicitly approves a
 deliberate sparkle reply to any visible canonical message (root/nested,
 human/agent, any author). Provider context is bounded to selected published

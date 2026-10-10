@@ -312,6 +312,41 @@ test("follow-up bridge sends only server-selected thread text and shares one exa
   ai.dispose();
 });
 
+test("reply exclusions reach the adapter as catalog URLs without entering provider context", async () => {
+  const service = demoService();
+  const catalog = service.catalog();
+  const sourceId = "harbor-overview";
+  const topicId = catalog.sources.find((source) => source.id === sourceId).topicId;
+  const rootId = service.command(catalog.version, { type: "create-root", topicId,
+    body: "Which offer is available?" }, "demo-alex").result.contributionId;
+  const current = service.catalog();
+  const projection = { catalog: current, discussion: service.discussion(topicId),
+    related: service.related(sourceId, 20), sourceId, topicId };
+  const local = buildInsightContext({ ...projection, sourceLimit: 21 });
+  const choices = [...local.sameTopicSources, ...local.relatedSources];
+  assert.ok(choices.length > 0);
+  const excluded = choices[0];
+  const context = buildInsightContext({ ...projection,
+    allowedRelatedSourceIds: choices.map((source) => source.id),
+    excludedRelatedSourceIds: [excluded.id] });
+  const received = [];
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false }), dispose() {} },
+    insightsAdapter: { createInsight: async (value) => {
+      received.push(value); return { body: "Synthetic reply.", citations: [], model: "synthetic" };
+    }, cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const input = { operationId: "reply-exclusion-bridge", model: "synthetic", context,
+    articleText: "Public page extract.", allowWebResearch: true, expected: current.version,
+    excludedRelatedSourceIds: [excluded.id], followupQuestionId: rootId };
+  assert.equal((await handle(request("POST", "/v1/ai/insights", input,
+    { origin: ORIGIN, "x-demo-actor": "demo-alex" }))).status, 200);
+  assert.deepEqual(received[0].excludedWebUrls, [excluded.url]);
+  assert.equal(JSON.stringify(received[0].context).includes(excluded.url), false);
+  assert.equal(received[0].followup.questionBody, "Which offer is available?");
+  ai.dispose();
+});
+
 test("paired bridge filters only named related sources from an exact full context", async () => {
   const service = demoService();
   const catalog = service.catalog();

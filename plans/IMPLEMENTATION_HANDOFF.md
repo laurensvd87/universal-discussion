@@ -1,5 +1,31 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 reply discovery checkpoint (0.13.36): owner explicitly approves
+ADR-078 public ChatGPT-hosted search beyond the catalog for deliberate validated
+sparkle replies; opening Insights stay exact selected-page-only. Research setting
+off disables both. Even zero-candidate replies may enable auto hosted search;
+new cited URLs need consistent completed search/provider spans and safe public
+HTTPS validation, max five distinct sources. Local exclusion IDs map to exact
+blocked citation URLs without extra provider transfer. They do not guarantee
+the hosted search never encounters an excluded page. No purchases, cookie/account
+sharing, geolocation, crawling/catalog ingestion, background inference or retry.
+Existing bounded comment/opener/page context, canonical authority, full-body edit
+invalidation, exact proof, one-shot sharing and private recovery remain.
+
+Price prompt checks variant, delivery region, currency, condition and total;
+missing country prompts a question, never an inferred location or universal
+cheapest claim. Completed-stream fallback remains strict. Independent Trust
+catches and verifies search/ref/response identity contradictions; final focused
+117 pass/1 platform skip. Full service 384 pass/4 skips; extension 1,102 pass/1
+skip, restricted 1,103 pass. Actual synthetic Chrome safe off-catalog citation,
+typing/nesting/narrow-layout QA passes and root reviews screenshots. Secret/diff
+checks pass. Explicit-only raw-debug schema now permits auto|required tool choice
+under unchanged bounded/credential-safe logging. No agent live inference.
+Normal verified backend has been restarted without pairing/login/database reset;
+catalog unauthenticated 401 confirms availability only. Reload extension and try
+a specific price question's sparkle. Live search quality remains an owner check;
+do not replace this listener with fixed-port synthetic QA or claim live success.
+
 2026-10-10 activation follow-up: owner reports generic failure from both reply
 sparkles. The verified backend still ran from 16:07, before 17:21 commit 6ce2484,
 so it lacked the approved any-message reply eligibility. Normal project service

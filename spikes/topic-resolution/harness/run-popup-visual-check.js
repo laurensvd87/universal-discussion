@@ -421,6 +421,45 @@ try {
         window.visualFollowupIds.at(-1)==='agent-any';
     })()`, sessionId), true, "a nested generated message from another operator has an exact-target keyboard sparkle and inline progress");
     await capture("any-message-insight-nested", sessionId);
+    await evaluate(`(async () => {
+      const {formatInsightCitations}=await import('../core/insight-citations.js');
+      const marker=String.fromCodePoint(0xE200)+'cite'+String.fromCodePoint(0xE202)+'turn0search0'+String.fromCodePoint(0xE201);
+      const body='Lowest found product offer '+marker;
+      const startIndex=body.indexOf(marker);
+      const citations=[{url:'https://shop.example.net/product',title:'Public product offer',
+        startIndex,endIndex:startIndex+marker.length}];
+      const postedBody=formatInsightCitations(body,citations);
+      const insight=window.visualInsightState;
+      insight.ai.status='generated';insight.ai.result={body,model:'synthetic',citations};insight.draft=postedBody;
+      window.visualInsightPanel.render(insight);window.visualDiscussionPanel.renderInsightState(insight);
+      const state=window.visualDiscussionState;
+      state.discussion.roots[0].replies.push({id:'price-reply',rootId:'human-any',replyToId:'agent-any',
+        state:'visible',authorId:'demo-alex',actorType:'agent',body:postedBody,edited:false,
+        insight:{kind:'generated',operatorId:'demo-alex',model:'synthetic'}});
+      window.visualDiscussionPanel.render(state);
+      const toggle=document.querySelector('[data-action=expand][data-contribution-id=agent-any]');
+      if(toggle?.getAttribute('aria-expanded')!=='true')toggle.click();
+    })()`, sessionId);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    assert.deepEqual(await evaluate(`(() => {
+      const privateLink=document.querySelector('#insight-citations sup.inline-citation-sup a.inline-citation');
+      const postedLink=document.querySelector('[data-post-id=price-reply] sup.inline-citation-sup a.inline-citation');
+      const valid=link=>link?.textContent==='↗' && link.href==='https://shop.example.net/product' &&
+        link.target==='_blank' && link.rel==='noopener noreferrer' && link.referrerPolicy==='no-referrer' &&
+        /Open source link 1/.test(link.getAttribute('aria-label'));
+      return {privateCitation:valid(privateLink),postedCitation:valid(postedLink),
+        noOutsideCue:document.querySelector('#insight-current-page-only').hidden,
+        postedVisible:Boolean(postedLink?.getClientRects().length),providerCalls:window.visualCreates??0};
+    })()`, sessionId), {privateCitation:true,postedCitation:true,noOutsideCue:true,postedVisible:true,providerCalls:0},
+    "off-catalog reply citation is safe and accessible in the private result and posted contribution");
+    await evaluate("document.querySelector('#insight-citations').scrollIntoView({block:'center'})", sessionId);
+    await capture("reply-offcatalog-private-citation", sessionId);
+    await evaluate("document.querySelector('[data-post-id=price-reply]').scrollIntoView({block:'center'})", sessionId);
+    await capture("reply-offcatalog-posted-citation", sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await evaluate("document.querySelector('[data-post-id=price-reply]').scrollIntoView({block:'center'})", sessionId);
+    await capture("reply-offcatalog-posted-citation-320", sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
     await evaluate("Object.assign(window.visualDiscussionState,structuredClone(window.visualBeforeFollowup));Object.assign(window.visualInsightState,structuredClone(window.visualBeforeFollowupInsight),{followup:null});window.visualInsightPanel.render(structuredClone(window.visualInsightState));window.visualDiscussionPanel.renderInsightState(structuredClone(window.visualInsightState));window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.phase='choose-topic';window.visualDiscussionState.topicId=null;window.visualDiscussionState.discussion=null;window.visualDiscussionState.related={results:[]};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);document.querySelector('#app-tab-discussion').click()", sessionId);
     assert.equal(await evaluate("(() => { const status=document.querySelector('#discussion-status');return !document.querySelector('#app-topic-header') && !document.querySelector('#app-start-session') && !document.querySelector('#app-choose-topic') && status.textContent.includes('see its discussions') && document.body.dataset.topicState==='idle' && document.querySelector('#discussion-composer').hidden && document.querySelector('#discussion-ai-insights').hidden; })()", sessionId), true,

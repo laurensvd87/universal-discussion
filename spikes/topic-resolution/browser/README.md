@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.35)
+## Persistent discussion sidebar (0.13.36)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -29,6 +29,14 @@ Only the selected message and thread opener (2,000 characters each), current
 page text and up to five approved related links are sent; unsent draft text and
 full history are not included. Foreign Topic excerpts remain read-only. See
 [ADR-077](../../../decisions/ADR-077-bounded-insight-replies-to-any-message.md).
+Replies may use ChatGPT-hosted public web search beyond catalog links, including
+when no related pages are known. Up to five distinct sources appear as clickable
+citation arrows; discovered pages are not automatically ingested. Specify the
+product variant and delivery country for useful price comparisons. Opening
+Insights still use only selected related pages. **Settings → Use web research**
+disables research for both. Per-source exclusions prevent accepting links to
+those exact pages, not a guarantee the hosted search never encounters them. See
+[ADR-078](../../../decisions/ADR-078-deliberate-reply-web-discovery.md).
 Restart the normal backend after updating as well as reloading the extension;
 pairing, protected login and saved posts are retained.
 It is icon-only in User Mode with a keyboard-accessible generation/posting label.

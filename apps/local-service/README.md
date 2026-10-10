@@ -1,5 +1,20 @@
 # Local service
 
+Extension 0.13.36 adds [ADR-078](../../decisions/ADR-078-deliberate-reply-web-discovery.md):
+deliberate canonical sparkle replies may enable ChatGPT-hosted discovery beyond
+catalog domains, even without related candidates. Opening Insights retain their
+exact selected-page restriction. The research preference disables both paths.
+Off-catalog destinations require provider URL annotations and a consistent
+completed search; at most five distinct public sources are accepted. Exact
+known excluded URLs, unsafe/raw invented links and invalid spans remain rejected.
+Context-only replies need no search and cannot contain external citations.
+No extension/service fetching, purchases, catalog ingestion, background requests
+or retries. Existing input caps, stream completion, target/account checks,
+exact-result proof and one-use sharing remain. Source links persist only in
+deliberate local posts; provider raw text is not newly archived. Restart normally
+after updating; pairing, protected login and SQLite remain intact. No live
+price-search quality claim follows from injected-provider tests.
+
 Extension 0.13.35 adds owner-approved sparkle replies to any visible canonical
 root or nested message, including other authors. The service resolves the
 selected published target from its own state; only its 2,000-character prefix
@@ -54,7 +69,7 @@ and span rules remain unchanged. The specific owner failure was not captured
 before this fix; a repeated error should be classified by its new terminal
 trace. See [ADR-056](../../decisions/ADR-056-insight-citation-display-metadata.md).
 
-ADR-054 changes new Insights to ChatGPT-only related-source research: the
+ADR-054 changes opening Insights to ChatGPT-only related-source research: the
 extension no longer fetches or extracts related pages. On an explicit Insight,
 up to five selected eligible public HTTPS candidate URLs can be sent to the
 official ChatGPT `web_search` tool, domain-filtered to their hosts. A
@@ -64,7 +79,8 @@ model-written `[refN]` hint bound to one of the selected URLs; an attempted
 open or same-domain link alone is not evidence. If no selected page is
 accessible, a completed response may still form a current-page-only private
 draft with no external citations. If related-source research is off or no candidate exists, the
-request remains tool-free. The current tab's bounded article extract remains
+opening request remains tool-free (ADR-078 separately permits reply discovery).
+The current tab's bounded article extract remains
 the subject. Older clients' related excerpts are not relayed to ChatGPT.
 Publisher robots/access rules can still block ChatGPT. The service neither
 fetches nor retains related article text itself. Restart after updating; no

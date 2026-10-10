@@ -118,8 +118,11 @@ export function createRawInsightDebugLog({ enabled = false, tempDirectory = tmpd
       if (!ready || requests >= MAX_EXCHANGES || !plain(entry) ||
           Reflect.ownKeys(entry).length !== 2 || entry.phase !== "request" ||
           !Object.hasOwn(entry, "payload") || !plain(entry.payload) ||
-          Reflect.ownKeys(entry.payload).length !== REQUEST_KEYS.length ||
+          Reflect.ownKeys(entry.payload).length !== REQUEST_KEYS.length +
+            (Object.hasOwn(entry.payload, "tool_choice") ? 1 : 0) ||
           !REQUEST_KEYS.every((key) => Object.hasOwn(entry.payload, key)) ||
+          (Object.hasOwn(entry.payload, "tool_choice") &&
+            !["auto", "required"].includes(entry.payload.tool_choice)) ||
           !safeData(entry.payload)) return false;
       const payload = JSON.stringify(entry.payload);
       if (!append("request", { payload })) return false;

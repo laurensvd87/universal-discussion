@@ -257,6 +257,55 @@ test("excluding every visible link cannot pull an unseen catalog source into res
   assert.equal(app.insight.currentState().context.sameTopicSources.length, 20);
 });
 
+test("only a deliberate reply can research beyond zero selected catalog links", async () => {
+  for (const mode of ["opening", "reply", "reply-disabled", "reply-reader"]) {
+    let request, starts = 0, reads = 0;
+    const app = await harness({
+      readArticle: async () => ({ url: "https://example.com/", documentId: "doc-a", text: "Current public article" }),
+      attestArticle: async () => true, randomId: () => `zero-links-${mode}`,
+      ...(mode === "reply-reader" ? { readRelatedExcerpts: async (_context, _excluded, _signal, onDiagnostic) => {
+        reads++;
+        onDiagnostic({ eligible: 0, attempted: 0, accepted: 0,
+          failures: { noHostAccess: 0, fetchHttpRedirect: 0, sizeType: 0, parseShort: 0 } });
+        return [];
+      } } : {}),
+      aiClient: {
+        status: async () => ({ connected: true, planEnabled: true, pending: false,
+          account: { clientId: "client-a", label: "Owner" } }),
+        models: async () => [{ slug: "model-a" }],
+        start: async (value) => { starts++; request = value; return { state: "running" }; },
+        result: async () => ({ state: "completed",
+          result: { body: "Bounded result", model: "model-a", citations: [] } }),
+        cancel: async () => true,
+      },
+    });
+    const rootId = app.service.command(app.service.catalog().version,
+      { type: "create-root", topicId: "reserved-domain-demo", body: "Which product price is lowest?" },
+      "demo-alex").result.contributionId;
+    await app.discussion.open();
+    const candidates = [...app.insight.currentState().context.sameTopicSources,
+      ...app.insight.currentState().context.relatedSources];
+    assert.ok(candidates.length > 0, mode);
+    for (const source of candidates)
+      assert.equal(app.insight.setRelatedSourceIncluded(source.id, false), true, mode);
+    await app.insight.checkConnection(); await app.insight.loadModels();
+    assert.equal(starts, 0, `${mode}: settings and rendering cannot start research`);
+    if (mode === "reply-disabled") assert.equal(app.insight.setRelatedPageTextEnabled(false), true);
+    assert.equal(starts, 0, mode);
+    assert.equal(await (mode === "opening" ? app.insight.createInsights({ automatic: true }) :
+      app.insight.createFollowup(rootId)), true, mode);
+    assert.equal(starts, 1, mode);
+    assert.deepEqual(request.context.sameTopicSources, [], mode);
+    assert.deepEqual(request.context.relatedSources, [], mode);
+    assert.equal(request.allowWebResearch, mode === "reply" || mode === "reply-reader", mode);
+    assert.equal(Object.hasOwn(request, "followupQuestionId"), mode !== "opening", mode);
+    assert.equal(reads, mode === "reply-reader" ? 1 : 0, mode);
+    if (mode === "reply-disabled") assert.equal(Object.hasOwn(request, "relatedExcerpts"), false);
+    assert.equal(app.service.discussion("reserved-domain-demo").roots.length, 1, mode);
+    assert.equal(app.service.discussion("reserved-domain-demo").roots[0].replies.length, 0, mode);
+  }
+});
+
 test("same-Topic linked pages can be excluded individually while the current page cannot", async () => {
   const app = await harness();
   assert.equal(app.insight.prepare(), true);

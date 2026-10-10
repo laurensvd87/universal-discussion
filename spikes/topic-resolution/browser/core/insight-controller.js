@@ -563,6 +563,10 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         request.allowWebResearch = false;
         publish({ relatedExcerptCount: null });
       }
+      // Only a deliberate reply can search beyond selected catalog links.
+      // The service independently resolves the published target before using
+      // this request flag; no client-supplied research mode is authoritative.
+      if (state.relatedPageTextEnabled && followup) request.allowWebResearch = true;
       if (!eligible() || key() !== expectedKey || followup && !sameFollowupTarget(followup)) return false;
       await aiClient.start(request, actorId, { signal: abort.signal });
       const end = Date.now() + 95000;

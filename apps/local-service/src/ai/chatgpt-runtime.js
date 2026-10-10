@@ -199,7 +199,10 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         sourceLimit: sourceId === null ? 5 : 6 });
     } catch { fail("invalid", "Invalid request"); }
     if (!same(rebuilt, context)) fail("invalid", "Invalid request");
-    return rebuilt;
+    const catalogUrls = new Map(catalog.sources.map((source) => [source.id, source.url]));
+    const excludedWebUrls = excluded.map((id) => catalogUrls.get(id));
+    if (excludedWebUrls.some((url) => typeof url !== "string")) fail("invalid", "Invalid request");
+    return { context: rebuilt, excludedWebUrls };
   }
   function inspectFollowup(questionId, context, expected) {
     const id = readId(questionId);
@@ -290,7 +293,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       if (active) fail("conflict", "Operation active");
       const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
-      const context = inspectContext(value);
+      const { context, excludedWebUrls } = inspectContext(value);
       let relatedExcerpts;
       try { relatedExcerpts = validateRelatedExcerpts(
         Object.hasOwn(value, "relatedExcerpts") ? value.relatedExcerpts : [], context); }
@@ -312,7 +315,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       seen.add(key); jobs.set(key, job); active = job;
       void insights.createInsight({ model: value.model, context, articleText: value.articleText,
         allowWebResearch: value.allowWebResearch, relatedExcerpts,
-        ...(followup ? { followup: { parentBody: followup.parentBody, questionBody: followup.questionBody } } : {}) }).then((result) => {
+        ...(followup ? { followup: { parentBody: followup.parentBody, questionBody: followup.questionBody },
+          excludedWebUrls } : {}) }).then((result) => {
         if (job.state === "running" && !disposed) {
           job.state = "completed"; job.result = result; recordInsightOutcome("success"); finish(job);
         }

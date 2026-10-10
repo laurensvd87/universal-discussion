@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.35** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.36** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -36,6 +36,14 @@ characters each), current-page text and up to five related links; unsent editor
 text and full thread history are not sent. See
 [ADR-077](decisions/ADR-077-bounded-insight-replies-to-any-message.md). Page/account/
 target changes prevent posting; old or recovered drafts still require Share.
+Sparkle replies can also search the public web beyond our catalog, even when no
+related pages are known. Newly discovered sources appear as clickable citation
+arrows (at most five distinct sources); they are not automatically added to the
+catalog. For price questions, specify the exact variant and delivery country.
+Answers compare available offers, not a guarantee of the cheapest price anywhere.
+Opening Insights still compare selected related pages. **Settings → Use web
+research** disables both paths. See
+[ADR-078](decisions/ADR-078-deliberate-reply-web-discovery.md).
 Reload the extension and restart the normal backend to activate the reply update;
 pairing, protected login and saved posts are retained.
 This is local sharing, not a publicly hosted service. See

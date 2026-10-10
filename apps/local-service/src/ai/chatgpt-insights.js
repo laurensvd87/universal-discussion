@@ -219,11 +219,12 @@ async function responseError(response, signal) {
   }
   fail(errorForStatus(response?.status), response?.status === 400 ? "response-http-400" : undefined);
 }
-function safeCitation(value, body, offset, allowedWebUrls, context) {
+function safeCitation(value, body, offset, allowedWebUrls, context, broadReply, searchCompleted, excludedWebUrls) {
   if (!value || value.type !== "url_citation") return null;
   let url;
   try { url = publicUrl(value.url); } catch { failCitation("invalid-url"); }
-  if (!allowedWebUrls.has(url))
+  if (url === context.currentSource.url || excludedWebUrls.has(url) ||
+      (!allowedWebUrls.has(url) && !(broadReply && searchCompleted)))
     failCitation(url === context.currentSource.url ? "current-source-url" : "unselected-url");
   const startIndex = value.start_index, endIndex = value.end_index;
   if (!Number.isSafeInteger(startIndex) || !Number.isSafeInteger(endIndex) ||
@@ -233,8 +234,8 @@ function safeCitation(value, body, offset, allowedWebUrls, context) {
   // title can be absent or unusable without making an exact citation unsafe.
   const selected = [...context.sameTopicSources, ...context.relatedSources]
     .find((source) => source.url === url);
-  if (!selected) failCitation("unselected-url");
-  let title = selected.title;
+  if (!selected && !broadReply) failCitation("unselected-url");
+  let title = selected?.title ?? new URL(url).hostname;
   try { title = text(value.title, 512); } catch { /* Use the attested local title. */ }
   return { url, title, startIndex: offset + startIndex, endIndex: offset + endIndex };
 }
@@ -289,9 +290,12 @@ function webReferenceCitations(body, references) {
   }
   return citations;
 }
-function completed(value, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted) {
+function completed(value, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted, broadReply, excludedWebUrls) {
   const allowedWebUrls = new Set(selectedReferences.map((entry) => entry.url));
   if (!value || value.status !== "completed" || !Array.isArray(value.output)) fail("invalid-response", "response-event");
+  if (broadReply && (streamShape.conflict || value.error != null || value.incomplete_details != null ||
+      value.output.some((item) => item?.status != null && item.status !== "completed")))
+    fail("invalid-response", "response-event");
   // The response may report the resolved model behind an account-listed alias.
   if (value.model !== undefined && (typeof value.model !== "string" || !SLUG.test(value.model))) fail("invalid-response");
   let body = "";
@@ -315,7 +319,8 @@ function completed(value, model, streamShape, relatedExcerpts, context, selected
       if (Array.isArray(part.annotations)) {
         if (part.annotations.length > 50) fail("invalid-response", "response-output-too-large");
         for (const annotation of part.annotations) {
-          const citation = safeCitation(annotation, part.text, offset, allowedWebUrls, context);
+          const citation = safeCitation(annotation, part.text, offset, allowedWebUrls, context,
+            broadReply, searchCompleted, excludedWebUrls);
           if (citation) citations.push(citation);
         }
       }
@@ -339,18 +344,20 @@ function completed(value, model, streamShape, relatedExcerpts, context, selected
   const webCitations = citations.slice();
   citations.push(...excerptCitations(body, relatedExcerpts, context));
   citations.push(...webReferenceCitations(body, selectedReferences));
+  if (broadReply && new Set(citations.map((citation) => citation.url)).size > MAX_WEB_CANDIDATES)
+    fail("invalid-response", "response-web-citation");
   validateOutputLinks(body, webCitations);
   // Search can finish without opening any publisher page. A private draft may
   // then use the current article alone, provided it has no unsafe links or
   // invalid citations; the instruction constrains factual grounding.
-  if (allowedWebUrls.size > 0 && !searchCompleted)
+  if ((!broadReply && allowedWebUrls.size > 0 || broadReply && citations.length > 0) && !searchCompleted)
     fail("invalid-response", "response-web-evidence");
   // The paired client accepts at most 50 annotations in one result. Reject
   // rather than silently dropping provider citations beside written claims.
   if (citations.length > 50) fail("invalid-response", "response-output-too-large");
   return { body, citations, model };
 }
-function completedStreamItemFallback(final, model, shape, relatedExcerpts, context, selectedReferences, searchCompleted) {
+function completedStreamItemFallback(final, model, shape, relatedExcerpts, context, selectedReferences, searchCompleted, broadReply, excludedWebUrls) {
   const reject = (detail, branch = null) => {
     shape.fallbackFailure = detail;
     shape.fallbackBranch = branch;
@@ -441,7 +448,8 @@ function completedStreamItemFallback(final, model, shape, relatedExcerpts, conte
   }
   // A finalized item may be used only after the terminal completed response;
   // no delta, tool result, conflicting final item or refused output is imported.
-  return completed({ ...final, output: [candidate.item] }, model, shape, relatedExcerpts, context, selectedReferences, searchCompleted);
+  return completed({ ...final, output: [candidate.item] }, model, shape, relatedExcerpts, context,
+    selectedReferences, searchCompleted, broadReply, excludedWebUrls);
 }
 async function boundedBody(response, maximum, signal, catalog = false) {
   if (!response.body?.getReader) fail("invalid-response", catalog ? "catalog-stream" : "response-stream");
@@ -473,7 +481,7 @@ function traceItem(item, index, phase) {
   return { phase, index: traceIndex(index), type: TRACE_ITEM_TYPES.has(item?.type) ? item.type : "other",
     status: TRACE_STATUSES.has(item?.status) ? item.status : "other" };
 }
-function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferences) {
+function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferences, broadReply, excludedWebUrls) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
   const streamShape = { finalAssistantItem: false, textDone: false, createdId: null,
@@ -588,9 +596,23 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
     (streamShape.doneItems.some((item) => item.type === "web_search_call" && item.status === "completed") ||
       Array.isArray(final.output) && final.output.some((item) =>
         item?.type === "web_search_call" && item.status === "completed"));
-  const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted);
+  const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context,
+    selectedReferences, searchCompleted, broadReply, excludedWebUrls);
   if (recovered) return recovered;
-  return completed(final, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted);
+  const consistentSearch = !broadReply ||
+    (streamShape.createdCount === 0 || streamShape.createdCount === 1 &&
+      streamShape.createdId === final.id) &&
+    !streamShape.addedItems.some((item) => item.type === "web_search_call" &&
+      (item.status !== "in_progress" || final.output?.[item.index]?.type !== "web_search_call" ||
+        final.output[item.index].id !== item.id || final.output[item.index].status !== "completed")) &&
+    !streamShape.doneItems.some((item) =>
+      item.type === "web_search_call" && (!streamShape.addedItems.some((added) =>
+        added.index === item.index && added.id === item.id && added.type === "web_search_call" &&
+        added.status === "in_progress") || final.output?.[item.index]?.type !== "web_search_call" ||
+        final.output[item.index].id !== item.id || final.output[item.index].status !== "completed"));
+  if (broadReply && !consistentSearch) fail("invalid-response", "response-event");
+  return completed(final, model, streamShape, relatedExcerpts, context, selectedReferences,
+    searchCompleted && consistentSearch, broadReply, excludedWebUrls);
   } catch (error) {
     outcome = "failure";
     detail = INSIGHT_DETAILS.has(error?.detail) ? error.detail : null;
@@ -801,23 +823,33 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const hasFollowup = Object.hasOwn(object(request), "followup");
       keys(request, ["model", "context", "articleText", "allowWebResearch",
         ...(Object.hasOwn(request, "relatedExcerpts") ? ["relatedExcerpts"] : []),
+        ...(Object.hasOwn(request, "excludedWebUrls") ? ["excludedWebUrls"] : []),
         ...(hasFollowup ? ["followup"] : [])]);
       const model = own(request, "model");
       if (typeof model !== "string" || !SLUG.test(model)) fail("model-unavailable");
       const allowWebResearch = own(request, "allowWebResearch");
       if (typeof allowWebResearch !== "boolean") fail("invalid-input");
       const followup = hasFollowup ? followupValue(own(request, "followup")) : null;
+      const excludedWebUrls = new Set(Object.hasOwn(request, "excludedWebUrls") ?
+        array(own(request, "excludedWebUrls"), 20).map(publicUrl) : []);
+      if (excludedWebUrls.size !== (Object.hasOwn(request, "excludedWebUrls") ? request.excludedWebUrls.length : 0) ||
+          (excludedWebUrls.size && !followup)) fail("invalid-input");
       const context = contextValue(own(request, "context"));
+      if (excludedWebUrls.has(context.currentSource.url)) fail("invalid-input");
       const articleText = text(own(request, "articleText"), MAX_TEXT, true);
       const relatedExcerpts = validateRelatedExcerpts(
         Object.hasOwn(request, "relatedExcerpts") ? own(request, "relatedExcerpts") : [], context);
-      const missingCandidates = allowWebResearch ? missingRelatedCandidates(context, relatedExcerpts) : [];
-      const webReferences = selectedWebReferences(context, missingCandidates);
-      const useWebResearch = missingCandidates.length > 0;
+      const visibleContext = excludedWebUrls.size ? { ...context,
+        sameTopicSources: context.sameTopicSources.filter((source) => !excludedWebUrls.has(source.url)),
+        relatedSources: context.relatedSources.filter((source) => !excludedWebUrls.has(source.url)) } : context;
+      const missingCandidates = allowWebResearch ? missingRelatedCandidates(visibleContext, relatedExcerpts) : [];
+      const webReferences = selectedWebReferences(visibleContext, missingCandidates);
+      const broadReply = Boolean(followup && allowWebResearch);
+      const useWebResearch = broadReply || missingCandidates.length > 0;
       // A disabled research preference must not send candidate URLs to the
       // provider even though the service used them to attest the local request.
-      const providerContext = allowWebResearch ? context :
-        { ...context, sameTopicSources: [], relatedSources: [] };
+      const providerContext = allowWebResearch ? visibleContext :
+        { ...visibleContext, sameTopicSources: [], relatedSources: [] };
       const userContext = followup ? followupContext(providerContext, articleText, followup, relatedExcerpts) :
         { context: providerContext, articlePrefix: articleText, relatedExcerpts };
       if (useWebResearch) {
@@ -849,8 +881,9 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       };
       if (useWebResearch) {
         payload.tools = [{ type: "web_search", external_web_access: true, search_context_size: "medium",
-          filters: { allowed_domains: [...new Set(missingCandidates.map((url) => new URL(url).hostname))] } }];
-        payload.tool_choice = "required";
+          ...(broadReply ? {} : { filters: { allowed_domains:
+            [...new Set(missingCandidates.map((url) => new URL(url).hostname))] } }) }];
+        payload.tool_choice = broadReply ? "auto" : "required";
       }
       debug({ phase: "request", payload });
       const response = await fetchImpl(`${API}/responses`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`,
@@ -872,7 +905,8 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         if (failureCode) fail(errorForCode(failureCode), "response-failed");
         fail("invalid-response", "response-content-missing");
       }
-      return parseSse(raw, model, onTrace, relatedExcerpts, context, webReferences);
+      return parseSse(raw, model, onTrace, relatedExcerpts, context, webReferences,
+        broadReply, excludedWebUrls);
     }, signal);
   }
   function cancel() { active?.abort(); }

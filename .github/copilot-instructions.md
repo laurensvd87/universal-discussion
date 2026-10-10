@@ -2,6 +2,14 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current reply research (2026-10-10, ADR-078): deliberate validated sparkle replies
+may use ChatGPT-hosted search beyond the catalog with existing bounded input;
+opening Insights remain selected-URL-only. The research preference disables both
+paths. New destinations need completed search plus provider URL annotations;
+at most five distinct safe public cited sources, never invented/excluded URLs.
+No background calls, retries, purchases, catalog crawling or remote publication.
+Keep ADR-077 authority and ADR-075 one-shot sharing; read top STATUS/HANDOFF.
+
 Current reply scope (2026-10-10, ADR-077): explicit owner-approved sparkle
 replies may address any visible canonical root/nested human or generated post,
 any author. Provider gets only selected message/opener (2,000 characters each),

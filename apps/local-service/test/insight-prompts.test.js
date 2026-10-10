@@ -41,7 +41,15 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
   assert.doesNotMatch(followup, /opening post/u);
   assert.match(offlineFollowup, /Do not use external research/u);
   assert.notEqual(followup, offlineFollowup);
-  assert.match(followup, /Use the web_search tool/u);
+  assert.match(followup, /web_search to find relevant public evidence beyond/u);
+  assert.match(followup, /Derive concise search terms/u);
+  assert.match(followup, /Cite at most five distinct public sources/u);
+  assert.match(followup, /selectedWebReferences maps \[refN\] only to those selected URLs/u);
+  assert.match(followup, /Do not print raw URLs or add a source list/u);
+  assert.match(followup, /exact SKU or variant, condition, currency, region, availability and delivered total/u);
+  assert.match(followup, /delivery country is missing, ask for it/u);
+  assert.match(followup, /lowest found.*never universal cheapest/u);
+  assert.match(followup, /Do not purchase or use accounts/u);
   assert.equal(buildInsightInstructions(false, true), opener);
   for (const flags of [[null, false], [false, "true"], [0, false]]) {
     assert.throws(() => buildInsightInstructions(...flags), TypeError);
