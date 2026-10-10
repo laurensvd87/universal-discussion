@@ -1,6 +1,8 @@
 import {
   createActiveTabReader,
   createTabLifecycleObserver,
+  createWindowBoundActiveTabReader,
+  createWindowBoundTabLifecycleObserver,
 } from "./active-tab-reader.js";
 import { createPageMetadataReader } from "./page-metadata-reader.js";
 import { createActiveTabController } from "../core/active-tab-controller.js";
@@ -28,7 +30,27 @@ import {
 
 const runtime = globalThis.chrome.runtime;
 const windows = globalThis.chrome.windows;
-connectPopupFocusResponder({ runtime, windows, document, window: globalThis.window });
+const isSidePanel = globalThis.location.pathname.endsWith("/chromium/sidepanel.html");
+if (isSidePanel && globalThis.window.top !== globalThis.window.self)
+  throw new TypeError("Side panel frame unavailable");
+if (isSidePanel && !globalThis.location.search) {
+  const current = await windows.getCurrent({ populate: false }).catch(() => null);
+  if (!Number.isSafeInteger(current?.id) || current.id < 0 || current.type !== "normal" || current.incognito)
+    throw new TypeError("Side panel window unavailable");
+  const uniqueUrl = `${runtime.getURL("chromium/sidepanel.html")}?windowId=${current.id}&instance=${crypto.randomUUID()}`;
+  globalThis.location.replace(uniqueUrl);
+  await new Promise(() => {});
+}
+const panelBinding = isSidePanel
+  ? await runtime.sendMessage({ target: "panel-context", type: "binding" }).catch(() => null) : null;
+if (isSidePanel && (!Number.isSafeInteger(panelBinding?.windowId) || panelBinding.windowId < 0))
+  throw new TypeError("Side panel context unavailable");
+if (isSidePanel) {
+  const ownWindow = await windows.getCurrent({ populate: false }).catch(() => null);
+  if (ownWindow?.id !== panelBinding.windowId || ownWindow.type !== "normal" || ownWindow.incognito)
+    throw new TypeError("Side panel window changed");
+}
+if (!isSidePanel) connectPopupFocusResponder({ runtime, windows, document, window: globalThis.window });
 
 const elements = {
   agentCount: document.querySelector("#agent-count"),
@@ -175,9 +197,20 @@ const relatedPagesDemo = mountRelatedPagesDemo(
 
 const tabsApi = globalThis.chrome.tabs;
 const scriptingApi = globalThis.chrome.scripting;
-const activeTabReader = createActiveTabReader(tabsApi);
+const boundReader = isSidePanel ? createWindowBoundActiveTabReader({ tabsApi, windowsApi: windows,
+  windowId: panelBinding.windowId }) : null;
+const activeTabReader = isSidePanel ? Object.freeze({ read: async () => {
+  const ownWindow = await windows.getCurrent({ populate: false });
+  if (ownWindow?.id !== panelBinding.windowId || ownWindow.type !== "normal" || ownWindow.incognito)
+    throw new TypeError("Side panel window changed");
+  const witness = await runtime.sendMessage({ target: "panel-context", type: "binding" });
+  if (witness?.windowId !== panelBinding.windowId) throw new TypeError("Side panel context changed");
+  return boundReader.read();
+} }) : createActiveTabReader(tabsApi);
 const insightPageReader = createInsightPageReader({ scriptingApi, readActiveTab: activeTabReader.read });
-const tabLifecycleObserver = createTabLifecycleObserver(tabsApi);
+const tabLifecycleObserver = isSidePanel
+  ? createWindowBoundTabLifecycleObserver({ tabsApi, windowsApi: windows, windowId: panelBinding.windowId })
+  : createTabLifecycleObserver(tabsApi);
 const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"));
 const insightPanel = mountInsightPanel(document, document.querySelector("#local-insights"));
 let insightController;
@@ -245,6 +278,13 @@ const localDiscussion = createLocalDiscussionController({
   },
   readActiveTab: activeTabReader.read,
   observeTabLifecycle: tabLifecycleObserver.observe,
+  ...(isSidePanel ? { attestActiveContext: async (expected) => {
+    try {
+      const actual = await activeTabReader.read();
+      return actual.tabId === expected?.tabId && actual.url === expected?.url &&
+        actual.windowId === expected?.windowId;
+    } catch { return false; }
+  } } : {}),
   lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
   readPageResolution: () => matchingPanel.readResolution(),
   pausePageMatching: () => matchingPanel.pauseMatching(),
@@ -268,7 +308,8 @@ insightController = createInsightController({
     return typeof stored.relatedPageTextEnabled === "boolean" ? stored.relatedPageTextEnabled : null;
   },
   saveRelatedTextPreference: (enabled) => storageLocal.set({ relatedPageTextEnabled: enabled }),
-  openAuthorization: (url) => tabsApi.create({ url, active: true }),
+  openAuthorization: (url) => tabsApi.create({ url, active: true,
+    ...(isSidePanel ? { windowId: panelBinding.windowId } : {}) }),
 });
 insightPanel.bind(insightController);
 discussionPanel.bindInsight(insightController);
@@ -287,6 +328,21 @@ document.querySelector("#diagnostic-heading").textContent = EN.discussionDiagnos
 document.querySelector("#user-footer").textContent = EN.uiFooter;
 document.querySelector("#developer-footer").textContent = EN.discussionFooter;
 void localDiscussion.open();
+let stopPanelWindowObservation = () => {};
+let panelReopenTimer;
+if (isSidePanel) {
+  const observePanelWindow = () => {
+    stopPanelWindowObservation = tabLifecycleObserver.observeWindow(() => {
+      localDiscussion.invalidateContext?.();
+      clearTimeout(panelReopenTimer);
+      observePanelWindow();
+      panelReopenTimer = setTimeout(() => {
+        void activeTabReader.read().then(() => localDiscussion.open()).catch(() => {});
+      }, 450);
+    });
+  };
+  observePanelWindow();
+}
 // After an authenticated local catalog arrives, discover this session's account
 // models once. This does not start inference or retry a failed provider read.
 const pageMetadataReader = createPageMetadataReader(scriptingApi);
@@ -308,6 +364,8 @@ const pageMetadataController = createPageMetadataController({
 });
 
 globalThis.addEventListener("pagehide", () => {
+  clearTimeout(panelReopenTimer);
+  stopPanelWindowObservation();
   serviceRetry.dispose();
   insightController.dispose();
   insightPanel.dispose();

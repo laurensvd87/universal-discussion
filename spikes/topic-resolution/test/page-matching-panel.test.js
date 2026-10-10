@@ -121,7 +121,54 @@ test("streamlined session offers one Chrome grant gesture without a repeated che
   ui.byId("matching-enable").listeners.get("click")();
   assert.deepEqual(ui.calls.at(-1), { permission: { origins: ["https://*/*"] } });
   await turn();
-  assert.equal(ui.calls.at(-1).type, "start-session");
+  assert.equal(ui.calls.at(-1).type, "status");
+  assert.equal(ui.calls.some((item) => item.type === "start-session"), false);
+  ui.panel.dispose();
+});
+test("streamlined grant works when Chrome hides the first active URL, then only reads status", async () => {
+  let current = resolution({ phase: "off", enabled: false, hostAccess: false,
+    tabId: null, url: null, currentOrigin: null, currentWindowId: null,
+    currentTabId: null, currentUrl: null, contextReason: "url-unavailable" });
+  const ui = harness({ streamlinedSession: true, initialState: current,
+    requestPermission(request) { ui.calls.push({ permission: request }); current = resolution({ phase: "checking", hostAccess: true }); return true; },
+    async sendMessage(message) { ui.calls.push(message); return current; } });
+  await turn();
+  assert.equal(ui.byId("matching-enable").disabled, false);
+  assert.equal(ui.byId("matching-enable").textContent, EN.matchingGrantAccess);
+  ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.deepEqual(ui.calls.map((item) => item.permission ? "permission" : item.type), ["status", "permission", "status"]);
+  assert.equal(ui.calls.some((item) => item.type === "start-session"), false);
+  assert.equal(ui.byId("matching-access").textContent, EN.matchingAccessGranted);
+  ui.panel.dispose();
+});
+test("denied hidden-URL grant never starts or polls as a fresh grant", async () => {
+  const unavailable = resolution({ phase: "off", enabled: false, hostAccess: false,
+    tabId: null, url: null, currentOrigin: null, currentWindowId: null,
+    currentTabId: null, currentUrl: null, contextReason: "url-unavailable" });
+  const ui = harness({ streamlinedSession: true, initialState: unavailable,
+    requestPermission(request) { ui.calls.push({ permission: request }); return false; } });
+  await turn();
+  ui.byId("matching-enable").listeners.get("click")(); await turn();
+  assert.deepEqual(ui.calls.map((item) => item.permission ? "permission" : item.type), ["status", "permission"]);
+  assert.equal(ui.byId("matching-status").textContent, EN.matchingPermissionDenied);
+  ui.panel.dispose();
+});
+test("Stop during hidden-URL grant discards its late status refresh", async () => {
+  let grant;
+  const prompt = new Promise((resolve) => { grant = resolve; });
+  const unavailable = resolution({ phase: "off", enabled: false, hostAccess: false,
+    tabId: null, url: null, currentOrigin: null, currentWindowId: null,
+    currentTabId: null, currentUrl: null, contextReason: "url-unavailable" });
+  const ui = harness({ streamlinedSession: true, initialState: unavailable,
+    requestPermission() { return prompt; },
+    async sendMessage(message) { ui.calls.push(message); return unavailable; } });
+  await turn();
+  ui.byId("matching-enable").listeners.get("click")();
+  ui.byId("matching-pause").listeners.get("click")(); await turn();
+  const before = ui.calls.length;
+  grant(true); await turn();
+  assert.equal(ui.calls.length, before);
+  assert.equal(ui.calls.some((item) => item.type === "start-session"), false);
   ui.panel.dispose();
 });
 test("streamlined Resume with an existing native grant skips Chrome permission request", async () => {

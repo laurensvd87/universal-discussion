@@ -22,6 +22,7 @@
     "test:browser:matching": "node harness/run-local-service-browser-smoke.js --matching",
     "test:browser:alternate": "node harness/run-background-matching-browser-smoke.js --alternate-only",
     "test:browser:ridge": "node harness/run-background-matching-browser-smoke.js --ridge-only",
+    "test:browser:sidepanel": "node harness/run-background-matching-browser-smoke.js --sidepanel-only",
     "test:browser:body-metric": "node harness/run-background-matching-browser-smoke.js --body-metric-only",
     "test:restricted": "node --import ./harness/deny-external-capabilities.js --test --test-isolation=none",
     "test:watch": "node --test --test-isolation=none --watch"

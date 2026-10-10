@@ -5,12 +5,14 @@ import { inspectPageUrl } from "../core/page-content-policy.js";
 import { createPageContentReader } from "./page-content-reader.js";
 import { createInferenceHost } from "./inference-host.js";
 import { createPopupFocusWitness } from "./popup-focus.js";
+import { authenticatedSidePanelWindow } from "./sidepanel-context.js";
 import { createCaptureSession, HTTPS_ACCESS } from "../core/capture-session.js";
 import { createTopicToolbarController, TOOLBAR_TAB_KEY } from "../core/topic-toolbar-controller.js";
 import { createTopicToolbarPainter } from "./topic-toolbar-icon.js";
 import { TOPIC_VIEW_SESSION_KEY, readTopicViewMode } from "../core/topic-view-mode.js";
 
 const api = globalThis.chrome;
+void api.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 const session = createLocalServiceSession({ storageLocal: api.storage.local, storageSession: api.storage.session });
 const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globalThis), getToken: session.getToken,
   onUnauthorized: async (token) => {
@@ -57,7 +59,7 @@ function validOrigin(origin) {
   const inspected = inspectPageUrl(typeof origin === "string" ? `${origin}/` : null);
   return inspected.supported && inspected.origin === origin;
 }
-async function inspectForeground() {
+async function inspectForeground(boundWindowId = null) {
   const ownPresentation = presentationEpoch;
   const rejected = (contextReason) => ({ foreground: null, contextReason });
   const tabReason = (tab) => {
@@ -67,7 +69,8 @@ async function inspectForeground() {
     if (!inspectPageUrl(tab.url).supported) return "unsupported-url";
     return null;
   };
-  const queryWindow = () => api.windows.getLastFocused({ populate: false });
+  const queryWindow = () => boundWindowId === null
+    ? api.windows.getLastFocused({ populate: false }) : api.windows.get(boundWindowId);
   const queryTabs = (windowId) => api.tabs.query({ active: true, windowId });
   try {
     let window;
@@ -76,7 +79,8 @@ async function inspectForeground() {
     if (!Number.isSafeInteger(window.id) || window.id < 0) return rejected("window-unavailable");
     if (window.type !== "normal") return { foreground: null, contextReason: "unsupported-window" };
     if (window.incognito) return { foreground: null, contextReason: "incognito" };
-    const witness = window.focused ? null : await popupFocus.check(window.id);
+    if (boundWindowId !== null && window.id !== boundWindowId) return rejected("window-changed");
+    const witness = boundWindowId === null && !window.focused ? await popupFocus.check(window.id) : null;
     if (!window.focused && !witness?.isCurrent()) return { foreground: null, contextReason: "window-unfocused" };
     let tabs;
     try { tabs = await queryTabs(window.id); } catch { return rejected("tab-query-failed"); }
@@ -204,64 +208,92 @@ async function observePresentation(windowId, own = presentationEpoch) {
   presentationTabId = next;
   void toolbar.update({ ...matcher.currentState(), presentationTabId });
 }
-async function status() {
-  if (await ensureAutoSession()) schedule();
-  const [settings, context] = await Promise.all([preferences(), inspectForeground()]);
+async function status(boundWindowId = null) {
+  if (boundWindowId === null && await ensureAutoSession()) schedule();
+  const [settings, context] = await Promise.all([preferences(), inspectForeground(boundWindowId)]);
   const { foreground, contextReason } = context;
   const observed = matcher.currentState();
   // A failed foreground observation can recover without a Chrome lifecycle
   // event. Fresh eligibility only schedules the ordinary fully fenced refresh.
   // Invalidation changes the phase immediately, so polling cannot defer it.
-  if (settings.enabled && foreground && settings.sessionWindowId === foreground.windowId && !settings.blockedOrigins.includes(foreground.origin) &&
+  if (boundWindowId === null && settings.enabled && foreground && settings.sessionWindowId === foreground.windowId && !settings.blockedOrigins.includes(foreground.origin) &&
       observed.phase === "unsupported" && observed.reason === "no-focused-page" &&
       observed.tabId === null && observed.url === null) schedule();
   const hostAccess = await permission().catch(() => false);
-  return { ...matcher.currentState(), ...settings, hostAccess,
+  const match = matcher.currentState();
+  const scopedMatch = boundWindowId !== null && (foreground?.tabId !== match.tabId ||
+    foreground?.url !== match.url || settings.sessionWindowId !== boundWindowId)
+    ? { ...match, phase: foreground ? "not-enabled" : "unsupported",
+      reason: foreground ? null : "no-focused-page", tabId: null, url: null,
+      documentId: null, sourceId: null, topicId: null, assignment: null }
+    : match;
+  return { ...scopedMatch, ...settings, hostAccess,
     currentWindowId: foreground?.windowId ?? null,
     currentOrigin: foreground?.origin ?? null, currentTabId: foreground?.tabId ?? null,
     currentUrl: foreground?.url ?? null, contextReason };
 }
-async function handle(message) {
+async function handle(message, boundWindowId = null) {
   if (!message || typeof message !== "object" || Array.isArray(message)) throw new Error("invalid");
   const allowed = ["block-site", "unblock-site", "remove-site"].includes(message.type) ? ["target", "type", "origin"]
     : message.type === "start-session" ? ["target", "type", "windowId", "expectedRevision"] : ["target", "type"];
   if (Object.keys(message).some((key) => !allowed.includes(key))) throw new Error("invalid");
   switch (message.type) {
-    case "status": return status();
+    case "status": return status(boundWindowId);
     case "toolbar-refresh":
+      if (boundWindowId !== null) {
+        const context = await inspectForeground(boundWindowId);
+        if (!context.foreground || context.foreground.tabId !== presentationTabId)
+          return { refreshed: false };
+      }
       await toolbar.update({ ...matcher.currentState(), presentationTabId }, { verify: true }); return { refreshed: true };
     case "start-session": {
       if (removingAccess) throw new Error("busy");
-      await captureSession.start(message.windowId, message.expectedRevision);
-      schedule(); return status();
+      if (boundWindowId !== null && message.windowId !== boundWindowId) throw new Error("invalid");
+      await captureSession.start(boundWindowId ?? message.windowId, message.expectedRevision);
+      schedule(); return status(boundWindowId);
     }
     case "pause":
     case "stop-session":
       await captureSession.stop();
-      await inference.close(); await matcher.refresh(); return status();
+      await inference.close(); await matcher.refresh(); return status(boundWindowId);
     case "block-site":
     case "remove-site":
       await captureSession.setBlocked(message.origin, true);
-      schedule(); return status();
+      schedule(); return status(boundWindowId);
     case "unblock-site":
       await captureSession.setBlocked(message.origin, false);
-      schedule(); return status();
+      schedule(); return status(boundWindowId);
     case "remove-access":
       removingAccess = true;
       try {
         await captureSession.stop();
         await api.permissions.remove({ origins: [HTTPS_ACCESS] });
-        await inference.close(); await matcher.refresh(); return await status();
+        await inference.close(); await matcher.refresh(); return await status(boundWindowId);
       } finally { removingAccess = false; }
-    case "retry": schedule(); return status();
+    case "retry": schedule(); return status(boundWindowId);
     default: throw new Error("invalid");
   }
 }
 api.runtime.onMessage.addListener((message, sender, reply) => {
+  const popupSender = sender?.id === api.runtime.id && !sender.tab &&
+    sender.url === api.runtime.getURL("chromium/popup.html");
+  const fromTrustedEntry = async () => {
+    if (popupSender) return { windowId: null };
+    const windowId = await authenticatedSidePanelWindow(api.runtime, sender);
+    if (windowId === null) return null;
+    const window = await api.windows.get(windowId).catch(() => null);
+    return window?.id === windowId && window.type === "normal" && !window.incognito
+      ? { windowId } : null;
+  };
+  if (message?.target === "panel-context") {
+    void (async () => {
+      const entry = popupSender ? null : await fromTrustedEntry();
+      reply(entry && message?.type === "binding" && Object.keys(message).length === 2
+        ? { windowId: entry.windowId } : { error: "forbidden" });
+    })().catch(() => reply({ error: "forbidden" }));
+    return true;
+  }
   if (message?.target === "local-pairing") {
-    if (sender.id !== api.runtime.id || sender.tab || sender.url !== api.runtime.getURL("chromium/popup.html")) {
-      reply({ ok: false }); return false;
-    }
     const allowed = message.type === "set" || message.type === "clear-if-current"
       ? ["target", "type", "value"] : ["target", "type"];
     if (!message || typeof message !== "object" || Object.keys(message).some((key) => !allowed.includes(key))) {
@@ -279,14 +311,14 @@ api.runtime.onMessage.addListener((message, sender, reply) => {
       clear: async () => { await session.clear(); return stopAfterClear(true); },
       "clear-if-current": async () => stopAfterClear(await session.clearIfCurrent(message.value)) }[message.type];
     if (!action) { reply({ ok: false }); return false; }
-    void action().then((value) => reply({ ok: true, value: value ?? null })).catch(() => reply({ ok: false }));
+    void fromTrustedEntry().then((entry) => entry ? action() : Promise.reject())
+      .then((value) => reply({ ok: true, value: value ?? null })).catch(() => reply({ ok: false }));
     return true;
   }
   if (message?.target !== "page-matching") return false;
-  if (sender.id !== api.runtime.id || sender.tab || sender.url !== api.runtime.getURL("chromium/popup.html")) {
-    reply({ error: "forbidden" }); return false;
-  }
-  void handle(message).then(reply).catch(() => reply({ error: "unavailable" }));
+  void fromTrustedEntry().then((entry) => entry ? handle(message, entry.windowId) :
+    Promise.resolve({ error: "forbidden" }))
+    .then(reply).catch(() => reply({ error: "unavailable" }));
   return true;
 });
 api.tabs.onActivated.addListener(schedule);
@@ -305,6 +337,9 @@ api.windows.onFocusChanged.addListener((id) => {
   void preferences().then((settings) => settings.enabled ? undefined : observePresentation(id, own)).catch(() => {});
 });
 api.windows.onRemoved.addListener((id) => { void captureSession.closeWindow(id).then(schedule).catch(() => {}); });
+api.permissions.onAdded.addListener((added) => {
+  if (added?.origins?.includes(HTTPS_ACCESS)) schedule();
+});
 api.permissions.onRemoved.addListener((removed) => {
   matcher.invalidate(); clearTimeout(timer); cancelRetry(); void inference.close().catch(() => {});
   // Fence before any asynchronous contains() observation: a fast regrant must

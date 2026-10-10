@@ -55,6 +55,14 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     return wait(() => [...targets.values()].find(item => item.ready && item.type === 'service_worker' &&
       item.url === `chrome-extension://${extensionId}/chromium/background.js`), 'packaged background worker');
   }
+  async function configureCompatibilityPopup({ waitForProduction = false } = {}) {
+    const context = await worker();
+    if (waitForProduction) await wait(async () => (await evaluate('chrome.sidePanel.getPanelBehavior()', context.sessionId)
+      .catch(() => null))?.openPanelOnActionClick === true, 'production toolbar behavior before test override');
+    await evaluate('chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:false})', context.sessionId);
+    const popupPath = await evaluate("(async () => { await chrome.action.setPopup({popup:'chromium/popup.html'}); return chrome.action.getPopup({}); })()", context.sessionId);
+    assert.equal(popupPath, `chrome-extension://${extensionId}/chromium/popup.html`);
+  }
   async function status() {
     return evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'status'})");
   }
@@ -85,9 +93,18 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     await evaluate(`document.getElementById(${JSON.stringify(id)}).click()`, popupSession, true);
   }
   async function start() {
-    await evaluate("(() => { const input = document.getElementById('matching-consent'); input.checked = true; input.dispatchEvent(new Event('change',{bubbles:true})); })()");
+    const firstAction = await evaluate("document.getElementById('matching-enable').textContent");
+    assert.ok([EN.matchingGrantAccess, EN.matchingEnable].includes(firstAction));
+    if (firstAction === EN.matchingGrantAccess) {
+      await uiClick('matching-enable');
+      await wait(async () => {
+        const value = await status();
+        return value.hostAccess && !value.enabled && await evaluate(`document.getElementById('matching-enable').textContent === ${JSON.stringify(EN.matchingEnable)} && !document.getElementById('matching-enable').disabled`);
+      }, 'Grant only refreshes browser access before Start');
+    }
     await uiClick('matching-enable');
-    return wait(async () => { const value = await status(); return value.enabled && value.phase === 'unpaired' ? value : false; }, 'Start reaches real unpaired authorization gate');
+    return wait(async () => { const value = await status(); return value.enabled && value.phase === 'unpaired' ? value : false; },
+      'Start reaches real unpaired authorization gate');
   }
   async function nativeAccess() {
     return evaluate("chrome.permissions.contains({origins:['https://*/*']})", (await worker()).sessionId);
@@ -104,6 +121,9 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     assert.equal(value.sessionRevision, expected.sessionRevision);
   }
   async function activeSessionUi() {
+    await evaluate("document.getElementById('ui-mode-developer').click()");
+    await wait(() => evaluate("document.body.dataset.uiMode==='developer' && document.getElementById('capture-settings').open && document.getElementById('matching-how').open"),
+      'Developer details open for active-session evidence');
     await wait(() => evaluate(`(() => {
       const consent=document.getElementById('matching-consent');
       const label=document.querySelector('label[for="matching-consent"]');
@@ -187,6 +207,7 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     identityResolve(); assert.match(extensionId, /^[a-p]{32}$/u);
     const page = await wait(() => [...targets.values()].find(item => item.ready && item.type === 'page' && item.url === 'about:blank'), 'initial disposable page');
     pageSession = page.sessionId;
+    await configureCompatibilityPopup({ waitForProduction: true });
     stage = 'initial default-off state';
     await navigate(ARTICLES[0]);
     const before = await status();
@@ -198,6 +219,9 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     permissionPreparationTarget = new Promise(resolve => { preparedTargetResolve = resolve; });
     try { await prepareSessionPermission(browser, extensionId, { onTargetCreated: preparedTargetResolve }); }
     finally { preparedTargetResolve(null); permissionPreparationTarget = null; }
+    // Permission preparation may reload the disposable extension. Restore the
+    // legacy POPUP action solely in this profile for the existing witness checks.
+    await configureCompatibilityPopup();
     stage = 'native access alone';
     await openPopup(); await eligible('https://example.com');
     const exactPopupUrl = await evaluate('location.href');

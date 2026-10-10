@@ -169,10 +169,12 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const submit = node("button", "discussionSubmit"); submit.type = "submit";
   submit.id = "discussion-submit";
   const composerActions = node("div"); composerActions.className = "discussion-composer-actions";
+  const modelHost = node("div"); modelHost.id = "discussion-model-host";
+  modelHost.className = "discussion-model-host";
   const insightActivity = node("span"); insightActivity.id = "discussion-insight-activity";
   insightActivity.setAttribute("role", "status"); insightActivity.setAttribute("aria-live", "polite");
   insightShortcut.setAttribute("aria-describedby", insightActivity.id);
-  composerActions.append(insightShortcut, submit, insightActivity);
+  composerActions.append(modelHost, insightShortcut, submit, insightActivity);
   composer.append(mode, replyContext, bodyLabel, body, detached, composerActions);
   listen(body, "input", () => controller?.setDraft(body.value));
   listen(composer, "submit", async (event) => {
@@ -317,11 +319,13 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     return chars.length > limit ? `${chars.slice(0, limit).join("")}…` : plain;
   }
   function contribution(entry, rootEntry, state, newlyArrived = false) {
-    const card = node("article"); card.className = "discussion-contribution";
+    const card = node("article"); card.className = `discussion-contribution ${entry === rootEntry ? "discussion-root-post" : "discussion-reply-post"}`;
     card.setAttribute("data-post-id", entry.id);
     card.setAttribute("tabindex", "-1");
     card.setAttribute("data-ownership", ownsContribution(entry, state.actorId) ? "own" : "other");
     card.setAttribute("data-actor-type", entry.actorType);
+    if (ownsContribution(entry, state.actorId) && entry.actorType === "human") card.className += " discussion-own-human";
+    if (entry.actorType === "agent") card.className += " discussion-ai-post";
     if (newlyArrived && entry.state === "visible") card.className += " is-new";
     if (entry.state === "deleted") {
       card.setAttribute("aria-label", text("discussionDeleted"));
@@ -349,6 +353,12 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       text("discussionCitationUnverifiedNote"));
     else content.textContent = entry.body;
     metadata.append(author);
+    if (actor?.id === "demo-alex" || actor?.id === "demo-blair") {
+      const demo = node("span", "uiDemoBadge");
+      demo.className = "discussion-demo-badge";
+      demo.setAttribute("aria-label", text("uiDemoBadgeLabel"));
+      metadata.append(demo);
+    }
     if (uiMode === "user") {
       const type = node("span", entry.actorType === "agent" ? "uiAgentBadge" : "uiHumanBadge");
       type.className = `discussion-actor-badge discussion-actor-badge-${entry.actorType}`;
@@ -403,6 +413,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (entry.edited) card.append(node("span", "discussionEdited"));
     function action(key, callback) {
       const item = node("button", key); item.type = "button";
+      item.className = `discussion-action discussion-action-${key.replace(/^discussion/u, "").toLowerCase()}`;
+      item.setAttribute("aria-label", text(key));
+      item.title = text(key);
       item.disabled = !canonicalRoot || state.busy || state.needsFreshRead || state.phase !== "ready";
       item.setAttribute("data-action", key.replace(/^discussion/u, "").toLowerCase());
       item.setAttribute("data-contribution-id", entry.id);

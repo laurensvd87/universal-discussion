@@ -13,7 +13,9 @@ export function createInsightPageReader({ scriptingApi, readActiveTab }) {
     const tab = await readActiveTab();
     if (!Number.isSafeInteger(tab?.tabId) || !inspectPageUrl(tab.url).supported ||
         inspectPageUrl(tab.url).url !== source.url) throw new TypeError("Current page changed");
-    if (state.selection === "background" && (!isReadyPageResolution(resolution) || state.sourceId !== resolution.sourceId ||
+    if (state.selection === "background" && (!isReadyPageResolution(resolution) ||
+        tab.windowId !== undefined && tab.windowId !== resolution.currentWindowId ||
+        state.sourceId !== resolution.sourceId ||
         state.topicId !== resolution.topicId || tab.tabId !== resolution.tabId || source.url !== resolution.url)) {
       throw new TypeError("Current page changed");
     }

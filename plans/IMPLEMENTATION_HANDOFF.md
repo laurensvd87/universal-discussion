@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 surface checkpoint (0.13.31): owner-approved native Chrome side panel
+and discussion-first dark redesign are implemented. Read ADR-074 and top STATUS.
+Astra High orchestrated design; Sol Medium coded; root and independent Trust
+reviewed. Actual Chrome validates persistence, two windows, Source-bound posts,
+draft detachment, ordinary-tab/closed-instance rejection and no new egress.
+Unique real-document URL joins are necessary because Chrome 154 omits sender
+document IDs and reports SIDE_PANEL context window ID -1. Do not weaken to bare
+URLs, arbitrary RPC window IDs or last-focused fallback. Native page reads and
+writes recheck browser-observed containing window plus active completed tab.
+First-use Chrome Grant is explicit and separate from pairing; ready learned
+resolution must establish a matching observation before Post becomes writable.
+The packaged popup remains compatibility QA only; those harnesses opt their
+disposable profiles back into it. Shared visual QA is not native Trust evidence.
+Owner should reload extension; pairing/login/data and Ridge default remain intact.
+Closing panel does not stop background matching. No new website/provider scope,
+model, raw-content retention or publication approval follows. Final test counts
+and restored service status are in the top STATUS checkpoint.
+
 2026-10-10 current checkpoint (0.13.30): the owner explicitly approved Ridge1
 as the restart default, Legacy E5 rollback and dashboard comparison. Read
 [ADR-073](../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md) and the

@@ -35,6 +35,8 @@ export const EN = Object.freeze({
   uiTopicViewPinned: "Other conversations on this page",
   uiTopicViewSavedTopicHint: "Switch to Legacy E5 to change saved topics.",
   uiUser: "User",
+  uiDemoBadge: "Demo",
+  uiDemoBadgeLabel: "Synthetic demo identity; not a signed-in account",
   uiDeveloper: "Developer",
   uiConnected: "Connected to local service",
   uiConnectionLastChecked: "Last checked during the latest service operation; no continuous heartbeat.",

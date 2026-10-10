@@ -80,7 +80,7 @@ export const INSIGHT_EN = Object.freeze({
   noOrigin: "No page origin — this conversation stays attached to the selected Topic.",
   shareScope: "Share this unchanged insight locally on this computer.",
   replyShareScope: "Share this unchanged robot reply beneath your question on this computer.",
-  share: "Share insight",
+  share: "Share locally",
   shareReply: "Share reply locally",
   idle: "Choose a Topic and prepare sources. ChatGPT runs only when you press Create insights.",
   unavailable: "Load a current Topic to prepare sources. Reopen the discussion if local data changed.",

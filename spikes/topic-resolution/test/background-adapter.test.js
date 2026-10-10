@@ -28,7 +28,7 @@ function embedding() { const values = Array(384).fill(0); values[0] = 1; return 
 async function harness(t, { enabled = true, paired = true, blocked = [], autoEligible = false } = {}) {
   const descriptors = new Map(["chrome", "fetch", "OffscreenCanvas"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   t.mock.timers.enable({ apis: ["setTimeout"] });
-  const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "windowRemoved", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
+  const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "windowRemoved", "permissionAdded", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
   const gates = [];
   const pendingControls = [];
   const calls = { reads: 0, windowQueries: 0, tabQueries: 0, attestations: 0, embeddings: 0, closes: 0, fetches: [], storageWrites: [], permissionRemovals: [], icons: [], titles: [] };
@@ -40,7 +40,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
     window: { id: 1, focused: true, type: "normal" }, permitted: true, exists: false,
     writeGate: null, permissionGate: null, embedGate: null, unauthorized: false, healthUnavailable: false, catalogUnavailable: false,
     windowError: false, tabQueryError: false, startWindowFailures: 0,
-    popupContexts: [], popupAnswer: null,
+    popupContexts: [], panelContexts: [], popupAnswer: null,
     now: 0, windowQueryHook: null, tabQueryHook: null,
     toolbarTabId: undefined, catalog: null, roots: [],
   };
@@ -49,7 +49,9 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
   const api = {
     action: { setIcon: async (value) => calls.icons.push(value), setTitle: async (value) => calls.titles.push(value) },
     runtime: { id: EXTENSION_ID, getURL: (filename) => `chrome-extension://${EXTENSION_ID}/${filename}`, onMessage: events.message, onConnect: events.connect,
-      getContexts: async (filter) => filter.contextTypes?.includes("POPUP") ? structuredClone(state.popupContexts) : state.exists ? [{}] : [],
+      getContexts: async (filter) => filter.contextTypes?.includes("POPUP") ? structuredClone(state.popupContexts)
+        : filter.contextTypes?.includes("SIDE_PANEL") ? structuredClone(state.panelContexts)
+        : state.exists ? [{}] : [],
       async sendMessage(message) {
         assert.equal(message.target, "embedding"); assert.equal(message.type, "embed");
         assert.equal(message.text, "Project-created bounded public article sample.");
@@ -109,7 +111,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
     permissions: {
       async contains(value) { assert.deepEqual(value.origins, ["https://*/*"]); const gate = state.permissionGate; state.permissionGate = null; return gate ? gate.promise : state.permitted; },
       async remove(value) { calls.permissionRemovals.push(value); state.permitted = false; events.permissionRemoved.emit(value); return true; },
-      onRemoved: events.permissionRemoved,
+      onAdded: events.permissionAdded, onRemoved: events.permissionRemoved,
     },
     scripting: { async executeScript({ args, target, world }) {
       assert.equal(world, "ISOLATED"); assert.equal(target.tabId, state.tab.id);
@@ -230,6 +232,68 @@ test("adapter accepts commands only from the packaged popup without a tab sender
   await h.advance();
   assert.equal(h.state.local.enabled, false); assert.equal(h.calls.storageWrites.length, 0);
   assert.equal(h.calls.reads, 0);
+});
+
+test("explicit HTTPS permission addition schedules the existing paired auto-session only", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true });
+  h.state.permitted = false;
+  await h.advance();
+  assert.equal(h.calls.reads, 0);
+  h.events.permissionAdded.emit({ origins: ["https://unrelated.example/*"] });
+  await h.advance();
+  assert.equal(h.calls.reads, 0);
+  h.state.permitted = true;
+  h.events.permissionAdded.emit({ origins: ["https://*/*"] });
+  await h.advance();
+  assert.equal(h.state.capture.windowId, 1);
+  assert.equal(h.calls.reads, 1);
+  await h.send("stop-session");
+  await h.advance();
+  const reads = h.calls.reads;
+  h.events.permissionAdded.emit({ origins: ["https://*/*"] });
+  await h.advance();
+  assert.equal(h.state.capture.windowId, null);
+  assert.equal(h.calls.reads, reads);
+});
+
+test("HTTPS permission addition never samples a page while unpaired", async (t) => {
+  const h = await harness(t, { enabled: false, autoEligible: true, paired: false });
+  h.state.permitted = false;
+  await h.advance();
+  h.state.permitted = true;
+  h.events.permissionAdded.emit({ origins: ["https://*/*"] });
+  await h.advance();
+  assert.equal(h.state.capture.windowId, null);
+  assert.equal(h.calls.reads, 0);
+  assert.equal(h.calls.fetches.length, 0);
+});
+
+test("side panel RPC requires a live exact context and scopes status to its own window", async (t) => {
+  const h = await harness(t);
+  const url = `${h.api.runtime.getURL("chromium/sidepanel.html")}?windowId=1&instance=00000000-0000-4000-8000-000000000001`;
+  const panel = { id: EXTENSION_ID, url, origin: `chrome-extension://${EXTENSION_ID}` };
+  h.state.panelContexts = [{ contextType: "SIDE_PANEL", documentUrl: url, documentId: "panel-a",
+    frameId: 0, tabId: -1, windowId: -1, incognito: false }];
+  assert.equal((await h.send("status", {}, panel)).currentWindowId, 1);
+  const binding = await new Promise((resolve) => h.events.message.emit({ target: "panel-context", type: "binding" }, panel, resolve));
+  assert.deepEqual(binding, { windowId: 1 });
+  const pairing = await new Promise((resolve) => h.events.message.emit({ target: "local-pairing", type: "paired" }, panel, resolve));
+  assert.deepEqual(pairing, { ok: true, value: true });
+  assert.deepEqual(await h.send("start-session", { windowId: 2, expectedRevision: h.state.capture.revision }, panel),
+    { error: "unavailable" });
+  const attacker = { ...panel, url: url.replace("000000000001", "000000000002") };
+  assert.deepEqual(await h.send("status", {}, attacker), { error: "forbidden" });
+  const deniedPairing = await new Promise((resolve) => h.events.message.emit({ target: "local-pairing", type: "paired" }, attacker, resolve));
+  assert.deepEqual(deniedPairing, { ok: false });
+  h.state.panelContexts = [{ ...h.state.panelContexts[0], contextType: "TAB" }];
+  assert.deepEqual(await h.send("status", {}, panel), { error: "forbidden" });
+  h.state.panelContexts = [{ contextType: "SIDE_PANEL", documentUrl: url, documentId: "panel-a",
+    frameId: 0, tabId: -1, windowId: -1, incognito: false }];
+  h.state.window.focused = false;
+  const offWindow = projectPageResolution(await h.send("status", {}, panel));
+  assert.equal(offWindow.currentWindowId, null);
+  assert.equal(offWindow.tabId, null);
+  assert.equal(offWindow.contextReason, "window-unfocused");
 });
 
 test("legacy enable-site and resume cannot create a capture lease", async (t) => {

@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   createActiveTabReader,
   createTabLifecycleObserver,
+  createWindowBoundActiveTabReader,
+  createWindowBoundTabLifecycleObserver,
 } from "../browser/chromium/active-tab-reader.js";
 
 test("reader issues the exact active/current-window query and projects only tabId and URL", async () => {
@@ -33,6 +35,45 @@ test("reader issues the exact active/current-window query and projects only tabI
   assert.deepEqual(Object.keys(snapshot), ["tabId", "url"]);
   assert.ok(Object.isFrozen(snapshot));
   assert.ok(Object.isFrozen(reader));
+});
+
+test("window-bound reader proves the same focused normal window and active completed tab twice", async () => {
+  const queries = [];
+  let tab = { id: 7, windowId: 3, active: true, incognito: false, status: "complete", url: "https://example.com/a" };
+  let window = { id: 3, type: "normal", incognito: false, focused: true };
+  const reader = createWindowBoundActiveTabReader({ windowId: 3,
+    windowsApi: { get: async () => ({ ...window }) },
+    tabsApi: { query: async (query) => { queries.push(query); return [{ ...tab }]; } } });
+  assert.deepEqual(await reader.read(), { tabId: 7, url: tab.url, windowId: 3 });
+  assert.deepEqual(queries, [{ active: true, windowId: 3 }, { active: true, windowId: 3 }]);
+  window.focused = false;
+  await assert.rejects(reader.read(), /Window-bound active tab unavailable/);
+  window.focused = true; tab.status = "loading";
+  await assert.rejects(reader.read(), /Window-bound active tab unavailable/);
+  tab.status = "complete"; tab.windowId = 4;
+  await assert.rejects(reader.read(), /Window-bound active tab unavailable/);
+});
+
+test("window-bound observer invalidates selected tab on activation and global window on focus", () => {
+  const tabsApi = { onUpdated: lifecycleEvent(), onRemoved: lifecycleEvent(),
+    onReplaced: lifecycleEvent(), onActivated: lifecycleEvent() };
+  const windowsApi = { onFocusChanged: lifecycleEvent(), onRemoved: lifecycleEvent() };
+  const observer = createWindowBoundTabLifecycleObserver({ tabsApi, windowsApi, windowId: 3 });
+  let selected = 0, global = 0;
+  observer.observe(7, () => { selected++; });
+  observer.observeWindow(() => { global++; });
+  tabsApi.onUpdated.emit(8, { status: "complete" }, { windowId: 4 });
+  tabsApi.onUpdated.emit(8, { status: "complete" }, { windowId: 3, active: false });
+  tabsApi.onActivated.emit({ tabId: 8, windowId: 4 });
+  assert.equal(selected, 0); assert.equal(global, 0);
+  tabsApi.onUpdated.emit(8, { status: "complete" }, { windowId: 3, active: true });
+  assert.equal(selected, 0); assert.equal(global, 1);
+  observer.observeWindow(() => { global++; });
+  tabsApi.onActivated.emit({ tabId: 8, windowId: 3 });
+  assert.equal(selected, 1); assert.equal(global, 2);
+  observer.observeWindow(() => { global++; });
+  windowsApi.onFocusChanged.emit(4);
+  assert.equal(global, 3);
 });
 
 test("reader never accesses Tab fields outside the two-field projection", async () => {

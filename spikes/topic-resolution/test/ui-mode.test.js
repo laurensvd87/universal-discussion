@@ -184,7 +184,8 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     "#app-welcome-connection", "#app-settings-capture", "#app-settings-display", "#local-discussion",
     "#discussion-connection-settings", "#discussion-status", "#discussion-advanced", "#discussion-related", "#discussion-counts", "#discussion-topic",
     "#discussion-ai-insights",
-    "#insight-createInsights", "#insight-body"];
+    "#insight-createInsights", "#insight-body", "#discussion-model-host",
+    "#app-source-context", "#app-source-title", "#app-source-domain"];
   const elements = new Map();
   for (const selector of selectors) elements.set(selector, {
     children: [], dataset: {}, attributes: {}, listeners: new Map(), hidden: false,
@@ -215,6 +216,7 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   for (const selector of ["#capture-settings", "#popup-preferences"]) get("main").append(get(selector));
   get("#app-view-insights").append(get("#local-insights"));
   get("#local-insights").append(get("#insight-workspace"), get("#insight-related-settings"));
+  get("#discussion-composer").append(get("#discussion-model-host"));
   get("#insight-workspace").append(get("#insight-quick-actions"), get("#insight-account-details"),
     get("#insight-ai-status"), get("#insight-source-details"));
   get("#insight-quick-actions").append(get('label[for="insight-model"]'), get("#insight-model"),
@@ -241,16 +243,25 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   assert.equal(get("#discussion-status").parentElement, get("#app-welcome-connection"));
   get("#app-settings-button").click();
   assert.equal(get("#app-settings-view").hidden, false);
+  assert.equal(get("#app-source-context").hidden, true);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
   get("#app-settings-back").click();
-  const connected = { phase: "ready", catalog: { topics: [{ id: "t", title: "Topic" }], sources: [] }, topicId: "t",
+  const connected = { phase: "ready", catalog: { topics: [{ id: "t", title: "Topic" }],
+    sources: [{ id: "s", title: "Actual page title", url: "https://example.org/story" }] }, topicId: "t", sourceId: "s",
     related: { results: [] } };
   shell.render(connected);
   assert.equal(document.body.dataset.topicState, "ready");
+  assert.equal(get("#app-source-context").hidden, false);
+  assert.equal(get("#app-source-title").textContent, "Actual page title");
+  assert.equal(get("#app-source-domain").textContent, "example.org");
+  get("#app-settings-button").click();
+  assert.equal(get("#app-source-context").hidden, true);
+  get("#app-settings-back").click();
+  assert.equal(get("#app-source-context").hidden, false);
   assert.equal(get("#app-navigation").hidden, true);
   assert.equal(get("#local-insights").parentElement, get("#app-discussion-insights-host"));
   assert.equal(get("#discussion-composer").nextSibling, get("#app-discussion-insights-host"));
-  assert.equal(get("#insight-model").parentElement, get("#app-settings-insights"));
+  assert.equal(get("#insight-model").parentElement, get("#discussion-model-host"));
   assert.equal(get("#insight-account-details").parentElement, get("#app-settings-insights"));
   get("#insight-model").listeners.get("change")();
   assert.equal(modelChanges, 1, "reparenting keeps the original model control and handler");
@@ -282,7 +293,7 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     get("#insight-quick-actions").children.indexOf(get("#insight-createInsights")));
   get("#ui-mode-user").click();
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
-  assert.equal(get("#insight-model").parentElement, get("#app-settings-insights"));
+  assert.equal(get("#insight-model").parentElement, get("#discussion-model-host"));
   shell.render(disconnected);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-welcome-connection"));
   shell.render(connected);

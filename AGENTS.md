@@ -8,6 +8,16 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current surface (2026-10-10, ADR-074): the owner approved the native Chrome
+`sidePanel` permission and persistent discussion-first redesign. Version 0.13.31
+replaces the action popup with the docked native panel; packaged popup remains
+for compatibility QA only. Chrome 154 omits sender document IDs and uses native
+context window ID -1: use the real-navigation unique panel URL/live SIDE_PANEL
+join plus browser-observed containing-window attestation, not a last-focused
+fallback or caller-selected RPC ID. Tab/focus/navigation changes detach unsent
+text and invalidate write/Insight targets. No new website/provider/retention
+scope follows. Read top STATUS/HANDOFF and ADR-074 before historical popup notes.
+
 Current override (2026-10-10): the owner explicitly approved Ridge1 as the
 restart default with Legacy E5 rollback and same-snapshot dashboard comparison.
 Extension 0.13.30 is implemented and actual-Chrome tested; read the top STATUS,

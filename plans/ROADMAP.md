@@ -5,6 +5,14 @@ readable web conversations next, then Android and iOS, sharing Topic/discussion
 contracts (owner-confirmed sequencing on 2026-09-29). Core model:
 `Content -> Semantic Topic -> Discussion`.
 
+2026-10-10 browser surface checkpoint (0.13.31): owner-approved ADR-074 replaces
+the floating popup with a native persistent discussion sidebar, using the
+dashboard-inspired dark visual system, compact composer/model/Insight controls
+and animated threads. Settings retain capture Stop, exclusions, pairing and
+data controls. Unique live-document and containing-window checks preserve
+Source-bound writes when navigating or switching tabs. No new website access,
+provider request, retention policy or store/publication scope follows.
+
 2026-10-10 current matching checkpoint (0.13.30): the owner explicitly approved
 the measured Ridge1 trade-off as the restart default, with Legacy E5 rollback
 and same-snapshot Topic Atlas comparison. [ADR-073](../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md)

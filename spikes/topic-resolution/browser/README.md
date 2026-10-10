@@ -1,6 +1,45 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-Extension 0.13.30 defaults to **Topic matching** (Ridge1) and offers **Legacy E5**
+## Persistent discussion sidebar (0.13.31)
+
+Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
+resizable side panel alongside the page; the panel remains mounted across tabs
+and navigation. Chrome's appearance settings control its left/right placement.
+Only `sidePanel` is added to permissions; website access and provider gates are
+unchanged. Existing pairing, protected login, vectors and posts are preserved.
+
+The compact dark interface has a connection indicator, source context, composer,
+one model selector, Insight action and expandable threads. Settings, capture Stop,
+site exclusions and data controls are behind the settings icon. Unsent text is
+detached on page changes, not silently rebound. Closing this UI does not stop
+the already-approved background matching session. Provider generation and local
+sharing still require their separate deliberate actions.
+
+Chrome 154 omits native-panel sender document IDs and reports context window ID
+`-1`. The panel therefore navigates once to a unique packaged document URL using
+its browser-observed containing window and a random instance ID. Each privileged
+message must match one live native `SIDE_PANEL` document at that full URL; ordinary
+extension tabs and stale/closed instances cannot impersonate it. Page reads and
+writes recheck the containing focused window and active tab. See
+[ADR-074](../../../decisions/ADR-074-proposed-persistent-side-panel.md).
+
+On a fresh profile, connect the local service, then open **Settings → Browsing
+session settings → Grant HTTPS access** once. Native panel opening does not itself
+grant readable page URLs. The explicit Chrome prompt works even before the URL
+can be read; after approval the existing paired, focused-public-page auto-start
+guards apply. Denial, Stop and unpaired state cannot start capture.
+
+`npm run test:browser:sidepanel` tests the real native surface with intercepted
+synthetic articles, disposable pairing/profile/SQLite and no provider calls.
+`node harness/run-popup-layout-smoke.js` checks the shared visual system using
+inert synthetic renderers in a companion extension tab; it is not native Trust
+evidence. Historical popup browser smokes deliberately opt only their disposable
+profiles back into the packaged popup. Stop the normal service before isolated
+loopback browser QA and restore it afterward.
+
+## Matching default
+
+The extension defaults to **Topic matching** (Ridge1) and offers **Legacy E5**
 under Settings. The Legacy override survives popup closure/worker suspension,
 but Chrome restart or extension reload resets the new default. Old persistent
 mode preferences are ignored. Reload the unpacked extension after updating;

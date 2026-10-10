@@ -2,6 +2,13 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current surface (2026-10-10, 0.13.31): ADR-074's explicitly approved native Chrome
+side panel replaces the action popup. Read top STATUS/HANDOFF for verification.
+The unique real-document URL must join one live SIDE_PANEL context; native
+browser-observed containing-window checks fence reads and writes. Do not relax
+to arbitrary extension tabs, last-focused-window binding or caller-selected
+window IDs. Existing capture, provider, privacy and release gates remain.
+
 Current override (2026-10-10): extension 0.13.30 defaults to owner-approved
 Ridge1 Topic matching, with Chrome-session-only Legacy E5 rollback and the
 same-snapshot dashboard comparison. Read the top STATUS/HANDOFF and ADR-073

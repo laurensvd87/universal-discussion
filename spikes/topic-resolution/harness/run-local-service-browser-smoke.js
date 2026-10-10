@@ -291,10 +291,23 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     const version = await browser.send("Browser.getVersion");
     await browser.send("Target.setDiscoverTargets", { discover: true });
     await browser.send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: true, flatten: true,
-      filter: [{ type: "page", exclude: false }, { type: "iframe", exclude: false }, { type: "other", exclude: false }, { exclude: true }] });
+      filter: [{ type: "page", exclude: false }, { type: "iframe", exclude: false }, { type: "other", exclude: false },
+        { type: "service_worker", exclude: false }, { exclude: true }] });
     const loaded = await browser.send("Extensions.loadUnpacked", { path: BROWSER_ROOT });
     extensionId = loaded.id;
     assert.ok(/^[a-p]{32}$/u.test(extensionId));
+    // This disposable legacy smoke still exercises the exact POPUP witness.
+    let compatibilityWorker;
+    await waitFor(() => {
+      compatibilityWorker = [...targets.values()].find((target) => target.ready &&
+        target.type === "service_worker" && target.url === `chrome-extension://${extensionId}/chromium/background.js`);
+      return compatibilityWorker;
+    }, "packaged worker for test-only action popup");
+    await waitFor(async () => (await evaluate("chrome.sidePanel.getPanelBehavior()", compatibilityWorker.sessionId)
+      .catch(() => null))?.openPanelOnActionClick === true, "production toolbar behavior before test override");
+    await evaluate("chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:false})", compatibilityWorker.sessionId);
+    const popupPath = await evaluate("(async () => { await chrome.action.setPopup({popup:'chromium/popup.html'}); return chrome.action.getPopup({}); })()", compatibilityWorker.sessionId);
+    assert.equal(popupPath, `chrome-extension://${extensionId}/chromium/popup.html`);
     const origin = `chrome-extension://${extensionId}`;
     const firstToken = changePairing({ filePath: pairingPath, origin, action: "init" });
     await startService();

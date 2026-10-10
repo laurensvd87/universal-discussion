@@ -38,12 +38,14 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/background.js",
     "chromium/discussion-panel.js",
     "chromium/icons/conversation.svg",
+    "chromium/icons/edit.svg",
     "chromium/icons/lock.svg",
     "chromium/icons/pages.svg",
     "chromium/icons/person.svg",
     "chromium/icons/robot.svg",
     "chromium/icons/settings.svg",
     "chromium/icons/spark.svg",
+    "chromium/icons/trash.svg",
     "chromium/inference-host.js",
     "chromium/insight-page-reader.js",
     "chromium/insight-panel.js",
@@ -56,6 +58,8 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/popup.html",
     "chromium/popup.js",
     "chromium/related-pages-panel.js",
+    "chromium/sidepanel-context.js",
+    "chromium/sidepanel.html",
     "chromium/topic-toolbar-icon.js",
     "chromium/ui-mode.js",
     "core/active-tab-controller.js",
@@ -103,20 +107,18 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.13.30",
+    version: "0.13.31",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
-    permissions: ["activeTab", "scripting", "storage", "offscreen"],
+    permissions: ["activeTab", "scripting", "storage", "offscreen", "sidePanel"],
     host_permissions: ["http://127.0.0.1/*"],
     optional_host_permissions: ["https://*/*"],
     background: { service_worker: "chromium/background.js", type: "module" },
-    action: {
-      default_popup: "chromium/popup.html",
-      default_title: "Check local discussion state",
-    },
+    action: { default_title: "Open Universal Discussion" },
+    side_panel: { default_path: "chromium/sidepanel.html" },
     content_security_policy: {
-      extension_pages: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174 https:; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';",
+      extension_pages: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174 https:; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';",
     },
   });
   for (const forbiddenKey of [
@@ -128,9 +130,9 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     assert.equal(manifest[forbiddenKey], undefined, forbiddenKey);
   }
 
-  const popupPath = path.resolve(browserDirectory, manifest.action.default_popup);
-  assert.equal(popupPath, popupHtmlPath);
-  assert.equal((await stat(popupPath)).isFile(), true);
+  const panelPath = path.resolve(browserDirectory, manifest.side_panel.default_path);
+  assert.equal((await stat(panelPath)).isFile(), true);
+  assert.equal((await stat(popupHtmlPath)).isFile(), true);
 });
 
 test("production popup does not wire anonymous related-page fetching into Insights", async () => {
@@ -224,7 +226,7 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
     "utf8",
   );
   assert.doesNotMatch(
-    readerSource,
+    readerSource.split("export function createWindowBoundActiveTabReader")[0],
     /\btab\.(?:active|incognito|pendingUrl|title|windowId)\b|\.\.\.tab\b/u,
   );
   assert.match(readerSource, /tabsApi\.query\(ACTIVE_CURRENT_TAB_QUERY\)/u);
@@ -292,12 +294,22 @@ test("popup contains only local external assets and basic accessible bindings", 
     .replaceAll("https://example.org/", "")
     .replaceAll("http://127.0.0.1:4173/p1-5c.html", "");
   assert.doesNotMatch(withoutApprovedUrls, /\b(?:https?:)?\/\//iu);
+  for (const name of ["edit", "trash"]) {
+    assert.equal(
+      [...css.matchAll(new RegExp(`mask-image:\\s*url\\("icons/${name}\\.svg"\\)`, "gu"))].length,
+      1,
+      `the ${name} icon must be referenced exactly once as a packaged mask`,
+    );
+  }
   const cssWithoutPackagedIconMasks = css.replaceAll(
-    /url\("icons\/(?:conversation|pages|spark|settings|person|robot|lock)\.svg"\)/gu, "");
+    /url\("icons\/(?:conversation|pages|spark|settings|person|robot|lock|edit|trash)\.svg"\)/gu, "");
   assert.doesNotMatch(cssWithoutPackagedIconMasks, /@import\b|url\s*\(/iu);
-  for (const name of ["conversation", "pages", "spark", "settings", "person", "robot", "lock"]) {
+  for (const name of ["conversation", "pages", "spark", "settings", "person", "robot", "lock", "edit", "trash"]) {
     const svg = await readFile(path.join(browserDirectory, "chromium", "icons", `${name}.svg`), "utf8");
-    assert.match(svg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 24 24" fill="none">\s*(?:(?:<path|<circle) [^>]+\/>\s*)+<\/svg>\s*$/u);
+    const svgShape = name === "edit" || name === "trash"
+      ? /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1\.8" stroke-linecap="round" stroke-linejoin="round">\s*(?:<path d="[A-Za-z0-9 .,+-]+"\/>\s*)+<\/svg>\s*$/u
+      : /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 24 24" fill="none">\s*(?:(?:<path|<circle) [^>]+\/>\s*)+<\/svg>\s*$/u;
+    assert.match(svg, svgShape);
     assert.doesNotMatch(svg, /<script|<foreignObject|<image|href\s*=|url\s*\(|@import|https?:\/\/(?!www\.w3\.org\/2000\/svg)/iu);
   }
 
@@ -356,6 +368,6 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.match(script, /observeTabLifecycle: tabLifecycleObserver\.observe/u);
   assert.match(
     script,
-    /globalThis\.addEventListener\("pagehide", \(\) => \{\s*serviceRetry\.dispose\(\);\s*insightController\.dispose\(\);\s*insightPanel\.dispose\(\);\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*popupShell\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
+    /globalThis\.addEventListener\("pagehide", \(\) => \{[\s\S]*?serviceRetry\.dispose\(\);\s*insightController\.dispose\(\);\s*insightPanel\.dispose\(\);\s*matchingPanel\.dispose\(\);\s*localDiscussion\.dispose\(\);\s*discussionPanel\.dispose\(\);\s*popupShell\.dispose\(\);\s*pageMetadataController\.dispose\(\);/u,
   );
 });

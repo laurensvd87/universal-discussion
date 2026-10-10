@@ -10,7 +10,22 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension 0.13.30 defaults to the backend-only **Ridge1 Topic matching** view,
+Extension **0.13.31** opens as a resizable native Chrome sidebar alongside the
+page, instead of a floating popup. Click the extension icon to open it; it stays
+open while you change tabs or navigate. The new dark interface puts the composer,
+model selector, Insights and conversation cards together, with compact icons and
+reduced-motion-aware animation. Connection status stays in the header; advanced
+controls live behind the settings icon. Chrome controls left/right placement.
+Reload the unpacked extension after updating and accept the new `sidePanel`
+permission if Chrome asks. Existing pairing, login and saved discussions remain.
+Closing the panel does not stop background matching; **Settings → Browsing
+session settings** retains Stop, site exclusions and access removal. An unsent
+comment stays detached after changing pages, so it cannot silently post elsewhere.
+No provider request or sharing happens just because the panel opens.
+In a fresh Chrome profile, grant website access once under those browsing
+settings; the explicit Chrome prompt is separate from connecting the local service.
+
+The extension defaults to the backend-only **Ridge1 Topic matching** view,
 with **Legacy E5** available in Settings. A Legacy choice survives popup closure
 but resets to Topic matching after Chrome restart or extension reload. Reload
 the unpacked extension after updating; restart the local service to load the

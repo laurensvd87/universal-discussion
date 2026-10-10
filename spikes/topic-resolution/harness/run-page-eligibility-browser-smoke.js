@@ -70,6 +70,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
   let focusDiagnostics;
   let focusFailureDiagnostics;
   let evaluationFailureKind;
+  let blankDiagnostic;
   const collectorChecks = [];
   let syntheticContentCaptures = 0;
   let closing = false;
@@ -213,7 +214,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
       }, 'focused action popup remains eligible');
       await wait(async () => {
         const value = await controls(); return value.origin === ORIGIN && value['matching-enable'] === false;
-      }, 'focused popup keeps consented Enable usable');
+      }, 'focused popup keeps permission-only Grant available');
 
       // Faults are confined to the worker's tab API. The action popup retains
       // real document focus, exercising the fallback's normal tab checks.
@@ -248,9 +249,10 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
           const rejectedControls = await wait(async () => {
             const value = await controls(); return value.context === fault.message ? value : false;
           }, `${fault.mode} displays its exact guidance`);
-          assert.equal(rejectedControls['matching-enable'], true);
+          assert.equal(rejected.enabled, false, 'invalid foreground never creates a capture lease');
+          assert.equal(rejectedControls['matching-enable'], false, 'permission-only Grant remains available');
           assert.equal(rejectedControls.origin, '');
-          assert.equal(rejectedControls.consent, true);
+          assert.equal(rejectedControls.consent, false);
         } finally {
           await evaluate(`(() => {
             chrome.tabs.query = globalThis.__eligibilityOriginalTabsQuery;
@@ -267,7 +269,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         await wait(async () => {
           const value = await controls();
           return value.origin === ORIGIN && value['matching-enable'] === false && value.context === '';
-        }, `${fault.mode} recovery restores consented Enable`);
+        }, `${fault.mode} recovery keeps permission-only Grant available`);
       }
 
       stage = 'injected unfocused popup rejection';
@@ -280,8 +282,8 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         const value = await status(); return value.currentOrigin === null && value.contextReason === 'window-unfocused';
       }, 'injected unfocused document rejects fallback');
       await wait(async () => {
-        const value = await controls(); return value['matching-enable'] === true && value.context === EN.matchingContextUnfocused;
-      }, 'unfocused popup disables Enable');
+        const value = await controls(); return value['matching-enable'] === false && value.context === EN.matchingContextUnfocused;
+      }, 'unfocused popup retains Grant while worker rejects foreground');
 
       stage = 'actual popup focus restored';
       await evaluate(`(() => {
@@ -306,7 +308,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
       await wait(async () => {
         const value = await status(); return value.currentOrigin === null && value.contextReason === 'window-unfocused';
       }, 'popup associated with another window cannot authorize fallback');
-      await wait(async () => (await controls())['matching-enable'] === true, 'mismatched popup disables Enable');
+      await wait(async () => (await controls())['matching-enable'] === false, 'mismatched popup retains permission-only Grant');
     } catch (error) {
       if (popupFocusDiagnostics) focusFailureDiagnostics = await captureFocusFailure();
       throw error;
@@ -517,6 +519,19 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
       { autoAttach: true, waitForDebuggerOnStart: true, flatten: true, filter: FILTER });
     extensionId = (await browser.send('Extensions.loadUnpacked', { path: BROWSER_ROOT })).id;
     resolveIdentity(); assert.match(extensionId, /^[a-p]{32}$/u);
+    stage = 'test-only popup configuration';
+    // This disposable pre-grant smoke requires the packaged POPUP witness.
+    const compatibilityWorker = await wait(() => [...targets.values()].find(item => item.ready &&
+      item.type === 'service_worker' && item.url === `chrome-extension://${extensionId}/chromium/background.js`),
+    'packaged worker for test-only action popup');
+    await wait(async () => (await evaluate("chrome.sidePanel.getPanelBehavior()", compatibilityWorker.sessionId)
+      .catch(() => null))?.openPanelOnActionClick === true,
+      'production toolbar behavior installed before test override');
+    stage = 'test-only side panel behavior';
+    await evaluate("chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:false})", compatibilityWorker.sessionId);
+    stage = 'test-only action popup path';
+    const popupPath = await evaluate("(async () => { await chrome.action.setPopup({popup:'chromium/popup.html'}); return chrome.action.getPopup({}); })()", compatibilityWorker.sessionId);
+    assert.equal(popupPath, `chrome-extension://${extensionId}/chromium/popup.html`);
     if (popupFocusDiagnostics) {
       const worker = await wait(() => [...targets.values()].find(item => item.ready && item.type === 'service_worker' &&
         item.url === `chrome-extension://${extensionId}/chromium/background.js`), 'diagnostic background worker');
@@ -539,10 +554,15 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     const expectedContext = blank.contextReason === 'unsupported-url' ? EN.matchingContextUnsupportedUrl : EN.matchingContextUrlUnavailable;
     stage = 'blank page diagnostic and disabled affordance';
     const blankControls = await wait(async () => {
-      const value = await controls(); return value.context === expectedContext ? value : false;
+      const value = await controls();
+      blankDiagnostic = { contextMatches: value.context === expectedContext,
+        enableDisabled: value['matching-enable'], cursor: value.enableCursor };
+      return value.context === expectedContext ? value : false;
     }, 'visible blank page diagnostic');
-    assert.equal(blankControls['matching-enable'], true);
-    assert.equal(blankControls.enableCursor, 'not-allowed');
+    assert.equal(blank.enabled, false, 'Grant on a blank page does not create a capture lease');
+    assert.equal(blankControls['matching-enable'], false, 'first-use Grant is available without a page');
+    assert.equal(await evaluate("document.getElementById('matching-enable').textContent"), EN.matchingGrantAccess);
+    assert.equal(blankControls.enableCursor, 'pointer');
     await closePopup();
     stage = 'owned HTTPS navigation';
     await browser.send('Page.navigate', { url: ARTICLE }, pageSession);
@@ -571,24 +591,16 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, worker.sessionId), false);
     const initial = await wait(async () => {
       const value = await controls();
-      return value.origin === ORIGIN && value['matching-enable'] === true ? value : false;
-    }, 'popup disclosed origin and disabled Enable');
+      return value.origin === ORIGIN && value['matching-enable'] === false ? value : false;
+    }, 'popup disclosed origin and permission-only Grant');
     assert.equal(initial.consent, false);
-    assert.equal(initial.enableCursor, 'not-allowed');
+    assert.equal(initial.enableCursor, 'pointer');
+    assert.equal(await evaluate("document.getElementById('matching-enable').textContent"), EN.matchingGrantAccess);
     assert.equal(initial['matching-pause'], true);
     assert.equal(initial['matching-remove-access'], true);
     assert.equal(initial['matching-retry'], true);
-    stage = 'consent control state';
-    await evaluate(`(() => { const input = document.getElementById('matching-consent');
-      input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-    const consented = await wait(async () => {
-      const value = await controls(); return value['matching-enable'] === false ? value : false;
-    }, 'consent enables eligible action');
-    stage = 'consented origin and controls';
-    assert.equal(consented.origin, ORIGIN);
-    assert.equal(consented['matching-pause'], true);
-    assert.equal(consented['matching-remove-access'], true);
-    assert.equal(consented['matching-retry'], true);
+    assert.equal(await evaluate("document.getElementById('matching-consent').hidden && document.getElementById('matching-consent').disabled"), true);
+    assert.equal((await status()).enabled, false, 'off state persists until deliberate grant and Start');
     await checkSimulatedParentFocus(worker.sessionId);
     stage = 'permission remains absent';
     assert.equal(await evaluate(`chrome.permissions.contains({ origins: [${JSON.stringify(`${ORIGIN}/*`)}] })`, worker.sessionId), false);
@@ -608,7 +620,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.equal(blockedRequests, 0, 'No network request outside packaged extension and owned fixture');
     if (popupFocusDiagnostics) focusDiagnostics.ports = await evaluate('globalThis.__eligibilityFocusPortRecords ?? []', workerSession);
     return { result: 'PASS', browser: version.product, checks: ['blank-page-ineligible', 'owned-https-origin-eligible',
-      'optional-host-permission-ungranted', 'default-off-and-no-consent-disabled', 'consent-enables-action-only',
+      'optional-host-permission-ungranted', 'default-off-and-no-consent-control', 'permission-only-grant-on-blank-and-public-page',
       'stop-remove-access-retry-disabled', 'no-persisted-pre-grant-preferences-or-network', 'focused-popup-with-simulated-parent-unfocused',
       'injected-unfocused-popup-rejected', 'restored-popup-focus-accepted', 'injected-popup-window-mismatch-rejected',
       'injected-tabs-loading-status-rejected', 'restored-tabs-after-loading-status-accepted',
@@ -628,10 +640,11 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
   } catch {
     // Do not print CDP expressions, page URLs, protocol payloads or popup data.
     const detail = stage === 'external request attempts' ? ` (${JSON.stringify({ blockedClasses, blockedOtherKinds })})` : '';
+    const blankDetail = stage === 'blank page diagnostic and disabled affordance' ? ` (${JSON.stringify(blankDiagnostic ?? {})})` : '';
     const focusDetail = popupFocusDiagnostics ? ` (${JSON.stringify({
       ...(focusFailureDiagnostics ?? await captureFocusFailure()),
       ...(evaluationFailureKind ? { evaluationFailureKind } : {}) })})` : '';
-    throw new Error(`Eligibility browser smoke failed during ${stage}${detail}${focusDetail}`);
+    throw new Error(`Eligibility browser smoke failed during ${stage}${detail}${blankDetail}${focusDetail}`);
   } finally {
     closing = true; resolveIdentity(); clearTimeout(deadline);
     process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop);

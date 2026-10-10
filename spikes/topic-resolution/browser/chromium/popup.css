@@ -690,6 +690,7 @@ body[data-ui-mode="user"] #app-topic-view-choices button[aria-pressed="true"] { 
 body[data-ui-mode="user"] #app-topic-view-status { margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.4; }
 body[data-ui-mode="user"] #discussion-alternate-notice { margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.4; }
 body[data-ui-mode="user"] #discussion-alternate-notice[hidden] { display: none; }
+body[data-ui-mode="user"] #discussion-alternate-notice[data-state="active"] { display: none; }
 body[data-ui-mode="user"] .discussion-pinned-heading { margin: 8px 0 0; color: var(--ink-soft); font-size: 12px; font-weight: 650; }
 body[data-ui-mode="user"] .discussion-actions .discussion-open-to-reply { width: auto; padding: 7px 10px; border-radius: 999px; font-size: 11px; font-weight: 650; text-decoration: none; }
 body[data-ui-mode="user"] #app-settings-insights :is(#insight-account-details, #insight-source-details, #insight-related-settings, #insight-model) {
@@ -1034,4 +1035,215 @@ body[data-ui-mode="user"] :is(.discussion-contribution.is-new, #insight-composer
   body[data-ui-mode="user"] main > :is(.app-navigation, .app-view, .app-welcome, .app-session-link) { margin-inline: 14px; }
   body[data-ui-mode="user"] .popup-topbar { padding-inline: 14px; }
   body[data-ui-mode="user"] #discussion-ai-insights { min-width: 82px; padding-inline: 10px; }
+}
+
+/* Shared popup and native side-panel reading surface. */
+:root { color-scheme: dark; }
+body[data-ui-mode="developer"] { max-width: 100%; }
+body[data-ui-mode="user"] {
+  --canvas: #101114; --surface: #1b1d24; --surface-muted: #242733;
+  --ink: #e9e9eb; --ink-soft: #a7adba; --line: #343844;
+  --accent: #4b52d5; --accent-hover: #636aeb;
+  --own-human: #22283a; --agent: #282238; --private: #29251c;
+  --attention: #f0b79b;
+  width: 390px; max-width: 100%; min-width: 0; min-height: 0;
+  color: var(--ink); background: var(--canvas); font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+body[data-ui-mode="user"]::before,
+body[data-ui-mode="user"]::after { display: none; }
+body[data-ui-surface="sidepanel"] { width: 100%; min-width: 0; min-height: 100vh; }
+body[data-ui-mode="user"] main { width: 100%; min-width: 0; padding-bottom: 24px; }
+body[data-ui-mode="user"] main > :is(.app-view, .app-welcome, .app-session-link) { margin-inline: clamp(12px, 4vw, 16px); }
+body[data-ui-mode="user"] .popup-topbar {
+  position: sticky; top: 0; z-index: 20; min-height: 56px; padding: 6px clamp(12px, 4vw, 16px);
+  border-bottom: 1px solid var(--line); background: #141519;
+}
+body[data-ui-mode="user"] .brand-lockup { grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 0 8px; }
+body[data-ui-mode="user"] .brand-lockup::before {
+  content: ""; grid-row: 1 / span 2; width: 22px; height: 22px; background: #aeb5ff;
+  mask: url("icons/conversation.svg") center / contain no-repeat;
+}
+body[data-ui-mode="user"] .brand-name { font-size: 16px; font-weight: 720; letter-spacing: -.02em; }
+body[data-ui-mode="user"] .connection-status { font-size: 11px; line-height: 15px; color: var(--ink-soft); }
+body[data-ui-mode="user"] .connection-status[data-state="connected"] { color: #9dd6ad; }
+body[data-ui-mode="user"] .app-settings-button { color: var(--ink-soft); border-radius: 9px; }
+body[data-ui-mode="user"] .app-settings-button:hover,
+body[data-ui-mode="user"] .app-settings-button[aria-expanded="true"] { color: var(--ink); background: var(--surface-muted); }
+body[data-ui-mode="user"] .app-source-context {
+  display: grid; gap: 1px; min-width: 0; padding: 12px clamp(12px, 4vw, 16px);
+  border-bottom: 1px solid var(--line); background: #141519;
+}
+body[data-ui-mode="user"] .app-source-title {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--ink); font-size: 14px; font-weight: 640;
+}
+body[data-ui-mode="user"] .app-source-domain {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); font-size: 12px;
+}
+body[data-ui-mode="user"] .app-view { padding-top: 16px; }
+body[data-ui-mode="user"] .app-welcome { margin-top: 20px; padding: 0; }
+body[data-ui-mode="user"] .app-welcome h1,
+body[data-ui-mode="user"] #app-settings-view h2 { color: var(--ink); font-size: 18px; letter-spacing: -.02em; }
+body[data-ui-mode="user"] .app-welcome > p:not(.app-kicker) { color: var(--ink-soft); }
+body[data-ui-mode="user"] .app-kicker { color: #b59aff; font-size: 11px; letter-spacing: .06em; }
+body[data-ui-mode="user"] #app-welcome-connection #discussion-connection-settings,
+body[data-ui-mode="user"] #app-settings-insights :is(#insight-account-details, #insight-source-details, #insight-related-settings, #insight-model),
+body[data-ui-mode="user"] .capture-settings { border-color: var(--line); border-radius: 12px; background: var(--surface); }
+body[data-ui-mode="user"] #app-settings-view .app-back {
+  padding-inline: 12px; border-radius: 9px; border-color: var(--line); color: var(--ink); background: var(--surface-muted);
+}
+body[data-ui-mode="user"] #app-settings-view .app-back:hover { background: #303445; }
+body[data-ui-mode="user"] #app-settings-heading:focus-visible { outline-color: #aeb5ff; }
+body[data-ui-mode="user"] #app-welcome-connection :is(summary, label),
+body[data-ui-mode="user"] #app-settings-view :is(summary, label) { color: var(--ink-soft); }
+body[data-ui-mode="user"] #app-welcome-connection button:disabled,
+body[data-ui-mode="user"] #app-settings-view button:disabled { color: #a7adba; background: #292c36; opacity: 1; }
+body[data-ui-mode="user"] #app-welcome-connection #discussion-token-help { color: var(--ink-soft); }
+body[data-ui-mode="user"] #app-settings-topic-view h3,
+body[data-ui-mode="user"] #app-settings-insights h3 { color: var(--ink); font-size: 14px; }
+body[data-ui-mode="user"] #app-topic-view-choices { border: 1px solid var(--line); border-radius: 9px; background: var(--surface-muted); }
+body[data-ui-mode="user"] #app-topic-view-choices button { min-height: 44px; color: var(--ink-soft); border-radius: 7px; }
+body[data-ui-mode="user"] #app-topic-view-choices button[aria-pressed="true"] { color: var(--ink); background: #3a3d5b; box-shadow: none; }
+body[data-ui-mode="user"] :is(#app-topic-view-status, #discussion-alternate-notice, #discussion-insight-activity) { color: var(--ink-soft); }
+body[data-ui-mode="user"] #local-discussion { gap: 12px; }
+body[data-ui-mode="user"] #local-discussion > #discussion-composer {
+  gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); box-shadow: none;
+}
+body[data-ui-mode="user"] .discussion-new-thread-heading { color: var(--ink); font-size: 14px; font-weight: 680; }
+body[data-ui-mode="user"] #discussion-composer #discussion-demo-identity { display: block; margin: 0; color: var(--ink-soft); font-size: 12px; }
+body[data-ui-mode="user"] #discussion-body {
+  min-height: 68px; max-height: 180px; padding: 10px 11px; border: 1px solid var(--line);
+  border-radius: 9px; color: var(--ink); background: #14161d;
+}
+body[data-ui-mode="user"] #discussion-body::placeholder { color: var(--ink-soft); }
+body[data-ui-mode="user"] #discussion-reply-context { color: var(--ink); background: var(--surface-muted); }
+body[data-ui-mode="user"] #discussion-composer .discussion-composer-actions { gap: 8px; }
+body[data-ui-mode="user"] #discussion-composer #discussion-submit,
+body[data-ui-mode="user"] #discussion-ai-insights,
+body[data-ui-mode="user"] #discussion-discard { border-radius: 9px; }
+body[data-ui-mode="user"] #discussion-composer #discussion-submit:disabled,
+body[data-ui-mode="user"] #discussion-ai-insights:disabled { color: #838a9b; background: #292c36; border-color: var(--line); }
+body[data-ui-mode="user"] #discussion-ai-insights {
+  min-width: 88px; padding-inline: 12px; color: #d7c8ff; border-color: #59497b; background: #302744;
+}
+body[data-ui-mode="user"] #discussion-ai-insights:hover { background: #3c3055; }
+body[data-ui-mode="user"] #discussion-discard,
+body[data-ui-mode="user"] .discussion-branch-toggle,
+body[data-ui-mode="user"] .discussion-actions button { color: var(--ink); border-color: var(--line); background: var(--surface-muted); border-radius: 9px; }
+body[data-ui-mode="user"] #discussion-discard:hover,
+body[data-ui-mode="user"] .discussion-branch-toggle:hover,
+body[data-ui-mode="user"] .discussion-actions button:hover { background: #303445; }
+body[data-ui-mode="user"] .discussion-actions :is(.discussion-action-edit, .discussion-action-withdraw) {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 44px; width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 0;
+}
+body[data-ui-mode="user"] .discussion-actions :is(.discussion-action-edit, .discussion-action-withdraw)::before {
+  content: ""; width: 17px; height: 17px; background: currentColor;
+  mask-position: center; mask-size: contain; mask-repeat: no-repeat;
+}
+body[data-ui-mode="user"] .discussion-actions .discussion-action-edit::before { mask-image: url("icons/edit.svg"); }
+body[data-ui-mode="user"] .discussion-actions .discussion-action-withdraw { color: #efb7b7; }
+body[data-ui-mode="user"] .discussion-actions .discussion-action-withdraw::before { mask-image: url("icons/trash.svg"); }
+body[data-ui-mode="user"] #discussion-model-host {
+  grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr);
+  align-items: center; gap: 4px 8px; min-width: 0; padding-top: 2px;
+}
+body[data-ui-mode="user"] #discussion-model-host label { color: var(--ink-soft); font-size: 12px; }
+body[data-ui-mode="user"] #discussion-model-host select { width: 100%; min-width: 0; min-height: 44px; }
+body[data-ui-mode="user"] #discussion-model-host #insight-model-status { grid-column: 1 / -1; color: var(--ink-soft); font-size: 11px; }
+body[data-ui-mode="user"] .discussion-thread { gap: 10px; }
+body[data-ui-mode="user"] .discussion-thread-card {
+  padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: none;
+}
+body[data-ui-mode="user"] .discussion-thread-card > .discussion-contribution { padding: 4px 2px; }
+body[data-ui-mode="user"] .discussion-contribution {
+  gap: 7px; padding: 10px 11px; border-color: var(--line); border-radius: 9px;
+  color: var(--ink); background: var(--surface-muted);
+}
+body[data-ui-mode="user"] .discussion-contribution[data-ownership="own"] { background: var(--own-human); }
+body[data-ui-mode="user"] .discussion-contribution[data-actor-type="agent"] { background: var(--agent); }
+body[data-ui-mode="user"] .discussion-root-post { background: var(--surface); }
+body[data-ui-mode="user"] .discussion-reply-post { background: var(--surface-muted); }
+body[data-ui-mode="user"] .discussion-own-human { border-color: #475580; background: var(--own-human); }
+body[data-ui-mode="user"] .discussion-ai-post { border-color: #604a78; background: var(--agent); }
+body[data-ui-mode="user"] .discussion-demo-badge { color: #d2d6e0; background: #353947; }
+body[data-ui-mode="user"] .discussion-post-metadata > p,
+body[data-ui-mode="user"] .discussion-contribution .discussion-body { color: var(--ink); }
+body[data-ui-mode="user"] .discussion-post-time,
+body[data-ui-mode="user"] .discussion-parent-cue { color: var(--ink-soft) !important; font-size: 12px; }
+body[data-ui-mode="user"] .discussion-actor-badge-human { color: #cbd3ff; background: #343d64; }
+body[data-ui-mode="user"] .discussion-actor-badge-agent { color: #dfc9ff; background: #49375f; }
+body[data-ui-mode="user"] .discussion-replies { margin-left: 10px; padding-left: 10px; border-color: #51588c; }
+body[data-ui-mode="user"] .discussion-reply-children { margin-left: 10px; padding-left: 10px; border-color: #51588c; }
+body[data-ui-mode="user"] .discussion-reply-children .discussion-reply-children { margin-left: 0; padding-left: 0; border: 0; }
+body[data-ui-mode="user"] .discussion-source-link { color: #c5caff; border-color: var(--line); background: var(--surface-muted); border-radius: 9px; }
+body[data-ui-mode="user"] .discussion-source-link:hover { background: #303445; }
+body[data-ui-mode="user"] .related-discussions { border-color: var(--line); }
+body[data-ui-mode="user"] .related-discussion-topic { border-color: var(--line); background: var(--surface); }
+body[data-ui-mode="user"] .related-discussion-card { border-color: var(--line); background: var(--surface-muted); }
+body[data-ui-mode="user"] .related-discussion-summary,
+body[data-ui-mode="user"] .related-discussion-body { color: var(--ink); }
+body[data-ui-mode="user"] #insight-composer {
+  gap: 10px; padding: 12px; border: 1px solid #8a7340; border-radius: 12px; background: #29251c;
+}
+body[data-ui-mode="user"] #insight-private-label,
+body[data-ui-mode="user"] #insight-citations { color: var(--ink); }
+body[data-ui-mode="user"] #insight-current-page-only:not([hidden]) { color: #ebd59c; border-color: #8a7340; background: #3b3221; }
+body[data-ui-mode="user"] #insight-share { color: #fff; background: var(--accent); }
+body[data-ui-mode="user"] #insight-share:hover { background: var(--accent-hover); }
+body[data-ui-mode="user"] #insight-discard { color: var(--ink); border-color: #8a7340; background: #3b3221; }
+body[data-ui-mode="user"] #insight-discard:hover { background: #4a3b24; }
+body[data-ui-mode="user"] #insight-share,
+body[data-ui-mode="user"] #insight-discard { border-radius: 9px; }
+body[data-ui-mode="user"] :is(select, input, textarea) { border-color: var(--line); color: var(--ink); background: #14161d; }
+body[data-ui-mode="user"] :is(button, input, textarea, select, summary, a):focus-visible,
+body[data-ui-mode="user"] #discussion-composer :is(button, textarea):focus-visible,
+body[data-ui-mode="user"] .discussion-branch-toggle:focus-visible,
+body[data-ui-mode="user"] .discussion-actions :is(button, a):focus-visible { outline: 3px solid #aeb5ff; outline-offset: 2px; }
+body[data-ui-mode="user"] :is(.discussion-thread, .discussion-thread-card, .discussion-contribution):focus { outline-color: #aeb5ff; }
+body[data-ui-mode="user"] #insight-ai-status[data-attention="true"],
+body[data-ui-mode="user"] #insight-quick-status { color: #f0b79b; }
+body[data-ui-mode="user"] #page-matching { color: var(--ink); }
+body[data-ui-mode="user"] #matching-user-status { color: var(--ink); }
+body[data-ui-mode="user"] #app-settings-view :is(#app-settings-insights, #app-settings-connection, #app-settings-capture, #app-settings-display) { min-width: 0; }
+body[data-ui-mode="user"] .discussion-loading-card {
+  border-color: var(--line); border-radius: 12px; background: var(--surface); box-shadow: none;
+}
+body[data-ui-mode="user"] .discussion-loading-reply { background: var(--surface-muted); }
+body[data-ui-mode="user"] .discussion-loading-avatar { background: #525a8f; }
+body[data-ui-mode="user"] .discussion-loading-reply .discussion-loading-avatar { background: #725f44; }
+body[data-ui-mode="user"] .discussion-loading-line { background: #383d58; }
+body[data-ui-mode="user"] .discussion-loading-reply .discussion-loading-line { background: #564a39; }
+body[data-ui-mode="user"] .ui-mode-switch { border-color: var(--line); background: var(--surface-muted); }
+body[data-ui-mode="user"] .ui-mode-switch button { min-height: 44px; color: var(--ink-soft); }
+body[data-ui-mode="user"] .ui-mode-switch button[aria-pressed="true"] { color: var(--ink); background: #3a3d5b; box-shadow: none; }
+body[data-ui-mode="user"] :is(#insight-account-details, #insight-source-details, #insight-related-settings, #matching-how) > summary { color: var(--ink-soft); }
+body[data-ui-mode="user"] #insight-account-details[data-ready="true"] { background: #1c3028; }
+body[data-ui-mode="user"] #app-settings-insights #insight-account-details[data-ready="true"] { background: #1c3028; }
+body[data-ui-mode="user"] #insight-account-details[data-ready="true"] > summary { color: #a5dcb9; }
+body[data-ui-mode="user"] #insight-ai-status { border-color: var(--line); color: var(--ink-soft); background: var(--surface-muted); }
+body[data-ui-mode="user"] #insight-ai-status[data-state="connected"] { color: #a5dcb9; background: #1c3028; }
+body[data-ui-mode="user"] #insight-cancelInsights,
+body[data-ui-mode="user"] #insight-account-details button { min-height: 44px; color: var(--ink); background: var(--surface-muted); border-radius: 9px; }
+body[data-ui-mode="user"] .inline-citation { color: #d6c4ff; background: #393046; }
+body[data-ui-mode="user"] .inline-citation:hover { background: #493b5d; }
+body[data-ui-mode="user"] .insight-subdetails { border-color: var(--line); background: var(--surface-muted); }
+body[data-ui-mode="user"] .insight-subdetails > summary { color: var(--ink-soft); }
+body[data-ui-mode="user"] #app-settings-view :is(p, label, small) { color: var(--ink-soft); }
+body[data-ui-mode="user"] #app-settings-view :is(h2, h3, strong) { color: var(--ink); }
+@media (max-width: 359px) {
+  body[data-ui-mode="user"] #discussion-composer .discussion-composer-actions { grid-template-columns: 1fr; }
+  body[data-ui-mode="user"] #discussion-ai-insights { width: 100%; }
+}
+@media (max-width: 240px) {
+  body[data-ui-mode="user"] .brand-lockup { grid-template-columns: minmax(0, 1fr); }
+  body[data-ui-mode="user"] .brand-lockup::before { display: none; }
+  body[data-ui-mode="user"] .brand-name { font-size: 14px; overflow-wrap: anywhere; }
+  body[data-ui-mode="user"] .connection-status { overflow-wrap: anywhere; }
+  body[data-ui-mode="user"] #discussion-model-host { grid-template-columns: minmax(0, 1fr); }
+  body[data-ui-mode="user"] #discussion-model-host #insight-model-status { grid-column: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-ui-mode="user"], body[data-ui-mode="user"] * { scroll-behavior: auto !important; }
 }

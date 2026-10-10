@@ -1,5 +1,7 @@
-// Opt-in isolated Chrome visual evidence. No service, real account or page access.
-// Run manually: node harness/run-popup-visual-check.js before|after
+// Opt-in isolated Chrome visual evidence for the shared popup/panel UI.
+// This normal extension tab is a synthetic visual companion, not native sidePanel trust evidence.
+// No service, real account, provider or webpage access.
+// Run manually: node harness/run-popup-visual-check.js after
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -20,7 +22,7 @@ async function evaluate(expression, sessionId) {
   if (result.exceptionDetails) throw Error(`Visual evaluation failed: ${result.exceptionDetails.exception?.description ?? result.exceptionDetails.text}`);
   return result.result.value;
 }
-async function capture(name, sessionId, { compact = false, fluid = false } = {}) {
+async function capture(name, sessionId, { fluid = false } = {}) {
   const metrics = await evaluate(`(() => {
     const root=document.documentElement, body=document.body;
     const clientWidth=root.clientWidth;
@@ -33,9 +35,9 @@ async function capture(name, sessionId, { compact = false, fluid = false } = {})
       bodyWidth:body.getBoundingClientRect().width,scrollWidth:root.scrollWidth,
       clientWidth,escaped};
   })()`, sessionId);
-  if (fluid) assert.equal(metrics.bodyWidth, metrics.clientWidth, `${name}: fluid body fills available width`);
-  else if (compact) assert.ok(metrics.bodyWidth >= 300 && metrics.bodyWidth <= 320, `${name}: fluid compact body width`);
-  else assert.equal(metrics.bodyWidth, metrics.mode === "user" ? 410 : 380, `${name}: popup body width`);
+  if (fluid) assert.equal(metrics.bodyWidth, metrics.clientWidth, `${name}: panel surface fills available width`);
+  else assert.equal(metrics.bodyWidth, Math.min(metrics.mode === "user" ? 390 : 380, metrics.clientWidth),
+    `${name}: companion popup body width follows the scrollbar-reduced viewport`);
   assert.ok(metrics.scrollWidth <= metrics.clientWidth, `${name}: no horizontal overflow`);
   assert.deepEqual(metrics.escaped, [], `${name}: visible elements stay within popup width`);
   const screenshot = await browser.send("Page.captureScreenshot", { format: "png" }, sessionId);
@@ -110,18 +112,14 @@ try {
   await browser.send("Target.setDiscoverTargets", { discover: true });
   await browser.send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true,
     filter: [{ type: "page", exclude: false }, { type: "other", exclude: false }, { exclude: true }] });
-  await browser.send("Target.createTarget", { url: "about:blank" });
-  const tabs = await browser.send("Target.getTargets", { filter: [{ type: "tab", exclude: false }, { exclude: true }] });
-  const tab = tabs.targetInfos.find(item => item.type === "tab" && item.url === "about:blank");
-  await browser.send("Extensions.triggerAction", { id: loaded.id, targetId: tab.targetId });
+  const companion = await browser.send("Target.createTarget", { url: `chrome-extension://${loaded.id}/chromium/popup.html` });
   let sessionId;
   for (let attempt = 0; attempt < 100 && !sessionId; attempt++) {
-    const targets = await browser.send("Target.getTargets");
-    const popup = targets.targetInfos.find(item => item.url === `chrome-extension://${loaded.id}/chromium/popup.html`);
-    sessionId = popup && sessions.get(popup.targetId);
+    sessionId = sessions.get(companion.targetId);
     if (!sessionId) await new Promise(resolve => setTimeout(resolve, 50));
   }
   assert.ok(sessionId);
+  await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
   const popupExceptions = [];
   browser.on("Runtime.exceptionThrown", ({ exceptionDetails }, eventSessionId) => {
     if (eventSessionId !== sessionId) return;
@@ -139,13 +137,7 @@ try {
   assert.ok(ready);
   assert.deepEqual(popupExceptions, [], "popup startup has no uncaught runtime exceptions");
   await capture("connection", sessionId);
-  let welcomeReady = false;
-  for (let attempt = 0; attempt < 100 && !welcomeReady; attempt++) {
-    welcomeReady = await evaluate("!!document.querySelector('#app-welcome:not([hidden]) #discussion-pair') && document.querySelector('#discussion-pair').getClientRects().length > 0", sessionId).catch(() => false);
-    if (!welcomeReady) await new Promise(resolve => setTimeout(resolve, 50));
-  }
-  assert.ok(welcomeReady, "isolated first-run welcome exposes Connect");
-  const welcomeMarkup = await evaluate("document.body.innerHTML", sessionId);
+  let welcomeMarkup = await evaluate("document.body.innerHTML", sessionId);
   if (stage === "after") {
     // Replace only renderers with synthetic states. Their callbacks are inert.
     await evaluate(`(async () => {
@@ -169,9 +161,9 @@ try {
       insightRoot.replaceChildren();
       const discussion=mountDiscussionPanel(document,discussionRoot);
       const insights=mountInsightPanel(document,insightRoot);
-      const state={phase:'ready',busy:false,error:null,actorId:'demo-alex',topicId:'topic-visual',sourceId:null,selection:'manual',
+      const state={phase:'ready',busy:false,error:null,actorId:'demo-alex',topicId:'topic-visual',sourceId:'source-visual',selection:'background',
         catalog:{model:{status:'fixture-only'},actors:[{id:'demo-alex',displayName:'Alex · synthetic'},{id:'demo-blair',displayName:'Blair · synthetic'}],
-          topics:[{id:'topic-visual',title:'A quieter, greener city'}],sources:[]},
+          topics:[{id:'topic-visual',title:'A quieter, greener city'}],sources:[{id:'source-visual',topicId:'topic-visual',title:'Synthetic public article',url:'https://example.com/article'}]},
         discussion:{roots:[{id:'root-1',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',
           body:'What would make your neighborhood a better place to spend time?',edited:false,replies:[]}]},
         related:{results:[1,2,3,4].map(index=>({title:'Synthetic page '+index,
@@ -189,8 +181,12 @@ try {
       const shell=mountPopupShell(document,{onModeChange:value=>discussion.setMode(value)});
       window.visualDiscussionPanel=discussion;window.visualDiscussionState=state;
       window.visualInsightPanel=insights;window.visualInsightState=insightState;window.visualShell=shell;
-      shell.render(state); scrollTo(0,0);
+      const disconnected={...state,phase:'disconnected',catalog:null,sourceId:null,discussion:null};
+      discussion.render(disconnected); shell.render(disconnected);
+      window.visualWelcomeMarkup=document.body.innerHTML;
+      discussion.render(state); shell.render(state); scrollTo(0,0);
     })()`, sessionId);
+    welcomeMarkup = await evaluate("window.visualWelcomeMarkup", sessionId);
     const assertView = async (selector) => {
       assert.equal(await evaluate(`(() => {
         const target=document.querySelector(${JSON.stringify(selector)});
@@ -198,8 +194,8 @@ try {
       })()`, sessionId), true, `${selector} visible, welcome hidden`);
     };
     await assertView("#app-view-discussion");
-    assert.equal(await evaluate("(() => document.body.dataset.topicState==='ready' && getComputedStyle(document.body,'::before').animationDuration!=='0s')()", sessionId), true,
-      "resolved Topic exposes the animated ambient layer");
+    assert.equal(await evaluate("(() => document.body.dataset.topicState==='ready' && document.querySelector('#app-source-title').textContent==='Synthetic public article' && document.querySelector('#app-source-domain').textContent==='example.com' && getComputedStyle(document.body,'::before').display==='none')()", sessionId), true,
+      "resolved Source appears in the compact header without an ambient layer");
     await capture("discussion", sessionId);
     assert.equal(await evaluate(`(() => {
       const state = window.visualDiscussionState, panel = window.visualDiscussionPanel;
@@ -249,7 +245,7 @@ try {
       "no-topic view explains automatic discovery without manual controls or empty composer");
     await capture("awaiting-topic", sessionId);
     await evaluate("window.visualDiscussionState.phase='loading';window.visualDiscussionState.topicId='topic-visual';window.visualDiscussionState.sourceId='source-visual';window.visualDiscussionState.selection='background';window.visualDiscussionState.catalog.sources=[{id:'source-visual',topicId:'topic-visual',title:'Synthetic public article',url:'https://example.com/article'}];window.visualDiscussionState.related=null;window.visualDiscussionState.draft={body:'A draft while discussions load',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
-    assert.equal(await evaluate("(() => {const status=document.querySelector('#discussion-status'),scene=document.querySelector('#discussion-loading-scene'),composer=document.querySelector('#discussion-composer'),body=document.querySelector('#discussion-body'),thread=document.querySelector('.discussion-thread'),post=document.querySelector('#discussion-submit'),insight=document.querySelector('#discussion-ai-insights');return status.textContent==='Loading discussions…' && status.getAttribute('role')==='status' && getComputedStyle(status).width==='1px' && !scene.hidden && scene.getAttribute('aria-hidden')==='true' && scene.getClientRects().length>0 && scene.querySelectorAll('.discussion-loading-card').length===2 && !composer.hidden && !body.disabled && body.value==='A draft while discussions load' && thread.hidden && thread.getClientRects().length===0 && post.disabled && getComputedStyle(post).backgroundColor==='rgb(237, 240, 243)' && !insight.hidden && insight.disabled && getComputedStyle(insight).backgroundColor==='rgb(237, 240, 243)'})()", sessionId), true,
+    assert.equal(await evaluate("(() => {const status=document.querySelector('#discussion-status'),scene=document.querySelector('#discussion-loading-scene'),composer=document.querySelector('#discussion-composer'),body=document.querySelector('#discussion-body'),thread=document.querySelector('.discussion-thread'),post=document.querySelector('#discussion-submit'),insight=document.querySelector('#discussion-ai-insights');return status.textContent==='Loading discussions…' && status.getAttribute('role')==='status' && getComputedStyle(status).width==='1px' && !scene.hidden && scene.getAttribute('aria-hidden')==='true' && scene.getClientRects().length>0 && scene.querySelectorAll('.discussion-loading-card').length===2 && !composer.hidden && !body.disabled && body.value==='A draft while discussions load' && thread.hidden && thread.getClientRects().length===0 && post.disabled && getComputedStyle(post).backgroundColor==='rgb(41, 44, 54)' && !insight.hidden && insight.disabled && getComputedStyle(insight).backgroundColor==='rgb(41, 44, 54)'})()", sessionId), true,
       "loading scene replaces visible copy while status remains accessible, draft stays editable, and Post and Insight stay disabled");
     await capture("loading-discussions", sessionId);
     await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
@@ -300,8 +296,8 @@ try {
     await capture("developer", sessionId);
     await evaluate("document.querySelector('#ui-mode-user').click();document.querySelector('#app-settings-back').click();window.visualInsightState.draft='';window.visualInsightState.ai.result=null;window.visualInsightState.ai.status='prepared';window.visualInsightPanel.render(window.visualInsightState);window.visualDiscussionState.discussion={roots:[{id:'root-compact',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',body:'A deliberately long synthetic neighborhood contribution with uninterruptedword'.repeat(18),edited:false,replies:[]}]};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualDiscussionPanel.renderInsightState(window.visualInsightState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await new Promise(resolve => setTimeout(resolve, 250));
-    // Chrome action popups reject viewport emulation. Reproduce the same inert
-    // synthetic DOM in a normal extension page, where real 320px media rules run.
+    // Exercise the same inert UI as a panel-width extension page. This is a
+    // layout check; it does not attest native sidePanel window binding.
     const syntheticMarkup = await evaluate("document.body.innerHTML", sessionId);
     const compactTarget = await browser.send("Target.createTarget", { url: `chrome-extension://${loaded.id}/chromium/popup.html` });
     let compactSession;
@@ -316,19 +312,23 @@ try {
       if (await evaluate("document.readyState === 'complete' && !!document.body", compactSession).catch(() => false)) break;
       await new Promise(resolve => setTimeout(resolve, 50));
     }
-    await evaluate(`window.dispatchEvent(new Event('pagehide'));document.body.innerHTML=${JSON.stringify(syntheticMarkup)};document.body.dataset.uiMode='user';document.querySelectorAll('.is-new').forEach(node=>node.classList.remove('is-new'));scrollTo(0,0)`, compactSession);
-    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 510, deviceScaleFactor: 1, mobile: false }, compactSession);
-    await capture("compact-long", compactSession, { compact: true });
-    await evaluate("document.body.style.zoom='1.2';scrollTo(0,0)", compactSession);
-    await capture("compact-enlarged", compactSession, { compact: true });
+    await evaluate(`window.dispatchEvent(new Event('pagehide'));document.body.innerHTML=${JSON.stringify(syntheticMarkup)};document.body.dataset.uiMode='user';document.body.dataset.uiSurface='sidepanel';document.body.dataset.extensionSurface='sidepanel';document.querySelectorAll('.is-new').forEach(node=>node.classList.remove('is-new'));scrollTo(0,0)`, compactSession);
+    for (const width of [320, 360, 400, 480]) {
+      await browser.send("Emulation.setDeviceMetricsOverride", { width, height: 600, deviceScaleFactor: 1, mobile: false }, compactSession);
+      await capture(`panel-long-${width}`, compactSession, { fluid: true });
+    }
+    // 160 CSS pixels at DPR 2 represents a 320-pixel panel at 200% zoom.
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 160, height: 300, deviceScaleFactor: 2, mobile: false }, compactSession);
+    await capture("panel-long-320-zoom200", compactSession, { fluid: true });
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 600, deviceScaleFactor: 1, mobile: false }, compactSession);
     await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, compactSession);
-    assert.equal(await evaluate("(() => { const card=document.querySelector('.discussion-contribution');card.classList.add('is-new');const button=document.querySelector('#discussion-ai-insights');return getComputedStyle(card).animationDuration==='0s' && getComputedStyle(button).transitionDuration==='0s' && getComputedStyle(document.body,'::before').animationDuration==='0s' && getComputedStyle(document.body,'::after').animationDuration==='0s'; })()", compactSession), true,
+    assert.equal(await evaluate("(() => { const card=document.querySelector('.discussion-contribution');card.classList.add('is-new');const button=document.querySelector('#discussion-ai-insights');return getComputedStyle(card).animationDuration==='0s' && getComputedStyle(button).transitionDuration==='0s' && getComputedStyle(document.body,'::before').display==='none' && getComputedStyle(document.body,'::after').display==='none'; })()", compactSession), true,
       "reduced motion suppresses entrance, hover and ambient effects");
-    await capture("compact-reduced-motion", compactSession, { compact: true });
+    await capture("panel-long-320-reduced-motion", compactSession, { fluid: true });
     await evaluate(`document.body.innerHTML=${JSON.stringify(welcomeMarkup)};document.body.dataset.uiMode='user';document.body.style.zoom='';scrollTo(0,0)`, compactSession);
-    await browser.send("Emulation.setDeviceMetricsOverride", { width: 410, height: 510, deviceScaleFactor: 1, mobile: false }, compactSession);
-    await checkWelcomeFirstViewport(compactSession, 410);
-    await capture("welcome-410", compactSession, { fluid: true });
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 510, deviceScaleFactor: 1, mobile: false }, compactSession);
+    await checkWelcomeFirstViewport(compactSession, 390);
+    await capture("welcome-390", compactSession, { fluid: true });
     await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 510, deviceScaleFactor: 1, mobile: false }, compactSession);
     await checkWelcomeFirstViewport(compactSession, 320);
     await capture("welcome-320", compactSession, { fluid: true });

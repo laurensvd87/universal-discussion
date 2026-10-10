@@ -65,6 +65,38 @@ function relatedCandidates(service, count, visibleIndexes = []) {
   };
 }
 
+test("side-panel invalidation synchronously detaches a draft and fences a late write", async () => {
+  const gate = deferred();
+  const ui = harness({ attestActiveContext: async () => gate.promise,
+    readActiveTab: async () => ({ tabId: 7, url: "https://example.com/", windowId: 41 }) });
+  await ui.controller.open();
+  ui.controller.setDraft("Unsent panel text");
+  const pending = ui.controller.submitDraft();
+  ui.controller.invalidateContext();
+  const invalid = ui.controller.currentState();
+  assert.equal(invalid.phase, "choose-topic");
+  assert.equal(invalid.sourceId, null);
+  assert.equal(invalid.discussion, null);
+  assert.equal(invalid.draft.body, "Unsent panel text");
+  assert.equal(invalid.draft.detached, true);
+  gate.resolve(true);
+  assert.equal(await pending, false);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+
+test("side-panel write attestation rejects a changed owning tab before service command", async () => {
+  const witnesses = [];
+  const ui = harness({ readActiveTab: async () => ({ tabId: 7, url: "https://example.com/", windowId: 41 }),
+    attestActiveContext: async (snapshot) => { witnesses.push(snapshot); return false; } });
+  await ui.controller.open();
+  ui.controller.setDraft("Unsent panel text");
+  assert.equal(await ui.controller.submitDraft(), false);
+  assert.deepEqual(witnesses, [{ tabId: 7, url: "https://example.com/", windowId: 41 }]);
+  assert.equal(ui.controller.currentState().error, "context-changed");
+  assert.equal(ui.controller.currentState().draft.detached, true);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+
 test("bridge pins both original validated reserved-domain fixtures without Harbor relabeling", async () => {
   for (const [domain, id] of [["com", "reserved-example-com"], ["org", "reserved-example-org"]]) {
     const input = { normalizedUrl: `https://example.${domain}/`, requestToken: "activation-000001" };
@@ -843,6 +875,50 @@ function backgroundHarness(overrides = {}) {
   return { ...ui, ingest, pauses, resolution: () => resolution,
     setResolution(patch) { resolution = { ...resolution, ...patch }; }, publish: () => ui.controller.updatePageResolution(resolution) };
 }
+
+test("first-use HTTPS grant establishes a fresh tab witness before learned Source becomes writable", async () => {
+  const url = "http://127.0.0.1:4173/background-fixture/page-a.html";
+  let granted = false;
+  const witnessed = [];
+  const ui = backgroundHarness({
+    readActiveTab: async () => {
+      if (!granted) throw new TypeError("host grant pending");
+      return { tabId: 7, url, windowId: 2 };
+    },
+    attestActiveContext: async (expected) => { witnessed.push(expected); return true; },
+  });
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().phase, "choose-topic");
+  granted = true;
+  const learned = ui.ingest();
+  await ui.publish();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().sourceId, learned.sourceId);
+  ui.controller.setDraft("Post after a deliberate permission grant");
+  assert.equal(await ui.controller.submitDraft(), true);
+  assert.equal(ui.requests.filter(([kind]) => kind === "command").length, 1);
+  assert.deepEqual(witnessed, [{ tabId: 7, url, windowId: 2 }, { tabId: 7, url, windowId: 2 }]);
+});
+
+test("learned Source stays unready when the renewed tab witness points elsewhere", async () => {
+  const url = "http://127.0.0.1:4173/background-fixture/page-a.html";
+  let granted = false;
+  const ui = backgroundHarness({
+    readActiveTab: async () => {
+      if (!granted) throw new TypeError("host grant pending");
+      return { tabId: 8, url, windowId: 2 };
+    },
+    attestActiveContext: async () => true,
+  });
+  await ui.controller.open();
+  granted = true;
+  ui.ingest();
+  await ui.publish();
+  assert.notEqual(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().discussion, null);
+  assert.equal(ui.controller.currentState().sourceId, null);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
 
 test("identical projected page polls do not publish; distinct status fields still do", async () => {
   let publications = 0;

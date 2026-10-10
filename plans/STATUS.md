@@ -1,5 +1,60 @@
 # Project status
 
+**2026-10-10 persistent discussion sidebar, implemented (0.13.31):**
+The owner's explicitly approved [ADR-074](../decisions/ADR-074-proposed-persistent-side-panel.md)
+replaces the action popup with Chrome's native docked side panel. Astra High
+provided GUI orchestration; Sol Medium implemented separate integration,
+visual-system and discussion/Insight slices. Root reviewed and ran actual QA.
+The dark dashboard-inspired surface combines composer, model selector, Insights
+and thread cards; compact icons, focus, reduced-motion-aware animation and hidden
+Settings remove developer-oriented prose from the main conversation.
+The only added permission is `sidePanel`; CSP permits only self-hosted icon
+images. No page/provider/retention scope, matcher policy or SQLite migration changes.
+
+Chrome 154 rejected the initial assumed sender/document/window join. The reviewed
+implementation instead performs one real navigation to a unique packaged panel
+URL derived from its browser-observed containing window and a UUID. Each RPC
+must match one live native SIDE_PANEL document at that complete URL. Containing
+window/tab checks, lifecycle invalidation and pre-write attestations prevent
+cross-page posting; unsent text survives a change only as a detached draft.
+Ordinary extension tabs, duplicate/closed contexts and unrelated windows fail
+closed. Existing popup authentication remains separate for compatibility QA.
+
+Actual first-use QA also found two bugs: native opening does not grant readable
+tab URLs, so an explicit HTTPS Grant must work before the URL is known; and a
+later ready matching result must establish a fresh active-tab witness before
+enabling Post. Both are corrected, with denial, Stop, unpaired and stale guards
+preserved. Closing this panel does not stop the existing background session.
+
+Verification: actual Chrome 154 native pairing/Settings grant/Post, persistent
+new-tab/navigation, two simultaneous panels, focus-away, closed-URL rejection,
+ordinary-tab rejection, Source links, detached text and Ridge discussion checks
+pass. Zero native runtime errors or external extension requests; synthetic
+fixtures/disposable profile/SQLite only, no provider inference. Shared-layout QA
+covers 320/360/400/480 px, 200% zoom equivalent, reduced motion, focus and no
+horizontal overflow. Independent Trust and its final delta review pass.
+Final extension suite: **1,070 pass/1 skipped**; restricted suite: **1,071 pass**.
+Current service tests remain **371 pass/4 skipped**. Actual-Chrome Ridge,
+local-service, page-eligibility and session-capture compatibility smokes pass;
+the latter checks 19 session/grant/exclusion invariants. Package checks allow
+only bundled SVG mask assets and reject other CSS URLs and unsafe SVG content.
+Secret scans and `git diff --check` pass. Final native screenshots are synthetic
+temporary artifacts, not committed owner browsing data.
+
+The owner service has been restored on `127.0.0.1:4174` with the same extension
+Origin, persistent pairing and SQLite database; an unauthenticated catalog
+probe receives the expected 401. No pairing rotation, data reset or fresh
+provider inference was performed. Installed-profile connection remains an owner
+check after extension reload.
+
+Next owner step: reload unpacked extension 0.13.31, accept `sidePanel` if Chrome
+asks, then click the toolbar icon. Chrome controls right/left placement. Existing
+pairing, protected provider login and saved discussions are retained. Real
+installed-profile confirmation remains an owner check, not a new permission gate.
+Ridge1 remains the restart default with Legacy E5 rollback; source rights,
+canonical migration, provider expansion, store/release and remote hosting gates
+remain separate.
+
 **2026-10-10 approved Ridge1 default, implementation checkpoint (0.13.30):**
 The owner explicitly requests the measured Ridge1 approach as the standard,
 Legacy E5 rollback, and old/new dashboard comparison. [ADR-073](../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md)
@@ -43,7 +98,7 @@ Chrome's existing pairing-store presence is visible, but live token verification
 via raw Chrome storage was blocked by security review and was not performed.
 Normal extension restoration is unchanged; owner Connected confirmation is open.
 
-Next: reload unpacked extension 0.13.30, restart Topic Atlas for the updated UI,
+Next Ridge-only checkpoint: reload unpacked extension 0.13.30, restart Topic Atlas for the updated UI,
 and test real-page discussion groups. Canonical migration/cross-Topic reply
 authority, source rights, model distribution, provider scope, release and scale
 remain separate gates. Closed experiment receipts are preserved; reproduce their

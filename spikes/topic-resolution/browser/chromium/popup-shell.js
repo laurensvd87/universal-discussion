@@ -78,6 +78,8 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
   const insightSettingsNodes = insightSettingsSelectors.map((selector) => find(selector)).filter(Boolean);
   const originalInsightPlaces = new Map(insightSettingsNodes.map((element) =>
     [element, { parent: element.parentElement, next: element.nextSibling }]));
+  const composerModelNodes = new Set(['label[for="insight-model"]', "#insight-model", "#insight-model-status"]
+    .map((selector) => find(selector)).filter(Boolean));
   function placeInsightWorkspace(mode) {
     const host = find("#app-discussion-insights-host");
     const composer = find("#discussion-composer");
@@ -87,7 +89,11 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     move("#local-insights", mode === "user" ? host : app.insights);
     const settingsHost = find("#app-settings-insights");
     if (mode === "user") {
-      for (const element of insightSettingsNodes) if (settingsHost && element.parentElement !== settingsHost) settingsHost.append(element);
+      const modelHost = find("#discussion-model-host") ?? settingsHost;
+      for (const element of insightSettingsNodes) {
+        const destination = composerModelNodes.has(element) ? modelHost : settingsHost;
+        if (destination && element.parentElement !== destination) destination.append(element);
+      }
     } else {
       for (const element of [...insightSettingsNodes].reverse()) {
         const place = originalInsightPlaces.get(element);
@@ -101,6 +107,8 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     if (view === "pages") view = "discussion";
     activeView = view;
     if (document.body.dataset.uiMode !== "user") return;
+    const sourceContext = find("#app-source-context");
+    if (sourceContext) sourceContext.hidden = view === "settings" || sourceContext.dataset.hasSource !== "true";
     const connected = Boolean(lastState?.catalog);
     move("#discussion-connection-settings", connected || view === "settings"
       ? find("#app-settings-connection") : find("#app-welcome-connection"));
@@ -218,6 +226,17 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
   function render(state) {
     lastState = state;
     renderTopicView(state);
+    const sourceContext = find("#app-source-context");
+    if (sourceContext) {
+      const source = state?.catalog?.sources?.find((entry) => entry.id === state.sourceId) ?? state?.source;
+      const title = typeof source?.title === "string" ? source.title.trim() : "";
+      let domain = "";
+      try { domain = new URL(source?.url).hostname; } catch { /* The source has no displayable URL. */ }
+      sourceContext.dataset.hasSource = String(Boolean(title || domain));
+      sourceContext.hidden = activeView === "settings" || !title && !domain;
+      if (find("#app-source-title")) find("#app-source-title").textContent = title || domain;
+      if (find("#app-source-domain")) find("#app-source-domain").textContent = title ? domain : "";
+    }
     const view = projectDiscussionShell(state, messages);
     connection.dataset.state = view.connection; connection.textContent = view.connectionText;
     document.body.dataset.topicState = view.topicState;

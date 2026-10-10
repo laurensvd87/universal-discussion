@@ -89,10 +89,13 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   const context = node("p"); context.id = "matching-context"; context.setAttribute("role", "status"); how.append(context);
   const access = node("p"); access.id = "matching-access"; access.setAttribute("role", "status"); how.append(access);
   const enable = button("matching-enable", "matchingEnable", () => {
-    if (disposed || acting || startPending || !showStart() || !state?.currentOrigin || state.currentWindowId === null ||
-        (!streamlinedSession && !consent.checked)) return;
+    const grantOnly = showGrant();
+    if (disposed || acting || startPending || !showStart() ||
+        !grantOnly && (!state?.currentOrigin || state.currentWindowId === null || !streamlinedSession && !consent.checked)) return;
     // Initiate Chrome's broad prompt in this click's user gesture. The cached
-    // window/revision binds Start; the worker rechecks it after the prompt.
+    // window/revision binds a direct Start when access already exists. A first
+    // streamlined grant has no reliable page identity yet and only refreshes
+    // worker status after Chrome's explicit permission decision.
     const windowId = state.currentWindowId, expectedRevision = state.sessionRevision;
     const ticket = ++controlEpoch;
     statusFlight = null;
@@ -106,7 +109,8 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
         if (disposed || ticket !== controlEpoch) return;
         consent.checked = false;
         if (!granted) { status.textContent = message("matchingPermissionDenied"); detail.textContent = ""; return; }
-        await deliver({ target: "page-matching", type: "start-session", windowId, expectedRevision }, ticket);
+        await deliver(grantOnly ? { target: "page-matching", type: "status" }
+          : { target: "page-matching", type: "start-session", windowId, expectedRevision }, ticket);
       } catch { if (!disposed && ticket === controlEpoch) unavailable(); }
       finally { if (ticket === controlEpoch) { startPending = false; if (!disposed) controls(); } }
     })();
@@ -122,9 +126,10 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
   let siteHandlers = [];
   let siteSignature = null;
   function clearSiteHandlers() { for (const [item, callback] of siteHandlers) item.removeEventListener("click", callback); siteHandlers = []; }
+  function showGrant() { return streamlinedSession && !!state && !state.hostAccess && !stopPending && stopFlight === null; }
   function showStart() {
     return !!state && !stopPending && stopFlight === null &&
-      (!state.enabled || (state.currentWindowId !== null && state.currentWindowId !== state.sessionWindowId));
+      (showGrant() || !state.enabled || (state.currentWindowId !== null && state.currentWindowId !== state.sessionWindowId));
   }
   function renderSessionStatus() {
     sessionStatus.textContent = message(stopPending || stopFlight !== null ? "matchingStopping"
@@ -156,9 +161,9 @@ export function mountPageMatchingPanel(document, root, { sendMessage, requestPer
     enable.hidden = !show;
     consent.disabled = disposed || busy || !show || streamlinedSession;
     if (!show) consent.checked = false;
-    enable.textContent = message(state?.enabled ? "matchingMoveSession" : streamlinedSession && !state?.hostAccess ? "matchingGrantAccess" : "matchingEnable");
-    enable.disabled = disposed || busy || !show || !state?.currentOrigin || state.currentWindowId === null ||
-      (!streamlinedSession && !consent.checked);
+    enable.textContent = message(showGrant() ? "matchingGrantAccess" : state?.enabled ? "matchingMoveSession" : "matchingEnable");
+    enable.disabled = disposed || busy || !show || !showGrant() &&
+      (!state?.currentOrigin || state.currentWindowId === null || !streamlinedSession && !consent.checked);
     pause.disabled = disposed || stopFlight !== null || (!state?.enabled && !startPending && !acting);
     retry.disabled = busy || !state?.enabled || state.currentWindowId !== state.sessionWindowId || state.blockedOrigins.includes(state.currentOrigin);
     block.disabled = busy || !state?.currentOrigin || state.blockedOrigins.includes(state.currentOrigin);

@@ -33,7 +33,7 @@ export function ownsContribution(entry, actorId) {
 // Owns transient selection/drafts only; the service owns all canonical data.
 export function createLocalDiscussionController({ client, session, readActiveTab,
   observeTabLifecycle, lookupByNormalizedUrl, readPageResolution = null, pausePageMatching = null,
-  validatePairing = async () => {}, onStateChange = () => {} }) {
+  validatePairing = async () => {}, attestActiveContext = null, onStateChange = () => {} }) {
   let state = { phase: "disconnected", error: null, catalog: null, discussion: null,
     topicViewMode: "experimental", alternateDiscussion: null, alternateError: null,
     related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
@@ -48,6 +48,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   let observationSequence = 0;
   let preparingLearned = false;
   let alternateRequest = 0;
+  let activeContext = null;
   function publish(patch = {}) {
     const contextChanged = patch.discussion === null || patch.related === null || patch.catalog === null ||
       patch.sourceId === null || patch.topicId === null ||
@@ -63,12 +64,17 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     state.draft = { ...state.draft, detached: state.draft.body.length > 0,
       mode: "root", targetId: null };
   }
-  function invalidate() {
-    cancel(); detach();
+  function invalidateContext() {
+    cancel(); observationSequence += 1; stopObservation(); stopObservation = () => {};
+    activeContext = null; detach();
     publish({ discussion: null, related: null, priorDiscussions: null, priorDiscussionsError: null,
       viewingPriorDiscussion: false, sourceId: null, topicId: null,
-      selection: null, phase: state.catalog ? "choose-topic" : "disconnected", error: "context-changed" });
-    // The Chromium observer is one-shot; establish a fresh watcher after every event.
+      selection: null, resolution: null, busy: false,
+      phase: state.catalog ? "choose-topic" : "disconnected", error: "context-changed" });
+  }
+  function invalidate() {
+    invalidateContext();
+    // The one-shot legacy tab observer follows the new tab after navigation.
     void setupObservation();
   }
   async function failure(error, ownEpoch) {
@@ -232,12 +238,24 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       void loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options);
     } catch (error) { await failure(error, ownEpoch); }
   }
-  function setupObservation() {
+  function setupObservation(expectedResolution = null) {
     const ownObservation = ++observationSequence;
     stopObservation(); stopObservation = () => {};
+    activeContext = null;
     return Promise.resolve().then(readActiveTab).then((snapshot) => {
       if (disposed || ownObservation !== observationSequence) return null;
-      if (Number.isSafeInteger(snapshot.tabId) && snapshot.tabId >= 0) {
+      if (expectedResolution) {
+        let observedUrl = null;
+        try { observedUrl = new URL(snapshot.url).toString().split("#")[0]; }
+        catch { return null; }
+        if (snapshot.tabId !== expectedResolution.currentTabId ||
+            observedUrl !== expectedResolution.currentUrl ||
+            (snapshot.windowId !== undefined && snapshot.windowId !== expectedResolution.currentWindowId) ||
+            (attestActiveContext && snapshot.windowId !== expectedResolution.currentWindowId)) return null;
+      }
+      if (Number.isSafeInteger(snapshot?.tabId) && snapshot.tabId >= 0) {
+        activeContext = Object.freeze({ tabId: snapshot.tabId, url: snapshot.url,
+          ...(Number.isSafeInteger(snapshot.windowId) ? { windowId: snapshot.windowId } : {}) });
         stopObservation = observeTabLifecycle(snapshot.tabId, invalidate);
       }
       return snapshot;
@@ -247,14 +265,15 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     try {
       const snapshot = await snapshotPromise;
       if (ownEpoch !== epoch || disposed) return;
-      const observation = classifyActiveTabSnapshot(snapshot);
+      const observation = classifyActiveTabSnapshot({ tabId: snapshot.tabId, url: snapshot.url });
       const requestToken = `activation-${String((ownEpoch % 999999) + 1).padStart(6, "0")}`;
       const response = await lookupByNormalizedUrl({ normalizedUrl: observation.normalizedUrl, requestToken });
       if (ownEpoch !== epoch || disposed || ownManual !== manualSelection) return;
       const view = validateAndProjectActiveTabResponse(response, {
         normalizedUrl: observation.normalizedUrl, requestToken, scenarioId: observation.scenarioId,
       });
-      const final = classifyActiveTabSnapshot(await readActiveTab());
+      const finalSnapshot = await readActiveTab();
+      const final = classifyActiveTabSnapshot({ tabId: finalSnapshot.tabId, url: finalSnapshot.url });
       if (ownEpoch !== epoch || disposed || ownManual !== manualSelection) return;
       if (!sameActiveTabObservation(observation, final)) { invalidate(); return; }
       const sourceId = localServiceSourceId(view);
@@ -277,6 +296,18 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     if (ownEpoch !== epoch || disposed || !samePageResolution(resolution, current) || !isReadyPageResolution(current)) return;
     const source = catalog.sources.find((entry) => entry.id === resolution.sourceId);
     if (!source || source.topicId !== resolution.topicId || source.provenance !== "owner-local-page-embedding/v1") return;
+    // Initial active-tab access can fail before a first-use HTTPS grant. A
+    // later ready resolution needs its own matching tab witness before Ready.
+    const snapshot = await setupObservation(resolution);
+    if (!snapshot || ownEpoch !== epoch || disposed || ownManual !== manualSelection || state.selection === "manual") return;
+    const ownObservation = observationSequence;
+    const verified = await freshResolution();
+    if (ownObservation !== observationSequence) return;
+    if (ownEpoch !== epoch || disposed || ownManual !== manualSelection ||
+        !samePageResolution(resolution, verified) || !isReadyPageResolution(verified)) {
+      observationSequence += 1; stopObservation(); stopObservation = () => {}; activeContext = null;
+      return;
+    }
     const actorId = catalog.actors.some((entry) => entry.id === state.actorId) ? state.actorId : catalog.actors[0]?.id ?? null;
     publish({ catalog, actorId, resolution, sourceId: resolution.sourceId, topicId: resolution.topicId, selection: "background" });
     await loadSelection(ownEpoch);
@@ -378,7 +409,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     } catch (error) { await failure(error, ownEpoch); }
   }
   async function disconnect() {
-    cancel(); observationSequence += 1; stopObservation(); detach();
+    cancel(); observationSequence += 1; stopObservation(); activeContext = null; detach();
     publish({ phase: "disconnected", catalog: null, discussion: null, related: null,
       priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
       topicId: null, sourceId: null, actorId: null, selection: null, resolution: null, error: null });
@@ -441,8 +472,17 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     if (mutationPending || state.needsFreshRead || !state.catalog || !state.actorId || disposed) return false;
     if (!["ready", "choose-topic"].includes(state.phase)) return false;
     if (!reset && !learned && command.type !== "create-topic" && state.phase !== "ready") return false;
+    const attestedEpoch = epoch;
+    if (attestActiveContext) {
+      let trusted = false;
+      try { trusted = Boolean(activeContext && await attestActiveContext(activeContext)); }
+      catch { /* A missing or changed owning tab cannot authorize a write. */ }
+      if (attestedEpoch !== epoch || disposed) return false;
+      if (!trusted) { invalidateContext(); return false; }
+    }
     mutationPending = true; const ownEpoch = epoch;
     let confirmed = false;
+    let contextInvalidated = false;
     let expected = state.discussion?.version ?? state.catalog.version;
     alternateRequest += 1;
     publish({ busy: true, error: null, alternateDiscussion: null, alternateError: null });
@@ -464,6 +504,13 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         const normalizedUrl = typeof snapshot.url === "string" ? new URL(snapshot.url).toString().split("#")[0] : null;
         if (ownEpoch !== epoch || disposed) return false;
         if (snapshot.tabId !== current.tabId || normalizedUrl !== current.url) { invalidate(); return false; }
+      }
+      if (attestActiveContext) {
+        let trusted = false;
+        try { trusted = Boolean(activeContext && await attestActiveContext(activeContext)); }
+        catch { /* Fail closed before the service write. */ }
+        if (ownEpoch !== epoch || disposed) return false;
+        if (!trusted) { contextInvalidated = true; invalidateContext(); return false; }
       }
       const outcome = reset ? await client.reset(expected, "RESET DEMO STATE", { signal: abort.signal })
         : await client.command(expected, command, state.actorId, { signal: abort.signal });
@@ -495,7 +542,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (!disposed) {
         // Cancellation cannot prove a write failed. Require a fresh service read
         // after it finishes, even if another selection loaded while it was pending.
-        if (!confirmed && ownEpoch !== epoch && state.phase !== "disconnected" && state.error !== "unauthorized") {
+        if (!confirmed && !contextInvalidated && ownEpoch !== epoch && state.phase !== "disconnected" && state.error !== "unauthorized") {
           detach(); publish({ busy: false, needsFreshRead: true, phase: "error", error: "unavailable",
             discussion: null, related: null, priorDiscussions: null, priorDiscussionsError: null });
         } else publish({ busy: false });
@@ -570,7 +617,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     return mutate({ type: "clear-learned-data", confirmation }, { learned: true });
   }
   function dispose() {
-    disposed = true; cancel(); observationSequence += 1; stopObservation();
+    disposed = true; cancel(); observationSequence += 1; stopObservation(); activeContext = null;
     state = { ...state, phase: "disconnected", catalog: null, discussion: null,
       related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
       sourceId: null, topicId: null, actorId: null, selection: null, resolution: null,
@@ -578,5 +625,5 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor,
     selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, shareInsight, withdraw, createTopic, reset,
-    updatePageResolution, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
+    updatePageResolution, invalidateContext, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

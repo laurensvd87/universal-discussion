@@ -78,6 +78,14 @@ test("User insight action lives in the composer and starts one automatic private
   shortcut.listeners.get("click")();
   assert.equal(actions.length, 1);
 });
+test("composer provides a single model rehome target without duplicating controls", () => {
+  const ui = harness();
+  const composer = ui.byId("discussion-composer");
+  const modelHost = ui.byId("discussion-model-host");
+  assert.ok(composer.children.some((item) => item.children?.includes(modelHost)));
+  assert.equal(ui.created.filter((item) => item.id === "discussion-model-host").length, 1);
+  assert.equal(ui.created.some((item) => item.id === "insight-model"), false);
+});
 test("Insight entry is offered only while composing a new thread in User Mode", () => {
   const ui = harness();
   ui.panel.bindInsight({ currentState: () => ({ context: { currentSource: { id: "source-demo" } },
@@ -710,6 +718,17 @@ test("labels, form submission, password clearing, source choice and keyboard foc
   assert.equal(ui.byId("discussion-body").focused, true);
   assert.ok(ui.created.some((item) => item.attributes.role === "status"));
 });
+test("post actions keep full localized names and tooltips for compact icon styling", () => {
+  const ui = harness();
+  for (const [action, key] of [["reply", "discussionReply"], ["edit", "discussionEdit"],
+    ["withdraw", "discussionWithdraw"]]) {
+    const control = descendants(ui.root).find((item) => item.attributes["data-action"] === action);
+    assert.ok(control, action);
+    assert.equal(control.textContent, EN[key]);
+    assert.equal(control.attributes["aria-label"], EN[key]);
+    assert.equal(control.title, EN[key]);
+  }
+});
 test("detached drafts, unavailable service, conflict, reset confirmation and busy writes are disabled", () => {
   const ui = harness();
   ui.panel.render(state({ draft: { body: "Retained", detached: true, mode: "root", targetId: null } }));
@@ -1079,6 +1098,9 @@ test("human post provenance stays accessible without repeating counts or prose",
   const ui = harness();
   const author = descendants(ui.root).find((item) => item.className === "human-provenance");
   assert.equal(author.textContent, "Alex");
+  const demo = descendants(ui.root).find((item) => item.className === "discussion-demo-badge");
+  assert.equal(demo.textContent, EN.uiDemoBadge);
+  assert.equal(demo.attributes["aria-label"], EN.uiDemoBadgeLabel);
   assert.equal(author.attributes["aria-label"], "Human · Alex");
   assert.equal(ui.byId("discussion-counts").hidden, true);
 });

@@ -64,19 +64,21 @@ const CHILD_FILTER = ROOT_FILTER.filter(item => item.type !== 'service_worker');
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 function fixtureUrl(name) { return `${name === 'b' ? 'https://example.org' : ORIGIN}/background-fixture/${name}`; }
 
-export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME, { alternateOnly = false, ridgeOnly = false, bodyMetricOnly = false } = {}) {
+export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME, { alternateOnly = false, ridgeOnly = false, bodyMetricOnly = false, sidePanelOnly = false } = {}) {
   const targetedOnly = alternateOnly || ridgeOnly || bodyMetricOnly;
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
   const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-background-smoke-'));
   const databasePath = path.join(directory, 'demo.sqlite');
   const pairingPath = path.join(directory, 'pairing.json');
   const targets = new Map(), sessionTargets = new Map(), tasks = new Set(), workers = [], requests = [], errors = [], ingestions = [];
+  const deliberatelyClosedTargets = new Set();
   const checks = [];
   let browser, application, extensionId, pageSession, popupSession, popupTarget, deadline, progress, toolbarSession;
   let capability = null;
   let stage = 'initializing';
   let permissionPreparationTarget;
   let closing = false, runtimeExceptions = 0, interceptedDocuments = 0;
+  const exceptionTargets = [];
   let delayedAlternate = null;
   let resolveIdentity;
   const identityReady = new Promise(resolve => { resolveIdentity = resolve; });
@@ -98,6 +100,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       const pathname = new URL(target.url).pathname;
       if (pathname === '/embedding/offscreen.html') return 'own-offscreen';
       if (pathname === '/chromium/popup.html') return 'own-popup';
+      if (pathname === '/chromium/sidepanel.html') return 'own-panel';
       return 'own-extension-other';
     }
     return 'other';
@@ -107,6 +110,13 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     const safeType = ['page', 'iframe', 'other', 'worker', 'service_worker', 'shared_worker'].includes(target?.type) ? target.type : 'unknown';
     const operation = Promise.resolve().then(work).catch(error => {
       if (label === 'target-attach' && target?.detached === true && isTargetSetupCanceled(error)) return;
+      // Chrome may cancel a pending resource continuation after this harness
+      // deliberately closes its rejected spoof tab or second window. Only that
+      // exact detached target/protocol cancellation is expected; live/native
+      // target failures and every other interception error remain test failures.
+      if (label === 'request-interception' && target?.detached === true &&
+          deliberatelyClosedTargets.has(target.targetId) &&
+          error?.message === 'Chromium protocol rejected Fetch.continueRequest (code -32001)') return;
       if (!closing) errors.push(`Target/request setup failed during ${stage} (scheduled ${scheduledStage}; ${label}; target ${safeType}; kind ${targetKind(target)}; detached ${target?.detached === true}; ready ${target?.ready === true}; ${setupDiagnostic(error)})`);
     });
     tasks.add(operation); operation.finally(() => tasks.delete(operation));
@@ -163,6 +173,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await browser.send('Target.closeTarget', { targetId }); targets.delete(targetId);
   }
   async function openPopup() {
+    if (sidePanelOnly && popupTarget && targets.get(popupTarget)?.ready) return;
     await browser.send('Page.bringToFront', {}, pageSession);
     const url = await evaluate('location.href', pageSession);
     const available = await browser.send('Target.getTargets', { filter: [{ type: 'tab', exclude: false }, { exclude: true }] });
@@ -170,9 +181,10 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.ok(tab, 'Actual foreground tab required');
     await browser.send('Extensions.triggerAction', { id: extensionId, targetId: tab.targetId });
     await wait(() => {
-      const popup = [...targets.values()].find(item => item.ready && item.url === `chrome-extension://${extensionId}/chromium/popup.html`);
+      const popup = [...targets.values()].find(item => item.ready && selfUrl(item.url) &&
+        new URL(item.url).pathname === `/chromium/${sidePanelOnly ? 'sidepanel' : 'popup'}.html`);
       if (!popup) return false; popupTarget = popup.targetId; popupSession = popup.sessionId; return true;
-    }, 'actual extension action popup');
+    }, sidePanelOnly ? 'actual native extension side panel' : 'actual extension action popup');
     await waitExpression("!!document.querySelector('#ui-mode-toggle')", 'user presentation mounted');
   }
   async function screenshot(name) {
@@ -188,12 +200,19 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     const expected = { disconnected: EN.toolbarDisconnected, connected: EN.toolbarConnected, off: EN.toolbarMatchingOff,
       topic: EN.toolbarTopic, shared: EN.toolbarShared, posts: EN.toolbarPosts }[state];
     assert.ok(expected, 'Known toolbar test state');
+    const toolbarTabExpression = sidePanelOnly ? `(async()=>{
+      const binding=await chrome.runtime.sendMessage({target:'panel-context',type:'binding'});
+      if(!Number.isSafeInteger(binding?.windowId))return null;
+      const tabs=await chrome.tabs.query({active:true,windowId:binding.windowId});
+      return tabs.length===1?tabs[0].id:null;
+    })()` : `chrome.runtime.sendMessage({target:'page-matching',type:'status'}).then(state=>state.currentTabId)`;
     await waitExpression(`(async () => {
       const state=await chrome.runtime.sendMessage({target:'page-matching',type:'status'});
-      return Number.isSafeInteger(state.currentTabId) &&
-        await chrome.action.getTitle({tabId:state.currentTabId})===${JSON.stringify(expected)};
+      const tabId=await ${toolbarTabExpression};
+      return Number.isSafeInteger(tabId) &&
+        await chrome.action.getTitle({tabId})===${JSON.stringify(expected)};
     })()`, `${state} toolbar indication`);
-    const currentTab = await evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'status'}).then(state=>state.currentTabId)");
+    const currentTab = await evaluate(toolbarTabExpression);
     await wait(() => evaluate(`(() => {
       const evidence=globalThis.__toolbarNativeEvidence??[];
       const effective=evidence.findLast(item=>item.tabId===${JSON.stringify(currentTab)})??evidence.findLast(item=>item.tabId===null);
@@ -220,7 +239,8 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     })()`, toolbarSession);
   }
   async function navigate(name) {
-    await closePopup(); await browser.send('Page.bringToFront', {}, pageSession);
+    if (!sidePanelOnly) await closePopup();
+    await browser.send('Page.bringToFront', {}, pageSession);
     const url = fixtureUrl(name);
     await browser.send('Page.navigate', { url }, pageSession);
     await wait(() => evaluate(`location.href===${JSON.stringify(url)} && document.readyState==='complete'`, pageSession), 'owned document navigation');
@@ -267,7 +287,16 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   }
   async function postComment(body = COMMENT) {
     await input('#discussion-body', body); await click('#discussion-submit');
-    await waitExpression(`${THREAD}.textContent.includes(${JSON.stringify(body)}) && document.querySelector('#discussion-body').value===''`, 'committed shared comment');
+    try { await waitExpression(`${THREAD}.textContent.includes(${JSON.stringify(body)}) && document.querySelector('#discussion-body').value===''`, 'committed shared comment'); }
+    catch(error) {
+      const diagnostic = await evaluate(`({status:${STATUS},
+        disabled:document.querySelector('#discussion-submit').disabled,
+        draftLength:document.querySelector('#discussion-body').value.length,
+        detachedVisible:!document.querySelector('#discussion-reattach').hidden,
+        currentSource:document.querySelector('#discussion-source').value,
+        connection:document.querySelector('#connection-status').dataset.state})`);
+      throw new Error(`Synthetic contribution did not commit: ${JSON.stringify(diagnostic)}`);
+    }
     await waitStatus(EN.discussionReady);
   }
   async function postOrigin(body, expectedUrl) {
@@ -357,7 +386,10 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       // was replaced or explicitly removed from the live lookup by popup close.
       for (const [id, target] of targets) if (target.sessionId === sessionId) targets.delete(id);
     });
-    browser.on('Runtime.exceptionThrown', (_, sessionId) => { const target = [...targets.values()].find(item => item.sessionId === sessionId); if (selfUrl(target?.url)) runtimeExceptions++; });
+    browser.on('Runtime.exceptionThrown', (_, sessionId) => {
+      const target = sessionTargets.get(sessionId);
+      if (selfUrl(target?.url)) { runtimeExceptions++; exceptionTargets.push(target.targetId); }
+    });
     browser.on('Network.requestWillBeSent', ({ request }, sessionId) => {
       const target = [...targets.values()].find(item => item.sessionId === sessionId);
       const relatedSourceId = apiUrl(request.url) && request.url.endsWith('/related') && request.method === 'POST'
@@ -373,7 +405,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       if (selfUrl(request.url)) await browser.send('Fetch.continueRequest', { requestId }, sessionId);
       else if (selfUrl(target?.url) && apiUrl(request.url)) {
         inspectApiPayload(request);
-        if (delayedAlternate?.url === request.url && targetKind(target) === 'own-popup' && !delayedAlternate.ready) {
+        if (delayedAlternate?.url === request.url && ['own-popup', 'own-panel'].includes(targetKind(target)) && !delayedAlternate.ready) {
           const delayed = delayedAlternate;
           delayed.networkId = networkId; delayed.sessionId = sessionId;
           delayed.ready = true;
@@ -396,31 +428,185 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await startService();
     const page = await wait(() => [...targets.values()].find(item => item.ready && item.url === 'about:blank'), 'owned foreground page');
     pageSession = page.sessionId;
+    if (sidePanelOnly && process.env.UDL_UI_SCREENSHOT_DIR) {
+      const window = await browser.send('Browser.getWindowForTarget',{targetId:page.targetId});
+      await browser.send('Browser.setWindowBounds',{windowId:window.windowId,bounds:{width:1200,height:960}});
+    }
     await observeNativeIcons();
+    if (sidePanelOnly) await evaluate(`(() => {
+      globalThis.__panelSenderShapes=[];
+      chrome.runtime.onMessage.addListener((message,sender)=>{
+        if(message?.target==='panel-context')globalThis.__panelSenderShapes.push({
+          ownId:sender.id===chrome.runtime.id,
+          hasTab:Boolean(sender.tab),hasDocumentId:typeof sender.documentId==='string'&&!!sender.documentId,
+          documentLifecycle:sender.documentLifecycle??null,frameId:sender.frameId??null,
+          ownOrigin:sender.origin===chrome.runtime.getURL('').slice(0,-1)});
+      });
+    })()`, toolbarSession);
     stage = 'prepare-native-session-permission';
     let resolvePreparation;
     permissionPreparationTarget = new Promise(resolve => { resolvePreparation = resolve; });
     try { await prepareSessionPermission(browser, extensionId, { onTargetCreated: resolvePreparation }); }
     finally { resolvePreparation(null); permissionPreparationTarget = null; }
+    // Native prompt preparation reloads this disposable extension. Only after
+    // that reload, opt compatibility QA back into the packaged action popup.
+    // Production action remains the native panel.
+    if (!sidePanelOnly) await evaluate("(async()=>{await chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:false});await chrome.action.setPopup({popup:'chromium/popup.html'});})()", toolbarSession);
     stage = 'pairing-and-session-consent';
-    await navigate('a'); await openPopup(); await waitStatus(EN.discussionDisconnected);
+    await navigate('a'); await openPopup();
+    try { await waitStatus(EN.discussionDisconnected); }
+    catch (error) {
+      if (!sidePanelOnly) throw error;
+      const diagnostic = await evaluate(`(async()=>({
+        senders:globalThis.__panelSenderShapes,
+        contexts:(await chrome.runtime.getContexts({contextTypes:['SIDE_PANEL']})).map(context=>({
+          type:context.contextType,exactUrl:context.documentUrl===chrome.runtime.getURL('chromium/sidepanel.html'),
+          hasDocumentId:typeof context.documentId==='string'&&!!context.documentId,
+          tabId:context.tabId,windowId:context.windowId,incognito:context.incognito}))
+      }))()`, toolbarSession);
+      diagnostic.panelWindow = await evaluate(`(async()=>{
+        const window=await chrome.windows.getCurrent({populate:false});
+        return {id:window.id,type:window.type,focused:window.focused,incognito:window.incognito};
+      })()`);
+      throw new Error(`Native panel initialization failed: ${JSON.stringify(diagnostic)}; runtimeExceptions=${runtimeExceptions}`);
+    }
     assert.equal(await evaluate("document.body.dataset.uiMode"), 'user');
     assert.equal(await evaluate("document.querySelector('#connection-status').dataset.state"), 'disconnected');
     await toolbar('disconnected');
     await screenshot('user-disconnected');
+    if (sidePanelOnly) assert.equal((await catalog()).sources.some(item => item.url === fixtureUrl('a')), false);
     await pair(capability);
     await waitExpression("document.querySelector('#connection-status').dataset.state==='connected'", 'honest paired connection indicator');
-    await toolbar('off');
+    if (sidePanelOnly) {
+      // Unlike an action popup, native opening does not grant readable tab URLs.
+      // Exercise the actual first-use Settings control even while URL is hidden.
+      assert.equal((await catalog()).sources.some(item => item.url === fixtureUrl('a')), false);
+      await click('#app-settings-button');
+      await click('#matching-enable');
+      await confirmStart();
+      await click('#app-settings-back');
+    } else await toolbar('off');
     await waitExpression(`document.querySelector('#matching-origin').textContent===${JSON.stringify(ORIGIN)}`, 'eligible disclosed origin');
     // In the disposable profile, exercise Chrome's real optional-permission
     // grant from a user gesture. The management API above only prepares its
     // otherwise unautomated native dialog; capture then auto-starts.
-    assert.equal(await evaluate("(async () => chrome.permissions.request({origins:['https://*/*']}))()"), true);
-    await confirmStart(); await closePopup();
+    if (!sidePanelOnly) assert.equal(await evaluate("(async () => chrome.permissions.request({origins:['https://*/*']}))()"), true);
+    await confirmStart(); if (!sidePanelOnly) await closePopup();
     stage = 'popup-closed-first-inference';
     const a = await automatic('a');
     assert.equal(a.provenance, 'owner-local-page-embedding/v1');
     await toolbar('topic');
+    if (sidePanelOnly) {
+      stage = 'native-panel-persistence-and-source-binding';
+      const originalPanel = popupTarget;
+      const originalLifetime = await evaluate('performance.timeOrigin');
+      const binding = await evaluate("chrome.runtime.sendMessage({target:'panel-context',type:'binding'})");
+      assert.ok(Number.isSafeInteger(binding?.windowId));
+      const contexts = await evaluate("chrome.runtime.getContexts({contextTypes:['SIDE_PANEL']})");
+      const panelUrl = await evaluate('location.href');
+      assert.ok(contexts.some(context => context.documentUrl === panelUrl && context.contextType === 'SIDE_PANEL' && context.frameId === 0 && context.tabId === -1));
+      assert.equal(Number(new URL(panelUrl).searchParams.get('windowId')), binding.windowId);
+      assert.match(new URL(panelUrl).searchParams.get('instance'), /^[a-f0-9-]{36}$/u);
+      await postComment();
+      await postOrigin(COMMENT, fixtureUrl('a'));
+      await screenshot('sidepanel-discussion');
+      stage = 'native-panel-new-active-tab';
+      await input('#discussion-body', SWITCH_DRAFT);
+      await evaluate(`chrome.tabs.create({url:${JSON.stringify(fixtureUrl('b'))},active:true,windowId:${binding.windowId}})`);
+      const second = await wait(() => [...targets.values()].find(target => target.ready && target.type === 'page' && target.url === fixtureUrl('b')), 'second owned tab');
+      pageSession = second.sessionId;
+      const b = await source('b');
+      await waitExpression(`document.querySelector('#discussion-source')?.value===${JSON.stringify(b.id)} && ${STATUS}===${JSON.stringify(EN.discussionReady)}`, 'panel follows new active tab');
+      assert.equal(popupTarget, originalPanel);
+      assert.equal(await evaluate('performance.timeOrigin'), originalLifetime);
+      assert.equal(await evaluate("document.querySelector('#discussion-body').value"), SWITCH_DRAFT);
+      assert.equal(await evaluate("document.querySelector('#discussion-submit').disabled"), true, 'Previous page draft stays detached');
+      await click('#discussion-discard');
+      await waitExpression("document.querySelector('#discussion-body').value===''");
+      await waitExpression("document.querySelector('#app-topic-view-status')?.dataset.state==='active'", 'Ridge panel view');
+      assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
+      const sourceBefore = (await catalog()).sources.length;
+      await screenshot('sidepanel-related-thread');
+      stage = 'native-panel-url-navigation';
+      await navigate('c');
+      const c = await source('c');
+      await waitExpression(`document.querySelector('#discussion-source')?.value===${JSON.stringify(c.id)} && ${STATUS}===${JSON.stringify(EN.discussionReady)}`, 'persistent panel follows URL navigation');
+      assert.equal(await evaluate('performance.timeOrigin'), originalLifetime);
+      assert.ok(!(await evaluate(`${THREAD}.textContent`)).includes(COMMENT), 'Different Source cannot retain stale discussion');
+      checks.push('native-side-panel-remains-mounted-across-new-tab-and-url-navigation');
+      checks.push('source-anchored-root-and-detached-private-draft-preserved-without-cross-page-write');
+      const ownerPage = pageSession;
+      stage = 'native-panel-other-window';
+      const other = await browser.send('Target.createTarget', { url: fixtureUrl('d'), newWindow: true });
+      const otherPage = await wait(() => targets.get(other.targetId)?.ready && targets.get(other.targetId), 'other normal window');
+      await browser.send('Page.bringToFront', {}, otherPage.sessionId);
+      await waitExpression("document.querySelector('#discussion-source')?.value==='' && document.querySelector('#discussion-submit').disabled", 'panel invalidates on other-window focus');
+      const otherTabs = await browser.send('Target.getTargets', {filter:[{type:'tab',exclude:false},{exclude:true}]});
+      const otherTab = otherTabs.targetInfos.find(target => target.url === fixtureUrl('d'));
+      assert.ok(otherTab);
+      await browser.send('Extensions.triggerAction', {id:extensionId,targetId:otherTab.targetId});
+      const otherPanel = await wait(() => [...targets.values()].find(target => target.ready &&
+        target.targetId !== originalPanel && selfUrl(target.url) &&
+        new URL(target.url).pathname === '/chromium/sidepanel.html' && new URL(target.url).searchParams.has('instance')), 'second native side panel');
+      const otherBinding = await wait(() => evaluate("chrome.runtime.sendMessage({target:'panel-context',type:'binding'})", otherPanel.sessionId)
+        .then(value => Number.isSafeInteger(value?.windowId) && value), 'second panel browser binding');
+      assert.notEqual(otherBinding.windowId, binding.windowId);
+      assert.equal(await evaluate('chrome.windows.getCurrent().then(window=>window.id)'), binding.windowId);
+      assert.equal(await evaluate('chrome.windows.getCurrent().then(window=>window.id)',otherPanel.sessionId), otherBinding.windowId);
+      const otherPanelUrl = await evaluate('location.href',otherPanel.sessionId);
+      assert.notEqual(otherPanelUrl, panelUrl);
+      const simultaneousContexts = await evaluate("chrome.runtime.getContexts({contextTypes:['SIDE_PANEL']})",toolbarSession);
+      assert.equal(simultaneousContexts.filter(context => [panelUrl,otherPanelUrl].includes(context.documentUrl)).length,2);
+      const scoped = await evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'status'})");
+      assert.ok(scoped.currentWindowId === binding.windowId || scoped.currentWindowId === null);
+      assert.notEqual(scoped.currentTabId, undefined);
+      await sleep(1500);
+      assert.equal((await catalog()).sources.length, sourceBefore + 1, 'Unbound window is not captured');
+      deliberatelyClosedTargets.add(other.targetId); deliberatelyClosedTargets.add(otherPanel.targetId);
+      await browser.send('Target.closeTarget', { targetId: other.targetId });
+      await wait(() => evaluate(`chrome.runtime.getContexts({contextTypes:['SIDE_PANEL'],documentUrls:[${JSON.stringify(otherPanelUrl)}]}).then(contexts=>contexts.length===0)`,toolbarSession), 'closed panel document is no longer live');
+      assert.equal(await evaluate(`import('./sidepanel-context.js').then(module=>module.authenticatedSidePanelWindow(chrome.runtime,{id:chrome.runtime.id,url:${JSON.stringify(otherPanelUrl)},origin:chrome.runtime.getURL('').slice(0,-1)}))`),null);
+      await browser.send('Page.bringToFront', {}, ownerPage);
+      await waitExpression(`document.querySelector('#discussion-source')?.value===${JSON.stringify(c.id)} && ${STATUS}===${JSON.stringify(EN.discussionReady)}`, 'panel resumes its own focused window');
+      checks.push('other-window-focus-clears-posting-context-and-cannot-leak-or-capture-other-window');
+      checks.push('two-simultaneous-native-panels-have-distinct-live-url-and-owning-window-bindings');
+      checks.push('closed-native-panel-url-cannot-authorize-a-future-request');
+      stage = 'native-panel-spoofed-extension-tab';
+      const spoof = await browser.send('Target.createTarget', { url: `chrome-extension://${extensionId}/chromium/sidepanel.html` });
+      const spoofPage = await wait(() => targets.get(spoof.targetId)?.ready && targets.get(spoof.targetId), 'ordinary extension tab');
+      await wait(() => evaluate("location.search.includes('instance=')", spoofPage.sessionId), 'unprivileged entry boot navigation', 5000);
+      assert.deepEqual(await evaluate("chrome.runtime.sendMessage({target:'panel-context',type:'binding'})", spoofPage.sessionId), {error:'forbidden'});
+      await wait(() => evaluate("document.readyState==='complete'",spoofPage.sessionId),'rejected entry document settled');
+      deliberatelyClosedTargets.add(spoof.targetId);
+      await browser.send('Target.closeTarget', { targetId: spoof.targetId });
+      await browser.send('Page.bringToFront', {}, ownerPage);
+      await waitExpression(`document.querySelector('#discussion-source')?.value===${JSON.stringify(c.id)} && ${STATUS}===${JSON.stringify(EN.discussionReady)}`, 'fresh owner context after rejection');
+      checks.push('ordinary-extension-tab-cannot-impersonate-native-panel');
+      // The rejected standalone entry is expected to fail closed at bootstrap.
+      // Test its rejection without counting that deliberate bootstrap exception.
+      const rejectedEntryExceptions = exceptionTargets.filter(id => id === spoof.targetId).length;
+      const nativeRuntimeExceptions = exceptionTargets.filter(id => id !== spoof.targetId).length;
+      assert.equal(nativeRuntimeExceptions, 0, 'No exception from the actual native panel or worker');
+      assert.ok(rejectedEntryExceptions <= 1, 'Only the deliberate fail-closed entry exception is permitted');
+      const layout = await evaluate(`({width:innerWidth,bodyWidth:document.body.getBoundingClientRect().width,
+        scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,
+        background:getComputedStyle(document.body).backgroundColor})`);
+      assert.equal(layout.bodyWidth, layout.clientWidth);
+      assert.ok(layout.scrollWidth <= layout.clientWidth, 'Native panel has no horizontal overflow');
+      await browser.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, popupSession);
+      assert.equal(await evaluate("matchMedia('(prefers-reduced-motion:reduce)').matches"), true);
+      await screenshot('sidepanel-ready');
+      await click('#app-settings-button');
+      await screenshot('sidepanel-settings');
+      await evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'stop-session'})");
+      await wait(() => tasks.size === 0, 'settled native panel tasks', 5000);
+      const externalExtensionRequests = requests.filter(request => selfUrl(request.context) && !selfUrl(request.url) && !apiUrl(request.url)).length;
+      assert.equal(externalExtensionRequests, 0);
+      assert.ok(ingestions.length >= 3);
+      return { browser: version.product, result: 'PASS', nativeSidePanel: true, checks, layout,
+        vectorsSent: ingestions.length, externalExtensionRequests, runtimeExceptions: nativeRuntimeExceptions, rejectedEntryExceptions,
+        scope: 'Native docked panel, intercepted synthetic articles, fabricated Ridge, disposable profile/pairing/SQLite; no provider calls' };
+    }
     assert.equal(await evaluate("document.querySelector('#discussion-topic').selectedOptions[0].textContent"), (await catalog()).topics.find(topic => topic.id === a.topicId).title);
     if (!targetedOnly) {
       await input('#discussion-body', COMMENT);
@@ -735,6 +921,6 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   runBackgroundMatchingBrowserSmoke(process.argv[2]?.startsWith('--') ? undefined : process.argv[2],
     { alternateOnly: process.argv.includes('--alternate-only'), ridgeOnly: process.argv.includes('--ridge-only'),
-      bodyMetricOnly: process.argv.includes('--body-metric-only') }).then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
+      bodyMetricOnly: process.argv.includes('--body-metric-only'), sidePanelOnly: process.argv.includes('--sidepanel-only') }).then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
     .catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });
 }
