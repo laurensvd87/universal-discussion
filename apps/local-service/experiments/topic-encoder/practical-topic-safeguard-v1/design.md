@@ -4,6 +4,12 @@ Owner-local proposal, 2026-10-10. No model, threshold, production file, stored
 Source, comment, title, vector or weight is changed by this document. It contains
 no retained page prose, real private titles, Source IDs or credentials.
 
+Implementation checkpoint: the bounded module and 31 restricted planner/Trust
+tests are complete, but have no runtime consumer. The frozen dual-floor grid
+found no useful safe candidate, so this is inactive preparation, not a rollout
+recommendation. Hard ceilings permit tightening only; a failed later block
+returns none of the earlier partition. See dual-evidence-development-v1/RESULTS.
+
 ## Product target and failure being addressed
 
 The installed BODY metric retrieves useful multilingual article neighborhoods,

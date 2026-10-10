@@ -2,7 +2,7 @@
 
 Status: frozen representation experiments measured; indexed diagonal v2 integrated
 owner-locally; broad BODY and dual-floor activation rejected; teacher transfer
-development in progress.
+measured; separately frozen practical trade-off follow-up being prepared.
 Date: 2026-10-10.
 
 ## Direction and authorization
@@ -106,10 +106,24 @@ real-development grouped reach. No threshold rescue on fresh data follows.
 The guarded coarse-indexed/negative-qualification/dual-complete-link module is
 testable preparation only, not an activated matching policy.
 
-Next: a frozen train-only linear map from existing E5 coordinates to the compact
-paraphrase encoder's coordinates, with three predeclared regularization values,
-raw/centered/old-diagonal/teacher controls and unchanged calibration. No client
-model, second retained vector, article upload or canonical migration. Stop if
-it fails comparative development safety/usefulness; otherwise freeze and test
-the **exact** bounded deployment rule on genuinely unused events. Do not retune
-on the exposed 296 cohort.
+The train-only linear transfer measured three regularization values and stopped
+without a map meeting its frozen all-cohort coverage-nonregression screen. The
+strongest fixed map, ridge-1, improves real-news grouped pairs 61 to 226 with
+zero wrong joins, and C108 wrong pairs 58 to 20 while correct pairs rise 76 to
+82. Its v6 correct coverage falls 79 to 53, so the original screen remains
+failed. All these quality sets are reused development, not independent proof.
+Independent review checked matrix orientation, label-free fitting and receipt
+hashes. An overflowing-norm helper defect is blocked by this run's upstream
+normalizer; preserve frozen code/results and guard future callers explicitly.
+
+The owner's product priority is avoiding misassignments, not finding every
+possible match on every slice. The lead therefore defines a **separate**
+practical follow-up around fixed ridge-1; this is not a retroactive pass or
+threshold rescue. Hold its fit, coefficients and calibration floor fixed,
+compare the exact qualified indexed/coarse + complete-link refinement against
+the same raw/diagonal composition on untouched whole events and independent v7.
+Require greater overall correct/pure reach without greater wrong/mixed exposure
+on either fresh real or synthetic set. No fresh-led parameter choice or retry.
+Failure stops promotion. No client model, second retained vector, article
+upload, canonical migration or automatic activation follows. Do not retune on
+the exposed 296 cohort or imply the same-corpus holdout is publisher/viewpoint gold.

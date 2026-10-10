@@ -1,0 +1,107 @@
+{
+  "stage": "freeze",
+  "descriptor": {
+    "schema": "linear-teacher-distillation/v1",
+    "policy": {
+      "dimensions": 384,
+      "lambdas": [
+        0.01,
+        0.1,
+        1
+      ],
+      "fitArticles": 475,
+      "calibrationArticles": 274,
+      "developmentArticles": 150,
+      "batchArticles": 64,
+      "ridgeScale": "lambda-times-mean-centered-source-coordinate-variance",
+      "prediction": "teacher-mean-plus-W-times-source-centered;unit-normalized",
+      "calibration": "all-pairs-at-least20true-and98percent-observed-precision;whole-score-ties",
+      "grouping": "strongest-cosine-edge-complete-link;no-neighbor-or-member-count"
+    },
+    "sources": {
+      "README.md": "fd7deef9a6e0a39606d2cd2e36aa0dbb7d150f3a523b464f51095346e25aee54",
+      "core.js": "0262585ca30cdb7c1ac5b97647c42e32053c14b8f208a8eb35239afa643c0aa6",
+      "core.test.js": "81268da29a241755c3415be75d429072acb301f82511d2400fa4938f39f8d890",
+      "run.js": "cc23cda6ef0f55076cf892db6c1e4245fff02699b99a785208fe1f2826483759",
+      "../e5-infer.js": "4292c83b462d8fa1bd109e6b94f575c52d13a9a89717cad64a1f8300a5208a17",
+      "../compact-paraphrase-probe-v1/infer.js": "005e6167da5cb4b07abc1cae093227e21d2bb96c930b215312cba5cc072cc9c3",
+      "../compact-paraphrase-probe-v1/core.js": "56842ec9b0a63ccd19c5af306fb037b13583916c7dd197c9edd7890ca2ceaae5",
+      "../real-event-eval/core.js": "4c5e4d1b1e9f543b6ab837e4467e18b3ce5b5c4a0b14172699ef355eaca3496c",
+      "../real-diagonal-adapter-v1/core.js": "6c01b5c9562e7784ca59811610e6dbce4bffc817ef5668a4b7afe0f0a93b35d0",
+      "../topic-metric-rethink-v1/core.js": "32fe859b6b2e4c11e605d3d5cb0dead86644aee3647ac83962ecaa7f59264116",
+      "../synthetic-to-globesumm-v1/scope.js": "79371873ec5ee0c15c31c6f91f2f595f9055610bf2fe49866313fb8c5d6c2092",
+      "../../../src/domain/diagonal-adapter.js": "8cd19d94e5dd8b7ff5a78f31c458231109796fa6e6d3fbdda440aa9f22e209fe",
+      "../../../../../spikes/topic-resolution/harness/deny-external-capabilities.js": "b37675f06d3d7961f2498d663189120302263cf2bba0b79cb3668892a4ef92cc",
+      "../../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js": "6b26cc2766acdbcba39259d1459e703995c3b5ae5a6fd4a4c78b7a968d0b3920"
+    },
+    "corpusSha256": "8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d",
+    "syntheticHashes": {
+      "../multilingual-authored-v2/chunk-c1/records.jsonl": "20bab9b116c6f32c2fb7058c3d822af333503ec36cbcf9cbb7365e9f45bac581",
+      "../multilingual-authored-v2/chunk-c2/records.jsonl": "44ac29625dfbd86f7af2c278eab991e042d0e6e0fa64a92d95d3b1f7951bbf6f",
+      "../multilingual-authored-v2/chunk-c3/records.jsonl": "659f2e9a27651b6577d2686f8b3849e56e6a36984471620980bcca68b880f1fe",
+      "../multilingual-holdout-v6/holdout.jsonl": "032eaa490d0ae6b9067ec479be4a80b563229606f83ce0f43a1bc9efd4098aeb"
+    },
+    "assets": {
+      "teacher": {
+        "revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+        "files": {
+          "model.onnx": {
+            "bytes": 118412398,
+            "sha256": "783fea82d71a58179b830a4dbd2d58447e640609e98eedf9ffa12622d375a672"
+          },
+          "tokenizer.json": {
+            "bytes": 9081518,
+            "sha256": "2c3387be76557bd40970cec13153b3bbf80407865484b209e655e5e4729076b8"
+          },
+          "tokenizer_config.json": {
+            "bytes": 526,
+            "sha256": "5036ea374ffedd706e3bef33e2e0d6953cb868ef8a490e76e32ba0faa37a6b9b"
+          },
+          "config.json": {
+            "bytes": 645,
+            "sha256": "6300193cb75e01cf80c96decef7187dfb33094d97cc1490b7ead6ff134476e4e"
+          },
+          "sentence_bert_config.json": {
+            "bytes": 53,
+            "sha256": "70f4448f31320443fe3557cacea5abf2dcc4915dda8c80646bec9f3bb0aa5a1f"
+          }
+        }
+      },
+      "packagedE5ManifestSha256": "5766e675660a8fbe74842a69b670a84ce5f9eb457b77032337e4a69d6180b984"
+    },
+    "oldDiagonalManifestSha256": "64067f20d65a2775eb82b428e70fa093e465da3adfca3ab7ad013bbac81997a9",
+    "cohorts": {
+      "fit": {
+        "reports": 475,
+        "events": 37,
+        "selectionSha256": "d2c55da9b562b544b55340dd4d1869724a03eeac92be09d034d5cc5c4a7ded50"
+      },
+      "calibration": {
+        "reports": 274,
+        "events": 22,
+        "selectionSha256": "6113de9a4346a66402d1fc40ef17ae88e8f9127526259d40d1841446e07f16fe"
+      },
+      "development": {
+        "reports": 150,
+        "events": 13,
+        "selectionSha256": "02123663a2d48ca73dba8fa19b6c7be946185bf6f97d1b8a6cff8d3598a3d82c"
+      },
+      "authored": {
+        "reports": 108,
+        "events": 18,
+        "selectionSha256": "dba50d0a6dc52a22725dd622231bf0571d0614a1bcdab5806a50204fa898425b"
+      },
+      "spentV6": {
+        "reports": 60,
+        "events": 12,
+        "selectionSha256": "2f4609753b79f747996e1a8ec10da4880dce1153c164ac30d00d36a0c09897b0"
+      }
+    },
+    "selection": "no-worse-real-raw-false;no-worse-C-diagonal-false;v6-zero-false;real-diagonal-reach-better;challenge-diagonal-true-nondecreasing",
+    "noFreshMode": true
+  },
+  "freezeHash": "8951b0aef42b90260080d81997225b9aa12d959f04e81d9c7563ca766a33a3b8",
+  "privateInference": false,
+  "fitting": false,
+  "qualityMeasured": false
+}

@@ -1,8 +1,9 @@
 # Indexed alternate Topic planner v2: synthetic scaling evidence
 
-2026-10-10. This helper is unreferenced by the service. It is a candidate for a
-read-only experimental view, not a new canonical Source/Topic matcher. No page
-text, private data, fitted weights, provider calls, or network access are used.
+2026-10-10. After independent Trust and actual-Chrome review, the service and
+dashboard now use this planner for the optional owner-local alternate read view.
+It is not a new canonical Source/Topic matcher. This benchmark uses no page text,
+private data, fitted weights, provider calls or network access.
 
 ## Algorithm and preservation
 

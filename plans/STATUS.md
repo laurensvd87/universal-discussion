@@ -8,7 +8,8 @@ neighbor or Topic-member count replaces the old all-pairs ceiling; a ten-second 
 Sources, not internet scale; some dense cases still reach capacity and cold
 planning is synchronous. Current remains the default and canonical routing,
 post IDs, origin links and Insight authority stay unchanged. Independent Trust
-review passed. Service 330 pass/4 skipped, extension 1,049 pass/1 skipped
+review passed. Service 361 pass/4 skipped (including inactive safeguard tests),
+extension 1,049 pass/1 skipped
 (restricted 1,050 pass), dashboard 10 pass. Actual Chrome 154 diagonal and
 fabricated-BODY alternate smokes pass, including stale responses, drafts and
 unchanged canonical state; dashboard Chrome also passes. The owner service was
@@ -28,9 +29,16 @@ The compact paraphrase encoder finds more matches but adds false exposure,
 and the joint title model fails safe grouping; neither enters the extension.
 A frozen dual-original/BODY grid also failed: all seven safe candidates lost
 every correct real-development group. Its bounded implementation is prepared
-but inactive; no fresh test rescues those thresholds. A train-only linear
-teacher-distillation experiment now tests whether a compact paraphrase encoder's
-useful geometry can transfer to existing E5 vectors, without a client model.
+but inactive; independent Trust and 31 restricted safeguard tests pass, with
+fixed resource ceilings enforced. No fresh test rescues those thresholds.
+A train-only linear teacher-distillation experiment is measured and closed:
+none of three maps passed its all-cohort coverage-nonregression screen. Strong
+regularization nevertheless gave 226 correct/0 wrong real-development pairs
+versus diagonal 61/0, and C108 82/20 versus 76/58; v6 reach fell 79 to 53.
+A separate, fixed ridge-1 practical follow-up will test this precision/coverage
+trade-off with the exact indexed/refinement rule on untouched events and an
+independently authored five-language challenge. It does not change the failed
+screen, soften fresh criteria or promote the map. No extra client model.
 See ADR-072 and experiment RESULTS. No candidate is promoted by downloads alone.
 No private corpus, model assets, fitted weights or credentials entered Git;
 no LLM/provider inference, new capture permission, deployment or release occurred.

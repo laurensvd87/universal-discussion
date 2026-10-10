@@ -1,0 +1,913 @@
+{
+  "stage": "result",
+  "descriptor": {
+    "schema": "linear-teacher-distillation/v1",
+    "policy": {
+      "dimensions": 384,
+      "lambdas": [
+        0.01,
+        0.1,
+        1
+      ],
+      "fitArticles": 475,
+      "calibrationArticles": 274,
+      "developmentArticles": 150,
+      "batchArticles": 64,
+      "ridgeScale": "lambda-times-mean-centered-source-coordinate-variance",
+      "prediction": "teacher-mean-plus-W-times-source-centered;unit-normalized",
+      "calibration": "all-pairs-at-least20true-and98percent-observed-precision;whole-score-ties",
+      "grouping": "strongest-cosine-edge-complete-link;no-neighbor-or-member-count"
+    },
+    "sources": {
+      "README.md": "fd7deef9a6e0a39606d2cd2e36aa0dbb7d150f3a523b464f51095346e25aee54",
+      "core.js": "0262585ca30cdb7c1ac5b97647c42e32053c14b8f208a8eb35239afa643c0aa6",
+      "core.test.js": "81268da29a241755c3415be75d429072acb301f82511d2400fa4938f39f8d890",
+      "run.js": "cc23cda6ef0f55076cf892db6c1e4245fff02699b99a785208fe1f2826483759",
+      "../e5-infer.js": "4292c83b462d8fa1bd109e6b94f575c52d13a9a89717cad64a1f8300a5208a17",
+      "../compact-paraphrase-probe-v1/infer.js": "005e6167da5cb4b07abc1cae093227e21d2bb96c930b215312cba5cc072cc9c3",
+      "../compact-paraphrase-probe-v1/core.js": "56842ec9b0a63ccd19c5af306fb037b13583916c7dd197c9edd7890ca2ceaae5",
+      "../real-event-eval/core.js": "4c5e4d1b1e9f543b6ab837e4467e18b3ce5b5c4a0b14172699ef355eaca3496c",
+      "../real-diagonal-adapter-v1/core.js": "6c01b5c9562e7784ca59811610e6dbce4bffc817ef5668a4b7afe0f0a93b35d0",
+      "../topic-metric-rethink-v1/core.js": "32fe859b6b2e4c11e605d3d5cb0dead86644aee3647ac83962ecaa7f59264116",
+      "../synthetic-to-globesumm-v1/scope.js": "79371873ec5ee0c15c31c6f91f2f595f9055610bf2fe49866313fb8c5d6c2092",
+      "../../../src/domain/diagonal-adapter.js": "8cd19d94e5dd8b7ff5a78f31c458231109796fa6e6d3fbdda440aa9f22e209fe",
+      "../../../../../spikes/topic-resolution/harness/deny-external-capabilities.js": "b37675f06d3d7961f2498d663189120302263cf2bba0b79cb3668892a4ef92cc",
+      "../../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js": "6b26cc2766acdbcba39259d1459e703995c3b5ae5a6fd4a4c78b7a968d0b3920"
+    },
+    "corpusSha256": "8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d",
+    "syntheticHashes": {
+      "../multilingual-authored-v2/chunk-c1/records.jsonl": "20bab9b116c6f32c2fb7058c3d822af333503ec36cbcf9cbb7365e9f45bac581",
+      "../multilingual-authored-v2/chunk-c2/records.jsonl": "44ac29625dfbd86f7af2c278eab991e042d0e6e0fa64a92d95d3b1f7951bbf6f",
+      "../multilingual-authored-v2/chunk-c3/records.jsonl": "659f2e9a27651b6577d2686f8b3849e56e6a36984471620980bcca68b880f1fe",
+      "../multilingual-holdout-v6/holdout.jsonl": "032eaa490d0ae6b9067ec479be4a80b563229606f83ce0f43a1bc9efd4098aeb"
+    },
+    "assets": {
+      "teacher": {
+        "revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+        "files": {
+          "model.onnx": {
+            "bytes": 118412398,
+            "sha256": "783fea82d71a58179b830a4dbd2d58447e640609e98eedf9ffa12622d375a672"
+          },
+          "tokenizer.json": {
+            "bytes": 9081518,
+            "sha256": "2c3387be76557bd40970cec13153b3bbf80407865484b209e655e5e4729076b8"
+          },
+          "tokenizer_config.json": {
+            "bytes": 526,
+            "sha256": "5036ea374ffedd706e3bef33e2e0d6953cb868ef8a490e76e32ba0faa37a6b9b"
+          },
+          "config.json": {
+            "bytes": 645,
+            "sha256": "6300193cb75e01cf80c96decef7187dfb33094d97cc1490b7ead6ff134476e4e"
+          },
+          "sentence_bert_config.json": {
+            "bytes": 53,
+            "sha256": "70f4448f31320443fe3557cacea5abf2dcc4915dda8c80646bec9f3bb0aa5a1f"
+          }
+        }
+      },
+      "packagedE5ManifestSha256": "5766e675660a8fbe74842a69b670a84ce5f9eb457b77032337e4a69d6180b984"
+    },
+    "oldDiagonalManifestSha256": "64067f20d65a2775eb82b428e70fa093e465da3adfca3ab7ad013bbac81997a9",
+    "cohorts": {
+      "fit": {
+        "reports": 475,
+        "events": 37,
+        "selectionSha256": "d2c55da9b562b544b55340dd4d1869724a03eeac92be09d034d5cc5c4a7ded50"
+      },
+      "calibration": {
+        "reports": 274,
+        "events": 22,
+        "selectionSha256": "6113de9a4346a66402d1fc40ef17ae88e8f9127526259d40d1841446e07f16fe"
+      },
+      "development": {
+        "reports": 150,
+        "events": 13,
+        "selectionSha256": "02123663a2d48ca73dba8fa19b6c7be946185bf6f97d1b8a6cff8d3598a3d82c"
+      },
+      "authored": {
+        "reports": 108,
+        "events": 18,
+        "selectionSha256": "dba50d0a6dc52a22725dd622231bf0571d0614a1bcdab5806a50204fa898425b"
+      },
+      "spentV6": {
+        "reports": 60,
+        "events": 12,
+        "selectionSha256": "2f4609753b79f747996e1a8ec10da4880dce1153c164ac30d00d36a0c09897b0"
+      }
+    },
+    "selection": "no-worse-real-raw-false;no-worse-C-diagonal-false;v6-zero-false;real-diagonal-reach-better;challenge-diagonal-true-nondecreasing",
+    "noFreshMode": true
+  },
+  "freezeHash": "8951b0aef42b90260080d81997225b9aa12d959f04e81d9c7563ca766a33a3b8",
+  "methods": {
+    "raw-E5": {
+      "calibration": {
+        "threshold": 0.9040571956970351,
+        "rows": 274,
+        "nearestCorrect": 257,
+        "truePairs": 1627,
+        "admittedTrue": 158,
+        "admittedFalse": 3,
+        "crossLanguageTruePairs": 1627,
+        "groupedTrue": 95,
+        "groupedFalse": 2,
+        "crossLanguageGroupedTrue": 95,
+        "purePages": 113,
+        "mixedPages": 4,
+        "pureGroups": 46,
+        "mixedGroups": 2,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "development": {
+        "threshold": 0.9040571956970351,
+        "rows": 150,
+        "nearestCorrect": 143,
+        "truePairs": 803,
+        "admittedTrue": 99,
+        "admittedFalse": 1,
+        "crossLanguageTruePairs": 803,
+        "groupedTrue": 54,
+        "groupedFalse": 1,
+        "crossLanguageGroupedTrue": 54,
+        "purePages": 62,
+        "mixedPages": 2,
+        "pureGroups": 25,
+        "mixedGroups": 1,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "authored": {
+        "threshold": 0.9040571956970351,
+        "rows": 108,
+        "nearestCorrect": 66,
+        "truePairs": 270,
+        "admittedTrue": 131,
+        "admittedFalse": 105,
+        "crossLanguageTruePairs": 252,
+        "groupedTrue": 67,
+        "groupedFalse": 58,
+        "crossLanguageGroupedTrue": 49,
+        "purePages": 42,
+        "mixedPages": 58,
+        "pureGroups": 14,
+        "mixedGroups": 19,
+        "sameFamilyDifferentEvent": {
+          "total": 648,
+          "joined": 56
+        },
+        "outsideFamilyFalsePairs": 2,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 67
+        }
+      },
+      "spentV6": {
+        "threshold": 0.9040571956970351,
+        "rows": 60,
+        "nearestCorrect": 59,
+        "truePairs": 120,
+        "admittedTrue": 93,
+        "admittedFalse": 3,
+        "crossLanguageTruePairs": 120,
+        "groupedTrue": 73,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 73,
+        "purePages": 53,
+        "mixedPages": 0,
+        "pureGroups": 16,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 450,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 73
+        }
+      },
+      "alignment": null
+    },
+    "centered-E5": {
+      "calibration": {
+        "threshold": 0.5600232777278269,
+        "rows": 274,
+        "nearestCorrect": 256,
+        "truePairs": 1627,
+        "admittedTrue": 67,
+        "admittedFalse": 1,
+        "crossLanguageTruePairs": 1627,
+        "groupedTrue": 46,
+        "groupedFalse": 1,
+        "crossLanguageGroupedTrue": 46,
+        "purePages": 75,
+        "mixedPages": 2,
+        "pureGroups": 35,
+        "mixedGroups": 1,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "development": {
+        "threshold": 0.5600232777278269,
+        "rows": 150,
+        "nearestCorrect": 143,
+        "truePairs": 803,
+        "admittedTrue": 26,
+        "admittedFalse": 0,
+        "crossLanguageTruePairs": 803,
+        "groupedTrue": 19,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 19,
+        "purePages": 35,
+        "mixedPages": 0,
+        "pureGroups": 17,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "authored": {
+        "threshold": 0.5600232777278269,
+        "rows": 108,
+        "nearestCorrect": 63,
+        "truePairs": 270,
+        "admittedTrue": 155,
+        "admittedFalse": 126,
+        "crossLanguageTruePairs": 252,
+        "groupedTrue": 85,
+        "groupedFalse": 70,
+        "crossLanguageGroupedTrue": 67,
+        "purePages": 42,
+        "mixedPages": 62,
+        "pureGroups": 13,
+        "mixedGroups": 19,
+        "sameFamilyDifferentEvent": {
+          "total": 648,
+          "joined": 68
+        },
+        "outsideFamilyFalsePairs": 2,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 85
+        }
+      },
+      "spentV6": {
+        "threshold": 0.5600232777278269,
+        "rows": 60,
+        "nearestCorrect": 59,
+        "truePairs": 120,
+        "admittedTrue": 116,
+        "admittedFalse": 25,
+        "crossLanguageTruePairs": 120,
+        "groupedTrue": 107,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 107,
+        "purePages": 58,
+        "mixedPages": 0,
+        "pureGroups": 13,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 450,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 107
+        }
+      },
+      "alignment": null
+    },
+    "old-diagonal": {
+      "calibration": {
+        "threshold": 0.9071894401066846,
+        "rows": 274,
+        "nearestCorrect": 262,
+        "truePairs": 1627,
+        "admittedTrue": 216,
+        "admittedFalse": 4,
+        "crossLanguageTruePairs": 1627,
+        "groupedTrue": 110,
+        "groupedFalse": 2,
+        "crossLanguageGroupedTrue": 110,
+        "purePages": 134,
+        "mixedPages": 4,
+        "pureGroups": 55,
+        "mixedGroups": 2,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "development": {
+        "threshold": 0.9071894401066846,
+        "rows": 150,
+        "nearestCorrect": 144,
+        "truePairs": 803,
+        "admittedTrue": 147,
+        "admittedFalse": 0,
+        "crossLanguageTruePairs": 803,
+        "groupedTrue": 61,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 61,
+        "purePages": 68,
+        "mixedPages": 0,
+        "pureGroups": 28,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "authored": {
+        "threshold": 0.9071894401066846,
+        "rows": 108,
+        "nearestCorrect": 67,
+        "truePairs": 270,
+        "admittedTrue": 144,
+        "admittedFalse": 104,
+        "crossLanguageTruePairs": 252,
+        "groupedTrue": 76,
+        "groupedFalse": 58,
+        "crossLanguageGroupedTrue": 58,
+        "purePages": 43,
+        "mixedPages": 56,
+        "pureGroups": 13,
+        "mixedGroups": 18,
+        "sameFamilyDifferentEvent": {
+          "total": 648,
+          "joined": 57
+        },
+        "outsideFamilyFalsePairs": 1,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 76
+        }
+      },
+      "spentV6": {
+        "threshold": 0.9071894401066846,
+        "rows": 60,
+        "nearestCorrect": 59,
+        "truePairs": 120,
+        "admittedTrue": 101,
+        "admittedFalse": 5,
+        "crossLanguageTruePairs": 120,
+        "groupedTrue": 79,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 79,
+        "purePages": 55,
+        "mixedPages": 0,
+        "pureGroups": 16,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 450,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 79
+        }
+      },
+      "alignment": null
+    },
+    "teacher": {
+      "calibration": {
+        "threshold": 0.666950201245198,
+        "rows": 274,
+        "nearestCorrect": 270,
+        "truePairs": 1627,
+        "admittedTrue": 1105,
+        "admittedFalse": 22,
+        "crossLanguageTruePairs": 1627,
+        "groupedTrue": 787,
+        "groupedFalse": 3,
+        "crossLanguageGroupedTrue": 787,
+        "purePages": 227,
+        "mixedPages": 4,
+        "pureGroups": 39,
+        "mixedGroups": 1,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "development": {
+        "threshold": 0.666950201245198,
+        "rows": 150,
+        "nearestCorrect": 150,
+        "truePairs": 803,
+        "admittedTrue": 629,
+        "admittedFalse": 8,
+        "crossLanguageTruePairs": 803,
+        "groupedTrue": 455,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 455,
+        "purePages": 134,
+        "mixedPages": 0,
+        "pureGroups": 23,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "authored": {
+        "threshold": 0.666950201245198,
+        "rows": 108,
+        "nearestCorrect": 107,
+        "truePairs": 270,
+        "admittedTrue": 260,
+        "admittedFalse": 357,
+        "crossLanguageTruePairs": 252,
+        "groupedTrue": 219,
+        "groupedFalse": 35,
+        "crossLanguageGroupedTrue": 201,
+        "purePages": 81,
+        "mixedPages": 25,
+        "pureGroups": 16,
+        "mixedGroups": 4,
+        "sameFamilyDifferentEvent": {
+          "total": 648,
+          "joined": 23
+        },
+        "outsideFamilyFalsePairs": 12,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 219
+        }
+      },
+      "spentV6": {
+        "threshold": 0.666950201245198,
+        "rows": 60,
+        "nearestCorrect": 60,
+        "truePairs": 120,
+        "admittedTrue": 120,
+        "admittedFalse": 28,
+        "crossLanguageTruePairs": 120,
+        "groupedTrue": 120,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 120,
+        "purePages": 60,
+        "mixedPages": 0,
+        "pureGroups": 12,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 450,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 120
+        }
+      },
+      "alignment": null
+    },
+    "ridge-0.01": {
+      "calibration": {
+        "threshold": 0.545224930908126,
+        "rows": 274,
+        "nearestCorrect": 271,
+        "truePairs": 1627,
+        "admittedTrue": 1033,
+        "admittedFalse": 21,
+        "crossLanguageTruePairs": 1627,
+        "groupedTrue": 628,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 628,
+        "purePages": 228,
+        "mixedPages": 0,
+        "pureGroups": 50,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "development": {
+        "threshold": 0.545224930908126,
+        "rows": 150,
+        "nearestCorrect": 148,
+        "truePairs": 803,
+        "admittedTrue": 512,
+        "admittedFalse": 22,
+        "crossLanguageTruePairs": 803,
+        "groupedTrue": 271,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 271,
+        "purePages": 119,
+        "mixedPages": 0,
+        "pureGroups": 29,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "authored": {
+        "threshold": 0.545224930908126,
+        "rows": 108,
+        "nearestCorrect": 81,
+        "truePairs": 270,
+        "admittedTrue": 221,
+        "admittedFalse": 299,
+        "crossLanguageTruePairs": 252,
+        "groupedTrue": 139,
+        "groupedFalse": 93,
+        "crossLanguageGroupedTrue": 121,
+        "purePages": 49,
+        "mixedPages": 55,
+        "pureGroups": 14,
+        "mixedGroups": 11,
+        "sameFamilyDifferentEvent": {
+          "total": 648,
+          "joined": 86
+        },
+        "outsideFamilyFalsePairs": 7,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 139
+        }
+      },
+      "spentV6": {
+        "threshold": 0.545224930908126,
+        "rows": 60,
+        "nearestCorrect": 60,
+        "truePairs": 120,
+        "admittedTrue": 117,
+        "admittedFalse": 89,
+        "crossLanguageTruePairs": 120,
+        "groupedTrue": 108,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 108,
+        "purePages": 60,
+        "mixedPages": 0,
+        "pureGroups": 14,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 450,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 108
+        }
+      },
+      "alignment": {
+        "fit": {
+          "meanPredictionTeacherCosine": 0.9704951084886843,
+          "meanUnitSquaredError": 0.05900978302265419
+        },
+        "calibration": {
+          "meanPredictionTeacherCosine": 0.40056232257406876,
+          "meanUnitSquaredError": 1.198875354851873
+        },
+        "development": {
+          "meanPredictionTeacherCosine": 0.44307383195857736,
+          "meanUnitSquaredError": 1.113852336082862
+        }
+      }
+    },
+    "ridge-0.1": {
+      "calibration": {
+        "threshold": 0.6786775981870135,
+        "rows": 274,
+        "nearestCorrect": 272,
+        "truePairs": 1627,
+        "admittedTrue": 1059,
+        "admittedFalse": 21,
+        "crossLanguageTruePairs": 1627,
+        "groupedTrue": 608,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 608,
+        "purePages": 241,
+        "mixedPages": 0,
+        "pureGroups": 58,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "development": {
+        "threshold": 0.6786775981870135,
+        "rows": 150,
+        "nearestCorrect": 150,
+        "truePairs": 803,
+        "admittedTrue": 609,
+        "admittedFalse": 20,
+        "crossLanguageTruePairs": 803,
+        "groupedTrue": 420,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 420,
+        "purePages": 130,
+        "mixedPages": 0,
+        "pureGroups": 25,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "authored": {
+        "threshold": 0.6786775981870135,
+        "rows": 108,
+        "nearestCorrect": 86,
+        "truePairs": 270,
+        "admittedTrue": 213,
+        "admittedFalse": 241,
+        "crossLanguageTruePairs": 252,
+        "groupedTrue": 146,
+        "groupedFalse": 60,
+        "crossLanguageGroupedTrue": 128,
+        "purePages": 57,
+        "mixedPages": 45,
+        "pureGroups": 14,
+        "mixedGroups": 10,
+        "sameFamilyDifferentEvent": {
+          "total": 648,
+          "joined": 60
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 146
+        }
+      },
+      "spentV6": {
+        "threshold": 0.6786775981870135,
+        "rows": 60,
+        "nearestCorrect": 60,
+        "truePairs": 120,
+        "admittedTrue": 111,
+        "admittedFalse": 17,
+        "crossLanguageTruePairs": 120,
+        "groupedTrue": 100,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 100,
+        "purePages": 58,
+        "mixedPages": 0,
+        "pureGroups": 14,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 450,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 100
+        }
+      },
+      "alignment": {
+        "fit": {
+          "meanPredictionTeacherCosine": 0.9513759379164132,
+          "meanUnitSquaredError": 0.097248124167193
+        },
+        "calibration": {
+          "meanPredictionTeacherCosine": 0.52734927193405,
+          "meanUnitSquaredError": 0.9453014561319036
+        },
+        "development": {
+          "meanPredictionTeacherCosine": 0.5764882870010455,
+          "meanUnitSquaredError": 0.8470234259979045
+        }
+      }
+    },
+    "ridge-1": {
+      "calibration": {
+        "threshold": 0.8639003810829322,
+        "rows": 274,
+        "nearestCorrect": 270,
+        "truePairs": 1627,
+        "admittedTrue": 740,
+        "admittedFalse": 15,
+        "crossLanguageTruePairs": 1627,
+        "groupedTrue": 367,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 367,
+        "purePages": 195,
+        "mixedPages": 0,
+        "pureGroups": 54,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "development": {
+        "threshold": 0.8639003810829322,
+        "rows": 150,
+        "nearestCorrect": 150,
+        "truePairs": 803,
+        "admittedTrue": 458,
+        "admittedFalse": 12,
+        "crossLanguageTruePairs": 803,
+        "groupedTrue": 226,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 226,
+        "purePages": 124,
+        "mixedPages": 0,
+        "pureGroups": 36,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 0,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        }
+      },
+      "authored": {
+        "threshold": 0.8639003810829322,
+        "rows": 108,
+        "nearestCorrect": 83,
+        "truePairs": 270,
+        "admittedTrue": 152,
+        "admittedFalse": 110,
+        "crossLanguageTruePairs": 252,
+        "groupedTrue": 82,
+        "groupedFalse": 20,
+        "crossLanguageGroupedTrue": 64,
+        "purePages": 61,
+        "mixedPages": 27,
+        "pureGroups": 22,
+        "mixedGroups": 9,
+        "sameFamilyDifferentEvent": {
+          "total": 648,
+          "joined": 20
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 82
+        }
+      },
+      "spentV6": {
+        "threshold": 0.8639003810829322,
+        "rows": 60,
+        "nearestCorrect": 59,
+        "truePairs": 120,
+        "admittedTrue": 73,
+        "admittedFalse": 7,
+        "crossLanguageTruePairs": 120,
+        "groupedTrue": 53,
+        "groupedFalse": 0,
+        "crossLanguageGroupedTrue": 53,
+        "purePages": 46,
+        "mixedPages": 0,
+        "pureGroups": 15,
+        "mixedGroups": 0,
+        "sameFamilyDifferentEvent": {
+          "total": 450,
+          "joined": 0
+        },
+        "outsideFamilyFalsePairs": 0,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 53
+        }
+      },
+      "alignment": {
+        "fit": {
+          "meanPredictionTeacherCosine": 0.9002942003388229,
+          "meanUnitSquaredError": 0.19941159932236116
+        },
+        "calibration": {
+          "meanPredictionTeacherCosine": 0.597394356958332,
+          "meanUnitSquaredError": 0.8052112860833367
+        },
+        "development": {
+          "meanPredictionTeacherCosine": 0.6466029806109652,
+          "meanUnitSquaredError": 0.7067940387780772
+        }
+      }
+    }
+  },
+  "selected": null,
+  "useful": false,
+  "elapsedMs": 595911,
+  "inferenceMs": {
+    "E5": 452336.1226999999,
+    "teacher": 109237.04169999954
+  },
+  "fitElapsedMs": 6260.581799999927,
+  "fitDiagnostics": {
+    "dimensions": 384,
+    "matrixParametersPerMap": 147456,
+    "meanParametersPerMap": 768,
+    "varianceScale": 0.0004993619309015955,
+    "lambdas": {
+      "ridge-0.01": {
+        "lambda": 0.01,
+        "ridge": 0.000004993619309015955,
+        "parametersSha256": "f1dd1eb7a24d7498f39475a0b9af3f06910fb0496b9384d1a09badd1905af5d1"
+      },
+      "ridge-0.1": {
+        "lambda": 0.1,
+        "ridge": 0.000049936193090159555,
+        "parametersSha256": "becfec994c07b3e7918ceb1497f7a48710404be584350c877d8a5fc7a523a579"
+      },
+      "ridge-1": {
+        "lambda": 1,
+        "ridge": 0.0004993619309015955,
+        "parametersSha256": "593a52ba9a5495a49ef00f4dae38770684389632f961b60ec07067fd8784b3e4"
+      }
+    }
+  },
+  "weightsSaved": false,
+  "vectorsSaved": false,
+  "noProviderCall": true,
+  "activated": false,
+  "noFreshInference": true,
+  "caveats": [
+    "all-quality-cohorts-reused",
+    "linear-only-information-recoverability",
+    "teacher128-vs-source512-input-mismatch",
+    "no-publisher-or-real-viewpoint-gold",
+    "body-prefix-not-Chrome-capture",
+    "calibration-precision-not-confidence-bound",
+    "complete-link-not-indexed-deployment-policy",
+    "old-diagonal-title-lead-fit-body-application",
+    "no-rights-release-or-activation-conclusion"
+  ]
+}

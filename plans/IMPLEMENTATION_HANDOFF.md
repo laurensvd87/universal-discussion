@@ -4,7 +4,8 @@
 v2, default Current and canonical storage unchanged. Snapshot cache, exact
 geometric retrieval and duplicate-independent evidence replace the old dense
 all-pair limit; work/time capacity still fails closed and synchronous planning
-is not production scale. Service 330 pass/4 skipped, extension 1,049 pass/1
+is not production scale. Service 361 pass/4 skipped (including the inactive
+safeguard), extension 1,049 pass/1
 skipped (restricted 1,050 pass), dashboard 10 pass; actual Chrome diagonal and
 fabricated-BODY/stale-response smokes and dashboard smoke pass. Owner backend
 is running again with the same Origin/pairing/database.
@@ -20,9 +21,15 @@ Do not remove that guard from installed-artifact presence alone. No canonical
 Topic/post migration or new model/data scope is authorized by experimental views.
 Dual-evidence development failed: all seven safe grid candidates have zero real
 development reach. The bounded guarded planner is preparation only; do not
-activate those thresholds or open fresh data to rescue them. A frozen train-only
-linear teacher-distillation experiment is in progress; any useful result still
-needs exact deployment-policy and independent fresh evidence. The failed broad
+activate those thresholds or open fresh data to rescue them. Independent Trust
+passed after fixing hard resource ceilings; 31 restricted safeguard tests pass.
+A frozen train-only linear teacher-distillation experiment is closed without
+a passing map. Ridge-1 improves real-news reach and reduces authored errors but
+loses some v6 coverage. A separately frozen practical follow-up selects that
+fixed precision/reach trade-off under the owner's priority of fewer misjoins,
+not universal coverage; it must test exact indexed/refinement and untouched
+events plus unscored independent v7. Do not reinterpret the failed original
+screen as passed. The failed broad
 BODY policy must not be advertised as safe across viewpoints, products or
 independent publishers.
 

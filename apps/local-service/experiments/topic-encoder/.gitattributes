@@ -5,3 +5,5 @@ topic-metric-rethink-v1/*.json text eol=lf
 joint-title-evidence-v1/*.json text eol=lf
 indexed-body-quality-v1/*.json text eol=lf
 dual-evidence-development-v1/*.json text eol=lf
+teacher-distillation-v1/*.json text eol=lf
+ridge1-practical-evaluation-v1/*.json text eol=lf

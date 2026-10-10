@@ -1,9 +1,22 @@
 # Product-first roadmap
 
-Updated: 2026-10-08. Governing decisions: ADR-014/015/016. Browser extension first;
+Updated: 2026-10-10. Governing decisions: ADR-014/015/016. Browser extension first;
 readable web conversations next, then Android and iOS, sharing Topic/discussion
 contracts (owner-confirmed sequencing on 2026-09-29). Core model:
 `Content -> Semantic Topic -> Discussion`.
+
+2026-10-10 practical matching checkpoint: extension 0.13.29's reversible New
+read view and Topic Atlas use exact geometric indexing, independent duplicate
+evidence and a snapshot cache. No fixed catalog/neighbor/Topic-member ceiling;
+work/time, response and storage byte guards remain. Current and canonical
+Source/post/Insight routes are unchanged. This is execution improvement, not
+validated identity accuracy or internet-scale support. See
+[ADR-072](../decisions/ADR-072-topic-matching-representation-rethink.md).
+Train-only BODY whitening improves translated-news research reach but fails
+adjacent-story grouping; installed weights cannot activate it by default.
+The dual-floor safety grid also failed usefulness. The next bounded check is
+whether an offline teacher's geometry transfers to already saved E5 vectors;
+no extra extension model, second saved vector or canonical migration follows.
 
 2026-10-08 owner-directed matching-quality increment: [ADR-063](../decisions/ADR-063-topic-focused-embedding-shadow.md)
 tests a compact project-owned Topic representation against the packaged E5
