@@ -1,5 +1,40 @@
 # Project status
 
+**2026-10-10 GPT-6.1 Sol rethink, implementation checkpoint (0.13.29):**
+The selectable New view now uses exact geometric indexing, duplicate-evidence
+discounting and one cached partition per committed snapshot. No fixed page,
+neighbor or Topic-member count replaces the old all-pairs ceiling; a ten-second /
+100-million-work-unit guard still fails closed. Synthetic tests cover 5,000
+Sources, not internet scale; some dense cases still reach capacity and cold
+planning is synchronous. Current remains the default and canonical routing,
+post IDs, origin links and Insight authority stay unchanged. Independent Trust
+review passed. Service 330 pass/4 skipped, extension 1,049 pass/1 skipped
+(restricted 1,050 pass), dashboard 10 pass. Actual Chrome 154 diagonal and
+fabricated-BODY alternate smokes pass, including stale responses, drafts and
+unchanged canonical state; dashboard Chrome also passes. The owner service was
+gracefully stopped for isolated QA and restarted with the same Origin/pairing/data.
+
+Research is encouraging but **not a promoted Topic model**. Train-only BODY
+covariance whitening works with saved E5 vectors and no extra browser model.
+Frozen fresh 296-event-report complete-link comparison: 1,042 correct /2 wrong
+grouped pairs and 259 pure /3 mixed pages, versus raw E5's 78 /4 and 116 /7.
+Under a common double-support graph it also improved coverage without an
+observed false join. However the proposed indexed BODY radius policy regressed
+severely on adjacent-story/viewpoint fixtures (C108:240 wrong grouped pairs;
+v6:125). It is disabled in default startup/dashboard configuration despite
+the reviewed, ignored local artifact being installed. Explicit synthetic/research
+composition remains testable; installation cannot silently activate it.
+The compact paraphrase encoder finds more matches but adds false exposure,
+and the joint title model fails safe grouping; neither enters the extension.
+A frozen dual-original/BODY grid also failed: all seven safe candidates lost
+every correct real-development group. Its bounded implementation is prepared
+but inactive; no fresh test rescues those thresholds. A train-only linear
+teacher-distillation experiment now tests whether a compact paraphrase encoder's
+useful geometry can transfer to existing E5 vectors, without a client model.
+See ADR-072 and experiment RESULTS. No candidate is promoted by downloads alone.
+No private corpus, model assets, fitted weights or credentials entered Git;
+no LLM/provider inference, new capture permission, deployment or release occurred.
+
 **2026-10-10 owner-local alternate Topic integration (extension 0.13.28):**
 The owner-approved local weights are installed in a Git-ignored service file.
 The paired service now exposes a revision-bound, source-scoped alternate

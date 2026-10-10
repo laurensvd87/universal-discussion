@@ -1,7 +1,8 @@
 import { lstatSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { readDiagonalAdapter } from "../../../local-service/src/domain/diagonal-adapter.js";
-import { planAlternateTopics } from "../../../local-service/src/domain/alternate-topic-planner.js";
+import { createOwnerTopicPlanner } from "../../../local-service/src/domain/owner-topic-planner.js";
+export { LOCAL_BODY_METRIC_PATH, readInstalledOwnerTopicConfiguration } from "../../../local-service/src/application/owner-topic-configuration.js";
 import { LEARNED_SOURCE_PROVENANCE } from "../../../local-service/src/domain/learned-sources.js";
 
 export const LOCAL_ADAPTER_PATH = fileURLToPath(new URL("../../../local-service/data/diagonal-adapter-v1.json", import.meta.url));
@@ -19,10 +20,10 @@ export function readOwnerAdapter(filename = LOCAL_ADAPTER_PATH) {
   } catch { return null; }
 }
 
-export function buildGroupingPreview(state, snapshot, adapter) {
-  if (!adapter) return null;
+export function buildGroupingPreview(state, snapshot, adapter, bodyMetric = null) {
+  if (!adapter && !bodyMetric) return null;
   try {
-    const planned = planAlternateTopics({ sources: state.sources, sourceLinks: state.sourceLinks, adapter });
+    const planned = createOwnerTopicPlanner({ diagonalAdapter: adapter ?? null, bodyMetric }).plan(state);
     const displayed = new Set(snapshot.pages.map((page) => page.id));
     const eligible = new Set(state.sources.filter((source) =>
       source.provenance === LEARNED_SOURCE_PROVENANCE &&

@@ -10,6 +10,15 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+Extension 0.13.29 improves the optional New view's execution with exact geometric
+indexing and snapshot caching. It removes the old fixed all-pair/page ceiling;
+work/time guards still apply, and some dense catalogs can exhaust them. Synthetic
+5,000-page checks are not production-scale validation. Existing comments and
+Current routing remain unchanged. A new backend-only BODY metric has promising
+multilingual news results, but failed adjacent-story stress checks and is **not
+automatically activated**. No additional browser model is installed. See the
+[research decision](decisions/ADR-072-topic-matching-representation-rethink.md).
+
 The owner-local build now offers a reversible **Current / New · experimental**
 discussion view in extension Settings, plus the same grouping preview in
 [Topic Atlas](apps/topic-dashboard/README.md). The local service applies a

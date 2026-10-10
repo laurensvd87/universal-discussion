@@ -61,6 +61,7 @@ test('alternate read combines Source roots across canonical Topics while keeping
   assert.deepEqual(clientView.sourceIds, view.sourceIds);
   assert.deepEqual(clientView.roots.map((root) => root.id), view.roots.map((root) => root.id));
   assert.equal(view.mode, 'alternate-provisional');
+  assert.equal(view.policyVersion, 'alternate-indexed-independent-evidence/v2');
   assert.deepEqual([...view.sourceIds].sort(), [a.sourceId, b.sourceId].sort());
   assert.deepEqual(new Set(view.roots.map((root) => root.id)), new Set([aRoot, bRoot]));
   assert.equal(view.roots.find((root) => root.id === bRoot).canonicalTopicId, b.topicId);

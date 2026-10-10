@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createProcessDependencies, startLocalApplication } from '../../../apps/local-service/src/startup.js';
 import { makeDiagonalAdapter } from '../../../apps/local-service/src/domain/diagonal-adapter.js';
+import { makeBodyTopicMetric } from '../../../apps/local-service/src/domain/body-topic-metric.js';
 import { changePairing } from '../../../apps/local-service/src/http/pairing-store.js';
 import { EN } from '../browser/locales/en.js';
 import { launchChromiumPipe } from './chromium-pipe.js';
@@ -16,6 +17,12 @@ const DEFAULT_CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.e
 const ORIGIN = 'https://example.com';
 const API = 'http://127.0.0.1:4174/v1';
 const SYNTHETIC_ADAPTER = makeDiagonalAdapter(Array(384).fill(0), { triplets: 100 });
+function syntheticBodyMetric() {
+  // Entirely fabricated identity: never load an installed/private metric artifact.
+  const lower = new Float64Array(384 ** 2);
+  for (let row = 0; row < 384; row++) lower[row * 384 + row] = 1;
+  return makeBodyTopicMetric({ mean: Array(384).fill(0), lower });
+}
 const COMMENT = 'Owned browser test: the replaceable Cedar battery is useful.';
 const DEMO_COMMENT = 'Owned browser test: retained demo discussion contribution.';
 const CROSS_PAGE_REPLY = 'Owned browser reply from A follows the root created on B.';
@@ -52,7 +59,8 @@ const CHILD_FILTER = ROOT_FILTER.filter(item => item.type !== 'service_worker');
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 function fixtureUrl(name) { return `${name === 'b' ? 'https://example.org' : ORIGIN}/background-fixture/${name}`; }
 
-export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME, { alternateOnly = false } = {}) {
+export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME, { alternateOnly = false, bodyMetricOnly = false } = {}) {
+  const targetedOnly = alternateOnly || bodyMetricOnly;
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
   const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-background-smoke-'));
   const databasePath = path.join(directory, 'demo.sqlite');
@@ -64,6 +72,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   let stage = 'initializing';
   let permissionPreparationTarget;
   let closing = false, runtimeExceptions = 0, interceptedDocuments = 0;
+  let delayedAlternate = null;
   let resolveIdentity;
   const identityReady = new Promise(resolve => { resolveIdentity = resolve; });
   const began = performance.now();
@@ -216,7 +225,8 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     capability = changePairing({ filePath: pairingPath, origin: `chrome-extension://${extensionId}`, action });
     application = await startLocalApplication({ databasePath, nextId: dependencies.nextId, now: dependencies.now,
       config: { host: '127.0.0.1', port: 4174, origin: `chrome-extension://${extensionId}`, capability: dependencies.capability },
-      pairingPath, alternateAdapter: SYNTHETIC_ADAPTER });
+      pairingPath, alternateAdapter: SYNTHETIC_ADAPTER,
+      alternateBodyMetric: bodyMetricOnly ? syntheticBodyMetric() : null });
   }
   async function backend(route) {
     const response = await fetch(API + route, { headers: { Authorization: `Bearer ${capability}`, Origin: `chrome-extension://${extensionId}` },
@@ -343,13 +353,30 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       for (const [id, target] of targets) if (target.sessionId === sessionId) targets.delete(id);
     });
     browser.on('Runtime.exceptionThrown', (_, sessionId) => { const target = [...targets.values()].find(item => item.sessionId === sessionId); if (selfUrl(target?.url)) runtimeExceptions++; });
-    browser.on('Network.requestWillBeSent', ({ request }, sessionId) => { const target = [...targets.values()].find(item => item.sessionId === sessionId); requests.push({ context: target?.url, url: request.url, method: request.method }); });
-    browser.on('Fetch.requestPaused', ({ requestId, request, resourceType }, sessionId) => schedule(async () => {
+    browser.on('Network.requestWillBeSent', ({ request }, sessionId) => {
+      const target = [...targets.values()].find(item => item.sessionId === sessionId);
+      const relatedSourceId = apiUrl(request.url) && request.url.endsWith('/related') && request.method === 'POST'
+        ? JSON.parse(request.postData).sourceId : null;
+      requests.push({ context: target?.url, url: request.url, method: request.method, relatedSourceId });
+    });
+    browser.on('Network.loadingFinished', ({ requestId }, sessionId) => {
+      if (delayedAlternate?.networkId === requestId && delayedAlternate.sessionId === sessionId) delayedAlternate.finished = true;
+    });
+    browser.on('Fetch.requestPaused', ({ requestId, request, resourceType, networkId }, sessionId) => schedule(async () => {
       await identityReady;
       const target = [...targets.values()].find(item => item.sessionId === sessionId);
       if (selfUrl(request.url)) await browser.send('Fetch.continueRequest', { requestId }, sessionId);
       else if (selfUrl(target?.url) && apiUrl(request.url)) {
-        inspectApiPayload(request); await browser.send('Fetch.continueRequest', { requestId }, sessionId);
+        inspectApiPayload(request);
+        if (delayedAlternate?.url === request.url && !delayedAlternate.ready) {
+          const delayed = delayedAlternate;
+          delayed.networkId = networkId; delayed.sessionId = sessionId;
+          delayed.ready = true;
+          await delayed.released;
+          await browser.send('Fetch.fulfillRequest', { requestId, responseCode: 200,
+            responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+            body: Buffer.from(JSON.stringify(delayed.response)).toString('base64') }, sessionId);
+        } else await browser.send('Fetch.continueRequest', { requestId }, sessionId);
       } else if (resourceType === 'Document' && FIXTURES.has(request.url)) {
         interceptedDocuments++;
         await browser.send('Fetch.fulfillRequest', { requestId, responseCode: 200,
@@ -390,7 +417,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.equal(a.provenance, 'owner-local-page-embedding/v1');
     await toolbar('topic');
     assert.equal(await evaluate("document.querySelector('#discussion-topic').selectedOptions[0].textContent"), (await catalog()).topics.find(topic => topic.id === a.topicId).title);
-    if (!alternateOnly) {
+    if (!targetedOnly) {
       await input('#discussion-body', COMMENT);
       await click('#app-settings-button');
       await click('#ui-mode-developer'); await click('#ui-mode-user');
@@ -410,6 +437,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await screenshot('user-shared-topic');
     stage = 'alternate-source-view-and-reversible-switch';
     const canonicalBeforeSwitch = await backend(`/topics/${b.topicId}/discussion`);
+    const catalogBeforeSwitch = await catalog();
     const writesBeforeSwitch = requests.filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)).length;
     const alternateRequestsBeforeSwitch = requests.filter(request => apiUrl(request.url) && request.url.endsWith('/alternate-discussion')).length;
     await input('#discussion-body', SWITCH_DRAFT);
@@ -423,6 +451,14 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.equal(alternate.sourceId, b.id);
     assert.ok(alternate.sourceIds.includes(b.id));
     assert.ok(alternate.roots.some(root => root.body === COMMENT));
+    assert.deepEqual(alternate.version, catalogBeforeSwitch.version);
+    assert.equal(alternate.canonical.topic.id, b.topicId);
+    assert.equal(alternate.canonical.discussionId, canonicalBeforeSwitch.discussionId);
+    if (bodyMetricOnly) {
+      assert.equal(alternate.representation, 'owner-local-body-topic-metric/v1');
+      assert.equal(alternate.policyVersion, 'alternate-indexed-body-metric/v1');
+      checks.push('fabricated-identity-body-metric-exact-policy-and-source-dto');
+    } else assert.equal(alternate.representation, 'owner-local-diagonal-adapter/v1');
     await click('#app-settings-back');
     assert.equal(await evaluate("document.querySelector('#discussion-source').value"), b.id);
     assert.equal(await evaluate("document.querySelector('#discussion-body').value"), SWITCH_DRAFT);
@@ -436,13 +472,59 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.equal(await evaluate("document.querySelector('#discussion-body').value"), SWITCH_DRAFT);
     assert.ok(await evaluate(`${THREAD}.textContent.includes(${JSON.stringify(COMMENT)})`));
     assert.deepEqual(await backend(`/topics/${b.topicId}/discussion`), canonicalBeforeSwitch);
+    assert.deepEqual(await catalog(), catalogBeforeSwitch);
     assert.equal(requests.filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)).length, writesBeforeSwitch, 'View switches and private draft must not write posts or change membership');
     assert.equal((await source('b')).topicId, b.topicId);
     await postOrigin(COMMENT, fixtureUrl('a'));
+    if (bodyMetricOnly) {
+      stage = 'body-metric-delayed-response-after-current-switch';
+      let release;
+      const released = new Promise(resolve => { release = resolve; });
+      delayedAlternate = { url: `${API}/sources/${b.id}/alternate-discussion`,
+        response: alternate, ready: false, released, release };
+      // Deliver the actual synthetic backend DTO after Current was selected.
+      // Mode switching does not cancel fetch; the stale result must be ignored.
+      await click('#app-settings-button');
+      await click('#app-topic-view-experimental');
+      await wait(() => delayedAlternate.ready, 'held Source-B alternate browser request');
+      await click('#app-topic-view-classic');
+      await waitExpression("document.querySelector('#app-topic-view-status')?.dataset.state==='current'", 'Current while BODY request is pending');
+      const statusBeforeStale = await evaluate("document.querySelector('#app-topic-view-status').textContent");
+      delayedAlternate.release();
+      await wait(() => delayedAlternate.finished, 'delayed Source-B response completed in browser');
+      await evaluate('new Promise(resolve=>setTimeout(()=>setTimeout(resolve,0),0))');
+      assert.equal(await evaluate("document.querySelector('#app-topic-view-status').dataset.state"), 'current');
+      assert.equal(await evaluate("document.querySelector('#app-topic-view-status').textContent"), statusBeforeStale);
+      assert.equal(await evaluate("document.querySelector('#discussion-source').value"), b.id);
+      // Exercise fresh Source-selection epochs through visible developer controls.
+      const requestsBeforeSourceEpochs = requests.length;
+      await click('#ui-mode-developer');
+      await chooseSource(a.id);
+      await chooseSource(b.id);
+      await click('#ui-mode-user');
+      await click('#app-settings-button');
+      assert.equal(await evaluate("document.querySelector('#app-topic-view-status').dataset.state"), 'current');
+      await click('#app-settings-back');
+      assert.equal(await evaluate("document.querySelector('#discussion-body').value"), SWITCH_DRAFT);
+      await postOrigin(COMMENT, fixtureUrl('a'));
+      assert.deepEqual(await catalog(), catalogBeforeSwitch);
+      assert.deepEqual(await backend(`/topics/${b.topicId}/discussion`), canonicalBeforeSwitch);
+      const sourceEpochPosts = requests.slice(requestsBeforeSourceEpochs)
+        .filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method));
+      // Source selection performs exactly two source-bound /related reads,
+      // whose read-only HTTP endpoint uses POST. Neither is a canonical write.
+      assert.deepEqual(sourceEpochPosts.map(request => ({ url: request.url, method: request.method, sourceId: request.relatedSourceId })),
+        [a.id, b.id].map(sourceId => ({ url: `${API}/related`, method: 'POST', sourceId })));
+      assert.equal(requests.filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)).length,
+        writesBeforeSwitch + sourceEpochPosts.length);
+      delayedAlternate = null;
+      checks.push('delayed-body-response-cannot-reactivate-new-after-current-switch');
+      checks.push('body-current-view-preserved-across-fresh-source-selection-epochs');
+    }
     await input('#discussion-body', '');
     checks.push('actual-alternate-source-view-and-reversible-current-switch');
     checks.push('source-bound-alternate-read-preserves-private-draft-source-links-and-canonical-posts');
-    if (alternateOnly) {
+    if (targetedOnly) {
       // End the real window lease before checking settled request protection.
       await evaluate("chrome.runtime.sendMessage({target:'page-matching',type:'stop-session'})");
       await wait(() => tasks.size === 0, 'settled targeted alternate tasks', 5000);
@@ -451,7 +533,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       return { browser: version.product, result: 'PASS', actualActionPopup: true, checks,
         vectorsSent: ingestions.length, vectorDimensions: 384, externalExtensionRequests,
         runtimeExceptions, interceptedDocuments, elapsedMs: performance.now() - began,
-        scope: 'Targeted alternate view; owned intercepted articles; disposable profile/pairing/SQLite; synthetic zero-log adapter; no provider calls' };
+        scope: `Targeted alternate view; owned intercepted articles; disposable profile/pairing/SQLite; ${bodyMetricOnly ? 'fabricated zero-mean identity BODY metric' : 'synthetic zero-log adapter'}; no provider calls` };
     }
     checks.push('toolbar-dark-blue-requires-distinct-learned-peer-and-visible-post');
     const capturesBeforeWithdraw = ingestions.length;
@@ -606,6 +688,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       externalExtensionRequests, runtimeExceptions, interceptedDocuments, elapsedMs: performance.now() - began,
       scope: 'Owned intercepted articles only; fresh temporary profile/SQLite; no third-party browsing or global browser firewall claim' };
   } finally {
+    delayedAlternate?.release();
     closing = true; resolveIdentity(); clearTimeout(deadline); clearInterval(progress);
     process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop);
     try { await browser?.close(); } finally {
@@ -621,6 +704,6 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   runBackgroundMatchingBrowserSmoke(process.argv[2]?.startsWith('--') ? undefined : process.argv[2],
-    { alternateOnly: process.argv.includes('--alternate-only') }).then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
+    { alternateOnly: process.argv.includes('--alternate-only'), bodyMetricOnly: process.argv.includes('--body-metric-only') }).then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
     .catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });
 }

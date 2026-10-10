@@ -1,0 +1,96 @@
+{
+  "freeze": {
+    "schema": "dual-evidence-development/v1",
+    "sources": {
+      "README.md": "e9ac494a1de86d51a91616ca155a347986a8a499514154a5c0a39defb9ea84cb",
+      "run.js": "5ab275570a5ab7485a1c1aa8c5824091ee9890a2454d0525126948b3af08199c",
+      "core.js": "16d31549ce608349af03e12924d35d0d091ec99cbadb5cc20805d2f30bfbda37",
+      "core.test.js": "eb5c835797ca85a4c81dd13e94aabf390f4da17aae17dc1dc9335db4cfee1283",
+      "../indexed-body-quality-v1/core.js": "730f4dd9d68ba93927781035ca20ca4ed8c38c7ae099c6db7c385f4e87f724b7",
+      "../e5-infer.js": "4292c83b462d8fa1bd109e6b94f575c52d13a9a89717cad64a1f8300a5208a17",
+      "../real-event-eval/core.js": "4c5e4d1b1e9f543b6ab837e4467e18b3ce5b5c4a0b14172699ef355eaca3496c",
+      "../../../src/domain/body-topic-metric.js": "01069abb488aa4ee7d83dedc9d55c1a5bf505fb8b3ac38058410cfc274390b2b",
+      "../../../src/domain/diagonal-adapter.js": "8cd19d94e5dd8b7ff5a78f31c458231109796fa6e6d3fbdda440aa9f22e209fe",
+      "../../../src/domain/owner-topic-planner.js": "555867246222c47bbc6c4313a1fdfaee1046d5585e8300335ad733d59cf8944b",
+      "../../../src/domain/alternate-topic-planner-indexed.js": "9b0b143cd8a58d5a413c4582dd3663744d55e5d9f3be607fa07ed4bd4fb5bd5c",
+      "../../../src/domain/alternate-topic-planner.js": "ab30451f5b78d5e0d894aeb28b7f9bf26f5cb3ed4b800cb108d288f84600fb2a",
+      "../../../src/domain/errors.js": "c5ab832d4d6c84917d8c51c8c38ecd90b8a42bdc7c3bd0e414180ffe2b4f9c49",
+      "../compact-paraphrase-probe-v1/RESULTS.md": "e57f45e2c497a965b23f095d6d7210eb8f339011189bef844c30a31f3d4dd1f1",
+      "../../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js": "6b26cc2766acdbcba39259d1459e703995c3b5ae5a6fd4a4c78b7a968d0b3920",
+      "../../../../../spikes/topic-resolution/harness/deny-external-capabilities.js": "b37675f06d3d7961f2498d663189120302263cf2bba0b79cb3668892a4ef92cc"
+    },
+    "corpusSha": "8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d",
+    "fixtureHashes": {
+      "../multilingual-authored-v2/chunk-c1/records.jsonl": "20bab9b116c6f32c2fb7058c3d822af333503ec36cbcf9cbb7365e9f45bac581",
+      "../multilingual-authored-v2/chunk-c2/records.jsonl": "44ac29625dfbd86f7af2c278eab991e042d0e6e0fa64a92d95d3b1f7951bbf6f",
+      "../multilingual-authored-v2/chunk-c3/records.jsonl": "659f2e9a27651b6577d2686f8b3849e56e6a36984471620980bcca68b880f1fe",
+      "../multilingual-holdout-v6/holdout.jsonl": "032eaa490d0ae6b9067ec479be4a80b563229606f83ce0f43a1bc9efd4098aeb"
+    },
+    "cohorts": {
+      "realDev": {
+        "rows": 150,
+        "events": 13,
+        "selectionSha256": "02123663a2d48ca73dba8fa19b6c7be946185bf6f97d1b8a6cff8d3598a3d82c"
+      },
+      "authored": {
+        "rows": 108,
+        "events": 18,
+        "selectionSha256": "dba50d0a6dc52a22725dd622231bf0571d0614a1bcdab5806a50204fa898425b"
+      },
+      "v6": {
+        "rows": 60,
+        "events": 12,
+        "selectionSha256": "2f4609753b79f747996e1a8ec10da4880dce1153c164ac30d00d36a0c09897b0"
+      }
+    },
+    "bodyManifest": "4ee584e21acc180ca721dc520781f7abdf0b770d96ef28e32ac2b3bb6dc42eeb",
+    "diagonalManifest": "64067f20d65a2775eb82b428e70fa093e465da3adfca3ab7ad013bbac81997a9",
+    "bodyFloors": [
+      0.3622392629925627,
+      0.5,
+      0.65,
+      0.8
+    ],
+    "rawFloors": [
+      0.8,
+      0.85,
+      0.9,
+      0.94
+    ],
+    "rawRadiusFloor": 0.9040571956970354,
+    "bodyOnlyFloor": 0.3622392629925627,
+    "indexedControlPolicy": {
+      "version": "alternate-indexed-independent-evidence/v2",
+      "seedSimilarity": 0.94,
+      "supportedSimilarity": 0.94,
+      "weakestCrossSimilarity": 0.9,
+      "crowdedNeighborCount": 3,
+      "maxWorkUnits": 100000000,
+      "maxCachedPairs": 65536,
+      "workBudgetMs": 10000
+    },
+    "grouping": "strongest-body-edge-complete-link-dual-inclusive/v1",
+    "selection": {
+      "authoredMaxFalse": 19,
+      "authoredMaxMixedPages": 23,
+      "v6MaxFalse": 0,
+      "v6MaxMixedPages": 0,
+      "ranking": [
+        "real-dev-pure-pages-desc",
+        "authored-plus-v6-pure-pages-desc",
+        "total-false-pairs-asc",
+        "body-floor-asc",
+        "raw-floor-asc"
+      ]
+    },
+    "input": "body-prefix-4096-query-512/v1",
+    "developmentOnly": true,
+    "reusedSpentCohorts": true,
+    "fitting": false,
+    "shared296Measured": false
+  },
+  "freezeHash": "5826f8cba1c96283105d70fbc640e55a779473298df901442a3719814bd9f1ef",
+  "abortedBeforeQuality": true,
+  "observedProgressRows": 128,
+  "qualityObserved": false
+}

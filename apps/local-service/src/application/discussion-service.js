@@ -6,8 +6,8 @@ import { frozenClone, readExpectedVersion, readId } from "../domain/validation.j
 import { operationDigestFor, sourceStamp } from "../domain/source-threads.js";
 import { rankRelatedSources } from "../../../../spikes/topic-resolution/browser/core/related-sources.js";
 import { applyLearnedCommand, applyLearnedIngest, BROWSER_MODEL_ID, compatibleExtractor, ingestionResult, LEARNED_COMMANDS, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, readLearnedIngest } from "../domain/learned-sources.js";
-import { planAlternateTopics } from "../domain/alternate-topic-planner.js";
-import { readDiagonalAdapter } from "../domain/diagonal-adapter.js";
+import { createOwnerTopicPlanner } from "../domain/owner-topic-planner.js";
+import { createSnapshotTopicPlanner } from "../domain/alternate-topic-cache.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 
 export const DEMO_ACTORS = Object.freeze([
@@ -16,9 +16,15 @@ export const DEMO_ACTORS = Object.freeze([
 ]);
 const ALTERNATE_SOURCE_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 
-export function createDiscussionService({ repository, ranking, sources, topicSeeds, nextId, now, alternateAdapter = null }) {
+export function createDiscussionService({ repository, ranking, sources, topicSeeds, nextId, now,
+  alternateAdapter = null, alternateBodyMetric = null }) {
   const actors = new Map(DEMO_ACTORS.map((actor) => [actor.id, actor]));
-  const adapter = alternateAdapter === null ? null : readDiagonalAdapter(alternateAdapter);
+  let ownerPlanner = null;
+  if (alternateAdapter !== null || alternateBodyMetric !== null) {
+    try { ownerPlanner = createOwnerTopicPlanner({ diagonalAdapter: alternateAdapter, bodyMetric: alternateBodyMetric }); }
+    catch { /* Invalid selected weights disable only the experimental read. */ }
+  }
+  const alternatePlan = createSnapshotTopicPlanner(state => ownerPlanner.plan(state));
   function version(state) { return { generation: state.generation, revision: state.revision }; }
 
   return Object.freeze({
@@ -89,14 +95,14 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     alternateDiscussion(sourceId) {
       sourceId = readId(sourceId);
       if (!ALTERNATE_SOURCE_ID.test(sourceId)) fail("invalid", "Invalid request");
-      if (adapter === null) fail("unavailable", "Alternate discussion unavailable");
+      if (ownerPlanner === null) fail("unavailable", "Alternate discussion unavailable");
       const state = repository.load();
       const source = state.sources.find((entry) => entry.id === sourceId);
       const link = state.sourceLinks.find((entry) => entry.sourceId === sourceId);
       if (!source || source.provenance !== LEARNED_SOURCE_PROVENANCE || !link) fail("not-found", "Object unavailable");
       const current = discussionView(state, link.topicId);
       const canonical = { topic: current.topic, discussionId: current.discussionId };
-      const base = { policyVersion: "alternate-local-neighborhood/v1", representation: "owner-local-diagonal-adapter/v1",
+      const base = { policyVersion: ownerPlanner.policyVersion, representation: ownerPlanner.representation,
         version: version(state), sourceId, canonical };
       if (link.method === "manual-confirmed") {
         return boundedAlternateView({ ...base, mode: "canonical-pinned", sourceIds: [sourceId],
@@ -105,7 +111,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       }
       if (link.method !== "learned-provisional") fail("unavailable", "Alternate discussion unavailable");
       let plan;
-      try { plan = planAlternateTopics({ sources: state.sources, sourceLinks: state.sourceLinks, adapter }); }
+      try { plan = alternatePlan(state); }
       catch (error) {
         if (error instanceof TypeError) fail("unavailable", "Alternate discussion unavailable");
         throw error;

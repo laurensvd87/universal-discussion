@@ -4,13 +4,14 @@ import { createSqliteRepository } from "../adapters/sqlite-repository.js";
 import { createFixtureRankingAdapter } from "../adapters/fixture-ranking.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../adapters/fixture-catalog.js";
 
-export function createSqliteDemoService({ databasePath, nextId, now, repositoryOptions, alternateAdapter = null }) {
+export function createSqliteDemoService({ databasePath, nextId, now, repositoryOptions,
+  alternateAdapter = null, alternateBodyMetric = null }) {
   const initialState = createDemoState({ generation: nextId("generation"), createdAt: now(), sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
   const repository = createSqliteRepository(databasePath, initialState, repositoryOptions);
   try {
     const service = createDiscussionService({
       repository, ranking: createFixtureRankingAdapter(), sources: SYNTHETIC_SOURCES,
-      topicSeeds: SYNTHETIC_TOPIC_SEEDS, nextId, now, alternateAdapter,
+      topicSeeds: SYNTHETIC_TOPIC_SEEDS, nextId, now, alternateAdapter, alternateBodyMetric,
     });
     return Object.freeze({ service, close: () => repository.close() });
   } catch (error) {

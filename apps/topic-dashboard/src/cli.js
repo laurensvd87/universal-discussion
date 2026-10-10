@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { APP_DATABASE_PATH } from "../../local-service/src/startup.js";
 import { buildDashboardSnapshot, loadDashboardState } from "./data/catalog.js";
-import { buildGroupingPreview, LOCAL_ADAPTER_PATH, readOwnerAdapter } from "./data/grouping-preview.js";
+import { buildGroupingPreview, LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH, readInstalledOwnerTopicConfiguration } from "./data/grouping-preview.js";
 
 const webPath = fileURLToPath(new URL("../web/", import.meta.url));
 export const DEFAULT_REPORT_PATH = path.join(tmpdir(), "universal-discussion-dashboard", "dashboard.html");
@@ -42,20 +42,19 @@ export function renderSnapshotScript(snapshot, preview = null) {
     `globalThis.__topicAtlasPreview = ${serializeSnapshot(preview)};\n`;
 }
 
-function readDashboardBundle(databasePath, now, adapter) {
+function readDashboardBundle(databasePath, now, adapter, bodyMetric) {
   const state = loadDashboardState(databasePath);
   const snapshot = buildDashboardSnapshot(state, { now });
-  const preview = buildGroupingPreview(state, snapshot, adapter);
+  const preview = buildGroupingPreview(state, snapshot, adapter, bodyMetric);
   return { snapshot, preview };
 }
 
 export function readDashboardRefreshKey(databasePath = APP_DATABASE_PATH) {
-  let adapterKey = "absent";
-  try {
-    const info = lstatSync(LOCAL_ADAPTER_PATH);
-    adapterKey = JSON.stringify([info.size, info.mtimeMs, info.isFile(), info.isSymbolicLink()]);
-  } catch { /* Missing adapter remains unavailable. */ }
-  return JSON.stringify([readDashboardRevision(databasePath), adapterKey]);
+  const artifactKeys = [LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH].map(filename => {
+    try { const info = lstatSync(filename); return [info.size, info.mtimeMs, info.ctimeMs, info.isFile(), info.isSymbolicLink()]; }
+    catch { return "absent"; }
+  });
+  return JSON.stringify([readDashboardRevision(databasePath), ...artifactKeys]);
 }
 
 // The revision includes generation because a reset can start again at revision zero.
@@ -74,8 +73,10 @@ export function readDashboardRevision(databasePath = APP_DATABASE_PATH) {
 }
 
 export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
-  now = () => new Date(), adapter = readOwnerAdapter() } = {}) {
-  const { snapshot, preview } = readDashboardBundle(databasePath, now, adapter);
+  now = () => new Date(), adapter, bodyMetric } = {}) {
+  const installed = adapter === undefined && bodyMetric === undefined ? readInstalledOwnerTopicConfiguration() : {};
+  const { snapshot, preview } = readDashboardBundle(databasePath, now,
+    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null);
   const document = renderDashboardDocument({
     template: readFileSync(path.join(webPath, "index.html"), "utf8"),
     style: readFileSync(path.join(webPath, "style.css"), "utf8"),
@@ -88,8 +89,10 @@ export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath
 }
 
 export function generateDashboardSnapshot({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
-  now = () => new Date(), adapter = readOwnerAdapter() } = {}) {
-  const { snapshot, preview } = readDashboardBundle(databasePath, now, adapter);
+  now = () => new Date(), adapter, bodyMetric } = {}) {
+  const installed = adapter === undefined && bodyMetric === undefined ? readInstalledOwnerTopicConfiguration() : {};
+  const { snapshot, preview } = readDashboardBundle(databasePath, now,
+    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null);
   writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview));
   return { outputPath, counts: snapshot.counts };
 }

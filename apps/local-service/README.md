@@ -1,5 +1,13 @@
 # Local service
 
+The 0.13.29 optional alternate discussion read uses exact indexed diagonal v2
+and snapshot caching, keeping canonical Topics/posts/Insight authority intact.
+`data/body-topic-metric-v1.json` is reviewed owner-local research, not enabled
+from file presence: its broad radius policy failed adjacent-story checks.
+Default composition uses the older diagonal adapter; explicit BODY injection
+exists only for synthetic QA/research. See ADR-072. No new browser model,
+capture permission, provider call or database migration is included.
+
 For the owner-approved PCGames citation diagnosis, the optional one-shot
 `node harness/run-live-insight-qa.js --run-live --with-web-search --pcgames`
 case uses the public PCGames page and one fixed GameStar candidate. It prints

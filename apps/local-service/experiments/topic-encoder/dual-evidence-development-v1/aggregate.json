@@ -1,0 +1,2388 @@
+{
+  "freezeHash": "01c0488574222fe4a30a5c1f027d0fcfc64bb14d7d2da42ef7c4f084c2f0d729",
+  "developmentOnly": true,
+  "reusedSpentCohorts": true,
+  "shared296Measured": false,
+  "controls": {
+    "realDev": {
+      "rawIndexed": {
+        "rows": 150,
+        "purePages": 0,
+        "mixedPages": 0,
+        "pureGroups": 0,
+        "mixedGroups": 0,
+        "correctGroupedPairs": 0,
+        "falseGroupedPairs": 0,
+        "crossLanguageTruePairs": 803,
+        "crossLanguageGroupedCorrect": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 1682,
+          "joined": 0
+        }
+      },
+      "diagonalIndexed": {
+        "rows": 150,
+        "purePages": 0,
+        "mixedPages": 0,
+        "pureGroups": 0,
+        "mixedGroups": 0,
+        "correctGroupedPairs": 0,
+        "falseGroupedPairs": 0,
+        "crossLanguageTruePairs": 803,
+        "crossLanguageGroupedCorrect": 0,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 1682,
+          "joined": 0
+        }
+      },
+      "bodyIndexedCoarse": {
+        "rows": 150,
+        "purePages": 128,
+        "mixedPages": 0,
+        "pureGroups": 18,
+        "mixedGroups": 0,
+        "correctGroupedPairs": 492,
+        "falseGroupedPairs": 0,
+        "crossLanguageTruePairs": 803,
+        "crossLanguageGroupedCorrect": 492,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 1682,
+          "joined": 0
+        }
+      },
+      "rawRadius": {
+        "rows": 150,
+        "purePages": 62,
+        "mixedPages": 2,
+        "pureGroups": 25,
+        "mixedGroups": 1,
+        "correctGroupedPairs": 54,
+        "falseGroupedPairs": 1,
+        "crossLanguageTruePairs": 803,
+        "crossLanguageGroupedCorrect": 54,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 1682,
+          "joined": 1
+        },
+        "admittedPairs": 100
+      },
+      "bodyOnly": {
+        "rows": 150,
+        "purePages": 134,
+        "mixedPages": 0,
+        "pureGroups": 21,
+        "mixedGroups": 0,
+        "correctGroupedPairs": 507,
+        "falseGroupedPairs": 0,
+        "crossLanguageTruePairs": 803,
+        "crossLanguageGroupedCorrect": 507,
+        "opposingViewpointPairs": {
+          "total": 0,
+          "joined": 0
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 1682,
+          "joined": 0
+        },
+        "admittedPairs": 677
+      }
+    },
+    "authored": {
+      "rawIndexed": {
+        "rows": 108,
+        "purePages": 27,
+        "mixedPages": 21,
+        "pureGroups": 13,
+        "mixedGroups": 7,
+        "correctGroupedPairs": 21,
+        "falseGroupedPairs": 18,
+        "crossLanguageTruePairs": 252,
+        "crossLanguageGroupedCorrect": 4,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 21
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 648,
+          "joined": 18
+        }
+      },
+      "diagonalIndexed": {
+        "rows": 108,
+        "purePages": 31,
+        "mixedPages": 23,
+        "pureGroups": 15,
+        "mixedGroups": 8,
+        "correctGroupedPairs": 23,
+        "falseGroupedPairs": 19,
+        "crossLanguageTruePairs": 252,
+        "crossLanguageGroupedCorrect": 6,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 23
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 648,
+          "joined": 19
+        }
+      },
+      "bodyIndexedCoarse": {
+        "rows": 108,
+        "purePages": 39,
+        "mixedPages": 69,
+        "pureGroups": 7,
+        "mixedGroups": 7,
+        "correctGroupedPairs": 218,
+        "falseGroupedPairs": 240,
+        "crossLanguageTruePairs": 252,
+        "crossLanguageGroupedCorrect": 200,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 218
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 648,
+          "joined": 204
+        }
+      },
+      "rawRadius": {
+        "rows": 108,
+        "purePages": 42,
+        "mixedPages": 58,
+        "pureGroups": 14,
+        "mixedGroups": 19,
+        "correctGroupedPairs": 67,
+        "falseGroupedPairs": 58,
+        "crossLanguageTruePairs": 252,
+        "crossLanguageGroupedCorrect": 49,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 67
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 648,
+          "joined": 56
+        },
+        "admittedPairs": 236
+      },
+      "bodyOnly": {
+        "rows": 108,
+        "purePages": 28,
+        "mixedPages": 80,
+        "pureGroups": 5,
+        "mixedGroups": 9,
+        "correctGroupedPairs": 197,
+        "falseGroupedPairs": 276,
+        "crossLanguageTruePairs": 252,
+        "crossLanguageGroupedCorrect": 179,
+        "opposingViewpointPairs": {
+          "total": 270,
+          "joined": 197
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 648,
+          "joined": 240
+        },
+        "admittedPairs": 1311
+      }
+    },
+    "v6": {
+      "rawIndexed": {
+        "rows": 60,
+        "purePages": 4,
+        "mixedPages": 0,
+        "pureGroups": 2,
+        "mixedGroups": 0,
+        "correctGroupedPairs": 2,
+        "falseGroupedPairs": 0,
+        "crossLanguageTruePairs": 120,
+        "crossLanguageGroupedCorrect": 2,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 2
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 450,
+          "joined": 0
+        }
+      },
+      "diagonalIndexed": {
+        "rows": 60,
+        "purePages": 14,
+        "mixedPages": 0,
+        "pureGroups": 7,
+        "mixedGroups": 0,
+        "correctGroupedPairs": 7,
+        "falseGroupedPairs": 0,
+        "crossLanguageTruePairs": 120,
+        "crossLanguageGroupedCorrect": 7,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 7
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 450,
+          "joined": 0
+        }
+      },
+      "bodyIndexedCoarse": {
+        "rows": 60,
+        "purePages": 25,
+        "mixedPages": 35,
+        "pureGroups": 5,
+        "mixedGroups": 3,
+        "correctGroupedPairs": 120,
+        "falseGroupedPairs": 125,
+        "crossLanguageTruePairs": 120,
+        "crossLanguageGroupedCorrect": 120,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 120
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 450,
+          "joined": 125
+        }
+      },
+      "rawRadius": {
+        "rows": 60,
+        "purePages": 53,
+        "mixedPages": 0,
+        "pureGroups": 16,
+        "mixedGroups": 0,
+        "correctGroupedPairs": 73,
+        "falseGroupedPairs": 0,
+        "crossLanguageTruePairs": 120,
+        "crossLanguageGroupedCorrect": 73,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 73
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 450,
+          "joined": 0
+        },
+        "admittedPairs": 96
+      },
+      "bodyOnly": {
+        "rows": 60,
+        "purePages": 25,
+        "mixedPages": 35,
+        "pureGroups": 5,
+        "mixedGroups": 3,
+        "correctGroupedPairs": 120,
+        "falseGroupedPairs": 125,
+        "crossLanguageTruePairs": 120,
+        "crossLanguageGroupedCorrect": 120,
+        "opposingViewpointPairs": {
+          "total": 120,
+          "joined": 120
+        },
+        "sameFamilyDifferentEventPairs": {
+          "total": 450,
+          "joined": 125
+        },
+        "admittedPairs": 529
+      }
+    }
+  },
+  "candidates": [
+    {
+      "id": "body-0.3622392629925627-raw-0.8",
+      "bodyFloor": 0.3622392629925627,
+      "rawFloor": 0.8,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 128,
+          "mixedPages": 0,
+          "pureGroups": 18,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 492,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 492,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 492
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 39,
+          "mixedPages": 69,
+          "pureGroups": 7,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 218,
+          "falseGroupedPairs": 240,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 200,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 218
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 204
+          },
+          "admittedPairs": 458
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 25,
+          "mixedPages": 35,
+          "pureGroups": 5,
+          "mixedGroups": 3,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 125,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 120,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 125
+          },
+          "admittedPairs": 245
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 134,
+          "mixedPages": 0,
+          "pureGroups": 21,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 507,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 507,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 677
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 28,
+          "mixedPages": 80,
+          "pureGroups": 5,
+          "mixedGroups": 9,
+          "correctGroupedPairs": 197,
+          "falseGroupedPairs": 276,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 179,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 197
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 240
+          },
+          "admittedPairs": 1311
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 25,
+          "mixedPages": 35,
+          "pureGroups": 5,
+          "mixedGroups": 3,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 125,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 120,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 125
+          },
+          "admittedPairs": 529
+        }
+      }
+    },
+    {
+      "id": "body-0.3622392629925627-raw-0.85",
+      "bodyFloor": 0.3622392629925627,
+      "rawFloor": 0.85,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 127,
+          "mixedPages": 0,
+          "pureGroups": 21,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 406,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 406,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 485
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 44,
+          "mixedPages": 64,
+          "pureGroups": 8,
+          "mixedGroups": 8,
+          "correctGroupedPairs": 203,
+          "falseGroupedPairs": 215,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 185,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 203
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 179
+          },
+          "admittedPairs": 453
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 60,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 120,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 234
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 136,
+          "mixedPages": 0,
+          "pureGroups": 24,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 428,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 428,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 663
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 32,
+          "mixedPages": 76,
+          "pureGroups": 6,
+          "mixedGroups": 10,
+          "correctGroupedPairs": 196,
+          "falseGroupedPairs": 237,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 178,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 196
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 201
+          },
+          "admittedPairs": 1218
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 60,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 120,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 428
+        }
+      }
+    },
+    {
+      "id": "body-0.3622392629925627-raw-0.9",
+      "bodyFloor": 0.3622392629925627,
+      "rawFloor": 0.9,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 67,
+          "mixedPages": 0,
+          "pureGroups": 27,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 58,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 58,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 116
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 51,
+          "mixedPages": 45,
+          "pureGroups": 18,
+          "mixedGroups": 13,
+          "correctGroupedPairs": 80,
+          "falseGroupedPairs": 55,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 62,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 80
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 55
+          },
+          "admittedPairs": 229
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 55,
+          "mixedPages": 0,
+          "pureGroups": 16,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 78,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 78,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 78
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 108
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 69,
+          "mixedPages": 0,
+          "pureGroups": 28,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 59,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 59,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 128
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 51,
+          "mixedPages": 50,
+          "pureGroups": 18,
+          "mixedGroups": 15,
+          "correctGroupedPairs": 80,
+          "falseGroupedPairs": 60,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 62,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 80
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 59
+          },
+          "admittedPairs": 278
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 55,
+          "mixedPages": 0,
+          "pureGroups": 16,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 78,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 78,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 78
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 111
+        }
+      }
+    },
+    {
+      "id": "body-0.3622392629925627-raw-0.94",
+      "bodyFloor": 0.3622392629925627,
+      "rawFloor": 0.94,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 29,
+          "mixedPages": 18,
+          "pureGroups": 14,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 20,
+          "falseGroupedPairs": 11,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 20
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 11
+          },
+          "admittedPairs": 40
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 2,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 2
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 29,
+          "mixedPages": 18,
+          "pureGroups": 14,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 20,
+          "falseGroupedPairs": 11,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 20
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 11
+          },
+          "admittedPairs": 40
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 2,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 2
+        }
+      }
+    },
+    {
+      "id": "body-0.5-raw-0.8",
+      "bodyFloor": 0.5,
+      "rawFloor": 0.8,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 90,
+          "mixedPages": 0,
+          "pureGroups": 25,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 166,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 166,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 294
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 55,
+          "mixedPages": 49,
+          "pureGroups": 13,
+          "mixedGroups": 12,
+          "correctGroupedPairs": 141,
+          "falseGroupedPairs": 72,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 123,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 141
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 72
+          },
+          "admittedPairs": 348
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 60,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 120,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 177
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 92,
+          "mixedPages": 0,
+          "pureGroups": 26,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 167,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 167,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 310
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 52,
+          "mixedPages": 53,
+          "pureGroups": 13,
+          "mixedGroups": 14,
+          "correctGroupedPairs": 131,
+          "falseGroupedPairs": 73,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 113,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 131
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 72
+          },
+          "admittedPairs": 459
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 60,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 120,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 201
+        }
+      }
+    },
+    {
+      "id": "body-0.5-raw-0.85",
+      "bodyFloor": 0.5,
+      "rawFloor": 0.85,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 90,
+          "mixedPages": 0,
+          "pureGroups": 25,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 166,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 166,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 293
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 55,
+          "mixedPages": 49,
+          "pureGroups": 13,
+          "mixedGroups": 12,
+          "correctGroupedPairs": 141,
+          "falseGroupedPairs": 72,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 123,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 141
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 72
+          },
+          "admittedPairs": 348
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 60,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 120,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 177
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 92,
+          "mixedPages": 0,
+          "pureGroups": 26,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 167,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 167,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 309
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 52,
+          "mixedPages": 53,
+          "pureGroups": 13,
+          "mixedGroups": 14,
+          "correctGroupedPairs": 131,
+          "falseGroupedPairs": 73,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 113,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 131
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 72
+          },
+          "admittedPairs": 459
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 60,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 120,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 201
+        }
+      }
+    },
+    {
+      "id": "body-0.5-raw-0.9",
+      "bodyFloor": 0.5,
+      "rawFloor": 0.9,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 64,
+          "mixedPages": 0,
+          "pureGroups": 26,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 55,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 55,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 112
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 51,
+          "mixedPages": 45,
+          "pureGroups": 18,
+          "mixedGroups": 13,
+          "correctGroupedPairs": 80,
+          "falseGroupedPairs": 55,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 62,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 80
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 55
+          },
+          "admittedPairs": 227
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 55,
+          "mixedPages": 0,
+          "pureGroups": 16,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 78,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 78,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 78
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 108
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 64,
+          "mixedPages": 0,
+          "pureGroups": 26,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 55,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 55,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 117
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 51,
+          "mixedPages": 50,
+          "pureGroups": 18,
+          "mixedGroups": 15,
+          "correctGroupedPairs": 80,
+          "falseGroupedPairs": 60,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 62,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 80
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 59
+          },
+          "admittedPairs": 270
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 55,
+          "mixedPages": 0,
+          "pureGroups": 16,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 78,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 78,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 78
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 110
+        }
+      }
+    },
+    {
+      "id": "body-0.5-raw-0.94",
+      "bodyFloor": 0.5,
+      "rawFloor": 0.94,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 29,
+          "mixedPages": 18,
+          "pureGroups": 14,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 20,
+          "falseGroupedPairs": 11,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 20
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 11
+          },
+          "admittedPairs": 40
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 2,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 2
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 29,
+          "mixedPages": 18,
+          "pureGroups": 14,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 20,
+          "falseGroupedPairs": 11,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 20
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 11
+          },
+          "admittedPairs": 40
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 2,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 2
+        }
+      }
+    },
+    {
+      "id": "body-0.65-raw-0.8",
+      "bodyFloor": 0.65,
+      "rawFloor": 0.8,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 18,
+          "mixedPages": 0,
+          "pureGroups": 8,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 12,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 14
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 54,
+          "mixedPages": 30,
+          "pureGroups": 22,
+          "mixedGroups": 11,
+          "correctGroupedPairs": 62,
+          "falseGroupedPairs": 20,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 44,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 62
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 20
+          },
+          "admittedPairs": 126
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 55,
+          "mixedPages": 0,
+          "pureGroups": 16,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 81,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 81,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 81
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 103
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 18,
+          "mixedPages": 0,
+          "pureGroups": 8,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 12,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 14
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 54,
+          "mixedPages": 30,
+          "pureGroups": 22,
+          "mixedGroups": 11,
+          "correctGroupedPairs": 62,
+          "falseGroupedPairs": 20,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 44,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 62
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 20
+          },
+          "admittedPairs": 131
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 55,
+          "mixedPages": 0,
+          "pureGroups": 16,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 81,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 81,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 81
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 103
+        }
+      }
+    },
+    {
+      "id": "body-0.65-raw-0.85",
+      "bodyFloor": 0.65,
+      "rawFloor": 0.85,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 18,
+          "mixedPages": 0,
+          "pureGroups": 8,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 12,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 14
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 54,
+          "mixedPages": 30,
+          "pureGroups": 22,
+          "mixedGroups": 11,
+          "correctGroupedPairs": 62,
+          "falseGroupedPairs": 20,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 44,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 62
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 20
+          },
+          "admittedPairs": 126
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 55,
+          "mixedPages": 0,
+          "pureGroups": 16,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 81,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 81,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 81
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 103
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 18,
+          "mixedPages": 0,
+          "pureGroups": 8,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 12,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 14
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 54,
+          "mixedPages": 30,
+          "pureGroups": 22,
+          "mixedGroups": 11,
+          "correctGroupedPairs": 62,
+          "falseGroupedPairs": 20,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 44,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 62
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 20
+          },
+          "admittedPairs": 131
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 55,
+          "mixedPages": 0,
+          "pureGroups": 16,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 81,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 81,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 81
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 103
+        }
+      }
+    },
+    {
+      "id": "body-0.65-raw-0.9",
+      "bodyFloor": 0.65,
+      "rawFloor": 0.9,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 18,
+          "mixedPages": 0,
+          "pureGroups": 8,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 12,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 14
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 54,
+          "mixedPages": 30,
+          "pureGroups": 22,
+          "mixedGroups": 11,
+          "correctGroupedPairs": 62,
+          "falseGroupedPairs": 20,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 44,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 62
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 20
+          },
+          "admittedPairs": 126
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 56,
+          "mixedPages": 0,
+          "pureGroups": 18,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 72,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 72,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 72
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 97
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 18,
+          "mixedPages": 0,
+          "pureGroups": 8,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 12,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 14
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 54,
+          "mixedPages": 30,
+          "pureGroups": 22,
+          "mixedGroups": 11,
+          "correctGroupedPairs": 62,
+          "falseGroupedPairs": 20,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 44,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 62
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 20
+          },
+          "admittedPairs": 131
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 56,
+          "mixedPages": 0,
+          "pureGroups": 18,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 72,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 72,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 72
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 97
+        }
+      }
+    },
+    {
+      "id": "body-0.65-raw-0.94",
+      "bodyFloor": 0.65,
+      "rawFloor": 0.94,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 29,
+          "mixedPages": 18,
+          "pureGroups": 14,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 20,
+          "falseGroupedPairs": 11,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 20
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 11
+          },
+          "admittedPairs": 40
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 2,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 2
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 29,
+          "mixedPages": 18,
+          "pureGroups": 14,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 20,
+          "falseGroupedPairs": 11,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 20
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 11
+          },
+          "admittedPairs": 40
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 2,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 2
+        }
+      }
+    },
+    {
+      "id": "body-0.8-raw-0.8",
+      "bodyFloor": 0.8,
+      "rawFloor": 0.8,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 24,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 12
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 0
+          },
+          "admittedPairs": 12
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 6,
+          "mixedPages": 0,
+          "pureGroups": 3,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 3,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 3
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 3
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 24,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 12
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 0
+          },
+          "admittedPairs": 12
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 6,
+          "mixedPages": 0,
+          "pureGroups": 3,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 3,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 3
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 3
+        }
+      }
+    },
+    {
+      "id": "body-0.8-raw-0.85",
+      "bodyFloor": 0.8,
+      "rawFloor": 0.85,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 24,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 12
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 0
+          },
+          "admittedPairs": 12
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 6,
+          "mixedPages": 0,
+          "pureGroups": 3,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 3,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 3
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 3
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 24,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 12
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 0
+          },
+          "admittedPairs": 12
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 6,
+          "mixedPages": 0,
+          "pureGroups": 3,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 3,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 3
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 3
+        }
+      }
+    },
+    {
+      "id": "body-0.8-raw-0.9",
+      "bodyFloor": 0.8,
+      "rawFloor": 0.9,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 24,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 12
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 0
+          },
+          "admittedPairs": 12
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 6,
+          "mixedPages": 0,
+          "pureGroups": 3,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 3,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 3
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 3
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 24,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 12
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 0
+          },
+          "admittedPairs": 12
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 6,
+          "mixedPages": 0,
+          "pureGroups": 3,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 3,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 3,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 3
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 3
+        }
+      }
+    },
+    {
+      "id": "body-0.8-raw-0.94",
+      "bodyFloor": 0.8,
+      "rawFloor": 0.94,
+      "cohorts": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 24,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 12
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 0
+          },
+          "admittedPairs": 12
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 2,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 2
+        }
+      },
+      "globalComparison": {
+        "realDev": {
+          "rows": 150,
+          "purePages": 0,
+          "mixedPages": 0,
+          "pureGroups": 0,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 0,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 803,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 1682,
+            "joined": 0
+          },
+          "admittedPairs": 0
+        },
+        "authored": {
+          "rows": 108,
+          "purePages": 24,
+          "mixedPages": 0,
+          "pureGroups": 12,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 12,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 252,
+          "crossLanguageGroupedCorrect": 0,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 12
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 0
+          },
+          "admittedPairs": 12
+        },
+        "v6": {
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "crossLanguageTruePairs": 120,
+          "crossLanguageGroupedCorrect": 2,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          },
+          "admittedPairs": 2
+        }
+      }
+    }
+  ],
+  "selection": {
+    "eligibleCandidates": 7,
+    "selected": "body-0.3622392629925627-raw-0.94"
+  },
+  "errors": 0,
+  "partialPartitionsReturned": false,
+  "caveats": [
+    "development-selection-not-independent-precision",
+    "synthetic-viewpoints-not-independent-publishers",
+    "same-family-adjacent-story-proxy-not-gold",
+    "body-prefix-not-Chrome-capture",
+    "no-live-activation"
+  ],
+  "vectorsSaved": false,
+  "weightsSaved": false,
+  "fitting": false,
+  "activated": false
+}

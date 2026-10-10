@@ -1,6 +1,6 @@
 // Importing this module never opens a database or binds a socket.
 import { randomBytes, randomUUID } from "node:crypto";
-import { lstatSync, mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createSqliteDemoService } from "./application/create-sqlite-demo-service.js";
@@ -9,20 +9,9 @@ import { validateStartupConfig } from "./http/startup-config.js";
 import { startLoopbackListener } from "./http/loopback-listener.js";
 import { loadPairingVerifier } from "./http/pairing-store.js";
 import { createChatGPTRuntime } from "./ai/chatgpt-runtime.js";
-import { readDiagonalAdapter } from "./domain/diagonal-adapter.js";
+import { readInstalledOwnerTopicConfiguration } from "./application/owner-topic-configuration.js";
 
 export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
-const LOCAL_ADAPTER_PATH = fileURLToPath(new URL("../data/diagonal-adapter-v1.json", import.meta.url));
-
-function installedAlternateAdapter() {
-  try {
-    const info = lstatSync(LOCAL_ADAPTER_PATH);
-    if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > 16_384) return null;
-    const bytes = readFileSync(LOCAL_ADAPTER_PATH);
-    if (bytes.length !== info.size) return null;
-    return readDiagonalAdapter(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)));
-  } catch { return null; }
-}
 
 export function createProcessDependencies() {
   return Object.freeze({
@@ -34,10 +23,10 @@ export function createProcessDependencies() {
 
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
   chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, insightDebug = null,
-  ai, pairingVerifier = null, alternateAdapter = null }) {
+  ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
-  const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter });
+  const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric });
   let runtime;
   try { runtime = ai ?? createChatGPTRuntime({ service: database.service, dataDir: path.dirname(databasePath),
     fetchImpl: chatgptFetchImpl, refreshStore: chatgptRefreshStore,
@@ -56,8 +45,10 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
 export async function startLocalApplication(options) {
   let activeVerifier = null;
   const pairingVerifier = options.pairingPath ? { verify: (token) => activeVerifier?.verify(token) ?? false } : null;
-  const application = openDormantLocalApplication({ ...options, pairingVerifier,
-    alternateAdapter: options.alternateAdapter === undefined ? installedAlternateAdapter() : options.alternateAdapter });
+  // Explicit test composition opts out of installed artifacts entirely.
+  const installed = options.alternateAdapter === undefined && options.alternateBodyMetric === undefined
+    ? readInstalledOwnerTopicConfiguration() : {};
+  const application = openDormantLocalApplication({ ...options, ...installed, pairingVerifier });
   try {
     const listener = await startLoopbackListener({ handle: application.handle });
     try {

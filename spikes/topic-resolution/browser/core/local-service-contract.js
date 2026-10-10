@@ -264,7 +264,10 @@ export function readDiscussion(value, topicId) {
 export function readAlternateDiscussion(value, sourceId, catalog, canonicalDiscussion) {
   const item = record(value, ["mode", "policyVersion", "representation", "version", "sourceId", "canonical", "sourceIds", "roots", "pinnedRoots"]);
   const mode = oneOf(item.mode, ["alternate-provisional", "canonical-pinned"]);
-  if (item.policyVersion !== "alternate-local-neighborhood/v1" || item.representation !== "owner-local-diagonal-adapter/v1" ||
+  const knownPolicy = item.representation === "owner-local-diagonal-adapter/v1"
+    ? ["alternate-local-neighborhood/v1", "alternate-indexed-independent-evidence/v2"].includes(item.policyVersion)
+    : item.representation === "owner-local-body-topic-metric/v1" && item.policyVersion === "alternate-indexed-body-metric/v1";
+  if (!knownPolicy ||
       readId(item.sourceId) !== sourceId) invalid();
   const version = readVersion(item.version);
   if (!catalog || !canonicalDiscussion || version.generation !== catalog.version?.generation ||

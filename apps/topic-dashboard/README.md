@@ -44,6 +44,12 @@ No npm dependencies or model download are needed.
 
 ## Experimental grouping preview
 
+The current preview shares indexed diagonal v2 with the extension. A installed
+BODY research artifact does not enable the failed broad BODY policy. Snapshot
+refresh observes both local artifact identities, while map positions/neighbor
+scores still describe original E5, not transformed geometry. The dashboard's
+1,000-page rendering guard remains separate from backend storage and matching.
+
 When the validated owner-local diagonal adapter is installed in the local
 service's ignored `data/diagonal-adapter-v1.json`, Topic Atlas computes a
 read-only grouping preview from the already retained public-page vectors.

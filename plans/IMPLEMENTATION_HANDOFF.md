@@ -1,5 +1,31 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 GPT-6.1 Sol checkpoint (0.13.29): runtime New uses indexed diagonal
+v2, default Current and canonical storage unchanged. Snapshot cache, exact
+geometric retrieval and duplicate-independent evidence replace the old dense
+all-pair limit; work/time capacity still fails closed and synchronous planning
+is not production scale. Service 330 pass/4 skipped, extension 1,049 pass/1
+skipped (restricted 1,050 pass), dashboard 10 pass; actual Chrome diagonal and
+fabricated-BODY/stale-response smokes and dashboard smoke pass. Owner backend
+is running again with the same Origin/pairing/database.
+
+Read ADR-072 and the new metric/radius, compact-paraphrase, joint-title and
+indexed-body-quality RESULTS before choosing a model. BODY whitening is fitted
+only on 475 original train articles and can transform existing 384D E5 vectors.
+Its strong fresh translated-news gains do NOT justify the indexed BODY policy:
+that policy creates 240 wrong grouped pairs on C108 and 125 on spent v6.
+`readInstalledOwnerTopicConfiguration()` deliberately defaults to diagonal;
+BODY requires an explicit trusted `useBodyMetric: true` research composition.
+Do not remove that guard from installed-artifact presence alone. No canonical
+Topic/post migration or new model/data scope is authorized by experimental views.
+Dual-evidence development failed: all seven safe grid candidates have zero real
+development reach. The bounded guarded planner is preparation only; do not
+activate those thresholds or open fresh data to rescue them. A frozen train-only
+linear teacher-distillation experiment is in progress; any useful result still
+needs exact deployment-policy and independent fresh evidence. The failed broad
+BODY policy must not be advertised as safe across viewpoints, products or
+independent publishers.
+
 2026-10-10 alternate-view implementation checkpoint: extension 0.13.28,
 the paired local service and Topic Atlas now share the owner-local diagonal
 adapter's bounded neighborhood planner. The authenticated source-scoped API

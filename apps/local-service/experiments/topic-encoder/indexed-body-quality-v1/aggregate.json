@@ -1,0 +1,410 @@
+{
+  "freezeHash": "1319dc9c64666a150a29ecbe3808dc83ceb06503d75349189c6edb2330ae7bd3",
+  "cohorts": [
+    {
+      "label": "shared296-reused",
+      "reusedMeasuredCohort": true,
+      "rows": 296,
+      "events": 24,
+      "methods": {
+        "raw": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-independent-evidence/v2",
+          "representation": "raw-e5-baseline",
+          "diagnostics": {
+            "representation": "raw-e5-baseline",
+            "sources": 296,
+            "uniqueEvidenceUnits": 296,
+            "duplicateSources": 0,
+            "comparedPairs": 90516,
+            "acceptedSeeds": 3,
+            "supportedJoins": 0,
+            "workUnits": 208073,
+            "peakCachedPairs": 261,
+            "geometricChecks": 1746,
+            "boundCertifications": 0
+          },
+          "rows": 296,
+          "purePages": 6,
+          "mixedPages": 0,
+          "pureGroups": 3,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 3,
+          "falseGroupedPairs": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 7214,
+            "joined": 0
+          }
+        },
+        "diagonal": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-independent-evidence/v2",
+          "representation": "owner-local-diagonal-adapter/v1",
+          "diagnostics": {
+            "representation": "owner-local-diagonal-adapter/v1",
+            "sources": 296,
+            "uniqueEvidenceUnits": 296,
+            "duplicateSources": 0,
+            "comparedPairs": 93749,
+            "acceptedSeeds": 6,
+            "supportedJoins": 0,
+            "workUnits": 218736,
+            "peakCachedPairs": 447,
+            "geometricChecks": 3438,
+            "boundCertifications": 0,
+            "preparationWorkUnits": 593,
+            "transformedSources": 296
+          },
+          "rows": 296,
+          "purePages": 12,
+          "mixedPages": 0,
+          "pureGroups": 6,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 6,
+          "falseGroupedPairs": 0,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 7214,
+            "joined": 0
+          }
+        },
+        "body": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-body-metric/v1",
+          "representation": "owner-local-body-topic-metric/v1",
+          "diagnostics": {
+            "representation": "owner-local-body-topic-metric/v1",
+            "sources": 296,
+            "uniqueEvidenceUnits": 296,
+            "duplicateSources": 0,
+            "comparedPairs": 108893,
+            "acceptedSeeds": 54,
+            "supportedJoins": 161,
+            "workUnits": 339544,
+            "peakCachedPairs": 1449,
+            "geometricChecks": 19805,
+            "boundCertifications": 20,
+            "preparationWorkUnits": 593,
+            "transformedSources": 296
+          },
+          "rows": 296,
+          "purePages": 246,
+          "mixedPages": 3,
+          "pureGroups": 33,
+          "mixedGroups": 1,
+          "correctGroupedPairs": 1005,
+          "falseGroupedPairs": 2,
+          "opposingViewpointPairs": {
+            "total": 0,
+            "joined": 0
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 7214,
+            "joined": 0
+          }
+        }
+      },
+      "differences": {
+        "raw-to-diagonal": {
+          "addedCorrect": 3,
+          "addedFalse": 0,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        },
+        "raw-to-body": {
+          "addedCorrect": 1002,
+          "addedFalse": 2,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        },
+        "diagonal-to-body": {
+          "addedCorrect": 999,
+          "addedFalse": 2,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        }
+      }
+    },
+    {
+      "label": "authored-C108-reused",
+      "reusedMeasuredCohort": true,
+      "rows": 108,
+      "events": 18,
+      "methods": {
+        "raw": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-independent-evidence/v2",
+          "representation": "raw-e5-baseline",
+          "diagnostics": {
+            "representation": "raw-e5-baseline",
+            "sources": 108,
+            "uniqueEvidenceUnits": 108,
+            "duplicateSources": 0,
+            "comparedPairs": 17758,
+            "acceptedSeeds": 20,
+            "supportedJoins": 8,
+            "workUnits": 47107,
+            "peakCachedPairs": 278,
+            "geometricChecks": 3243,
+            "boundCertifications": 0
+          },
+          "rows": 108,
+          "purePages": 27,
+          "mixedPages": 21,
+          "pureGroups": 13,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 21,
+          "falseGroupedPairs": 18,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 21
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 18
+          }
+        },
+        "diagonal": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-independent-evidence/v2",
+          "representation": "owner-local-diagonal-adapter/v1",
+          "diagnostics": {
+            "representation": "owner-local-diagonal-adapter/v1",
+            "sources": 108,
+            "uniqueEvidenceUnits": 108,
+            "duplicateSources": 0,
+            "comparedPairs": 18476,
+            "acceptedSeeds": 23,
+            "supportedJoins": 8,
+            "workUnits": 49314,
+            "peakCachedPairs": 333,
+            "geometricChecks": 3450,
+            "boundCertifications": 0,
+            "preparationWorkUnits": 217,
+            "transformedSources": 108
+          },
+          "rows": 108,
+          "purePages": 31,
+          "mixedPages": 23,
+          "pureGroups": 15,
+          "mixedGroups": 8,
+          "correctGroupedPairs": 23,
+          "falseGroupedPairs": 19,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 23
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 19
+          }
+        },
+        "body": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-body-metric/v1",
+          "representation": "owner-local-body-topic-metric/v1",
+          "diagnostics": {
+            "representation": "owner-local-body-topic-metric/v1",
+            "sources": 108,
+            "uniqueEvidenceUnits": 108,
+            "duplicateSources": 0,
+            "comparedPairs": 11826,
+            "acceptedSeeds": 31,
+            "supportedJoins": 63,
+            "workUnits": 45271,
+            "peakCachedPairs": 1311,
+            "geometricChecks": 1887,
+            "boundCertifications": 58,
+            "preparationWorkUnits": 217,
+            "transformedSources": 108
+          },
+          "rows": 108,
+          "purePages": 39,
+          "mixedPages": 69,
+          "pureGroups": 7,
+          "mixedGroups": 7,
+          "correctGroupedPairs": 218,
+          "falseGroupedPairs": 240,
+          "opposingViewpointPairs": {
+            "total": 270,
+            "joined": 218
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 648,
+            "joined": 204
+          }
+        }
+      },
+      "differences": {
+        "raw-to-diagonal": {
+          "addedCorrect": 2,
+          "addedFalse": 1,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        },
+        "raw-to-body": {
+          "addedCorrect": 197,
+          "addedFalse": 222,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        },
+        "diagonal-to-body": {
+          "addedCorrect": 195,
+          "addedFalse": 221,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        }
+      }
+    },
+    {
+      "label": "synthetic-v6-60-spent",
+      "reusedMeasuredCohort": true,
+      "rows": 60,
+      "events": 12,
+      "methods": {
+        "raw": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-independent-evidence/v2",
+          "representation": "raw-e5-baseline",
+          "diagnostics": {
+            "representation": "raw-e5-baseline",
+            "sources": 60,
+            "uniqueEvidenceUnits": 60,
+            "duplicateSources": 0,
+            "comparedPairs": 3861,
+            "acceptedSeeds": 2,
+            "supportedJoins": 0,
+            "workUnits": 10272,
+            "peakCachedPairs": 111,
+            "geometricChecks": 226,
+            "boundCertifications": 0
+          },
+          "rows": 60,
+          "purePages": 4,
+          "mixedPages": 0,
+          "pureGroups": 2,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 2,
+          "falseGroupedPairs": 0,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 2
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          }
+        },
+        "diagonal": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-independent-evidence/v2",
+          "representation": "owner-local-diagonal-adapter/v1",
+          "diagnostics": {
+            "representation": "owner-local-diagonal-adapter/v1",
+            "sources": 60,
+            "uniqueEvidenceUnits": 60,
+            "duplicateSources": 0,
+            "comparedPairs": 4825,
+            "acceptedSeeds": 7,
+            "supportedJoins": 0,
+            "workUnits": 12715,
+            "peakCachedPairs": 131,
+            "geometricChecks": 686,
+            "boundCertifications": 0,
+            "preparationWorkUnits": 121,
+            "transformedSources": 60
+          },
+          "rows": 60,
+          "purePages": 14,
+          "mixedPages": 0,
+          "pureGroups": 7,
+          "mixedGroups": 0,
+          "correctGroupedPairs": 7,
+          "falseGroupedPairs": 0,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 7
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 0
+          }
+        },
+        "body": {
+          "status": "complete",
+          "policyVersion": "alternate-indexed-body-metric/v1",
+          "representation": "owner-local-body-topic-metric/v1",
+          "diagnostics": {
+            "representation": "owner-local-body-topic-metric/v1",
+            "sources": 60,
+            "uniqueEvidenceUnits": 60,
+            "duplicateSources": 0,
+            "comparedPairs": 3466,
+            "acceptedSeeds": 18,
+            "supportedJoins": 34,
+            "workUnits": 14461,
+            "peakCachedPairs": 529,
+            "geometricChecks": 487,
+            "boundCertifications": 47,
+            "preparationWorkUnits": 121,
+            "transformedSources": 60
+          },
+          "rows": 60,
+          "purePages": 25,
+          "mixedPages": 35,
+          "pureGroups": 5,
+          "mixedGroups": 3,
+          "correctGroupedPairs": 120,
+          "falseGroupedPairs": 125,
+          "opposingViewpointPairs": {
+            "total": 120,
+            "joined": 120
+          },
+          "sameFamilyDifferentEventPairs": {
+            "total": 450,
+            "joined": 125
+          }
+        }
+      },
+      "differences": {
+        "raw-to-diagonal": {
+          "addedCorrect": 5,
+          "addedFalse": 0,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        },
+        "raw-to-body": {
+          "addedCorrect": 118,
+          "addedFalse": 125,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        },
+        "diagonal-to-body": {
+          "addedCorrect": 113,
+          "addedFalse": 125,
+          "removedCorrect": 0,
+          "removedFalse": 0
+        }
+      }
+    }
+  ],
+  "caveats": [
+    "all-cohorts-reused-not-independent-holdouts",
+    "synthetic-viewpoints-not-independent-publishers",
+    "same-family-different-event-is-an-adjacent-story-proxy-not-gold",
+    "body-prefix-not-Chrome-capture",
+    "representation-and-admission-both-differ",
+    "fixed-installed-artifacts-no-fit-or-retune",
+    "not-a-rights-or-release-gate"
+  ],
+  "vectorsSaved": false,
+  "weightsSaved": false,
+  "activated": false
+}

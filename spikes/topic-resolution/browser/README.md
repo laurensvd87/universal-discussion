@@ -1,5 +1,14 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+Extension 0.13.29 upgrades the optional New view to indexed diagonal v2; Current
+remains the default. No fixed page/neighbor/member ceiling is introduced, but
+the planner still stops at its work/time budget and falls back truthfully.
+The researched BODY metric is deliberately disabled in normal startup after
+challenge failures. Both the diagonal UI and a fabricated BODY composition
+pass actual-Chrome switch/draft/source-link/stale-response checks; the latter
+is only `npm run test:browser:body-metric`, not evidence of model accuracy.
+Stop the normal service before isolated browser QA and restore it afterward.
+
 Extension 0.13.28 adds a reversible **Current / New · experimental** Topic
 view switch under Settings. The new view asks the paired local service for a
 source-scoped grouping made from retained E5 vectors and a validated,

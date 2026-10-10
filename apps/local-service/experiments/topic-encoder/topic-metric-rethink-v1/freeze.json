@@ -1,0 +1,53 @@
+{
+  "freezeHash": "5e16c6d75c9656717e523513f024ad7b26cf1cfedc0d2e6fb3503e3590e7d26c",
+  "sourceSha256": {
+    "apps/local-service/experiments/topic-encoder/topic-metric-rethink-v1/README.md": "0bbf353c3348510e3c81090656c13c82ee3786eb41cbcecd0932a312d809de1c",
+    "apps/local-service/experiments/topic-encoder/topic-metric-rethink-v1/core.js": "32fe859b6b2e4c11e605d3d5cb0dead86644aee3647ac83962ecaa7f59264116",
+    "apps/local-service/experiments/topic-encoder/topic-metric-rethink-v1/core.test.js": "d81ddba7b91292dd5095f24ac9c4b903352764a2e86c5eedb6dac85894222e05",
+    "apps/local-service/experiments/topic-encoder/topic-metric-rethink-v1/run.js": "5243f5bd369b960c1f2c2a6c22e955c72924c54f6bcefb62006899b35565476d",
+    "apps/local-service/experiments/topic-encoder/e5-infer.js": "4292c83b462d8fa1bd109e6b94f575c52d13a9a89717cad64a1f8300a5208a17",
+    "apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/core.js": "6c01b5c9562e7784ca59811610e6dbce4bffc817ef5668a4b7afe0f0a93b35d0",
+    "apps/local-service/experiments/topic-encoder/real-diagonal-adapter-v1/coverage.js": "60bfccc3494bb32653d1eb4d350d117a93883b030d16420015f3635bd490d5a2",
+    "apps/local-service/experiments/topic-encoder/local-contrast-gate-v1/core.js": "290e52e66abf3f1849b24a2e1e47f122ff991e768a335f8dc620a8048efbcffd",
+    "apps/local-service/experiments/topic-encoder/real-event-eval/core.js": "4c5e4d1b1e9f543b6ab837e4467e18b3ce5b5c4a0b14172699ef355eaca3496c",
+    "apps/local-service/experiments/topic-encoder/real-diagonal-fresh-v1/core.js": "2063b80d876991c086a20eb8d62c5436b032fe9aa3586821da47fb3bb3277b60",
+    "apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/core.js": "6a34cb744100c1ec5a9a6390739d435c02e95edb98f1499400fb6c4b79f908ac",
+    "apps/local-service/experiments/topic-encoder/topic-coverage-metrics/core.js": "1a6622c6c18fed4fec0715342a3395ea15e7a88514c8992583445bd38f69f86f"
+  },
+  "corpusSha256": "8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d",
+  "modelSha256": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+  "selected": "within-shrink-50",
+  "settings": {
+    "raw-body-E5": {
+      "threshold": 0.030762188216129666,
+      "negativeCandidates": 4
+    },
+    "diagonal-body-E5": {
+      "threshold": 0,
+      "negativeCandidates": 0
+    },
+    "centered": {
+      "threshold": 0.05867942086900821,
+      "negativeCandidates": 2
+    },
+    "global-shrink-50": {
+      "threshold": 0,
+      "negativeCandidates": 0
+    },
+    "global-shrink-90": {
+      "threshold": 0,
+      "negativeCandidates": 0
+    },
+    "within-shrink-50": {
+      "threshold": 0,
+      "negativeCandidates": 0
+    },
+    "within-shrink-90": {
+      "threshold": 0,
+      "negativeCandidates": 0
+    }
+  },
+  "fitArticles": 475,
+  "calibrationArticles": 274,
+  "developmentArticles": 150
+}

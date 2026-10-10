@@ -153,8 +153,11 @@ test("alternate discussion GET validates canonical bindings and never sends page
   const calls = [];
   const api = client(async (url, options) => { calls.push([url, options.method, options.body]); return json(valid); });
   assert.deepEqual(await api.alternateDiscussion("learned-a", catalog, canonicalDiscussion), valid);
+  const indexed = { ...valid, policyVersion: "alternate-indexed-independent-evidence/v2" };
+  assert.deepEqual(readAlternateDiscussion(indexed, "learned-a", catalog, canonicalDiscussion), indexed);
   assert.deepEqual(calls, [["http://127.0.0.1:4174/v1/sources/learned-a/alternate-discussion", "GET", undefined]]);
   for (const malformed of [
+    { ...valid, policyVersion: "alternate-indexed-independent-evidence/v3" },
     { ...valid, sourceId: "other" }, { ...valid, version: { ...valid.version, revision: valid.version.revision + 1 } },
     { ...valid, sourceIds: ["other"] }, { ...valid, sourceIds: ["learned-a", "learned-a"] },
     { ...valid, canonical: { ...valid.canonical, discussionId: "forged-discussion" } },
