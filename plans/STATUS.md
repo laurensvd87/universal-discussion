@@ -26,6 +26,22 @@ Previous detailed chronology is preserved in
 
 ## Where we are
 
+**2026-10-10 requested switch checkpoint:** The owner requests a reversible
+local old/new Topic policy in the backend and extension. The current fixed
+0.04 competing-neighbor lead remains live despite the owner's earlier
+objection; two retained De Standaard language versions are mutual nearest
+neighbors at 0.951 cosine but stay in separate provisional Topics because
+a 0.932 competitor leaves only 0.019 lead. The new diagonal adapter is
+**not** integrated into service or extension. [ADR-071](../decisions/ADR-071-proposed-reversible-local-topic-policy.md)
+records the proposed policy/migration seam and explicit remaining rights and
+Trust gate. An unconnected, network-denied synthetic [comparison helper](../apps/local-service/src/domain/topic-partition-comparison.js)
+now validates complete partitions and reports changed Sources/root impact;
+it does not apply weights, read retained Sources, alter SQLite, or implement
+rollback. The extension switch remains hidden until an authoritative backend
+capability and transactional reversal exist. Owner-only local use of the
+GlobeSumm-trained weights has been explicitly requested for decision; no
+approval has yet been recorded.
+
 **2026-10-10 body-transfer and switch checkpoint:** The independently
 reviewed, hash-frozen [one-shot body-input comparison](../apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/RESULTS.md)
 tested the unchanged GlobeSumm-trained diagonal adapter against raw E5 on

@@ -185,6 +185,13 @@ made one false join where raw body E5 made none. It is therefore **not**
 an approved live Topic matcher. An optional [dashboard comparison preview](decisions/ADR-070-inert-topic-grouping-preview.md)
 is available for content-free, read-only local partitions; no trained-model
 producer or app routing switch is active.
+The owner has requested a reversible local integration. The
+[proposed switch design](decisions/ADR-071-proposed-reversible-local-topic-policy.md)
+is not activated: the old E5 grouping, including its fixed 0.04 competitor
+lead, still controls discussions. A synthetic-tested comparison helper only
+measures how two supplied partitions differ. The extension has no working
+new-method switch until model-use rights, browser-input quality and durable
+discussion-route reversal are resolved.
 An [in-memory rights-reviewed pair-pilot scaffold](apps/local-service/experiments/topic-encoder/rights-ram-pilot-v1/README.md)
 is tested with fictional data, but has no real page-fetch adapter. It has not
 collected article text or changed the extension; real collection awaits

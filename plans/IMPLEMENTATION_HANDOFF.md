@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 proposed integration checkpoint: the owner requests a reversible
+local old/new Topic policy. [ADR-071](../decisions/ADR-071-proposed-reversible-local-topic-policy.md)
+separates preparation from activation. The existing E5 + 0.04 lead remains
+live; the GlobeSumm-trained adapter is not in the service or extension. A
+new pure [partition comparison](../apps/local-service/src/domain/topic-partition-comparison.js)
+has synthetic, no-network tests only; it is unreferenced and cannot perform
+rollback or produce real adapter groups. Do not surface an extension switch
+until a backend capability accurately reports installed policy and a
+transactional reverse path has been reviewed. Owner/Trust/data-rights
+permission to apply research weights to saved public-page vectors remains
+pending; do not infer it from the request for integration. Preserve original
+browser vectors and source-root/legacy/manual routing invariants.
+
 2026-10-10 switch checkpoint: the unchanged GlobeSumm-trained diagonal
 adapter's [fresh body-prefix transfer](../apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/RESULTS.md)
 improved correct grouped pairs over raw body E5, 255 versus 20 on the same
