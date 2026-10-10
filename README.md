@@ -19,6 +19,13 @@ multilingual news results, but failed adjacent-story stress checks and is **not
 automatically activated**. No additional browser model is installed. See the
 [research decision](decisions/ADR-072-topic-matching-representation-rethink.md).
 
+A separately tested backend-only Ridge1 map is promising: on fresh multilingual
+news it finds 406 correct grouped pairs versus the diagonal control's 84, but
+also 7 wrong pairs versus 3. On an independent five-language challenge it finds
+88 correct/4 wrong versus 73/21. It fails the frozen per-cohort safety screen
+and is not installed or active. This is neither universal Topic accuracy nor
+a live-routing comparison; see [results](apps/local-service/experiments/topic-encoder/ridge1-practical-evaluation-v1/RESULTS.md).
+
 The owner-local build now offers a reversible **Current / New · experimental**
 discussion view in extension Settings, plus the same grouping preview in
 [Topic Atlas](apps/topic-dashboard/README.md). The local service applies a

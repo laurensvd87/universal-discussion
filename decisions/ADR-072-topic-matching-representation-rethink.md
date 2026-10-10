@@ -2,7 +2,7 @@
 
 Status: frozen representation experiments measured; indexed diagonal v2 integrated
 owner-locally; broad BODY and dual-floor activation rejected; teacher transfer
-measured; separately frozen practical trade-off follow-up being prepared.
+and separately frozen practical follow-up measured, neither activated.
 Date: 2026-10-10.
 
 ## Direction and authorization
@@ -127,3 +127,39 @@ on either fresh real or synthetic set. No fresh-led parameter choice or retry.
 Failure stops promotion. No client model, second retained vector, article
 upload, canonical migration or automatic activation follows. Do not retune on
 the exposed 296 cohort or imply the same-corpus holdout is publisher/viewpoint gold.
+
+## Closed practical follow-up
+
+The exact proposal was frozen at
+`2bef154d291cc8c77ddca5ad22974840a9affed53766559458110c7a5a863945`,
+after independent Trust review and 18 passing checks. The single 7.24-minute
+run reproduced the original Ridge1 coefficient hash before new inference.
+298 previously unused reports/21 whole events exclude all 167 exposed events;
+the separately authored v7 challenge has 60 reports in five languages.
+
+Cells are correct/wrong grouped pairs; pure/mixed pages:
+
+| Exact proposed composition | Fresh news298 | Independent v7/60 |
+| --- | ---: | ---: |
+| raw E5 | 72/4; 93/8 | 64/19; 31/18 |
+| installed diagonal | 84/3; 94/6 | 73/21; 35/20 |
+| fixed Ridge1 | 406/7; 185/9 | 88/4; 49/5 |
+
+This materially improves overall reach and overall wrong exposure: 494/11
+pairs versus diagonal 157/24. On the authored challenge it also finds more
+opposing-viewpoint pairs (83 versus70). Nevertheless **the declared screen
+fails**: news wrong pairs rise3->7 and mixed pages6->9. Neither changing the
+screen after seeing fresh results nor claiming there is no improvement is
+justified. Grouped-pair precision and absolute wrong exposure are different
+product trade-offs; these results warrant an explicit future decision, not
+automatic promotion under the failed protocol.
+
+All six plans are order-stable and complete without capacity failure; Ridge1
+news planning took367.8ms. There is no catalog shadow, installer, retained
+Ridge1 artifact or activation after failure. The running owner backend and New
+view still use indexed diagonal; Current is default. Evaluation controls use
+fixed calibrated floors, not the deployed diagonal0.94/0.90 gates, so do not
+call this a live-routing accuracy comparison. Same-corpus labels and authored
+fixtures are not publisher/viewpoint gold or actual Chrome capture validation.
+See the immutable protocol and new RESULTS in
+`apps/local-service/experiments/topic-encoder/ridge1-practical-evaluation-v1/`.

@@ -35,10 +35,20 @@ A train-only linear teacher-distillation experiment is measured and closed:
 none of three maps passed its all-cohort coverage-nonregression screen. Strong
 regularization nevertheless gave 226 correct/0 wrong real-development pairs
 versus diagonal 61/0, and C108 82/20 versus 76/58; v6 reach fell 79 to 53.
-A separate, fixed ridge-1 practical follow-up will test this precision/coverage
-trade-off with the exact indexed/refinement rule on untouched events and an
-independently authored five-language challenge. It does not change the failed
-screen, soften fresh criteria or promote the map. No extra client model.
+A separate, fixed ridge-1 practical follow-up is now measured on 298 untouched
+reports/21 events and an independently authored 60-report, five-language challenge.
+It reproduces the original parameter hash and tests the exact qualified
+indexed/refinement proposal. Fresh news: Ridge1 406 correct/7 wrong grouped pairs,
+185 pure/9 mixed pages; diagonal 84/3, 94/6; raw E5 72/4, 93/8. Independent
+challenge: Ridge1 88/4, 49/5; diagonal 73/21, 35/20; raw 64/19, 31/18. Overall
+Ridge1 gains reach and reduces wrong exposure (494 correct/11 wrong versus
+diagonal 157/24), but **fails** the frozen per-cohort safety screen because fresh
+news wrong/mixed exposure rises. This is promising comparative evidence, not
+proof of universal superiority or a passed activation gate. All six plans are
+order-stable, with no capacity failure; 18 focused/independent Trust checks pass.
+The one-shot run took 7.24 minutes. No retuning, catalog rescue, retained Ridge1
+weights or integration follows this failed screen. New still uses the indexed
+diagonal adapter; Current stays default. No extra client model.
 See ADR-072 and experiment RESULTS. No candidate is promoted by downloads alone.
 No private corpus, model assets, fitted weights or credentials entered Git;
 no LLM/provider inference, new capture permission, deployment or release occurred.

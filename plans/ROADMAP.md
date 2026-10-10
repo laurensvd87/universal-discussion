@@ -14,9 +14,14 @@ validated identity accuracy or internet-scale support. See
 [ADR-072](../decisions/ADR-072-topic-matching-representation-rethink.md).
 Train-only BODY whitening improves translated-news research reach but fails
 adjacent-story grouping; installed weights cannot activate it by default.
-The dual-floor safety grid also failed usefulness. The next bounded check is
-whether an offline teacher's geometry transfers to already saved E5 vectors;
-no extra extension model, second saved vector or canonical migration follows.
+The dual-floor safety grid also failed usefulness. Teacher geometry can transfer
+to already saved E5 vectors: fixed Ridge1 finds 406 correct/7 wrong fresh-news
+pairs versus diagonal 84/3, and independent five-language challenge 88/4 versus
+73/21. The overall trade-off is promising, but its frozen safety screen fails
+because news wrong exposure rises. Do not retune or automatically activate it.
+Current remains default; New remains indexed diagonal. A future experimental
+trade-off decision must preserve the failed screen, not silently relabel it.
+No extra extension model, second saved vector or canonical migration follows.
 
 2026-10-08 owner-directed matching-quality increment: [ADR-063](../decisions/ADR-063-topic-focused-embedding-shadow.md)
 tests a compact project-owned Topic representation against the packaged E5

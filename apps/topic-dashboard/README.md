@@ -44,7 +44,7 @@ No npm dependencies or model download are needed.
 
 ## Experimental grouping preview
 
-The current preview shares indexed diagonal v2 with the extension. A installed
+The current preview shares indexed diagonal v2 with the extension. An installed
 BODY research artifact does not enable the failed broad BODY policy. Snapshot
 refresh observes both local artifact identities, while map positions/neighbor
 scores still describe original E5, not transformed geometry. The dashboard's

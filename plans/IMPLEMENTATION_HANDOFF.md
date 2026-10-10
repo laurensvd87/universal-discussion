@@ -24,12 +24,18 @@ development reach. The bounded guarded planner is preparation only; do not
 activate those thresholds or open fresh data to rescue them. Independent Trust
 passed after fixing hard resource ceilings; 31 restricted safeguard tests pass.
 A frozen train-only linear teacher-distillation experiment is closed without
-a passing map. Ridge-1 improves real-news reach and reduces authored errors but
-loses some v6 coverage. A separately frozen practical follow-up selects that
-fixed precision/reach trade-off under the owner's priority of fewer misjoins,
-not universal coverage; it must test exact indexed/refinement and untouched
-events plus unscored independent v7. Do not reinterpret the failed original
-screen as passed. The failed broad
+a passing map. Its separately frozen practical Ridge1 follow-up is also closed:
+fresh298 news 406 correct/7 wrong grouped pairs, 185 pure/9 mixed pages versus
+diagonal 84/3, 94/6; independent five-language v7 88/4, 49/5 versus 73/21, 35/20.
+Overall reach and wrong exposure improve materially, but the fixed per-cohort
+safety screen fails on news. The original coefficient hash reproduced exactly;
+all six exact-composition plans are order-stable, with no capacity failure.
+18 focused/independent Trust tests pass. Do not retune against these now-spent
+cohorts, perform a catalog rescue, save Ridge1 weights or activate it from this
+failed run. Any future experimental trade-off decision must explicitly preserve
+these failures and distinguish relative precision from absolute wrong exposure;
+it is not a retroactive pass. New still uses indexed diagonal, not Ridge1.
+Read `ridge1-practical-evaluation-v1/RESULTS.md`. The failed broad
 BODY policy must not be advertised as safe across viewpoints, products or
 independent publishers.
 

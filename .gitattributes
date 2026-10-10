@@ -5,3 +5,4 @@ apps/local-service/experiments/topic-encoder/multilingual-independent-v1/records
 apps/local-service/src/domain/alternate-topic-planner-indexed.js text eol=lf
 apps/local-service/src/domain/body-topic-metric.js text eol=lf
 apps/local-service/src/domain/owner-topic-planner.js text eol=lf
+apps/local-service/src/domain/guarded-body-topic-planner.js text eol=lf
