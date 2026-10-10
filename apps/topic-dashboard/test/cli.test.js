@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { createDemoState } from "../../local-service/src/domain/demo-state.js";
-import { generateDashboard, readDashboardRevision, renderDashboardDocument, renderSnapshotScript,
+import { generateDashboard, readDashboardRefreshKey, readDashboardRevision, renderDashboardDocument, renderSnapshotScript,
   watchDashboard } from "../src/cli.js";
 
 const template = '<html><head><link rel="stylesheet" href="./style.css" data-dashboard-style></head><body>' +
@@ -48,6 +48,15 @@ test("one-shot generation writes a matching private snapshot bridge from synthet
     database.prepare("INSERT INTO demo_state VALUES (1, ?, ?, ?, ?)").run(
       state.schema, state.generation, state.revision, JSON.stringify(state));
     assert.equal(readDashboardRevision(databasePath), '["synthetic",0]');
+    const ridgePath = join(directory, "ridge-artifact.json");
+    const refreshOptions = { ridgePath, adapterPath: join(directory, "absent-diagonal.json"),
+      bodyPath: join(directory, "absent-body.json") };
+    const withoutRidge = readDashboardRefreshKey(databasePath, refreshOptions);
+    assert.equal(JSON.parse(withoutRidge)[1], "absent");
+    writeFileSync(ridgePath, "synthetic-content-free-fixture");
+    const withRidge = readDashboardRefreshKey(databasePath, refreshOptions);
+    assert.notEqual(withRidge, withoutRidge, "installed Ridge artifact changes watcher identity");
+    assert.equal(JSON.parse(withRidge)[1][0], 30);
     const result = generateDashboard({ databasePath, outputPath,
       now: () => new Date("2026-01-02T00:00:00.000Z") });
     assert.equal(result.counts.displayedPages, 0);

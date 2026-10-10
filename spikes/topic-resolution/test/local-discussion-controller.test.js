@@ -103,10 +103,13 @@ test("experimental view remains display-only and stale alternate reads cannot at
       reads += 1;
       if (reads === 2) return pending.promise;
       return { mode: "alternate-provisional", sourceId, version: catalog.version,
+        policyVersion: "ridge1-qualified-complete-link/v1", representation: "owner-local-linear-teacher-transfer/ridge1-v1",
         canonical: { topic: discussion.topic, discussionId: discussion.discussionId },
         sourceIds: [sourceId], roots: [{ id: "foreign-root", canonicalTopicId: "other-topic" }], pinnedRoots: [] };
     },
   } });
+  assert.equal(ui.controller.currentState().topicViewMode, "experimental");
+  await ui.controller.setTopicViewMode("classic");
   await ui.controller.open();
   await ui.controller.selectSource("learned-a");
   ui.controller.setDraft("Unsent synthetic draft");
@@ -153,6 +156,39 @@ test("unavailable alternate view is visible while canonical discussion stays usa
   assert.equal(state.alternateDiscussion, null);
   assert.equal(state.alternateError, "unavailable");
   assert.equal(state.discussion.topic.id, "reserved-domain-demo");
+});
+
+test("older alternate policy cannot activate default Topic matching or hide canonical discussion", async () => {
+  for (const [policyVersion, representation] of [
+    ["alternate-indexed-independent-evidence/v2", "owner-local-diagonal-adapter/v1"],
+    ["alternate-indexed-body-metric/v1", "owner-local-body-topic-metric/v1"],
+  ]) {
+    const ui = harness({ client: {
+      async catalog() {
+        const catalog = structuredClone(ui.service.catalog());
+        catalog.sources.push({ id: "learned-old", url: "https://example.com/old", title: "Synthetic article",
+          provenance: "owner-local-page-embedding/v1", topicId: "reserved-domain-demo" });
+        return catalog;
+      },
+      async related(sourceId) {
+        if (sourceId !== "learned-old") return ui.service.related(sourceId, 20);
+        const catalog = ui.service.catalog();
+        return { version: catalog.version, model: catalog.model, results: [] };
+      },
+      async alternateDiscussion(sourceId, catalog, discussion) {
+        return { mode: "alternate-provisional", policyVersion, representation,
+          sourceId, version: catalog.version, canonical: { topic: discussion.topic, discussionId: discussion.discussionId },
+          sourceIds: [sourceId], roots: [], pinnedRoots: [] };
+      },
+    } });
+    await ui.controller.open();
+    await ui.controller.selectSource("learned-old");
+    const state = ui.controller.currentState();
+    assert.equal(state.topicViewMode, "experimental");
+    assert.equal(state.alternateDiscussion, null);
+    assert.equal(state.alternateError, "unavailable");
+    assert.equal(state.discussion.topic.id, "reserved-domain-demo");
+  }
 });
 
 test("root text can be staged while a selected discussion loads but cannot post before the read", async () => {

@@ -2,6 +2,7 @@ import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-ta
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
 import { readPostOrigin } from "./local-service-contract.js";
+import { isRidgeTopicView } from "./topic-view-mode.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
 
 function freeze(value) {
@@ -34,7 +35,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   observeTabLifecycle, lookupByNormalizedUrl, readPageResolution = null, pausePageMatching = null,
   validatePairing = async () => {}, onStateChange = () => {} }) {
   let state = { phase: "disconnected", error: null, catalog: null, discussion: null,
-    topicViewMode: "classic", alternateDiscussion: null, alternateError: null,
+    topicViewMode: "experimental", alternateDiscussion: null, alternateError: null,
     related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
     sourceId: null, topicId: null, actorId: null, selection: null,
     draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null };
@@ -99,6 +100,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     try {
       if (typeof client.alternateDiscussion !== "function") throw { code: "unavailable" };
       const view = await client.alternateDiscussion(sourceId, catalog, discussion, { signal: abort.signal });
+      if (!isRidgeTopicView(view)) throw { code: "unavailable" };
       if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || state.topicViewMode !== "experimental" ||
           state.sourceId !== sourceId || state.phase !== "ready" || state.needsFreshRead ||
           !sameVersion(state.catalog?.version, catalog.version) ||

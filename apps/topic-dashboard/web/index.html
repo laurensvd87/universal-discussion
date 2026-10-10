@@ -23,11 +23,12 @@
         </div>
         <p id="count-context" class="count-context">Lade lokalen Datenstand …</p>
         <div id="grouping-preview" class="grouping-preview" hidden>
-          <span class="search-label">Gruppierung (nur Vorschau)</span>
+          <span class="search-label">Topic-Zuordnung anzeigen</span>
           <div class="grouping-options" role="group" aria-label="Gruppierung anzeigen">
-            <button id="grouping-current" type="button" aria-pressed="true">Aktuell</button>
-            <button id="grouping-experimental" type="button" aria-pressed="false">Experimentell</button>
+            <button id="grouping-experimental" type="button" aria-pressed="false">Topic-Matching</button>
+            <button id="grouping-current" type="button" aria-pressed="true">Legacy E5</button>
           </div>
+          <span id="grouping-availability" class="grouping-availability" hidden>Topic-Matching derzeit nicht verfügbar; Legacy E5 wird angezeigt.</span>
         </div>
         <label class="search-label" for="search-input">Suchen</label>
         <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Titel, Website oder Topic" autocomplete="off"></div>
@@ -36,14 +37,14 @@
       </aside>
 
       <section class="map-section" aria-label="Interaktive Themenkarte">
-        <div class="map-header"><div><span class="eyebrow">SEMANTISCHE LANDKARTE</span><h2 id="map-title">Alle Seiten</h2></div><span id="visible-count" class="visible-count">—</span></div>
+        <div class="map-header"><div><span class="eyebrow">SEMANTISCHE LANDKARTE</span><h2 id="map-title">Alle Seiten</h2><span id="map-mode" class="map-mode" hidden></span></div><span id="visible-count" class="visible-count">—</span></div>
         <div id="map-stage" class="map-stage">
           <svg id="map" viewBox="0 0 1000 700" role="img" aria-label="Interaktive Karte von Seiten und Topics"><g id="map-viewport"></g></svg>
           <div id="empty-state" class="empty-state" hidden><span class="empty-symbol" aria-hidden="true">◎</span><strong>Keine passenden Seiten</strong><span>Suche oder Topic-Auswahl ändern.</span></div>
           <div class="map-controls"><button id="zoom-in" type="button" aria-label="Vergrößern">+</button><button id="zoom-out" type="button" aria-label="Verkleinern">−</button><button id="zoom-reset" type="button" aria-label="Ansicht zurücksetzen">⌑</button></div>
           <div class="map-key"><span><i class="key-topic"></i> Topic</span><span><i class="key-page"></i> Seite</span><span><i class="key-edge"></i> nächste Seiten</span></div>
         </div>
-        <p class="map-note">Abstände in 2D sind eine Annäherung. Die Verbindungslinien beruhen auf Ähnlichkeit der ursprünglichen Vektoren. Topic-Zuordnungen sind vorläufig und keine bestätigte semantische Identität.<span id="preview-note" hidden> Experimentelle Gruppen sind nur eine lokale Anzeige. Diskussionen und Source-Links folgen weiter den aktuellen Topics.</span></p>
+        <p class="map-note">Die 2D-Positionen und Nachbarwerte stammen aus den ursprünglichen E5-Vektoren; sie zeigen keine Abstände des gewählten Matching-Verfahrens. Topic-Zuordnungen sind vorläufig und keine bestätigte semantische Identität.<span id="preview-note" hidden> Topic-Matching-Gruppen sind nur eine lokale Anzeige. Diskussionen und Source-Links folgen weiter den kanonischen Topics.</span></p>
       </section>
 
       <aside class="detail-panel" aria-label="Auswahl und Seiten">

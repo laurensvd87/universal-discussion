@@ -155,9 +155,15 @@ test("alternate discussion GET validates canonical bindings and never sends page
   assert.deepEqual(await api.alternateDiscussion("learned-a", catalog, canonicalDiscussion), valid);
   const indexed = { ...valid, policyVersion: "alternate-indexed-independent-evidence/v2" };
   assert.deepEqual(readAlternateDiscussion(indexed, "learned-a", catalog, canonicalDiscussion), indexed);
+  const ridge = { ...valid, policyVersion: "ridge1-qualified-complete-link/v1",
+    representation: "owner-local-linear-teacher-transfer/ridge1-v1" };
+  assert.deepEqual(readAlternateDiscussion(ridge, "learned-a", catalog, canonicalDiscussion), ridge);
   assert.deepEqual(calls, [["http://127.0.0.1:4174/v1/sources/learned-a/alternate-discussion", "GET", undefined]]);
   for (const malformed of [
     { ...valid, policyVersion: "alternate-indexed-independent-evidence/v3" },
+    { ...ridge, policyVersion: "alternate-indexed-independent-evidence/v2" },
+    { ...ridge, representation: "owner-local-diagonal-adapter/v1" },
+    { ...ridge, representation: "owner-local-linear-teacher-transfer/ridge1-v2" },
     { ...valid, sourceId: "other" }, { ...valid, version: { ...valid.version, revision: valid.version.revision + 1 } },
     { ...valid, sourceIds: ["other"] }, { ...valid, sourceIds: ["learned-a", "learned-a"] },
     { ...valid, canonical: { ...valid.canonical, discussionId: "forged-discussion" } },

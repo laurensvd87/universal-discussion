@@ -33,6 +33,7 @@ function harness(options = {}) {
     alternateReads: () => alternateReads };
 }
 const alternate = (patch = {}) => ({ mode: "alternate-provisional", sourceId: "source-a", version: { generation: "generation-a", revision: 2 },
+  policyVersion: "ridge1-qualified-complete-link/v1", representation: "owner-local-linear-teacher-transfer/ridge1-v1",
   sourceIds: ["source-a", "source-b"], roots: [], pinnedRoots: [], ...patch });
 test("catalog sharing requires exact learned Source, URL, Topic and distinct learned page", () => {
   assert.equal(hasSharedLearnedTopic(ready(), catalog()), true);
@@ -85,6 +86,8 @@ test("classic preference skips alternate reads; unavailable or incoherent altern
   const classic = harness({ readMode: () => "classic", alternateDiscussion: () => { throw new Error("unexpected"); } });
   await classic.controller.update(ready()); assert.equal(classic.painted.get(7), "shared"); assert.equal(classic.alternateReads(), 0);
   for (const alternateDiscussion of [() => { throw new Error("adapter-unavailable"); },
+    () => alternate({ policyVersion: "alternate-indexed-independent-evidence/v2", representation: "owner-local-diagonal-adapter/v1", sourceIds: ["source-a"] }),
+    () => alternate({ policyVersion: "alternate-indexed-body-metric/v1", representation: "owner-local-body-topic-metric/v1", sourceIds: ["source-a"] }),
     () => alternate({ version: { generation: "generation-a", revision: 3 } }),
     () => alternate({ sourceId: "source-stale" }),
     () => alternate({ mode: "unknown-mode", sourceIds: ["source-a"] })]) {

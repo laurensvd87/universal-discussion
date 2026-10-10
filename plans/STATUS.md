@@ -1,5 +1,57 @@
 # Project status
 
+**2026-10-10 approved Ridge1 default, implementation checkpoint (0.13.30):**
+The owner explicitly requests the measured Ridge1 approach as the standard,
+Legacy E5 rollback, and old/new dashboard comparison. [ADR-073](../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md)
+records this separate product trade-off; the frozen per-cohort safety failure
+below remains a failure. No retuning or fresh benchmark rescue occurred.
+
+The reviewed installer reconstructed the original 475-report fit offline with
+the already pinned E5/teacher assets. Installed coefficients only:
+`data/ridge1-topic-adapter-v1.json` (3,129,386 bytes, Git-ignored), parameter SHA
+`593a52ba9a5495a49ef00f4dae38770684389632f961b60ec07067fd8784b3e4`, manifest SHA
+`9ab4eedc74fec18d732a0ffc77a7581da1e486eea40c59d213748b3c950492d1`.
+Normal service/dashboard composition requires that exact parameter pin and
+uses the byte-equivalent frozen Ridge planner, not the failed broad BODY policy.
+Missing/corrupt weights or capacity failure truthfully fall back to Legacy E5.
+
+Extension **Topic matching** is now the initial mode. An explicit **Legacy E5**
+choice survives popup closure/worker suspension in `chrome.storage.session`,
+but Chrome restart or extension reload returns to the new default. Topic Atlas
+defaults to the Ridge preview and compares the same snapshot with Legacy E5;
+selection remains Source-anchored across switching/refresh. Map positions and
+neighbor scores remain raw E5/PCA, not a projection of learned geometry.
+No revisit, extra browser model, second retained vector or new permission is needed.
+
+This is still source-scoped read/presentation integration, not canonical
+SQLite migration. Post/write IDs, root/reply lineage, origin links, manual pins
+and Insight proofs are unchanged. Foreign canonical roots are read-only until
+their source is opened. The read-only real-catalog check loads Ridge successfully:
+149 total Sources, 141 learned pages, 120 Ridge groups, 15 multi-page groups;
+canonical state digest is unchanged. This is availability evidence, not a new
+quality evaluation. The refreshed private dashboard export contains both views.
+
+Checks: service **371 pass/4 skipped**; extension **1,050 pass/1 skipped**
+(restricted **1,051 pass**); dashboard **11 pass**, normal and restricted.
+Six independent adversarial Trust checks pass. Actual Chrome 154 Ridge/default,
+Legacy-retention, delayed-response, draft/post/source invariants and fabricated
+BODY compatibility smokes pass with no runtime exception or external extension
+request; the synthetic dashboard Chrome smoke passes too. The owner service
+was restored with the same Origin/pairing/database after isolated QA, and again
+after the owner's reboot. Loopback responds; no pairing rotation or reset.
+Chrome's existing pairing-store presence is visible, but live token verification
+via raw Chrome storage was blocked by security review and was not performed.
+Normal extension restoration is unchanged; owner Connected confirmation is open.
+
+Next: reload unpacked extension 0.13.30, restart Topic Atlas for the updated UI,
+and test real-page discussion groups. Canonical migration/cross-Topic reply
+authority, source rights, model distribution, provider scope, release and scale
+remain separate gates. Closed experiment receipts are preserved; reproduce their
+old production-factory composition at commit `274a1c2`, not against this new default.
+
+Earlier dated checkpoints below are historical; this checkpoint governs the
+current default and supersedes their no-Ridge-activation instruction.
+
 **2026-10-10 GPT-6.1 Sol rethink, implementation checkpoint (0.13.29):**
 The selectable New view now uses exact geometric indexing, duplicate-evidence
 discounting and one cached partition per committed snapshot. No fixed page,

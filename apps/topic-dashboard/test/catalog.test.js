@@ -7,6 +7,8 @@ import { DatabaseSync } from "node:sqlite";
 import { buildDashboardSnapshot, loadDashboardData } from "../src/data/catalog.js";
 import { buildGroupingPreview, readOwnerAdapter } from "../src/data/grouping-preview.js";
 import { makeDiagonalAdapter } from "../../local-service/src/domain/diagonal-adapter.js";
+import { makeRidgeTopicAdapter } from "../../local-service/src/domain/ridge-topic-adapter.js";
+import { createOwnerTopicPlanner } from "../../local-service/src/domain/owner-topic-planner.js";
 import { operationDigestFor } from "../../local-service/src/domain/source-threads.js";
 import { applyCommand } from "../../local-service/src/domain/demo-state.js";
 import { ADAPTIVE_TOPIC_POLICY } from "../../local-service/src/domain/adaptive-topics.js";
@@ -104,6 +106,27 @@ test("alternate preview covers every displayed Source once, preserving manual pi
   assert.ok(!JSON.stringify(preview).includes("parameters"));
   assert.ok(!JSON.stringify(preview).includes("Synthetic"));
   assert.deepEqual(input.sourceLinks[2], { sourceId: "page-c", topicId: "topic-b", method: "manual-confirmed" });
+});
+
+test("Ridge dashboard preview uses the service planner partition without changing canonical assignments", () => {
+  const input = state();
+  const canonicalBefore = JSON.stringify(input);
+  const weights = Array(384 * 384).fill(0);
+  for (let index = 0; index < 384; index++) weights[index * 384 + index] = 1;
+  const ridgeAdapter = makeRidgeTopicAdapter({ weights, meanX: Array(384).fill(0), meanY: Array(384).fill(0) });
+  const snapshot = buildDashboardSnapshot(input);
+  const expected = createOwnerTopicPlanner({ ridgeAdapter }).plan(input).partitions;
+  const preview = buildGroupingPreview(input, snapshot, null, null, ridgeAdapter);
+  assert.deepEqual(preview.groups, expected);
+  assert.deepEqual(preview.groups, [{ sourceIds: ["page-a", "page-b"] }, { sourceIds: ["page-c"] }]);
+  assert.deepEqual(Object.keys(preview), ["schemaVersion", "catalogRevision", "groups"]);
+  assert.equal(preview.catalogRevision, snapshot.catalogRevision);
+  assert.equal(JSON.stringify(input), canonicalBefore);
+  assert.deepEqual(snapshot.pages.map(({ id, topicId }) => [id, topicId]),
+    [["page-a", "topic-a"], ["page-b", "topic-b"], ["page-c", "topic-b"]]);
+  assert.ok(!JSON.stringify(preview).includes("weights"));
+  assert.ok(!JSON.stringify(preview).includes("embedding"));
+  assert.ok(!JSON.stringify(preview).includes("Synthetic"));
 });
 
 test("owner adapter loader accepts only bounded, valid local file", () => {

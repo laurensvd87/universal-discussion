@@ -1,5 +1,42 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 current checkpoint (0.13.30): the owner explicitly approved Ridge1
+as the restart default, Legacy E5 rollback and dashboard comparison. Read
+[ADR-073](../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md) and the
+top STATUS checkpoint first; earlier default/no-activation statements below
+are historical. The prior frozen safety failure remains failed, not waived
+retroactively or retuned. This is the owner's separate local product decision.
+
+The exact original 475-report fit is installed as ignored coefficients only,
+with parameter pin `593a52ba9a5495a49ef00f4dae38770684389632f961b60ec07067fd8784b3e4`.
+Normal `readInstalledOwnerTopicConfiguration()` now selects only valid Ridge1;
+old diagonal/BODY artifacts cannot silently activate. Explicit legacy research
+composition needs `useLegacyE5: true`; broad BODY remains research-only.
+Existing 384D E5 vectors suffice, without browser model/download or page revisit.
+Production planner code matches the frozen practical proposal. Do not tune on
+the spent cohorts. Closed receipts use the prior factory at commit `274a1c2`;
+preserve them rather than updating their source hashes to this new composition.
+
+Extension default Topic matching is Source-scoped read/presentation only:
+canonical SQLite links, writes, origin links, post/reply lineage and Insight
+authority are unchanged. Foreign canonical roots remain read-only until their
+source is opened. Legacy E5 override is session-only: popup close/worker sleep
+retain it; Chrome restart/extension reload restore the new default. Backend
+restart alone does not reset an open Chrome session's explicit Legacy choice.
+Topic Atlas starts in Topic-Matching when the pinned artifact is available,
+with Legacy E5 comparing the same snapshot. Positions/neighbor scores remain
+original E5/PCA; group colors and membership change. Selection survives refresh.
+
+Service 371 pass/4 skipped; extension 1,050 pass/1 skipped (restricted 1,051);
+dashboard 11 pass in each mode; six independent Trust tests and actual Chrome
+Ridge/default, retained Legacy, delayed response, BODY-compatibility and dashboard
+smokes pass. Canonical real-catalog digest unchanged; owner service restarted
+with the same Origin/pairing/database and restored again after owner reboot.
+Loopback responds. Do not extract credentials from Chrome LevelDB: that direct
+verification was security-blocked; owner popup Connected confirmation remains.
+Next owner actions: reload unpacked extension and restart dashboard. No new
+provider request, permission, canonical migration, rights or release approval.
+
 2026-10-10 GPT-6.1 Sol checkpoint (0.13.29): runtime New uses indexed diagonal
 v2, default Current and canonical storage unchanged. Snapshot cache, exact
 geometric retrieval and duplicate-independent evidence replace the old dense

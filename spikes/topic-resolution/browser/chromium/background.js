@@ -8,6 +8,7 @@ import { createPopupFocusWitness } from "./popup-focus.js";
 import { createCaptureSession, HTTPS_ACCESS } from "../core/capture-session.js";
 import { createTopicToolbarController, TOOLBAR_TAB_KEY } from "../core/topic-toolbar-controller.js";
 import { createTopicToolbarPainter } from "./topic-toolbar-icon.js";
+import { TOPIC_VIEW_SESSION_KEY, readTopicViewMode } from "../core/topic-view-mode.js";
 
 const api = globalThis.chrome;
 const session = createLocalServiceSession({ storageLocal: api.storage.local, storageSession: api.storage.session });
@@ -20,7 +21,7 @@ const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globa
   } });
 const toolbar = createTopicToolbarController({ catalog: client.catalog, discussion: client.discussion,
   alternateDiscussion: client.alternateDiscussion,
-  readMode: async () => (await api.storage.local.get("topicViewMode")).topicViewMode === "experimental" ? "experimental" : "classic",
+  readMode: () => readTopicViewMode(api.storage.session),
   paint: createTopicToolbarPainter(api.action),
   readMarker: async () => {
     await api.storage.session.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
@@ -315,7 +316,7 @@ api.permissions.onRemoved.addListener((removed) => {
   void permission().then((access) => access ? undefined : captureSession.stop()).then(schedule).catch(() => {});
 });
 api.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.topicViewMode) {
+  if (area === "session" && changes[TOPIC_VIEW_SESSION_KEY]) {
     void toolbar.update({ ...matcher.currentState(), presentationTabId }, { verify: true });
   }
   if (area === "local" && changes[PAIRING_KEY]) {

@@ -4,6 +4,7 @@ import test from "node:test";
 import { createUiModePreference, UI_MODE_KEY } from "../browser/chromium/ui-mode.js";
 import { mountPopupShell, projectDiscussionShell } from "../browser/chromium/popup-shell.js";
 import { EN } from "../browser/locales/en.js";
+import { TOPIC_VIEW_SESSION_KEY, readTopicViewMode, writeTopicViewMode } from "../browser/core/topic-view-mode.js";
 
 test("mode defaults User; accepts only the inert enum and persists exactly its dedicated key", async () => {
   const writes = [], changes = [];
@@ -102,7 +103,7 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
   assert.deepEqual(modes, ["user", "developer", "user"]);
 });
 
-test("topic matching choice persists and a delayed saved choice cannot undo a click", async () => {
+test("Topic matching defaults after restart, while Legacy E5 lasts through popup and worker wake", async () => {
   const nodes = new Map();
   for (const id of ["#ui-mode-user", "#ui-mode-developer", "#ui-mode-toggle", "#connection-status",
     "#capture-controls-link", "#app-topic-view-heading", "#app-topic-view-classic",
@@ -114,35 +115,38 @@ test("topic matching choice persists and a delayed saved choice cannot undo a cl
   });
   let resolveSaved;
   const writes = [], modes = [];
-  const storageLocal = { get: (key) => key === "topicViewMode"
-    ? new Promise((resolve) => { resolveSaved = resolve; }) : Promise.resolve({ uiMode: "user" }),
-  set: async (record) => { writes.push(record); } };
+  const saved = {};
+  const storageLocal = { get: async () => ({ topicViewMode: "classic" }), set: async () => {} };
+  const storageSession = { get: () => new Promise((resolve) => { resolveSaved = resolve; }),
+    set: async (record) => { writes.push(record); Object.assign(saved, record); } };
   const document = { body: { dataset: {} }, querySelector: (selector) => nodes.get(selector) };
-  const shell = mountPopupShell(document, { storageLocal });
+  const shell = mountPopupShell(document, { storageLocal, storageSession });
   shell.bindTopicView({ setTopicViewMode: async (mode) => { modes.push(mode); return true; } });
-  shell.render({ phase: "ready", topicViewMode: "classic", sourceId: "source-a",
+  shell.render({ phase: "ready", topicViewMode: "experimental", sourceId: "source-a",
     catalog: { topics: [] }, alternateDiscussion: null });
-  nodes.get("#app-topic-view-experimental").listeners.get("click")();
-  resolveSaved({ topicViewMode: "classic" });
+  nodes.get("#app-topic-view-classic").listeners.get("click")();
+  resolveSaved({});
   await Promise.resolve(); await Promise.resolve();
-  assert.deepEqual(modes, ["experimental"]);
-  assert.deepEqual(writes, [{ topicViewMode: "experimental" }]);
-  assert.equal(nodes.get("#app-topic-view-experimental").attributes["aria-pressed"], "true");
-  assert.equal(nodes.get("#app-topic-view-status").textContent, EN.uiTopicViewLoading);
+  assert.deepEqual(modes, ["classic"]);
+  assert.deepEqual(writes, [{ [TOPIC_VIEW_SESSION_KEY]: "classic" }]);
+  assert.equal(nodes.get("#app-topic-view-classic").attributes["aria-pressed"], "true");
+  assert.equal(await readTopicViewMode({ get: async () => saved }), "classic");
   shell.render({ phase: "ready", topicViewMode: "experimental", sourceId: "source-a",
     catalog: { topics: [] }, alternateDiscussion: { sourceId: "source-a", sourceIds: ["source-a", "source-b"] } });
   assert.equal(nodes.get("#app-topic-view-status").textContent,
     EN.uiTopicViewActive.replace("{count}", "2"));
   shell.dispose();
-  const restored = mountPopupShell(document, { storageLocal: {
-    get: async (key) => key === "topicViewMode" ? { topicViewMode: "experimental" } : { uiMode: "user" },
-    set: async () => {},
-  } });
+  const restored = mountPopupShell(document, { storageLocal,
+    storageSession: { get: async () => saved, set: async () => {} } });
   const restoredModes = [];
   restored.bindTopicView({ setTopicViewMode: async (mode) => { restoredModes.push(mode); return true; } });
   await Promise.resolve(); await Promise.resolve();
-  assert.deepEqual(restoredModes, ["experimental"]);
+  assert.deepEqual(restoredModes, ["classic"]);
   restored.dispose();
+  assert.equal(await readTopicViewMode({ get: async () => ({}) }), "experimental");
+  assert.equal(await readTopicViewMode({ get: async () => ({ topicViewMode: "classic" }) }), "experimental");
+  assert.equal(await readTopicViewMode({ get: async () => { throw Error("unavailable"); } }), "experimental");
+  assert.equal(await writeTopicViewMode({ set: async (value) => writes.push(value) }, "forged"), false);
 });
 
 test("User layout removes the page-title Topic header and hides account identity and diagnostics", () => {

@@ -1,4 +1,5 @@
 import { readCatalog, readDiscussion } from "./local-service-contract.js";
+import { isRidgeTopicView } from "./topic-view-mode.js";
 
 export const TOOLBAR_TAB_KEY = "pageMatchingToolbarTabId";
 export const TOOLBAR_STATES = Object.freeze(["disconnected", "connected", "off", "topic", "shared", "posts"]);
@@ -129,7 +130,7 @@ export function createTopicToolbarController({ catalog, discussion, alternateDis
             if (!alternate) {
               alternate = await alternateDiscussion(snapshot.sourceId, value, projection, { signal });
               if (epoch !== own) return;
-              if (alternate?.sourceId !== snapshot.sourceId ||
+              if (!isRidgeTopicView(alternate) || alternate?.sourceId !== snapshot.sourceId ||
                   alternate.version?.generation !== value.version.generation ||
                   alternate.version?.revision !== value.version.revision ||
                   !["alternate-provisional", "canonical-pinned"].includes(alternate.mode) ||

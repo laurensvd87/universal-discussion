@@ -10,34 +10,36 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension 0.13.29 improves the optional New view's execution with exact geometric
-indexing and snapshot caching. It removes the old fixed all-pair/page ceiling;
-work/time guards still apply, and some dense catalogs can exhaust them. Synthetic
-5,000-page checks are not production-scale validation. Existing comments and
-Current routing remain unchanged. A new backend-only BODY metric has promising
-multilingual news results, but failed adjacent-story stress checks and is **not
-automatically activated**. No additional browser model is installed. See the
-[research decision](decisions/ADR-072-topic-matching-representation-rethink.md).
+Extension 0.13.30 defaults to the backend-only **Ridge1 Topic matching** view,
+with **Legacy E5** available in Settings. A Legacy choice survives popup closure
+but resets to Topic matching after Chrome restart or extension reload. Reload
+the unpacked extension after updating; restart the local service to load the
+installed weights. Pairing, ChatGPT credentials and the database are preserved.
 
-A separately tested backend-only Ridge1 map is promising: on fresh multilingual
-news it finds 406 correct grouped pairs versus the diagonal control's 84, but
-also 7 wrong pairs versus 3. On an independent five-language challenge it finds
-88 correct/4 wrong versus 73/21. It fails the frozen per-cohort safety screen
-and is not installed or active. This is neither universal Topic accuracy nor
-a live-routing comparison; see [results](apps/local-service/experiments/topic-encoder/ridge1-practical-evaluation-v1/RESULTS.md).
+[Topic Atlas](apps/topic-dashboard/README.md) compares both assignments on the
+same snapshot and defaults to Topic-Matching. Switching changes group colors
+and membership; map coordinates and neighbor scores still describe original
+E5 vectors. Restart the dashboard program after updating its code.
 
-The owner-local build now offers a reversible **Current / New · experimental**
-discussion view in extension Settings, plus the same grouping preview in
-[Topic Atlas](apps/topic-dashboard/README.md). The local service applies a
-private adapter to already saved E5 vectors; visiting pages again is not
-required. The new view joins Source-anchored conversations for display, but
-does not rewrite Topic assignments or posts. A post on the current page is
-saved to its existing Topic; posts from other Topics are read-only until you
-open their source. Current remains the default. The experimental grouping
-brings the owner's translated De Standaard test pair together, but a small
-title audit also found false joins, so it is not yet a quality improvement
-claim or publication-ready matcher. See [ADR-071](decisions/ADR-071-proposed-reversible-local-topic-policy.md)
+Ridge1 transforms already saved E5 vectors on this PC; no page revisit or
+larger browser model is required. The installed coefficients remain in ignored
+service data, not Git or the dashboard export. The new view joins
+Source-anchored conversations for display, without rewriting canonical Topic
+links, posts or Insight authority. Posts from another canonical Topic remain
+read-only until you open their source. Missing/invalid weights or exhausted
+work/time budgets fall back to Legacy E5; no partial grouping is used.
+
+The owner explicitly accepted the measured trade-off in
+[ADR-073](decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md): fresh
+multilingual news yields 406 correct/7 wrong grouped pairs versus the prior
+diagonal control's 84/3; an independent five-language challenge yields 88/4
+versus 73/21. The frozen per-cohort safety screen remains failed, not rewritten
+as passed. These are comparative research results, not universal Topic accuracy
+or publication clearance. The older broad BODY policy remains inactive. See
+[results](apps/local-service/experiments/topic-encoder/ridge1-practical-evaluation-v1/RESULTS.md)
 and current [status](plans/STATUS.md).
+
+The following research summaries describe earlier, unpromoted candidates.
 
 The latest [offline pair-verifier probe](apps/local-service/experiments/topic-encoder/offline-pair-verifier-v1/RESULTS.md)
 failed to improve precise multilingual Topic grouping: its cautious

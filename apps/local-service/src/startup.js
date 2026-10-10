@@ -23,10 +23,11 @@ export function createProcessDependencies() {
 
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
   chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, insightDebug = null,
-  ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null }) {
+  ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
-  const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric });
+  const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric,
+    alternateRidgeAdapter });
   let runtime;
   try { runtime = ai ?? createChatGPTRuntime({ service: database.service, dataDir: path.dirname(databasePath),
     fetchImpl: chatgptFetchImpl, refreshStore: chatgptRefreshStore,
@@ -46,7 +47,8 @@ export async function startLocalApplication(options) {
   let activeVerifier = null;
   const pairingVerifier = options.pairingPath ? { verify: (token) => activeVerifier?.verify(token) ?? false } : null;
   // Explicit test composition opts out of installed artifacts entirely.
-  const installed = options.alternateAdapter === undefined && options.alternateBodyMetric === undefined
+  const installed = options.alternateAdapter === undefined && options.alternateBodyMetric === undefined &&
+    options.alternateRidgeAdapter === undefined
     ? readInstalledOwnerTopicConfiguration() : {};
   const application = openDormantLocalApplication({ ...options, ...installed, pairingVerifier });
   try {

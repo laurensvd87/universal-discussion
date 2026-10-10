@@ -81,6 +81,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/related-page-excerpts.js",
     "core/related-sources.js",
     "core/topic-toolbar-controller.js",
+    "core/topic-view-mode.js",
     "embedding/.gitignore",
     "embedding/THIRD_PARTY.md",
     "embedding/e5-browser.js",
@@ -102,7 +103,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.13.29",
+    version: "0.13.30",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -183,7 +184,7 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
     const approvedBindings = label === "chromium/background.js" ? ["globalThis.chrome", "globalThis.fetch"] :
       label === "embedding/offscreen.js" ? ["globalThis.chrome.runtime"] :
       label === "chromium/popup.js" ? ["globalThis.chrome.tabs", "globalThis.chrome.scripting",
-        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows", "globalThis.chrome.storage.local"] : [];
+        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows", "globalThis.chrome.storage.local", "globalThis.chrome.storage.session"] : [];
     for (const approvedBinding of approvedBindings) {
       const bindingCount = source.split(approvedBinding).length - 1;
       assert.equal(

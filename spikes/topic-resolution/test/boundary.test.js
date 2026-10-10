@@ -64,6 +64,7 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       "browser/core/related-page-excerpts.js",
       "browser/core/related-sources.js",
       "browser/core/topic-toolbar-controller.js",
+      "browser/core/topic-view-mode.js",
       "browser/fixtures/indicator-fixtures.js",
       "browser/fixtures/local-service-fixture-bridge.js",
       "browser/fixtures/related-source-fixtures.js",

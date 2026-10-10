@@ -266,7 +266,9 @@ export function readAlternateDiscussion(value, sourceId, catalog, canonicalDiscu
   const mode = oneOf(item.mode, ["alternate-provisional", "canonical-pinned"]);
   const knownPolicy = item.representation === "owner-local-diagonal-adapter/v1"
     ? ["alternate-local-neighborhood/v1", "alternate-indexed-independent-evidence/v2"].includes(item.policyVersion)
-    : item.representation === "owner-local-body-topic-metric/v1" && item.policyVersion === "alternate-indexed-body-metric/v1";
+    : item.representation === "owner-local-body-topic-metric/v1" && item.policyVersion === "alternate-indexed-body-metric/v1" ||
+      item.representation === "owner-local-linear-teacher-transfer/ridge1-v1" &&
+      item.policyVersion === "ridge1-qualified-complete-link/v1";
   if (!knownPolicy ||
       readId(item.sourceId) !== sourceId) invalid();
   const version = readVersion(item.version);

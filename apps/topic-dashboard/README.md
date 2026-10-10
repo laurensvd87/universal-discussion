@@ -42,21 +42,23 @@ HTML-export checks with network/process calls denied. `npm run test:browser`
 runs a separate synthetic headless-Chrome smoke when Chrome is installed.
 No npm dependencies or model download are needed.
 
-## Experimental grouping preview
+## Topic-Matching and Legacy E5 comparison
 
-The current preview shares indexed diagonal v2 with the extension. An installed
-BODY research artifact does not enable the failed broad BODY policy. Snapshot
-refresh observes both local artifact identities, while map positions/neighbor
-scores still describe original E5, not transformed geometry. The dashboard's
-1,000-page rendering guard remains separate from backend storage and matching.
+The dashboard shares the service's Ridge1 planner and pinned, owner-local
+`data/ridge1-topic-adapter-v1.json`. It computes both views from the same
+retained-vector snapshot; no page revisit, file upload or browser query is needed.
+**Topic-Matching** is the default when valid weights are available. **Legacy E5**
+shows the original canonical assignments. Switching keeps the selected page,
+and an explicit choice survives snapshot refresh. A new dashboard document
+starts with Topic-Matching again. Restart the dashboard program after updating
+its code; an already running older watcher does not load new JavaScript.
 
-When the validated owner-local diagonal adapter is installed in the local
-service's ignored `data/diagonal-adapter-v1.json`, Topic Atlas computes a
-read-only grouping preview from the already retained public-page vectors.
-The **Aktuell / Experimentell** switch appears automatically. No file upload
-or extra browser query is needed. A snapshot refresh updates both the map and
-the preview together. If the adapter is absent, invalid, or the planner runs
-out of its work budget, the switch disappears and Current remains available.
+Colors, groups and membership change with the switch, but positions and nearest
+neighbor scores still describe original E5/PCA, not learned geometry. Snapshot
+refresh observes Ridge artifact changes as well as database revisions. Missing,
+invalid or work-budget-exhausted Ridge previews fall back to Legacy E5 with a
+visible availability cue; they cannot activate the failed broad BODY policy.
+The separate 1,000-page rendering guard remains, not a backend storage limit.
 
 The preview is saved beside the report as Source IDs and group membership,
 without article text, embeddings, fitted parameters, comments, or accounts.
@@ -82,5 +84,6 @@ The example revision and IDs are placeholders. The browser rejects extra
 fields, unknown or duplicate IDs, missing displayed Sources, and a stale
 revision. Group labels and positions are derived from the current map;
 source-page links and nearest-neighbor scores stay attached to their original
-Sources. The experimental adapter is an owner-local candidate and can group
-unrelated pages. It is not a quality or publication clearance.
+Sources. Ridge1 can still group unrelated pages; the owner-approved default
+accepts the measured trade-off, not a quality or publication clearance. See
+[ADR-073](../../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md).

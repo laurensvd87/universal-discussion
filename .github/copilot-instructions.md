@@ -2,6 +2,17 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current override (2026-10-10): extension 0.13.30 defaults to owner-approved
+Ridge1 Topic matching, with Chrome-session-only Legacy E5 rollback and the
+same-snapshot dashboard comparison. Read the top STATUS/HANDOFF and ADR-073
+before historical instructions below. Exact pinned coefficients are ignored
+local service data; existing E5 vectors suffice. Read/presentation grouping
+does not migrate canonical Topic links, writes, posts or Insight authority.
+The frozen safety failure remains failed, not retuned or rewritten. Broad
+BODY stays inactive. Existing persistent pairing and protected provider login
+are approved/implemented; do not extract bearer tokens from Chrome files.
+No additional provider, private-scope, rights, deployment or release authority.
+
 Before implementation, read `PROJECT_CHARTER.md`, `README.md`, `plans/STATUS.md`
 and `plans/IMPLEMENTATION_HANDOFF.md`, plus the relevant active product/domain/
 security decisions they reference. Phase 0 and the synthetic 6/6 owner review are

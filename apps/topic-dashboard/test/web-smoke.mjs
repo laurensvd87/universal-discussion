@@ -5,6 +5,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { renderDashboardDocument } from '../src/cli.js';
+import { buildGroupingPreview } from '../src/data/grouping-preview.js';
+import { makeRidgeTopicAdapter } from '../../local-service/src/domain/ridge-topic-adapter.js';
+import { BROWSER_MODEL_ID, EXTRACTOR_VERSION } from '../../local-service/src/domain/learned-sources.js';
 
 const directory = fileURLToPath(new URL('../web/', import.meta.url));
 const browser = process.platform === 'win32'
@@ -24,8 +27,16 @@ try {
     ],
     edges: [{ sourceId: 'page-1', targetId: 'page-2', score: .92 }],
   };
-  const preview = { schemaVersion: 'grouping-preview/v1', catalogRevision: snapshot.catalogRevision,
-    groups: [{ sourceIds: ['page-1'] }, { sourceIds: ['page-2'] }] };
+  const weights = Array(384 * 384).fill(0);
+  for (let index = 0; index < 384; index++) weights[index * 384 + index] = 1;
+  const ridgeAdapter = makeRidgeTopicAdapter({ weights, meanX: Array(384).fill(0), meanY: Array(384).fill(0) });
+  const ridgeState = { sources: snapshot.pages.map((page, index) => ({ id: page.id,
+    title: `Fictional ${page.id}`, url: page.url, provenance: 'owner-local-page-embedding/v1',
+    extractorVersion: EXTRACTOR_VERSION, embedding: { modelId: BROWSER_MODEL_ID,
+      values: [Math.cos(index * 2), Math.sin(index * 2), ...Array(382).fill(0)] } })),
+  sourceLinks: snapshot.pages.map((page) => ({ sourceId: page.id, method: 'learned-provisional' })) };
+  const preview = buildGroupingPreview(ridgeState, snapshot, null, null, ridgeAdapter);
+  assert.deepEqual(preview.groups, [{ sourceIds: ['page-1'] }, { sourceIds: ['page-2'] }]);
   let html = renderDashboardDocument({
     template: readFileSync(path.join(directory, 'index.html'), 'utf8'),
     style: readFileSync(path.join(directory, 'style.css'), 'utf8'),
@@ -33,7 +44,8 @@ try {
     snapshot, preview,
   });
   html = html.replace('</body>', `<script>
-    document.body.dataset.defaultPreviewHidden = document.getElementById('grouping-preview').hidden;
+    document.body.dataset.defaultMode = document.getElementById('map-mode').textContent;
+    document.body.dataset.defaultTopicCount = document.getElementById('count-topics').textContent;
     document.querySelector('.topic-row').click();
     document.querySelector('.page-select').click();
     const search = document.getElementById('search-input');
@@ -46,6 +58,7 @@ try {
       document.body.dataset.previewTopicCount = document.getElementById('count-topics').textContent;
       document.getElementById('grouping-current').click();
       document.body.dataset.currentTopicCount = document.getElementById('count-topics').textContent;
+      document.body.dataset.selectedSourceAfterSwitch = document.querySelector('.page-row.active .page-select')?.getAttribute('aria-label');
       document.getElementById('grouping-experimental').click();
     }, 500);
     setTimeout(() => {
@@ -87,10 +100,14 @@ globalThis.__topicAtlasPreview = globalThis.__smokeBridgeReads === 1 ? ${JSON.st
   }));
   assert.match(result.stdout, /data-preview-topic-count="2"/u);
   assert.match(result.stdout, /data-current-topic-count="1"/u);
-  assert.match(result.stdout, /id="grouping-preview"[^>]*hidden/u);
+  assert.match(result.stdout, /data-default-mode="Topic-Matching"/u);
+  assert.match(result.stdout, /data-default-topic-count="2"/u);
+  assert.match(result.stdout, /data-selected-source-after-switch="Details anzeigen: Erste Seite"/u);
+  assert.match(result.stdout, /id="grouping-experimental"[^>]*disabled/u);
+  assert.match(result.stdout, /id="map-mode"[^>]*>Legacy E5</u);
   assert.match(result.stdout, /id="map" viewBox="125 87\.5 750 525"/u);
   assert.match(result.stdout, /class="page-row active"/u);
-  assert.match(result.stdout, /id="map-title">Alle Seiten/u);
+  assert.match(result.stdout, /id="map-title">Neues Topic/u);
   assert.match(result.stdout, /Kein neuer Datenstand\. Prüfe, ob der Watcher läuft\./u);
   const ordinary = spawnSync(browser, [
     '--headless=new', '--disable-gpu', '--disable-background-networking', '--no-first-run',
@@ -100,7 +117,45 @@ globalThis.__topicAtlasPreview = globalThis.__smokeBridgeReads === 1 ? ${JSON.st
   assert.equal(ordinary.status, 0, ordinary.stderr.slice(-1000));
   assert.match(ordinary.stdout, /id="preview-load-label"[^>]*hidden/u);
   assert.match(ordinary.stdout, /data-preview-shown="true"/u);
+  assert.match(ordinary.stdout, /data-default-mode="Topic-Matching"/u);
   assert.match(ordinary.stdout, /Neue erste Seite/u);
+
+  let delayedHtml = renderDashboardDocument({
+    template: readFileSync(path.join(directory, 'index.html'), 'utf8'),
+    style: readFileSync(path.join(directory, 'style.css'), 'utf8'),
+    script: readFileSync(path.join(directory, 'app.js'), 'utf8'),
+    snapshot, preview: null,
+  });
+  delayedHtml = delayedHtml.replace('</body>', `<script>
+    setTimeout(() => {
+      document.querySelector('.page-select').click();
+      if (new URLSearchParams(location.search).has('legacy')) document.getElementById('grouping-current').click();
+    }, 250);
+    setTimeout(() => document.getElementById('reload-button').click(), 600);
+    setTimeout(() => {
+      document.body.dataset.finalMode = document.getElementById('map-mode').textContent;
+      document.body.dataset.finalSource = document.querySelector('.page-row.active .page-select')?.getAttribute('aria-label');
+      document.body.dataset.matchAvailable = !document.getElementById('grouping-experimental').disabled;
+    }, 2800);
+  </script></body>`);
+  const delayedFile = path.join(temporary, 'delayed.html');
+  writeFileSync(delayedFile, delayedHtml, { mode: 0o600 });
+  writeFileSync(path.join(temporary, 'snapshot.js'), `globalThis.__delayedReads = (globalThis.__delayedReads || 0) + 1;
+globalThis.__topicAtlasSnapshot = ${JSON.stringify(snapshot)};
+globalThis.__topicAtlasPreview = globalThis.__delayedReads === 1 ? null : ${JSON.stringify(preview)};\n`, { mode: 0o600 });
+  for (const [choice, expectedMode] of [['default', 'Topic-Matching'], ['legacy', 'Legacy E5']]) {
+    const delayed = spawnSync(browser, [
+      '--headless=new', '--disable-gpu', '--disable-background-networking', '--no-first-run',
+      `--user-data-dir=${path.join(temporary, `delayed-${choice}-profile`)}`,
+      '--virtual-time-budget=3800', '--dump-dom',
+      `${pathToFileURL(delayedFile).href}?${choice}`,
+    ], { encoding: 'utf8', timeout: 20000, maxBuffer: 2 * 1024 * 1024, windowsHide: true });
+    if (delayed.error) throw delayed.error;
+    assert.equal(delayed.status, 0, delayed.stderr.slice(-1000));
+    assert.match(delayed.stdout, new RegExp(`data-final-mode="${expectedMode}"`, 'u'));
+    assert.match(delayed.stdout, /data-final-source="Details anzeigen: Erste Seite"/u);
+    assert.match(delayed.stdout, /data-match-available="true"/u);
+  }
   process.stdout.write('Dashboard headless Chrome smoke passed.\n');
 } finally {
   // This uniquely named OS-temp directory contains only the synthetic fixture.

@@ -5,6 +5,19 @@ readable web conversations next, then Android and iOS, sharing Topic/discussion
 contracts (owner-confirmed sequencing on 2026-09-29). Core model:
 `Content -> Semantic Topic -> Discussion`.
 
+2026-10-10 current matching checkpoint (0.13.30): the owner explicitly approved
+the measured Ridge1 trade-off as the restart default, with Legacy E5 rollback
+and same-snapshot Topic Atlas comparison. [ADR-073](../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md)
+supersedes the historical no-activation/default statements below, not the
+failed frozen safety screen. Exact pinned coefficients are locally installed;
+existing E5 vectors suffice. Read/presentation integration preserves canonical
+SQLite assignments, posts, replies and Insight authority. Extension override
+is session-only; dashboard positions remain E5/PCA while groups switch.
+Implementation, independent Trust, offline and actual-Chrome checks passed.
+Next: owner real-page experience, broader independent precision evidence and
+incremental/background planning before scale. No historical migration, larger
+browser model, second saved vector, private scope, remote hosting or release.
+
 2026-10-10 practical matching checkpoint: extension 0.13.29's reversible New
 read view and Topic Atlas use exact geometric indexing, independent duplicate
 evidence and a snapshot cache. No fixed catalog/neighbor/Topic-member ceiling;

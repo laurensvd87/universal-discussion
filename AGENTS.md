@@ -8,6 +8,21 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current override (2026-10-10): the owner explicitly approved Ridge1 as the
+restart default with Legacy E5 rollback and same-snapshot dashboard comparison.
+Extension 0.13.30 is implemented and actual-Chrome tested; read the top STATUS,
+IMPLEMENTATION_HANDOFF and ADR-073 before historical instructions below. Exact
+475-report-fit coefficients are installed in ignored service data and pinned.
+Do not retune on closed cohorts or reinterpret their failed safety screen as
+passed. New integration is Source-scoped read/presentation only; canonical
+Topic/write/Insight authority and existing posts remain intact. No page revisit,
+extra browser model, retained vector or new permission. Legacy override is
+Chrome-session-only; restart/reload returns to Topic matching. Dashboard
+positions remain original E5/PCA while membership switches. Failed broad BODY
+remains inactive. No historical migration, rights, distribution or release
+approval follows. Do not extract bearer tokens from Chrome storage files;
+normal persistent pairing is already implemented and restores through Chrome.
+
 Phase 0 and the synthetic 6/6 owner review are complete. Returning agents read
 `plans/STATUS.md` and `plans/IMPLEMENTATION_HANDOFF.md` before choosing work.
 ADR-016 makes the local service the state/matching owner; it supersedes the old

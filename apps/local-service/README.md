@@ -1,12 +1,23 @@
 # Local service
 
-The 0.13.29 optional alternate discussion read uses exact indexed diagonal v2
-and snapshot caching, keeping canonical Topics/posts/Insight authority intact.
-`data/body-topic-metric-v1.json` is reviewed owner-local research, not enabled
-from file presence: its broad radius policy failed adjacent-story checks.
-Default composition uses the older diagonal adapter; explicit BODY injection
-exists only for synthetic QA/research. See ADR-072. No new browser model,
-capture permission, provider call or database migration is included.
+The 0.13.30 owner-approved default discussion view uses the pinned Ridge1
+teacher-transfer map on retained E5 vectors, with exact indexed/refined grouping
+and snapshot caching. Legacy E5 remains a reversible canonical view. This
+changes source-scoped reads, not canonical Topics/posts/Insight authority.
+Normal composition reads only `data/ridge1-topic-adapter-v1.json` and requires
+the original parameter hash; missing/invalid coefficients disable the new view.
+Neither old diagonal nor failed broad BODY artifacts activate automatically.
+See [ADR-073](../../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md).
+No new browser model, capture permission, provider call or database migration.
+
+The reviewed `experiments/topic-encoder/owner-local-ridge1-v1/install.js` is an
+offline one-shot reconstruction of the exact original 475-report fit. It
+requires the already pinned local research inputs/E5/teacher assets, verifies
+the original coefficient hash, and exclusively creates the fixed ignored file.
+It does not download assets, tune, overwrite existing weights or save training
+text/vectors. Run only within the approved owner-local research scope, not as
+an installation step for another user's app. Restart the service after installing
+or updating code; pairing, protected ChatGPT login and SQLite are not reset.
 
 For the owner-approved PCGames citation diagnosis, the optional one-shot
 `node harness/run-live-insight-qa.js --run-live --with-web-search --pcgames`

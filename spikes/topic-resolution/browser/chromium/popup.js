@@ -201,6 +201,7 @@ function primeAiAfterLocalConnection(state) {
 const storageLocal = globalThis.chrome.storage.local;
 const popupShell = mountPopupShell(document, {
   storageLocal,
+  storageSession: globalThis.chrome.storage.session,
   onModeChange: discussionPanel.setMode,
 });
 const localSession = createLocalServiceSessionProxy({ sendMessage: (message) => runtime.sendMessage(message) });

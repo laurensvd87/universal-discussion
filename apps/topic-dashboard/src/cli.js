@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { APP_DATABASE_PATH } from "../../local-service/src/startup.js";
 import { buildDashboardSnapshot, loadDashboardState } from "./data/catalog.js";
-import { buildGroupingPreview, LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH, readInstalledOwnerTopicConfiguration } from "./data/grouping-preview.js";
+import { buildGroupingPreview, LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH, LOCAL_RIDGE_ADAPTER_PATH, readInstalledOwnerTopicConfiguration } from "./data/grouping-preview.js";
 
 const webPath = fileURLToPath(new URL("../web/", import.meta.url));
 export const DEFAULT_REPORT_PATH = path.join(tmpdir(), "universal-discussion-dashboard", "dashboard.html");
@@ -42,15 +42,17 @@ export function renderSnapshotScript(snapshot, preview = null) {
     `globalThis.__topicAtlasPreview = ${serializeSnapshot(preview)};\n`;
 }
 
-function readDashboardBundle(databasePath, now, adapter, bodyMetric) {
+function readDashboardBundle(databasePath, now, adapter, bodyMetric, ridgeAdapter) {
   const state = loadDashboardState(databasePath);
   const snapshot = buildDashboardSnapshot(state, { now });
-  const preview = buildGroupingPreview(state, snapshot, adapter, bodyMetric);
+  const preview = buildGroupingPreview(state, snapshot, adapter, bodyMetric, ridgeAdapter);
   return { snapshot, preview };
 }
 
-export function readDashboardRefreshKey(databasePath = APP_DATABASE_PATH) {
-  const artifactKeys = [LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH].map(filename => {
+export function readDashboardRefreshKey(databasePath = APP_DATABASE_PATH, {
+  ridgePath = LOCAL_RIDGE_ADAPTER_PATH, adapterPath = LOCAL_ADAPTER_PATH,
+  bodyPath = LOCAL_BODY_METRIC_PATH } = {}) {
+  const artifactKeys = [ridgePath, adapterPath, bodyPath].map(filename => {
     try { const info = lstatSync(filename); return [info.size, info.mtimeMs, info.ctimeMs, info.isFile(), info.isSymbolicLink()]; }
     catch { return "absent"; }
   });
@@ -73,10 +75,11 @@ export function readDashboardRevision(databasePath = APP_DATABASE_PATH) {
 }
 
 export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
-  now = () => new Date(), adapter, bodyMetric } = {}) {
-  const installed = adapter === undefined && bodyMetric === undefined ? readInstalledOwnerTopicConfiguration() : {};
+  now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
+  const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
   const { snapshot, preview } = readDashboardBundle(databasePath, now,
-    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null);
+    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
+    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null);
   const document = renderDashboardDocument({
     template: readFileSync(path.join(webPath, "index.html"), "utf8"),
     style: readFileSync(path.join(webPath, "style.css"), "utf8"),
@@ -89,10 +92,11 @@ export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath
 }
 
 export function generateDashboardSnapshot({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
-  now = () => new Date(), adapter, bodyMetric } = {}) {
-  const installed = adapter === undefined && bodyMetric === undefined ? readInstalledOwnerTopicConfiguration() : {};
+  now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
+  const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
   const { snapshot, preview } = readDashboardBundle(databasePath, now,
-    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null);
+    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
+    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null);
   writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview));
   return { outputPath, counts: snapshot.counts };
 }

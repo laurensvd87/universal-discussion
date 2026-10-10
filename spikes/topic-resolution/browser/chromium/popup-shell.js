@@ -1,5 +1,6 @@
 import { EN } from "../locales/en.js";
 import { createUiModePreference } from "./ui-mode.js";
+import { readTopicViewMode, writeTopicViewMode } from "../core/topic-view-mode.js";
 
 export function projectDiscussionShell(state, messages = EN) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -19,7 +20,7 @@ export function projectDiscussionShell(state, messages = EN) {
   });
 }
 
-export function mountPopupShell(document, { storageLocal, onModeChange = () => {}, messages = EN } = {}) {
+export function mountPopupShell(document, { storageLocal, storageSession, onModeChange = () => {}, messages = EN } = {}) {
   const find = (selector) => document.querySelector(selector);
   const text = (key) => messages?.[key] ?? EN[key];
   const shellCopy = [
@@ -59,7 +60,8 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
   let lastState;
   let topicController;
   let topicChoiceRevision = 0;
-  let requestedTopicMode = "classic";
+  let requestedTopicMode = "experimental";
+  let topicWrites = Promise.resolve();
   const appListeners = [];
   const on = (element, event, handler) => {
     if (!element) return;
@@ -151,7 +153,7 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     topicChoiceRevision += 1;
     requestedTopicMode = mode;
     renderTopicView({ ...lastState, topicViewMode: mode, alternateDiscussion: null, alternateError: null });
-    void storageLocal?.set?.({ topicViewMode: mode }).catch?.(() => {});
+    topicWrites = topicWrites.then(() => writeTopicViewMode(storageSession, mode)).catch(() => {});
     void topicController?.setTopicViewMode(mode);
   }
   on(topicClassic, "click", () => chooseTopicMode("classic"));
@@ -236,13 +238,10 @@ export function mountPopupShell(document, { storageLocal, onModeChange = () => {
     topicController = controller;
     const revision = topicChoiceRevision;
     void (async () => {
-      let saved;
-      try { saved = await storageLocal?.get?.("topicViewMode"); } catch { return; }
+      const saved = await readTopicViewMode(storageSession);
       if (revision !== topicChoiceRevision || !topicController) return;
-      if (saved?.topicViewMode === "experimental") {
-        requestedTopicMode = "experimental";
-        await topicController.setTopicViewMode("experimental");
-      }
+      requestedTopicMode = saved;
+      await topicController.setTopicViewMode(saved);
     })();
   }, dispose() {
     topicController = null;

@@ -4,8 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createProcessDependencies, startLocalApplication } from '../../../apps/local-service/src/startup.js';
-import { makeDiagonalAdapter } from '../../../apps/local-service/src/domain/diagonal-adapter.js';
 import { makeBodyTopicMetric } from '../../../apps/local-service/src/domain/body-topic-metric.js';
+import { makeRidgeTopicAdapter } from '../../../apps/local-service/src/domain/ridge-topic-adapter.js';
 import { changePairing } from '../../../apps/local-service/src/http/pairing-store.js';
 import { EN } from '../browser/locales/en.js';
 import { launchChromiumPipe } from './chromium-pipe.js';
@@ -16,7 +16,12 @@ const BROWSER_ROOT = fileURLToPath(new URL('../browser/', import.meta.url));
 const DEFAULT_CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const ORIGIN = 'https://example.com';
 const API = 'http://127.0.0.1:4174/v1';
-const SYNTHETIC_ADAPTER = makeDiagonalAdapter(Array(384).fill(0), { triplets: 100 });
+function syntheticRidgeAdapter() {
+  // Entirely fabricated identity: never load an installed/private Ridge artifact.
+  const weights = Array(384 ** 2).fill(0);
+  for (let row = 0; row < 384; row++) weights[row * 384 + row] = 1;
+  return makeRidgeTopicAdapter({ weights, meanX: Array(384).fill(0), meanY: Array(384).fill(0) });
+}
 function syntheticBodyMetric() {
   // Entirely fabricated identity: never load an installed/private metric artifact.
   const lower = new Float64Array(384 ** 2);
@@ -59,8 +64,8 @@ const CHILD_FILTER = ROOT_FILTER.filter(item => item.type !== 'service_worker');
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 function fixtureUrl(name) { return `${name === 'b' ? 'https://example.org' : ORIGIN}/background-fixture/${name}`; }
 
-export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME, { alternateOnly = false, bodyMetricOnly = false } = {}) {
-  const targetedOnly = alternateOnly || bodyMetricOnly;
+export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME, { alternateOnly = false, ridgeOnly = false, bodyMetricOnly = false } = {}) {
+  const targetedOnly = alternateOnly || ridgeOnly || bodyMetricOnly;
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
   const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-background-smoke-'));
   const databasePath = path.join(directory, 'demo.sqlite');
@@ -225,7 +230,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     capability = changePairing({ filePath: pairingPath, origin: `chrome-extension://${extensionId}`, action });
     application = await startLocalApplication({ databasePath, nextId: dependencies.nextId, now: dependencies.now,
       config: { host: '127.0.0.1', port: 4174, origin: `chrome-extension://${extensionId}`, capability: dependencies.capability },
-      pairingPath, alternateAdapter: SYNTHETIC_ADAPTER,
+      pairingPath, alternateRidgeAdapter: bodyMetricOnly ? null : syntheticRidgeAdapter(),
       alternateBodyMetric: bodyMetricOnly ? syntheticBodyMetric() : null });
   }
   async function backend(route) {
@@ -368,7 +373,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       if (selfUrl(request.url)) await browser.send('Fetch.continueRequest', { requestId }, sessionId);
       else if (selfUrl(target?.url) && apiUrl(request.url)) {
         inspectApiPayload(request);
-        if (delayedAlternate?.url === request.url && !delayedAlternate.ready) {
+        if (delayedAlternate?.url === request.url && targetKind(target) === 'own-popup' && !delayedAlternate.ready) {
           const delayed = delayedAlternate;
           delayed.networkId = networkId; delayed.sessionId = sessionId;
           delayed.ready = true;
@@ -436,6 +441,16 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await toolbar('posts');
     await screenshot('user-shared-topic');
     stage = 'alternate-source-view-and-reversible-switch';
+    // The freshly installed profile must activate Ridge Topic matching without
+    // any click. A legacy BODY service is accepted as a DTO but never shown as
+    // the new standard.
+    await waitExpression(`document.querySelector('#app-topic-view-status')?.dataset.state===${JSON.stringify(bodyMetricOnly ? 'unavailable' : 'active')}`,
+      'fresh default Topic matching or truthful legacy fallback');
+    assert.equal(await evaluate("document.querySelector('#app-topic-view-experimental').getAttribute('aria-pressed')"), 'true');
+    const defaultAlternateRequests = requests.filter(request => selfUrl(request.context) && apiUrl(request.url) && request.url.endsWith('/alternate-discussion'));
+    assert.ok(defaultAlternateRequests.some(request => request.url === `${API}/sources/${b.id}/alternate-discussion`),
+      'Default Topic matching must read the current page Source B');
+    checks.push(bodyMetricOnly ? 'legacy-body-dto-falls-back-to-canonical-with-truthful-status' : 'fresh-default-ridge-source-b-view');
     const canonicalBeforeSwitch = await backend(`/topics/${b.topicId}/discussion`);
     const catalogBeforeSwitch = await catalog();
     const writesBeforeSwitch = requests.filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)).length;
@@ -443,7 +458,8 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await input('#discussion-body', SWITCH_DRAFT);
     await click('#app-settings-button');
     await click('#app-topic-view-experimental');
-    await waitExpression("document.querySelector('#app-topic-view-status')?.dataset.state==='active'", 'source-scoped alternate view');
+    await waitExpression(`document.querySelector('#app-topic-view-status')?.dataset.state===${JSON.stringify(bodyMetricOnly ? 'unavailable' : 'active')}`,
+      'source-scoped alternate view or canonical fallback');
     const alternateRequests = requests.filter(request => selfUrl(request.context) && apiUrl(request.url) && request.url.endsWith('/alternate-discussion'));
     assert.ok(alternateRequests.length > alternateRequestsBeforeSwitch, 'Switch must cause an actual extension alternate read');
     assert.equal(alternateRequests.at(-1).url, `${API}/sources/${b.id}/alternate-discussion`, 'Alternate read must bind the current page Source B');
@@ -458,7 +474,11 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       assert.equal(alternate.representation, 'owner-local-body-topic-metric/v1');
       assert.equal(alternate.policyVersion, 'alternate-indexed-body-metric/v1');
       checks.push('fabricated-identity-body-metric-exact-policy-and-source-dto');
-    } else assert.equal(alternate.representation, 'owner-local-diagonal-adapter/v1');
+    } else {
+      assert.equal(alternate.representation, 'owner-local-linear-teacher-transfer/ridge1-v1');
+      assert.equal(alternate.policyVersion, 'ridge1-qualified-complete-link/v1');
+      checks.push('fabricated-identity-ridge-exact-policy-and-source-dto');
+    }
     await click('#app-settings-back');
     assert.equal(await evaluate("document.querySelector('#discussion-source').value"), b.id);
     assert.equal(await evaluate("document.querySelector('#discussion-body').value"), SWITCH_DRAFT);
@@ -476,19 +496,19 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     assert.equal(requests.filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)).length, writesBeforeSwitch, 'View switches and private draft must not write posts or change membership');
     assert.equal((await source('b')).topicId, b.topicId);
     await postOrigin(COMMENT, fixtureUrl('a'));
-    if (bodyMetricOnly) {
-      stage = 'body-metric-delayed-response-after-current-switch';
+    if (targetedOnly) {
+      stage = 'delayed-alternate-response-after-legacy-switch';
       let release;
       const released = new Promise(resolve => { release = resolve; });
       delayedAlternate = { url: `${API}/sources/${b.id}/alternate-discussion`,
         response: alternate, ready: false, released, release };
-      // Deliver the actual synthetic backend DTO after Current was selected.
+      // Deliver the actual synthetic backend DTO after Legacy E5 was selected.
       // Mode switching does not cancel fetch; the stale result must be ignored.
       await click('#app-settings-button');
       await click('#app-topic-view-experimental');
       await wait(() => delayedAlternate.ready, 'held Source-B alternate browser request');
       await click('#app-topic-view-classic');
-      await waitExpression("document.querySelector('#app-topic-view-status')?.dataset.state==='current'", 'Current while BODY request is pending');
+      await waitExpression("document.querySelector('#app-topic-view-status')?.dataset.state==='current'", 'Legacy E5 while alternate request is pending');
       const statusBeforeStale = await evaluate("document.querySelector('#app-topic-view-status').textContent");
       delayedAlternate.release();
       await wait(() => delayedAlternate.finished, 'delayed Source-B response completed in browser');
@@ -518,10 +538,20 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       assert.equal(requests.filter(request => apiUrl(request.url) && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)).length,
         writesBeforeSwitch + sourceEpochPosts.length);
       delayedAlternate = null;
-      checks.push('delayed-body-response-cannot-reactivate-new-after-current-switch');
-      checks.push('body-current-view-preserved-across-fresh-source-selection-epochs');
+      checks.push('delayed-alternate-response-cannot-reactivate-topic-matching-after-legacy-switch');
+      checks.push('legacy-view-preserved-across-fresh-source-selection-epochs');
     }
     await input('#discussion-body', '');
+    await waitExpression("chrome.storage.session.get('topicViewModeV2').then(value=>value.topicViewModeV2==='classic')",
+      'Legacy E5 browser-session override committed');
+    await closePopup(); await openPopup();
+    await waitExpression(`document.querySelector('#app-topic-view-status')?.dataset.state==='current' &&
+      document.querySelector('#app-topic-view-classic')?.getAttribute('aria-pressed')==='true' &&
+      document.querySelector('#discussion-source')?.value===${JSON.stringify(b.id)} &&
+      ${STATUS}===${JSON.stringify(EN.discussionReady)}`,
+      'Legacy E5 and Source B restored after popup close and reopen');
+    assert.equal(await evaluate("document.querySelector('#discussion-source').value"), b.id);
+    checks.push('legacy-e5-session-override-survives-popup-close-and-reopen');
     checks.push('actual-alternate-source-view-and-reversible-current-switch');
     checks.push('source-bound-alternate-read-preserves-private-draft-source-links-and-canonical-posts');
     if (targetedOnly) {
@@ -533,7 +563,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       return { browser: version.product, result: 'PASS', actualActionPopup: true, checks,
         vectorsSent: ingestions.length, vectorDimensions: 384, externalExtensionRequests,
         runtimeExceptions, interceptedDocuments, elapsedMs: performance.now() - began,
-        scope: `Targeted alternate view; owned intercepted articles; disposable profile/pairing/SQLite; ${bodyMetricOnly ? 'fabricated zero-mean identity BODY metric' : 'synthetic zero-log adapter'}; no provider calls` };
+        scope: `Targeted alternate view; owned intercepted articles; disposable profile/pairing/SQLite; ${bodyMetricOnly ? 'fabricated zero-mean identity BODY metric' : 'fabricated zero-mean identity Ridge1 adapter'}; no provider calls` };
     }
     checks.push('toolbar-dark-blue-requires-distinct-learned-peer-and-visible-post');
     const capturesBeforeWithdraw = ingestions.length;
@@ -704,6 +734,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   runBackgroundMatchingBrowserSmoke(process.argv[2]?.startsWith('--') ? undefined : process.argv[2],
-    { alternateOnly: process.argv.includes('--alternate-only'), bodyMetricOnly: process.argv.includes('--body-metric-only') }).then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
+    { alternateOnly: process.argv.includes('--alternate-only'), ridgeOnly: process.argv.includes('--ridge-only'),
+      bodyMetricOnly: process.argv.includes('--body-metric-only') }).then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
     .catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });
 }

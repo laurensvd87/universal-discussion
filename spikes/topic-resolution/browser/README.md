@@ -1,27 +1,32 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-Extension 0.13.29 upgrades the optional New view to indexed diagonal v2; Current
-remains the default. No fixed page/neighbor/member ceiling is introduced, but
-the planner still stops at its work/time budget and falls back truthfully.
-The researched BODY metric is deliberately disabled in normal startup after
-challenge failures. Both the diagonal UI and a fabricated BODY composition
-pass actual-Chrome switch/draft/source-link/stale-response checks; the latter
-is only `npm run test:browser:body-metric`, not evidence of model accuracy.
-Stop the normal service before isolated browser QA and restore it afterward.
+Extension 0.13.30 defaults to **Topic matching** (Ridge1) and offers **Legacy E5**
+under Settings. The Legacy override survives popup closure/worker suspension,
+but Chrome restart or extension reload resets the new default. Old persistent
+mode preferences are ignored. Reload the unpacked extension after updating;
+restart the local service to load the installed Ridge coefficients. Existing
+pairing remains saved across restarts; no token rotation/reset is required.
 
-Extension 0.13.28 adds a reversible **Current / New · experimental** Topic
-view switch under Settings. The new view asks the paired local service for a
-source-scoped grouping made from retained E5 vectors and a validated,
-owner-local adapter. It can show Source-anchored conversations from different
-canonical Topics together without rewriting saved Topics or posts. Posts from
-the current page still use its canonical Topic; a conversation from another
-Topic is read-only here, with a link to open its source before replying.
-Manual Topics and their posts remain pinned. If the adapter is missing,
-invalid or exceeds the bounded planner budget, Current remains available.
-Current is the default; the new grouping has known false joins and is **not**
-validated Topic identity. Restart the local service and reload the unpacked
-extension to try the switch. No new permission, page reread or model download
-is needed. See [ADR-071](../../../decisions/ADR-071-proposed-reversible-local-topic-policy.md).
+The new view asks the paired service for Source-scoped grouping of already
+retained E5 vectors. It can display Source-anchored conversations from different
+canonical Topics together without rewriting saved links or posts. Posts from
+the current page still use its canonical Topic; foreign canonical conversations
+are read-only here until you open their source. Manual roots stay pinned.
+Missing/invalid Ridge coefficients, old service responses or exhausted work/time
+budgets fall back to Legacy E5, not stale or partial groups. No new permission,
+page reread or larger browser model is needed. Topic Atlas compares the same
+two assignments; its map positions remain original E5/PCA.
+
+The owner accepted the measured trade-off in
+[ADR-073](../../../decisions/ADR-073-default-ridge-topic-view-with-legacy-e5.md),
+not universal accuracy or release clearance. The broad BODY research policy
+remains inactive. Actual Chrome Ridge/default, Legacy retention, delayed
+response, draft/post/source checks pass with fabricated coefficients/public
+synthetic pages via `npm run test:browser:ridge`. BODY compatibility uses
+`npm run test:browser:body-metric`; it does not activate that model. Stop the
+normal service before isolated browser QA and restore it afterward.
+
+Earlier version notes below are historical.
 
 Extension 0.13.27 looks past empty nearby Topics for discussions that actually
 contain posts. It reads related candidates in batches of four until it has four

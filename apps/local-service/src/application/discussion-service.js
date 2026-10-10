@@ -17,11 +17,12 @@ export const DEMO_ACTORS = Object.freeze([
 const ALTERNATE_SOURCE_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 
 export function createDiscussionService({ repository, ranking, sources, topicSeeds, nextId, now,
-  alternateAdapter = null, alternateBodyMetric = null }) {
+  alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null }) {
   const actors = new Map(DEMO_ACTORS.map((actor) => [actor.id, actor]));
   let ownerPlanner = null;
-  if (alternateAdapter !== null || alternateBodyMetric !== null) {
-    try { ownerPlanner = createOwnerTopicPlanner({ diagonalAdapter: alternateAdapter, bodyMetric: alternateBodyMetric }); }
+  if (alternateAdapter !== null || alternateBodyMetric !== null || alternateRidgeAdapter !== null) {
+    try { ownerPlanner = createOwnerTopicPlanner({ diagonalAdapter: alternateAdapter, bodyMetric: alternateBodyMetric,
+      ridgeAdapter: alternateRidgeAdapter }); }
     catch { /* Invalid selected weights disable only the experimental read. */ }
   }
   const alternatePlan = createSnapshotTopicPlanner(state => ownerPlanner.plan(state));

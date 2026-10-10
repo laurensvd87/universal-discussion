@@ -41,25 +41,25 @@ function harness(configuration) {
 test('Trust: default installed selection remains diagonal; explicit BODY research distinguishes missing from corruption', () => {
   const directory = mkdtempSync(path.join(os.tmpdir(), 'udl-fictional-body-composition-'));
   const adapterPath = path.join(directory, 'diagonal.json'), bodyPath = path.join(directory, 'body.json');
-  const read = () => readInstalledOwnerTopicConfiguration({ bodyPath, adapterPath, useBodyMetric: true });
-  const defaultRead = () => readInstalledOwnerTopicConfiguration({ bodyPath, adapterPath });
+  const read = () => readInstalledOwnerTopicConfiguration({ bodyPath, adapterPath, useLegacyE5: true, useBodyMetric: true });
+  const defaultRead = () => readInstalledOwnerTopicConfiguration({ bodyPath, adapterPath, useLegacyE5: true });
   try {
     writeFileSync(adapterPath, JSON.stringify(diagonal));
-    assert.deepEqual(read(), { alternateAdapter: diagonal, alternateBodyMetric: null });
+    assert.deepEqual(read(), { alternateAdapter: diagonal, alternateBodyMetric: null, alternateRidgeAdapter: null });
     writeFileSync(bodyPath, JSON.stringify(body));
-    assert.deepEqual(read(), { alternateAdapter: null, alternateBodyMetric: body });
+    assert.deepEqual(read(), { alternateAdapter: null, alternateBodyMetric: body, alternateRidgeAdapter: null });
     const current = defaultRead();
-    assert.deepEqual(current, { alternateAdapter: diagonal, alternateBodyMetric: null });
+    assert.deepEqual(current, { alternateAdapter: diagonal, alternateBodyMetric: null, alternateRidgeAdapter: null });
     const h = harness(current);
     assert.equal(h.service.alternateDiscussion(h.a.sourceId).policyVersion, 'alternate-indexed-independent-evidence/v2');
     assert.deepEqual(h.service.alternateDiscussion(h.a.sourceId).sourceIds, [h.a.sourceId]);
     for (const corrupt of ['{', '{}', '', Buffer.from([0xc0, 0xaf]), Buffer.alloc(BODY_METRIC_MAX_BYTES + 1)]) {
       writeFileSync(bodyPath, corrupt);
-      assert.deepEqual(read(), { alternateAdapter: null, alternateBodyMetric: null });
-      assert.deepEqual(defaultRead(), { alternateAdapter: diagonal, alternateBodyMetric: null });
+      assert.deepEqual(read(), { alternateAdapter: null, alternateBodyMetric: null, alternateRidgeAdapter: null });
+      assert.deepEqual(defaultRead(), { alternateAdapter: diagonal, alternateBodyMetric: null, alternateRidgeAdapter: null });
     }
     unlinkSync(bodyPath);
-    assert.deepEqual(read(), { alternateAdapter: diagonal, alternateBodyMetric: null });
+    assert.deepEqual(read(), { alternateAdapter: diagonal, alternateBodyMetric: null, alternateRidgeAdapter: null });
   } finally {
     for (const filename of [bodyPath, adapterPath]) {
       try { unlinkSync(filename); } catch (error) { if (error.code !== 'ENOENT') throw error; }
