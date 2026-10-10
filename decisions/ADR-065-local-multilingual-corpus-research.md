@@ -1,7 +1,14 @@
 # ADR-065: Local-only real multilingual corpus research
 
-Status: owner-approved for local research only; not a product data or model-use clearance.
+Status: owner-approved local research; owner-local model-use scope expanded
+by ADR-071 on 2026-10-10; no distribution or release clearance.
 Date: 2026-10-08.
+
+2026-10-10 amendment: the owner subsequently approved project use of the
+fitted weights for an owner-local integration experiment. ADR-071 scopes that
+extension of authority. This does not determine underlying publisher rights,
+permit committing/distributing the trained weights, or authorize store
+submission or publication.
 
 ## Decision and boundary
 

@@ -33,14 +33,17 @@ objection; two retained De Standaard language versions are mutual nearest
 neighbors at 0.951 cosine but stay in separate provisional Topics because
 a 0.932 competitor leaves only 0.019 lead. The new diagonal adapter is
 **not** integrated into service or extension. [ADR-071](../decisions/ADR-071-proposed-reversible-local-topic-policy.md)
-records the proposed policy/migration seam and explicit remaining rights and
-Trust gate. An unconnected, network-denied synthetic [comparison helper](../apps/local-service/src/domain/topic-partition-comparison.js)
-now validates complete partitions and reports changed Sources/root impact;
-it does not apply weights, read retained Sources, alter SQLite, or implement
-rollback. The extension switch remains hidden until an authoritative backend
-capability and transactional reversal exist. Owner-only local use of the
-GlobeSumm-trained weights has been explicitly requested for decision; no
-approval has yet been recorded.
+now records the owner's explicit approval for local project use of fitted
+weights; publisher/model-distribution rights and release remain unverified.
+The chosen first switch is a backend-owned alternate discussion **view**,
+keeping canonical E5 routes and posts intact for immediate switch-back. An
+unconnected synthetic [comparison helper](../apps/local-service/src/domain/topic-partition-comparison.js)
+validates complete partitions; a synthetic [virtual projection](../apps/local-service/src/domain/experimental-topic-projection.js)
+aggregates Source-anchored roots with canonical write targets and a merged
+response bound. Neither applies weights, reads retained Sources, changes
+SQLite or exposes an API/UI. An isolated Chrome/Node E5 check on three
+fictional inputs found identical coordinates with no external requests;
+this is not real-page Topic-quality evidence.
 
 **2026-10-10 body-transfer and switch checkpoint:** The independently
 reviewed, hash-frozen [one-shot body-input comparison](../apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/RESULTS.md)

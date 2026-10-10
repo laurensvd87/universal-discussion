@@ -3,15 +3,19 @@
 2026-10-10 proposed integration checkpoint: the owner requests a reversible
 local old/new Topic policy. [ADR-071](../decisions/ADR-071-proposed-reversible-local-topic-policy.md)
 separates preparation from activation. The existing E5 + 0.04 lead remains
-live; the GlobeSumm-trained adapter is not in the service or extension. A
+live; the owner approved local project use of fitted weights, not legal
+source-rights or release clearance. The GlobeSumm-trained adapter is not
+yet in the service or extension. A
 new pure [partition comparison](../apps/local-service/src/domain/topic-partition-comparison.js)
 has synthetic, no-network tests only; it is unreferenced and cannot perform
-rollback or produce real adapter groups. Do not surface an extension switch
-until a backend capability accurately reports installed policy and a
-transactional reverse path has been reviewed. Owner/Trust/data-rights
-permission to apply research weights to saved public-page vectors remains
-pending; do not infer it from the request for integration. Preserve original
-browser vectors and source-root/legacy/manual routing invariants.
+rollback or produce real adapter groups. A synthetic virtual discussion
+view retains canonical Topic/write IDs and leaves saved routing unchanged;
+the first local switch changes presentation only. Do not surface an extension
+switch until an authenticated backend capability truthfully reports the
+alternate view. Preserve browser vectors and source-root/legacy/manual
+invariants. Cross-Topic reply origin and AI follow-up proofs are not yet
+ready for virtual grouping. Distribution/store rights and release remain
+separate gates.
 
 2026-10-10 switch checkpoint: the unchanged GlobeSumm-trained diagonal
 adapter's [fresh body-prefix transfer](../apps/local-service/experiments/topic-encoder/real-diagonal-body-transfer-v1/RESULTS.md)
