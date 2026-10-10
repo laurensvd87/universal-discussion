@@ -29,6 +29,7 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
   assert.match(opener, /inspect only the exact URLs in missingRelatedCandidateUrls/u);
   assert.match(opener, /Use only these selected reference IDs in the written post/u);
   assert.match(opener, /selectedWebReferences assigns ref1, ref2/u);
+  assert.match(opener, /Cite at most five distinct sources in total, including currentSource if the provider attaches its own citation/u);
   assert.match(opener, /matching \[refN\] marker immediately after the claim/u);
   assert.match(opener, /\[ref1\], \[ref2\], and so on/u);
   assert.match(opener, /Do not make unsupported claims about a selected page/u);

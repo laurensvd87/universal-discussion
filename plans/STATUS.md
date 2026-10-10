@@ -1,5 +1,48 @@
 # Project status
 
+**2026-10-10 current-page citation correction, complete (0.13.37):**
+The owner's `response-web-citation` failure is classified by the running
+service's content-free trace as `current-source-url`: the existing strict
+completed-stream fallback reaches citation validation, then rejects the exact
+primary Source already supplied to ChatGPT. No raw original response was saved,
+so this establishes the rejection category, not the original answer's quality.
+[ADR-079](../decisions/ADR-079-current-page-provider-citations.md) records the
+evidence-backed correction and the owner's bounded diagnostic retry permission.
+
+Safe provider annotations to the exact current Source now pass only with enabled
+research, a consistently completed search/assistant, valid spans and reconciled
+response/search IDs and indices. Opening Insights still reject other unselected
+URLs; broad replies retain ADR-078's discovery scope. No-search/tool-off,
+unsafe/variant opener URLs, contradictions, failures and incomplete streams
+remain rejected. All accepted citations share a five-distinct-source ceiling,
+including the primary page. Its link uses the existing clickable arrow, but
+primary-only citations retain **No outside sources cited**; accepted outside
+citations hide that cue. Stream fallback and one-shot local sharing are unchanged.
+
+Sol Medium implementation and independent Trust review pass, including the
+normal-stream current-citation identity guards found during review. Final full
+service **390 pass/4 optional skips**; extension **1,103 pass/1 optional skip**,
+restricted **1,104 pass**. Synthetic disposable Chrome verifies primary-only and
+mixed citation links/cues, typing/nesting/keyboard, narrow layout, zoom and reduced
+motion with zero provider dispatch; root reviews both screenshots. Secret scans
+(service 622, extension 189 files) and diff checks pass. Official OpenAI Docs
+informed the provider annotation and clickable-link contract.
+
+One fresh public MDN probe through the existing protected ChatGPT connection
+completes with **gpt-6-luna**, **one Responses call**, a 4,096-character current
+extract and one accepted exact current-page citation (zero outside citations).
+It sends no related candidates, prints counts only and posts/archives no answer.
+This verifies fresh transport/current-citation compatibility, not the original
+owner product-price question or factual quality. The two-call diagnostic ceiling
+is not exhausted; no further request is needed and no app-wide retry loop is added.
+
+The verified normal service is restored with the same extension Origin, pairing,
+protected login and SQLite; raw debug remains off. A normal final restart loaded
+the citation-count prompt clarification. Expected unauthenticated catalog **401**
+confirms listener availability only. Reload the unpacked extension to **0.13.37**
+to load the corrected cue. No new permission, model, data retention, catalog
+ingestion, migration, deployment, publication or store clearance follows.
+
 **2026-10-10 deliberate reply web discovery, complete (0.13.36):**
 The owner explicitly approves [ADR-078](../decisions/ADR-078-deliberate-reply-web-discovery.md)
 after asking why a product-price reply only uses catalog listings. A deliberate

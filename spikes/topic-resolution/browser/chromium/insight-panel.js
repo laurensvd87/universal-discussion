@@ -287,8 +287,11 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
         text("citationUnverifiedOpen"), text("citationUnverifiedNote"));
       renderedDraftSignature = draftSignature;
     }
-    currentPageOnly.hidden = !exactGenerated || !Array.isArray(state.ai?.result?.citations) ||
-      state.ai.result.citations.length !== 0;
+    const acceptedCitations = state.ai?.result?.citations;
+    const currentSourceUrl = state.context?.currentSource?.url;
+    currentPageOnly.hidden = !exactGenerated || !Array.isArray(acceptedCitations) ||
+      acceptedCitations.length > 0 && (typeof currentSourceUrl !== "string" ||
+        acceptedCitations.some((citation) => citation?.url !== currentSourceUrl));
     relatedExcerptIndicator.hidden = simplePreview || !exactGenerated || state.relatedExcerptCount === null ||
       state.relatedExcerptCount === undefined;
     relatedExcerptIndicator.textContent = relatedExcerptIndicator.hidden ? "" :

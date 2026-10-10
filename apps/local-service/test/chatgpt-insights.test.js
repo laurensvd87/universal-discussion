@@ -135,6 +135,85 @@ test("broad reply discovers off-catalog HTTPS citations without catalog candidat
   adapter.dispose();
 });
 
+test("completed search may cite the exact current page in opener and broad reply", async () => {
+  for (const followup of [null, { parentBody: "Published opener", questionBody: "Selected message" }]) {
+    const current = CONTEXT.currentSource;
+    const annotation = { type: "url_citation", url: current.url,
+      start_index: 0, end_index: 7 };
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(complete("Finding.", [annotation])),
+    getAccessToken: async () => ACCESS });
+    const result = await adapter.createInsight({ ...REQUEST, allowWebResearch: true,
+      ...(followup ? { followup } : {}) });
+    assert.deepEqual(result.citations, [{ url: current.url, title: current.title,
+      startIndex: 0, endIndex: 7 }]);
+    adapter.dispose();
+  }
+});
+
+test("opening current-page citation rejects observed response and search identity contradictions", async () => {
+  const message = { type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Finding.", annotations: [{ type: "url_citation",
+      url: CONTEXT.currentSource.url, start_index: 0, end_index: 7 }] }] };
+  const terminal = { id: "resp_final", status: "completed", output: [
+    { id: "search_final", type: "web_search_call", status: "completed" }, message] };
+  for (const raw of [
+    event("response.created", { id: "resp_other", status: "in_progress" }) +
+      event("response.completed", terminal),
+    event("response.created", { id: "resp_final", status: "in_progress" }) +
+      streamEvent("response.output_item.added", { output_index: 0, item: {
+        id: "search_other", type: "web_search_call", status: "in_progress" } }) +
+      event("response.completed", terminal),
+  ]) {
+    const adapter = createChatGptInsights({ fetchImpl: async (endpoint) =>
+      endpoint.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true }),
+      errorCode("invalid-response"));
+    adapter.dispose();
+  }
+});
+
+test("current-page citation requires exact URL, valid span, enabled tool and completed search", async () => {
+  const current = CONTEXT.currentSource.url;
+  for (const [url, endIndex, allowWebResearch, searched] of [
+    [current, 7, true, false], [current, 7, false, true],
+    [`${current}?source=search`, 7, true, true], [`${current}/`, 7, true, true],
+    ["http://example.com/current", 7, true, true], [current, 99, true, true],
+  ]) {
+    const annotation = { type: "url_citation", url, start_index: 0, end_index: endIndex };
+    const adapter = createChatGptInsights({ fetchImpl: async (endpoint) =>
+      endpoint.endsWith("/models") ? models() : stream(complete("Finding.", [annotation], searched)),
+    getAccessToken: async () => ACCESS });
+    await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch }), errorCode("invalid-response"));
+    adapter.dispose();
+  }
+  const annotation = { type: "url_citation", url: current, start_index: 0, end_index: 7 };
+  const adapter = createChatGptInsights({ fetchImpl: async (endpoint) =>
+    endpoint.endsWith("/models") ? models() : stream(complete("Finding.", [annotation], false)),
+  getAccessToken: async () => ACCESS });
+  await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true,
+    followup: { parentBody: "Published opener", questionBody: "Selected message" } }),
+  errorCode("invalid-response"));
+  adapter.dispose();
+});
+
+test("current page and discovered URLs count together toward five unique destinations", async () => {
+  const links = [CONTEXT.currentSource.url,
+    ...Array.from({ length: 5 }, (_, index) => `https://shop${index}.example.net/offer`)];
+  for (const count of [5, 6]) {
+    const annotations = links.slice(0, count).map((url, index) => ({ type: "url_citation",
+      url, start_index: index, end_index: index + 1 }));
+    const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+      url.endsWith("/models") ? models() : stream(complete("A".repeat(count), annotations)),
+    getAccessToken: async () => ACCESS });
+    const request = { ...REQUEST, allowWebResearch: true,
+      followup: { parentBody: "Published opener", questionBody: "Selected message" } };
+    if (count === 5) assert.equal((await adapter.createInsight(request)).citations.length, 5);
+    else await assert.rejects(adapter.createInsight(request), errorCode("invalid-response"));
+    adapter.dispose();
+  }
+});
+
 test("broad reply accepts context-only output without search but rejects selected ref without search", async () => {
   for (const body of ["A reply from the supplied context.", "A cited reply [ref1]."]) {
     const adapter = createChatGptInsights({ fetchImpl: async (url) =>
@@ -207,6 +286,28 @@ test("broad reply accepts an off-catalog citation through the strict finalized-i
     followup: { parentBody: "Published opener", questionBody: "Selected message" } });
   assert.deepEqual(result.citations, [{ url: discovered, title: "shop.example.net",
     startIndex: 0, endIndex: 6 }]);
+  adapter.dispose();
+});
+
+test("strict finalized-item fallback accepts an exact current-page citation after completed search", async () => {
+  const current = CONTEXT.currentSource;
+  const item = { id: "msg_current", type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Finding.", annotations: [{ type: "url_citation",
+      url: current.url, start_index: 0, end_index: 7 }] }] };
+  const raw = event("response.created", { id: "resp_current", status: "in_progress" }) +
+    streamEvent("response.output_item.added", { output_index: 0, item: {
+      id: "search_current", type: "web_search_call", status: "in_progress" } }) +
+    streamEvent("response.output_item.done", { output_index: 0, item: {
+      id: "search_current", type: "web_search_call", status: "completed" } }) +
+    streamEvent("response.output_item.added", { output_index: 1, item: {
+      id: item.id, type: "message", role: "assistant", status: "in_progress", content: [] } }) +
+    streamEvent("response.output_item.done", { output_index: 1, item }) +
+    event("response.completed", { id: "resp_current", status: "completed", output: [] });
+  const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+    url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+  assert.deepEqual((await adapter.createInsight({ ...REQUEST, allowWebResearch: true,
+    followup: { parentBody: "Published opener", questionBody: "Selected message" } })).citations,
+  [{ url: current.url, title: current.title, startIndex: 0, endIndex: 7 }]);
   adapter.dispose();
 });
 
@@ -484,7 +585,6 @@ test("provider citations reject every URL outside the exact request-scoped web c
   for (const [label, url, request] of [
     ["same host, different path", "https://research.example.net/other", { ...REQUEST, allowWebResearch: true, relatedExcerpts: [supplied] }],
     ["other host", "https://else.example.net/related", { ...REQUEST, allowWebResearch: true, relatedExcerpts: [supplied] }],
-    ["current page", CONTEXT.currentSource.url, { ...REQUEST, allowWebResearch: true, relatedExcerpts: [supplied] }],
     ["supplied excerpt", supplied.url, { ...REQUEST, allowWebResearch: true, relatedExcerpts: [supplied] }],
     ["tool disabled", CONTEXT.relatedSources[0].url, { ...REQUEST }],
     ["invalid scheme", "javascript:alert(1)", { ...REQUEST, allowWebResearch: true, relatedExcerpts: [supplied] }],
@@ -519,16 +619,16 @@ test("exact provider citation uses the selected title when display metadata is u
 test("web citation rejection trace contains only a fixed reason", async () => {
   const secret = "SECRET_CITATION_MATERIAL";
   const selectedUrl = CONTEXT.sameTopicSources[0].url;
-  for (const [url, start_index, end_index, expected] of [
+  for (const [url, start_index, end_index, expected, searched] of [
     ["https://research.example.net/other", 0, 7, "unselected-url"],
-    [CONTEXT.currentSource.url, 0, 7, "current-source-url"],
+    [CONTEXT.currentSource.url, 0, 7, "current-source-url", false],
     [`javascript:${secret}`, 0, 7, "invalid-url"],
     [selectedUrl, 0, 99, "invalid-span"],
   ]) {
     const traces = [];
     const annotation = { type: "url_citation", url, title: secret, start_index, end_index };
     const adapter = createChatGptInsights({ fetchImpl: async (endpoint) =>
-      endpoint.endsWith("/models") ? models() : stream(complete("Finding.", [annotation])),
+      endpoint.endsWith("/models") ? models() : stream(complete("Finding.", [annotation], searched)),
     getAccessToken: async () => ACCESS, onTrace: (trace) => traces.push(trace) });
     await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true }),
       (error) => error.detail === "response-web-citation");

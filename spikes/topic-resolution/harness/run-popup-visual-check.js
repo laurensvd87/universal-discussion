@@ -460,6 +460,43 @@ try {
     await evaluate("document.querySelector('[data-post-id=price-reply]').scrollIntoView({block:'center'})", sessionId);
     await capture("reply-offcatalog-posted-citation-320", sessionId);
     await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await evaluate(`(async () => {
+      const {formatInsightCitations}=await import('../core/insight-citations.js');
+      const marker=String.fromCodePoint(0xE200)+'cite'+String.fromCodePoint(0xE202)+'turn0search0'+String.fromCodePoint(0xE201);
+      const body='Current page offer '+marker,startIndex=body.indexOf(marker);
+      const insight=window.visualInsightState;
+      const currentUrl=insight.context.currentSource.url;
+      const citations=[{url:currentUrl,title:'Current article',startIndex,endIndex:startIndex+marker.length}];
+      insight.ai.result={body,model:'synthetic',citations};insight.draft=formatInsightCitations(body,citations);
+      window.visualInsightPanel.render(insight);window.visualDiscussionPanel.renderInsightState(insight);
+    })()`, sessionId);
+    assert.deepEqual(await evaluate(`(() => {
+      const link=document.querySelector('#insight-citations sup.inline-citation-sup a.inline-citation');
+      return {cueVisible:!document.querySelector('#insight-current-page-only').hidden,
+        href:link?.href,arrow:link?.textContent,providerCalls:window.visualCreates??0};
+    })()`, sessionId), {cueVisible:true,href:'https://example.com/article',arrow:'↗',providerCalls:0},
+    "a provider citation to the bound current page remains clickable and keeps the no-outside cue");
+    await evaluate("document.querySelector('#insight-citations').scrollIntoView({block:'center'})", sessionId);
+    await capture("reply-current-source-only-citation", sessionId);
+    await evaluate(`(async () => {
+      const {formatInsightCitations}=await import('../core/insight-citations.js');
+      const marker=String.fromCodePoint(0xE200)+'cite'+String.fromCodePoint(0xE202)+'turn0search0'+String.fromCodePoint(0xE201);
+      const body='Current page offer '+marker+' External offer '+marker;
+      const insight=window.visualInsightState,currentUrl=insight.context.currentSource.url;
+      const first=body.indexOf(marker),second=body.lastIndexOf(marker);
+      const citations=[{url:currentUrl,title:'Current article',startIndex:first,endIndex:first+marker.length},
+        {url:'https://shop.example.net/product',title:'Public product offer',startIndex:second,endIndex:second+marker.length}];
+      insight.ai.result={body,model:'synthetic',citations};insight.draft=formatInsightCitations(body,citations);
+      window.visualInsightPanel.render(insight);window.visualDiscussionPanel.renderInsightState(insight);
+    })()`, sessionId);
+    assert.deepEqual(await evaluate(`(() => ({
+      cueHidden:document.querySelector('#insight-current-page-only').hidden,
+      hrefs:[...document.querySelectorAll('#insight-citations sup.inline-citation-sup a.inline-citation')].map(link=>link.href),
+      providerCalls:window.visualCreates??0
+    }))()`, sessionId), {cueHidden:true,hrefs:['https://example.com/article','https://shop.example.net/product'],providerCalls:0},
+    "mixed current-page and external annotations retain both safe links and hide the no-outside cue");
+    await evaluate("document.querySelector('#insight-citations').scrollIntoView({block:'center'})", sessionId);
+    await capture("reply-current-and-outside-citations", sessionId);
     await evaluate("Object.assign(window.visualDiscussionState,structuredClone(window.visualBeforeFollowup));Object.assign(window.visualInsightState,structuredClone(window.visualBeforeFollowupInsight),{followup:null});window.visualInsightPanel.render(structuredClone(window.visualInsightState));window.visualDiscussionPanel.renderInsightState(structuredClone(window.visualInsightState));window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.phase='choose-topic';window.visualDiscussionState.topicId=null;window.visualDiscussionState.discussion=null;window.visualDiscussionState.related={results:[]};window.visualDiscussionPanel.render(window.visualDiscussionState);window.visualShell.render(window.visualDiscussionState);document.querySelector('#app-tab-discussion').click()", sessionId);
     assert.equal(await evaluate("(() => { const status=document.querySelector('#discussion-status');return !document.querySelector('#app-topic-header') && !document.querySelector('#app-start-session') && !document.querySelector('#app-choose-topic') && status.textContent.includes('see its discussions') && document.body.dataset.topicState==='idle' && document.querySelector('#discussion-composer').hidden && document.querySelector('#discussion-ai-insights').hidden; })()", sessionId), true,

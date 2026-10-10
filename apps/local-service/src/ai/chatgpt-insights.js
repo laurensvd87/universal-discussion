@@ -223,17 +223,19 @@ function safeCitation(value, body, offset, allowedWebUrls, context, broadReply, 
   if (!value || value.type !== "url_citation") return null;
   let url;
   try { url = publicUrl(value.url); } catch { failCitation("invalid-url"); }
-  if (url === context.currentSource.url || excludedWebUrls.has(url) ||
-      (!allowedWebUrls.has(url) && !(broadReply && searchCompleted)))
-    failCitation(url === context.currentSource.url ? "current-source-url" : "unselected-url");
+  const isCurrentSource = url === context.currentSource.url;
+  if (excludedWebUrls.has(url) ||
+      (isCurrentSource ? !searchCompleted || !(broadReply || allowedWebUrls.size > 0) :
+        !allowedWebUrls.has(url) && !(broadReply && searchCompleted)))
+    failCitation(isCurrentSource ? "current-source-url" : "unselected-url");
   const startIndex = value.start_index, endIndex = value.end_index;
   if (!Number.isSafeInteger(startIndex) || !Number.isSafeInteger(endIndex) ||
       startIndex < 0 || endIndex <= startIndex || endIndex > body.length)
     failCitation("invalid-span");
   // The URL and span establish the citation. A provider-supplied display
   // title can be absent or unusable without making an exact citation unsafe.
-  const selected = [...context.sameTopicSources, ...context.relatedSources]
-    .find((source) => source.url === url);
+  const selected = isCurrentSource ? context.currentSource :
+    [...context.sameTopicSources, ...context.relatedSources].find((source) => source.url === url);
   if (!selected && !broadReply) failCitation("unselected-url");
   let title = selected?.title ?? new URL(url).hostname;
   try { title = text(value.title, 512); } catch { /* Use the attested local title. */ }
@@ -344,7 +346,7 @@ function completed(value, model, streamShape, relatedExcerpts, context, selected
   const webCitations = citations.slice();
   citations.push(...excerptCitations(body, relatedExcerpts, context));
   citations.push(...webReferenceCitations(body, selectedReferences));
-  if (broadReply && new Set(citations.map((citation) => citation.url)).size > MAX_WEB_CANDIDATES)
+  if (new Set(citations.map((citation) => citation.url)).size > MAX_WEB_CANDIDATES)
     fail("invalid-response", "response-web-citation");
   validateOutputLinks(body, webCitations);
   // Search can finish without opening any publisher page. A private draft may
@@ -599,7 +601,15 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
   const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context,
     selectedReferences, searchCompleted, broadReply, excludedWebUrls);
   if (recovered) return recovered;
-  const consistentSearch = !broadReply ||
+  const citesCurrentSource = Array.isArray(final.output) && final.output.some((item) =>
+    item?.type === "message" && Array.isArray(item.content) && item.content.some((part) =>
+      part?.type === "output_text" && Array.isArray(part.annotations) && part.annotations.some((annotation) =>
+        annotation?.type === "url_citation" && annotation.url === context.currentSource.url)));
+  if (citesCurrentSource && (streamShape.conflict || final.error != null ||
+      final.incomplete_details != null || final.output.some((item) =>
+        item?.status != null && item.status !== "completed")))
+    fail("invalid-response", "response-event");
+  const consistentSearch = !(broadReply || citesCurrentSource) ||
     (streamShape.createdCount === 0 || streamShape.createdCount === 1 &&
       streamShape.createdId === final.id) &&
     !streamShape.addedItems.some((item) => item.type === "web_search_call" &&
@@ -610,7 +620,7 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
         added.index === item.index && added.id === item.id && added.type === "web_search_call" &&
         added.status === "in_progress") || final.output?.[item.index]?.type !== "web_search_call" ||
         final.output[item.index].id !== item.id || final.output[item.index].status !== "completed"));
-  if (broadReply && !consistentSearch) fail("invalid-response", "response-event");
+  if ((broadReply || citesCurrentSource) && !consistentSearch) fail("invalid-response", "response-event");
   return completed(final, model, streamShape, relatedExcerpts, context, selectedReferences,
     searchCompleted && consistentSearch, broadReply, excludedWebUrls);
   } catch (error) {

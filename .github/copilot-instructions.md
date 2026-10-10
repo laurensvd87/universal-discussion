@@ -2,6 +2,13 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current citation correction (2026-10-10, ADR-079): observed owner rejection is
+`current-source-url`. The exact supplied primary Source may be a provider
+citation with safe URL, valid span and consistent completed search/assistant;
+it is not outside-source evidence. Opener other-unselected-URL rejection and
+all identity/exclusion/source-count/one-use checks remain. Owner permits bounded
+diagnostic retries here, not an app-wide automatic request or publication loop.
+
 Current reply research (2026-10-10, ADR-078): deliberate validated sparkle replies
 may use ChatGPT-hosted search beyond the catalog with existing bounded input;
 opening Insights remain selected-URL-only. The research preference disables both

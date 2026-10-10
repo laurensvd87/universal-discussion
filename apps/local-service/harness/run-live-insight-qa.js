@@ -1,6 +1,7 @@
 // Owner-invoked, one-shot quality probe. This module has no I/O on import.
 // Run from apps/local-service: node harness/run-live-insight-qa.js --run-live --model <listed-slug|auto> [--with-related-text|--with-web-search] [--show-result]
 // PCGames case: --run-live --with-web-search --pcgames (uses an account-listed automatic model).
+// Current Source citation case: --run-live --model auto --with-web-search --current-source-citation.
 // Stop the regular service first. This program exclusively owns 127.0.0.1:4174
 // before restoring a rotating protected refresh token; an occupied port fails.
 // Fixed, signed-out public HTML fetches approximate the extension's isolated
@@ -136,7 +137,7 @@ export function chooseListedModel(models, requested) {
   return selected;
 }
 
-export function qualityMetrics(result, articleText, relatedExcerpts = []) {
+export function qualityMetrics(result, articleText, relatedExcerpts = [], page = PUBLIC_PAGE) {
   const body = result?.body;
   if (typeof body !== "string") fail("Insight result unavailable");
   const citations = Array.isArray(result.citations) ? result.citations : [];
@@ -149,6 +150,8 @@ export function qualityMetrics(result, articleText, relatedExcerpts = []) {
     sentences: (body.match(/[.!?](?:\s|$)/gu) ?? []).length,
     hasQuestion: body.includes("?"),
     citationCount: citations.length,
+    currentSourceCitations: citations.filter((citation) => citation?.url === page.url).length,
+    externalSourceCitations: citations.filter((citation) => citation?.url !== page.url).length,
     sourceMentions: (body.match(relatedExcerpts.length ? /\b(?:PEP|Python)\b/giu : /\b(?:HTTP|MDN)\b/giu) ?? []).length,
   });
 }
@@ -273,19 +276,42 @@ export function inspectArgs(args) {
   if (args.includes("--with-related-text")) expected.push("--with-related-text");
   if (args.includes("--with-web-search")) expected.push("--with-web-search");
   if (args.includes("--pcgames")) expected.push("--pcgames");
+  if (args.includes("--current-source-citation")) expected.push("--current-source-citation");
   if (args.length !== expected.length || args.some((arg) => !expected.includes(arg)) ||
       args.filter((arg) => arg === "--run-live").length !== 1 ||
       args.filter((arg) => arg === "--model").length !== (modelIndex >= 0 ? 1 : 0) ||
       (args.includes("--with-related-text") && args.includes("--with-web-search")) ||
-      (args.includes("--pcgames") && (!args.includes("--with-web-search") || args.includes("--show-result"))))
+      (args.includes("--pcgames") && (!args.includes("--with-web-search") || args.includes("--show-result"))) ||
+      (args.includes("--current-source-citation") && (modelIndex < 0 || !args.includes("--with-web-search") ||
+        args.includes("--pcgames") || args.includes("--with-related-text") || args.includes("--show-result"))))
     fail("Unsupported QA option");
   return { model: modelIndex >= 0 ? args[modelIndex + 1] : "auto", showResult: args.includes("--show-result"),
     withRelatedText: args.includes("--with-related-text"), withWebSearch: args.includes("--with-web-search"),
-    pcgames: args.includes("--pcgames") };
+    pcgames: args.includes("--pcgames"), currentSourceCitation: args.includes("--current-source-citation") };
+}
+
+export function buildQaFixture({ pcgames, withRelatedText, withWebSearch, currentSourceCitation }) {
+  const python = (withRelatedText || withWebSearch) && !currentSourceCitation;
+  const page = pcgames ? PCGAMES_PAGE : python ? RELATED_TEXT_PAGE : PUBLIC_PAGE;
+  const related = currentSourceCitation ? [] : page.related;
+  const context = { schema: "insight-context/v1", topic: pcgames
+    ? { id: "qa-gta-6", title: "GTA 6 Game Informer coverage" } : python
+      ? { id: "qa-python-style", title: "Python style guides" } : { id: "qa-http", title: "HTTP" },
+    currentSource: { id: pcgames ? "qa-pcgames-gta-6" : python ?
+      "qa-pep-8" : "qa-mdn-http-overview", url: page.url, title: page.title },
+    sameTopicSources: related.map((source, index) => ({ id: pcgames ? `qa-gamestar-${index + 1}` :
+      python ? `qa-pep-related-${index + 1}` :
+        `qa-mdn-related-${index + 1}`, ...source })),
+    relatedSources: [], discussion: [],
+    coverage: { sameTopicTotal: related.length, relatedTotal: 0, discussionIncluded: false },
+    limitations: ["grouping-provisional", "title-url-only", "sources-unverified"] };
+  const followup = currentSourceCitation ? { parentBody: "Discussing the HTTP overview.",
+    questionBody: "Please verify the current page online and cite its definition of HTTP. Use only this supplied current URL." } : null;
+  return { page, context, followup };
 }
 
 export async function runLiveInsightQa(args, { fetchImpl = fetch, print = console.log } = {}) {
-  const { model, showResult, withRelatedText, withWebSearch, pcgames } = inspectArgs(args);
+  const { model, showResult, withRelatedText, withWebSearch, pcgames, currentSourceCitation } = inspectArgs(args);
   if (!existsSync(path.join(DATA_DIR, "chatgpt-registration.json"))) fail("Existing ChatGPT registration unavailable");
   const release = await ownFixedPort();
   let connection, insights;
@@ -309,22 +335,12 @@ export async function runLiveInsightQa(args, { fetchImpl = fetch, print = consol
       } : undefined });
     const models = await insights.listModels();
     const selectedModel = chooseListedModel(models, model);
-    const page = pcgames ? PCGAMES_PAGE : withRelatedText || withWebSearch ? RELATED_TEXT_PAGE : PUBLIC_PAGE;
+    const { page, context, followup } = buildQaFixture({ pcgames, withRelatedText, withWebSearch, currentSourceCitation });
     const articleText = await readPublicPage(fetchImpl, page);
-    const context = { schema: "insight-context/v1", topic: pcgames
-      ? { id: "qa-gta-6", title: "GTA 6 Game Informer coverage" } : withRelatedText || withWebSearch
-        ? { id: "qa-python-style", title: "Python style guides" } : { id: "qa-http", title: "HTTP" },
-      currentSource: { id: pcgames ? "qa-pcgames-gta-6" : withRelatedText || withWebSearch ? "qa-pep-8" : "qa-mdn-http-overview",
-        url: page.url, title: page.title },
-      sameTopicSources: page.related.map((source, index) => ({ id: pcgames ? `qa-gamestar-${index + 1}` :
-        withRelatedText || withWebSearch ? `qa-pep-related-${index + 1}` : `qa-mdn-related-${index + 1}`, ...source })),
-      relatedSources: [], discussion: [],
-      coverage: { sameTopicTotal: page.related.length, relatedTotal: 0, discussionIncluded: false },
-      limitations: ["grouping-provisional", "title-url-only", "sources-unverified"] };
     const relatedExcerpts = withRelatedText ? await readRequiredRelatedExcerpts(context, fetchImpl) : [];
     const result = await insights.createInsight({ model: selectedModel, context, articleText, allowWebResearch: withWebSearch,
-      ...(withRelatedText ? { relatedExcerpts } : {}) });
-    const metrics = qualityMetrics(result, articleText, relatedExcerpts);
+      ...(withRelatedText ? { relatedExcerpts } : {}), ...(followup ? { followup } : {}) });
+    const metrics = qualityMetrics(result, articleText, relatedExcerpts, page);
     print(JSON.stringify({ status: "completed", model: selectedModel, responsesSent: provider.responsesSent(), ...metrics }));
     if (showResult) {
       print(`Private public-page QA excerpt: ${JSON.stringify(result.body.slice(0, MAX_PRINT_CHARS))}`);

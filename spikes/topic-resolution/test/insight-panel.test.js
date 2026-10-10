@@ -192,6 +192,46 @@ test("off-catalog provider citation hides the no-outside-sources cue", () => {
   assert.deepEqual(ui.calls, []);
 });
 
+test("citations to the trusted current Source keep the no-outside-sources cue; a second source hides it", () => {
+  const ui = harness(undefined, "user");
+  const marker = "\uE200cite\uE202turn0search0\uE201";
+  const currentUrl = "https://example.com/article";
+  const sourceContext = { ...context(), currentSource: { ...context().currentSource, url: currentUrl } };
+  const body = `Current page ${marker}`;
+  const startIndex = body.indexOf(marker);
+  const currentCitation = { url: currentUrl, title: "Current page", startIndex,
+    endIndex: startIndex + marker.length };
+  const currentResult = { body, citations: [currentCitation] };
+  ui.panel.render(state({ context: sourceContext,
+    draft: formatInsightCitations(body, currentResult.citations),
+    ai: { status: "generated", result: currentResult } }));
+  const note = ui.byId("insight-current-page-only");
+  assert.equal(note.hidden, false);
+  assert.deepEqual(ui.descendants(ui.byId("insight-citations"))
+    .filter((item) => item.tag === "a").map((item) => item.linkHref), [currentUrl]);
+
+  const mixedBody = `Current page ${marker} External offer ${marker}`;
+  const secondStart = mixedBody.lastIndexOf(marker);
+  const mixedResult = { body: mixedBody, citations: [currentCitation, {
+    url: "https://shop.example.net/product", title: "External offer", startIndex: secondStart,
+    endIndex: secondStart + marker.length }] };
+  ui.panel.render(state({ context: sourceContext,
+    draft: formatInsightCitations(mixedBody, mixedResult.citations),
+    ai: { status: "generated", result: mixedResult } }));
+  assert.equal(note.hidden, true);
+  assert.deepEqual(ui.descendants(ui.byId("insight-citations"))
+    .filter((item) => item.tag === "a").map((item) => item.linkHref),
+  [currentUrl, "https://shop.example.net/product"]);
+  ui.panel.render(state({ context: sourceContext,
+    draft: formatInsightCitations(body, currentResult.citations),
+    ai: { status: "generated", result: currentResult } }));
+  assert.equal(note.hidden, false);
+  ui.panel.render(state({ draft: formatInsightCitations(body, currentResult.citations),
+    ai: { status: "generated", result: currentResult } }));
+  assert.equal(note.hidden, true, "a citation is not current-page evidence without the bound Source URL");
+  assert.deepEqual(ui.calls, []);
+});
+
 test("poll renders preserve a generated preview, citation focus, and one-click Share", () => {
   const ui = harness(undefined, "user");
   const marker = "\uE200cite\uE202turn0search0\uE201";

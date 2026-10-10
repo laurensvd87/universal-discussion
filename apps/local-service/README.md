@@ -1,5 +1,22 @@
 # Local service
 
+Extension 0.13.37 fixes the observed `current-source-url` rejection: a provider
+may cite the exact primary Source already supplied for the deliberate request,
+with safe HTTPS URL, valid span and consistent completed search/assistant.
+Current-only links do not count as outside evidence. Opening Insights still
+reject other unselected destinations; combined citations share the five-source
+cap. Stream fallback and one-shot sharing are unchanged. See
+[ADR-079](../../decisions/ADR-079-current-page-provider-citations.md).
+
+The explicit one-shot diagnostic
+`node harness/run-live-insight-qa.js --run-live --model auto --with-web-search --current-source-citation`
+uses a fixed public MDN page and no related candidates. Stop the normal service
+first and restart it afterward so rotating protected login has one owner. It
+prints only counts/codes, allows one Responses call and never shares or archives
+the answer. Use only with explicit owner diagnostic authority; it is not an
+automatic startup or retry step. The 0.13.37 probe passed through the protected
+connection with one exact primary citation, not an original product-price test.
+
 Extension 0.13.36 adds [ADR-078](../../decisions/ADR-078-deliberate-reply-web-discovery.md):
 deliberate canonical sparkle replies may enable ChatGPT-hosted discovery beyond
 catalog domains, even without related candidates. Opening Insights retain their

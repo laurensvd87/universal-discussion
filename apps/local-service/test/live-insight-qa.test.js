@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chooseListedModel, classifyCitationUrl, classifyResponseAnnotations, extractPublicArticle, inspectArgs,
+import { buildQaFixture, chooseListedModel, classifyCitationUrl, classifyResponseAnnotations, extractPublicArticle, inspectArgs,
   oneResponseFetch, qualityMetrics, PCGAMES_PAGE, PUBLIC_PAGE, RELATED_TEXT_PAGE,
   publicCitationSummary, readPublicPage, readRequiredRelatedExcerpts } from "../harness/run-live-insight-qa.js";
 import { inspectPageUrl } from "../../../spikes/topic-resolution/browser/core/page-content-policy.js";
@@ -20,6 +20,32 @@ test("PCGames probe requires web search and suppresses provider result printing"
   assert.throws(() => inspectArgs([...args, "--show-result"]), /Unsupported QA option/u);
   assert.throws(() => inspectArgs([...args, "--pcgames-show-public-url"]), /Unsupported QA option/u);
   assert.equal(PCGAMES_PAGE.related.length, 1);
+});
+
+test("current Source citation probe requires one explicit private web-search reply option", () => {
+  const base = ["--run-live", "--model", "auto", "--with-web-search", "--current-source-citation"];
+  assert.equal(inspectArgs(base).currentSourceCitation, true);
+  assert.equal(inspectArgs(base).withWebSearch, true);
+  for (const args of [
+    base.filter((item) => item !== "--with-web-search"),
+    [...base, "--with-related-text"], [...base, "--pcgames"], [...base, "--show-result"],
+    [...base, "--current-source-citation"],
+  ]) assert.throws(() => inspectArgs(args), /Unsupported QA option/u);
+  assert.throws(() => inspectArgs(["--run-live", "--with-web-search", "--current-source-citation"]),
+    /listed --model slug/u);
+  assert.throws(() => inspectArgs(base.slice(1)), /Explicit --run-live/u);
+
+  const { page, context, followup } = buildQaFixture(inspectArgs(base));
+  assert.equal(page, PUBLIC_PAGE);
+  assert.equal(context.currentSource.url, PUBLIC_PAGE.url);
+  assert.deepEqual(context.sameTopicSources, []);
+  assert.deepEqual(context.relatedSources, []);
+  assert.equal(context.coverage.sameTopicTotal, 0);
+  assert.deepEqual(followup, { parentBody: "Discussing the HTTP overview.",
+    questionBody: "Please verify the current page online and cite its definition of HTTP. Use only this supplied current URL." });
+  assert.ok(!JSON.stringify({ context, followup }).includes(RELATED_TEXT_PAGE.url));
+  assert.ok(!JSON.stringify({ context, followup }).includes(PCGAMES_PAGE.url));
+  assert.equal(buildQaFixture(inspectArgs(["--run-live", "--model", "auto"])).followup, null);
 });
 
 test("PCGames annotation classifier reports only fixed URL categories", () => {
@@ -164,7 +190,14 @@ test("one-shot QA prefers a listed GPT-6 Luna and preserves explicit model choic
 test("quality metrics contain counts without body text", () => {
   const metrics = qualityMetrics({ body: "HTTP has a concrete implication. What might change?", citations: [{ url: "https://developer.mozilla.org" }] }, "article");
   assert.equal(metrics.citationCount, 1);
+  assert.equal(metrics.currentSourceCitations, 0);
+  assert.equal(metrics.externalSourceCitations, 1);
   assert.equal(metrics.hasQuestion, true);
   assert.equal(metrics.bodyCharacters, 51);
   assert.ok(!JSON.stringify(metrics).includes("concrete implication"));
+  const observed = qualityMetrics({ body: "A short finding.", citations: [
+    { url: PUBLIC_PAGE.url }, { url: "https://example.org/evidence" }] }, "article");
+  assert.equal(observed.currentSourceCitations, 1);
+  assert.equal(observed.externalSourceCitations, 1);
+  assert.ok(!JSON.stringify(observed).includes("https://"));
 });

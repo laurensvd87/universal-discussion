@@ -8,6 +8,14 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current citation correction (2026-10-10, ADR-079): actual owner terminal trace
+identifies `current-source-url`. The exact already supplied primary Source may
+be a safe provider citation after consistent completed search/assistant and
+valid span, including strict fallback; it does not count as outside evidence.
+Opening Insights still reject other unselected URLs. Preserve identity/exclusion/
+five-source/one-shot checks. Owner permits bounded agent diagnostic retries for
+this failure; no app-wide automatic retry or duplicate posting follows.
+
 Current reply research (2026-10-10, ADR-078): the owner explicitly approves
 ChatGPT-hosted web discovery beyond catalog URLs for deliberate, validated
 sparkle replies, using only the existing bounded target/opener/current-page

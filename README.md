@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.36** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.37** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -44,6 +44,9 @@ Answers compare available offers, not a guarantee of the cheapest price anywhere
 Opening Insights still compare selected related pages. **Settings → Use web
 research** disables both paths. See
 [ADR-078](decisions/ADR-078-deliberate-reply-web-discovery.md).
+Valid provider citations may include the exact current page as well as outside
+sources; a current-page-only link does not imply other sources were used. See
+[ADR-079](decisions/ADR-079-current-page-provider-citations.md).
 Reload the extension and restart the normal backend to activate the reply update;
 pairing, protected login and saved posts are retained.
 This is local sharing, not a publicly hosted service. See

@@ -1,5 +1,32 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-10 current-page citation checkpoint (0.13.37), complete: read ADR-079.
+The owner failure's live structural trace identifies `current-source-url`, not
+missing metadata or a malformed span. Raw original output is unavailable; do not
+claim an exact replay or verified price quality. A safe provider annotation to
+the exact already-supplied primary Source now passes with research enabled,
+consistent completed search/assistant, valid spans and reconciled response/search
+identity and indices. Opening research remains selected-page-only; broad replies
+retain ADR-078. No-search/tool-off, unsafe URLs, opener variants, contradictory or
+failed/incomplete streams still fail. All citations share a five-source ceiling,
+including the primary page; primary-only arrows keep the no-outside-source cue.
+Strict stream fallback, canonical targets and one-shot local sharing remain.
+
+Full service 390 pass/4 optional skips; extension 1,103 pass/1 skip, restricted
+1,104 pass. Independent Trust, actual synthetic Chrome citation/layout/typing
+checks and root screenshot review pass; secret/diff checks pass. The owner's
+automatic-retry permission is used only for bounded diagnosis, not an app-wide
+retry loop. One fresh gpt-6-luna MDN probe (one Responses call, no related pages)
+returns a completed private result with one exact primary citation and no outside
+citations. Only counts are printed; nothing is posted or archived. This is fresh
+transport/citation proof, not the original owner-page or price-quality check.
+
+Normal owner service is restored with the same Origin, pairing, protected login
+and SQLite, raw debug off; final normal restart loaded the prompt clarification.
+Unauthenticated catalog 401 confirms listener availability only. Reload extension
+0.13.37 for the cue. Do not repeat the live probe automatically or reset login/data;
+no permission, retention, model, deployment or release scope changes.
+
 2026-10-10 reply discovery checkpoint (0.13.36): owner explicitly approves
 ADR-078 public ChatGPT-hosted search beyond the catalog for deliberate validated
 sparkle replies; opening Insights stay exact selected-page-only. Research setting

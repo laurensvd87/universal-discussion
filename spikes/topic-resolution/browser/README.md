@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.36)
+## Persistent discussion sidebar (0.13.37)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -37,6 +37,10 @@ Insights still use only selected related pages. **Settings → Use web research*
 disables research for both. Per-source exclusions prevent accepting links to
 those exact pages, not a guarantee the hosted search never encounters them. See
 [ADR-078](../../../decisions/ADR-078-deliberate-reply-web-discovery.md).
+Provider citations to the exact supplied current page are supported after
+completed research. These render as source arrows but do not count as outside
+evidence in the no-outside-source cue. See
+[ADR-079](../../../decisions/ADR-079-current-page-provider-citations.md).
 Restart the normal backend after updating as well as reloading the extension;
 pairing, protected login and saved posts are retained.
 It is icon-only in User Mode with a keyboard-accessible generation/posting label.
