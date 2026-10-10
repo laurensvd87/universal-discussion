@@ -103,5 +103,18 @@ joins for either. With 148 adapter singletons, that narrow relative research
 gain is not useful product coverage or independent confirmation. No model
 weight was saved, and this does not pass the live/root-route or rights gates.
 
+2026-10-10 checkpoint: the real-trained diagonal adapter was re-evaluated
+once on 292 previously unscored GlobeSumm reports from 23 whole events,
+after excluding both prior experiment selections and matching title/lead
+keys. Against separately calibrated raw E5 on identical inputs it reached
+151 versus 66 pure-group pages and 324 versus 60 correct grouped pairs,
+with no observed false group for either. This meets the exploratory
+E5-relative research criterion again, but it is still **the same corpus**,
+not the newly approved provenance-reviewed 200–250-pair collection or
+independent publisher/viewpoint evidence. The adapter had zero eligible
+calibration negatives; observed zero-false on this slice is not future
+precision assurance. No product model, retention, or live routing permission
+follows. See the [aggregate result](../apps/local-service/experiments/topic-encoder/real-diagonal-fresh-v1/RESULTS.md).
+
 Source candidates and caveats are in
 [the rights-review note](../research/RIGHTS_REVIEWED_EVENT_CORPUS_PATH_2026-10-09.md).

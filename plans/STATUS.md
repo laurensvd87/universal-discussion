@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-09. Active direction: ADR-014/015/016 and the product-first roadmap.
+Updated: 2026-10-10. Active direction: ADR-014/015/016 and the product-first roadmap.
 ADR-017's synthetic-only local experiment is implemented and measured. The owner
 now requests the real-page background -> vector -> local Topic -> shared-comment
 loop. [ADR-018](../decisions/ADR-018-background-page-matching-local-poc.md) records
@@ -293,6 +293,20 @@ grouped pairs but worsened false grouped pairs from 2 to 4 and pure-group
 reach from 29 to 27 pages. The multi-mined version is rejected without an
 independent holdout or live change. This negative result does not alter the
 E5-relative criterion or imply that the static adapter is ready to ship.
+**2026-10-10 new-event diagonal check:** An independently reviewed protocol
+excluded whole events from both earlier GlobeSumm selections (1,192 and
+298 articles) plus exact matching title/lead inputs, then scored 292 articles
+from 23 other events once. The unchanged real-trained adapter reached
+**151 versus 66** articles in pure multi-page groups and **324 versus 60**
+correct grouped pairs compared with separately calibrated raw title/lead E5;
+both had zero observed false direct/grouped pairs and zero mixed groups.
+The [aggregate result](../apps/local-service/experiments/topic-encoder/real-diagonal-fresh-v1/RESULTS.md)
+passes ADR-069's E5-relative *exploratory* screen. It remains one corpus,
+without verified publisher/viewpoint gold or live body-E5 parity; adapter
+calibration again had zero eligible negative candidates. No weights were
+saved, and neither live Topics nor discussion roots changed. The owner asks
+for an eventual old/new switch: the first safe version is a read-only preview,
+not a canonical route switch, pending the separate rights/Trust/owner gates.
 This does not delay the already usable local app or authorize a live matcher
 change. The independently quality-audited 105-report five-language-plus-
 singleton synthetic holdout is hash-frozen at

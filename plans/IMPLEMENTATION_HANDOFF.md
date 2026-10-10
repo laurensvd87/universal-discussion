@@ -99,6 +99,18 @@ did not improve on the static owned fit: 21 correct grouped pairs for both,
 but 4 versus 2 false grouped pairs on previously used C. Do not spend the
 independent v5 synthetic holdout on this candidate. Neither result authorizes
 live matching, model distribution or product rights assumptions.
+The frozen [new-event diagonal result](../apps/local-service/experiments/topic-encoder/real-diagonal-fresh-v1/RESULTS.md)
+then compared the unchanged real-trained adapter and raw E5 on 292 reports
+from 23 previously unscored GlobeSumm events, conservatively excluding both
+earlier selections. Pure multi-page reach was 151 versus 66 articles and
+correct grouped reach 324 versus 60 pairs, with zero observed false groups
+for both. This is a strong *same-corpus exploratory* relative gain, not
+independent publisher/viewpoint validation, body-input parity, calibrated
+future precision or clearance to use trained weights in the product.
+The owner proposes an old/new app/dashboard switch. Build only a read-only
+experimental preview until owner/Trust rights, retained-data and live
+Source/root migration decisions are explicitly made; canonical Topics and
+all post/Insight routes stay on the existing policy.
 
 Owner clarified that non-transitive Topic overlap is optional and need not
 be built now: use ADR-064's provisional principal-event target for offline

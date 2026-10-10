@@ -173,6 +173,12 @@ is too little coverage for a product change; no adapter was saved or enabled.
 An offline [multi-triplet follow-up](apps/local-service/experiments/topic-encoder/owned-diagonal-mining-v1/RESULTS.md)
 did not beat that simpler adapter on previously used synthetic development
 data, so it was stopped without using the independent holdout.
+The unchanged real-trained diagonal adapter then passed a
+[new-event offline comparison](apps/local-service/experiments/topic-encoder/real-diagonal-fresh-v1/RESULTS.md)
+within GlobeSumm: 151 versus 66 correctly grouped pages and 324 versus 60
+correct grouped pairs against raw E5, with no observed false grouping for
+either. This reinforces the research signal but does not clear model rights,
+live browser-input quality or a change to discussion routing.
 An [in-memory rights-reviewed pair-pilot scaffold](apps/local-service/experiments/topic-encoder/rights-ram-pilot-v1/README.md)
 is tested with fictional data, but has no real page-fetch adapter. It has not
 collected article text or changed the extension; real collection awaits

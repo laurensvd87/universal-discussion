@@ -51,6 +51,15 @@ both earlier whole-event selections before claiming its articles were not
 previously embedded or scored. Corpus-wide metadata were also inspected;
 “entirely untouched” would be inaccurate.
 
+2026-10-10 research checkpoint: a hash-frozen one-shot adapter comparison
+excluded both earlier whole-event selections and exact matching title/lead
+inputs, scoring 292 previously unscored articles from 23 other events. It
+found 151 versus 66 pages in pure multi-page groups and 324 versus 60
+correct grouped pairs for diagonal versus raw E5, without an observed false
+group for either. The [aggregate report](../apps/local-service/experiments/topic-encoder/real-diagonal-fresh-v1/RESULTS.md)
+remains **same-corpus research**. This does not grant trained-weight product
+rights, service/extension integration, or canonical Topic migration.
+
 Candidate retrieval found a same-event partner in the first three neighbors
 for 1,141/1,192 scored reports (cross-language-only: 1,181/1,192).
 These ranks are diagnostic: no fixed top-three identity gate or maximum
