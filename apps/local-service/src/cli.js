@@ -57,7 +57,8 @@ export async function runCli(args = process.argv.slice(2)) {
     accountsEnabled: true,
     // Explicit runtime composition: after the fixed loopback port binds,
     // a stored user-approved refresh token may renew sign-in; inference still
-    // requires the paired owner's Create click. No import-time provider I/O.
+    // requires deliberate generation or an accepted own-AI private reply.
+    // No import-time provider I/O or automatic retry.
     chatgptFetchImpl: globalThis.fetch.bind(globalThis),
     chatgptRefreshStore: createProtectedRefreshStore,
     // The sink independently validates the structural DTO before persistence.

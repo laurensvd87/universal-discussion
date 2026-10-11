@@ -1,5 +1,31 @@
 # Local service
 
+2026-10-11, extension **0.13.49**: owner-requested private conversations and public
+discovery are active in normal account-enabled composition. Restart the backend
+and reload the extension together (the owner service is already restarted).
+`POST /v1/private/{create,list,read,send,generate,delete}` requires pairing, exact
+extension Origin and a named app session. Ownership comes from that session.
+Private data lives in `data/private-conversations.sqlite`, never canonical Topics
+or the public index. A human reply directly to their own private AI claims one
+attempt before dispatch; no retry/reopen/restart redispatch. Context/provider
+validation remains bounded; private raw debug capture is always suppressed.
+`/v1/account/private-data` provides bounded own-data export, and staged account
+deletion cancels jobs/erases private data before identity purge. Include this
+private store and the account store in any future reviewed backup design; it
+cannot be reconstructed from the public database. This is not E2EE.
+
+`POST /v1/discover/search` accepts `{query,limit,cursor}` for paired public reads.
+SQLite FTS5 indexes public Topic titles, safe Source metadata and current visible
+posts in the separate disposable `data/demo.sqlite.discovery.sqlite` projection.
+Reads verify a cheap canonical watermark, avoiding full snapshots per search;
+updates reconcile after accepted canonical writes, and mismatches fail closed.
+Queries are literal tokenized terms (not model/semantic search), capped at 256
+characters/16 terms, with pages up to 50 and five safe page links per result.
+Private text never enters it. A synthetic 12,000-Topic index is tested; canonical
+whole-document storage remains limited to 8 MiB and public DTOs remain bounded.
+Large hosted ingestion requires the planned normalized persistence, not merely
+this index. See [ADR-096](../../decisions/ADR-096-private-conversations-and-indexed-discovery.md).
+
 2026-10-11: learned E5 **related-page retrieval now uses >=0.88**, previously
 0.85 ([ADR-088](../../decisions/ADR-088-related-e5-floor-088.md)). Confirmed
 same-Topic overrides remain. Ridge1 weights/same-Topic floor, canonical grouping,
@@ -9,9 +35,10 @@ with valid saved pairing and restored protected ChatGPT sign-in. No extension
 reload, provider inference or page revisit is necessary. This does not repair
 historical discussion loading for related Sources.
 
-The [accounts/reply-email plan](../../plans/ACCOUNTS_PLAN.md) is documentation,
-not runtime auth. Current synthetic actors and pairing remain; no anonymous
-catalog exposure, real signup, email sending or automatic ownership migration.
+Local ChatGPT-backed discussion accounts are active under ADR-091; legacy
+synthetic posts remain unclaimed. The [accounts/reply-email plan](../../plans/ACCOUNTS_PLAN.md)
+also describes future hosted/mail work, not approval for anonymous API exposure,
+real email sending or automatic ownership migration.
 
 Extension **0.13.45** adds owner-approved optional language/market preferences
 ([ADR-086](../../decisions/ADR-086-optional-discussion-language-and-market.md)).

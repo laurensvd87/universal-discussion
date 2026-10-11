@@ -8,6 +8,30 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 ## Current state
 
+Extension **0.13.49** adds **Private chats** and **Discover**. Reload it under
+`chrome://extensions`; the local backend has already been restarted without
+resetting pairing, login or discussions.
+
+- Click the **lock** beside a new message before sending. The whole conversation
+  stays private to your signed-in app account; it cannot appear in public search
+  or discussions. Use the sparkle for its first assistant answer. Replying to
+  your own private AI automatically starts one follow-up attempt, without a retry
+  loop. Reopen conversations in **Private chats**, or delete them there.
+- **Discover** searches public topics, discussion messages and linked pages in
+  the backend. Open a result to read it, or follow a page link. Reading needs
+  pairing, not an app account; private chatting requires app sign-in/username.
+
+Private chats persist locally until deletion, and account export/deletion includes
+them. They are access-controlled, **not end-to-end encrypted**; selected private
+messages reach your connected ChatGPT account when generating a reply. Generation
+currently needs the conversation's original eligible page open, and includes only
+the selected message/AI parent plus bounded public-page context—not full history.
+The public-profile restriction still applies. See
+[ADR-096](decisions/ADR-096-private-conversations-and-indexed-discovery.md).
+Search uses SQLite FTS5 and bounded pagination, tested with 12,000 synthetic
+topics. The existing canonical storage limit remains; large hosted ingestion
+still needs normalized storage. No remote hosting or store release is activated.
+
 Extension **0.13.48** automatically removes common session/tracking parameters
 from eligible public-page links before matching, storing or using them in
 discussions and Insights. Product/video IDs and other functional parameters
@@ -54,7 +78,7 @@ the connection. See [ADR-091](decisions/ADR-091-connected-chatgpt-local-accounts
 the [account plan](plans/ACCOUNTS_PLAN.md) and
 [account instructions](apps/local-service/src/accounts/README.md).
 
-Extension **0.13.48** opens as a resizable native Chrome sidebar alongside the
+The extension opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and

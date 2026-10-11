@@ -1,5 +1,39 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 private conversations and Discover are implemented/activated locally
+in 0.13.49; read ADR-096 before older public-only/private-preview notes. New-root
+lock is immutable; retain privacy intent across detached drafts/navigation. Private
+chat storage is `apps/local-service/data/private-conversations.sqlite`, account-
+scoped, outside public canonical state/index/projections. Named app account and
+exact paired Origin are required. Human direct own-AI replies authorize one
+durably claimed attempt, never retry/restart redispatch/AI recursion. Public
+generation remains deliberate. Private context is selected human plus AI parent
+2,000 characters each, current eligible public page 4,096 and five approved links;
+no full history/private-page scope. Suppress private raw debug. Preserve Source/
+account/provider/revision fences, export conversationId, erasure/cancellation and
+startup recovery. Read-only polling must deduplicate pages, reject older revisions
+and never silently retarget an unsent reply or weaken a locked draft.
+
+Discover is paired-guest public FTS5 over Topic/Source/current visible post text,
+stored beside canonical data as `demo.sqlite.discovery.sqlite`. It is disposable;
+watermark mismatch reconciles/fails closed. Search does not load the full catalog
+on unchanged reads. Backend queries/snippets/pages are bounded; cursors bind
+query/limit/canonical revision. Discover previews never mutate current Source/
+Topic or grant posting authority. Private store never enters search/dashboard.
+12,000 synthetic Topics/24,000 documents are checked; this is indexed search,
+not removal of canonical 8 MiB aggregate/DTO limits or hosted scaling clearance.
+Future normalized storage and private-data backup/release review remain open.
+
+Independent backend/UI Trust pass; restricted browser suite 1,229 passes/backend
+538 passes/four skips. `npm run test:browser:community` provides actual isolated
+Chrome synthetic UI checks/screenshots for 320/390/480px, lock/send/generation/
+automatic reply/resume/search/preview/safe links/focus with zero runtime errors.
+No live private ChatGPT quality call or real owner write. Normal service restarted
+on unchanged Origin, paired health/catalog/ChatGPT status/discovery pass; catalog
+184 Sources/222 Topics/revision 730 preserved. Reload extension 0.13.49; app sign-in
+and chosen username required for private chats. Existing public-profile, provider,
+hosting/mail/spending/store gates stay in force. No token reset or page revisit.
+
 2026-10-11 latest owner-requested general URL minimization is implemented in
 0.13.48; read ADR-095. Browser-only navigation sanitation removes approved
 session/tracking keys, preserving functional parameters. Keep canonical

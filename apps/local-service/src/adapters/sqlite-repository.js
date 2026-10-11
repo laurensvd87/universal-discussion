@@ -12,6 +12,7 @@ const TABLE = "demo_state";
 export function createSqliteRepository(databasePath, initialState, options = {}) {
   let database;
   const serialize = options.serialize ?? JSON.stringify;
+  const listeners = new Set();
   try {
     database = new DatabaseSync(databasePath);
     initialize(database, initialState, serialize);
@@ -38,6 +39,12 @@ export function createSqliteRepository(databasePath, initialState, options = {})
       if (result.changes !== 1) fail("conflict", "State changed");
       database.exec("COMMIT");
       transaction = false;
+      // Derived indexes are separate stores: their failure must not turn an
+      // accepted canonical commit into a misleading failed write. Readers check
+      // their watermark and reconcile or fail closed before exposing results.
+      for (const listener of listeners) {
+        try { listener(nextState); } catch { /* The derived watermark stays stale. */ }
+      }
       return frozenClone(nextState);
     } catch (error) {
       if (transaction) {
@@ -48,6 +55,19 @@ export function createSqliteRepository(databasePath, initialState, options = {})
   }
 
   return Object.freeze({
+    version() {
+      try {
+        const row = database.prepare(`SELECT generation, revision FROM ${TABLE} WHERE singleton = 1`).get();
+        if (!row || typeof row.generation !== "string" || !Number.isSafeInteger(row.revision))
+          fail("storage-corrupt", "Local database is inconsistent");
+        return { generation: row.generation, revision: row.revision };
+      } catch (error) { throw normalizeStorageError(error); }
+    },
+    subscribe(listener) {
+      if (typeof listener !== "function") fail("invalid", "Invalid request");
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
     load() {
       try { return frozenClone(parseRow(readRow(database))); }
       catch (error) { throw normalizeStorageError(error); }

@@ -886,7 +886,8 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
     try { return await Promise.race([loadModels(abort.signal), aborted]); }
     finally { clearTimeout(timer); requestSignal.removeEventListener("abort", cancel); }
   }
-  async function createInsight(request, { signal } = {}) {
+  async function createInsight(request, { signal, suppressDebug = false } = {}) {
+    if (typeof suppressDebug !== "boolean") fail("invalid-input");
     return run(async (requestSignal) => {
       const before = modelEpoch;
       const hasFollowup = Object.hasOwn(object(request), "followup");
@@ -963,7 +964,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
             [...new Set(missingCandidates.map((url) => new URL(url).hostname))] } }) }];
         payload.tool_choice = broadReply && !requireReplySearch ? "auto" : "required";
       }
-      debug({ phase: "request", payload });
+      if (!suppressDebug) debug({ phase: "request", payload });
       const response = await fetchImpl(`${API}/responses`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: requestSignal,
         redirect: "error", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
@@ -977,7 +978,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const raw = await boundedBody(response, MAX_STREAM_BYTES, requestSignal);
       check(requestSignal);
       if (modelEpoch !== before) fail("cancelled");
-      debug({ phase: "response", status: response.status, contentType, body: raw });
+      if (!suppressDebug) debug({ phase: "response", status: response.status, contentType, body: raw });
       if (headerlessSse && !isCompleteSse(raw)) {
         const failureCode = completeHeaderlessFailureCode(raw);
         if (failureCode) fail(errorForCode(failureCode), "response-failed");

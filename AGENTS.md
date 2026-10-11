@@ -8,6 +8,21 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current private conversations/Discover (2026-10-11, ADR-096, 0.13.49): the owner
+requests an immutable private new-root lock, account-only chats, one automatic
+attempt on each accepted human reply to their own private AI, and backend public
+search. Separate private SQLite from canonical Topics/index/dashboard; require
+named app account, pairing/exact Origin, ownership and public Source attestation.
+Keep selected human/AI-parent 2,000 characters each, current public page 4,096
+characters and five links; no full history/private webpage expansion. Claims are
+durable/no retry or restart redispatch; private raw debug is suppressed. Account
+export/erasure includes private data. Discover is paired-guest FTS5 with bounded
+revision-bound pages and a read-only preview, never active-page write authority.
+Independent Trust/offline/actual synthetic Chrome checks pass; normal backend
+restarted with saved state/login/pairing. Read top STATUS/HANDOFF and ADR-096.
+Search is indexed, but canonical whole-document 8 MiB storage remains: do not
+claim unlimited ingestion, hosted readiness, E2EE or live private-AI quality QA.
+
 Current public URL minimization (2026-10-11, ADR-095, 0.13.48): the owner requests
 general session/tracking stripping, not a Booking.com-only exception. Separate
 browser navigation sanitation from unchanged strict canonical Source validation.

@@ -8,6 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchChromiumPipe } from "./chromium-pipe.js";
+import { checkCommunityVisual } from "./check-community-visual.js";
 
 const stage = process.argv[2] ?? "after";
 assert.ok(["before", "after"].includes(stage));
@@ -536,8 +537,8 @@ try {
     await checkCompactReply(sessionId, "root-1");
     await capture("reply", sessionId);
     await evaluate("window.visualDiscussionState.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(window.visualDiscussionState)", sessionId);
-    assert.equal(await evaluate("(() => document.querySelector('#app-navigation').hidden && document.querySelector('#app-view-pages').hidden)()", sessionId), true,
-      "User Mode has one Discussion view and no visible related-pages list");
+    assert.equal(await evaluate("(() => !document.querySelector('#app-navigation').hidden && document.querySelector('#app-view-pages').hidden && document.querySelector('#app-tab-discover').getClientRects().length>0)()", sessionId), true,
+      "User Mode offers community tabs without the old related-pages list");
     await evaluate(`(() => {
       const state=window.visualDiscussionState, insight=window.visualInsightState;
       window.visualBeforeFollowup=structuredClone(state); window.visualBeforeFollowupInsight=structuredClone(insight);
@@ -1264,6 +1265,7 @@ try {
     }
     assert.equal(controllerReveal.canonical.focused, true,
       `accepted generated reply receives one-time focus: ${JSON.stringify(controllerReveal)}`);
+    await checkCommunityVisual({ browser, sessionId, evaluate, capture });
   } else {
   // Remount only the discussion renderer with invented state for visual review.
   // Controller callbacks are inert: this fixture cannot post or call a provider.

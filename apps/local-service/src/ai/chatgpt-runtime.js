@@ -8,6 +8,7 @@ import { normalizeInsightPreferences } from "../../../../spikes/topic-resolution
 import { formatInsightCitations } from "../../../../spikes/topic-resolution/browser/core/insight-citations.js";
 import { ServiceError, fail } from "../domain/errors.js";
 import { readId } from "../domain/validation.js";
+import { isAccountPrincipal } from "../accounts/account-principal.js";
 
 const FILE = "chatgpt-registration.json";
 const OPERATION = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
@@ -127,6 +128,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     if (diagnosticEvents.length > MAX_DIAGNOSTIC_EVENTS) diagnosticEvents.shift();
   }
   let active = null;
+  let privateActive = null;
   let disposed = false;
   let callbackPending = false;
   let callbackError = null;
@@ -167,6 +169,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     job.result = null; job.state = "failed"; job.error = "cancelled"; job.detail = null; finish(job);
   }
   function stopJobs() {
+    privateActive?.controller.abort();
     if (active) insights.cancel();
     for (const job of jobs.values()) { clearTimeout(job.expiry); job.result = null; job.state = "failed"; job.error = "cancelled"; }
     jobs.clear(); active = null;
@@ -307,7 +310,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       const key = operationId(value.operationId);
       if (seen.has(key)) fail("conflict", "Operation changed");
       if (seen.size >= MAX_OPERATIONS) fail("capacity", "Operation capacity reached");
-      if (active) fail("conflict", "Operation active");
+      if (active || privateActive) fail("conflict", "Operation active");
       const state = connection.status();
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       const { context, excludedWebUrls } = inspectContext(value);
@@ -354,6 +357,62 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
           finish(job); }
       }).finally(() => { if (active === job) active = null; });
       return { operationId: key, state: "running" };
+    },
+    async generatePrivate(value, actorId, { signal } = {}) {
+      exact(value, ["model", "context", "articleText", "allowWebResearch", "expected", "followup",
+        ...(Object.hasOwn(value ?? {}, "excludedRelatedSourceIds") ? ["excludedRelatedSourceIds"] : []),
+        ...(Object.hasOwn(value ?? {}, "preferences") ? ["preferences"] : [])]);
+      const actor = service.actor(actorId);
+      if (!isAccountPrincipal(actor)) fail("forbidden", "Actor unavailable");
+      if (disposed || signal?.aborted) fail("forbidden", "Action unavailable");
+      if (active || privateActive) fail("conflict", "Operation active");
+      const status = connection.status();
+      const identity = connection.accountIdentity?.() ?? null;
+      if (!status.connected || !status.planEnabled || !identity) fail("forbidden", "Provider account unavailable");
+      const { context, excludedWebUrls } = inspectContext(value);
+      // Private requests include only their selected messages, never public thread text.
+      if (context.coverage.discussionIncluded || context.discussion.length) fail("invalid", "Invalid request");
+      const followup = exact(value.followup, ["parentBody", "questionBody"]);
+      for (const body of [followup.parentBody, followup.questionBody]) {
+        if (typeof body !== "string" || !body.trim() || body.length > 2_000) fail("invalid", "Invalid request");
+      }
+      let preferences;
+      if (Object.hasOwn(value, "preferences")) {
+        try { preferences = normalizeInsightPreferences(value.preferences); }
+        catch { fail("invalid", "Invalid request"); }
+      }
+      const anchor = service.insightAnchor(context.topic.id, context.currentSource.id);
+      if (!same(anchor.version, value.expected)) fail("conflict", "State changed");
+      const controller = new AbortController();
+      const cancel = () => controller.abort();
+      signal?.addEventListener("abort", cancel, { once: true });
+      const invocation = { actorId, controller };
+      privateActive = invocation;
+      try {
+        const result = await insights.createInsight({ model: value.model, context,
+          articleText: value.articleText, allowWebResearch: value.allowWebResearch,
+          followup: { ...followup }, excludedWebUrls,
+          ...(preferences ? { preferences } : {}) }, { signal: controller.signal, suppressDebug: true });
+        if (disposed || controller.signal.aborted) fail("conflict", "State changed");
+        const currentActor = service.actor(actorId);
+        const currentStatus = connection.status();
+        const currentAnchor = service.insightAnchor(context.topic.id, context.currentSource.id);
+        if (!isAccountPrincipal(currentActor) || currentActor.accountId !== actor.accountId ||
+            !currentStatus.connected || !currentStatus.planEnabled ||
+            !same(identity, connection.accountIdentity?.() ?? null) ||
+            !same(status.account ?? null, currentStatus.account ?? null) ||
+            currentAnchor.version.generation !== anchor.version.generation ||
+            !same({ ...anchor, version: null }, { ...currentAnchor, version: null })) {
+          fail("conflict", "State changed");
+        }
+        let body;
+        try { body = formatInsightCitations(result.body, result.citations); }
+        catch { fail("invalid", "Invalid request"); }
+        return Object.freeze({ body, citations: result.citations, model: result.model });
+      } finally {
+        signal?.removeEventListener("abort", cancel);
+        if (privateActive === invocation) privateActive = null;
+      }
     },
     result(value, actorId) {
       exact(value, ["operationId"]); const job = owned(value.operationId, actorId);
@@ -411,6 +470,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       return { cancelled: true }; },
     reset() { stopJobs(); },
     cancelAccount(actorId) {
+      if (privateActive?.actorId === actorId) privateActive.controller.abort();
       for (const job of [...jobs.values()]) if (job.actorId === actorId) removeJob(job);
     },
     dispose() { disposed = true; callbackGeneration += 1; callbackPending = false;

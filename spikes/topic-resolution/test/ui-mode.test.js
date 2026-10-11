@@ -177,11 +177,11 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     'label[for="insight-model"]', "#insight-quick-actions", "#local-insights", "#app-discussion-insights-host",
     "#app-settings-insights", "#app-settings-insights-heading", "#discussion-composer", "#app-welcome", "#app-navigation",
     ".discussion-thread", "#test-reply-target", "#discussion-body",
-    "#app-view-discussion", "#app-view-pages", "#app-view-insights", "#app-settings-view",
+    "#app-view-discussion", "#app-view-pages", "#app-view-insights", "#app-settings-view", "#app-view-discover", "#app-view-private",
     "#app-welcome-kicker", "#app-welcome-heading", "#app-welcome-intro", "#app-pages-heading", "#app-settings-heading",
     "#app-settings-kicker", "#app-settings-intro",
     "#app-pages-list", "#app-pages-empty", "#app-pages-context", "#app-settings-button",
-    "#app-settings-back", "#app-tab-discussion", "#app-tab-pages", "#app-settings-connection",
+    "#app-settings-back", "#app-tab-discussion", "#app-tab-pages", "#app-tab-discover", "#app-tab-private", "#app-settings-connection",
     "#app-welcome-connection", "#app-settings-capture", "#app-settings-display", "#local-discussion",
     "#discussion-connection-settings", "#discussion-status", "#discussion-advanced", "#discussion-related", "#discussion-counts", "#discussion-topic",
     "#discussion-ai-insights",
@@ -260,7 +260,15 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   assert.equal(get("#app-source-context").hidden, true);
   get("#app-settings-back").click();
   assert.equal(get("#app-source-context").hidden, true);
-  assert.equal(get("#app-navigation").hidden, true);
+  assert.equal(get("#app-navigation").hidden, false);
+  get("#app-tab-discover").click();
+  assert.equal(get("#app-view-discover").hidden, false);
+  assert.equal(get("#app-view-discussion").hidden, true);
+  get("#app-tab-private").click();
+  assert.equal(get("#app-view-private").hidden, false);
+  assert.equal(creates, 0, "community navigation never generates an Insight");
+  assert.equal(draft.value, "Private unsent draft");
+  get("#app-tab-discussion").click();
   assert.equal(get("#local-insights").parentElement, get("#app-discussion-insights-host"));
   assert.equal(get("#discussion-composer").nextSibling, get("#app-discussion-insights-host"));
   assert.equal(get("#app-discussion-insights-host").nextSibling, get(".discussion-thread"));
@@ -323,7 +331,7 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   shell.render(disconnected);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-welcome-connection"));
   shell.render(connected);
-  assert.equal(get("#app-navigation").hidden, true);
+  assert.equal(get("#app-navigation").hidden, false);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
   shell.dispose();
 });

@@ -14,6 +14,7 @@ import { AccountRepository } from "./accounts/account-repository.js";
 import { AccountService } from "./accounts/account-service.js";
 import { createAccountLifecycle } from "./accounts/account-lifecycle.js";
 import { loadProtectedAccountKey } from "./accounts/protected-account-key.js";
+import { createPrivateDiscussionService } from "./private/private-service.js";
 
 export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
 
@@ -31,7 +32,7 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
   accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
-  let accounts = null, accountRepository = null;
+  let accounts = null, accountRepository = null, privateDiscussions = null;
   const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric,
     alternateRidgeAdapter,
     ...(accountsEnabled ? { resolveAccountActor: id => accounts.principalForAccountId(id),
@@ -49,16 +50,21 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
       accounts = new AccountService({ repository: accountRepository, hmacKey: accountHmacKey,
         fixtureOnly: false, mailSink: null, chatgptIdentity: () => runtime?.accountIdentity?.() ?? null });
       accounts.cleanupExpired();
-      accountLifecycle = createAccountLifecycle({ accounts, service: database.service, ai: runtime });
+      privateDiscussions = createPrivateDiscussionService({
+        databasePath: path.join(path.dirname(databasePath), "private-conversations.sqlite"),
+        ai: runtime, publicService: database.service, nextId, now,
+        canGenerate: actorId => accounts.matchesChatGPTIdentity(actorId.slice("account-".length)),
+      });
+      accountLifecycle = createAccountLifecycle({ accounts, service: database.service, ai: runtime, privateDiscussions });
       accountLifecycle.resume();
     }
-  } catch (error) { runtime?.dispose?.(); accountRepository?.close(); database.close(); throw error; }
+  } catch (error) { privateDiscussions?.close(); runtime?.dispose?.(); accountRepository?.close(); database.close(); throw error; }
   return Object.freeze({
     config,
     handle: createRequestHandler({ service: database.service, config, ai: runtime, pairingVerifier,
-      accounts, accountWrites: accountsEnabled, accountLifecycle }),
+      accounts, accountWrites: accountsEnabled, accountLifecycle, privateDiscussions }),
     restore: () => runtime?.restore?.() ?? Promise.resolve(false),
-    close() { runtime?.dispose?.(); accountRepository?.close(); database.close(); },
+    close() { privateDiscussions?.close(); runtime?.dispose?.(); accountRepository?.close(); database.close(); },
   });
 }
 

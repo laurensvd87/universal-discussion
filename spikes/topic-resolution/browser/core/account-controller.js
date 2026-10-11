@@ -218,6 +218,24 @@ export function createAccountController({ client, storage, renderer = () => {}, 
           result.posts.push(...page.posts);
           after = page.next; if (after !== null) seen.add(after);
         } while (after !== null);
+        if (typeof client.exportPrivateData === "function") {
+          let privateAfter = null, privateVersion = null;
+          const privateSeen = new Set(), conversations = new Map();
+          result.privateMessages = [];
+          do {
+            const page = await client.exportPrivateData(access, privateAfter, privateVersion);
+            if (!active(ticket)) return false;
+            if (privateVersion !== null && page.version !== privateVersion) throw new Error("Private account data changed");
+            privateVersion = page.version;
+            bytes += new TextEncoder().encode(JSON.stringify(page)).byteLength;
+            if (bytes > 8_388_608 || privateSeen.size > 10000 || page.next !== null && privateSeen.has(page.next)) throw new Error("Account data too large");
+            for (const conversation of page.conversations) conversations.set(conversation.id, conversation);
+            result.privateMessages.push(...page.messages);
+            privateAfter = page.next; if (privateAfter !== null) privateSeen.add(privateAfter);
+          } while (privateAfter !== null);
+          result.privateVersion = privateVersion;
+          result.privateConversations = [...conversations.values()];
+        }
         if (!active(ticket)) return false;
         await onExport(result); return true;
       });

@@ -40,9 +40,13 @@
       </section>
       <nav id="app-navigation" class="user-only app-navigation" hidden>
         <button id="app-tab-discussion" type="button" aria-controls="app-view-discussion" aria-current="page"></button>
-        <button id="app-tab-pages" type="button" aria-controls="app-view-pages"></button>
+        <button id="app-tab-pages" type="button" aria-controls="app-view-pages" hidden></button>
+        <button id="app-tab-discover" type="button" aria-controls="app-view-discover">Discover</button>
+        <button id="app-tab-private" type="button" aria-controls="app-view-private">Private chats</button>
       </nav>
       <section id="app-view-discussion" class="app-view"><section id="local-discussion" class="action-panel"><div id="app-discussion-insights-host"></div></section></section>
+      <section id="app-view-discover" class="app-view community-view user-only" aria-label="Discover" hidden></section>
+      <section id="app-view-private" class="app-view community-view user-only" aria-label="Private chats" hidden></section>
       <section id="app-view-pages" class="app-view user-only" aria-labelledby="app-pages-heading" hidden>
         <h2 id="app-pages-heading"></h2>
         <p id="app-pages-context" class="app-view-intro"></p>

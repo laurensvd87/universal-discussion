@@ -1,4 +1,5 @@
-// Dormant account transport: explicit injection only, never started by popup code.
+import { readPrivateResponse } from "./community-contract.js";
+// Account transport uses explicit injected capabilities only.
 const BASE = "http://127.0.0.1:4174/v1/account";
 const MAX_BYTES = 16_384;
 const encoder = new TextEncoder();
@@ -137,6 +138,14 @@ export function createAccountClient({ fetchImpl, getPairingToken, timeoutMs = 50
       if (!value || Object.keys(value).join() !== "deleted" || value.deleted !== true) fail("invalid-response");
       return Object.freeze({ deleted: true });
     }),
+    exportPrivateData: (token, after = null, expectedVersion = null) => request("/private-data", { after, expectedVersion }, token, value => {
+      if (!value || Object.keys(value).sort().join() !== "conversations,messages,next,schema,version" ||
+          value.schema !== "private-export/v1" || !Number.isSafeInteger(value.version) || value.version < 0 ||
+          !Array.isArray(value.conversations) || value.conversations.length > 1 ||
+          !Array.isArray(value.messages) || value.messages.length > 1 ||
+          !(value.next === null || typeof value.next === "string" && value.next.length <= 256)) fail("invalid-response");
+      return readPrivateResponse(value);
+    }, 262144),
     logout: token => request("/session/logout", {}, token, value => {
       if (!value || Object.keys(value).join() !== "loggedOut" || value.loggedOut !== true) fail("invalid-response");
       return Object.freeze({ loggedOut: true });

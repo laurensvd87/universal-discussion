@@ -19,6 +19,9 @@ import { createReadOnlyServiceRetry } from "../core/read-only-service-retry.js";
 import { createLocalAiClient } from "../core/local-ai-client.js";
 import { createInsightPageReader } from "./insight-page-reader.js";
 import { createInsightPreferenceStorage } from "./insight-preference-storage.js";
+import { mountPrivateConversationPanel } from "./private-conversation-panel.js";
+import { mountDiscoveryPanel } from "./discovery-panel.js";
+import { preparePrivateGeneration } from "../core/private-generation-context.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { mountPopupShell } from "./popup-shell.js";
 import { connectPopupFocusResponder } from "./popup-focus.js";
@@ -215,7 +218,11 @@ const insightPageReader = createInsightPageReader({ scriptingApi, readActiveTab:
 const tabLifecycleObserver = isSidePanel
   ? createWindowBoundTabLifecycleObserver({ tabsApi, windowsApi: windows, windowId: panelBinding.windowId })
   : createTabLifecycleObserver(tabsApi);
-const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"));
+let privatePanel = null;
+const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"), {
+  onPrivateSend: body => privatePanel?.start(body) ?? Promise.resolve(false),
+  onPrivateInsight: body => privatePanel?.start(body, true) ?? Promise.resolve(false),
+});
 const insightPanel = mountInsightPanel(document, document.querySelector("#local-insights"));
 let insightController;
 let accountPanel = null;
@@ -312,6 +319,7 @@ const localDiscussion = createLocalDiscussionController({
   pausePageMatching: () => matchingPanel.pauseMatching(),
   onStateChange: (state) => {
     discussionPanel.render(state); popupShell.render(state); observeToolbar(state);
+    privatePanel?.observe();
     insightController?.observe(state);
     primeAiAfterLocalConnection(state);
     resumeAfterReady(state);
@@ -367,7 +375,7 @@ accountPanel = mountAccountPanel({ document, mount: document.body,
     return { sourceId: state.sourceId, topicId: state.topicId,
       targetId: state.draft.targetId, mode: state.draft.mode };
   },
-  onAccountChange: () => { if (accountPanel) localDiscussion.accountChanged(); },
+  onAccountChange: () => { if (accountPanel) localDiscussion.accountChanged(); privatePanel?.accountChanged(); },
   onConnectChatGPT: () => insightController.connect(),
   onSessionChanged: listener => {
     const observe = (changes, area) => {
@@ -386,6 +394,19 @@ accountPanel = mountAccountPanel({ document, mount: document.body,
 document.querySelector(".popup-topbar").insertBefore(accountPanel.elements.button,
   document.querySelector("#app-settings-button"));
 void accountPanel.initialize();
+privatePanel = mountPrivateConversationPanel(document, document.querySelector("#app-view-private"), {
+  client: localClient, readActor: () => accountPanel?.getActorId() ?? null,
+  requestSignIn: () => accountPanel.requestSignIn(),
+  readPublicState: () => localDiscussion.currentState(), showView: popupShell.navigate,
+  randomId: () => crypto.randomUUID(),
+  attestStart: localDiscussion.attestPrivateStart,
+  prepareGeneration: sourceId => preparePrivateGeneration({ sourceId,
+    readState: localDiscussion.currentState, readInsight: insightController.currentState,
+    readArticle: insightPageReader.read, attestArticle: insightPageReader.attest,
+    readBrowserLanguage: insightPreferenceStorage.readBrowserLanguage }),
+});
+const discoveryPanel = mountDiscoveryPanel(document, document.querySelector("#app-view-discover"), { client: localClient, messages: EN });
+popupShell.bindCommunity({ private: privatePanel, discovery: discoveryPanel });
 const accountMaintenance = setInterval(() => {
   if (accountPanel.getActorId()) void accountPanel.controller.withAppSession(() => true).catch(() => {});
 }, 60_000);
@@ -435,6 +456,7 @@ const pageMetadataController = createPageMetadataController({
 globalThis.addEventListener("pagehide", () => {
   clearInterval(accountMaintenance);
   accountPanel?.dispose();
+  privatePanel?.dispose(); discoveryPanel.dispose();
   clearTimeout(panelReopenTimer);
   stopPanelWindowObservation();
   serviceRetry.dispose();

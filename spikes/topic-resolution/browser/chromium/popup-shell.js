@@ -28,6 +28,7 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     ["#app-welcome-kicker", "uiWelcomeKicker"], ["#app-welcome-heading", "uiWelcomeTitle"],
     ["#app-welcome-intro", "uiWelcomeIntro"],
     ["#app-tab-discussion", "uiTabDiscussion"], ["#app-tab-pages", "uiTabPages"],
+    ["#app-tab-discover", "uiDiscoverTab"], ["#app-tab-private", "privateChats"],
     ["#app-pages-heading", "uiTabPages"],
     ["#app-pages-empty", "uiPagesEmpty"], ["#app-settings-back", "uiSettingsBack"],
     ["#app-settings-kicker", "uiSettingsKicker"], ["#app-settings-heading", "uiSettingsTitle"],
@@ -53,12 +54,14 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     welcome: find("#app-welcome"), nav: find("#app-navigation"),
     discussion: find("#app-view-discussion"), pages: find("#app-view-pages"),
     insights: find("#app-view-insights"), settings: find("#app-settings-view"),
+    discover: find("#app-view-discover"), private: find("#app-view-private"),
     pageList: find("#app-pages-list"), pageEmpty: find("#app-pages-empty"),
     pageContext: find("#app-pages-context"),
   };
   let activeView = "discussion";
   let lastState;
   let topicController;
+  let community = null, communityView = null;
   let topicChoiceRevision = 0;
   let requestedTopicMode = "experimental";
   let topicWrites = Promise.resolve();
@@ -102,7 +105,7 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     }
   }
   function showView(view) {
-    if (!app.nav || !["discussion", "pages", "settings"].includes(view)) return;
+    if (!app.nav || !["discussion", "pages", "settings", "discover", "private"].includes(view)) return;
     if (view === "pages") view = "discussion";
     activeView = view;
     if (document.body.dataset.uiMode !== "user") return;
@@ -123,22 +126,29 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
       if (related) related.open = true;
     }
     app.welcome.hidden = connected || view === "settings";
-    app.nav.hidden = true;
-    for (const name of ["discussion", "pages", "settings"]) {
-      app[name].hidden = (name !== "settings" && !connected) || name !== view;
+    app.nav.hidden = !connected;
+    for (const name of ["discussion", "pages", "settings", "discover", "private"]) {
+      if (app[name]) app[name].hidden = (name !== "settings" && !connected) || name !== view;
     }
     app.insights.hidden = true;
-    for (const name of ["discussion", "pages"]) {
+    for (const name of ["discussion", "pages", "discover", "private"]) {
       const tab = find(`#app-tab-${name}`);
       if (!tab) continue;
       if (name === view) tab.setAttribute("aria-current", "page");
       else tab.removeAttribute("aria-current");
     }
     find("#app-settings-button")?.setAttribute("aria-expanded", String(view === "settings"));
+    if (communityView !== view) {
+      communityView = view;
+      community?.discovery?.setActive(view === "discover");
+      community?.private?.setActive(view === "private");
+    }
   }
   const navigate = (view) => { showView(view); document.defaultView?.scrollTo?.(0, 0); };
   on(find("#app-tab-discussion"), "click", () => navigate("discussion"));
   on(find("#app-tab-pages"), "click", () => navigate("pages"));
+  on(find("#app-tab-discover"), "click", () => navigate("discover"));
+  on(find("#app-tab-private"), "click", () => navigate("private"));
   on(find("#app-settings-button"), "click", () => {
     navigate("settings"); find("#app-settings-heading")?.focus?.({ preventScroll: true });
   });
@@ -195,6 +205,10 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
       if (mode === "developer") {
         placeInsightWorkspace(mode);
         app.welcome.hidden = app.nav.hidden = app.pages.hidden = app.settings.hidden = true;
+        if (app.discover) app.discover.hidden = true;
+        if (app.private) app.private.hidden = true;
+        communityView = null;
+        community?.discovery?.setActive(false); community?.private?.setActive(false);
         app.discussion.hidden = app.insights.hidden = false;
         move("#discussion-connection-settings", find("#local-discussion"));
         move("#discussion-advanced", find("#local-discussion"));
@@ -243,6 +257,7 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
       if (find("#app-source-domain")) find("#app-source-domain").textContent = title ? domain : "";
     }
     const view = projectDiscussionShell(state, messages);
+    community?.discovery?.observeConnected(view.connection === "connected" || view.connection === "unverified");
     connection.dataset.state = view.connection; connection.textContent = view.connectionText;
     document.body.dataset.topicState = view.topicState;
     if (app.nav && document.body.dataset.uiMode === "user") {
@@ -258,7 +273,10 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
       showView(activeView);
     }
   }
-  return Object.freeze({ render, bindTopicView(controller) {
+  return Object.freeze({ render, navigate, bindCommunity(value) {
+    community = value; communityView = null;
+    if (lastState) render(lastState);
+  }, bindTopicView(controller) {
     topicController = controller;
     const revision = topicChoiceRevision;
     void (async () => {

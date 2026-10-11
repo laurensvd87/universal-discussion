@@ -9,7 +9,7 @@ export const MAX_BODY_BYTES = 65_536;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
 
 export function createRequestHandler({ service, config, ai = null, pairingVerifier = null, accounts = null,
-  accountWrites = false, accountLifecycle = null }) {
+  accountWrites = false, accountLifecycle = null, privateDiscussions = null }) {
   return async function handle(request) {
     let corsOrigin = null;
     try {
@@ -28,9 +28,23 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         // Account credential handling requires the configured browser Origin;
         // privileged browser GET omissions use strict POST read equivalents.
         if (normalized.headers.origin !== config.origin) fail("origin", "Request unavailable");
-        const response = accountLifecycle && ["/v1/account/data", "/v1/account/delete"].includes(normalized.url.pathname)
+        const response = accountLifecycle && ["/v1/account/data", "/v1/account/delete", "/v1/account/private-data"].includes(normalized.url.pathname)
           ? accountLifecycle.route(normalized) : routeAccountRequest(normalized, accounts);
         return jsonResponse(response.status, response.value, corsOrigin);
+      }
+      if (normalized.url.pathname.startsWith("/v1/private/")) {
+        if (!accountWrites || !accounts || !privateDiscussions) fail("not-found", "Object unavailable");
+        if (normalized.headers.origin !== config.origin || Object.hasOwn(normalized.headers, "x-demo-actor")) fail("origin", "Request unavailable");
+        if (normalized.method !== "POST") fail("method", "Method unavailable");
+        const principal = accounts.resolvePrincipal(normalized.headers["x-account-session"]);
+        const input = parseJsonBody(normalized);
+        const action = normalized.url.pathname.slice("/v1/private/".length);
+        const methods = { create: "create", list: "list", read: "read", send: "send", generate: "generate", delete: "remove" };
+        if (!Object.hasOwn(methods, action)) fail("not-found", "Object unavailable");
+        // Generation is separately provider-bound inside the service at dispatch
+        // and completion. An unavailable grant must not discard an accepted reply.
+        const value = privateDiscussions[methods[action]](principal, input);
+        return jsonResponse(200, value, corsOrigin);
       }
       const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null, config.origin);
       return jsonResponse(response.status, response.value, corsOrigin);
@@ -169,6 +183,9 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     protocol: "local-service/v1", capability: durablePairing ? "paired-durable-v1" : "paired-demo",
   } };
   if (request.method === "GET" && path === "/v1/catalog") return { status: 200, value: service.catalog() };
+  if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {
+    return { status: 200, value: service.discover.search(parseJsonBody(request)) };
+  }
   const alternateMatch = /^\/v1\/sources\/([^/]+)\/alternate-discussion$/u.exec(path);
   if (request.method === "GET" && alternateMatch) {
     let sourceId;

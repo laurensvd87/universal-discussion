@@ -6,7 +6,7 @@ import { inspectPageUrl } from "../core/page-content-policy.js";
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { resolveDiscussionTarget } from "../core/discussion-target.js";
 
-export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
+export function mountDiscussionPanel(document, root, { messages = EN, onPrivateSend = null, onPrivateInsight = null } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
   const handlers = [];
   let controller;
@@ -18,6 +18,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let insightHost;
   let rendering = false;
   let posting = false;
+  let privateRoot = false;
   function node(tag, key) {
     const item = document.createElement(tag);
     if (key) item.textContent = text(key);
@@ -41,7 +42,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const insightShortcut = node("button", "uiCreateInsights"); insightShortcut.type = "button";
   insightShortcut.id = "discussion-ai-insights"; insightShortcut.className = "insight-shortcut";
   listen(insightShortcut, "click", () => {
-    if (insightShortcut.hidden || insightShortcut.disabled || !insightController) return;
+    if (posting || insightShortcut.hidden || insightShortcut.disabled || !insightController) return;
     if (uiMode === "user") {
       const replyMode = lastState?.draft?.mode === "reply";
       const questionId = replyMode ? composerFollowupTarget() : null;
@@ -52,6 +53,17 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
         const accountDetails = document.querySelector?.("#insight-account-details");
         if (accountDetails) accountDetails.open = true;
         document.querySelector?.("#insight-account-details > summary")?.focus?.({ preventScroll: true });
+        return;
+      }
+      if (privateRoot && !replyMode && onPrivateInsight) {
+        const draftBody = lastState.draft.body, sourceId = lastState.sourceId;
+        posting = true; render(lastState);
+        void onPrivateInsight(draftBody).then(accepted => {
+          const current = controller?.currentState();
+          if (accepted && current?.sourceId === sourceId && current?.draft.body === draftBody && current?.draft.mode === "root") {
+            privateRoot = false; controller.discardDraft();
+          }
+        }).catch(() => {}).finally(() => { posting = false; if (lastState && !disposed) render(lastState); });
         return;
       }
       if (questionId) void insightController.createFollowup(questionId);
@@ -188,12 +200,15 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const submit = node("button", "discussionSubmit"); submit.type = "submit";
   submit.id = "discussion-submit";
   const composerActions = node("div"); composerActions.className = "discussion-composer-actions";
+  const privacy = node("button"); privacy.type = "button"; privacy.id = "discussion-private-toggle";
+  privacy.className = "private-lock-button user-only";
+  listen(privacy, "click", () => { if (privacy.disabled) return; privateRoot = !privateRoot; if (lastState) render(lastState); });
   const modelHost = node("div"); modelHost.id = "discussion-model-host";
   modelHost.className = "discussion-model-host";
   const insightActivity = node("span"); insightActivity.id = "discussion-insight-activity";
   insightActivity.setAttribute("role", "status"); insightActivity.setAttribute("aria-live", "polite");
   insightShortcut.setAttribute("aria-describedby", insightActivity.id);
-  composerActions.append(modelHost, insightShortcut, submit, insightActivity);
+  composerActions.append(privacy, modelHost, insightShortcut, submit, insightActivity);
   composer.append(mode, replyContext, bodyLabel, body, detached, composerActions);
   listen(body, "input", () => { sizeReplyBody(); controller?.setDraft(body.value); });
   listen(body, "compositionstart", () => { composing = true; });
@@ -209,7 +224,17 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (submit.disabled || posting || !controller) return;
     posting = true;
     if (lastState) render(lastState);
-    try { await controller.submitDraft(); }
+    try {
+      if (privateRoot && lastState?.draft.mode === "root" && onPrivateSend) {
+        const sentDraft = lastState.draft.body, sourceId = lastState.sourceId;
+        if (await onPrivateSend(sentDraft)) {
+          const current = controller.currentState();
+          if (current.sourceId === sourceId && current.draft.body === sentDraft && current.draft.mode === "root") {
+            privateRoot = false; controller.discardDraft();
+          }
+        }
+      } else await controller.submitDraft();
+    }
     finally { posting = false; if (lastState && !disposed) render(lastState); }
   });
   const reattach = button("discussionReattach", () => { controller?.reattachDraft(); body.focus(); }, composer);
@@ -828,6 +853,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
         JSON.stringify(state.draft.targetBinding ?? null) ||
       previousState?.draft.detached !== state.draft.detached;
     if (compositionContextChanged) composing = false;
+    // Never silently weaken a retained locked draft during navigation/detachment.
+    if (previousState?.draft.mode !== state.draft.mode || previousState?.draft.body && !state.draft.body && !posting)
+      privateRoot = false;
     if ((!composing || compositionContextChanged) && body.value !== state.draft.body)
       body.value = state.draft.body;
     body.rows = uiMode === "user" && state.draft.mode === "reply" ? 1 : 3;
@@ -857,6 +885,13 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])
       .replace("{id}", state.draft.targetId ?? "");
     newThreadHeading.textContent = text(({ root: "uiNewThread", reply: "uiReplyThread", edit: "uiEditThread" })[state.draft.mode]);
+    if (privateRoot && state.draft.mode === "root") newThreadHeading.textContent = text("privateNewThread");
+    privacy.hidden = uiMode !== "user" || state.draft.mode !== "root" || !onPrivateSend;
+    privacy.disabled = posting || !ready || state.draft.detached || !selectedPostingSource(state);
+    privacy.setAttribute("aria-pressed", String(privateRoot));
+    privacy.setAttribute("aria-label", text(privateRoot ? "privateToggleActive" : "privateToggle"));
+    privacy.title = text(privateRoot ? "privateToggleActive" : "privateToggle");
+    composer.setAttribute("data-private", String(privateRoot));
     newThreadHeading.hidden = uiMode !== "user";
     if (uiMode === "user" && state.draft.mode === "root") mode.textContent = text("uiComposerRoot");
     mode.hidden = uiMode === "user" && ["root", "reply"].includes(state.draft.mode);
@@ -1327,7 +1362,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const replyMode = lastState?.draft?.mode === "reply";
     insightShortcut.hidden = uiMode === "user" && (hasResult || replyMode ||
       ((!selectedTopicReady && !loadingSelected) || lastState?.draft?.mode !== "root"));
-    insightShortcut.disabled = !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
+    insightShortcut.disabled = posting || !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
     insightShortcut.setAttribute("aria-busy", String(active));
     insightShortcut.setAttribute("data-phase", active ? "working" : "idle");
     insightShortcut.setAttribute("data-followup", String(Boolean(replyMode && followupQuestionId)));

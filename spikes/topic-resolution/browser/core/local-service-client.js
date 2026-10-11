@@ -3,6 +3,7 @@ import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDi
   readIngestion, readIngestionOutcome, readAlternateDiscussion, isAccountActorId } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 import { readAccountAuthError } from "./account-auth-response.js";
+import { readDiscovery, readPrivateResponse } from "./community-contract.js";
 
 const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
@@ -21,7 +22,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30_000) {
     throw new TypeError("Invalid local service client configuration");
   }
-  async function request(path, body, actorId, project, signal, suppliedToken) {
+  async function request(path, body, actorId, project, signal, suppliedToken, beforeDispatch) {
     const url = BASE + path;
     const serialized = body === undefined ? undefined : JSON.stringify(body);
     if (serialized !== undefined && encoder.encode(serialized).byteLength > MAX_REQUEST_BYTES) fail("invalid-request");
@@ -59,6 +60,8 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
         if (accountToken) headers["X-Account-Session"] = accountToken;
       }
       if (actorId !== undefined && !isAccountActorId(actorId)) headers["X-Demo-Actor"] = actorId;
+      if (beforeDispatch && !await beforeDispatch()) fail("conflict");
+      if (controller.signal.aborted) fail("unavailable");
       response = await fetchImpl(url, { method: serialized === undefined ? "GET" : "POST", headers,
         ...(serialized === undefined ? {} : { body: serialized }), redirect: "error", credentials: "omit",
         cache: "no-store", referrerPolicy: "no-referrer", signal: controller.signal });
@@ -117,6 +120,11 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
     }
   }
   return Object.freeze({
+    discover: (value, { signal } = {}) => request("/discover/search", value, undefined, readDiscovery, signal),
+    privateConversation(action, value, actorId, { signal, beforeDispatch } = {}) {
+      if (!["create", "list", "read", "send", "generate", "delete"].includes(action) || !isAccountActorId(actorId)) fail("invalid-request");
+      return request(`/private/${action}`, value, actorId, readPrivateResponse, signal, undefined, beforeDispatch);
+    },
     async health({ signal } = {}) { return request("/health", undefined, undefined, readHealth, signal); },
     async healthWithToken(token, { signal } = {}) { return request("/health", undefined, undefined, readHealth, signal, token); },
     async catalog({ signal } = {}) { return request("/catalog", undefined, undefined, readCatalog, signal); },

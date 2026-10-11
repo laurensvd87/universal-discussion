@@ -1,5 +1,41 @@
 # Project status
 
+**2026-10-11 private chats and indexed Discover implemented, 0.13.49:**
+Lock an unsent new thread to create an account-private conversation; its messages
+never enter public Topics, search, projections or dashboard. Private chats persist
+in a separate SQLite database and reopen through **Private chats**. A deliberate
+sparkle generates the first answer; each accepted human reply directly to that
+account's private AI triggers one durable assistant attempt. Duplicate sends,
+panel reopening and restart cannot redispatch it. Existing bounded context,
+provider/model/account/Source checks and research settings apply; no full private
+history, private webpage capture or automatic public replies. Raw private provider
+debugging is suppressed even in public debug mode. Access-controlled, not E2EE.
+Own export includes grouped private messages; staged account deletion cancels and
+erases private data before identity purge, including interrupted startup recovery.
+
+**Discover** uses a separate derived SQLite FTS5 public index with canonical
+version watermark, bounded queries/snippets and revision-bound pagination.
+Paired guests may search public Topics, current visible messages and safe linked
+pages, then inspect read-only conversations or open page links. Navigation never
+changes current Source/Topic/write authority. Private data is excluded. Indexed
+reads avoid deserializing the entire catalog per request. A 12,000-Topic/24,000-
+document synthetic index passes pagination/freshness/private-exclusion checks;
+this is not an internet-scale capacity benchmark. Canonical storage still has its
+existing 8 MiB aggregate limit and bounded public reads; normalized storage remains
+a prerequisite of large hosted ingestion.
+
+Independent backend and UI/client Trust pass. Restricted full suites: 1,229
+browser passes; 538 backend passes/four skips. Actual isolated Chrome verifies
+lock/send/first generation/automatic reply/reopen, read-only discovery/safe links,
+focused typing and 320/390/480px layout, with zero uncaught errors and no real
+provider call. Screenshots are temporary synthetic artifacts, not Git assets.
+Normal service restarted: saved pairing/ChatGPT connection work; catalog is
+unchanged at 184 Sources/222 Topics/revision 730. Paired discovery returns 20
+results plus pagination; private guest access is rejected. No actual private
+post/provider inference was performed against owner data. Reload the extension
+under `chrome://extensions`; sign into the app/choose a username for private chats.
+See ADR-096. No new permission, mail, hosted access, spending or release approval.
+
 **2026-10-11 general public URL minimization implemented, 0.13.48:**
 Owner requests stripping session/tracking parameters across sites after the
 hotel-page diagnosis. Navigation now removes approved session IDs and common

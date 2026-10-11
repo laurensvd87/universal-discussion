@@ -1,7 +1,7 @@
 import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-tab-policy.js";
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
-import { readPostOrigin } from "./local-service-contract.js";
+import { readPostOrigin, isAccountActorId } from "./local-service-contract.js";
 import { isRidgeTopicView } from "./topic-view-mode.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
@@ -642,6 +642,31 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       }
     }
   }
+  async function attestPrivateStart(snapshot) {
+    const ownEpoch = epoch;
+    const binding = value => JSON.stringify([value?.sourceId, value?.topicId, value?.actorId,
+      value?.selection, value?.resolution, value?.draft]);
+    const same = () => !disposed && epoch === ownEpoch && binding(snapshot) === binding(state) &&
+      state.phase === "ready" && !state.busy && !state.needsFreshRead &&
+      state.draft.mode === "root" && !state.draft.detached && selectedPostingSource(state) &&
+      isAccountActorId(state.actorId) && readPostingActor() === state.actorId;
+    if (!same()) return false;
+    try {
+      if (attestActiveContext && (!activeContext || !await attestActiveContext(activeContext))) return false;
+      if (state.selection === "background") {
+        const current = await freshResolution();
+        if (!same() || !isReadyPageResolution(current) || !samePageResolution(snapshot.resolution, current)) return false;
+        const tab = await readActiveTab();
+        if (tab.tabId !== current.tabId || new URL(tab.url).toString().split("#")[0] !== current.url ||
+            tab.windowId !== undefined && tab.windowId !== current.currentWindowId) return false;
+      } else {
+        const tab = await readActiveTab(), source = selectedPostingSource(state);
+        if (inspectPageNavigationUrl(tab.url)?.url !== source?.url) return false;
+      }
+      if (attestActiveContext && (!activeContext || !await attestActiveContext(activeContext))) return false;
+      return Boolean(same());
+    } catch { return false; }
+  }
   function submitDraft() {
     const draft = state.draft;
     if (draft.detached || !draft.body.trim() || state.phase !== "ready") return Promise.resolve(false);
@@ -723,6 +748,6 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     void open();
   }
   return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor,
-    selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, shareInsight, withdraw, createTopic, reset,
+    selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, attestPrivateStart, shareInsight, withdraw, createTopic, reset,
     updatePageResolution, invalidateContext, accountChanged, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

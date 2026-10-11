@@ -4,11 +4,13 @@ import { fail } from "../domain/errors.js";
 // Two stores, no distributed-transaction claim: deleting disables auth first,
 // then one canonical transaction removes all owned bodies; startup completes
 // interrupted erasure before the service accepts account operations.
-export function createAccountLifecycle({ accounts, service, ai }) {
+export function createAccountLifecycle({ accounts, service, ai, privateDiscussions = null }) {
   function finish(accountId) {
     const actorId = `account-${accountId}`;
     ai?.cancelAccount?.(actorId);
+    privateDiscussions?.cancelAccount(actorId);
     service.withdrawAccountContributions(actorId);
+    privateDiscussions?.eraseAccount(actorId);
     return accounts.finishDeletion(accountId);
   }
   return Object.freeze({
@@ -27,6 +29,10 @@ export function createAccountLifecycle({ accounts, service, ai }) {
           fail("invalid", "Invalid request");
         const { accountId } = accounts.beginDeletion(token);
         return { status: 200, value: finish(accountId) };
+      }
+      if (request.url.pathname === "/v1/account/private-data" && privateDiscussions) {
+        const own = accounts.exportOwnAccount(token);
+        return { status: 200, value: privateDiscussions.exportPage(`account-${own.account.id}`, body) };
       }
       if (request.url.pathname !== "/v1/account/data" || Object.keys(body).join() !== "after" ||
           !(body.after === null || typeof body.after === "string" && /^[A-Za-z0-9._:-]{1,128}$/u.test(body.after)))
