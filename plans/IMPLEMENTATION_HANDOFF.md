@@ -1,12 +1,27 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 private assistant validation fix is verified in extension 0.13.50.
+Shared Insight page reader strips only direction-formatting marks after the
+existing 4,096-character capture, preserving visible multilingual text and exact
+original navigation/document witnesses. Remaining C1/unsafe controls and blank
+text still reject; collector/E5/server validators are unchanged. Safe localized
+error-enum explanations replace generic private failures, not raw details or
+retry buttons. Full real-component private generation/follow-up regression uses
+mocked provider HTTP and verifies one claim, bounded context, private debug
+suppression and duplicate/restart non-redispatch. Independent Trust 221 passes;
+restricted browser 1,242/backend 539 passes plus four skips; actual isolated
+Chrome community checks and both secret scans pass. Client-only reload; running
+backend, credentials/data/old failed claims stay untouched. Fresh owner private
+quality test remains open; do not claim the exact failed field was proven.
+
 2026-10-11 private assistant owner test now reports a terminal `invalid-input`
 claim (human message retained). Read-only diagnostics/offline composition find
 a page-reader/provider-adapter Unicode-control validation mismatch; the actual
 rejected field is unconfirmed because page text is transient. Do not call this
 a ChatGPT outage, reset/retry the existing claim or enable private raw logging.
-See top STATUS for evidence and the open validation/diagnostic regression work.
-No implementation change or live inference was made during this diagnosis.
+See top STATUS for evidence and the subsequent client validation/regression fix.
+No live inference was made during diagnosis or that fix; additional field-level
+diagnostics may be needed if a fresh owner attempt still fails.
 
 2026-10-11 private conversations and Discover are implemented/activated locally
 in 0.13.49; read ADR-096 before older public-only/private-preview notes. New-root

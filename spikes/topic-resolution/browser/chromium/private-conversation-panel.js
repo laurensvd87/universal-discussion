@@ -49,6 +49,16 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     return errorValue?.code === "authentication-required" ? text("privateSignIn")
       : errorValue?.code === "conflict" ? text("privateChanged") : text("privateUnavailable");
   }
+  function generationFailureMessage(code) {
+    switch (code) {
+      case "invalid-input": return text("privateGenerationInvalidInput");
+      case "model-unavailable": return text("privateGenerationModelUnavailable");
+      case "rate-limit": return text("privateGenerationRateLimit");
+      case "context-unavailable": return text("privateGenerationContextUnavailable");
+      case "stale-context": return text("privateGenerationStaleContext");
+      default: return text("privateGenerationFailed");
+    }
+  }
   async function request(action, value, actor = actorId, beforeDispatch) {
     return client.privateConversation(action, value, actor, { beforeDispatch });
   }
@@ -134,8 +144,9 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
         source.textContent = "↗"; source.setAttribute("aria-label", text("communityOpenPage")); tools.append(source);
       }
       bubble.append(meta, prose, tools);
-      if (message.generation?.state === "failed") {
-        const failure = node("small", "privateGenerationFailed", "community-status"); bubble.append(failure);
+      if (message.actorType === "human" && message.generation?.state === "failed") {
+        const failure = node("small", null, "community-status");
+        failure.textContent = generationFailureMessage(message.generation.error); bubble.append(failure);
       }
       list.append(bubble);
     }

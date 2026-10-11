@@ -2,7 +2,7 @@
 
 Date: 2026-10-11
 
-Status: Owner-requested local implementation verified and active, extension 0.13.49.
+Status: Owner-requested local implementation verified and active, extension 0.13.50.
 
 ## Scope
 
@@ -106,3 +106,18 @@ page reader but rejected by the provider adapter. The owner's exact rejected
 field is not proven; transient page text was not retained. Reconcile validation
 and add content-free failure-stage evidence in follow-up work, without private
 raw logs, input/output authority relaxation or replay of this existing claim.
+
+Client correction (0.13.50): the shared Insight reader removes only invisible
+Unicode direction-formatting marks (U+061C, U+200E/U+200F, U+202A–U+202E and
+U+2066–U+2069) from the existing captured prefix before provider preparation.
+This preserves visible multilingual prose without reading replacement suffix
+text or changing raw navigation/document attestation. Remaining unsafe controls
+and blank results still reject; collector, E5 and strict server input/citation
+validators are unchanged. Fixed private failure enums map to localized text,
+never raw provider details or retry authority. A real-component composed test
+with mocked HTTP covers first generation and exactly one automatic own-AI reply,
+bounds, debug suppression, private-only persistence and restart/idempotency.
+Independent Trust 221 focused passes, restricted full browser 1,242/backend 539
+passes (four skips), isolated Chrome community checks and secret scans pass.
+Reload extension only. The owner's actual failed field remains unconfirmed and
+its claim terminal; no live private provider retest, new scope or approval follows.

@@ -7,7 +7,7 @@ function state(sourceUrl = url, selection = "automatic") {
   return { sourceId: "source-a", topicId: "topic-a", selection,
     catalog: { sources: [{ id: "source-a", topicId: "topic-a", url: sourceUrl }] }, resolution: null };
 }
-function harness(tabUrl = url) {
+function harness(tabUrl = url, articleText = "Visible public article text") {
   const executions = [];
   let activeUrl = tabUrl;
   let nextUrl = null;
@@ -17,7 +17,7 @@ function harness(tabUrl = url) {
     return [{ frameId: 0, documentId: "document-a", result: options.target.documentIds
       ? { contractVersion: "page-content-attestation/1", status: "attested", url }
       : { contractVersion: "page-content/1", status: "collected", url, title: "Article",
-        text: "Visible public article text", extractorVersion: "main-text-prefix/v1" } }];
+        text: articleText, extractorVersion: "main-text-prefix/v1" } }];
   } };
   const reader = createInsightPageReader({ scriptingApi, readActiveTab: async () => ({ tabId: 7, url: activeUrl }) });
   return { reader, executions, setUrl(value) { activeUrl = value; }, navigateDuringScript(value) { nextUrl = value; } };
@@ -30,6 +30,47 @@ test("current selected page reads with bounded packaged reader and attests the s
   assert.equal(await reader.attest(state(), article), true);
   assert.equal(executions.length, 2);
   assert.deepEqual(executions[1].target, { tabId: 7, documentIds: ["document-a"] });
+});
+
+test("Insight prefixes remove direction formatting while preserving bilingual visible prose and raw witnesses", async () => {
+  const marks = "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069";
+  const rawUrl = url + "?sid=synthetic-session&utm_source=fixture";
+  const { reader, executions } = harness(rawUrl, `English ${marks}العربية עברית 中文`);
+  const article = await reader.read(state());
+  assert.deepEqual(article, { text: "English العربية עברית 中文", url, documentId: "document-a" });
+  assert.equal(await reader.attest(state(), article), true);
+  assert.deepEqual(executions.map(call => call.args), [[url, rawUrl], [url, rawUrl]]);
+  assert.deepEqual(executions[1].target, { tabId: 7, documentIds: ["document-a"] });
+});
+
+test("Insight prefixes reject C1 and low controls instead of silently removing them", async () => {
+  for (const control of ["\u0080", "\u0085", "\u009f", "\u0001", "\u000b", "\u007f"]) {
+    const { reader } = harness(url, `Visible ${control} article`);
+    await assert.rejects(reader.read(state()), { name: "TypeError", message: "Page content unavailable" });
+  }
+});
+
+test("an Insight prefix containing only direction marks cannot become a blank article", async () => {
+  const { reader } = harness(url, "\u061c\u200e\u200f\u202a\u202e\u2066\u2069");
+  await assert.rejects(reader.read(state()), { name: "TypeError", message: "Page content unavailable" });
+});
+
+test("direction cleanup never expands the captured 4096 character prefix", async () => {
+  const { reader, executions } = harness(url, "A".repeat(4095) + "\u200e");
+  const article = await reader.read(state());
+  assert.equal(article.text, "A".repeat(4095));
+  assert.equal(executions.length, 1);
+  assert.equal(await reader.attest(state(), article), true);
+  assert.equal(executions.length, 2);
+});
+
+test("direction normalization preserves query navigation invalidation", async () => {
+  const first = url + "?sid=synthetic-first", changed = url + "?sid=synthetic-second";
+  const { reader, setUrl, executions } = harness(first, "English \u200eالعربية");
+  const article = await reader.read(state());
+  setUrl(changed);
+  await assert.rejects(reader.attest(state(), article), /Current page changed/);
+  assert.equal(executions.length, 1);
 });
 
 test("different selected URL, private URL and changed active tab never read", async () => {

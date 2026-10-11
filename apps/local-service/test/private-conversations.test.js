@@ -11,6 +11,8 @@ import { createChatGptInsights } from "../src/ai/chatgpt-insights.js";
 import { createAccountLifecycle } from "../src/accounts/account-lifecycle.js";
 import { demoService, deterministicDependencies } from "./helpers.js";
 import { buildInsightContext } from "../../../spikes/topic-resolution/browser/core/insight-context.js";
+import { createInsightPageReader } from "../../../spikes/topic-resolution/browser/chromium/insight-page-reader.js";
+import { preparePrivateGeneration } from "../../../spikes/topic-resolution/browser/core/private-generation-context.js";
 import { ServiceError } from "../src/domain/errors.js";
 
 const ALICE = { id: "account-11111111-1111-4111-8111-111111111111", accountId: "11111111-1111-4111-8111-111111111111",
@@ -311,6 +313,132 @@ test("provider adapter private debug suppression preserves ordinary public debug
   assert.equal(debug.length, 0); assert.equal(JSON.stringify(payloads[0]).includes("PRIVATE_QUESTION"), true);
   await adapter.createInsight(request); assert.equal(debug.length, 2); assert.equal(JSON.stringify(debug).includes("PRIVATE_QUESTION"), false);
   adapter.dispose();
+});
+
+test("composed private capture normalizes language marks, completes once per human and suppresses raw debug across reopen", async t => {
+  const f = fixture(t), directory = mkdtempSync(path.join(tmpdir(), "private-composed-"));
+  const databasePath = path.join(directory, "private.sqlite");
+  const directionMarks = "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069";
+  const visibleText = "English العربية עברית ";
+  let capturedText = (visibleText + directionMarks + "P".repeat(4_096)).slice(0, 4_096);
+  const normalizedText = capturedText.replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu, "");
+  const documentUrl = URL + "?sid=synthetic-session&utm_source=fixture";
+  let activeUrl = documentUrl;
+  const scripts = [], payloads = [], debug = [], requests = [];
+  const pageReader = createInsightPageReader({
+    readActiveTab: async () => ({ tabId: 7, windowId: 1, url: activeUrl }),
+    scriptingApi: { async executeScript(options) {
+      scripts.push(options);
+      return [{ frameId: 0, documentId: "document-private-fixture", result: options.target.documentIds
+        ? { contractVersion: "page-content-attestation/1", status: "attested", url: URL }
+        : { contractVersion: "page-content/1", status: "collected", url: URL, title: "Public fixture",
+          text: capturedText, extractorVersion: "main-text-prefix/v1" } }];
+    } },
+  });
+  const state = { phase: "ready", busy: false, needsFreshRead: false, selection: "background",
+    actorId: ALICE.id, sourceId: SOURCE, topicId: TOPIC, catalog: f.canonical.catalog(),
+    discussion: f.canonical.discussion(TOPIC), related: f.canonical.related(SOURCE, 20),
+    resolution: { enabled: true, phase: "ready", tabId: 7, documentId: "document-private-fixture",
+      sourceId: SOURCE, topicId: TOPIC, currentTabId: 7, url: documentUrl, currentUrl: documentUrl,
+      hostAccess: true, sessionWindowId: 1, currentWindowId: 1, blockedOrigins: [], currentOrigin: "https://example.com" } };
+  const identity = { issuer: "https://auth.openai.com", clientId: "fixture", subject: "alice" };
+  const insight = { ai: { connected: true, planEnabled: true, pending: false, model: "fixture",
+    models: [{ slug: "fixture" }], account: { clientId: "fixture", label: "Alice" } },
+    busy: false, relatedPageTextEnabled: false, excludedRelatedSourceIds: [], preferences: {},
+    browserLanguageHintEnabled: false, context: f.generation().context };
+  const prepare = () => preparePrivateGeneration({ sourceId: SOURCE, readState: () => state,
+    readInsight: () => insight, readArticle: pageReader.read, attestArticle: pageReader.attest });
+  const adapter = createChatGptInsights({ getAccessToken: async () => "synthetic-oauth-token-for-tests",
+    onDebug: event => debug.push(event), fetchImpl: async (url, options) => {
+      requests.push(url);
+      if (url.endsWith("/models")) return new Response(JSON.stringify({ models: [
+        { slug: "fixture", display_name: "Fixture", visibility: "list" } ] }),
+        { headers: { "content-type": "application/json" } });
+      assert.ok(url.endsWith("/responses"));
+      payloads.push(JSON.parse(options.body));
+      return new Response(`event: response.completed\ndata: ${JSON.stringify({ type: "response.completed", response: {
+        status: "completed", output: [{ type: "message", role: "assistant", status: "completed",
+          content: [{ type: "output_text", text: `Private answer ${payloads.length}`, annotations: [] }] }] } })}\n\n`,
+        { headers: { "content-type": "text/event-stream" } });
+    } });
+  const runtime = createChatGPTRuntime({ service: f.publicService, insightsAdapter: adapter,
+    connectionAdapter: { accountIdentity: () => identity, status: () => ({ connected: true,
+      planEnabled: true, account: insight.ai.account }), dispose() {} } });
+  t.after(() => runtime.dispose());
+  const open = () => createPrivateDiscussionService({ databasePath, publicService: f.publicService,
+    ai: runtime, canGenerate: actorId => actorId === ALICE.id && runtime.accountIdentity().subject === identity.subject,
+    ...deterministicDependencies() });
+  let service = open();
+  t.after(() => { service.close(); rmSync(directory, { recursive: true, force: true }); });
+  const publicBefore = JSON.stringify(f.canonical.catalog());
+  const rootBody = "ROOT_PRIVATE_HISTORY " + "R".repeat(3_000);
+  const root = service.create(ALICE, { operationId: "composed-root", body: rootBody, sourceId: SOURCE, sourceUrl: URL });
+  const generation = await prepare();
+  assert.equal(generation.articleText, normalizedText);
+  assert.equal(generation.articleText.length, 4_096 - directionMarks.length);
+  assert.deepEqual(scripts.map(script => script.args), [[URL, documentUrl], [URL, documentUrl]]);
+  assert.deepEqual(scripts[1].target, { tabId: 7, documentIds: ["document-private-fixture"] });
+  service.generate(ALICE, { conversationId: root.conversationId, messageId: root.messageId,
+    expectedRevision: root.revision, generation });
+  await service.whenIdle();
+  let view = service.read(ALICE, { conversationId: root.conversationId, ...PAGE });
+  const parent = view.messages.find(message => message.actorType === "agent");
+  assert.ok(parent, JSON.stringify(view.messages[0].generation));
+  assert.equal(view.conversation.visibility, "private");
+  assert.deepEqual(parent.insight, { operatorId: ALICE.id, model: "fixture" });
+  assert.deepEqual(view.messages[0].generation, { state: "completed", answerId: parent.id });
+  assert.equal(parent.body, "Private answer 1");
+  const firstContext = JSON.parse(payloads[0].input[0].content);
+  assert.equal(firstContext.currentSource.url, URL);
+  assert.ok(firstContext.sameTopicSources.length + firstContext.relatedSources.length <= 5);
+  assert.equal(firstContext.articlePrefix, normalizedText);
+  assert.ok(firstContext.articlePrefix.includes(visibleText));
+  assert.equal(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u.test(JSON.stringify(payloads[0])), false);
+  assert.equal(firstContext.selectedMessage, rootBody.slice(0, 2_000));
+  assert.equal(firstContext.threadOpener, rootBody.slice(0, 2_000));
+  assert.equal(JSON.stringify(payloads[0]).includes("synthetic-session"), false);
+  const replyBody = "FOLLOWUP_PRIVATE " + "Q".repeat(3_000);
+  const command = { operationId: "composed-reply", conversationId: root.conversationId,
+    replyToId: parent.id, body: replyBody, expectedRevision: view.conversation.revision, generation: await prepare() };
+  const sent = service.send(ALICE, command);
+  assert.equal(service.send(ALICE, command).replayed, true);
+  await service.whenIdle();
+  assert.equal(payloads.length, 2);
+  const replyContext = JSON.parse(payloads[1].input[0].content);
+  assert.equal(replyContext.articlePrefix, normalizedText);
+  assert.equal(replyContext.threadOpener, parent.body);
+  assert.equal(replyContext.selectedMessage, replyBody.slice(0, 2_000));
+  assert.equal(JSON.stringify(payloads[1]).includes("ROOT_PRIVATE_HISTORY"), false);
+  view = service.read(ALICE, { conversationId: root.conversationId, ...PAGE });
+  assert.equal(view.messages.length, 4);
+  assert.equal(view.messages.find(message => message.id === sent.messageId).generation.state, "completed");
+  assert.deepEqual(runtime.resumable(ALICE.id), { job: null });
+  assert.equal(debug.length, 0);
+  assert.equal(JSON.stringify(f.canonical.catalog()), publicBefore);
+  assert.equal(f.canonical.discussion(TOPIC).roots.length, 0);
+  service.close(); service = open();
+  assert.equal(service.read(ALICE, { conversationId: root.conversationId, ...PAGE }).messages.length, 4);
+  assert.equal(service.send(ALICE, command).replayed, true);
+  assert.equal(service.generate(ALICE, { conversationId: root.conversationId, messageId: sent.messageId,
+    expectedRevision: sent.revision, generation }).generation.state, "completed");
+  await service.whenIdle();
+  assert.equal(payloads.length, 2);
+  assert.equal(debug.length, 0);
+  // The real preparer still rejects unsafe captures and same-Source navigation drift.
+  capturedText = "Public text \u0080";
+  await assert.rejects(prepare(), /Page content unavailable/);
+  capturedText = "X".repeat(4_097);
+  await assert.rejects(prepare(), /Page content unavailable/);
+  capturedText = normalizedText; activeUrl = URL + "?sid=changed-session&utm_source=fixture";
+  await assert.rejects(prepare(), /Current page changed/);
+  assert.equal(payloads.length, 2);
+  // Verify that the installed debug callback is active for ordinary public requests.
+  await adapter.createInsight({ model: "fixture", context: generation.context,
+    articleText: "Public fixture", allowWebResearch: false });
+  assert.equal(debug.length, 2);
+  assert.equal(JSON.stringify(debug).includes("FOLLOWUP_PRIVATE"), false);
+  assert.equal(JSON.stringify(debug).includes("ROOT_PRIVATE_HISTORY"), false);
+  assert.ok(requests.every(url => url.endsWith("/models") || url.endsWith("/responses")));
 });
 
 test("staged account deletion and startup recovery erase private data before purging identity", () => {

@@ -2,6 +2,9 @@ import { createPageContentReader } from "./page-content-reader.js";
 import { isReadyPageResolution } from "../core/page-resolution-contract.js";
 import { inspectPageUrl, inspectPageNavigationUrl } from "../core/page-content-policy.js";
 
+const DIRECTION_MARKS = /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu;
+const UNSAFE_TEXT = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/u;
+
 // Popup-only adapter. The background session must already own this exact page.
 export function createInsightPageReader({ scriptingApi, readActiveTab }) {
   const reader = createPageContentReader(scriptingApi);
@@ -36,9 +39,13 @@ export function createInsightPageReader({ scriptingApi, readActiveTab }) {
     const resolution = await match(state);
     const content = await reader.read(resolution.tabId, resolution.url, resolution.documentUrl);
     if (resolution.documentId && content.documentId !== resolution.documentId || content.result.status !== "collected") throw new TypeError("Current page changed");
+    // Normalize only formatting marks in the already captured prefix. Removing
+    // them never reads replacement suffix text or changes document provenance.
+    const text = content.result.text.replace(DIRECTION_MARKS, "");
+    if (!text.trim() || UNSAFE_TEXT.test(text)) throw new TypeError("Page content unavailable");
     if (!sameDocument(resolution, await match(state))) throw new TypeError("Current page changed");
     captured = { ...resolution, capturedDocumentId: content.documentId };
-    return Object.freeze({ text: content.result.text, url: resolution.url, documentId: content.documentId });
+    return Object.freeze({ text, url: resolution.url, documentId: content.documentId });
   }
   async function attest(state, article) {
     try {

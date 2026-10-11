@@ -1,8 +1,13 @@
 # Local service
 
-2026-10-11, extension **0.13.49**: owner-requested private conversations and public
-discovery are active in normal account-enabled composition. Restart the backend
-and reload the extension together (the owner service is already restarted).
+2026-10-11, extension **0.13.50**: owner-requested private conversations and public
+discovery are active in normal account-enabled composition. The latest client
+normalizes invisible direction marks in the already bounded Insight page prefix
+and shows safe private failure explanations; backend validators and durable
+claims are unchanged. Reload the extension only; the owner service is already
+running and does not need a restart for this fix. Existing failed claims remain
+terminal. Full private composition is checked with mocked provider HTTP, not a
+new owner-data inference.
 `POST /v1/private/{create,list,read,send,generate,delete}` requires pairing, exact
 extension Origin and a named app session. Ownership comes from that session.
 Private data lives in `data/private-conversations.sqlite`, never canonical Topics

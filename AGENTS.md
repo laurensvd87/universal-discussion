@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current private assistant validation fix (2026-10-11, ADR-096, 0.13.50): shared
+Insight page reading removes only Unicode direction-formatting marks from the
+already bounded captured prefix, preserves multilingual visible prose and exact
+raw navigation/document witnesses, and rejects remaining unsafe controls/blank
+text. Collector, E5 and backend validators are unchanged. Private failures use
+fixed localized explanations, never raw provider details. Full real-component
+offline private generation/reply checks, independent Trust, regression and
+isolated Chrome pass. Client-only: reload extension, no backend restart or reset.
+Existing failed claims remain terminal; no live private provider quality retest
+or proof of the owner's exact rejected field. See top STATUS/HANDOFF and ADR-096.
+
 Current private conversations/Discover (2026-10-11, ADR-096, 0.13.49): the owner
 requests an immutable private new-root lock, account-only chats, one automatic
 attempt on each accepted human reply to their own private AI, and backend public

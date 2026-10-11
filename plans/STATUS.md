@@ -1,6 +1,25 @@
 # Project status
 
-**2026-10-11 owner-reported private assistant failure diagnosed, fix open:**
+**2026-10-11 private assistant validation fix verified, 0.13.50:**
+Shared Insight reading now removes only Unicode direction-formatting marks from
+the existing 4,096-character public page prefix. Visible Arabic/Hebrew/English
+prose is preserved; no refill or extra extraction occurs. Remaining C1/unsafe
+controls and blank results are rejected. Original document/navigation witnesses,
+collector, E5 input and strict server validators stay unchanged. Private failure
+explanations map fixed error enums to translated text, never raw provider detail.
+Independent Trust has 221 focused passes. Restricted full suites: 1,242 browser
+passes; 539 backend passes/four skips. The new real-component composition test
+checks capture/attestation/preparation/private storage/runtime/real provider
+adapter with mocked HTTP, first answer, one automatic follow-up, bounded context,
+debug suppression and no duplicate/restart dispatch. Actual isolated Chrome
+community interaction/layout checks pass with zero runtime errors and no real
+provider call; both secret scans have zero findings. Backend remains running,
+pairing/account/old claim/data untouched. Reload extension only; use a fresh
+private message/sparkle attempt on its originating page. The owner's exact
+rejected field remains unconfirmed; no live private provider retest was made.
+See ADR-096. No provider/input-authority expansion or new approval scope.
+
+**2026-10-11 initial owner-reported private assistant failure diagnosis:**
 Read-only inspection finds one terminal private generation claim with
 `invalid-input`, not a connection/provider-output failure; the human message is
 retained. Its bounded human prefix is nonblank and control-free. An offline
@@ -12,9 +31,10 @@ and rejected by the provider adapter (for example U+200E). This is a confirmed
 validation mismatch, not yet proof of the owner's exact rejected field: the
 transient page extract/request was not archived. No live provider request, retry,
 owner write, claim reset or implementation change was made during diagnosis.
-Next: reconcile bounded page-text validation and add content-free field-level
-private failure diagnostics plus a fully composed regression; preserve private
-debug suppression, durable one-attempt claims and all Source/account fences.
+The subsequent client fix above reconciles bounded Insight page-text validation,
+adds a fully composed regression and safe error explanations. If a new attempt
+still fails, add content-free field-level diagnostics; do not archive private
+request bodies, reset claims or weaken Source/account fences to investigate it.
 
 **2026-10-11 private chats and indexed Discover implemented, 0.13.49:**
 Lock an unsent new thread to create an account-private conversation; its messages

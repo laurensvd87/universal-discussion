@@ -8,9 +8,16 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 ## Current state
 
-Extension **0.13.49** adds **Private chats** and **Discover**. Reload it under
+Extension **0.13.50** includes **Private chats** and **Discover**. Reload it under
 `chrome://extensions`; the local backend has already been restarted without
 resetting pairing, login or discussions.
+
+The latest client fixes an Insight page-text validation mismatch involving
+invisible language-formatting marks and gives private failures useful, safe error
+messages. No backend restart is needed. A previously failed request is not
+replayed: keep its original public page open and use a fresh private message/
+sparkle attempt. Offline composition and browser checks pass; live private
+ChatGPT quality has not been retested.
 
 - Click the **lock** beside a new message before sending. The whole conversation
   stays private to your signed-in app account; it cannot appear in public search

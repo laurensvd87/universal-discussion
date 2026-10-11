@@ -79,7 +79,7 @@ test("private client accepts the existing fifty-provider-citation bound and reje
   assert.throws(() => readPrivateResponse({ messages: Array(26).fill({ body: "bounded" }) }), TypeError);
 });
 
-function panelFixture() {
+function panelFixture({ inbox = false } = {}) {
   const created = [], calls = [], reads = []; let actor = ACTOR, generationVersion = 1, failNextSend = false, holdGeneration = null;
   const document = { activeElement: null,
     createTextNode(value) { return { tag: "#text", textContent: value, children: [] }; },
@@ -115,13 +115,19 @@ function panelFixture() {
           if (failNextSend) { failNextSend = false; throw { code: "unavailable" }; }
           return { conversationId: conversation.id, messageId: "accepted-human", revision: 3 };
         }
-        if (action === "list") return { conversations: [], next: null };
+        if (action === "list") return { conversations: inbox ? [{ ...conversation }] : [], next: null };
         throw new Error(`Unexpected action ${action}`);
       } } });
   const draft = created.find(item => item.id === "private-message-body"), form = created.find(item => item.tag === "form");
   return { panel, root, draft, calls, document, form,
     page(items = messages, revision = 2, next = null) { return { conversation: { ...conversation, revision }, messages: structuredClone(items), next }; },
     messages: structuredClone(messages), queueRead(value) { reads.push(value); },
+    async open() {
+      panel.setActive(true); await flush();
+      root.children.find(item => item.id === "private-chat-feed").children
+        .find(item => item.className === "private-chat-card").listeners.get("click")();
+      await flush();
+    },
     bubbles() { return root.children.find(item => item.id === "private-chat-feed").children.filter(item => item.tag === "article").map(item => item.attributes["data-message-id"]); },
     more() { return root.children.find(item => item.id === "private-chat-feed").children.find(item => item.tag === "button" && item.textContent === EN.communityMore); },
     submit: () => form.listeners.get("submit")({ preventDefault() {} }),
@@ -140,6 +146,34 @@ test("a failed private send preserves its exact operation payload across a delib
 });
 
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); };
+for (const [code, key, useful] of [
+  ["invalid-input", "privateGenerationInvalidInput", /context.*rejected.*message is saved.*Code: invalid-input/i],
+  ["model-unavailable", "privateGenerationModelUnavailable", /choose an available model/i],
+  ["rate-limit", "privateGenerationRateLimit", /usage limit/i],
+  ["context-unavailable", "privateGenerationContextUnavailable", /original public page.*connection.*unavailable/i],
+  ["stale-context", "privateGenerationStaleContext", /page, chat or account changed/i],
+  ["provider-unavailable", "privateGenerationFailed", /no automatic retry/i],
+  ["<img src=x onerror=PRIVATE_PROVIDER_DETAIL>", "privateGenerationFailed", /no automatic retry/i],
+  ["toString", "privateGenerationFailed", /no automatic retry/i],
+]) {
+  test(`reopening failed private generation safely explains ${code} without redispatch`, async () => {
+    const f = panelFixture({ inbox: true });
+    const human = { ...f.messages[0], generation: { state: "failed", error: code,
+      detail: "PRIVATE_PROVIDER_DETAIL", body: "PRIVATE_PROVIDER_BODY" } };
+    f.queueRead(f.page([human])); await f.open();
+    const bubble = f.root.children.find(item => item.id === "private-chat-feed").children
+      .find(item => item.tag === "article");
+    const failures = bubble.children.filter(item => item.tag === "small");
+    assert.equal(failures.length, 1);
+    assert.equal(failures[0].textContent, EN[key]); assert.match(failures[0].textContent, useful);
+    assert.equal(JSON.stringify(f.root.children).includes("PRIVATE_PROVIDER"), false);
+    assert.ok(f.calls.every(call => call.action === "list" || call.action === "read"));
+    assert.equal(bubble.children.find(item => item.className === "private-message-tools").children
+      .filter(item => item.className === "private-spark").length, 0);
+    f.panel.dispose();
+  });
+}
+
 test("late private latest reads cannot roll back a newer answer or conversation revision", async () => {
   const f = panelFixture(); await f.panel.start("Private opener");
   const older = deferred(), newer = deferred(); f.queueRead(older.promise); f.queueRead(newer.promise);
