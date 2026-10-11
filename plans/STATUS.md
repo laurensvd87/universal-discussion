@@ -1,5 +1,27 @@
 # Project status
 
+**2026-10-11 price-search quality diagnosis (no runtime change):**
+Owner-requested read-only inspection of one public multi-variant product's saved
+current/prior discussions confirms a follow-up that asks for online research
+but receives search advice and the original offer rather than outside offers.
+The final saved reply has no links. No matching persisted request/response trace
+exists, and current in-memory diagnostics are empty; the actual tool calls,
+research preference, returned sources and omission reason cannot be reconstructed.
+Do not claim that search never ran or that a merchant link was stripped.
+
+Code review and independent Sol Medium analysis identify optional
+`tool_choice: auto` for researched replies, optional-search instructions, and acceptance of
+current-page-only answers. Broad replies have no candidate-domain filter. Nested
+context remains opener plus selected message, not the immediate parent; variant
+and delivery-country requirements can also make price answers conservative.
+[Official OpenAI Docs](https://developers.openai.com/api/docs/guides/tools-web-search)
+confirms auto does not require search. Existing focused
+adapter/prompt tests: **87 pass**, no live provider request. Proposed next step:
+required hosted research for explicit shopping requests and truthful distinction
+between checked alternatives and no comparable offer, preserving citation and
+context authority. No implementation, extra context, raw logging, retry, posting
+or new diagnostic budget is approved by this inspection; await owner direction.
+
 **2026-10-11 actionable earlier same-page threads, complete (0.13.44):**
 The owner explicitly approves direct inline human and sparkle replies to earlier
 same-Source threads without switching the panel's current Source/Topic. See

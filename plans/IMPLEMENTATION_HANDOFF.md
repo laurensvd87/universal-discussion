@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 read-only price-search diagnosis: saved public-product follow-up gives
+search advice instead of outside offers; no saved final links. Matching raw/
+structural traces are absent and current diagnostics empty, so actual searches,
+preference and provider output remain unknown. Reply research uses optional
+`tool_choice: auto`, optional-search prompt, and permits current-page-only output;
+it is not restricted to catalog domains. Nested context is opener/selected message
+only. Exact-variant/country requirements may contribute to conservative answers.
+Independent Sol Medium review and 87 existing adapter/prompt tests pass. No code
+or provider request. Consider required research for explicit shopping questions
+and a truthful no-comparable-offer outcome; do not expand context, invent links,
+claim an exact replay or reuse the exhausted diagnostic budget without approval.
+
 2026-10-11 owner-approved inline earlier-thread routing, complete (0.13.44): read
 ADR-084. Exact same-Source earlier canonical roots are interwoven chronologically
 with normal threads; Reply/sparkle work inline without Open conversation or a
