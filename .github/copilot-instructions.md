@@ -2,6 +2,14 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current direct thread feed (2026-10-11, ADR-080 refinement): 0.13.43 hides the
+source header, shows preloaded same-Source earlier threads without disclosure,
+and keeps canonical sparkle visible/disabled with Source-restoration refresh.
+Keep historical projections read-only, dedup and context/version guards. Explicit
+Open conversation uses existing Topic navigation/clears Source; no new cross-
+Topic AI authority or duplicate composer action. Topic naming is on hold.
+Read top STATUS/HANDOFF for verification and unchanged later gates.
+
 Current inline reply presentation (2026-10-11, ADR-080 refinement): 0.13.42
 User replies have a compact growing editor/send arrow without duplicate parent
 quote/heading or composer sparkle. Keep per-message/root generation, accessible

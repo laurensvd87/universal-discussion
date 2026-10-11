@@ -462,6 +462,121 @@ test("prior Source topics open manually and Back reattests the current page", as
   assert.equal(next.controller.currentState().topicId, "reserved-domain-demo");
   assert.equal(next.controller.currentState().viewingPriorDiscussion, false);
 });
+function earlierFixture(overrides = {}) {
+  let readGate = overrides.readGate ?? null;
+  const ui = harness({ client: {
+    async priorDiscussions(sourceId) {
+      const catalog = ui.service.catalog();
+      const topic = catalog.topics.find((entry) => entry.id === "harbor-s2");
+      return { version: catalog.version, sourceId, currentTopicId: "reserved-domain-demo",
+        topics: [{ id: topic.id, title: topic.title, kind: topic.kind, rootCount: 3 }] };
+    },
+    async discussion(topicId) {
+      ui.requests.push(["discussion", topicId]);
+      if (topicId !== "harbor-s2") return ui.service.discussion(topicId);
+      if (readGate) await readGate.promise;
+      if (overrides.error) throw Object.assign(new Error("read failed"), { code: overrides.error });
+      const view = ui.service.discussion(topicId);
+      const root = (id, sourceId) => ({ id, state: "visible", body: id,
+        origin: sourceId ? { sourceId, url: "https://example.com/", title: "Page" } : undefined,
+        authorId: "demo-alex", actorType: "human", replies: [{ id: `${id}-reply`,
+          rootId: id, replyToId: id, state: "visible", body: "Full historical reply",
+          authorId: "demo-alex", actorType: "human" }] });
+      return { ...view, version: overrides.staleVersion ?
+        { ...view.version, revision: view.version.revision + 1 } : view.version,
+        roots: [root("same-page", "reserved-example-com"),
+          root("other-page", "reserved-example-org"), root("no-origin", null)] };
+    },
+  } });
+  return ui;
+}
+test("earlier Source roots preload visibly with full replies and no selection or write authority", async () => {
+  const ui = earlierFixture();
+  await ui.controller.open(); await turn();
+  const state = ui.controller.currentState();
+  assert.equal(state.phase, "ready");
+  assert.equal(state.topicId, "reserved-domain-demo");
+  assert.equal(state.discussion.roots.length, 0);
+  assert.equal(state.priorDiscussions.topics[0].id, "harbor-s2");
+  assert.deepEqual(state.earlierDiscussions.map((entry) => entry.topicId), ["harbor-s2"]);
+  assert.equal(state.earlierDiscussions[0].discussionId, ui.service.discussion("harbor-s2").discussionId);
+  assert.deepEqual(state.earlierDiscussions[0].roots.map((entry) => entry.id), ["same-page"]);
+  assert.equal(state.earlierDiscussions[0].roots[0].replies[0].body, "Full historical reply");
+  assert.equal(ui.controller.begin("reply", "same-page"), false);
+  assert.equal(await ui.controller.shareInsight({ replyToId: "same-page" }), false);
+  assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id === "harbor-s2").length, 1);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+test("earlier preload is fenced on navigation, manual selection, and logout", async () => {
+  for (const change of ["invalidate", "selectTopic", "disconnect"]) {
+    const readGate = deferred(), ui = earlierFixture({ readGate });
+    await ui.controller.open();
+    assert.equal(ui.controller.currentState().phase, "ready");
+    if (change === "invalidate") ui.invalidate();
+    else if (change === "selectTopic") await ui.controller.selectTopic("harbor-s3");
+    else await ui.controller.disconnect();
+    readGate.resolve(); await turn();
+    assert.deepEqual(ui.controller.currentState().earlierDiscussions, []);
+  }
+});
+test("stale or unavailable earlier reads do not hide current discussion", async () => {
+  for (const options of [{ staleVersion: true }, { error: "unavailable" }]) {
+    const ui = earlierFixture(options);
+    await ui.controller.open(); await turn();
+    const state = ui.controller.currentState();
+    assert.equal(state.phase, "ready");
+    assert.equal(state.error, null);
+    assert.deepEqual(state.earlierDiscussions, []);
+    assert.equal(state.discussion.topic.id, "reserved-domain-demo");
+  }
+});
+test("unauthorized earlier read follows session failure handling", async () => {
+  const ui = earlierFixture({ error: "unauthorized" });
+  await ui.controller.open(); await turn();
+  const state = ui.controller.currentState();
+  assert.equal(state.phase, "disconnected");
+  assert.equal(state.error, "unauthorized");
+  assert.deepEqual(state.earlierDiscussions, []);
+});
+test("earlier reads are bounded to four concurrent GETs and duplicate topic IDs are read once", async () => {
+  const gate = deferred();
+  let active = 0, peak = 0, priorIds;
+  const ui = harness({ client: {
+    async catalog() {
+      const catalog = structuredClone(ui.service.catalog());
+      const extra = Array.from({ length: 9 }, (_, index) => ({ id: `earlier-${index}`,
+        title: `Earlier ${index}`, kind: "general" }));
+      catalog.topics.push(...extra);
+      priorIds = extra;
+      return catalog;
+    },
+    async priorDiscussions(sourceId) {
+      return { version: ui.service.catalog().version, sourceId,
+        currentTopicId: "reserved-domain-demo", topics: [...priorIds, priorIds[0]] };
+    },
+    async discussion(topicId) {
+      ui.requests.push(["discussion", topicId]);
+      if (!topicId.startsWith("earlier-")) return ui.service.discussion(topicId);
+      active++; peak = Math.max(peak, active);
+      await gate.promise;
+      active--;
+      return { version: ui.service.catalog().version, topic: priorIds.find((entry) => entry.id === topicId),
+        discussionId: `discussion-${topicId}`, roots: [] };
+    },
+  } });
+  await ui.controller.open(); await turn();
+  assert.equal(ui.controller.currentState().priorDiscussions?.topics.length, 10,
+    JSON.stringify({ phase: ui.controller.currentState().phase,
+      error: ui.controller.currentState().error,
+      priorError: ui.controller.currentState().priorDiscussionsError }));
+  assert.equal(active, 4);
+  assert.equal(ui.controller.currentState().phase, "ready");
+  gate.resolve(); await turn(); await turn();
+  assert.equal(peak, 4);
+  assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id === "earlier-0").length, 1);
+  assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id.startsWith("earlier-")).length, 9);
+  assert.deepEqual(ui.controller.currentState().earlierDiscussions, []);
+});
 test("late prior response cannot reappear after selection changes", async () => {
   const pending = deferred();
   let calls = 0;

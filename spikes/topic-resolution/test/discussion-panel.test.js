@@ -268,7 +268,7 @@ test("experimental view shows grouped and pinned roots while cross-topic actions
   const fallbackCards = descendants(ui.root).filter((item) => item.attributes?.["data-thread-root-id"]);
   assert.deepEqual(fallbackCards.map((card) => card.attributes["data-thread-root-id"]), ["root-1"]);
   assert.equal(ui.byId("discussion-alternate-notice").textContent, EN.uiTopicViewUnavailable);
-  assert.equal(ui.byId("discussion-related-conversations").hidden, false);
+  assert.equal(ui.byId("discussion-related-conversations").hidden, true);
 });
 test("experimental related-source growth preserves an opened reply branch", () => {
   const ui = harness();
@@ -288,13 +288,15 @@ test("experimental related-source growth preserves an opened reply branch", () =
     sourceIds: ["source-demo", "source-new"] } });
   assert.equal(branch().attributes["aria-expanded"], "true");
 });
-test("User prior disclosure shows only old-topic actions and a Back action while viewing one", () => {
+test("Earlier topic navigation stays in Developer Mode and Back remains available", () => {
   const ui = harness();
   const prior = { sourceId: "source-demo", currentTopicId: "topic-demo", topics: [
     { id: "old-topic", title: "<img src=x>", kind: "general", rootCount: 3 },
   ] };
   ui.panel.render(state({ sourceId: "source-demo", priorDiscussions: prior }));
   const details = ui.byId("discussion-prior");
+  assert.equal(details.hidden, true);
+  ui.panel.setMode("developer");
   assert.equal(details.hidden, false);
   assert.equal(ui.byId("discussion-prior-summary").textContent, EN.uiEarlierDiscussionOnPage.replace("{count}", "3"));
   const action = ui.byId("discussion-prior-list").children[0].children[0];
@@ -302,6 +304,7 @@ test("User prior disclosure shows only old-topic actions and a Back action while
   assert.equal(action.textContent, EN.uiEarlierDiscussionEntry.replace("{title}", "<img src=x>").replace("{count}", "3"));
   action.listeners.get("click")();
   assert.deepEqual(ui.calls.at(-1), ["selectTopic", "old-topic"]);
+  ui.panel.setMode("user");
   ui.panel.render(state({ topicId: "old-topic", sourceId: null, priorDiscussions: null, viewingPriorDiscussion: true }));
   assert.equal(details.hidden, true);
   const back = ui.byId("discussion-back-to-page");
@@ -321,6 +324,69 @@ test("User prior disclosure shows only old-topic actions and a Back action while
   ui.panel.render(state({ phase: "disconnected", sourceId: null, topicId: null,
     priorDiscussionsError: "stale-prior-discussions" }));
   assert.equal(ui.byId("discussion-status").hidden, true);
+});
+test("same-page earlier roots and replies appear in the feed without gaining write or Insight actions", () => {
+  const ui = harness();
+  const origin = { sourceId: "source-demo", url: "https://example.org/story", title: "Story" };
+  const current = { id: "current-root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Current question", origin, replies: [] };
+  const older = { id: "older-root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Earlier question", origin, replies: [{ id: "older-reply", rootId: "older-root",
+      replyToId: "older-root", state: "visible", actorType: "human", authorId: "demo-alex",
+      body: "Earlier answer" }] };
+  const otherSource = { ...older, id: "other-source-root",
+    origin: { ...origin, sourceId: "another-source" } };
+  const snapshot = state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", roots: [current] },
+    priorDiscussions: { sourceId: "source-demo", currentTopicId: "topic-demo",
+      topics: [{ id: "older-topic", title: "Older", rootCount: 1 }] },
+    earlierDiscussions: [{ topicId: "older-topic", discussionId: "older-discussion",
+      title: "Older", roots: [current, older, otherSource] }] });
+  ui.panel.render(snapshot);
+  const thread = ui.created.find((item) => item.className === "discussion-thread");
+  const groups = descendants(thread).filter((item) => item.attributes["data-thread-root-id"]);
+  assert.deepEqual(groups.map((item) => item.attributes["data-thread-root-id"]), ["current-root", "older-root"]);
+  assert.equal(groups[1].attributes["data-earlier-discussion"], "true");
+  assert.ok(descendants(groups[1]).some((item) => item.textContent === "Earlier answer"));
+  assert.equal(descendants(groups[1]).some((item) =>
+    ["reply", "getinsights", "edit", "withdraw"].includes(item.attributes["data-action"])), false);
+  assert.equal(descendants(groups[1]).find((item) => item.tag === "a").href, origin.url);
+  assert.equal(ui.byId("discussion-prior").hidden, true);
+  assert.ok(descendants(thread).some((item) => item.className === "discussion-earlier-heading user-only"));
+  const open = descendants(groups[1]).find((item) => item.attributes["data-action"] === "openconversation");
+  assert.equal(open.textContent, EN.uiOpenEarlierConversation);
+  const staleClick = open.listeners.get("click");
+  staleClick();
+  assert.deepEqual(ui.calls.at(-1), ["selectTopic", "older-topic"]);
+  const count = ui.calls.length;
+  ui.panel.render({ ...snapshot, sourceId: "another-source" });
+  staleClick();
+  assert.equal(ui.calls.length, count);
+  ui.panel.render({ ...snapshot, earlierDiscussions: [] });
+  staleClick();
+  assert.equal(ui.calls.length, count);
+});
+test("canonical message sparkle remains visible but disabled when Source is unavailable or busy", () => {
+  const ui = harness();
+  const followups = [];
+  ui.panel.bindInsight({ createFollowup: (id) => { followups.push(id); return Promise.resolve(true); } });
+  const root = { id: "root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Question", replies: [] };
+  for (const patch of [{ sourceId: null }, { sourceId: "source-demo", busy: true },
+    { sourceId: "source-demo", needsFreshRead: true },
+    { sourceId: "source-demo", error: "context-changed" }]) {
+    ui.panel.render(state({ discussion: { discussionId: "discussion-demo", roots: [root] }, ...patch }));
+    const sparkle = descendants(ui.root).find((item) => item.attributes["data-action"] === "getinsights");
+    assert.ok(sparkle);
+    assert.equal(sparkle.disabled, true);
+    assert.equal(sparkle.attributes["aria-label"], EN.uiGenerateInsightReplyUnavailable);
+    sparkle.listeners.get("click")();
+    assert.deepEqual(followups, []);
+  }
+  ui.panel.render(state({ sourceId: "source-demo",
+    discussion: { discussionId: "discussion-demo", roots: [root] } }));
+  const restored = descendants(ui.root).find((item) => item.attributes["data-action"] === "getinsights");
+  assert.equal(restored.disabled, false);
+  assert.equal(restored.attributes["aria-label"], EN.uiGenerateInsightReplyLabel);
 });
 test("connected settings and persistent composer dock retain their DOM order", () => {
   const ui = harness();
@@ -567,7 +633,8 @@ test("owned robot post can be withdrawn but never edited; withdrawn root retains
   ui.panel.render(state({ discussion: { roots: [agent] } }));
   const card = descendants(ui.root).find((item) => item.tag === "article" && item.children.some((child) => child.className === "discussion-body"));
   const actions = descendants(card).filter((item) => item.tag === "button").map((item) => item.attributes["data-action"]);
-  assert.deepEqual(actions, ["reply", "withdraw"]);
+  assert.deepEqual(actions, ["reply", "getinsights", "withdraw"]);
+  assert.equal(descendants(card).find((item) => item.attributes["data-action"] === "getinsights").disabled, true);
   descendants(card).find((item) => item.attributes["data-action"] === "withdraw").listeners.get("click")();
   assert.deepEqual(ui.calls.at(-1), ["withdraw", "ai-root"]);
   ui.panel.render(state({ discussion: { roots: [{ id: "ai-root", rootId: null, state: "deleted", replies: agent.replies }] } }));
@@ -887,6 +954,31 @@ test("Related discussions sit below current threads, expand by keyboard, and off
   ui.panel.render(state({ phase: "disconnected", catalog: null, discussion: null,
     related: null, relatedDiscussions: [] }));
   assert.equal(section.hidden, true);
+});
+test("related previews omit roots already visible in current or earlier threads", () => {
+  const ui = harness();
+  const origin = { sourceId: "source-demo", url: "https://example.org/story", title: "Story" };
+  const current = { id: "current", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Current body", origin, replies: [] };
+  const earlier = { ...current, id: "earlier", body: "Earlier body" };
+  const preview = (id, body) => ({ id, actorType: "human", authorId: "demo-alex",
+    body, replyCount: 0 });
+  ui.panel.render(state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", roots: [current] },
+    earlierDiscussions: [{ topicId: "old-topic", discussionId: "old-discussion", roots: [earlier] }],
+    relatedDiscussions: [
+      { topicId: "duplicates", title: "Duplicates", rootCount: 2,
+        roots: [preview("current", "Repeated current"), preview("earlier", "Repeated earlier")] },
+      { topicId: "mixed", title: "Mixed", rootCount: 4,
+        roots: [preview("earlier", "Repeated earlier"), preview("unrelated", "Unrelated body")] },
+    ] }));
+  const section = ui.byId("discussion-related-conversations");
+  assert.equal(section.hidden, false);
+  assert.equal(section.children[1].children.length, 1);
+  const group = section.children[1].children[0];
+  assert.equal(group.attributes["data-related-topic-id"], "mixed");
+  assert.equal(group.children[0].children[1].textContent, EN.uiRelatedThreadCount.replace("{count}", "4"));
+  assert.equal(descendants(group).some((item) => item.textContent === "Unrelated body"), true);
+  assert.equal(descendants(group).some((item) => item.textContent === "Repeated earlier"), false);
 });
 test("safe related Page titles are keyboard-accessible links with hostnames and relationship labels", () => {
   const ui = harness();

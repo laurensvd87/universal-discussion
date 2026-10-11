@@ -253,9 +253,66 @@ try {
       })()`, sessionId), true, `${selector} visible, welcome hidden`);
     };
     await assertView("#app-view-discussion");
-    assert.equal(await evaluate("(() => document.body.dataset.topicState==='ready' && document.querySelector('#app-source-title').textContent==='Synthetic public article' && document.querySelector('#app-source-domain').textContent==='example.com' && getComputedStyle(document.body,'::before').display==='none')()", sessionId), true,
-      "resolved Source appears in the compact header without an ambient layer");
+    assert.equal(await evaluate("(() => {const title=document.querySelector('#app-source-title'),domain=document.querySelector('#app-source-domain');return document.body.dataset.topicState==='ready' && (!title||!title.getClientRects().length) && (!domain||!domain.getClientRects().length) && getComputedStyle(document.body,'::before').display==='none'})()", sessionId), true,
+      "resolved Source remains selected without a visible page title or domain at the top");
     await capture("discussion", sessionId);
+    // Present the same Source-scoped prior projection shape used by the controller.
+    // A delayed arrival must add full historical threads to the visible feed.
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState;
+      state.earlierDiscussions=[{topicId:'topic-earlier',discussionId:'discussion-earlier',title:'An earlier discussion',roots:[
+        {id:'earlier-root',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',
+          body:'A prior question from this exact page.',origin:{sourceId:'source-visual',title:'Synthetic public article',url:'https://example.com/article'},
+          replies:[{id:'earlier-answer',rootId:'earlier-root',replyToId:'earlier-root',state:'visible',authorId:'demo-alex',actorType:'human',body:'An earlier answer.'},
+            {id:'earlier-deleted-leaf',rootId:'earlier-root',replyToId:'earlier-root',state:'deleted',authorId:'demo-alex',actorType:'human',body:''}]}]}];
+      state.relatedDiscussions=[{topicId:'topic-earlier',title:'An earlier discussion',rootCount:2,roots:[
+        {id:'earlier-root',authorId:'demo-blair',actorType:'human',body:'A prior question from this exact page.'},
+        {id:'unrelated-preview',authorId:'demo-alex',actorType:'human',body:'A different related preview remains.'}]}];
+      window.visualDiscussionPanel.render(state);
+    })()`, sessionId);
+    assert.equal(await evaluate(`(() => {
+      const feed=document.querySelector('#discussion-feed'),root=document.querySelector('[data-post-id=earlier-root]');
+      const current=document.querySelectorAll('[data-post-id=root-1]');
+      return !!root && feed.contains(root) && root.getClientRects().length>0 && current.length===1 &&
+        !document.querySelector('[data-post-id=earlier-deleted-leaf]') &&
+        !root.querySelector('[data-action=reply],[data-action=getinsights],[data-action=edit],[data-action=withdraw]');
+    })()`, sessionId), true,
+      "delayed same-Source historical root appears directly in the feed once, prunes deleted leaves and offers no write or Insight action");
+    assert.equal(await evaluate(`(() => {
+      const related=document.querySelector('#discussion-related-conversations');
+      const cards=[...related.querySelectorAll('.related-discussion-card')];
+      return !related.hidden && cards.length===1 &&
+        cards[0].textContent.includes('A different related preview remains.') &&
+        !related.textContent.includes('A prior question from this exact page.') &&
+        related.querySelector('.related-discussion-count')?.textContent.includes('2');
+    })()`, sessionId), true,
+      "related previews omit a root already visible in the feed while retaining another root and the original topic count");
+    await capture("earlier-thread", sessionId);
+    await evaluate("(() => {const toggle=document.querySelector('[data-action=expand][data-contribution-id=earlier-root]');if(toggle?.getAttribute('aria-expanded')!=='true')toggle.click()})()", sessionId);
+    assert.equal(await evaluate("(() => {const answer=document.querySelector('[data-post-id=earlier-answer]'),root=document.querySelector('[data-post-id=earlier-root]');return !!answer && root?.parentElement?.contains(answer) && answer.getClientRects().length>0 && !answer.querySelector('[data-action=reply],[data-action=getinsights],[data-action=edit],[data-action=withdraw]')})()", sessionId), true,
+      "historical replies unfold inside their prior thread without actionable controls");
+    await new Promise(resolve => setTimeout(resolve, 250));
+    await capture("earlier-thread-expanded", sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
+    await capture("earlier-thread-expanded-320-reduced-motion", sessionId);
+    await browser.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    assert.equal(await evaluate(`(() => {
+      const state=window.visualDiscussionState;
+      state.topicViewMode='experimental';
+      state.alternateDiscussion={sourceId:state.sourceId,sourceIds:[state.sourceId],
+        roots:[state.discussion.roots[0],state.earlierDiscussions[0].roots[0]],pinnedRoots:[]};
+      window.visualDiscussionPanel.render(state);
+      const once=document.querySelectorAll('[data-post-id=earlier-root]').length===1 &&
+        document.querySelectorAll('[data-post-id=root-1]').length===1;
+      state.topicViewMode='classic';state.alternateDiscussion=null;
+      window.visualDiscussionPanel.render(state);
+      return once;
+    })()`, sessionId), true, "alternate projection and earlier projection do not duplicate the same canonical root");
+    await evaluate("(() => {const state=window.visualDiscussionState;state.earlierDiscussions=[];window.visualDiscussionPanel.render(state)})()", sessionId);
+    assert.equal(await evaluate("!document.querySelector('[data-post-id=earlier-root]') && !document.querySelector('[data-post-id=earlier-answer]')", sessionId), true,
+      "context invalidation removes the prior projection from the feed");
     // Exercise the real DOM input path. The synthetic controller synchronously
     // republishes each input, just as the live controller does after setDraft.
     await evaluate("(() => {const state=window.visualDiscussionState;state.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(state);const body=document.querySelector('#discussion-body');body.focus();window.visualComposerBody=body})()", sessionId);
@@ -528,11 +585,21 @@ try {
     assert.equal(await evaluate(`(() => {
       const composer=document.querySelector('#discussion-ai-insights');
       const message=document.querySelector('[data-action=getinsights][data-contribution-id=human-any]');
+      const reply=document.querySelector('[data-action=reply][data-contribution-id=human-any]');
       return (composer.hidden || getComputedStyle(composer).display==='none') &&
-        message && !message.hidden && !message.disabled && message.textContent==='' &&
+        message && reply && message.parentElement===reply.parentElement &&
+        message.previousElementSibling===reply && !message.hidden && !message.disabled && message.textContent==='' &&
         message.getAttribute('aria-label')==='Generate and post reply' &&
         getComputedStyle(message,'::before').maskImage.includes('icons/spark.svg');
-    })()`, sessionId), true, "long human opener retains its per-message sparkle without duplicating it in the reply composer");
+    })()`, sessionId), true, "long human opener puts its per-message sparkle beside Reply without duplicating it in the reply composer");
+    assert.equal(await evaluate(`(() => {
+      const state=window.visualDiscussionState,sourceId=state.sourceId;
+      state.sourceId=null;window.visualDiscussionPanel.render(state);
+      const button=document.querySelector('[data-action=getinsights][data-contribution-id=human-any]');
+      const unavailable=button?.disabled===true && button.getAttribute('aria-label')?.trim();
+      state.sourceId=sourceId;window.visualDiscussionPanel.render(state);
+      return Boolean(unavailable && !document.querySelector('[data-action=getinsights][data-contribution-id=human-any]').disabled);
+    })()`, sessionId), true, "sparkle remains visible but disabled when exact Source context is unavailable");
     await evaluate("document.querySelector('[data-action=getinsights][data-contribution-id=human-any]').click()", sessionId);
     assert.deepEqual(await evaluate(`(() => {
       const insight=window.visualInsightState,host=document.querySelector('#app-discussion-insights-host'),composer=document.querySelector('#discussion-composer');
@@ -946,6 +1013,7 @@ try {
       const host=document.querySelector('#local-discussion');host.replaceChildren();
       const panel=mountDiscussionPanel(document,host);
       const topicId='reserved-domain-demo',sourceId='reserved-example-com',discussionId='discussion-synthetic-reveal';
+      const priorTopicId='synthetic-prior-topic',priorDiscussionId='discussion-synthetic-prior';
       let revision=1,holdAlternate=false,releaseAlternate;
       const roots=[{id:'root-browser-reveal',rootId:null,state:'visible',authorId:'demo-alex',actorType:'human',
         body:'Synthetic public question',replies:[{id:'parent-browser-reveal',rootId:'root-browser-reveal',
@@ -953,14 +1021,25 @@ try {
       const version=()=>({generation:'synthetic-browser-reveal',revision});
       const catalog=()=>({version:version(),model:{status:'fixture-only'},
         actors:[{id:'demo-alex',type:'human',displayName:'Alex'}],
-        topics:[{id:topicId,title:'Synthetic page discussion',kind:'general'}],
+        topics:[{id:topicId,title:'Synthetic page discussion',kind:'general'},
+          {id:priorTopicId,title:'Earlier synthetic discussion',kind:'general'}],
         sources:[{id:sourceId,topicId,title:'Synthetic public article',url:'https://example.com/',
           provenance:'owner-local-page-embedding/v1'}]});
       const discussion=()=>({version:version(),discussionId,topic:{id:topicId,title:'Synthetic page discussion',kind:'general'},
         roots:structuredClone(roots)});
-      const client={health:async()=>({}),catalog:async()=>catalog(),discussion:async()=>discussion(),
+      const priorDiscussion=()=>({version:version(),discussionId:priorDiscussionId,
+        topic:{id:priorTopicId,title:'Earlier synthetic discussion',kind:'general'},roots:[
+          {id:'prior-browser-root',rootId:null,state:'visible',authorId:'demo-alex',actorType:'human',
+            body:'Historical root from this Source',origin:{sourceId,title:'Synthetic public article',url:'https://example.com/'},
+            replies:[{id:'prior-browser-reply',rootId:'prior-browser-root',replyToId:'prior-browser-root',
+              state:'visible',authorId:'demo-alex',actorType:'human',body:'Historical nested reply'}]},
+          {id:'foreign-browser-root',rootId:null,state:'visible',authorId:'demo-alex',actorType:'human',
+            body:'Root from a different Source',origin:{sourceId:'another-source',title:'Another page',url:'https://example.net/'},replies:[]}]});
+      const client={health:async()=>({}),catalog:async()=>catalog(),
+        discussion:async(id)=>id===priorTopicId?priorDiscussion():discussion(),
         related:async()=>({version:version(),results:[]}),
-        priorDiscussions:async()=>({version:version(),sourceId,currentTopicId:topicId,topics:[]}),
+        priorDiscussions:async()=>({version:version(),sourceId,currentTopicId:topicId,
+          topics:[{id:priorTopicId,title:'Earlier synthetic discussion',kind:'general',rootCount:1}]}),
         command:async(expected,command,actor)=>{
           if(expected.revision!==revision || actor!=='demo-alex' || command.type!=='share-insight-reply' ||
             command.rootId!==roots[0].id || command.replyToId!==roots[0].replies[0].id)
@@ -984,6 +1063,19 @@ try {
       panel.bind(controller);await controller.open();
       const before=controller.currentState();
       if(before.phase!=='ready')throw Error('Synthetic controller did not resolve Source');
+      for(let attempt=0;attempt<100&&!controller.currentState().earlierDiscussions.length;attempt++)
+        await new Promise(resolve=>setTimeout(resolve,20));
+      const earlier=(()=>{
+        const state=controller.currentState(),root=document.querySelector('[data-post-id=prior-browser-root]'),
+          foreign=document.querySelector('[data-post-id=foreign-browser-root]');
+        const toggle=document.querySelector('[data-action=expand][data-contribution-id=prior-browser-root]');
+        if(toggle?.getAttribute('aria-expanded')!=='true')toggle?.click();
+        const reply=document.querySelector('[data-post-id=prior-browser-reply]');
+        return {loaded:state.earlierDiscussions.length===1,sourceFiltered:!foreign,
+          rootVisible:!!root?.getClientRects().length,replyVisible:!!reply?.getClientRects().length,
+          readOnly:!!root&&!root.querySelector('[data-action=reply],[data-action=getinsights],[data-action=edit],[data-action=withdraw]')&&
+            !!reply&&!reply.querySelector('[data-action=reply],[data-action=getinsights],[data-action=edit],[data-action=withdraw]')};
+      })();
       holdAlternate=true;
       const shared=await controller.shareInsight({topicId,sourceId,actorId:before.actorId,discussionId,
         rootId:roots[0].id,replyToId:roots[0].replies[0].id,expected:before.discussion.version,
@@ -1009,10 +1101,22 @@ try {
       const alternate=inspect();
       await controller.open();
       const refreshed=inspect();
+      const priorOpenButton=document.querySelector('[data-thread-root-id=prior-browser-root] [data-action=openconversation]');
+      const priorOpenAvailable=!!priorOpenButton&&!priorOpenButton.disabled;
+      priorOpenButton?.click();
+      await new Promise(resolve=>setTimeout(resolve,0));
+      const opened=controller.currentState();
+      const priorNavigation={available:priorOpenAvailable,topicSelected:opened.topicId===priorTopicId,
+        sourceCleared:opened.sourceId===null,priorMode:opened.viewingPriorDiscussion===true,
+        previousFeedCleared:opened.earlierDiscussions.length===0};
       controller.dispose();
-      return {canonical,alternate,refreshed};
+      return {earlier,canonical,alternate,refreshed,priorNavigation};
     })()`, sessionId);
-    for (const [phase, result] of Object.entries(controllerReveal)) {
+    assert.ok(Object.values(controllerReveal.earlier).every(Boolean),
+      `real controller loads only canonical same-Source prior roots as visible read-only threads: ${JSON.stringify(controllerReveal.earlier)}`);
+    assert.ok(Object.values(controllerReveal.priorNavigation).every(Boolean),
+      `earlier thread offers deliberate navigation to its canonical Topic and clears Source binding: ${JSON.stringify(controllerReveal.priorNavigation)}`);
+    for (const [phase, result] of Object.entries(controllerReveal).filter(([phase]) => !["earlier", "priorNavigation"].includes(phase))) {
       assert.ok(result.present && result.rootOpen && result.parentOpen && result.visible,
         `${phase}: accepted generated reply stays visible across canonical/alternate/poll phases: ${JSON.stringify(controllerReveal)}`);
     }

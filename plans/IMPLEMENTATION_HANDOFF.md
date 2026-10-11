@@ -1,5 +1,33 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 visible earlier threads/retained sparkle (0.13.43), complete: read
+ADR-080's direct-feed refinement. Topic naming is explicitly on hold. User Mode
+hides repeated page-title/domain header; preserve actual Source observation and
+post source links. Canonical message sparkle stays beside Reply, disabled when
+existing Source/context gates fail; Source/Topic/phase/error participate in render
+invalidation so Source restoration re-enables it. Composer duplicate stays hidden.
+
+`earlierDiscussions` is RAM-only read presentation from existing validated prior
+Topic GETs, max four concurrent, after current-ready publication. Preserve epoch,
+Source/Topic/version/prior identity fences and root-origin filtering. Current and
+alternate roots precede directly visible same-Source earlier cards; related
+previews remain bottom and omit already displayed roots. Historical replies
+unfold normally; deletion pruning remains. Historical projections never become
+canonical draft/generation/edit/deletion or arrival targets. Guarded Open
+conversation preserves existing manual Topic navigation, which clears Source:
+human replies remain possible there, page-bound AI does not gain cross-Topic
+authority. Developer prior navigation remains.
+
+Focused controller 62 and panel/UI/layout 90 pass; full extension 1,126 pass/
+1 optional skip, restricted 1,127 pass. Independent Trust review finds no
+authority expansion. Synthetic disposable actual Chrome validates real delayed
+preload/source filtering/read-only cards/canonical navigation, sparkle adjacency
+and Source restoration, direct read/unfold and prior focus/IME/reveal/citations/
+root Insights at 390/320 px including reduced motion. Root reviews screenshots;
+secret scan (189 files, zero findings) and diff checks pass. No live inference,
+owner DB access or backend change/restart. Existing unauthenticated catalog 401
+is availability only. Reload 0.13.43; diagnostic budget/later gates unchanged.
+
 2026-10-11 lean inline replies (0.13.42), complete: read ADR-080's refinement.
 Valid User Mode human replies use a one-row growing textarea (128 px cap) and
 accessible send arrow. Do not restore the duplicate visible parent quote/heading

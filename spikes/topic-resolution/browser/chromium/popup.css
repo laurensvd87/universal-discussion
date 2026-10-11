@@ -1176,6 +1176,11 @@ body[data-ui-mode="user"] #discussion-model-host label { color: var(--ink-soft);
 body[data-ui-mode="user"] #discussion-model-host select { width: 100%; min-width: 0; min-height: 44px; }
 body[data-ui-mode="user"] #discussion-model-host #insight-model-status { grid-column: 1 / -1; color: var(--ink-soft); font-size: 11px; }
 body[data-ui-mode="user"] .discussion-thread { gap: 10px; }
+body[data-ui-mode="user"] .discussion-earlier-heading { margin: 8px 2px 0; color: var(--ink-soft); font-size: 12px; font-weight: 650; }
+body[data-ui-mode="user"] .discussion-thread-card[data-earlier-discussion="true"] { border-color: var(--line); }
+body[data-ui-mode="user"] .discussion-open-earlier { justify-self: start; margin: 2px 2px 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: var(--surface-muted); font-size: 12px; }
+body[data-ui-mode="user"] .discussion-open-earlier:focus-visible { outline: 3px solid #9d7620; outline-offset: 2px; }
+body[data-ui-mode="user"] .app-source-context { display: none; }
 body[data-ui-mode="user"] .discussion-thread-card {
   padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: none;
 }

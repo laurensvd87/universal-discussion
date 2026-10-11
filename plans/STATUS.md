@@ -1,5 +1,51 @@
 # Project status
 
+**2026-10-11 direct thread feed and retained sparkle, complete (0.13.43):**
+Topic naming is **on hold at the owner's request**; no naming implementation
+or background title-generation work is activated. The owner requests the reply
+sparkle restored, no repeated page title/domain at the top, and earlier same-page
+threads readable without a disclosure click. The [ADR-080 refinement](../decisions/ADR-080-bottom-composer-post-reveal-and-actionable-citations.md)
+records these presentation changes.
+
+Canonical message sparkle remains beside Reply, disabled rather than hidden
+when Source/busy/fresh-read/context gates reject generation. The production
+render signature now includes Source/Topic/phase/error so a restored Source
+re-enables the action even when thread text is unchanged. Forced disabled-click
+tests produce zero Insight-controller calls. The compact reply editor still
+has no duplicate sparkle. User Mode hides the repeated source header; Source
+observation, attestation and per-post source links remain.
+
+The controller preloads existing prior-topic discussion GETs in the background,
+four at a time, without delaying current readiness. Full roots/replies are
+filtered by root-origin Source and fenced to epoch, Source/Topic, catalog,
+discussion and prior metadata identity/revision. Unavailable reads leave the
+current discussion usable; unauthorized reads disconnect. Current/alternate
+threads stay first; earlier same-Source cards appear directly next, with normal
+reply unfolding/deleted-tree pruning. Current/alternate/earlier and related
+previews are deduplicated by root ID; unrelated bottom previews remain.
+
+Earlier cards remain read-only projections, not draft/generation/edit/deletion
+targets or newly arrived posts. Their guarded Open conversation action preserves
+the existing deliberate canonical Topic navigation/human reply path. It still
+clears Source binding; page-bound AI generation in an older manually selected
+Topic remains unavailable. No cross-Topic provider or posting authority is added.
+Developer navigation/diagnostics remain.
+
+Sol Medium coding and independent Trust review pass. Focused controller **62**,
+panel/UI/layout **90** pass. Final full extension **1,126 pass/1 optional skip**,
+restricted **1,127 pass**. Disposable actual Chrome verifies delayed real-
+controller prior reads, source filtering, visible/unfoldable historical cards,
+canonical navigation, sparkle adjacency/disabled-to-enabled restoration and
+previous focus/caret/IME/reveal/citation/root-Insight checks. Narrow 390/320 px
+and reduced-motion checks pass. Root reviews screenshots; the synthetic companion
+surface is layout evidence, not a new native-panel authentication proof. Secret
+scan (**189 files**, zero findings) and diff checks pass.
+
+No provider inference, owner DB access/migration, backend change/restart,
+permission, retention or release expansion. Expected unauthenticated catalog
+**401** confirms existing service availability only. Reload extension **0.13.43**;
+prior agent diagnostic inference budget remains exhausted.
+
 **2026-10-11 lean inline human replies, complete (0.13.42):**
 The owner requests a smaller editor without duplicating the message immediately
 above it or its sparkle action. The [ADR-080 refinement](../decisions/ADR-080-bottom-composer-post-reveal-and-actionable-citations.md)

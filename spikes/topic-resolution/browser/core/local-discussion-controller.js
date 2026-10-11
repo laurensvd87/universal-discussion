@@ -36,7 +36,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   validatePairing = async () => {}, attestActiveContext = null, onStateChange = () => {} }) {
   let state = { phase: "disconnected", error: null, catalog: null, discussion: null,
     topicViewMode: "experimental", alternateDiscussion: null, alternateError: null,
-    related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
+    related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null,
+    earlierDiscussions: [], viewingPriorDiscussion: false,
     sourceId: null, topicId: null, actorId: null, selection: null,
     draft: { body: "", detached: false, mode: "root", targetId: null }, busy: false, needsFreshRead: false, resolution: null,
     createdPost: null };
@@ -55,7 +56,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       patch.sourceId === null || patch.topicId === null ||
       (Object.hasOwn(patch, "sourceId") && patch.sourceId !== state.sourceId) ||
       (Object.hasOwn(patch, "topicId") && patch.topicId !== state.topicId);
-    state = { ...state, ...patch, ...(contextChanged ? { relatedDiscussions: [],
+    state = { ...state, ...patch, ...(contextChanged ? { relatedDiscussions: [], earlierDiscussions: [],
       alternateDiscussion: null, alternateError: null, createdPost: null } : {}) };
     if (!disposed) onStateChange(currentState());
   }
@@ -186,6 +187,48 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     }
     if (relatedDiscussions.length && stillCurrent()) publish({ relatedDiscussions });
   }
+  async function loadEarlierDiscussions(ownEpoch, catalog, discussion, prior, sourceId, topicId, options) {
+    if (!sourceId || !topicId || !discussion || !prior?.topics?.length ||
+        !sameVersion(catalog?.version, discussion.version) ||
+        !sameVersion(catalog.version, prior.version) ||
+        catalog.sources.find((source) => source.id === sourceId)?.topicId !== topicId ||
+        prior.sourceId !== sourceId || prior.currentTopicId !== topicId) return;
+    const entries = [...new Map(prior.topics.map((entry) => [entry.id, entry])).values()];
+    function stillCurrent() {
+      return ownEpoch === epoch && !disposed && state.phase === "ready" && !state.needsFreshRead &&
+        state.sourceId === sourceId && state.topicId === topicId &&
+        state.priorDiscussions === prior &&
+        sameVersion(state.catalog?.version, catalog.version) &&
+        sameVersion(state.discussion?.version, discussion.version);
+    }
+    const earlierDiscussions = [];
+    for (let offset = 0; offset < entries.length; offset += 4) {
+      if (!stillCurrent()) return;
+      const batch = entries.slice(offset, offset + 4);
+      const outcomes = await Promise.allSettled(batch.map((entry) => client.discussion(entry.id, options)));
+      if (!stillCurrent()) return;
+      const unauthorized = outcomes.find((outcome) => outcome.status === "rejected" &&
+        outcome.reason?.code === "unauthorized");
+      if (unauthorized) { await failure(unauthorized.reason, ownEpoch); return; }
+      for (let index = 0; index < outcomes.length; index += 1) {
+        if (outcomes[index].status !== "fulfilled") continue;
+        const view = outcomes[index].value, entry = batch[index];
+        if (!sameVersion(view?.version, catalog.version) ||
+            view?.topic?.id !== entry.id || view.topic.title !== entry.title ||
+            view.topic.kind !== entry.kind || typeof view.discussionId !== "string" ||
+            !catalog.topics.some((topic) => topic.id === entry.id &&
+              topic.title === entry.title && topic.kind === entry.kind) ||
+            !Array.isArray(view.roots)) continue;
+        // Root origin owns the thread's Source. A reply's own origin only
+        // describes that reply and must not move the root into this feed.
+        const roots = view.roots.filter((root) => root && typeof root === "object" &&
+          root.origin?.sourceId === sourceId && Array.isArray(root.replies));
+        if (roots.length) earlierDiscussions.push({ topicId: entry.id,
+          discussionId: view.discussionId, title: entry.title, roots });
+      }
+      if (stillCurrent()) publish({ earlierDiscussions: [...earlierDiscussions] });
+    }
+  }
   async function loadSelection(ownEpoch) {
     const topicId = state.topicId;
     const sourceId = state.sourceId;
@@ -237,6 +280,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         priorDiscussionsError: prior?.error ?? null, phase: topicId ? "ready" : "choose-topic" });
       if (state.topicViewMode === "experimental") void loadAlternateView(ownEpoch);
       void loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options);
+      void loadEarlierDiscussions(ownEpoch, catalog, discussion, prior?.value, sourceId, topicId, options);
     } catch (error) { await failure(error, ownEpoch); }
   }
   function setupObservation(expectedResolution = null) {
@@ -640,7 +684,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   function dispose() {
     disposed = true; cancel(); observationSequence += 1; stopObservation(); activeContext = null;
     state = { ...state, phase: "disconnected", catalog: null, discussion: null,
-      related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null, viewingPriorDiscussion: false,
+      related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null,
+      earlierDiscussions: [], viewingPriorDiscussion: false,
       sourceId: null, topicId: null, actorId: null, selection: null, resolution: null,
       draft: { body: "", detached: false, mode: "root", targetId: null } };
   }

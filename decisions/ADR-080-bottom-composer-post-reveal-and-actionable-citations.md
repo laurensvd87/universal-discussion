@@ -116,3 +116,40 @@ growth, typing/caret and simulated IME through polling, retained message sparkle
 and generated progress, visible unavailable/detached warnings and narrow layout
 without horizontal overflow. Root reviews compact and 320 px screenshots;
 secret/diff checks pass. No provider request, owner DB change or backend restart.
+
+## Owner-requested direct thread feed refinement (2026-10-11)
+
+The owner puts Topic-title generation on hold and requests no repeated current
+page title/domain at the top, a retained sparkle beside Reply, and immediate
+visibility of earlier threads started on this same Source. User Mode hides the
+source header without changing current-page observation or validation. Canonical
+message sparkle actions remain visible but disabled when their existing Source/
+context gate is unavailable; Source restoration must refresh their availability.
+The compact human composer still has no duplicate sparkle.
+
+The transient controller preloads earlier discussions using only existing paired
+loopback GETs from the validated prior-topic list. At most four such reads run
+concurrently; current discussion readiness does not wait for them. Epoch, Source,
+Topic, catalog/discussion/prior revisions and root-origin identity fence results.
+Unavailable reads do not hide the current discussion; unauthorized reads follow
+existing session failure handling. No backend schema/API or persistence changes.
+
+Current/alternate matched roots stay first; earlier same-Source roots follow as
+normal visible cards with expandable replies, deduplicated by canonical root ID.
+Related discussions remain below. Earlier projections do not become inline draft,
+generation, edit, deletion or new-post-arrival targets. Their explicit canonical
+Open conversation navigation retains the previous manual Topic-opening path;
+reading no longer needs that click. Original Topic/Source/post authority is not
+rewritten or inferred from display adjacency. Developer navigation/diagnostics
+remain. No new provider call/context, retry, permission, retention, grouping,
+deployment or release scope follows. Final verification is in top STATUS/HANDOFF.
+
+Sol Medium implementation and independent Trust review pass: controller 62,
+panel/UI/layout 90, full extension 1,126 pass/one optional skip, restricted 1,127
+pass. Disposable actual Chrome validates delayed prior reads through the real
+controller, source filtering, visible earlier roots/replies, explicit canonical
+navigation, sparkle adjacency and disabled-to-enabled Source restoration,
+focus/caret/IME/reveal/citations/root Insights and narrow reduced-motion layouts.
+Root reviews screenshots; secret/diff checks pass. Existing normal service needs
+no restart. No live inference or owner DB mutation occurs. Manually opening an
+older Topic still clears Source; cross-Topic AI generation is not enabled.

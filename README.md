@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.42** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.43** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -27,6 +27,12 @@ redundant Human/AI badges, with provenance still available to assistive tools.
 User Mode human replies use a compact growing editor and send icon without repeating
 the parent message. The sparkle beside the parent message remains the sole
 reply-generation action; the root composer still offers Insights.
+The repeated page-title/domain header is hidden in User Mode. Earlier threads
+started on this page load directly into the scrolling feed, with expandable
+replies, without opening a separate disclosure. Their original discussion
+assignment stays intact; use Open conversation for the existing canonical view.
+Canonical message sparkles stay visible and re-enable when current-page context
+is ready; unavailable contexts disable generation instead of hiding the action.
 Reload the unpacked extension after updating and accept the new `sidePanel`
 permission if Chrome asks. Existing pairing, login and saved discussions remain.
 Closing the panel does not stop background matching; **Settings → Browsing

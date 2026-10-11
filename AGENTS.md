@@ -8,6 +8,14 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current direct thread feed (2026-10-11, ADR-080 refinement): 0.13.43 User Mode
+hides the source header and preloads earlier same-Source threads into the visible
+feed using existing GETs. Preserve canonical read-only/dedup/context fences;
+Open conversation alone navigates to their existing Topic and clears Source.
+Canonical sparkle remains visible disabled when unavailable and re-enables on
+Source restoration. No cross-Topic Insight authority or composer duplicate.
+Topic naming is on hold. Read top STATUS/HANDOFF; no new provider scope.
+
 Current inline reply presentation (2026-10-11, ADR-080 refinement): 0.13.42
 User Mode uses a compact growing reply editor/send arrow, no repeated visible
 parent quote/heading and no duplicate composer sparkle. Per-message generation,

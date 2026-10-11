@@ -155,6 +155,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const priorSummary = node("summary"); priorSummary.id = "discussion-prior-summary";
   const priorList = node("ul"); priorList.id = "discussion-prior-list";
   priorDetails.append(priorSummary, priorList);
+  const earlierHeading = node("h3"); earlierHeading.className = "discussion-earlier-heading user-only";
   const feed = node("div"); feed.id = "discussion-feed";
   const rootDock = node("div"); rootDock.id = "discussion-root-dock";
   feed.append(priorDetails, backToPage, counts, alternateNotice, thread);
@@ -411,8 +412,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const actions = node("div"); actions.className = "discussion-actions";
     const alternateRoot = state.topicViewMode === "experimental" && state.alternateDiscussion &&
       state.alternateDiscussion.sourceId === state.sourceId;
-    const canonicalRoot = !alternateRoot || rootEntry.canonicalDiscussionId === state.discussion?.discussionId &&
-      rootEntry.canonicalTopicId === state.topicId && state.discussion?.roots.some((item) => item.id === rootEntry.id);
+    const canonicalRoot = state.discussion?.roots.some((item) => item.id === rootEntry.id) &&
+      (!rootEntry.canonicalDiscussionId || rootEntry.canonicalDiscussionId === state.discussion?.discussionId) &&
+      (!rootEntry.canonicalTopicId || rootEntry.canonicalTopicId === state.topicId);
     let sourceLink = null;
     if (entry.origin) {
       try {
@@ -455,23 +457,25 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       }
     }
     if (entry.edited) card.append(node("span", "discussionEdited"));
-    function action(key, callback, { iconOnly = false } = {}) {
+    function action(key, callback, { iconOnly = false, available = true } = {}) {
       const item = node("button", key); item.type = "button";
       item.className = `discussion-action discussion-action-${key.replace(/^discussion/u, "").toLowerCase()}`;
       if (iconOnly && uiMode === "user") {
         item.className += " discussion-action-icon discussion-action-robot";
         item.textContent = "";
       }
-      const actionLabel = iconOnly && uiMode === "user" ? text("uiGenerateInsightReplyLabel") : text(key);
+      const actionLabel = iconOnly && uiMode === "user" ? text(available
+        ? "uiGenerateInsightReplyLabel" : "uiGenerateInsightReplyUnavailable") : text(key);
       item.setAttribute("aria-label", actionLabel);
       item.title = actionLabel;
-      item.disabled = !canonicalRoot || state.busy || state.needsFreshRead || state.phase !== "ready";
+      item.disabled = !canonicalRoot || !available || state.busy || state.needsFreshRead || state.phase !== "ready";
       item.setAttribute("data-action", key.replace(/^discussion/u, "").toLowerCase());
       item.setAttribute("data-contribution-id", entry.id);
       item.addEventListener("click", callback); threadHandlers.push([item, callback]); actions.append(item);
     }
     if (rootEntry.state === "visible" && canonicalRoot) action("discussionReply", () => { if (controller?.begin("reply", entry.id)) body.focus(); });
-    if (canonicalRoot && insightTarget(entry.id, state)) {
+    if (canonicalRoot && rootEntry.state === "visible" && entry.state === "visible" &&
+        typeof rootEntry.body === "string" && typeof entry.body === "string") {
       action("discussionGetInsights", () => {
         if (!insightController || !insightTarget(entry.id, lastState)) return;
         if (uiMode === "developer") {
@@ -486,7 +490,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           if (progress && !progress.hidden && insightHost?.contains?.(progress))
             progress.scrollIntoView?.({ block: "nearest", behavior: "instant" });
         }
-      }, { iconOnly: true });
+      }, { iconOnly: true, available: Boolean(insightTarget(entry.id, state)) });
     }
     if (canonicalRoot && ownsContribution(entry, state.actorId)) {
       if (entry.actorType !== "agent") action("discussionEdit", () => { if (controller?.begin("edit", entry.id)) body.focus(); });
@@ -696,7 +700,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     backToPage.disabled = state.busy || state.phase === "connecting" || state.phase === "loading";
     const priorTopics = selectedTopicReady && state.priorDiscussions?.sourceId === state.sourceId &&
       state.priorDiscussions.currentTopicId === state.topicId ? state.priorDiscussions.topics : [];
-    priorDetails.hidden = priorTopics.length === 0;
+    priorDetails.hidden = uiMode === "user" || priorTopics.length === 0;
     if (!priorTopics.length) priorDetails.open = false;
     priorSummary.textContent = text("uiEarlierDiscussionOnPage").replace("{count}",
       String(priorTopics.reduce((count, entry) => count + entry.rootCount, 0)));
@@ -861,9 +865,27 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const alternateView = state.topicViewMode === "experimental" && state.phase === "ready" &&
       !state.needsFreshRead && state.alternateDiscussion?.sourceId === state.sourceId
       ? state.alternateDiscussion : null;
-    const displayRoots = alternateView
+    const currentRoots = alternateView
       ? [...alternateView.roots, ...alternateView.pinnedRoots] : state.discussion?.roots ?? [];
-    const entries = displayRoots.flatMap((entry) => [entry, ...(entry.replies ?? [])]);
+    const seenRootIds = new Set(currentRoots.map((entry) => entry.id));
+    const earlierRoots = [];
+    const earlierTargets = new Map();
+    if (uiMode === "user" && selectedTopicReady && state.sourceId) {
+      for (const prior of state.earlierDiscussions ?? []) {
+        if (!prior?.discussionId || !Array.isArray(prior.roots)) continue;
+        for (const entry of prior.roots) {
+          if (entry?.origin?.sourceId !== state.sourceId || !entry.id || seenRootIds.has(entry.id)) continue;
+          seenRootIds.add(entry.id);
+          earlierRoots.push(entry);
+          earlierTargets.set(entry.id, { topicId: prior.topicId, discussionId: prior.discussionId });
+        }
+      }
+    }
+    const earlierRootIds = new Set(earlierRoots.map((entry) => entry.id));
+    const displayRoots = [...currentRoots, ...earlierRoots];
+    // Earlier roots are a read-only projection; they are not draft targets or
+    // new-post arrivals in the selected canonical discussion.
+    const entries = currentRoots.flatMap((entry) => [entry, ...(entry.replies ?? [])]);
     const inlineTarget = uiMode === "user" && !state.draft.detached &&
       ["reply", "edit"].includes(state.draft.mode) &&
       (state.draft.mode !== "reply" || replyTarget) &&
@@ -941,7 +963,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       }
     }
     // Input updates leave contribution buttons in place so keyboard focus survives.
-    const signature = JSON.stringify([state.discussion, alternateView]);
+    const signature = JSON.stringify([state.discussion, alternateView, earlierRoots,
+      state.sourceId, state.topicId, state.phase, state.error]);
     const changedThread = signature !== renderedDiscussion || renderedActor !== state.actorId ||
       Boolean(createdKey && focusedCreatedPost !== createdKey) ||
       renderedBusy !== state.busy || renderedFreshRead !== state.needsFreshRead || renderedUiMode !== uiMode;
@@ -966,6 +989,10 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       for (const [index, rootEntry] of displayRoots.entries()) {
         const tree = visibleThread(rootEntry);
         if (uiMode === "user" && !tree.shown) continue;
+        if (earlierRootIds.has(rootEntry.id) && !cards.includes(earlierHeading)) {
+          earlierHeading.textContent = text("uiEarlierDiscussionOnPage").replace("{count}", String(earlierRoots.length));
+          cards.push(earlierHeading);
+        }
         if (alternateView?.pinnedRoots.length && index >= alternateView.roots.length &&
             !pinnedHeadingAdded) {
           const divider = node("h3", "uiTopicViewPinned"); divider.className = "discussion-pinned-heading";
@@ -973,6 +1000,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           pinnedHeadingAdded = true;
         }
         const group = node("section"); group.className = "discussion-thread-card";
+        if (earlierRootIds.has(rootEntry.id)) group.setAttribute("data-earlier-discussion", "true");
         group.setAttribute("data-thread-root-id", rootEntry.id);
         group.setAttribute("tabindex", "-1");
         group.setAttribute("aria-label", text("uiThreadFocusLabel"));
@@ -1037,6 +1065,28 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           }
         } else for (const reply of rootEntry.replies ?? [])
           group.append(contribution(reply, rootEntry, state, arrivals.has(reply.id)));
+        if (earlierRootIds.has(rootEntry.id)) {
+          const target = earlierTargets.get(rootEntry.id);
+          const open = node("button", "uiOpenEarlierConversation");
+          open.type = "button"; open.className = "discussion-open-earlier";
+          open.setAttribute("data-action", "openconversation");
+          open.setAttribute("data-contribution-id", rootEntry.id);
+          const openConversation = () => {
+            const current = lastState;
+            if (current?.phase !== "ready" || current.busy || current.needsFreshRead || current.error ||
+                current.sourceId !== state.sourceId || current.topicId !== state.topicId ||
+                current.discussion?.discussionId !== state.discussion?.discussionId ||
+                current.priorDiscussions?.sourceId !== current.sourceId ||
+                current.priorDiscussions.currentTopicId !== current.topicId ||
+                !current.priorDiscussions.topics.some((item) => item.id === target.topicId) ||
+                !current.earlierDiscussions?.some((prior) => prior.topicId === target.topicId &&
+                  prior.discussionId === target.discussionId && prior.roots?.some((entry) =>
+                    entry.id === rootEntry.id && entry.origin?.sourceId === current.sourceId))) return;
+            void controller?.selectTopic(target.topicId);
+          };
+          open.addEventListener("click", openConversation); threadHandlers.push([open, openConversation]);
+          group.append(open);
+        }
         cards.push(group);
       }
       if (state.discussion && !cards.length) cards.push(node("p", uiMode === "user" ? "uiDiscussionEmpty" : "discussionEmpty"));
@@ -1119,8 +1169,13 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       }
     }
     const alternateTopicIds = new Set((alternateView?.roots ?? []).map((entry) => entry.canonicalTopicId));
+    const visibleRootIds = new Set(displayRoots.filter((entry) => visibleThread(entry).shown)
+      .map((entry) => entry.id));
     const readOnlyRelated = selectedTopicReady ? (state.relatedDiscussions ?? [])
-      .filter((entry) => !alternateTopicIds.has(entry.topicId)) : [];
+      .filter((entry) => !alternateTopicIds.has(entry.topicId))
+      .map((entry) => ({ ...entry, roots: (entry.roots ?? [])
+        .filter((root) => !visibleRootIds.has(root.id)) }))
+      .filter((entry) => entry.roots.length > 0) : [];
     relatedDiscussions.hidden = uiMode !== "user" || readOnlyRelated.length === 0;
     const relatedSignature = JSON.stringify(readOnlyRelated);
     if (relatedSignature !== renderedRelatedDiscussions) {

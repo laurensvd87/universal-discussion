@@ -107,7 +107,8 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     activeView = view;
     if (document.body.dataset.uiMode !== "user") return;
     const sourceContext = find("#app-source-context");
-    if (sourceContext) sourceContext.hidden = view === "settings" || sourceContext.dataset.hasSource !== "true";
+    if (sourceContext) sourceContext.hidden = document.body.dataset.uiMode === "user" ||
+      view === "settings" || sourceContext.dataset.hasSource !== "true";
     const connected = Boolean(lastState?.catalog);
     move("#discussion-connection-settings", connected || view === "settings"
       ? find("#app-settings-connection") : find("#app-welcome-connection"));
@@ -232,7 +233,8 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
       let domain = "";
       try { domain = new URL(source?.url).hostname; } catch { /* The source has no displayable URL. */ }
       sourceContext.dataset.hasSource = String(Boolean(title || domain));
-      sourceContext.hidden = activeView === "settings" || !title && !domain;
+      sourceContext.hidden = document.body.dataset.uiMode === "user" ||
+        activeView === "settings" || !title && !domain;
       if (find("#app-source-title")) find("#app-source-title").textContent = title || domain;
       if (find("#app-source-domain")) find("#app-source-domain").textContent = title ? domain : "";
     }

@@ -60,6 +60,8 @@ export const EN = Object.freeze({
   uiCreateInsights: "Insight",
   uiGenerateInsightLabel: "Generate and post insight",
   uiGenerateInsightReplyLabel: "Generate and post reply",
+  uiGenerateInsightReplyUnavailable: "Generate and post reply unavailable for this post",
+  uiOpenEarlierConversation: "Open conversation",
   uiInsightSetupButton: "Set up insight",
   uiInsightSetupLabel: "Set up insight in Settings",
   uiInsightSetupHint: "Connect ChatGPT and choose a model in Settings.",

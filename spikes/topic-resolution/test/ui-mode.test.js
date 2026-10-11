@@ -253,13 +253,13 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
     related: { results: [] } };
   shell.render(connected);
   assert.equal(document.body.dataset.topicState, "ready");
-  assert.equal(get("#app-source-context").hidden, false);
+  assert.equal(get("#app-source-context").hidden, true);
   assert.equal(get("#app-source-title").textContent, "Actual page title");
   assert.equal(get("#app-source-domain").textContent, "example.org");
   get("#app-settings-button").click();
   assert.equal(get("#app-source-context").hidden, true);
   get("#app-settings-back").click();
-  assert.equal(get("#app-source-context").hidden, false);
+  assert.equal(get("#app-source-context").hidden, true);
   assert.equal(get("#app-navigation").hidden, true);
   assert.equal(get("#local-insights").parentElement, get("#app-discussion-insights-host"));
   assert.equal(get("#discussion-composer").nextSibling, get("#app-discussion-insights-host"));
