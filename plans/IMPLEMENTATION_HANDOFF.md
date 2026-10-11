@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 AI-reply diagnosis only: generic no-detail failure reported; verified
+backend healthy/ChatGPT connected, provider diagnostics empty, resumable null for
+both actors, no structural/raw trace files and no owner-Chrome debugging port.
+Independent in-memory real-controller/client/HTTP/runtime checks reproduce (1)
+stale request.expected when unrelated catalog refresh occurs during page
+attestation, yielding local 409 before dispatch; (2) attestation rejection before
+start. Stable control succeeds. Both failures produce generic UI with zero
+provider calls, empty diagnostics/null job. Actual owner cause remains unknown.
+Existing focused denied-capability controller/client/page-reader tests: 86 pass.
+The race predates preferences and is before ADR-050's already-started-job scope.
+Next proposed work is fresh validated startup snapshot and fixed content-free
+local stage/status errors, without weakening authority or retrying provider work.
+No implementation/logging/restart/owner mutation/live inference. Expanded
+ancestor context has not been approved; opener/selected-message bounds remain.
+
 2026-10-11 ADR-086 optional language/market preferences complete (0.13.45):
 preferred reply language defaults English, country/currency unset,
 optional native Chrome UI-language hint. Compact gear Settings, local storage,

@@ -1,5 +1,33 @@
 # Project status
 
+**2026-10-11 AI-reply generic-failure diagnosis (no runtime change):**
+The owner reports a sparkle reply displaying the generic Research did not
+complete message without a detail code. The current verified project listener
+is healthy, protected ChatGPT connection active, and both actors have no
+resumable job. Provider diagnostics are empty; structural/raw trace files are
+absent. The owner's Chrome exposes no existing local debugging port, so its
+actual panel state/request cannot be inspected through our isolated Chrome QA.
+
+Independent GPT-6.1 Sol Medium in-memory reproduction uses the real controller,
+local AI client, HTTP handler and runtime with injected provider adapters. A
+stable reply succeeds. An unrelated catalog addition plus refreshed observation
+during page attestation leaves the already-built request's expected revision
+stale: start gets 409 before provider dispatch, then generic failure. An
+attestation rejection independently produces the same generic message without
+any start/provider call. Both leave empty diagnostics and no resumable job.
+Neither establishes which failure occurred in the owner's actual click.
+Existing focused controller/client/page-reader capability-denied tests: **86 pass**.
+
+The snapshot-before-attestation path predates ADR-086 preferences. ADR-050's
+unrelated-revision protection covers already-started jobs; this is a separate
+pre-start usability gap, not proof that the new settings caused a regression.
+Local transport errors also lose their stage/status in the generic UI catch.
+Recommended next fix: fresh validated pre-start snapshot plus content-free
+local failure classification, preserving strict Source/Topic/account/full-target
+checks and no automatic provider retry. No code, logging activation, service
+restart, owner post mutation, inference or extra ancestor context was changed.
+The proposed expanded reply ancestry still awaits the owner's explicit answer.
+
 **2026-10-11 optional language/market preferences, complete (0.13.45):**
 The owner explicitly approves [ADR-086](../decisions/ADR-086-optional-discussion-language-and-market.md):
 compact Settings for preferred reply language (English default), optional native
