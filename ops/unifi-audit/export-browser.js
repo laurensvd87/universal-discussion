@@ -385,7 +385,7 @@
         if (reader) void reader.cancel().catch(() => {});
       }
     }
-    async function list(path) {
+    async function list(path, policyAudit) {
       let offset = 0, total, pages = 0;
       const rows = [], seen = new Set();
       do {
@@ -398,7 +398,9 @@
         if (offset + v.count > total || (v.count === 0 && offset < total)) throw failure("pagination-invalid");
         if (recordsRead + v.count > LIMITS.records) throw failure("record-limit");
         recordsRead += v.count;
-        for (const row of v.data) {
+        if (policyAudit) { policyAudit.diagnostics.pagesAccepted++; policyAudit.diagnostics.rowsRead += v.count; }
+        for (const [index, row] of v.data.entries()) {
+          if (policyAudit) { policyAudit.accept(row, offset + index + 1); continue; }
           if (!object(row) || typeof row.id !== "string" || !UUID.test(row.id) || seen.has(row.id.toLowerCase())) throw failure("pagination-invalid");
           seen.add(row.id.toLowerCase()); rows.push(row);
         }
@@ -436,10 +438,49 @@
       });
       const zones = await resource("zones", async () => (await list(`${scope}/firewall/zones`)).map(sanitizer.zone));
       let rawPolicies = [];
+      // Recovery is limited to row identity, after every page envelope passes.
+      // Numeric row locators are audit evidence only, never route/reference IDs.
+      const policyRows = [], policyIds = new Map();
+      const policyDiagnostics = { pagesAccepted: 0, rowsRead: 0, omittedNonObjectRows: 0,
+        missingIdRows: 0, invalidIdTypeRows: 0, invalidIdFormatRows: 0, duplicateIdRows: 0 };
+      const policyAudit = {
+        diagnostics: policyDiagnostics,
+        accept(row, auditRow) {
+          if (!object(row)) { policyDiagnostics.omittedNonObjectRows++; return; }
+          let identityStatus = "VALID_UUID";
+          if (!Object.hasOwn(row, "id")) { identityStatus = "MISSING_ID"; policyDiagnostics.missingIdRows++; }
+          else if (typeof row.id !== "string") { identityStatus = "INVALID_ID_TYPE"; policyDiagnostics.invalidIdTypeRows++; }
+          else if (!UUID.test(row.id)) { identityStatus = "INVALID_ID_FORMAT"; policyDiagnostics.invalidIdFormatRows++; }
+          const entry = { row, auditRow, identityStatus };
+          if (identityStatus === "VALID_UUID") {
+            const key = row.id.toLowerCase(), previous = policyIds.get(key);
+            if (previous) {
+              if (previous.identityStatus !== "DUPLICATE_ID") {
+                previous.identityStatus = "DUPLICATE_ID"; policyDiagnostics.duplicateIdRows++;
+              }
+              entry.identityStatus = "DUPLICATE_ID"; policyDiagnostics.duplicateIdRows++;
+            } else policyIds.set(key, entry);
+          }
+          policyRows.push(entry);
+        }
+      };
       const policies = await resource("policies", async () => {
-        rawPolicies = await list(`${scope}/firewall/policies`);
-        return rawPolicies.map(sanitizer.policy);
+        await list(`${scope}/firewall/policies`, policyAudit);
+        rawPolicies = policyRows.map(entry => entry.row);
+        return policyRows.map(({ row, auditRow, identityStatus }) => {
+          // Ambiguous IDs must never enter the policy alias/reference map.
+          const projection = sanitizer.policy(identityStatus === "VALID_UUID" ? row : { ...row, id: null });
+          if (identityStatus !== "VALID_UUID") projection.semanticStatus = "INCOMPLETE";
+          return { ...projection, auditRow, identityStatus };
+        });
       });
+      coverage.policies.diagnostics = policyDiagnostics;
+      if (coverage.policies.status === "COLLECTED" && (policyDiagnostics.omittedNonObjectRows
+        || policyDiagnostics.missingIdRows || policyDiagnostics.invalidIdTypeRows
+        || policyDiagnostics.invalidIdFormatRows || policyDiagnostics.duplicateIdRows)) {
+        coverage.policies.status = policies.length ? "PARTIAL" : "ERROR";
+        coverage.policies.code = "policy-identity-invalid";
+      }
       const trafficMatchingLists = await resource("trafficMatchingLists", async () => (await list(`${scope}/traffic-matching-lists`)).map(sanitizer.matchingList));
       const networkIds = new Set(networks.map(v => v.id)), zoneIds = new Set(zones.map(v => v.id));
       const listsById = new Map(trafficMatchingLists.map(v => [v.id, v]));

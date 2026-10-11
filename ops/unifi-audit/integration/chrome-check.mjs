@@ -12,6 +12,7 @@ const sentinel = "SYNTHETIC_RAW_DATA_MUST_NOT_ESCAPE";
 const uuid = n => `20000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const profile = mkdtempSync(path.join(os.tmpdir(), "udl-unifi-audit-qa-"));
 const downloads = path.join(profile, "downloads"); mkdirSync(downloads);
+const partialDownloads = path.join(profile, "partial-downloads"); mkdirSync(partialDownloads);
 const artifactDirectory = path.join(os.tmpdir(), "udl-unifi-audit-review"); mkdirSync(artifactDirectory, { recursive: true });
 const script = readFileSync(fileURLToPath(new URL("../export-browser.js", import.meta.url)), "utf8");
 const browser = launchChromiumPipe({ executable: process.env.CHROME_PATH ?? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", profileDirectory: profile });
@@ -19,6 +20,11 @@ const errors = [], calls = [], completed = [], startupMessages = [];
 const readyMessage = "[UDL UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.";
 let session, scenario = "success";
 const page = rows => ({ data: rows, offset: 0, limit: 200, count: rows.length, totalCount: rows.length });
+const duplicateId = "abcdefab-0000-4000-8000-000000000020";
+const policy = id => ({ id, index: 0, enabled: true, name: sentinel, description: sentinel,
+  metadata: { origin: "USER_DEFINED" }, action: { type: "BLOCK" },
+  source: { zoneId: uuid(10) }, destination: { zoneId: uuid(11) },
+  ipProtocolScope: { ipVersion: "IPV4_AND_IPV6" }, loggingEnabled: false });
 browser.on("Runtime.exceptionThrown", () => errors.push("runtime-error"));
 browser.on("Runtime.consoleAPICalled", event => {
   if (event.type === "info" && event.args?.length === 1 && event.args[0].value === readyMessage) startupMessages.push(readyMessage);
@@ -47,6 +53,11 @@ browser.on("Fetch.requestPaused", ({ requestId, request }, incoming) => {
     let result;
     if (url.pathname.endsWith("/info")) result = { applicationVersion: "10.6.106", password: sentinel };
     else if (url.pathname.endsWith("/sites")) result = page([{ id: uuid(1), name: sentinel }, { id: uuid(2), name: sentinel }]);
+    else if (scenario === "policy-recovery" && url.pathname.endsWith("/firewall/zones")) result = page([
+      { id: uuid(10), name: "Internal", metadata: { origin: "SYSTEM_DEFINED" }, networkIds: [] },
+      { id: uuid(11), name: "External", metadata: { origin: "SYSTEM_DEFINED" }, networkIds: [] }]);
+    else if (scenario === "policy-recovery" && url.pathname.endsWith("/firewall/policies")) result = page([
+      policy(uuid(21)), policy(duplicateId), null, policy(duplicateId.toUpperCase()), policy(sentinel)]);
     else result = page([]);
     await browser.send("Fetch.fulfillRequest", { requestId, responseCode: scenario === "failure" ? 403 : 200,
       responseHeaders: [{ name: "Content-Type", value: "application/json" }],
@@ -114,6 +125,40 @@ try {
   await close();
 
   await evaluate("Object.defineProperty(window,'module',{configurable:true,get(){throw new Error('SYNTHETIC_MODULE_GETTER_SECRET')}});void 0");
+  await browser.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: partialDownloads, eventsEnabled: true });
+  scenario = "policy-recovery"; const firstRecoveryCall = calls.length;
+  await openTool(); await start();
+  await waitFor("Boolean(document.querySelector('dialog select'))");
+  await evaluate("document.querySelector('select').value='1';document.querySelector('dialog button:last-of-type').click()");
+  await waitFor("document.querySelector('dialog p').textContent.startsWith('Partial export downloaded')");
+  for (let n = 0; completed.length < 2 && n < 100; n++) await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(completed.length, 2);
+  const partialFiles = readdirSync(partialDownloads); assert.equal(partialFiles.length, 1);
+  const partialSerialized = readFileSync(path.join(partialDownloads, partialFiles[0]), "utf8");
+  const partial = JSON.parse(partialSerialized);
+  for (const value of [key, sentinel, duplicateId, duplicateId.toUpperCase(), uuid(10), uuid(11), uuid(21), "synthetic-cookie"]) {
+    assert.ok(!partialSerialized.includes(value), "Raw credentials/names/identifiers must never enter a recovered download");
+  }
+  assert.equal(partial.collectionStatus, "PARTIAL"); assert.equal(partial.auditStatus, "INCOMPLETE");
+  assert.equal(partial.coverage.policies.status, "PARTIAL");
+  assert.equal(partial.coverage.policies.code, "policy-identity-invalid");
+  assert.equal(partial.coverage.policies.recordCount, 4);
+  assert.equal(partial.coverage.policies.diagnostics.rowsRead, 5);
+  assert.equal(partial.coverage.policies.diagnostics.omittedNonObjectRows, 1);
+  assert.equal(partial.coverage.policies.diagnostics.invalidIdFormatRows, 1);
+  assert.equal(partial.coverage.policies.diagnostics.duplicateIdRows, 2);
+  assert.ok(Object.values(partial.coverage.policies.diagnostics).every(Number.isSafeInteger));
+  assert.deepEqual(partial.policies.map(p => p.auditRow), [1, 2, 4, 5]);
+  assert.equal(partial.policies[0].identityStatus, "VALID_UUID");
+  assert.equal(partial.policies[0].semanticStatus, "COMPLETE");
+  for (const p of partial.policies.slice(1)) { assert.equal(p.id, "UNKNOWN"); assert.equal(p.semanticStatus, "INCOMPLETE"); }
+  assert.equal(partial.coverage.ordering.code, "policy-inventory-unavailable");
+  assert.deepEqual(partial.ordering, []);
+  assert.ok(!calls.slice(firstRecoveryCall).some(p => p.endsWith("/ordering")), "Unverified policy identity must not authorize ordering reads");
+  assert.equal(await evaluate("document.querySelector('input').value"), "");
+  assert.equal(await evaluate("localStorage.length+sessionStorage.length"), 0); await close();
+  await browser.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: downloads, eventsEnabled: true });
+
   scenario = "failure"; await openTool(); await start();
   await waitFor("document.querySelector('dialog p').textContent.includes('api-access-denied')");
   assert.equal(await evaluate("document.querySelector('input').value"), "");
@@ -125,9 +170,9 @@ try {
   await close(); assert.equal(readdirSync(downloads).length, 1);
   assert.equal(await evaluate("localStorage.length+sessionStorage.length"), 0);
   assert.deepEqual(errors, []);
-  assert.equal(startupMessages.length, 3, "Each browser start must announce only the fixed content-free ready message");
+  assert.equal(startupMessages.length, 4, "Each browser start must announce only the fixed content-free ready message");
   console.log(JSON.stringify({ result: "pass", requests: calls.length, runtimeErrors: 0,
-    checks: ["browser-module-collision", "throwing-module-getter", "content-free-startup", "no-startup-fetch", "strict-CSP", "masked-input", "multi-site", "GET-only", "no-cookies", "sanitized-download", "no-storage", "error-cleanup", "cancel-cleanup"],
+    checks: ["partial-policy-download", "numeric-only-diagnostics", "duplicate-first-occurrence-taint", "no-unverified-ordering", "browser-module-collision", "throwing-module-getter", "content-free-startup", "no-startup-fetch", "strict-CSP", "masked-input", "multi-site", "GET-only", "no-cookies", "sanitized-download", "no-storage", "error-cleanup", "cancel-cleanup"],
     screenshot: path.join(artifactDirectory, "export-dialog.png") }));
 } finally {
   await browser.close();

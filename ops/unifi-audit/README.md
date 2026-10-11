@@ -82,6 +82,23 @@ device serials, client lists and traffic history are excluded. Public addresses
 are masked. Unsupported or invalid criteria are marked incomplete instead of
 being presented as unrestricted traffic.
 
+Policies with missing, malformed or duplicate IDs can retain typed rule fields
+after every page has been read consistently. They have `id: "UNKNOWN"`,
+`semanticStatus: "INCOMPLETE"` and a fixed `identityStatus`; every occurrence of
+a duplicate is marked, including the first. Non-object rows are omitted.
+`auditRow` is a one-based row locator, not a rule identity or execution order.
+`coverage.policies.diagnostics` contains only numeric counts of accepted pages,
+rows read, omitted rows, missing IDs, invalid ID types/formats and duplicate-ID
+rows. It contains no raw rejected value.
+
+Any omitted row or identity defect produces `policy-identity-invalid` and partial
+coverage (or an error if no policy objects remain). Ordering is unavailable in
+that case. Inconsistent pagination, request failures and exceeded budgets still
+discard the policy inventory; earlier pages are not presented as a complete
+export. **Upload the new file even if the dialog says Partial export**: these
+diagnostics and incomplete rules can help the next review, but cannot establish
+effective firewall ordering or isolation.
+
 **Private IP addresses and network relationships remain in the file.** It is a
 minimized private audit artifact, not anonymous data suitable for publication.
 Export files are Git-ignored; do not commit or publish them.
@@ -120,10 +137,12 @@ All test data are synthetic. This command denies real network, DNS, listeners
 and subprocesses. Actual collection from the owner's UDR requires the owner to
 run the export; no agent router login or rule change follows.
 
-**49 offline tests pass**, including 12 startup regressions and 14 independent
-Trust checks. Isolated real
-Chrome QA passes with strict CSP, all HTTP(S) requests intercepted, a synthetic
-session cookie/API key, site selection and one sanitized download. No cookie
+**70 offline tests pass**, including 12 startup regressions, 21 policy-recovery
+checks and 25 independent Trust checks across the suite. Isolated real
+Chrome QA passes with strict CSP, 14 intercepted synthetic API requests, a
+synthetic session cookie/API key, site selection and both normal and partial
+sanitized downloads. Recovery checks verify numeric-only diagnostics, duplicate
+first-occurrence marking and suppression of unverified ordering. No cookie
 accompanies the API requests; error/cancel paths clear the password field and
 remove the dialog without persistent storage. A page-owned module and a throwing
 module getter cannot prevent startup or be overwritten. Startup makes no API

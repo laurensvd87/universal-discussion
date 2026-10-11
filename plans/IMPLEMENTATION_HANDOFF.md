@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 latest owner approval implements narrow policy identity recovery in
+the UniFi exporter; read ADR-094 and ops/unifi-audit/README.md. After all pages
+pass, object rows with bad/duplicate IDs retain allowlisted fields as UNKNOWN/
+INCOMPLETE; every duplicate is tainted. Non-object rows are omitted and counted.
+Fixed numeric diagnostics and row locators add no raw values or order authority.
+Partial/error identity coverage prevents ordering GETs; page/HTTP/budget failure
+still discards all policy evidence. Nonpolicy checks and existing bounds remain.
+70 restricted offline tests pass, including 21 new recovery checks (11 independent
+Trust), with no independent blockers. Root Chrome: 14 intercepted synthetic
+requests, zero errors; normal/partial sanitized download, duplicate-first marking,
+no-unverified-ordering and existing bootstrap/CSP/cookie/storage/cleanup pass.
+Root visually checks the dialog. No real router/backend/configuration change.
+Next: owner reloads local UDR tab, recopies the current script, selects Console
+top and uploads the newly downloaded minimized JSON, even if PARTIAL. Do not
+repeat startup diagnosis or certify isolation from the old empty policy arrays.
+No raw export/topology in Git; complete policy/order, NAT/UPnP/ACL/host checks and
+later scoped Ubuntu/container/public-exposure decisions remain open.
+
 2026-10-11 owner export is received and read-only reviewed; no repeated generic
 startup retry is needed. Schema/version markers and coverage/count checks pass, but policies fail
 `pagination-invalid` and ordering is unavailable. Counters/current collector

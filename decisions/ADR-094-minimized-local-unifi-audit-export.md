@@ -2,7 +2,8 @@
 
 Date: 2026-10-11.
 Status: implemented and independently reviewed; owner export received with
-missing policies/order. Complete firewall and host/network validation remain open.
+missing policies/order. Narrow policy identity recovery is tested; a fresh owner
+export and complete firewall/host/network validation remain open.
 
 ## Scope
 
@@ -95,6 +96,41 @@ Independent read-only review confirms that complete policy/order evidence and
 the separate forwarding/UPnP/host checks remain required. Do not relax validation
 or infer a safe public deployment from this artifact. Private topology is not
 copied into repository records.
+
+### Owner-approved policy identity recovery
+
+The owner approves the narrowly diagnosed exporter correction. The published
+10.6.106 schema requires UUID policy identities; do not reinterpret opaque IDs
+as valid resource identities. Only policy rows may recover from missing,
+malformed or duplicate IDs, and only after all page envelopes, totals and
+budgets pass. Project object rows through the existing field allowlists;
+replace ambiguous identities with `UNKNOWN` and mark semantics incomplete.
+Mark every duplicate occurrence case-insensitively, including its first row.
+Never put invalid/duplicate identities into the alias map.
+
+Each projected policy has a numeric one-based `auditRow` and fixed
+`identityStatus`. The row number is a locator, not identity or execution order.
+Diagnostics under `coverage.policies` contain numeric counts only: accepted
+pages, rows read, omitted non-object rows, missing IDs, invalid ID types,
+invalid ID formats and duplicate-ID rows. Count all received rows against the
+existing global budget. No raw values, names, exceptions or responses are added.
+
+Row/identity defects set `policy-identity-invalid` and PARTIAL coverage, or ERROR
+if no object rows survive. Suppress all ordering GETs in either case. Any page,
+HTTP or budget failure still discards every policy projection; consistent empty
+inventories remain distinct from unusable pages. Other resource identity checks,
+valid-ID semantic-incompleteness handling, routes, cookies, limits and permissions
+are unchanged. The correction does not establish the exact defect on the real UDR.
+
+**70 restricted offline tests pass**, including 10 implementation and 11
+independent Trust policy-recovery tests; independent review finds no blockers.
+Root native isolated Chrome passes both normal and partial sanitized downloads,
+fixed numeric diagnostics, first-duplicate marking, no unverified ordering,
+strict CSP, credential/storage cleanup and bootstrap regressions: 14 intercepted
+synthetic requests and zero runtime errors. Root visually checks the dialog.
+The owner must reload the local UDR page, recopy the current script and supply
+the newly downloaded minimized JSON, even if collection remains PARTIAL. Full
+firewall/order and separate exposure checks are still required.
 
 Agents have made no real router requests and no API key is requested in chat.
 The owner runs collection locally and reviews the minimized artifact before

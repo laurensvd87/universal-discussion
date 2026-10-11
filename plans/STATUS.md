@@ -1,5 +1,27 @@
 # Project status
 
+**2026-10-11 owner-approved UniFi policy identity recovery ready; fresh export needed:**
+The correction retains allowlisted policy fields after consistent complete paging,
+even with missing/malformed/duplicate IDs. Such rows use UNKNOWN identity and
+INCOMPLETE semantics; all duplicate occurrences are marked, including the first.
+Non-object rows are omitted but counted against the unchanged global budget.
+Numeric-only policy diagnostics and `auditRow` locators identify the failure
+class without raw values or execution-order claims. Partial/error policy coverage
+suppresses ordering GETs; page/HTTP/budget failures still discard the inventory.
+General resource identity checks and valid-ID semantic behavior are unchanged.
+See [ADR-094](../decisions/ADR-094-minimized-local-unifi-audit-export.md) and the
+[exporter instructions](../ops/unifi-audit/README.md). **70 restricted offline
+tests pass**, including 21 new recovery checks (11 independent Trust); independent
+review has no blockers. Root native isolated Chrome passes normal/partial
+downloads, numeric diagnostics, duplicate-first marking and no unverified order:
+**14 intercepted synthetic requests, zero runtime errors**, existing CSP/module/
+cookie/storage/cleanup checks pass. Root visually checks the synthetic screenshot.
+No actual UDR request, raw/private record, key, router/runtime/backend change or
+deployment. Next owner action: reload local UDR tab, recopy the current script,
+select Console top and upload the new minimized JSON, including a PARTIAL file.
+The real identity defect and effective firewall remain unverified; forwarding/
+NAT/UPnP, ACL/switch/DNS and host/reachability still need separate evidence.
+
 **2026-10-11 owner UniFi export received; firewall review remains incomplete:**
 The owner-generated JSON passes schema/version-marker, coverage and array-count checks.
 Network, zone and traffic-list reads succeed, but the policy inventory is absent
