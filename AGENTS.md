@@ -8,6 +8,13 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current citation presentation (2026-10-11, ADR-083): 0.13.41 collapses exact
+safe provider-annotated domain Markdown wrappers into source arrows. Same-host
+legacy omitted-label duplicates hide only beside existing verified arrows on the
+same line, never by rewriting stored posts. Preserve cited prose, unverified
+markers and shared server/client exact-body proof; no URL authority expansion.
+Read top STATUS/HANDOFF. Prior agent diagnostic call budget remains exhausted.
+
 Current presentation (2026-10-11, ADR-082): 0.13.40 User Mode hides deleted
 leaves/chains and all-deleted trees, retaining deleted ancestors of visible
 replies. Counts exclude tombstones; filtering is presentation, never deletion

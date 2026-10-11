@@ -34,6 +34,81 @@ test("provider annotations become inline source markers at their exact spans", (
   assert.equal(container.children[2].textContent, " and another view.");
 });
 
+test("annotated domain Markdown citations replace the whole link and optional wrapper", () => {
+  const url = "https://www.saturn.de/de/campaign/gta6/?utm_source=openai";
+  for (const wrapped of [false, true]) {
+    const markdown = `[saturn.de](${url})`;
+    const body = `A digital preorder. ${wrapped ? `(${markdown})` : markdown} More.`;
+    const startIndex = body.indexOf(markdown);
+    assert.equal(formatInsightCitations(body, [{ startIndex, endIndex: startIndex + markdown.length, url }]),
+      `A digital preorder. [↗](${url}) More.`);
+  }
+  const encoded = "https://example.org/a%28edition%29";
+  const markdown = `[example.org](${encoded})`;
+  assert.equal(formatInsightCitations(markdown, [{ startIndex: 0, endIndex: markdown.length, url: encoded }]),
+    `[↗](${encoded})`);
+  const wrappedSpan = `(${markdown})`;
+  assert.equal(formatInsightCitations(wrappedSpan, [{ startIndex: 0, endIndex: wrappedSpan.length,
+    url: encoded }]), `[↗](${encoded})`);
+  const emojiBody = `🌍 Result ${wrappedSpan} follows.`;
+  const utf16Start = emojiBody.indexOf(wrappedSpan);
+  const pointStart = Array.from(emojiBody.slice(0, utf16Start)).length;
+  for (const startIndex of [utf16Start, pointStart]) {
+    assert.equal(formatInsightCitations(emojiBody, [{ startIndex,
+      endIndex: startIndex + wrappedSpan.length, url: encoded }]),
+    `🌍 Result [↗](${encoded}) follows.`);
+  }
+  const rawParentheses = "https://example.org/a(edition)";
+  const rawMarkdown = `[example.org](${rawParentheses})`;
+  assert.equal(formatInsightCitations(rawMarkdown, [{ startIndex: 0, endIndex: rawMarkdown.length,
+    url: rawParentheses }]), "[↗](https://example.org/a%28edition%29)");
+});
+
+test("Markdown citation cleanup needs exact URL and domain; prose annotations retain words", () => {
+  const url = "https://shop.example.org/item";
+  const markdown = `[shop.example.org](${url})`;
+  assert.equal(formatInsightCitations(markdown, []), "[shop.example.org]([link omitted])");
+  assert.equal(formatInsightCitations(markdown, [{ startIndex: 0, endIndex: markdown.length,
+    url: "https://shop.example.org/other" }]),
+  "[shop.example.org]([link omitted]) [↗](https://shop.example.org/other)");
+  const prose = "An explained source";
+  assert.equal(formatInsightCitations(prose, [{ startIndex: 0, endIndex: prose.length, url }]),
+    `An explained source [↗](${url})`);
+});
+
+test("repeated annotated Markdown citations after emoji and duplicate annotations stay bounded", () => {
+  const url = "https://example.org/a";
+  const markdown = `[example.org](${url})`;
+  const body = `🌍 ${markdown} then ${markdown}`;
+  const first = body.indexOf(markdown);
+  const second = body.lastIndexOf(markdown);
+  const citation = (startIndex) => ({ startIndex, endIndex: startIndex + markdown.length, url });
+  assert.equal(formatInsightCitations(body, [citation(first), citation(first), citation(second)]),
+    `🌍 [↗](${url})[↗](${url}) then [↗](${url})`);
+  const codepoint = Array.from(body.slice(0, first)).length;
+  assert.equal(formatInsightCitations(body, [citation(codepoint)]),
+    `🌍 [↗](${url}) then [example.org]([link omitted])`);
+});
+
+test("saved duplicate omission is hidden only before a matching verified arrow", () => {
+  const url = "https://www.saturn.de/de/campaign/gta6/";
+  const junk = "([saturn.de]([link omitted])) ";
+  const render = (body) => {
+    const container = element("p");
+    appendInsightCitationNodes(document, container, body);
+    return container;
+  };
+  const matching = render(`Preorder. ${junk}[↗](${url})`);
+  assert.equal(matching.children[0].textContent, "Preorder. ");
+  assert.equal(matching.children.filter((item) => item.tag === "sup").length, 1);
+  assert.equal(render(`Preorder. ${junk}[↗](https://other.example.org/item)`).children[0].textContent,
+    `Preorder. ${junk}`);
+  assert.equal(render(`Preorder. ${junk}[?↗](${url})`).children[0].textContent,
+    `Preorder. ${junk}`);
+  assert.equal(render(`Preorder. ${junk}extra [↗](${url})`).children[0].textContent,
+    `Preorder. ${junk}extra `);
+});
+
 test("uncited prose stays plain; cited prose retains its words and receives an icon", () => {
   assert.equal(formatInsightCitations("Plain answer", []), "Plain answer");
   const container = element("p");

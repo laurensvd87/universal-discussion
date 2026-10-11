@@ -775,6 +775,41 @@ test("real-style annotated Markdown link is allowed only inside its exact provid
   }
 });
 
+test("annotated provider Markdown collapses to one source arrow in normal and strict fallback results", async () => {
+  const pageUrl = "https://shop.example.net/product";
+  const context = { ...CONTEXT, sameTopicSources: [source("shop", pageUrl)] };
+  const body = `A researched offer remains available ([shop.example.net](${pageUrl})). Delivery varies.`;
+  const start = body.indexOf("(");
+  const annotation = { type: "url_citation", url: pageUrl, title: "Product listing",
+    start_index: start, end_index: body.indexOf(")", body.indexOf(")") + 1) + 1 };
+  for (const fallback of [false, true]) {
+    const item = { id: "msg_md", type: "message", role: "assistant", status: "completed",
+      content: [{ type: "output_text", text: body, annotations: [annotation] }] };
+    const raw = fallback ?
+      event("response.created", { id: "resp_md", status: "in_progress" }) +
+      streamEvent("response.output_item.added", { output_index: 0, item: {
+        id: "search_md", type: "web_search_call", status: "in_progress" } }) +
+      streamEvent("response.output_item.done", { output_index: 0, item: {
+        id: "search_md", type: "web_search_call", status: "completed" } }) +
+      streamEvent("response.output_item.added", { output_index: 1, item: {
+        id: item.id, type: "message", role: "assistant", status: "in_progress", content: [] } }) +
+      streamEvent("response.output_item.done", { output_index: 1, item }) +
+      event("response.completed", { id: "resp_md", status: "completed", output: [] }) :
+      complete(body, [annotation], true);
+    const adapter = createChatGptInsights({ fetchImpl: async (endpoint) =>
+      endpoint.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+    const result = await adapter.createInsight({ ...REQUEST, context, allowWebResearch: true });
+    assert.equal(result.body, body);
+    assert.deepEqual(result.citations, [{ url: pageUrl, title: "Product listing",
+      startIndex: start, endIndex: annotation.end_index }]);
+    const formatted = formatInsightCitations(result.body, result.citations);
+    assert.equal(formatted, `A researched offer remains available [↗](${pageUrl}). Delivery varies.`);
+    assert.equal(formatted.includes("shop.example.net]"), false);
+    assert.equal(formatted.includes("[link omitted]"), false);
+    adapter.dispose();
+  }
+});
+
 test("exact provider URL annotation without a completed web search call is insufficient", async () => {
   const annotation = { type: "url_citation", url: CONTEXT.sameTopicSources[0].url,
     title: "Selected page", start_index: 0, end_index: 7 };

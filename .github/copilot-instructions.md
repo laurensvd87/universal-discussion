@@ -2,6 +2,12 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current citation presentation (2026-10-11, ADR-083): exact safe annotated domain
+Markdown wrappers become arrows; matching legacy omitted labels hide only beside
+verified same-host arrows on one line. Keep stored posts/prose/unverified marks
+and shared exact-body proof intact. Read 0.13.41 STATUS/HANDOFF; no new authority
+or further agent diagnostic inference approval.
+
 Current presentation (2026-10-11, ADR-082): User Mode hides deleted branches
 without visible descendants; deleted ancestors still connect surviving replies.
 No persistence or authority changes. Human/AI pills are removed, person/sparkle

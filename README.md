@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.40** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.41** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -58,6 +58,9 @@ markers are rejected rather than shown as links. A fresh one-shot product
 diagnostic returned two accepted citations, without posting its answer. This
 does not guarantee citation coverage or price accuracy. See
 [ADR-081](decisions/ADR-081-live-citation-format-and-refresh-reveal.md).
+Provider-annotated Markdown source wrappers now become only the clickable arrow,
+without duplicate retailer labels or `[link omitted]` clutter. Previously saved
+matching-host duplicates are hidden at display time without rewriting posts.
 Opening Insights still compare selected related pages. **Settings → Use web
 research** disables both paths. See
 [ADR-078](decisions/ADR-078-deliberate-reply-web-discovery.md).

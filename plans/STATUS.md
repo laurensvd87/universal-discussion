@@ -1,5 +1,37 @@
 # Project status
 
+**2026-10-11 arrow-only Markdown source citations, complete (0.13.41):**
+The owner reports `([domain]([link omitted]))` before an otherwise useful source
+arrow. [ADR-083](../decisions/ADR-083-arrow-only-markdown-citation-presentation.md)
+records the formatter diagnosis: an annotated source wrapper was retained as
+prose, its URL neutralized, then the real arrow appended. Exact annotated
+domain-link wrappers now collapse to the existing arrow only when domain and
+destination match the validated citation. Ordinary cited prose, safe URL/span
+checks, Unicode offsets and unverified-source distinctions remain intact.
+
+Previously saved duplicate omitted-link wrappers are hidden at render time only
+when directly adjacent on the same line to a verified arrow to the matching host.
+No stored body is rewritten, URL invented, unrelated prose stripped or unverified
+arrow upgraded. Human message rendering is unchanged. The same shared formatter
+is used for display and server exact-body sharing proof; normal/fallback runtime
+round-trips verify unchanged authoritative targets and rejection of altered links.
+
+Sol Medium implementation and independent QA review pass. Focused citations
+**14 pass**; service/SQLite/proof round-trip **86 pass**. Final service **400 pass/
+4 optional skips**; extension **1,117 pass/1 optional skip**; restricted **1,118
+pass**. Disposable Chrome verifies old/new/private/published examples with one
+exact source link and no duplicate label/placeholder; existing layout/reveal
+checks pass. Root reviews the saved-example screenshot. Secret scans (service
+625, extension 189 files) and diff checks pass. Official OpenAI Docs informs
+preservation of visible clickable citations, not acceptance of new destinations.
+
+No live inference, owner database inspection or migration is performed. The
+normal verified backend is restarted after checking no active provider connection,
+with unchanged pairing, protected login, SQLite and Origin; raw debug remains
+off. Unauthenticated catalog **401** confirms availability only. Reload extension
+**0.13.41** to load the matching formatter. Prior diagnostic inference budget
+remains exhausted; no retry, provider/data/permission or release scope change.
+
 **2026-10-11 deleted-branch pruning and icon-only authors, complete (0.13.40):**
 The owner requests hidden deleted messages when no undeleted descendants need
 them, and no redundant Human/AI tags. [ADR-082](../decisions/ADR-082-deleted-branch-pruning-and-icon-only-authors.md)

@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.40)
+## Persistent discussion sidebar (0.13.41)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs

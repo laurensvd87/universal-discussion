@@ -1,5 +1,13 @@
 # Local service
 
+Extension 0.13.41 and this service share the corrected arrow-only citation
+formatter. An exact safe annotated domain Markdown source wrapper no longer
+leaves an omitted-link label beside its real source arrow. Normal/fallback
+runtime and SQLite round-trips verify exact-body sharing remains consistent.
+Restart the backend and reload the extension together; no login/data reset is
+needed. No live inference or new citation authority follows. See
+[ADR-083](../../decisions/ADR-083-arrow-only-markdown-citation-presentation.md).
+
 Extension 0.13.39 clarifies native inline web-search citation syntax for broad
 replies. Unresolved/malformed native controls are rejected unless an exact
 renderer-supported token has its own valid provider citation span; no tool-source

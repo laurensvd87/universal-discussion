@@ -1,5 +1,27 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 arrow-only source wrapper fix (0.13.41), complete: read ADR-083.
+Exact provider-annotated `[domain](URL)` wrappers, optionally parenthesized,
+become only the existing arrow when domain and URL match the safe annotation.
+Do not strip cited prose or promote unannotated Markdown. Persisted legacy
+`([domain]([link omitted]))` clutter is hidden only immediately before a verified
+same-host arrow on the same line; old body/IDs/URLs are not rewritten. Unverified
+arrows/notes, host mismatches, intervening prose and newline boundaries remain.
+Backend exact-body proof and extension use the same shared formatter.
+
+Focused formatter 14 pass; independent service/proof/SQLite-reopen/render tests
+86 pass. Full service 400 pass/4 skips; extension 1,117 pass/1 skip; restricted
+1,118 pass. Actual disposable synthetic Chrome confirms old/new/private/post
+arrows with exact destinations and no duplicate labels, plus prior regressions.
+Root reviews saved-example screenshot; secret/diff checks pass. Official OpenAI
+Docs informs the retained clickable-citation contract. No live inference or owner
+database inspection. Agent diagnostic call ceiling remains exhausted.
+
+Normal idle backend restarted with unchanged Origin/pairing/protected login/SQLite,
+raw debug off; expected unauthenticated catalog 401 confirms availability only.
+Reload extension 0.13.41 for matching formatter. No migration, authority expansion,
+retry, provider/data/permission or release scope change.
+
 2026-10-11 cleaner deletion/author presentation (0.13.40), complete: read ADR-082.
 User Mode prunes deleted leaves/chains and wholly deleted trees; deleted ancestors
 of visible replies remain as Deleted by user bridges. Reply counts exclude

@@ -30,7 +30,7 @@ const annotations = claims.map((claim, index) => ({ type: "url_citation", url: u
 function sse(type, fields) {
   return `event: ${type}\ndata: ${JSON.stringify({ type, ...fields })}\n\n`;
 }
-function providerResponse(fallback) {
+function providerResponse(fallback, answer, annotations) {
   const responseId = `resp_fixture_${fallback ? "fallback" : "normal"}`;
   const search = { id: "call_fixture_search", type: "web_search_call", status: "completed" };
   const message = { id: "msg_fixture_answer", type: "message", role: "assistant", status: "completed",
@@ -57,8 +57,19 @@ function element(tag) {
     set innerHTML(_) { assert.fail("Citation rendering must not parse HTML"); } };
 }
 
-for (const fallback of [false, true]) {
-  test(`cited retailer reply survives proof, SQLite reopen and rendering (${fallback ? "strict fallback" : "normal stream"})`, async () => {
+const markdownUrl = "https://shop.example.net/product";
+const markdownAnswer = `A researched offer remains available ([shop.example.net](${markdownUrl})). Delivery varies.`;
+const markdownStart = markdownAnswer.indexOf("(");
+const markdownEnd = markdownAnswer.indexOf("))") + 2;
+const fixtures = [
+  { name: "claim spans", answer, annotations, urls },
+  { name: "annotated Markdown", answer: markdownAnswer, urls: [markdownUrl],
+    annotations: [{ type: "url_citation", url: markdownUrl, title: "Synthetic listing",
+      start_index: markdownStart, end_index: markdownEnd }] },
+];
+for (const fallback of [false, true]) for (const fixture of fixtures) {
+  test(`cited retailer reply survives proof, SQLite reopen and rendering (${fixture.name}, ${fallback ? "strict fallback" : "normal stream"})`, async () => {
+    const { answer, annotations, urls } = fixture;
     const directory = mkdtempSync(path.join(tmpdir(), "discussion-cited-reply-"));
     const databasePath = path.join(directory, "discussion.sqlite");
     let opened;
@@ -81,7 +92,8 @@ for (const fallback of [false, true]) {
         assert.equal(request.tool_choice, "auto");
         assert.deepEqual(request.tools, [{ type: "web_search", external_web_access: true,
           search_context_size: "medium" }]);
-        return new Response(providerResponse(fallback), { headers: { "content-type": "text/event-stream" } });
+        return new Response(providerResponse(fallback, answer, annotations),
+          { headers: { "content-type": "text/event-stream" } });
       }, getAccessToken: async () => "synthetic-test-token" });
       await adapter.listModels();
       runtime = createChatGPTRuntime({ service,
@@ -91,7 +103,7 @@ for (const fallback of [false, true]) {
       const catalog = service.catalog();
       const context = buildInsightContext({ catalog, discussion: service.discussion(topicId),
         related: service.related(sourceId, 20), sourceId, topicId });
-      const operationId = `fixture-cited-reply-${fallback ? "fallback" : "normal"}`;
+      const operationId = `fixture-cited-reply-${fixture.name.replaceAll(" ", "-")}-${fallback ? "fallback" : "normal"}`;
       assert.equal(runtime.create({ operationId, model: "synthetic-model", context,
         articleText: "Synthetic public fixture article.", allowWebResearch: true,
         followupQuestionId: rootId, expected: catalog.version }, actorId).state, "running");
@@ -106,8 +118,12 @@ for (const fallback of [false, true]) {
       assert.equal(privateResult.result.body, answer);
       assert.deepEqual(privateResult.result.citations.map((citation) => citation.url), urls);
       const exactBody = formatInsightCitations(privateResult.result.body, privateResult.result.citations);
-      assert.equal((exactBody.match(/\[↗\]\(/gu) ?? []).length, 2);
-      assert.match(exactBody, /delivered total is unknown/u);
+      assert.equal((exactBody.match(/\[↗\]\(/gu) ?? []).length, urls.length);
+      if (fixture.name === "annotated Markdown") {
+        assert.equal(exactBody, `A researched offer remains available [↗](${markdownUrl}). Delivery varies.`);
+        assert.equal(exactBody.includes("shop.example.net]"), false);
+        assert.equal(exactBody.includes("[link omitted]"), false);
+      } else assert.match(exactBody, /delivered total is unknown/u);
       const command = { type: "share-insight-reply", operationId, topicId, discussionId,
         rootId, replyToId: rootId, originSourceId: sourceId, body: exactBody };
       assert.throws(() => runtime.share({ expected: service.catalog().version,

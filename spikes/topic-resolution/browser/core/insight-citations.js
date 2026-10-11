@@ -18,6 +18,27 @@ function neutralizeUnannotated(text) {
   });
 }
 
+function sameCitationHost(label, url) {
+  if (!/^(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+$/iu.test(label)) return false;
+  const host = new URL(url).hostname.toLowerCase();
+  const withoutWww = (value) => value.replace(/^www\./u, "");
+  return withoutWww(label.toLowerCase()) === withoutWww(host);
+}
+
+function citationOnlyMarkdown(span, url) {
+  const wrapped = /^\([ \t]*(\[[^\]\r\n]+\]\(https:\/\/[^\r\n]+\))[ \t]*\)$/u.exec(span);
+  if (wrapped) span = wrapped[1];
+  const match = /^\[([^\]\r\n]+)\]\((https:\/\/[^\r\n]+)\)$/u.exec(span);
+  if (!match || !sameCitationHost(match[1], url)) return false;
+  // The annotation, not the model-written Markdown, supplies link authority.
+  return match[2] === url;
+}
+
+function hideLegacyDuplicateCitation(before, url) {
+  const match = /\([ \t]*\[((?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+)\]\(\[link omitted\]\)[ \t]*\)[ \t]*$/iu.exec(before);
+  return match && sameCitationHost(match[1], url) ? before.slice(0, match.index) : before;
+}
+
 export function safeInsightCitationUrl(url) {
   if (typeof url !== "string" || !url.startsWith("https://")) return false;
   const inspected = inspectPageUrl(url);
@@ -46,7 +67,8 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
     if (!PROVIDER_MARKER.test(body.slice(startIndex, endIndex)) &&
         !RELATED_MARKER.test(body.slice(startIndex, endIndex)) &&
         !WEB_MARKER.test(body.slice(startIndex, endIndex)) &&
-        !MODEL_REF_MARKER.test(body.slice(startIndex, endIndex))) {
+        !MODEL_REF_MARKER.test(body.slice(startIndex, endIndex)) &&
+        !citationOnlyMarkdown(body.slice(startIndex, endIndex), url)) {
       const points = Array.from(body);
       if (endIndex <= points.length) {
         const candidateStart = points.slice(0, startIndex).join("").length;
@@ -54,7 +76,8 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
         if (PROVIDER_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
             RELATED_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
             WEB_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
-            MODEL_REF_MARKER.test(body.slice(candidateStart, candidateEnd))) {
+            MODEL_REF_MARKER.test(body.slice(candidateStart, candidateEnd)) ||
+            citationOnlyMarkdown(body.slice(candidateStart, candidateEnd), url)) {
           startIndex = candidateStart; endIndex = candidateEnd;
         }
       }
@@ -74,6 +97,7 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
     const webMarker = webMatch !== null;
     const modelRefMatch = span.match(MODEL_REF_MARKER);
     const modelRefMarker = modelRefMatch !== null;
+    const markdownCitation = citationOnlyMarkdown(span, first.url);
     if (span.startsWith("[[ref:") && !relatedMarker)
       throw new TypeError("Invalid related citation annotation");
     if (span.startsWith("[[webref:") && !webMarker)
@@ -87,18 +111,33 @@ export function formatInsightCitations(body, citations, maxLength = 8000) {
     if (modelRefMarker && Number(modelRefMatch[1]) > 5)
       throw new TypeError("Unknown model reference");
     const unverifiedMarker = webMarker || modelRefMarker;
-    result += neutralizeUnannotated(body.slice(cursor, citationMarker || relatedMarker || unverifiedMarker ? first.startIndex : first.endIndex));
+    let replacementStart = first.startIndex;
+    let replacementEnd = first.endIndex;
+    if (markdownCitation) {
+      const open = /\([ \t]*$/u.exec(body.slice(cursor, replacementStart));
+      const close = /^[ \t]*\)/u.exec(body.slice(replacementEnd));
+      if (open && close) {
+        replacementStart -= open[0].length;
+        replacementEnd += close[0].length;
+      }
+    }
+    result += neutralizeUnannotated(body.slice(cursor,
+      citationMarker || relatedMarker || unverifiedMarker || markdownCitation ? replacementStart : replacementEnd));
     let next = index;
     while (next < ordered.length && ordered[next].startIndex === first.startIndex &&
         ordered[next].endIndex === first.endIndex) {
       // A canonical URL may contain parentheses. Percent-encode them so the
       // persistable marker remains unambiguous when it is edited or rendered.
+      if (markdownCitation && ordered[next].url !== first.url)
+        throw new TypeError("Conflicting citation annotation URLs");
       const url = ordered[next].url.replaceAll("(", "%28").replaceAll(")", "%29");
       if (!safeInsightCitationUrl(url)) throw new TypeError("Invalid citation URL");
-      result += `${citationMarker || relatedMarker || unverifiedMarker || /\s$/u.test(result) ? "" : " "}[${unverifiedMarker ? "?↗" : "↗"}](${url})`;
+      result += `${citationMarker || relatedMarker || unverifiedMarker || markdownCitation || /\s$/u.test(result) ? "" : " "}[${unverifiedMarker ? "?↗" : "↗"}](${url})`;
       next++;
     }
-    cursor = first.endIndex;
+    cursor = replacementEnd;
+    if (next < ordered.length && ordered[next].startIndex < cursor)
+      throw new TypeError("Overlapping citation annotations");
     index = next;
   }
   result += neutralizeUnannotated(body.slice(cursor));
@@ -126,7 +165,9 @@ export function appendInsightCitationNodes(document, container, body,
     if (!sourceNumbers.has(url)) sourceNumbers.set(url, sourceNumbers.size + 1);
     const number = sourceNumbers.get(url);
     const before = document.createElement("span");
-    before.textContent = body.slice(cursor, match.index);
+    before.textContent = match[1] === "↗"
+      ? hideLegacyDuplicateCitation(body.slice(cursor, match.index), url)
+      : body.slice(cursor, match.index);
     const superscript = document.createElement("sup");
     superscript.className = "inline-citation-sup";
     const link = document.createElement("a");
