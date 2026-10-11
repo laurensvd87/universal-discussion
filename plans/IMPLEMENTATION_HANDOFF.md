@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 next owner request: activate real accounts including email, not only
+test mode. Mail provider/sender/credentials/domain remain undecided; answer the
+setup question before any live delivery. Resend is a proposal only, with free
+starter limits and an own-account-address-only test sender before domain setup.
+No provider, DNS, spending, credential or email operation has been performed.
+Continue prerequisite canonical ownership/rights/migration/session integration;
+do not claim the synthetic modules already support full real-account activation.
+
 2026-10-11 ADR-090 isolated account package complete and Trust-reviewed. Read
 ACCOUNTS_PLAN.md implementation checkpoint and src/accounts/README before work.
 Strict standalone SQLite, code/username/session foundation, optional paired

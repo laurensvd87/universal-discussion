@@ -2,7 +2,8 @@
 
 Date: 2026-10-11.
 Status: implemented and independently reviewed for isolated synthetic use;
-real-account/service activation remains open.
+owner now requests real-account/service/email activation; precise mail provider,
+sender and credentials remain unresolved, and activation has not occurred.
 
 ## Implementation boundary
 

@@ -1,5 +1,16 @@
 # Project status
 
+**2026-10-11 owner requests real accounts and email activation:**
+The owner now wants the complete flow activated, not only synthetic preview.
+No live activation or delivery has occurred. Mail provider/sender/credentials
+are still missing; explain service-account versus mailbox and ask about an owned
+domain before selecting the exact mail package. Resend is a proposed starter,
+not selected/approved: its verified-domain requirement and owner-address-only
+test sender allow separate full-use and single-owner testing paths. No provider
+registration, DNS edit, key collection, spending or email send follows yet.
+Canonical ownership/rights/migration and protected app-session integration remain
+implementation prerequisites; preserve the existing posts and pairing.
+
 **2026-10-11 professional account implementation, first isolated package complete:**
 The owner requests implementation of ADR-089. [ADR-090](../decisions/ADR-090-isolated-account-foundation.md)
 records the tested synthetic boundary: strict isolated SQLite, persisted accounts/
