@@ -1,5 +1,21 @@
 # Project status
 
+**2026-10-11 UniFi exporter startup corrected; owner retry required:**
+The owner sees page/extension Console errors without the export dialog. Synthetic
+VM reproduction confirms that a page-owned `module.exports` makes the old
+bootstrap silently skip the dialog and overwrite the page module. Browser startup
+now wins without accessing that module; pure Node import remains. Fixed
+`[UDL UniFi export]` messages distinguish ready/missing-document/startup-failure,
+with no raw exception or key logging. Failed startup clears/removes partial UI.
+**49 restricted offline tests pass**, including 12 startup regressions and the
+original 14 Trust checks; independent review has no blockers. Native isolated
+Chrome passes module/getter conflicts, fixed diagnostics, no startup requests,
+strict CSP and existing eight intercepted requests/download/cleanup checks.
+Root checks the screenshot. Collector/sanitizer scope is unchanged. The actual
+UDR cause is not confirmed; owner must refresh the local UDR tab, recopy the
+current script, select Console **top** and retry. No router access/configuration,
+credentials, backend change, container activation or deployment occurred.
+
 **2026-10-11 minimized UniFi audit export ready; no router/host activation:**
 The owner requests an easier credential-free export for the UDR/VLAN review and
 reports Network 10.6.106. [ADR-094](../decisions/ADR-094-minimized-local-unifi-audit-export.md)

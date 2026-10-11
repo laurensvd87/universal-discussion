@@ -68,6 +68,21 @@ error/cancel cleanup. Root visually checked the synthetic dialog screenshot.
 The temporary synthetic profile/download is removed; no real router or network
 configuration is part of this evidence.
 
+### Startup correction
+
+The owner reports no visible exporter and Console errors from page/extension
+bundles. A synthetic reproduction identifies a separate bootstrap defect:
+page-owned CommonJS globals can suppress the dialog and have their exports
+overwritten. Browser startup now precedes Node detection and leaves those
+globals untouched. Missing documents and rejected dialog creation produce only
+fixed content-free guidance; failed startup removes partial UI and clears the
+password input. Collection, sanitization, destinations and permissions do not
+change. **49 offline checks** (12 startup regressions plus the original 37) and
+independent review pass. Native isolated Chrome verifies module/getter conflicts,
+fixed startup messages and zero API requests until Export, with the existing
+eight intercepted requests, download and cleanup checks passing. This corrects
+the reproduced defect; the owner's actual UDR cause and export remain unverified.
+
 No real router has been queried and no API key is requested in chat. The owner
 runs collection locally and reviews the minimized artifact before upload. Raw
 or sanitized private exports are Git-ignored. Later Ubuntu access, OpenClaw

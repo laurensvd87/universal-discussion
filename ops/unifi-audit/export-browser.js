@@ -3,11 +3,39 @@
  */
 (function (factory) {
   "use strict";
-  if (typeof module === "object" && module.exports) module.exports = factory();
-  else void factory().run(globalThis);
+  // Page bundles may expose CommonJS globals. A browser document takes priority,
+  // without reading or replacing the host page's module/exports properties.
+  try {
+    if (typeof window !== "undefined" || typeof document !== "undefined") void factory().bootstrap(globalThis);
+    else if (typeof module === "object" && module.exports) module.exports = factory();
+    else void factory().bootstrap(globalThis);
+  } catch {
+    void factory().bootstrap(globalThis);
+  }
 })(function () {
   "use strict";
   const VERSION = "10.6.106";
+  const BOOTSTRAP_MESSAGES = Object.freeze({
+    ready: "[UDL UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.",
+    noDocument: "[UDL UniFi export] No usable page document. Select top in the Console context selector, wait for the page to load, and run the script again.",
+    failed: "[UDL UniFi export] Dialog startup failed. Select top in the Console context selector, wait for the page to load, and run the script again."
+  });
+  async function bootstrap(env, start = run) {
+    function report(message) {
+      // Report only fixed operator guidance; console failures must not escape.
+      try { env.console?.info(message); } catch {}
+    }
+    try {
+      const doc = env.document;
+      if (!doc?.createElement || !doc.body) { report(BOOTSTRAP_MESSAGES.noDocument); return false; }
+      await start(env);
+      report(BOOTSTRAP_MESSAGES.ready);
+      return true;
+    } catch {
+      report(BOOTSTRAP_MESSAGES.failed);
+      return false;
+    }
+  }
   const BASE = "/proxy/network/integration/v1";
   const LIMITS = Object.freeze({ bytes: 2 * 1024 * 1024, pages: 50, records: 5000, requests: 180,
     networks: 50, pairs: 64, timeoutMs: 10000, criteria: 2000 });
@@ -474,75 +502,84 @@
   }
   async function run(env) {
     const doc = env.document;
-    if (!doc?.createElement || !doc.body) return;
-    const dialog = doc.createElement("dialog");
-    const heading = doc.createElement("h2"), status = doc.createElement("p"), label = doc.createElement("label");
-    const input = doc.createElement("input"), start = doc.createElement("button"), cancel = doc.createElement("button");
-    const controller = new (env.AbortController ?? AbortController)();
-    let key = "", running = false, closed = false;
-    heading.textContent = "Export UniFi firewall settings";
-    status.textContent = "GET-only. No passwords or raw responses in the file. Private network addresses remain.";
-    label.textContent = "Temporary local Network API key ";
-    input.type = "password"; input.autocomplete = "off"; input.maxLength = 1024; input.spellcheck = false;
-    start.textContent = "Export"; cancel.textContent = "Close";
-    label.append(input); dialog.append(heading, status, label, doc.createElement("br"), start, cancel);
-    function close() {
-      closed = true; controller.abort(); key = ""; input.value = ""; dialog.close(); dialog.remove();
-    }
-    cancel.addEventListener("click", close);
-    dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
-    doc.body.append(dialog);
-    try { localOrigin(env.location?.origin); }
-    catch { status.textContent = "Open this script on your trusted local HTTPS UDR IP address, not the cloud website."; input.disabled = true; start.disabled = true; }
-    dialog.showModal(); input.focus();
-    async function chooseSite(count) {
-      if (closed) throw failure("export-cancelled");
-      status.textContent = `Choose one of ${count} sites. Names are omitted from this private export.`;
-      const select = doc.createElement("select");
-      for (let i = 0; i < count; i++) {
-        const option = doc.createElement("option"); option.value = String(i); option.textContent = `Site ${i + 1}`; select.append(option);
+    if (!doc?.createElement || !doc.body) throw failure("document-unavailable");
+    let dialog, input, controller;
+    try {
+      dialog = doc.createElement("dialog");
+      const heading = doc.createElement("h2"), status = doc.createElement("p"), label = doc.createElement("label");
+      input = doc.createElement("input");
+      const start = doc.createElement("button"), cancel = doc.createElement("button");
+      controller = new (env.AbortController ?? AbortController)();
+      let key = "", running = false, closed = false;
+      heading.textContent = "Export UniFi firewall settings";
+      status.textContent = "GET-only. No passwords or raw responses in the file. Private network addresses remain.";
+      label.textContent = "Temporary local Network API key ";
+      input.type = "password"; input.autocomplete = "off"; input.maxLength = 1024; input.spellcheck = false;
+      start.textContent = "Export"; cancel.textContent = "Close";
+      label.append(input); dialog.append(heading, status, label, doc.createElement("br"), start, cancel);
+      function close() {
+        closed = true; controller.abort(); key = ""; input.value = ""; dialog.close(); dialog.remove();
       }
-      const button = doc.createElement("button"); button.textContent = "Use selected site";
-      dialog.append(select, button); select.focus();
-      try {
-        return await new Promise((resolve, reject) => {
-          const aborted = () => reject(failure("export-cancelled"));
-          controller.signal.addEventListener("abort", aborted, { once: true });
-          button.addEventListener("click", () => { controller.signal.removeEventListener("abort", aborted); resolve(Number(select.value)); }, { once: true });
-        });
-      } finally { select.remove(); button.remove(); }
-    }
-    start.addEventListener("click", async () => {
-      if (running || closed) return;
-      running = true; start.disabled = true; input.disabled = true;
-      key = input.value; input.value = "";
-      status.textContent = "Reading selected network and firewall settings…";
-      try {
-        const output = await collect({ location: env.location, fetch: env.fetch.bind(env), AbortController: env.AbortController,
-          signal: controller.signal, chooseSite }, key);
-        key = "";
-        if (closed) return;
-        const blob = new env.Blob([JSON.stringify(output, null, 2)], { type: "application/json" });
-        const url = env.URL.createObjectURL(blob), link = doc.createElement("a");
-        try {
-          link.href = url; link.download = `udl-unifi-audit-${new Date().toISOString().slice(0, 10)}.json`;
-          doc.body.append(link); link.click();
-        } finally { link.remove(); env.setTimeout(() => env.URL.revokeObjectURL(url), 1000); }
-        status.textContent = output.collectionStatus === "COMPLETE"
-          ? "Export downloaded. Review the file before sharing. Port forwarding and UPnP still need a separate check."
-          : "Partial export downloaded. Its coverage report lists missing reads; no network safety conclusion is possible.";
-        start.textContent = "Done";
-      } catch (e) {
-        if (!closed) {
-          const allowed = ["local-https-origin-required", "invalid-api-key", "api-access-denied", "endpoint-unavailable", "http-error",
-            "request-failed", "request-timeout", "export-cancelled", "redirect-not-allowed", "non-json-response", "response-size-limit",
-            "stream-reader-required", "invalid-json-response", "network-version-mismatch", "no-sites", "site-selection-required",
-            "pagination-invalid", "record-limit", "request-limit", "page-limit", "route-not-allowed"];
-          status.textContent = `Export failed (${allowed.includes(e?.auditCode) ? e.auditCode : "export-failed"}). No raw response was saved.`;
-          start.disabled = false; input.disabled = false; input.focus();
+      cancel.addEventListener("click", close);
+      dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
+      doc.body.append(dialog);
+      try { localOrigin(env.location?.origin); }
+      catch { status.textContent = "Open this script on your trusted local HTTPS UDR IP address, not the cloud website."; input.disabled = true; start.disabled = true; }
+      await dialog.showModal(); await input.focus();
+      async function chooseSite(count) {
+        if (closed) throw failure("export-cancelled");
+        status.textContent = `Choose one of ${count} sites. Names are omitted from this private export.`;
+        const select = doc.createElement("select");
+        for (let i = 0; i < count; i++) {
+          const option = doc.createElement("option"); option.value = String(i); option.textContent = `Site ${i + 1}`; select.append(option);
         }
-      } finally { key = ""; input.value = ""; running = false; }
-    });
+        const button = doc.createElement("button"); button.textContent = "Use selected site";
+        dialog.append(select, button); select.focus();
+        try {
+          return await new Promise((resolve, reject) => {
+            const aborted = () => reject(failure("export-cancelled"));
+            controller.signal.addEventListener("abort", aborted, { once: true });
+            button.addEventListener("click", () => { controller.signal.removeEventListener("abort", aborted); resolve(Number(select.value)); }, { once: true });
+          });
+        } finally { select.remove(); button.remove(); }
+      }
+      start.addEventListener("click", async () => {
+        if (running || closed) return;
+        running = true; start.disabled = true; input.disabled = true;
+        key = input.value; input.value = "";
+        status.textContent = "Reading selected network and firewall settings…";
+        try {
+          const output = await collect({ location: env.location, fetch: env.fetch.bind(env), AbortController: env.AbortController,
+            signal: controller.signal, chooseSite }, key);
+          key = "";
+          if (closed) return;
+          const blob = new env.Blob([JSON.stringify(output, null, 2)], { type: "application/json" });
+          const url = env.URL.createObjectURL(blob), link = doc.createElement("a");
+          try {
+            link.href = url; link.download = `udl-unifi-audit-${new Date().toISOString().slice(0, 10)}.json`;
+            doc.body.append(link); link.click();
+          } finally { link.remove(); env.setTimeout(() => env.URL.revokeObjectURL(url), 1000); }
+          status.textContent = output.collectionStatus === "COMPLETE"
+            ? "Export downloaded. Review the file before sharing. Port forwarding and UPnP still need a separate check."
+            : "Partial export downloaded. Its coverage report lists missing reads; no network safety conclusion is possible.";
+          start.textContent = "Done";
+        } catch (e) {
+          if (!closed) {
+            const allowed = ["local-https-origin-required", "invalid-api-key", "api-access-denied", "endpoint-unavailable", "http-error",
+              "request-failed", "request-timeout", "export-cancelled", "redirect-not-allowed", "non-json-response", "response-size-limit",
+              "stream-reader-required", "invalid-json-response", "network-version-mismatch", "no-sites", "site-selection-required",
+              "pagination-invalid", "record-limit", "request-limit", "page-limit", "route-not-allowed"];
+            status.textContent = `Export failed (${allowed.includes(e?.auditCode) ? e.auditCode : "export-failed"}). No raw response was saved.`;
+            start.disabled = false; input.disabled = false; input.focus();
+          }
+        } finally { key = ""; input.value = ""; running = false; }
+      });
+    } catch {
+      try { controller?.abort(); } catch {}
+      try { if (input) input.value = ""; } catch {}
+      try { dialog?.remove(); } catch {}
+      throw failure("dialog-startup-failed");
+    }
   }
-  return { createSanitizer, collect, run, localOrigin, VERSION, LIMITS, NOT_COLLECTED };
+  return { createSanitizer, collect, run, bootstrap, BOOTSTRAP_MESSAGES, localOrigin, VERSION, LIMITS, NOT_COLLECTED };
 });

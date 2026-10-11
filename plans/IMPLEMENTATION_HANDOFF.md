@@ -1,5 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 exporter startup refinement: browser-first bootstrap preserves
+page-owned CommonJS globals; fixed `[UDL UniFi export]` diagnostics handle absent
+DOM/rejected startup without raw errors. Read updated ops/unifi-audit/README.md
+and ADR-094. 49 restricted offline tests and independent review pass; native
+isolated Chrome module/getter/no-startup-fetch regressions and existing download
+checks pass. Owner UDR symptom is not yet verified: refresh the local router tab,
+recopy the current script, select Console **top** and retry. No actual router
+requests, configuration, backend or activation scope changed.
+
 2026-10-11 owner requests a minimized local UDR export. Read ADR-094 and
 `ops/unifi-audit/README.md`; Network 10.6.106 GET-only browser exporter is ready.
 Owner enters the temporary local key only in its password dialog, then reviews/

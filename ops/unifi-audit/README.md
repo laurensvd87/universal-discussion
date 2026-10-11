@@ -19,9 +19,12 @@ settings or activate the portable backend.
    Get-Content .\ops\unifi-audit\export-browser.js -Raw | Set-Clipboard
    ```
 
-3. Return to the local UDR tab, open DevTools with **Ctrl+Shift+J**, paste the
-   script into **Console**, and execute it. Only run the repository script you
-   inspected; do not paste third-party scripts into a signed-in router session.
+3. Return to the local UDR tab, open DevTools with **Ctrl+Shift+J**, select
+   **top** in the Console's JavaScript context selector, paste the script into
+   **Console**, and execute it. A dialog titled **Export UniFi firewall settings**
+   opens, with a fixed **[UDL UniFi export] Dialog ready** message in Console.
+   Only run the repository script you inspected; do not paste third-party scripts
+   into a signed-in router session.
    Chrome may initially block console pasting with its self-XSS warning.
 4. Enter the temporary API key into the tool's password field and start the
    export. If several sites exist, select the numbered site. The file
@@ -43,6 +46,26 @@ An untrusted certificate must be resolved through your normal trusted router
 access; the tool does not disable certificate verification or follow redirects.
 It refuses HTTP, cloud/public-address origins and a different Network version.
 Do not update the router solely to run this exporter.
+
+## If the dialog does not open
+
+Copy the current script again rather than reusing an old clipboard copy. Reload
+the UDR tab to discard previous attempts, wait for it to load, and select **top**
+in Console before running the script. Enable the **Info** log level to see the
+ready message. If DevTools is paused at a breakpoint, resume it first.
+
+Exporter startup messages have the fixed prefix **[UDL UniFi export]**. A missing
+page document or a failed dialog startup gives a fixed hint, without echoing an
+exception, URL, key or API response. Messages such as `Missing queryFn` and
+`Unchecked runtime.lastError` are not exporter diagnostics. Report only the
+prefixed message, whether the dialog appeared, or its `Export failed (...)`
+status; do not upload the page's entire Console log.
+
+The previous bootstrap could mistake a browser page's `module.exports` for a
+Node import, silently skip the dialog and overwrite that page object. Synthetic
+reproduction confirms this bug, not that it caused the owner's UDR symptom.
+Browser startup now takes priority without touching a page-owned module; Node
+tests still import the collector without opening a dialog or making requests.
 
 ## What the file contains
 
@@ -97,11 +120,14 @@ All test data are synthetic. This command denies real network, DNS, listeners
 and subprocesses. Actual collection from the owner's UDR requires the owner to
 run the export; no agent router login or rule change follows.
 
-**37 offline tests pass**, including 14 independent Trust checks. Isolated real
+**49 offline tests pass**, including 12 startup regressions and 14 independent
+Trust checks. Isolated real
 Chrome QA passes with strict CSP, all HTTP(S) requests intercepted, a synthetic
 session cookie/API key, site selection and one sanitized download. No cookie
 accompanies the API requests; error/cancel paths clear the password field and
-remove the dialog without persistent storage. No runtime errors occur. The
+remove the dialog without persistent storage. A page-owned module and a throwing
+module getter cannot prevent startup or be overwritten. Startup makes no API
+request and emits only the fixed ready message. No runtime errors occur. The
 synthetic profile/download is removed after QA. To repeat this separate browser
 check without a router or server listener:
 
@@ -121,3 +147,5 @@ The [10.6.106 OpenAPI schema](https://developer.ui.com/network/v10.6.106/openapi
 defines the local console API, pagination, selectors and ordering.
 The [zone firewall guide](https://help.ui.com/hc/en-us/articles/115003173168-Zone-Based-Firewalls-in-UniFi)
 explains directional zone rules and built-in policies.
+The [Chrome Console reference](https://developer.chrome.com/docs/devtools/console/reference)
+describes the JavaScript context selector and log-level filters.

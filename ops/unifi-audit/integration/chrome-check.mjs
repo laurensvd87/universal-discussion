@@ -15,11 +15,15 @@ const downloads = path.join(profile, "downloads"); mkdirSync(downloads);
 const artifactDirectory = path.join(os.tmpdir(), "udl-unifi-audit-review"); mkdirSync(artifactDirectory, { recursive: true });
 const script = readFileSync(fileURLToPath(new URL("../export-browser.js", import.meta.url)), "utf8");
 const browser = launchChromiumPipe({ executable: process.env.CHROME_PATH ?? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", profileDirectory: profile });
-const errors = [], calls = [], completed = [];
+const errors = [], calls = [], completed = [], startupMessages = [];
+const readyMessage = "[UDL UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.";
 let session, scenario = "success";
 const page = rows => ({ data: rows, offset: 0, limit: 200, count: rows.length, totalCount: rows.length });
 browser.on("Runtime.exceptionThrown", () => errors.push("runtime-error"));
-browser.on("Runtime.consoleAPICalled", () => errors.push("unexpected-console-output"));
+browser.on("Runtime.consoleAPICalled", event => {
+  if (event.type === "info" && event.args?.length === 1 && event.args[0].value === readyMessage) startupMessages.push(readyMessage);
+  else errors.push("unexpected-console-output");
+});
 browser.on("Browser.downloadProgress", event => { if (event.state === "completed") completed.push(event.guid); });
 browser.on("Fetch.requestPaused", ({ requestId, request }, incoming) => {
   void (async () => {
@@ -84,7 +88,11 @@ try {
   await browser.send("Fetch.enable", { patterns: [{ urlPattern: "http://*" }, { urlPattern: "https://*" }] }, session);
   await browser.send("Page.navigate", { url: `${origin}/network/default/integrations` }, session);
   await waitFor("document.title==='Synthetic local controller'");
+  await evaluate("window.module={exports:{fixtureMarker:'page-owned'}};window.fixtureExports=window.module.exports");
   await openTool();
+  assert.equal(await evaluate("window.module.exports===window.fixtureExports&&window.module.exports.fixtureMarker==='page-owned'"), true,
+    "A page-owned module must not steal browser startup or be overwritten");
+  assert.equal(calls.length, 0, "Opening the tool must not perform an API request");
   const screenshot = await browser.send("Page.captureScreenshot", { format: "png" }, session);
   writeFileSync(path.join(artifactDirectory, "export-dialog.png"), Buffer.from(screenshot.data, "base64"));
   await start();
@@ -105,6 +113,7 @@ try {
   assert.equal(await evaluate("localStorage.length+sessionStorage.length"), 0);
   await close();
 
+  await evaluate("Object.defineProperty(window,'module',{configurable:true,get(){throw new Error('SYNTHETIC_MODULE_GETTER_SECRET')}});void 0");
   scenario = "failure"; await openTool(); await start();
   await waitFor("document.querySelector('dialog p').textContent.includes('api-access-denied')");
   assert.equal(await evaluate("document.querySelector('input').value"), "");
@@ -116,8 +125,9 @@ try {
   await close(); assert.equal(readdirSync(downloads).length, 1);
   assert.equal(await evaluate("localStorage.length+sessionStorage.length"), 0);
   assert.deepEqual(errors, []);
+  assert.equal(startupMessages.length, 3, "Each browser start must announce only the fixed content-free ready message");
   console.log(JSON.stringify({ result: "pass", requests: calls.length, runtimeErrors: 0,
-    checks: ["strict-CSP", "masked-input", "multi-site", "GET-only", "no-cookies", "sanitized-download", "no-storage", "error-cleanup", "cancel-cleanup"],
+    checks: ["browser-module-collision", "throwing-module-getter", "content-free-startup", "no-startup-fetch", "strict-CSP", "masked-input", "multi-site", "GET-only", "no-cookies", "sanitized-download", "no-storage", "error-cleanup", "cancel-cleanup"],
     screenshot: path.join(artifactDirectory, "export-dialog.png") }));
 } finally {
   await browser.close();
