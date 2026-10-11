@@ -1,5 +1,60 @@
 # Project status
 
+**2026-10-11 actionable earlier same-page threads, complete (0.13.44):**
+The owner explicitly approves direct inline human and sparkle replies to earlier
+same-Source threads without switching the panel's current Source/Topic. See
+[ADR-084](../decisions/ADR-084-inline-same-source-thread-routing.md). Ordinary
+and historical same-page threads share one chronological feed, without an
+Earlier divider or mandatory Open conversation. Related discussions stay below.
+
+The shared resolver uses version-consistent current/prior canonical reads and
+the exact opener-origin Source, never a reply-only origin, host, similar URL or
+foreign experimental projection. Human drafts pin their canonical destination
+and full target/opener bodies; pre-write attestation and existing context checks
+remain. Human replies retain the current-page link while staying in the original
+discussion. The server's historical origin exception is reply-only and requires
+the validated visible opener's exact Source; new-root origins remain strict.
+
+Sparkle requests keep current-page context/anchor and use optional
+`followupTopicId` only with a canonical reply target. Backend result/sharing
+rechecks both current Source/Topic/account and destination/full-body digests.
+Exact-body one-shot proof binds the actual destination; resumed jobs stay private.
+Context limits, exclusions, five-source/citation/research checks are unchanged.
+Historical edit/withdraw controls and unrelated/foreign projection writes remain
+outside this change. Topic naming stays on hold.
+
+Inline forms/progress and confirmed human/generated replies stay at their target,
+with ancestor unfolding and one-time focus. Current canonical and validated
+historical full reads supersede duplicate projections. Independent review caught
+a late-arrival render race; displayed roots/routes now invalidate rendering when
+the historical read arrives after the alternate view. It remains one actionable
+card, not a caller-selected authority path. Typing/caret/IME and later manual
+collapse continue through refresh.
+
+Sol Medium coding and independent Trust review pass. Full service **410 pass/
+4 optional skips**; full extension **1,136 pass/1 optional skip**; restricted
+extension **1,137 pass**; focused panel **85 pass**. In-process real-controller/
+service/runtime tests verify human and deliberate generated historical replies,
+stable current selection and private recovery. Independent SQLite reopen and
+adversarial tests verify original routing/source links, forged destinations,
+duplicate proofs, withdrawn targets, Source removal, full edits beyond the
+provider prefix, account changes and reset generations.
+
+Disposable actual Chrome passes historical nested typing, inline sparkle progress,
+late alternate-first canonical arrival/dedup/actions, and real-controller human/
+generated routing, reveal/focus without Topic switches. Prior keyboard, caret/IME,
+citations, deleted-branch pruning, dock/zoom/narrow/reduced-motion checks pass.
+Root reviews screenshots; this synthetic companion is shared layout evidence,
+not a new native-panel authentication or live-provider quality proof. Secret
+scans: service **626**, extension **192** files, zero findings; diff checks pass.
+
+The verified project service had no running or completed pending Insight for
+either demo actor before restart. The normal backend is restarted with unchanged
+Origin/pairing/protected login/SQLite and raw debug off; unauthenticated catalog
+**401** confirms listener availability only. Reload extension **0.13.44**. No live
+agent inference, owner post migration or browser permission change. Exhausted
+diagnostic budget and all later approval/release gates remain unchanged.
+
 **2026-10-11 direct thread feed and retained sparkle, complete (0.13.43):**
 Topic naming is **on hold at the owner's request**; no naming implementation
 or background title-generation work is activated. The owner requests the reply

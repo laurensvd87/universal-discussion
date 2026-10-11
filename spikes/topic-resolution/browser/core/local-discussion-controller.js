@@ -3,6 +3,7 @@ import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
 import { readPostOrigin } from "./local-service-contract.js";
 import { isRidgeTopicView } from "./topic-view-mode.js";
+import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
 
 function freeze(value) {
@@ -224,7 +225,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         const roots = view.roots.filter((root) => root && typeof root === "object" &&
           root.origin?.sourceId === sourceId && Array.isArray(root.replies));
         if (roots.length) earlierDiscussions.push({ topicId: entry.id,
-          discussionId: view.discussionId, title: entry.title, roots });
+          discussionId: view.discussionId, title: entry.title, version: view.version, roots });
       }
       if (stillCurrent()) publish({ earlierDiscussions: [...earlierDiscussions] });
     }
@@ -280,7 +281,9 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         priorDiscussionsError: prior?.error ?? null, phase: topicId ? "ready" : "choose-topic" });
       if (state.topicViewMode === "experimental") void loadAlternateView(ownEpoch);
       void loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options);
-      void loadEarlierDiscussions(ownEpoch, catalog, discussion, prior?.value, sourceId, topicId, options);
+      const earlierLoad = loadEarlierDiscussions(ownEpoch, catalog, discussion, prior?.value, sourceId, topicId, options);
+      if (mutationPending) await earlierLoad;
+      else void earlierLoad;
     } catch (error) { await failure(error, ownEpoch); }
   }
   function setupObservation(expectedResolution = null) {
@@ -501,15 +504,19 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       root.canonicalDiscussionId === state.discussion?.discussionId &&
       state.discussion.roots.some((entry) => entry.id === root.id && entry.state === "visible");
   }
-  function begin(mode, targetId = null) {
+  function begin(mode, targetId = null, destination = null) {
     if (state.phase !== "ready" || state.needsFreshRead || mutationPending || state.draft.body) return false;
     const entries = state.discussion.roots.flatMap((root) => [root, ...root.replies]);
-    const target = entries.find((entry) => entry.id === targetId);
+    const target = mode === "reply" ? resolveDiscussionTarget(state, targetId, destination)?.target :
+      entries.find((entry) => entry.id === targetId);
     if (mode !== "root" && (!target || target.state !== "visible")) return false;
     if (mode === "edit" && (!ownsContribution(target, state.actorId) || target.actorType === "agent")) return false;
-    const root = mode === "reply" ? state.discussion.roots.find((entry) => entry.id === (target.rootId ?? target.id)) : null;
+    const binding = mode === "reply" ? resolveDiscussionTarget(state, targetId, destination) : null;
+    const root = binding?.root;
     if (mode === "reply" && root?.state !== "visible") return false;
-    publish({ draft: { body: mode === "edit" ? target.body : "", detached: false, mode, targetId } });
+    publish({ draft: { body: mode === "edit" ? target.body : "", detached: false, mode, targetId,
+      ...(binding ? { targetBinding: { topicId: binding.topicId, discussionId: binding.discussionId,
+        rootId: binding.root.id, rootBody: binding.root.body, targetBody: binding.target.body } } : {}) } });
     return true;
   }
   function discardDraft() { if (!mutationPending) publish({ draft: { body: "", detached: false, mode: "root", targetId: null } }); }
@@ -560,8 +567,16 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       const acceptedContext = { topicId: state.topicId, sourceId: state.sourceId,
         actorId: state.actorId, discussionId: state.discussion?.discussionId,
         activeContext: activeContext ? { ...activeContext } : null };
+      if (command.type === "reply" || command.type === "share-insight-reply") {
+        const binding = resolveDiscussionTarget(state, command.replyToId, {
+          topicId: command.destinationTopicId ?? command.topicId ?? state.topicId,
+          discussionId: command.discussionId, rootId: command.rootId,
+          ...(command.targetBinding ?? {}) });
+        if (!binding || binding.root.id !== command.rootId) return false;
+      }
       const outcome = reset ? await client.reset(expected, "RESET DEMO STATE", { signal: abort.signal })
-        : await client.command(expected, command, state.actorId, { signal: abort.signal });
+        : await client.command(expected, (() => { const { destinationTopicId, targetBinding, ...wire } = command; return wire; })(),
+          state.actorId, { signal: abort.signal });
       if (ownEpoch !== epoch || disposed) return false;
       confirmed = true;
       if (command.type === "create-topic" || learned) detach();
@@ -582,19 +597,23 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       const createdId = ["create-root", "reply", "share-insight", "share-insight-reply"].includes(command.type)
         && typeof outcome?.result?.contributionId === "string" ? outcome.result.contributionId : null;
       await open();
+      const destination = command.destinationTopicId ?? command.topicId ?? acceptedContext.topicId;
+      const createdView = destination === state.topicId ? state.discussion :
+        state.earlierDiscussions.find((view) => view.topicId === destination && view.discussionId === command.discussionId);
       if (createdId && state.phase === "ready" && !state.needsFreshRead &&
           state.topicId === acceptedContext.topicId && state.sourceId === acceptedContext.sourceId &&
           state.actorId === acceptedContext.actorId &&
           state.discussion?.discussionId === acceptedContext.discussionId &&
           JSON.stringify(activeContext) === JSON.stringify(acceptedContext.activeContext) &&
-          state.discussion?.roots.some((root) => root.state === "visible" &&
+          createdView?.roots.some((root) => root.state === "visible" &&
             (root.id === createdId || root.replies?.some((reply) => reply.id === createdId &&
               reply.state === "visible")))) {
         // The accepted command result identifies the post. This is a UI cue only;
         // it never participates in a later write or survives context invalidation.
-        publish({ createdPost: { id: createdId, topicId: state.topicId,
+        publish({ createdPost: { id: createdId, topicId: destination,
+          ...(destination !== state.topicId ? { currentTopicId: state.topicId, rootId: command.rootId } : {}),
           sourceId: state.sourceId, actorId: state.actorId,
-          discussionId: state.discussion.discussionId } });
+          discussionId: createdView.discussionId } });
       }
       return true;
     } catch (error) {
@@ -620,10 +639,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     let command;
     if (draft.mode === "edit") command = { type: "edit", contributionId: draft.targetId, body: draft.body };
     else if (draft.mode === "reply") {
-      const target = state.discussion.roots.flatMap((root) => [root, ...root.replies]).find((entry) => entry.id === draft.targetId);
-      if (!target) return Promise.resolve(false);
-      command = { type: "reply", discussionId: state.discussion.discussionId,
-        rootId: target.rootId ?? target.id, replyToId: target.id, body: draft.body };
+      const binding = resolveDiscussionTarget(state, draft.targetId, draft.targetBinding);
+      if (!binding) return Promise.resolve(false);
+      command = { type: "reply", discussionId: binding.discussionId,
+        rootId: binding.root.id, replyToId: binding.target.id, body: draft.body,
+        destinationTopicId: binding.topicId, targetBinding: draft.targetBinding };
     } else command = { type: "create-root", topicId: state.topicId, body: draft.body };
     if (["create-root", "reply"].includes(command.type)) {
       command.originSourceId = selectedPostingSource(state)?.id ?? null;
@@ -644,14 +664,14 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         typeof review.body !== "string" || !review.body.trim() || review.body.length > 8_000 ||
         typeof review.operationId !== "string") return Promise.resolve(false);
     if (review.replyToId) {
-      const root = state.discussion.roots.find((entry) => entry.id === review.rootId);
-      const target = root?.id === review.replyToId ? root :
-        root?.replies.find((entry) => entry.id === review.replyToId);
-      if (!root || root.state !== "visible" || !target || target.state !== "visible" ||
-          target !== root && target.rootId !== root.id ||
-          review.discussionId !== state.discussion.discussionId) return Promise.resolve(false);
-      return mutate({ type: "share-insight-reply", topicId: state.topicId,
-        discussionId: review.discussionId, rootId: root.id, replyToId: target.id,
+      const target = resolveDiscussionTarget(state, review.replyToId, {
+        topicId: review.followupTopicId ?? state.topicId,
+        discussionId: review.discussionId, rootId: review.rootId });
+      if (!target || Boolean(review.followupTopicId) !== target.earlier) return Promise.resolve(false);
+      return mutate({ type: "share-insight-reply", topicId: target.topicId,
+        discussionId: review.discussionId, rootId: target.root.id, replyToId: target.target.id,
+        destinationTopicId: target.topicId,
+        targetBinding: { rootBody: target.root.body, targetBody: target.target.body },
         body: review.body, originSourceId: review.sourceId, operationId: review.operationId });
     }
     return mutate({ type: "share-insight", topicId: state.topicId, body: review.body,

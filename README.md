@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.43** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.44** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -28,12 +28,16 @@ User Mode human replies use a compact growing editor and send icon without repea
 the parent message. The sparkle beside the parent message remains the sole
 reply-generation action; the root composer still offers Insights.
 The repeated page-title/domain header is hidden in User Mode. Earlier threads
-started on this page load directly into the scrolling feed, with expandable
-replies, without opening a separate disclosure. Their original discussion
-assignment stays intact; use Open conversation for the existing canonical view.
+started on this exact page are mixed into the ordinary thread feed, with
+expandable replies and direct inline **Reply** and sparkle actions. There is no
+separate Open conversation step or panel Topic switch. Each reply stays in its
+original discussion and retains its current-page link; merely related threads
+remain read-only at the bottom. See
+[ADR-084](decisions/ADR-084-inline-same-source-thread-routing.md).
 Canonical message sparkles stay visible and re-enable when current-page context
 is ready; unavailable contexts disable generation instead of hiding the action.
-Reload the unpacked extension after updating and accept the new `sidePanel`
+The backend has been restarted for this update; reload the unpacked extension
+to **0.13.44**. Accept the existing `sidePanel`
 permission if Chrome asks. Existing pairing, login and saved discussions remain.
 Closing the panel does not stop background matching; **Settings → Browsing
 session settings** retains Stop, site exclusions and access removal. An unsent
@@ -44,7 +48,7 @@ replies. Typing and same-page discussion refreshes preserve focus and cursor
 position. The single active editor returns to the bottom for a new thread; its
 return action explicitly discards the reply draft. A removed target blocks
 posting without discarding your text.
-Click **Insight**, or the sparkle beside any message or in its reply composer,
+Click **Insight**, or the sparkle beside an eligible message,
 to generate and immediately post the finished message in the shared local
 discussion. No separate Share is needed for a new request. Reply generation
 and recovery drafts appear beneath the selected message, including nested replies.
@@ -1033,10 +1037,10 @@ post links to that page and keeps comments. Clear learned data also removes
 learned-source threads manually moved to another Topic; read the confirmation.
 
 If a page is re-captured with a changed vector, its older page-started threads
-may remain in an earlier Topic. In the current page's discussion, open **Earlier
-threads started here** to visit that Topic, then **Back to this page** to return.
-The earlier Topic can also contain other pages' threads; this view does not move
-old posts or claim that every post there began on the current page.
+may remain in an earlier Topic. Version **0.13.44** shows only the roots started
+on this exact Source directly in the current feed, with inline human/sparkle
+replies to their original destinations. It does not merge Topics or show every
+thread from the earlier Topic. Developer navigation remains available.
 Extension **0.13.8** retries a prior-thread read once if background matching
 updates local state between popup requests. If the earlier-thread path still
 cannot load, the popup shows a brief retry status; reopen it after the page

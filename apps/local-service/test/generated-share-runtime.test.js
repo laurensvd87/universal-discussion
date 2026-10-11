@@ -224,3 +224,135 @@ test("foreign and withdrawn targets cannot start or complete a generated reply",
   assert.equal(calls, 1);
   ai.dispose();
 });
+
+function historicalThread(service, suffix = "history") {
+  const learned = service.ingest(learnedInput(service, `${suffix}-capture`, "Original page"));
+  const oldTopicId = learned.topicId;
+  const rootId = service.command(service.catalog().version, { type: "create-root",
+    topicId: oldTopicId, originSourceId: learned.sourceId, body: "Earlier page question" },
+  "demo-blair").result.contributionId;
+  const oldDiscussionId = service.discussion(oldTopicId).discussionId;
+  const targetId = service.command(service.catalog().version, { type: "reply",
+    discussionId: oldDiscussionId, rootId, replyToId: rootId, body: "Earlier nested answer" },
+  "demo-blair").result.contributionId;
+  const replyOnlyRoot = service.command(service.catalog().version, { type: "create-root",
+    topicId: oldTopicId, body: "Sourceless root" }, "demo-blair").result.contributionId;
+  const replyOnlyId = service.command(service.catalog().version, { type: "reply",
+    discussionId: oldDiscussionId, rootId: replyOnlyRoot, replyToId: replyOnlyRoot,
+    body: "Page-linked reply only", originSourceId: learned.sourceId },
+  "demo-blair").result.contributionId;
+  // Revisit the same URL with changed representation, pinning its earlier root.
+  const recapture = learnedInput(service, `${suffix}-changed`, "Original page", 0.5);
+  recapture.url = "https://example.com/articles/insight-anchor";
+  service.ingest(recapture);
+  const currentTopicId = service.command(service.catalog().version, { type: "correct-source",
+    sourceId: learned.sourceId, topicId: "harbor-s2" }, "demo-alex").result.topicId;
+  assert.notEqual(currentTopicId, oldTopicId);
+  assert.equal(service.discussion(oldTopicId).roots.some((root) => root.id === rootId), true);
+  return { sourceId: learned.sourceId, currentTopicId, oldTopicId, oldDiscussionId,
+    rootId, targetId, replyOnlyRoot, replyOnlyId };
+}
+
+test("same-page historical root and nested targets keep current-page provider context and exact destination proof", async () => {
+  const service = demoService();
+  const h = historicalThread(service);
+  const sent = [];
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true,
+      account: { clientId: "synthetic", label: "One" } }), dispose() {} },
+    insightsAdapter: { createInsight: async (value) => { sent.push(value); return {
+      body: "Historical answer", citations: [], model: "synthetic" }; }, cancel() {}, dispose() {} } });
+  for (const [index, selectedId] of [h.rootId, h.targetId].entries()) {
+    const request = { ...insightInput(service, h.sourceId, h.currentTopicId,
+      `historical-${index}`, selectedId), followupTopicId: h.oldTopicId };
+    ai.create(request, "demo-alex");
+    await Promise.resolve(); await Promise.resolve();
+    assert.equal(sent[index].context.topic.id, h.currentTopicId);
+    assert.equal(sent[index].context.currentSource.id, h.sourceId);
+    assert.equal(sent[index].followup.parentBody, "Earlier page question");
+    assert.equal(sent[index].followup.questionBody,
+      index ? "Earlier nested answer" : "Earlier page question");
+    assert.equal(ai.resumable("demo-alex").job.followupTopicId, h.oldTopicId);
+    const command = { type: "share-insight-reply", operationId: request.operationId,
+      topicId: h.oldTopicId, discussionId: h.oldDiscussionId, rootId: h.rootId,
+      replyToId: selectedId, originSourceId: h.sourceId, body: "Historical answer" };
+    assert.throws(() => ai.share({ expected: service.catalog().version,
+      command: { ...command, topicId: h.currentTopicId } }, "demo-alex", () => {}),
+    (error) => error instanceof ServiceError && error.code === "conflict");
+    assert.throws(() => ai.share({ expected: service.catalog().version,
+      command: { ...command, body: "Altered answer" } }, "demo-alex", () => {}),
+    (error) => error instanceof ServiceError && error.code === "invalid");
+    const outcome = ai.share({ expected: service.catalog().version, command }, "demo-alex",
+      (proof) => service.command(service.catalog().version, command, "demo-alex", proof));
+    assert.equal(service.discussion(h.oldTopicId).roots.find((root) => root.id === h.rootId).replies.some((reply) =>
+      reply.id === outcome.result.contributionId && reply.origin.sourceId === h.sourceId), true);
+    assert.throws(() => ai.share({ expected: service.catalog().version, command }, "demo-alex", () => {}),
+      (error) => error instanceof ServiceError && error.code === "not-found");
+  }
+  ai.dispose();
+});
+
+test("historical reply route rejects malformed, foreign and reply-only origins before provider dispatch", () => {
+  const service = demoService();
+  const h = historicalThread(service, "rejection");
+  const foreignRoot = service.command(service.catalog().version, { type: "create-root",
+    topicId: h.oldTopicId, body: "Different page root", originSourceId: null },
+  "demo-blair").result.contributionId;
+  let calls = 0;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true,
+      account: { clientId: "synthetic", label: "One" } }), dispose() {} },
+    insightsAdapter: { createInsight: async () => { calls++; return { body: "Answer", citations: [] }; },
+      cancel() {}, dispose() {} } });
+  const base = insightInput(service, h.sourceId, h.currentTopicId, "bad-route", h.targetId);
+  for (const request of [
+    { ...base, followupTopicId: h.currentTopicId },
+    { ...base, followupTopicId: "bad id!" },
+    { ...base, followupTopicId: "missing-topic" },
+    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: foreignRoot },
+    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: h.replyOnlyId },
+    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: "missing-post" },
+    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: null },
+    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: undefined },
+    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: h.targetId,
+      context: { ...base.context, topic: { id: h.oldTopicId } } },
+    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: h.targetId,
+      expected: { ...base.expected, revision: base.expected.revision - 1 } },
+    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: h.targetId,
+      operationId: "bad-extra", unexpected: true },
+  ]) assert.throws(() => ai.create(request, "demo-alex"), (error) => error instanceof ServiceError);
+  const opening = insightInput(service, h.sourceId, h.currentTopicId, "opening-no-route");
+  assert.throws(() => ai.create({ ...opening, followupTopicId: h.oldTopicId }, "demo-alex"),
+    (error) => error instanceof ServiceError && error.code === "invalid");
+  assert.equal(calls, 0);
+  ai.dispose();
+});
+
+test("historical generated replies fail closed after destination edits, withdrawal, source removal or reset", async () => {
+  for (const mutation of ["edit", "withdraw-target", "withdraw-root", "forget-source", "reset"]) {
+    const service = demoService();
+    const h = historicalThread(service, `stale-${mutation}`);
+    const ai = privateRuntime(service);
+    const request = { ...insightInput(service, h.sourceId, h.currentTopicId,
+      `historical-stale-${mutation}`, h.targetId), followupTopicId: h.oldTopicId };
+    ai.create(request, "demo-alex");
+    await Promise.resolve(); await Promise.resolve();
+    if (mutation === "edit") service.command(service.catalog().version, {
+      type: "edit", contributionId: h.targetId, body: "Changed full target" }, "demo-blair");
+    if (mutation === "withdraw-target") service.command(service.catalog().version, {
+      type: "withdraw", contributionId: h.targetId }, "demo-blair");
+    if (mutation === "withdraw-root") service.command(service.catalog().version, {
+      type: "withdraw", contributionId: h.rootId }, "demo-blair");
+    if (mutation === "forget-source") service.command(service.catalog().version, {
+      type: "forget-source", sourceId: h.sourceId }, "demo-alex");
+    if (mutation === "reset") ai.reset();
+    if (mutation === "reset") {
+      assert.throws(() => ai.result({ operationId: request.operationId }, "demo-alex"),
+        (error) => error instanceof ServiceError && error.code === "not-found");
+    } else {
+      assert.deepEqual(ai.result({ operationId: request.operationId }, "demo-alex"),
+        { operationId: request.operationId, state: "failed", error: "stale-context" });
+    }
+    ai.dispose();
+  }
+});

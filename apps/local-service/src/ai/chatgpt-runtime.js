@@ -204,15 +204,18 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     if (excludedWebUrls.some((url) => typeof url !== "string")) fail("invalid", "Invalid request");
     return { context: rebuilt, excludedWebUrls };
   }
-  function inspectFollowup(questionId, context, expected) {
+  function inspectFollowup(questionId, destinationTopicId, sourceId, currentTopicId, expected) {
     const id = readId(questionId);
-    const discussion = service.discussion(context.topic.id);
+    const discussion = service.discussion(destinationTopicId);
     if (!same(discussion.version, expected)) fail("conflict", "State changed");
     for (const root of discussion.roots) {
       const target = root.id === id ? root : root.replies.find((entry) => entry.id === id);
       if (!target) continue;
       if (root.state !== "visible" || target.state !== "visible" ||
           typeof root.body !== "string" || typeof target.body !== "string") fail("forbidden", "Action unavailable");
+      if (destinationTopicId !== currentTopicId && root.origin?.sourceId !== sourceId) {
+        fail("forbidden", "Action unavailable");
+      }
       return { parentBody: root.body.slice(0, 2_000), questionBody: target.body.slice(0, 2_000),
         parentDigest: bodyDigest(root.body), questionDigest: bodyDigest(target.body),
         rootId: root.id, replyToId: target.id, discussionId: discussion.discussionId };
@@ -232,8 +235,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         !same({ ...anchor, version: null }, { ...job.anchor, version: null })) return null;
     if (job.replyToId !== null) {
       let followup;
-      try { followup = inspectFollowup(job.replyToId,
-        { topic: { id: job.topicId } }, anchor.version); }
+      try { followup = inspectFollowup(job.replyToId, job.destinationTopicId,
+        job.originSourceId, job.topicId, anchor.version); }
       catch (error) {
         if (error instanceof ServiceError && ["conflict", "not-found", "forbidden"].includes(error.code)) return null;
         throw error;
@@ -285,7 +288,11 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       exact(value, ["operationId", "model", "context", "articleText", "allowWebResearch", "expected",
         ...(Object.hasOwn(value ?? {}, "excludedRelatedSourceIds") ? ["excludedRelatedSourceIds"] : []),
         ...(Object.hasOwn(value ?? {}, "relatedExcerpts") ? ["relatedExcerpts"] : []),
-        ...(Object.hasOwn(value ?? {}, "followupQuestionId") ? ["followupQuestionId"] : [])]);
+        ...(Object.hasOwn(value ?? {}, "followupQuestionId") ? ["followupQuestionId"] : []),
+        ...(Object.hasOwn(value ?? {}, "followupTopicId") ? ["followupTopicId"] : [])]);
+      if (Object.hasOwn(value, "followupTopicId") && !Object.hasOwn(value, "followupQuestionId")) {
+        fail("invalid", "Invalid request");
+      }
       service.actor(actorId);
       const key = operationId(value.operationId);
       if (seen.has(key)) fail("conflict", "Operation changed");
@@ -301,11 +308,18 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       // Older clients may still submit locally fetched related-page text. Reject it
       // at the API boundary so Insight evidence can only come from hosted research.
       if (relatedExcerpts.length) fail("invalid", "Invalid request");
+      const destinationTopicId = Object.hasOwn(value, "followupTopicId")
+        ? readId(value.followupTopicId) : context.topic.id;
+      if (Object.hasOwn(value, "followupTopicId") && destinationTopicId === context.topic.id) {
+        fail("invalid", "Invalid request");
+      }
       const followup = Object.hasOwn(value, "followupQuestionId")
-        ? inspectFollowup(value.followupQuestionId, context, value.expected) : null;
+        ? inspectFollowup(value.followupQuestionId, destinationTopicId,
+          context.currentSource.id, context.topic.id, value.expected) : null;
       const anchor = service.insightAnchor(context.topic.id, context.currentSource.id);
       if (!same(anchor.version, value.expected)) fail("conflict", "State changed");
       const job = { operationId: key, actorId, expected: value.expected, topicId: context.topic.id,
+        destinationTopicId,
         originSourceId: context.currentSource?.id ?? null,
         rootId: followup?.rootId ?? null, replyToId: followup?.replyToId ?? null,
         discussionId: followup?.discussionId ?? null, anchor, followup,
@@ -348,6 +362,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         if (job.state !== "running" && job.state !== "completed") continue;
         return { job: { operationId: job.operationId, state: job.state,
           expected: context.version, topicId: job.topicId, originSourceId: job.originSourceId,
+          ...(job.destinationTopicId !== job.topicId ? { followupTopicId: job.destinationTopicId } : {}),
           rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId } };
       }
       return { job: null };
@@ -361,7 +376,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       const job = owned(command.operationId, actorId);
       const context = currentJobContext(job);
       if (job.state !== "completed" || !job.result || !context || !same(context.version, value.expected) ||
-          command.topicId !== job.topicId ||
+          command.topicId !== job.destinationTopicId ||
           command.originSourceId !== job.originSourceId ||
           (job.replyToId === null ? command.type !== "share-insight" :
             command.type !== "share-insight-reply" ||
@@ -372,7 +387,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       catch { fail("invalid", "Invalid request"); }
       if (command.body !== body) fail("invalid", "Invalid request");
       const proof = Object.freeze({ kind: "generated-insight", operationId: job.operationId,
-        actorId, topicId: job.topicId, originSourceId: job.originSourceId, body,
+        actorId, topicId: job.destinationTopicId, originSourceId: job.originSourceId, body,
         rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId });
       const outcome = persist(proof);
       clearTimeout(job.expiry); job.result = null; jobs.delete(job.operationId);

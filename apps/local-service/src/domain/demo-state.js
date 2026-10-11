@@ -126,7 +126,6 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
           generatedProof.body !== body ||
           generatedProof.originSourceId !== (input.originSourceId ?? null)) fail("forbidden", "Action unavailable");
     }
-    const origin = contributionOrigin(next, input.originSourceId, discussion.topicId);
     let replyToId = null;
     if (input.replyToId !== null) {
       const target = findContribution(next, readId(input.replyToId));
@@ -136,6 +135,7 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
       }
       replyToId = target.id;
     }
+    const origin = contributionOrigin(next, input.originSourceId, discussion.topicId, root.id);
     const contributionId = readId(nextId("contribution"));
     ensureUnused(next, contributionId);
     addContribution(next, {

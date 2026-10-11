@@ -2,6 +2,17 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current implemented approval (2026-10-11, ADR-084, 0.13.44): inline human/sparkle
+replies to earlier exact same-Source canonical roots are approved/verified while current page
+Source/Topic stays selected. Preserve server-validated original destination,
+root-origin identity, full-message/page/account/version checks, existing context
+bounds, one-shot exact-body sharing and recovered-job privacy. Related/foreign
+experimental projections remain read-only. Validated historical full reads
+supersede duplicate projections; displayed roots/routes trigger rendering on
+late canonical arrival. No historical edits/deletions or
+extra live diagnostic budget. Read top STATUS/HANDOFF; old read-only notes
+below are superseded only for this scope. Topic naming remains on hold.
+
 Current direct thread feed (2026-10-11, ADR-080 refinement): 0.13.43 hides the
 source header, shows preloaded same-Source earlier threads without disclosure,
 and keeps canonical sparkle visible/disabled with Source-restoration refresh.

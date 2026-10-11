@@ -236,6 +236,19 @@ function state(patch = {}) {
       ] }] }, related: { results: [{ title: "<iframe>inert source</iframe>", url: "https://synthetic.example/", relationship: "related" }] },
     draft: { body: "", detached: false, mode: "root", targetId: null }, ...patch };
 }
+function samePageHistory(root, patch = {}) {
+  const base = state();
+  const version = { generation: 7, revision: 3 };
+  const origin = { sourceId: "source-demo", url: "https://example.org/story", title: "Story" };
+  const historicalRoot = { ...root, origin };
+  return state({ sourceId: "source-demo", catalog: { ...base.catalog, version,
+    topics: [...base.catalog.topics, { id: "older-topic", title: "Older", kind: "manual" }] },
+    discussion: { discussionId: "discussion-demo", version, roots: [] },
+    priorDiscussions: { sourceId: "source-demo", currentTopicId: "topic-demo", version,
+      topics: [{ id: "older-topic", title: "Older", kind: "manual", rootCount: 1 }] },
+    earlierDiscussions: [{ topicId: "older-topic", discussionId: "older-discussion", title: "Older",
+      version, roots: [historicalRoot] }], ...patch });
+}
 test("experimental view shows grouped and pinned roots while cross-topic actions stay disabled", () => {
   const ui = harness();
   const canonical = { id: "root-1", rootId: null, state: "visible", authorId: "demo-alex",
@@ -325,7 +338,7 @@ test("Earlier topic navigation stays in Developer Mode and Back remains availabl
     priorDiscussionsError: "stale-prior-discussions" }));
   assert.equal(ui.byId("discussion-status").hidden, true);
 });
-test("same-page earlier roots and replies appear in the feed without gaining write or Insight actions", () => {
+test("same-page earlier roots and replies share the ordinary feed with inline actions", () => {
   const ui = harness();
   const origin = { sourceId: "source-demo", url: "https://example.org/story", title: "Story" };
   const current = { id: "current-root", state: "visible", actorType: "human", authorId: "demo-alex",
@@ -336,10 +349,13 @@ test("same-page earlier roots and replies appear in the feed without gaining wri
       body: "Earlier answer" }] };
   const otherSource = { ...older, id: "other-source-root",
     origin: { ...origin, sourceId: "another-source" } };
-  const snapshot = state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", roots: [current] },
-    priorDiscussions: { sourceId: "source-demo", currentTopicId: "topic-demo",
-      topics: [{ id: "older-topic", title: "Older", rootCount: 1 }] },
-    earlierDiscussions: [{ topicId: "older-topic", discussionId: "older-discussion",
+  const version = { generation: 1, revision: 2 };
+  const snapshot = state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", version, roots: [current] },
+    catalog: { ...state().catalog, version,
+      topics: [...state().catalog.topics, { id: "older-topic", title: "Older", kind: "manual" }] },
+    priorDiscussions: { sourceId: "source-demo", currentTopicId: "topic-demo", version,
+      topics: [{ id: "older-topic", title: "Older", kind: "manual", rootCount: 1 }] },
+    earlierDiscussions: [{ topicId: "older-topic", discussionId: "older-discussion", version,
       title: "Older", roots: [current, older, otherSource] }] });
   ui.panel.render(snapshot);
   const thread = ui.created.find((item) => item.className === "discussion-thread");
@@ -347,16 +363,21 @@ test("same-page earlier roots and replies appear in the feed without gaining wri
   assert.deepEqual(groups.map((item) => item.attributes["data-thread-root-id"]), ["current-root", "older-root"]);
   assert.equal(groups[1].attributes["data-earlier-discussion"], "true");
   assert.ok(descendants(groups[1]).some((item) => item.textContent === "Earlier answer"));
+  assert.equal(descendants(groups[1]).filter((item) => item.attributes["data-action"] === "reply").length, 2);
+  assert.equal(descendants(groups[1]).filter((item) => item.attributes["data-action"] === "getinsights").length, 2);
   assert.equal(descendants(groups[1]).some((item) =>
-    ["reply", "getinsights", "edit", "withdraw"].includes(item.attributes["data-action"])), false);
+    ["edit", "withdraw", "openconversation"].includes(item.attributes["data-action"])), false);
   assert.equal(descendants(groups[1]).find((item) => item.tag === "a").href, origin.url);
   assert.equal(ui.byId("discussion-prior").hidden, true);
-  assert.ok(descendants(thread).some((item) => item.className === "discussion-earlier-heading user-only"));
-  const open = descendants(groups[1]).find((item) => item.attributes["data-action"] === "openconversation");
-  assert.equal(open.textContent, EN.uiOpenEarlierConversation);
-  const staleClick = open.listeners.get("click");
+  assert.equal(descendants(thread).some((item) => item.className === "discussion-earlier-heading user-only"), false);
+  const reply = descendants(groups[1]).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === "older-reply");
+  const staleClick = reply.listeners.get("click");
   staleClick();
-  assert.deepEqual(ui.calls.at(-1), ["selectTopic", "older-topic"]);
+  assert.equal(ui.calls.at(-1)[0], "begin");
+  assert.equal(ui.calls.at(-1)[1], "reply");
+  assert.equal(ui.calls.at(-1)[2], "older-reply");
+  assert.equal(ui.calls.at(-1)[3].topicId, "older-topic");
   const count = ui.calls.length;
   ui.panel.render({ ...snapshot, sourceId: "another-source" });
   staleClick();
@@ -364,6 +385,171 @@ test("same-page earlier roots and replies appear in the feed without gaining wri
   ui.panel.render({ ...snapshot, earlierDiscussions: [] });
   staleClick();
   assert.equal(ui.calls.length, count);
+});
+test("nested historical reply uses one inline form and confirmed post unfolds its ancestry", () => {
+  const ui = harness();
+  const parent = { id: "older-parent", rootId: "older-root", replyToId: "older-root",
+    state: "visible", actorType: "human", authorId: "demo-alex", body: "Parent" };
+  const target = { id: "older-target", rootId: "older-root", replyToId: parent.id,
+    state: "visible", actorType: "human", authorId: "demo-alex", body: "Target" };
+  const root = { id: "older-root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Historical opener", replies: [parent, target], createdAt: "2024-01-01T00:00:00Z" };
+  const snapshot = samePageHistory(root);
+  ui.panel.render(snapshot);
+  const action = descendants(ui.root).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === target.id);
+  action.listeners.get("click")();
+  assert.equal(ui.calls.at(-1)[3].discussionId, "older-discussion");
+  const binding = { topicId: "older-topic", discussionId: "older-discussion", rootId: root.id,
+    rootBody: root.body, targetBody: target.body };
+  const draft = { ...snapshot, draft: { body: "A reply", detached: false,
+    mode: "reply", targetId: target.id, targetBinding: binding } };
+  ui.panel.render(draft);
+  const composer = ui.byId("discussion-composer");
+  const body = ui.byId("discussion-body");
+  const post = descendants(ui.root).find((item) => item.attributes["data-post-id"] === target.id);
+  assert.equal(composer.parentElement, post.parentElement);
+  assert.equal(post.nextSibling, composer);
+  assert.equal(composer.attributes["data-inline-target"], "valid");
+  assert.equal(ui.byId("discussion-ai-insights").hidden, true);
+  assert.equal(ui.byId("discussion-submit").disabled, false);
+  body.focus();
+  const changed = { ...draft, earlierDiscussions: snapshot.earlierDiscussions.map((prior) => ({ ...prior,
+    roots: prior.roots.map((entry) => ({ ...entry, replies: [...entry.replies] })) })) };
+  ui.panel.render(changed);
+  assert.equal(ui.document.activeElement, body);
+  assert.equal(composer.parentElement, descendants(ui.root).find((item) =>
+    item.attributes["data-post-id"] === target.id).parentElement);
+  const created = { id: "new-historical-reply", rootId: root.id, replyToId: target.id,
+    state: "visible", actorType: "human", authorId: "demo-alex", body: "A reply" };
+  const arrival = { ...snapshot, earlierDiscussions: [{ ...snapshot.earlierDiscussions[0],
+    roots: [{ ...snapshot.earlierDiscussions[0].roots[0], replies: [...root.replies, created] }] }],
+    createdPost: { id: created.id, actorId: snapshot.actorId, sourceId: snapshot.sourceId,
+      currentTopicId: snapshot.topicId, topicId: "older-topic", discussionId: "older-discussion",
+      rootId: root.id } };
+  ui.panel.render(arrival);
+  const createdCard = descendants(ui.root).find((item) => item.attributes["data-post-id"] === created.id);
+  assert.equal(ui.document.activeElement, createdCard);
+  const toggle = (id) => descendants(ui.root).find((item) => item.attributes["data-action"] === "expand" &&
+    item.attributes["data-contribution-id"] === id);
+  assert.equal(toggle(root.id).attributes["aria-expanded"], "true");
+  assert.equal(toggle(parent.id).attributes["aria-expanded"], "true");
+  assert.equal(toggle(target.id).attributes["aria-expanded"], "true");
+  toggle(target.id).listeners.get("click")();
+  ui.panel.render({ ...arrival, earlierDiscussions: arrival.earlierDiscussions.map((prior) => ({ ...prior })) });
+  assert.equal(toggle(target.id).attributes["aria-expanded"], "false");
+});
+test("historical sparkle is inline and stale or disabled clicks never invoke generation", () => {
+  const ui = harness();
+  const calls = [];
+  const root = { id: "older-root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Historical opener", replies: [] };
+  const snapshot = samePageHistory(root);
+  const host = ui.document.createElement("div"); host.id = "app-discussion-insights-host";
+  const progress = ui.document.createElement("p"); progress.id = "insight-followup-progress";
+  host.append(progress); ui.root.append(host);
+  ui.panel.bindInsight({ createFollowup: (...args) => {
+    calls.push(args);
+    ui.panel.renderInsightState({ context: { topic: { id: snapshot.topicId },
+      currentSource: { id: snapshot.sourceId } },
+    followup: { topicId: "older-topic", discussionId: "older-discussion", rootId: root.id,
+      replyToId: root.id, rootBody: root.body, targetBody: root.body }, ai: { status: "generating" } });
+    return Promise.resolve(true);
+  } });
+  ui.panel.render(snapshot);
+  const sparkle = descendants(ui.root).find((item) => item.attributes["data-action"] === "getinsights" &&
+    item.attributes["data-contribution-id"] === root.id);
+  const staleClick = sparkle.listeners.get("click");
+  staleClick();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1].topicId, "older-topic");
+  const card = descendants(ui.root).find((item) => item.attributes["data-post-id"] === root.id);
+  assert.equal(host.parentElement, card.parentElement);
+  assert.ok(progress.scrollCalls?.length);
+  ui.panel.render({ ...snapshot, busy: true });
+  const disabled = descendants(ui.root).find((item) => item.attributes["data-action"] === "getinsights");
+  assert.equal(disabled.disabled, true);
+  disabled.listeners.get("click")();
+  assert.equal(calls.length, 1);
+  ui.panel.render({ ...snapshot, earlierDiscussions: [] });
+  staleClick();
+  assert.equal(calls.length, 1);
+});
+test("cloned canonical alternate root keeps its actions while foreign projection stays read-only", () => {
+  const ui = harness();
+  const canonical = { id: "current", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Current body", replies: [], canonicalTopicId: "topic-demo",
+    canonicalDiscussionId: "discussion-demo" };
+  const foreign = { ...canonical, id: "foreign", body: "Foreign body",
+    canonicalTopicId: "other-topic", canonicalDiscussionId: "other-discussion" };
+  ui.panel.render(state({ sourceId: "source-demo", topicViewMode: "experimental",
+    discussion: { discussionId: "discussion-demo", roots: [canonical] },
+    alternateDiscussion: { sourceId: "source-demo", sourceIds: ["source-demo"],
+      roots: [foreign], pinnedRoots: [{ ...canonical }] } }));
+  const groups = descendants(ui.root).filter((item) => item.attributes["data-thread-root-id"]);
+  assert.equal(descendants(groups[0]).some((item) => item.attributes["data-action"] === "reply"), false);
+  assert.equal(descendants(groups[1]).some((item) => item.attributes["data-action"] === "reply"), true);
+  assert.equal(descendants(groups[1]).some((item) => item.attributes["data-action"] === "getinsights"), true);
+});
+test("dated current and same-page historical threads share chronological order", () => {
+  const ui = harness();
+  const historical = { id: "historical", state: "visible", actorType: "human",
+    authorId: "demo-alex", body: "Past", replies: [], createdAt: "2024-01-01T00:00:00Z" };
+  const current = { ...historical, id: "current", body: "Now", createdAt: "2025-01-01T00:00:00Z" };
+  const snapshot = samePageHistory(historical, { discussion: { discussionId: "discussion-demo",
+    version: { generation: 7, revision: 3 }, roots: [current] } });
+  ui.panel.render(snapshot);
+  const thread = ui.created.find((item) => item.className === "discussion-thread");
+  assert.deepEqual(descendants(thread).filter((item) => item.attributes["data-thread-root-id"])
+    .map((item) => item.attributes["data-thread-root-id"]), ["historical", "current"]);
+});
+test("canonical same-page history replaces its alternate projection without duplicate or lost actions", () => {
+  const ui = harness();
+  const child = { id: "historical-child", rootId: "historical", replyToId: "historical",
+    state: "visible", actorType: "human", authorId: "demo-alex", body: "Full child" };
+  const historical = { id: "historical", state: "visible", actorType: "human",
+    authorId: "demo-alex", body: "Full historical body", replies: [child] };
+  const foreign = { ...historical, id: "foreign", body: "Foreign projection", replies: [],
+    canonicalTopicId: "foreign-topic", canonicalDiscussionId: "foreign-discussion" };
+  const snapshot = samePageHistory(historical, { topicViewMode: "experimental",
+    alternateDiscussion: { sourceId: "source-demo", sourceIds: ["source-demo"],
+      roots: [{ ...historical, body: "Stale projection", replies: [] }, foreign], pinnedRoots: [] } });
+  ui.panel.render({ ...snapshot, earlierDiscussions: [] });
+  const thread = ui.created.find((item) => item.className === "discussion-thread");
+  assert.equal(descendants(thread).filter((item) => item.attributes["data-thread-root-id"] === "historical").length, 1);
+  assert.equal(descendants(thread).some((item) => item.textContent === "Stale projection"), true);
+  assert.equal(descendants(thread).some((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === "historical"), false);
+  ui.panel.render(snapshot);
+  const groups = descendants(thread).filter((item) => item.attributes["data-thread-root-id"]);
+  assert.deepEqual(groups.map((item) => item.attributes["data-thread-root-id"]), ["historical", "foreign"]);
+  assert.equal(groups[0].attributes["data-earlier-discussion"], "true");
+  assert.equal(descendants(groups[0]).some((item) => item.textContent === "Full historical body"), true);
+  assert.equal(descendants(groups[0]).some((item) => item.textContent === "Stale projection"), false);
+  assert.equal(descendants(groups[0]).some((item) => item.attributes["data-action"] === "reply"), true);
+  assert.equal(descendants(groups[0]).some((item) => item.attributes["data-action"] === "getinsights"), true);
+  assert.equal(descendants(groups[1]).some((item) => item.attributes["data-action"] === "reply"), false);
+  const changedBody = { ...snapshot, earlierDiscussions: [{ ...snapshot.earlierDiscussions[0],
+    roots: [{ ...snapshot.earlierDiscussions[0].roots[0], body: "Corrected historical body" }] }] };
+  ui.panel.render(changedBody);
+  assert.equal(descendants(thread).some((item) => item.textContent === "Corrected historical body"), true);
+  assert.equal(descendants(thread).some((item) => item.textContent === "Full historical body"), false);
+  ui.panel.render({ ...changedBody, busy: true });
+  const busyReply = descendants(thread).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === "historical");
+  assert.equal(busyReply.disabled, true);
+  ui.panel.render(snapshot);
+  const reply = descendants(thread).find((item) => item.attributes["data-action"] === "reply" &&
+    item.attributes["data-contribution-id"] === "historical");
+  reply.listeners.get("click")();
+  assert.equal(ui.calls.at(-1)[3].topicId, "older-topic");
+  const draft = { ...snapshot, draft: { body: "Reply", detached: false, mode: "reply",
+    targetId: historical.id, targetBinding: { topicId: "older-topic", discussionId: "older-discussion",
+      rootId: historical.id, rootBody: historical.body, targetBody: historical.body } } };
+  ui.panel.render(draft);
+  const card = descendants(thread).find((item) => item.attributes["data-post-id"] === historical.id);
+  assert.equal(ui.byId("discussion-composer").parentElement, card.parentElement);
+  assert.equal(card.nextSibling, ui.byId("discussion-composer"));
 });
 test("canonical message sparkle remains visible but disabled when Source is unavailable or busy", () => {
   const ui = harness();
@@ -963,8 +1149,14 @@ test("related previews omit roots already visible in current or earlier threads"
   const earlier = { ...current, id: "earlier", body: "Earlier body" };
   const preview = (id, body) => ({ id, actorType: "human", authorId: "demo-alex",
     body, replyCount: 0 });
-  ui.panel.render(state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", roots: [current] },
-    earlierDiscussions: [{ topicId: "old-topic", discussionId: "old-discussion", roots: [earlier] }],
+  const version = { generation: 1, revision: 2 };
+  ui.panel.render(state({ sourceId: "source-demo", discussion: { discussionId: "discussion-demo", version, roots: [current] },
+    catalog: { ...state().catalog, version, topics: [...state().catalog.topics,
+      { id: "old-topic", title: "Old", kind: "manual" }] },
+    priorDiscussions: { sourceId: "source-demo", currentTopicId: "topic-demo", version,
+      topics: [{ id: "old-topic", title: "Old", kind: "manual", rootCount: 1 }] },
+    earlierDiscussions: [{ topicId: "old-topic", discussionId: "old-discussion", version,
+      title: "Old", roots: [earlier] }],
     relatedDiscussions: [
       { topicId: "duplicates", title: "Duplicates", rootCount: 2,
         roots: [preview("current", "Repeated current"), preview("earlier", "Repeated earlier")] },

@@ -464,7 +464,16 @@ test("prior Source topics open manually and Back reattests the current page", as
 });
 function earlierFixture(overrides = {}) {
   let readGate = overrides.readGate ?? null;
+  let acceptedReply = null;
   const ui = harness({ client: {
+    async command(expected, command, actor) {
+      ui.requests.push(["command", command]);
+      if (!overrides.acceptReply) return ui.service.command(expected, command, actor);
+      acceptedReply = { id: "accepted-earlier-reply", rootId: command.rootId,
+        replyToId: command.replyToId, body: command.body, state: "visible",
+        authorId: actor, actorType: "human" };
+      return { result: { contributionId: acceptedReply.id } };
+    },
     async priorDiscussions(sourceId) {
       const catalog = ui.service.catalog();
       const topic = catalog.topics.find((entry) => entry.id === "harbor-s2");
@@ -481,7 +490,8 @@ function earlierFixture(overrides = {}) {
         origin: sourceId ? { sourceId, url: "https://example.com/", title: "Page" } : undefined,
         authorId: "demo-alex", actorType: "human", replies: [{ id: `${id}-reply`,
           rootId: id, replyToId: id, state: "visible", body: "Full historical reply",
-          authorId: "demo-alex", actorType: "human" }] });
+          authorId: "demo-alex", actorType: "human" },
+          ...(acceptedReply?.rootId === id ? [acceptedReply] : [])] });
       return { ...view, version: overrides.staleVersion ?
         { ...view.version, revision: view.version.revision + 1 } : view.version,
         roots: [root("same-page", "reserved-example-com"),
@@ -490,7 +500,7 @@ function earlierFixture(overrides = {}) {
   } });
   return ui;
 }
-test("earlier Source roots preload visibly with full replies and no selection or write authority", async () => {
+test("earlier Source roots preload visibly and bind only exact same-Source replies", async () => {
   const ui = earlierFixture();
   await ui.controller.open(); await turn();
   const state = ui.controller.currentState();
@@ -502,10 +512,34 @@ test("earlier Source roots preload visibly with full replies and no selection or
   assert.equal(state.earlierDiscussions[0].discussionId, ui.service.discussion("harbor-s2").discussionId);
   assert.deepEqual(state.earlierDiscussions[0].roots.map((entry) => entry.id), ["same-page"]);
   assert.equal(state.earlierDiscussions[0].roots[0].replies[0].body, "Full historical reply");
-  assert.equal(ui.controller.begin("reply", "same-page"), false);
+  assert.equal(ui.controller.begin("reply", "same-page"), true);
+  assert.deepEqual(ui.controller.currentState().draft.targetBinding,
+    { topicId: "harbor-s2", discussionId: ui.service.discussion("harbor-s2").discussionId,
+      rootId: "same-page", rootBody: "same-page", targetBody: "same-page" });
+  ui.controller.discardDraft();
+  assert.equal(ui.controller.begin("reply", "other-page"), false);
   assert.equal(await ui.controller.shareInsight({ replyToId: "same-page" }), false);
   assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id === "harbor-s2").length, 1);
   assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+test("historical human reply uses its original discussion and cues the accepted post without changing Source", async () => {
+  const ui = earlierFixture({ acceptReply: true });
+  await ui.controller.open(); await turn();
+  assert.equal(ui.controller.begin("reply", "same-page-reply",
+    { topicId: "harbor-s2", discussionId: ui.service.discussion("harbor-s2").discussionId }), true);
+  ui.controller.setDraft("New historical reply");
+  assert.equal(await ui.controller.submitDraft(), true);
+  const command = ui.requests.find(([kind]) => kind === "command")?.[1];
+  assert.deepEqual(command, { type: "reply", discussionId: ui.service.discussion("harbor-s2").discussionId,
+    rootId: "same-page", replyToId: "same-page-reply", body: "New historical reply",
+    originSourceId: "reserved-example-com" });
+  const state = ui.controller.currentState();
+  assert.equal(state.sourceId, "reserved-example-com");
+  assert.equal(state.topicId, "reserved-domain-demo");
+  assert.deepEqual(state.createdPost, { id: "accepted-earlier-reply", topicId: "harbor-s2",
+    currentTopicId: "reserved-domain-demo", rootId: "same-page",
+    sourceId: "reserved-example-com", actorId: "demo-alex",
+    discussionId: ui.service.discussion("harbor-s2").discussionId });
 });
 test("earlier preload is fenced on navigation, manual selection, and logout", async () => {
   for (const change of ["invalidate", "selectTopic", "disconnect"]) {

@@ -2,6 +2,7 @@ import { buildInsightContext } from "./insight-context.js";
 import { ModelListFailure } from "./local-ai-client.js";
 import { formatInsightCitations } from "./insight-citations.js";
 import { inspectPageUrl } from "./page-content-policy.js";
+import { resolveDiscussionTarget } from "./discussion-target.js";
 
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const sameVersion = (a, b) => a && b && a.generation === b.generation && a.revision === b.revision;
@@ -264,11 +265,12 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     return { body: state.draft, operationId: completedJob.id, expected: { ...observed.discussion.version },
       topicId: observed.topicId, sourceId: observed.sourceId ?? null, actorId: observed.actorId,
       ...(completedJob.followup ? { discussionId: completedJob.followup.discussionId,
-        rootId: completedJob.followup.rootId, replyToId: completedJob.followup.replyToId } : {}) };
+        rootId: completedJob.followup.rootId, replyToId: completedJob.followup.replyToId,
+        ...(completedJob.followup.topicId !== observed.topicId ?
+          { followupTopicId: completedJob.followup.topicId } : {}) } : {}) };
   }
   function sameFollowupTarget(followup) {
-    const binding = visibleReplyTarget(observed?.discussion, followup.replyToId,
-      followup.rootId, followup.discussionId);
+    const binding = resolveDiscussionTarget(observed, followup.replyToId, followup);
     return Boolean(binding && binding.root.body === followup.rootBody &&
       binding.target.body === followup.targetBody);
   }
@@ -463,21 +465,22 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (automaticStartBusy || completedJob) return false;
     return runInsights({ skipConsent: false, publishOnCompletion: shareOnCompletion === true });
   }
-  async function createFollowup(questionId) {
+  async function createFollowup(questionId, destination = null) {
     if (disposed || pending || job || automaticStartBusy || resumeBusy || !eligible() ||
         state.ai.result || state.draft ||
         !state.ai.planEnabled || !state.ai.models.some((item) => item.slug === state.ai.model)) return false;
-    const binding = visibleReplyTarget(observed.discussion, questionId);
+    const binding = resolveDiscussionTarget(observed, questionId, destination);
     if (!binding) return false;
     if ((!state.context || key() !== boundKey) && !prepare()) return false;
     if (!state.context?.currentSource) return false;
     automaticStartBusy = true;
     try {
-      const followup = { questionId, discussionId: observed.discussion.discussionId,
+      const followup = { questionId, topicId: binding.topicId, discussionId: binding.discussionId,
         rootId: binding.root.id, replyToId: binding.target.id,
         rootBody: binding.root.body, targetBody: binding.target.body };
       publish({ followup: { discussionId: followup.discussionId,
-        rootId: followup.rootId, replyToId: followup.replyToId } });
+        rootId: followup.rootId, replyToId: followup.replyToId,
+        ...(followup.topicId !== observed.topicId ? { topicId: followup.topicId } : {}) } });
       aiPatch({ status: "preparingArticle", error: null, researchFailureDetail: null });
       if (!await readPageText()) return false;
       return await runInsights({ skipConsent: true, followup,
@@ -498,7 +501,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     // enter through resumeInsights and never receive it.
     let publicationIntent = publishOnCompletion;
     publish({ followup: followup ? { discussionId: followup.discussionId,
-      rootId: followup.rootId, replyToId: followup.replyToId } : null,
+      rootId: followup.rootId, replyToId: followup.replyToId,
+      ...(followup.topicId !== observed.topicId ? { topicId: followup.topicId } : {}) } : null,
     ai: { ...state.ai, status: "generating", error: null, result: null, researchFailureDetail: null,
       diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } } });
     let failureStatus = "generationFailed";
@@ -516,7 +520,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       const request = { operationId, model: state.ai.model, context: requestContext,
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
         allowWebResearch: false, expected: { ...observed.catalog.version },
-        ...(followup ? { followupQuestionId: followup.questionId } : {}) };
+        ...(followup ? { followupQuestionId: followup.questionId,
+          ...(followup.topicId !== observed.topicId ? { followupTopicId: followup.topicId } : {}) } : {}) };
       if (state.relatedPageTextEnabled && readRelatedExcerpts) {
         aiPatch({ status: "fetchingRelated" });
         const excerptAbort = new AbortController();
@@ -636,16 +641,18 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
           resumable.expected?.generation !== snapshot.catalog.version.generation ||
           resumable.topicId !== snapshot.topicId ||
           resumable.originSourceId !== (snapshot.sourceId ?? null)) return false;
-      const binding = resumable.replyToId === null ? null : visibleReplyTarget(snapshot.discussion,
-        resumable.replyToId, resumable.rootId, resumable.discussionId);
+      const binding = resumable.replyToId === null ? null : resolveDiscussionTarget(snapshot,
+        resumable.replyToId, { topicId: resumable.followupTopicId ?? snapshot.topicId,
+          rootId: resumable.rootId, discussionId: resumable.discussionId });
       if (resumable.replyToId !== null && !binding) return false;
-      const followup = binding ? { discussionId: resumable.discussionId,
+      const followup = binding ? { topicId: binding.topicId, discussionId: resumable.discussionId,
         rootId: binding.root.id, replyToId: binding.target.id,
         rootBody: binding.root.body, targetBody: binding.target.body } : null;
       const abort = new AbortController();
       job = { id: resumable.operationId, actorId: snapshot.actorId, abort };
       const presentationFollowup = followup ? { discussionId: followup.discussionId,
-        rootId: followup.rootId, replyToId: followup.replyToId } : null;
+        rootId: followup.rootId, replyToId: followup.replyToId,
+        ...(followup.topicId !== snapshot.topicId ? { topicId: followup.topicId } : {}) } : null;
       publish({ followup: presentationFollowup, ai: { ...state.ai, status: "generating", error: null,
         result: null, researchFailureDetail: null } });
       const active = () => stillHere() && job?.id === resumable.operationId;

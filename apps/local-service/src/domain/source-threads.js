@@ -16,12 +16,20 @@ export function operationDigestFor(input) {
     embedding: input.embedding, extractorVersion: input.extractorVersion })).digest("hex");
 }
 
-export function contributionOrigin(state, sourceId, topicId) {
+export function contributionOrigin(state, sourceId, topicId, historicalRootId = null) {
   if (sourceId === undefined || sourceId === null) return null;
   const id = readId(sourceId);
   const source = state.sources.find((entry) => entry.id === id);
   const link = state.sourceLinks.find((entry) => entry.sourceId === id);
-  if (!source || link?.topicId !== topicId) fail("invalid", "Source is not linked to destination");
+  const historicalRoot = historicalRootId === null ? null :
+    state.contributions.find((entry) => entry.id === historicalRootId);
+  const historicalDiscussion = historicalRoot && state.discussions.find((entry) =>
+    entry.id === historicalRoot.discussionId);
+  const historicalOrigin = historicalRoot?.rootId === null && !historicalRoot.withdrawn &&
+    historicalRoot.originSourceId === id && historicalDiscussion?.topicId === topicId;
+  if (!source || (link?.topicId !== topicId && !historicalOrigin)) {
+    fail("invalid", "Source is not linked to destination");
+  }
   // Hand-authored reserved-domain fixtures predate page capture and remain
   // usable in the synthetic demo. A learned Source must meet today's capture
   // URL policy before it can become the origin of a new contribution.

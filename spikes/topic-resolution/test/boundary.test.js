@@ -45,6 +45,7 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       "browser/core/active-tab-policy.js",
       "browser/core/background-matcher.js",
       "browser/core/capture-session.js",
+      "browser/core/discussion-target.js",
       "browser/core/indicator-contract.js",
       "browser/core/indicator-controller.js",
       "browser/core/insight-citations.js",

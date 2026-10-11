@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.43)
+## Persistent discussion sidebar (0.13.44)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -8,7 +8,7 @@ and navigation. Chrome's appearance settings control its left/right placement.
 Only `sidePanel` is added to permissions; website access and provider gates are
 unchanged. Existing pairing, protected login, vectors and posts are preserved.
 
-The compact dark interface has a connection indicator, source context, composer,
+The compact dark interface has a connection indicator, composer,
 one model selector, Insight action and expandable threads. Settings, capture Stop,
 site exclusions and data controls are behind the settings icon. Unsent text is
 detached on page changes, not silently rebound. Closing this UI does not stop
@@ -21,6 +21,15 @@ typing and the reader's later collapse choices. Reduced motion applies.
 The same selected view stays stable while the delayed topic-grouped projection
 loads; its arrival and a same-page refresh no longer fold the newly revealed
 reply. See [ADR-081](../../../decisions/ADR-081-live-citation-format-and-refresh-reveal.md).
+Earlier threads opened on this exact Source are interwoven in the ordinary
+chronological feed, with direct Reply and sparkle actions and no separate Open
+conversation step. Replies stay in their original canonical discussion while
+the current page Source/Topic stays selected. Related discussions remain at the
+bottom; unrelated experimental projections remain read-only. The backend checks
+the opener's exact Source, canonical destination and full-message context; a
+reply's page origin cannot substitute for the opener's. Historical edit/withdraw
+controls remain outside this reply-only change. See
+[ADR-084](../../../decisions/ADR-084-inline-same-source-thread-routing.md).
 User Mode hides deleted leaf messages and wholly deleted branches, retaining
 only deleted ancestors needed by visible replies. It uses author icons without
 Human/AI pills; accessible provenance and Developer diagnostics remain intact.
@@ -34,7 +43,7 @@ nested replies. Same-context updates preserve typing focus, selection and IME
 composition; no second editor or draft storage is created. Return to a new
 thread explicitly discards the reply/edit draft. If the target disappears or
 the page changes, unsent text remains visible and cannot silently post elsewhere.
-The sparkle beside any visible canonical message, or in its reply composer,
+The sparkle beside an eligible visible canonical message
 answers that published message, including nested or other-author posts. Loading
 appears there, followed by the posted message or an unshared recovery draft.
 Only the selected message and thread opener (2,000 characters each), current
@@ -109,8 +118,10 @@ pairing remains saved across restarts; no token rotation/reset is required.
 The new view asks the paired service for Source-scoped grouping of already
 retained E5 vectors. It can display Source-anchored conversations from different
 canonical Topics together without rewriting saved links or posts. Posts from
-the current page still use its canonical Topic; foreign canonical conversations
-are read-only here until you open their source. Manual roots stay pinned.
+the current page still use its canonical Topic. Exact same-page earlier roots
+have validated inline reply routes to their original discussions; other foreign
+canonical conversations are read-only here until you open their source. Manual
+roots stay pinned.
 Missing/invalid Ridge coefficients, old service responses or exhausted work/time
 budgets fall back to Legacy E5, not stale or partial groups. No new permission,
 page reread or larger browser model is needed. Topic Atlas compares the same

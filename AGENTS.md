@@ -8,6 +8,20 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current implemented approval (2026-10-11, ADR-084, 0.13.44): direct inline human
+and sparkle replies to earlier exact same-Source canonical threads are approved
+and verified, without switching the panel's current Source/Topic. Preserve
+original-destination routing and independent server validation; root origin,
+not reply origin,
+must match the current Source. Existing provider bounds, page/account/Topic/
+full-message/destination checks, exact-body one-shot sharing and recovered-job
+privacy remain. Foreign related/experimental projections stay read-only.
+Validated historical full reads supersede duplicate alternate projections;
+displayed roots/routes must invalidate rendering on late canonical arrival.
+Historical edits/deletions and extra live diagnostic calls are not approved.
+Read top STATUS/HANDOFF; ADR-080 read-only earlier-thread notes below are
+superseded only for this explicit scope. Topic naming remains on hold.
+
 Current direct thread feed (2026-10-11, ADR-080 refinement): 0.13.43 User Mode
 hides the source header and preloads earlier same-Source threads into the visible
 feed using existing GETs. Preserve canonical read-only/dedup/context fences;

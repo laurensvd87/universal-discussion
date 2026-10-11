@@ -1,5 +1,18 @@
 # Local service
 
+Extension **0.13.44** adds [ADR-084](../../decisions/ADR-084-inline-same-source-thread-routing.md):
+direct human and sparkle replies to earlier threads whose opener records the
+exact current Source. Each reply remains in its original canonical discussion;
+no Topic merge, schema migration or historical rewrite occurs. Human reply
+origins gain only this exact-opener exception; new-root origins remain strict.
+Generated requests keep the current page context and optionally supply
+`followupTopicId` with `followupQuestionId` for independent destination checks.
+Both page anchor and full opener/target body digests are rechecked before result
+or sharing; exact-body single-use proof binds the original destination. Recovered
+jobs remain private. Existing provider bounds, exclusions and later gates remain.
+Restart the backend and reload the extension together after updating; pairing,
+protected ChatGPT login and SQLite posts remain unchanged.
+
 Extension 0.13.41 and this service share the corrected arrow-only citation
 formatter. An exact safe annotated domain Markdown source wrapper no longer
 leaves an omitted-link label beside its real source arrow. Normal/fallback

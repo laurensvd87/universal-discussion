@@ -114,10 +114,15 @@ test("resumable insight lookup is actor-bound and accepts only bounded job metad
   assert.equal(request.url, "http://127.0.0.1:4174/v1/ai/insights/resumable");
   assert.equal(request.options.headers["X-Demo-Actor"], "demo-alex");
   assert.equal(await client(async (url) => response(url, { job: null })).resumable("demo-alex"), null);
+  const crossTopic = { ...job, rootId: "root-a", replyToId: "reply-a",
+    discussionId: "discussion-b", followupTopicId: "topic-b" };
+  assert.deepEqual(await client(async (url) => response(url, { job: crossTopic })).resumable("demo-alex"), crossTopic);
   for (const candidate of [
     { ...job, state: "failed" }, { ...job, articleText: "Private page text" },
     { ...job, expected: { generation: "generation-a", revision: -1 } },
     { ...job, rootId: "root-a" }, { ...job, originSourceId: "source-a", replyToId: undefined },
+    { ...job, followupTopicId: "topic-b" },
+    { ...crossTopic, followupTopicId: "topic-a" },
   ]) await assert.rejects(client(async (url) => response(url, { job: candidate })).resumable("demo-alex"), TypeError);
 });
 

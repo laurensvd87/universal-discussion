@@ -1,5 +1,49 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 owner-approved inline earlier-thread routing, complete (0.13.44): read
+ADR-084. Exact same-Source earlier canonical roots are interwoven chronologically
+with normal threads; Reply/sparkle work inline without Open conversation or a
+panel Topic switch. The 0.13.43 read-only description below is historical only
+for this explicit scope. Related/foreign experimental roots stay read-only;
+historical edit/withdraw controls and Topic naming remain out of scope.
+
+`discussion-target.js` resolves visible canonical root/target chains from current
+and version-fenced earlier/prior/catalog reads. Require the exact opener-origin
+Source, not a reply-only origin or host/semantic match. Draft binding pins original
+destination plus full root/target bodies; pre-write attestation remains. Mutations
+refresh earlier reads before confirming a historical created-post cue. Cues carry
+destination Topic/discussion plus currentTopicId for panel context; never use them
+as write authority. Preserve one live editor/caret/IME/detachment and manual
+collapse. Validated historical full reads supersede duplicate alternate cards;
+render signature includes displayRoots/routes to handle alternate-first arrival.
+
+AI context.topic and current Source remain current-page bound. Optional
+`followupTopicId` is permitted only with a historical `followupQuestionId`.
+Runtime jobs keep current topicId plus internal destinationTopicId; resumable
+adds followupTopicId only for historical replies. Reattest current page anchor,
+account, exact historical opener-origin and full opener/target digests before
+result/share. Share command and exact-body single-use proof bind the original
+destination. Recovery never inherits publication intent. Human origin exception
+is restricted to a reply to a validated visible canonical opener with exact Source;
+new roots remain strict. No provider bound, five-source, exclusion or citation
+relaxation, migration, permission, retention or release expansion.
+
+Independent Trust review and Sol Medium implementation pass. Full service 410
+pass/4 skips; extension 1,136 pass/1 skip; restricted 1,137 pass; panel 85 pass.
+Real-controller/service/runtime integration and independent SQLite reopen tests
+cover accepted human/generated historical replies, links, private recovery and
+forgery/edit/account/reset/withdrawal/source-removal rejection. Disposable actual
+Chrome verifies late canonical dedup/actions, nested typing/progress and real
+controller routing/reveal/focus without Topic switching, plus existing narrow/
+zoom/reduced-motion/focus/IME/citation regressions. Root reviews screenshots;
+companion layout tests are not new native authentication or provider-quality proof.
+Secret scans (service 626, extension 192 files) and diff checks pass.
+
+Normal backend restarted only after confirming no pending running/completed
+Insight for either actor; unchanged Origin/pairing/protected login/SQLite, raw
+debug off. Catalog 401 confirms availability only. Reload 0.13.44. No live agent
+inference; exhausted diagnostic budget and later approval gates remain unchanged.
+
 2026-10-11 visible earlier threads/retained sparkle (0.13.43), complete: read
 ADR-080's direct-feed refinement. Topic naming is explicitly on hold. User Mode
 hides repeated page-title/domain header; preserve actual Source observation and

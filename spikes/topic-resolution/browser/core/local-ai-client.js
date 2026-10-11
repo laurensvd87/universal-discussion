@@ -121,7 +121,8 @@ function projectResumable(value) {
   keys(value, ["job"]);
   if (value.job === null) return null;
   const job = value.job;
-  keys(job, ["operationId", "state", "expected", "topicId", "originSourceId", "rootId", "replyToId", "discussionId"]);
+  keys(job, ["operationId", "state", "expected", "topicId", "originSourceId", "rootId", "replyToId", "discussionId", "followupTopicId"],
+    ["operationId", "state", "expected", "topicId", "originSourceId", "rootId", "replyToId", "discussionId"]);
   id(job.operationId); id(job.topicId);
   if (!["running", "completed"].includes(job.state)) invalid();
   keys(job.expected, ["generation", "revision"]);
@@ -132,9 +133,12 @@ function projectResumable(value) {
   }
   if ([job.rootId, job.replyToId, job.discussionId].filter((entry) => entry !== null).length !== 0 &&
       [job.rootId, job.replyToId, job.discussionId].some((entry) => entry === null)) invalid();
+  if (job.followupTopicId !== undefined &&
+      (id(job.followupTopicId) === job.topicId || job.replyToId === null)) invalid();
   return { operationId: job.operationId, state: job.state, expected: { ...job.expected },
     topicId: job.topicId, originSourceId: job.originSourceId,
-    rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId };
+    rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId,
+    ...(job.followupTopicId === undefined ? {} : { followupTopicId: job.followupTopicId }) };
 }
 
 export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = async () => {}, timeoutMs = 10000 }) {
@@ -203,6 +207,9 @@ export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = asyn
     diagnostics: async (options = {}) => projectDiagnostics(await request("/diagnostics", undefined, undefined, options.signal)),
     start: async (value, actorId, options = {}) => {
       id(value?.operationId); id(value?.model); readActorId(actorId);
+      if (value.followupTopicId !== undefined &&
+          (id(value.followupTopicId) === value.context?.topic?.id ||
+            typeof value.followupQuestionId !== "string" || !ID.test(value.followupQuestionId))) invalid();
       if (typeof value.articleText !== "string" || !value.articleText.trim() || value.articleText.length > 4096 ||
           typeof value.allowWebResearch !== "boolean") invalid();
       if (value.relatedExcerpts !== undefined) {

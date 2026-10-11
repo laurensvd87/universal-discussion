@@ -4,6 +4,7 @@ import { readPostOrigin } from "../core/local-service-contract.js";
 import { ownsContribution, selectedPostingSource } from "../core/local-discussion-controller.js";
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
+import { resolveDiscussionTarget } from "../core/discussion-target.js";
 
 export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -155,7 +156,6 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const priorSummary = node("summary"); priorSummary.id = "discussion-prior-summary";
   const priorList = node("ul"); priorList.id = "discussion-prior-list";
   priorDetails.append(priorSummary, priorList);
-  const earlierHeading = node("h3"); earlierHeading.className = "discussion-earlier-heading user-only";
   const feed = node("div"); feed.id = "discussion-feed";
   const rootDock = node("div"); rootDock.id = "discussion-root-dock";
   feed.append(priorDetails, backToPage, counts, alternateNotice, thread);
@@ -349,7 +349,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const chars = Array.from(plain);
     return chars.length > limit ? `${chars.slice(0, limit).join("")}…` : plain;
   }
-  function contribution(entry, rootEntry, state, newlyArrived = false) {
+  function contribution(entry, rootEntry, state, newlyArrived = false, route = null) {
     const card = node("article"); card.className = `discussion-contribution ${entry === rootEntry ? "discussion-root-post" : "discussion-reply-post"}`;
     card.setAttribute("data-post-id", entry.id);
     card.setAttribute("tabindex", "-1");
@@ -412,9 +412,19 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const actions = node("div"); actions.className = "discussion-actions";
     const alternateRoot = state.topicViewMode === "experimental" && state.alternateDiscussion &&
       state.alternateDiscussion.sourceId === state.sourceId;
-    const canonicalRoot = state.discussion?.roots.some((item) => item.id === rootEntry.id) &&
-      (!rootEntry.canonicalDiscussionId || rootEntry.canonicalDiscussionId === state.discussion?.discussionId) &&
-      (!rootEntry.canonicalTopicId || rootEntry.canonicalTopicId === state.topicId);
+    const binding = { topicId: route?.topicId ?? rootEntry.canonicalTopicId ?? state.topicId,
+      discussionId: route?.discussionId ?? rootEntry.canonicalDiscussionId ?? state.discussion?.discussionId,
+      rootId: rootEntry.id, rootBody: rootEntry.body, targetBody: entry.body };
+    const destination = resolveDiscussionTarget(state, entry.id, binding);
+    const currentRoot = !route && state.discussion?.roots.find((item) => item.id === rootEntry.id &&
+      item.body === rootEntry.body &&
+      (!rootEntry.canonicalTopicId || rootEntry.canonicalTopicId === state.topicId) &&
+      (!rootEntry.canonicalDiscussionId || rootEntry.canonicalDiscussionId === state.discussion?.discussionId));
+    const currentTarget = currentRoot && (entry.id === rootEntry.id ? currentRoot :
+      currentRoot.replies?.find((item) => item.id === entry.id && item.body === entry.body));
+    const canonicalRoot = Boolean(currentTarget || destination && destination.root.id === rootEntry.id &&
+      destination.target.id === entry.id && destination.earlier === Boolean(route));
+    const currentCanonicalRoot = Boolean(currentTarget && destination && !destination.earlier);
     let sourceLink = null;
     if (entry.origin) {
       try {
@@ -471,18 +481,26 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       item.disabled = !canonicalRoot || !available || state.busy || state.needsFreshRead || state.phase !== "ready";
       item.setAttribute("data-action", key.replace(/^discussion/u, "").toLowerCase());
       item.setAttribute("data-contribution-id", entry.id);
-      item.addEventListener("click", callback); threadHandlers.push([item, callback]); actions.append(item);
+      const guardedClick = () => {
+        if (item.disabled || !lastState || lastState.busy || lastState.needsFreshRead ||
+            lastState.phase !== "ready" || lastState.error) return;
+        callback();
+      };
+      item.addEventListener("click", guardedClick); threadHandlers.push([item, guardedClick]); actions.append(item);
     }
-    if (rootEntry.state === "visible" && canonicalRoot) action("discussionReply", () => { if (controller?.begin("reply", entry.id)) body.focus(); });
+    if (rootEntry.state === "visible" && canonicalRoot) action("discussionReply", () => {
+      if (!resolveDiscussionTarget(lastState, entry.id, destination)) return;
+      if (controller?.begin("reply", entry.id, ...(destination.earlier ? [binding] : []))) body.focus();
+    }, { available: Boolean(destination) });
     if (canonicalRoot && rootEntry.state === "visible" && entry.state === "visible" &&
         typeof rootEntry.body === "string" && typeof entry.body === "string") {
       action("discussionGetInsights", () => {
-        if (!insightController || !insightTarget(entry.id, lastState)) return;
+        if (!insightController || !insightTarget(entry.id, lastState, destination)) return;
         if (uiMode === "developer") {
           const workspace = document.querySelector?.("#insight-workspace");
           if (workspace) workspace.open = true;
         }
-        void insightController.createFollowup(entry.id);
+        void insightController.createFollowup(entry.id, ...(destination.earlier ? [binding] : []));
         // The controller publishes the validated target before its first
         // await. Scroll only for this deliberate click, never for polling.
         if (followupTarget() === entry.id) {
@@ -490,9 +508,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           if (progress && !progress.hidden && insightHost?.contains?.(progress))
             progress.scrollIntoView?.({ block: "nearest", behavior: "instant" });
         }
-      }, { iconOnly: true, available: Boolean(insightTarget(entry.id, state)) });
+      }, { iconOnly: true, available: Boolean(insightTarget(entry.id, state, destination)) });
     }
-    if (canonicalRoot && ownsContribution(entry, state.actorId)) {
+    if (currentCanonicalRoot && ownsContribution(entry, state.actorId)) {
       if (entry.actorType !== "agent") action("discussionEdit", () => { if (controller?.begin("edit", entry.id)) body.focus(); });
       action("discussionWithdraw", () => void controller?.withdraw(entry.id));
     }
@@ -577,35 +595,31 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       value[key] == null || value[key] === expected[key]) &&
       (!value.discussion || value.discussion.discussionId === expected.discussionId));
   }
-  function insightTarget(targetId, discussionState = lastState) {
+  function insightTarget(targetId, discussionState = lastState, binding = undefined) {
     if (!discussionState?.sourceId || !discussionState.discussion ||
         discussionState.phase !== "ready" || discussionState.busy || discussionState.needsFreshRead ||
         discussionState.error) return null;
-    const rootEntry = discussionState.discussion.roots.find((entry) => entry.id === targetId ||
-      entry.replies?.some((reply) => reply.id === targetId));
-    const selected = rootEntry?.id === targetId ? rootEntry
-      : rootEntry?.replies.find((reply) => reply.id === targetId);
-    return rootEntry?.state === "visible" && selected?.state === "visible" &&
-      typeof rootEntry.body === "string" && typeof selected.body === "string" ? selected : null;
+    const resolved = resolveDiscussionTarget(discussionState, targetId, binding);
+    return resolved?.root.state === "visible" && resolved.target.state === "visible" &&
+      typeof resolved.root.body === "string" && typeof resolved.target.body === "string"
+      ? resolved.target : null;
   }
   function followupTarget(insightState = lastInsightState, discussionState = lastState) {
     const binding = insightState?.followup;
-    const discussion = discussionState?.discussion;
-    if (uiMode !== "user" || !binding || !discussion ||
+    if (uiMode !== "user" || !binding || !discussionState?.discussion ||
         discussionState.phase !== "ready" || discussionState.needsFreshRead ||
-        insightState.context?.topic?.id !== discussionState.topicId ||
-        insightState.context?.currentSource?.id !== discussionState.sourceId ||
-        discussion.discussionId !== binding.discussionId) return null;
-    const rootEntry = discussion.roots.find((entry) => entry.id === binding.rootId && entry.state === "visible");
-    const selected = rootEntry?.id === binding.replyToId ? rootEntry
-      : rootEntry?.replies.find((entry) => entry.id === binding.replyToId);
-    return selected?.state === "visible" ? selected.id : null;
+        insightState.context?.currentSource?.id !== discussionState.sourceId) return null;
+    const resolved = resolveDiscussionTarget(discussionState, binding.replyToId, binding);
+    if (!resolved || binding.topicId && binding.topicId !== resolved.topicId ||
+        insightState.context?.topic?.id !== discussionState.topicId) return null;
+    return resolved.target.id;
   }
   function composerFollowupTarget(insightState = lastInsightState, discussionState = lastState) {
     if (uiMode !== "user" || discussionState?.draft?.mode !== "reply" || discussionState.draft.detached ||
         insightState?.context?.topic?.id !== discussionState.topicId ||
         insightState.context?.currentSource?.id !== discussionState.sourceId) return null;
-    return insightTarget(discussionState.draft.targetId, discussionState)?.id ?? null;
+    return insightTarget(discussionState.draft.targetId, discussionState,
+      discussionState.draft.targetBinding)?.id ?? null;
   }
   function placeComposer(inlineTarget) {
     insightHost ??= document.querySelector?.("#app-discussion-insights-host");
@@ -789,6 +803,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const compositionContextChanged = previousState?.sourceId !== state.sourceId ||
       previousState?.topicId !== state.topicId || previousState?.draft.mode !== state.draft.mode ||
       previousState?.draft.targetId !== state.draft.targetId ||
+      JSON.stringify(previousState?.draft.targetBinding ?? null) !==
+        JSON.stringify(state.draft.targetBinding ?? null) ||
       previousState?.draft.detached !== state.draft.detached;
     if (compositionContextChanged) composing = false;
     if ((!composing || compositionContextChanged) && body.value !== state.draft.body)
@@ -805,11 +821,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     body.readOnly = posting;
     detached.hidden = !state.draft.detached;
     reattach.hidden = !state.draft.detached; reattach.disabled = !ready;
-    const replyRoot = state.draft.mode === "reply" ? state.discussion?.roots.find((entry) =>
-      entry.state === "visible" && (entry.id === state.draft.targetId ||
-        entry.replies?.some((reply) => reply.id === state.draft.targetId))) : null;
-    const replyTarget = replyRoot ? [replyRoot, ...(replyRoot.replies ?? [])]
-      .find((entry) => entry.id === state.draft.targetId && entry.state === "visible") : null;
+    const replyDestination = state.draft.mode === "reply" && !state.draft.detached
+      ? resolveDiscussionTarget(state, state.draft.targetId, state.draft.targetBinding) : null;
+    const replyTarget = replyDestination?.target?.state === "visible" ? replyDestination.target : null;
     const editTarget = state.draft.mode === "edit" ? state.discussion?.roots
       .flatMap((entry) => [entry, ...(entry.replies ?? [])])
       .find((entry) => entry.id === state.draft.targetId && entry.state === "visible") : null;
@@ -866,31 +880,49 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       !state.needsFreshRead && state.alternateDiscussion?.sourceId === state.sourceId
       ? state.alternateDiscussion : null;
     const currentRoots = alternateView
-      ? [...alternateView.roots, ...alternateView.pinnedRoots] : state.discussion?.roots ?? [];
+      ? [...alternateView.roots, ...alternateView.pinnedRoots] : [...(state.discussion?.roots ?? [])];
+    const currentCanonicalIds = new Set((state.discussion?.roots ?? []).map((entry) => entry.id));
     const seenRootIds = new Set(currentRoots.map((entry) => entry.id));
     const earlierRoots = [];
     const earlierTargets = new Map();
-    if (uiMode === "user" && selectedTopicReady && state.sourceId) {
+    if (uiMode === "user" && state.phase === "ready" && !state.needsFreshRead &&
+        !state.error && state.sourceId) {
       for (const prior of state.earlierDiscussions ?? []) {
         if (!prior?.discussionId || !Array.isArray(prior.roots)) continue;
         for (const entry of prior.roots) {
-          if (entry?.origin?.sourceId !== state.sourceId || !entry.id || seenRootIds.has(entry.id)) continue;
+          if (entry?.origin?.sourceId !== state.sourceId || !entry.id ||
+              !resolveDiscussionTarget(state, entry.id, { topicId: prior.topicId,
+                discussionId: prior.discussionId, rootId: entry.id, rootBody: entry.body,
+                targetBody: entry.body })) continue;
+          if (seenRootIds.has(entry.id)) {
+            if (currentCanonicalIds.has(entry.id)) continue;
+            const projectedIndex = currentRoots.findIndex((root) => root.id === entry.id);
+            if (projectedIndex < 0) continue;
+            currentRoots[projectedIndex] = entry;
+            earlierTargets.set(entry.id, { topicId: prior.topicId, discussionId: prior.discussionId });
+            continue;
+          }
           seenRootIds.add(entry.id);
           earlierRoots.push(entry);
           earlierTargets.set(entry.id, { topicId: prior.topicId, discussionId: prior.discussionId });
         }
       }
     }
-    const earlierRootIds = new Set(earlierRoots.map((entry) => entry.id));
-    const displayRoots = [...currentRoots, ...earlierRoots];
-    // Earlier roots are a read-only projection; they are not draft targets or
-    // new-post arrivals in the selected canonical discussion.
+    const earlierRootIds = new Set(earlierTargets.keys());
+    const displayRoots = [...currentRoots, ...earlierRoots].map((entry, index) => ({ entry, index }))
+      .sort((left, right) => {
+        const leftTime = Date.parse(left.entry.createdAt ?? "");
+        const rightTime = Date.parse(right.entry.createdAt ?? "");
+        return (Number.isFinite(leftTime) ? leftTime : Infinity) -
+          (Number.isFinite(rightTime) ? rightTime : Infinity) || left.index - right.index;
+      }).map(({ entry }) => entry);
     const entries = currentRoots.flatMap((entry) => [entry, ...(entry.replies ?? [])]);
     const inlineTarget = uiMode === "user" && !state.draft.detached &&
       ["reply", "edit"].includes(state.draft.mode) &&
       (state.draft.mode !== "reply" || replyTarget) &&
       (state.draft.mode !== "edit" || editTarget) &&
-      entries.some((entry) => entry.id === state.draft.targetId && entry.state === "visible")
+      (state.draft.mode === "reply" || entries.some((entry) =>
+        entry.id === state.draft.targetId && entry.state === "visible"))
       ? state.draft.targetId : null;
     alternateNotice.hidden = state.topicViewMode !== "experimental";
     alternateNotice.textContent = alternateNotice.hidden ? "" : text(alternateView
@@ -936,10 +968,14 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     // previously collapsed. Open the selected post's lineage without closing
     // any branch the reader opened deliberately.
     const createdPost = state.phase === "ready" && !state.busy && !state.needsFreshRead &&
-      state.createdPost?.topicId === state.topicId && state.createdPost?.sourceId === state.sourceId &&
+      (state.createdPost?.currentTopicId ?? state.createdPost?.topicId) === state.topicId &&
+      state.createdPost?.sourceId === state.sourceId &&
       state.createdPost?.actorId === state.actorId &&
-      state.createdPost?.discussionId === state.discussion?.discussionId &&
-      state.discussion?.roots.some((entry) => entry.state === "visible" &&
+      displayRoots.some((entry) => entry.state === "visible" &&
+        resolveDiscussionTarget(state, state.createdPost.id, {
+          topicId: state.createdPost.topicId, discussionId: state.createdPost.discussionId,
+          rootId: state.createdPost.rootId ?? entry.id
+        }) &&
         (entry.id === state.createdPost.id || entry.replies?.some((reply) =>
           reply.id === state.createdPost.id && reply.state === "visible"))) ? state.createdPost : null;
     const createdKey = createdPost && `${createdPost.discussionId}:${createdPost.actorId}:${createdPost.id}`;
@@ -963,7 +999,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       }
     }
     // Input updates leave contribution buttons in place so keyboard focus survives.
-    const signature = JSON.stringify([state.discussion, alternateView, earlierRoots,
+    const signature = JSON.stringify([state.discussion, alternateView, displayRoots,
+      [...earlierTargets],
       state.sourceId, state.topicId, state.phase, state.error]);
     const changedThread = signature !== renderedDiscussion || renderedActor !== state.actorId ||
       Boolean(createdKey && focusedCreatedPost !== createdKey) ||
@@ -971,6 +1008,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const sameDraftContext = previousState?.sourceId === state.sourceId &&
       previousState?.topicId === state.topicId && previousState?.draft.mode === state.draft.mode &&
       previousState?.draft.targetId === state.draft.targetId &&
+      JSON.stringify(previousState?.draft.targetBinding ?? null) ===
+        JSON.stringify(state.draft.targetBinding ?? null) &&
       previousState?.draft.detached === state.draft.detached;
     if (changedThread && !(composing && sameDraftContext && (inlineTarget || state.draft.mode === "root"))) {
       const focused = document.activeElement;
@@ -986,14 +1025,10 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       clearThreadHandlers(); const cards = [];
       let branchSerial = 0;
       let pinnedHeadingAdded = false;
-      for (const [index, rootEntry] of displayRoots.entries()) {
+      for (const rootEntry of displayRoots) {
         const tree = visibleThread(rootEntry);
         if (uiMode === "user" && !tree.shown) continue;
-        if (earlierRootIds.has(rootEntry.id) && !cards.includes(earlierHeading)) {
-          earlierHeading.textContent = text("uiEarlierDiscussionOnPage").replace("{count}", String(earlierRoots.length));
-          cards.push(earlierHeading);
-        }
-        if (alternateView?.pinnedRoots.length && index >= alternateView.roots.length &&
+        if (alternateView?.pinnedRoots.some((entry) => entry.id === rootEntry.id) &&
             !pinnedHeadingAdded) {
           const divider = node("h3", "uiTopicViewPinned"); divider.className = "discussion-pinned-heading";
           cards.push(divider);
@@ -1007,7 +1042,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
         group.setAttribute("data-expanded", String(expandedBranches.has(rootEntry.id)));
         group.setAttribute("data-has-replies", String(uiMode === "user"
           ? (tree.visibleBelow.get(rootEntry.id) ?? 0) > 0 : Boolean(rootEntry.replies?.length)));
-        group.append(contribution(rootEntry, rootEntry, state, arrivals.has(rootEntry.id)));
+        const route = earlierTargets.get(rootEntry.id) ?? null;
+        group.append(contribution(rootEntry, rootEntry, state, arrivals.has(rootEntry.id), route));
         if (uiMode === "user") {
           const replies = (rootEntry.replies ?? []).filter((reply) => tree.retained.has(reply.id));
           if (!replies.length && rootEntry.state === "visible" && rootEntry.body.length > 180) {
@@ -1026,7 +1062,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           const childContainers = new Map();
           for (const reply of replies) {
             const branch = node("div"); branch.className = "discussion-reply-branch";
-            branch.append(contribution(reply, rootEntry, state, arrivals.has(reply.id)));
+            branch.append(contribution(reply, rootEntry, state, arrivals.has(reply.id), route));
             const children = (byParent.get(reply.id) ?? []).filter((child) => tree.retained.has(child.id));
             if (children.length) {
               const toggle = branchToggle(reply.id, tree.visibleBelow.get(reply.id) ?? 0, expandedBranches.has(reply.id));
@@ -1064,29 +1100,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
             }
           }
         } else for (const reply of rootEntry.replies ?? [])
-          group.append(contribution(reply, rootEntry, state, arrivals.has(reply.id)));
-        if (earlierRootIds.has(rootEntry.id)) {
-          const target = earlierTargets.get(rootEntry.id);
-          const open = node("button", "uiOpenEarlierConversation");
-          open.type = "button"; open.className = "discussion-open-earlier";
-          open.setAttribute("data-action", "openconversation");
-          open.setAttribute("data-contribution-id", rootEntry.id);
-          const openConversation = () => {
-            const current = lastState;
-            if (current?.phase !== "ready" || current.busy || current.needsFreshRead || current.error ||
-                current.sourceId !== state.sourceId || current.topicId !== state.topicId ||
-                current.discussion?.discussionId !== state.discussion?.discussionId ||
-                current.priorDiscussions?.sourceId !== current.sourceId ||
-                current.priorDiscussions.currentTopicId !== current.topicId ||
-                !current.priorDiscussions.topics.some((item) => item.id === target.topicId) ||
-                !current.earlierDiscussions?.some((prior) => prior.topicId === target.topicId &&
-                  prior.discussionId === target.discussionId && prior.roots?.some((entry) =>
-                    entry.id === rootEntry.id && entry.origin?.sourceId === current.sourceId))) return;
-            void controller?.selectTopic(target.topicId);
-          };
-          open.addEventListener("click", openConversation); threadHandlers.push([open, openConversation]);
-          group.append(open);
-        }
+          group.append(contribution(reply, rootEntry, state, arrivals.has(reply.id), route));
         cards.push(group);
       }
       if (state.discussion && !cards.length) cards.push(node("p", uiMode === "user" ? "uiDiscussionEmpty" : "discussionEmpty"));

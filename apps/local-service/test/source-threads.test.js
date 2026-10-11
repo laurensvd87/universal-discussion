@@ -127,6 +127,32 @@ test("origin command variants require retained Source linked to current destinat
   assert.ok(service.discussion(learned.topicId).roots[0].origin.url.startsWith("https://example.com/"));
 });
 
+test("historical human replies retain the same page origin only under its visible root", () => {
+  const app = memoryApp(); const service = app.service;
+  const first = service.ingest(input(service, "history-human"));
+  const oldTopicId = first.topicId;
+  const rootId = command(service, { type: "create-root", topicId: oldTopicId,
+    body: "Old page root", originSourceId: first.sourceId }).contributionId;
+  const oldDiscussionId = service.discussion(oldTopicId).discussionId;
+  const nestedId = command(service, { type: "reply", discussionId: oldDiscussionId,
+    rootId, replyToId: rootId, body: "Old nested reply" }).contributionId;
+  service.ingest(input(service, "history-human", 0.5, { operationId: "changed-history-human" }));
+  command(service, { type: "correct-source", sourceId: first.sourceId, topicId: "harbor-s2" });
+  const elsewhere = command(service, { type: "create-root", topicId: oldTopicId,
+    body: "Unrelated old root" }).contributionId;
+  const reply = command(service, { type: "reply", discussionId: oldDiscussionId,
+    rootId, replyToId: nestedId, body: "From the current page", originSourceId: first.sourceId });
+  assert.equal(service.discussion(oldTopicId).roots.find((root) => root.id === rootId)
+    .replies.find((entry) => entry.id === reply.contributionId).origin.sourceId, first.sourceId);
+  assert.throws(() => command(service, { type: "reply", discussionId: oldDiscussionId,
+    rootId: elsewhere, replyToId: elsewhere, body: "Forged source", originSourceId: first.sourceId }), code("invalid"));
+  assert.throws(() => command(service, { type: "create-root", topicId: oldTopicId,
+    body: "Forged old root", originSourceId: first.sourceId }), code("invalid"));
+  command(service, { type: "withdraw", contributionId: rootId }, "demo-alex");
+  assert.throws(() => command(service, { type: "reply", discussionId: oldDiscussionId,
+    rootId, replyToId: nestedId, body: "Withdrawn root", originSourceId: first.sourceId }), code("invalid"));
+});
+
 test("paired commands keep retained-only Sources readable but reject new root and reply origins", async () => {
   const retainedUrl = "https://accounts.example.com/articles/legacy";
   const app = memoryApp();
