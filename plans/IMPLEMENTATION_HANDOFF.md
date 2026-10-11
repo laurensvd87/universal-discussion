@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 latest owner explores a cheap cloud pilot instead of home hosting,
+then specifically asks about Cloudflare/AWS scaling. Read updated
+BACKEND_HOSTING_PLAN#low-cost-cloud-pilot and ADR-092: cheap EU VPS is proposed
+for the existing containers; AWS is the more direct backend fit of those two,
+Cloudflare an optional edge or a separately adapted runtime/database path.
+Prices are checked, not spending caps or measured capacity. Exact host/region,
+budget, data, rental rehearsal and public access remain unapproved; no account,
+order, runtime or router changes. H0/synthetic H1/H2 are already prepared; do not
+repeat them. Remaining native restore/client/auth/matching readiness and hosted
+identity/privacy/security gates remain. Do not demand the home UDR audit as a
+prerequisite if the owner later selects a rented-only route.
+
 2026-10-11 fresh owner export is now reviewed, not awaiting another generic retry.
 113 policy objects survive: 85 valid UUIDs, 28 missing IDs (all user-defined),
 no duplicates/malformed IDs/omitted rows. Coverage stays PARTIAL with no ordering;

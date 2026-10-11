@@ -14,6 +14,11 @@ integration remain open. Docker/WSL are absent on Windows; the intended private
 rehearsal host is now the existing Ubuntu 26.04 LTS VLAN computer. No UDR, remote,
 deployment, owner-data, mail or provider operation has occurred.
 
+Latest owner direction: compare low-cost cloud hosting to skip the home-hosting
+step, especially Cloudflare versus AWS. The rented pilot recommendation below
+is conditional on explicit host/budget/data approval; the Ubuntu/UDR path is not
+a prerequisite if the owner selects remote rehearsal instead.
+
 ## Recommendation
 
 Build one portable Node backend with PostgreSQL and pgvector, packaged as Linux
@@ -41,6 +46,75 @@ Docker supports WSL-backed Linux containers on Windows, and Compose can reuse a
 deployment definition across development and a single production server.
 [Windows installation](https://docs.docker.com/desktop/setup/install/windows-install/),
 [Compose production guidance](https://docs.docker.com/compose/how-tos/production/).
+
+## Low cost cloud pilot
+
+Checked 2026-10-11. A small rented EU Linux server can run the prepared Node API,
+worker and PostgreSQL/pgvector without a platform rewrite. Two shared x86 vCPU
+and 4 GB RAM are a plausible starting target, not measured capacity. No GPU or
+server-side embedding inference is required by the present design. Domain,
+separate database-backup storage, mail and provider usage are additional costs.
+
+Hetzner CX23 has 4 GB RAM and 40 GB NVMe. Current EU server price is EUR 5.49
+excluding VAT, IPv4 is EUR 0.50, and provider disk backups add 20% of the server
+price. With 19% VAT this is approximately EUR 8.44/month. Hourly billing has a
+server monthly cap; traffic overage and other resources are not covered by that
+cap. The cheapest plan's availability must be checked before purchase: the public
+page has blank dynamic prices and unavailable labels, not verified stock.
+[Current price](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/),
+[resources](https://www.hetzner.com/cloud/cost-optimized/),
+[IPv4](https://docs.hetzner.com/cloud/servers/primary-ips/overview/),
+[billing and backups](https://docs.hetzner.com/cloud/billing/faq/).
+
+Netcup VPS Lite 1 G12.5s offers 2 vCore, 4 GB RAM, 80 GB SSD and IPv4/IPv6 for
+EUR 5.86/month including 19% VAT. Its six-month minimum and billing period imply
+approximately EUR 35.16 upfront. Included snapshots do not establish automatic
+off-server database backups.
+[Exact plan](https://www.netcup.com/de/server/vps/vps-lite-1-g12.5s-6m).
+
+Both are self-managed: OS patching, access controls, database backups, restoration
+and monitoring remain our responsibility. Provider disk backups do not replace
+the database backup/restore rehearsal. Prefer the cancellable Hetzner option for
+a short experiment if available; a six-month contract needs its own approval.
+
+### Cloudflare versus AWS
+
+Both can scale, but AWS is the more direct backend fit for the existing Linux
+containers. A small Lightsail VM is a simple starting path: USD 12/month for 2 GB
+RAM or USD 24/month for 4 GB, public IPv4 included, before tax/backups/domain.
+The cheaper USD 5 plan has only 0.5 GB RAM and is not our proposed full-stack
+target. Larger deployments can move container workloads to ECS/Fargate and the
+database to managed PostgreSQL; that requires an operational/database cutover,
+not just an automatic Lightsail setting.
+[Lightsail pricing](https://aws.amazon.com/lightsail/pricing/),
+[ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html).
+
+Cloudflare Workers can serve an API and Hyperdrive connects to an existing
+PostgreSQL database; Hyperdrive does not host the database. Adapting the current
+API/worker lifecycle is additional work. Containers are also available, but
+their disks are ephemeral by default; point-in-time snapshots are not a live
+durable PostgreSQL design. Workers Paid starts at USD 5/month, with container
+usage and an external database beyond that baseline. Cheap request execution
+does not establish a USD 5 total backend.
+[Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/),
+[Hyperdrive](https://developers.cloudflare.com/hyperdrive/),
+[container lifecycle](https://developers.cloudflare.com/containers/concepts/architecture/),
+[container pricing](https://developers.cloudflare.com/containers/platform/pricing/).
+
+Cloudflare's DNS/CDN/DDoS front can complement a backend at AWS or a rented EU
+server; it is not an either/or infrastructure choice.
+[Cloudflare plans](https://www.cloudflare.com/plans/).
+Railway is another lower-operations candidate, but its USD 5 Hobby minimum
+includes only USD 5 resource usage, not unlimited application/database resources.
+[Railway pricing](https://railway.com/pricing).
+
+For a few-euro pilot, prefer the existing containers on an inexpensive EU VPS.
+If choosing specifically between Cloudflare and AWS for the backend, prefer AWS
+for compatibility and accept the higher starting budget; Cloudflare is optional
+at the edge. Neither selection makes the current synthetic package public-ready.
+Finish native container/restore tests, real client/auth/matching integration and
+the scoped hosting/privacy/security gates first. No provider or budget is selected
+and no purchase, remote listener, migration or public access is authorized.
 
 ## Firebase fit
 
@@ -325,9 +399,11 @@ containerization supplies none of that clearance.
 
 ## Next step and approval boundaries
 
-The next engineering task is H0 followed by a synthetic H1/H2 implementation,
-not opening the current port or migrating the owner's data. Architecture/security
-review is required before that new package is activated.
+H0 review and synthetic H1/H2 repository preparation are complete under ADR-093.
+The next implementation work is the remaining native container/restore and
+real-client/account/matching readiness, not repeated foundation work or opening
+the current port. A private rental-based rehearsal can replace home rehearsal
+only after the owner selects its exact host, budget and data/activation scope.
 
 Before external access, resolve the specific audience, host/region, transmitted
 data, retention/backups, domain, budget, real authentication and abuse/operations

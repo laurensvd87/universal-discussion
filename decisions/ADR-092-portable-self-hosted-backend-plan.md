@@ -9,6 +9,14 @@ Ubuntu VLAN computer is the next private runtime-rehearsal candidate; Windows
 Docker/WSL installation is not selected. Real deployment, migration and the
 complete shared-pilot architecture remain unapproved/open.
 
+2026-10-11 later owner question explores a few-euro rented cloud pilot instead
+of the home-hosting step, especially Cloudflare/AWS. See the checked cost/fit
+comparison in BACKEND_HOSTING_PLAN. Existing containers fit a Linux VPS or AWS
+more directly; Cloudflare can complement either at the edge. A rented rehearsal
+does not depend on completing the home UDR audit. Provider, host/region, budget,
+private runtime access, data transfer and eventual public audience remain
+unselected/unapproved; the comparison is not deployment authority.
+
 ## Context
 
 The owner wants to avoid major investment before extension acceptance is known,

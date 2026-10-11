@@ -1,5 +1,20 @@
 # Project status
 
+**2026-10-11 low-cost remote pilot explored; Cloudflare/AWS comparison ready:**
+The owner considers skipping home hosting if remote operation costs a few euros.
+[BACKEND_HOSTING_PLAN](BACKEND_HOSTING_PLAN.md#low-cost-cloud-pilot) and ADR-092
+record current primary-source costs/fit: Hetzner CX23 about EUR 8.44/month with
+IPv4/provider backups at 19% VAT, subject to availability; netcup EUR 5.86 with
+six-month minimum/billing; AWS Lightsail USD 12/2 GB or USD 24/4 GB before extras.
+Cloudflare Workers/Containers need a reviewed persistent database/runtime design;
+their USD 5 baseline is not a whole-backend quote. AWS is the more direct backend
+fit if restricted to those two; Cloudflare can front AWS or a cheaper EU VPS.
+Rented rehearsal can replace the home path, but no host/budget/data/activation is
+approved. Native restore/client/auth/matching and public-pilot gates remain; home
+UDR audit is not a dependency of a remotely hosted route. Independent bounded
+VPS-price research and root AWS/Cloudflare review pass; docs only, no runtime,
+purchase, remote access or deployment. Preserve the local service/owner stores.
+
 **2026-10-11 fresh owner UniFi export reviewed; identity defect confirmed:**
 The new minimized file retains 113 policy objects: 85 valid UUIDs and 28 missing
 IDs, all 28 user-defined. No duplicate/malformed IDs or omitted rows. Policy
