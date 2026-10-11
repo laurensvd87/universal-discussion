@@ -24,7 +24,7 @@ function harness(messages, workspace, insightsTab, settingsButton, accountDetail
       : selector === "#app-discussion-insights-host" ? descendants(root).find((item) => item.id === "app-discussion-insights-host")
         : selector === "#insight-followup-progress" ? descendants(root).find((item) => item.id === "insight-followup-progress")
           : null, createElement(tag) {
-    const item = { tag, children: [], attributes: {}, textContent: "", value: "", listeners: new Map(),
+    const item = { tag, children: [], attributes: {}, style: {}, textContent: "", value: "", listeners: new Map(),
       get nextSibling() { if (!this.parentElement) return null;
         return this.parentElement.children[this.parentElement.children.indexOf(this) + 1] ?? null; },
       contains(target) { return contains(this, target); },
@@ -738,7 +738,7 @@ test("manual imports can start follow-ups but withdrawn targets cannot", () => {
   root.state = "deleted"; ui.panel.render(snapshot());
   assert.equal(actions().length, 0);
 });
-test("reply composer sparkle targets the exact visible canonical message without sending draft text", () => {
+test("per-message sparkle targets the exact visible canonical message without sending draft text", () => {
   const ui = harness();
   const calls = [];
   const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
@@ -759,15 +759,13 @@ test("reply composer sparkle targets the exact visible canonical message without
   const shortcut = ui.byId("discussion-ai-insights");
   for (const target of ["root", "other-reply", "nested-ai"]) {
     ui.panel.render(snapshot("reply", target));
-    assert.equal(shortcut.hidden, false);
-    assert.equal(shortcut.disabled, false);
-    assert.equal(shortcut.textContent, "");
-    assert.equal(shortcut.attributes["aria-label"], EN.uiGenerateInsightReplyLabel);
-    assert.equal(shortcut.title, EN.uiGenerateInsightReplyLabel);
-    assert.equal(shortcut.attributes["data-followup"], "true");
+    assert.equal(shortcut.hidden, true);
+    const action = descendants(ui.root).find((item) => item.attributes["data-action"] === "getinsights" &&
+      item.attributes["data-contribution-id"] === target);
+    assert.ok(action);
     const body = ui.byId("discussion-body");
     body.focus();
-    shortcut.listeners.get("click")();
+    action.listeners.get("click")();
     assert.equal(body.value, "Unsent human text");
     assert.equal(ui.document.activeElement, body);
   }
@@ -778,7 +776,7 @@ test("reply composer sparkle targets the exact visible canonical message without
   assert.deepEqual(calls.at(-1), ["root", { automatic: true }]);
 });
 
-test("reply composer sparkle closes on removed, foreign, detached and stale targets", () => {
+test("reply composer has no extra sparkle for removed, foreign, detached or stale targets", () => {
   const ui = harness();
   const calls = [];
   const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
@@ -794,7 +792,7 @@ test("reply composer sparkle closes on removed, foreign, detached and stale targ
     draft: { mode: "reply", targetId: "reply", body: "Do not send this", detached: false }, ...overrides });
   const shortcut = ui.byId("discussion-ai-insights");
   ui.panel.render(snapshot());
-  assert.equal(shortcut.hidden, false);
+  assert.equal(shortcut.hidden, true);
   for (const changed of [
     snapshot({ draft: { mode: "reply", targetId: "missing", body: "Do not send this", detached: false } }),
     snapshot({ draft: { mode: "reply", targetId: "reply", body: "Do not send this", detached: true } }),
@@ -814,7 +812,7 @@ test("reply composer sparkle closes on removed, foreign, detached and stale targ
   shortcut.listeners.get("click")();
   assert.deepEqual(calls, []);
 });
-test("long visible canonical posts retain per-post and composer follow-up actions", () => {
+test("long visible canonical posts retain per-post follow-up actions", () => {
   const ui = harness();
   const calls = [];
   const context = { topic: { id: "topic-demo" }, currentSource: { id: "source-demo" } };
@@ -831,8 +829,8 @@ test("long visible canonical posts retain per-post and composer follow-up action
   const actions = descendants(ui.root).filter((item) => item.attributes["data-action"] === "getinsights");
   assert.deepEqual(actions.map((item) => item.attributes["data-contribution-id"]), ["long-root", "long-reply"]);
   const shortcut = ui.byId("discussion-ai-insights");
-  assert.equal(shortcut.hidden, false);
-  shortcut.listeners.get("click")();
+  assert.equal(shortcut.hidden, true);
+  actions[1].listeners.get("click")();
   assert.deepEqual(calls, ["long-reply"]);
   assert.equal(ui.byId("discussion-body").value, "Unsent");
 });
@@ -1290,7 +1288,7 @@ test("reply context follows the exact selected author, including a reply to a re
   assert.equal(author.textContent, "Replying to Alex");
   assert.equal(excerpt.textContent, "Alex's opening comment");
   assert.equal(ui.byId("discussion-body").placeholder, EN.uiReplyPlaceholder);
-  assert.equal(ui.byId("discussion-body").attributes["aria-label"], EN.uiReplyBody);
+  assert.equal(ui.byId("discussion-body").attributes["aria-label"], "Your reply · Replying to Alex (root-a)");
   assert.equal(ui.byId("discussion-body").attributes["aria-describedby"], context.id);
   assert.equal(ui.byId("discussion-submit").textContent, "Post reply");
   replyButton("reply-b").listeners.get("click")();
@@ -1306,6 +1304,33 @@ test("reply context follows the exact selected author, including a reply to a re
   assert.equal(ui.byId("discussion-submit").textContent, EN.uiPostComment);
   assert.deepEqual(ui.calls.at(-1), ["discardDraft"]);
   assert.equal(ui.calls.some(([method]) => method === "submitDraft"), false);
+});
+
+test("valid User reply is compact, target-labelled, and grows without losing the shared focused editor", () => {
+  const ui = harness();
+  const root = { id: "root-small", state: "visible", authorId: "demo-alex", actorType: "human",
+    body: "Opening", replies: [] };
+  const snapshot = state({ discussion: { roots: [root] },
+    draft: { body: "", detached: false, mode: "reply", targetId: "root-small" } });
+  const composer = ui.byId("discussion-composer"), body = ui.byId("discussion-body");
+  ui.panel.render(snapshot);
+  assert.equal(composer.attributes["data-composer-mode"], "reply");
+  assert.equal(composer.attributes["data-inline-target"], "valid");
+  assert.equal(body.rows, 1);
+  assert.equal(body.attributes["aria-label"], "Your reply · Replying to Alex (root-small)");
+  assert.equal(body.attributes["aria-describedby"], "discussion-reply-context");
+  assert.equal(ui.byId("discussion-ai-insights").hidden, true);
+  assert.equal(ui.byId("discussion-submit").attributes["aria-label"], EN.uiPostReply);
+  body.scrollHeight = 208;
+  body.focus(); body.value = "Several lines of text"; body.listeners.get("input")();
+  assert.equal(body.style.height, "128px");
+  ui.panel.render({ ...snapshot, draft: { ...snapshot.draft, body: body.value } });
+  assert.equal(ui.document.activeElement, body);
+  assert.equal(ui.byId("discussion-body"), body);
+  assert.equal(body.style.height, "128px");
+  ui.panel.render(state());
+  assert.equal(body.rows, 3);
+  assert.equal(body.style.height, "");
 });
 
 test("reply context uses compact User AI provenance and full Developer provenance", () => {
@@ -1658,6 +1683,7 @@ test("reply context renders hostile long text as bounded plain text and never gu
   assert.equal(excerpt.textContent.endsWith("…"), true);
   assert.equal(descendants(ui.byId("discussion-reply-context")).some((item) => item.tag === "img"), false);
   ui.panel.render({ ...snapshot, draft: { ...snapshot.draft, targetId: "missing" } });
+  assert.equal(ui.byId("discussion-composer").attributes["data-inline-target"], "unavailable");
   assert.equal(author.textContent, EN.uiReplyTargetUnavailable);
   assert.equal(excerpt.textContent, "");
   assert.equal(excerpt.hidden, true);

@@ -2,6 +2,12 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current inline reply presentation (2026-10-11, ADR-080 refinement): 0.13.42
+User replies have a compact growing editor/send arrow without duplicate parent
+quote/heading or composer sparkle. Keep per-message/root generation, accessible
+target context, invalid/detached warnings, typing/focus/IME and canonical checks.
+External citations are unchanged. Read top STATUS/HANDOFF; no new authority.
+
 Current citation presentation (2026-10-11, ADR-083): exact safe annotated domain
 Markdown wrappers become arrows; matching legacy omitted labels hide only beside
 verified same-host arrows on one line. Keep stored posts/prose/unverified marks

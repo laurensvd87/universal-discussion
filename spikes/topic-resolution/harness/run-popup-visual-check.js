@@ -28,6 +28,8 @@ async function capture(name, sessionId, { fluid = false } = {}) {
     const clientWidth=root.clientWidth;
     const escaped=[...document.querySelectorAll('body *')].filter(element => {
       if (!element.getClientRects().length) return false;
+      const replyContext=element.closest('#discussion-reply-context');
+      if (replyContext && getComputedStyle(replyContext).clip==='rect(0px, 0px, 0px, 0px)') return false;
       const rect=element.getBoundingClientRect();
       return rect.left < -1 || rect.right > clientWidth + 1;
     }).slice(0, 8).map(element => element.id || element.tagName.toLowerCase());
@@ -109,6 +111,40 @@ async function typeCharacters(value, sessionId) {
     assert.equal(result.focused && result.same, true,
       `real Chrome typing keeps the same focused textarea after ${JSON.stringify(character)}: ${JSON.stringify(result)}`);
   }
+}
+async function checkCompactReply(sessionId, targetId) {
+  const result = await evaluate(`(() => {
+    const form=document.querySelector('#discussion-composer'),target=document.querySelector('[data-post-id=${targetId}]');
+    const context=document.querySelector('#discussion-reply-context'),body=document.querySelector('#discussion-body');
+    const submit=document.querySelector('#discussion-submit'),sparkle=document.querySelector('#discussion-ai-insights');
+    const contextStyle=getComputedStyle(context),heading=form.querySelector('.discussion-new-thread-heading');
+    const actions=form.querySelector('.discussion-composer-actions');
+    const model=form.querySelector('#discussion-model-host'),activity=form.querySelector('#discussion-insight-activity');
+    const rect=form.getBoundingClientRect(),bodyRect=body.getBoundingClientRect(),submitRect=submit.getBoundingClientRect();
+    return {inline:form.previousElementSibling===target,sameParent:form.parentElement===target?.parentElement,
+      count:document.querySelectorAll('#discussion-composer').length,mode:form.dataset.composerMode,
+      valid:form.dataset.inlineTarget,contextLinked:body.getAttribute('aria-describedby')?.split(/\\s+/).includes(context.id),
+      contextText:context.textContent,contextClipped:contextStyle.position==='absolute' && contextStyle.width==='1px' && contextStyle.height==='1px',
+      headingHidden:heading.hidden || getComputedStyle(heading).display==='none',sparkleHidden:sparkle.hidden || getComputedStyle(sparkle).display==='none',
+      submitText:submit.textContent,submitName:submit.getAttribute('aria-label') || submit.textContent,
+      submitVisualText:getComputedStyle(submit).fontSize,submitIcon:getComputedStyle(submit,'::before').content,
+      bodyHeight:bodyRect.height,formWidth:rect.width,bodyWidth:bodyRect.width,submitWidth:submitRect.width,
+      actionsWidth:actions.getBoundingClientRect().width,modelHidden:model.hidden,
+      modelDisplay:getComputedStyle(model).display,modelHeight:model.getBoundingClientRect().height,
+      activityText:activity.textContent,activityDisplay:getComputedStyle(activity).display,
+      activityHeight:activity.getBoundingClientRect().height,viewport:document.documentElement.clientWidth};
+  })()`, sessionId);
+  assert.ok(result.inline && result.sameParent && result.count===1 && result.mode==="reply" && result.valid==="valid",
+    `one valid composer immediately follows ${targetId}: ${JSON.stringify(result)}`);
+  assert.ok(result.contextLinked && result.contextText.trim() && result.contextClipped && result.headingHidden && result.sparkleHidden,
+    `target context stays accessible without repeated visible reply chrome: ${JSON.stringify(result)}`);
+  assert.ok(result.submitText==="Post reply" && result.submitName==="Post reply" && result.submitIcon!=="none" && result.submitIcon!=="normal" &&
+    result.bodyWidth>0 && result.formWidth<=result.viewport && result.actionsWidth<=result.formWidth+1,
+    `icon send control keeps a named Reply action and fits the viewport: ${JSON.stringify(result)}`);
+  assert.ok(result.modelHidden && result.modelDisplay==="none" && result.modelHeight===0 &&
+    (!result.activityText || result.activityDisplay==="none" && result.activityHeight===0),
+    `model and empty progress controls do not occupy the inline reply grid: ${JSON.stringify(result)}`);
+  return result;
 }
 try {
   assert.ok(existsSync(executable));
@@ -236,29 +272,60 @@ try {
     await evaluate("document.querySelector('[data-action=reply][data-contribution-id=root-1]').click()", sessionId);
     assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),target=document.querySelector('[data-post-id=root-1]');return form.previousElementSibling===target && form.parentElement===target.parentElement && document.activeElement===document.querySelector('#discussion-body') && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
       "Reply to root moves the single focused composer directly under that post");
+    const compactInitial = await checkCompactReply(sessionId, "root-1");
+    assert.ok(compactInitial.bodyHeight>=36 && compactInitial.bodyHeight<=44,
+      `initial inline textarea starts as one compact row: ${JSON.stringify(compactInitial)}`);
     await capture("inline-reply-root", sessionId);
     await evaluate("(() => {const state=window.visualDiscussionState;state.discussion.roots[0].replies=[{id:'reply-visual',rootId:'root-1',replyToId:'root-1',state:'visible',authorId:'demo-alex',actorType:'human',body:'I would start with more shade.',edited:false}];window.visualDiscussionPanel.render(state);const toggle=document.querySelector('[data-action=expand][data-contribution-id=root-1]');if(toggle.getAttribute('aria-expanded')!=='true')toggle.click();document.querySelector('[data-action=reply][data-contribution-id=reply-visual]').click()})()", sessionId);
     const nestedPlacement = await evaluate("(() => {const form=document.querySelector('#discussion-composer'),target=document.querySelector('[data-post-id=reply-visual]');return {inline:form.previousElementSibling===target,sameParent:form.parentElement===target?.parentElement,focused:document.activeElement===document.querySelector('#discussion-body'),count:document.querySelectorAll('#discussion-composer').length,mode:window.visualDiscussionState.draft.mode,targetId:window.visualDiscussionState.draft.targetId}})()", sessionId);
     assert.deepEqual(nestedPlacement, {inline:true,sameParent:true,focused:true,count:1,mode:"reply",targetId:"reply-visual"},
       "Reply to a reply places the composer under the nested target without duplication");
+    await checkCompactReply(sessionId, "reply-visual");
     await typeCharacters("Nested answer", sessionId);
     await evaluate("(() => {const state=window.visualDiscussionState,body=document.querySelector('#discussion-body');body.setSelectionRange(6,6);state.catalog={...state.catalog,actors:state.catalog.actors.map(actor=>({...actor}))};state.discussion={roots:state.discussion.roots.map(root=>({...root,replies:root.replies.map(reply=>({...reply}))}))};window.visualDiscussionPanel.render(state)})()", sessionId);
     assert.equal(await evaluate("(() => {const body=document.querySelector('#discussion-body'),form=document.querySelector('#discussion-composer'),target=document.querySelector('[data-post-id=reply-visual]');return body===window.visualComposerBody && document.activeElement===body && body.value==='Nested answer' && body.selectionStart===6 && body.selectionEnd===6 && form.previousElementSibling===target})()", sessionId), true,
       "same-context refresh preserves nested reply focus, draft, caret and inline placement");
+    const compactShort = await checkCompactReply(sessionId, "reply-visual");
     await capture("inline-reply-nested", sessionId);
+    await evaluate("(() => {const body=document.querySelector('#discussion-body');body.value='A longer reply line. '.repeat(36);body.dispatchEvent(new Event('input',{bubbles:true}))})()", sessionId);
+    const compactLong = await checkCompactReply(sessionId, "reply-visual");
+    assert.ok(compactLong.bodyHeight>compactShort.bodyHeight && compactLong.bodyHeight<=130,
+      `long reply grows within its bound: ${JSON.stringify({short:compactShort.bodyHeight,long:compactLong.bodyHeight})}`);
+    assert.equal(await evaluate("(() => {const body=document.querySelector('#discussion-body');return document.activeElement===body && body.selectionStart===body.value.length && body.selectionEnd===body.value.length})()", sessionId), true,
+      "growth preserves the focused textarea and caret");
+    await evaluate("document.querySelector('#discussion-composer').scrollIntoView({block:'end'})", sessionId);
+    await capture("inline-reply-long-390", sessionId);
     await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
     await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
+    await checkCompactReply(sessionId, "reply-visual");
+    await evaluate("document.querySelector('#discussion-composer').scrollIntoView({block:'end'})", sessionId);
+    await capture("inline-reply-long-320-reduced-motion", sessionId);
+    await evaluate("(() => {const body=document.querySelector('#discussion-body');body.value='Nested answer';body.dispatchEvent(new Event('input',{bubbles:true}));body.focus();body.setSelectionRange(6,6)})()", sessionId);
     await capture("inline-reply-nested-320-reduced-motion", sessionId);
     await browser.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
     await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    assert.equal(await evaluate(`(() => {
+      const body=document.querySelector('#discussion-body'),state=window.visualDiscussionState;
+      body.focus();body.setSelectionRange(body.value.length,body.value.length);
+      body.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true,data:''}));
+      body.value+='漢';body.setSelectionRange(body.value.length,body.value.length);
+      body.dispatchEvent(new Event('input',{bubbles:true}));
+      state.catalog={...state.catalog};state.discussion=structuredClone(state.discussion);
+      window.visualDiscussionPanel.render(state);
+      const during=document.activeElement===body && body.value==='Nested answer漢' &&
+        body.selectionStart===body.value.length && body.selectionEnd===body.value.length;
+      body.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'漢'}));
+      return during && document.activeElement===body && body.value==='Nested answer漢' &&
+        state.draft.body==='Nested answer漢';
+    })()`, sessionId), true, "IME composition survives a same-context poll without focus or draft loss");
     await evaluate("document.querySelector('#discussion-back-to-new-thread').click()", sessionId);
     assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),feed=document.querySelector('#discussion-feed'),dock=document.querySelector('#discussion-root-dock');return window.visualDiscussionState.draft.mode==='root' && form.parentElement===dock && feed.parentElement===dock.parentElement && Boolean(feed.compareDocumentPosition(dock)&Node.DOCUMENT_POSITION_FOLLOWING) && feed.contains(document.querySelector('.discussion-thread')) && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
       "Return to new thread cancels the reply and restores the root composer");
     await evaluate("(() => {const state=window.visualDiscussionState;state.draft={body:'Unsent reply',detached:false,mode:'reply',targetId:'reply-visual'};window.visualDiscussionPanel.render(state);state.draft={...state.draft,detached:true};window.visualDiscussionPanel.render(state)})()", sessionId);
-    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),feed=document.querySelector('#discussion-feed'),dock=document.querySelector('#discussion-root-dock');return form.parentElement===dock && feed.parentElement===dock.parentElement && Boolean(feed.compareDocumentPosition(dock)&Node.DOCUMENT_POSITION_FOLLOWING) && window.visualDiscussionState.draft.body==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),feed=document.querySelector('#discussion-feed'),dock=document.querySelector('#discussion-root-dock');return form.parentElement===dock && feed.parentElement===dock.parentElement && Boolean(feed.compareDocumentPosition(dock)&Node.DOCUMENT_POSITION_FOLLOWING) && window.visualDiscussionState.draft.body==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1 && !!document.querySelector('#discussion-composer [role=status]:not([hidden])')})()", sessionId), true,
       "detached reply retains unsent text in the bottom dock");
     await evaluate("(() => {const state=window.visualDiscussionState;state.draft={body:'Unsent reply',detached:false,mode:'reply',targetId:'reply-visual'};state.discussion.roots[0].replies[0].state='deleted';window.visualDiscussionPanel.render(state)})()", sessionId);
-    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),feed=document.querySelector('#discussion-feed'),dock=document.querySelector('#discussion-root-dock');return form.parentElement===dock && feed.parentElement===dock.parentElement && Boolean(feed.compareDocumentPosition(dock)&Node.DOCUMENT_POSITION_FOLLOWING) && document.querySelector('#discussion-submit').disabled && document.querySelector('#discussion-body').value==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1})()", sessionId), true,
+    assert.equal(await evaluate("(() => {const form=document.querySelector('#discussion-composer'),feed=document.querySelector('#discussion-feed'),dock=document.querySelector('#discussion-root-dock'),context=document.querySelector('#discussion-reply-context');return Boolean(form.parentElement===dock && feed.parentElement===dock.parentElement && Boolean(feed.compareDocumentPosition(dock)&Node.DOCUMENT_POSITION_FOLLOWING) && document.querySelector('#discussion-submit').disabled && document.querySelector('#discussion-body').value==='Unsent reply' && document.querySelectorAll('#discussion-composer').length===1 && form.dataset.inlineTarget==='unavailable' && !context.hidden && getComputedStyle(context).width!=='1px' && context.textContent.trim())})()", sessionId), true,
       "deleted reply target leaves the draft visible and blocks submission");
     await evaluate("(() => {const state=window.visualDiscussionState;state.discussion.roots[0].replies=[];state.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(state)})()", sessionId);
     assert.equal(await evaluate(`(() => {
@@ -369,8 +436,9 @@ try {
     await evaluate("window.visualDiscussionState.discussion=window.visualBeforeDeletion;window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.discussion.roots[0].replies=[];window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.draft={body:'A thoughtful reply',detached:false,mode:'reply',targetId:'root-1'};window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
-    assert.equal(await evaluate("(() => { const cue=document.querySelector('#discussion-reply-context'); return cue && !cue.hidden && cue.textContent.includes('Blair') && document.querySelector('#discussion-submit').textContent === 'Post reply'; })()", sessionId), true,
-      "reply composer identifies its exact target before submission");
+    assert.equal(await evaluate("(() => {const cue=document.querySelector('#discussion-reply-context'),body=document.querySelector('#discussion-body');return cue && !cue.hidden && cue.textContent.includes('Blair') && body.getAttribute('aria-describedby')?.includes(cue.id) && document.querySelector('#discussion-submit').textContent==='Post reply'})()", sessionId), true,
+      "reply composer describes its exact target to assistive technology before submission");
+    await checkCompactReply(sessionId, "root-1");
     await capture("reply", sessionId);
     await evaluate("window.visualDiscussionState.draft={body:'',detached:false,mode:'root',targetId:null};window.visualDiscussionPanel.render(window.visualDiscussionState)", sessionId);
     assert.equal(await evaluate("(() => document.querySelector('#app-navigation').hidden && document.querySelector('#app-view-pages').hidden)()", sessionId), true,
@@ -458,12 +526,14 @@ try {
       window.visualDiscussionPanel.render(state);
     })()`, sessionId);
     assert.equal(await evaluate(`(() => {
-      const button=document.querySelector('#discussion-ai-insights');
-      return !button.hidden && !button.disabled && button.textContent==='' &&
-        button.getAttribute('aria-label')==='Generate and post reply' &&
-        getComputedStyle(button,'::before').maskImage.includes('icons/spark.svg');
-    })()`, sessionId), true, "another author's long human opener has an icon-only reply-composer sparkle");
-    await evaluate("document.querySelector('#discussion-ai-insights').click()", sessionId);
+      const composer=document.querySelector('#discussion-ai-insights');
+      const message=document.querySelector('[data-action=getinsights][data-contribution-id=human-any]');
+      return (composer.hidden || getComputedStyle(composer).display==='none') &&
+        message && !message.hidden && !message.disabled && message.textContent==='' &&
+        message.getAttribute('aria-label')==='Generate and post reply' &&
+        getComputedStyle(message,'::before').maskImage.includes('icons/spark.svg');
+    })()`, sessionId), true, "long human opener retains its per-message sparkle without duplicating it in the reply composer");
+    await evaluate("document.querySelector('[data-action=getinsights][data-contribution-id=human-any]').click()", sessionId);
     assert.deepEqual(await evaluate(`(() => {
       const insight=window.visualInsightState,host=document.querySelector('#app-discussion-insights-host'),composer=document.querySelector('#discussion-composer');
       return {rootId:insight.followup?.rootId,replyToId:insight.followup?.replyToId,
@@ -471,7 +541,7 @@ try {
         draft:document.querySelector('#discussion-body').value,selected:window.visualFollowupIds.at(-1)};
     })()`, sessionId), {rootId:'human-any',replyToId:'human-any',inline:true,sameParent:true,
       draft:'Unsent words must not replace the selected message',selected:'human-any'},
-      "reply-composer sparkle selects the published root itself, places progress inline and preserves unsent text");
+      "per-message sparkle selects the published root itself, places progress inline and preserves unsent text");
     await capture("any-message-insight-root", sessionId);
     await evaluate(`(() => {
       Object.assign(window.visualInsightState,structuredClone(window.visualBeforeFollowupInsight),{followup:null});

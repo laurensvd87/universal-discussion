@@ -91,3 +91,28 @@ catalog 401 confirms listener availability, not provider/account verification.
 Official OpenAI documentation distinguishes inline claim annotations from the
 tool's wider source list and requires visible clickable citations:
 [Web search](https://developers.openai.com/api/docs/guides/tools-web-search).
+
+## Owner-requested lean inline reply refinement (2026-10-11)
+
+The owner points out that the target message is immediately above its inline
+reply form: a repeated quote, author banner and heading consume space without
+adding context. The form's second sparkle duplicates the existing message action.
+User Mode therefore uses a compact growing reply editor with a send icon, no
+visible repeated quote/heading, and no composer sparkle in reply mode. This does
+not remove external source citations from generated or published messages.
+
+Keep the actual single form/textarea at its canonical target, accessible target
+descriptions and send names, per-message sparkle and root Insight action. Preserve
+visible detached/unavailable-target warnings, disabled write behavior, typing,
+caret/IME, polling focus, generated result/progress placement and Developer
+diagnostics. Visual simplification is not new posting/generation authority.
+No provider, persistence, permission or backend change is needed. Final UI and
+regression evidence is recorded in top STATUS/HANDOFF for extension 0.13.42.
+
+Sol Medium implementation and independent QA pass: focused panel 77, full
+extension 1,118 pass/one optional skip, restricted 1,119 pass. Disposable actual
+Chrome verifies compact root/nested placement, accessible send/target, bounded
+growth, typing/caret and simulated IME through polling, retained message sparkle
+and generated progress, visible unavailable/detached warnings and narrow layout
+without horizontal overflow. Root reviews compact and 320 px screenshots;
+secret/diff checks pass. No provider request, owner DB change or backend restart.

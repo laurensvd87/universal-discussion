@@ -8,6 +8,13 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current inline reply presentation (2026-10-11, ADR-080 refinement): 0.13.42
+User Mode uses a compact growing reply editor/send arrow, no repeated visible
+parent quote/heading and no duplicate composer sparkle. Per-message generation,
+root Insights, accessible target context and visible invalid/detached warnings
+remain. Preserve single-form typing/focus/IME and canonical authority guards.
+External citations are unchanged; read top STATUS/HANDOFF. No new provider scope.
+
 Current citation presentation (2026-10-11, ADR-083): 0.13.41 collapses exact
 safe provider-annotated domain Markdown wrappers into source arrows. Same-host
 legacy omitted-label duplicates hide only beside existing verified arrows on the

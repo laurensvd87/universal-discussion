@@ -173,6 +173,14 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   const originDisclosure = node("p"); originDisclosure.id = "discussion-origin-disclosure"; composer.append(originDisclosure);
   const body = node("textarea"); body.id = "discussion-body"; body.maxLength = 8000;
   body.rows = 3;
+  function sizeReplyBody() {
+    if (uiMode !== "user" || lastState?.draft?.mode !== "reply") {
+      body.style.height = "";
+      return;
+    }
+    body.style.height = "auto";
+    if (body.scrollHeight) body.style.height = `${Math.min(body.scrollHeight, 128)}px`;
+  }
   let composing = false;
   const bodyLabel = node("label", "discussionBody"); bodyLabel.htmlFor = body.id;
   const detached = node("p", "discussionDetached"); detached.setAttribute("role", "status");
@@ -186,11 +194,12 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   insightShortcut.setAttribute("aria-describedby", insightActivity.id);
   composerActions.append(modelHost, insightShortcut, submit, insightActivity);
   composer.append(mode, replyContext, bodyLabel, body, detached, composerActions);
-  listen(body, "input", () => controller?.setDraft(body.value));
+  listen(body, "input", () => { sizeReplyBody(); controller?.setDraft(body.value); });
   listen(body, "compositionstart", () => { composing = true; });
   listen(body, "compositionend", () => {
     composing = false;
     const committed = body.value;
+    sizeReplyBody();
     controller?.setDraft(committed);
     if (lastState?.draft.body === committed) render(lastState);
   });
@@ -780,6 +789,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     if (compositionContextChanged) composing = false;
     if ((!composing || compositionContextChanged) && body.value !== state.draft.body)
       body.value = state.draft.body;
+    body.rows = uiMode === "user" && state.draft.mode === "reply" ? 1 : 3;
+    sizeReplyBody();
     const loadingSelected = state.phase === "loading" && Boolean(state.topicId && state.sourceId) &&
       state.catalog?.sources.some((entry) => entry.id === state.sourceId && entry.topicId === state.topicId);
     composer.hidden = uiMode === "user" && !posting && !selectedTopicReady && !loadingSelected &&
@@ -798,6 +809,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     const editTarget = state.draft.mode === "edit" ? state.discussion?.roots
       .flatMap((entry) => [entry, ...(entry.replies ?? [])])
       .find((entry) => entry.id === state.draft.targetId && entry.state === "visible") : null;
+    composer.setAttribute("data-composer-mode", state.draft.mode);
+    composer.setAttribute("data-inline-target", uiMode === "user" && state.draft.mode === "reply" &&
+      replyTarget && !state.draft.detached ? "valid" : "unavailable");
     submit.disabled = posting || !ready || state.draft.detached || !state.draft.body.trim() ||
       state.draft.mode === "reply" && !replyTarget || state.draft.mode === "edit" && !editTarget;
     mode.textContent = text((uiMode === "user" ? { root: "discussionComposerRoot", reply: "uiReplyMode", edit: "uiEditMode" }
@@ -823,6 +837,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       replyStatus.textContent = replyTarget ? "" : text("uiReplyUnavailableAction");
       replyStatus.hidden = Boolean(replyTarget);
     }
+    if (uiMode === "user" && state.draft.mode === "reply" && replyTarget)
+      body.setAttribute("aria-label", `${text("uiReplyBody")} · ${replyAuthor.textContent} (${replyTarget.id})`);
     if (state.draft.mode === "reply" && !replyTarget) submit.setAttribute("aria-describedby", replyContext.id);
     else submit.removeAttribute("aria-describedby");
     submit.textContent = text(uiMode === "user" ? posting && state.draft.mode !== "edit" ? "uiPostSending"
@@ -1067,6 +1083,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       }
     }
     placeComposer(inlineTarget);
+    sizeReplyBody();
     if (changedThread && revealWasVisible && lastRevealedPostId && !createdPost) {
       const slot = postSlot(thread, lastRevealedPostId);
       if (slot && !slot.card.closest?.("[inert]")) {
@@ -1218,9 +1235,8 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       lastState.catalog?.sources.some((entry) => entry.id === lastState.sourceId && entry.topicId === lastState.topicId);
     const followupQuestionId = composerFollowupTarget(state);
     const replyMode = lastState?.draft?.mode === "reply";
-    insightShortcut.hidden = uiMode === "user" && (hasResult || (replyMode
-      ? !followupQuestionId || !selectedTopicReady
-      : ((!selectedTopicReady && !loadingSelected) || lastState?.draft?.mode !== "root")));
+    insightShortcut.hidden = uiMode === "user" && (hasResult || replyMode ||
+      ((!selectedTopicReady && !loadingSelected) || lastState?.draft?.mode !== "root"));
     insightShortcut.disabled = !selectedTopicReady || uiMode === "user" && noCurrentSource || active || Boolean(state?.busy) || hasResult;
     insightShortcut.setAttribute("aria-busy", String(active));
     insightShortcut.setAttribute("data-phase", active ? "working" : "idle");

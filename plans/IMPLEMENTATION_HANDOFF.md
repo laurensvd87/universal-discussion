@@ -1,5 +1,25 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 lean inline replies (0.13.42), complete: read ADR-080's refinement.
+Valid User Mode human replies use a one-row growing textarea (128 px cap) and
+accessible send arrow. Do not restore the duplicate visible parent quote/heading
+or reply-composer sparkle: generation stays beside each message, root Insights
+remain. The hidden target description stays accessible. External citations are
+unchanged. Unavailable/detached warnings stay visible and submission blocked.
+Preserve the single actual inline form, unsent text, typing/caret/IME, polling
+focus, generated progress/result placement and existing canonical write checks.
+Developer diagnostics are retained; this is presentation, not new authority.
+
+Sol Medium coding and independent QA pass: focused panel 77; full extension
+1,118 pass/1 optional skip; restricted 1,119 pass. Disposable synthetic actual
+Chrome validates compact root/nested replies, 36-to-128 px growth, named send,
+target accessibility, same-context caret/IME, invalid/detached warnings, generation
+and prior citation/layout regressions at 390/320 px including reduced motion.
+Root reviews compact/narrow screenshots. Secret scan (189 files, zero findings)
+and diff checks pass. No provider request, owner DB access or service restart.
+Normal service remains available (unauthenticated catalog 401); reload extension
+0.13.42. Prior diagnostic inference budget and all later gates are unchanged.
+
 2026-10-11 arrow-only source wrapper fix (0.13.41), complete: read ADR-083.
 Exact provider-annotated `[domain](URL)` wrappers, optionally parenthesized,
 become only the existing arrow when domain and URL match the safe annotation.

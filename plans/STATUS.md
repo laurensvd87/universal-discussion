@@ -1,5 +1,35 @@
 # Project status
 
+**2026-10-11 lean inline human replies, complete (0.13.42):**
+The owner requests a smaller editor without duplicating the message immediately
+above it or its sparkle action. The [ADR-080 refinement](../decisions/ADR-080-bottom-composer-post-reveal-and-actionable-citations.md)
+records this presentation change: a valid User Mode reply has a single-row
+textarea that grows to 128 px and a named send-arrow control. The heading and
+repeated author/quote are visually hidden; accessible target context remains.
+The composer sparkle is hidden in reply mode. Per-message sparkle and root
+Insights remain, with existing inline generation progress/results intact.
+External source citations are not removed.
+
+Unavailable/detached target warnings stay visible and writes remain disabled.
+The same actual form/textarea stays at the canonical target; actor/Source/Topic,
+reply authority, one-shot sharing, unsent text, typing/caret/IME and polling focus
+guards are unchanged. Developer diagnostics remain.
+
+Sol Medium implementation and independent QA pass. Focused panel **77 pass**;
+final full extension **1,118 pass/1 optional skip**, restricted **1,119 pass**.
+Disposable actual Chrome confirms root/nested placement, hidden duplicate chrome,
+accessible send/target, 36-to-128 px growth, focus/caret and simulated IME through
+refresh, generated replies, invalid-target warnings, root Insights, citations
+and no horizontal overflow at 390/320 px with reduced motion. Root reviews the
+compact and narrow long-reply screenshots. The companion surface tests actual
+Chrome layout, not a new native side-panel authentication proof. Secret scan
+(**189 files**, zero findings) and diff checks pass.
+
+No provider call, owner database access, backend change/restart, permission,
+retention or release expansion. Existing backend responds with the expected
+unauthenticated catalog **401**, an availability check only. Reload the unpacked
+extension to **0.13.42**. The prior diagnostic inference budget remains exhausted.
+
 **2026-10-11 arrow-only Markdown source citations, complete (0.13.41):**
 The owner reports `([domain]([link omitted]))` before an otherwise useful source
 arrow. [ADR-083](../decisions/ADR-083-arrow-only-markdown-citation-presentation.md)
