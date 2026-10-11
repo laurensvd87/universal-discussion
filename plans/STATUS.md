@@ -1,5 +1,14 @@
 # Project status
 
+**2026-10-11 local service restored after owner-reported outage:**
+No listener or matching project Node process was running. The normal CLI is
+running again on `127.0.0.1:4174` with the existing extension Origin, pairing and
+account configuration. Authenticated health, catalog and ChatGPT status reads
+return HTTP 200; durable pairing works and ChatGPT is connected. The catalog
+contains 166 Sources and 208 Topics. No data reset, token rotation, permission
+change, inference or remote deployment; raw debug remains off. Reopen the panel
+to reconnect. This restores the current local experiment, not a shared pilot.
+
 **2026-10-11 low-cost remote pilot explored; Cloudflare/AWS comparison ready:**
 The owner considers skipping home hosting if remote operation costs a few euros.
 [BACKEND_HOSTING_PLAN](BACKEND_HOSTING_PLAN.md#low-cost-cloud-pilot) and ADR-092

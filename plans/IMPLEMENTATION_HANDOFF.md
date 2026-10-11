@@ -1,5 +1,14 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 latest owner-reported service outage is resolved: no listener/project
+Node process was running; normal CLI restarted on the existing loopback port
+and Origin. Paired health/catalog/ChatGPT status reads return 200; saved pairing
+works, ChatGPT is connected, catalog has 166 Sources/208 Topics. Normal accounts
+remain enabled, email and raw debug disabled; no reset/rotation/inference/remote
+activation. Reopen the panel. Service is a running local process, not an installed
+auto-start service; check the listener before restarting again. Cloud-hosting
+selection and public-pilot gates below remain open.
+
 2026-10-11 latest owner explores a cheap cloud pilot instead of home hosting,
 then specifically asks about Cloudflare/AWS scaling. Read updated
 BACKEND_HOSTING_PLAN#low-cost-cloud-pilot and ADR-092: cheap EU VPS is proposed
