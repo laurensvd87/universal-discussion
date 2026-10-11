@@ -10,6 +10,20 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The local service now filters learned related-page candidates at E5 cosine
+**0.88** (previously 0.85). This removes the diagnosed unrelated Meross listing
+while keeping the eBay coupling candidate. It does not change Ridge1 same-Topic
+grouping or recover historical threads from related Sources. The running service
+has been restarted and checked; pairing, ChatGPT login and saved posts remain.
+[ADR-088](decisions/ADR-088-related-e5-floor-088.md).
+
+Real accounts are **planned, not implemented**. The
+[account plan](plans/ACCOUNTS_PLAN.md) covers reading without login, email-code
+or eligible ChatGPT sign-in, a username, persistent app sessions and optional
+reply emails that exclude one's own deliberately triggered AI answers. Start
+with local synthetic accounts and fake email; real identity/mail/hosting remain
+separate activation gates.
+
 Extension **0.13.46** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,

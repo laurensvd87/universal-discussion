@@ -1,5 +1,29 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 ADR-088 complete: owner-selected learned **E5 related floor 0.88**,
+not Ridge1 same-Topic floor 0.8639003810829322. Only service related retrieval
+changes; confirmed-Topic override, model/extractor checks, synthetic defaults,
+canonical mappings, posts and authority remain. Sol Medium focused 28 pass;
+full service 439 pass/four optional skips; root related/context checks 61 pass.
+Secrets service 631/extension 196 files, zero findings; diff passes. Graceful
+verified service restart preserves Origin/pairing/SQLite/protected login after
+no pending work. Live paired read: eBay included, Detrius Meross excluded, one
+candidate, revision 666 unchanged, ChatGPT connected. No inference; extension
+still 0.13.46. Historical related-Source thread omission remains separate.
+
+Next requested account work is **planned, not implemented/activated** in
+ACCOUNTS_PLAN.md and ADR-089. Prefer email code + username; optional eligible
+identity-only ChatGPT, own app sessions separate from pairing/AI grants; public
+read projection without app login, no global catalog/diagnostic exposure.
+Optional verified reply mail uses canonical parent owner and server-derived
+initiating-account provenance to suppress own AI; post/outbox atomic, fake sink
+first. Independent planning review passes. Existing single-table SQLite needs
+explicit migration; static demo actors and global AI connection are not real-user
+auth. Never assign legacy posts to first signup or publish `local-public` data.
+No real-account/email/provider/deployment gate is waived by this plan. Offline
+fixture slices precede reviewed exact activation packages. Do not repeat Phase 0
+or the completed six-pair owner review.
+
 2026-10-11 relatedness diagnosis only: fittingstore Source now exists after owner
 visit. Related API uses raw E5 floor 0.85, not Ridge. eBay coupling 0.899432/rank 1;
 unrelated Detrius Meross 0.853251/rank 6 qualifies. Ridge scores respectively

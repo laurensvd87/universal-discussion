@@ -1,5 +1,40 @@
 # Project status
 
+**2026-10-11 related threshold and account plan, complete:**
+The owner requests **0.88** following the fittingstore/eBay/Meross diagnosis.
+[ADR-088](../decisions/ADR-088-related-e5-floor-088.md) raises the learned raw-E5
+related-retrieval floor from 0.85 to 0.88; installed Ridge1 same-Topic weights/
+floor, canonical grouping, confirmed mappings and existing posts are unchanged.
+This is a related-candidate trade-off, not model calibration or proof of identity.
+The separate historical-related-thread omission remains unfixed.
+
+Sol Medium implementation and root review: focused learned/domain **28 pass**;
+full capability-denied service **439 pass/four optional skips**; independent
+related/context/learned checks **61 pass**. Secret scans: **631 service files**
+and **196 extension files**, zero findings. Normal diff check passes.
+The verified project listener is gracefully stopped after no pending OAuth/
+Insight work, then restarted on the same loopback port/exact extension Origin.
+Authenticated read-only live check: **eBay included, unrelated Detrius Meross
+excluded**, one candidate, catalog revision **666** unchanged. Pairing is valid
+and protected ChatGPT sign-in restores; no inference or new login is requested.
+Extension remains **0.13.46**; no client reload/version bump is needed for this
+backend parameter change. Owner-side feed display is not inspected.
+
+[ACCOUNTS_PLAN](ACCOUNTS_PLAN.md) and
+[ADR-089](../decisions/ADR-089-account-and-reply-email-plan.md) specify the requested
+account increment: anonymous public-discussion reading, passwordless email code
+or eligible identity-only ChatGPT login, unique username, independent renewable
+app sessions, account-owned human/AI posts and optional verified-address reply
+email. Direct-parent recipients and trusted invoking-account provenance suppress
+self-triggered AI mail; an atomic deduplicated outbox uses fake delivery first.
+Independent architecture/Trust planning review finds no blocking/major issue;
+enumeration-safe responses and atomic code consumption/session issuance are explicit.
+This is **planning only**: no real accounts, provider registration, mail delivery,
+schema migration, anonymous API exposure, owner-data ownership transfer, hosting
+or publication. ChatGPT identity availability/registration must be confirmed;
+email remains independent. Existing lifecycle/rights/provider/deployment gates
+remain, without repeating Phase 0 or the finished synthetic owner review.
+
 **2026-10-11 fittingstore/eBay/Meross relatedness diagnosis (no runtime change):**
 After the owner reload/visit, fittingstore is present as a learned Source, confirming
 that the earlier reader veto no longer prevents ingestion. The owner reports an

@@ -72,7 +72,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
           id: entry.id, url: entry.url, title: entry.title, embedding: entry.embedding,
           topicId: state.sourceLinks.find((link) => link.sourceId === entry.id && link.method === "manual-confirmed")?.topicId ?? null,
         }));
-        const results = rankRelatedSources(candidates.find((entry) => entry.id === sourceId), candidates, { limit, minSimilarity: 0.85 }).map(
+        const results = rankRelatedSources(candidates.find((entry) => entry.id === sourceId), candidates, { limit, minSimilarity: 0.88 }).map(
           ({ id, url, title, relationship, method }) => ({ id, url, title, topicId: topicIdFor(state, id), relationship, method }),
         );
         return frozenClone({ version: version(state), model: { id: BROWSER_MODEL_ID, status: "experimental-local" }, results });

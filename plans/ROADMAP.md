@@ -1,9 +1,17 @@
 # Product-first roadmap
 
-Updated: 2026-10-10. Governing decisions: ADR-014/015/016. Browser extension first;
+Updated: 2026-10-11. Governing decisions: ADR-014/015/016. Browser extension first;
 readable web conversations next, then Android and iOS, sharing Topic/discussion
 contracts (owner-confirmed sequencing on 2026-09-29). Core model:
 `Content -> Semantic Topic -> Discussion`.
+
+2026-10-11 retrieval/account checkpoint: ADR-088 raises learned E5 related
+retrieval to 0.88, with Ridge1 membership/canonical authority unchanged. Tested
+and active in the restarted local service; historical related-Source discussions
+remain separate work. The owner requests a lean account plan, now in
+[ACCOUNTS_PLAN](ACCOUNTS_PLAN.md)/ADR-089: guest reading, email-code or eligible
+ChatGPT identity login, username, account-owned posting and optional reply mail
+excluding self-triggered AI responses. Planning is not activation approval.
 
 2026-10-10 browser surface checkpoint (0.13.31): owner-approved ADR-074 replaces
 the floating popup with a native persistent discussion sidebar, using the
@@ -291,6 +299,13 @@ approval. Hosting, spending and publication approvals remain separate.
 
 Owner: Platform; Trust/Privacy/Policy and Quality/Operations review.
 Dependencies: R1 loop, R2 Source contracts; R3 optional (human-only works).
+
+The [account implementation slices](ACCOUNTS_PLAN.md) sequence local synthetic
+principals/sessions, passwordless UI with fake mail, optional identity-only
+ChatGPT protocol tests and an atomic notification outbox before live activation.
+Do not expose the full browsing catalog to obtain guest discussion reads or
+guess real ownership of legacy demo posts. Real identity/email gates and the
+deployment/rights prerequisites below still apply.
 
 Extend R1's existing local service, not a second backend. Keep one modular service,
 a repository boundary and replaceable matcher; SQLite is the local prototype

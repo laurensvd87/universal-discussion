@@ -8,6 +8,16 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current implemented request (2026-10-11, ADR-088): learned original-E5 related
+retrieval floor is 0.88 (was 0.85); Ridge1 same-Topic coefficients/floor and
+canonical grouping are unchanged. Tests and live paired read pass after normal
+service restart; pairing/protected login/posts preserved, extension 0.13.46.
+Historical related-Source thread retrieval remains unfixed. ADR-089 and
+plans/ACCOUNTS_PLAN.md are the owner's requested **account plan only**, not real
+auth/mail/anonymous API/deployment activation. Keep app accounts separate from
+device pairing and AI grants; never guess demo-post ownership. Read top STATUS/
+HANDOFF before older threshold/account notes.
+
 Current implemented approval (2026-10-11, ADR-087, 0.13.46): optional title search
 stops at 256 head elements without vetoing eligible content; existing empty-title/
 hostname fallback, HEAD discovery, shared budgets/exclusions and document checks

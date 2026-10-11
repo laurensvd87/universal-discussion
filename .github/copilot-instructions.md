@@ -2,6 +2,13 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current implemented request (2026-10-11, ADR-088): learned E5 related retrieval
+floor 0.88 replaces 0.85; Ridge1 same-Topic policy/canonical writes unchanged.
+Service tests and live paired reads pass; normal restart preserves pairing,
+login and data. Extension remains 0.13.46. ADR-089/ACCOUNTS_PLAN.md are planning
+only: no real accounts/mail, guest catalog exposure, guessed demo ownership,
+provider/deployment activation or new public scope. Read current STATUS/HANDOFF.
+
 Current implemented approval (2026-10-11, ADR-086, 0.13.45): optional local reply-language,
 native Chrome UI-language hint and manually chosen delivery-country/currency
 preferences accompany deliberate Insight/reply requests only. English default;

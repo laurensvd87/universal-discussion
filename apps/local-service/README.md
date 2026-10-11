@@ -1,5 +1,18 @@
 # Local service
 
+2026-10-11: learned E5 **related-page retrieval now uses >=0.88**, previously
+0.85 ([ADR-088](../../decisions/ADR-088-related-e5-floor-088.md)). Confirmed
+same-Topic overrides remain. Ridge1 weights/same-Topic floor, canonical grouping,
+existing mappings and posts are unchanged. Restart the service to load this
+backend-only parameter change; the owner service is already restarted/verified,
+with valid saved pairing and restored protected ChatGPT sign-in. No extension
+reload, provider inference or page revisit is necessary. This does not repair
+historical discussion loading for related Sources.
+
+The [accounts/reply-email plan](../../plans/ACCOUNTS_PLAN.md) is documentation,
+not runtime auth. Current synthetic actors and pairing remain; no anonymous
+catalog exposure, real signup, email sending or automatic ownership migration.
+
 Extension **0.13.45** adds owner-approved optional language/market preferences
 ([ADR-086](../../decisions/ADR-086-optional-discussion-language-and-market.md)).
 Deliberate Insight/reply requests may include strictly validated `preferences`:
@@ -442,7 +455,7 @@ as independent support. Such a split keeps a tighter >=0.94 boundary through a
 bounded `retainTight` flag on its learned Topics, including after support is
 removed. Incoherent old provisional groups may split. Explicit manual Source
 links stay pinned and cannot expand automatically. Related-reading suggestions
-still use >=0.85. These cutoffs are not semantic equivalence, event/stance
+now use >=0.88 under ADR-088. These cutoffs are not semantic equivalence, event/stance
 verification, confidence or real-page matching-quality evidence. The earlier
 `provisional-all-source-cosine/v1` receipts and stored records remain valid.
 Unknown extractor/model/policy versions remain rejected; scores/vectors never

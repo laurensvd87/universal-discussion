@@ -90,6 +90,38 @@ test("learned pages share a provisional Topic and existing comments without movi
   assert.equal(repository.load().sources.length, SYNTHETIC_SOURCES.length + 3);
 });
 
+test("learned related retrieval includes the 0.88 boundary and stronger candidates only", () => {
+  const { service, repository } = setup();
+  // The offset keeps the normalized floating-point boundary cosine exactly 0.88.
+  const angle = 0.01;
+  const query = service.ingest(input(service, "related-query", angle));
+  const similarities = [0.85, 0.853251092638, 0.87, 0.879999, 0.88, 0.880001, 0.899431954782];
+  const candidates = similarities.map((similarity, index) => ({ similarity,
+    ...service.ingest(input(service, `related-cutoff-${index}`, angle + Math.acos(similarity))),
+  }));
+  const before = repository.load();
+  const related = service.related(query.sourceId, 100);
+  assert.deepEqual(related.results.map((entry) => entry.id), candidates
+    .filter(({ similarity }) => similarity >= 0.88).reverse().map(({ sourceId }) => sourceId));
+  assert.ok(related.results.every((entry) => entry.relationship === "related" && entry.method === "vector-similarity"));
+  assert.ok(related.results.every((entry) => !Object.hasOwn(entry, "similarity") && !Object.hasOwn(entry, "embedding")));
+  assert.deepEqual(repository.load(), before);
+});
+
+test("learned related retrieval preserves manually confirmed same-Topic associations below the cutoff", () => {
+  const service = demoService();
+  const query = service.ingest(input(service, "related-confirmed-query"));
+  const candidate = service.ingest(input(service, "related-confirmed-candidate", Math.PI / 2));
+  assert.deepEqual(service.related(query.sourceId, 100).results, []);
+  command(service, { type: "correct-source", sourceId: query.sourceId, topicId: query.topicId });
+  command(service, { type: "correct-source", sourceId: candidate.sourceId, topicId: query.topicId });
+  assert.deepEqual(service.related(query.sourceId, 100).results, [{
+    id: candidate.sourceId, url: "https://example.com/articles/related-confirmed-candidate",
+    title: "Invented page related-confirmed-candidate", topicId: query.topicId,
+    relationship: "same-topic", method: "confirmed-topic",
+  }]);
+});
+
 test("ingestion retains one current source/receipt, repeats idempotently and fences stale writes/reset", () => {
   const { service, repository } = setup();
   const request = input(service, "repeat");
