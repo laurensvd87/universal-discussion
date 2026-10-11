@@ -1,5 +1,33 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 ADR-090 isolated account package complete and Trust-reviewed. Read
+ACCOUNTS_PLAN.md implementation checkpoint and src/accounts/README before work.
+Strict standalone SQLite, code/username/session foundation, optional paired
+account routes, injected client/controller/compact sheet and fake reply outbox
+are implemented. Normal CLI/panel remain unchanged, no real account collection,
+mail/provider request, owner DB migration or inferred demo ownership. A1/A2/A4
+are partial; canonical post/principal bridge, shared owner-store migration,
+rights/recovery, public read projection, browser credential persistence, identity-
+only ChatGPT and real delivery are not implemented. Do not equate fixture post/
+outbox callback atomicity with existing demo-command integration.
+
+Full service 474 pass/four optional skips; restricted extension 1,190 pass;
+focused account/package/boundary 41 pass. Independent Trust 35 service/API plus
+30 controller/sheet pass, actual rotation/logout reproductions safe. Root Chrome
+QA uses fresh profile/anonymous CDP pipes and intercepted requests through the
+real in-process handler; five account requests, zero runtime errors, names/settings/
+revocation/draft/focus/320px/reduced-motion pass. Screenshots known Temp only.
+Secrets 641 service/207 extension files, zero findings. Logout can revoke expired
+exact retained access; rotation refresh lifetime is rolling 30 days. Epoch/save/
+pending-revocation fencing prevents late reconnects. Cancelling rotation may
+require login again. Terminal outbox cleanup and unsubscribe HTTP route open.
+
+Next integration must keep legacy posts unclaimed and pairing mandatory for local
+browsing/catalog/provider routes. Review rights/ownership/migration rollback and
+the precise real-identity/durable-browser-storage package before activation.
+Do not activate email/OAuth/hosting under a generic implementation instruction.
+Existing service and extension remain 0.13.46; no owner restart/reload required.
+
 2026-10-11 ADR-088 complete: owner-selected learned **E5 related floor 0.88**,
 not Ridge1 same-Topic floor 0.8639003810829322. Only service related retrieval
 changes; confirmed-Topic override, model/extractor checks, synthetic defaults,

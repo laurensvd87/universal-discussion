@@ -1,7 +1,36 @@
 # Accounts and reply notifications: lean implementation plan
 
-Date: 2026-10-11. Status: planned, not implemented.
-Decision: [ADR-089](../decisions/ADR-089-account-and-reply-email-plan.md).
+Date: 2026-10-11. Status: isolated foundation implemented; live integration pending.
+Decisions: [ADR-089](../decisions/ADR-089-account-and-reply-email-plan.md),
+[ADR-090](../decisions/ADR-090-isolated-account-foundation.md).
+
+## Implementation checkpoint
+
+- **A1, partial:** strict versioned isolated SQLite, persistent username/private
+  verified fixture address, nonce-bound single-use email code, rate limits,
+  keyed verifiers, rotating/revocable sessions and paired optional API work.
+  Existing owner-store migration and canonical post/principal bridge do not.
+- **A2, partial:** reusable English login/profile sheet, injected bounded client,
+  draft-preserving interaction preview, logout, reply-email switch, resend,
+  accessibility and stale-result/storage fencing work. Synthetic mail only;
+  owner-panel wiring and protected browser-restart persistence remain.
+- **A3:** not implemented; no ChatGPT account-login button is shown when the
+  optional identity capability is absent. Existing inference login is unchanged.
+- **A4, partial:** fake notification outbox/worker, recipient/provenance policy,
+  transactional callback, deduplication, opt-out rechecks, coalescing, leases,
+  bounded retries and signed off-only unsubscribe work. No canonical demo-command
+  integration, real transport, unsubscribe HTTP endpoint or terminal-row cleanup.
+- **A5:** not implemented; rights/access/deletion/recovery, real-user ownership,
+  public read projections, per-account AI grants and migration rehearsal remain.
+
+Independent Trust passes; full service 474 pass/four optional skips, restricted
+extension 1,190 pass. Real isolated Chrome proves email/code/username/preference/
+logout through the actual in-process handler, draft preservation with no automatic
+post, stable input/focus, responsive 320px layout and reduced motion. No real
+user/mail, owner-store write or listener.
+See [module documentation](../apps/local-service/src/accounts/README.md).
+Existing app stays on its synthetic identities until the exact activation package
+is reviewed and approved; do not silently assign their posts to a new account.
 
 ## Product flow
 
@@ -14,8 +43,9 @@ Offer **Continue with email** and, where supported, **Continue with ChatGPT**.
 For email, send a short-lived code to the address and enter it in the same sheet;
 no password, reset-password flow or mandatory browser-tab round-trip. After first
 verification, choose a suggested available username, then return to the composer.
-Existing users skip username setup. The account stays signed in across ordinary
-panel/browser restarts using renewable, revocable app sessions.
+Existing users skip username setup. The final account flow stays signed in across
+ordinary panel/browser restarts using renewable, revocable app sessions. Browser
+credential persistence is not yet wired in the isolated package.
 
 Use a small profile icon in Settings for username, linked sign-in methods,
 reply-mail preference, logout and account/privacy controls. English UI uses

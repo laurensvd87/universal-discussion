@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current accounts (2026-10-11, ADR-090): the owner requests professional account
+implementation. The isolated synthetic account/session SQLite, paired optional
+API, injected login sheet/controller/client and fake notification outbox are
+implemented/Trust/Chrome-tested. They are not activated in normal CLI/panel.
+Read top STATUS/HANDOFF and ACCOUNTS_PLAN checkpoint before continuing. No real
+address/email/provider identity, owner-store migration, canonical post/principal
+bridge, protected browser persistence or rights route exists yet. Never guess
+legacy ownership or mistake callback fixture atomicity for demo-command wiring.
+Keep exact activation/provider/storage/migration/publication gates. Code agents
+use GPT-6.1 Sol, ordinarily Medium; root integrates and independently reviews.
+
 Current implemented request (2026-10-11, ADR-088): learned original-E5 related
 retrieval floor is 0.88 (was 0.85); Ridge1 same-Topic coefficients/floor and
 canonical grouping are unchanged. Tests and live paired read pass after normal

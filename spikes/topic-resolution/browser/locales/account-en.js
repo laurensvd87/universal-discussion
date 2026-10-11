@@ -1,0 +1,14 @@
+export const accountEnglish = Object.freeze({
+  emailTitle: "Join the conversation", emailHint: "Sign in to post and reply.", email: "Email address",
+  continueEmail: "Continue with email", continueChatGPT: "Continue with ChatGPT", codeTitle: "Check your email",
+  codeHint: "Enter the six-digit code sent to", code: "Verification code", verify: "Continue",
+  resend: "Send a new code", editEmail: "Change email", usernameTitle: "Choose your username",
+  usernameHint: "This is how you appear in discussions.", username: "Username", saveUsername: "Save username",
+  profileTitle: "Your account", replyEmail: "Email me about replies", replyHint: "Only direct replies to your posts.",
+  logout: "Sign out", close: "Close", busy: "Please wait…", done: "You're signed in. Your draft is ready.",
+  emailInvalid: "Enter a valid email address.", codeInvalid: "Enter the six-digit code.",
+  usernameInvalid: "Use 3–24 letters, numbers or underscores.", username_taken: "That username is taken. Try another.",
+  username_reserved: "Choose another username.", code_expired: "This code expired. Send a new one.",
+  code_invalid: "That code did not work. Try again.", rate_limited: "Please wait before trying again.",
+  session_expired: "Please sign in again.", unavailable: "Couldn't complete that. Please try again.",
+});

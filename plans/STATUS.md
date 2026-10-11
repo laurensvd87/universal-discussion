@@ -1,5 +1,46 @@
 # Project status
 
+**2026-10-11 professional account implementation, first isolated package complete:**
+The owner requests implementation of ADR-089. [ADR-090](../decisions/ADR-090-isolated-account-foundation.md)
+records the tested synthetic boundary: strict isolated SQLite, persisted accounts/
+unique usernames/private fixture addresses, nonce-bound single-use email codes,
+keyed verifiers, persisted rate limits, rotating/revocable app sessions and paired
+optional account API. Default service composition does not expose these routes.
+No owner-store migration or demo-post ownership is inferred. App identity stays
+separate from device pairing and the existing ChatGPT inference grant.
+
+The reusable English sheet/client/controller has compact email/code/username/
+profile steps, a reply-mail switch, focus trap/restore, inert background, stable
+inputs, responsive 320px layout and reduced-motion-aware transitions. Credentials
+are outside rendered state; delayed verification/save/rotation results cannot
+restore a cancelled/logged-out account. Protected browser persistence and normal
+panel wiring remain unimplemented. ChatGPT identity capability is absent/hidden.
+
+Fake-only reply outbox resolves direct-parent ownership and trusted AI initiator,
+suppresses self/own-AI mail, deduplicates transactionally and rechecks live
+eligibility/address/preferences before delivery. Leases/coalescing/caps/bounded
+non-delivery retries and signed off-only unsubscribe are tested. Callback
+atomicity is proven only in fixture SQL, not the unchanged demo commands. No real
+mail or HTTP unsubscribe route; terminal outbox retention is not implemented.
+
+GPT-6.1 Sol Medium slices plus independent Trust pass after strict schema-object,
+expired-access logout and same-tick rotation/sign-out fixes. Full service
+**474 pass/four optional skips**; restricted extension **1,190 pass**. Focused
+account/package/boundary **41 pass**; independent service/API **35 pass** and
+controller/sheet **30 pass**. Secret scans **641 service/207 extension files**,
+zero findings. Real isolated Chrome QA passes: five intercepted real in-process
+account requests, no listener/provider/real email, zero runtime errors, persisted
+fixture username/preference, logout revocation, preserved draft/no automatic post,
+typing/focus/accessibility/reduced-motion and no 320px overflow. Root reviews
+390/320 screenshots in `%TEMP%\udl-account-design-review` (not Git).
+
+Current app remains **0.13.46** with synthetic posting. No reload/restart needed
+for this inert package; owner `demo.sqlite`, pairing and ChatGPT connection are
+untouched. Next: reviewed canonical principal/post/rights integration and owner
+store migration plus exact real-account activation/credential storage approval.
+Real mail/provider identity/hosting/publication remain separately gated. See
+[ACCOUNTS_PLAN](ACCOUNTS_PLAN.md) for implemented-versus-open slices.
+
 **2026-10-11 related threshold and account plan, complete:**
 The owner requests **0.88** following the fittingstore/eBay/Meross diagnosis.
 [ADR-088](../decisions/ADR-088-related-e5-floor-088.md) raises the learned raw-E5

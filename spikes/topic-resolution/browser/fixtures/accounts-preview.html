@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Account interaction preview</title><link rel="stylesheet" href="accounts-preview.css"><link rel="stylesheet" href="../chromium/account-sheet.css"></head>
+<body><main class="preview-surface">
+<header><span class="brand">◈ <span>Discussion</span></span><button id="preview-account" aria-label="Open account">Sign in</button></header>
+<div class="preview-kicker">INTERACTION PREVIEW</div>
+<section class="preview-feed" aria-label="Discussion">
+<article class="preview-message"><div class="preview-author"><span class="avatar">J</span><strong>Jamie</strong><time>2m</time></div>
+<p>Reading different sources is useful. Having the conversation in one place makes it much easier to compare them.</p><button class="reply-action" id="preview-reply">Reply</button></article>
+<article class="preview-message alternate"><div class="preview-author"><span class="avatar">M</span><strong>Morgan</strong><time>Just now</time></div>
+<p>Exactly. I'd like to hear what other people noticed, not just another summary.</p></article>
+</section>
+<form class="preview-composer"><label for="preview-draft" class="sr-only">Start a conversation</label><textarea id="preview-draft" placeholder="What do you think?" rows="2"></textarea><div class="composer-actions"><span id="preview-status" role="status">Read freely. Join when you want to reply.</span><button id="preview-post" type="submit" aria-label="Post message">↑</button></div></form>
+</main><script type="module" src="accounts-preview.js"></script></body></html>

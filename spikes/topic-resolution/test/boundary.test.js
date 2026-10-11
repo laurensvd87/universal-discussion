@@ -29,11 +29,15 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       ].map(async (directory) =>
         (await readdir(directory))
           .filter((name) => name.endsWith(".js"))
+          // Standalone DOM-bound QA screen is checked in account-preview-package;
+          // unlike these pure modules it imports the separately tested sheet.
+          .filter((name) => name !== "accounts-preview.js")
           .map((name) => path.join(directory, name)),
       ),
     )
     ).flat(),
     canonicalJsonPath,
+    path.join(packageDirectory, "browser", "locales", "account-en.js"),
   ].sort();
   const runtimeFileSet = new Set(runtimeFiles.map((file) => path.resolve(file)));
   assert.deepEqual(
@@ -41,6 +45,8 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       path.relative(packageDirectory, file).replaceAll("\\", "/"),
     ),
     [
+      "browser/core/account-client.js",
+      "browser/core/account-controller.js",
       "browser/core/active-tab-controller.js",
       "browser/core/active-tab-policy.js",
       "browser/core/background-matcher.js",
@@ -70,6 +76,7 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       "browser/fixtures/indicator-fixtures.js",
       "browser/fixtures/local-service-fixture-bridge.js",
       "browser/fixtures/related-source-fixtures.js",
+      "browser/locales/account-en.js",
       "evaluation/canonical-json.js",
       "extraction/html-extraction.js",
       "src/errors.js",

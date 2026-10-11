@@ -2,11 +2,12 @@ import { timingSafeEqual } from "node:crypto";
 import { ServiceError, fail } from "../domain/errors.js";
 import { readRecord } from "../domain/validation.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
+import { mapAccountError, routeAccountRequest } from "../accounts/account-routes.js";
 
 export const MAX_BODY_BYTES = 65_536;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
 
-export function createRequestHandler({ service, config, ai = null, pairingVerifier = null }) {
+export function createRequestHandler({ service, config, ai = null, pairingVerifier = null, accounts = null }) {
   return async function handle(request) {
     let corsOrigin = null;
     try {
@@ -18,9 +19,16 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         ai.callback(`http://${config.hostHeader}${normalized.url.pathname}${normalized.url.search}`);
         return callbackResponse(normalized.url.searchParams.has("error") && !normalized.url.searchParams.has("code"));
       }
-      if (normalized.method === "OPTIONS") return preflight(normalized, config);
+      if (normalized.method === "OPTIONS") return preflight(normalized, config, accounts !== null);
       corsOrigin = requireOrigin(normalized.headers, config.origin);
       requireCapability(normalized.headers.authorization, config.capability, pairingVerifier);
+      if (accounts !== null && normalized.url.pathname.startsWith("/v1/account/")) {
+        // Account credential handling requires the configured browser Origin;
+        // existing owner service composition never injects an account adapter.
+        if (normalized.headers.origin !== config.origin) fail("origin", "Request unavailable");
+        const response = routeAccountRequest(normalized, accounts);
+        return jsonResponse(response.status, response.value, corsOrigin);
+      }
       const response = await route(normalized, service, ai, pairingVerifier !== null);
       return jsonResponse(response.status, response.value, corsOrigin);
     } catch (error) {
@@ -83,13 +91,14 @@ function requireCapability(authorization, expected, pairingVerifier) {
   if (supplied.length !== wanted.length || !timingSafeEqual(supplied, wanted)) fail("unauthorized", "Authentication required");
 }
 
-function preflight(request, config) {
+function preflight(request, config, accountsEnabled = false) {
   if (request.headers.origin !== config.origin) fail("origin", "Request unavailable");
   const method = request.headers["access-control-request-method"];
   if (!method || !["GET", "POST"].includes(method)) fail("origin", "Request unavailable");
   const requested = (request.headers["access-control-request-headers"] ?? "")
     .split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
-  if (requested.some((header) => !ALLOWED_PREFLIGHT_HEADERS.has(header))) fail("origin", "Request unavailable");
+  if (requested.some((header) => !ALLOWED_PREFLIGHT_HEADERS.has(header) &&
+      !(accountsEnabled && header === "x-account-session" && request.url.pathname.startsWith("/v1/account/")))) fail("origin", "Request unavailable");
   return {
     status: 204,
     headers: {
@@ -205,6 +214,8 @@ function jsonResponse(status, value, origin = null) {
 }
 
 function mapError(error) {
+  const accountError = mapAccountError(error);
+  if (accountError) return accountError;
   if (!(error instanceof ServiceError)) return { status: 500, label: "internal" };
   const mapping = {
     invalid: [400, "invalid-request"], method: [400, "invalid-request"],

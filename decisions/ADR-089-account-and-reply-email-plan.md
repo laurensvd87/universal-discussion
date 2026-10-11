@@ -1,7 +1,7 @@
 # ADR-089: Low-friction accounts and reply-email plan
 
 Date: 2026-10-11.
-Status: proposed implementation design; account planning requested by owner.
+Status: owner requests implementation; isolated foundation implemented in ADR-090.
 No real-account/provider/email/deployment activation is approved by this plan.
 
 ## Requested product behavior
@@ -11,8 +11,10 @@ reading without an account, and optional email for replies except responses
 deliberately requested through the recipient's own AI.
 
 The executable slices, UI flow, notification rules, tests and activation gates
-are in [ACCOUNTS_PLAN](../plans/ACCOUNTS_PLAN.md). This records a plan, not an
-implemented account system or a new provider grant.
+are in [ACCOUNTS_PLAN](../plans/ACCOUNTS_PLAN.md). The tested account/session,
+login-sheet and fake-mail outbox package is recorded in
+[ADR-090](ADR-090-isolated-account-foundation.md). It is not activated for real
+accounts in the running owner service and does not confer a new provider grant.
 
 ## Recommended design
 

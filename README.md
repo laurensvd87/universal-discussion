@@ -17,12 +17,16 @@ grouping or recover historical threads from related Sources. The running service
 has been restarted and checked; pairing, ChatGPT login and saved posts remain.
 [ADR-088](decisions/ADR-088-related-e5-floor-088.md).
 
-Real accounts are **planned, not implemented**. The
-[account plan](plans/ACCOUNTS_PLAN.md) covers reading without login, email-code
-or eligible ChatGPT sign-in, a username, persistent app sessions and optional
-reply emails that exclude one's own deliberately triggered AI answers. Start
-with local synthetic accounts and fake email; real identity/mail/hosting remain
-separate activation gates.
+The **isolated account foundation is implemented and tested**: email-code login,
+SQLite accounts/usernames, rotating app sessions, a compact accessible login/
+profile sheet and a fake reply-mail outbox that excludes one's own triggered AI
+answers. It is **not yet activated in the normal extension/service**. Real
+identity/mail, canonical post ownership, durable browser credentials and optional
+ChatGPT account login remain separate integration work. Existing posts and
+pairing are untouched. See the [account plan](plans/ACCOUNTS_PLAN.md) and
+[module/preview instructions](apps/local-service/src/accounts/README.md).
+Isolated Chrome QA exercises the real in-process account handler without opening
+a listener or sending mail; the manual interaction preview uses synthetic data.
 
 Extension **0.13.46** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
