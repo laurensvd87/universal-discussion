@@ -1,5 +1,22 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 relatedness diagnosis only: fittingstore Source now exists after owner
+visit. Related API uses raw E5 floor 0.85, not Ridge. eBay coupling 0.899432/rank 1;
+unrelated Detrius Meross 0.853251/rank 6 qualifies. Ridge scores respectively
+0.851214/0.778213; installed same-Topic floor 0.863900 leaves fittingstore singleton.
+No model/threshold retuning or claim of identity/probability. Shop-boilerplate
+contamination is a hypothesis without retained-text evidence.
+
+Related discussion loader fetches only candidate current Topic: eBay zero visible
+roots, prior endpoint four roots across three older Topics; Detrius one current visible root.
+Earlier-Source reads apply only to active Source, so older eBay threads disappear
+from related feed although eBay is first related candidate. Default pure Insight
+projection selects eBay alone; actual owner toggles/provider context not inspected.
+Read-only authenticated APIs/SQLite and independent Sol Medium review, 59 tests
+pass; no writes/provider/restart/logging scope. Proposed fixes are consistent
+related ranking and read-only historical discussions of related Sources; not
+implemented. Preserve canonical write/generation authority and existing posts.
+
 2026-10-11 ADR-087 complete (0.13.46): owner-approved optional title search cap
 256 no longer vetoes eligible content. Stop before reading sibling 257; existing
 empty-title/hostname fallback and HEAD discovery remain. Shared time/node/text,

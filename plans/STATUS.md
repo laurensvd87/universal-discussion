@@ -1,5 +1,37 @@
 # Project status
 
+**2026-10-11 fittingstore/eBay/Meross relatedness diagnosis (no runtime change):**
+After the owner reload/visit, fittingstore is present as a learned Source, confirming
+that the earlier reader veto no longer prevents ingestion. The owner reports an
+unrelated Meross discussion but missing eBay coupling context. Read-only catalog,
+related/alternate/prior/discussion API and SQLite snapshot checks explain two paths.
+
+Related retrieval still uses original E5 cosine, floor **0.85**, not the Ridge1
+discussion projection. Fittingstore/eBay scores **0.899432**, rank **one**; the
+unrelated Detrius Meross listing scores **0.853251**, rank **six**, thus qualifies.
+Its Ridge score is **0.778213**, versus eBay **0.851214**. Ridge's installed
+same-Topic floor is **0.863900**, so fittingstore remains a singleton; no weights,
+thresholds or closed evaluation cohorts were changed. Scores are similarities,
+not probabilities or semantic identity. Product identity is not checked in the
+related ranker; shop boilerplate as a cause remains unverified, not diagnosed.
+
+The related-discussion loader reads each candidate's current canonical Topic and
+skips empty discussions. eBay's current Topic has **zero visible roots**, while
+its prior-Source endpoint reports **four visible roots in three older Topics**.
+Those historical eBay discussions are not loaded when eBay is a related candidate;
+earlier-thread loading currently covers only the active Source. Detrius has **one
+visible current root** and therefore appears. This explains the visible feed
+omission despite eBay's first-place related retrieval; no owner panel was inspected.
+Pure default Insight selection independently selects eBay alone, not Meross;
+the owner's actual toggles/job/provider context were not inspected or dispatched.
+
+Independent GPT-6.1 Sol Medium call-path review and **59 related/context/learned
+tests pass**. All checks are read-only, with no provider call, ingestion, post
+mutation, retention/logging activation or service restart. Suggested next work:
+consistent topic-aware related ranking and read-only prior-Source discussions for
+related candidates, preserving canonical routing and write authority. No fix is
+implemented in this diagnosis; any extraction/content expansion stays separate.
+
 **2026-10-11 optional-title fix and quiet discussion status, complete (0.13.46):**
 The owner approves [ADR-087](../decisions/ADR-087-bounded-optional-title-and-quiet-discussion-status.md).
 Optional title inspection stops at 256 head elements without rejecting eligible
