@@ -34,8 +34,13 @@ const COLLECTOR_CASES = [
     body: `<main><p>${'A'.repeat(4096)}</p>${'<p>Owned unused tail</p>'.repeat(1600)}</main>` },
   { name: 'genuine-node-limit', unsupported: true, reason: 'capture-node-budget',
     body: `<main>${'<!-- owned structural step -->'.repeat(10001)}<p>Owned unreachable tail</p></main>` },
-  { name: 'genuine-head-limit', unsupported: true, reason: 'capture-head-budget',
-    beforeTitle: '<meta name="owned-unused" content="fixture">'.repeat(256) },
+  { name: 'title-at-head-element-256', beforeTitle: '<meta name="owned-unused" content="fixture">'.repeat(254) },
+  { name: 'title-at-head-element-257', expectedTitle: '',
+    beforeTitle: '<meta name="owned-unused" content="fixture">'.repeat(255) },
+  { name: 'large-head-without-title', title: null, expectedTitle: '',
+    head: '<meta name="owned-unused" content="fixture">'.repeat(318) },
+  { name: 'large-head-whitespace-title', title: ' \n\t ', expectedTitle: '',
+    head: '<meta name="owned-unused" content="fixture">'.repeat(318) },
   { name: 'oversized-attribute-rejected', unsupported: true, reason: 'capture-attribute-budget',
     body: `<main class="${'x'.repeat(1025)}"><p>${EXCLUDED_TEXT}</p></main>` },
   { name: 'generic-article-container', body: FALLBACK_BODY, text: FALLBACK_TEXT, extractorVersion: 'article-container-prefix/v1' },
@@ -402,7 +407,8 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     try {
       for (const fixture of COLLECTOR_CASES) {
         stage = `packaged collector ${fixture.name}`;
-        const head = `<meta charset="utf-8">${fixture.beforeTitle ?? ''}<title>${COLLECTOR_TITLE}</title>${fixture.head ?? ''}`;
+        const title = fixture.title === null ? '' : `<title>${fixture.title ?? COLLECTOR_TITLE}</title>`;
+        const head = `<meta charset="utf-8">${fixture.beforeTitle ?? ''}${title}${fixture.head ?? ''}`;
         const body = fixture.body ?? `<main><p>${COLLECTOR_TEXT}</p></main>`;
         await evaluate(`(() => {
           document.head.innerHTML = ${JSON.stringify(head)};
@@ -420,7 +426,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         assert.match(injections[0].documentId, /^[A-Za-z0-9._:-]{1,128}$/u);
         const expected = fixture.unsupported
           ? { contractVersion: 'page-content/1', status: 'unsupported', reason: fixture.reason ?? 'missing-region' }
-          : { contractVersion: 'page-content/1', status: 'collected', url: ARTICLE, title: COLLECTOR_TITLE,
+          : { contractVersion: 'page-content/1', status: 'collected', url: ARTICLE, title: fixture.expectedTitle ?? COLLECTOR_TITLE,
             text: fixture.text ?? COLLECTOR_TEXT, extractorVersion: fixture.extractorVersion ?? 'main-text-prefix/v1' };
         assert.deepEqual(injections[0].result, expected);
         if (!fixture.unsupported) syntheticContentCaptures++;

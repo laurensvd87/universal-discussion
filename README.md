@@ -10,12 +10,18 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.45** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.46** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
 reduced-motion-aware animation. Connection status stays in the header; advanced
 controls live behind the settings icon. Chrome controls left/right placement.
+User Mode uses a compact spinner while discussions load, with short errors at
+the bottom instead of routine matching/fallback notices. Developer Mode retains
+detailed status. The bounded page-title lookup no longer rejects an otherwise
+readable product/article merely because its header has many elements and no
+title; text limits and excluded regions are unchanged. See
+[ADR-087](decisions/ADR-087-bounded-optional-title-and-quiet-discussion-status.md).
 Threads and related discussions scroll above a compact bottom new-thread composer.
 Successful deliberate posts/replies unfold their branch and focus the new message
 once; later refreshes do not take focus away from typing.
@@ -36,8 +42,8 @@ remain read-only at the bottom. See
 [ADR-084](decisions/ADR-084-inline-same-source-thread-routing.md).
 Canonical message sparkles stay visible and re-enable when current-page context
 is ready; unavailable contexts disable generation instead of hiding the action.
-The backend has been restarted for this update; reload the unpacked extension
-to **0.13.45**. Accept the existing `sidePanel`
+This client update needs no backend restart; reload the unpacked extension
+to **0.13.46**. Accept the existing `sidePanel`
 permission if Chrome asks. Existing pairing, login and saved discussions remain.
 Closing the panel does not stop background matching; **Settings → Browsing
 session settings** retains Stop, site exclusions and access removal. An unsent

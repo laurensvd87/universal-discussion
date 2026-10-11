@@ -8,6 +8,16 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current implemented approval (2026-10-11, ADR-087, 0.13.46): optional title search
+stops at 256 head elements without vetoing eligible content; existing empty-title/
+hostname fallback, HEAD discovery, shared budgets/exclusions and document checks
+remain. User feed uses a compact accessible spinner only during real work and
+small bottom real errors, with routine/fallback notices hidden. Keep Developer
+diagnostics, onboarding, detached/failed-write warnings and authority intact.
+Independent/offline and isolated Chrome checks pass; actual public product reader
+failure is corrected without provider/ingestion QA. Client-only, reload extension;
+no backend restart or new scope. Read top STATUS/HANDOFF and ADR-087.
+
 Current implemented approval (2026-10-11, ADR-086, 0.13.45): optional local reply-language,
 Chrome UI-language hint and manually chosen delivery-country/currency settings
 are approved for deliberate Insight/reply requests only. English default;

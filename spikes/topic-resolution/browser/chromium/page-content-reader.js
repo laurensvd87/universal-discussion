@@ -146,7 +146,7 @@ export function collectPageContent(expectedUrl) {
     let title = "";
     let headCount = 0;
     for (let child = document.head.firstElementChild; child; child = child.nextElementSibling) {
-      budget(); if (++headCount > 256) throw failures["capture-head-budget"];
+      budget(); headCount++;
       if (child.tagName === "TITLE" && !title) {
         let raw = "";
         boundedChildren(child, (textNode) => {
@@ -156,6 +156,9 @@ export function collectPageContent(expectedUrl) {
         title = raw.replace(/\s+/gu, " ").trim();
         if (title) break;
       }
+      // Title is optional. Stop before reading the sibling cursor leading to
+      // element 257; region discovery still uses the unchanged shared budgets.
+      if (headCount === 256) break;
     }
     // Iterative traversal discovers the first eligible region without selector
     // materialization or a whole-body text read. Excluded subtrees are skipped.

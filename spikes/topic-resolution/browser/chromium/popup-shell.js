@@ -114,6 +114,10 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
       ? find("#app-settings-connection") : find("#app-welcome-connection"));
     move("#discussion-status", connected || view === "settings"
       ? find("#local-discussion") : find("#app-welcome-connection"));
+    const discussionStatus = find("#discussion-status");
+    const rootDock = find("#discussion-root-dock");
+    if (connected && rootDock && discussionStatus?.parentElement === rootDock.parentElement)
+      rootDock.parentElement.insertBefore(discussionStatus, rootDock);
     if (view === "pages") {
       const related = find("#discussion-related");
       if (related) related.open = true;

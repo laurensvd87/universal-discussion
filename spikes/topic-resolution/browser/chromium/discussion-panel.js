@@ -772,19 +772,40 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       "invalid-request": "discussionInvalid", "invalid-response": "discussionInvalid", "context-changed": "discussionContextChanged" }[state.error];
     const resolving = state.resolution?.enabled === true &&
       ["checking", "processing"].includes(state.resolution?.phase);
+    const matchingError = state.resolution?.enabled === true &&
+      (state.resolution?.phase === "error" || state.resolution?.phase === "unsupported" &&
+        ["capture-budget", "capture-time-budget", "capture-node-budget", "capture-head-budget",
+          "capture-attribute-budget", "capture-failed", "invalid-content", "missing-region"].includes(state.resolution.reason));
+    const alternateApplicable = state.topicViewMode === "experimental" && Boolean(state.sourceId) &&
+      state.catalog?.sources.find((entry) => entry.id === state.sourceId)?.provenance === "owner-local-page-embedding/v1";
+    const alternateFailed = alternateApplicable && Boolean(state.alternateError);
+    const priorFailed = Boolean(state.sourceId && state.priorDiscussionsError);
+    const readError = state.phase === "error" || matchingError || alternateFailed ||
+      priorFailed;
     const loadingDiscussions = uiMode === "user" && !state.needsFreshRead &&
-      (["connecting", "loading"].includes(state.phase) || state.phase === "choose-topic" && resolving)
-      && (!state.error || state.error === "context-changed") && !(selectedTopicReady && state.priorDiscussionsError);
+      (["connecting", "loading"].includes(state.phase) || resolving ||
+        state.phase === "ready" && alternateApplicable && state.discussion &&
+        !state.alternateDiscussion && !state.alternateError)
+      && (!state.error || state.error === "context-changed") && !readError;
     status.setAttribute("data-loading", String(loadingDiscussions));
     loadingScene.hidden = !loadingDiscussions;
     status.textContent = text(loadingDiscussions ? "uiLoadingDiscussions" : errorKey ?? (state.error ? "discussionUnavailable" : {
       ready: "discussionReady", disconnected: "discussionDisconnected", connecting: "discussionConnecting",
       loading: "discussionLoading", "choose-topic": uiMode === "user" ? "uiTopicAwaitingPage" : "discussionChooseStatus" }[state.phase] ?? "discussionUnavailable"));
-    if (selectedTopicReady && state.priorDiscussionsError && uiMode === "user")
-      status.textContent = text("uiEarlierThreadsUnavailable");
-    if (state.needsFreshRead) status.textContent += ` · ${text("discussionReload")}`;
-    status.hidden = uiMode === "user" && ["ready", "disconnected"].includes(state.phase) &&
-      !state.error && !state.needsFreshRead && !(selectedTopicReady && state.priorDiscussionsError);
+    if (uiMode === "user" && readError) {
+      const errors = [];
+      if (state.error || state.phase === "error") errors.push(text(errorKey ?? "discussionUnavailable"));
+      if (matchingError) errors.push(text("uiMatchingFailed"));
+      if (alternateFailed) errors.push(text("uiTopicViewFailed"));
+      if (priorFailed) errors.push(text("uiEarlierThreadsUnavailable"));
+      status.textContent = errors.join(" ");
+    }
+    if (state.needsFreshRead) status.textContent = uiMode === "user" && !state.error && !readError
+      ? text("discussionReload") : `${status.textContent} · ${text("discussionReload")}`;
+    status.hidden = uiMode === "user" && !loadingDiscussions &&
+      !state.error && !readError &&
+      !state.needsFreshRead && !(selectedTopicReady && state.priorDiscussionsError);
+    if (uiMode === "user" && status.parentElement === root) root.insertBefore(status, rootDock);
     const usable = ["ready", "choose-topic"].includes(state.phase) && !state.busy && !state.needsFreshRead;
     const showPairingInput = uiMode !== "user" || state.error !== "extension-connection-unavailable" &&
       (shellView.connection !== "connected" || state.error === "unauthorized");
@@ -924,7 +945,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       (state.draft.mode === "reply" || entries.some((entry) =>
         entry.id === state.draft.targetId && entry.state === "visible"))
       ? state.draft.targetId : null;
-    alternateNotice.hidden = state.topicViewMode !== "experimental";
+    alternateNotice.hidden = uiMode === "user" || state.topicViewMode !== "experimental";
     alternateNotice.textContent = alternateNotice.hidden ? "" : text(alternateView
       ? "uiTopicViewActive" : state.alternateError || state.phase !== "ready"
         ? "uiTopicViewUnavailable" : "uiTopicViewLoading")

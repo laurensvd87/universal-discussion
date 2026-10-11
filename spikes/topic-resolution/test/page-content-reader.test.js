@@ -228,14 +228,50 @@ test("region discovery retains eligible HEAD descendants rather than silently sk
   assert.equal(result.text, "First eligible head sample");
 });
 
-test("head limit still rejects genuine scans past 256 elements when no bounded title is available", () => {
+test("optional title scan caps at 256 elements without vetoing eligible main text", () => {
   for (const title of [null, " "]) {
-    assert.equal(collect(element("MAIN", {}, [text("Owned sample")]), { title,
-      head: Array.from({ length: 257 }, () => element("META")), clock: () => 0 }).reason, "capture-head-budget");
+    const result = collect(element("MAIN", {}, [text("Owned sample")]), { title,
+      head: Array.from({ length: 318 }, () => element("META")), clock: () => 0 });
+    assert.equal(result.status, "collected"); assert.equal(result.title, "");
+    assert.equal(result.text, "Owned sample");
   }
   assert.equal(collect(element("MAIN", {}, [text("Owned sample")]), { title: null,
     head: [...Array.from({ length: 255 }, () => element("META")), element("TITLE", {}, [text("Last allowed title")])],
     clock: () => 0 }).title, "Last allowed title");
+  assert.equal(collect(element("MAIN", {}, [text("Owned sample")]), { title: null,
+    head: [...Array.from({ length: 256 }, () => element("META")), element("TITLE", {}, [text("Outside optional scan")])],
+    clock: () => 0 }).title, "");
+});
+
+test("serialized optional title scan never advances the element cursor past its cap", () => {
+  const head = [...Array.from({ length: 255 }, () => element("META")), element("TITLE", {}, [text(" \n ")]),
+    element("TITLE", {}, [text("Outside optional scan")])];
+  const setup = dom(element("MAIN", {}, [text("Owned sample")]), { title: null, head, clock: () => 0 });
+  try {
+    Object.defineProperty(head[255], "nextElementSibling", { get() { assert.fail("Optional scan advanced to element 257"); } });
+    Object.defineProperty(head[256], "firstChild", { get() { assert.fail("Optional scan read title 257"); } });
+    // Discovery still visits HEAD. Hide only this later TITLE subtree so the
+    // trap distinguishes optional title reading from unchanged discovery.
+    head[256].hidden = true;
+    const serialized = (0, eval)(`(${collectPageContent.toString()})`);
+    assert.deepEqual(serialized(URL), { contractVersion: "page-content/1", status: "collected", url: URL,
+      title: "", text: "Owned sample", extractorVersion: "main-text-prefix/v1" });
+  } finally { setup.restore(); }
+});
+
+test("title scan and later discovery retain one shared time and node budget", () => {
+  const head = Array.from({ length: 318 }, () => element("META"));
+  let ticks = 0;
+  assert.equal(collect(element("MAIN", {}, [text("Owned sample")]), { title: null, head,
+    clock: () => ++ticks <= 257 ? 0 : 41 }).reason, "capture-time-budget");
+  assert.equal(ticks, 258);
+  // Without the title scan's 256 steps this traversal fits below 10,000.
+  assert.equal(collect(element("MAIN", {}, [...Array.from({ length: 9000 }, () => ({ nodeType: 8 })), text("Owned sample")]),
+    { head: Array.from({ length: 300 }, () => element("META")), clock: () => 0 }).status, "collected");
+  assert.equal(collect(element("MAIN", {}, [...Array.from({ length: 9000 }, () => ({ nodeType: 8 })), text("Owned sample")]),
+    { title: null, head: Array.from({ length: 300 }, () => element("META")), clock: () => 0 }).reason, "capture-node-budget");
+  assert.equal(collect(element("MAIN", {}, [text("Owned sample")]), { title: null,
+    head: Array.from({ length: 6000 }, () => element("META")), clock: () => 0 }).reason, "capture-node-budget");
 });
 
 test("traversed ignored siblings and deep ancestry still exhaust the approved shared node budget", () => {
@@ -346,7 +382,7 @@ test("text/title sample, DOM node and elapsed-time budgets remain bounded", () =
   assert.equal(collect(element("MAIN", {}, Array.from({ length: 6000 }, () => element("P", {}, []))), { clock: () => 0 }).reason, "capture-node-budget");
   assert.equal(collect(element("MAIN", {}, [text("Public sample")]), {
     head: Array.from({ length: 257 }, () => element("META", { name: "robots", content: "noai" })), title: null, clock: () => 0,
-  }).reason, "capture-head-budget");
+  }).status, "collected");
   let clock = 0;
   assert.equal(collect(element("MAIN", {}, [text("Public sample")]), { clock: () => clock += 50 }).reason, "capture-time-budget");
   const setup = dom(element("MAIN", {}, [text("Public sample")]));

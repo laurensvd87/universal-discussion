@@ -1,5 +1,31 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 ADR-087 complete (0.13.46): owner-approved optional title search cap
+256 no longer vetoes eligible content. Stop before reading sibling 257; existing
+empty-title/hostname fallback and HEAD discovery remain. Shared time/node/text,
+attributes, form/hidden/sensitive exclusions and document checks are unchanged.
+User feed has compact accessible pending spinner, quiet routine/inapplicable
+states and small bottom real errors. Preserve failed-write/reload/detached-draft
+warnings, onboarding, Developer detail and canonical write/generation fences.
+
+Sol Medium reader/UI implementation and independent Trust pass. Focused reader 44,
+independent reader/background 72, panel/mode/package 102, adversarial UI nine pass.
+Final full extension 1,157 pass/one optional skip; restricted 1,158 pass; secrets 196
+files/zero findings; diff pass. Isolated native collector smoke passes with zero
+runtime errors/embedding/backend/provider requests. Anonymous fully loaded public
+product head 318/no TITLE: three successful 3,949-char samples, no text saved or
+ingested. Final synthetic Chrome visual/interaction harness EXIT0; root reviews
+390/320 loading/error/dock shots, reduced motion/no overflow, native-fluid bottom
+geometry, IME/inline editor/reveal/polling/late projection checks pass. Additional
+native-fluid error screenshot repeatedly stalls CDP, so optional artifact omitted
+while retaining geometry assertion and earlier error images. Not new native-panel
+identity evidence or provider QA.
+
+Reload 0.13.46; no backend restart, owner post mutation, inference, new permission,
+retry, history or release gate. Startup-race classification remains unimplemented;
+expanded reply ancestry still lacks approval. All earlier authority limits stand.
+Owner's refreshed-page ingestion/discussion check remains pending after reload.
+
 2026-10-11 linked-product diagnosis only: owner confirms working 0.13.45 sparkle
 reply/links, but fittingstore.de destination has no discussion context. Exact URL
 passes policy; current catalog contains no fittingstore Source. Anonymous live

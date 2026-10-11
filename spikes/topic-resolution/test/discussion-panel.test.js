@@ -201,6 +201,78 @@ test("Developer insight action still opens detailed workspace", () => {
   assert.equal(workspace.open, true);
   assert.deepEqual(actions, ["scroll", "focus"]);
 });
+test("User matching states stay quiet except accessible loading and bottom errors", () => {
+  const ui = harness();
+  const status = ui.byId("discussion-status"), scene = ui.byId("discussion-loading-scene");
+  for (const resolution of [null, { enabled: false, phase: "off" },
+    { enabled: true, phase: "unsupported", reason: "unsupported-url" },
+    { enabled: true, phase: "unsupported", reason: "rights-restricted" }]) {
+    ui.panel.render(state({ phase: "choose-topic", topicId: null, discussion: null, resolution }));
+    assert.equal(status.hidden, true);
+    assert.equal(scene.hidden, true);
+  }
+  ui.panel.render(state({ phase: "choose-topic", topicId: null, discussion: null,
+    resolution: { enabled: true, phase: "processing" } }));
+  assert.equal(status.hidden, false);
+  assert.equal(status.textContent, EN.uiLoadingDiscussions);
+  assert.equal(status.attributes["data-loading"], "true");
+  assert.equal(scene.hidden, false);
+  assert.equal(status.nextSibling.id, "discussion-root-dock");
+  assert.equal(status.attributes["aria-live"], "polite");
+  for (const resolution of [{ enabled: true, phase: "error", reason: "unavailable" },
+    { enabled: true, phase: "unsupported", reason: "capture-node-budget" },
+    { enabled: true, phase: "unsupported", reason: "missing-region" }]) {
+    ui.panel.render(state({ phase: "loading", resolution }));
+    assert.equal(scene.hidden, true);
+    assert.equal(status.attributes["data-loading"], "false");
+    assert.equal(status.textContent, EN.uiMatchingFailed);
+    assert.equal(status.hidden, false);
+  }
+  ui.panel.render(state({ phase: "error", error: null }));
+  assert.equal(status.hidden, false);
+  assert.equal(status.textContent, EN.discussionUnavailable);
+  ui.panel.render(state({ needsFreshRead: true }));
+  assert.equal(status.textContent, EN.discussionReload);
+  ui.panel.render(state({ phase: "choose-topic", topicId: null, discussion: null }));
+  ui.panel.setMode("developer");
+  assert.equal(status.hidden, false);
+  assert.equal(status.textContent, EN.discussionChooseStatus);
+  ui.panel.setMode("user");
+  assert.equal(status.hidden, true);
+});
+
+test("User alternate failures are bounded bottom messages and never mask read or detached warnings", () => {
+  const ui = harness();
+  const snapshot = state({ sourceId: "source-demo", topicViewMode: "experimental" });
+  snapshot.catalog.sources[0].provenance = "owner-local-page-embedding/v1";
+  snapshot.catalog.sources[0].topicId = snapshot.topicId;
+  ui.panel.render({ ...snapshot, alternateError: "unavailable",
+    resolution: { enabled: true, phase: "processing" } });
+  const status = ui.byId("discussion-status");
+  assert.equal(status.textContent, EN.uiTopicViewFailed);
+  assert.equal(status.hidden, false);
+  assert.equal(ui.byId("discussion-loading-scene").hidden, true);
+  assert.equal(ui.byId("discussion-alternate-notice").hidden, true);
+  ui.panel.render({ ...snapshot, error: "conflict", needsFreshRead: true,
+    resolution: { enabled: true, phase: "error" }, alternateError: "unavailable",
+    priorDiscussionsError: "hostile raw provider text",
+    draft: { body: "Keep detached", detached: true, mode: "root", targetId: null } });
+  assert.ok(status.textContent.includes(EN.discussionConflict));
+  assert.ok(status.textContent.includes(EN.uiMatchingFailed));
+  assert.ok(status.textContent.includes(EN.uiTopicViewFailed));
+  assert.ok(status.textContent.includes(EN.uiEarlierThreadsUnavailable));
+  assert.ok(status.textContent.includes(EN.discussionReload));
+  assert.equal(status.textContent.includes("hostile raw"), false);
+  assert.equal(ui.byId("discussion-body").value, "Keep detached");
+  assert.equal(ui.byId("discussion-submit").disabled, true);
+  ui.panel.render(state({ topicViewMode: "experimental", alternateError: "unavailable" }));
+  assert.equal(status.hidden, true, "inapplicable synthetic source is not a failed read");
+  assert.equal(ui.byId("discussion-loading-scene").hidden, true);
+  ui.panel.render(state({ topicViewMode: "experimental", sourceId: null, alternateDiscussion: null }));
+  assert.equal(status.hidden, true, "manual Topic without Source is quiet");
+  assert.equal(ui.byId("discussion-loading-scene").hidden, true);
+});
+
 test("no-topic User view shows no empty composer or Create shortcut, while drafts remain recoverable", () => {
   const ui = harness();
   const composer = ui.byId("discussion-composer");
@@ -209,7 +281,7 @@ test("no-topic User view shows no empty composer or Create shortcut, while draft
   const noTopic = state({ phase: "choose-topic", topicId: null, discussion: null });
   ui.panel.render(noTopic);
   assert.equal(ui.byId("discussion-status").textContent, EN.uiTopicAwaitingPage);
-  assert.equal(ui.byId("discussion-status").hidden, false);
+  assert.equal(ui.byId("discussion-status").hidden, true);
   assert.equal(composer.hidden, true);
   assert.equal(shortcut.hidden, true);
   assert.equal(discard.hidden, true);
@@ -274,13 +346,13 @@ test("experimental view shows grouped and pinned roots while cross-topic actions
   assert.equal(openToReply.href, foreign.origin.url);
   assert.equal(openToReply.referrerPolicy, "no-referrer");
   assert.equal(canonicalReply.disabled, false);
-  assert.equal(ui.byId("discussion-alternate-notice").textContent, EN.uiTopicViewActive.replace("{count}", "2"));
+  assert.equal(ui.byId("discussion-alternate-notice").hidden, true);
   assert.ok(descendants(ui.root).some((item) => item.textContent === EN.uiTopicViewPinned));
   assert.equal(ui.byId("discussion-related-conversations").hidden, true);
   ui.panel.render({ ...snapshot, alternateDiscussion: null, alternateError: "unavailable" });
   const fallbackCards = descendants(ui.root).filter((item) => item.attributes?.["data-thread-root-id"]);
   assert.deepEqual(fallbackCards.map((card) => card.attributes["data-thread-root-id"]), ["root-1"]);
-  assert.equal(ui.byId("discussion-alternate-notice").textContent, EN.uiTopicViewUnavailable);
+  assert.equal(ui.byId("discussion-alternate-notice").hidden, true);
   assert.equal(ui.byId("discussion-related-conversations").hidden, true);
 });
 test("experimental related-source growth preserves an opened reply branch", () => {

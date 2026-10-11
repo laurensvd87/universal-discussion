@@ -1,5 +1,40 @@
 # Project status
 
+**2026-10-11 optional-title fix and quiet discussion status, complete (0.13.46):**
+The owner approves [ADR-087](../decisions/ADR-087-bounded-optional-title-and-quiet-discussion-status.md).
+Optional title inspection stops at 256 head elements without rejecting eligible
+MAIN/article content. First nonempty bounded title and existing empty-title/
+hostname fallback remain; region discovery, 40 ms/10,000 shared steps, text and
+attribute bounds, exclusions and document attestations are unchanged.
+
+User Mode shows a compact rotating circle during real pending work and concise
+read/capture errors at the bottom above the composer. Routine choose-page/ready/
+grouping/fallback notices are hidden; inapplicable/manual/off/policy-unsupported
+contexts do not spin forever. Actual missing-region/resource errors remain
+visible. Concurrent failures cannot be clipped as loading; failed-write/reload,
+detached drafts, connection onboarding and canonical authority remain intact.
+Developer details remain; Settings owns diagnostic/grouping controls.
+
+GPT-6.1 Sol Medium slices and independent Trust review pass. Reader focused
+**44 pass**, independent reader/background **72 pass**, panel/mode/package
+**102 pass**, independent concurrency/error checks **nine pass**. Final extension
+**1,157 pass/one optional skip**; capability-denied **1,158 pass**. Secret scan
+**196 files, zero findings**; diff checks pass. Isolated native collector smoke
+passes with no runtime errors or inference/backend requests. Fully loaded public
+fittingstore product, head 318/no TITLE: **three successful 3,949-char captures**;
+no text saved, vectors generated or catalog writes made by QA.
+
+Final isolated Chrome visual/interaction harness exits **0**. Root-reviewed
+390/320 px images, reduced motion, no overflow, bottom-error geometry, typing/IME,
+single inline editor, reveal/manual-collapse and late projection checks pass.
+One additional native-fluid error screenshot repeatedly stalled CDP; optional
+capture omitted, its geometry assertion and earlier error images retained.
+No backend/runtime authority change, service restart, provider request, expanded
+history, migration, retry or release gate. Reload extension **0.13.46**; existing
+service/pairing/ChatGPT login/posts stay unchanged. Startup error classification
+and expanded ancestry remain separate unimplemented proposals.
+Owner's refreshed-page ingestion/discussion check remains pending after reload.
+
 **2026-10-11 linked public-product diagnosis (no runtime change):**
 The owner confirms 0.13.45 now produces a good sparkle reply with working links.
 Visiting the linked fittingstore.de product leaves the panel without discussions.
