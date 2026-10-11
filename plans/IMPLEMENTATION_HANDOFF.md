@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 owner requests a minimized local UDR export. Read ADR-094 and
+`ops/unifi-audit/README.md`; Network 10.6.106 GET-only browser exporter is ready.
+Owner enters the temporary local key only in its password dialog, then reviews/
+uploads the sanitized download. No key/raw router material belongs in chat or
+Git. Private topology remains; output is not anonymous or safe-publication data.
+37 restricted offline checks and independent Trust pass. Native isolated Chrome
+passes with eight intercepted requests/zero errors, no cookies/storage, sanitized
+download and error/cancel cleanup. No real UDR/SSH access or configuration change
+has occurred. Partial PDF does not verify VLAN isolation. Port forwarding/NAT,
+UPnP, ACL/switch/DNS, host services and real reachability are uncollected. Do not
+infer public-hosting/container-activation approval from the export task.
+
 2026-10-11 latest owner approves **prepare the portable backend here**, not
 deployment. Read ADR-093 before the historical planning-only direction below.
 Synthetic H1/H2 package is prepared in `apps/local-service/portable`, with a new

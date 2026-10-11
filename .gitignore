@@ -1,0 +1,3 @@
+# Private router audit downloads must never enter repository history.
+udl-unifi-audit-*.json
+unifi-audit-private/

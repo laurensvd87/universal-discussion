@@ -19,6 +19,12 @@ yet a shared pilot: real authentication, current matching/client integration,
 TLS/network review and migration remain. Nothing is exposed or deployed.
 The [hosting plan](plans/BACKEND_HOSTING_PLAN.md) tracks the remaining stages.
 
+A tested [local UniFi audit exporter](ops/unifi-audit/README.md) is ready for
+the host-network review. It uses the router's official local API and produces
+a minimized private file rather than a full configuration backup. Run it in
+the local UDR tab; enter the temporary API key only into its password field.
+Router rules, Linux services and container activation remain unchanged.
+
 The local service now filters learned related-page candidates at E5 cosine
 **0.88** (previously 0.85). This removes the diagnosed unrelated Meross listing
 while keeping the eBay coupling candidate. It does not change Ridge1 same-Topic

@@ -1,5 +1,26 @@
 # Project status
 
+**2026-10-11 minimized UniFi audit export ready; no router/host activation:**
+The owner requests an easier credential-free export for the UDR/VLAN review and
+reports Network 10.6.106. [ADR-094](../decisions/ADR-094-minimized-local-unifi-audit-export.md)
+and the [local exporter instructions](../ops/unifi-audit/README.md) define a
+self-contained browser script with a local password input, fixed same-origin
+GET-only API routes, typed field allowlists, aliased IDs, masked public addresses,
+private topology and explicit coverage gaps. No raw names/descriptions, keys,
+cookies, client/activity inventory or backup is exported. Private exports are
+Git-ignored. The supplied PDF is a partial table with defaults hidden, not proof
+of isolation; private network/login material is not copied into project records.
+**37 offline tests pass**, including 14 independent Trust tests. Review fixes
+invalid range/family, warning saturation, incomplete/wrong-pair ordering,
+unresolved references and global record bounds. Native isolated Chrome:
+**eight intercepted API requests, zero errors**, strict CSP, site selection,
+no-cookie requests, sanitized download, no persistent storage and error/cancel
+cleanup pass; root visually checks the dialog. Synthetic profile/download removed;
+review screenshot in `%TEMP%\udl-unifi-audit-review`. No owner UDR request, API
+key, SSH login, rule change, OpenClaw shutdown, listener, migration or deployment.
+Owner must run/export/review the JSON. NAT/port forwards, UPnP, ACL/switch/DNS,
+Linux services and live reachability remain separate required checks.
+
 **2026-10-11 portable synthetic backend prepared and reviewed; no activation:**
 [ADR-093](../decisions/ADR-093-private-portable-backend-rehearsal.md) supersedes
 the planning-only next-step notes below for repository engineering only. The
