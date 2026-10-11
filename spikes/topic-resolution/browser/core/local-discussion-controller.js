@@ -5,6 +5,7 @@ import { readPostOrigin } from "./local-service-contract.js";
 import { isRidgeTopicView } from "./topic-view-mode.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
+import { inspectPageNavigationUrl } from "./page-content-policy.js";
 
 function freeze(value) {
   if (value && typeof value === "object") {
@@ -349,7 +350,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     const current = await freshResolution();
     if (ownEpoch !== epoch || disposed || !samePageResolution(resolution, current) || !isReadyPageResolution(current)) return;
     const source = catalog.sources.find((entry) => entry.id === resolution.sourceId);
-    if (!source || source.topicId !== resolution.topicId || source.provenance !== "owner-local-page-embedding/v1") return;
+    if (!source || source.topicId !== resolution.topicId || source.provenance !== "owner-local-page-embedding/v1" ||
+        source.url !== inspectPageNavigationUrl(resolution.url).url) return;
     // Initial active-tab access can fail before a first-use HTTPS grant. A
     // later ready resolution needs its own matching tab witness before Ready.
     const snapshot = await setupObservation(resolution);

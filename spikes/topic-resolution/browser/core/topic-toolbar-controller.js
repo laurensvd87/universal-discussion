@@ -1,5 +1,6 @@
 import { readCatalog, readDiscussion } from "./local-service-contract.js";
 import { isRidgeTopicView } from "./topic-view-mode.js";
+import { inspectPageNavigationUrl } from "./page-content-policy.js";
 
 export const TOOLBAR_TAB_KEY = "pageMatchingToolbarTabId";
 export const TOOLBAR_STATES = Object.freeze(["disconnected", "connected", "off", "topic", "shared", "posts"]);
@@ -10,13 +11,16 @@ function hasCurrentTopic(state, value) {
       typeof state.sourceId !== "string" || typeof state.topicId !== "string" ||
       !Number.isSafeInteger(state.sequence) || typeof state.documentId !== "string") return false;
   const source = value.sources.find((item) => item.id === state.sourceId);
-  return source?.provenance === LEARNED && source.url === state.url && source.topicId === state.topicId;
+  const inspected = inspectPageNavigationUrl(state.url);
+  return inspected.supported && source?.provenance === LEARNED && source.url === inspected.url && source.topicId === state.topicId;
 }
 export function hasSharedLearnedTopic(state, value) {
   try {
     const catalog = readCatalog(value);
+    const sourceUrl = inspectPageNavigationUrl(state?.url).url;
     return hasCurrentTopic(state, catalog) && catalog.sources.some((peer) =>
-      peer.provenance === LEARNED && peer.id !== state.sourceId && peer.url !== state.url && peer.topicId === state.topicId);
+      peer.provenance === LEARNED && peer.id !== state.sourceId &&
+      peer.url !== sourceUrl && peer.topicId === state.topicId);
   } catch { return false; }
 }
 export function hasPublishedPosts(value, topicId) {

@@ -1,5 +1,18 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Public page links (0.13.48)
+
+Reload the extension under `chrome://extensions`. Common session IDs and tracking
+parameters are removed automatically across websites before public-page links
+are stored or used for discussions and Insights. Content identifiers and unknown
+functional parameters remain. Account/checkout paths and password/access-token
+links stay excluded. Existing public-profile and content-extraction limits apply.
+
+The actual page URL still supplies exact navigation/document checks in extension
+memory, so changing even a removed session parameter invalidates stale work.
+No backend restart, token rotation or historical Source rewrite. See
+[ADR-095](../../../decisions/ADR-095-public-navigation-url-minimization.md).
+
 ## Local account login (0.13.47)
 
 Update/restart the local service and reload the extension. Click **Sign in** in

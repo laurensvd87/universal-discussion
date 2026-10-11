@@ -39,6 +39,68 @@ test("background matching sends only explicit fields and resolves delayed Topic"
   assert.ok(!JSON.stringify(matcher.currentState()).includes("bounded article text"));
   assert.ok(!JSON.stringify(payload).includes("bounded article text"));
 });
+test("session/tracking URLs keep an exact document witness but ingest only the public Source", async () => {
+  const base = fixture();
+  const canonical = `${url}?id=product-2`;
+  const documentUrl = `${canonical}&sid=synthetic-session&utm_source=fixture`;
+  base.state.tab.url = documentUrl;
+  base.dependencies.reader.read = async (tabId, sourceUrl, witness) => {
+    assert.equal(tabId, 1); assert.equal(sourceUrl, canonical); assert.equal(witness, documentUrl);
+    base.calls.push("read");
+    return { documentId: "document-a", result: { status: "collected", url: sourceUrl,
+      title: "Synthetic article", text: "Owned synthetic text", extractorVersion: "main-text-prefix/v1" } };
+  };
+  base.dependencies.reader.attest = async (tabId, id, sourceUrl, witness) => {
+    assert.equal(id, "document-a"); assert.equal(sourceUrl, canonical); assert.equal(witness, documentUrl);
+    return { status: "attested", url: sourceUrl };
+  };
+  await base.matcher.refresh();
+  assert.equal(base.matcher.currentState().phase, "ready");
+  assert.equal(base.matcher.currentState().url, documentUrl);
+  const payload = base.calls.find(call => typeof call === "object");
+  assert.equal(payload.url, canonical);
+  assert.ok(!JSON.stringify(payload).includes("synthetic-session"));
+  assert.ok(!JSON.stringify(payload).includes("utm_source"));
+});
+for (const stage of ["catalog", "read", "embed", "attest", "ingest"]) {
+  test(`changing only a stripped session during ${stage} rejects late matching`, async () => {
+    const pending = deferred();
+    const base = fixture(stage === "embed" ? { embed: async () => {
+      await pending.promise; return { modelId: "browser", values: [1] };
+    } } : {});
+    base.state.tab.url = `${url}?sid=synthetic-first`;
+    const target = stage === "catalog" || stage === "ingest" ? base.dependencies.client :
+      stage === "read" || stage === "attest" ? base.dependencies.reader : base.dependencies;
+    const original = target[stage];
+    if (stage !== "embed") target[stage] = async (...args) => { await pending.promise; return original(...args); };
+    const work = base.matcher.refresh(); await tick();
+    base.state.tab.url = `${url}?sid=synthetic-second`;
+    pending.resolve(); await work;
+    assert.notEqual(base.matcher.currentState().phase, "ready");
+    assert.equal(base.matcher.currentState().sourceId, null);
+    const payloads = base.calls.filter(call => typeof call === "object");
+    assert.equal(payloads.length, stage === "ingest" ? 1 : 0);
+    for (const payload of payloads) assert.equal(payload.url, url);
+  });
+}
+test("Source reuse requires the same original document witness, not just the minimized URL", async () => {
+  const base = fixture(); let revision = 4;
+  base.state.tab.url = `${url}?sid=synthetic-first`;
+  base.dependencies.client.catalog = async () => ({ version: { generation: "g", revision },
+    sources: revision === 4 ? [] : [{ id: "source-a", url, topicId: "topic-a" }] });
+  base.dependencies.client.ingest = async payload => {
+    base.calls.push(payload); revision++;
+    return { sourceId: "source-a", topicId: "topic-a", assignment: "provisional",
+      version: { generation: "g", revision } };
+  };
+  await base.matcher.refresh(); await base.matcher.refresh();
+  assert.equal(revision, 5);
+  base.state.tab.url = `${url}?sid=synthetic-second`;
+  await base.matcher.refresh();
+  assert.equal(revision, 6);
+  assert.equal(base.matcher.currentState().phase, "ready");
+  for (const call of base.calls.filter(call => typeof call === "object")) assert.equal(call.url, url);
+});
 test("fallback capture provenance reaches ingestion but raw sample never does", async () => {
   const base = fixture();
   const original = base.dependencies.reader.read;

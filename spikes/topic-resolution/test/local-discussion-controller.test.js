@@ -1131,6 +1131,38 @@ test("identical ready status can retry an unapplied selection after a read failu
   assert.equal(ui.controller.currentState().topicId, learned.topicId);
 });
 
+test("minimized Source is writable while the original session URL remains the exact document witness", async () => {
+  const ui = backgroundHarness(); await ui.controller.open(); const learned = ui.ingest();
+  const canonical = ui.resolution().url;
+  const documentUrl = `${canonical}?sid=synthetic-session&utm_source=fixture`;
+  ui.setResolution({ url: documentUrl, currentUrl: documentUrl });
+  await ui.publish();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  ui.controller.setDraft("Owned synthetic comment");
+  assert.equal(await ui.controller.submitDraft(), true);
+  const posted = ui.service.discussion(learned.topicId).roots[0];
+  assert.equal(posted.origin.url, canonical);
+  assert.ok(!JSON.stringify(posted).includes("synthetic-session"));
+  const command = ui.requests.find(([type]) => type === "command")[1];
+  assert.ok(!JSON.stringify(command).includes("synthetic-session"));
+});
+test("session-only navigation changes detach human drafts before writing even with the same canonical Source", async () => {
+  for (const stage of ["status", "tab"]) {
+    let ui;
+    let changed = false;
+    ui = backgroundHarness(stage === "tab" ? { readActiveTab: async () => ({ tabId: 7,
+      url: changed ? ui.resolution().url.replace("synthetic-first", "synthetic-second") : ui.resolution().url }) } : {});
+    await ui.controller.open(); ui.ingest();
+    const documentUrl = `${ui.resolution().url}?sid=synthetic-first`;
+    ui.setResolution({ url: documentUrl, currentUrl: documentUrl }); await ui.publish();
+    ui.controller.setDraft("Keep this unsent comment");
+    if (stage === "status") ui.setResolution({ currentUrl: documentUrl.replace("synthetic-first", "synthetic-second") });
+    else changed = true;
+    assert.equal(await ui.controller.submitDraft(), false);
+    assert.equal(ui.requests.some(([type]) => type === "command"), false);
+    assert.equal(ui.controller.currentState().draft.detached, true);
+  }
+});
 test("delayed learned readiness loads real service Topic and comment; manual selection wins", async () => {
   const ui = backgroundHarness(); await ui.controller.open();
   assert.equal(ui.controller.currentState().phase, "choose-topic"); assert.equal(ui.controller.currentState().topicId, null);

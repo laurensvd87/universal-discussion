@@ -1,8 +1,8 @@
-import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "../core/page-content-policy.js";
+import { inspectPageUrl, inspectPageNavigationUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "../core/page-content-policy.js";
 
 // Serialized by scripting.executeScript: all capture logic stays inside this
 // packaged isolated-world function, with no page-defined extraction callbacks.
-export function collectPageContent(expectedUrl) {
+export function collectPageContent(expectedUrl, expectedDocumentUrl = expectedUrl) {
   const contractVersion = "page-content/1";
   const unsupported = (reason) => ({ contractVersion, status: "unsupported", reason });
   let started;
@@ -138,9 +138,10 @@ export function collectPageContent(expectedUrl) {
   }
   try {
     started = performance.now();
-    if (globalThis.top !== globalThis || typeof expectedUrl !== "string" || expectedUrl.length > 2048) return unsupported("document-mismatch");
+    if (globalThis.top !== globalThis || typeof expectedUrl !== "string" || expectedUrl.length > 2048 ||
+        typeof expectedDocumentUrl !== "string" || expectedDocumentUrl.length > 2048) return unsupported("document-mismatch");
     const current = new URL(globalThis.location.href); current.hash = "";
-    if (current.toString() !== expectedUrl || current.username || current.password) return unsupported("document-mismatch");
+    if (current.toString() !== expectedDocumentUrl || current.username || current.password) return unsupported("document-mismatch");
     const document = globalThis.document;
     if (!document.head || !document.documentElement) return unsupported("missing-region");
     let title = "";
@@ -204,11 +205,13 @@ export function collectPageContent(expectedUrl) {
   }
 }
 
-export function attestContentDocument(expectedUrl) {
+export function attestContentDocument(expectedUrl, expectedDocumentUrl = expectedUrl) {
   const contractVersion = "page-content-attestation/1";
   try {
     const parsed = new URL(globalThis.location.href); parsed.hash = "";
-    if (globalThis.top !== globalThis || parsed.toString() !== expectedUrl) return { contractVersion, status: "unsupported", reason: "document-mismatch" };
+    if (globalThis.top !== globalThis || typeof expectedUrl !== "string" || expectedUrl.length > 2048 ||
+        typeof expectedDocumentUrl !== "string" || expectedDocumentUrl.length > 2048 ||
+        parsed.username || parsed.password || parsed.toString() !== expectedDocumentUrl) return { contractVersion, status: "unsupported", reason: "document-mismatch" };
     return { contractVersion, status: "attested", url: expectedUrl };
   } catch { return { contractVersion, status: "unsupported", reason: "document-mismatch" }; }
 }
@@ -241,11 +244,14 @@ function project(result, expectedUrl, attestation) {
 }
 export function createPageContentReader(scriptingApi) {
   if (typeof scriptingApi?.executeScript !== "function") throw new TypeError("Page content adapter unavailable");
-  async function execute(tabId, expectedUrl, documentId) {
-    if (!Number.isSafeInteger(tabId) || tabId < 0 || !inspectPageUrl(expectedUrl).supported ||
-        inspectPageUrl(expectedUrl).url !== expectedUrl || (documentId !== undefined && !documentIdValid(documentId))) throw new TypeError("Page content unavailable");
+  async function execute(tabId, expectedUrl, expectedDocumentUrl, documentId) {
+    const source = inspectPageUrl(expectedUrl);
+    const navigation = inspectPageNavigationUrl(expectedDocumentUrl);
+    if (!Number.isSafeInteger(tabId) || tabId < 0 || !source.supported || source.url !== expectedUrl ||
+        !navigation.supported || navigation.url !== expectedUrl || navigation.documentUrl !== expectedDocumentUrl ||
+        (documentId !== undefined && !documentIdValid(documentId))) throw new TypeError("Page content unavailable");
     try {
-      const results = await scriptingApi.executeScript({ args: [expectedUrl],
+      const results = await scriptingApi.executeScript({ args: expectedUrl === expectedDocumentUrl ? [expectedUrl] : [expectedUrl, expectedDocumentUrl],
         func: documentId === undefined ? collectPageContent : attestContentDocument,
         target: documentId === undefined ? { tabId, frameIds: [0] } : { tabId, documentIds: [documentId] }, world: "ISOLATED" });
       if (!Array.isArray(results) || results.length !== 1) throw new TypeError("Page content unavailable");
@@ -255,7 +261,9 @@ export function createPageContentReader(scriptingApi) {
       return documentId === undefined ? Object.freeze({ documentId: id, result }) : result;
     } catch { throw new TypeError("Page content unavailable"); }
   }
-  return Object.freeze({ read: (tabId, expectedUrl) => execute(tabId, expectedUrl),
-    attest: (tabId, documentId, expectedUrl) => execute(tabId, expectedUrl, documentId) });
+  return Object.freeze({ read: (tabId, expectedUrl, expectedDocumentUrl = expectedUrl) => execute(tabId, expectedUrl, expectedDocumentUrl),
+    attest: (tabId, documentId, expectedUrl, expectedDocumentUrl = expectedUrl) => execute(tabId, expectedUrl, expectedDocumentUrl, documentId) });
 }
-export function readPageContent(chromeApi, tabId, expectedUrl) { return createPageContentReader(chromeApi.scripting).read(tabId, expectedUrl); }
+export function readPageContent(chromeApi, tabId, expectedUrl, expectedDocumentUrl = expectedUrl) {
+  return createPageContentReader(chromeApi.scripting).read(tabId, expectedUrl, expectedDocumentUrl);
+}

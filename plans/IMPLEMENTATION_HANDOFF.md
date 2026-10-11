@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 latest owner-requested general URL minimization is implemented in
+0.13.48; read ADR-095. Browser-only navigation sanitation removes approved
+session/tracking keys, preserving functional parameters. Keep canonical
+inspectPageUrl unchanged: server/post/provider/citation paths never accept
+raw session URLs. Internal resolution.url/currentUrl remain ORIGINAL normalized
+hashless document witnesses in RAM, not canonical Source URLs; all tab/document/
+navigation checks must stay exact. Reader returns canonical URL only. Independent
+Trust and 1,261 browser/511 backend tests pass (four backend skips); actual Chrome
+synthetic capture/attestation rejects a session-only same-document change.
+Reload extension; no backend restart/reset/history migration/provider QA.
+Do not treat URL sanitation as private-page detection or store clearance.
+
 2026-10-11 latest owner-reported service outage is resolved: no listener/project
 Node process was running; normal CLI restarted on the existing loopback port
 and Origin. Paired health/catalog/ChatGPT status reads return 200; saved pairing

@@ -1,5 +1,18 @@
 # Project status
 
+**2026-10-11 general public URL minimization implemented, 0.13.48:**
+Owner requests stripping session/tracking parameters across sites after the
+hotel-page diagnosis. Navigation now removes approved session IDs and common
+tracking keys while preserving resource parameters and unchanged strict
+canonical secret/private-context guards. Original URLs remain exact RAM-only
+document witnesses; ingestion, post origins and Insight context receive cleaned
+Source URLs. Session-only changes still invalidate stale matching/writes.
+Independent Trust passes; 1,261 browser tests pass and backend tests have 511
+passes/four skips. Actual isolated Chrome verifies canonical capture and
+query-only navigation rejection with zero runtime errors/external requests.
+See ADR-095. Reload the extension; no backend restart, reset, historical
+migration, provider QA or new permissions. Existing public-profile scope stays.
+
 **2026-10-11 local service restored after owner-reported outage:**
 No listener or matching project Node process was running. The normal CLI is
 running again on `127.0.0.1:4174` with the existing extension Origin, pairing and

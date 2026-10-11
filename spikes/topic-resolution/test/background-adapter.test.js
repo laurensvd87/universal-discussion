@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { projectPageResolution } from "../browser/core/page-resolution-contract.js";
+import { projectPageResolution, isReadyPageResolution } from "../browser/core/page-resolution-contract.js";
 import { EN } from "../browser/locales/en.js";
 
 const KEY = "pageMatchingPreferences";
@@ -201,6 +201,26 @@ test("adapter pause remains fail-closed across delayed storage and navigation", 
   h.state.writeGate.resolve(); h.state.writeGate = null;
   await pause; await h.advance();
   assert.equal(h.state.capture.windowId, null); assert.equal(h.state.local.enabled, true); assert.equal(h.calls.reads, 0);
+});
+test("worker matching strips session/tracking only on egress and retains exact in-memory navigation", async t => {
+  const h = await harness(t);
+  h.state.tab.url = `${PAGE}?id=hotel-1&sid=synthetic-session&utm_source=fixture`;
+  h.events.updated.emit(7, { url: h.state.tab.url }, h.state.tab);
+  await h.advance();
+  const resolution = projectPageResolution(await h.send("status"));
+  assert.equal(resolution.phase, "ready");
+  assert.equal(resolution.url, h.state.tab.url);
+  assert.equal(resolution.currentUrl, h.state.tab.url);
+  const ingestions = h.calls.fetches.filter(call => call.url.endsWith("/sources/ingest"));
+  assert.equal(ingestions.length, 1);
+  assert.equal(JSON.parse(ingestions[0].body).url, `${PAGE}?id=hotel-1`);
+  assert.ok(!JSON.stringify(h.calls.fetches).includes("synthetic-session"));
+  assert.ok(!JSON.stringify(h.calls.storageWrites).includes("synthetic-session"));
+  h.state.tab.url = `${PAGE}?id=hotel-1&sid=synthetic-second&utm_source=fixture`;
+  // Even before an onUpdated event, status scopes the old result away.
+  const changed = projectPageResolution(await h.send("status"));
+  assert.equal(isReadyPageResolution(changed), false);
+  assert.notEqual(changed.currentUrl, changed.url);
 });
 
 test("adapter block masks capture while control and blocked-origin writes are pending", async (t) => {

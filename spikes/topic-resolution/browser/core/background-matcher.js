@@ -1,4 +1,4 @@
-import { inspectPageUrl } from "./page-content-policy.js";
+import { inspectPageNavigationUrl } from "./page-content-policy.js";
 
 // One foreground observation, never a tab catalog/history. All capabilities are
 // injected; invalidation aborts ingestion and prevents late inference rendering.
@@ -53,9 +53,12 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
       const foreground = await readForeground();
       if (!alive(own)) return;
       if (!foreground) { lastIngest = null; publish({ phase: "unsupported", reason: "no-focused-page" }); return; }
-      const url = inspectPageUrl(foreground.url);
+      const url = inspectPageNavigationUrl(foreground.url);
       if (!url.supported) { lastIngest = null; publish({ phase: "unsupported", reason: url.reason }); return; }
-      const tab = { tabId: foreground.tabId, windowId: foreground.windowId, url: url.url, origin: url.origin };
+      // The original document witness stays in extension RAM. Only sourceUrl
+      // is eligible for persistence, post origins or provider context.
+      const tab = { tabId: foreground.tabId, windowId: foreground.windowId,
+        url: url.documentUrl, sourceUrl: url.url, origin: url.origin };
       if (lastIngest && (lastIngest.tabId !== tab.tabId || lastIngest.windowId !== tab.windowId ||
           lastIngest.url !== tab.url || lastIngest.sessionRevision !== preferences.sessionRevision)) lastIngest = null;
       publish({ tabId: tab.tabId, url: tab.url });
@@ -67,7 +70,7 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
       const catalog = await client.catalog({ signal });
       if (!await authorized(tab, own, preferences.sessionRevision)) { if (alive(own)) lastIngest = null; return; }
       publish({ phase: "processing", reason: "reading" });
-      let capture = await reader.read(tab.tabId, tab.url);
+      let capture = await reader.read(tab.tabId, tab.sourceUrl, tab.url);
       if (!alive(own)) return;
       if (capture.result.status !== "collected") { lastIngest = null; publish({ phase: "unsupported", reason: capture.result.reason }); return; }
       const { extractorVersion } = capture.result;
@@ -80,7 +83,7 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
       const embedding = await embed(text, { signal });
       text = null;
       if (!await authorized(tab, own, preferences.sessionRevision)) { if (alive(own)) lastIngest = null; return; }
-      const attestation = await reader.attest(tab.tabId, documentId, tab.url);
+      const attestation = await reader.attest(tab.tabId, documentId, tab.sourceUrl, tab.url);
       if (!alive(own)) return;
       if (attestation.status !== "attested" || !await authorized(tab, own, preferences.sessionRevision)) {
         if (alive(own)) { lastIngest = null; publish({ phase: "unsupported", reason: "document-changed" }); } return;
@@ -88,7 +91,7 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
       publish({ reason: "matching" });
       const source = catalog.sources?.find((item) => item.id === lastIngest?.sourceId);
       if (lastIngest && sameVersion(catalog.version, lastIngest.version) &&
-          source?.url === tab.url && source.topicId === lastIngest.topicId &&
+          source?.url === tab.sourceUrl && source.topicId === lastIngest.topicId &&
           lastIngest.documentId === documentId && lastIngest.title === title &&
           lastIngest.extractorVersion === extractorVersion && sameEmbedding(lastIngest.embedding, embedding)) {
         publish({ phase: "ready", reason: null, sourceId: lastIngest.sourceId,
@@ -97,7 +100,7 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
       }
       lastIngest = null;
       const result = await client.ingest({ expected: catalog.version, operationId: nextOperationId(),
-        url: tab.url, title, embedding, extractorVersion }, { signal });
+        url: tab.sourceUrl, title, embedding, extractorVersion }, { signal });
       if (!await authorized(tab, own, preferences.sessionRevision)) return;
       if (result.version && Array.isArray(embedding.values)) lastIngest = {
         tabId: tab.tabId, windowId: tab.windowId, sessionRevision: preferences.sessionRevision,

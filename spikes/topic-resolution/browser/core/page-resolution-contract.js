@@ -1,4 +1,4 @@
-import { inspectPageUrl } from "./page-content-policy.js";
+import { inspectPageUrl, inspectPageNavigationUrl } from "./page-content-policy.js";
 
 const PHASES = new Set(["off", "checking", "not-enabled", "unpaired", "processing", "ready", "unsupported", "error"]);
 const CONTEXT_REASONS = new Set([
@@ -27,7 +27,10 @@ export function projectPageResolution(value) {
   const descriptors = Object.getOwnPropertyDescriptors(value);
   const keys = Reflect.ownKeys(descriptors);
   if (keys.length !== FIELDS.length || keys.some((key) => !FIELDS.includes(key) || !descriptors[key].enumerable || !Object.hasOwn(descriptors[key], "value"))) throw new TypeError("Page matching unavailable");
-  const url = (input) => typeof input === "string" && inspectPageUrl(input).supported && inspectPageUrl(input).url === input;
+  // url/currentUrl are exact document witnesses, not canonical Source URLs.
+  // They stay in extension memory and must never be sent to the service.
+  const url = (input) => typeof input === "string" && inspectPageNavigationUrl(input).supported &&
+    inspectPageNavigationUrl(input).documentUrl === input;
   const origin = (input) => typeof input === "string" && (input === "http://127.0.0.1:4173" || inspectPageUrl(input + "/").origin === input);
   if (!PHASES.has(value.phase) || !nullable(value.reason, (item) => typeof item === "string" && /^[a-z0-9-]{1,64}$/u.test(item)) ||
       !tab(value.tabId) || !tab(value.currentTabId) || !nullable(value.url, url) || !nullable(value.currentUrl, url) ||
@@ -42,7 +45,7 @@ export function projectPageResolution(value) {
       (value.currentOrigin === null) !== (value.currentTabId === null) ||
       (value.currentOrigin === null) !== (value.currentUrl === null) ||
       (value.currentOrigin === null) !== (value.currentWindowId === null) ||
-      (value.currentUrl !== null && inspectPageUrl(value.currentUrl).origin !== value.currentOrigin)) throw new TypeError("Page matching unavailable");
+      (value.currentUrl !== null && inspectPageNavigationUrl(value.currentUrl).origin !== value.currentOrigin)) throw new TypeError("Page matching unavailable");
   return Object.freeze({ ...value, blockedOrigins: Object.freeze([...value.blockedOrigins]) });
 }
 export function isReadyPageResolution(value) {

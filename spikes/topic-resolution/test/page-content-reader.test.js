@@ -411,6 +411,51 @@ test("generic fallback collector serializes independently of module closure bind
   } finally { setup.restore(); }
 });
 
+test("serialized capture and attestation bind the original sid/tracking navigation but return only canonical Source", () => {
+  const documentUrl = URL + "&sid=synthetic-session&utm_source=fixture";
+  const setup = dom(element("MAIN", {}, [text("Owned public sample")]), { url: documentUrl + "#fragment" });
+  try {
+    for (const func of [collectPageContent, attestContentDocument]) {
+      const serialized = (0, eval)(`(${func.toString()})`);
+      const result = serialized(URL, documentUrl);
+      assert.equal(result.status, func === collectPageContent ? "collected" : "attested");
+      assert.equal(result.url, URL);
+      assert.equal(JSON.stringify(result).includes("synthetic-session"), false);
+      assert.equal(serialized(URL).reason, "document-mismatch");
+      assert.equal(serialized(URL, documentUrl.replace("fixture", "changed")).reason, "document-mismatch");
+    }
+  } finally { setup.restore(); }
+});
+
+test("reader validates the two URL identities and uses isolated document targeting without leaking the witness", async () => {
+  const documentUrl = URL + "&sid=synthetic-session&utm_source=fixture";
+  const calls = [];
+  const setup = dom(element("MAIN", {}, [text("Owned public sample")]), { url: documentUrl });
+  try {
+    const reader = createPageContentReader({ async executeScript(call) {
+      calls.push(call);
+      return [{ frameId: 0, documentId: "doc-1", result: call.func(...call.args) }];
+    } });
+    const article = await reader.read(7, URL, documentUrl);
+    assert.equal(article.result.url, URL);
+    assert.equal((await reader.attest(7, "doc-1", URL, documentUrl)).url, URL);
+    assert.deepEqual(calls.map((call) => call.args), [[URL, documentUrl], [URL, documentUrl]]);
+    assert.deepEqual(calls[0].target, { tabId: 7, frameIds: [0] });
+    assert.deepEqual(calls[1].target, { tabId: 7, documentIds: ["doc-1"] });
+    assert.ok(calls.every((call) => call.world === "ISOLATED"));
+    assert.equal(JSON.stringify(article).includes("synthetic-session"), false);
+    for (const [source, witness] of [[documentUrl, documentUrl], [URL, documentUrl + "#fragment"],
+      [URL, documentUrl.replace("product=2", "product=3")], [URL, "https://mail.example.org/inbox?sid=fixture"]]) {
+      await assert.rejects(reader.read(7, source, witness), /Page content unavailable/);
+      await assert.rejects(reader.attest(7, "doc-1", source, witness), /Page content unavailable/);
+    }
+    assert.equal(calls.length, 2);
+    globalThis.location.href = documentUrl.replace("fixture", "changed");
+    assert.equal((await reader.read(7, URL, documentUrl)).result.reason, "document-mismatch");
+    assert.equal((await reader.attest(7, "doc-1", URL, documentUrl)).reason, "document-mismatch");
+  } finally { setup.restore(); }
+});
+
 test("reader binds top-frame Chromium identity and attests exact documentId without trusting DOM IDs", async () => {
   const calls = [];
   const scripting = { async executeScript(call) {
@@ -422,6 +467,7 @@ test("reader binds top-frame Chromium identity and attests exact documentId with
   const reader = createPageContentReader(scripting); const observed = await reader.read(7, URL);
   assert.equal(observed.documentId, "doc-1"); assert.ok(Object.isFrozen(observed.result));
   await reader.attest(7, observed.documentId, URL);
+  assert.deepEqual(calls.map((call) => call.args), [[URL], [URL]]);
   assert.deepEqual(calls[0].target, { tabId: 7, frameIds: [0] }); assert.equal(calls[0].world, "ISOLATED");
   assert.deepEqual(calls[1].target, { tabId: 7, documentIds: ["doc-1"] });
 });

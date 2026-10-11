@@ -8,6 +8,14 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 ## Current state
 
+Extension **0.13.48** automatically removes common session/tracking parameters
+from eligible public-page links before matching, storing or using them in
+discussions and Insights. Product/video IDs and other functional parameters
+remain; private/account/checkout and secret-token links stay blocked. The
+original URL is still checked for navigation safety. Reload under
+`chrome://extensions`; no backend restart or token reset is needed. See
+[ADR-095](decisions/ADR-095-public-navigation-url-minimization.md).
+
 This is a usable local discussion prototype, not a hosted or general-web product.
 
 The [portable backend preparation](apps/local-service/portable/README.md) now
@@ -46,7 +54,7 @@ the connection. See [ADR-091](decisions/ADR-091-connected-chatgpt-local-accounts
 the [account plan](plans/ACCOUNTS_PLAN.md) and
 [account instructions](apps/local-service/src/accounts/README.md).
 
-Extension **0.13.47** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.48** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -79,7 +87,7 @@ remain read-only at the bottom. See
 Canonical message sparkles stay visible and re-enable when current-page context
 is ready; unavailable contexts disable generation instead of hiding the action.
 The account update needs the updated local service and a reload of the unpacked
-extension to **0.13.47**. Accept the existing `sidePanel`
+extension to **0.13.48**. Accept the existing `sidePanel`
 permission if Chrome asks. Existing pairing, login and saved discussions remain.
 Closing the panel does not stop background matching; **Settings → Browsing
 session settings** retains Stop, site exclusions and access removal. An unsent

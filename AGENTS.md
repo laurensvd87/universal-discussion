@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current public URL minimization (2026-10-11, ADR-095, 0.13.48): the owner requests
+general session/tracking stripping, not a Booking.com-only exception. Separate
+browser navigation sanitation from unchanged strict canonical Source validation.
+Internal resolution.url/currentUrl and matcher.url remain original normalized,
+hashless document witnesses in extension RAM; persisted/provider/post URLs are
+cleaned. Preserve exact witnesses and original query budgets, private/secret
+guards, functional parameters, semicolon ambiguity rejection and one-capture
+Insight attestation. Independent Trust/offline and actual synthetic Chrome checks
+pass. No backend restart, historical migration or provider QA; reload extension.
+Read top STATUS/HANDOFF and ADR-095 before changing URL or authority checks.
+
 Current accounts (2026-10-11, ADR-091, 0.13.47): the owner explicitly approves
 normal owner-local account activation using the existing server-verified
 ChatGPT issuer/client/subject, separate account SQLite, chosen username and

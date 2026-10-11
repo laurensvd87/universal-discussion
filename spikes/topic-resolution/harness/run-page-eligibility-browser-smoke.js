@@ -10,6 +10,10 @@ const BROWSER_ROOT = fileURLToPath(new URL('../browser/', import.meta.url));
 const DEFAULT_CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const ORIGIN = 'https://example.com';
 const ARTICLE = `${ORIGIN}/owned-article`;
+const NAVIGATION_SOURCE = `${ARTICLE}?id=owned-product`;
+const NAVIGATION_DOCUMENT = `${NAVIGATION_SOURCE}&sid=synthetic-session&utm_source=owned-fixture`;
+const OWNED_DOCUMENT_URLS = new Set([ARTICLE, NAVIGATION_SOURCE, NAVIGATION_DOCUMENT,
+  NAVIGATION_DOCUMENT.replace('synthetic-session', 'synthetic-second')]);
 const HTML = '<!doctype html><html><head><meta charset="utf-8"><title>Owned eligibility article</title></head><body><main><p>Owned synthetic article for the permission gate.</p></main></body></html>';
 const COLLECTOR_TITLE = 'Owned collector fixture';
 const COLLECTOR_TEXT = 'Owned synthetic article for bounded collector regression.';
@@ -432,8 +436,45 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
         if (!fixture.unsupported) syntheticContentCaptures++;
         collectorChecks.push(`${fixture.name}-${fixture.unsupported ? 'excluded' : 'collected-exact-shape'}`);
       }
+      stage = 'packaged collector minimized Source and exact navigation witness';
+      const sourceUrl = NAVIGATION_SOURCE;
+      const documentUrl = NAVIGATION_DOCUMENT;
+      await evaluate(`(() => {
+        history.replaceState(null, '', ${JSON.stringify(documentUrl)});
+        document.head.innerHTML = '<meta charset="utf-8"><title>Owned collector fixture</title>';
+        document.body.innerHTML = '<main><p>${COLLECTOR_TEXT}</p></main>';
+      })()`, pageSession);
+      const capture = await evaluate(`(async () => {
+        const { createPageContentReader } = await import('./page-content-reader.js');
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs.length !== 1 || tabs[0].url !== ${JSON.stringify(documentUrl)}) throw new Error('Owned active tab required');
+        return createPageContentReader(chrome.scripting).read(tabs[0].id,
+          ${JSON.stringify(sourceUrl)}, ${JSON.stringify(documentUrl)});
+      })()`);
+      assert.equal(capture.result.status, 'collected');
+      assert.equal(capture.result.url, sourceUrl);
+      assert.equal(capture.result.text, COLLECTOR_TEXT);
+      assert.ok(!JSON.stringify(capture).includes('synthetic-session'));
+      syntheticContentCaptures++;
+      const attestationExpression = `(async () => {
+        const { createPageContentReader } = await import('./page-content-reader.js');
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs.length !== 1) throw new Error('Owned active tab required');
+        return createPageContentReader(chrome.scripting).attest(tabs[0].id,
+          ${JSON.stringify(capture.documentId)}, ${JSON.stringify(sourceUrl)}, ${JSON.stringify(documentUrl)});
+      })()`;
+      assert.deepEqual(await evaluate(attestationExpression), {
+        contractVersion: 'page-content-attestation/1', status: 'attested', url: sourceUrl,
+      });
+      await evaluate(`history.replaceState(null, '', ${JSON.stringify(documentUrl.replace('synthetic-session', 'synthetic-second'))})`, pageSession);
+      assert.deepEqual(await evaluate(attestationExpression), {
+        contractVersion: 'page-content-attestation/1', status: 'unsupported', reason: 'document-mismatch',
+      });
+      collectorChecks.push('minimized-source-exact-navigation-collected', 'original-navigation-attested',
+        'session-only-same-document-change-rejected');
     } finally {
       await evaluate(`(() => {
+        history.replaceState(null, '', ${JSON.stringify(ARTICLE)});
         document.head.innerHTML = '<meta charset="utf-8"><title>Owned eligibility article</title>';
         document.body.innerHTML = '<main><p>Owned synthetic article for the permission gate.</p></main>';
       })()`, pageSession);
@@ -499,7 +540,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
           body: Buffer.from(HTML).toString('base64') }, sessionId);
       } else {
         const source = [...targets.values()].find(item => item.sessionId === sessionId);
-        if (source?.url === ARTICLE && request.url === `${ORIGIN}/favicon.ico`) {
+        if (OWNED_DOCUMENT_URLS.has(source?.url) && request.url === `${ORIGIN}/favicon.ico`) {
           ownedFaviconRequests++;
           await browser.send('Fetch.fulfillRequest', { requestId, responseCode: 204 }, sessionId);
           return;

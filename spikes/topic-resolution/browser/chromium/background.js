@@ -1,7 +1,7 @@
 import { createLocalServiceClient } from "../core/local-service-client.js";
 import { createLocalServiceSession, PAIRING_KEY } from "../core/local-service-session.js";
 import { createBackgroundMatcher } from "../core/background-matcher.js";
-import { inspectPageUrl } from "../core/page-content-policy.js";
+import { inspectPageUrl, inspectPageNavigationUrl } from "../core/page-content-policy.js";
 import { createPageContentReader } from "./page-content-reader.js";
 import { createInferenceHost } from "./inference-host.js";
 import { createPopupFocusWitness } from "./popup-focus.js";
@@ -66,7 +66,7 @@ async function inspectForeground(boundWindowId = null) {
     if (tab.incognito) return "incognito";
     if (tab.pendingUrl || tab.status !== "complete") return "page-loading";
     if (!tab.url) return "url-unavailable";
-    if (!inspectPageUrl(tab.url).supported) return "unsupported-url";
+    if (!inspectPageNavigationUrl(tab.url).supported) return "unsupported-url";
     return null;
   };
   const queryWindow = () => boundWindowId === null
@@ -109,8 +109,8 @@ async function inspectForeground(boundWindowId = null) {
       const focusReason = witness.failureReason();
       if (focusReason) return rejected(focusReason);
     }
-    const inspected = inspectPageUrl(tab.url);
-    return { foreground: { tabId: tab.id, windowId: window.id, url: inspected.url, origin: inspected.origin }, contextReason: null };
+    const inspected = inspectPageNavigationUrl(tab.url);
+    return { foreground: { tabId: tab.id, windowId: window.id, url: inspected.documentUrl, origin: inspected.origin }, contextReason: null };
   } catch {
     return { foreground: null, contextReason: "context-unavailable" };
   }
@@ -184,7 +184,7 @@ async function refreshAndRetry(own) {
       if (foreground && (settings.blockedOrigins.includes(foreground.origin) ||
         (settings.enabled && settings.sessionWindowId !== foreground.windowId))) return;
     }
-    if (transientError && state.url && settings.blockedOrigins.includes(inspectPageUrl(state.url).origin)) return;
+    if (transientError && state.url && settings.blockedOrigins.includes(inspectPageNavigationUrl(state.url).origin)) return;
   } catch { return; }
   if (own !== presentationEpoch) return;
   const delay = RETRY_DELAYS[retryCount++];
