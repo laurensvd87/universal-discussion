@@ -97,3 +97,12 @@ been cleaned under ADR-095. Generation currently requires the originating public
 page to be current; failure saves the human message but makes no later retry.
 Future hosted migration/backup must include account and private stores; no
 shared-pilot, mail, E2EE, provider-quality or internet-scale throughput claim.
+
+Owner test follow-up (2026-10-11): a private assistant attempt ends with
+`invalid-input`. Read-only inspection confirms the human message remains and
+the claim is terminal. Independent offline composition reproduces a validation
+mismatch for invisible Unicode language-formatting characters accepted by the
+page reader but rejected by the provider adapter. The owner's exact rejected
+field is not proven; transient page text was not retained. Reconcile validation
+and add content-free failure-stage evidence in follow-up work, without private
+raw logs, input/output authority relaxation or replay of this existing claim.

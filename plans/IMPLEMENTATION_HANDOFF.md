@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 private assistant owner test now reports a terminal `invalid-input`
+claim (human message retained). Read-only diagnostics/offline composition find
+a page-reader/provider-adapter Unicode-control validation mismatch; the actual
+rejected field is unconfirmed because page text is transient. Do not call this
+a ChatGPT outage, reset/retry the existing claim or enable private raw logging.
+See top STATUS for evidence and the open validation/diagnostic regression work.
+No implementation change or live inference was made during this diagnosis.
+
 2026-10-11 private conversations and Discover are implemented/activated locally
 in 0.13.49; read ADR-096 before older public-only/private-preview notes. New-root
 lock is immutable; retain privacy intent across detached drafts/navigation. Private

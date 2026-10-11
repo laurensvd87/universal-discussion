@@ -1,5 +1,21 @@
 # Project status
 
+**2026-10-11 owner-reported private assistant failure diagnosed, fix open:**
+Read-only inspection finds one terminal private generation claim with
+`invalid-input`, not a connection/provider-output failure; the human message is
+retained. Its bounded human prefix is nonblank and control-free. An offline
+preflight using the same public Source's current catalog context passes input
+validation. Independent synthetic full private-service/runtime/provider-adapter
+composition also succeeds for ordinary text, but reproduces `invalid-input`
+before inference for language-formatting characters accepted by the page reader
+and rejected by the provider adapter (for example U+200E). This is a confirmed
+validation mismatch, not yet proof of the owner's exact rejected field: the
+transient page extract/request was not archived. No live provider request, retry,
+owner write, claim reset or implementation change was made during diagnosis.
+Next: reconcile bounded page-text validation and add content-free field-level
+private failure diagnostics plus a fully composed regression; preserve private
+debug suppression, durable one-attempt claims and all Source/account fences.
+
 **2026-10-11 private chats and indexed Discover implemented, 0.13.49:**
 Lock an unsent new thread to create an account-private conversation; its messages
 never enter public Topics, search, projections or dashboard. Private chats persist
