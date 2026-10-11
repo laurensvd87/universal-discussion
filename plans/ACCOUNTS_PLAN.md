@@ -1,8 +1,10 @@
 # Accounts and reply notifications: lean implementation plan
 
-Date: 2026-10-11. Status: isolated foundation implemented; live integration pending.
+Date: 2026-10-11. Status: owner-local integration approved and implemented;
+live email/hosting remain deferred.
 Decisions: [ADR-089](../decisions/ADR-089-account-and-reply-email-plan.md),
-[ADR-090](../decisions/ADR-090-isolated-account-foundation.md).
+[ADR-090](../decisions/ADR-090-isolated-account-foundation.md),
+[ADR-091](../decisions/ADR-091-connected-chatgpt-local-accounts.md).
 
 Latest owner direction: defer real email until domain/hosting is available.
 No immediate Resend signup or key is requested. Keep delivery interchangeable;
@@ -10,31 +12,40 @@ managed-host SMTP and transactional API remain later options, neither selected.
 
 ## Implementation checkpoint
 
-- **A1, partial:** strict versioned isolated SQLite, persistent username/private
-  verified fixture address, nonce-bound single-use email code, rate limits,
-  keyed verifiers, rotating/revocable sessions and paired optional API work.
-  Existing owner-store migration and canonical post/principal bridge do not.
-- **A2, partial:** reusable English login/profile sheet, injected bounded client,
-  draft-preserving interaction preview, logout, reply-email switch, resend,
-  accessibility and stale-result/storage fencing work. Synthetic mail only;
-  owner-panel wiring and protected browser-restart persistence remain.
-- **A3:** not implemented; no ChatGPT account-login button is shown when the
-  optional identity capability is absent. Existing inference login is unchanged.
+- **A1, owner-local complete:** strict separate SQLite, usernames, keyed
+  verifiers/rotating sessions, paired API, canonical account principals and v3
+  owner IDs. Legacy demo posts remain unclaimed. Email/code/rate-limit tests
+  work with a fixture sink; real transport/abuse hardening remain.
+- **A2, owner-local complete:** normal panel English login/profile sheet,
+  injected bounded client, logout, own-data export/delete, focus/input/layout
+  safeguards and Chrome-session-only trusted RAM storage. Durable app login
+  across Chrome restart is deliberately not part of this approval.
+- **A3, owner-local complete:** deliberate app sign-in reuses the existing
+  trusted ChatGPT issuer/client/subject without another provider request.
+  Own app sessions remain separate from the inference grant. Optional standalone
+  identity-only hosted/mobile registration and identity linking remain future work.
 - **A4, partial:** fake notification outbox/worker, recipient/provenance policy,
   transactional callback, deduplication, opt-out rechecks, coalescing, leases,
   bounded retries and signed off-only unsubscribe work. No canonical demo-command
   integration, real transport, unsubscribe HTTP endpoint or terminal-row cleanup.
-- **A5:** not implemented; rights/access/deletion/recovery, real-user ownership,
-  public read projections, per-account AI grants and migration rehearsal remain.
+- **A5, owner-local complete:** own identity/contact/post-revision export,
+  staged account deletion and startup recovery, real-account human/AI ownership,
+  unchanged legacy ownership and v3 restart/disabled-write regression tests.
+  Internet guest projection, forensic erasure, per-account hosted AI grants,
+  backups and production moderation remain future work.
 
-Independent Trust passes; full service 474 pass/four optional skips, restricted
-extension 1,190 pass. Real isolated Chrome proves email/code/username/preference/
-logout through the actual in-process handler, draft preservation with no automatic
-post, stable input/focus, responsive 320px layout and reduced motion. No real
-user/mail, owner-store write or listener.
+Independent Trust passes; full service 511 pass/four optional skips, restricted
+extension 1,231 pass. Root native Chrome 44 requests and synthetic email fixture 5
+requests pass with zero runtime errors; normal service restarted with unchanged
+canonical document/pairing/ChatGPT login and no account created for the owner.
+Full evidence is in STATUS. No live inference/mail test or guessed owner
+assignment is used. Remaining local UX limitation: renewal in one of multiple
+panels can temporarily detach an unsent draft in the other; one-panel renewal
+stays stable, and logout never permits late reauthentication.
 See [module documentation](../apps/local-service/src/accounts/README.md).
-Existing app stays on its synthetic identities until the exact activation package
-is reviewed and approved; do not silently assign their posts to a new account.
+The owner explicitly approves ADR-091 activation. Normal writes now require a
+named app account, not a demo actor; existing posts remain unclaimed. Reading
+stays pairing-protected and available without app login.
 
 ## Product flow
 
@@ -47,9 +58,10 @@ Offer **Continue with email** and, where supported, **Continue with ChatGPT**.
 For email, send a short-lived code to the address and enter it in the same sheet;
 no password, reset-password flow or mandatory browser-tab round-trip. After first
 verification, choose a suggested available username, then return to the composer.
-Existing users skip username setup. The final account flow stays signed in across
-ordinary panel/browser restarts using renewable, revocable app sessions. Browser
-credential persistence is not yet wired in the isolated package.
+Existing users skip username setup. Owner-local app sessions survive panel
+closure during this Chrome session and renew silently. Chrome restart requires
+deliberate app sign-in again. Protected durable browser sessions for a later
+hosted product need a separate storage/recovery review.
 
 Use a small profile icon in Settings for username, linked sign-in methods,
 reply-mail preference, logout and account/privacy controls. English UI uses
@@ -85,16 +97,19 @@ private direct messaging, followers and social profiles are out of this MVP.
 5. **Optional mail:** reply email defaults off, enabled once in account settings.
    Notification address is private and independently verified before delivery.
 
-## ChatGPT sign-in is not the AI connection
+## Reuse ChatGPT identity, keep app sessions independent
 
-Identity-only sign-in requests `openid profile email`, verifies the signed
-identity, and creates our own account/session. Using the user's ChatGPT plan is
-a separate optional grant; quota exhaustion, provider disconnect or a different
-AI account must not silently change the discussion account.
+The approved owner-local flow reads the existing connection's server-verified
+issuer/client/subject and creates its own account/session; no new OAuth scope or
+identity request. Using the user's ChatGPT plan remains a separate grant; quota
+exhaustion, provider disconnect or a different AI account must not silently
+change the discussion account. Generation/sharing requires the invoking app
+account to match the connected provider namespace. A future standalone
+identity-only sign-in can request `openid profile email` after eligibility review.
 [OpenAI sign-in quickstart](https://developers.openai.com/siwc/quickstart).
 
-Reuse the current tested PKCE/state/nonce/JWKS/signature primitives, not its
-combined scope string or provider token as an app session. Persist the validated
+Reuse the current tested PKCE/state/nonce/JWKS/signature primitives. Never use a
+provider token as an app session. Persist the validated
 external identity namespace (issuer, client registration, subject) separately
 from labels/emails. Linking another method requires a current app session and
 proof of the new method; a matching email is insufficient. Never treat subjects
@@ -105,11 +120,12 @@ login/recovery method.
 The local OSS client is not proof of a general hosted/mobile identity integration:
 website sign-in currently has a partner availability gate, and the OSS docs
 scope their flow to open-source/local use. Keep email working independently and
-confirm registration/callback eligibility before activating ChatGPT login for
-real accounts. Do not copy owner refresh tokens into a hosted service.
+confirm registration/callback eligibility before hosted/mobile identity-only
+activation. Owner-local reuse is separately approved in ADR-091. Do not copy
+owner refresh tokens into a hosted service.
 [Website availability](https://developers.openai.com/siwc/website),
 [OSS/local integration scope](https://developers.openai.com/siwc/token-sharing-open-source).
-Checked 2026-10-11; recheck before implementation activation.
+Checked 2026-10-11; recheck before any hosted/mobile integration.
 
 ## Reply-mail behavior
 

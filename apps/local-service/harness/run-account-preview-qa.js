@@ -128,6 +128,10 @@ try {
   assert.equal(await evaluate("document.querySelector('main').inert"), false);
   await evaluate("document.querySelector('#preview-account').click();document.querySelector('.account-profile button').focus()");
   await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 }, sessionId);
+  assert.equal(await evaluate("document.activeElement.textContent"), "Download my data");
+  await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 }, sessionId);
+  assert.equal(await evaluate("document.activeElement.textContent"), "Delete account");
+  await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 }, sessionId);
   assert.equal(await evaluate("document.activeElement.className"), "account-close");
   await evaluate("document.querySelector('.account-profile button').click()");
   await waitFor("window.accountPreview.state().stage==='email'&&!window.accountPreview.state().busy");

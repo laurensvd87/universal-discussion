@@ -34,7 +34,8 @@ export function ownsContribution(entry, actorId) {
 // Owns transient selection/drafts only; the service owns all canonical data.
 export function createLocalDiscussionController({ client, session, readActiveTab,
   observeTabLifecycle, lookupByNormalizedUrl, readPageResolution = null, pausePageMatching = null,
-  validatePairing = async () => {}, attestActiveContext = null, onStateChange = () => {} }) {
+  validatePairing = async () => {}, attestActiveContext = null, onStateChange = () => {},
+  readPostingActor = () => undefined, requestSignIn = () => {} }) {
   let state = { phase: "disconnected", error: null, catalog: null, discussion: null,
     topicViewMode: "experimental", alternateDiscussion: null, alternateError: null,
     related: null, relatedDiscussions: [], priorDiscussions: null, priorDiscussionsError: null,
@@ -52,6 +53,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   let preparingLearned = false;
   let alternateRequest = 0;
   let activeContext = null;
+  function postingActor(catalog) {
+    const selected = readPostingActor();
+    if (selected !== undefined) return catalog.actors.some(actor => actor.id === selected) ? selected : null;
+    return catalog.actors.some(actor => actor.id === state.actorId) ? state.actorId : catalog.actors[0]?.id ?? null;
+  }
   function publish(patch = {}) {
     const contextChanged = patch.discussion === null || patch.related === null || patch.catalog === null ||
       patch.sourceId === null || patch.topicId === null ||
@@ -356,7 +362,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       observationSequence += 1; stopObservation(); stopObservation = () => {}; activeContext = null;
       return;
     }
-    const actorId = catalog.actors.some((entry) => entry.id === state.actorId) ? state.actorId : catalog.actors[0]?.id ?? null;
+    const actorId = postingActor(catalog);
     publish({ catalog, actorId, resolution, sourceId: resolution.sourceId, topicId: resolution.topicId, selection: "background" });
     await loadSelection(ownEpoch);
   }
@@ -417,8 +423,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       await client.health({ signal: abort.signal });
       const catalog = await client.catalog({ signal: abort.signal });
       if (ownEpoch !== epoch || disposed) return;
-      const actorId = catalog.actors.some((entry) => entry.id === state.actorId)
-        ? state.actorId : catalog.actors[0]?.id ?? null;
+      const actorId = postingActor(catalog);
       if (state.selection === "manual" && state.sourceId) {
         const refreshedSource = catalog.sources.find((entry) => entry.id === state.sourceId);
         if (!refreshedSource || refreshedSource.topicId !== state.topicId) {
@@ -473,6 +478,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     await loadSelection(epoch);
   }
   async function selectActor(actorId) {
+    if (readPostingActor() !== undefined) return;
     if (!state.catalog?.actors.some((entry) => entry.id === actorId)) return;
     cancel(); detach(); publish({ actorId, discussion: null, related: null,
       priorDiscussions: null, priorDiscussionsError: null });
@@ -521,6 +527,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   function discardDraft() { if (!mutationPending) publish({ draft: { body: "", detached: false, mode: "root", targetId: null } }); }
   async function mutate(command, { reset = false, learned = false } = {}) {
+    if (!state.actorId && readPostingActor() !== undefined && !disposed) { requestSignIn(); return false; }
     if (mutationPending || state.needsFreshRead || !state.catalog || !state.actorId || disposed) return false;
     if (!["ready", "choose-topic"].includes(state.phase)) return false;
     if (!reset && !learned && command.type !== "create-topic" && state.phase !== "ready") return false;
@@ -709,7 +716,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       sourceId: null, topicId: null, actorId: null, selection: null, resolution: null,
       draft: { body: "", detached: false, mode: "root", targetId: null } };
   }
+  function accountChanged() {
+    cancel(); detach(); publish({ actorId: null, createdPost: null, busy: false });
+    void open();
+  }
   return Object.freeze({ currentState, open, pair, disconnect, selectTopic, selectActor,
     selectSource, setTopicViewMode, canReplyToAlternate, setDraft, reattachDraft, begin, discardDraft, submitDraft, shareInsight, withdraw, createTopic, reset,
-    updatePageResolution, invalidateContext, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
+    updatePageResolution, invalidateContext, accountChanged, correctSource, forgetSource, deleteLearnedTopic, clearLearnedData, dispose });
 }

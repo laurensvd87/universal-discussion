@@ -14,17 +14,68 @@ function string(value, max = 1024) {
   return value;
 }
 export class AccountService {
-  constructor({ repository, hmacKey, mailSink, fixtureOnly = true, now = Date.now }) {
-    if (!(hmacKey instanceof Uint8Array) || hmacKey.length < 32 || typeof mailSink !== 'function' || fixtureOnly !== true) throw new Error('synthetic-account-configuration-required');
+  constructor({ repository, hmacKey, mailSink, fixtureOnly = true, now = Date.now, chatgptIdentity = null }) {
+    if (!(hmacKey instanceof Uint8Array) || hmacKey.length < 32 || typeof fixtureOnly !== 'boolean' ||
+        (fixtureOnly ? typeof mailSink !== 'function' : mailSink !== null)) throw new Error('synthetic-account-configuration-required');
     this.repository = repository;
     this.db = repository.database;
     this.key = Buffer.from(hmacKey);
     this.mailSink = mailSink;
     this.now = now;
+    this.fixtureOnly = fixtureOnly;
+    if (chatgptIdentity !== null && typeof chatgptIdentity !== 'function') throw new Error('invalid-identity-adapter');
+    this.chatgptIdentity = chatgptIdentity;
+  }
+  identity() {
+    if (!this.chatgptIdentity) return null;
+    let identity;
+    try {
+      const supplied = this.chatgptIdentity();
+      if (supplied === null) return null;
+      identity = shape(supplied,['issuer','clientId','subject']);
+      if (identity.issuer !== 'https://auth.openai.com') return null;
+      for (const key of ['clientId','subject']) {
+        string(identity[key],256);
+        if (/[\u0000-\u001f\u007f]/u.test(identity[key])) return null;
+      }
+      if (identity.clientId === 'dynamic_agent_client') return null;
+    } catch { return null; }
+    return identity;
+  }
+  capabilities() {
+    return {chatGPTIdentity:this.identity() !== null,emailCode:this.fixtureOnly};
+  }
+  matchesChatGPTIdentity(accountId) {
+    const identity = this.identity();
+    if (!identity || typeof accountId !== 'string') return false;
+    return Boolean(this.db.prepare("SELECT 1 FROM external_identities JOIN accounts ON accounts.id=external_identities.account_id WHERE issuer=? AND client_id=? AND subject=? AND account_id=? AND accounts.state='active'")
+      .get(identity.issuer,identity.clientId,identity.subject,accountId));
+  }
+  signInChatGPT(input, accessToken = undefined) {
+    shape(input,[]);
+    // This injected synchronous adapter supplies already verified identity. It
+    // cannot refresh tokens, fetch provider data or resolve a caller's label.
+    const identity = this.identity();
+    if (!identity) throw new AccountError('chatgpt-unavailable');
+    return this.repository.transaction(() => {
+      const current = accessToken === undefined ? null : this.authenticated(accessToken);
+      let account = this.db.prepare('SELECT accounts.* FROM external_identities JOIN accounts ON accounts.id=external_identities.account_id WHERE issuer=? AND client_id=? AND subject=?')
+        .get(identity.issuer,identity.clientId,identity.subject);
+      if (current && (!account || current.id !== account.id)) throw new AccountError('account-switch-required');
+      if (account && account.state !== 'active') throw new AccountError('authentication-required');
+      if (!account) {
+        const id = randomUUID();
+        this.db.prepare('INSERT INTO accounts (id,created_at) VALUES (?,?)').run(id,this.now());
+        this.db.prepare('INSERT INTO external_identities VALUES (?,?,?,?,?)').run(identity.issuer,identity.clientId,identity.subject,id,this.now());
+        account = this.db.prepare('SELECT * FROM accounts WHERE id=?').get(id);
+      }
+      return {account:this.publicAccount(account),session:this.session(account.id)};
+    });
   }
   digest(kind, value) { return createHmac('sha256',this.key).update(`${kind}\0${value}`).digest('hex'); }
   publicAccount(row) { return { id:row.id, username:row.username, state:row.state, replyEmail:row.reply_email === 1 }; }
   requestCode(input) {
+    if (!this.fixtureOnly) throw new AccountError('email-unavailable');
     const {email:rawEmail,clientNonce} = shape(input,['email','clientNonce']);
     const email = string(rawEmail,254).trim().toLowerCase();
     string(clientNonce,256);
@@ -60,6 +111,7 @@ export class AccountService {
     return {accessToken,refreshToken,accessExpiresAt,refreshExpiresAt};
   }
   verifyCode(input) {
+    if (!this.fixtureOnly) throw new AccountError('email-unavailable');
     const {challengeId,code,clientNonce} = shape(input,['challengeId','code','clientNonce']);
     string(challengeId,128); string(code,6); string(clientNonce,256);
     const outcome = this.repository.transaction(() => {
@@ -92,7 +144,51 @@ export class AccountService {
   me(accessToken) { return this.publicAccount(this.authenticated(accessToken)); }
   resolvePrincipal(accessToken) {
     const account = this.authenticated(accessToken);
-    return {accountId:account.id,type:'human',state:account.state};
+    return this.principalForAccountId(account.id);
+  }
+  principalForAccountId(accountId) {
+    string(accountId,128);
+    const account = this.db.prepare('SELECT * FROM accounts WHERE id=? AND state=\'active\'').get(accountId);
+    if (!account || !account.username) throw new AccountError('authentication-required');
+    return {id:`account-${account.id}`,displayName:account.username,type:'human',demo:false,accountId:account.id};
+  }
+  publicActors() {
+    return this.db.prepare("SELECT id,username FROM accounts WHERE state='active' AND username IS NOT NULL ORDER BY id").all()
+      .map(account=>({id:`account-${account.id}`,displayName:account.username,type:'human',demo:false,accountId:account.id}));
+  }
+  exportOwnAccount(accessToken) {
+    const account = this.authenticated(accessToken);
+    return {account:this.publicAccount(account),
+      identities:this.db.prepare('SELECT issuer,client_id AS clientId,subject FROM external_identities WHERE account_id=?').all(account.id).map(row=>({...row})),
+      contacts:this.db.prepare('SELECT email,verified_at AS verifiedAt FROM account_emails WHERE account_id=?').all(account.id).map(row=>({...row}))};
+  }
+  beginDeletion(accessToken) {
+    return this.repository.transaction(() => {
+      const account = this.authenticated(accessToken);
+      this.db.prepare("UPDATE accounts SET state='deleting',reply_email=0 WHERE id=?").run(account.id);
+      this.db.prepare('DELETE FROM sessions WHERE account_id=?').run(account.id);
+      this.db.prepare("UPDATE account_reply_outbox SET state='cancelled',lease_token=NULL,lease_until=NULL WHERE recipient_id=? AND state!='sent'").run(account.id);
+      return {accountId:account.id};
+    });
+  }
+  listDeletingAccountIds() {
+    return this.db.prepare("SELECT id FROM accounts WHERE state='deleting' ORDER BY id").all().map(row=>row.id);
+  }
+  finishDeletion(accountId) {
+    string(accountId,128);
+    return this.repository.transaction(() => {
+      const account = this.db.prepare('SELECT * FROM accounts WHERE id=?').get(accountId);
+      if (!account || !['deleting','deleted'].includes(account.state)) throw new AccountError('authentication-required');
+      // Called only by trusted orchestration after canonical contributions have
+      // been withdrawn. Purge identifiers; a later sign-in owns a new UUID and
+      // cannot regain this account's withdrawn posts.
+      this.db.prepare('DELETE FROM email_challenges WHERE email IN (SELECT email FROM account_emails WHERE account_id=?)').run(account.id);
+      this.db.prepare('DELETE FROM account_emails WHERE account_id=?').run(account.id);
+      this.db.prepare('DELETE FROM external_identities WHERE account_id=?').run(account.id);
+      this.db.prepare('DELETE FROM sessions WHERE account_id=?').run(account.id);
+      this.db.prepare("UPDATE accounts SET state='deleted',username=NULL,username_key=NULL,reply_email=0 WHERE id=?").run(account.id);
+      return {deleted:true};
+    });
   }
   renew(input) {
     const {refreshToken} = shape(input,['refreshToken']); string(refreshToken,128);

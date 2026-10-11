@@ -1,4 +1,5 @@
-import { readActorId, readPairingToken } from "./local-service-contract.js";
+import { readActorId, readPairingToken, isAccountActorId } from "./local-service-contract.js";
+import { readAccountAuthError } from "./account-auth-response.js";
 import { inspectPageUrl } from "./page-content-policy.js";
 import { normalizeInsightPreferences } from "./insight-preferences.js";
 
@@ -142,7 +143,8 @@ function projectResumable(value) {
     ...(job.followupTopicId === undefined ? {} : { followupTopicId: job.followupTopicId }) };
 }
 
-export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = async () => {}, timeoutMs = 10000 }) {
+export function createLocalAiClient({ fetchImpl, getToken, getAccountToken = () => null,
+  onAccountUnauthorized = async () => {}, onUnauthorized = async () => {}, timeoutMs = 10000 }) {
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000) throw new TypeError("Invalid local AI client");
   async function request(path, body, actorId, signal, requestTimeoutMs = timeoutMs) {
     const url = BASE + path;
@@ -162,12 +164,28 @@ export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = asyn
       if (controller.signal.aborted) throw new TypeError("Local AI request unavailable");
       const headers = { Authorization: `Bearer ${token}` };
       if (payload !== undefined) headers["Content-Type"] = "application/json";
-      if (actorId !== undefined) headers["X-Demo-Actor"] = readActorId(actorId);
+      let accountToken;
+      if (actorId !== undefined) {
+        readActorId(actorId);
+        if (isAccountActorId(actorId)) {
+          accountToken = await Promise.race([getAccountToken(actorId), interrupted]);
+          if (typeof accountToken !== "string" || !/^[A-Za-z0-9_-]{43}$/u.test(accountToken)) {
+            throw Object.assign(new TypeError("Discussion account sign-in required"), { code: "authentication-required" });
+          }
+          if (controller.signal.aborted) throw new TypeError("Local AI request unavailable");
+          headers["X-Account-Session"] = accountToken;
+        } else headers["X-Demo-Actor"] = actorId;
+      }
       const response = await Promise.race([fetchImpl(url, { method: payload === undefined ? "GET" : "POST", headers,
         ...(payload === undefined ? {} : { body: payload }), credentials: "omit", redirect: "error", cache: "no-store",
         referrerPolicy: "no-referrer", signal: controller.signal }), interrupted]);
       if (response?.status === 401 && !controller.signal.aborted) {
+        const authError = accountToken ? await Promise.race([readAccountAuthError(response, controller.signal), interrupted]) : null;
         await response.body?.cancel?.().catch(() => {});
+        if (accountToken && authError !== "unauthorized") {
+          try { await onAccountUnauthorized(accountToken); } catch { /* rejection remains signed out */ }
+          throw Object.assign(new TypeError("Discussion account sign-in required"), { code: "authentication-required" });
+        }
         try { await onUnauthorized(token); } catch { /* Rejected request stays rejected. */ }
         throw new TypeError("Local AI request unauthorized");
       }
@@ -241,7 +259,7 @@ export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = asyn
       if (result.operationId !== operationId) invalid(); return result;
     },
     resumable: async (actorId, options = {}) => projectResumable(
-      await request("/insights/resumable", undefined, readActorId(actorId), options.signal)),
+      await request("/insights/resumable", isAccountActorId(actorId) ? {} : undefined, readActorId(actorId), options.signal)),
     cancel: async (operationId, actorId, options = {}) => {
       const value = await request("/insights/cancel", { operationId: id(operationId) }, readActorId(actorId), options.signal);
       keys(value, ["cancelled"]);

@@ -1,9 +1,11 @@
 # ADR-090: Isolated account foundation before real-user activation
 
 Date: 2026-10-11.
-Status: implemented and independently reviewed for isolated synthetic use;
-owner requests eventual real-account/service/email activation, but subsequently
-defers live mail until domain/hosting setup; activation has not occurred.
+Status: implemented and independently reviewed for isolated synthetic use.
+Normal owner-local integration/activation is now separately approved and
+implemented in [ADR-091](ADR-091-connected-chatgpt-local-accounts.md).
+Live mail remains deferred until domain/hosting setup. The dormant statements
+below record this earlier package, not the current normal composition.
 
 ## Implementation boundary
 

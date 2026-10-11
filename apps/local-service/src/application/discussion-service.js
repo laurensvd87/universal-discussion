@@ -9,6 +9,7 @@ import { applyLearnedCommand, applyLearnedIngest, BROWSER_MODEL_ID, compatibleEx
 import { createOwnerTopicPlanner } from "../domain/owner-topic-planner.js";
 import { createSnapshotTopicPlanner } from "../domain/alternate-topic-cache.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
+import { isAccountPrincipal, ACCOUNT_COMMANDS, isAccountActor } from "../accounts/account-principal.js";
 
 export const DEMO_ACTORS = Object.freeze([
   Object.freeze({ id: "demo-alex", displayName: "Alex · synthetic", type: "human", demo: true }),
@@ -17,8 +18,16 @@ export const DEMO_ACTORS = Object.freeze([
 const ALTERNATE_SOURCE_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 
 export function createDiscussionService({ repository, ranking, sources, topicSeeds, nextId, now,
-  alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null }) {
+  alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
+  resolveAccountActor = null, readAccountActors = () => [] }) {
   const actors = new Map(DEMO_ACTORS.map((actor) => [actor.id, actor]));
+  function actorFor(actorId) {
+    const actor = isAccountActor(actorId) && typeof resolveAccountActor === "function"
+      ? resolveAccountActor(actorId.slice("account-".length)) : actors.get(actorId);
+    if (!actor || (isAccountActor(actorId) && (!isAccountPrincipal(actor) || actor.id !== actorId)))
+      fail("forbidden", "Actor unavailable");
+    return actor;
+  }
   let ownerPlanner = null;
   if (alternateAdapter !== null || alternateBodyMetric !== null || alternateRidgeAdapter !== null) {
     try { ownerPlanner = createOwnerTopicPlanner({ diagonalAdapter: alternateAdapter, bodyMetric: alternateBodyMetric,
@@ -30,16 +39,15 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
 
   return Object.freeze({
     actor(actorId) {
-      const actor = actors.get(actorId);
-      if (!actor) fail("forbidden", "Actor unavailable");
-      return actor;
+      return actorFor(actorId);
     },
     catalog() {
       const state = repository.load();
       return frozenClone({
         version: version(state),
         model: ranking.model,
-        actors: DEMO_ACTORS.map(({ id, displayName, type }) => ({ id, displayName, type })),
+        actors: [...DEMO_ACTORS, ...readAccountActors().filter(isAccountPrincipal)]
+          .map(({ id, displayName, type }) => ({ id, displayName, type })),
         topics: state.topics.map(({ id, title, kind, provenance }) => ({
           id, title, kind, ...(provenance === LEARNED_TOPIC_PROVENANCE ? { learned: true } : {}),
         })),
@@ -177,13 +185,38 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const expected = readExpectedVersion(expectedValue);
       const state = repository.load();
       if (state.generation !== expected.generation || state.revision !== expected.revision) fail("conflict", "State changed");
-      const actor = actors.get(actorId);
-      if (!actor) fail("forbidden", "Actor unavailable");
+      const actor = actorFor(actorId);
       const type = command && Object.getOwnPropertyDescriptor(command, "type");
+      if (isAccountPrincipal(actor) && (!type || !Object.hasOwn(type, "value") || !ACCOUNT_COMMANDS.has(type.value)))
+        fail("forbidden", "Action unavailable");
       const learned = type && type.enumerable && Object.hasOwn(type, "value") && LEARNED_COMMANDS.has(type.value);
       const outcome = learned ? applyLearnedCommand(state, command, { nextId, now }) : applyCommand(state, command, actor, { nextId, now, generatedProof });
       const saved = repository.save(expected, outcome.state);
       return frozenClone({ version: version(saved), result: outcome.result });
+    },
+    // Private lifecycle operations are invoked only by the authenticated account
+    // adapter. They intentionally do not expose the full browsing catalog.
+    accountContributions(actorId) {
+      if (!isAccountActor(actorId)) fail("forbidden", "Actor unavailable");
+      const state = repository.load();
+      return frozenClone(state.contributions.filter(entry => !entry.withdrawn &&
+        (entry.actorType === "human" ? entry.authorId === actorId : entry.insight?.operatorId === actorId)));
+    },
+    withdrawAccountContributions(actorId) {
+      if (!isAccountActor(actorId)) fail("forbidden", "Actor unavailable");
+      let current = repository.load();
+      const entries = current.contributions.filter(entry => !entry.withdrawn &&
+        (entry.actorType === "human" ? entry.authorId === actorId : entry.insight?.operatorId === actorId));
+      // One successor transaction purges every owned revision. It retains deleted
+      // ancestors for other people's replies, never the erased author or text.
+      if (!entries.length) return { withdrawn: 0 };
+      const lifecycleActor = { id: actorId, accountId: actorId.slice(8), type: "human", demo: false, displayName: "Deleted_user" };
+      let next = current;
+      for (const entry of entries) next = applyCommand(next, { type: "withdraw", contributionId: entry.id },
+        lifecycleActor, { nextId, now }).state;
+      next.revision = current.revision + 1;
+      repository.save(version(current), next);
+      return { withdrawn: entries.length };
     },
     reset(expectedValue, confirmation) {
       const expected = readExpectedVersion(expectedValue);

@@ -4,6 +4,7 @@ import { operationDigestFor, sourceStamp } from "./source-threads.js";
 import { BROWSER_MODEL_ID, compatibleExtractor, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, MATCH_POLICY_VERSION, readLearnedEmbedding } from "./learned-sources.js";
 import { ADAPTIVE_TOPIC_POLICY } from "./adaptive-topics.js";
 import { inspectRetainedSourceDtoUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
+import { ACCOUNT_STATE_SCHEMA, isAccountActor } from "../accounts/account-principal.js";
 
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 const ACTORS = new Set(["demo-alex", "demo-blair"]);
@@ -19,7 +20,9 @@ export function assertValidLegacyPersistedState(state) {
 
 function assertState(state, legacy) {
   record(state, ["schema", "generation", "revision", "topics", "discussions", "contributions", "sources", "sourceLinks"]);
-  if (state.schema !== (legacy ? "demo-state/v1" : STATE_SCHEMA) || !integer(state.revision, 0)) invalid();
+  const accountState = !legacy && state.schema === ACCOUNT_STATE_SCHEMA;
+  if (!(state.schema === (legacy ? "demo-state/v1" : STATE_SCHEMA) || accountState) || !integer(state.revision, 0)) invalid();
+  const humanActor = value => ACTORS.has(value) || accountState && isAccountActor(value);
   text(state.generation, 128);
   array(state.topics);
   array(state.discussions);
@@ -84,7 +87,8 @@ function assertState(state, legacy) {
         if (Object.hasOwn(contribution, "insight")) invalid();
       } else {
         record(contribution.insight, ["kind", "operatorId"]);
-        if (!["manual-import", "generated"].includes(contribution.insight.kind) || !ACTORS.has(contribution.insight.operatorId) ||
+        if (!["manual-import", "generated"].includes(contribution.insight.kind) || !humanActor(contribution.insight.operatorId) ||
+            (isAccountActor(contribution.insight.operatorId) && contribution.insight.kind !== "generated") ||
             contribution.authorId !== IMPORTED_INSIGHT_AUTHOR_ID) invalid();
       }
     } else if (Object.hasOwn(contribution, "insight")) invalid();
@@ -117,7 +121,7 @@ function assertState(state, legacy) {
     if (contribution.withdrawn) {
       if (contribution.authorId !== null || contribution.revisions.length !== 0) invalid();
     } else {
-      if ((contribution.actorType === "human" && !ACTORS.has(contribution.authorId)) ||
+      if ((contribution.actorType === "human" && !humanActor(contribution.authorId)) ||
           (contribution.actorType === "agent" && contribution.authorId !== IMPORTED_INSIGHT_AUTHOR_ID) ||
           contribution.revisions.length === 0) invalid();
       for (const revision of contribution.revisions) {

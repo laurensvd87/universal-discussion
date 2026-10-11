@@ -247,6 +247,12 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     return { connected: Boolean(active), planEnabled: Boolean(active?.planEnabled), pending: Boolean(currentPending()),
       account: active ? { clientId: active.clientId, label: active.label } : null };
   }
+  function accountIdentity() {
+    if (disposed || disconnectFlight || currentPending() || !active || !active.identityVerified) return null;
+    const refreshable = active.planEnabled && typeof active.refreshToken === "string" && active.refreshToken.length > 0;
+    if (active.expiresAt <= now() && !refreshable) return null;
+    return Object.freeze({issuer:ISSUER,clientId:active.clientId,subject:active.subject});
+  }
   let restoreFlight = null;
   function restore() {
     if (restoreFlight) return restoreFlight;
@@ -288,7 +294,9 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
         if (disposed || epoch !== before || active || currentPending()) return false;
         await restorePersistOrForget(before, registration.clientId, registration.subject, tokens.refreshToken);
         if (disposed || epoch !== before || active || currentPending()) return false;
-        active = { ...tokens, ...registration, jwksUri: endpoints.jwksUri,
+        // The protected record's subject/client association was persisted only
+        // after verification. Plain registration JSON alone is never identity proof.
+        active = { ...tokens, ...registration, identityVerified:true, jwksUri: endpoints.jwksUri,
           revocationEndpoint: endpoints.revocationEndpoint };
         return true;
       } catch (error) {
@@ -372,7 +380,7 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     if (disposed || before !== epoch || pending !== attempt) invalid();
     await persistOrForget(clientId, identity.subject, tokens.refreshToken);
     if (disposed || before !== epoch || pending !== attempt) invalid();
-    active = { ...tokens, ...registration, jwksUri: endpoints.jwksUri, revocationEndpoint: endpoints.revocationEndpoint };
+    active = { ...tokens, ...registration, identityVerified:true, jwksUri: endpoints.jwksUri, revocationEndpoint: endpoints.revocationEndpoint };
     retryClientId = null;
     pending = null;
     return status();
@@ -388,15 +396,20 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
     if (!refreshFlight) {
       const original = active; const before = epoch;
       const flight = (async () => {
+        let identityRejected = false;
         try {
           const value = await request(TOKEN, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({ grant_type: "refresh_token", client_id: original.clientId,
               refresh_token: original.refreshToken, resource: RESOURCE }).toString() }, { oauthError: true });
+          identityRejected = value.id_token != null;
           const updated = credentials({ ...value, id_token: value.id_token ?? original.idToken }, original.clientId);
           if (value.id_token) {
-            const identity = await verifyIdToken(value.id_token, original.clientId, null, original.jwksUri);
-            if (identity.subject !== original.subject) invalid();
+            try {
+              const identity = await verifyIdToken(value.id_token, original.clientId, null, original.jwksUri);
+              if (identity.subject !== original.subject) invalid();
+            } catch (error) { identityRejected = true; throw error; }
           }
+          identityRejected = false;
           if (disposed || epoch !== before || active !== original) invalid();
           await persistOrForget(original.clientId, original.subject, updated.refreshToken);
           if (disposed || epoch !== before || active !== original) invalid();
@@ -404,7 +417,7 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
           if (!active.planEnabled) invalid();
           return active.accessToken;
         } catch (error) {
-          if (active === original && error instanceof OAuthRequestError && UNUSABLE_REFRESH.has(error.code)) {
+          if (active === original && (identityRejected || error instanceof OAuthRequestError && UNUSABLE_REFRESH.has(error.code))) {
             active = null;
             try { await clearStored(); } catch { /* The invalid grant cannot be resumed. */ }
           }
@@ -448,5 +461,5 @@ export function createChatGPTConnection({ hostId, agentName, readRegistration, w
   }
   function dispose() { disposed = true; epoch += 1; pending = null; active = null; refreshFlight = null;
     retryClientId = null; abortRequests(); }
-  return Object.freeze({ start, completeCallback, getAccessToken, status, restore, disconnect, dispose });
+  return Object.freeze({ start, completeCallback, getAccessToken, status, accountIdentity, restore, disconnect, dispose });
 }

@@ -17,18 +17,21 @@ grouping or recover historical threads from related Sources. The running service
 has been restarted and checked; pairing, ChatGPT login and saved posts remain.
 [ADR-088](decisions/ADR-088-related-e5-floor-088.md).
 
-The **isolated account foundation is implemented and tested**: email-code login,
-SQLite accounts/usernames, rotating app sessions, a compact accessible login/
-profile sheet and a fake reply-mail outbox that excludes one's own triggered AI
-answers. It is **not yet activated in the normal extension/service**. Real
-identity/mail, canonical post ownership, durable browser credentials and optional
-ChatGPT account login remain separate integration work. Existing posts and
-pairing are untouched. See the [account plan](plans/ACCOUNTS_PLAN.md) and
-[module/preview instructions](apps/local-service/src/accounts/README.md).
-Isolated Chrome QA exercises the real in-process account handler without opening
-a listener or sending mail; the manual interaction preview uses synthetic data.
+**Local discussion accounts are integrated.** Use the compact **Sign in** button
+at the top of the panel, reuse your connected ChatGPT account and choose a
+username. New human and generated posts belong to that account; old Alex/Blair
+posts remain unclaimed. Reading needs pairing, but no discussion-account login.
+The profile button offers sign-out, own-data export and account deletion.
+App login survives panel closure during this Chrome session; Chrome restart
+requires deliberate app sign-in again, not another provider login when ChatGPT
+is already connected. Email/code login is implemented with a synthetic mail
+sink, but **real email login and reply notifications remain disabled** until a
+mail service is configured. No extra identity/provider call is made by reusing
+the connection. See [ADR-091](decisions/ADR-091-connected-chatgpt-local-accounts.md),
+the [account plan](plans/ACCOUNTS_PLAN.md) and
+[account instructions](apps/local-service/src/accounts/README.md).
 
-Extension **0.13.46** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.47** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -60,8 +63,8 @@ remain read-only at the bottom. See
 [ADR-084](decisions/ADR-084-inline-same-source-thread-routing.md).
 Canonical message sparkles stay visible and re-enable when current-page context
 is ready; unavailable contexts disable generation instead of hiding the action.
-This client update needs no backend restart; reload the unpacked extension
-to **0.13.46**. Accept the existing `sidePanel`
+The account update needs the updated local service and a reload of the unpacked
+extension to **0.13.47**. Accept the existing `sidePanel`
 permission if Chrome asks. Existing pairing, login and saved discussions remain.
 Closing the panel does not stop background matching; **Settings → Browsing
 session settings** retains Stop, site exclusions and access removal. An unsent

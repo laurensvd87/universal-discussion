@@ -11,4 +11,13 @@ export const accountEnglish = Object.freeze({
   username_reserved: "Choose another username.", code_expired: "This code expired. Send a new one.",
   code_invalid: "That code did not work. Try again.", rate_limited: "Please wait before trying again.",
   session_expired: "Please sign in again.", unavailable: "Couldn't complete that. Please try again.",
+  emailComingSoon: "Email sign-in coming soon", connectChatGPT: "Connect ChatGPT",
+  chatGPTReuse: "Use your connected ChatGPT account.", replyComingSoon: "Reply email coming soon.",
+  replyVerify: "Sign in with a verified email to enable reply notifications.",
+  exportData: "Download my data", deleteAccount: "Delete account", deleteTitle: "Delete your account?",
+  deleteHint: "Your posts will be withdrawn and your sign-in details removed. This cannot be undone.",
+  deleteConfirm: "Delete my account", deleteCancel: "Keep my account", deleted: "Your account has been deleted.",
+  "account-switch-required": "Sign out before using another account.",
+  "chatgpt-unavailable": "Connect ChatGPT to continue.", "email-unavailable": "Email sign-in coming soon.",
+  signIn: "Sign in", signInLabel: "Sign in to your discussion account", profileLabel: "Discussion account:",
 });

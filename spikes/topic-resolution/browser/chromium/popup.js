@@ -10,6 +10,9 @@ import { createIndicatorController } from "../core/indicator-controller.js";
 import { createPageMetadataController } from "../core/page-metadata-controller.js";
 import { mountRelatedPagesDemo } from "./related-pages-panel.js";
 import { mountDiscussionPanel } from "./discussion-panel.js";
+import { mountAccountPanel } from "./account-panel.js";
+import { createAccountClient } from "../core/account-client.js";
+import { createAccountSessionStorage, ACCOUNT_SESSION_KEY, ACCOUNT_SESSION_FENCE_KEY } from "../core/account-session-storage.js";
 import { mountInsightPanel } from "./insight-panel.js";
 import { createInsightController, createInsightResumeGate } from "../core/insight-controller.js";
 import { createReadOnlyServiceRetry } from "../core/read-only-service-retry.js";
@@ -215,6 +218,8 @@ const tabLifecycleObserver = isSidePanel
 const discussionPanel = mountDiscussionPanel(document, document.querySelector("#local-discussion"));
 const insightPanel = mountInsightPanel(document, document.querySelector("#local-insights"));
 let insightController;
+let accountPanel = null;
+let accountAiObservation = "";
 let aiStartupAttempted = false;
 const resumeGate = createInsightResumeGate(() => insightController.resumeInsights());
 function resumeAfterReady(state) {
@@ -233,18 +238,31 @@ function primeAiAfterLocalConnection(state) {
   })().catch(() => {});
 }
 const storageLocal = globalThis.chrome.storage.local;
+const storageSession = globalThis.chrome.storage.session;
+const storageEvents = globalThis.chrome.storage.onChanged;
+const accountLocks = globalThis.navigator.locks;
 const insightPreferenceStorage = createInsightPreferenceStorage({ storageLocal, i18n: globalThis.chrome.i18n });
 const popupShell = mountPopupShell(document, {
   storageLocal,
-  storageSession: globalThis.chrome.storage.session,
+  storageSession,
   onModeChange: discussionPanel.setMode,
 });
 const localSession = createLocalServiceSessionProxy({ sendMessage: (message) => runtime.sendMessage(message) });
 const localTransport = globalThis.fetch.bind(globalThis);
+async function getAccountToken(actorId) {
+  if (!accountPanel) return null;
+  const token = await accountPanel.controller.withAppSession(({ accessToken, accountId }) =>
+    actorId === undefined || actorId === `account-${accountId}` ? accessToken : null);
+  return typeof token === "string" ? token : null;
+}
 const localClient = createLocalServiceClient({ fetchImpl: localTransport, getToken: localSession.getToken,
-  onUnauthorized: localSession.clearIfCurrent });
+  onUnauthorized: localSession.clearIfCurrent,
+  getAccountToken,
+  onAccountUnauthorized: token => accountPanel?.rejectedSession(token) });
 const aiClient = createLocalAiClient({ fetchImpl: localTransport, getToken: localSession.getToken,
-  onUnauthorized: localSession.clearIfCurrent });
+  onUnauthorized: localSession.clearIfCurrent,
+  getAccountToken,
+  onAccountUnauthorized: token => accountPanel?.rejectedSession(token) });
 const permissionsApi = globalThis.chrome.permissions;
 let matchingPanel;
 // Ask for fresh background evidence only when a service projection changes.
@@ -274,6 +292,8 @@ function observeToolbar(state) {
 const localDiscussion = createLocalDiscussionController({
   client: localClient,
   session: localSession,
+  readPostingActor: () => accountPanel?.getActorId() ?? null,
+  requestSignIn: () => { void accountPanel?.requestSignIn(); },
   validatePairing: async (token) => {
     const health = await localClient.healthWithToken(token);
     if (health.capability !== "paired-durable-v1") throw Object.assign(new Error("Durable pairing required"), { code: "durable-pairing-required" });
@@ -301,10 +321,18 @@ const localDiscussion = createLocalDiscussionController({
 popupShell.bindTopicView(localDiscussion);
 insightController = createInsightController({
   shareInsight: localDiscussion.shareInsight,
+  requestSignIn: () => { void accountPanel?.requestSignIn(); },
   // ADR-075: a deliberate generation click also authorizes one local post.
   // Recovered jobs never inherit that one-shot publication intent.
   shareOnCompletion: true,
-  onStateChange: (state) => { insightPanel.render(state); discussionPanel.renderInsightState?.(state); },
+  onStateChange: (state) => {
+    insightPanel.render(state); discussionPanel.renderInsightState?.(state);
+    const key = JSON.stringify([state.ai.connected, state.ai.pending, state.ai.account?.clientId]);
+    if (accountPanel && key !== accountAiObservation) {
+      accountAiObservation = key;
+      void accountPanel.controller.refreshCapabilities();
+    }
+  },
   aiClient,
   readArticle: insightPageReader.read,
   attestArticle: insightPageReader.attest,
@@ -328,6 +356,39 @@ matchingPanel = mountPageMatchingPanel(document, document.querySelector("#page-m
   streamlinedSession: true,
 });
 discussionPanel.bind(localDiscussion);
+const accountStorage = createAccountSessionStorage({ storageSession,
+  withLock: work => accountLocks.request("discussion-account-session-v1", work),
+  getPairingToken: localSession.getToken });
+accountPanel = mountAccountPanel({ document, mount: document.body,
+  client: createAccountClient({ fetchImpl: localTransport, getPairingToken: localSession.getToken }),
+  storage: accountStorage,
+  readContext: () => {
+    const state = localDiscussion.currentState();
+    return { sourceId: state.sourceId, topicId: state.topicId,
+      targetId: state.draft.targetId, mode: state.draft.mode };
+  },
+  onAccountChange: () => { if (accountPanel) localDiscussion.accountChanged(); },
+  onConnectChatGPT: () => insightController.connect(),
+  onSessionChanged: listener => {
+    const observe = (changes, area) => {
+      if (area === "session" && (Object.hasOwn(changes, ACCOUNT_SESSION_KEY) ||
+          Object.hasOwn(changes, ACCOUNT_SESSION_FENCE_KEY))) listener();
+    };
+    storageEvents.addListener(observe);
+    return () => storageEvents.removeListener(observe);
+  },
+  onExport: data => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    const link = document.createElement("a"); link.href = url; link.download = "discussion-account-data.json";
+    link.click(); setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  },
+});
+document.querySelector(".popup-topbar").insertBefore(accountPanel.elements.button,
+  document.querySelector("#app-settings-button"));
+void accountPanel.initialize();
+const accountMaintenance = setInterval(() => {
+  if (accountPanel.getActorId()) void accountPanel.controller.withAppSession(() => true).catch(() => {});
+}, 60_000);
 document.querySelector("#product-title").textContent = EN.discussionPageTitle;
 document.querySelector("#product-capabilities").textContent = EN.discussionCapabilities;
 document.querySelector("#product-matching-badge").textContent = EN.discussionMatchingBadge;
@@ -372,6 +433,8 @@ const pageMetadataController = createPageMetadataController({
 });
 
 globalThis.addEventListener("pagehide", () => {
+  clearInterval(accountMaintenance);
+  accountPanel?.dispose();
   clearTimeout(panelReopenTimer);
   stopPanelWindowObservation();
   serviceRetry.dispose();

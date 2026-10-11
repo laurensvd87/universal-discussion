@@ -1,5 +1,32 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 ADR-091 supersedes historical dormant-account notes below. The owner
+explicitly approves local reuse of existing verified ChatGPT issuer/client/sub,
+separate accounts/username DB, new account-owned human/AI posts, unclaimed demo
+posts, Chrome-session RAM app credentials and paired guest reading. Normal
+CLI/panel 0.13.47 implement login/username/server principal/export/staged deletion.
+Normal email/reply mail stay disabled; no extra identity call or hosted scope.
+Read ADR-091 and ACCOUNTS_PLAN checkpoint. First deliberate own write advances
+canonical state to v3; pre-v3 binaries are not rollback. Never downgrade/discard
+posts. Exact Origin, pairing, namespace, Source/Topic/target/proof checks remain.
+
+Full service 511 pass/four optional skips; restricted extension 1,231 pass.
+Independent final Trust 58 backend/44 browser pass; root native Chrome 44 requests,
+zero errors (login/posts/legacy replies/resumable/export/delete/RAM/focus/320px).
+Email fixture Chrome 5 requests, zero errors. Secrets: 648/214 files, zero findings.
+Chrome's omitted GET Origin uses strict POST{} capability/me/resumable reads;
+catalog stays paired guest without app header. Shared WebLock/logout fence rejects
+late peer authentication. Single-panel renewal stable; peer-panel rotation can
+temporarily detach that peer's draft (remaining UX limitation). Refreshable
+verified provider namespace avoids pre-refresh authority deadlock; rejected
+refreshed identity clears binding, temporary failure preserves retryability.
+Normal approved restart complete, PTY 41255, same Origin/pairing/protected login;
+v2 canonical document byte-identical, revision 673/163 Sources/199 Topics, zero own
+accounts. Reload extension 0.13.47. Account creation waits for deliberate sign-in,
+not an agent write. Chrome restart ends own app session, while the existing
+protected provider connection can be reused. Deletion leaves provider grant
+separate and preserves other users' replies; no forensic/backup erasure claim.
+
 2026-10-11 latest owner direction supersedes immediate mail setup below: defer
 live email until a domain/hosting stage. No current Resend signup/key/domain
 assignment or repeated mail approval question. Fake delivery stays local; future

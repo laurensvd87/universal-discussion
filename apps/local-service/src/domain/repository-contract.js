@@ -2,6 +2,7 @@ import { fail } from "./errors.js";
 import { assertValidPersistedState } from "./persisted-state.js";
 import { assertReadableDiscussions, MAX_RESPONSE_BYTES } from "./discussion-view.js";
 import { readExpectedVersion } from "./validation.js";
+import { ACCOUNT_STATE_SCHEMA } from "../accounts/account-principal.js";
 
 export const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 const encoder = new TextEncoder();
@@ -42,6 +43,8 @@ export function assertExpected(current, expectedValue) {
 }
 
 export function assertTransition(current, next, reset) {
+  if (!reset && current.schema === ACCOUNT_STATE_SCHEMA && next.schema !== ACCOUNT_STATE_SCHEMA)
+    fail("conflict", "Account state cannot be downgraded");
   if (reset) {
     if (next.generation === current.generation || next.revision !== 0) fail("conflict", "Invalid reset version");
   } else if (
@@ -50,7 +53,7 @@ export function assertTransition(current, next, reset) {
   ) {
     fail("conflict", "Invalid successor version");
   }
-  if (!reset && current.schema === next.schema) {
+  if (!reset && (current.schema === next.schema || next.schema === ACCOUNT_STATE_SCHEMA)) {
     for (const root of next.contributions.filter((entry) => entry.rootId === null)) {
       const previous = current.contributions.find((entry) => entry.id === root.id);
       if (previous && (previous.originalTopicId !== root.originalTopicId || previous.learnedOrigin !== root.learnedOrigin)) {

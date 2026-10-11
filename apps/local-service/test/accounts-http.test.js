@@ -78,7 +78,7 @@ test("account transport rejects redirects, oversized responses, malformed DTO an
 test("actual account service revokes old credential during same-tick controller renewal/logout",async t=>{
   const app=fixture(t);let saved=null;
   const controller=createAccountController({client:app.client,storage:{load:()=>saved,save:value=>{saved=value;},clear:()=>{saved=null;}}});
-  controller.open();await controller.requestCode("reader@example.test");await controller.verifyCode(app.mail[0].code);
+  controller.open();await controller.refreshCapabilities();await controller.requestCode("reader@example.test");await controller.verifyCode(app.mail[0].code);
   await controller.setUsername("actual_reader");const previous={...saved};
   await Promise.all([controller.renew(),controller.signOut()]);
   assert.equal(saved,null);assert.equal(controller.renderSnapshot().account,null);
@@ -93,7 +93,7 @@ test("actual account rotation followed by controller cancellation cannot leave a
   const gate=new Promise(resolve=>{release=resolve;});
   const client={...app.client,renew:async input=>{fresh=await app.client.renew(input);dispatched();await gate;return fresh;}};
   const controller=createAccountController({client,storage:{load:()=>saved,save:value=>{saved=value;},clear:()=>{saved=null;}}});
-  controller.open();await controller.requestCode("reader@example.test");await controller.verifyCode(app.mail[0].code);
+  controller.open();await controller.refreshCapabilities();await controller.requestCode("reader@example.test");await controller.verifyCode(app.mail[0].code);
   await controller.setUsername("actual_reader");const previous={...saved};
   const rotation=controller.renew();await reached;controller.cancel();release();await rotation;
   assert.equal(saved,null);assert.equal(controller.renderSnapshot().account,null);

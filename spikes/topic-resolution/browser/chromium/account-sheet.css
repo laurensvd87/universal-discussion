@@ -14,6 +14,10 @@
 .account-submit, .account-secondary { width: 100%; min-height: 44px; border-radius: 11px; padding: 10px 12px; font: inherit; font-weight: 600; overflow-wrap: anywhere; }
 .account-submit { margin-top: 14px; border: 1px solid #f3c986; background: #f3c986; color: #211b25; }
 .account-secondary { margin-top: 12px; background: #252a41; color: #e7e9f5; border: 1px solid #414963; }
+.account-method-note { margin: 16px 0 0; color: #aab2cc; font-size: 12px; text-align: center; }
+.account-rights { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.account-sheet .account-danger { color: #f5b5aa; }
+.account-sheet > .account-secondary { margin-top: 0; margin-bottom: 18px; }
 .account-code-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 14px; }
 .account-link { background: none; border: 0; padding: 6px 0; color: #b9b7ff; font: inherit; font-size: 12px; }
 .account-sheet button { cursor: pointer; transition: background-color 160ms ease, transform 120ms ease; }

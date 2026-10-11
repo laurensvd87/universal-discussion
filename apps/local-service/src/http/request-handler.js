@@ -3,11 +3,13 @@ import { ServiceError, fail } from "../domain/errors.js";
 import { readRecord } from "../domain/validation.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 import { mapAccountError, routeAccountRequest } from "../accounts/account-routes.js";
+import { isAccountActor } from "../accounts/account-principal.js";
 
 export const MAX_BODY_BYTES = 65_536;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
 
-export function createRequestHandler({ service, config, ai = null, pairingVerifier = null, accounts = null }) {
+export function createRequestHandler({ service, config, ai = null, pairingVerifier = null, accounts = null,
+  accountWrites = false, accountLifecycle = null }) {
   return async function handle(request) {
     let corsOrigin = null;
     try {
@@ -19,17 +21,18 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         ai.callback(`http://${config.hostHeader}${normalized.url.pathname}${normalized.url.search}`);
         return callbackResponse(normalized.url.searchParams.has("error") && !normalized.url.searchParams.has("code"));
       }
-      if (normalized.method === "OPTIONS") return preflight(normalized, config, accounts !== null);
+      if (normalized.method === "OPTIONS") return preflight(normalized, config, accounts !== null, accountWrites);
       corsOrigin = requireOrigin(normalized.headers, config.origin);
       requireCapability(normalized.headers.authorization, config.capability, pairingVerifier);
       if (accounts !== null && normalized.url.pathname.startsWith("/v1/account/")) {
         // Account credential handling requires the configured browser Origin;
-        // existing owner service composition never injects an account adapter.
+        // privileged browser GET omissions use strict POST read equivalents.
         if (normalized.headers.origin !== config.origin) fail("origin", "Request unavailable");
-        const response = routeAccountRequest(normalized, accounts);
+        const response = accountLifecycle && ["/v1/account/data", "/v1/account/delete"].includes(normalized.url.pathname)
+          ? accountLifecycle.route(normalized) : routeAccountRequest(normalized, accounts);
         return jsonResponse(response.status, response.value, corsOrigin);
       }
-      const response = await route(normalized, service, ai, pairingVerifier !== null);
+      const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null, config.origin);
       return jsonResponse(response.status, response.value, corsOrigin);
     } catch (error) {
       const mapped = mapError(error);
@@ -91,14 +94,14 @@ function requireCapability(authorization, expected, pairingVerifier) {
   if (supplied.length !== wanted.length || !timingSafeEqual(supplied, wanted)) fail("unauthorized", "Authentication required");
 }
 
-function preflight(request, config, accountsEnabled = false) {
+function preflight(request, config, accountsEnabled = false, accountWrites = false) {
   if (request.headers.origin !== config.origin) fail("origin", "Request unavailable");
   const method = request.headers["access-control-request-method"];
   if (!method || !["GET", "POST"].includes(method)) fail("origin", "Request unavailable");
   const requested = (request.headers["access-control-request-headers"] ?? "")
     .split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
   if (requested.some((header) => !ALLOWED_PREFLIGHT_HEADERS.has(header) &&
-      !(accountsEnabled && header === "x-account-session" && request.url.pathname.startsWith("/v1/account/")))) fail("origin", "Request unavailable");
+      !(accountsEnabled && header === "x-account-session" && (accountWrites || request.url.pathname.startsWith("/v1/account/"))))) fail("origin", "Request unavailable");
   return {
     status: 204,
     headers: {
@@ -112,25 +115,52 @@ function preflight(request, config, accountsEnabled = false) {
   };
 }
 
-async function route(request, service, ai, durablePairing) {
+async function route(request, service, ai, durablePairing, accounts = null, origin = null) {
   const path = request.url.pathname;
+  function postingActor({ provider = false } = {}) {
+    if (!accounts) {
+      const actorId = request.headers["x-demo-actor"];
+      if (!actorId || isAccountActor(actorId)) fail("forbidden", "Actor unavailable");
+      return actorId;
+    }
+    if (request.headers.origin !== origin || Object.hasOwn(request.headers, "x-demo-actor")) fail("forbidden", "Actor unavailable");
+    const actor = accounts.resolvePrincipal(request.headers["x-account-session"]);
+    if (provider && !accounts.matchesChatGPTIdentity(actor.accountId)) fail("forbidden", "Provider account unavailable");
+    return actor.id;
+  }
+  // Optional session headers on reads are validated without exposing identity
+  // namespaces. Guests need device pairing, not an application account.
+  if (accounts && Object.hasOwn(request.headers, "x-account-session")) {
+    if (request.headers.origin !== origin || Object.hasOwn(request.headers, "x-demo-actor")) fail("forbidden", "Actor unavailable");
+    accounts.me(request.headers["x-account-session"]);
+  }
   if (request.method === "GET" && request.body !== null && request.body !== "") fail("invalid", "Invalid request");
   if (ai && path.startsWith("/v1/ai/")) {
     if (request.method === "GET" && path === "/v1/ai/status") return { status: 200, value: ai.status() };
     if (request.method === "GET" && path === "/v1/ai/insights/resumable") {
-      const actorId = request.headers["x-demo-actor"];
-      if (!actorId) fail("forbidden", "Actor unavailable");
+      const actorId = postingActor();
       return { status: 200, value: ai.resumable(actorId) };
     }
     if (request.method === "GET" && path === "/v1/ai/diagnostics") return { status: 200, value: ai.diagnostics() };
-    if (request.method === "GET" && path === "/v1/ai/models") return { status: 200, value: await ai.models() };
+    if (request.method === "GET" && path === "/v1/ai/models") {
+      if (accounts && Object.hasOwn(request.headers, "x-account-session")) postingActor({ provider: true });
+      return { status: 200, value: await ai.models() };
+    }
     if (request.method === "POST") {
       const input = parseJsonBody(request);
-      if (path === "/v1/ai/connect") return { status: 200, value: await ai.connect(input) };
-      if (path === "/v1/ai/disconnect") return { status: 200, value: await ai.disconnect(input) };
-      const actorId = request.headers["x-demo-actor"];
-      if (!actorId) fail("forbidden", "Actor unavailable");
-      if (path === "/v1/ai/insights") return { status: 200, value: ai.create(input, actorId) };
+      if (path === "/v1/ai/connect" || path === "/v1/ai/disconnect") {
+        if (accounts && Object.hasOwn(request.headers, "x-account-session")) postingActor({ provider: true });
+        return { status: 200, value: await (path.endsWith("/connect") ? ai.connect(input) : ai.disconnect(input)) };
+      }
+      const actorId = postingActor({ provider: path === "/v1/ai/insights" });
+      if (path === "/v1/ai/insights/resumable") {
+        readRecord(input, []);
+        return { status: 200, value: ai.resumable(actorId) };
+      }
+      if (path === "/v1/ai/insights") {
+        try { return { status: 200, value: ai.create(input, actorId) }; }
+        catch (error) { if (accounts && error instanceof ServiceError && error.code === "unauthorized") fail("forbidden", "Provider account unavailable"); throw error; }
+      }
       if (path === "/v1/ai/insights/result") return { status: 200, value: ai.result(input, actorId) };
       if (path === "/v1/ai/insights/cancel") return { status: 200, value: ai.cancel(input, actorId) };
     }
@@ -166,8 +196,7 @@ async function route(request, service, ai, durablePairing) {
     }
     if (path === "/v1/commands") {
       const body = readRecord(input, ["expected", "command"]);
-      const actorId = request.headers["x-demo-actor"];
-      if (!actorId) fail("forbidden", "Actor unavailable");
+      const actorId = postingActor({ provider: ["share-insight", "share-insight-reply"].includes(body.command?.type) });
       const persist = (proof) => service.command(body.expected, body.command, actorId, proof);
       const outcome = ["share-insight", "share-insight-reply"].includes(body.command?.type)
         ? (ai ? ai.share(body, actorId, persist) : fail("forbidden", "Action unavailable"))
@@ -178,6 +207,7 @@ async function route(request, service, ai, durablePairing) {
       } };
     }
     if (path === "/v1/demo/reset") {
+      if (accounts) fail("forbidden", "Operator action unavailable");
       const body = readRecord(input, ["expected", "confirmation"]);
       const state = service.reset(body.expected, body.confirmation);
       ai?.reset?.();

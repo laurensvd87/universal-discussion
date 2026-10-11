@@ -1442,3 +1442,21 @@ body[data-ui-surface="sidepanel"][data-ui-mode="user"] #app-welcome:not([hidden]
     max-height: 55dvh;
   }
 }
+/* Discussion identity is a compact peer of Settings, not another feed banner. */
+.account-profile-button {
+  display: inline-flex; align-items: center; gap: .35rem; min-width: 2.25rem;
+  max-width: 11rem; min-height: 2.25rem; padding: .35rem .6rem;
+  border-radius: 999px; background: rgba(162, 143, 255, .12);
+  border: 1px solid rgba(162, 143, 255, .3); color: inherit;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: .78rem; transition: background .16s ease, transform .16s ease;
+}
+.account-profile-button::before {
+  content: ""; flex: 0 0 1rem; width: 1rem; height: 1rem;
+  background: currentColor; mask: url("icons/person.svg") center / contain no-repeat;
+}
+.account-profile-button:hover { background: rgba(162, 143, 255, .24); }
+.account-profile-button:active { transform: scale(.97); }
+.account-profile-button:focus-visible { outline: 2px solid #c2b4ff; outline-offset: 3px; }
+@media (max-width: 340px) { .account-profile-button { max-width: 8rem; padding-inline: .4rem; } }
+@media (prefers-reduced-motion: reduce) { .account-profile-button { transition: none; } }

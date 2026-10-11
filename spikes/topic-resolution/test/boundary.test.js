@@ -45,8 +45,10 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       path.relative(packageDirectory, file).replaceAll("\\", "/"),
     ),
     [
+      "browser/core/account-auth-response.js",
       "browser/core/account-client.js",
       "browser/core/account-controller.js",
+      "browser/core/account-session-storage.js",
       "browser/core/active-tab-controller.js",
       "browser/core/active-tab-policy.js",
       "browser/core/background-matcher.js",

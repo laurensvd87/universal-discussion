@@ -93,7 +93,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   readArticle = null, attestArticle = null, readRelatedExcerpts = null,
   loadRelatedTextPreference = async () => null, saveRelatedTextPreference = () => {}, openAuthorization = null,
   loadInsightPreferences = async () => null, saveInsightPreferences = async () => {}, readBrowserLanguage = () => null,
-  randomId = () => globalThis.crypto.randomUUID(), shareOnCompletion = false }) {
+  randomId = () => globalThis.crypto.randomUUID(), shareOnCompletion = false, requestSignIn = () => {} }) {
   let observed = null;
   let boundKey = null;
   let disposed = false;
@@ -490,6 +490,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     return preferences;
   }
   async function createInsights({ automatic = false } = {}) {
+    if (!disposed && observed?.phase === "ready" && !observed.actorId) { requestSignIn(); return false; }
     const clickedEpoch = epoch, clickedKey = key(), clickedAccount = accountKey();
     const clickedRevision = preferenceRevision;
     let clickedSettings = { preferences: { ...state.preferences }, browserLanguageHintEnabled: state.browserLanguageHintEnabled };
@@ -514,6 +515,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     return runInsights({ skipConsent: false, preferenceSettings: clickedSettings, publishOnCompletion: shareOnCompletion === true });
   }
   async function createFollowup(questionId, destination = null) {
+    if (!disposed && observed?.phase === "ready" && !observed.actorId) { requestSignIn(); return false; }
     const clickedEpoch = epoch, clickedKey = key(), clickedAccount = accountKey();
     const targetAtClick = resolveDiscussionTarget(observed, questionId, destination);
     const clickedTarget = targetAtClick && { topicId: targetAtClick.topicId, discussionId: targetAtClick.discussionId,

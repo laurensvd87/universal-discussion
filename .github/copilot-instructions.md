@@ -2,13 +2,15 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
-Current accounts (2026-10-11, ADR-090): isolated synthetic account/session SQLite,
-paired optional routes, compact injected login UI and fake reply outbox are
-implemented and reviewed. Normal service/panel remain unchanged. Read current
-STATUS/HANDOFF and ACCOUNTS_PLAN checkpoint; canonical ownership/principal bridge,
-owner DB migration, rights/recovery, durable browser credentials, real identity/
-mail and optional ChatGPT account login remain separate work/activation gates.
-Never infer legacy demo ownership or expose pairing-protected catalog routes.
+Current accounts (2026-10-11, ADR-091, 0.13.47): normal owner-local CLI/panel
+account activation is explicitly approved. Reuse only server-verified ChatGPT
+issuer/client/subject; store separate accounts/username, own app sessions in
+Chrome-session RAM, and derive post authority on the server. Legacy demo posts
+stay unclaimed; first deliberate account write uses canonical v3. Export/staged
+deletion recover before startup accepts account operations. Rollback must read
+v3, never downgrade/discard posts. Paired guest reading remains; no real mail,
+new identity request, hosting or publication. Normal email/reply mail disabled.
+Read current STATUS/HANDOFF, ADR-091 and ACCOUNTS_PLAN before dormant notes.
 
 Current implemented request (2026-10-11, ADR-088): learned E5 related retrieval
 floor 0.88 replaces 0.85; Ridge1 same-Topic policy/canonical writes unchanged.

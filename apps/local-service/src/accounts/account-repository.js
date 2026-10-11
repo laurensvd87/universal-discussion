@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { basename } from 'node:path';
 
 const SCHEMA = `
 CREATE TABLE auth_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;
@@ -33,36 +34,49 @@ CREATE TABLE account_reply_outbox (
   ) STRICT;
 PRAGMA user_version=1;
 `;
-const CORE = ['auth_meta','accounts','account_emails','email_challenges','sessions','rate_limits','account_reply_outbox'];
+const MIGRATION_V2 = `
+CREATE TABLE external_identities (
+ issuer TEXT NOT NULL CHECK(issuer='https://auth.openai.com'),
+ client_id TEXT NOT NULL CHECK(length(client_id) BETWEEN 1 AND 256 AND client_id!='dynamic_agent_client'),
+ subject TEXT NOT NULL CHECK(length(subject) BETWEEN 1 AND 256),
+ account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+ created_at INTEGER NOT NULL, PRIMARY KEY(issuer,client_id,subject)
+) STRICT;
+UPDATE auth_meta SET value='discussion-accounts-v2' WHERE key='schema';
+PRAGMA user_version=2;
+`;
+function validateSchema(database, version) {
+  const expected = new DatabaseSync(':memory:');
+  try {
+    expected.exec(SCHEMA);
+    if (version === 2) expected.exec(MIGRATION_V2);
+    const normalize = db => db.prepare('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name').all()
+      .map(row => ({...row,sql:row.sql?.replace(/\s+/g,' ')}));
+    if (JSON.stringify(normalize(database)) !== JSON.stringify(normalize(expected))) throw new Error('unsupported-account-schema');
+    const meta = database.prepare('SELECT key,value FROM auth_meta').all();
+    if (meta.length !== 1 || meta[0].key !== 'schema' ||
+        meta[0].value !== (version === 1 ? 'synthetic-accounts-v1' : 'discussion-accounts-v2')) throw new Error('unsupported-account-schema');
+    if (database.prepare('PRAGMA foreign_key_check').all().length) throw new Error('invalid-account-integrity');
+  } finally { expected.close(); }
+}
 
-// Separate fixture repository. It never migrates or accepts the demo database.
+// Separately declared account repository. It never migrates or accepts the demo database.
 export class AccountRepository {
   constructor({ filename = ':memory:' } = {}) {
+    if (typeof filename !== 'string' || basename(filename).toLowerCase() === 'demo.sqlite') throw new Error('unsupported-account-schema');
     this.database = new DatabaseSync(filename);
     this.depth = 0;
     try {
       this.database.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=2000;');
       const objects = this.database.prepare('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name').all();
       const tables = objects.filter(row => row.type === 'table');
-      if (!objects.length) this.transaction(() => this.database.exec(SCHEMA));
+      if (!objects.length) this.transaction(() => { this.database.exec(SCHEMA); this.database.exec(MIGRATION_V2); });
       else if (!tables.length) throw new Error('unsupported-account-schema');
-      const names = tables.length ? tables.map(row => row.name) : CORE;
-      if (names.some(name => !CORE.includes(name)) || CORE.some(name => !names.includes(name)) ||
-          this.database.prepare('PRAGMA user_version').get().user_version !== 1 ||
-          this.database.prepare("SELECT value FROM auth_meta WHERE key='schema'").get()?.value !== 'synthetic-accounts-v1') {
-        throw new Error('unsupported-account-schema');
-      }
-      // Check constraints/column definitions, not just a version marker supplied by a caller.
-      const expected = new DatabaseSync(':memory:');
-      try {
-        expected.exec(SCHEMA);
-        const normalize = database => database.prepare('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name').all()
-          .map(row => ({...row,sql:row.sql?.replace(/\s+/g,' ')}));
-        // Only the declared tables and their SQLite-generated autoindices may exist.
-        // Unexpected triggers/views/user indices can alter behavior despite valid tables.
-        if (JSON.stringify(normalize(this.database)) !== JSON.stringify(normalize(expected))) throw new Error('unsupported-account-schema');
-      } finally { expected.close(); }
-      if (this.database.prepare('PRAGMA foreign_key_check').all().length) throw new Error('invalid-account-integrity');
+      const version = this.database.prepare('PRAGMA user_version').get().user_version;
+      if (![1,2].includes(version)) throw new Error('unsupported-account-schema');
+      // Validate the complete prior schema before any migration can modify it.
+      validateSchema(this.database,version);
+      if (version === 1) this.transaction(() => { this.database.exec(MIGRATION_V2); validateSchema(this.database,2); });
     } catch (error) { this.database.close(); throw error; }
   }
   transaction(fn) {

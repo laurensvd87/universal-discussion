@@ -10,6 +10,10 @@ import { startLoopbackListener } from "./http/loopback-listener.js";
 import { loadPairingVerifier } from "./http/pairing-store.js";
 import { createChatGPTRuntime } from "./ai/chatgpt-runtime.js";
 import { readInstalledOwnerTopicConfiguration } from "./application/owner-topic-configuration.js";
+import { AccountRepository } from "./accounts/account-repository.js";
+import { AccountService } from "./accounts/account-service.js";
+import { createAccountLifecycle } from "./accounts/account-lifecycle.js";
+import { loadProtectedAccountKey } from "./accounts/protected-account-key.js";
 
 export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
 
@@ -23,21 +27,38 @@ export function createProcessDependencies() {
 
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
   chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, insightDebug = null,
-  ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null }) {
+  ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
+  accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
+  let accounts = null, accountRepository = null;
   const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric,
-    alternateRidgeAdapter });
+    alternateRidgeAdapter,
+    ...(accountsEnabled ? { resolveAccountActor: id => accounts.principalForAccountId(id),
+      readAccountActors: () => accounts?.publicActors() ?? [] } : {}) });
   let runtime;
+  let accountLifecycle = null;
   try { runtime = ai ?? createChatGPTRuntime({ service: database.service, dataDir: path.dirname(databasePath),
     fetchImpl: chatgptFetchImpl, refreshStore: chatgptRefreshStore,
     onInsightTrace: insightTrace, onInsightDebug: insightDebug }); }
   catch (error) { database.close(); throw error; }
+  try {
+    if (accountsEnabled) {
+      if (!(accountHmacKey instanceof Uint8Array) || accountHmacKey.length !== 32) throw new Error("Account key required");
+      accountRepository = new AccountRepository({ filename: accountDatabasePath ?? path.join(path.dirname(databasePath), "accounts.sqlite") });
+      accounts = new AccountService({ repository: accountRepository, hmacKey: accountHmacKey,
+        fixtureOnly: false, mailSink: null, chatgptIdentity: () => runtime?.accountIdentity?.() ?? null });
+      accounts.cleanupExpired();
+      accountLifecycle = createAccountLifecycle({ accounts, service: database.service, ai: runtime });
+      accountLifecycle.resume();
+    }
+  } catch (error) { runtime?.dispose?.(); accountRepository?.close(); database.close(); throw error; }
   return Object.freeze({
     config,
-    handle: createRequestHandler({ service: database.service, config, ai: runtime, pairingVerifier }),
+    handle: createRequestHandler({ service: database.service, config, ai: runtime, pairingVerifier,
+      accounts, accountWrites: accountsEnabled, accountLifecycle }),
     restore: () => runtime?.restore?.() ?? Promise.resolve(false),
-    close() { runtime?.dispose?.(); database.close(); },
+    close() { runtime?.dispose?.(); accountRepository?.close(); database.close(); },
   });
 }
 
@@ -50,7 +71,13 @@ export async function startLocalApplication(options) {
   const installed = options.alternateAdapter === undefined && options.alternateBodyMetric === undefined &&
     options.alternateRidgeAdapter === undefined
     ? readInstalledOwnerTopicConfiguration() : {};
-  const application = openDormantLocalApplication({ ...options, ...installed, pairingVerifier });
+  let accountHmacKey = options.accountHmacKey;
+  if (options.accountsEnabled && !accountHmacKey) {
+    const dataDir = path.dirname(options.databasePath);
+    mkdirSync(dataDir, { recursive: true });
+    accountHmacKey = await loadProtectedAccountKey({ dataDir });
+  }
+  const application = openDormantLocalApplication({ ...options, ...installed, accountHmacKey, pairingVerifier });
   try {
     const listener = await startLoopbackListener({ handle: application.handle });
     try {

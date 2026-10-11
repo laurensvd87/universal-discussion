@@ -1,6 +1,7 @@
 import { fail } from "./errors.js";
 import { clone, readBody, readId, readRecord, readText } from "./validation.js";
 import { contributionOrigin, rootAssociation, withdrawAssociation } from "./source-threads.js";
+import { ACCOUNT_COMMANDS, ACCOUNT_STATE_SCHEMA, isAccountPrincipal } from "../accounts/account-principal.js";
 
 export const STATE_SCHEMA = "demo-state/v2";
 export const IMPORTED_INSIGHT_AUTHOR_ID = "demo-imported-ai";
@@ -54,7 +55,8 @@ function commandRecord(command, fields, optional = []) {
 }
 
 export function applyCommand(state, command, actor, { nextId, now, generatedProof = null }) {
-  if (!actor || actor.type !== "human" || actor.demo !== true) fail("forbidden", "Action unavailable");
+  const account = isAccountPrincipal(actor);
+  if (!actor || actor.type !== "human" || (actor.demo !== true && !account)) fail("forbidden", "Action unavailable");
   if (command === null || typeof command !== "object" || Array.isArray(command)) fail("invalid", "Invalid request");
   const prototype = Object.getPrototypeOf(command);
   const typeDescriptor = Object.getOwnPropertyDescriptor(command, "type");
@@ -63,7 +65,11 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
     !typeDescriptor.enumerable || !Object.hasOwn(typeDescriptor, "value")
   ) fail("invalid", "Invalid request");
   const type = readText(typeDescriptor.value, 64);
+  if (account && !ACCOUNT_COMMANDS.has(type)) fail("forbidden", "Action unavailable");
   const next = clone(state);
+  // Add account ownership only on the first deliberate account write. Existing
+  // demo owners, bodies and source lineage are never claimed or guessed.
+  if (account) next.schema = ACCOUNT_STATE_SCHEMA;
   const timestamp = now();
   let result;
 

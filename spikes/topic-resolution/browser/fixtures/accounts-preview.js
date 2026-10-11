@@ -26,7 +26,7 @@ const mock = async (url, options) => {
 };
 let saved = null;
 const client=createAccountClient({fetchImpl:window.accountFixtureTransport ?? mock,getPairingToken:()=>"synthetic-account-pairing-capability-only"});
-const controller=createAccountController({client,storage:{load:()=>saved,save:value=>{saved={...value};},clear:()=>{saved=null;}},
+const controller=createAccountController({client,capabilities:{chatGPTIdentity:false,emailCode:true},storage:{load:()=>saved,save:value=>{saved={...value};},clear:()=>{saved=null;}},
   readContext:()=>({topicId:"fixture-topic",sourceId:"fixture-source"}),
   renderer:state=>{
     document.querySelector("#preview-account").textContent=state.account?.username?`@${state.account.username}`:"Sign in";

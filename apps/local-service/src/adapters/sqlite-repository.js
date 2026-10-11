@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { ServiceError, fail } from "../domain/errors.js";
 import { STATE_SCHEMA } from "../domain/demo-state.js";
+import { ACCOUNT_STATE_SCHEMA } from "../accounts/account-principal.js";
 import { assertValidLegacyPersistedState, assertValidPersistedState } from "../domain/persisted-state.js";
 import { migrateLegacyState } from "../domain/state-migration.js";
 import { clone, frozenClone } from "../domain/validation.js";
@@ -122,7 +123,7 @@ function readRow(database) {
 
 function parseRow(row, allowLegacy = false) {
   if (
-    (row.schema !== STATE_SCHEMA && !(allowLegacy && row.schema === "demo-state/v1")) || typeof row.generation !== "string" ||
+    (row.schema !== STATE_SCHEMA && row.schema !== ACCOUNT_STATE_SCHEMA && !(allowLegacy && row.schema === "demo-state/v1")) || typeof row.generation !== "string" ||
     !Number.isSafeInteger(row.revision) || typeof row.document !== "string"
   ) fail("storage-schema", "Unsupported local database schema");
   if (Buffer.byteLength(row.document, "utf8") > MAX_DOCUMENT_BYTES) fail("storage-corrupt", "Local database is oversized");

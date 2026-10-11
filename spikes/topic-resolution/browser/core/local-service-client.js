@@ -1,7 +1,8 @@
 import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDiscussion, readHealth,
   readId, readLimit, readOutcome, readPairingToken, readRelated, readPriorDiscussions, readReset, readVersion,
-  readIngestion, readIngestionOutcome, readAlternateDiscussion } from "./local-service-contract.js";
+  readIngestion, readIngestionOutcome, readAlternateDiscussion, isAccountActorId } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
+import { readAccountAuthError } from "./account-auth-response.js";
 
 const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
@@ -15,7 +16,8 @@ function fail(code) { throw new LocalServiceClientError(code); }
 function input(project) { try { return project(); } catch { fail("invalid-request"); } }
 
 // Only this adapter performs fetch; endpoint, methods and transport policy are fixed.
-export function createLocalServiceClient({ fetchImpl, getToken, onUnauthorized = async () => {}, timeoutMs = 5000 }) {
+export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken = () => null,
+  onAccountUnauthorized = async () => {}, onUnauthorized = async () => {}, timeoutMs = 5000 }) {
   if (typeof fetchImpl !== "function" || typeof getToken !== "function" || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30_000) {
     throw new TypeError("Invalid local service client configuration");
   }
@@ -48,14 +50,27 @@ export function createLocalServiceClient({ fetchImpl, getToken, onUnauthorized =
       if (controller.signal.aborted) fail("unavailable");
       const headers = { Authorization: `Bearer ${token}` };
       if (serialized !== undefined) headers["Content-Type"] = "application/json";
-      if (actorId !== undefined) headers["X-Demo-Actor"] = actorId;
+      let accountToken;
+      if (isAccountActorId(actorId)) {
+        accountToken = await getAccountToken(actorId);
+        if (controller.signal.aborted) fail("unavailable");
+        if (accountToken !== null && accountToken !== undefined && !/^[A-Za-z0-9_-]{43}$/u.test(accountToken)) fail("authentication-required");
+        if (isAccountActorId(actorId) && !accountToken) fail("authentication-required");
+        if (accountToken) headers["X-Account-Session"] = accountToken;
+      }
+      if (actorId !== undefined && !isAccountActorId(actorId)) headers["X-Demo-Actor"] = actorId;
       response = await fetchImpl(url, { method: serialized === undefined ? "GET" : "POST", headers,
         ...(serialized === undefined ? {} : { body: serialized }), redirect: "error", credentials: "omit",
         cache: "no-store", referrerPolicy: "no-referrer", signal: controller.signal });
       if (controller.signal.aborted) { await response.body?.cancel?.().catch(() => {}); fail("unavailable"); }
       if (!response || response.redirected || (response.url && response.url !== url)) fail("invalid-response");
       if (response.status !== 200) {
+        const authError = response.status === 401 && accountToken ? await readAccountAuthError(response, controller.signal) : null;
         await response.body?.cancel?.().catch(() => {});
+        if (response.status === 401 && accountToken && authError !== "unauthorized") {
+          try { await onAccountUnauthorized(accountToken); } catch { /* rejection remains signed out */ }
+          fail("authentication-required");
+        }
         if (response.status === 401 && !controller.signal.aborted && suppliedToken === undefined) {
           try { await onUnauthorized(token); } catch { /* A failed clear cannot turn rejection into success. */ }
         }

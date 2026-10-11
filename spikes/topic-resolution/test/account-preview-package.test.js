@@ -5,7 +5,7 @@ import test from "node:test";
 const browserRoot = new URL("../browser/", import.meta.url);
 const read = name => readFile(new URL(name, browserRoot), "utf8");
 
-test("account preview is isolated synthetic UI, not an activated sidebar login or storage grant", async () => {
+test("synthetic account preview stays isolated from the activated normal account panel", async () => {
   const preview = await read("fixtures/accounts-preview.js");
   assert.match(preview, /window\.accountFixtureTransport \?\? mock/);
   assert.match(preview, /getPairingToken:\(\)=>"synthetic-account-pairing-capability-only"/);
@@ -15,11 +15,19 @@ test("account preview is isolated synthetic UI, not an activated sidebar login o
   assert.doesNotMatch(executable, /\b(?:fetch|WebSocket|XMLHttpRequest|EventSource)\s*\(/);
   assert.doesNotMatch(executable, /chrome\.|localStorage|sessionStorage|indexedDB|console\.|innerHTML|eval\(/);
   assert.doesNotMatch(preview, /auth\.openai|chatgpt\.com|\/v1\/commands|\/v1\/insights/);
-  for (const filename of ["chromium/popup.js", "chromium/background.js", "chromium/sidepanel.html", "chromium/popup.html"]) {
-    assert.doesNotMatch(await read(filename), /account-(?:client|controller|sheet)|accounts-preview/);
+  const popup = await read("chromium/popup.js");
+  assert.match(popup, /import \{ mountAccountPanel \} from "\.\/account-panel\.js"/);
+  assert.match(popup, /createAccountSessionStorage\(\{ storageSession/);
+  assert.match(popup, /async function getAccountToken\(actorId\)/);
+  assert.match(popup, /controller\.withAppSession/);
+  assert.doesNotMatch(popup, /accounts-preview|synthetic-account-pairing-capability-only|123456/);
+  assert.doesNotMatch(await read("chromium/background.js"), /account-(?:client|controller|sheet)|accounts-preview/);
+  for (const filename of ["chromium/sidepanel.html", "chromium/popup.html"]) {
+    assert.match(await read(filename), /account-sheet\.css/);
+    assert.doesNotMatch(await read(filename), /accounts-preview/);
   }
   const manifest = JSON.parse(await read("manifest.json"));
-  assert.equal(manifest.version, "0.13.46");
+  assert.equal(manifest.version, "0.13.47");
   assert.doesNotMatch(JSON.stringify(manifest), /account-(?:client|controller|sheet)|accounts-preview/);
 });
 

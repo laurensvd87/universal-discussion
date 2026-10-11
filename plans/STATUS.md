@@ -1,5 +1,57 @@
 # Project status
 
+**2026-10-11 ADR-091 owner-local accounts integrated; activation explicitly approved:**
+The owner approves persistent local verified ChatGPT issuer/client/subject and
+username in separate account SQLite, new account-owned human/AI posts, unclaimed
+legacy posts, Chrome-session-only app credentials and paired guest reading.
+Normal CLI/panel 0.13.47 now compose deliberate ChatGPT identity reuse, unique
+username, own-post authority, export and two-stage deletion. No extra identity
+request, mail or hosted scope. Normal email/reply-mail capabilities stay off.
+See [ADR-091](../decisions/ADR-091-connected-chatgpt-local-accounts.md).
+
+Backend full suite **511 pass/four optional skips**; restricted extension
+**1,231 pass**. Independent final Trust: **58 backend/44 browser checks** pass,
+including cross-panel logout fencing and refreshable provider identity. Secrets:
+**648 service/214 extension files**, zero findings; diff checks pass.
+Canonical state remains v2 until the first deliberate own write advances to v3;
+rollback must be v3-compatible, never downgrade/discard data. App credentials
+use trusted Chrome-session RAM, bound to pairing; silent access renewal preserves
+the same account presentation while real changes invalidate targets. Export
+pages include all own retained revisions with version/metadata consistency.
+Deletion revokes app access first, cancels own jobs, withdraws own bodies and
+erases private identity last; startup completes interrupted deletion before
+accepting account operations. Two-store staging is not cross-DB atomicity.
+
+Root actual native Chrome QA: **44 intercepted requests, zero runtime errors**;
+real production manifest/toolbar/window attestation, identity reuse/username,
+own human root, reply to unchanged legacy root, account-owned resumable POST,
+panel reload/RAM restore, own-data local JSON download, delete cancel (no request),
+explicit delete/withdraw/revoke/purge, focus, 390/320px layout/no overflow and
+reduced motion pass. Existing synthetic email fixture: **five requests, zero
+runtime errors**. No real mail/provider request/owner data in either QA. Six
+native screenshots in `%TEMP%\udl-account-panel-review`; root visually checked
+320px profile. Temporary fixture export/profile removed; screenshots retained.
+
+Chrome omits Origin on privileged GET: capability/me and account-owned resumable
+reads now use strict POST{} equivalents, not a relaxed Origin boundary. Catalog
+reads remain paired guests without account credentials. Fixed-origin Web Locks
+serialize shared RAM storage; logout fence rejects/revokes late peer login or
+renewal. Two-controller tests reproduce safe logout and simultaneous renewal.
+Residual: renewal in one panel can temporarily detach an unsent draft in another
+panel; single-panel renewal retains identity/draft. A verified refreshable
+provider identity remains available across access expiry so deliberate generation
+can reach normal refresh; invalid refreshed identity clears active/protected
+binding while temporary provider failure retains retryability. No getter network.
+
+Verified normal service restarted gracefully with the unchanged exact Origin,
+pairing and protected ChatGPT connection; raw debug off. Live health/catalog and
+POST account capabilities return 200, identity available/email disabled. Canonical
+document is byte-identical (v2, revision **673**, 163 Sources/199 Topics); new
+separate account DB contains **zero accounts** and OS-protected key exists.
+Owner's first real account awaits deliberate Sign in/username in 0.13.47.
+Current service PTY **41255**. Reload the extension; do not repeat approvals.
+Mail, per-user hosted grants, Internet guest projection and release remain open.
+
 **2026-10-11 owner defers live mail until domain/hosting stage:**
 The owner declines immediate mail-provider setup; no Resend account/domain/key
 is needed now and no further mail approval/setup question is pending. Real mail

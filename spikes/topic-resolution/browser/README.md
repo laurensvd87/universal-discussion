@@ -1,6 +1,28 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.45)
+## Local account login (0.13.47)
+
+Update/restart the local service and reload the extension. Click **Sign in** in
+the top bar, then **Continue with ChatGPT** to reuse its existing verified
+connection. If no connection exists, **Connect ChatGPT** opens the existing
+provider flow first. Choose a username on first app sign-in. No automatic post
+follows login; posting still needs your deliberate click and valid page context.
+
+Reading is available with device pairing but without an app account. New human
+and generated posts belong to your account; old demo posts are not transferred.
+The profile button offers sign-out, **Download my data** and explicit two-stage
+**Delete account**. Account deletion withdraws your own human/AI posts, preserving
+other people's replies under deleted placeholders. It does not disconnect the
+separate ChatGPT provider grant or forensically erase backups.
+
+App credentials stay in trusted Chrome-session RAM, so closing the panel does
+not log out; restarting Chrome does. The remembered ChatGPT connection can be
+reused without another provider request. **Email sign-in coming soon** is honest:
+no real mail or activation code is sent until a mail service is approved and
+configured. No new browser permission. See
+[ADR-091](../../../decisions/ADR-091-connected-chatgpt-local-accounts.md).
+
+## Persistent discussion sidebar
 
 **Settings → Discussion preferences** now offers reply language (English default),
 delivery country and currency (both **Not set**), plus an optional browser-language

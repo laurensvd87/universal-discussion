@@ -225,7 +225,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
   }
   function currentJobContext(job) {
     const status = connection.status();
-    if (!status.connected || !status.planEnabled || !same(status.account ?? null, job.account)) return null;
+    if (!status.connected || !status.planEnabled || !same(status.account ?? null, job.account) ||
+        !same(connection.accountIdentity?.() ?? null, job.accountIdentity)) return null;
     let anchor;
     try { anchor = service.insightAnchor(job.topicId, job.originSourceId); }
     catch (error) {
@@ -248,6 +249,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
   }
   return Object.freeze({
     restore: () => connection.restore?.() ?? Promise.resolve(false),
+    accountIdentity: () => disposed || callbackPending ? null : connection.accountIdentity?.() ?? null,
     diagnostics: () => ({ events: diagnosticEvents.map((event) => ({ ...event })) }),
     status: () => ({ ...connection.status(), pending: connection.status().pending || callbackPending,
       ...(callbackError ? { error: callbackError } : {}),
@@ -332,6 +334,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         rootId: followup?.rootId ?? null, replyToId: followup?.replyToId ?? null,
         discussionId: followup?.discussionId ?? null, anchor, followup,
         account: state.account ? { clientId: state.account.clientId, label: state.account.label } : null,
+        accountIdentity: connection.accountIdentity?.() ?? null,
         state: "running", result: null,
         error: null, detail: null, finishedAt: null };
       seen.add(key); jobs.set(key, job); active = job;
@@ -407,6 +410,9 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       else cancelJob(job);
       return { cancelled: true }; },
     reset() { stopJobs(); },
+    cancelAccount(actorId) {
+      for (const job of [...jobs.values()]) if (job.actorId === actorId) removeJob(job);
+    },
     dispose() { disposed = true; callbackGeneration += 1; callbackPending = false;
       stopJobs(); diagnosticEvents.length = 0; insights.dispose(); connection.dispose(); },
   });

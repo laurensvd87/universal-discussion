@@ -97,7 +97,10 @@ function topic(value) {
   const item = record(value, ["id", "title", "kind"]);
   return { id: readId(item.id), title: text(item.title, 200), kind: oneOf(item.kind, KINDS) };
 }
-export function readActorId(value) { return oneOf(value, ACTORS); }
+export function isAccountActorId(value) {
+  return typeof value === "string" && /^account-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value);
+}
+export function readActorId(value) { return isAccountActorId(value) ? value : oneOf(value, ACTORS); }
 export function readLimit(value) { if (!Number.isInteger(value) || value < 0 || value > 100) invalid(); return value; }
 export function readPairingToken(value) {
   if (typeof value !== "string" || value.length < 32 || value.length > 512 || !/^[A-Za-z0-9._~+/-]+={0,2}$/u.test(value)) invalid();
@@ -158,7 +161,7 @@ export function readHealth(value) {
 }
 export function readCatalog(value) {
   const item = record(value, ["version", "model", "actors", "topics", "sources"]);
-  const actors = unique(array(item.actors, 2, (value) => {
+  const actors = unique(array(item.actors, MAX_CATALOG_ENTRIES, (value) => {
     const actor = record(value, ["id", "displayName", "type"]);
     return { id: readActorId(actor.id), displayName: text(actor.displayName, 200), type: oneOf(actor.type, ["human"]) };
   }));

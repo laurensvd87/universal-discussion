@@ -34,6 +34,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     .sort();
   assert.deepEqual(files, [
     "README.md",
+    "chromium/account-panel.js",
     "chromium/account-sheet.css",
     "chromium/account-sheet.js",
     "chromium/active-tab-reader.js",
@@ -65,8 +66,10 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/sidepanel.html",
     "chromium/topic-toolbar-icon.js",
     "chromium/ui-mode.js",
+    "core/account-auth-response.js",
     "core/account-client.js",
     "core/account-controller.js",
+    "core/account-session-storage.js",
     "core/active-tab-controller.js",
     "core/active-tab-policy.js",
     "core/background-matcher.js",
@@ -118,7 +121,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.13.46",
+    version: "0.13.47",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -175,7 +178,7 @@ test("every runtime import and document resource remains inside the unpacked roo
     .map((match) => match[1]);
   assert.deepEqual(documentReferences.filter(value => value.startsWith("#")), []);
   const documentResources = documentReferences.filter(value => !value.startsWith("#"));
-  assert.deepEqual(documentResources.sort(), ["popup.css", "popup.js"]);
+  assert.deepEqual(documentResources.sort(), ["account-sheet.css", "popup.css", "popup.js"]);
   for (const resource of documentResources) {
     const resolved = path.resolve(path.dirname(popupHtmlPath), resource);
     assert.ok(resolved.startsWith(rootPrefix), `${resource} escapes the extension root`);
@@ -197,7 +200,7 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
     const approvedBindings = label === "chromium/background.js" ? ["globalThis.chrome", "globalThis.fetch"] :
       label === "embedding/offscreen.js" ? ["globalThis.chrome.runtime"] :
       label === "chromium/popup.js" ? ["globalThis.chrome.tabs", "globalThis.chrome.scripting",
-        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows", "globalThis.chrome.storage.local", "globalThis.chrome.storage.session", "globalThis.chrome.i18n"] : [];
+        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows", "globalThis.chrome.storage.local", "globalThis.chrome.storage.session", "globalThis.chrome.storage.onChanged", "globalThis.chrome.i18n", "globalThis.navigator.locks"] : [];
     for (const approvedBinding of approvedBindings) {
       const bindingCount = source.split(approvedBinding).length - 1;
       assert.equal(

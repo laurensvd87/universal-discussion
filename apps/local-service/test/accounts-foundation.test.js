@@ -35,7 +35,9 @@ test('fixture login exposes separate account/session, no email/digests/code in p
   assert.match(f.repository.database.prepare('SELECT email_key FROM email_challenges').get().email_key,/^[a-f0-9]{64}$/);
   assert.equal(result.session.accessToken.length,43);
   assert.equal(result.session.refreshToken.length,43);
-  assert.deepEqual(f.service.resolvePrincipal(result.session.accessToken),{accountId:result.account.id,type:'human',state:'active'});
+  assert.throws(()=>f.service.resolvePrincipal(result.session.accessToken),/authentication-required/);
+  f.service.setUsername(result.session.accessToken,{username:'Alice'});
+  assert.deepEqual(f.service.resolvePrincipal(result.session.accessToken),{id:`account-${result.account.id}`,displayName:'Alice',accountId:result.account.id,type:'human',demo:false});
   assert.ok(!JSON.stringify(result.account).includes('email'));
   const dump = JSON.stringify(f.repository.database.prepare('SELECT * FROM sessions').all());
   assert.ok(!dump.includes(result.session.accessToken)); assert.ok(!dump.includes(result.session.refreshToken));

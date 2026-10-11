@@ -52,6 +52,9 @@ export async function runCli(args = process.argv.slice(2)) {
     pairingPath,
     nextId: (prefix) => `${prefix}-${randomUUID()}`,
     now: () => new Date().toISOString(),
+    // ADR-091: approved owner-local accounts, no real mail transport. App
+    // credentials remain Chrome-session RAM; provider credentials stay separate.
+    accountsEnabled: true,
     // Explicit runtime composition: after the fixed loopback port binds,
     // a stored user-approved refresh token may renew sign-in; inference still
     // requires the paired owner's Create click. No import-time provider I/O.
@@ -66,7 +69,7 @@ export async function runCli(args = process.argv.slice(2)) {
     },
     insightDebug: rawDebug ? (entry) => rawDebugLog.capture(entry) : null,
   });
-  process.stdout.write(`Local synthetic demo listening at http://${FIXED_HOST}:${FIXED_PORT}\n${rawDebug ? `Insight trace log: ${traceLog.filePath}\nRaw insight debug log: ${rawDebugLog.filePath}\n` : ""}Persistent pairing active. Use deliberate demo text only. Stop with Ctrl+C.\n`);
+  process.stdout.write(`Local discussion service listening at http://${FIXED_HOST}:${FIXED_PORT}\n${rawDebug ? `Insight trace log: ${traceLog.filePath}\nRaw insight debug log: ${rawDebugLog.filePath}\n` : ""}Persistent pairing active. Local accounts enabled; email disabled. Stop with Ctrl+C.\n`);
   let stopping = false;
   const shutdown = async () => {
     if (stopping) return;

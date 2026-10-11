@@ -8,16 +8,19 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
-Current accounts (2026-10-11, ADR-090): the owner requests professional account
-implementation. The isolated synthetic account/session SQLite, paired optional
-API, injected login sheet/controller/client and fake notification outbox are
-implemented/Trust/Chrome-tested. They are not activated in normal CLI/panel.
-Read top STATUS/HANDOFF and ACCOUNTS_PLAN checkpoint before continuing. No real
-address/email/provider identity, owner-store migration, canonical post/principal
-bridge, protected browser persistence or rights route exists yet. Never guess
-legacy ownership or mistake callback fixture atomicity for demo-command wiring.
-Keep exact activation/provider/storage/migration/publication gates. Code agents
-use GPT-6.1 Sol, ordinarily Medium; root integrates and independently reviews.
+Current accounts (2026-10-11, ADR-091, 0.13.47): the owner explicitly approves
+normal owner-local account activation using the existing server-verified
+ChatGPT issuer/client/subject, separate account SQLite, chosen username and
+Chrome-session-only app credentials. Normal CLI/panel now compose account
+login, own-post authority, export and staged deletion; legacy demo posts are
+never claimed. First deliberate account write advances canonical state to v3;
+rollback requires a v3-compatible binary, never downgrade/discard data. Paired
+guest reading remains; no real mail, new provider identity call or hosted scope.
+Read top STATUS/HANDOFF, ADR-091 and ACCOUNTS_PLAN before older dormant notes.
+Keep AI grant/app identity separate and preserve current Source/Topic/proof
+checks. Normal email and reply mail stay disabled; fixture outbox atomicity is
+not canonical command integration. Code agents use GPT-6.1 Sol, ordinarily
+Medium; root integrates and independently reviews.
 
 Current implemented request (2026-10-11, ADR-088): learned original-E5 related
 retrieval floor is 0.88 (was 0.85); Ridge1 same-Topic coefficients/floor and
