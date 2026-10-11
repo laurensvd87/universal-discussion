@@ -4,6 +4,10 @@ Date: 2026-10-11. Status: isolated foundation implemented; live integration pend
 Decisions: [ADR-089](../decisions/ADR-089-account-and-reply-email-plan.md),
 [ADR-090](../decisions/ADR-090-isolated-account-foundation.md).
 
+Latest owner direction: defer real email until domain/hosting is available.
+No immediate Resend signup or key is requested. Keep delivery interchangeable;
+managed-host SMTP and transactional API remain later options, neither selected.
+
 ## Implementation checkpoint
 
 - **A1, partial:** strict versioned isolated SQLite, persistent username/private

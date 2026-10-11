@@ -1,5 +1,13 @@
 # Project status
 
+**2026-10-11 owner defers live mail until domain/hosting stage:**
+The owner declines immediate mail-provider setup; no Resend account/domain/key
+is needed now and no further mail approval/setup question is pending. Real mail
+activation is deferred, not the entire project. Keep the local fake-mail path
+and replaceable delivery boundary; hosting/SMTP/provider selection remains open.
+Website/backend self-hosting and managed versus self-hosted mail are discussed
+only as future options, not procurement, deployment or provider approval.
+
 **2026-10-11 owner requests real accounts and email activation:**
 The owner now wants the complete flow activated, not only synthetic preview.
 No live activation or delivery has occurred. Mail provider/sender/credentials

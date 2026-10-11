@@ -1,5 +1,11 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 latest owner direction supersedes immediate mail setup below: defer
+live email until a domain/hosting stage. No current Resend signup/key/domain
+assignment or repeated mail approval question. Fake delivery stays local; future
+SMTP via an eligible managed host or API provider remains replaceable/undecided.
+No hosting purchase, self-hosted mail install, deployment or email send approved.
+
 2026-10-11 next owner request: activate real accounts including email, not only
 test mode. Mail provider/sender/credentials/domain remain undecided; answer the
 setup question before any live delivery. Resend is a proposal only, with free

@@ -2,8 +2,8 @@
 
 Date: 2026-10-11.
 Status: implemented and independently reviewed for isolated synthetic use;
-owner now requests real-account/service/email activation; precise mail provider,
-sender and credentials remain unresolved, and activation has not occurred.
+owner requests eventual real-account/service/email activation, but subsequently
+defers live mail until domain/hosting setup; activation has not occurred.
 
 ## Implementation boundary
 
