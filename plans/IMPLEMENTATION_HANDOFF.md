@@ -1,5 +1,15 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 owner export is received and read-only reviewed; no repeated generic
+startup retry is needed. Schema/version markers and coverage/count checks pass, but policies fail
+`pagination-invalid` and ordering is unavailable. Counters/current collector
+narrow the failure to row/ID validation after accepted page metadata; exact cause
+is unknown. Do not treat empty arrays as no firewall rules or certify isolation.
+Obtain complete policies/order before host/public-exposure decisions; forwarding,
+UPnP and host checks remain separate. Do not loosen validation from this partial
+file alone. Preserve the private artifact outside Git and omit all topology from
+records. Independent Trust agrees; no exporter, router or runtime change this turn.
+
 2026-10-11 exporter startup refinement: browser-first bootstrap preserves
 page-owned CommonJS globals; fixed `[UDL UniFi export]` diagnostics handle absent
 DOM/rejected startup without raw errors. Read updated ops/unifi-audit/README.md

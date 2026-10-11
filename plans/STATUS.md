@@ -1,5 +1,20 @@
 # Project status
 
+**2026-10-11 owner UniFi export received; firewall review remains incomplete:**
+The owner-generated JSON passes schema/version-marker, coverage and array-count checks.
+Network, zone and traffic-list reads succeed, but the policy inventory is absent
+with `pagination-invalid`; ordering is therefore `policy-inventory-unavailable`.
+Empty policy/ordering arrays are failures, not evidence that no rules exist.
+Current-code/counter analysis narrows the failure to policy-row/ID validation
+after accepted page metadata, not necessarily paging drift. The exact offending
+row/identifier is unknown; no permissive parser change is justified from this
+artifact alone. Independent read-only Trust review agrees that isolation and WAN
+exposure cannot be certified. Next: obtain complete policy/order evidence through
+a narrowly diagnosed exporter correction or a complete UI table, then separately
+review forwarding/NAT/UPnP, switch/ACL and host/reachability. The private file stays
+outside Git; addresses, VLAN mappings and rule material are not copied into
+records. No agent router request, configuration, code/runtime or deployment change.
+
 **2026-10-11 UniFi exporter startup corrected; owner retry required:**
 The owner sees page/extension Console errors without the export dialog. Synthetic
 VM reproduction confirms that a page-owned `module.exports` makes the old

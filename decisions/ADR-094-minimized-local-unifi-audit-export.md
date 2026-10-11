@@ -1,8 +1,8 @@
 # ADR-094 Minimized local UniFi audit export
 
 Date: 2026-10-11.
-Status: implemented and independently reviewed for local export preparation;
-owner router collection and host/network validation remain open.
+Status: implemented and independently reviewed; owner export received with
+missing policies/order. Complete firewall and host/network validation remain open.
 
 ## Scope
 
@@ -83,8 +83,21 @@ fixed startup messages and zero API requests until Export, with the existing
 eight intercepted requests, download and cleanup checks passing. This corrects
 the reproduced defect; the owner's actual UDR cause and export remain unverified.
 
-No real router has been queried and no API key is requested in chat. The owner
-runs collection locally and reviews the minimized artifact before upload. Raw
-or sanitized private exports are Git-ignored. Later Ubuntu access, OpenClaw
+### Owner export review
+
+The owner supplies a minimized JSON after local collection. Schema/version markers and
+coverage/array counts are consistent. Networks, zones and matching lists were
+collected, while firewall policies fail `pagination-invalid` and ordering is
+unavailable. Current collector/counters indicate accepted page metadata before
+policy-row identity validation failed; the exact bad row or ID is not retained.
+No failed inventory can establish absence of rules or effective isolation.
+Independent read-only review confirms that complete policy/order evidence and
+the separate forwarding/UPnP/host checks remain required. Do not relax validation
+or infer a safe public deployment from this artifact. Private topology is not
+copied into repository records.
+
+Agents have made no real router requests and no API key is requested in chat.
+The owner runs collection locally and reviews the minimized artifact before
+upload. Raw or sanitized private exports are Git-ignored. Later Ubuntu access, OpenClaw
 shutdown, UDR/host changes, private container execution and public hosting remain
 separate scoped decisions; this tooling grants none of them.
