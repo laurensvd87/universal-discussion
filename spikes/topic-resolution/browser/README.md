@@ -1,6 +1,20 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.44)
+## Persistent discussion sidebar (0.13.45)
+
+**Settings → Discussion preferences** now offers reply language (English default),
+delivery country and currency (both **Not set**), plus an optional browser-language
+hint. Choices are saved locally for future sessions. Only a deliberate Insight
+or sparkle reply sends these codes to ChatGPT; changing settings never makes a
+provider request. Browser language does not infer your location or market.
+No IP lookup or new permission. Reload the extension and restart the service
+together; existing pairing, protected login and discussion data remain. See
+[ADR-086](../../../decisions/ADR-086-optional-discussion-language-and-market.md).
+
+Quick synthetic checks: open the gear, expand Discussion preferences, confirm
+English/Not set/Not set; choose a reply language and market, close/reopen the panel
+and confirm restoration. Toggle the browser hint off to omit it from the next
+deliberate request. Changing preferences alone must not generate or post anything.
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs

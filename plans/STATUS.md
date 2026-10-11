@@ -1,5 +1,34 @@
 # Project status
 
+**2026-10-11 optional language/market preferences, complete (0.13.45):**
+The owner explicitly approves [ADR-086](../decisions/ADR-086-optional-discussion-language-and-market.md):
+compact Settings for preferred reply language (English default), optional native
+Chrome UI-language hint, manually selected delivery country/currency (unset).
+Preferences persist locally and accompany deliberate Insight/reply requests only.
+No IP lookup, location inference, history, extra provider request or permission.
+GPT-6.1 Sol Medium client/backend slices and independent Trust review pass.
+Versioned storage excludes the actual native hint; corruption/off, serialized
+saves and hydration/edit races are tested. Deliberate clicks snapshot settings
+and recheck Source/account/full target after hydration; no redirected requests,
+extra inference or context/proof authority. Browser hint cannot override reply
+language or infer a market; optional codes stay outside attested page context.
+
+Independent adversarial **12 pass**, combined authority/storage regressions
+**107 pass**, focused client **125 pass**, package/UI/storage/Trust **58 pass**.
+Final service **437 pass/4 optional skips**; extension **1,153 pass/1 skip**;
+restricted extension **1,154 pass**. Secret scans **631/196** files zero findings;
+standard diff checks pass. Isolated actual Chrome confirms English/unset defaults,
+gear-only keyboard-accessible controls, inert edits and storage reconstruction.
+Root reviews 390/320 px screenshots without horizontal overflow; existing inline
+typing/IME/reveal/citation/pruning/dock/zoom/reduced-motion regressions pass.
+These are synthetic contracts/layout, not a live provider language/price guarantee.
+
+Normal verified project backend restarted after both actors had no pending job;
+Origin/pairing/protected login/SQLite retained, raw debug off. Authenticated
+health/catalog/status **200**, ChatGPT connected, generation/revision unchanged
+across restart. Reload **0.13.45**. No live inference, permission, migration,
+diagnostic budget or release approval added.
+
 **2026-10-11 context-adaptive discussion prompts, complete (backend-only):**
 Owner-requested [ADR-085](../decisions/ADR-085-context-adaptive-discussion-prompts.md)
 is implemented by GPT-6.1 Sol Medium coding agents and independently reviewed.
@@ -33,10 +62,9 @@ raw debug off. This backend-only update leaves extension **0.13.44** unchanged
 and needs no reload or permission. No live agent inference; exhausted diagnostic
 budget and later gates remain. Coding model preference is now GPT-6.1 Sol.
 
-Owner's subsequent language/IP metadata suggestion is pending separate approval
-for optional local language and chosen delivery-country/currency settings, sent
-only on deliberate requests. No IP lookup, location, browser history or new
-metadata is currently collected/sent. Do not implement before the explicit answer.
+Owner's subsequent language/IP metadata suggestion is now explicitly approved
+only for ADR-086's optional language and chosen delivery-country/currency fields.
+No IP lookup, location inference or browser history is approved.
 
 **2026-10-11 price-search quality diagnosis (no runtime change):**
 Owner-requested read-only inspection of one public multi-variant product's saved

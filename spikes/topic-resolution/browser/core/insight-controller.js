@@ -3,6 +3,7 @@ import { ModelListFailure } from "./local-ai-client.js";
 import { formatInsightCitations } from "./insight-citations.js";
 import { inspectPageUrl } from "./page-content-policy.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
+import { normalizeInsightPreferences, DEFAULT_INSIGHT_PREFERENCES } from "./insight-preferences.js";
 
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const sameVersion = (a, b) => a && b && a.generation === b.generation && a.revision === b.revision;
@@ -91,6 +92,7 @@ export function createInsightResumeGate(resume) {
 export function createInsightController({ shareInsight, onStateChange = () => {}, aiClient = null,
   readArticle = null, attestArticle = null, readRelatedExcerpts = null,
   loadRelatedTextPreference = async () => null, saveRelatedTextPreference = () => {}, openAuthorization = null,
+  loadInsightPreferences = async () => null, saveInsightPreferences = async () => {}, readBrowserLanguage = () => null,
   randomId = () => globalThis.crypto.randomUUID(), shareOnCompletion = false }) {
   let observed = null;
   let boundKey = null;
@@ -110,6 +112,17 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let completedJob = null;
   let relatedReadAbort = null;
   let relatedPreferenceTouched = false;
+  let preferenceRevision = 0;
+  let preferenceWrites = Promise.resolve();
+  const preferencesReady = Promise.resolve().then(loadInsightPreferences).then((value) => {
+    if (disposed || preferenceRevision || value === null) return;
+    const preferences = normalizeInsightPreferences(value.preferences);
+    if (Object.hasOwn(preferences, "browserLanguage")) throw new TypeError("Invalid saved language hint");
+    if (typeof value.browserLanguageHintEnabled !== "boolean") throw new TypeError("Invalid saved preferences");
+    publish({ preferences, browserLanguageHintEnabled: value.browserLanguageHintEnabled });
+  }).catch(() => {
+    if (!disposed && !preferenceRevision) publish({ preferencesStatus: "loadFailed" });
+  });
   const relatedPreferenceReady = Promise.resolve().then(loadRelatedTextPreference).then((value) => {
     if (!disposed && !relatedPreferenceTouched && typeof value === "boolean")
       publish({ relatedPageTextEnabled: value, relatedExcerptCount: null });
@@ -118,6 +131,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       publish({ relatedPageTextEnabled: false, relatedExcerptCount: null });
   });
   let state = { available: false, context: null, excludedRelatedSourceIds: [],
+    preferences: { ...DEFAULT_INSIGHT_PREFERENCES }, browserLanguageHintEnabled: true, preferencesStatus: "saved",
     relatedPageTextEnabled: true, relatedExcerptCount: null,
     draft: "", preview: null, followup: null, status: "idle", busy: false,
     ai: { connected: false, planEnabled: false, pending: false, account: null, models: [], model: "", costConsent: false, articleText: "", article: null,
@@ -448,29 +462,75 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     if (disposed || job || completedJob || !state.ai.article || typeof value !== "string" || value.length > 4096 || UNSAFE.test(value)) return false;
     aiPatch({ articleText: value, result: null }); return true;
   }
+  function setInsightPreferences(value, browserLanguageHintEnabled = state.browserLanguageHintEnabled) {
+    if (disposed || typeof browserLanguageHintEnabled !== "boolean") return false;
+    let preferences;
+    try { preferences = normalizeInsightPreferences(value); } catch { return false; }
+    // Browser language comes exclusively from the native API at a deliberate click.
+    if (Object.hasOwn(preferences, "browserLanguage")) return false;
+    const revision = ++preferenceRevision;
+    const saved = { preferences, browserLanguageHintEnabled };
+    publish({ ...saved, preferencesStatus: "saving" });
+    preferenceWrites = preferenceWrites.catch(() => {}).then(() => saveInsightPreferences(saved)).then(() => {
+      if (!disposed && preferenceRevision === revision) publish({ preferencesStatus: "saved" });
+    }).catch(() => {
+      if (!disposed && preferenceRevision === revision) publish({ preferencesStatus: "saveFailed" });
+    });
+    return true;
+  }
+  function requestPreferences(settings = state) {
+    const preferences = { ...settings.preferences };
+    if (settings.browserLanguageHintEnabled) {
+      try {
+        const browserLanguage = readBrowserLanguage();
+        if (browserLanguage !== null && browserLanguage !== undefined)
+          return normalizeInsightPreferences({ ...preferences, browserLanguage });
+      } catch { /* Unavailable or invalid native hint is omitted. */ }
+    }
+    return preferences;
+  }
   async function createInsights({ automatic = false } = {}) {
+    const clickedEpoch = epoch, clickedKey = key(), clickedAccount = accountKey();
+    const clickedRevision = preferenceRevision;
+    let clickedSettings = { preferences: { ...state.preferences }, browserLanguageHintEnabled: state.browserLanguageHintEnabled };
+    await preferencesReady;
+    if (disposed || clickedEpoch !== epoch || clickedKey === null || clickedKey !== key() || clickedAccount !== accountKey()) return false;
+    if (clickedRevision === preferenceRevision) clickedSettings = state;
     if (resumeBusy) return false;
     if (automatic) {
       if (automaticStartBusy || completedJob || !readArticle || !eligible() || !state.ai.planEnabled ||
           !state.ai.models.some((item) => item.slug === state.ai.model) || job || pending) return false;
+      const preferences = requestPreferences(clickedSettings);
       automaticStartBusy = true;
       try {
         if ((!state.context || key() !== boundKey) && !prepare()) return false;
         if (!state.context?.currentSource) return false;
         aiPatch({ status: "preparingArticle", error: null, researchFailureDetail: null });
         if (!await readPageText()) return false;
-        return await runInsights({ skipConsent: true, publishOnCompletion: shareOnCompletion === true });
+        return await runInsights({ skipConsent: true, preferences, publishOnCompletion: shareOnCompletion === true });
       } finally { automaticStartBusy = false; }
     }
     if (automaticStartBusy || completedJob) return false;
-    return runInsights({ skipConsent: false, publishOnCompletion: shareOnCompletion === true });
+    return runInsights({ skipConsent: false, preferenceSettings: clickedSettings, publishOnCompletion: shareOnCompletion === true });
   }
   async function createFollowup(questionId, destination = null) {
+    const clickedEpoch = epoch, clickedKey = key(), clickedAccount = accountKey();
+    const targetAtClick = resolveDiscussionTarget(observed, questionId, destination);
+    const clickedTarget = targetAtClick && { topicId: targetAtClick.topicId, discussionId: targetAtClick.discussionId,
+      rootId: targetAtClick.root.id, rootBody: targetAtClick.root.body, targetBody: targetAtClick.target.body };
+    const clickedRevision = preferenceRevision;
+    let clickedSettings = { preferences: { ...state.preferences }, browserLanguageHintEnabled: state.browserLanguageHintEnabled };
+    await preferencesReady;
+    if (disposed || clickedEpoch !== epoch || clickedKey === null || clickedKey !== key() || clickedAccount !== accountKey()) return false;
+    if (clickedRevision === preferenceRevision) clickedSettings = state;
     if (disposed || pending || job || automaticStartBusy || resumeBusy || !eligible() ||
         state.ai.result || state.draft ||
         !state.ai.planEnabled || !state.ai.models.some((item) => item.slug === state.ai.model)) return false;
     const binding = resolveDiscussionTarget(observed, questionId, destination);
-    if (!binding) return false;
+    if (!binding || !clickedTarget || binding.topicId !== clickedTarget.topicId ||
+        binding.discussionId !== clickedTarget.discussionId || binding.root.id !== clickedTarget.rootId ||
+        binding.root.body !== clickedTarget.rootBody || binding.target.body !== clickedTarget.targetBody) return false;
+    const preferences = requestPreferences(clickedSettings);
     if ((!state.context || key() !== boundKey) && !prepare()) return false;
     if (!state.context?.currentSource) return false;
     automaticStartBusy = true;
@@ -483,16 +543,17 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         ...(followup.topicId !== observed.topicId ? { topicId: followup.topicId } : {}) } });
       aiPatch({ status: "preparingArticle", error: null, researchFailureDetail: null });
       if (!await readPageText()) return false;
-      return await runInsights({ skipConsent: true, followup,
+      return await runInsights({ skipConsent: true, followup, preferences,
         publishOnCompletion: shareOnCompletion === true });
     } finally { automaticStartBusy = false; }
   }
-  async function runInsights({ skipConsent, followup = null, publishOnCompletion = false }) {
+  async function runInsights({ skipConsent, followup = null, preferences, preferenceSettings, publishOnCompletion = false }) {
     await relatedPreferenceReady;
     if (!aiClient || !attestArticle || disposed || job || completedJob || pending || !state.ai.planEnabled ||
         (!skipConsent && !state.ai.costConsent) ||
         !state.ai.models.some((item) => item.slug === state.ai.model) || !state.ai.articleText.trim() ||
         !state.ai.article || !state.context || key() !== boundKey) return false;
+    preferences ??= requestPreferences(preferenceSettings);
     const current = epoch, expectedKey = boundKey;
     const operationId = randomId(), actorId = observed.actorId;
     if (typeof operationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/u.test(operationId)) return false;
@@ -517,7 +578,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         allowedRelatedSourceIds: [...state.context.sameTopicSources, ...state.context.relatedSources]
           .map((source) => source.id),
         sourceLimit: observed.sourceId === null ? 5 : 6 });
-      const request = { operationId, model: state.ai.model, context: requestContext,
+      const request = { operationId, model: state.ai.model, context: requestContext, preferences,
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
         allowWebResearch: false, expected: { ...observed.catalog.version },
         ...(followup ? { followupQuestionId: followup.questionId,
@@ -701,7 +762,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
         result: null, status: "idle", error: null, diagnostics: { status: "idle", events: [], localEvents: [] } } };
   }
   return Object.freeze({ observe, currentState, prepare, setRelatedSourceIncluded,
-    setRelatedPageTextEnabled,
+    setRelatedPageTextEnabled, setInsightPreferences,
     setDraft, preview, share, discard, dispose,
     checkConnection, connect, disconnect, loadModels, loadDiagnostics, selectModel, setCostConsent,
     readPageText, setArticleText, createInsights, createFollowup, cancelInsights, resumeInsights });

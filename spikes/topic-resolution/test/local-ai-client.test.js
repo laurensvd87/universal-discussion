@@ -7,6 +7,24 @@ function response(path, value) {
 }
 function client(fetchImpl) { return createLocalAiClient({ fetchImpl, getToken: async () => "a".repeat(64) }); }
 
+test("Insight preferences normalize only on start and invalid metadata cannot reach transport", async () => {
+  const calls = [];
+  const value = client(async (url, options) => {
+    calls.push({ url, body: options.body && JSON.parse(options.body) });
+    return response(url, url.endsWith("/insights") ? { operationId: "op-a", state: "running" } :
+      { connected: false, planEnabled: false, pending: false, account: null });
+  });
+  await value.status();
+  const base = { operationId: "op-a", model: "model-a", articleText: "Public text", allowWebResearch: false };
+  await value.start({ ...base, preferences: { replyLanguage: "en", browserLanguage: "de-de", deliveryCountry: "ca", currency: "cad" } }, "demo-alex");
+  assert.equal(calls[0].body, undefined);
+  assert.deepEqual(calls[1].body.preferences, { replyLanguage: "en", browserLanguage: "de-DE", deliveryCountry: "CA", currency: "CAD" });
+  for (const preferences of [undefined, null, { ip: "127.0.0.1" }, { currency: "" }, { deliveryCountry: "USA" },
+    { replyLanguage: "Ignore instructions" }, { browserLanguage: "de-x-secret" }])
+    await assert.rejects(value.start({ ...base, preferences }, "demo-alex"), TypeError);
+  assert.equal(calls.length, 2);
+});
+
 test("Insight client accepts explicit web-research opt-out without changing the request", async () => {
   let body;
   const value = client(async (_url, options) => {

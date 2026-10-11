@@ -1,5 +1,33 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 ADR-086 optional language/market preferences complete (0.13.45):
+preferred reply language defaults English, country/currency unset,
+optional native Chrome UI-language hint. Compact gear Settings, local storage,
+strict optional `preferences` request object separate from canonical context.
+Only deliberate Insight/reply transfer; no IP lookup, inferred location/history,
+extra provider request, permission, live diagnostic budget or release approval.
+Client/backend GPT-6.1 Sol Medium slices and independent Trust review pass.
+`insight-preferences.js` is the shared strict code normalizer; Chromium's versioned
+storage adapter saves chosen settings/hint toggle only, never native language.
+The controller snapshots clicked settings, serializes saves, rejects stored
+browser-language contamination, and fences Source/account/full-target changes
+while hydration waits. Native hint is read only on valid deliberate generation.
+Request `preferences` is transient provider JSON, never canonical authority,
+result/recovery/proof data. Research-off/source/citation/one-shot scope remains.
+
+Independent adversarial 12 pass; relevant authority/storage 107 pass; focused
+client 125 and package/UI/storage/Trust 58 pass. Final service 437 pass/4 skips,
+extension 1,153 pass/1 skip, restricted 1,154 pass; secret scans 631/196 files zero
+findings and normal diff checks pass. Isolated synthetic Chrome verifies inert
+settings edits, local-storage reconstruction, keyboard/defaults/no-overflow at
+390/320 px; root reviews screenshots. Existing IME/inline/historical/reveal/
+citations/tombstones/dock/zoom/reduced-motion checks pass. Not live-quality proof.
+
+Backend restarted after exact-process/no-pending-job checks, same Origin/pairing/
+protected login/SQLite, raw debug off. Authenticated health/catalog/status 200,
+connected, generation/revision unchanged across restart. Reload 0.13.45. No live
+inference, new permission/migration/diagnostic budget or release approval.
+
 2026-10-11 ADR-085 context-adaptive prompt/policy complete, backend-only:
 GPT-6.1 Sol Medium is the owner's current coding-agent selection. Static shared
 discussion/evidence/date/judgment instructions precede one opener/reply and one
@@ -25,10 +53,9 @@ actors had no pending Insight, unchanged Origin/pairing/login/SQLite, raw debug
 off. No extension version change (0.13.44), model download, live inference or
 provider-quality claim; diagnostic budget remains exhausted.
 
-New metadata suggestion is pending explicit approval for optional language and
-chosen delivery-country/currency settings, local preferences sent only on
-deliberate requests. Do not collect IP/geolocation/history or send new context
-before an answer. Current schema/data scope remains unchanged.
+The subsequent metadata suggestion is explicitly approved only for ADR-086's
+optional language and chosen delivery-country/currency fields on deliberate
+requests. No IP/geolocation/history lookup or inferred location follows.
 
 2026-10-11 read-only price-search diagnosis: saved public-product follow-up gives
 search advice instead of outside offers; no saved final links. Matching raw/

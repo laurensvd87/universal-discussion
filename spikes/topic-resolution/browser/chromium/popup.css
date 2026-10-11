@@ -110,6 +110,8 @@ body[data-ui-mode="developer"] .capture-settings > summary { margin-bottom: 10px
 #insight-ai-status[data-state="connecting"] { background: #e8f1fb; color: #17578d; }
 .insight-subdetails { border: 1px solid #e1e8ef; border-radius: 9px; padding: 9px 11px; background: #fbfdff; }
 .insight-subdetails > summary { color: #2d597b; font-size: 12px; }
+#insight-related-settings > select { display: block; width: 100%; min-width: 0; max-width: 100%; }
+#insight-related-settings > label { overflow-wrap: anywhere; }
 .insight-subdetails[open] > :not(summary) { margin-top: 8px; }
 #insight-account-details button { min-height: 32px; margin-top: 6px; background: #eef4fa; color: #215d8c; font-size: 11px; }
 #insight-account-details button:hover { background: #e0edf9; }

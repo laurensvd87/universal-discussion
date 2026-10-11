@@ -110,12 +110,12 @@ service is restarted with raw debug off. Existing Chrome 0.13.44 need not reload
 No extra live diagnostic budget is inferred; deliberate owner app clicks remain
 authorized under their existing scope.
 
-## Pending metadata suggestion
+## Subsequent metadata approval
 
 The owner subsequently suggests IP location and Chrome language as possible
 context. No new metadata has been collected or sent. A separate explicit question
 proposes local optional UI-language/preferred-response-language and user-chosen
 delivery-country/currency settings, sending only these fields on deliberate
-requests, with no IP lookup, precise location or browser history. Approval is
-pending. Language and network location must never silently become shipping
-destination, source publication date or verified personal location.
+requests, with no IP lookup, precise location or browser history. The owner
+explicitly approves this narrow package in ADR-086. Language must never silently
+become shipping destination, source publication date or verified personal location.

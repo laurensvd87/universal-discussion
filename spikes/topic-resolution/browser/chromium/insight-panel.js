@@ -1,5 +1,6 @@
 import { INSIGHT_EN } from "../locales/insight-en.js";
 import { appendInsightCitationNodes, formatInsightCitations } from "../core/insight-citations.js";
+import { REPLY_LANGUAGE_OPTIONS, DELIVERY_COUNTRY_OPTIONS, CURRENCY_OPTIONS } from "../core/insight-preferences.js";
 
 const FAILURE_STAGE_MESSAGES = Object.freeze({
   "callback-invalid": "aiFailureCallbackInvalid",
@@ -88,6 +89,31 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const relatedSettings = node("details", null, "insight-related-settings");
   relatedSettings.className = "insight-subdetails";
   relatedSettings.append(node("summary", "relatedSettings"));
+  relatedSettings.append(node("p", "preferencesScope"));
+  function preferenceSelect(field, options) {
+    const label = node("label", field); label.htmlFor = `insight-preference-${field}`;
+    const select = node("select", null, label.htmlFor);
+    for (const option of options) {
+      const item = node("option"); item.value = option.value; item.textContent = option.label; select.append(item);
+    }
+    relatedSettings.append(label, select);
+    listen(select, "change", () => {
+      const preferences = { ...(controller?.currentState().preferences ?? { replyLanguage: "en" }) };
+      if (select.value) preferences[field] = select.value; else delete preferences[field];
+      controller?.setInsightPreferences(preferences);
+    });
+    return select;
+  }
+  const replyLanguage = preferenceSelect("replyLanguage", REPLY_LANGUAGE_OPTIONS);
+  const deliveryCountry = preferenceSelect("deliveryCountry", [{ value: "", label: text("notSet") }, ...DELIVERY_COUNTRY_OPTIONS]);
+  const currency = preferenceSelect("currency", [{ value: "", label: text("notSet") }, ...CURRENCY_OPTIONS]);
+  const browserLanguageHint = node("input", null, "insight-browser-language-hint"); browserLanguageHint.type = "checkbox";
+  const browserLanguageLabel = node("label", "browserLanguageHint"); browserLanguageLabel.htmlFor = browserLanguageHint.id;
+  relatedSettings.append(browserLanguageLabel, browserLanguageHint);
+  listen(browserLanguageHint, "change", () => controller?.setInsightPreferences(
+    controller.currentState().preferences, browserLanguageHint.checked));
+  const preferencesStatus = node("p", null, "insight-preferences-status"); preferencesStatus.setAttribute("role", "status");
+  relatedSettings.append(preferencesStatus);
   relatedSettings.append(node("p", "relatedSettingsScope"));
   const relatedPageText = node("input", null, "insight-related-page-text");
   relatedPageText.type = "checkbox"; relatedPageText.checked = true;
@@ -246,7 +272,14 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     const sourceChoices = [...(state.context?.sameTopicSources ?? []), ...(state.context?.relatedSources ?? [])]
       .filter((source, index, all) => source.id !== state.context?.currentSource?.id &&
         all.findIndex((candidate) => candidate.id === source.id) === index);
-    relatedSettings.hidden = !state.context;
+    relatedSettings.hidden = false;
+    replyLanguage.value = state.preferences?.replyLanguage ?? "en";
+    deliveryCountry.value = state.preferences?.deliveryCountry ?? "";
+    currency.value = state.preferences?.currency ?? "";
+    browserLanguageHint.checked = state.browserLanguageHintEnabled !== false;
+    preferencesStatus.textContent = ["saveFailed", "loadFailed"].includes(state.preferencesStatus)
+      ? text(state.preferencesStatus === "saveFailed" ? "preferencesSaveFailed" : "preferencesLoadFailed") : "";
+    preferencesStatus.hidden = !preferencesStatus.textContent;
     relatedPageText.checked = state.relatedPageTextEnabled !== false;
     // Switching this off remains available while an Insight is preparing or reading pages.
     relatedPageText.disabled = !relatedPageText.checked &&

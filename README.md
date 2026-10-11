@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.44** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.45** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -37,7 +37,7 @@ remain read-only at the bottom. See
 Canonical message sparkles stay visible and re-enable when current-page context
 is ready; unavailable contexts disable generation instead of hiding the action.
 The backend has been restarted for this update; reload the unpacked extension
-to **0.13.44**. Accept the existing `sidePanel`
+to **0.13.45**. Accept the existing `sidePanel`
 permission if Chrome asks. Existing pairing, login and saved discussions remain.
 Closing the panel does not stop background matching; **Settings → Browsing
 session settings** retains Stop, site exclusions and access removal. An unsent
@@ -72,8 +72,15 @@ Opening Insights still use only selected related URLs, and disabling research
 disables all lookup. No full thread history or new date metadata is sent. See
 [the prompt](apps/local-service/src/ai/insight-prompts.js) and
 [ADR-085](decisions/ADR-085-context-adaptive-discussion-prompts.md).
-This backend-only update needs no new extension permission or version; restart
-the local service to load it. Existing posts and pairing are not reset.
+The prompt update itself is backend-only. Extension **0.13.45** additionally adds
+optional language/market preferences under **Settings → Discussion preferences**:
+reply language defaults to English; delivery country and currency start **Not set**.
+The optional browser-language hint never sets your delivery market. Preferences
+stay locally saved and accompany only deliberate Insight/sparkle requests, not
+ordinary browsing. There is no IP/location lookup or new permission. Restart the
+local service and reload the extension together; existing posts, pairing and
+protected login are preserved. See
+[ADR-086](decisions/ADR-086-optional-discussion-language-and-market.md).
 The reply prompt requires a clickable citation beside each researched listing,
 including offers whose delivered total is unknown; it must not invent a listing
 link. Existing uncited posts cannot be backfilled from a retailer name. See

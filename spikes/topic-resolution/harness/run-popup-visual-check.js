@@ -215,6 +215,7 @@ try {
           url:'https://example.com/related/'+index,relationship:index===1?'same-topic':'related'}))},
         draft:{body:'',detached:false,mode:'root',targetId:null}};
       const insightState={available:true,busy:false,status:'prepared',draft:'',preview:null,
+        preferences:{replyLanguage:'en'},browserLanguageHintEnabled:true,
         context:{topic:{id:'topic-visual',title:'A quieter, greener city'},currentSource:{id:'source-visual',title:'Synthetic public article',url:'https://example.com/article'},sameTopicSources:[],relatedSources:[],discussion:[]},
         ai:{connected:true,planEnabled:true,pending:false,models:[{slug:'synthetic',displayName:'Synthetic model'}],model:'synthetic',
           articleText:'',article:null,costConsent:false,result:null,status:'connected'}};
@@ -227,6 +228,11 @@ try {
       };
       discussion.bind(new Proxy(discussionController,{get:(object,key)=>object[key]??(()=>{})}));
       const insightController=new Proxy({currentState:()=>structuredClone(insightState),createInsights:()=>{window.visualCreates++;return Promise.resolve(true)},
+        setInsightPreferences:(preferences,browserLanguageHintEnabled=insightState.browserLanguageHintEnabled)=>{
+          insightState.preferences=structuredClone(preferences);insightState.browserLanguageHintEnabled=browserLanguageHintEnabled;
+          window.visualPreferenceEdits=(window.visualPreferenceEdits??0)+1;
+          insights.render(structuredClone(insightState));return true;
+        },
         createFollowup:questionId=>{
           const destination=resolveDiscussionTarget(state,questionId);
           const targetRoot=destination?.root;
@@ -828,6 +834,43 @@ try {
     await evaluate("document.querySelector('#app-settings-button').click();scrollTo(0,0)", sessionId);
     await assertView("#app-settings-view");
     await capture("settings", sessionId);
+    const preferenceInitial = await evaluate(`(() => {
+      const settings=document.querySelector('#insight-related-settings');settings.open=true;
+      return {inSettings:document.querySelector('#app-settings-insights').contains(settings),
+        language:document.querySelector('#insight-preference-replyLanguage').value,
+        country:document.querySelector('#insight-preference-deliveryCountry').value,
+        currency:document.querySelector('#insight-preference-currency').value,
+        hint:document.querySelector('#insight-browser-language-hint').checked,creates:window.visualCreates};
+    })()`,sessionId);
+    assert.deepEqual({...preferenceInitial,creates:undefined},
+      {inSettings:true,language:'en',country:'',currency:'',hint:true,creates:undefined},
+      'preferences live only behind Settings with English and unknown-market defaults');
+    await checkReachable('#insight-preference-replyLanguage',sessionId);
+    await tabTo('#insight-preference-deliveryCountry',sessionId);
+    await tabTo('#insight-preference-currency',sessionId);
+    await tabTo('#insight-browser-language-hint',sessionId);
+    const preferenceRestored = await evaluate(`(async () => {
+      for(const [selector,value] of [['#insight-preference-replyLanguage','de'],
+        ['#insight-preference-deliveryCountry','BE'],['#insight-preference-currency','EUR']]){
+        const control=document.querySelector(selector);control.value=value;control.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      const hint=document.querySelector('#insight-browser-language-hint');hint.checked=false;hint.dispatchEvent(new Event('change',{bubbles:true}));
+      const {createInsightPreferenceStorage}=await import('./insight-preference-storage.js');
+      const storage=createInsightPreferenceStorage({storageLocal:chrome.storage.local,i18n:chrome.i18n});
+      await storage.save({preferences:window.visualInsightState.preferences,browserLanguageHintEnabled:false});
+      const reopened=createInsightPreferenceStorage({storageLocal:chrome.storage.local,i18n:chrome.i18n});
+      return {restored:await reopened.load(),creates:window.visualCreates,edits:window.visualPreferenceEdits};
+    })()`,sessionId);
+    assert.deepEqual(preferenceRestored,{restored:{preferences:{replyLanguage:'de',deliveryCountry:'BE',currency:'EUR'},
+      browserLanguageHintEnabled:false},creates:preferenceInitial.creates,edits:4},
+      'four preference edits persist in disposable Chrome storage without any generation');
+    await evaluate("document.querySelector('#insight-related-settings').scrollIntoView({block:'start'})",sessionId);
+    await capture('discussion-preferences-390',sessionId);
+    await browser.send('Emulation.setDeviceMetricsOverride',{width:320,height:600,deviceScaleFactor:1,mobile:false},sessionId);
+    await checkReachable('#insight-preference-currency',sessionId);
+    await capture('discussion-preferences-320',sessionId);
+    await browser.send('Emulation.setDeviceMetricsOverride',{width:390,height:600,deviceScaleFactor:1,mobile:false},sessionId);
+    await evaluate("window.visualInsightState.preferences={replyLanguage:'en'};window.visualInsightState.browserLanguageHintEnabled=true;window.visualInsightPanel.render(window.visualInsightState);document.querySelector('#insight-related-settings').open=false",sessionId);
     await evaluate("document.querySelector('#capture-settings').open=true;document.querySelector('#matching-how').open=false;document.querySelector('#capture-settings').scrollIntoView({block:'start'})", sessionId);
     assert.equal(await evaluate("document.querySelector('#matching-how').open === false && document.querySelector('#matching-user-status').getClientRects().length > 0", sessionId), true,
       "User matching surface shows compact status with technical detail collapsed");

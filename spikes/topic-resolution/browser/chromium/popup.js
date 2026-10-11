@@ -15,6 +15,7 @@ import { createInsightController, createInsightResumeGate } from "../core/insigh
 import { createReadOnlyServiceRetry } from "../core/read-only-service-retry.js";
 import { createLocalAiClient } from "../core/local-ai-client.js";
 import { createInsightPageReader } from "./insight-page-reader.js";
+import { createInsightPreferenceStorage } from "./insight-preference-storage.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { mountPopupShell } from "./popup-shell.js";
 import { connectPopupFocusResponder } from "./popup-focus.js";
@@ -232,6 +233,7 @@ function primeAiAfterLocalConnection(state) {
   })().catch(() => {});
 }
 const storageLocal = globalThis.chrome.storage.local;
+const insightPreferenceStorage = createInsightPreferenceStorage({ storageLocal, i18n: globalThis.chrome.i18n });
 const popupShell = mountPopupShell(document, {
   storageLocal,
   storageSession: globalThis.chrome.storage.session,
@@ -306,6 +308,9 @@ insightController = createInsightController({
   aiClient,
   readArticle: insightPageReader.read,
   attestArticle: insightPageReader.attest,
+  loadInsightPreferences: insightPreferenceStorage.load,
+  saveInsightPreferences: insightPreferenceStorage.save,
+  readBrowserLanguage: insightPreferenceStorage.readBrowserLanguage,
   loadRelatedTextPreference: async () => {
     const stored = await storageLocal.get("relatedPageTextEnabled");
     return typeof stored.relatedPageTextEnabled === "boolean" ? stored.relatedPageTextEnabled : null;

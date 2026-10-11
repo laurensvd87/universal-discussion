@@ -51,6 +51,7 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       "browser/core/insight-citations.js",
       "browser/core/insight-context.js",
       "browser/core/insight-controller.js",
+      "browser/core/insight-preferences.js",
       "browser/core/local-ai-client.js",
       "browser/core/local-discussion-controller.js",
       "browser/core/local-service-client.js",

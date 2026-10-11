@@ -1,5 +1,6 @@
 import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 import { buildInsightInstructions } from "./insight-prompts.js";
+import { normalizeInsightPreferences } from "../../../../spikes/topic-resolution/browser/core/insight-preferences.js";
 import { replyResearchToolChoice } from "./reply-research-policy.js";
 
 const API = "https://api.openai.com/v1";
@@ -892,7 +893,14 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       keys(request, ["model", "context", "articleText", "allowWebResearch",
         ...(Object.hasOwn(request, "relatedExcerpts") ? ["relatedExcerpts"] : []),
         ...(Object.hasOwn(request, "excludedWebUrls") ? ["excludedWebUrls"] : []),
+        ...(Object.hasOwn(request, "preferences") ? ["preferences"] : []),
         ...(hasFollowup ? ["followup"] : [])]);
+      let preferences;
+      if (Object.hasOwn(request, "preferences")) {
+        if (own(request, "preferences") === undefined) fail("invalid-input");
+        try { preferences = normalizeInsightPreferences(own(request, "preferences")); }
+        catch { fail("invalid-input"); }
+      }
       const model = own(request, "model");
       if (typeof model !== "string" || !SLUG.test(model)) fail("model-unavailable");
       const allowWebResearch = own(request, "allowWebResearch");
@@ -921,6 +929,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         { ...visibleContext, sameTopicSources: [], relatedSources: [] };
       const userContext = followup ? followupContext(providerContext, articleText, followup, relatedExcerpts) :
         { context: providerContext, articlePrefix: articleText, relatedExcerpts };
+      if (preferences) userContext.preferences = preferences;
       if (useWebResearch) {
         userContext.missingRelatedCandidateUrls = missingCandidates;
         userContext.selectedWebReferences = webReferences;

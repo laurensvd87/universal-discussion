@@ -49,6 +49,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/inference-host.js",
     "chromium/insight-page-reader.js",
     "chromium/insight-panel.js",
+    "chromium/insight-preference-storage.js",
     "chromium/page-content-reader.js",
     "chromium/page-matching-panel.js",
     "chromium/page-metadata-reader.js",
@@ -72,6 +73,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/insight-citations.js",
     "core/insight-context.js",
     "core/insight-controller.js",
+    "core/insight-preferences.js",
     "core/local-ai-client.js",
     "core/local-discussion-controller.js",
     "core/local-service-client.js",
@@ -108,7 +110,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Universal Discussion - Local PoC",
-    version: "0.13.44",
+    version: "0.13.45",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -187,7 +189,7 @@ test("browser runtime has only audited tab, scripting, session and loopback adap
     const approvedBindings = label === "chromium/background.js" ? ["globalThis.chrome", "globalThis.fetch"] :
       label === "embedding/offscreen.js" ? ["globalThis.chrome.runtime"] :
       label === "chromium/popup.js" ? ["globalThis.chrome.tabs", "globalThis.chrome.scripting",
-        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows", "globalThis.chrome.storage.local", "globalThis.chrome.storage.session"] : [];
+        "globalThis.fetch", "globalThis.chrome.runtime", "globalThis.chrome.permissions", "globalThis.chrome.windows", "globalThis.chrome.storage.local", "globalThis.chrome.storage.session", "globalThis.chrome.i18n"] : [];
     for (const approvedBinding of approvedBindings) {
       const bindingCount = source.split(approvedBinding).length - 1;
       assert.equal(

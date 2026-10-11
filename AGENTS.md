@@ -8,6 +8,14 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current implemented approval (2026-10-11, ADR-086, 0.13.45): optional local reply-language,
+Chrome UI-language hint and manually chosen delivery-country/currency settings
+are approved for deliberate Insight/reply requests only. English default;
+country/currency unset. No IP lookup, inferred location, history, extra request
+or permission. Independent validation/storage/context-race and actual-Chrome
+layout checks pass; normal backend restarted. Read top STATUS/HANDOFF and
+preserve existing context/citation/sharing authority.
+
 Current implemented request (2026-10-11, ADR-085): context-adaptive discussion
 prompts and required hosted research for recognized explicit reply research/
 shopping requests are independently verified and active in the restarted backend.
@@ -15,8 +23,8 @@ Research-off and selected-only opening Insights remain authoritative. Preserve
 completed search in normal/fallback required requests, quoted/negated guards,
 existing context/citation/proof limits and no retry. Extension remains 0.13.44.
 No extra history/date extraction or new live diagnostic budget. The owner's
-subsequent optional language/country/currency metadata proposal awaits explicit
-approval; do not collect/send new fields or IP location. Read top STATUS/HANDOFF.
+subsequent optional language/country/currency metadata approval is recorded in
+ADR-086; IP lookup remains excluded. Read top STATUS/HANDOFF.
 
 Current implemented approval (2026-10-11, ADR-084, 0.13.44): direct inline human
 and sparkle replies to earlier exact same-Source canonical threads are approved

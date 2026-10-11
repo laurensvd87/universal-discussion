@@ -4,6 +4,7 @@ import path from "node:path";
 import { ChatGPTConnectionFailure, createChatGPTConnection } from "./chatgpt-connection.js";
 import { ChatGptInsightError, createChatGptInsights, validateRelatedExcerpts } from "./chatgpt-insights.js";
 import { buildInsightContext } from "../../../../spikes/topic-resolution/browser/core/insight-context.js";
+import { normalizeInsightPreferences } from "../../../../spikes/topic-resolution/browser/core/insight-preferences.js";
 import { formatInsightCitations } from "../../../../spikes/topic-resolution/browser/core/insight-citations.js";
 import { ServiceError, fail } from "../domain/errors.js";
 import { readId } from "../domain/validation.js";
@@ -288,10 +289,17 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       exact(value, ["operationId", "model", "context", "articleText", "allowWebResearch", "expected",
         ...(Object.hasOwn(value ?? {}, "excludedRelatedSourceIds") ? ["excludedRelatedSourceIds"] : []),
         ...(Object.hasOwn(value ?? {}, "relatedExcerpts") ? ["relatedExcerpts"] : []),
+        ...(Object.hasOwn(value ?? {}, "preferences") ? ["preferences"] : []),
         ...(Object.hasOwn(value ?? {}, "followupQuestionId") ? ["followupQuestionId"] : []),
         ...(Object.hasOwn(value ?? {}, "followupTopicId") ? ["followupTopicId"] : [])]);
       if (Object.hasOwn(value, "followupTopicId") && !Object.hasOwn(value, "followupQuestionId")) {
         fail("invalid", "Invalid request");
+      }
+      let preferences;
+      if (Object.hasOwn(value, "preferences")) {
+        if (value.preferences === undefined) fail("invalid", "Invalid request");
+        try { preferences = normalizeInsightPreferences(value.preferences); }
+        catch { fail("invalid", "Invalid request"); }
       }
       service.actor(actorId);
       const key = operationId(value.operationId);
@@ -329,6 +337,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       seen.add(key); jobs.set(key, job); active = job;
       void insights.createInsight({ model: value.model, context, articleText: value.articleText,
         allowWebResearch: value.allowWebResearch, relatedExcerpts,
+        ...(preferences ? { preferences } : {}),
         ...(followup ? { followup: { parentBody: followup.parentBody, questionBody: followup.questionBody },
           excludedWebUrls } : {}) }).then((result) => {
         if (job.state === "running" && !disposed) {

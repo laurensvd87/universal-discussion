@@ -2,13 +2,21 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current implemented approval (2026-10-11, ADR-086, 0.13.45): optional local reply-language,
+native Chrome UI-language hint and manually chosen delivery-country/currency
+preferences accompany deliberate Insight/reply requests only. English default;
+country/currency unset. No IP lookup, inferred location/history, extra request
+or permission. Independent validation/storage/context-race and actual-Chrome
+layout checks pass; backend restarted. Preserve canonical context, citation and
+one-shot sharing checks. Read top STATUS/HANDOFF.
+
 Current implemented request (2026-10-11, ADR-085): context-adaptive discussion
 prompts and required search for recognized explicit researched replies are
 verified and active in the restarted backend; extension remains 0.13.44.
 Keep normal/fallback completed-search checks, off/exact-selected opener authority,
 quoted/negated guards and existing context/citation/proof scope. No extra history/
 date collection/live diagnostic budget. Optional language/country/currency context
-awaits separate approval; no new fields or IP lookup. Coding agents use GPT-6.1
+is approved separately in ADR-086; no IP lookup. Coding agents use GPT-6.1
 Sol, ordinarily Medium reasoning. Read top STATUS/HANDOFF.
 
 Current implemented approval (2026-10-11, ADR-084, 0.13.44): inline human/sparkle

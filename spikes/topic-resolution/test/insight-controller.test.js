@@ -9,6 +9,7 @@ import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indic
 
 async function harness({ command, aiClient, readArticle, attestArticle, readRelatedExcerpts,
   loadRelatedTextPreference, saveRelatedTextPreference, openAuthorization, randomId,
+  loadInsightPreferences, saveInsightPreferences, readBrowserLanguage,
   catalogTransform, shareOnCompletion = false } = {}) {
   let sequence = 0;
   const service = createMemoryDemoService({ nextId: (kind) => `${kind}-${++sequence}`, now: () => "2026-09-29T12:00:00.000Z" });
@@ -40,6 +41,7 @@ async function harness({ command, aiClient, readArticle, attestArticle, readRela
     reviews.push(review); return discussion.shareInsight(review);
   }, aiClient, readArticle,
     attestArticle, readRelatedExcerpts, loadRelatedTextPreference, saveRelatedTextPreference,
+    loadInsightPreferences, saveInsightPreferences, readBrowserLanguage,
     openAuthorization, randomId, shareOnCompletion });
   insight = newInsight();
   await discussion.open();
@@ -64,6 +66,83 @@ async function generatedHarness(options = {}) {
   assert.equal(await app.insight.createInsights({ automatic: true }), true);
   return { ...app, cancelled };
 }
+
+test("preference hydration cannot overwrite an edit and settings never start research or clear a draft", async () => {
+  let resolveLoad;
+  const writes = [], requests = [];
+  const app = await harness({ loadInsightPreferences: () => new Promise((resolve) => { resolveLoad = resolve; }),
+    saveInsightPreferences: async (value) => writes.push(value),
+    aiClient: { start: async (value) => requests.push(value) } });
+  app.insight.prepare(); app.insight.setDraft("Keep my draft");
+  assert.equal(app.insight.setInsightPreferences({ replyLanguage: "fr", deliveryCountry: "CA", currency: "CAD" }, false), true);
+  resolveLoad({ preferences: { replyLanguage: "de", deliveryCountry: "DE" }, browserLanguageHintEnabled: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(app.insight.currentState().preferences, { replyLanguage: "fr", deliveryCountry: "CA", currency: "CAD" });
+  assert.equal(app.insight.currentState().browserLanguageHintEnabled, false);
+  assert.equal(app.insight.currentState().draft, "Keep my draft");
+  assert.equal(writes.length, 1); assert.equal(requests.length, 0);
+});
+
+test("preferences snapshot at deliberate click, native hint does not infer market, changes apply next time", async () => {
+  let releaseArticle, nativeReads = 0;
+  const requests = [];
+  const app = await harness({ readBrowserLanguage: () => { nativeReads++; return "de-DE"; },
+    readArticle: () => new Promise((resolve) => { releaseArticle = resolve; }), attestArticle: async () => true,
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+      models: async () => [{ slug: "model-a" }],
+      start: async (value) => { requests.push(value); return { operationId: value.operationId, state: "running" }; },
+      result: async (operationId) => ({ operationId, state: "completed", result: { body: "Answer", model: "model-a", citations: [] } }),
+      cancel: async () => true,
+    } });
+  await app.insight.checkConnection(); await app.insight.loadModels();
+  assert.equal(nativeReads, 0);
+  const generating = app.insight.createInsights({ automatic: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  app.insight.setInsightPreferences({ replyLanguage: "fr", deliveryCountry: "CA", currency: "CAD" }, false);
+  releaseArticle({ url: "https://example.com/", documentId: "doc-a", text: "Public article" });
+  assert.equal(await generating, true);
+  assert.deepEqual(requests[0].preferences, { replyLanguage: "en", browserLanguage: "de-DE" });
+  app.insight.discard();
+  const next = app.insight.createInsights({ automatic: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  releaseArticle({ url: "https://example.com/", documentId: "doc-a", text: "Public article" });
+  assert.equal(await next, true);
+  assert.deepEqual(requests[1].preferences, { replyLanguage: "fr", deliveryCountry: "CA", currency: "CAD" });
+  assert.equal(nativeReads, 1);
+});
+
+test("pending preference hydration cannot redirect a clicked Insight to a changed actor or Source", async () => {
+  for (const field of ["actorId", "sourceId"]) {
+    let resolveLoad; let pageReads = 0;
+    const app = await harness({ loadInsightPreferences: () => new Promise((resolve) => { resolveLoad = resolve; }),
+      readArticle: async () => { pageReads++; return { url: "https://example.com/", documentId: "doc-a", text: "Public article" }; },
+      attestArticle: async () => true,
+      aiClient: { status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+        models: async () => [{ slug: "model-a" }] } });
+    await app.insight.checkConnection(); await app.insight.loadModels();
+    const start = app.insight.createInsights({ automatic: true });
+    app.insight.observe({ ...app.discussion.currentState(), [field]: field === "actorId" ? "demo-other" : null });
+    resolveLoad({ preferences: { replyLanguage: "en" }, browserLanguageHintEnabled: true });
+    assert.equal(await start, false); assert.equal(pageReads, 0);
+  }
+});
+
+test("preference saves serialize and an old failed write cannot override a later edit", async () => {
+  let rejectFirst; const writes = [];
+  const controller = createInsightController({ shareInsight: async () => {}, saveInsightPreferences: (value) => {
+    writes.push(value);
+    return writes.length === 1 ? new Promise((_, reject) => { rejectFirst = reject; }) : Promise.resolve();
+  } });
+  controller.setInsightPreferences({ replyLanguage: "fr" });
+  await new Promise((resolve) => setImmediate(resolve));
+  controller.setInsightPreferences({ replyLanguage: "de" });
+  assert.equal(writes.length, 1);
+  rejectFirst(Error("Unavailable"));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(writes.length, 2); assert.equal(controller.currentState().preferencesStatus, "saved");
+  assert.equal(controller.currentState().preferences.replyLanguage, "de");
+});
 
 test("model list prefers a listed GPT-6 Luna, preserves an explicit choice, and otherwise uses the last entry", async () => {
   let models = [{ slug: "gpt-6-sol" }, { slug: "gpt-6-astra" }];

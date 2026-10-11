@@ -1,5 +1,6 @@
 import { readActorId, readPairingToken } from "./local-service-contract.js";
 import { inspectPageUrl } from "./page-content-policy.js";
+import { normalizeInsightPreferences } from "./insight-preferences.js";
 
 const BASE = "http://127.0.0.1:4174/v1/ai";
 const encoder = new TextEncoder();
@@ -207,6 +208,9 @@ export function createLocalAiClient({ fetchImpl, getToken, onUnauthorized = asyn
     diagnostics: async (options = {}) => projectDiagnostics(await request("/diagnostics", undefined, undefined, options.signal)),
     start: async (value, actorId, options = {}) => {
       id(value?.operationId); id(value?.model); readActorId(actorId);
+      if (Object.hasOwn(value, "preferences") && value.preferences === undefined) invalid();
+      if (Object.hasOwn(value, "preferences"))
+        value = { ...value, preferences: normalizeInsightPreferences(value.preferences) };
       if (value.followupTopicId !== undefined &&
           (id(value.followupTopicId) === value.context?.topic?.id ||
             typeof value.followupQuestionId !== "string" || !ID.test(value.followupQuestionId))) invalid();

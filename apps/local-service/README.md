@@ -1,5 +1,17 @@
 # Local service
 
+Extension **0.13.45** adds owner-approved optional language/market preferences
+([ADR-086](../../decisions/ADR-086-optional-discussion-language-and-market.md)).
+Deliberate Insight/reply requests may include strictly validated `preferences`:
+`replyLanguage` (English default), optional Chrome `browserLanguage`, chosen
+`deliveryCountry` and `currency` (unset defaults). They are separate from canonical
+Source/Topic context and carry no authority. The service forwards only these
+codes in transient provider input, never in saved discussion/recovery records.
+Preferred reply language takes precedence over the browser hint; a chosen market
+is not verified location, availability or shipping price. No IP lookup, inferred
+market, background inference or additional provider request is added. Reload the
+extension and restart the backend together; pairing/login/SQLite remain unchanged.
+
 The [ADR-085](../../decisions/ADR-085-context-adaptive-discussion-prompts.md)
 backend-only prompt update adds concise, context-adaptive discussion replies,
 supported cross-source comparisons and explicit research handling. Prompt text
@@ -11,8 +23,9 @@ find a citable outside source. Research off remains tool-free, and opening posts
 remain selected-exact-URL-only. Date rules use supplied/retrieved dates, not a new
 extraction field or capture time. Context bounds, safe annotated citations,
 five-source cap, one-shot sharing and private recovery stay unchanged.
-Restart the normal service after updating; no extension reload, model change,
-permission, pairing reset or SQLite migration is required. Prompt-contract tests
+The prompt-only update needs a service restart, not a model change, new
+permission, pairing reset or SQLite migration. The later 0.13.45 preference
+update also needs an extension reload. Prompt-contract tests
 do not establish live reply quality or verified prices.
 
 Extension **0.13.44** adds [ADR-084](../../decisions/ADR-084-inline-same-source-thread-routing.md):

@@ -37,6 +37,7 @@ function harness(messages, uiMode) {
     preview: () => { calls.push(["preview"]); return true; },
     discard: () => { calls.push(["discard"]); },
     setRelatedSourceIncluded: (id, included) => { calls.push(["setRelatedSourceIncluded", id, included]); return true; },
+    setInsightPreferences: (value, hint) => { calls.push(["setInsightPreferences", value, hint]); return true; },
     createInsights: (options) => { calls.push(["createInsights", options]); return Promise.resolve(true); },
     loadDiagnostics: () => { calls.push(["loadDiagnostics"]); },
     share: () => { calls.push(["share"]); return Promise.resolve(true); } };
@@ -46,6 +47,28 @@ function harness(messages, uiMode) {
   const click = (id) => byId(id).listeners.get("click")();
   return { created, document, root, panel, calls, byId, descendants, click };
 }
+
+test("optional settings keep English and unset market, stay local, and expose accessible controls without context", () => {
+  const ui = harness(undefined, "user");
+  const language = ui.byId("insight-preference-replyLanguage");
+  const country = ui.byId("insight-preference-deliveryCountry");
+  const currency = ui.byId("insight-preference-currency");
+  const hint = ui.byId("insight-browser-language-hint");
+  assert.equal(language.value, "en"); assert.equal(country.value, ""); assert.equal(currency.value, "");
+  assert.equal(country.children[0].textContent, "Not set"); assert.equal(currency.children[0].textContent, "Not set");
+  assert.equal(hint.checked, true); assert.equal(ui.byId("insight-related-settings").hidden, false);
+  for (const control of [language, country, currency, hint])
+    assert.equal(ui.created.some((item) => item.tag === "label" && item.htmlFor === control.id), true);
+  language.value = "fr"; language.listeners.get("change")();
+  country.value = "CA"; country.listeners.get("change")();
+  currency.value = "CAD"; currency.listeners.get("change")();
+  assert.deepEqual(ui.calls.map((call) => call[0]), ["setInsightPreferences", "setInsightPreferences", "setInsightPreferences"]);
+  assert.equal(ui.byId("insight-related-settings").children.includes(language), true);
+  ui.panel.render(state({ preferences: { replyLanguage: "de", deliveryCountry: "DE", currency: "EUR" }, browserLanguageHintEnabled: false,
+    preferencesStatus: "saveFailed" }));
+  assert.equal(language.value, "de"); assert.equal(country.value, "DE"); assert.equal(currency.value, "EUR");
+  assert.equal(hint.checked, false); assert.equal(ui.byId("insight-preferences-status").textContent, INSIGHT_EN.preferencesSaveFailed);
+});
 
 test("hostile context, URLs, and generated text stay inert with no link or clipboard action", () => {
   const ui = harness();
