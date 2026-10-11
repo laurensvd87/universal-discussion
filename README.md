@@ -62,6 +62,18 @@ related pages are known. Newly discovered sources appear as clickable citation
 arrows (at most five distinct sources); they are not automatically added to the
 catalog. For price questions, specify the exact variant and delivery country.
 Answers compare available offers, not a guarantee of the cheapest price anywhere.
+The backend now uses a shared discussion prompt: concise direct replies, useful
+cross-source synthesis rather than recaps, and dates only when supported by the
+available text or sources. With research enabled, recognized explicit online
+search or shopping questions require a completed hosted search; ordinary replies
+can stay context-only. Missing shipping details need not prevent finding matching
+offers, but no delivered-price winner is claimed without a comparable total.
+Opening Insights still use only selected related URLs, and disabling research
+disables all lookup. No full thread history or new date metadata is sent. See
+[the prompt](apps/local-service/src/ai/insight-prompts.js) and
+[ADR-085](decisions/ADR-085-context-adaptive-discussion-prompts.md).
+This backend-only update needs no new extension permission or version; restart
+the local service to load it. Existing posts and pairing are not reset.
 The reply prompt requires a clickable citation beside each researched listing,
 including offers whose delivered total is unknown; it must not invent a listing
 link. Existing uncited posts cannot be backfilled from a retailer name. See

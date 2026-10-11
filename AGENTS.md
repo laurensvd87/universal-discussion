@@ -8,6 +8,16 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current implemented request (2026-10-11, ADR-085): context-adaptive discussion
+prompts and required hosted research for recognized explicit reply research/
+shopping requests are independently verified and active in the restarted backend.
+Research-off and selected-only opening Insights remain authoritative. Preserve
+completed search in normal/fallback required requests, quoted/negated guards,
+existing context/citation/proof limits and no retry. Extension remains 0.13.44.
+No extra history/date extraction or new live diagnostic budget. The owner's
+subsequent optional language/country/currency metadata proposal awaits explicit
+approval; do not collect/send new fields or IP location. Read top STATUS/HANDOFF.
+
 Current implemented approval (2026-10-11, ADR-084, 0.13.44): direct inline human
 and sparkle replies to earlier exact same-Source canonical threads are approved
 and verified, without switching the panel's current Source/Topic. Preserve
@@ -186,8 +196,9 @@ registration remained in place after the last owner attempt, so do not claim
 the switch completed. No provider, store or deployment gate follows from the
 GUI work.
 
-The owner now prefers Astra orchestration with explicitly selected GPT-6 Sol
-Medium coding subagents (2026-09-28). Delegate bounded coding/test slices with
+The owner now selects GPT-6.1 Sol coding subagents (2026-10-11), retaining Medium
+reasoning unless the task needs more. This supersedes the older GPT-6 Sol coding
+selection; the lead continues orchestration/review. Delegate bounded coding/test slices with
 clear file ownership; the lead reviews and integrates the results. Checkpoints
 return to the lead in this conversation, not a manual user model switch. If
 that configuration is unavailable, report it instead of silently substituting.

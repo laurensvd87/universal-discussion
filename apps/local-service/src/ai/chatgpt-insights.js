@@ -1,5 +1,6 @@
 import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 import { buildInsightInstructions } from "./insight-prompts.js";
+import { replyResearchToolChoice } from "./reply-research-policy.js";
 
 const API = "https://api.openai.com/v1";
 const HOUR = 3_600_000;
@@ -319,7 +320,7 @@ function webReferenceCitations(body, references) {
   }
   return citations;
 }
-function completed(value, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted, broadReply, excludedWebUrls) {
+function completed(value, model, streamShape, relatedExcerpts, context, selectedReferences, searchCompleted, broadReply, excludedWebUrls, requireSearch = false) {
   const allowedWebUrls = new Set(selectedReferences.map((entry) => entry.url));
   if (!value || value.status !== "completed" || !Array.isArray(value.output)) fail("invalid-response", "response-event");
   if (broadReply && (streamShape.conflict || value.error != null || value.incomplete_details != null ||
@@ -379,14 +380,14 @@ function completed(value, model, streamShape, relatedExcerpts, context, selected
   // Search can finish without opening any publisher page. A private draft may
   // then use the current article alone, provided it has no unsafe links or
   // invalid citations; the instruction constrains factual grounding.
-  if ((!broadReply && allowedWebUrls.size > 0 || broadReply && citations.length > 0) && !searchCompleted)
+  if ((requireSearch || !broadReply && allowedWebUrls.size > 0 || broadReply && citations.length > 0) && !searchCompleted)
     fail("invalid-response", "response-web-evidence");
   // The paired client accepts at most 50 annotations in one result. Reject
   // rather than silently dropping provider citations beside written claims.
   if (citations.length > 50) fail("invalid-response", "response-output-too-large");
   return { body, citations, model };
 }
-function completedStreamItemFallback(final, model, shape, relatedExcerpts, context, selectedReferences, searchCompleted, broadReply, excludedWebUrls) {
+function completedStreamItemFallback(final, model, shape, relatedExcerpts, context, selectedReferences, searchCompleted, broadReply, excludedWebUrls, requireSearch = false) {
   const reject = (detail, branch = null) => {
     shape.fallbackFailure = detail;
     shape.fallbackBranch = branch;
@@ -478,7 +479,7 @@ function completedStreamItemFallback(final, model, shape, relatedExcerpts, conte
   // A finalized item may be used only after the terminal completed response;
   // no delta, tool result, conflicting final item or refused output is imported.
   return completed({ ...final, output: [candidate.item] }, model, shape, relatedExcerpts, context,
-    selectedReferences, searchCompleted, broadReply, excludedWebUrls);
+    selectedReferences, searchCompleted, broadReply, excludedWebUrls, requireSearch);
 }
 async function boundedBody(response, maximum, signal, catalog = false) {
   if (!response.body?.getReader) fail("invalid-response", catalog ? "catalog-stream" : "response-stream");
@@ -523,7 +524,7 @@ function traceUrlAnnotations(parts) {
 function traceItemUrlAnnotations(item) {
   return item?.type === "message" && item.role === "assistant" ? traceUrlAnnotations(item.content) : 0;
 }
-function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferences, broadReply, excludedWebUrls) {
+function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferences, broadReply, excludedWebUrls, requireSearch = false) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
   const streamShape = { finalAssistantItem: false, textDone: false, createdId: null,
@@ -648,7 +649,7 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
       Array.isArray(final.output) && final.output.some((item) =>
         item?.type === "web_search_call" && item.status === "completed"));
   const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context,
-    selectedReferences, searchCompleted, broadReply, excludedWebUrls);
+    selectedReferences, searchCompleted, broadReply, excludedWebUrls, requireSearch);
   if (recovered) {
     acceptedCitationCount = Math.min(recovered.citations.length, 101);
     return recovered;
@@ -674,7 +675,7 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
         final.output[item.index].id !== item.id || final.output[item.index].status !== "completed"));
   if ((broadReply || citesCurrentSource) && !consistentSearch) fail("invalid-response", "response-event");
   const result = completed(final, model, streamShape, relatedExcerpts, context, selectedReferences,
-    searchCompleted && consistentSearch, broadReply, excludedWebUrls);
+    searchCompleted && consistentSearch, broadReply, excludedWebUrls, requireSearch);
   acceptedCitationCount = Math.min(result.citations.length, 101);
   return result;
   } catch (error) {
@@ -913,6 +914,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       const webReferences = selectedWebReferences(visibleContext, missingCandidates);
       const broadReply = Boolean(followup && allowWebResearch);
       const useWebResearch = broadReply || missingCandidates.length > 0;
+      const requireReplySearch = broadReply && replyResearchToolChoice(followup) === "required";
       // A disabled research preference must not send candidate URLs to the
       // provider even though the service used them to attest the local request.
       const providerContext = allowWebResearch ? visibleContext :
@@ -950,7 +952,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         payload.tools = [{ type: "web_search", external_web_access: true, search_context_size: "medium",
           ...(broadReply ? {} : { filters: { allowed_domains:
             [...new Set(missingCandidates.map((url) => new URL(url).hostname))] } }) }];
-        payload.tool_choice = broadReply ? "auto" : "required";
+        payload.tool_choice = broadReply && !requireReplySearch ? "auto" : "required";
       }
       debug({ phase: "request", payload });
       const response = await fetchImpl(`${API}/responses`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`,
@@ -973,7 +975,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         fail("invalid-response", "response-content-missing");
       }
       return parseSse(raw, model, onTrace, relatedExcerpts, context, webReferences,
-        broadReply, excludedWebUrls);
+        broadReply, excludedWebUrls, requireReplySearch);
     }, signal);
   }
   function cancel() { active?.abort(); }

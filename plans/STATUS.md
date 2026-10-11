@@ -1,5 +1,43 @@
 # Project status
 
+**2026-10-11 context-adaptive discussion prompts, complete (backend-only):**
+Owner-requested [ADR-085](../decisions/ADR-085-context-adaptive-discussion-prompts.md)
+is implemented by GPT-6.1 Sol Medium coding agents and independently reviewed.
+Shared static instructions produce concise direct replies/openers, useful
+same-subject synthesis, grounded viewpoint differences and request-sensitive
+angles without forced questions or generic recaps. Dates come only from existing
+supplied/retrieved evidence; no publication-date extraction or new context field.
+Alternative-product tradeoffs are allowed; price ranking needs comparable offers.
+Unknown dates are mentioned only when material. Missing country may allow useful
+offer research but not a delivered-price winner or inferred user location.
+
+A conservative bounded policy over validated published opener/target selects
+required hosted search for recognized explicit research/shopping requests and
+short shopping clarifications. Negated/quoted wording and acknowledgements stay
+auto. It is not comprehensive multilingual intent detection. Required requests
+need consistent completed-search evidence, including strict fallback, but may
+honestly report no comparable outside source. Ordinary replies keep auto;
+research-off stays tool-free and opening Insights stay selected-exact-URL-only.
+No new request/retention/history/citation/proof scope or automatic retry.
+
+Focused independent combined **106 pass**; final service **429 pass/4 optional
+skips**; full extension **1,136 pass/1 optional skip**; restricted **1,137 pass**.
+Secret scans: service **629**, extension **192** files, zero findings; diff checks
+pass. Existing generated exact-body sharing, canonical/historical routing and
+SQLite/recovery regressions pass. These are contracts/fixtures, not evidence of
+live answer quality, verified prices or provider instruction compliance.
+
+The verified normal backend is restarted after checking both actors have no
+running/completed pending Insight; Origin/pairing/protected login/SQLite remain,
+raw debug off. This backend-only update leaves extension **0.13.44** unchanged
+and needs no reload or permission. No live agent inference; exhausted diagnostic
+budget and later gates remain. Coding model preference is now GPT-6.1 Sol.
+
+Owner's subsequent language/IP metadata suggestion is pending separate approval
+for optional local language and chosen delivery-country/currency settings, sent
+only on deliberate requests. No IP lookup, location, browser history or new
+metadata is currently collected/sent. Do not implement before the explicit answer.
+
 **2026-10-11 price-search quality diagnosis (no runtime change):**
 Owner-requested read-only inspection of one public multi-variant product's saved
 current/prior discussions confirms a follow-up that asks for online research

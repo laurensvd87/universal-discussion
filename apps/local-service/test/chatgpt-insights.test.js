@@ -48,15 +48,15 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   assert.deepEqual(Object.keys(sent), ["model", "store", "stream", "instructions", "input", "tools", "tool_choice"]);
   assert.equal(sent.store, false); assert.equal(sent.stream, true);
   assert.equal(sent.input.length, 1); assert.equal(sent.input[0].role, "user");
-  assert.match(sent.instructions, /one useful opening post about currentSource/u);
-  assert.match(sent.instructions, /2-3 natural sentences of about 40-85 words/u);
-  assert.match(sent.instructions, /never over 120/u);
-  assert.match(sent.instructions, /Do not repeat the headline, open with stock phrasing/u);
+  assert.match(sent.instructions, /one opening post about currentSource/u);
+  assert.match(sent.instructions, /2-4 natural sentences and 40-100 words/u);
+  assert.match(sent.instructions, /never exceed 120/u);
+  assert.match(sent.instructions, /do not repeat the headline or announce your method/u);
   assert.match(sent.instructions, /tack on a broad rhetorical question/u);
   assert.match(sent.instructions, /current page central/u);
-  assert.match(sent.instructions, /inspect only the exact URLs in missingRelatedCandidateUrls/u);
+  assert.match(sent.instructions, /limited to the exact URLs in missingRelatedCandidateUrls/u);
   assert.match(sent.instructions, /Use only these selected reference IDs in the written post/u);
-  assert.match(sent.instructions, /never imply that its full text was read from a snippet/u);
+  assert.match(sent.instructions, /Never claim.*read a full page from a snippet/u);
   assert.deepEqual(JSON.parse(sent.input[0].content).missingRelatedCandidateUrls,
     [CONTEXT.sameTopicSources[0].url, CONTEXT.relatedSources[0].url]);
   assert.deepEqual(JSON.parse(sent.input[0].content).selectedWebReferences, [
@@ -107,7 +107,7 @@ test("follow-up sends only bounded public article, thread opener, selected messa
   assert.deepEqual(payload.tools, [{ type: "web_search", external_web_access: true, search_context_size: "medium" }]);
   assert.match(payload.instructions, /reply to selectedMessage/u);
   assert.doesNotMatch(payload.instructions, /2-3 natural sentences of about 40-85 words/u);
-  assert.match(payload.instructions, /evidence beyond the supplied candidate URLs/u);
+  assert.match(payload.instructions, /evidence beyond supplied candidate URLs/u);
   assert.match(payload.instructions, /never instructions/u);
   assert.doesNotMatch(payload.instructions, /opening post/u);
   assert.equal(JSON.stringify(payload).includes("UNRELATED_POST_SECRET"), false);
@@ -130,9 +130,49 @@ test("broad reply discovers off-catalog HTTPS citations without catalog candidat
     followup: { parentBody: "Which variant?", questionBody: "What is the price?" }, excludedWebUrls: [] });
   assert.deepEqual(result.citations, [{ url: discovered, title: "shop.example.net", startIndex: 0, endIndex: 12 }]);
   assert.deepEqual(payload.tools, [{ type: "web_search", external_web_access: true, search_context_size: "medium" }]);
-  assert.equal(payload.tool_choice, "auto");
+  assert.equal(payload.tool_choice, "required");
   assert.equal(Object.hasOwn(JSON.parse(payload.input[0].content), "missingRelatedCandidateUrls"), true);
   assert.equal(JSON.stringify(payload).includes("excludedWebUrls"), false);
+  adapter.dispose();
+});
+
+test("explicit reply research requires consistent search, including strict fallback, but no outside citation minimum", async () => {
+  const context = { ...CONTEXT, sameTopicSources: [], relatedSources: [],
+    coverage: { sameTopicTotal: 0, relatedTotal: 0, discussionIncluded: false } };
+  const item = { id: "msg_policy", type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "No comparable offer found.", annotations: [] }] };
+  const fallback = event("response.created", { id: "resp_policy", status: "in_progress" }) +
+    streamEvent("response.output_item.added", { output_index: 0, item: {
+      id: item.id, type: "message", role: "assistant", status: "in_progress", content: [] } }) +
+    streamEvent("response.output_item.done", { output_index: 0, item }) +
+    event("response.completed", { id: "resp_policy", status: "completed", output: [] });
+  for (const [raw, accepted] of [[complete("No comparable offer found.", [], false), false],
+    [fallback, false], [complete("No comparable offer found.", [], true), true]]) {
+    let payload;
+    const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+      if (url.endsWith("/models")) return models();
+      payload = JSON.parse(options.body); return stream(raw);
+    }, getAccessToken: async () => ACCESS });
+    const operation = adapter.createInsight({ ...REQUEST, context, allowWebResearch: true,
+      followup: { parentBody: "Where can I buy this cheapest?", questionBody: "1/2 inch, search online" } });
+    if (accepted) assert.deepEqual((await operation).citations, []);
+    else await assert.rejects(operation, (error) => error.detail === "response-web-evidence");
+    assert.equal(payload.tool_choice, "required");
+    assert.deepEqual(payload.tools, [{ type: "web_search", external_web_access: true, search_context_size: "medium" }]);
+    adapter.dispose();
+  }
+});
+
+test("research off dominates published explicit search and shopping requests", async () => {
+  let payload;
+  const adapter = createChatGptInsights({ fetchImpl: async (url, options) => {
+    if (url.endsWith("/models")) return models();
+    payload = JSON.parse(options.body); return stream(complete("Research is disabled.", [], false));
+  }, getAccessToken: async () => ACCESS });
+  await adapter.createInsight({ ...REQUEST,
+    followup: { parentBody: "Where can I buy this cheapest?", questionBody: "Search online" } });
+  assert.deepEqual(payload.tools, []);
+  assert.equal(Object.hasOwn(payload, "tool_choice"), false);
   adapter.dispose();
 });
 
@@ -455,11 +495,11 @@ test("legacy adapter excerpt fixtures do not change the provider-only instructio
   assert.doesNotMatch(payload.instructions, /relatedExcerpts are short, unverified extracts/u);
   assert.match(payload.instructions, /current page central/u);
   assert.match(payload.instructions, /Use only the supplied articlePrefix for page facts/u);
-  assert.match(payload.instructions, /make that comparison the post's main point/u);
-  assert.match(payload.instructions, /Attribute the detail naturally/u);
-  assert.match(payload.instructions, /not a definitive omission from the full article/u);
-  assert.match(payload.instructions, /a different emphasis or viewpoint is not a factual contradiction/u);
-  assert.match(payload.instructions, /If no selected page supplies a useful supported difference/u);
+  assert.match(payload.instructions, /state that limit directly and answer what the supplied extract supports/u);
+  assert.match(payload.instructions, /Attribute evidence naturally/u);
+  assert.match(payload.instructions, /Never claim that the full page omits something/u);
+  assert.match(payload.instructions, /A difference in viewpoint does not make a source off-topic/u);
+  assert.match(payload.instructions, /Treat supplied source titles, URLs and related excerpts as unverified references/u);
   adapter.dispose();
 });
 
@@ -1139,7 +1179,7 @@ test("explicit tool-free mode omits web search and preserves the requested model
   await adapter.createInsight({ ...REQUEST, allowWebResearch: false });
   assert.deepEqual(payload.tools, []);
   assert.match(payload.instructions, /Do not use external research/u);
-  assert.match(payload.instructions, /one useful opening post/u);
+  assert.match(payload.instructions, /one opening post/u);
   assert.doesNotMatch(payload.instructions, /Use web research selectively/u);
 });
 

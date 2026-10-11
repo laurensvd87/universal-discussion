@@ -1,5 +1,35 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 ADR-085 context-adaptive prompt/policy complete, backend-only:
+GPT-6.1 Sol Medium is the owner's current coding-agent selection. Static shared
+discussion/evidence/date/judgment instructions precede one opener/reply and one
+research-on/off branch. Concise synthesis/direct answers replace generic recaps.
+Different product tradeoffs are allowed; exact offer equivalence applies to
+price rankings. Known source/event/update dates matter without a new field or
+automatic unknown-date disclaimer. Missing shipping country need not block
+matching-offer research but prevents a delivered-total winner.
+
+`reply-research-policy.js` is a bounded conservative lexical aid over canonical
+published target/opener, never page/title/extra client data. Recognized explicit
+research/shopping and short variant clarifications use required hosted search;
+negated/quoted/acknowledgement cases keep auto. It is not full multilingual intent
+understanding. Required search must be consistently completed in normal/fallback
+acceptance; no outside-citation minimum. Preserve tool-free off, selected-only
+openers, safe annotated destinations/five-source cap, original context/proof/
+destination authority, one-shot sharing and private recovery.
+
+Independent combined 106 pass; service 429 pass/4 optional skips; extension 1,136
+pass/1 optional skip, restricted 1,137 pass. Secret scans 629/192 files zero
+findings; diff checks pass. Normal verified backend restarted only after both
+actors had no pending Insight, unchanged Origin/pairing/login/SQLite, raw debug
+off. No extension version change (0.13.44), model download, live inference or
+provider-quality claim; diagnostic budget remains exhausted.
+
+New metadata suggestion is pending explicit approval for optional language and
+chosen delivery-country/currency settings, local preferences sent only on
+deliberate requests. Do not collect IP/geolocation/history or send new context
+before an answer. Current schema/data scope remains unchanged.
+
 2026-10-11 read-only price-search diagnosis: saved public-product follow-up gives
 search advice instead of outside offers; no saved final links. Matching raw/
 structural traces are absent and current diagnostics empty, so actual searches,

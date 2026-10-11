@@ -8,8 +8,9 @@ approved ADR-017's bounded synthetic-only local embedding experiment, now
 implemented/measured. Interactive model activation and expanded inputs stay gated.
 Do not repeat S3 or its approval, recreate roles or reopen completed reviews.
 
-Owner-selected execution: the lead stays on Astra and delegates bounded coding
-work to GPT-6 Sol with Medium reasoning. Use distinct file ownership for parallel
+Owner-selected execution (updated 2026-10-11): the lead handles orchestration and
+delegates bounded coding work to GPT-6.1 Sol, ordinarily with Medium reasoning.
+This supersedes the earlier GPT-6 Sol selection. Use distinct file ownership for parallel
 slices; the lead owns risk review, integration, status and commits. A return-to-
 Astra checkpoint is handled by the lead here, not a manual switch by the owner.
 

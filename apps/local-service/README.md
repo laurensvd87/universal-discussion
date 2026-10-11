@@ -1,5 +1,20 @@
 # Local service
 
+The [ADR-085](../../decisions/ADR-085-context-adaptive-discussion-prompts.md)
+backend-only prompt update adds concise, context-adaptive discussion replies,
+supported cross-source comparisons and explicit research handling. Prompt text
+is in [insight-prompts.js](src/ai/insight-prompts.js). A small bounded policy over
+the validated published opener/target requires hosted search for recognized
+explicit research/shopping requests; other replies keep auto. Required search
+must be consistently completed in normal or strict-fallback output; it need not
+find a citable outside source. Research off remains tool-free, and opening posts
+remain selected-exact-URL-only. Date rules use supplied/retrieved dates, not a new
+extraction field or capture time. Context bounds, safe annotated citations,
+five-source cap, one-shot sharing and private recovery stay unchanged.
+Restart the normal service after updating; no extension reload, model change,
+permission, pairing reset or SQLite migration is required. Prompt-contract tests
+do not establish live reply quality or verified prices.
+
 Extension **0.13.44** adds [ADR-084](../../decisions/ADR-084-inline-same-source-thread-routing.md):
 direct human and sparkle replies to earlier threads whose opener records the
 exact current Source. Each reply remains in its original canonical discussion;
