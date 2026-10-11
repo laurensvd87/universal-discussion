@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ChatGptInsightError, createChatGptInsights } from "../src/ai/chatgpt-insights.js";
+import { formatInsightCitations } from "../../../spikes/topic-resolution/browser/core/insight-citations.js";
 
 const ACCESS = "synthetic-oauth-token-for-tests";
 const source = (id, url = `https://example.com/${id}`) => ({ id, url, title: `Title ${id}` });
@@ -280,12 +281,16 @@ test("broad reply accepts an off-catalog citation through the strict finalized-i
       id: item.id, type: "message", role: "assistant", status: "in_progress", content: [] } }) +
     streamEvent("response.output_item.done", { output_index: 1, item }) +
     event("response.completed", { id: "resp_reply", status: "completed", output: [] });
+  const traces = [];
   const adapter = createChatGptInsights({ fetchImpl: async (url) =>
-    url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+    url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS,
+  onTrace: (trace) => traces.push(trace) });
   const result = await adapter.createInsight({ ...REQUEST, allowWebResearch: true,
     followup: { parentBody: "Published opener", questionBody: "Selected message" } });
   assert.deepEqual(result.citations, [{ url: discovered, title: "shop.example.net",
     startIndex: 0, endIndex: 6 }]);
+  assert.deepEqual(traces[0].urlAnnotationCounts,
+    { contentDone: 0, itemDone: 1, final: 0, acceptedCitations: 1 });
   adapter.dispose();
 });
 
@@ -687,6 +692,65 @@ test("provider Markdown links and raw URLs cannot enter a private draft", async 
       stream(complete(body, [citation])), getAccessToken: async () => ACCESS });
     await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true }), (error) =>
       error.code === "invalid-response" && error.detail === "response-unsafe-url");
+  }
+});
+
+test("native citation controls require an exact validated provider span in normal and fallback output", async () => {
+  const marker = "\uE200cite\uE202turn0search0\uE201";
+  const multiMarker = "\uE200cite\uE202turn0search0\uE202turn0search1\uE201";
+  const maxMarker = `\uE200cite\uE202${"a".repeat(200)}\uE201`;
+  const tooLongMarker = `\uE200cite\uE202${"a".repeat(201)}\uE201`;
+  const emptySegmentMarker = "\uE200cite\uE202turn0search0\uE202\uE201";
+  const url = CONTEXT.sameTopicSources[0].url;
+  const cases = [
+    { body: `Finding ${marker}`, span: null, accepted: false },
+    { body: `Finding ${marker}`, span: [8, 8 + marker.length], accepted: true },
+    { body: `Finding ${multiMarker}`, span: null, accepted: false },
+    { body: `Finding ${multiMarker}`, span: [8, 8 + multiMarker.length], accepted: true },
+    { body: `😀 Finding ${multiMarker}`, span: [10, 10 + multiMarker.length], accepted: true,
+      pointOffsets: true },
+    { body: `Finding ${maxMarker}`, span: [8, 8 + maxMarker.length], accepted: true },
+    { body: `Finding ${tooLongMarker}`, span: [8, 8 + tooLongMarker.length], accepted: false },
+    { body: `Finding ${emptySegmentMarker}`, span: [8, 8 + emptySegmentMarker.length], accepted: false },
+    { body: `Finding ${marker}`, span: [0, 8 + marker.length], accepted: false },
+    { body: "Finding \uE200cite", span: null, accepted: false },
+    { body: `Finding \uE200cite\uE202turn0search0`, span: [8, 8 + marker.length - 1], accepted: false },
+    { body: `\uE200cite\uE202uncited\uE201 Finding ${marker}`,
+      span: ["\uE200cite\uE202uncited\uE201 Finding ".length,
+        "\uE200cite\uE202uncited\uE201 Finding ".length + marker.length], accepted: false },
+    { body: `Finding ${marker}\uE201`, span: [8, 8 + marker.length], accepted: false },
+  ];
+  for (const fallback of [false, true]) for (const { body, span, accepted, pointOffsets } of cases) {
+    const annotations = span ? [{ type: "url_citation", url,
+      start_index: span[0], end_index: span[1] }] : [];
+    const item = { id: "msg_native", type: "message", role: "assistant", status: "completed",
+      content: [{ type: "output_text", text: body, annotations }] };
+    const raw = fallback ?
+      event("response.created", { id: "resp_native", status: "in_progress" }) +
+      streamEvent("response.output_item.added", { output_index: 0, item: {
+        id: "search_native", type: "web_search_call", status: "in_progress" } }) +
+      streamEvent("response.output_item.done", { output_index: 0, item: {
+        id: "search_native", type: "web_search_call", status: "completed" } }) +
+      streamEvent("response.output_item.added", { output_index: 1, item: {
+        id: item.id, type: "message", role: "assistant", status: "in_progress", content: [] } }) +
+      streamEvent("response.output_item.done", { output_index: 1, item }) +
+      event("response.completed", { id: "resp_native", status: "completed", output: [] }) :
+      complete(body, annotations, true);
+    const adapter = createChatGptInsights({ fetchImpl: async (endpoint) =>
+      endpoint.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS });
+    if (accepted) {
+      const result = await adapter.createInsight({ ...REQUEST, allowWebResearch: true });
+      assert.equal(result.citations.length, 1);
+      assert.equal(result.citations[0].url, url);
+      const formatted = formatInsightCitations(result.body, result.citations);
+      assert.ok(formatted.includes(`[↗](${url})`));
+      assert.equal(formatted.includes("\uE200"), false);
+      if (pointOffsets) assert.ok(formatted.startsWith("😀 Finding "));
+    } else {
+      await assert.rejects(adapter.createInsight({ ...REQUEST, allowWebResearch: true }),
+        (error) => error.detail === "response-web-citation", `${fallback ? "fallback" : "normal"}: ${body}`);
+    }
+    adapter.dispose();
   }
 });
 
@@ -1607,6 +1671,35 @@ test("research response trace identifies a missing finalized item without provid
       "response.web_search_call.searching", "other", "response.completed"]);
   assert.equal(JSON.stringify(traces).includes(secret), false);
   assert.equal(JSON.stringify(traces).includes(ACCESS), false);
+  adapter.dispose();
+});
+
+test("trace counts URL annotations by stream phase without importing intermediate citations", async () => {
+  const secret = "SECRET_CITATION_URL_AND_TEXT";
+  const item = { id: "msg_annotation_trace", type: "message", role: "assistant", status: "completed",
+    content: [{ type: "output_text", text: "Offer.", annotations: [] }] };
+  const raw = event("response.created", { id: "resp_annotation_trace", status: "in_progress" }) +
+    streamEvent("response.output_item.added", { output_index: 0, item: {
+      id: "search_annotation_trace", type: "web_search_call", status: "in_progress" } }) +
+    streamEvent("response.output_item.done", { output_index: 0, item: {
+      id: "search_annotation_trace", type: "web_search_call", status: "completed" } }) +
+    streamEvent("response.output_item.added", { output_index: 1, item: {
+      id: item.id, type: "message", role: "assistant", status: "in_progress", content: [] } }) +
+    streamEvent("response.content_part.done", { item_id: item.id, output_index: 1, content_index: 0,
+      part: { type: "output_text", text: "Offer.", annotations: [{ type: "url_citation",
+        url: `https://example.org/${secret}`, title: secret, start_index: 0, end_index: 6 }] } }) +
+    streamEvent("response.output_item.done", { output_index: 1, item }) +
+    event("response.completed", { id: "resp_annotation_trace", status: "completed", output: [] });
+  const traces = [];
+  const adapter = createChatGptInsights({ fetchImpl: async (url) =>
+    url.endsWith("/models") ? models() : stream(raw), getAccessToken: async () => ACCESS,
+  onTrace: (trace) => traces.push(trace) });
+  await adapter.listModels();
+  const result = await adapter.createInsight(REQUEST);
+  assert.deepEqual(result.citations, []);
+  assert.deepEqual(traces[0].urlAnnotationCounts,
+    { contentDone: 1, itemDone: 0, final: 0, acceptedCitations: 0 });
+  assert.equal(JSON.stringify(traces).includes(secret), false);
   adapter.dispose();
 });
 

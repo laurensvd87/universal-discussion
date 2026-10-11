@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.38)
+## Persistent discussion sidebar (0.13.39)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -18,6 +18,9 @@ bottom new-thread composer. Replies keep the editor at the target, with a bottom
 shortcut to return to a new thread. A confirmed new post expands its ancestor
 branches, scrolls into view and receives focus once; later polling preserves
 typing and the reader's later collapse choices. Reduced motion applies.
+The same selected view stays stable while the delayed topic-grouped projection
+loads; its arrival and a same-page refresh no longer fold the newly revealed
+reply. See [ADR-081](../../../decisions/ADR-081-live-citation-format-and-refresh-reveal.md).
 New **Insight**/sparkle clicks authorize generation and one immediate local post;
 opening the panel never generates or publishes an Insight by itself. Human Post
 and sharing old/recovered private results remain separate deliberate actions.

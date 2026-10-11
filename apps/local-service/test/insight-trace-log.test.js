@@ -19,7 +19,8 @@ function trace() {
     observedItems: [{ phase: "done", index: 0, type: "message", status: "completed" }],
     finalOutput: [], finalOutputCount: 0, candidateCount: 1, candidateIndex: 0,
     textDoneCount: 0, contentDoneCount: 0, fallbackFailure: "response-item-prefix", fallbackBranch: "length",
-    citationFailure: null };
+    citationFailure: null, urlAnnotationCounts: { contentDone: 0, itemDone: 0, final: 0,
+      acceptedCitations: 0 } };
 }
 function withTemp(run) {
   const tempDirectory = mkdtempSync(path.join(tmpdir(), "insight-log-test-"));
@@ -61,6 +62,8 @@ test("rejects unknown fields and free strings before writing", () => withTemp((t
     { ...trace(), events: { ...trace().events, sequence: [secret] } },
     { ...trace(), observedItems: [{ ...trace().observedItems[0], id: secret }] },
     { ...trace(), observedItems: [{ ...trace().observedItems[0], type: secret }] },
+    { ...trace(), urlAnnotationCounts: { ...trace().urlAnnotationCounts, url: secret } },
+    { ...trace(), urlAnnotationCounts: { ...trace().urlAnnotationCounts, final: secret } },
   ]) assert.equal(log.write(changed), false);
   assert.equal(readFileSync(log.filePath, "utf8"), "");
 }));

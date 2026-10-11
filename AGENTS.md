@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current follow-up (2026-10-10, ADR-081): 0.13.38's ready-cue visual fixture missed
+the later alternate-view transition that refolded a just-posted reply. Selected
+mode/Source/Topic now owns expansion through delayed projection and same-context
+refresh; preserve one-time focus and later manual collapse. Broad replies get
+explicit native citation syntax, with no marker/URL authority relaxation; loose
+native controls are rejected. Annotation trace counts are numeric/content-free.
+One fresh public-product diagnostic returns two accepted citations through strict
+fallback; no answer is posted/archived or price truth claimed. Both ADR-079 agent
+diagnostic calls are used: do not automatically run another inference under that
+approval. Read top STATUS/HANDOFF for final evidence; keep old uncited posts intact.
+
 Current presentation refinement (2026-10-10, ADR-080): the owner requests a
 compact bottom root-composer dock with scrolling threads/related discussions
 above, inline replies and one-time reveal/focus of confirmed created posts.

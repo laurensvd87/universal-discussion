@@ -3,6 +3,10 @@ import test from "node:test";
 import { mountDiscussionPanel } from "../browser/chromium/discussion-panel.js";
 import { EN } from "../browser/locales/en.js";
 import { readFileSync } from "node:fs";
+import { createLocalDiscussionController } from "../browser/core/local-discussion-controller.js";
+import { createMemoryDemoService } from "../../../apps/local-service/src/application/create-demo-service.js";
+import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indicator-fixtures.js";
+import { RIDGE_POLICY, RIDGE_REPRESENTATION } from "../browser/core/topic-view-mode.js";
 
 function harness(messages, workspace, insightsTab, settingsButton, accountDetails, controllerOverrides = {}) {
   const created = [];
@@ -1357,6 +1361,145 @@ test("accepted nested human and generated posts reveal once without polling stea
     assert.equal(toggle(parent.id).attributes["aria-expanded"], "false");
     assert.equal(post.scrollCalls?.length, 1);
   }
+});
+
+test("confirmed generated reply remains unfolded when alternate view follows canonical refresh", () => {
+  const ui = harness();
+  const parent = { id: "reply-parent", rootId: "root-created", replyToId: "root-created",
+    state: "visible", actorType: "human", authorId: "demo-alex", body: "Parent" };
+  const root = { id: "root-created", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Opener", canonicalTopicId: "topic-demo", canonicalDiscussionId: "discussion-demo",
+    replies: [parent] };
+  const base = state({ sourceId: "source-demo", topicViewMode: "experimental",
+    discussion: { discussionId: "discussion-demo", roots: [root] },
+    alternateDiscussion: { sourceId: "source-demo", sourceIds: ["source-demo"], roots: [root], pinnedRoots: [] } });
+  ui.panel.render(base);
+  const child = { id: "generated-created", rootId: root.id, replyToId: parent.id,
+    state: "visible", actorType: "agent", authorId: "demo-alex", body: "New answer",
+    insight: { kind: "generated", operatorId: "demo-alex" } };
+  const createdRoot = { ...root, replies: [parent, child] };
+  const refreshed = { ...base, discussion: { ...base.discussion, roots: [createdRoot] },
+    alternateDiscussion: null, createdPost: { id: child.id, topicId: base.topicId,
+      sourceId: base.sourceId, actorId: base.actorId, discussionId: base.discussion.discussionId } };
+  ui.panel.render({ ...refreshed, busy: true });
+  ui.panel.render({ ...refreshed, busy: false });
+  ui.panel.render({ ...refreshed, alternateDiscussion: { ...base.alternateDiscussion,
+    roots: [createdRoot] } });
+  const toggle = (id) => descendants(ui.root).find((item) =>
+    item.attributes["data-action"] === "expand" && item.attributes["data-contribution-id"] === id);
+  assert.equal(toggle(root.id).attributes["aria-expanded"], "true");
+  assert.equal(toggle(parent.id).attributes["aria-expanded"], "true");
+});
+
+test("context invalidation clears reveal expansion even if the next page resolves to the same Topic", () => {
+  const ui = harness();
+  const root = { id: "root-context", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Opener", replies: [{ id: "reply-context", rootId: "root-context", replyToId: "root-context",
+      state: "visible", actorType: "agent", authorId: "demo-alex", body: "Answer",
+      insight: { kind: "generated", operatorId: "demo-alex" } }] };
+  const base = state({ sourceId: "source-demo", topicViewMode: "experimental",
+    discussion: { discussionId: "discussion-context", roots: [root] } });
+  ui.panel.render({ ...base, createdPost: { id: "reply-context", topicId: base.topicId,
+    sourceId: base.sourceId, actorId: base.actorId, discussionId: base.discussion.discussionId } });
+  const branch = () => descendants(ui.root).find((item) =>
+    item.attributes["data-action"] === "expand" && item.attributes["data-contribution-id"] === root.id);
+  assert.equal(branch().attributes["aria-expanded"], "true");
+  ui.panel.render({ ...base, phase: "choose-topic", error: "context-changed",
+    sourceId: null, topicId: null, discussion: null, createdPost: null });
+  ui.panel.render({ ...base, createdPost: null });
+  assert.equal(branch().attributes["aria-expanded"], "false");
+});
+
+test("a different actor or Source in the same legacy Topic cannot inherit a revealed post's feed anchor", () => {
+  for (const change of [{ actorId: "demo-blair" }, { sourceId: "source-other" }]) {
+    const ui = harness();
+    const feed = ui.byId("discussion-feed");
+    const root = { id: "root-fenced", state: "visible", actorType: "human", authorId: "demo-alex",
+      body: "Opener", replies: [{ id: "reply-fenced", rootId: "root-fenced", replyToId: "root-fenced",
+        state: "visible", actorType: "agent", authorId: "demo-alex", body: "Answer",
+        insight: { kind: "generated", operatorId: "demo-alex" } }] };
+    const base = state({ sourceId: "source-demo", topicViewMode: "classic",
+      discussion: { discussionId: "discussion-fenced", roots: [root] } });
+    ui.panel.render({ ...base, createdPost: { id: "reply-fenced", actorId: base.actorId,
+      sourceId: base.sourceId, topicId: base.topicId, discussionId: base.discussion.discussionId } });
+    feed.scrollTop = 61;
+    ui.panel.render({ ...base, ...change, phase: "loading", discussion: null, createdPost: null });
+    feed.scrollTop = 0;
+    ui.panel.render({ ...base, ...change, createdPost: null });
+    assert.equal(feed.scrollTop, 0, `${JSON.stringify(change)} must not restore a previous context's scroll position`);
+  }
+});
+
+test("accepted command, canonical read, and delayed alternate projection keep the exact AI reply open", async () => {
+  const ui = harness();
+  let serial = 0, delayAlternate = false, releaseAlternate;
+  const service = createMemoryDemoService({ nextId: (kind) => `${kind}-${++serial}`,
+    now: () => "2026-10-10T12:00:00.000Z" });
+  const client = {
+    health: async () => ({}),
+    catalog: async () => { const catalog = structuredClone(service.catalog());
+      catalog.sources.find((entry) => entry.id === "reserved-example-com").provenance = "owner-local-page-embedding/v1";
+      return catalog; },
+    discussion: async (id) => service.discussion(id),
+    related: async (id, limit) => service.related(id, limit),
+    priorDiscussions: async (id) => service.priorDiscussions(id),
+    command: async (expected, command, actor) => service.command(expected, command, actor,
+      ["share-insight", "share-insight-reply"].includes(command.type) ? {
+        kind: "generated-insight", operationId: command.operationId, actorId: actor,
+        topicId: command.topicId, originSourceId: command.originSourceId, body: command.body,
+        rootId: command.rootId ?? null, replyToId: command.replyToId ?? null,
+        discussionId: command.discussionId ?? null,
+      } : null),
+    alternateDiscussion: async (sourceId, _catalog, discussion) => {
+      if (delayAlternate) await new Promise((resolve) => { releaseAlternate = resolve; });
+      return { policyVersion: RIDGE_POLICY, representation: RIDGE_REPRESENTATION,
+        sourceId, sourceIds: [sourceId], pinnedRoots: [],
+        roots: discussion.roots.map((entry) => ({ ...entry,
+          canonicalTopicId: discussion.topic.id, canonicalDiscussionId: discussion.discussionId })) };
+    },
+  };
+  const controller = createLocalDiscussionController({ client,
+    session: { isPaired: async () => true },
+    readActiveTab: async () => ({ tabId: 7, url: "https://example.com/" }),
+    observeTabLifecycle: () => () => {},
+    lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
+    onStateChange: (snapshot) => ui.panel.render(snapshot),
+  });
+  ui.panel.bind(controller);
+  await controller.open();
+  assert.equal(controller.currentState().phase, "ready", JSON.stringify(controller.currentState()));
+  controller.setDraft("Opener"); assert.equal(await controller.submitDraft(), true);
+  let snapshot = controller.currentState();
+  const root = snapshot.discussion.roots.find((entry) => entry.body === "Opener");
+  assert.equal(controller.begin("reply", root.id), true);
+  controller.setDraft("Parent"); assert.equal(await controller.submitDraft(), true);
+  snapshot = controller.currentState();
+  const parent = snapshot.discussion.roots.find((entry) => entry.id === root.id).replies[0];
+  delayAlternate = true;
+  assert.equal(await controller.shareInsight({ topicId: snapshot.topicId, sourceId: snapshot.sourceId,
+    actorId: snapshot.actorId, discussionId: snapshot.discussion.discussionId,
+    rootId: root.id, replyToId: parent.id, expected: snapshot.discussion.version,
+    body: "Generated answer", operationId: "synthetic-accepted-reply" }), true);
+  const created = controller.currentState().createdPost;
+  assert.ok(created?.id);
+  const toggle = (id) => descendants(ui.root).find((item) =>
+    item.attributes["data-action"] === "expand" && item.attributes["data-contribution-id"] === id);
+  assert.equal(toggle(root.id).attributes["aria-expanded"], "true");
+  assert.equal(toggle(parent.id).attributes["aria-expanded"], "true");
+  delayAlternate = false;
+  releaseAlternate();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(toggle(root.id).attributes["aria-expanded"], "true");
+  assert.equal(toggle(parent.id).attributes["aria-expanded"], "true");
+  const post = descendants(ui.root).find((item) => item.attributes["data-post-id"] === created.id);
+  assert.ok(post);
+  await controller.open();
+  assert.equal(toggle(root.id).attributes["aria-expanded"], "true");
+  assert.equal(toggle(parent.id).attributes["aria-expanded"], "true");
+  toggle(parent.id).listeners.get("click")();
+  assert.equal(toggle(parent.id).attributes["aria-expanded"], "false");
+  await controller.open();
+  assert.equal(toggle(parent.id).attributes["aria-expanded"], "false");
 });
 
 test("created-post cue rejects changed account and withdrawn targets", () => {

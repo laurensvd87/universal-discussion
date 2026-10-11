@@ -2,6 +2,14 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current follow-up (2026-10-10, ADR-081): preserve expansion across delayed
+alternate-view projection and same-page refresh using selected mode/Source/Topic.
+Broad replies get native citation syntax; unannotated native controls remain
+rejected, not source authority. Trace adds bounded numeric counts only. One
+fresh public-product diagnostic yields two accepted links, not price truth.
+ADR-079's two agent diagnostic calls are exhausted; no automatic further call.
+Read top STATUS/HANDOFF. No historical URL backfill or new provider scope.
+
 Current presentation refinement (2026-10-10, ADR-080): compact bottom root
 composer, scrolling threads/related feed, inline replies and confirmed-post
 one-time reveal. Created-post cues remain RAM presentation only; actor/Source/

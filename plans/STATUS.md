@@ -1,5 +1,57 @@
 # Project status
 
+**2026-10-11 live citation syntax and refresh-stable reply reveal, complete (0.13.39):**
+The owner's next price reply still has no saved links and does not remain open.
+[ADR-081](../decisions/ADR-081-live-citation-format-and-refresh-reveal.md)
+records the corrected diagnosis. The 0.13.38 fixture injected an already-ready
+cue and missed the actual accepted-command/canonical-read/delayed-projection
+sequence. The late alternate view cleared expansion after consuming the cue.
+
+Selected mode/Source/Topic now owns branch expansion independently of projection
+availability. Same-context refresh preserves a visible created post's viewport
+anchor through the temporary empty DOM; actor/Source/Topic/discussion changes
+invalidate that anchor. Reveal/focus remains one-time RAM presentation, later
+manual collapse and typing are preserved, and canonical write authority is
+unchanged. Disposable actual Chrome tests use the real discussion controller
+with a synthetic command adapter: an accepted nested generated reply stays open
+and visible after canonical read, alternate arrival and another open/refresh.
+This is companion-surface QA, not new native-panel authentication evidence.
+
+Broad reply instructions now specify native web-search citation syntax using
+actual tool reference IDs. Safe provider URL annotations remain required; raw
+URLs, source lists and intermediate annotation events gain no authority. Loose
+native controls fail earlier; exact annotated tokens, including multi-source
+markers and Unicode offsets, retain renderer compatibility. Content-free traces
+add bounded annotation counts at content/item/final completion and accepted-link
+counts. The old post cannot be backfilled: its raw provider annotations are
+unavailable and a merchant name is not an authoritative destination.
+
+One fresh fixed public-product diagnostic with synthetic question/extract uses
+the cheapest listed **gpt-6-luna**, exactly **one Responses call**, and returns
+**two accepted citations** through the existing strict completed-stream fallback.
+Content/item completion each carries two URL annotations; terminal output is
+empty. No stored comment, cookies, related candidates, local page fetch, answer
+archive or post is involved. This confirms this transport path, not every claim,
+price accuracy or an exact replay of the owner's page. Both ADR-079 agent
+diagnostic calls are now used; another agent inference needs a new approval.
+Ordinary deliberate owner application clicks remain one-shot and authorized.
+
+Sol Medium implementation and independent Trust review pass. Focused panel/
+controller **197 pass**; Trust independently checks panel/renderer **84 pass**
+and service/prompt/diagnostic **89 pass**. Final full service **397 pass/4 optional
+skips**; extension **1,111 pass/1 optional skip**; restricted extension **1,112
+pass**. Chrome integrated reveal, compact dock, citation/keyboard/narrow layout,
+zoom and reduced-motion checks pass. Root reviews the final compact 390x600 dock
+screenshot; optional end-of-flow capture timed out, but browser assertions pass.
+Secret scans (service **625**, extension **189** files) and diff checks pass.
+
+The normal verified service is restarted after confirming no active provider
+connection, loading the final checked code with the same Origin, durable pairing,
+protected login and SQLite; raw debug stays off. Expected unauthenticated catalog
+**401** verifies availability only. Reload the extension to **0.13.39**. No new
+permission, retention, model, migration, catalog ingestion, automatic retry,
+duplicate sharing, remote deployment or store/publication clearance follows.
+
 **2026-10-10 bottom composer, post reveal and listing citations, complete (0.13.38):**
 The owner requests a compact new-thread composer always below the scrolling
 threads/related discussions, and unfolding/focus of newly posted human or

@@ -503,6 +503,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
   let observedDiscussion = false;
   const expandedBranches = new Set();
   let focusedCreatedPost = null;
+  let lastRevealedPostId = null;
+  let lastRevealedContext = null;
+  let pendingFeedPosition = null;
   let confirmationContext;
   let connectionPosition = "before";
   function postSlot(parent, id) {
@@ -512,6 +515,21 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       if (nested) return nested;
     }
     return null;
+  }
+  function readyPresentationContext(value) {
+    if (value?.phase !== "ready" || !value.discussion) return null;
+    return { actorId: value.actorId, sourceId: value.sourceId, topicId: value.topicId,
+      discussionId: value.discussion.discussionId };
+  }
+  function samePresentationContext(left, right) {
+    return Boolean(left && right && left.actorId === right.actorId &&
+      left.sourceId === right.sourceId && left.topicId === right.topicId &&
+      left.discussionId === right.discussionId);
+  }
+  function knownPresentationContextMatches(expected, value) {
+    return Boolean(expected && ["actorId", "sourceId", "topicId"].every((key) =>
+      value[key] == null || value[key] === expected[key]) &&
+      (!value.discussion || value.discussion.discussionId === expected.discussionId));
   }
   function insightTarget(targetId, discussionState = lastState) {
     if (!discussionState?.sourceId || !discussionState.discussion ||
@@ -577,6 +595,45 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     insightHost ??= document.querySelector?.("#app-discussion-insights-host");
     const previousState = lastState;
     lastState = state;
+    const readyContext = readyPresentationContext(state);
+    if (state.error === "context-changed" || ["disconnected", "error"].includes(state.phase)) {
+      pendingFeedPosition = null;
+      lastRevealedPostId = null;
+      lastRevealedContext = null;
+      focusedCreatedPost = null;
+      observedViewKey = undefined;
+      observedContributionIds = new Set();
+      observedDiscussion = false;
+      expandedBranches.clear();
+    }
+    if (readyContext && lastRevealedContext &&
+        !samePresentationContext(readyContext, lastRevealedContext)) {
+      lastRevealedPostId = null;
+      lastRevealedContext = null;
+      focusedCreatedPost = null;
+    }
+    if (pendingFeedPosition && !knownPresentationContextMatches(pendingFeedPosition, state))
+      pendingFeedPosition = null;
+    const previousContext = readyPresentationContext(previousState);
+    const sameReadyView = samePresentationContext(readyContext, previousContext);
+    const refreshStarting = !state.discussion && !state.error &&
+      ["connecting", "loading"].includes(state.phase) &&
+      knownPresentationContextMatches(previousContext, state);
+    const oldReveal = lastRevealedPostId && previousState?.phase === "ready" &&
+      samePresentationContext(lastRevealedContext, previousContext) && (sameReadyView || refreshStarting)
+      ? postSlot(thread, lastRevealedPostId)?.card : null;
+    const oldRevealBounds = oldReveal && !oldReveal.closest?.("[inert]")
+      ? oldReveal.getBoundingClientRect?.() : null;
+    const oldFeedBounds = oldRevealBounds && feed.getBoundingClientRect?.();
+    const revealWasVisible = Boolean(oldFeedBounds && oldRevealBounds.top >= oldFeedBounds.top - 1 &&
+      oldRevealBounds.bottom <= oldFeedBounds.bottom + 1);
+    if (previousContext && refreshStarting) {
+      // A read-only refresh temporarily empties the thread DOM. Remember its
+      // feed position until the same canonical discussion is visible again.
+      pendingFeedPosition = { ...previousContext, viewKey: observedViewKey, top: feed.scrollTop,
+        anchorId: revealWasVisible ? lastRevealedPostId : null,
+        anchorBottom: revealWasVisible ? oldRevealBounds.bottom - oldFeedBounds.bottom : null };
+    }
     const shellView = projectDiscussionShell(state, messages);
     connectionSummary.textContent = text(shellView.connection === "connected" ? "uiConnectionReady" : "uiConnectionSetup");
     connectionSettings.setAttribute("data-connection", shellView.connection);
@@ -777,12 +834,19 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
     thread.hidden = uiMode === "user" && !state.discussion;
     // A discussion snapshot establishes the baseline for this Topic. Only a genuinely
     // new ID arriving later in that same Topic receives the entrance animation.
-    const viewKey = alternateView ? `experimental:${state.sourceId}:${state.topicId}` : `classic:${state.topicId}`;
-    if (observedViewKey !== viewKey) {
+    // An experimental view briefly falls back to the canonical discussion
+    // while its fresh projection loads. A same-context open also passes through
+    // an empty loading state. Neither is a new selected view: clearing expansion
+    // would fold a just-revealed reply after its one-time focus cue was consumed.
+    const viewKey = state.topicViewMode === "experimental"
+      ? `experimental:${state.sourceId}:${state.topicId}` : `classic:${state.topicId}`;
+    if (state.phase === "ready" && state.discussion && observedViewKey !== viewKey) {
       observedViewKey = viewKey;
       observedContributionIds = new Set();
       observedDiscussion = false;
       expandedBranches.clear();
+      lastRevealedPostId = null;
+      lastRevealedContext = null;
     }
     const arrivals = new Set();
     if (state.discussion) {
@@ -927,6 +991,19 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       if (state.discussion && !cards.length) cards.push(node("p", uiMode === "user" ? "uiDiscussionEmpty" : "discussionEmpty"));
       thread.replaceChildren(...cards); renderedDiscussion = signature; renderedActor = state.actorId; renderedBusy = state.busy;
       renderedFreshRead = state.needsFreshRead; renderedUiMode = uiMode;
+      if (state.phase === "ready" && state.discussion && pendingFeedPosition) {
+        if (pendingFeedPosition.viewKey === viewKey &&
+            samePresentationContext(pendingFeedPosition, readyContext)) {
+          feed.scrollTop = pendingFeedPosition.top;
+          const anchor = pendingFeedPosition.anchorId && postSlot(thread, pendingFeedPosition.anchorId)?.card;
+          if (anchor && !anchor.closest?.("[inert]")) {
+            const bounds = anchor.getBoundingClientRect?.(), feedBounds = feed.getBoundingClientRect?.();
+            if (bounds && feedBounds && feed.clientHeight > 0)
+              feed.scrollTop += bounds.bottom - feedBounds.bottom - pendingFeedPosition.anchorBottom;
+          }
+        }
+        pendingFeedPosition = null;
+      }
       if (focusKey || focusRootId) {
         const descendants = [...(thread.querySelectorAll?.("[data-action], [data-post-id], [data-thread-root-id]") ?? [])];
         const replacement = descendants.find((item) => item.getAttribute("data-contribution-id") === focusKey &&
@@ -955,11 +1032,27 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       }
     }
     placeComposer(inlineTarget);
+    if (changedThread && revealWasVisible && lastRevealedPostId && !createdPost) {
+      const slot = postSlot(thread, lastRevealedPostId);
+      if (slot && !slot.card.closest?.("[inert]")) {
+        const feedBounds = feed.getBoundingClientRect?.();
+        const cardBounds = slot.card.getBoundingClientRect?.();
+        if (feedBounds && cardBounds && feed.clientHeight > 0) {
+          const gap = 12;
+          const delta = cardBounds.bottom > feedBounds.bottom - gap
+            ? cardBounds.bottom - feedBounds.bottom + gap
+            : cardBounds.top < feedBounds.top + gap ? cardBounds.top - feedBounds.top - gap : 0;
+          if (delta) feed.scrollTop += delta;
+        }
+      }
+    }
     if (createdPost) {
       if (focusedCreatedPost !== createdKey) {
         const slot = postSlot(thread, createdPost.id);
         if (slot && !slot.card.closest?.("[inert]")) {
           focusedCreatedPost = createdKey;
+          lastRevealedPostId = createdPost.id;
+          lastRevealedContext = readyContext;
           const feedBounds = feed.getBoundingClientRect?.();
           const cardBounds = slot.card.getBoundingClientRect?.();
           if (feedBounds && cardBounds && feed.clientHeight > 0) {

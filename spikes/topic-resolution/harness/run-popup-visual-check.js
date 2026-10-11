@@ -755,6 +755,86 @@ try {
       return document.activeElement===card && root.getAttribute('aria-expanded')==='true' &&
         parent.getAttribute('aria-expanded')==='true' && a.top>=b.top-1 && a.bottom<=b.bottom+1;
     })()`, sessionId), true, "new human nested post opens collapsed ancestors and becomes visible and focused");
+    const controllerReveal = await evaluate(`(async () => {
+      const {mountDiscussionPanel}=await import('./discussion-panel.js');
+      const {createLocalDiscussionController}=await import('../core/local-discussion-controller.js');
+      const {lookupIndicatorFixtureByNormalizedUrl}=await import('../fixtures/indicator-fixtures.js');
+      const {RIDGE_POLICY,RIDGE_REPRESENTATION}=await import('../core/topic-view-mode.js');
+      const host=document.querySelector('#local-discussion');host.replaceChildren();
+      const panel=mountDiscussionPanel(document,host);
+      const topicId='reserved-domain-demo',sourceId='reserved-example-com',discussionId='discussion-synthetic-reveal';
+      let revision=1,holdAlternate=false,releaseAlternate;
+      const roots=[{id:'root-browser-reveal',rootId:null,state:'visible',authorId:'demo-alex',actorType:'human',
+        body:'Synthetic public question',replies:[{id:'parent-browser-reveal',rootId:'root-browser-reveal',
+          replyToId:'root-browser-reveal',state:'visible',authorId:'demo-alex',actorType:'human',body:'Parent reply'}]}];
+      const version=()=>({generation:'synthetic-browser-reveal',revision});
+      const catalog=()=>({version:version(),model:{status:'fixture-only'},
+        actors:[{id:'demo-alex',type:'human',displayName:'Alex'}],
+        topics:[{id:topicId,title:'Synthetic page discussion',kind:'general'}],
+        sources:[{id:sourceId,topicId,title:'Synthetic public article',url:'https://example.com/',
+          provenance:'owner-local-page-embedding/v1'}]});
+      const discussion=()=>({version:version(),discussionId,topic:{id:topicId,title:'Synthetic page discussion',kind:'general'},
+        roots:structuredClone(roots)});
+      const client={health:async()=>({}),catalog:async()=>catalog(),discussion:async()=>discussion(),
+        related:async()=>({version:version(),results:[]}),
+        priorDiscussions:async()=>({version:version(),sourceId,currentTopicId:topicId,topics:[]}),
+        command:async(expected,command,actor)=>{
+          if(expected.revision!==revision || actor!=='demo-alex' || command.type!=='share-insight-reply' ||
+            command.rootId!==roots[0].id || command.replyToId!==roots[0].replies[0].id)
+            throw Error('Invalid synthetic accepted command');
+          roots[0].replies.push({id:'accepted-browser-reply',rootId:roots[0].id,replyToId:command.replyToId,
+            state:'visible',authorId:actor,actorType:'agent',body:command.body,
+            insight:{kind:'generated',operatorId:actor}});
+          revision++;
+          return {version:version(),result:{contributionId:'accepted-browser-reply'}};
+        },
+        alternateDiscussion:async(id,_catalog,canonical)=>{
+          if(holdAlternate)await new Promise(resolve=>{releaseAlternate=resolve});
+          return {policyVersion:RIDGE_POLICY,representation:RIDGE_REPRESENTATION,sourceId:id,
+            sourceIds:[id],pinnedRoots:[],roots:canonical.roots.map(root=>({...root,
+              canonicalTopicId:topicId,canonicalDiscussionId:discussionId}))};
+        }};
+      const controller=createLocalDiscussionController({client,session:{isPaired:async()=>true},
+        readActiveTab:async()=>({tabId:7,url:'https://example.com/'}),observeTabLifecycle:()=>()=>{},
+        lookupByNormalizedUrl:lookupIndicatorFixtureByNormalizedUrl,
+        onStateChange:state=>panel.render(state)});
+      panel.bind(controller);await controller.open();
+      const before=controller.currentState();
+      if(before.phase!=='ready')throw Error('Synthetic controller did not resolve Source');
+      holdAlternate=true;
+      const shared=await controller.shareInsight({topicId,sourceId,actorId:before.actorId,discussionId,
+        rootId:roots[0].id,replyToId:roots[0].replies[0].id,expected:before.discussion.version,
+        body:'Accepted generated answer',operationId:'synthetic-browser-op'});
+      if(!shared)throw Error('Synthetic accepted reply did not share');
+      const inspect=()=>{
+        const card=document.querySelector('[data-post-id=accepted-browser-reply]'),
+          root=document.querySelector('[data-action=expand][data-contribution-id=root-browser-reveal]'),
+          parent=document.querySelector('[data-action=expand][data-contribution-id=parent-browser-reveal]'),
+          feed=document.querySelector('#discussion-feed');
+        if(!card||!root||!parent)return {present:false};
+        const a=card.getBoundingClientRect(),b=feed.getBoundingClientRect();
+        return {present:true,rootOpen:root.getAttribute('aria-expanded')==='true',
+          parentOpen:parent.getAttribute('aria-expanded')==='true',
+          visible:a.top>=b.top-1&&a.bottom<=b.bottom+1,focused:document.activeElement===card,
+          scrollTop:feed.scrollTop,scrollHeight:feed.scrollHeight,clientHeight:feed.clientHeight,
+          phase:controller.currentState().phase,alternate:!!controller.currentState().alternateDiscussion,
+          cardTop:a.top,cardBottom:a.bottom,feedTop:b.top,feedBottom:b.bottom};
+      };
+      const canonical=inspect();
+      holdAlternate=false;releaseAlternate();
+      await new Promise(resolve=>setTimeout(resolve,0));
+      const alternate=inspect();
+      await controller.open();
+      const refreshed=inspect();
+      controller.dispose();
+      return {canonical,alternate,refreshed};
+    })()`, sessionId);
+    for (const [phase, result] of Object.entries(controllerReveal)) {
+      assert.ok(result.present && result.rootOpen && result.parentOpen && result.visible,
+        `${phase}: accepted generated reply stays visible across canonical/alternate/poll phases: ${JSON.stringify(controllerReveal)}`);
+    }
+    assert.equal(controllerReveal.canonical.focused, true,
+      `accepted generated reply receives one-time focus: ${JSON.stringify(controllerReveal)}`);
   } else {
   // Remount only the discussion renderer with invented state for visual review.
   // Controller callbacks are inert: this fixture cannot post or call a provider.

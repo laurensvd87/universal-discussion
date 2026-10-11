@@ -1,5 +1,18 @@
 # Local service
 
+Extension 0.13.39 clarifies native inline web-search citation syntax for broad
+replies. Unresolved/malformed native controls are rejected unless an exact
+renderer-supported token has its own valid provider citation span; no tool-source
+list or model-written URL gains authority. The structural trace now includes
+bounded annotation/accepted-citation counts, never URL/body/account details.
+One fresh fixed public-product diagnostic completes with gpt-6-luna, one Responses
+call and two accepted links through the existing strict fallback. It uses
+synthetic context, not stored comments or a replay of the owner browser extract;
+no answer is posted/archived and price accuracy is not claimed. ADR-079's two
+agent diagnostic calls are exhausted; do not run the explicit-only listing
+harness again without a new owner approval. Normal app requests remain one-shot.
+See [ADR-081](../../decisions/ADR-081-live-citation-format-and-refresh-reveal.md).
+
 Extension 0.13.38 adds an actionable-listing prompt requirement to broad replies:
 each researched retailer/product/price/shipping claim needs an adjacent exact
 listing citation, even when delivered total is unknown. Without such a citation,

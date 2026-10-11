@@ -17,6 +17,8 @@ const MAX_RELATED_EXCERPTS = 4;
 const MAX_RELATED_EXCERPT_TEXT = 2_048;
 const MAX_RELATED_EXCERPT_TOTAL = 8_192;
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
+const NATIVE_CITATION_CONTROL = /[\uE200-\uE20F]/gu;
+const NATIVE_CITATION_MARKER = /^\uE200cite\uE202([^\uE200-\uE20F]+(?:\uE202[^\uE200-\uE20F]+)*)\uE201$/u;
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
 const STREAM_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u;
@@ -242,6 +244,31 @@ function safeCitation(value, body, offset, allowedWebUrls, context, broadReply, 
   return { url, title, startIndex: offset + startIndex, endIndex: offset + endIndex };
 }
 function validateOutputLinks(body, webCitations) {
+  // The renderer can replace only a complete native token occupying its exact
+  // provider-annotated span. No loose control marker or larger annotated phrase
+  // may reach a draft as unexplained citation syntax.
+  const nativeControls = [...body.matchAll(NATIVE_CITATION_CONTROL)];
+  if (nativeControls.length) {
+    const points = Array.from(body);
+    const validNativeMarker = (span) => {
+      const marker = NATIVE_CITATION_MARKER.exec(span);
+      return marker !== null && marker[1].length <= 200;
+    };
+    const validSpans = webCitations.flatMap(({ startIndex, endIndex }) => {
+      if (validNativeMarker(body.slice(startIndex, endIndex)))
+        return [{ startIndex, endIndex }];
+      if (endIndex <= points.length) {
+        const pointStart = points.slice(0, startIndex).join("").length;
+        const pointEnd = points.slice(0, endIndex).join("").length;
+        if (validNativeMarker(body.slice(pointStart, pointEnd)))
+          return [{ startIndex: pointStart, endIndex: pointEnd }];
+      }
+      return [];
+    });
+    if (nativeControls.some((match) => !validSpans.some((span) =>
+      span.startIndex <= match.index && match.index < span.endIndex)))
+      fail("invalid-response", "response-web-citation");
+  }
   const coveringCitation = (start, length, url) => webCitations.some((citation) =>
     citation.startIndex <= start && start + length <= citation.endIndex && citation.url === url);
   for (const match of body.matchAll(/\]\(([^)\n]*)\)/gu)) {
@@ -483,6 +510,19 @@ function traceItem(item, index, phase) {
   return { phase, index: traceIndex(index), type: TRACE_ITEM_TYPES.has(item?.type) ? item.type : "other",
     status: TRACE_STATUSES.has(item?.status) ? item.status : "other" };
 }
+function traceUrlAnnotations(parts) {
+  let count = 0;
+  for (const part of Array.isArray(parts) ? parts : []) {
+    if (part?.type !== "output_text" || !Array.isArray(part.annotations)) continue;
+    for (const annotation of part.annotations) {
+      if (annotation?.type === "url_citation") count = Math.min(count + 1, 101);
+    }
+  }
+  return count;
+}
+function traceItemUrlAnnotations(item) {
+  return item?.type === "message" && item.role === "assistant" ? traceUrlAnnotations(item.content) : 0;
+}
 function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferences, broadReply, excludedWebUrls) {
   const frames = raw.replace(/\r\n/gu, "\n").split("\n\n");
   let final = null;
@@ -498,6 +538,9 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
   let outcome = "success";
   let detail = null;
   let citationFailure = null;
+  let contentDoneUrlAnnotations = 0;
+  let itemDoneUrlAnnotations = 0;
+  let acceptedCitationCount = 0;
   try {
   for (const frame of frames) {
     const data = frame.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
@@ -517,7 +560,13 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
         event.type === "response.output_item.added" ? "added" : "done"));
     }
     if (event?.type === "response.output_text.done") textDoneCount = Math.min(textDoneCount + 1, 101);
-    if (event?.type === "response.content_part.done") contentDoneCount = Math.min(contentDoneCount + 1, 101);
+    if (event?.type === "response.content_part.done") {
+      contentDoneCount = Math.min(contentDoneCount + 1, 101);
+      contentDoneUrlAnnotations = Math.min(contentDoneUrlAnnotations +
+        traceUrlAnnotations([event.part]), 101);
+    }
+    if (event?.type === "response.output_item.done")
+      itemDoneUrlAnnotations = Math.min(itemDoneUrlAnnotations + traceItemUrlAnnotations(event.item), 101);
     const eventLine = frame.split("\n").find((line) => line.startsWith("event:"));
     if (!eventLine || eventLine.slice(6).trimStart() !== event.type) streamShape.conflict = true;
     if (event.type === "response.failed") fail(errorForCode(event.response?.error?.code), "response-failed");
@@ -600,7 +649,10 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
         item?.type === "web_search_call" && item.status === "completed"));
   const recovered = completedStreamItemFallback(final, model, streamShape, relatedExcerpts, context,
     selectedReferences, searchCompleted, broadReply, excludedWebUrls);
-  if (recovered) return recovered;
+  if (recovered) {
+    acceptedCitationCount = Math.min(recovered.citations.length, 101);
+    return recovered;
+  }
   const citesCurrentSource = Array.isArray(final.output) && final.output.some((item) =>
     item?.type === "message" && Array.isArray(item.content) && item.content.some((part) =>
       part?.type === "output_text" && Array.isArray(part.annotations) && part.annotations.some((annotation) =>
@@ -621,8 +673,10 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
         added.status === "in_progress") || final.output?.[item.index]?.type !== "web_search_call" ||
         final.output[item.index].id !== item.id || final.output[item.index].status !== "completed"));
   if ((broadReply || citesCurrentSource) && !consistentSearch) fail("invalid-response", "response-event");
-  return completed(final, model, streamShape, relatedExcerpts, context, selectedReferences,
+  const result = completed(final, model, streamShape, relatedExcerpts, context, selectedReferences,
     searchCompleted && consistentSearch, broadReply, excludedWebUrls);
+  acceptedCitationCount = Math.min(result.citations.length, 101);
+  return result;
   } catch (error) {
     outcome = "failure";
     detail = INSIGHT_DETAILS.has(error?.detail) ? error.detail : null;
@@ -641,6 +695,9 @@ function parseSse(raw, model, onTrace, relatedExcerpts, context, selectedReferen
         finalOutputCount: Math.min(output.length, 101),
         candidateCount: Math.min(streamShape.candidateCount, 101),
         candidateIndex: traceIndex(streamShape.candidate?.index), textDoneCount, contentDoneCount,
+        urlAnnotationCounts: { contentDone: contentDoneUrlAnnotations, itemDone: itemDoneUrlAnnotations,
+          final: Math.min(output.reduce((sum, item) => sum + traceItemUrlAnnotations(item), 0), 101),
+          acceptedCitations: acceptedCitationCount },
         fallbackFailure: INSIGHT_DETAILS.has(streamShape.fallbackFailure) ? streamShape.fallbackFailure : null,
         fallbackBranch: TRACE_PREFIX_BRANCHES.has(streamShape.fallbackBranch) ? streamShape.fallbackBranch : null,
         citationFailure: TRACE_CITATION_FAILURES.has(citationFailure) ? citationFailure : null };

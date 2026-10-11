@@ -51,6 +51,10 @@ test("trusted flags select opener/follow-up and bounded web instructions", () =>
   assert.match(followup, /citation immediately beside each named retailer, product listing, price or shipping claim/u);
   assert.match(followup, /newly discovered listing, include the web_search provider citation to its actual page/u);
   assert.match(followup, /no supported citation to its exact page, do not present that retailer or offer as found or actionable/u);
+  assert.ok(followup.includes("\uE200cite\uE202<real reference ID returned by web_search>\uE201"));
+  assert.match(followup, /prohibition on raw URLs and source lists does not prohibit these inline citations/u);
+  assert.doesNotMatch(opener, /write native inline web-search citations/u);
+  assert.doesNotMatch(offlineFollowup, /write native inline web-search citations/u);
   assert.match(followup, /Do not print raw URLs or add a source list/u);
   assert.match(followup, /exact SKU or variant, condition, currency, region, availability and delivered total/u);
   assert.match(followup, /delivery country is missing, ask for it/u);

@@ -1,5 +1,43 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 citation/reveal follow-up (0.13.39), complete: read ADR-081 before the
+0.13.38 checkpoint. Its ready-cue visual fixture missed a delayed alternate-view
+transition that cleared expansion. Selected mode/Source/Topic now owns expansion;
+same-context refresh preserves visible created-post position. Viewport anchors
+and remembered reveal IDs are fenced to actor/Source/Topic/discussion. Initial
+focus stays one-time; later polling never reopens a manually collapsed branch.
+Canonical accepted command, fresh read, delayed alternate and another open are
+tested through the actual controller in disposable Chrome with synthetic data.
+No write/Insight authority follows from RAM presentation state.
+
+Broad reply instructions specify native citation syntax with real web_search
+tool IDs; only existing safe provider annotations authorize destinations.
+Unannotated/malformed controls fail before returning a draft. Exact valid
+multi-source tokens and Unicode spans still render clickable arrows. Trace adds
+numeric annotation/accepted-link counts only. Do not import intermediate events,
+guess the historical merchant URL or modify the old uncited post.
+
+The remaining ADR-079 agent diagnostic call uses a fixed public Meross URL and
+synthetic product/question context, gpt-6-luna, and exactly one Responses dispatch.
+It succeeds with two accepted citations through strict fallback, without a post,
+archive, stored comments, cookies or local page fetch. This is citation-path
+evidence, not verified prices, every-claim attribution or owner-extract replay.
+Both diagnostic calls are exhausted: do not run the explicit listing harness
+again without new approval. Normal deliberate owner app clicks remain authorized.
+
+Final full service 397 pass/4 optional skips; extension 1,111 pass/1 skip;
+restricted 1,112 pass. Focused panel/controller 197 pass; independent Trust
+panel/renderer 84 pass and service/prompt/diagnostic 89 pass. Final synthetic Chrome
+integration, dock/typing/citation/accessibility/layout checks pass. Root reviews
+compact 390x600 screenshot; optional end-of-flow capture timed out, not browser
+assertions. Secret scans and diff checks pass. This is not a new native panel
+authentication or release approval.
+
+Normal backend is restarted with no active provider connection, unchanged Origin,
+pairing, protected login and SQLite, raw debug off; unauthenticated catalog 401
+confirms listener availability only. Reload extension 0.13.39 for final renderer
+fixes. Preserve all data and old posts; no retry loop or scope expansion follows.
+
 2026-10-10 bottom-composer/citation checkpoint (0.13.38), complete: read ADR-080.
 Threads/related discussions scroll above a compact bottom root dock. One reply/
 edit form stays at its exact target, with a bottom new-thread shortcut. An

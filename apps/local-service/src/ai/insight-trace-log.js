@@ -42,7 +42,7 @@ function validTrace(value) {
   if (!exactKeys(value, ["schema", "outcome", "detail", "events", "createdCount", "createdFinalMatch",
     "finalStatus", "observedItems", "finalOutput", "finalOutputCount", "candidateCount",
     "candidateIndex", "textDoneCount", "contentDoneCount", "fallbackFailure", "fallbackBranch",
-    "citationFailure"]) ||
+    "citationFailure", "urlAnnotationCounts"]) ||
     value.schema !== "insight-response-trace/v2" || !["success", "failure"].includes(value.outcome) ||
     !detail(value.detail) || !detail(value.fallbackFailure) ||
     !(value.fallbackBranch === null || PREFIX_BRANCHES.has(value.fallbackBranch)) ||
@@ -59,7 +59,9 @@ function validTrace(value) {
     !value.observedItems.every(item) || !Array.isArray(value.finalOutput) ||
     value.finalOutput.length > 16 || !value.finalOutput.every(item) ||
     !count(value.finalOutputCount) || !count(value.candidateCount) ||
-    !index(value.candidateIndex) || !count(value.textDoneCount) || !count(value.contentDoneCount)) return false;
+    !index(value.candidateIndex) || !count(value.textDoneCount) || !count(value.contentDoneCount) ||
+    !exactKeys(value.urlAnnotationCounts, ["contentDone", "itemDone", "final", "acceptedCitations"]) ||
+    !Object.values(value.urlAnnotationCounts).every(count)) return false;
   return true;
 }
 
