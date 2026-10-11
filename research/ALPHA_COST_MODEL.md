@@ -2,6 +2,12 @@
 
 Status: Planning evidence only; no vendor, purchase, or deployment is approved.
 
+2026-10-11 applicability: the current prototype captures pages during approved
+browsing sessions. The historical two-new-Sources-per-MAU assumption below does
+not size that workload. Refresh measured ingestion, storage/index/backup growth,
+operations and current prices before using these totals for a hosting decision.
+See the [backend hosting plan](../plans/BACKEND_HOSTING_PLAN.md).
+
 Price check: 2026-09-20
 
 ## Purpose and limits

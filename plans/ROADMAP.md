@@ -5,6 +5,12 @@ readable web conversations next, then Android and iOS, sharing Topic/discussion
 contracts (owner-confirmed sequencing on 2026-09-29). Core model:
 `Content -> Semantic Topic -> Discussion`.
 
+2026-10-11 hosting checkpoint: the owner requests planning, not deployment.
+[BACKEND_HOSTING_PLAN](BACKEND_HOSTING_PLAN.md)/proposed ADR-092 sequence normalized
+storage/API, portable Windows/WSL Linux containers, jobs, a private pilot and
+later Linux/managed-host migration. H0-H6 elaborate R4; they preserve existing
+local activation and all remote data, provider, mail, budget and release gates.
+
 2026-10-11 retrieval/account checkpoint: ADR-088 raises learned E5 related
 retrieval to 0.88, with Ridge1 membership/canonical authority unchanged. Tested
 and active in the restarted local service; historical related-Source discussions
@@ -299,6 +305,11 @@ approval. Hosting, spending and publication approvals remain separate.
 
 Owner: Platform; Trust/Privacy/Policy and Quality/Operations review.
 Dependencies: R1 loop, R2 Source contracts; R3 optional (human-only works).
+
+The [backend hosting plan](BACKEND_HOSTING_PLAN.md) defines future H0-H6 slices:
+contracts, normalized PostgreSQL, Linux-container rehearsal on Windows, incremental
+matching/jobs, reviewed private access, migration and measured scaling. It is a
+proposal, not activation or permission to publish the existing local catalog.
 
 The [account implementation slices](ACCOUNTS_PLAN.md) sequence local synthetic
 principals/sessions, passwordless UI with fake mail, optional identity-only

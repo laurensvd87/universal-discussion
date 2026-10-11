@@ -10,6 +10,12 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
+The [future backend hosting plan](plans/BACKEND_HOSTING_PLAN.md) proposes portable
+Linux containers on Windows/WSL first, then a small Linux host, using one Node
+backend with PostgreSQL/pgvector for extension, web and mobile clients. It covers
+safe migration, backups and gradual scaling; no container, Internet access or
+real-data migration has been activated.
+
 The local service now filters learned related-page candidates at E5 cosine
 **0.88** (previously 0.85). This removes the diagnosed unrelated Meross listing
 while keeping the eBay coupling candidate. It does not change Ridge1 same-Topic

@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 future hosting request is planning-only. Read
+[BACKEND_HOSTING_PLAN](BACKEND_HOSTING_PLAN.md) and proposed ADR-092 for Windows/WSL
+development, portable Linux containers, normalized PostgreSQL/pgvector, API/worker
+roles and H0-H6 sequencing. Preserve the working loopback PoC; do not containerize
+and expose the current interactive CLI or move its singleton JSON row unchanged.
+No real data/identity migration, listener/permission change, mail, provider grant
+transfer, infrastructure purchase or deployment follows. H0 contract/trust work
+is the next future engineering slice, not an instruction to activate it now.
+Shared client contracts do not confer cross-platform capture permissions; preserve
+canonical versus Ridge1 authority and explicit provider identity linking.
+Read-only architecture audit and independent Trust review pass. Require tested
+key/identity continuity and provision pinned matching coefficients explicitly;
+ignored service data is not an image asset. All 436 local documentation links
+resolve; whitespace checks pass. Runtime/service configuration unchanged.
+
 2026-10-11 ADR-091 supersedes historical dormant-account notes below. The owner
 explicitly approves local reuse of existing verified ChatGPT issuer/client/sub,
 separate accounts/username DB, new account-owned human/AI posts, unclaimed demo

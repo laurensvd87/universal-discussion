@@ -1,5 +1,25 @@
 # Project status
 
+**2026-10-11 portable backend and hosting plan recorded; no activation:**
+The owner requests a low-investment Windows-first hosting/migration/scaling plan.
+[BACKEND_HOSTING_PLAN](BACKEND_HOSTING_PLAN.md) and proposed
+[ADR-092](../decisions/ADR-092-portable-self-hosted-backend-plan.md) define a
+normalized Node/PostgreSQL/pgvector backend, Linux containers, Compose, API/worker
+roles and H0-H6 migration/operations slices. Windows/WSL is the development/private
+pilot path; a small Linux host is the proposed first dependable external service,
+with managed database/replicas only after measured need. Existing singleton JSON,
+global revision, local-only transport and one-owner AI are not made scalable by
+packaging. Canonical/Ridge1 authority, unclaimed legacy posts and separate account/
+provider identity remain intact. Remote data transfer, hosted grants, mail,
+deployment/spending and publication are unapproved. Current service untouched.
+Repository architecture audit and current official Docker/PostgreSQL/pgvector/
+Caddy/OpenAI evidence inform the plan. Independent Trust/architecture review
+passes; its key/identity continuity and pinned matching-artifact caveats are
+included in H0/H1. Historical alpha workload/cost assumptions do not size the
+current background-capture workload. **436 local documentation links** resolve
+after excluding literal code examples; diff whitespace checks pass. Docs-only:
+runtime suites were not rerun and no container/load/deployment result is claimed.
+
 **2026-10-11 ADR-091 owner-local accounts integrated; activation explicitly approved:**
 The owner approves persistent local verified ChatGPT issuer/client/subject and
 username in separate account SQLite, new account-owned human/AI posts, unclaimed
