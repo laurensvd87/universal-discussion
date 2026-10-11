@@ -1,5 +1,27 @@
 # Project status
 
+**2026-10-11 fresh owner UniFi export reviewed; identity defect confirmed:**
+The new minimized file retains 113 policy objects: 85 valid UUIDs and 28 missing
+IDs, all 28 user-defined. No duplicate/malformed IDs or omitted rows. Policy
+coverage remains PARTIAL; ordering is unavailable. Seventy policies have complete
+projected semantics and 43 are incomplete; 19 protocol names are UNKNOWN, with
+two unresolved network references. Independent read-only Trust confirms the
+recovery works as intended but cannot certify effective isolation or exposure.
+No generic export retry is needed. Next evidence is a complete local UI policy
+table, including defaults, actual ordering and selector/protocol details, then
+the separate forwarding/NAT/UPnP and host/reachability checks. Private topology
+and raw artifacts stay outside Git. No router, backend or deployment changes.
+See [ADR-094](../decisions/ADR-094-minimized-local-unifi-audit-export.md).
+
+**2026-10-11 Firebase evaluated; portable backend direction unchanged:**
+The owner's question prompts a bounded official-documentation comparison in
+[BACKEND_HOSTING_PLAN](BACKEND_HOSTING_PLAN.md#firebase-fit). Firebase Auth could
+reduce future login/recovery work; Firestore and SQL Connect support vectors,
+but managed cloud services do not meet self-hosting requirements. Retain the
+portable Node/PostgreSQL/pgvector path; optional managed Auth is not selected or
+activated. No Firebase project, SDK, account migration, provider transfer,
+deployment or spending. Documentation/evidence only; runtime tests not rerun.
+
 **2026-10-11 owner-approved UniFi policy identity recovery ready; fresh export needed:**
 The correction retains allowlisted policy fields after consistent complete paging,
 even with missing/malformed/duplicate IDs. Such rows use UNKNOWN identity and

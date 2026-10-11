@@ -2,8 +2,8 @@
 
 Date: 2026-10-11.
 Status: implemented and independently reviewed; owner export received with
-missing policies/order. Narrow policy identity recovery is tested; a fresh owner
-export and complete firewall/host/network validation remain open.
+missing policy IDs/order. Narrow policy identity recovery is verified on the
+fresh owner export; complete firewall/host/network validation remains open.
 
 ## Scope
 
@@ -131,6 +131,24 @@ synthetic requests and zero runtime errors. Root visually checks the dialog.
 The owner must reload the local UDR page, recopy the current script and supply
 the newly downloaded minimized JSON, even if collection remains PARTIAL. Full
 firewall/order and separate exposure checks are still required.
+
+### Fresh owner export findings
+
+The second minimized export retains all 113 policy objects from one consistent
+page. Eighty-five identities are valid UUIDs; 28 are missing, all user-defined.
+There are no duplicate IDs, malformed IDs or omitted non-object rows. Unknown
+identities and incomplete semantics are preserved correctly; no ordering GETs
+are made. The failure is now `policy-identity-invalid`, not unexplained pagination.
+This confirms the missing-ID class, not why the router omitted those IDs.
+
+Seventy policy projections are semantically complete and 43 incomplete. Nineteen
+protocol names remain UNKNOWN; two network references are unresolved. Independent
+read-only Trust agrees the file cannot establish effective isolation or safe
+Internet exposure. A complete local UI policy table with defaults, actual
+ordering and selector/protocol details is the next evidence; forwarding/NAT/
+UPnP and host/reachability checks remain separate. No generic exporter rerun,
+guessed policy identity, API-index-as-order shortcut or router change follows.
+Keep the private artifact/topology outside repository records.
 
 Agents have made no real router requests and no API key is requested in chat.
 The owner runs collection locally and reviews the minimized artifact before

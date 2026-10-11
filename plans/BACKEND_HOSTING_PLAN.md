@@ -42,6 +42,48 @@ deployment definition across development and a single production server.
 [Windows installation](https://docs.docker.com/desktop/setup/install/windows-install/),
 [Compose production guidance](https://docs.docker.com/compose/how-tos/production/).
 
+## Firebase fit
+
+Keep the portable backend recommendation. Firebase is a credible managed-service
+alternative when reducing operations matters more than self-hosting, not a Linux
+container distribution of our backend. Google explicitly excludes its local
+emulators from production self-hosting.
+[Emulator scope](https://firebase.google.com/docs/emulator-suite).
+
+Firebase Authentication is the most useful optional part: email/password,
+email-link login, social login and recovery can integrate with our own backend.
+App usernames, post ownership and authorization still belong to our domain.
+Replacing the current identity adapter needs reviewed identity continuity;
+do not link existing users by matching email alone.
+[Authentication](https://firebase.google.com/docs/auth),
+[email-link login](https://firebase.google.com/docs/auth/web/email-link-auth).
+This is not general reply-notification delivery: Firebase's Trigger Email needs
+a separately configured SMTP service.
+[Email delivery](https://firebase.google.com/docs/extensions/official/firestore-send-email).
+
+Firestore does support nearest-neighbor vector search, including our current
+384-dimensional vectors. It stores/searches embeddings, not our same-Topic
+policy. Standard-edition queries return at most 1,000 neighbors per query;
+this is not a total catalog limit. Vector queries lack real-time snapshot
+listeners. Document writes/reads and vector index reads contribute to usage
+charges beyond applicable free quotas. Continuous browsing ingestion therefore
+needs a measured workload, not an assumption of free hosting.
+[Vector search](https://firebase.google.com/docs/firestore/vector-search),
+[billing](https://firebase.google.com/docs/firestore/pricing).
+
+Firebase SQL Connect (the current destination of the Data Connect documentation)
+offers managed PostgreSQL and vector search, so Firebase is not exclusively
+NoSQL. It adds Google-managed query/schema/SDK integration rather than running
+the prepared Node API unchanged. Its service and Cloud SQL database are separate
+billable components, with limited trials rather than permanently free PostgreSQL.
+[SQL Connect](https://firebase.google.com/docs/sql-connect),
+[pricing](https://firebase.google.com/docs/sql-connect/pricing).
+
+For this project, retain Node/PostgreSQL/pgvector and consider a managed Auth
+adapter later if its operating benefit outweighs the added dependency. This
+evaluation selects no Firebase provider, opens no project and authorizes no data
+transfer, identity migration, spending or deployment.
+
 ## Current prototype limits
 
 Keep the working local service unchanged while building the portable path.

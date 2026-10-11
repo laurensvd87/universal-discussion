@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 fresh owner export is now reviewed, not awaiting another generic retry.
+113 policy objects survive: 85 valid UUIDs, 28 missing IDs (all user-defined),
+no duplicates/malformed IDs/omitted rows. Coverage stays PARTIAL with no ordering;
+70 projected policies are complete, 43 incomplete, 19 protocol names UNKNOWN and
+two network references unresolved. Root and independent Trust agree recovery
+works but isolation cannot be certified. Obtain the complete UI table/defaults/
+ordering/selectors and separate forwarding/UPnP/host evidence; no router changes
+or activation. Do not copy raw private topology into records. See ADR-094.
+The owner's Firebase question is evaluated in BACKEND_HOSTING_PLAN#firebase-fit:
+portable Node/PostgreSQL/pgvector remains the recommendation; Firebase Auth is
+only a future optional adapter, not selected/activated. No SDK/project/migration/
+provider/hosting/spending action. Current service untouched; docs-only checkpoint.
+
 2026-10-11 latest owner approval implements narrow policy identity recovery in
 the UniFi exporter; read ADR-094 and ops/unifi-audit/README.md. After all pages
 pass, object rows with bad/duplicate IDs retain allowlisted fields as UNKNOWN/
