@@ -1,5 +1,28 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 latest owner approves **prepare the portable backend here**, not
+deployment. Read ADR-093 before the historical planning-only direction below.
+Synthetic H1/H2 package is prepared in `apps/local-service/portable`, with a new
+unattended composition sharing domain validators, normalized PostgreSQL/pgvector,
+scoped commands/receipts, safe paginated reads and harmless durable jobs. Current
+4174 service, owner stores and provider grant remain unchanged. Do not launch a
+new listener/install Docker/WSL, connect the extension or migrate real records.
+Actual image/native PostgreSQL/permissions/restore checks need later Ubuntu
+rehearsal. Host VLAN/UDR OpenClaw forwards remain unaudited; no remote access,
+router changes, public ingress, mail or hosted provider activation follows.
+H0 and final independent implementation Trust reviews pass for synthetic-only
+code. Read portable/README and contracts/openapi.yaml before operating it.
+35 offline portable checks pass; unchanged local regression 511 pass/four optional
+skips, secret scan676/zero findings. PGlite uses PG18.3, pinned image PG17; no native
+parity or actual restore claim. Reply Source remains independent of immutable
+root Source; per-discussion versions and per-account/request receipt locks
+replace global conflicts. Four Trust checks cover replay after withdrawal,
+late-job full rollback, immutable origin/withdrawal and extension restore comments.
+Synthetic `verify` tools role is explicit and must run before API/worker: it
+adds four fixture contributions, tests simultaneous pg-pool writes/replay/leases
+and denies DDL; embedded scenario passes, native run remains open. No real identity,
+Ridge1 parity, v2/v3 import, rights/moderation or client cutover is implemented.
+
 2026-10-11 future hosting request is planning-only. Read
 [BACKEND_HOSTING_PLAN](BACKEND_HOSTING_PLAN.md) and proposed ADR-092 for Windows/WSL
 development, portable Linux containers, normalized PostgreSQL/pgvector, API/worker

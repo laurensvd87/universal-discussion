@@ -3,6 +3,12 @@
 Date: 2026-10-11.
 Status: proposed future architecture; owner requested planning only.
 
+2026-10-11 continuation: [ADR-093](ADR-093-private-portable-backend-rehearsal.md)
+records subsequent approval for synthetic repository preparation. The existing
+Ubuntu VLAN computer is the next private runtime-rehearsal candidate; Windows
+Docker/WSL installation is not selected. Real deployment, migration and the
+complete shared-pilot architecture remain unapproved/open.
+
 ## Context
 
 The owner wants to avoid major investment before extension acceptance is known,

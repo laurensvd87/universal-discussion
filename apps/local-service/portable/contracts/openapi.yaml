@@ -1,0 +1,257 @@
+openapi: 3.1.0
+info:
+  title: Universal Discussion private portable rehearsal
+  version: 0.1.0
+  description: >-
+    Synthetic-only, operator-paired rehearsal. Not a public API, not compatible
+    with the current extension. No signup, provider, mail or ingestion routes.
+servers:
+  - url: http://127.0.0.1:4185
+security:
+  - rehearsalBearer: []
+paths:
+  /health/live:
+    get:
+      security: []
+      responses:
+        '200': { description: Process alive; exact Host still required }
+  /health/ready:
+    get:
+      security: []
+      responses:
+        '200': { description: Migrated database reachable }
+        '503': { description: Database unavailable }
+  /portable/v1/topics:
+    get:
+      parameters:
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+      responses:
+        '200':
+          description: Explicitly public synthetic Topics, ordered by ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, nextCursor]
+                additionalProperties: false
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, title]
+                      additionalProperties: false
+                      properties:
+                        id: { $ref: '#/components/schemas/id' }
+                        title: { type: string }
+                  nextCursor: { type: [string, 'null'] }
+  /portable/v1/sources:
+    get:
+      parameters:
+        - { name: topicId, in: query, required: true, schema: { $ref: '#/components/schemas/id' } }
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+      responses:
+        '200':
+          description: Public Source links without vectors or private authority
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, nextCursor]
+                additionalProperties: false
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/source' } }
+                  nextCursor: { type: [string, 'null'] }
+  /portable/v1/source/resolve:
+    get:
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema: { type: string, maxLength: 2048 }
+          description: Exact HTTPS reserved .example or .test URL; no query or fragment
+      responses:
+        '200':
+          description: Safe Source projection, or null if unknown
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/source' }
+                  - { type: 'null' }
+  /portable/v1/related:
+    get:
+      parameters:
+        - { name: sourceId, in: query, required: true, schema: { $ref: '#/components/schemas/id' } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 20, default: 5 } }
+      responses:
+        '200':
+          description: Exact same-model and extractor cosine candidates, not Topic identity
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                additionalProperties: false
+                properties:
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - { $ref: '#/components/schemas/sourceFields' }
+                        - type: object
+                          properties:
+                            similarity: { type: number }
+                          required: [similarity]
+                      unevaluatedProperties: false
+  /portable/v1/discussions/{discussionId}:
+    get:
+      parameters:
+        - { name: discussionId, in: path, required: true, schema: { $ref: '#/components/schemas/id' } }
+        - { $ref: '#/components/parameters/cursor' }
+        - { $ref: '#/components/parameters/limit' }
+      responses:
+        '200':
+          description: ID-ordered contribution page; assemble ancestry across pages
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [discussion, items, nextCursor]
+                additionalProperties: false
+                properties:
+                  discussion:
+                    type: object
+                    required: [id, topicId, version]
+                    additionalProperties: false
+                    properties:
+                      id: { $ref: '#/components/schemas/id' }
+                      topicId: { $ref: '#/components/schemas/id' }
+                      version: { type: integer }
+                  items: { type: array, items: { $ref: '#/components/schemas/contribution' } }
+                  nextCursor: { type: [string, 'null'] }
+  /portable/v1/commands/{kind}:
+    post:
+      description: >-
+        Fixture-principal bearer required; guest bearer cannot write. Each kind
+        accepts only its listed fields. Source belongs to canonical discussion.
+        Same principal/requestId/kind/validated payload replays its original result.
+        Reuse with different input conflicts. No global catalog revision.
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string, enum: [create-root, reply, edit, withdraw] } }
+        - { name: Origin, in: header, required: true, schema: { type: string, const: 'https://client.example' } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requestId, payload]
+              additionalProperties: false
+              properties:
+                requestId: { $ref: '#/components/schemas/id' }
+                payload:
+                  oneOf:
+                    - { $ref: '#/components/schemas/createRoot' }
+                    - { $ref: '#/components/schemas/reply' }
+                    - { $ref: '#/components/schemas/edit' }
+                    - { $ref: '#/components/schemas/withdraw' }
+      responses:
+        '200':
+          description: Applied or identical replay; never an additional post on replay
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [contributionId, discussionId, rootId, version]
+                additionalProperties: false
+                properties:
+                  contributionId: { $ref: '#/components/schemas/id' }
+                  discussionId: { $ref: '#/components/schemas/id' }
+                  rootId: { $ref: '#/components/schemas/id' }
+                  version: { type: integer }
+        '400': { description: Invalid strict request }
+        '401': { description: Invalid credential }
+        '403': { description: Origin, account, Source or lineage denied }
+        '409': { description: Stale discussion version or conflicting request ID }
+        '413': { description: Body exceeds 16 KiB }
+        '503': { description: Generic unavailable; no database details returned }
+components:
+  securitySchemes:
+    rehearsalBearer: { type: http, scheme: bearer, bearerFormat: Operator-generated synthetic read or principal token }
+  parameters:
+    cursor: { name: cursor, in: query, schema: { $ref: '#/components/schemas/id' } }
+    limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 25 } }
+  schemas:
+    id: { type: string, pattern: '^[a-zA-Z0-9_-]{1,128}$' }
+    body: { type: string, minLength: 1, maxLength: 8000 }
+    version: { type: integer, minimum: 0, maximum: 2147483646 }
+    sourceFields:
+      type: object
+      required: [id, url, title, topicId, discussionId]
+      properties:
+        id: { $ref: '#/components/schemas/id' }
+        url: { type: string, format: uri }
+        title: { type: string }
+        topicId: { $ref: '#/components/schemas/id' }
+        discussionId: { $ref: '#/components/schemas/id' }
+    source:
+      allOf: [{ $ref: '#/components/schemas/sourceFields' }]
+      unevaluatedProperties: false
+    contribution:
+      type: object
+      required: [id, parentId, rootId, sourceId, body, withdrawn, createdAt, author]
+      additionalProperties: false
+      properties:
+        id: { $ref: '#/components/schemas/id' }
+        parentId: { type: [string, 'null'] }
+        rootId: { $ref: '#/components/schemas/id' }
+        sourceId: { $ref: '#/components/schemas/id' }
+        body: { type: [string, 'null'] }
+        withdrawn: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        author:
+          type: object
+          required: [username, kind]
+          additionalProperties: false
+          properties:
+            username: { type: string }
+            kind: { const: human }
+    createRoot:
+      type: object
+      required: [discussionId, sourceId, body, expectedVersion]
+      additionalProperties: false
+      properties:
+        discussionId: { $ref: '#/components/schemas/id' }
+        sourceId: { $ref: '#/components/schemas/id' }
+        body: { $ref: '#/components/schemas/body' }
+        expectedVersion: { $ref: '#/components/schemas/version' }
+    reply:
+      type: object
+      required: [discussionId, sourceId, replyToId, body, expectedVersion]
+      additionalProperties: false
+      properties:
+        discussionId: { $ref: '#/components/schemas/id' }
+        sourceId: { $ref: '#/components/schemas/id' }
+        replyToId: { $ref: '#/components/schemas/id' }
+        body: { $ref: '#/components/schemas/body' }
+        expectedVersion: { $ref: '#/components/schemas/version' }
+    edit:
+      type: object
+      required: [discussionId, contributionId, body, expectedVersion]
+      additionalProperties: false
+      properties:
+        discussionId: { $ref: '#/components/schemas/id' }
+        contributionId: { $ref: '#/components/schemas/id' }
+        body: { $ref: '#/components/schemas/body' }
+        expectedVersion: { $ref: '#/components/schemas/version' }
+    withdraw:
+      type: object
+      required: [discussionId, contributionId, expectedVersion]
+      additionalProperties: false
+      properties:
+        discussionId: { $ref: '#/components/schemas/id' }
+        contributionId: { $ref: '#/components/schemas/id' }
+        expectedVersion: { $ref: '#/components/schemas/version' }

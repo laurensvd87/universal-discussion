@@ -10,11 +10,14 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-The [future backend hosting plan](plans/BACKEND_HOSTING_PLAN.md) proposes portable
-Linux containers on Windows/WSL first, then a small Linux host, using one Node
-backend with PostgreSQL/pgvector for extension, web and mobile clients. It covers
-safe migration, backups and gradual scaling; no container, Internet access or
-real-data migration has been activated.
+The [portable backend preparation](apps/local-service/portable/README.md) now
+includes a synthetic PostgreSQL/pgvector API/worker, Linux Docker/Compose package,
+private file secrets and migration/verification/backup/restore commands. Existing
+local app/data remain unchanged. Offline PostgreSQL tests pass; actual Docker/
+Ubuntu execution remains open because Docker/WSL are absent here. This is not
+yet a shared pilot: real authentication, current matching/client integration,
+TLS/network review and migration remain. Nothing is exposed or deployed.
+The [hosting plan](plans/BACKEND_HOSTING_PLAN.md) tracks the remaining stages.
 
 The local service now filters learned related-page candidates at E5 cosine
 **0.88** (previously 0.85). This removes the diagnosed unrelated Meross listing

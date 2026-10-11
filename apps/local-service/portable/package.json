@@ -1,0 +1,21 @@
+{
+  "name": "@universal-discussion/portable-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Private synthetic PostgreSQL rehearsal for the existing backend; not public-pilot ready",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "test": "node --import ../../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none test/*.test.js",
+    "api": "node src/main.js api",
+    "worker": "node src/main.js worker",
+    "migrate": "node src/main.js migrate",
+    "seed:synthetic": "node src/main.js seed-fixture"
+  },
+  "dependencies": { "pg": "8.23.1" },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@electric-sql/pglite-pgvector": "0.0.9",
+    "yaml": "2.9.1"
+  }
+}

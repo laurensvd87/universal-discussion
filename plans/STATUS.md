@@ -1,5 +1,33 @@
 # Project status
 
+**2026-10-11 portable synthetic backend prepared and reviewed; no activation:**
+[ADR-093](../decisions/ADR-093-private-portable-backend-rehearsal.md) supersedes
+the planning-only next-step notes below for repository engineering only. The
+[private package](../apps/local-service/portable/README.md) implements normalized
+PostgreSQL/pgvector storage, per-discussion CAS, replay receipts, safe paginated
+DTOs, human commands/withdrawal, exact synthetic retrieval and fenced bookkeeping
+jobs. Explicit API/worker/migrate/seed/verify roles, digest-pinned Linux images,
+non-root private-loopback Compose, file secrets, least-privilege SQL grants and
+separate-target backup/restore scripts are prepared. [OpenAPI](../apps/local-service/portable/contracts/openapi.yaml)
+and an Ubuntu runbook are included. Three GPT-6.1 Sol Medium coding slices and
+independent implementation Trust review pass. Actual container
+testing belongs on the existing Ubuntu 26.04 LTS VLAN computer later. Docker/WSL
+are absent here, and no installation, new listener or current-service change is
+authorized by this preparation. **35 portable offline tests** pass (including
+four independent Trust checks); the unchanged local service has **511 pass/four
+optional skips**. Secret scan: **676 files**, zero findings. No dependency audit
+finding at install. Diff whitespace passes. PGlite is PostgreSQL 18.3 WASM, image
+PostgreSQL 17: native concurrency/advisory locks, Docker build/network, secret
+mounts and real dump/restore remain unverified, not inferred from offline tests.
+Review corrected reply-origin/role/related-limit contract mismatches, strict
+route aliases, root execution and administrator-owned extension-comment restore.
+These are partial H1/H2, not full shared-pilot readiness; no Ridge1 policy or old
+state import is activated. Owner data/grants remain untouched; real identity,
+client integration, migration,
+mail/provider activation and shared-pilot readiness remain open. The UniFi UDR
+OpenClaw forwarding rules and Linux isolation still need a separate audit; no
+remote credentials/domain are available and no network change is made.
+
 **2026-10-11 portable backend and hosting plan recorded; no activation:**
 The owner requests a low-investment Windows-first hosting/migration/scaling plan.
 [BACKEND_HOSTING_PLAN](BACKEND_HOSTING_PLAN.md) and proposed

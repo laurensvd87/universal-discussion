@@ -1,0 +1,147 @@
+name: udl-synthetic-rehearsal
+
+x-application: &application
+  image: udl-portable-synthetic:local
+  build:
+    context: ..
+    dockerfile: portable/Dockerfile
+  user: "${UDL_RUNTIME_UID:-1000}:${UDL_RUNTIME_GID:-1000}"
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=16m
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  restart: "no"
+  networks: [private]
+
+x-runtime-environment: &runtime-environment
+  NODE_ENV: production
+  UDL_MODE: synthetic-rehearsal
+  UDL_DATABASE_HOST: db
+  UDL_DATABASE_PORT: "5432"
+  UDL_DATABASE_NAME: udl_synthetic
+  UDL_DATABASE_USER: udl_app
+  UDL_DATABASE_PASSWORD_FILE: /run/secrets/app_db_password
+
+x-database: &database
+  image: pgvector/pgvector:0.8.2-pg17-bookworm@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966
+  entrypoint: [/bin/sh, /opt/udl/db-entrypoint.sh]
+  command: [postgres, -c, log_statement=none, -c, log_error_verbosity=terse, -c, log_min_error_statement=panic, -c, log_parameter_max_length_on_error=0]
+  environment:
+    POSTGRES_USER: udl_admin
+    POSTGRES_DB: udl_synthetic
+    POSTGRES_PASSWORD_FILE: /run/udl-db-secrets/admin_db_password
+    POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+  secrets: [admin_db_password, owner_db_password, app_db_password]
+  tmpfs:
+    - /run/udl-db-secrets:rw,noexec,nosuid,size=1m
+  networks: [private]
+  restart: "no"
+  healthcheck:
+    test: [CMD-SHELL, "pg_isready -U udl_admin -d $$POSTGRES_DB"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+services:
+  db:
+    <<: *database
+    volumes:
+      - synthetic-db-data:/var/lib/postgresql/data
+      - ./ops/db-entrypoint.sh:/opt/udl/db-entrypoint.sh:ro
+      - ./ops/init-db.sh:/docker-entrypoint-initdb.d/10-udl.sh:ro
+
+  api:
+    <<: *application
+    command: [api]
+    environment:
+      <<: *runtime-environment
+      UDL_BIND: 0.0.0.0
+      UDL_PORT: "4185"
+      UDL_ALLOWED_HOST: 127.0.0.1:4185
+      UDL_ALLOWED_ORIGIN: https://client.example
+      UDL_READ_TOKEN_FILE: /run/secrets/read_token
+    secrets: [app_db_password, read_token]
+    ports: ["127.0.0.1:4185:4185"]
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, src/healthcheck.js]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    <<: *application
+    command: [worker]
+    environment: *runtime-environment
+    secrets: [app_db_password]
+    depends_on:
+      db: {condition: service_healthy}
+
+  migrate:
+    <<: *application
+    profiles: [tools]
+    command: [migrate]
+    environment:
+      <<: *runtime-environment
+      UDL_DATABASE_USER: udl_owner
+      UDL_DATABASE_PASSWORD_FILE: /run/secrets/owner_db_password
+    secrets: [owner_db_password]
+    depends_on:
+      db: {condition: service_healthy}
+
+  seed-fixture:
+    <<: *application
+    profiles: [tools]
+    command: [seed-fixture]
+    environment:
+      <<: *runtime-environment
+      UDL_DATABASE_USER: udl_owner
+      UDL_DATABASE_PASSWORD_FILE: /run/secrets/owner_db_password
+      UDL_ALEX_TOKEN_FILE: /run/secrets/alex_token
+      UDL_BLAIR_TOKEN_FILE: /run/secrets/blair_token
+    secrets: [owner_db_password, alex_token, blair_token]
+    depends_on:
+      db: {condition: service_healthy}
+
+  verify:
+    <<: *application
+    profiles: [tools]
+    entrypoint: [node, integration/native-check.js]
+    command: []
+    environment:
+      <<: *runtime-environment
+      UDL_ALEX_TOKEN_FILE: /run/secrets/alex_token
+      UDL_BLAIR_TOKEN_FILE: /run/secrets/blair_token
+    secrets: [app_db_password, alex_token, blair_token]
+    depends_on:
+      db: {condition: service_healthy}
+
+  restore-db:
+    <<: *database
+    profiles: [restore]
+    environment:
+      POSTGRES_USER: udl_admin
+      POSTGRES_DB: udl_synthetic_restore
+      POSTGRES_PASSWORD_FILE: /run/udl-db-secrets/admin_db_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      - synthetic-restore-data:/var/lib/postgresql/data
+      - ./ops/db-entrypoint.sh:/opt/udl/db-entrypoint.sh:ro
+      - ./ops/init-db.sh:/docker-entrypoint-initdb.d/10-udl.sh:ro
+
+networks:
+  private: {internal: true}
+
+volumes:
+  synthetic-db-data:
+  synthetic-restore-data:
+
+secrets:
+  admin_db_password: {file: ./secrets/admin_db_password}
+  owner_db_password: {file: ./secrets/owner_db_password}
+  app_db_password: {file: ./secrets/app_db_password}
+  read_token: {file: ./secrets/read_token}
+  alex_token: {file: ./secrets/alex_token}
+  blair_token: {file: ./secrets/blair_token}

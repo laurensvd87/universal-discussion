@@ -4,13 +4,24 @@ Updated: 2026-10-11.
 Status: future architecture proposal, not deployment or data-migration approval.
 Decision record: [ADR-092](../decisions/ADR-092-portable-self-hosted-backend-plan.md).
 
+Implementation checkpoint: the owner now approves repository preparation under
+[ADR-093](../decisions/ADR-093-private-portable-backend-rehearsal.md). The
+[synthetic portable package](../apps/local-service/portable/README.md) implements
+normalized storage, private API/worker and packaging parts of H1/H2, not their
+complete acceptance. H0's bounded Trust review passes. Native image/SQL/permission/
+restore evidence, imports/identity continuity, current matching and real-client
+integration remain open. Docker/WSL are absent on Windows; the intended private
+rehearsal host is now the existing Ubuntu 26.04 LTS VLAN computer. No UDR, remote,
+deployment, owner-data, mail or provider operation has occurred.
+
 ## Recommendation
 
 Build one portable Node backend with PostgreSQL and pgvector, packaged as Linux
-containers. Develop and rehearse it on the owner's Windows PC with Docker
-Desktop and WSL 2. Move the same application images to a small Linux server when
-other people need dependable access. Keep a managed PostgreSQL service as a
-later option rather than a dependency.
+containers. Prepare and test code on Windows; the owner's existing Ubuntu computer
+is the selected next private container-rehearsal path. Windows Docker Desktop/
+WSL remains an alternative, not an installation assignment. Move the same images
+to a suitable Linux host when other people need dependable access. Keep managed
+PostgreSQL as a later option rather than a dependency.
 
 This preserves the existing `Content -> Semantic Topic -> Discussion` product
 and serves the extension, a web client, Android and iOS through the same API.

@@ -1,0 +1,14 @@
+**
+!portable/
+!portable/package.json
+!portable/package-lock.json
+!portable/src/
+!portable/src/**
+!portable/migrations/
+!portable/migrations/**
+!portable/integration/
+!portable/integration/native-check.js
+!src/
+!src/domain/
+!src/domain/validation.js
+!src/domain/errors.js
