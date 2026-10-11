@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 linked-product diagnosis only: owner confirms working 0.13.45 sparkle
+reply/links, but fittingstore.de destination has no discussion context. Exact URL
+passes policy; current catalog contains no fittingstore Source. Anonymous live
+disposable Chrome collects at 2s (head 166/no TITLE, 3,949 chars), then fails at
+6/12s (head 295/318/no TITLE) with `capture-head-budget`; MAIN stays visible.
+Blocked-subresource original-HTML control collects 3,112 chars three times.
+No raw page text saved, owner Chrome inspected, backend writes/provider requests
+or runtime changes. Independent Sol Medium diagnosis and 42 existing checks pass.
+
+Reader optional-title scan throws at element 257 before discovery/embedding;
+generic panel non-ready strings misleadingly claim Legacy E5 discussions shown.
+Proposed correction: cap optional title search without vetoing MAIN collection,
+using existing empty-title/hostname behavior and unchanged shared time/node/text,
+document and exclusion safeguards. Keep discovery semantics, including HEAD;
+do not infer broader BODY capture or raised budgets. User asked why, so no fix is
+implemented yet. This reproduces a destination failure, not exact owner state.
+Earlier startup-error classification and extra ancestor context remain proposals.
+
 2026-10-11 AI-reply diagnosis only: generic no-detail failure reported; verified
 backend healthy/ChatGPT connected, provider diagnostics empty, resumable null for
 both actors, no structural/raw trace files and no owner-Chrome debugging port.

@@ -1,5 +1,33 @@
 # Project status
 
+**2026-10-11 linked public-product diagnosis (no runtime change):**
+The owner confirms 0.13.45 now produces a good sparkle reply with working links.
+Visiting the linked fittingstore.de product leaves the panel without discussions.
+The exact public URL passes the production URL policy; authenticated catalog read
+finds no retained Source for that host. No new provider request or ingestion.
+
+Anonymous disposable actual Chrome reproduces a reader failure on the live page:
+at 2 seconds, 166 head elements and no TITLE, collection succeeds (3,949 characters).
+At 6/12 seconds, scripts have grown the head to 295/318 elements, still no TITLE;
+collection returns `capture-head-budget` despite the same visible MAIN. A separate
+original-HTML test with all subresources blocked succeeds three times (3,112
+characters). Only structural results/counts are recorded; no raw HTML/text saved,
+owner browser access, model change, post mutation or service restart.
+
+Independent GPT-6.1 Sol Medium review confirms the optional-title scan throws at
+head element 257 before region discovery, embedding or ingestion. The panel's
+unavailable/Legacy E5 and eligible-page messages merely reflect a non-ready
+controller and misleadingly imply a model fallback even without a discussion.
+This demonstrates a concrete failure on this destination, not an inspection of
+the owner's exact panel state. Existing reader/policy/shell checks: **42 pass**.
+
+Proposed narrow fix: stop optional title inspection after 256 head elements and
+continue with the already-supported empty-title/hostname fallback; retain region
+discovery and shared time/node/text/exclusion/document limits unchanged. Do not
+silently skip HEAD discovery or increase content scope. Implementation and
+message correction are not performed in this read-only diagnosis. The earlier
+pre-start generic-failure and expanded-ancestry proposals remain unimplemented.
+
 **2026-10-11 AI-reply generic-failure diagnosis (no runtime change):**
 The owner reports a sparkle reply displaying the generic Research did not
 complete message without a detail code. The current verified project listener
