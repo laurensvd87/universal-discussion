@@ -2,6 +2,12 @@
 
 Use the repository-wide workflow in `AGENTS.md` as the shared project contract. This file is the GitHub Copilot entry point.
 
+Current presentation (2026-10-11, ADR-082): User Mode hides deleted branches
+without visible descendants; deleted ancestors still connect surviving replies.
+No persistence or authority changes. Human/AI pills are removed, person/sparkle
+icons and accessible provenance remain; Developer diagnostics stay intact.
+Read top STATUS/HANDOFF for verified 0.13.40 evidence and unchanged later gates.
+
 Current follow-up (2026-10-10, ADR-081): preserve expansion across delayed
 alternate-view projection and same-page refresh using selected mode/Source/Topic.
 Broad replies get native citation syntax; unannotated native controls remain

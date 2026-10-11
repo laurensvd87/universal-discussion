@@ -8,6 +8,13 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current presentation (2026-10-11, ADR-082): 0.13.40 User Mode hides deleted
+leaves/chains and all-deleted trees, retaining deleted ancestors of visible
+replies. Counts exclude tombstones; filtering is presentation, never deletion
+or new reply authority. Person/sparkle icons replace Human/AI pills with accessible
+provenance intact; Developer diagnostics remain. Read top STATUS/HANDOFF for
+verification. No provider, retention, permission or release scope change.
+
 Current follow-up (2026-10-10, ADR-081): 0.13.38's ready-cue visual fixture missed
 the later alternate-view transition that refolded a just-posted reply. Selected
 mode/Source/Topic now owns expansion through delayed projection and same-context

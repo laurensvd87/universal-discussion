@@ -296,6 +296,77 @@ try {
       "nested reply bubbles preserve out-of-order parent lineage and per-post source links");
     await new Promise((resolve) => setTimeout(resolve, 240));
     await capture("nested-replies", sessionId);
+    await evaluate(`(() => {
+      const state=window.visualDiscussionState;
+      window.visualBeforeDeletion=structuredClone(state.discussion);
+      state.draft={body:'',detached:false,mode:'root',targetId:null};
+      state.discussion={discussionId:'discussion-visual',roots:[
+        {id:'deleted-only-root',rootId:null,state:'deleted',authorId:'demo-alex',actorType:'human',body:'',replies:[
+          {id:'deleted-only-child',rootId:'deleted-only-root',replyToId:'deleted-only-root',state:'deleted',authorId:'demo-blair',actorType:'human',body:''}]},
+        {id:'deleted-bridge-root',rootId:null,state:'deleted',authorId:'demo-alex',actorType:'human',body:'',replies:[
+          {id:'deleted-bridge-parent',rootId:'deleted-bridge-root',replyToId:'deleted-bridge-root',state:'deleted',authorId:'demo-blair',actorType:'human',body:''},
+          {id:'visible-grandchild',rootId:'deleted-bridge-root',replyToId:'deleted-bridge-parent',state:'visible',authorId:'demo-alex',actorType:'human',body:'A surviving grandchild.'},
+          {id:'deleted-bridge-leaf',rootId:'deleted-bridge-root',replyToId:'deleted-bridge-root',state:'deleted',authorId:'demo-alex',actorType:'human',body:''}]},
+        {id:'visible-survivor-root',rootId:null,state:'visible',authorId:'demo-blair',actorType:'human',body:'One surviving reply.',replies:[
+          {id:'deleted-sibling',rootId:'visible-survivor-root',replyToId:'visible-survivor-root',state:'deleted',authorId:'demo-alex',actorType:'human',body:''},
+          {id:'visible-agent',rootId:'visible-survivor-root',replyToId:'visible-survivor-root',state:'visible',authorId:'demo-imported-ai',actorType:'agent',body:'A synthetic generated reply.',insight:{kind:'generated',operatorId:'demo-alex'}}]}
+      ]};
+      window.visualDiscussionPanel.render(state);
+    })()`, sessionId);
+    const deletedProjection = await evaluate(`(() => {
+      const post=id=>document.querySelector('[data-post-id="'+id+'"]');
+      const toggle=id=>document.querySelector('[data-action=expand][data-contribution-id="'+id+'"]');
+      const bridge=toggle('deleted-bridge-root'),parent=toggle('deleted-bridge-parent'),survivor=toggle('visible-survivor-root');
+      const survivorCount=survivor.textContent,bridgeCount=bridge.textContent,parentCount=parent.textContent;
+      bridge.click();parent.click();survivor.click();
+      const human=post('visible-grandchild').querySelector('.human-provenance');
+      const agent=post('visible-agent').querySelector('.insight-provenance');
+      return {deletedTreeAbsent:!post('deleted-only-root')&&!post('deleted-only-child'),
+        deletedLeavesAbsent:!post('deleted-bridge-leaf')&&!post('deleted-sibling'),
+        bridgesPresent:!!post('deleted-bridge-root')&&!!post('deleted-bridge-parent'),
+        bridgeText:post('deleted-bridge-root')?.textContent,
+        parentText:post('deleted-bridge-parent')?.textContent,
+        grandchildPresent:!!post('visible-grandchild')&&!post('visible-grandchild').closest('[inert]'),
+        survivorCount,bridgeCount,parentCount,
+        noHumanAiBadges:!document.querySelector('.discussion-actor-badge-human,.discussion-actor-badge-agent'),
+        humanLabel:human.getAttribute('aria-label'),agentLabel:agent.getAttribute('aria-label'),agentTitle:agent.title,
+        humanIcon:getComputedStyle(human,'::before').maskImage,
+        agentIcon:getComputedStyle(agent,'::before').maskImage,
+        visibleMetadata:[...document.querySelectorAll('.discussion-post-metadata')].map(node=>node.innerText)};
+    })()`, sessionId);
+    assert.ok(deletedProjection.deletedTreeAbsent && deletedProjection.deletedLeavesAbsent &&
+      deletedProjection.bridgesPresent && deletedProjection.grandchildPresent,
+      `deleted-only branches disappear; deleted ancestors bridge visible grandchild: ${JSON.stringify(deletedProjection)}`);
+    assert.ok(deletedProjection.bridgeText.includes('Deleted by user') &&
+      deletedProjection.parentText.includes('Deleted by user') &&
+      deletedProjection.survivorCount.includes('1') && deletedProjection.bridgeCount.includes('1') &&
+      deletedProjection.parentCount.includes('1'),
+      `reply toggles count only surviving visible descendants: ${JSON.stringify(deletedProjection)}`);
+    assert.ok(deletedProjection.noHumanAiBadges &&
+      !deletedProjection.visibleMetadata.some(value=>/\b(?:Human|AI)\b/u.test(value)) &&
+      /human/i.test(deletedProjection.humanLabel) && /AI-generated/.test(deletedProjection.agentLabel) &&
+      /AI-generated/.test(deletedProjection.agentTitle) &&
+      deletedProjection.humanIcon.includes('icons/') && deletedProjection.agentIcon.includes('icons/spark.svg'),
+      `Human/AI badges are absent while icon and accessible provenance remain: ${JSON.stringify(deletedProjection)}`);
+    await capture("deleted-branch-projection", sessionId);
+    await evaluate("document.querySelector('[data-post-id=visible-grandchild]').scrollIntoView({block:'center'})", sessionId);
+    await capture("deleted-bridge-grandchild", sessionId);
+    const deletionFocus = await evaluate(`(() => {
+      const state=window.visualDiscussionState,panel=window.visualDiscussionPanel;
+      const control=document.querySelector('[data-action=reply][data-contribution-id=visible-survivor-root]');
+      control.focus({preventScroll:true});
+      if(document.activeElement!==control)throw Error('Could not focus synthetic root control');
+      const root=state.discussion.roots.find(item=>item.id==='visible-survivor-root');
+      root.state='deleted';root.replies=root.replies.map(reply=>({...reply,state:'deleted'}));
+      panel.render(state);
+      const active=document.activeElement;
+      return {removed:!document.querySelector('[data-post-id=visible-survivor-root]'),
+        focusedConnected:!!active?.isConnected,focusedInFeed:!!document.querySelector('#discussion-feed').contains(active),
+        activeTag:active?.tagName,activeId:active?.id};
+    })()`, sessionId);
+    assert.ok(deletionFocus.removed && deletionFocus.focusedConnected && deletionFocus.focusedInFeed,
+      `focus falls back into the discussion feed after a focused root is pruned: ${JSON.stringify(deletionFocus)}`);
+    await evaluate("window.visualDiscussionState.discussion=window.visualBeforeDeletion;window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.discussion.roots[0].replies=[];window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     await evaluate("window.visualDiscussionState.draft={body:'A thoughtful reply',detached:false,mode:'reply',targetId:'root-1'};window.visualDiscussionPanel.render(window.visualDiscussionState);scrollTo(0,0)", sessionId);
     assert.equal(await evaluate("(() => { const cue=document.querySelector('#discussion-reply-context'); return cue && !cue.hidden && cue.textContent.includes('Blair') && document.querySelector('#discussion-submit').textContent === 'Post reply'; })()", sessionId), true,

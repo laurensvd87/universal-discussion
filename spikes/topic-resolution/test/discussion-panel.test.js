@@ -353,7 +353,7 @@ test("User thread cards reveal nested replies, retain expansion and focus, and s
   const card = thread.children[0];
   assert.equal(card.className, "discussion-thread-card");
   assert.equal(card.children[0].children.find((item) => item.className === "discussion-body").textContent, "Opening message");
-  assert.equal(card.children[1].textContent, EN.uiShowReplies.replace("{count}", "4"));
+  assert.equal(card.children[1].textContent, EN.uiShowReplies.replace("{count}", "3"));
   assert.equal(card.children[2].attributes["data-open"], "false");
   assert.equal(card.children[2].inert, true);
   assert.equal(descendants(card).filter((item) => item.tag === "time").length, 4);
@@ -412,6 +412,59 @@ test("same-time child sorted before its parent still renders under that parent",
   assert.equal(ui.document.activeElement.attributes["data-post-id"], "a-child");
   assert.equal(card.children[2].attributes["data-open"], "true");
 });
+test("User threads omit deleted leaves and all-deleted roots but keep arbitrary-depth deleted connectors", () => {
+  const ui = harness();
+  const reply = (id, replyToId, stateValue = "deleted") => ({ id, rootId: "kept-root",
+    replyToId, state: stateValue, authorId: "demo-alex", actorType: "human", body: id });
+  const kept = { id: "kept-root", state: "deleted", replies: [
+    reply("visible-grandchild", "deleted-parent", "visible"),
+    reply("deleted-leaf", "kept-root"),
+    reply("deleted-parent", "deleted-grandparent"),
+    reply("deleted-grandparent", "kept-root"),
+    reply("deleted-sibling", "deleted-grandparent"),
+  ] };
+  const empty = { id: "empty-root", state: "deleted", replies: [
+    { id: "empty-child", replyToId: "empty-root", state: "deleted" } ] };
+  ui.panel.render(state({ discussion: { roots: [kept, empty] } }));
+  const posts = () => descendants(ui.root).filter((item) => item.attributes?.["data-post-id"]);
+  assert.deepEqual(posts().map((item) => item.attributes["data-post-id"]),
+    ["kept-root", "deleted-grandparent", "deleted-parent", "visible-grandchild"]);
+  assert.equal(descendants(ui.root).filter((item) => item.className === "discussion-thread-card").length, 1);
+  const toggle = (id) => descendants(ui.root).find((item) => item.attributes?.["data-action"] === "expand" &&
+    item.attributes["data-contribution-id"] === id);
+  for (const id of ["kept-root", "deleted-grandparent", "deleted-parent"])
+    assert.equal(toggle(id).textContent, EN.uiShowReply.replace("{count}", "1"));
+  toggle("kept-root").listeners.get("click")();
+  toggle("deleted-grandparent").listeners.get("click")();
+  toggle("deleted-parent").listeners.get("click")();
+  assert.equal(descendants(ui.root).filter((item) => item.textContent === EN.discussionDeleted).length, 3);
+  ui.panel.setMode("developer");
+  assert.equal(posts().length, 8);
+});
+test("a newly created reply remains revealed through a deleted connector and pruning clears it", () => {
+  const ui = harness();
+  const root = { id: "reveal-root", state: "visible", actorType: "human", authorId: "demo-alex",
+    body: "Opening", replies: [
+      { id: "deleted-connector", rootId: "reveal-root", replyToId: "reveal-root", state: "deleted" },
+      { id: "new-grandchild", rootId: "reveal-root", replyToId: "deleted-connector",
+        state: "visible", actorType: "human", authorId: "demo-alex", body: "New reply" },
+    ] };
+  const snapshot = state({ discussion: { discussionId: "reveal-discussion", roots: [root] } });
+  const createdPost = { id: "new-grandchild", actorId: snapshot.actorId, sourceId: snapshot.sourceId,
+    topicId: snapshot.topicId, discussionId: snapshot.discussion.discussionId };
+  ui.panel.render({ ...snapshot, createdPost });
+  const toggle = (id) => descendants(ui.root).find((item) => item.attributes?.["data-action"] === "expand" &&
+    item.attributes["data-contribution-id"] === id);
+  assert.equal(toggle("reveal-root").attributes["aria-expanded"], "true");
+  assert.equal(toggle("deleted-connector").attributes["aria-expanded"], "true");
+  assert.equal(ui.document.activeElement?.attributes?.["data-post-id"], "new-grandchild");
+  const withdrawn = { ...snapshot, discussion: { ...snapshot.discussion, roots: [{ ...root,
+    replies: root.replies.map((reply) => reply.id === "new-grandchild"
+      ? { ...reply, state: "deleted" } : reply) }] } };
+  ui.panel.render(withdrawn);
+  assert.equal(descendants(ui.root).some((item) => item.attributes?.["data-post-id"] === "deleted-connector"), false);
+  assert.equal(descendants(ui.root).some((item) => item.attributes?.["data-post-id"] === "new-grandchild"), false);
+});
 test("focused action falls back to its post or discussion when disabled or removed", () => {
   const ui = harness();
   const original = state({ discussion: { roots: [{ id: "focus-root", rootId: null, replyToId: null,
@@ -431,8 +484,8 @@ test("focused action falls back to its post or discussion when disabled or remov
   const withdrawn = { ...original, discussion: { roots: [{ id: "focus-root", rootId: null,
     replyToId: null, state: "deleted", label: "Deleted", replies: [] }] } };
   ui.panel.render(withdrawn);
-  assert.equal(ui.document.activeElement.attributes["data-post-id"], "focus-root");
-  assert.equal(ui.document.activeElement.attributes["aria-label"], EN.discussionDeleted);
+  assert.equal(ui.document.activeElement.className, "discussion-thread");
+  assert.equal(descendants(ui.root).some((item) => item.attributes["data-post-id"] === "focus-root"), false);
   ui.panel.render(original);
   action().focus();
   ui.panel.render({ ...original, discussion: { roots: [] } });
@@ -962,7 +1015,7 @@ test("panel renders hostile service text inertly, actual distinct counts, fixtur
   assert.ok(ui.created.some((item) => item.textContent === "<img src=x onerror=alert(1)>\nplain text"));
   assert.ok(ui.created.some((item) => item.textContent === "1 human · 0 AI"));
   assert.ok(ui.created.some((item) => item.textContent === EN.discussionModelFixture));
-  assert.ok(ui.created.some((item) => item.textContent === EN.discussionDeleted));
+  assert.equal(descendants(ui.root).some((item) => item.textContent === EN.discussionDeleted), false);
   assert.equal(ui.created.some((item) => ["a", "img", "iframe", "script"].includes(item.tag)), false);
 });
 test("labels, form submission, password clearing, source choice and keyboard focus are wired", async () => {
@@ -1734,7 +1787,7 @@ test("User contribution headers keep generated and imported provenance distinct"
   assert.equal(author("human").textContent, "Alex");
   assert.equal(descendants(cards.generated).some((item) => item.className?.includes("discussion-actor-badge-agent")), false);
   assert.equal(descendants(cards.imported).some((item) => item.className?.includes("discussion-actor-badge-agent")), false);
-  assert.equal(descendants(cards.human).some((item) => item.className?.includes("discussion-actor-badge-human")), true);
+  assert.equal(descendants(cards.human).some((item) => item.className?.includes("discussion-actor-badge-human")), false);
   assert.equal(descendants(cards.generated).some((item) => item.tag === "time"), true);
   assert.equal(descendants(cards.generated).find((item) => item.className === "discussion-source-link").href,
     "https://example.org/generated");

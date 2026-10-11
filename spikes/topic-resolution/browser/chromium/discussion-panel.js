@@ -389,11 +389,6 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       demo.setAttribute("aria-label", text("uiDemoBadgeLabel"));
       metadata.append(demo);
     }
-    if (uiMode === "user" && entry.actorType === "human") {
-      const type = node("span", "uiHumanBadge");
-      type.className = "discussion-actor-badge discussion-actor-badge-human";
-      metadata.append(type);
-    }
     if (typeof entry.createdAt === "string") {
       const date = new Date(entry.createdAt);
       if (Number.isFinite(date.getTime())) {
@@ -515,6 +510,44 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
       if (nested) return nested;
     }
     return null;
+  }
+  function visibleThread(rootEntry) {
+    const replies = rootEntry.replies ?? [];
+    const byParent = new Map([[rootEntry.id, []]]);
+    for (const reply of replies) byParent.set(reply.id, []);
+    for (const reply of replies) {
+      const parentId = byParent.has(reply.replyToId) && reply.replyToId !== reply.id
+        ? reply.replyToId : rootEntry.id;
+      byParent.get(parentId).push(reply);
+    }
+    // Walk the canonical parent graph after all IDs are indexed. A deleted post
+    // survives only when a visible descendant needs it as a connector.
+    const retained = new Set();
+    const visibleBelow = new Map();
+    const visited = new Set();
+    const stack = [[rootEntry.id, false]];
+    while (stack.length) {
+      const [id, complete] = stack.pop();
+      if (complete) {
+        const children = byParent.get(id) ?? [];
+        let count = 0;
+        for (const child of children) {
+          if (child.state === "visible") count += 1;
+          count += visibleBelow.get(child.id) ?? 0;
+        }
+        visibleBelow.set(id, count);
+        if (id !== rootEntry.id && count > 0) retained.add(id);
+        continue;
+      }
+      if (visited.has(id)) continue;
+      visited.add(id);
+      stack.push([id, true]);
+      for (const child of byParent.get(id) ?? [])
+        if (!visited.has(child.id)) stack.push([child.id, false]);
+    }
+    for (const reply of replies) if (reply.state === "visible") retained.add(reply.id);
+    return { rootEntry, byParent, retained, visibleBelow,
+      shown: rootEntry.state === "visible" || (visibleBelow.get(rootEntry.id) ?? 0) > 0 };
   }
   function readyPresentationContext(value) {
     if (value?.phase !== "ready" || !value.discussion) return null;
@@ -913,20 +946,26 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           entry.id === focusKey || entry.replies?.some((reply) => reply.id === focusKey))?.id);
       clearThreadHandlers(); const cards = [];
       let branchSerial = 0;
+      let pinnedHeadingAdded = false;
       for (const [index, rootEntry] of displayRoots.entries()) {
-        if (alternateView?.pinnedRoots.length && index === alternateView.roots.length) {
+        const tree = visibleThread(rootEntry);
+        if (uiMode === "user" && !tree.shown) continue;
+        if (alternateView?.pinnedRoots.length && index >= alternateView.roots.length &&
+            !pinnedHeadingAdded) {
           const divider = node("h3", "uiTopicViewPinned"); divider.className = "discussion-pinned-heading";
           cards.push(divider);
+          pinnedHeadingAdded = true;
         }
         const group = node("section"); group.className = "discussion-thread-card";
         group.setAttribute("data-thread-root-id", rootEntry.id);
         group.setAttribute("tabindex", "-1");
         group.setAttribute("aria-label", text("uiThreadFocusLabel"));
         group.setAttribute("data-expanded", String(expandedBranches.has(rootEntry.id)));
-        group.setAttribute("data-has-replies", String(Boolean(rootEntry.replies?.length)));
+        group.setAttribute("data-has-replies", String(uiMode === "user"
+          ? (tree.visibleBelow.get(rootEntry.id) ?? 0) > 0 : Boolean(rootEntry.replies?.length)));
         group.append(contribution(rootEntry, rootEntry, state, arrivals.has(rootEntry.id)));
         if (uiMode === "user") {
-          const replies = rootEntry.replies ?? [];
+          const replies = (rootEntry.replies ?? []).filter((reply) => tree.retained.has(reply.id));
           if (!replies.length && rootEntry.state === "visible" && rootEntry.body.length > 180) {
             group.setAttribute("data-collapsible", "true");
             const toggle = branchToggle(rootEntry.id, 0, expandedBranches.has(rootEntry.id), true);
@@ -936,12 +975,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
             toggle.threadGroup = group;
             group.append(toggle);
           }
-          const byParent = new Map([[rootEntry.id, []]]);
-          for (const reply of replies) byParent.set(reply.id, []);
-          for (const reply of replies) {
-            const parentId = byParent.has(reply.replyToId) ? reply.replyToId : rootEntry.id;
-            byParent.get(parentId).push(reply);
-          }
+          const byParent = tree.byParent;
           // Create every node before linking parents and children. Same-time replies
           // can sort before their parent by ID, so array position is not lineage.
           const assembled = new Map();
@@ -949,9 +983,9 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
           for (const reply of replies) {
             const branch = node("div"); branch.className = "discussion-reply-branch";
             branch.append(contribution(reply, rootEntry, state, arrivals.has(reply.id)));
-            const children = byParent.get(reply.id) ?? [];
+            const children = (byParent.get(reply.id) ?? []).filter((child) => tree.retained.has(child.id));
             if (children.length) {
-              const toggle = branchToggle(reply.id, children.length, expandedBranches.has(reply.id));
+              const toggle = branchToggle(reply.id, tree.visibleBelow.get(reply.id) ?? 0, expandedBranches.has(reply.id));
               const childList = node("div"); childList.className = "discussion-reply-children";
               childList.id = `discussion-branch-${++branchSerial}`;
               toggle.setAttribute("aria-controls", childList.id);
@@ -967,7 +1001,7 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
             assembled.set(reply.id, branch);
           }
           if (replies.length) {
-            const toggle = branchToggle(rootEntry.id, replies.length, expandedBranches.has(rootEntry.id));
+            const toggle = branchToggle(rootEntry.id, tree.visibleBelow.get(rootEntry.id) ?? 0, expandedBranches.has(rootEntry.id));
             const replyList = node("div"); replyList.className = "discussion-replies";
             replyList.id = `discussion-branch-${++branchSerial}`;
             toggle.setAttribute("aria-controls", replyList.id);
@@ -981,11 +1015,12 @@ export function mountDiscussionPanel(document, root, { messages = EN } = {}) {
             replyList.append(replyContent);
             group.append(toggle, replyList);
             for (const reply of replies) {
-              const parentId = byParent.has(reply.replyToId) ? reply.replyToId : rootEntry.id;
+              const parentId = byParent.has(reply.replyToId) && reply.replyToId !== reply.id ? reply.replyToId : rootEntry.id;
               childContainers.get(parentId).append(assembled.get(reply.id));
             }
           }
-        } else for (const reply of rootEntry.replies ?? []) group.append(contribution(reply, rootEntry, state, arrivals.has(reply.id)));
+        } else for (const reply of rootEntry.replies ?? [])
+          group.append(contribution(reply, rootEntry, state, arrivals.has(reply.id)));
         cards.push(group);
       }
       if (state.discussion && !cards.length) cards.push(node("p", uiMode === "user" ? "uiDiscussionEmpty" : "discussionEmpty"));

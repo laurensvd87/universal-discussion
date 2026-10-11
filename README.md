@@ -10,7 +10,7 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 
 This is a usable local discussion prototype, not a hosted or general-web product.
 
-Extension **0.13.39** opens as a resizable native Chrome sidebar alongside the
+Extension **0.13.40** opens as a resizable native Chrome sidebar alongside the
 page, instead of a floating popup. Click the extension icon to open it; it stays
 open while you change tabs or navigate. The new dark interface puts the composer,
 model selector, Insights and conversation cards together, with compact icons and
@@ -21,6 +21,9 @@ Successful deliberate posts/replies unfold their branch and focus the new messag
 once; later refreshes do not take focus away from typing.
 The reveal now survives the later arrival of the topic-grouped view and
 same-page refresh, which previously could fold the just-posted reply again.
+Deleted messages disappear when no visible replies need them; deleted ancestors
+remain as placeholders to connect surviving replies. Author icons replace the
+redundant Human/AI badges, with provenance still available to assistive tools.
 Reload the unpacked extension after updating and accept the new `sidePanel`
 permission if Chrome asks. Existing pairing, login and saved discussions remain.
 Closing the panel does not stop background matching; **Settings → Browsing

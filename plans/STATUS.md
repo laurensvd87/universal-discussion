@@ -1,5 +1,30 @@
 # Project status
 
+**2026-10-11 deleted-branch pruning and icon-only authors, complete (0.13.40):**
+The owner requests hidden deleted messages when no undeleted descendants need
+them, and no redundant Human/AI tags. [ADR-082](../decisions/ADR-082-deleted-branch-pruning-and-icon-only-authors.md)
+records this local presentation refinement. User Mode computes lineage bottom-up
+without relying on flattened reply order: visible messages and their deleted
+ancestors remain; deleted leaves/chains and wholly deleted trees disappear.
+Reply counts include visible descendants only. This never changes saved state,
+canonical IDs, withdrawal rights, reply/Insight eligibility or other users' text.
+Developer Mode retains full tombstone diagnostics.
+
+User author headers retain person/sparkle icons, names, time/source links and
+localized accessible provenance without Human/AI pills. Unverified imports remain
+distinct; Developer provenance stays explicit. Existing owner-local icon-only
+presentation is not legal disclosure or store clearance.
+
+Sol Medium coding and independent QA review pass. Focused renderer **76 pass**;
+final full extension **1,113 pass/1 optional skip**, restricted **1,114 pass**.
+Disposable Chrome verifies pruning, deleted ancestor/visible grandchild lineage,
+survivor counts, icon masks/accessible names, no type badges and focus fallback;
+prior reply reveal/typing/narrow-layout checks pass. Root reviews the grandchild
+screenshot. Secret scan (**189 files**, zero findings) and diff checks pass.
+No provider request, owner database access or service restart is needed. Existing
+service remains available (unauthenticated catalog **401**); reload extension to
+**0.13.40**. No permission, retention, migration or publication scope change.
+
 **2026-10-11 live citation syntax and refresh-stable reply reveal, complete (0.13.39):**
 The owner's next price reply still has no saved links and does not remain open.
 [ADR-081](../decisions/ADR-081-live-citation-format-and-refresh-reveal.md)

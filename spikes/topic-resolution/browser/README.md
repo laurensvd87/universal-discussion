@@ -1,6 +1,6 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
-## Persistent discussion sidebar (0.13.39)
+## Persistent discussion sidebar (0.13.40)
 
 Reload the unpacked extension and click its toolbar icon. Chrome opens a native,
 resizable side panel alongside the page; the panel remains mounted across tabs
@@ -21,6 +21,10 @@ typing and the reader's later collapse choices. Reduced motion applies.
 The same selected view stays stable while the delayed topic-grouped projection
 loads; its arrival and a same-page refresh no longer fold the newly revealed
 reply. See [ADR-081](../../../decisions/ADR-081-live-citation-format-and-refresh-reveal.md).
+User Mode hides deleted leaf messages and wholly deleted branches, retaining
+only deleted ancestors needed by visible replies. It uses author icons without
+Human/AI pills; accessible provenance and Developer diagnostics remain intact.
+See [ADR-082](../../../decisions/ADR-082-deleted-branch-pruning-and-icon-only-authors.md).
 New **Insight**/sparkle clicks authorize generation and one immediate local post;
 opening the panel never generates or publishes an Insight by itself. Human Post
 and sharing old/recovered private results remain separate deliberate actions.

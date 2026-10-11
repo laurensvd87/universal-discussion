@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-11 cleaner deletion/author presentation (0.13.40), complete: read ADR-082.
+User Mode prunes deleted leaves/chains and wholly deleted trees; deleted ancestors
+of visible replies remain as Deleted by user bridges. Reply counts exclude
+tombstones. Lineage is evaluated bottom-up independently of flattened reply
+order. Filtering does not mutate persistence, IDs, rights or canonical targets.
+Developer Mode preserves diagnostic tombstones. Human/AI pills are removed;
+person/sparkle icons, accessible provenance, names, source/time and unverified
+import distinctions remain. Existing local icon-only override is not release
+or legal disclosure approval.
+
+Sol Medium coding and independent QA pass: focused renderer 76; full extension
+1,113 pass/1 optional skip; restricted 1,114 pass. Actual disposable synthetic
+Chrome checks deletion bridges/pruning/counts/icon masks/accessibility/focus,
+plus existing reveal/typing/layout. Root reviews grandchild screenshot. Secret
+scan (189 files, zero findings) and diff checks pass. No real provider call,
+owner database access or backend restart; normal catalog still returns expected
+unauthenticated 401. Reload 0.13.40. Keep prior citation/one-shot/focus guards.
+
 2026-10-11 citation/reveal follow-up (0.13.39), complete: read ADR-081 before the
 0.13.38 checkpoint. Its ready-cue visual fixture missed a delayed alternate-view
 transition that cleared expansion. Selected mode/Source/Topic now owns expansion;
