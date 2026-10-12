@@ -8,6 +8,9 @@ const CURSOR = /^[A-Za-z0-9_-]{1,2048}$/u;
 const MAX_RESPONSE = 1_048_576;
 const MAX_CATALOG_PAGES = 1_000;
 const MAX_CATALOG_SOURCES = 100_000;
+// Only canonical ingestion gets the approved longer response window. Catalogue
+// and version requests retain their existing timeout and retry rules.
+const INGEST_TIMEOUT_MS = 30_000;
 const INGEST_ERROR_CODES = new Set(["request-capacity", "request-too-large", "invalid-response", "invalid-request",
   "unauthorized", "forbidden", "conflict", "capacity", "unavailable", "ambiguous",
   "response-timeout", "service-error", "service-unavailable"]);
@@ -29,7 +32,7 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
   if (typeof token !== "string" || !TOKEN.test(token) || !Number.isInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 60_000 ||
       typeof requestImpl !== "function") throw new TypeError("Invalid local crawler authentication");
 
-  function request(method, apiPath, value) {
+  function request(method, apiPath, value, requestTimeoutMs = timeoutMs) {
     const body = value === undefined ? null : Buffer.from(JSON.stringify(value), "utf8");
     if (body && body.length > 65_536) { body.fill(0); throw new CrawlerApiError("request-capacity"); }
     return new Promise((resolve, reject) => {
@@ -44,7 +47,7 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
         try { outgoing?.destroy(); } catch {}
         reject(new CrawlerApiError(code));
       };
-      timer = setTimeout(() => fail("ambiguous"), timeoutMs);
+      timer = setTimeout(() => fail("ambiguous"), requestTimeoutMs);
       try {
         outgoing = requestImpl({ protocol: "http:", hostname: HOST, port: PORT, path: apiPath, method, agent: false,
           headers: { authorization: `Bearer ${token}`, accept: "application/json",
@@ -127,7 +130,7 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
     let expected = initialVersion, ambiguous = false;
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        const value = await request("POST", "/v1/sources/ingest", { ...representation, expected, operationId });
+        const value = await request("POST", "/v1/sources/ingest", { ...representation, expected, operationId }, INGEST_TIMEOUT_MS);
         if (!plain(value, ["assignment", "policyVersion", "sourceId", "topicId", "version"]) || !isVersion(value.version) ||
             !ID.test(value.sourceId) || !ID.test(value.topicId) || !["provisional", "confirmed"].includes(value.assignment) ||
             typeof value.policyVersion !== "string" || value.version.generation !== expected.generation || value.version.revision < expected.revision)

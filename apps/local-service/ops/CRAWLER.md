@@ -36,9 +36,24 @@ rejected work at an existing capacity/budget guard; `ambiguous` means a response
 was lost, incomplete or timed out. Complete HTTP 408, 500 and 503 responses now
 report `response-timeout`, `service-error` and `service-unavailable`, respectively.
 Older `unavailable` output cannot retrospectively identify which status occurred.
-These labels do not add retries or extend deadlines. Queued/staged work stays in the ledger. Rerun
+These labels do not add retries. Queued/staged work stays in the ledger. Rerun
 uses the same operation identity to reconcile a possibly accepted request.
 Repetition alone cannot resolve a deterministic service failure.
+
+Authenticated canonical ingestion has a thirty-second service response/socket
+window measured from socket acceptance; the crawler also waits up to thirty
+seconds per ingestion request. Raw headers/body and unvalidated requests keep
+five seconds, other crawler API requests keep ten seconds, and the existing
+ten-second Topic-planning CPU guard is unchanged. A stopped old service must be
+restarted to load this fix; the PowerShell crawler wrapper does not restart it.
+
+An isolated public-page fetch failure can be skipped. A canonical ingestion
+failure stops this invocation because it can signal service-wide trouble or an
+uncertain write: even complete HTTP 408 may follow an accepted database commit.
+The candidate remains staged. A later manual run reconciles already-known URLs,
+without revisiting that page or creating a second Source. Do not delete the
+ledger to recover, and do not start two concurrent crawlers. No new automatic
+timeout retry is added by the longer response window.
 
 ## Preview, then apply
 

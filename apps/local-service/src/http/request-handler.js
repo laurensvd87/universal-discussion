@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { ServiceError, fail } from "../domain/errors.js";
 import { readRecord } from "../domain/validation.js";
+import { readLearnedIngest } from "../domain/learned-sources.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 import { mapAccountError, routeAccountRequest } from "../accounts/account-routes.js";
 import { isAccountActor } from "../accounts/account-principal.js";
@@ -217,7 +218,16 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
   }
   if (request.method === "POST") {
     const input = parseJsonBody(request);
-    if (path === "/v1/sources/ingest") return { status: 200, value: service.ingest(input) };
+    if (path === "/v1/sources/ingest") {
+      // Grant only after the complete representation and existing optional
+      // account proof pass. Preserve the original service input/digest semantics;
+      // the service remains authoritative for version, replay and capacity.
+      readLearnedIngest(input);
+      if (transportContext?.leaseAuthenticatedIngestion && !transportContext.leaseAuthenticatedIngestion()) {
+        fail("unavailable", "Request unavailable");
+      }
+      return { status: 200, value: service.ingest(input) };
+    }
     if (path === "/v1/related") {
       const body = readRecord(input, ["sourceId", "limit"]);
       return { status: 200, value: service.related(body.sourceId, body.limit) };

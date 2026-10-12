@@ -12,6 +12,7 @@ export const TRANSPORT_LIMITS = Object.freeze({
   callbackUrlUnits: 8_192,
   requestMs: 5_000,
   authenticatedModelsMs: 30_000,
+  authenticatedIngestionMs: 30_000,
   connections: 16,
 });
 
@@ -79,20 +80,22 @@ export function createTransportHandler(handle) {
     let expiresAt = Math.min(startedAt + TRANSPORT_LIMITS.requestMs, socketDeadline?.expiresAt ?? Infinity);
     let timer = setTimeout(() => stop(408), Math.max(0, expiresAt - startedAt));
     timer.unref();
+    function leaseAuthenticatedResponse(duration) {
+      const now = performance.now();
+      if (finished || leased || response.destroyed || response.writableEnded || request.aborted || request.socket?.destroyed ||
+          now >= expiresAt || (socketDeadline && !socketDeadline.leaseAuthenticatedResponse(now, duration))) return false;
+      leased = true;
+      // Both timers use the same absolute accept-time deadline. No extra
+      // thirty seconds after collecting headers/body or proving authority.
+      expiresAt = socketDeadline?.expiresAt ?? startedAt + duration;
+      clearTimeout(timer);
+      timer = setTimeout(() => stop(408), Math.max(0, expiresAt - now));
+      timer.unref();
+      return true;
+    }
     const transportContext = Object.freeze({
-      leaseAuthenticatedModels() {
-        const now = performance.now();
-        if (finished || leased || response.destroyed || response.writableEnded || request.aborted || request.socket?.destroyed ||
-            now >= expiresAt || (socketDeadline && !socketDeadline.leaseAuthenticatedModels(now))) return false;
-        leased = true;
-        // Both timers use the same absolute accept-time deadline. No extra
-        // thirty seconds after collecting headers/body or proving authority.
-        expiresAt = socketDeadline?.expiresAt ?? startedAt + TRANSPORT_LIMITS.authenticatedModelsMs;
-        clearTimeout(timer);
-        timer = setTimeout(() => stop(408), Math.max(0, expiresAt - now));
-        timer.unref();
-        return true;
-      },
+      leaseAuthenticatedModels() { return leaseAuthenticatedResponse(TRANSPORT_LIMITS.authenticatedModelsMs); },
+      leaseAuthenticatedIngestion() { return leaseAuthenticatedResponse(TRANSPORT_LIMITS.authenticatedIngestionMs); },
     });
     function cleanup() {
       clearTimeout(timer);
@@ -143,10 +146,10 @@ export function createTransportHandler(handle) {
     let leased = false;
     const state = {
       expiresAt: acceptedAt + TRANSPORT_LIMITS.requestMs,
-      leaseAuthenticatedModels(now) {
+      leaseAuthenticatedResponse(now, duration) {
         if (closed || leased || socket.destroyed || now >= state.expiresAt) return false;
         leased = true;
-        state.expiresAt = acceptedAt + TRANSPORT_LIMITS.authenticatedModelsMs;
+        state.expiresAt = acceptedAt + duration;
         clearTimeout(deadline);
         deadline = setTimeout(() => socket.destroy(), Math.max(0, state.expiresAt - now));
         deadline.unref();

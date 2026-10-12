@@ -155,6 +155,63 @@ test("ambiguous ingestion retries the exact operation once without changing its 
   assert.equal(body(fixture.calls[0]).operationId, "crawl-operation-one");
 });
 
+test("only ingestion uses thirty-second client timers, including exact conflict retry", async t => {
+  const periods = [];
+  const originalTimer = globalThis.setTimeout;
+  t.mock.method(globalThis, "setTimeout", (callback, milliseconds, ...args) => {
+    periods.push(milliseconds);
+    return originalTimer(callback, milliseconds, ...args);
+  });
+  const fixture = responseFixture([
+    { value: { version: VERSION } },
+    { value: { catalog: { version: VERSION, sources: [] }, nextCursor: null } },
+    { status: 409, value: {} },
+    { value: { version: { ...VERSION, revision: 12 } } },
+    { value: ingestResult({ ...VERSION, revision: 13 }) },
+  ]);
+  const client = createLocalIngestClient({ token: TOKEN, requestImpl: fixture.requestImpl });
+  await client.version();
+  await client.knownSourceUrls();
+  await client.ingest(representation(), "crawl-longer-deadline", VERSION);
+  assert.deepEqual(periods, [10_000, 10_000, 30_000, 10_000, 30_000]);
+  const first = body(fixture.calls[2]), last = body(fixture.calls[4]);
+  delete first.expected; delete last.expected;
+  assert.deepEqual(first, last);
+});
+
+test("ingestion completing after ten seconds succeeds without a timeout retry", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let respond, destroyed = 0, calls = 0;
+  const requestImpl = (_options, onResponse) => {
+    calls++;
+    const outgoing = new EventEmitter();
+    outgoing.destroy = () => { destroyed++; };
+    outgoing.end = () => { respond = () => {
+      const incoming = new PassThrough();
+      incoming.statusCode = 200;
+      incoming.headers = { "content-type": "application/json" };
+      onResponse(incoming);
+      incoming.end(Buffer.from(JSON.stringify(ingestResult())));
+    }; };
+    return outgoing;
+  };
+  const pending = createLocalIngestClient({ token: TOKEN, requestImpl }).ingest(representation(), "crawl-slow-success", VERSION);
+  t.mock.timers.tick(11_000);
+  assert.equal(destroyed, 0);
+  assert.equal(calls, 1);
+  respond();
+  assert.deepEqual(await pending, ingestResult());
+  assert.equal(calls, 1);
+});
+
+test("complete ingestion timeout remains terminal and does not add retries", async () => {
+  const fixture = responseFixture([{ status: 408, value: { error: "invalid-request" } }]);
+  await assert.rejects(createLocalIngestClient({ token: TOKEN, requestImpl: fixture.requestImpl })
+    .ingest(representation(), "crawl-complete-timeout", VERSION), rejectsCode("response-timeout"));
+  assert.equal(fixture.calls.length, 1);
+  assert.equal(fixture.remaining(), 0);
+});
+
 test("conflict refreshes the canonical version before retrying the same representation", async () => {
   const refreshed = { generation: VERSION.generation, revision: 12 };
   const final = ingestResult({ generation: VERSION.generation, revision: 13 });

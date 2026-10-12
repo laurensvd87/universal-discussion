@@ -1,5 +1,23 @@
 # Project status
 
+**2026-10-12 approved ingestion deadline correction checked (ADR-106):**
+Owner approves authenticated canonical ingestion-only30s service/socket window
+and crawler timer plus idle normal restart. Exact normalized POST/ingest after
+Host/Origin/pairing/optionalaccount/full learned-input checks receives internal
+lease, absolute socketaccept+30s. Expired/closed/aborted requests cannot revive
+lease or dispatch ingestion. Both clocks share expiry; raw header/body/invalid/
+unauth/other routes retain5s, models retain30s, CPU planner10s/byte/connection/
+generation/operation fences unchanged. Version/catalog crawler timers remain10s.
+No new retry: complete408 terminal; prior ambiguity/conflict policy exact. Slow
+accepted writes within30s now deliver success; longer work may still be uncertain.
+
+Independent review accepts; real normalized RAM canonical29+existingmodel28
+deadline checks57, otherHTTP/service32 and crawlerclient13 pass. Full final
+backend878 pass/five platform skips; secret753/zero, diffclean. No owner ingestion,
+provider call/page fetch or client authority/permission change. Activation awaits
+verified idle normal restart, preserving ledger/data/pairing/protected login;
+older diagnosis-only gate below is superseded by explicit owner approval.
+
 **2026-10-12 crawler HTTP408 diagnosis, correction not yet authorized:**
 Owner's new Apply run stops response-timeout after one confirmed ingestion;
 ledger736 ingested/12840 queued/five staged. Read-only canonical inspection finds
