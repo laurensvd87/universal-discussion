@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current contribution-goal refinement (2026-10-12, ADR-100, backend-only0.13.60):
+owner now explicitly requests Standard-opening summary, other11 standalone voice
+posts rather than summary+style. This supersedes Standard-opening hash preservation
+and forced shared synthesis/analysis, not protected factual/source/tool rules.
+Standard REPLY hashes stay exact. New modes allow one-liners/no minimum, usually
+<=60words/max120; conditional comparisons don't force analytical tails. Nonstandard
+replies still answer actual target question. Independent35 focused/protected48
+combinations pass; full current backend846 pass/five skips. Activation pending
+because separate startup/metrics work is still uncommitted: do not restart and
+load unfinished unrelated runtime work. No new inference grant. Read STATUS/HANDOFF.
+
 Current voice/task separation (2026-10-12, ADR-100 refinement, backend-only
 0.13.60): user requests selected voice, not shared neutral/critical/sober tone.
 Nonstandard voice block replaces thoughtful-contributor identity and old subordinate

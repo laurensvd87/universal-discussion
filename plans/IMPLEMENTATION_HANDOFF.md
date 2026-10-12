@@ -1,5 +1,21 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-100 contribution-goal refinement CHECKED, activation PENDING:
+owner wants Standardopening summary, other11 actual voice posts, not analysis
+decorated with style. One-liners/no minimum/usually<=60/max120; no required recap,
+synthesis/evidenceaudit/analyticaltail. All new modes use conditional selection
+guidance; nonstandardreplies must answer selectedquestion. Standardreply2 original
+hashes exact; Standardopening2 hashes intentionally change under latest request.
+Seven protected language/evidence/date/research/citation spans and nine literal
+factual protections verified across48modes; tools/context/privatesuppression/
+sourceproof/sharing remain. Independent35/broad147+two skips/full current backend
+846+five skips pass; secret752/zero, diffclean. No live inference/stylequalityclaim.
+Service PTY86160 still prior delivery-only prompt; do NOT restart while separate
+uncommitted startup/metrics runtime changes are unfinished. After that work is
+reviewed, verify idle and activate with normal existing Origin, retaining pairing/
+login/data. Client0.13.60 needs no reload. Other backend/dashboard/Copilot changes
+are separate; do not stage them with this increment. No background generation.
+
 2026-10-12 ADR-100 selected voice/task separation ACTIVE after owner confirmed
 crawler completion and verified idle normal restart. Never interrupt active work.
 Selected11 nonstandard voices lead delivery, no shared thoughtful/

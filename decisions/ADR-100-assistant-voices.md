@@ -132,3 +132,41 @@ rewrite. Backend-only idle activation is complete after the owner confirmed
 crawler completion; health and protected login restore, canonical/private counts
 stay exact. No new provider inference was made. Do not interrupt running work
 for activation. Final tests/activation state live in STATUS.
+
+## 2026-10-12 refinement: contribution goals, not decorated summaries
+
+The owner reports that Funny still produces analysis with an added joke and
+explicitly changes the desired task: Standard should summarize; other selections
+should produce their own kind of post. This supersedes the two historical
+Standard-opening hash pins and the shared synthesis/analysis task, not any source
+or tool authority. Both Standard reply prompts retain their original exact hashes.
+
+Standard openings now summarize the current page's main point, with directly
+relevant proven outside information only when available under the existing rules.
+The other eleven openings produce a standalone contribution: a joke, ironic take,
+unusual connection, fair counterargument, warranted doubt, practical tip, simple
+explanation, hopeful angle, candid tradeoff, common-ground perspective or genuine
+question. A joke or connection can be the whole post; no obligatory summary,
+evidence audit, explanation of significance or analytical conclusion. One-liners
+are welcome, with no word-count minimum, ordinarily up to sixty words and the
+existing hard prompt maximum of 120. This is a writing instruction, not a changed
+transport-size validator or guarantee of live output quality.
+
+For all nonstandard modes, comparison and judgment rules are conditional on the
+actual claim/request, rather than forcing a technical tradeoff or strongest
+cross-source difference into every creative contribution. Replies still answer
+the selected message through the voice; a real question cannot be replaced with
+a joke. Existing selected-message/opener context, private suppression, required
+shopping research and citation proof remain authoritative. Recognizable fiction
+and hyperbole are expression, not invented real facts/quotes/prices/sources.
+
+Independent review hash-pins seven unchanged language/evidence/date/research/
+citation spans across all 48 combinations and checks nine literal factual and
+provenance protections. Serialized packets retain every field except instructions
+and the already-existing voice preference. OpenAI Docs guidance informed defining
+the actual task rather than applying tone over a conflicting summary task; see
+[official prompt engineering](https://developers.openai.com/api/docs/guides/prompt-engineering).
+No automatic/background generation or new publication behaviour: deliberate
+sparkle requests keep their existing one-shot local sharing checks. No new model,
+tools, retention, provider call or app permission. Existing posts stay unchanged.
+Tests and safe activation status are recorded at the top of STATUS/HANDOFF.

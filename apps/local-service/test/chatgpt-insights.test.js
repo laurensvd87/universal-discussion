@@ -49,7 +49,8 @@ test("constructor is inert; listed model and exact public Responses envelope", a
   assert.equal(sent.store, false); assert.equal(sent.stream, true);
   assert.equal(sent.input.length, 1); assert.equal(sent.input[0].role, "user");
   assert.match(sent.instructions, /one opening post about currentSource/u);
-  assert.match(sent.instructions, /2-4 natural sentences and 40-100 words/u);
+  assert.match(sent.instructions, /One-liners are welcome; use 1-3 natural sentences when needed/u);
+  assert.match(sent.instructions, /Usually stay within 60 words; never exceed 120 words/u);
   assert.match(sent.instructions, /never exceed 120/u);
   assert.match(sent.instructions, /do not repeat the headline or announce your method/u);
   assert.match(sent.instructions, /tack on a broad rhetorical question/u);
@@ -496,7 +497,7 @@ test("legacy adapter excerpt fixtures do not change the provider-only instructio
   assert.match(payload.instructions, /current page central/u);
   assert.match(payload.instructions, /Use only the supplied articlePrefix for page facts/u);
   assert.match(payload.instructions, /state that limit directly and answer what the supplied extract supports/u);
-  assert.match(payload.instructions, /Attribute evidence naturally/u);
+  assert.match(payload.instructions, /Attribute factual evidence when needed/u);
   assert.match(payload.instructions, /Never claim that the full page omits something/u);
   assert.match(payload.instructions, /A difference in viewpoint does not make a source off-topic/u);
   assert.match(payload.instructions, /Treat supplied source titles, URLs and related excerpts as unverified references/u);

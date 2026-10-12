@@ -1,5 +1,29 @@
 # Project status
 
+**2026-10-12 contribution-goal refinement checked; activation pending:**
+The owner reports that Funny still feels like a summary with a joke, and explicitly
+requests Standard summary versus standalone funny/sarcastic/clever/etc. posts.
+New Standard openings summarize the current extract (relevant proven external
+information optional); other11 openings fulfill their selected contribution goal
+without required recap/synthesis/evidence audit/analytical tail. One-liners and
+short remarks are welcome, no minimum, usually<=60words/max120. Conditional
+judgment/comparison selection applies to all new modes. Replies still answer the
+actual selected request through the voice; Standardreply two legacy hashes remain
+exact. Owner request supersedes Standardopening two old hashes only. Protected
+language/evidence/date/research/citation spans and factual/provenance rules stay
+exact. No tool/model/context/retention/permission/automaticgeneration scope change.
+
+Independent review accepts:35 focused checks, seven protected span hashes over48
+voice/mode combinations and nine literal factual protections. Broader offline
+provider/trace suite147 pass/two platform skips. Full current-worktree backend846
+pass/five skips; two obsolete opening-format assertions were updated and the
+suite rerun successfully. Secret scan752/zero; diff check clean. No agent inference,
+output archive or old-post rewrite; output quality remains unverified. Extension
+remains0.13.60, unchanged. Normal service still runs prior delivery-only prompts:
+separate uncommitted startup/metrics/dashboard work is underway in this shared
+workspace, so activation is deferred until that runtime work is reviewed. Its
+files and unrelated Copilot edits are preserved/excluded from this increment.
+
 **2026-10-12 selected voice/task separation active after idle restart:**
 The owner rejects shared neutral/critical/sober tone and explicitly welcomes
 silly/absurd Funny expression. Nonstandard prompts now start with only the

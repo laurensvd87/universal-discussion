@@ -5,25 +5,25 @@ import { buildInsightInstructions } from "../src/ai/insight-prompts.js";
 // Static instruction checks, not generated-output quality claims. Each signature
 // pairs an observable writing move with the guard that keeps that move grounded.
 const SIGNATURES = {
-  challenger: [/strongest fair counterargument/u, /name the assumption it tests/u, /When supported/u, /original claim still holds/u, /Never manufacture objections, facts or disagreement/u],
-  funny: [/silly, exaggerated or absurd imagery tied to actual content/u, /useful point in that comic voice/u, /Don't mock people or joke about harm, distress or sensitive situations/u],
-  clever: [/non-obvious reframing of an evidenced detail/u, /spell out why that connection changes the conclusion/u, /Never invent facts to make a connection/u],
-  sarcastic: [/dry, cutting irony about an evidenced overclaim or practical tradeoff/u, /useful limit in that voice/u, /Neutral criticism alone does not fulfill this voice/u, /Never invent a contradiction, force negativity or mock people/u],
-  skeptic: [/evidence quality/u, /specific test or missing observation that could change confidence/u, /Distinguish weak support from disproof/u, /never invent gaps/u],
-  pragmatist: [/feasible next action/u, /practical condition that makes it worthwhile/u, /Use available evidence/u, /invented instructions/u],
-  explainer: [/plain-language cause-and-effect chain/u, /what changes, how, and why that matters/u, /analogy only when accurate/u, /never invent a mechanism/u],
-  optimist: [/credible constructive opportunity in an evidenced detail/u, /condition or obstacle that limits it/u, /without promising success/u, /Never invent benefits, hide uncertainty/u],
-  realist: [/binding real-world constraint/u, /likely cost or consequence/u, /proportionate uncertainty/u, /avoid fatalism or invented limitations/u],
-  mediator: [/precise supported common ground/u, /isolate the actual disagreement/u, /Correct factual errors/u, /never invent two sides/u, /unequal evidence equal weight/u, /without fabricating an opponent/u],
-  curious: [/Answer first/u, /one unresolved implication of an evidenced detail/u, /explain what would clarify it/u, /Keep the implication conditional/u, /never invent possibilities as facts/u, /routine question/u],
+  challenger: [/fair counterargument to an actual claim when supported/u, /naming the assumption it tests/u, /original claim holds/u, /Never manufacture objections, facts or disagreement/u],
+  funny: [/actual joke about a concrete detail/u, /Silly, exaggerated or absurd imagery/u, /joke itself can be the whole contribution/u, /Don't mock people or joke about harm, distress or sensitive situations/u],
+  clever: [/unusual connection or non-obvious reframing/u, /without an appended analysis/u, /Never invent facts to make a connection/u],
+  sarcastic: [/dry, ironic take/u, /irony can stand alone/u, /Neutral criticism alone does not fulfill this voice/u, /Never invent a contradiction, force negativity or mock people/u],
+  skeptic: [/one specific, warranted doubt or question/u, /actual claim's support/u, /Distinguish weak support from disproof/u, /never invent gaps/u],
+  pragmatist: [/actionable tip or feasible next step/u, /condition needed to make it valid/u, /Use available evidence/u, /invented instructions/u],
+  explainer: [/key mechanism simply/u, /plain-language cause-and-effect chain/u, /analogy only when accurate/u, /never invent a mechanism/u],
+  optimist: [/hopeful angle or credible constructive opportunity/u, /material uncertainty or limiting condition/u, /without promising success/u, /Never invent benefits, hide uncertainty/u],
+  realist: [/candid real-world tradeoff or constraint/u, /proportionate uncertainty/u, /avoid fatalism or invented limitations/u],
+  mediator: [/common-ground perspective/u, /views actually present/u, /Correct factual errors/u, /never invent two sides/u, /unequal evidence equal weight/u, /Never fabricate an opponent/u],
+  curious: [/interesting genuine question or unresolved implication/u, /specific question may be the contribution/u, /Keep the implication conditional/u, /never invent possibilities as facts/u, /answer the selected question before raising another/u],
 };
-const TASK_START = "Lead with the answer or a substantive, useful observation.";
+const TASK_START = "One-liners are welcome;";
 
 test("every nonstandard voice has one compact distinct writing requirement and the exact tone-free task in every mode", () => {
   const suffixes = new Map();
   assert.equal(Object.keys(SIGNATURES).length, 11);
   for (const followup of [false, true]) for (const research of [false, true]) {
-    const base = buildInsightInstructions(followup, research, "standard");
+    const base = buildInsightInstructions(followup, research, "challenger");
     const modeSuffixes = [];
     for (const [voice, requirements] of Object.entries(SIGNATURES)) {
       const prompt = buildInsightInstructions(followup, research, voice);
@@ -52,16 +52,15 @@ test("Funny and Sarcastic overlays explicitly require distinct observable style 
   for (const followup of [false, true]) for (const research of [false, true]) {
     const funny = buildInsightInstructions(followup, research, "funny");
     const sarcastic = buildInsightInstructions(followup, research, "sarcastic");
-    assert.match(funny, /Write visibly playful humor/u);
-    assert.match(funny, /silly, exaggerated or absurd imagery/u);
-    assert.match(funny, /rather than switching back to sober analysis/u);
-    assert.match(sarcastic, /recognizably dry, cutting irony/u);
+    assert.match(funny, /actual joke about a concrete detail/u);
+    assert.match(funny, /Silly, exaggerated or absurd imagery/u);
+    assert.match(funny, /without an explanatory or analytical tail/u);
+    assert.match(sarcastic, /recognizably dry, ironic take/u);
     assert.match(sarcastic, /evidenced overclaim or practical tradeoff/u);
     assert.match(sarcastic, /Never invent a contradiction, force negativity or mock people/u);
     for (const prompt of [funny, sarcastic]) {
       assert.match(prompt, /do not require a neutral or sober tone/u);
       assert.match(prompt, /Fictional tone examples \(not evidence; never copy\)/u);
-      assert.match(prompt, /useful (?:point|limit)/u);
       assert.match(prompt, /distress/u);
       assert.match(prompt, /selected writing voice is required delivery throughout the answer/u);
       assert.match(prompt, /Task, evidence, brevity, privacy, research and citation rules remain binding/u);

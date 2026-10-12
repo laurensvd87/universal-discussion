@@ -10,9 +10,6 @@ test("all modes share natural discussion, bounded evidence and date contracts", 
     for (const research of [false, true]) {
       const prompt = buildInsightInstructions(isFollowup, research);
       for (const pattern of [
-        /thoughtful forum contributor/u, /Lead with the answer or a substantive/u,
-        /2-4 natural sentences and 40-100 words; never exceed 120 words/u,
-        /one high-value difference, implication or decision/u,
         /No headings, numbered lists, process log, generic introduction, source appendix or forced closing question/u,
         /articlePrefix is only a partial extract/u, /Never claim that the full page omits/u,
         /candidate titles and URLs, not factual evidence/u,
@@ -27,9 +24,17 @@ test("all modes share natural discussion, bounded evidence and date contracts", 
         /matching SKU or variant, region, currency, condition, availability and date/u,
         /shipping and fees/u, /Do not infer a delivery country from a domain/u,
         /observation from causation, study limits and practical effect size when those matter/u,
-        /without a fixed category formula or forced skepticism/u,
         /missing fact truly blocks the decision, ask one precise question/u,
       ]) assert.match(prompt, pattern);
+      if (isFollowup) {
+        assert.match(prompt, /thoughtful forum contributor/u);
+        assert.match(prompt, /2-4 natural sentences and 40-100 words; never exceed 120 words/u);
+      } else {
+        assert.match(prompt, /concise summary of the current page's main point/u);
+        assert.match(prompt, /One-liners are welcome; use 1-3 natural sentences when needed/u);
+        assert.match(prompt, /Usually stay within 60 words; never exceed 120 words/u);
+        assert.match(prompt, /No forced skepticism or extra analytical conclusion/u);
+      }
       assert.doesNotMatch(prompt, /Topic\.kind|classifier|second request/u);
     }
   }
@@ -52,12 +57,13 @@ test("trusted flags keep offline modes free of research permission and citation 
   assert.equal(buildInsightInstructions(false, true), buildInsightInstructions(false, true));
 });
 
-test("researched opener prioritizes exact-page synthesis without broad discovery", () => {
+test("researched Standard opener summarizes the current page with optional proven relevant information and no broad discovery", () => {
   const prompt = buildInsightInstructions(false, true);
   assert.match(prompt, /opening post about currentSource/u);
   assert.match(prompt, /look first at sameTopicSources, then at relatedSources only if actual content proves the same specific subject/u);
-  assert.match(prompt, /Choose the strongest supported addition or difference/u);
-  assert.match(prompt, /Do not settle for a current-page recap/u);
+  assert.match(prompt, /concise summary of the current page's main point/u);
+  assert.match(prompt, /salient, proven information from an authorized source when directly relevant/u);
+  assert.doesNotMatch(prompt, /Prefer a useful synthesis|Choose the strongest supported addition|Do not settle for a current-page recap/u);
   assert.match(prompt, /Different emphasis or viewpoint is not a factual contradiction/u);
   assert.match(prompt, /exact URLs in missingRelatedCandidateUrls/u);
   assert.match(prompt, /no general discovery or unselected destinations/u);

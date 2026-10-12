@@ -33,17 +33,20 @@ the same. My chats now searches your public/private conversations beyond loaded
 pages; its fixed search and content-sized cards prevent the reported overlap.
 Lists show **20 results per page** with Previous/Next, including nested replies.
 All eleven non-Standard voices now have concrete, distinct writing behaviours
-and bounded fictional style examples. Standard stays unchanged. Funny and
+and bounded fictional style examples. Standard summarizes new threads and still
+answers questions normally in replies. Funny and
 Sarcastic were also checked with two synthetic live GPT-6 Luna responses;
 the remaining styles have offline prompt/transport checks, not live quality QA.
 Existing messages are never rewritten. See
 [ADR-101](decisions/ADR-101-twenty-result-pages-and-sparkle-voices.md).
 
-Selected voices now control delivery instead of inheriting a sober contributor
-tone. Funny can be silly or absurd; Sarcastic should use recognizable irony.
-Clearly nonliteral jokes are allowed, while real facts and sources still need
-support. Standard is unchanged. This backend-only update is active after the safe
-service restart; no extension reload needed. Live style quality is not yet retested.
+Selected voices now choose the kind of contribution, not just a summary's tone.
+Funny can post just a joke; Sarcastic an ironic take; Clever an unusual connection.
+Short one-liners need no added analysis. Clearly nonliteral jokes are allowed,
+while real facts and sources still need support. Replies address the question
+through the selected voice. This latest backend-only refinement is tested but
+awaits a safe restart once the separate backend update is checked; no extension
+reload is needed. Live quality with the latest tasks is not yet retested.
 
 Authenticated model-list responses now have thirty seconds total instead of
 being cut off locally at five; incoming and other request limits stay unchanged.

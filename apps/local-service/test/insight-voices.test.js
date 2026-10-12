@@ -48,8 +48,8 @@ test("fixed voices are immutable scalar enums; standard preserves canonical sett
   }
 });
 
-test("all four standard prompts retain the existing exact bytes", () => {
-  const expected = ["8c83e47a78d202106bdcfaaeb2685752b82cc739e313ae08c1091700795cdbbb", "e9dbdf5f93ad02da2248dd871a6f8f641497021c687cd796d698c61ab88d47a2", "3bb8065ac1437ecb7f153de25cb403a87ff49c8516b49921fd008b5cf3bd4334", "fe3cd4b3b5b39e776e71feba137b34499ed09273bf31af16bbe91f013f37fc9d"];
+test("Standard openings select summary tasks while both Standard reply prompts retain exact legacy bytes", () => {
+  const expected = ["a43f9b5cc948b46f41871bfeb22088a9e9c4009bf010dcce6c98e57b7e866972", "2724cda6a02ca22db2a9107b84af879dd109bec8560e8c0405035b9113522f6f", "3bb8065ac1437ecb7f153de25cb403a87ff49c8516b49921fd008b5cf3bd4334", "fe3cd4b3b5b39e776e71feba137b34499ed09273bf31af16bbe91f013f37fc9d"];
   let index = 0;
   for (const followup of [false, true]) for (const research of [false, true]) {
     const original = buildInsightInstructions(followup, research);
@@ -58,9 +58,13 @@ test("all four standard prompts retain the existing exact bytes", () => {
     const prompts = IDS.map((voice) => buildInsightInstructions(followup, research, voice));
     assert.equal(new Set(prompts).size, 12);
     for (const prompt of prompts.slice(1)) {
-      const task = original.slice("Write as a thoughtful forum contributor. ".length);
-      assert.ok(prompt.endsWith(task));
-      assert.equal(prompt.slice(prompt.indexOf("Lead with the answer")), task);
+      const canonicalVoice = buildInsightInstructions(followup, research, "challenger");
+      const taskStart = "One-liners are welcome;";
+      assert.equal(prompt.slice(prompt.indexOf(taskStart)), canonicalVoice.slice(canonicalVoice.indexOf(taskStart)));
+      const evidenceStart = "Keep the current page central:";
+      const evidenceEnd = "Choose the useful angle";
+      if (followup) assert.equal(prompt.slice(prompt.indexOf(evidenceStart), prompt.indexOf("Requested comparisons")),
+        original.slice(original.indexOf(evidenceStart), original.indexOf(evidenceEnd)));
       assert.doesNotMatch(prompt, /Write as a thoughtful forum contributor/u);
       assert.match(prompt, /selected writing voice is required delivery throughout the answer/u);
       assert.match(prompt, /Task, evidence, brevity, privacy, research and citation rules remain binding/u);
