@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 extension 0.13.56: empty Discussion offers existing related-page cards
+only without visible direct/earlier/alternate/related conversations. Blank Discover
+shows current-page related links locally; typing searches the full public library
+through existing FTS/paging/ranking, not a current-Source filter. Shell sends page
+invalidation before connection availability. Shared pure projector preserves
+safe exact Source/Topic/navigation/version fences, excludes current/duplicate/
+unsafe URLs and retains bounded metadata only. No extra provider, page fetch,
+capture, private/publication or write/Insight authority. See ADR-096.
+Independent real-component Trust and full restricted browser checks pass
+1,355/1,355; actual isolated Chrome/320/390/480px checks and root screenshot review
+pass, secret scan zero findings (229 files). Reload client only; backend stays
+running. UI budgets are not library/storage ceilings; no web/crawler activation.
+
 2026-10-12 portable backup scheduler core is dormant and independently reviewed.
 Explicit start/stop, no overlap/catch-up, real shutdown waiting and verify-before-
 success/prune contracts pass 17 scheduler/52 full portable checks. No runtime or

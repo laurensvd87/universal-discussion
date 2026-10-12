@@ -103,6 +103,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/private-generation-context.js",
     "core/read-only-service-retry.js",
     "core/related-page-excerpts.js",
+    "core/related-page-suggestions.js",
     "core/related-sources.js",
     "core/topic-toolbar-controller.js",
     "core/topic-view-mode.js",
@@ -131,7 +132,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Murmingle",
-    version: "0.13.55",
+    version: "0.13.56",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",

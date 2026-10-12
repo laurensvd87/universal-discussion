@@ -1,6 +1,7 @@
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { EN } from "../locales/en.js";
+import { projectRelatedPages } from "../core/related-page-suggestions.js";
 
 export function mountDiscoveryPanel(document, root, { client, messages = {}, onOpenDiscussion = null,
   setTimeout: schedule = globalThis.setTimeout, clearTimeout: cancel = globalThis.clearTimeout } = {}) {
@@ -9,6 +10,7 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
   const transient = [];
   let active = false, connected = false, disposed = false, epoch = 0, pending = null, timer = null;
   let results = [], cursor = null, query = "", resultVersion = null, busy = false;
+  let suggestions = {contextKey:null,pages:[],loading:false}, suggestionSignature = "";
   function node(tag, content = "", className = "") {
     const element = document.createElement(tag); element.textContent = content;
     if (className) element.className = className;
@@ -25,7 +27,7 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
     const element = node("button",content); element.type = "button"; element.id = id;
     return element;
   }
-  const heading = node("h2",text("discoveryHeading")); heading.id = "discovery-heading";
+  const heading = node("h2",text("relatedSuggestionsHeading")); heading.id = "discovery-heading";
   root.setAttribute("aria-labelledby",heading.id);
   const form = node("form"); form.className = "discovery-search-form";
   const label = node("label",text("discoverySearch")); label.htmlFor = "discovery-search";
@@ -58,6 +60,7 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
     return link;
   }
   function renderResults() {
+    heading.textContent = text("discoveryHeading");
     removeHandlers(transient); list.replaceChildren(); detail.replaceChildren();
     detail.hidden = true; list.hidden = false; form.hidden = false;
     refresh.hidden = true; more.hidden = !cursor;
@@ -72,8 +75,31 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
       card.append(sources); list.append(card);
     }
   }
+  function renderRelated() {
+    removeHandlers(transient); list.replaceChildren(); detail.replaceChildren();
+    detail.hidden = true; list.hidden = false; form.hidden = false;
+    more.hidden = true; refresh.hidden = true;
+    heading.textContent = text("relatedSuggestionsHeading");
+    activity(available() && suggestions.loading);
+    if (!available()) { status.textContent = text("discoveryConnect"); return; }
+    for (const page of suggestions.pages) {
+      const link = sourceLink(page); if (!link) continue;
+      link.className = "discovery-related-link";
+      link.textContent = "";
+      const arrow = node("span","↗","discovery-related-arrow"); arrow.setAttribute("aria-hidden","true");
+      link.append(node("span",page.title || page.hostname,"discovery-related-title"),
+        node("span",page.hostname,"discovery-related-domain"),arrow);
+      const card = node("article","","discovery-card discovery-related-card");
+      card.append(link); list.append(card);
+    }
+    status.textContent = suggestions.loading || list.children.length ? "" :
+      text(suggestions.contextKey ? "relatedSuggestionsEmpty" : "relatedSuggestionsContext");
+  }
   async function search(append = false) {
     if (!available() || (append && (!cursor || busy))) return;
+    if (!input.value.trim()) {
+      invalidate(); results = []; cursor = null; resultVersion = null; renderRelated(); return;
+    }
     const nextCursor = append ? cursor : null;
     invalidate(); const requestEpoch = epoch;
     query = input.value.trim();
@@ -144,7 +170,9 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
     } finally { if (requestEpoch === epoch) { pending = null; activity(false); } }
   }
   function changed() {
-    invalidate(); results = []; cursor = null; renderResults(); status.textContent = "";
+    invalidate(); results = []; cursor = null; resultVersion = null;
+    if (!input.value.trim()) { renderRelated(); return; }
+    renderResults(); status.textContent = "";
     if (available()) timer = schedule(() => { timer = null; void search(); },250);
   }
   function submit(event) { event.preventDefault(); if (available()) void search(); }
@@ -163,8 +191,24 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
     observeConnected(value) {
       if (disposed || connected === Boolean(value)) return;
       connected = Boolean(value); invalidate();
-      if (!connected) { results = []; cursor = null; renderResults(); status.textContent = text("discoveryConnect"); }
+      if (!connected) {
+        results = []; cursor = null; resultVersion = null;
+        if (input.value.trim()) renderResults(); else renderRelated();
+        status.textContent = text("discoveryConnect");
+      }
       else if (active) void search();
+    },
+    observePage(state) {
+      if (disposed) return;
+      const next = projectRelatedPages(state);
+      const signature = JSON.stringify(next);
+      if (signature === suggestionSignature) return;
+      const contextChanged = next.contextKey !== suggestions.contextKey;
+      suggestions = next; suggestionSignature = signature;
+      if (!input.value.trim()) {
+        if (contextChanged) invalidate();
+        renderRelated();
+      }
     },
     dispose() {
       if (disposed) return;

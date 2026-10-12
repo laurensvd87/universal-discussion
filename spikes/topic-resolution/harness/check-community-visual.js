@@ -22,6 +22,14 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     state.actorId='account-community-fixture';state.phase='ready';state.busy=false;state.error=null;state.needsFreshRead=false;
     state.catalog.actors.push({id:state.actorId,displayName:'Alex',accountId:'community-fixture'});
     state.draft={body:'',mode:'root',targetId:null,detached:false};
+    state.discussion={...state.discussion,roots:[]};
+    const recommendationPages=[
+      {id:'source-related-junctions',topicId:state.topicId,title:'Designing safe intersections',url:'https://example.org/streets'},
+      {id:'source-related-neighborhood',topicId:'topic-related-urban',title:'A calmer city center',url:'https://example.com/neighborhood'}];
+    state.catalog.sources.push(...recommendationPages);
+    state.catalog.topics.push({id:'topic-related-urban',title:'Calmer city centers',kind:'general'});
+    state.related={version:state.catalog.version,results:recommendationPages.map(source=>({...source,
+      relationship:source.topicId===state.topicId?'same-topic':'related'}))};
     const ai={available:true,busy:false,status:'prepared',draft:'',preview:null,
       context:{topic:state.catalog.topics.find(topic=>topic.id===state.topicId),
         currentSource:state.catalog.sources.find(source=>source.id===state.sourceId),sameTopicSources:[],relatedSources:[],discussion:[]},
@@ -70,7 +78,7 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
         if(action==='list')return structuredClone({conversations:chat?[chat]:[],next:null});
         throw Error('Unexpected fixture private request');
       },
-      discover:async()=>{window.communityCalls.searches++;return {version:{generation:'community',revision:1},query:'cycling',nextCursor:null,
+      discover:async input=>{window.communityCalls.searches++;window.communityLastSearch=input;return {version:{generation:'community',revision:1},query:'cycling',nextCursor:null,
         results:[{topicId:'topic-community-search',discussionId:'discussion-search',title:'Safer streets, better bike routes',kind:'general',
           snippet:'Protected junctions matter more than the length of a cycle lane. What would make your neighborhood easier to ride through?',
           visibleCount:12,updatedAt:'2026-10-11T15:00:00.000Z',sources:[
@@ -94,6 +102,11 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   })()`, sessionId);
   await browser.send("Emulation.setDeviceMetricsOverride", {width:390,height:650,deviceScaleFactor:1,mobile:false}, sessionId);
   assert.equal(await evaluate("document.querySelector('#app-tab-private').textContent", sessionId), "My chats");
+  assert.equal(await evaluate("!document.querySelector('#discussion-related-page-suggestions').hidden && document.querySelectorAll('#discussion-related-page-suggestions .related-page-card').length===2",sessionId),true);
+  for(const width of [390,320,480]) {
+    await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
+    await capture(`community-empty-discussion-pages-${width}`,sessionId,{fluid:true});
+  }
   await evaluate(`(() => {
     const body=document.querySelector('#discussion-body');body.value='What would make cycling here safer?';body.dispatchEvent(new Event('input',{bubbles:true}));
     document.querySelector('#discussion-private-toggle').click();
@@ -142,14 +155,22 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   }
   const discovery=await evaluate(`(() => {
     const input=document.querySelector('#discovery-search');input.focus();
-    return {focused:document.activeElement===input,links:[...document.querySelectorAll('.discovery-source')].map(a=>({url:a.href,rel:a.rel,target:a.target})),
+    return {focused:document.activeElement===input,links:[...document.querySelectorAll('.discovery-related-link')].map(a=>({url:a.href,rel:a.rel,target:a.target})),
       stable:window.communityState.sourceId==='source-visual',privateVisible:document.querySelector('#app-view-private').getClientRects().length>0};
   })()`,sessionId);
   assert.ok(discovery.focused&&discovery.stable&&!discovery.privateVisible);
   assert.ok(discovery.links.length===2&&discovery.links.every(link=>link.rel==='noopener noreferrer'&&link.target==='_blank'));
+  assert.equal(await evaluate("window.communityCalls.searches",sessionId),0,"blank Discover shows pages without a global browse request");
+  await evaluate(`(() => {
+    const input=document.querySelector('#discovery-search');input.value='cycling';
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    document.querySelector('.discovery-search-form').requestSubmit();
+  })();new Promise(resolve=>setTimeout(resolve,30))`,sessionId);
+  assert.deepEqual(await evaluate("window.communityLastSearch",sessionId),{query:"cycling",limit:20,cursor:null},"typed search uses the global query contract, without a current-page filter");
+  await capture("community-discover-library-search",sessionId,{fluid:true});
   await evaluate("document.querySelector('.discovery-title').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   await capture("community-discovery-preview",sessionId,{fluid:true});
   assert.equal(await evaluate("!document.querySelector('#discovery-preview').hidden && document.querySelectorAll('.discovery-message').length===2 && window.communityState.sourceId==='source-visual'",sessionId),true);
   await evaluate("window.communityDispose()",sessionId);
-  process.stdout.write("Community Chrome checks: My chats/private lock labels, send/generate/automatic reply/resume, public-only read-only discovery, source links, focused typing, 320/390/480px layout passed.\n");
+  process.stdout.write("Community Chrome checks: empty Discussion/blank Discover related pages, typed global search, My chats/private lock labels, private replies, source links/focus and 320/390/480px layouts passed.\n");
 }

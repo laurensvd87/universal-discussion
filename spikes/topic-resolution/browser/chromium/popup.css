@@ -1504,6 +1504,22 @@ body[data-ui-surface="sidepanel"][data-ui-mode="user"] #app-view-private:not([hi
 .private-chat-card strong { font-size: 14px; overflow-wrap: anywhere; }
 .private-chat-card span { color: #a4a1b4; font-size: 11px; }
 .private-chat-card .private-chat-title { display: flex; align-items: baseline; gap: 7px; color: inherit; min-width: 0; }
+.related-page-suggestions { min-width: 0; margin: 14px 0; }
+.related-page-suggestions h3 { margin: 0 0 10px; color: #d6caff; font-size: 14px; font-weight: 650; }
+.related-page-suggestions-list { display: grid; gap: 10px; min-width: 0; }
+.related-page-card, .discovery-related-link {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px;
+  min-width: 0; color: #e9e4f5; text-decoration: none; overflow-wrap: anywhere;
+}
+.related-page-card {
+  padding: 14px; border: 1px solid #a890ff30; border-radius: 16px;
+  background: linear-gradient(125deg, #2b23415c, #191a21);
+}
+.related-page-title, .discovery-related-title { grid-column: 1; font-size: 14px; font-weight: 650; line-height: 1.45; min-width: 0; }
+.related-page-hostname, .discovery-related-domain { grid-column: 1; color: #aaa5bf; font-size: 11px; min-width: 0; }
+.related-page-outgoing, .discovery-related-arrow { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: #bda4ff; font-size: 20px; }
+.related-page-card:hover, .discovery-related-card:hover { border-color: #bba2ff80; background: #382c5259; }
+.related-page-card:focus-visible, .discovery-related-link:focus-visible { outline: 2px solid #bba2ff; outline-offset: 3px; border-radius: 12px; }
 .private-chat-title strong { min-width: 0; }
 .private-conversation-lock { display: inline-block; flex: none; width: 14px; height: 14px; color: #bca8e8; background: currentColor; mask: url("icons/lock.svg") center / contain no-repeat; }
 .private-composer { flex: none; display: grid; gap: 7px; padding-block: 10px; border-top: 1px solid #a88cff24; }

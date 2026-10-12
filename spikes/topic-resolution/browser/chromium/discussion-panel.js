@@ -5,6 +5,7 @@ import { ownsContribution, selectedPostingSource } from "../core/local-discussio
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { resolveDiscussionTarget } from "../core/discussion-target.js";
+import { projectRelatedPages } from "../core/related-page-suggestions.js";
 
 export function mountDiscussionPanel(document, root, { messages = EN, onPrivateSend = null, onPrivateInsight = null } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -252,6 +253,12 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   const relatedDiscussionsList = node("div"); relatedDiscussionsList.className = "related-discussions-list";
   relatedDiscussions.append(relatedDiscussionsHeading, relatedDiscussionsList);
   feed.append(relatedDiscussions);
+  const relatedPageSuggestions = node("section"); relatedPageSuggestions.id = "discussion-related-page-suggestions";
+  relatedPageSuggestions.className = "related-page-suggestions user-only"; relatedPageSuggestions.hidden = true;
+  const relatedPageSuggestionsHeading = node("h3", "relatedSuggestionsHeading");
+  const relatedPageSuggestionsList = node("div"); relatedPageSuggestionsList.className = "related-page-suggestions-list";
+  relatedPageSuggestions.append(relatedPageSuggestionsHeading, relatedPageSuggestionsList);
+  feed.append(relatedPageSuggestions);
   const provenance = node("p"); provenance.id = "discussion-provenance"; provenance.className = "developer-only"; root.append(provenance);
   const learnedControls = node("section"); learnedControls.id = "discussion-learned-controls";
   const learnedIntro = node("p", "discussionCorrectionIntro");
@@ -549,6 +556,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   let renderedFreshRead;
   let renderedUiMode;
   let renderedRelatedDiscussions;
+  let renderedRelatedPages;
   let observedViewKey;
   let observedContributionIds = new Set();
   let observedDiscussion = false;
@@ -1309,6 +1317,28 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       });
       relatedDiscussionsList.replaceChildren(...cards);
       renderedRelatedDiscussions = relatedSignature;
+    }
+    const projectedPages = projectRelatedPages(state);
+    const hasVisibleConversations = displayRoots.some((entry) => visibleThread(entry).shown) ||
+      readOnlyRelated.some((entry) => entry.roots.some((root) =>
+        root.state !== "deleted" || visibleThread(root).shown));
+    const showRelatedPages = uiMode === "user" && state.phase === "ready" && !hasVisibleConversations &&
+      !readError && !loadingDiscussions && !state.error && !state.needsFreshRead &&
+      projectedPages.contextKey !== null && !projectedPages.loading && projectedPages.pages.length > 0;
+    relatedPageSuggestions.hidden = !showRelatedPages;
+    const pageSignature = JSON.stringify(showRelatedPages ? [projectedPages.contextKey, projectedPages.pages] : null);
+    if (pageSignature !== renderedRelatedPages) {
+      relatedPageSuggestionsList.replaceChildren(...(showRelatedPages ? projectedPages.pages : []).map((page) => {
+        const card = node("a"); card.className = "related-page-card";
+        card.href = page.url; card.target = "_blank"; card.rel = "noopener noreferrer";
+        card.referrerPolicy = "no-referrer";
+        const title = node("span"); title.className = "related-page-title"; title.textContent = page.title;
+        const hostname = node("span"); hostname.className = "related-page-hostname"; hostname.textContent = page.hostname;
+        const outgoing = node("span"); outgoing.className = "related-page-outgoing"; outgoing.textContent = "↗";
+        outgoing.setAttribute("aria-hidden", "true");
+        card.append(title, hostname, outgoing); return card;
+      }));
+      renderedRelatedPages = pageSignature;
     }
     const modelStatus = state.related?.model?.status ?? state.catalog?.model.status;
     model.textContent = !state.catalog ? "" : text(modelStatus === "experimental-local" ? "discussionModelLearned" : modelStatus === "model-unavailable" ? "discussionModelUnavailable" : "discussionModelFixture");

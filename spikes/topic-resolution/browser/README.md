@@ -1,5 +1,18 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Related-page discovery (0.13.56)
+
+An empty Discussion offers compact related-page links above the composer. Visible
+current, earlier or related conversations take priority; deleted-only threads do
+not prevent recommendations. Discover's empty search box shows related pages for
+the current page. Typing searches the entire indexed public library through the
+existing backend API, with paging and relevance/reply ranking preserved.
+
+These are already retained public Sources, not a web search or crawler. Unsafe,
+current-page and duplicate destinations are filtered; stale/navigation/disconnect
+states clear recommendations. No pages are fetched automatically and no private
+chat is included. Reload the extension only; backend restart is unnecessary.
+
 ## My chats and private indicators (0.13.55)
 
 The former Private chats tab is now **My chats**. Private conversations have a

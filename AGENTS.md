@@ -8,6 +8,16 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current contextual discovery (2026-10-12, ADR-096, 0.13.56): empty User Discussion
+offers existing related-page links only when no visible direct/earlier/alternate/
+related conversation remains. Blank Discover shows current-page related Sources
+without global browse requests; typed input searches the full public indexed
+library. Preserve safe URL/Source/Topic/version/navigation fences, focus and
+write/Insight/private authority. No extra capture/fetch/provider/backend scope.
+Chrome layouts and restricted/independent composition checks pass; reload client
+only. This narrowly supersedes older always-hidden related-page presentation.
+Read top STATUS/HANDOFF and ADR-096.
+
 Current recovery/cutover (2026-10-12, ADR-099): the owner explicitly approves
 seven-day encrypted canonical backup and one-time migration/restart, requiring
 routine backups to stay online. Implemented/reviewed Windows Worker/RAM snapshot,

@@ -321,6 +321,120 @@ function samePageHistory(root, patch = {}) {
     earlierDiscussions: [{ topicId: "older-topic", discussionId: "older-discussion", title: "Older",
       version, roots: [historicalRoot] }], ...patch });
 }
+
+function emptyPageDiscussion(patch = {}) {
+  const base = state();
+  const version = { generation: "generation-empty-page", revision: 2 };
+  return state({ sourceId: "source-demo", catalog: { ...base.catalog, version,
+    sources: [{ id: "source-demo", topicId: "topic-demo", title: "Current page",
+      url: "https://example.org/story" }, { id: "related-page", topicId: "other-topic",
+      url: "https://example.com/related", title: "<img src=x> Related page" }] },
+    discussion: { discussionId: "discussion-demo", version, roots: [] },
+    related: { version, results: [{ id: "related-page", topicId: "other-topic", relationship: "related",
+      url: "https://example.com/related", title: "<img src=x> Related page" }] }, ...patch });
+}
+
+test("empty Discussion offers inert related page links above the composer", () => {
+  const ui = harness();
+  ui.panel.render(emptyPageDiscussion());
+  const section = ui.byId("discussion-related-page-suggestions");
+  assert.equal(section.hidden, false);
+  assert.equal(section.children[0].textContent, EN.relatedSuggestionsHeading);
+  const cards = section.children[1].children;
+  assert.equal(cards.length, 1);
+  const card = cards[0];
+  assert.equal(card.tag, "a");
+  assert.equal(card.href, "https://example.com/related");
+  assert.equal(card.target, "_blank");
+  assert.equal(card.rel, "noopener noreferrer");
+  assert.equal(card.referrerPolicy, "no-referrer");
+  assert.equal(card.children[0].textContent, "<img src=x> Related page");
+  assert.equal(card.children[1].textContent, "example.com");
+  assert.equal(card.children[2].textContent, "↗");
+  assert.equal(card.listeners.size, 0);
+  assert.equal(descendants(section).some((item) => item.tag === "button"), false);
+  assert.deepEqual(ui.calls, []);
+  card.focus();
+  ui.panel.render(emptyPageDiscussion());
+  assert.equal(section.children[1].children[0], card);
+  assert.equal(ui.document.activeElement, card);
+  const feed = ui.byId("discussion-feed");
+  assert.ok(feed.children.indexOf(section) > feed.children.indexOf(ui.byId("discussion-related-conversations")));
+  assert.ok(ui.root.children.indexOf(feed) < ui.root.children.indexOf(ui.byId("discussion-root-dock")));
+  ui.panel.setMode("developer");
+  assert.equal(section.hidden, true);
+  assert.equal(section.children[1].children.length, 0);
+  assert.equal(ui.byId("discussion-related").hidden, false);
+});
+
+test("empty Discussion uses same-Topic page metadata without a conversation snapshot", () => {
+  const ui = harness();
+  const snapshot = emptyPageDiscussion();
+  ui.panel.render({ ...snapshot, discussion: null, related: { ...snapshot.related, results: [] },
+    catalog: { ...snapshot.catalog, sources: snapshot.catalog.sources.map((source) => ({ ...source,
+      topicId: "topic-demo" })) } });
+  const section = ui.byId("discussion-related-page-suggestions");
+  assert.equal(section.hidden, false);
+  assert.equal(section.children[1].children[0].href, "https://example.com/related");
+  assert.deepEqual(ui.calls, []);
+});
+
+test("related page fallback counts live trees and ignores tombstone-only trees", () => {
+  const ui = harness();
+  const section = ui.byId("discussion-related-page-suggestions");
+  const deleted = { id: "deleted-root", state: "deleted", replies: [
+    { id: "deleted-reply", rootId: "deleted-root", state: "deleted" }] };
+  const snapshot = emptyPageDiscussion();
+  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion, roots: [deleted] } });
+  assert.equal(section.hidden, false);
+  const live = { ...state().discussion.roots[0], replies: [] };
+  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion, roots: [live] } });
+  assert.equal(section.hidden, true);
+  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion, roots: [{ ...deleted,
+    replies: [{ id: "live-reply", rootId: deleted.id, state: "visible", actorType: "human",
+      authorId: "demo-alex", body: "Still visible" }] }] } });
+  assert.equal(section.hidden, true);
+  ui.panel.render({ ...snapshot, relatedDiscussions: [{ topicId: "related-topic", title: "Related",
+    rootCount: 1, roots: [{ ...live, replyCount: 0 }] }] });
+  assert.equal(section.hidden, true);
+  const historical = samePageHistory(live);
+  const historyVersion = snapshot.catalog.version;
+  ui.panel.render({ ...snapshot, ...historical, catalog: { ...historical.catalog,
+    version: historyVersion, sources: snapshot.catalog.sources },
+    discussion: { ...historical.discussion, version: historyVersion },
+    priorDiscussions: { ...historical.priorDiscussions, version: historyVersion },
+    earlierDiscussions: historical.earlierDiscussions.map((prior) => ({ ...prior, version: historyVersion })),
+    related: snapshot.related });
+  assert.equal(section.hidden, true);
+  ui.panel.render({ ...snapshot, topicViewMode: "experimental", alternateDiscussion: {
+    sourceId: "source-demo", sourceIds: ["source-demo"], roots: [live], pinnedRoots: [] } });
+  assert.equal(section.hidden, true);
+  ui.panel.render({ ...snapshot, topicViewMode: "experimental", alternateDiscussion: {
+    sourceId: "source-demo", sourceIds: ["source-demo"], roots: [deleted], pinnedRoots: [] } });
+  assert.equal(section.hidden, false);
+});
+
+test("related page fallback clears during navigation, reads, errors and disconnect", () => {
+  const ui = harness();
+  const section = ui.byId("discussion-related-page-suggestions");
+  const snapshot = emptyPageDiscussion();
+  for (const patch of [{ phase: "loading" }, { phase: "disconnected" }, { phase: "error" },
+    { needsFreshRead: true }, { error: "context-changed" }, { sourceId: "other-source" },
+    { priorDiscussionsError: "unavailable" }, { alternateError: "unavailable", topicViewMode: "experimental",
+      catalog: { ...snapshot.catalog, sources: snapshot.catalog.sources.map((source) => ({ ...source,
+        provenance: "owner-local-page-embedding/v1" })) } },
+    { resolution: { enabled: true, phase: "checking", url: "https://other.example/story" } }]) {
+    ui.panel.render(snapshot);
+    assert.equal(section.hidden, false);
+    ui.panel.render({ ...snapshot, ...patch });
+    assert.equal(section.hidden, true, JSON.stringify(patch));
+    assert.equal(section.children[1].children.length, 0);
+  }
+  ui.panel.render({ ...snapshot, related: { ...snapshot.related, results: [
+    ...snapshot.related.results, { id: "unsafe", url: "javascript:alert(1)", title: "Unsafe", relationship: "related" },
+    { id: "current", url: "https://example.org/story", title: "Current", relationship: "same-topic" }] } });
+  assert.equal(section.children[1].children.length, 1);
+});
 test("experimental view shows grouped and pinned roots while cross-topic actions stay disabled", () => {
   const ui = harness();
   const canonical = { id: "root-1", rootId: null, state: "visible", authorId: "demo-alex",

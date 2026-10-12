@@ -300,7 +300,16 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   const connected = { phase: "ready", catalog: { topics: [{ id: "t", title: "Topic" }],
     sources: [{ id: "s", title: "Actual page title", url: "https://example.org/story" }] }, topicId: "t", sourceId: "s",
     related: { results: [] } };
+  const discoveryObservations = [];
+  shell.bindCommunity({ discovery: {
+    observePage(state) { discoveryObservations.push(["page", state.sourceId ?? null]); },
+    observeConnected(value) { discoveryObservations.push(["connected", value]); },
+    setActive() {},
+  } });
+  discoveryObservations.length = 0;
   shell.render(connected);
+  assert.deepEqual(discoveryObservations, [["page", "s"], ["connected", true]],
+    "page context is updated before the related-page surface becomes available");
   assert.equal(document.body.dataset.topicState, "ready");
   assert.equal(get("#app-source-context").hidden, true);
   assert.equal(get("#app-source-title").textContent, "Actual page title");
@@ -333,6 +342,8 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   assert.equal(get("#app-pages-context").textContent, "Localized shared pages");
   const noTopic = { ...connected, phase: "choose-topic", topicId: null };
   shell.render(noTopic);
+  assert.deepEqual(discoveryObservations.slice(-2), [["page", "s"], ["connected", true]],
+    "every state render delivers invalidation without changing selected view");
   assert.equal(document.body.dataset.topicState, "idle");
   assert.equal(get("#app-pages-context").textContent, "Localized setup pages");
   assert.equal(get("#app-settings-view").hidden, true);

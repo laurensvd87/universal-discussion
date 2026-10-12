@@ -74,6 +74,7 @@ test("runtime modules have no ambient network, DNS, process, filesystem, logging
       "browser/core/private-generation-context.js",
       "browser/core/read-only-service-retry.js",
       "browser/core/related-page-excerpts.js",
+      "browser/core/related-page-suggestions.js",
       "browser/core/related-sources.js",
       "browser/core/topic-toolbar-controller.js",
       "browser/core/topic-view-mode.js",

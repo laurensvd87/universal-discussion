@@ -60,6 +60,28 @@ presentation and the unchanged isolation/reply behavior.
 
 ## Discover
 
+### Related-page empty-state refinement (2026-10-12, 0.13.56)
+
+The owner requests useful page navigation instead of an empty Discussion and
+contextual related pages when Discover's search box is empty. Use existing
+Source-bound catalog/related DTOs, never new scraping, search-engine/provider
+requests or private data. Recommend safe same-Topic metadata and backend-ranked
+related Sources; exclude the current URL/Source and duplicates. The shared pure
+projector checks canonical URL eligibility, current Source/Topic/navigation and
+optional related-version/Source consistency. Its bounded 20-card/512-catalog/
+100-related work budgets are presentation limits, not retention ceilings.
+
+Discussion shows these links only without visible current/earlier/alternate/
+related conversations. Tombstone-only trees do not count. Loading, unsupported,
+stale or disconnected contexts clear links; card refresh preserves focus. Blank
+or whitespace-only Discover renders related page links locally, not recent
+Topics or blank global searches. Nonempty input uses the existing whole-public-
+library indexed search and pagination, independent of the current page. Clearing
+input/disconnecting fences pending responses; page refreshes preserve a typed
+query and its focus. Outgoing links use safe new tabs without referrers; they
+grant no posting/Topic/Insight authority. No backend/runtime/permission or
+publication scope changes. Final verification is recorded in STATUS/HANDOFF.
+
 Use a separate derived SQLite FTS5 index containing only public Topic titles,
 safe Source metadata and current visible public message text. Index startup
 once and update on canonical changes, not by scanning the catalog for each

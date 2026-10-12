@@ -1,5 +1,26 @@
 # Project status
 
+**2026-10-12 contextual related-page discovery verified, extension 0.13.56:**
+Empty User Discussion offers compact safe page links above the composer when no
+visible current/earlier/alternate/related conversation remains; tombstone-only
+trees allow it. Blank Discover shows the current page's retained related Sources,
+with no global recent-browse request. Typed input searches the entire indexed
+public library using the existing paged/ranked API, preserving focus and query
+through page refreshes. Clearing input, navigation/disconnect and stale context
+fence old suggestions/responses. No private data, full-library scan, new page
+fetch/search/provider request, grouping or write/Insight authority change.
+
+The shared pure projector uses bound safe metadata, excludes current/duplicate/
+unsafe destinations and has UI-only 20-card/512-catalog/100-related budgets, not
+storage limits. Independent Trust adds three real service/controller/panel tests,
+including accepted post/withdrawal and exact tracked navigation. Full restricted
+browser checks pass 1,355/1,355; isolated Chrome verifies both page surfaces,
+typed global query, private-chat regressions and 320/390/480px layouts without
+overflow or uncaught errors. Root reviews narrow Discussion/Discover screenshots.
+Browser secret scan: 229 files, zero findings. New module inventories updated;
+backend/normal service/data/grants remain unchanged. Reload extension only.
+See ADR-096. No cold-start web discovery or hosted/publication scope is activated.
+
 **2026-10-12 dormant hosted backup scheduler verified:** the portable package
 prepares explicit start/stop, one real operation at a time, independent verification
 before success/prune, protected recovery-point retention contract and fixed safe

@@ -255,6 +255,9 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
       if (find("#app-source-domain")) find("#app-source-domain").textContent = title ? domain : "";
     }
     const view = projectDiscussionShell(state, messages);
+    // Deliver current-page invalidation before enabling the contextual empty
+    // search view, so reconnect cannot briefly reuse another page's suggestions.
+    community?.discovery?.observePage?.(state);
     community?.discovery?.observeConnected(view.connection === "connected" || view.connection === "unverified");
     const connectionProblem = ["disconnected", "unavailable", "extension-unavailable", "unverified"].includes(view.connection);
     connection.dataset.state = view.connection;
