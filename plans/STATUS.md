@@ -1,5 +1,21 @@
 # Project status
 
+**2026-10-12 owner Sarcastic test: dispatch confirmed, style under-delivered:**
+The known content-free trace contains one public dispatch selecting sarcastic.
+Its SHA-256 exactly matches the current opening-post/research-enabled Sarcastic
+instructions and no other tested voice/flag combination (48 combinations).
+Standard instructions were not dispatched. All twelve focused voice/trace
+checks pass. The owner's supplied answer is useful critical analysis but has
+no clearly recognizable ironic line; actual style quality is not accepted merely
+because the request wiring passes. The existing overlay already requests dry,
+cutting irony with examples. Why the model did not follow it is unproven; neutral
+contributor defaults and conservative qualifying rules may dilute the style.
+Next candidate: contrast neutral critique with recognizably ironic phrasing and
+make selected voice a writing requirement, while retaining evidence/sensitivity/
+research/citation rules. No prompt or app behaviour changed, extra provider
+request, restart, output archive or historical message rewrite in this diagnosis.
+The trace proves a local dispatch, not a cryptographic link to a stored post.
+
 **2026-10-12 approved availability fixes active (ADR-104, 0.13.60):**
 Authenticated empty model GETs alone lease both loopback response/socket clocks
 to thirty seconds total from acceptance after existing authority checks. Raw

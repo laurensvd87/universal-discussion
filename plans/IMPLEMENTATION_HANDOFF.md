@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 owner public Sarcastic test is now observed: the known content-free
+trace has one sarcastic dispatch whose instruction fingerprint matches exactly
+buildInsightInstructions(false,true,'sarcastic') and none of the other 47
+voice/flag combinations. Focused voice/trace tests12 pass. Wiring is confirmed,
+but the owner's answer lacks recognizable irony; do not call quality passed or
+repeat a missing-voice diagnosis. Existing tone already demands dry irony with
+examples; dilution by neutral contributor/qualifying instructions is a hypothesis,
+not a proven provider cause. Candidate refinement: explicit contrast against
+neutral critique and selected-style realization without changing safety/evidence/
+source/citation authority. This turn is diagnostic only: no prompt change, inference,
+restart, output archive or old-post rewrite. Previous wait-for-owner-test notes
+below are superseded for this observation, not a new live QA budget.
+
 2026-10-12 ADR-104 guarded availability corrections active; extension 0.13.60
 needs reload. Authenticated normalized empty model GET alone leases socket/handler
 to thirty seconds absolute from acceptance; five-second raw/unauth/other routes
