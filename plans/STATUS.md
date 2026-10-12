@@ -22,8 +22,15 @@ planner/323ms full synthetic service, so this stop is not proven capacity.
 Reboot preserves revision1559/939 Sources/931 learned/897 active canonical Topics/
 980 total Topics, crawler735 ingested/12840 queued/seven staged and five recorded
 history points. No canonical/private/account write, inference or agent crawl.
-Final normal service recovery/activation is recorded after reviewed commit below;
-unrelated Copilot edits remain excluded. Dashboard restart loads both chart views.
+Reviewed implementation committed/pushed as d71723e. Normal service recovery after
+reboot is confirmed: health/version/AI-status HTTP200, protected ChatGPT login
+connected/not pending, pairing hash exact and canonical revision/counts unchanged.
+Startup and next-minute sample persist (history now seven points). This activates
+the separately committed ADR-100 contribution-goal refinement; its older pending
+note below is superseded. No inference/style-quality claim. Service PTY22237;
+dashboard one-shot succeeds,931 pages/897 active Topics. Owner starts crawler
+manually; no Windows auto-start installed. Unrelated Copilot edits remain excluded.
+Dashboard restart loads both chart views; app account session may need renewal.
 
 **2026-10-12 contribution-goal refinement checked; activation pending:**
 The owner reports that Funny still feels like a summary with a joke, and explicitly

@@ -13,10 +13,14 @@ browser pass; independent base/integration review accepts. Generic old unavailab
 cannot identify precise status; new408/500/503 fixed codes add no retry/deadline.
 Reboot counts revision1559/939 Sources/931 learned/897 active/980 total Topics;
 crawler735 ingested/12840 queued/seven staged/history five points survive. Never
-delete/reset ledger or interrupt running work. Normal recovery after checked commit
-will also load separately committed contribution-goal prompts; old pending note
-below is superseded only after that recovery is confirmed. No inference grant.
-Copilot edits are unrelated/excluded. Restart dashboard to load new chart code.
+delete/reset ledger or interrupt running work. Implementation d71723e committed/
+pushed; normal service recovery confirmed in PTY22237, health/version/AI-status200,
+protected login connected/not pending, exact pairing hash/canonical counts. Startup
+and next-minute samples persist, now seven points. This also activates separately
+committed contribution-goal prompts, superseding pending note below; no inference
+or style-quality claim. Owner manually starts crawler, no Windows auto-start.
+Copilot edits are unrelated/excluded. Restart dashboard to load new chart code;
+app account session may renew. No new inference grant.
 
 2026-10-12 ADR-100 contribution-goal refinement CHECKED, activation PENDING:
 owner wants Standardopening summary, other11 actual voice posts, not analysis
