@@ -34,8 +34,11 @@ category-balanced manifest, fetches eligible pages, extracts and embeds bounded
 static text, and durably stages candidates. It makes **no canonical API write**.
 `-Apply` resumes the same campaign and serially submits selected staged
 representations to the running local service. One invocation ingests at most 250
-already staged candidates before crawling and 250 newly/remaining staged
-candidates afterward. Repeated `-Apply` invocations resume the ledger instead of
+already staged candidates before crawling, then applies small diversity-selected
+checkpoints after every 25 newly staged candidates and a bounded final pass when
+the frontier or campaign cap is reached. All passes share the 500-per-invocation
+ceiling; reaching it stops the run with `apply-limit`. Repeated `-Apply`
+invocations resume the ledger instead of
 turning growing Topic regrouping into one unbounded batch. Preview is the default
 so a typo or ordinary invocation cannot populate the canonical database.
 
@@ -179,13 +182,24 @@ prove that every subject is represented or that Topic assignments are correct.
 Canonical ingestion remains serial and uses one global current version. It is not
 a bulk-loader or a thousands-of-pages-per-second architecture. A large apply can
 take substantial time because current Topic regrouping work grows with the
-canonical catalog. The 500-per-invocation ceiling is split into two bounded MMR
-passes as described above; a 5,000-page campaign can require many apply runs. The
+canonical catalog. The 500-per-invocation ceiling covers every bounded MMR
+checkpoint as described above; a 5,000-page campaign can require many apply runs. The
 durable ledger supports stopping and resuming; it does not make ingestion
 parallel. The backend's current local matching policy may attach a Source to an
 existing Topic or create a provisional one, and manual correction may still be
 needed. Neither page count, E5 novelty nor a successful run is a Topic-quality
 evaluation.
+
+2026-10-12 Apply/progress refinement: the owner observed no dashboard growth
+during an active first Apply run. Initial/final-only ingestion postponed all new
+canonical writes until collection ended. Regular checkpoints now publish accepted
+pages while collecting, chain the accepted canonical version across passes and
+stop promptly on ingestion failure or the shared apply ceiling. Time/abort limits
+remain authoritative; they retain staged work for the next invocation rather
+than permit extra writes. CLI startup phases and aggregate progress expose this
+activity without persistent logging or content/URL/token output. The existing
+running process is not interrupted automatically; a deliberate Ctrl+C and rerun
+loads the updated command and resumes the ledger.
 
 ## Explicit non-goals
 

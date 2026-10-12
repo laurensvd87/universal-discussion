@@ -486,3 +486,122 @@ test("operator abort and fixed runner errors contain no page data", async (t) =>
   assert.equal(error.message, "policy-unavailable");
   assert.equal(error.code, "policy-unavailable");
 });
+
+function incrementalFixture({ pages = 60, backlog = 0, failIngestAt = 0, preview = false, onProgress } = {}) {
+  const clock = clockFixture();
+  const staged = [], prior = [], calls = [], progress = [];
+  let fetched = 0, attempted = 0;
+  function candidate(index) {
+    const url = `https://news.alpha.org/articles/incremental-${index}`;
+    return { url, urlDigest: sha(url), bucket: "fixture-bucket", host: "news.alpha.org", section: "articles",
+      title: "PRIVATE_FIXTURE_TITLE", vector: vector(index % 384), extractorVersion: CRAWLER_EXTRACTOR_VERSION,
+      representationDigest: sha(`representation-${index}`) };
+  }
+  for (let index = 0; index < backlog; index++) staged.push(candidate(index + 10_000));
+  const state = {
+    enqueue() {}, markExisting() {}, claimRedirect() {}, terminal() {}, bindGeneration() {},
+    getPolicy() { return null; }, setPolicy() {}, lastRequestAt() { return null; }, noteRequest() {},
+    attemptedCount() { return attempted; }, duplicateFor() { return null; },
+    next() { if (attempted >= pages) return null; return { ...candidate(attempted++), depth: 0, priority: 0 }; },
+    stage(item) { staged.push({ ...candidate(attempted - 1), ...item }); },
+    listStaged() { return [...staged]; }, listIngestedVectors() { return [...prior]; },
+    markIngested(urlDigest) { const index = staged.findIndex(item => item.urlDigest === urlDigest); prior.push(...staged.splice(index, 1)); },
+    counts() { return { staged: staged.length, ingested: prior.length }; },
+  };
+  const client = clientFixture({ ingest(_representation, operationId, expected, index) {
+    calls.push({ fetched, operationId, expected });
+    if (index === failIngestAt) throw new Error("PRIVATE_FIXTURE_PROVIDER_ERROR");
+    return { sourceId: "source", topicId: "topic", version: { ...VERSION, revision: VERSION.revision + index } };
+  } });
+  const fetch = standardFetch(clock, { page: url => { fetched++; return content(article(), url).result; } });
+  const run = extra => runCrawler(options({ state, client: client.client, fetchPublic: fetch.fetchPublic,
+    embedder: { async embed() { return { modelId: MODEL_ID, values: vector(fetched % 384) }; } },
+    campaign: manifest([candidate(0).url], { bucketMax: 1_000 }), clock, maxPages: 1_000,
+    perHost: 1_000, perSection: 1_000, apply: !preview,
+    onProgress(value) { progress.push(value); return onProgress?.(value); }, ...extra }));
+  return { run, calls, progress, staged, get fetched() { return fetched; }, clock };
+}
+
+test("incremental apply publishes before frontier completion and chains accepted revisions across passes", async () => {
+  const fixture = incrementalFixture();
+  const result = await fixture.run();
+  assert.equal(result.ingestedThisRun, 60);
+  assert.equal(fixture.calls[0].fetched, 25);
+  assert.equal(fixture.calls[25].fetched, 50);
+  assert.equal(fixture.calls[50].fetched, 60);
+  fixture.calls.forEach((call, index) => assert.deepEqual(call.expected, { ...VERSION, revision: VERSION.revision + index }));
+  assert.equal(new Set(fixture.calls.map(call => call.operationId)).size, 60);
+});
+
+test("initial backlog import stays at250 and total500 ends apply without further crawling", async () => {
+  const fixture = incrementalFixture({ backlog: 475, pages: 300 });
+  const result = await fixture.run();
+  assert.equal(result.reason, "apply-limit");
+  assert.equal(result.ingestedThisRun, 500);
+  assert.equal(fixture.fetched, 250);
+  assert.equal(fixture.calls.filter(call => call.fetched === 0).length, 250);
+  assert.equal(fixture.staged.length, 225);
+});
+
+test("final flush consumes only the remaining run budget and checkpoints retain prior section quotas", async () => {
+  const budget = incrementalFixture({ backlog: 475, pages: 249 });
+  const result = await budget.run();
+  assert.equal(result.reason, "apply-limit");
+  assert.equal(result.ingestedThisRun, 500);
+  assert.equal(budget.calls.filter(call => call.fetched === 249).length, 25);
+  assert.equal(budget.staged.length, 224);
+  const quota = incrementalFixture();
+  const limited = await quota.run({ perSection: 30 });
+  assert.equal(limited.ingestedThisRun, 30);
+  assert.equal(quota.calls.length, 30);
+  assert.equal(quota.staged.length, 30);
+});
+
+test("checkpoint failure stops fetch and retry immediately, preserving staged rows and fixed counters", async () => {
+  const fixture = incrementalFixture({ failIngestAt: 3 });
+  const result = await fixture.run();
+  assert.equal(result.reason, "ingest-unavailable");
+  assert.equal(result.ingestedThisRun, 2);
+  assert.equal(fixture.fetched, 25);
+  assert.equal(fixture.calls.length, 3);
+  assert.equal(fixture.staged.length, 23);
+  const serialized = JSON.stringify(fixture.progress);
+  for (const secret of ["https:", "PRIVATE_FIXTURE", "representation", "source", "token", "vector"]) assert.equal(serialized.includes(secret), false);
+  fixture.progress.forEach(value => assert.deepEqual(Object.keys(value).sort(),
+    ["attemptedThisRun", "event", "ingestedThisRun", "phase", "stagedThisRun"]));
+});
+
+test("checkpoint failure stays authoritative when campaign cap is reached", async () => {
+  const fixture = incrementalFixture({ failIngestAt: 1, pages: 25 });
+  const result = await fixture.run({ maxPages: 25 });
+  assert.equal(result.reason, "ingest-unavailable");
+  assert.equal(fixture.calls.length, 1);
+  assert.equal(fixture.staged.length, 25);
+});
+
+test("preview checkpoints remain write free and throwing or rejected progress observers do not stop apply", async () => {
+  const preview = incrementalFixture({ preview: true });
+  assert.equal((await preview.run()).ingestedThisRun, 0);
+  assert.equal(preview.calls.length, 0);
+  const throwing = incrementalFixture({ onProgress() { throw new Error("observer failed"); } });
+  assert.equal((await throwing.run()).ingestedThisRun, 60);
+  const rejecting = incrementalFixture({ onProgress() { return Promise.reject(new Error("observer rejected")); } });
+  assert.equal((await rejecting.run()).ingestedThisRun, 60);
+});
+
+test("checkpoint abort and deadline stop before dispatching a canonical write", async () => {
+  for (const mode of ["abort", "deadline"]) {
+    const controller = new AbortController();
+    let fixture;
+    fixture = incrementalFixture({ onProgress(value) {
+      if (value.event === "page" && value.stagedThisRun === 25) {
+        if (mode === "abort") controller.abort();
+        else fixture.clock.advance(10_000);
+      }
+    } });
+    const result = await fixture.run({ signal: controller.signal, maxDurationMs: mode === "deadline" ? 10_000 : 0 });
+    assert.equal(result.reason, mode === "abort" ? "aborted" : "time-limit");
+    assert.equal(fixture.calls.length, 0);
+    assert.equal(fixture.staged.length, 25);
+  }
+});

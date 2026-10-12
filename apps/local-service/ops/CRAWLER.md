@@ -24,6 +24,12 @@ owned during a run. The public requests are real even in preview mode. A default
 5,000-page preview can consume substantial time, CPU and network traffic; Ctrl+C
 is the normal safe pause because the fixed ledger resumes later.
 
+The terminal reports startup phases and aggregate progress while the command
+runs, including page attempts, staged candidates and accepted ingestions. During
+`-Apply`, new candidates are imported in small checkpoints so the running Topic
+dashboard can show growth before the full campaign finishes. Progress contains
+counts and fixed status labels, without tokens, URLs, titles or article text.
+
 ## Preview, then apply
 
 From the repository root, run:
@@ -88,10 +94,17 @@ but there is no bulk transaction or automatic rollback. The crawler does not
 create a backup or restore one for you.
 
 One invocation ingests at most 250 already staged, MMR-selected candidates before
-continuing the crawl and at most 250 after it. Rerun `-Apply` to continue the
-remaining staged ledger. A large 5,000-page campaign therefore normally needs
-multiple apply invocations; the 500-per-run ceiling is intentional because
-canonical Topic regrouping grows with the catalog.
+continuing the crawl. After every 25 newly staged candidates, it selects and
+imports another small block, and a final bounded pass handles remaining staged
+work when the frontier or campaign cap is reached. All passes share a total
+ceiling of 500 accepted ingestions per invocation; reaching it stops the run with
+`apply-limit`. Rerun `-Apply` to continue the remaining staged ledger. A large
+5,000-page campaign therefore normally needs multiple apply invocations because
+canonical Topic regrouping grows with the catalog. The dashboard shows accepted
+canonical ingestions, while preview staging remains separate.
+
+Ctrl+C and an expired `-MaxMinutes` stop further imports. Already staged work is
+retained and is selected at the beginning of the next `-Apply` invocation.
 
 If the machine reboots, Ctrl+C stops the run, or an optional time cap ends, rerun
 the same command. Queued and staged work resumes from:

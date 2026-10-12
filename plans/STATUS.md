@@ -1,5 +1,24 @@
 # Project status
 
+**2026-10-12 crawler Apply checkpoints and progress correction (ADR-102):**
+The owner reported unchanged dashboard counts during a confirmed active `-Apply`
+run. A read-only check found revision 804/194 learned pages with no crawler
+Sources yet; initial/final-only ingestion delayed fresh pages until collection
+ended. Apply now imports up to 250 retained staged candidates first, then small
+diversity-selected checkpoints after every 25 newly staged candidates and a
+bounded final pass. All passes share a 500-accepted-ingestion limit; reaching it
+stops with `apply-limit` for a deliberate rerun. Accepted versions are carried
+between passes, ingestion failure stops further crawl, and preview/abort/time
+limits retain their existing write boundaries. CLI startup phases and aggregate
+progress contain no URL/title/page/token/account data and create no persistent log.
+Independent review accepts; all 102 network-denied crawler tests pass, including
+checkpoint timing, version chaining, total/final budgets, quotas and failure/
+abort/deadline/privacy boundaries. Secret scan: 746 files, zero findings; syntax
+and diff checks pass. No live agent-run crawl or canonical ingestion was performed.
+The running owner crawler is not interrupted or restarted by the agent; the owner
+must Ctrl+C and rerun the same `-Apply` command to load the new code and resume.
+Existing frontier/dedup/policy/diversity/storage/provider scope remains unchanged.
+
 **2026-10-12 dashboard startup and refresh polling corrected (ADR-098):**
 Normal dashboard startup previously checked the removed legacy `demo_state`
 table before its already compatible normalized snapshot reader could run.

@@ -31,6 +31,8 @@ const MAX_POLICY_REDIRECTS = 3;
 const MAX_PAGE_REDIRECTS = 5;
 const MAX_LINKS_PER_PAGE = 64;
 const APPLY_BATCH = 250;
+const APPLY_CHECKPOINT = 25;
+const APPLY_RUN_LIMIT = 500;
 const NOVELTY_PRIOR_LIMIT = 256;
 const MODEL_ID = "e5-small-q8-browser-main-prefix-v1";
 
@@ -150,11 +152,13 @@ export async function runCrawler({
   clock = Date.now,
   sleep = abortableDelay,
   signal = undefined,
+  onProgress = undefined,
 } = {}) {
   checkDependencies({ state, client, fetchPublic, embedder });
   checkLimits({ maxPages, maxDepth, perHost, perSection, maxDurationMs });
   if (typeof apply !== "boolean" || typeof rebase !== "boolean" || typeof clock !== "function" || typeof sleep !== "function" ||
-      (signal !== undefined && (typeof signal !== "object" || typeof signal.aborted !== "boolean")))
+      (signal !== undefined && (typeof signal !== "object" || typeof signal.aborted !== "boolean")) ||
+      (onProgress !== undefined && typeof onProgress !== "function"))
     throw new TypeError("Invalid crawler options");
   const isBuiltIn = manifest === BUILT_IN_SOURCE_MANIFEST;
   const campaign = plainManifest(manifest);
@@ -166,6 +170,16 @@ export async function runCrawler({
   const policyMemory = new Map();
   let attemptedThisRun = 0, stagedThisRun = 0, ingestedThisRun = 0, reason = "frontier-empty";
   let canonical;
+  let stagedAtCheckpoint = 0;
+
+  function progress(event, phase) {
+    if (!onProgress) return;
+    try {
+      // Fixed codes and aggregate counters only; observer failure cannot change crawl authority.
+      const result = onProgress(Object.freeze({ event, phase, attemptedThisRun, stagedThisRun, ingestedThisRun }));
+      Promise.resolve(result).catch(() => {});
+    } catch {}
+  }
 
   function timeAvailable() { return clock() < deadline && !signal?.aborted; }
 
@@ -204,6 +218,7 @@ export async function runCrawler({
   }
 
   async function originPolicy(pageUrl) {
+    progress("phase", "policy");
     const origin = new URL(pageUrl).origin;
     const remembered = policyMemory.get(origin);
     if (remembered && remembered.expiresAt > clock()) return remembered.value;
@@ -280,6 +295,7 @@ export async function runCrawler({
       }
       let response;
       try {
+        progress("phase", "fetching");
         await pace(origin, robots.crawlDelayMs);
         response = await fetchPublic(row.url, { resourceKind: "page", signal });
       } catch (error) {
@@ -363,6 +379,7 @@ export async function runCrawler({
           return;
         }
         let embedded;
+        progress("phase", "embedding");
         try { embedded = await embedder.embed(capture.text); }
         catch {
           state.terminal(row.urlDigest, "failed", "embedding-failed");
@@ -386,14 +403,15 @@ export async function runCrawler({
     }
   }
 
-  async function applyStaged() {
-    if (!apply || !timeAvailable()) return;
+  async function applyStaged(limit) {
+    if (!apply || !timeAvailable() || reason === "ingest-unavailable" || ingestedThisRun >= APPLY_RUN_LIMIT) return;
     const staged = state.listStaged(50_000).map(item => ({ ...item, section: `${item.bucket}/${item.section}` }));
     if (!staged.length) return;
     const prior = state.listIngestedVectors(100_000).map(item => ({ ...item, section: `${item.bucket}/${item.section}` }));
-    const selected = selectDiverseCandidates(staged, { limit: Math.min(staged.length, APPLY_BATCH), bucketLimits,
+    const selected = selectDiverseCandidates(staged, { limit: Math.min(staged.length, limit, APPLY_RUN_LIMIT - ingestedThisRun), bucketLimits,
       perHost, perSection, prior, noveltyPriorLimit: Math.min(prior.length, NOVELTY_PRIOR_LIMIT) });
     let expected = canonical.version;
+    if (selected.length) progress("checkpoint", "applying");
     for (const item of selected) {
       if (!timeAvailable()) { reason = signal?.aborted ? "aborted" : "time-limit"; return; }
       const operationId = stableOperationId(item.url, item.representationDigest);
@@ -402,11 +420,15 @@ export async function runCrawler({
           embedding: { modelId: MODEL_ID, values: item.vector }, extractorVersion: item.extractorVersion }, operationId, expected);
         state.markIngested(item.urlDigest, { sourceId: result.sourceId, topicId: result.topicId });
         expected = result.version;
+        canonical = { ...canonical, version: result.version };
         ingestedThisRun += 1;
+        progress("ingested", "applying");
+        if (ingestedThisRun >= APPLY_RUN_LIMIT) reason = "apply-limit";
       } catch { reason = "ingest-unavailable"; return; }
     }
   }
 
+  progress("phase", "connecting");
   canonical = await client.knownSourceUrls();
   state.bindGeneration(canonical.version.generation, { rebase });
   for (const rawUrl of canonical.urls) for (const bucket of campaign.buckets) {
@@ -418,8 +440,9 @@ export async function runCrawler({
   for (const bucket of campaign.buckets) for (let index = 0; index < bucket.seeds.length; index += 1)
     state.enqueue({ url: bucket.seeds[index], bucket: bucket.id, depth: 0, priority: index, parentDigest: null });
 
-  await applyStaged();
+  await applyStaged(APPLY_BATCH);
   if (reason !== "ingest-unavailable") {
+    progress("phase", "crawling");
     while (state.attemptedCount() < maxPages && timeAvailable()) {
       const row = state.next({ maxDepth, perHost, bucketLimits, excludedHosts: stoppedHosts });
       if (!row) { reason = "frontier-empty"; break; }
@@ -431,10 +454,19 @@ export async function runCrawler({
         if (error instanceof CrawlerRunError && error.code === "embedding-unavailable") { reason = error.code; break; }
         throw error;
       }
+      progress("page", "crawling");
+      if (stagedThisRun - stagedAtCheckpoint >= APPLY_CHECKPOINT) {
+        stagedAtCheckpoint = stagedThisRun;
+        await applyStaged(APPLY_CHECKPOINT);
+        if (["ingest-unavailable", "apply-limit"].includes(reason)) break;
+      }
     }
-    if (state.attemptedCount() >= maxPages) reason = "campaign-limit";
-    else if (!timeAvailable()) reason = signal?.aborted ? "aborted" : "time-limit";
-    await applyStaged();
+    if (!["ingest-unavailable", "apply-limit"].includes(reason)) {
+      if (state.attemptedCount() >= maxPages) reason = "campaign-limit";
+      else if (!timeAvailable()) reason = signal?.aborted ? "aborted" : "time-limit";
+    }
+    await applyStaged(APPLY_BATCH);
   }
+  progress("complete", "complete");
   return summary({ apply, reason, attemptedThisRun, stagedThisRun, ingestedThisRun, state });
 }

@@ -8,6 +8,34 @@ import { fetchPublicResource } from "../crawler/public-fetch.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const STATE_FILE = path.join(ROOT, "data", "topic-crawler.sqlite");
+const STOP_CODES = new Set(["aborted", "time-limit", "policy-unavailable", "policy-state-invalid", "embedding-unavailable",
+  "request-capacity", "invalid-response", "invalid-request", "unauthorized", "forbidden", "conflict", "capacity",
+  "unavailable", "ambiguous"]);
+
+export function createProgressReporter({ write = value => process.stdout.write(value),
+  schedule = setInterval, cancel = clearInterval } = {}) {
+  const events = new Set(["phase", "checkpoint", "page", "ingested", "complete"]);
+  const phases = new Set(["loading-model", "connecting", "crawling", "policy", "fetching", "embedding", "applying", "complete"]);
+  let latest = null, closed = false;
+  function print() {
+    if (!latest || closed) return;
+    try { write(`Crawler ${latest.phase}: attempted=${latest.attemptedThisRun} staged=${latest.stagedThisRun} ingested=${latest.ingestedThisRun}\n`); }
+    catch {}
+  }
+  const timer = schedule(print, 15_000);
+  timer?.unref?.();
+  return Object.freeze({
+    onProgress(value) {
+      if (closed || !value || !events.has(value.event) || !phases.has(value.phase) ||
+          ![value.attemptedThisRun, value.stagedThisRun, value.ingestedThisRun].every(number => Number.isSafeInteger(number) && number >= 0)) return;
+      latest = { phase: value.phase, attemptedThisRun: value.attemptedThisRun,
+        stagedThisRun: value.stagedThisRun, ingestedThisRun: value.ingestedThisRun };
+      if (["checkpoint", "complete"].includes(value.event) || value.event === "phase" && ["connecting", "crawling"].includes(value.phase) ||
+          value.event === "page" && value.attemptedThisRun % 25 === 0) print();
+    },
+    close() { if (!closed) { closed = true; cancel(timer); } },
+  });
+}
 
 function usage() {
   return `Murmingle owner-local topic crawler
@@ -103,25 +131,29 @@ async function main() {
   const stop = () => controller.abort();
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
-  let embedder, state;
+  let embedder, state, progress;
   try {
     const client = createLocalIngestClient({ token });
     token = null;
+    process.stdout.write(`Crawler mode: ${options.apply ? "apply" : "preview"}; verifying assets and loading local model.\n`);
+    progress = createProgressReporter();
+    progress.onProgress({ event: "phase", phase: "loading-model", attemptedThisRun: 0, stagedThisRun: 0, ingestedThisRun: 0 });
     embedder = await createPackagedCrawlerEmbedder();
     state = createCrawlState({ filename: STATE_FILE });
     const result = await runCrawler({ state, client, fetchPublic: fetchPublicResource, embedder,
       apply: options.apply, rebase: options.rebase, maxPages: options.maxPages, maxDepth: options.maxDepth,
       perHost: options.perHost, perSection: options.perSection, maxDurationMs: options.maxDurationMs,
-      signal: controller.signal });
+      signal: controller.signal, onProgress: progress.onProgress });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     if (["ingest-unavailable", "embedding-unavailable"].includes(result.reason)) process.exitCode = 1;
     else if (result.reason === "aborted") process.exitCode = 130;
   } catch (error) {
-    const code = typeof error?.code === "string" && /^[a-z0-9-]{1,64}$/u.test(error.code) ? error.code : "crawler-failed";
+    const code = STOP_CODES.has(error?.code) ? error.code : "crawler-failed";
     process.stderr.write(`Crawler stopped: ${code}\n`);
     process.exitCode = 1;
   } finally {
     token = null;
+    progress?.close();
     try { state?.close(); } catch { process.exitCode = 1; }
     try { await embedder?.close(); } catch { process.exitCode = 1; }
     process.removeListener("SIGINT", stop);
@@ -129,4 +161,4 @@ async function main() {
   }
 }
 
-await main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

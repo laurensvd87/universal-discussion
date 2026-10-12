@@ -1,5 +1,22 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-102 crawler Apply/progress correction: load updated command by
+deliberately Ctrl+C stopping the old crawler and rerunning the same PowerShell
+`-Apply` command. Do not delete its ledger or start a second concurrent crawler.
+Up to 250 prior staged candidates apply first; each 25 newly staged candidates
+triggers a small diversity-selected checkpoint, with a bounded final pass and
+500 accepted ingestions total per invocation. `apply-limit` means rerun to resume.
+Carry accepted canonical versions between passes; ingestion failure is terminal
+for this invocation and stops further crawl. Abort/time limits stop new writes.
+Startup and 15-second aggregate progress show phases and counts without content,
+URLs/titles, token/account material or a persistent log. Dashboard sees accepted
+canonical pages during collection; preview remains separate. The agent diagnosed
+an actual active Apply run with revision804/194 learned/no crawler Sources yet,
+but never interrupted it, made canonical writes or issued public/provider calls.
+Independent review accepts; restricted crawler 102/102 and secret scan746/zero
+pass, as do syntax/help/diff checks. Live incremental-import timing still awaits
+the owner's restarted run; synthetic checkpoints are the verification evidence.
+
 2026-10-12 dashboard startup/polling correction under ADR-098: revision reads now
 use normalized canonical metadata or legacy v2/v3 metadata through a read-only
 handle. The prior startup refresh check still queried the removed demo_state
