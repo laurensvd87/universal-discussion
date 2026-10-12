@@ -201,6 +201,26 @@ activity without persistent logging or content/URL/token output. The existing
 running process is not interrupted automatically; a deliberate Ctrl+C and rerun
 loads the updated command and resumes the ledger.
 
+2026-10-12 repeated-ingestion-failure refinement: the owner accepted 393 crawler
+Sources, then each rerun failed before accepting another candidate. Read-only RAM
+replay of the next candidate (589 learned Sources including browser captures)
+reproduced `capacity` at the existing ten-second planner budget. Optional bounded
+immutable relation caches, lazy numeric similarity rows and exact supported-block
+boundary adjacency remove repeated calculations. They preserve arithmetic, merge
+ordering, thresholds, pins, sticky splits and the CPU deadline. With a frozen
+clock only for the prior-algorithm RAM comparison, the optimized result matches
+the full baseline exactly; measured optimized time is about 0.8 seconds instead
+of 10.8 seconds for that input. This is local evidence, not a 5,000-page or hosted
+throughput guarantee, and no owner record is written by this replay.
+
+Crawler failure output now includes only an allowlisted `ingestError` class,
+never raw error text or arbitrary codes. Partial/aborted/closed replies fail
+promptly as ambiguous; outgoing requests are destroyed and the existing ten-second
+client deadline, five-attempt limit and exact-operation/generation fences remain.
+Capacity and transport policies are not relaxed. The backend optimization needs
+a local-service restart; crawler restart alone cannot activate it. Concurrent
+model-deadline/browser changes retain their own verification and activation scope.
+
 ## Explicit non-goals
 
 This decision adds no general URL input to the extension, open-web frontier,

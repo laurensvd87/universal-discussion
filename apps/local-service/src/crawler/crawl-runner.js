@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { BUILT_IN_SOURCE_ID, BUILT_IN_SOURCE_MANIFEST, isBuiltInSourceUrl } from "./built-in-sources.js";
 import { representationDigest, selectDiverseCandidates, simhash64 } from "./diversity.js";
 import { PublicFetchError } from "./public-fetch.js";
+import { fixedIngestError } from "./local-ingest-client.js";
 import {
   evaluateRobots,
   matchTdmRep,
@@ -124,11 +125,12 @@ function safePageUrl(raw, base, bucket, builtIn) {
   } catch { return null; }
 }
 
-function summary({ apply, reason, attemptedThisRun, stagedThisRun, ingestedThisRun, state }) {
+function summary({ apply, reason, ingestError, attemptedThisRun, stagedThisRun, ingestedThisRun, state }) {
   return Object.freeze({
     campaign: BUILT_IN_SOURCE_ID,
     mode: apply ? "apply" : "preview",
     reason,
+    ...(reason === "ingest-unavailable" ? { ingestError } : {}),
     attemptedThisRun,
     stagedThisRun,
     ingestedThisRun,
@@ -170,13 +172,15 @@ export async function runCrawler({
   const policyMemory = new Map();
   let attemptedThisRun = 0, stagedThisRun = 0, ingestedThisRun = 0, reason = "frontier-empty";
   let canonical;
+  let ingestError;
   let stagedAtCheckpoint = 0;
 
   function progress(event, phase) {
     if (!onProgress) return;
     try {
       // Fixed codes and aggregate counters only; observer failure cannot change crawl authority.
-      const result = onProgress(Object.freeze({ event, phase, attemptedThisRun, stagedThisRun, ingestedThisRun }));
+      const result = onProgress(Object.freeze({ event, phase, attemptedThisRun, stagedThisRun, ingestedThisRun,
+        ...(event === "ingest-failed" ? { ingestError } : {}) }));
       Promise.resolve(result).catch(() => {});
     } catch {}
   }
@@ -424,7 +428,12 @@ export async function runCrawler({
         ingestedThisRun += 1;
         progress("ingested", "applying");
         if (ingestedThisRun >= APPLY_RUN_LIMIT) reason = "apply-limit";
-      } catch { reason = "ingest-unavailable"; return; }
+      } catch (error) {
+        reason = "ingest-unavailable";
+        ingestError = fixedIngestError(error);
+        progress("ingest-failed", "applying");
+        return;
+      }
     }
   }
 
@@ -468,5 +477,5 @@ export async function runCrawler({
     await applyStaged(APPLY_BATCH);
   }
   progress("complete", "complete");
-  return summary({ apply, reason, attemptedThisRun, stagedThisRun, ingestedThisRun, state });
+  return summary({ apply, reason, ingestError, attemptedThisRun, stagedThisRun, ingestedThisRun, state });
 }

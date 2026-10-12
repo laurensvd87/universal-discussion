@@ -1,5 +1,27 @@
 # Project status
 
+**2026-10-12 repeated crawler ingestion stall corrected; backend activation pending:**
+The owner confirms 393 crawler Sources accepted, then repeated Apply runs stop at
+zero new ingestions with 125 staged and 10,822 queued rows. Read-only canonical
+counts agree. Next-candidate RAM replay at 589 learned Sources reproduces the
+unchanged planner's `capacity` deadline at 10,001 ms; the optimized planner takes
+718 ms. A separate old-algorithm frozen-clock oracle finishes in 10,799 ms and
+deep-equals the optimized 788 ms result. No public page/title/vector is exported
+and no canonical/private/account store is changed by the replay.
+
+Lazy numeric similarity rows, bounded immutable relation caches and exact block
+adjacency preserve thresholds, arithmetic, tie order, pins/sticky splits and the
+ten-second CPU deadline. Fixed ingest-error diagnostics and prompt teardown of
+incomplete responses retain the client deadline, existing operation retry budget
+and generation fences. No transport deadline or grouping policy is widened.
+Independent review accepts; the full current-worktree backend suite passes
+838/five skips (843 total), including differential/clock/stress and diagnostics
+checks; secret scan750/zero and diff checks pass. Concurrent model-deadline and
+browser-conflict work is excluded from this increment. Service/crawler processes
+are not interrupted; activate the planner through the normal local-service
+restart, then rerun Apply with the unchanged pairing token and preserved ledger.
+Global ingestion remains serial/growing; this is not proof of 5,000-page capacity.
+
 **2026-10-12 model-list/matching failures diagnosed, corrections not activated:**
 Read-only paired checks show the service and protected ChatGPT connection remain
 available. Existing diagnostics record a model timeout followed by successful

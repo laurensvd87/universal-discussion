@@ -567,8 +567,14 @@ test("checkpoint failure stops fetch and retry immediately, preserving staged ro
   assert.equal(fixture.staged.length, 23);
   const serialized = JSON.stringify(fixture.progress);
   for (const secret of ["https:", "PRIVATE_FIXTURE", "representation", "source", "token", "vector"]) assert.equal(serialized.includes(secret), false);
-  fixture.progress.forEach(value => assert.deepEqual(Object.keys(value).sort(),
-    ["attemptedThisRun", "event", "ingestedThisRun", "phase", "stagedThisRun"]));
+  fixture.progress.forEach(value => {
+    const keys = ["attemptedThisRun", "event", "ingestedThisRun", "phase", "stagedThisRun"];
+    if (value.event === "ingest-failed") {
+      keys.push("ingestError");
+      assert.equal(value.ingestError, "unknown");
+    }
+    assert.deepEqual(Object.keys(value).sort(), keys.sort());
+  });
 });
 
 test("checkpoint failure stays authoritative when campaign cap is reached", async () => {

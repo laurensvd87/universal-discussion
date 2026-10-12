@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 crawler stall: optimized canonical adaptive planner and fixed
+ingestError diagnostics are checked but not yet loaded by the running backend.
+Normal service restart is required; restarting only the crawler leaves the old
+planner active. Preserve pairing/login/data/ledger and coordinate with concurrent
+model-deadline/browser work before any service interruption. Owner runs accepted
+393 crawler pages, leaving 125 staged/10,822 queued; no cleanup/deletion is needed.
+Actual next-candidate RAM replay589 learns hits old capacity10,001 ms versus
+optimized718 ms; a frozen-clock old oracle10,799 ms deep-equals optimized788 ms.
+Independent review accepts/full backend838 pass+five skips/secret750 zero.
+Grouping thresholds/order/pins/lineage, CPU10s/client10s/five-attempt/generation
+fences stay unchanged. Queued/staged resumes via same Apply operation identity;
+ingestError is a fixed class only. No owner write/network/provider/process action
+was performed by the agent; no 5,000-page throughput/capacity claim follows.
+
 2026-10-12 ADR-102 crawler Apply/progress correction: load updated command by
 deliberately Ctrl+C stopping the old crawler and rerunning the same PowerShell
 `-Apply` command. Do not delete its ledger or start a second concurrent crawler.

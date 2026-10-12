@@ -30,6 +30,13 @@ runs, including page attempts, staged candidates and accepted ingestions. During
 dashboard can show growth before the full campaign finishes. Progress contains
 counts and fixed status labels, without tokens, URLs, titles or article text.
 
+If a run ends with `ingest-unavailable`, its `ingestError` and the immediately
+preceding terminal line give a fixed failure class. `capacity` means the service
+rejected work at an existing capacity/budget guard; `ambiguous` means a response
+was lost, incomplete or timed out. Queued/staged work stays in the ledger. Rerun
+uses the same operation identity to reconcile a possibly accepted request.
+Repetition alone cannot resolve a deterministic service failure.
+
 ## Preview, then apply
 
 From the repository root, run:
@@ -102,6 +109,11 @@ ceiling of 500 accepted ingestions per invocation; reaching it stops the run wit
 5,000-page campaign therefore normally needs multiple apply invocations because
 canonical Topic regrouping grows with the catalog. The dashboard shows accepted
 canonical ingestions, while preview staging remains separate.
+
+The 2026-10-12 planner optimization removes repeated exact comparisons without
+changing grouping rules or the ten-second planning budget. Restart the updated
+local service before retrying a run stopped at the older planner's work budget.
+Restarting just the PowerShell crawler does not reload backend code.
 
 Ctrl+C and an expired `-MaxMinutes` stop further imports. Already staged work is
 retained and is selected at the beginning of the next `-Apply` invocation.

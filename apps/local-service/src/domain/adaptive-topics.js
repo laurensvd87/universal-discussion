@@ -12,11 +12,19 @@ const EPSILON = 1e-12;
 // A full regrouping runs synchronously on every ingestion. Bound CPU work while
 // retaining the snapshot and response byte limits as the data-size guards.
 const PLANNING_BUDGET_MS = 10_000;
+// Additional relation memoization is an optional speedup, never a size gate.
+// Stop admitting entries at this bound; a miss always recomputes the exact rule.
+const RELATION_CACHE_LIMIT = 65_536;
 const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
 const validId = value => typeof value === 'string' && /^[A-Za-z0-9._:-]{1,128}$/u.test(value);
 const key = part => part.sourceIds.join('\0');
 const invalid = () => { throw new TypeError('Invalid adaptive Topic planner input'); };
-const dot = (a,b) => Math.max(-1,Math.min(1,a.reduce((sum,value,i)=>sum+value*b[i],0)));
+const dot = (a,b) => {
+  // Preserve the reduce's left-to-right arithmetic, without a callback per axis.
+  let sum=0;
+  for(let i=0;i<a.length;i++)if(i in a)sum+=a[i]*b[i];
+  return Math.max(-1,Math.min(1,sum));
+};
 
 // No IDs, writes, clocks, inference or semantic claims. Caller owns transactional
 // Topic reuse and must preserve Topic-root/manual/legacy containers independently.
@@ -60,16 +68,33 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
       if (part.retainTight && byId.has(id)) retained.add(id);
     }
   }
-  const similarities=new Map();
+  const eligibleIds=eligible.map(source=>source.id);
+  const indices=new Map(eligibleIds.map((id,index)=>[id,index]));
+  const vectors=eligible.map(source=>source.embedding.values);
+  const similarities=eligible.map(()=>[]);
   function similarity(a,b) {
     if(a===b)return 1;
-    const pair=compare(a,b)<0 ? `${a}\0${b}` : `${b}\0${a}`;
-    if(!similarities.has(pair)) similarities.set(pair,dot(byId.get(a).embedding.values,byId.get(b).embedding.values));
-    return similarities.get(pair);
+    const first=indices.get(a),second=indices.get(b);
+    const low=Math.min(first,second),high=Math.max(first,second),row=similarities[low];
+    if(row[high]===undefined)row[high]=dot(vectors[first],vectors[second]);
+    return row[high];
   }
+  // Member arrays are immutable for this invocation: every merge creates a new
+  // sorted array. Complete-link scores and cohesion therefore stay exact while
+  // unrelated partitions merge. Weak keys keep this cache local to the plan.
+  const minima=new WeakMap(),cohesions=new WeakMap();
+  let minimumEntries=0;
   function minimum(a,b) {
+    checkBudget();
+    if(a.length===1 && b.length===1)return similarity(a[0],b[0]);
+    let row=minima.get(a);
+    if(row?.has(b))return row.get(b);
     let result=Infinity;
     for(const id of a)for(const other of b) { checkBudget(); result=Math.min(result,similarity(id,other)); }
+    if(minimumEntries<RELATION_CACHE_LIMIT) {
+      if(!row) { row=new WeakMap(); minima.set(a,row); }
+      row.set(b,result); minimumEntries++;
+    }
     return result;
   }
   function maximum(a,b) {
@@ -78,11 +103,14 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     return result;
   }
   function cohesion(ids) {
+    checkBudget();
     if(ids.length<2)return 1;
+    if(cohesions.has(ids))return cohesions.get(ids);
     let result=Infinity;
     for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++) {
       checkBudget(); result=Math.min(result,similarity(ids[i],ids[j]));
     }
+    cohesions.set(ids,result);
     return result;
   }
   function support(ids) {
@@ -111,21 +139,35 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     intrinsic.splice(j,1); intrinsic.sort((a,b)=>compare(key(a),key(b)));
   }
   const supported=intrinsic.filter(part=>support(part.sourceIds)>=ADAPTIVE_TOPIC_POLICY.minimumSupport);
-  const boundaries=[];
+  const boundaries=new Map();
   const markedBlocks=new Map();
   for(let i=0;i<supported.length;i++)for(let j=i+1;j<supported.length;j++) {
     const a=supported[i].sourceIds,b=supported[j].sourceIds;
     if(Math.min(cohesion(a),cohesion(b))-maximum(a,b)+EPSILON>=ADAPTIVE_TOPIC_POLICY.competingMargin) {
-      boundaries.push([new Set(a),new Set(b)]);
+      const first=key(supported[i]),second=key(supported[j]);
+      if(!boundaries.has(first))boundaries.set(first,new Set());
+      if(!boundaries.has(second))boundaries.set(second,new Set());
+      boundaries.get(first).add(second); boundaries.get(second).add(first);
       for(const id of a)markedBlocks.set(id,key(supported[i]));
       for(const id of b)markedBlocks.set(id,key(supported[j]));
     }
   }
-  const crossesBoundary=ids=>boundaries.some(([a,b])=>{
-    checkBudget();
-    return ids.some(id=>{ checkBudget(); return a.has(id); }) &&
-      ids.some(id=>{ checkBudget(); return b.has(id); });
-  });
+  const crossesBoundary=ids=>{
+    // Intrinsic blocks partition the eligible IDs. An original boundary pair
+    // is crossed exactly when the union touches both of its disjoint blocks.
+    // Query the few touched blocks, rather than every boundary in the universe.
+    const touched=new Set();
+    for(const id of ids) {
+      checkBudget();
+      const block=markedBlocks.get(id);
+      if(block!==undefined)touched.add(block);
+    }
+    for(const block of touched)for(const other of touched) {
+      checkBudget();
+      if(boundaries.get(block).has(other))return true;
+    }
+    return false;
+  };
   const decisions=[];
   const initial=new Map();
   for(const source of eligible) {
@@ -184,21 +226,43 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     decisions.push({reason:'incompatible-representation-split',sourceIds:[...original]});
   }
   partitions.sort((a,b)=>compare(key(a),key(b)));
+  const mergeScores=new WeakMap();
+  let mergeEntries=0;
+  function mergeScore(a,b) {
+    checkBudget();
+    let row=mergeScores.get(a);
+    if(row?.has(b))return row.get(b);
+    // The outside set is the fixed eligible universe minus these two immutable
+    // member arrays, not the current partition list. Thus all vetoes remain
+    // unchanged when a different pair merges; rejected pairs are cacheable too.
+    let score=null;
+    if(a.pinnedTopicId===null && b.pinnedTopicId===null) {
+      const ids=[...a.sourceIds,...b.sourceIds];
+      if(!crossesBoundary(ids)) {
+        const candidate=minimum(a.sourceIds,b.sourceIds);
+        const threshold=a.retainTight || b.retainTight ? ADAPTIVE_TOPIC_POLICY.tight : ADAPTIVE_TOPIC_POLICY.floor;
+        if(!(cohesion(a.sourceIds)+EPSILON<threshold) && !(cohesion(b.sourceIds)+EPSILON<threshold) &&
+            !(candidate+EPSILON<threshold)) {
+          const members=new Set(ids),outside=eligibleIds.filter(id=>!members.has(id));
+          if(!outside.length || !(candidate-maximum(ids,outside)+EPSILON<ADAPTIVE_TOPIC_POLICY.competingMargin))score=candidate;
+        }
+      }
+    }
+    if(mergeEntries<RELATION_CACHE_LIMIT) {
+      if(!row) { row=new WeakMap(); mergeScores.set(a,row); }
+      row.set(b,score); mergeEntries++;
+    }
+    return score;
+  }
   for (;;) {
     const candidates=[];
     for(let i=0;i<partitions.length;i++)for(let j=i+1;j<partitions.length;j++) {
       checkBudget();
-      const a=partitions[i],b=partitions[j],ids=[...a.sourceIds,...b.sourceIds];
+      const a=partitions[i],b=partitions[j];
       // A manually anchored Topic is owner-selected, not an automatic expansion
       // target, even when the other partition has a high-scoring vector.
-      if(a.pinnedTopicId!==null || b.pinnedTopicId!==null)continue;
-      if(crossesBoundary(ids))continue;
-      const score=minimum(a.sourceIds,b.sourceIds);
-      const threshold=a.retainTight || b.retainTight ? ADAPTIVE_TOPIC_POLICY.tight : ADAPTIVE_TOPIC_POLICY.floor;
-      if(cohesion(a.sourceIds)+EPSILON<threshold || cohesion(b.sourceIds)+EPSILON<threshold)continue;
-      if(score+EPSILON<threshold)continue;
-      const outside=eligible.map(source=>source.id).filter(id=>!ids.includes(id));
-      if(outside.length && score-maximum(ids,outside)+EPSILON<ADAPTIVE_TOPIC_POLICY.competingMargin)continue;
+      const score=mergeScore(a,b);
+      if(score===null)continue;
       candidates.push({i,j,score,key:key(a)+'\0'+key(b)});
     }
     candidates.sort((a,b)=>b.score-a.score || compare(a.key,b.key));

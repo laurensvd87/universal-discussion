@@ -8,6 +8,17 @@ const CURSOR = /^[A-Za-z0-9_-]{1,2048}$/u;
 const MAX_RESPONSE = 1_048_576;
 const MAX_CATALOG_PAGES = 1_000;
 const MAX_CATALOG_SOURCES = 100_000;
+const INGEST_ERROR_CODES = new Set(["request-capacity", "request-too-large", "invalid-response", "invalid-request",
+  "unauthorized", "forbidden", "conflict", "capacity", "unavailable", "ambiguous"]);
+
+export function fixedIngestError(error) {
+  // Never forward remote/error text, arbitrary codes, or caller-controlled objects.
+  try {
+    const code = error instanceof CrawlerApiError ? Object.getOwnPropertyDescriptor(error, "code")?.value : undefined;
+    return INGEST_ERROR_CODES.has(code) ? code : "unknown";
+  }
+  catch { return "unknown"; }
+}
 
 export class CrawlerApiError extends Error {
   constructor(code) { super(code); this.name = "CrawlerApiError"; this.code = code; }
@@ -21,7 +32,7 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
     const body = value === undefined ? null : Buffer.from(JSON.stringify(value), "utf8");
     if (body && body.length > 65_536) { body.fill(0); throw new CrawlerApiError("request-capacity"); }
     return new Promise((resolve, reject) => {
-      let settled = false, timer, response;
+      let settled = false, timer, response, outgoing;
       const chunks = [];
       const fail = code => {
         if (settled) return;
@@ -29,9 +40,10 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
         for (const chunk of chunks) chunk.fill(0);
         body?.fill(0);
         try { response?.destroy(); } catch {}
+        try { outgoing?.destroy(); } catch {}
         reject(new CrawlerApiError(code));
       };
-      let outgoing;
+      timer = setTimeout(() => fail("ambiguous"), timeoutMs);
       try {
         outgoing = requestImpl({ protocol: "http:", hostname: HOST, port: PORT, path: apiPath, method, agent: false,
           headers: { authorization: `Bearer ${token}`, accept: "application/json",
@@ -49,22 +61,28 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
             chunks.push(Buffer.from(chunk));
           });
           incoming.once("error", () => fail("ambiguous"));
+          incoming.once("aborted", () => fail("ambiguous"));
+          incoming.once("close", () => { if (!settled) fail("ambiguous"); });
           incoming.once("end", () => {
             if (settled) return;
+            if (incoming.complete === false || length !== undefined && Number(length) !== size) { fail("ambiguous"); return; }
             let parsed;
             const bytes = Buffer.concat(chunks);
             try { parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); }
             catch { bytes.fill(0); fail("invalid-response"); return; }
             bytes.fill(0); for (const chunk of chunks) chunk.fill(0); body?.fill(0); clearTimeout(timer); settled = true;
             if (incoming.statusCode !== 200) {
-              const mapped = { 400: "invalid-request", 401: "unauthorized", 403: "forbidden", 409: "conflict", 413: "capacity" }[incoming.statusCode] ?? "unavailable";
+              const mapped = incoming.statusCode === 413 && plain(parsed, ["error"]) && parsed.error === "request-too-large"
+                ? "request-too-large"
+                : { 400: "invalid-request", 401: "unauthorized", 403: "forbidden", 409: "conflict", 413: "capacity" }[incoming.statusCode] ?? "unavailable";
               reject(new CrawlerApiError(mapped)); return;
             }
             resolve(parsed);
           });
         });
         outgoing.once("error", () => fail("ambiguous"));
-        timer = setTimeout(() => { try { outgoing.destroy(); } catch {} fail("ambiguous"); }, timeoutMs);
+        outgoing.once("close", () => { if (!settled) fail("ambiguous"); });
+        if (settled) { try { outgoing.destroy(); } catch {} return; }
         if (body) outgoing.end(body); else outgoing.end();
       } catch { fail("ambiguous"); }
     });

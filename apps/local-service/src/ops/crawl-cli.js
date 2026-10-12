@@ -2,19 +2,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCrawlState } from "../crawler/crawl-state.js";
 import { DEFAULT_CRAWL_LIMITS, runCrawler } from "../crawler/crawl-runner.js";
-import { createLocalIngestClient } from "../crawler/local-ingest-client.js";
+import { CrawlerApiError, createLocalIngestClient, fixedIngestError } from "../crawler/local-ingest-client.js";
 import { createPackagedCrawlerEmbedder } from "../crawler/packaged-e5.js";
 import { fetchPublicResource } from "../crawler/public-fetch.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const STATE_FILE = path.join(ROOT, "data", "topic-crawler.sqlite");
 const STOP_CODES = new Set(["aborted", "time-limit", "policy-unavailable", "policy-state-invalid", "embedding-unavailable",
-  "request-capacity", "invalid-response", "invalid-request", "unauthorized", "forbidden", "conflict", "capacity",
+  "request-capacity", "request-too-large", "invalid-response", "invalid-request", "unauthorized", "forbidden", "conflict", "capacity",
   "unavailable", "ambiguous"]);
 
 export function createProgressReporter({ write = value => process.stdout.write(value),
   schedule = setInterval, cancel = clearInterval } = {}) {
-  const events = new Set(["phase", "checkpoint", "page", "ingested", "complete"]);
+  const events = new Set(["phase", "checkpoint", "page", "ingested", "ingest-failed", "complete"]);
   const phases = new Set(["loading-model", "connecting", "crawling", "policy", "fetching", "embedding", "applying", "complete"]);
   let latest = null, closed = false;
   function print() {
@@ -30,6 +30,11 @@ export function createProgressReporter({ write = value => process.stdout.write(v
           ![value.attemptedThisRun, value.stagedThisRun, value.ingestedThisRun].every(number => Number.isSafeInteger(number) && number >= 0)) return;
       latest = { phase: value.phase, attemptedThisRun: value.attemptedThisRun,
         stagedThisRun: value.stagedThisRun, ingestedThisRun: value.ingestedThisRun };
+      if (value.event === "ingest-failed") {
+        const code = typeof value.ingestError === "string" ? fixedIngestError(new CrawlerApiError(value.ingestError)) : "unknown";
+        try { write(`Crawler ingest failed: ${code}\n`); } catch {}
+        print();
+      }
       if (["checkpoint", "complete"].includes(value.event) || value.event === "phase" && ["connecting", "crawling"].includes(value.phase) ||
           value.event === "page" && value.attemptedThisRun % 25 === 0) print();
     },
