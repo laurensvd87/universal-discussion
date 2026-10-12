@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 portable backup scheduler core is dormant and independently reviewed.
+Explicit start/stop, no overlap/catch-up, real shutdown waiting and verify-before-
+success/prune contracts pass 17 scheduler/52 full portable checks. No runtime or
+real recurring backup is activated. Do not use the plaintext synthetic dump as an
+adapter. Encrypted off-host publication/verification, protected retention, durable
+restart/fencing, external polling for hung-work alerts and native restore evidence
+remain hosted gates. Read portable README, BACKEND_HOSTING_PLAN and ADR-099.
+
 2026-10-12 extension 0.13.55: My chats replaces the Private chats label; list
 entries and open private chats show localized accessible lock icons. Existing
 private-only/account-scoped API and automatic private reply semantics remain;

@@ -29,6 +29,14 @@ step, especially Cloudflare versus AWS. The rented pilot recommendation below
 is conditional on explicit host/budget/data approval; the Ubuntu/UDR path is not
 a prerequisite if the owner selects remote rehearsal instead.
 
+Dormant backup checkpoint (2026-10-12): the portable package now includes a
+tested scheduler core with explicit start/stop, serialized real completion,
+verified-success/retention gating and fixed safe status. Independent Trust and
+52 portable offline checks pass. No runtime/Compose activation follows. Complete
+encrypted/off-host adapters, restart/distributed fencing, stalled-work monitoring
+and native recovery evidence remain open; the manual plaintext synthetic dump is
+not an eligible automatic-backup adapter. See the portable guide and ADR-099.
+
 ## Recommendation
 
 Build one portable Node backend with PostgreSQL and pgvector, packaged as Linux

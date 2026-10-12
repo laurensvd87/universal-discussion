@@ -97,6 +97,19 @@ defines exact cadence, coverage, destination, key protection, retention and cost
 See `plans/BACKEND_HOSTING_PLAN.md`. No local recurring snapshot creation,
 off-device transfer, spending or deployment is activated by this requirement.
 
+### Dormant scheduler preparation
+
+The portable package now prepares a callback-based scheduler without importing
+it into entrypoints/Compose or starting any real backup. Explicit start/stop,
+serialized actual completion, verified-success/retention gating and bounded fixed
+status fields are offline tested. Backup/verify/prune hooks remain trusted adapter
+contracts, not evidence of encryption, off-host durability or recovery. No
+unencrypted synthetic dump is wired into recurring work. Hung hooks keep their
+lock; external status polling/real adapter termination, restart recovery discovery
+and distributed fencing remain gaps before hosted activation. Independent Trust
+accepts this dormant slice; 17 scheduler and 52 full portable checks pass. The
+local service and owner backup schedule stay unchanged. See the portable guide.
+
 ## One-time cutover
 
 Create/verify the approved recovery point online, identify the exact project process

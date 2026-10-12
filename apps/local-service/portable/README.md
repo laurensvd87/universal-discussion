@@ -121,6 +121,33 @@ commands. The current extension uses another composition and **cannot connect
 to this rehearsal**. Do not substitute its pairing token for rehearsal tokens.
 Secrets, `.env`, backups and logs are Git-ignored; do not paste them into chat.
 
+## Dormant automated-backup orchestration
+
+`ops/backup-scheduler.js` prepares the scheduler core for future hosted backups.
+Import/construction are inert; only an explicit `start()` arms a timer. A single
+instance awaits backup, independent verification and retention in order, never
+overlaps work, skips missed slots and exposes fixed content-free status fields.
+Failed creation/verification never invokes retention; successful retention is
+given a protected verified recovery handle. `stop()` waits for real completion.
+
+This is **not activated automated backup**. No entrypoint/Compose/Windows-service
+wiring, filesystem work, encryption, off-host copy, provider request or restore
+is added. Do not connect the unencrypted synthetic `ops/backup.js` dump to it.
+Future adapters must supply complete consistent encrypted publication, independent
+durability/recovery verification, protected-point retention and safe failure
+cleanup. The scheduler cannot enforce these guarantees on an arbitrary callback.
+
+Status/history are RAM-only and serialization is process-local. Restart discovery
+of the last valid backup and durable multi-process fencing remain required.
+Monitoring must poll `getStatus()` to detect a stalled hook; `onStatus` alone does
+not provide periodic alerts. A hung hook keeps work/shutdown pending rather than
+claiming timeout cancellation and starting an overlapping backup. Adapter deadlines
+must await actual termination; no listener/session is owned by this module.
+The complete hosted storage/key/retention/alert/restore activation package remains
+a separate gate in [BACKEND_HOSTING_PLAN](../../../plans/BACKEND_HOSTING_PLAN.md).
+Restricted portable checks pass 52/52, including six independent adversarial
+scheduler tests. Native dump/restore evidence is still required separately.
+
 ## Backup and restore drill
 
 On the approved synthetic host, while `db` is running:

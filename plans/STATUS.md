@@ -1,5 +1,16 @@
 # Project status
 
+**2026-10-12 dormant hosted backup scheduler verified:** the portable package
+prepares explicit start/stop, one real operation at a time, independent verification
+before success/prune, protected recovery-point retention contract and fixed safe
+status. Failed backups never trigger pruning; stop waits through actual work and
+missed slots do not create catch-up storms. Independent Trust accepts 17 scheduler
+checks; full restricted portable suite passes 52/52. No entrypoint/Compose/local
+schedule, filesystem/owner-data operation or service/provider request is activated.
+Encrypted off-host adapters, durable restart/distributed fencing, polled stalled
+work alerts and native restore evidence remain required before hosted acceptance.
+Do not wire the plaintext synthetic dump into it. See ADR-099 and portable guide.
+
 **2026-10-12 My chats presentation verified, extension 0.13.55:** the former
 Private chats tab is My chats; private list entries/open-chat headers have compact
 accessible lock icons. Copy and section labels remain language-pack-driven.
