@@ -47,7 +47,8 @@ test("other routes and local beforeDispatch conflicts cannot brand matching reco
     { beforeDispatch: async () => false }));
   assert.equal(isConfirmedIngestionConflict(local), false);
 });
-test("partial, broken, invalid UTF8 and timed-out error streams never prove rejection", async () => {
+test("partial, broken, invalid UTF8 and timed-out error streams never prove rejection", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
   const encoder = new TextEncoder();
   for (const kind of ["partial", "broken", "utf8", "timeout", "invalid-chunk"]) {
     let stage = 0;
@@ -60,8 +61,13 @@ test("partial, broken, invalid UTF8 and timed-out error streams never prove reje
       else if (kind === "invalid-chunk") { controller.enqueue("invalid"); controller.close(); }
       else controller.close();
     } });
-    const error = await rejection(clientFor(async () => ({ status: 409,
+    const pending = rejection(clientFor(async () => ({ status: 409,
       headers: new Headers({ "content-type": "application/json" }), body: stream }), { timeoutMs: 20 }));
+    if (kind === "timeout") {
+      for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+      t.mock.timers.tick(30_000);
+    }
+    const error = await pending;
     assert.equal(isConfirmedIngestionConflict(error), false, kind);
   }
 });

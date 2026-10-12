@@ -49,11 +49,11 @@ The normal PowerShell launcher supplies the pairing token through hidden stdin.
 Default mode performs real public fetching and durable staging, but no canonical writes.
 
 Options:
-  --apply                 Ingest a bounded diverse batch into the canonical database
-  --max-pages N           Durable campaign cap, 1..50000 (default 5000)
-  --max-depth N           Link depth, 0..8 (default 2)
-  --per-host N            Durable per-origin page cap (default 1250)
-  --per-section N         Selection cap per subject/origin section (default 100)
+  --apply                 Continuously ingest diverse checkpoints until stopped or exhausted
+  --max-pages N           Optional durable campaign cap, 0..50000; 0 is unlimited (default)
+  --max-depth N           Link depth, -1 unlimited (default), 0 seeds only, or 1..8
+  --per-host N            Optional durable per-origin page cap; 0 is unlimited (default)
+  --per-section N         Optional selection cap per subject/origin section; 0 is unlimited (default)
   --max-minutes N         Stop this invocation after N minutes; 0 is unlimited
   --rebase-state          Abandon unfinished work if the canonical generation changed
   --token-stdin           Read exactly one pairing token from stdin
@@ -62,13 +62,13 @@ Options:
 }
 
 function integer(value, minimum, maximum) {
-  if (typeof value !== "string" || !/^(?:0|[1-9][0-9]*)$/u.test(value)) throw new Error("invalid-arguments");
+  if (typeof value !== "string" || !/^(?:-1|0|[1-9][0-9]*)$/u.test(value)) throw new Error("invalid-arguments");
   const number = Number(value);
   if (!Number.isSafeInteger(number) || number < minimum || number > maximum) throw new Error("invalid-arguments");
   return number;
 }
 
-function argumentsFrom(argv) {
+export function argumentsFrom(argv) {
   const options = { apply: false, rebase: false, tokenStdin: false,
     maxPages: DEFAULT_CRAWL_LIMITS.maxPages, maxDepth: DEFAULT_CRAWL_LIMITS.maxDepth,
     perHost: DEFAULT_CRAWL_LIMITS.perHost, perSection: DEFAULT_CRAWL_LIMITS.perSection,
@@ -88,10 +88,10 @@ function argumentsFrom(argv) {
     else if (flag === "--token-stdin") options.tokenStdin = true;
     else {
       const value = argv[++index];
-      if (flag === "--max-pages") options.maxPages = integer(value, 1, 50_000);
-      else if (flag === "--max-depth") options.maxDepth = integer(value, 0, 8);
-      else if (flag === "--per-host") options.perHost = integer(value, 1, 50_000);
-      else if (flag === "--per-section") options.perSection = integer(value, 1, 10_000);
+      if (flag === "--max-pages") options.maxPages = integer(value, 0, 50_000);
+      else if (flag === "--max-depth") options.maxDepth = integer(value, -1, 8);
+      else if (flag === "--per-host") options.perHost = integer(value, 0, 50_000);
+      else if (flag === "--per-section") options.perSection = integer(value, 0, 10_000);
       else options.maxDurationMs = integer(value, 0, 10_080) * 60_000;
     }
   }
@@ -155,7 +155,7 @@ async function main() {
   } catch (error) {
     const code = STOP_CODES.has(error?.code) ? error.code : "crawler-failed";
     process.stderr.write(`Crawler stopped: ${code}\n`);
-    process.exitCode = 1;
+    process.exitCode = code === "aborted" ? 130 : 1;
   } finally {
     token = null;
     progress?.close();

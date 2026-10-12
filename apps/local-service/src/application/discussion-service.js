@@ -21,7 +21,7 @@ const ALTERNATE_SOURCE_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 
 export function createDiscussionService({ repository, ranking, sources, topicSeeds, nextId, now,
   alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
-  resolveAccountActor = null, readAccountActors = () => [] }) {
+  resolveAccountActor = null, readAccountActors = () => [], ingestionExecutor = null }) {
   const actors = new Map(DEMO_ACTORS.map((actor) => [actor.id, actor]));
   function actorFor(actorId) {
     const actor = isAccountActor(actorId) && typeof resolveAccountActor === "function"
@@ -334,8 +334,21 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     priorDiscussions(sourceId) {
       return frozenClone(priorDiscussionsView(normalized ? repository.readPriorSourceState(readId(sourceId)) : repository.load(), sourceId));
     },
-    ingest(value) {
+    ingest(value, guards = {}) {
       const input = readLearnedIngest(value);
+      if (ingestionExecutor !== null) {
+        return ingestionExecutor.prepare(input, { createdAt: now(), signal: guards.signal }).then(plan => {
+          if (guards.signal?.aborted || typeof guards.isCurrent === "function" && !guards.isCurrent())
+            fail("unavailable", "Ingestion unavailable");
+          if (plan.receipt) {
+            const current = repository.version();
+            if (!sameVersion(current, plan.version)) fail("conflict", "State changed");
+            return frozenClone({ version: current, ...plan.result });
+          }
+          const saved = repository.saveScoped(input.expected, plan.before, plan.after);
+          return frozenClone({ version: version(saved), ...plan.result });
+        });
+      }
       const state = repository.load();
       if (state.generation !== input.expected.generation) fail("conflict", "State changed");
       const operationDigest = operationDigestFor(input);

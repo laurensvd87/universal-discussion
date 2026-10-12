@@ -268,5 +268,5 @@ test("single-argument request handlers remain compatible without internal transp
   assert.equal((await pending).status, 200);
   assert.equal(TRANSPORT_LIMITS.requestMs, 5_000);
   assert.equal(TRANSPORT_LIMITS.authenticatedModelsMs, 30_000);
-  assert.equal(TRANSPORT_LIMITS.connections, 16);
+  assert.equal(TRANSPORT_LIMITS.connections, 4096);
 });

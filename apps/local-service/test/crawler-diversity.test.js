@@ -17,6 +17,18 @@ function candidate(id, { bucket = "news", host = `${id}.alpha.org`, section = `$
   return { urlDigest: createHash("sha256").update(id).digest("hex"), bucket, host, section, vector };
 }
 
+test("unlimited quotas keep diversity and explicit caps use complete aggregate counts rather than recent vectors", () => {
+  const values = [candidate("one"), candidate("two", { bucket: "research" }), candidate("three")];
+  const priorCounts = { bucket: new Map([["news", 100_001]]), host: new Map(), section: new Map() };
+  const options = { limit: 3, bucketLimits: new Map([["news", 0], ["research", 0]]),
+    perHost: 0, perSection: 0, prior: [], priorCounts };
+  assert.equal(selectDiverseCandidates(values, options).length, 3);
+  assert.deepEqual(selectDiverseCandidates(values, { ...options, bucketLimits: new Map([["news", 50_000], ["research", 1]]) })
+    .map(item => item.bucket), ["research"]);
+  assert.equal(priorCounts.bucket.get("news"), 100_001);
+  assert.throws(() => selectDiverseCandidates(values, { ...options, priorCounts: { ...priorCounts, host: null } }), /Invalid diversity counts/u);
+});
+
 test("simhash is deterministic across compatible normalization, case and token order", () => {
   const first = simhash64("Café climate 2026 climate policy");
   const equivalent = simhash64("POLICY climate 2026 CAFE\u0301 climate");

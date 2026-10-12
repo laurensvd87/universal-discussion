@@ -8,6 +8,21 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current concurrent ingestion/continuous crawler (2026-10-12, ADR-107,0.13.61):
+owner explicitly requests researched concurrency toward thousands of requests,
+no default500/page/depth crawler stops, and capacity correction. Read topSTATUS/
+HANDOFF for activation. Read-only worker prepares exact affected closure; main
+scoped commit renews pairing/session/abort/deadline and checks global version,
+never overwriting concurrent comments/deletion. Bounded8-task/15s queue, awaited
+termination/close, fixed failures;4,096socket/8MiBinput/16MiBoutput bounds. Exact
+adaptive heap/index decisions/CPU10s remain; actualRAM differential7.5s->2.7s.
+Crawler0/-1 defaults unlimited; explicitcaps/publicpolicy/pace/dedup preserved,
+CtrlC cancels pending calls/retries without claiming rollback. Extension needs
+reload for ingestion-only30s; ordinaryreads5s. Isolated2000warm-connected mixed
+reads/1500pages pass p95~1.2s with concurrent comment/staleplan conflict. This is
+not2000instantnew connections, unlimitedwrites/CPU, hostedQA or new inference.
+Never interrupt running crawler or deploy/expand provider/public authority.
+
 Current contribution-goal refinement (2026-10-12, ADR-100, backend-only0.13.60):
 owner now explicitly requests Standard-opening summary, other11 standalone voice
 posts rather than summary+style. This supersedes Standard-opening hash preservation

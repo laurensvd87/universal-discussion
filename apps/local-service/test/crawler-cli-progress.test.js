@@ -1,6 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createProgressReporter } from "../src/ops/crawl-cli.js";
+import { argumentsFrom, createProgressReporter } from "../src/ops/crawl-cli.js";
+
+test("CLI defaults continue without automatic campaign, host, section, depth or time caps", () => {
+  assert.deepEqual(argumentsFrom(["--token-stdin", "--apply"]), {
+    apply: true, rebase: false, tokenStdin: true, maxPages: 0, maxDepth: -1,
+    perHost: 0, perSection: 0, maxDurationMs: 0,
+  });
+  const capped = argumentsFrom(["--token-stdin", "--max-pages", "700", "--max-depth", "0", "--per-host", "300", "--per-section", "50"]);
+  assert.equal(capped.maxPages, 700);
+  assert.equal(capped.maxDepth, 0);
+  assert.equal(capped.perHost, 300);
+  assert.equal(capped.perSection, 50);
+  assert.throws(() => argumentsFrom(["--token-stdin", "--max-pages", "-1"]), /invalid-arguments/u);
+  assert.throws(() => argumentsFrom(["--token-stdin", "--max-depth", "-2"]), /invalid-arguments/u);
+});
 
 test("CLI progress reports bounded fixed codes and numeric aggregates, cleans up heartbeat", () => {
   const lines = [];

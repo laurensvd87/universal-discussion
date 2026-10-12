@@ -1,5 +1,25 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-107 researched concurrent worker/continuouscrawler CHECKED,
+activation pending. CLI asyncIngest:true normalizeddisk only, legacy/RAMsyncfallback.
+Readonlyworker fullprepare ->minimalaffectedclosure ->main saveScoped exact
+generation/revision/oldrows; pairing/optionalaccount/abort/deadline renewed right
+beforecommit.8-task/15s queue, awaitedtermination/close,256/32MiB heap; nooperation
+retry/newprovider/vector/retention.4,096sockets/backlog, aggregate8MiBrequest/
+16MiBresponse; ordinary5s/leased30s/per-requestlimits unchanged. Browser0.13.61
+ingest-only30s requiresreload; preserved all capture/private/brand/sharing fences.
+Exactheap/integrationindexes oldactual7,510ms/new2,696ms samewholeplan on1546Source
+snapshot+pendingcandidate. CPU10s/cacheoverflow/sparseNaN originalscan remain.
+No500run stop; defaultcaps0/depth-1 unlimited; explicitcaps/security/pacing same;
+bounded512stage/256novelty/SQLcounts.775accepts/attempts>5000/depth21 tested.
+Independentreviews accept; fullfinalbrowser1491/backend908+five skips,
+129crawlerchecks/real CtrlCAPIcancel-before-retry; scans762/241zero. Actualsynthetic4175 guarded
+load2000warm-connectedreadrequests/1500pages all200,p95~1202ms/max1204 whileworker
+held, commentaccepted/staleplan409. Thisisnot2knew-SYNburst (Windowsrefused),
+2kwrites/sec/arbitraryendpoint latency or hostedreadiness. Mainlargecommit/index
+and global-versioncontention remain. Next finishchecks/commit/verifiedidle normal
+restart; nointerruptcrawler orownerwrite/inference. PreserveCopilotunrelated.
+
 2026-10-12 ADR-106 ingestion-only30s fix approved/checked/ACTIVE.
 Exact authenticated normalized POST/ingest plus full learnedinput validation
 leases both service/socket clocks to absolute socketaccept+30s; no late/repeated/

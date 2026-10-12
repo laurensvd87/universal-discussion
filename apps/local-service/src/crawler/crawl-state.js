@@ -74,7 +74,7 @@ export function createCrawlState({ filename, now = () => new Date() }) {
   const digest = url => hashSync(url);
 
   function enqueue({ url, bucket, depth, priority, parentDigest = null }) {
-    if (typeof bucket !== "string" || !bucket || !Number.isInteger(depth) || depth < 0 || depth > 16 ||
+    if (typeof bucket !== "string" || !bucket || !Number.isSafeInteger(depth) || depth < 0 ||
         !Number.isInteger(priority) || priority < 0 || priority > 1_000_000 ||
         parentDigest !== null && (typeof parentDigest !== "string" || !/^[a-f0-9]{64}$/u.test(parentDigest)))
       throw new TypeError("Invalid crawler frontier item");
@@ -106,22 +106,22 @@ export function createCrawlState({ filename, now = () => new Date() }) {
   }
 
   function next({ maxDepth, perHost, bucketLimits = null, excludedHosts = new Set() }) {
-    if (!Number.isInteger(maxDepth) || maxDepth < 0 || maxDepth > 16 || !Number.isInteger(perHost) || perHost < 1 || perHost > 50_000 ||
+    if (!Number.isSafeInteger(maxDepth) || maxDepth < -1 || !Number.isInteger(perHost) || perHost < 0 || perHost > 50_000 ||
         bucketLimits !== null && !(bucketLimits instanceof Map) || !(excludedHosts instanceof Set) ||
         [...excludedHosts].some(host => typeof host !== "string" || !host))
       throw new TypeError("Invalid crawler limits");
     if (bucketLimits) for (const [key, value] of bucketLimits) {
-      if (typeof key !== "string" || !key || !Number.isInteger(value) || value < 1 || value > 10_000)
+      if (typeof key !== "string" || !key || !Number.isInteger(value) || value < 0 || value > 10_000)
         throw new TypeError("Invalid crawler limits");
     }
     const excluded = [...excludedHosts];
     const excludedClause = excluded.length ? `AND q.host NOT IN (${excluded.map(() => "?").join(",")})` : "";
     const bucketEntries = bucketLimits ? [...bucketLimits] : [];
     const bucketExpression = bucketLimits
-      ? `CASE q.bucket ${bucketEntries.map(() => "WHEN ? THEN ?").join(" ")} ELSE 0 END`
+      ? bucketEntries.length ? `CASE q.bucket ${bucketEntries.map(() => "WHEN ? THEN ?").join(" ")} ELSE -1 END` : "-1"
       : null;
-    const bucketClause = bucketExpression === null ? "" : `AND coalesce(ba.count,0)<(${bucketExpression})`;
-    const parameters = [maxDepth, ...excluded, perHost, ...bucketEntries.flat()];
+    const bucketClause = bucketExpression === null ? "" : `AND ((${bucketExpression})=0 OR coalesce(ba.count,0)<(${bucketExpression}))`;
+    const parameters = [maxDepth, maxDepth, ...excluded, perHost, perHost, ...bucketEntries.flat(), ...bucketEntries.flat()];
     const row = db.prepare(`WITH
         ha AS (SELECT host,count(*) AS count FROM crawl_urls WHERE attempted_at IS NOT NULL GROUP BY host),
         sa AS (SELECT section,count(*) AS count FROM crawl_urls WHERE attempted_at IS NOT NULL GROUP BY section),
@@ -132,8 +132,8 @@ export function createCrawlState({ filename, now = () => new Date() }) {
       FROM crawl_urls q
       LEFT JOIN ha ON ha.host=q.host LEFT JOIN sa ON sa.section=q.section
       LEFT JOIN ba ON ba.bucket=q.bucket LEFT JOIN bd ON bd.bucket=q.bucket
-      WHERE q.state='queued' AND q.depth<=? ${excludedClause}
-        AND coalesce(ha.count,0)<? ${bucketClause}
+      WHERE q.state='queued' AND (?=-1 OR q.depth<=?) ${excludedClause}
+        AND (?=0 OR coalesce(ha.count,0)<?) ${bucketClause}
       ORDER BY q.priority,
         coalesce(bd.count,0)*1000+coalesce(ha.count,0)*100+coalesce(sa.count,0)*10+q.depth,
         q.url_digest LIMIT 1`).get(...parameters);
@@ -144,10 +144,10 @@ export function createCrawlState({ filename, now = () => new Date() }) {
     return Object.freeze(project(row, { state: "attempted", attempted_at: stamp }));
   }
 
-  function claimRedirect({ url, bucket, depth, priority, parentDigest, maxAttempts = 50_000, bucketLimit = 10_000, perHost = 50_000 }) {
-    if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 50_000 ||
-        !Number.isInteger(bucketLimit) || bucketLimit < 1 || bucketLimit > 10_000 ||
-        !Number.isInteger(perHost) || perHost < 1 || perHost > 50_000) throw new TypeError("Invalid crawler limits");
+  function claimRedirect({ url, bucket, depth, priority, parentDigest, maxAttempts = 0, bucketLimit = 0, perHost = 0 }) {
+    if (!Number.isInteger(maxAttempts) || maxAttempts < 0 || maxAttempts > 50_000 ||
+        !Number.isInteger(bucketLimit) || bucketLimit < 0 || bucketLimit > 10_000 ||
+        !Number.isInteger(perHost) || perHost < 0 || perHost > 50_000) throw new TypeError("Invalid crawler limits");
     enqueue({ url, bucket, depth, priority, parentDigest });
     const stamp = nowIso(now), urlDigest = digest(url);
     return transaction(() => {
@@ -156,7 +156,8 @@ export function createCrawlState({ filename, now = () => new Date() }) {
       const total = Number(db.prepare("SELECT count(*) AS count FROM crawl_urls WHERE attempted_at IS NOT NULL").get().count);
       const bucketAttempts = Number(db.prepare("SELECT count(*) AS count FROM crawl_urls WHERE bucket=? AND attempted_at IS NOT NULL").get(bucket).count);
       const hostAttempts = Number(db.prepare("SELECT count(*) AS count FROM crawl_urls WHERE host=? AND attempted_at IS NOT NULL").get(row.host).count);
-      if (total >= maxAttempts || bucketAttempts >= bucketLimit || hostAttempts >= perHost) return null;
+      if (maxAttempts !== 0 && total >= maxAttempts || bucketLimit !== 0 && bucketAttempts >= bucketLimit ||
+          perHost !== 0 && hostAttempts >= perHost) return null;
       const changed = db.prepare("UPDATE crawl_urls SET state='attempted',attempted_at=? WHERE url_digest=? AND state='queued'").run(stamp, urlDigest);
       return changed.changes === 1 ? Object.freeze(project(row, { state: "attempted", attempted_at: stamp })) : null;
     });
@@ -196,10 +197,35 @@ export function createCrawlState({ filename, now = () => new Date() }) {
     return changed.changes === 1;
   }
 
-  function listStaged(limit = 5_000) {
+  function listStaged(limit = 512, { bucketLimits = null, perHost = 0, perSection = 0 } = {}) {
     if (!Number.isInteger(limit) || limit < 1 || limit > 50_000) throw new TypeError("Invalid staged limit");
-    return db.prepare("SELECT * FROM crawl_urls WHERE state='staged' ORDER BY bucket,host,section,url_digest LIMIT ?").all(limit)
+    if (bucketLimits !== null && !(bucketLimits instanceof Map) || !Number.isInteger(perHost) || perHost < 0 || perHost > 50_000 ||
+        !Number.isInteger(perSection) || perSection < 0 || perSection > 10_000) throw new TypeError("Invalid staged limit");
+    const entries = bucketLimits ? [...bucketLimits] : [];
+    if (entries.some(([key, value]) => typeof key !== "string" || !key || !Number.isInteger(value) || value < 0 || value > 10_000))
+      throw new TypeError("Invalid staged limit");
+    const bucketExpression = entries.length ? `CASE q.bucket ${entries.map(() => "WHEN ? THEN ?").join(" ")} ELSE -1 END` : bucketLimits ? "-1" : "0";
+    const bucketClause = `AND ((${bucketExpression})=0 OR coalesce(b.count,0)<(${bucketExpression}))`;
+    return db.prepare(`WITH
+      b AS (SELECT bucket,count(*) AS count FROM crawl_urls WHERE state='ingested' GROUP BY bucket),
+      h AS (SELECT host,count(*) AS count FROM crawl_urls WHERE state='ingested' GROUP BY host),
+      s AS (SELECT bucket,section,count(*) AS count FROM crawl_urls WHERE state='ingested' GROUP BY bucket,section),
+      eligible AS (SELECT q.*,coalesce(b.count,0) AS bucket_done,coalesce(h.count,0) AS host_done,
+        coalesce(s.count,0) AS section_done,
+        row_number() OVER (PARTITION BY q.bucket ORDER BY coalesce(h.count,0),coalesce(s.count,0),q.url_digest) AS bucket_rank
+        FROM crawl_urls q LEFT JOIN b ON b.bucket=q.bucket LEFT JOIN h ON h.host=q.host
+        LEFT JOIN s ON s.bucket=q.bucket AND s.section=q.section
+        WHERE q.state='staged' AND (?=0 OR coalesce(h.count,0)<?) AND (?=0 OR coalesce(s.count,0)<?) ${bucketClause})
+      SELECT * FROM eligible ORDER BY bucket_rank,bucket_done,host_done,section_done,bucket,url_digest LIMIT ?`)
+      .all(perHost, perHost, perSection, perSection, ...entries.flat(), ...entries.flat(), limit)
       .map(row => Object.freeze({ ...project(row), vector: Object.freeze(JSON.parse(row.vector_json)) }));
+  }
+
+  function selectionCounts() {
+    const grouped = (expression, column) => new Map(db.prepare(`SELECT ${expression} AS key,count(*) AS count
+      FROM crawl_urls WHERE state='ingested' GROUP BY ${column}`).all().map(row => [row.key, Number(row.count)]));
+    return { bucket: grouped("bucket", "bucket"), host: grouped("host", "host"),
+      section: grouped("bucket || '/' || section", "bucket,section") };
   }
 
   function listIngestedVectors(limit = 10_000) {
@@ -299,7 +325,7 @@ export function createCrawlState({ filename, now = () => new Date() }) {
   }
 
   return Object.freeze({ enqueue, markExisting, next, claimRedirect, stage, terminal, listStaged, listIngestedVectors, markIngested,
-    duplicateFor, bindGeneration, getPolicy, setPolicy, lastRequestAt, noteRequest, counts,
+    duplicateFor, bindGeneration, getPolicy, setPolicy, lastRequestAt, noteRequest, counts, selectionCounts,
     attemptedCount() { return Number(db.prepare("SELECT count(*) AS count FROM crawl_urls WHERE attempted_at IS NOT NULL").get().count); },
     metrics,
     getByDigest(urlDigest) { const row = db.prepare("SELECT * FROM crawl_urls WHERE url_digest=?").get(urlDigest); return row ? project(row) : null; },

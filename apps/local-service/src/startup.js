@@ -31,12 +31,13 @@ export function createProcessDependencies() {
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
   chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, insightDebug = null, insightRequestTrace = null,
   ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
-  accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null, canonicalStorageMode = "auto" }) {
+  accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null, canonicalStorageMode = "auto",
+  asyncIngest = false, ingestionWorkerOptions }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
   let accounts = null, accountRepository = null, privateDiscussions = null;
   const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric, storageMode: canonicalStorageMode,
-    alternateRidgeAdapter,
+    alternateRidgeAdapter, asyncIngest, ingestionWorkerOptions,
     ...(accountsEnabled ? { resolveAccountActor: id => accounts.principalForAccountId(id),
       readAccountActors: () => accounts?.publicActors() ?? [] } : {}) });
   let runtime;
@@ -66,7 +67,7 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
     handle: createRequestHandler({ service: database.service, config, ai: runtime, pairingVerifier,
       accounts, accountWrites: accountsEnabled, accountLifecycle, privateDiscussions }),
     restore: () => runtime?.restore?.() ?? Promise.resolve(false),
-    close() { privateDiscussions?.close(); runtime?.dispose?.(); accountRepository?.close(); database.close(); },
+    close() { privateDiscussions?.close(); runtime?.dispose?.(); accountRepository?.close(); return database.close(); },
   });
 }
 
@@ -110,7 +111,7 @@ export async function startLocalApplication(options) {
       async close() {
         if (closed) return;
         closed = true;
-        try { await catalogGrowth.close(); await backupRetention.close(); await listener.close(); } finally { application.close(); }
+        try { await catalogGrowth.close(); await backupRetention.close(); await listener.close(); } finally { await application.close(); }
       },
     });
   } catch (error) {

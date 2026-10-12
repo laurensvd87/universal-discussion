@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import { createCrawlState } from "../src/crawler/crawl-state.js";
+import { BUILT_IN_SOURCE_MANIFEST } from "../src/crawler/built-in-sources.js";
 import { representationDigest } from "../src/crawler/diversity.js";
 import {
   CrawlerRunError,
@@ -40,7 +41,7 @@ function stateFixture(t, clock) {
   const terminal = [];
   const names = ["enqueue", "markExisting", "next", "claimRedirect", "stage", "listStaged", "listIngestedVectors",
     "markIngested", "duplicateFor", "bindGeneration", "getPolicy", "setPolicy", "lastRequestAt", "noteRequest",
-    "counts", "attemptedCount"];
+    "counts", "attemptedCount", "selectionCounts"];
   const state = Object.fromEntries(names.map(name => [name, (...args) => inner[name](...args)]));
   state.terminal = (...args) => { terminal.push(args); return inner.terminal(...args); };
   return { inner, state: Object.freeze(state), terminal };
@@ -408,7 +409,7 @@ test("in-run origin policy memory expires after twenty-four hours and is refetch
 });
 
 test("overall, bucket, host and duration campaign caps stop before extra fetches", async (t) => {
-  assert.deepEqual(DEFAULT_CRAWL_LIMITS, { maxPages: 5_000, maxDepth: 2, perHost: 1_250, perSection: 100, maxDurationMs: 0 });
+  assert.deepEqual(DEFAULT_CRAWL_LIMITS, { maxPages: 0, maxDepth: -1, perHost: 0, perSection: 0, maxDurationMs: 0 });
   const seeds = ["https://news.alpha.org/articles/cap-one", "https://news.alpha.org/articles/cap-two"];
 
   await t.test("overall attempt cap", async t => {
@@ -487,7 +488,7 @@ test("operator abort and fixed runner errors contain no page data", async (t) =>
   assert.equal(error.code, "policy-unavailable");
 });
 
-function incrementalFixture({ pages = 60, backlog = 0, failIngestAt = 0, preview = false, onProgress } = {}) {
+function incrementalFixture({ pages = 60, backlog = 0, historicalAttempts = 0, failIngestAt = 0, preview = false, onProgress } = {}) {
   const clock = clockFixture();
   const staged = [], prior = [], calls = [], progress = [];
   let fetched = 0, attempted = 0;
@@ -501,10 +502,16 @@ function incrementalFixture({ pages = 60, backlog = 0, failIngestAt = 0, preview
   const state = {
     enqueue() {}, markExisting() {}, claimRedirect() {}, terminal() {}, bindGeneration() {},
     getPolicy() { return null; }, setPolicy() {}, lastRequestAt() { return null; }, noteRequest() {},
-    attemptedCount() { return attempted; }, duplicateFor() { return null; },
+    attemptedCount() { return historicalAttempts + attempted; }, duplicateFor() { return null; },
     next() { if (attempted >= pages) return null; return { ...candidate(attempted++), depth: 0, priority: 0 }; },
     stage(item) { staged.push({ ...candidate(attempted - 1), ...item }); },
-    listStaged() { return [...staged]; }, listIngestedVectors() { return [...prior]; },
+    listStaged(limit) { return staged.slice(0, limit); }, listIngestedVectors(limit) { return prior.slice(-limit); },
+    selectionCounts() {
+      const bucket = new Map(), host = new Map(), section = new Map();
+      for (const item of prior) for (const [map, key] of [[bucket, item.bucket], [host, item.host], [section, `${item.bucket}/${item.section}`]])
+        map.set(key, (map.get(key) ?? 0) + 1);
+      return { bucket, host, section };
+    },
     markIngested(urlDigest) { const index = staged.findIndex(item => item.urlDigest === urlDigest); prior.push(...staged.splice(index, 1)); },
     counts() { return { staged: staged.length, ingested: prior.length }; },
   };
@@ -533,23 +540,23 @@ test("incremental apply publishes before frontier completion and chains accepted
   assert.equal(new Set(fixture.calls.map(call => call.operationId)).size, 60);
 });
 
-test("initial backlog import stays at250 and total500 ends apply without further crawling", async () => {
+test("initial backlog checkpoint stays at250 and continuous apply drains more than500 accepted ingestions", async () => {
   const fixture = incrementalFixture({ backlog: 475, pages: 300 });
   const result = await fixture.run();
-  assert.equal(result.reason, "apply-limit");
-  assert.equal(result.ingestedThisRun, 500);
-  assert.equal(fixture.fetched, 250);
+  assert.equal(result.reason, "frontier-empty");
+  assert.equal(result.ingestedThisRun, 775);
+  assert.equal(fixture.fetched, 300);
   assert.equal(fixture.calls.filter(call => call.fetched === 0).length, 250);
-  assert.equal(fixture.staged.length, 225);
+  assert.equal(fixture.staged.length, 0);
 });
 
-test("final flush consumes only the remaining run budget and checkpoints retain prior section quotas", async () => {
+test("final flush drains multiple bounded windows and checkpoints retain durable section quotas", async () => {
   const budget = incrementalFixture({ backlog: 475, pages: 249 });
   const result = await budget.run();
-  assert.equal(result.reason, "apply-limit");
-  assert.equal(result.ingestedThisRun, 500);
-  assert.equal(budget.calls.filter(call => call.fetched === 249).length, 25);
-  assert.equal(budget.staged.length, 224);
+  assert.equal(result.reason, "frontier-empty");
+  assert.equal(result.ingestedThisRun, 724);
+  assert.equal(budget.calls.filter(call => call.fetched === 249).length, 249);
+  assert.equal(budget.staged.length, 0);
   const quota = incrementalFixture();
   const limited = await quota.run({ perSection: 30 });
   assert.equal(limited.ingestedThisRun, 30);
@@ -610,4 +617,75 @@ test("checkpoint abort and deadline stop before dispatching a canonical write", 
     assert.equal(fixture.calls.length, 0);
     assert.equal(fixture.staged.length, 25);
   }
+});
+
+test("default built-in discovery continues past depth16 without implicit bucket or host caps", async t => {
+  const clock = clockFixture();
+  const state = stateFixture(t, clock);
+  const seeds = BUILT_IN_SOURCE_MANIFEST.buckets.flatMap(bucket => bucket.seeds);
+  const client = clientFixture({ urls: seeds });
+  state.inner.enqueue({ url: "https://en.wikipedia.org/wiki/Continuous_0", bucket: "science", depth: 17, priority: 0 });
+  const seen = [];
+  const fetch = standardFetch(clock, { page(url) {
+    seen.push(url);
+    const index = Number(new URL(url).pathname.match(/Continuous_(\d+)$/u)?.[1]);
+    const link = index < 4 ? `<a href="/wiki/Continuous_${index + 1}">next public article</a>` : "";
+    return content(`<html><body>${link}</body></html>`, url).result;
+  } });
+  let checked = false;
+  const originalNext = state.state.next;
+  const runnerState = { ...state.state, next(limits) {
+    assert.equal(limits.maxDepth, -1);
+    assert.equal(limits.perHost, 0);
+    assert.ok([...limits.bucketLimits.values()].every(value => value === 0));
+    checked = true;
+    return originalNext(limits);
+  } };
+  const result = await runCrawler(options({ state: runnerState, client: client.client,
+    fetchPublic: fetch.fetchPublic, embedder: embedderFixture().embedder,
+    campaign: BUILT_IN_SOURCE_MANIFEST, clock, apply: true }));
+  assert.equal(checked, true);
+  assert.equal(result.reason, "frontier-empty");
+  assert.equal(result.attemptedThisRun, 5);
+  assert.equal(seen.length, 5);
+  assert.equal(state.inner.getByDigest(sha("https://en.wikipedia.org/wiki/Continuous_4")).depth, 21);
+});
+
+test("default run ignores an old5000attempt campaign total and abort retains staged work for resume", async () => {
+  const fixture = incrementalFixture({ pages: 2, backlog: 520 });
+  const controller = new AbortController();
+  const first = await fixture.run({ maxPages: 0, perHost: 0, perSection: 0, signal: controller.signal,
+    onProgress(value) { if (value.event === "ingested" && value.ingestedThisRun === 510) controller.abort(); } });
+  assert.equal(first.reason, "aborted");
+  assert.equal(first.ingestedThisRun, 510);
+  assert.equal(fixture.staged.length, 12);
+  const resumed = await fixture.run({ maxPages: 0, perHost: 0, perSection: 0 });
+  assert.equal(resumed.ingestedThisRun, 12);
+  assert.equal(fixture.staged.length, 0);
+  const oldTotal = incrementalFixture({ pages: 1, historicalAttempts: 5_001, preview: true });
+  // A synthetic resumed ledger with historical attempts must not trigger an implicit cap.
+  assert.equal((await oldTotal.run({ maxPages: 0 })).reason, "frontier-empty");
+  assert.equal(oldTotal.fetched, 1);
+});
+
+test("Ctrl+C during canonical ingestion reports aborted and retains every unconfirmed staged candidate", async () => {
+  const fixture = incrementalFixture({ backlog: 10, pages: 1 });
+  const controller = new AbortController();
+  let calls = 0;
+  const client = {
+    async knownSourceUrls({ signal }) { assert.equal(signal, controller.signal); return { version: VERSION, urls: [] }; },
+    async ingest(_representation, _operationId, _expected, { signal }) {
+      assert.equal(signal, controller.signal);
+      calls++;
+      controller.abort();
+      throw new Error("synthetic transport cancellation");
+    },
+  };
+  const result = await fixture.run({ client, signal: controller.signal });
+  assert.equal(result.reason, "aborted");
+  assert.equal(result.ingestedThisRun, 0);
+  assert.equal(fixture.staged.length, 10);
+  assert.equal(fixture.fetched, 0);
+  assert.equal(calls, 1);
+  assert.equal(Object.hasOwn(result, "ingestError"), false);
 });

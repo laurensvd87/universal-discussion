@@ -215,6 +215,7 @@ function baselinePlanAdaptiveTopics({ sources, sourceLinks, previousPartitions =
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { planAdaptiveTopics } from '../src/domain/adaptive-topics.js';
+import { priorPlanAdaptiveTopics } from './fixtures/adaptive-topics-prior.js';
 
 // Frozen pre-optimization planner above. Keep its arithmetic, tie ordering,
 // thresholds and veto sequence intact: differential checks must be independent.
@@ -246,6 +247,7 @@ function comparePlans(input,label) {
   const expected=baselinePlanAdaptiveTopics(input);
   const actual=planAdaptiveTopics(input);
   assert.deepEqual(actual,expected,label);
+  assert.deepEqual(actual,priorPlanAdaptiveTopics(input),`${label ?? 'fixture'} / immediate prior production planner`);
   return actual;
 }
 function permute(input,seed) {
@@ -367,4 +369,23 @@ test('CPU deadline still fails closed while repeated immutable relations are cac
     assert.ok(reads>500);
     assert.equal(JSON.stringify(input),before);
   } finally { clock.mock.restore(); }
+});
+
+test('bounded heap overflow resumes exact dense pair scan and leaves input unchanged',t=>{
+  // 365 overflows on initial admission; 362 fits initially then overflows while
+  // admitting a merged endpoint beside lazy stale edges. Both preserve ties.
+  for(const count of [362,365]) {
+    const input={sources:Array.from({length:count},(_,i)=>source(`dense-${String(i).padStart(4,'0')}`,[1,0])),sourceLinks:[]};
+    const before=JSON.stringify(input),start=performance.now();
+    const expected=priorPlanAdaptiveTopics(input),actual=planAdaptiveTopics(input);
+    assert.deepEqual(actual,expected);
+    assert.equal(JSON.stringify(input),before);
+    t.diagnostic(`${count} dense optional-cache fallback differential: ${(performance.now()-start).toFixed(1)}ms`);
+  }
+});
+
+test('sparse-array NaN relations preserve the prior sorted-candidate behavior',()=>{
+  const sources=[source('a',[1,0]),source('b',[.91,Math.sqrt(1-.91**2)]),source('c',[.92,Math.sqrt(1-.92**2)]),source('d',[-1,0])];
+  const sparse=Array(384);sparse[0]=1;sources[1].embedding.values=sparse;
+  for(const seed of [1,3,8])comparePlans(permute({sources,sourceLinks:[]},seed));
 });

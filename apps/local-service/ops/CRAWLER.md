@@ -21,7 +21,7 @@ an operator command, not a background service.
 
 Run only one crawler process at a time. The fixed state database is exclusively
 owned during a run. The public requests are real even in preview mode. A default
-5,000-page preview can consume substantial time, CPU and network traffic; Ctrl+C
+continuous preview can consume substantial time, CPU and network traffic; Ctrl+C
 is the normal safe pause because the fixed ledger resumes later.
 
 The terminal reports startup phases and aggregate progress while the command
@@ -65,22 +65,21 @@ From the repository root, run:
 
 This is the default **preview**. It prompts invisibly for the pairing token,
 checks the current canonical generation and known Source URLs, and performs the
-bounded network fetch/extract/embed campaign. It writes only the separate crawler
+public network fetch/extract/embed campaign. It writes only the separate crawler
 state. It does not call the canonical ingestion endpoint.
 
-The default campaign is capped at 5,000 pages, depth two, 1,250 pages per host
-and 100 per subject/origin path section. The section selection key includes the
-knowledge bucket, so the common `/wiki/` prefix does not merge all sixteen
-subjects into one quota. `-MaxMinutes` defaults to `0`, meaning it runs until the
-campaign cap or Ctrl+C rather than stopping on a timer. Manifest bucket caps and
-policy/deduplication decisions may stop it earlier. The summary is evidence of
-staged/blocked/duplicate work, not a promise that 5,000 Sources or Topics will be
-created.
+The default campaign has no automatic page, host, section, bucket, depth or time
+cap. It continues while eligible discovered pages or staged candidates remain,
+until Ctrl+C or a stopping error. Built-in manifest bucket counts are no longer
+campaign stop limits. Policy, duplicate and origin checks still determine which
+pages are eligible; blocked or paused origins do not cause a busy retry loop.
+The summary reports staged/blocked/duplicate work, without promising complete
+Wikipedia coverage or a particular number of Sources or Topics.
 
-For a deliberately smaller or larger campaign, `-MaxPages` accepts 1 through
-50,000. A nonzero `-MaxMinutes` adds an optional time limit. The fixed exact-origin
-allowlist does not expand when either limit changes, and raising one limit never
-relaxes the other host/section/bucket bounds.
+For a deliberately bounded campaign, `-MaxPages` accepts 1 through 50,000 durable
+attempts; `0` disables that limit. A nonzero `-MaxMinutes` adds an optional time
+limit. Explicit host and section quotas remain durable across invocations. The
+fixed exact-origin allowlist remains the same for every setting.
 
 ```powershell
 .\apps\local-service\ops\crawl-topics.ps1 -MaxPages 1000 -MaxMinutes 120
@@ -90,10 +89,10 @@ The wrapper's advanced bounds are:
 
 | Parameter | Accepted values | Default |
 | --- | --- | --- |
-| `-MaxPages` | 1-50,000 durable campaign attempts | 5,000 |
-| `-MaxDepth` | 0-8 link levels from a seed | 2 |
-| `-PerHost` | 1-50,000 durable attempts per exact origin | 1,250 |
-| `-PerSection` | 1-10,000 selected candidates per subject/origin section | 100 |
+| `-MaxPages` | 0 unlimited; 1-50,000 durable campaign attempts | 0 |
+| `-MaxDepth` | -1 unlimited; 0 seeds only; 1-8 link levels from a seed | -1 |
+| `-PerHost` | 0 unlimited; 1-50,000 durable attempts per exact origin | 0 |
+| `-PerSection` | 0 unlimited; 1-10,000 selected candidates per subject/origin section | 0 |
 | `-MaxMinutes` | 0-10,080 minutes for this invocation; 0 is unlimited | 0 |
 
 These tune bounds, not authority. They never add an origin, bypass policy or
@@ -118,15 +117,15 @@ directly. Stable operation IDs make an ambiguous API response safe to reconcile,
 but there is no bulk transaction or automatic rollback. The crawler does not
 create a backup or restore one for you.
 
-One invocation ingests at most 250 already staged, MMR-selected candidates before
-continuing the crawl. After every 25 newly staged candidates, it selects and
-imports another small block, and a final bounded pass handles remaining staged
-work when the frontier or campaign cap is reached. All passes share a total
-ceiling of 500 accepted ingestions per invocation; reaching it stops the run with
-`apply-limit`. Rerun `-Apply` to continue the remaining staged ledger. A large
-5,000-page campaign therefore normally needs multiple apply invocations because
-canonical Topic regrouping grows with the catalog. The dashboard shows accepted
-canonical ingestions, while preview staging remains separate.
+An initial checkpoint imports up to 250 already staged, MMR-selected candidates
+before continuing the crawl. After every 25 newly staged candidates, it imports
+another small block. Once the eligible frontier is exhausted, successive bounded
+checkpoints drain remaining eligible staged work. There is no 500-ingestion stop
+and no need to rerun solely to advance another batch. Selection reads at most
+512 staged vectors and 256 recent ingested vectors per checkpoint; SQL aggregates
+enforce any explicit durable quotas against the full ledger. Staged windows rotate
+across buckets, so a full or large bucket cannot hide eligible later buckets.
+The dashboard shows accepted canonical ingestions; preview staging stays separate.
 
 The 2026-10-12 planner optimization removes repeated exact comparisons without
 changing grouping rules or the ten-second planning budget. Restart the updated
@@ -184,8 +183,8 @@ only to global public addresses; the chosen address is pinned and checked agains
 the connected peer. HTTP redirects are revalidated; an HTML `rel=canonical`
 declaration is untrusted metadata and cannot create an alias. Exact host and
 query-key allowlists prevent a seed from becoming an open-web or SSRF frontier.
-Static documents, headers, compression, redirects, links and run time all have
-fixed bounds.
+Static documents, headers, compression, redirects and links per page have fixed
+bounds. Total run time is unlimited unless the operator supplies a time cap.
 
 The crawler keeps at least 2,000 ms between request starts for each exact origin.
 The next-allowed time is durable across restart, and an applicable robots crawl
@@ -204,7 +203,9 @@ claim.
 
 The built-in campaign uses separate knowledge-category buckets. Work is rotated
 across bucket, host and path-section deficits. Selection applies the
-subject/origin section quota described above as well as the host and bucket limits.
+optional explicit subject/origin section and host quotas. Built-in bucket selection
+remains diverse without an automatic bucket count stop; test/custom manifests
+retain their explicitly supplied bucket bounds.
 Normalized URLs, revalidated HTTP-redirect aliases, exact content hashes and
 near-duplicate fingerprints remove repeats. A deterministic MMR-style selection
 then prefers candidates that are locally dissimilar to a bounded recent ingested
@@ -215,8 +216,8 @@ This improves range; it does not validate semantic Topic quality. Apply is seria
 against the service's global version, and the current matching policy can make a
 provisional grouping that later needs manual correction. Applying thousands of
 candidates may take substantial time because current canonical Topic regrouping
-work grows with the catalog. Resume through repeated bounded `-Apply` runs from
-the fixed ledger instead of starting parallel crawlers. Do not describe this as
+work grows with the catalog. Resume a paused `-Apply` from the fixed ledger.
+Do not start parallel crawlers or describe this as
 high-throughput ingestion, complete subject coverage or calibrated clustering.
 
 ## Generation changes
@@ -271,7 +272,7 @@ not replace the example and assume it has become an approved campaign.
   E5 assets through the existing approved asset procedure. The crawler will not
   download a replacement or fall back to a provider.
 - **Few staged candidates:** robots/TDM controls, static-text minimums, duplicate
-  detection, host/section/bucket caps and existing canonical URLs legitimately
+  detection, explicitly selected caps and existing canonical URLs legitimately
   reduce the result.
 - **Generation mismatch:** investigate the canonical reset/replacement first.
   `-RebaseState` is explicit and is not data recovery.

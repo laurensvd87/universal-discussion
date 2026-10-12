@@ -165,7 +165,7 @@ test("raw headers and incomplete authenticated ingestion bodies expire at five s
 test("oversize raw ingestion is rejected before lease and retains byte and connection caps", async t => {
   const f = setup(t); const x = f.exchange(); x.send("x".repeat(MAX_BODY_BYTES + 1)); await flush();
   assert.equal(x.response.status, 413); assert.equal(f.calls, 0);
-  assert.equal(MAX_BODY_BYTES, 65_536); assert.equal(TRANSPORT_LIMITS.connections, 16);
+  assert.equal(MAX_BODY_BYTES, 65_536); assert.equal(TRANSPORT_LIMITS.connections, 4096);
   assert.equal(TRANSPORT_LIMITS.requestMs, 5_000); assert.equal(TRANSPORT_LIMITS.authenticatedIngestionMs, 30_000);
 });
 

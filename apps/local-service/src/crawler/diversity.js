@@ -31,9 +31,10 @@ function cosine(a, b) {
   return Math.max(-1, Math.min(1, sum));
 }
 
-export function selectDiverseCandidates(candidates, { limit, bucketLimits, perHost, perSection, prior = [], noveltyPriorLimit = prior.length }) {
+export function selectDiverseCandidates(candidates, { limit, bucketLimits, perHost, perSection, prior = [],
+  priorCounts = null, noveltyPriorLimit = prior.length }) {
   if (!Array.isArray(candidates) || !Array.isArray(prior) || !Number.isInteger(limit) || limit < 0 || limit > 50_000 ||
-      !(bucketLimits instanceof Map) || !Number.isInteger(perHost) || perHost < 1 || !Number.isInteger(perSection) || perSection < 1 ||
+      !(bucketLimits instanceof Map) || !Number.isInteger(perHost) || perHost < 0 || !Number.isInteger(perSection) || perSection < 0 ||
       !Number.isInteger(noveltyPriorLimit) || noveltyPriorLimit < 0 || noveltyPriorLimit > prior.length)
     throw new TypeError("Invalid diversity selection");
   for (const [key, value] of bucketLimits) if (typeof key !== "string" || !key || !Number.isInteger(value) || value < 0 || value > 50_000)
@@ -53,8 +54,11 @@ export function selectDiverseCandidates(candidates, { limit, bucketLimits, perHo
   if (noveltyPrior.length) for (const candidate of remaining) for (const item of noveltyPrior)
     candidate.nearest = Math.max(candidate.nearest, cosine(candidate.item.vector, item.vector));
   const count = (map, key) => map.get(key) ?? 0;
-  const bucketCount = new Map(), hostCount = new Map(), sectionCount = new Map();
-  for (const item of prior) {
+  if (priorCounts !== null && (!priorCounts || [priorCounts.bucket, priorCounts.host, priorCounts.section].some(map =>
+    !(map instanceof Map) || [...map].some(([key, value]) => typeof key !== "string" || !key || !Number.isSafeInteger(value) || value < 0))))
+    throw new TypeError("Invalid diversity counts");
+  const bucketCount = new Map(priorCounts?.bucket), hostCount = new Map(priorCounts?.host), sectionCount = new Map(priorCounts?.section);
+  if (priorCounts === null) for (const item of prior) {
     if (typeof item.bucket === "string" && item.bucket) bucketCount.set(item.bucket, count(bucketCount, item.bucket) + 1);
     if (typeof item.host === "string" && item.host) hostCount.set(item.host, count(hostCount, item.host) + 1);
     if (typeof item.section === "string" && item.section) sectionCount.set(item.section, count(sectionCount, item.section) + 1);
@@ -62,13 +66,14 @@ export function selectDiverseCandidates(candidates, { limit, bucketLimits, perHo
   while (chosen.length < limit && remaining.length) {
     let bestIndex = -1, bestScore = -Infinity;
     for (let index = 0; index < remaining.length; index++) {
-      const candidate = remaining[index], item = candidate.item, bucketLimit = bucketLimits.get(item.bucket) ?? 0;
-      if (count(bucketCount, item.bucket) >= bucketLimit || count(hostCount, item.host) >= perHost ||
-          count(sectionCount, item.section) >= perSection) continue;
+      const candidate = remaining[index], item = candidate.item, bucketLimit = bucketLimits.get(item.bucket);
+      if (bucketLimit === undefined || bucketLimit !== 0 && count(bucketCount, item.bucket) >= bucketLimit ||
+          perHost !== 0 && count(hostCount, item.host) >= perHost ||
+          perSection !== 0 && count(sectionCount, item.section) >= perSection) continue;
       const novelty = candidate.nearest >= -1 && (noveltyPrior.length || chosen.length) ? (1 - candidate.nearest) / 2 : 1;
-      const bucketDeficit = 1 - count(bucketCount, item.bucket) / Math.max(1, bucketLimit);
-      const hostDeficit = 1 - count(hostCount, item.host) / perHost;
-      const sectionDeficit = 1 - count(sectionCount, item.section) / perSection;
+      const bucketDeficit = bucketLimit === 0 ? 1 / (1 + count(bucketCount, item.bucket)) : 1 - count(bucketCount, item.bucket) / bucketLimit;
+      const hostDeficit = perHost === 0 ? 1 / (1 + count(hostCount, item.host)) : 1 - count(hostCount, item.host) / perHost;
+      const sectionDeficit = perSection === 0 ? 1 / (1 + count(sectionCount, item.section)) : 1 - count(sectionCount, item.section) / perSection;
       const score = novelty * 0.65 + bucketDeficit * 0.2 + hostDeficit * 0.1 + sectionDeficit * 0.05;
       if (score > bestScore || score === bestScore && item.urlDigest < remaining[bestIndex]?.item.urlDigest) {
         bestIndex = index; bestScore = score;

@@ -426,6 +426,80 @@ test("timeout and cancellation settle even if transport or stream ignores abort"
   assert.equal(called, false);
 });
 
+function queuedIngestion() {
+  return { expected: VERSION, operationId: "synthetic-queued-ingestion", url: "https://example.com/queued-public-article",
+    title: "Synthetic queued article", embedding: { modelId: "e5-small-q8-browser-main-prefix-v1",
+      values: Array.from({ length: 384 }, (_, index) => index === 0 ? 1 : 0) }, extractorVersion: "main-text-prefix/v1" };
+}
+const ingestionReceipt = () => ({ version: { ...VERSION, revision: 1 }, sourceId: "source-queued", topicId: "topic-queued",
+  assignment: "provisional", policyVersion: "adaptive-supported-partitions/v1" });
+
+test("only canonical ingestion waits thirty seconds while ordinary reads keep five seconds", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let readSignal, ingestSignal;
+  const never = new Promise(() => {});
+  const api = client(async (url, options) => {
+    if (url.endsWith("/sources/ingest")) ingestSignal = options.signal;
+    else readSignal = options.signal;
+    return never;
+  });
+  const read = assert.rejects(api.health(), code("unavailable"));
+  const ingest = assert.rejects(api.ingest(queuedIngestion()), code("unavailable"));
+  await Promise.resolve(); await Promise.resolve();
+  t.mock.timers.tick(5_000);
+  await read;
+  assert.equal(readSignal.aborted, true);
+  assert.equal(ingestSignal.aborted, false);
+  t.mock.timers.tick(24_999);
+  assert.equal(ingestSignal.aborted, false);
+  t.mock.timers.tick(1);
+  await ingest;
+  assert.equal(ingestSignal.aborted, true);
+});
+
+test("an eleven-second queued ingestion accepts its exact receipt without a retry or payload change", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let complete, calls = 0, options;
+  const api = client(async (_url, value) => {
+    calls++; options = value;
+    return new Promise(resolve => { complete = resolve; });
+  });
+  const payload = queuedIngestion();
+  const pending = api.ingest(payload);
+  await Promise.resolve(); await Promise.resolve();
+  t.mock.timers.tick(11_000);
+  assert.equal(options.signal.aborted, false);
+  assert.equal(options.body, JSON.stringify(payload));
+  complete(json(ingestionReceipt()));
+  assert.deepEqual(await pending, ingestionReceipt());
+  assert.equal(calls, 1);
+  t.mock.timers.tick(30_000);
+  assert.equal(options.signal.aborted, false);
+});
+
+test("ingestion cancellation still prevents dispatch after delayed credentials and aborts an in-flight queue", async () => {
+  const controller = new AbortController();
+  let resolveToken, calls = 0;
+  const api = client(async () => { calls++; return json(ingestionReceipt()); },
+    { getToken: () => new Promise(resolve => { resolveToken = resolve; }) });
+  const pending = api.ingest(queuedIngestion(), { signal: controller.signal });
+  controller.abort();
+  await assert.rejects(pending, code("unavailable"));
+  resolveToken(TOKEN);
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(calls, 0);
+  const inFlight = new AbortController();
+  let transportSignal;
+  const queued = client(async (_url, options) => { transportSignal = options.signal; return new Promise(() => {}); });
+  const dispatched = queued.ingest(queuedIngestion(), { signal: inFlight.signal });
+  await Promise.resolve(); await Promise.resolve();
+  inFlight.abort();
+  await assert.rejects(dispatched, code("unavailable"));
+  assert.equal(transportSignal.aborted, true);
+  const wrongGeneration = client(async () => json({ ...ingestionReceipt(), version: { generation: "other-generation", revision: 1 } }));
+  await assert.rejects(wrongGeneration.ingest(queuedIngestion()), code("invalid-response"));
+});
+
 test("early response rejection cancels unconsumed bodies and aborts the transport", async () => {
   for (const kind of ["redirect", "url", "type", "length"]) {
     let canceled = false;

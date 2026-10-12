@@ -1,10 +1,10 @@
 [CmdletBinding()]
 param(
     [switch]$Apply,
-    [ValidateRange(1, 50000)][int]$MaxPages = 5000,
-    [ValidateRange(0, 8)][int]$MaxDepth = 2,
-    [ValidateRange(1, 50000)][int]$PerHost = 1250,
-    [ValidateRange(1, 10000)][int]$PerSection = 100,
+    [ValidateRange(0, 50000)][int]$MaxPages = 0,
+    [ValidateRange(-1, 8)][int]$MaxDepth = -1,
+    [ValidateRange(0, 50000)][int]$PerHost = 0,
+    [ValidateRange(0, 10000)][int]$PerSection = 0,
     [ValidateRange(0, 10080)][int]$MaxMinutes = 0,
     [switch]$RebaseState
 )

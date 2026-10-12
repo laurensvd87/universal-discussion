@@ -9,10 +9,18 @@ import { routeSourceThreads } from "./source-threads.js";
 export function applyAdaptiveTopicPlan(state, { nextId, now }, { planner = planAdaptiveTopics } = {}) {
   const learned = state.sources.filter((entry) => entry.provenance === LEARNED_SOURCE_PROVENANCE);
   const learnedIds = new Set(learned.map((entry) => entry.id));
+  const topicsById = new Map(state.topics.map((entry) => [entry.id, entry]));
+  const sourcesById = new Map(state.sources.map((entry) => [entry.id, entry]));
+  const currentLinksBySource = new Map(state.sourceLinks.map((entry) => [entry.sourceId, entry]));
+  const linksByTopic = new Map();
+  for (const link of state.sourceLinks) {
+    if (!linksByTopic.has(link.topicId)) linksByTopic.set(link.topicId, []);
+    linksByTopic.get(link.topicId).push(link);
+  }
   const oldLinks = new Map(state.sourceLinks.map((entry) => [entry.sourceId, { ...entry }]));
   const previousPartitions = state.topics.map((topic) => ({
-    sourceIds: state.sourceLinks.filter((link) => link.topicId === topic.id && learnedIds.has(link.sourceId)).map((link) => link.sourceId),
-    pinnedTopicId: state.sourceLinks.some((link) => link.topicId === topic.id && link.method === "manual-confirmed") ? topic.id : null,
+    sourceIds: (linksByTopic.get(topic.id) ?? []).filter((link) => learnedIds.has(link.sourceId)).map((link) => link.sourceId),
+    pinnedTopicId: (linksByTopic.get(topic.id) ?? []).some((link) => link.method === "manual-confirmed") ? topic.id : null,
     retainTight: topic.provenance === LEARNED_TOPIC_PROVENANCE ? topic.retainTight : false,
   })).filter((entry) => entry.sourceIds.length);
   const result = planner({ sources: state.sources, sourceLinks: state.sourceLinks, previousPartitions });
@@ -32,7 +40,7 @@ export function applyAdaptiveTopicPlan(state, { nextId, now }, { planner = planA
       .map((id) => oldLinks.get(id).topicId));
     if (manualPins.size > 1 || (manualPins.size === 1 && !manualPins.has(part.pinnedTopicId))) fail("invalid", "Invalid adaptive Topic plan");
     if (manualPins.size === 0 && part.pinnedTopicId !== null) fail("invalid", "Invalid adaptive Topic plan");
-    if (part.pinnedTopicId !== null && !state.topics.some((topic) => topic.id === part.pinnedTopicId)) fail("invalid", "Invalid adaptive Topic plan");
+    if (part.pinnedTopicId !== null && !topicsById.has(part.pinnedTopicId)) fail("invalid", "Invalid adaptive Topic plan");
   }
   if (seen.size !== learned.length) fail("invalid", "Incomplete adaptive Topic plan");
 
@@ -50,7 +58,7 @@ export function applyAdaptiveTopicPlan(state, { nextId, now }, { planner = planA
     for (const id of part.sourceIds) {
       const old = oldLinks.get(id);
       if (!old || old.method !== "learned-provisional" || assignedTopics.has(old.topicId)) continue;
-      const topic = state.topics.find((entry) => entry.id === old.topicId);
+      const topic = topicsById.get(old.topicId);
       if (topic?.provenance !== LEARNED_TOPIC_PROVENANCE) continue;
       counts.set(old.topicId, (counts.get(old.topicId) ?? 0) + 1);
     }
@@ -73,18 +81,22 @@ export function applyAdaptiveTopicPlan(state, { nextId, now }, { planner = planA
     let topicId = assignments.get(part);
     if (!topicId) {
       topicId = freshId("topic");
-      const source = state.sources.find((entry) => entry.id === part.sourceIds[0]);
-      state.topics.push({ id: topicId, kind: "general", title: source.title, createdAt: now(),
-        provenance: LEARNED_TOPIC_PROVENANCE, retainTight: part.retainTight });
+      const source = sourcesById.get(part.sourceIds[0]);
+      const topic = { id: topicId, kind: "general", title: source.title, createdAt: now(),
+        provenance: LEARNED_TOPIC_PROVENANCE, retainTight: part.retainTight };
+      state.topics.push(topic); topicsById.set(topicId, topic);
       state.discussions.push({ id: freshId("discussion"), topicId });
     }
-    const topic = state.topics.find((entry) => entry.id === topicId);
+    const topic = topicsById.get(topicId);
     if (topic.provenance === LEARNED_TOPIC_PROVENANCE) topic.retainTight ||= part.retainTight;
     for (const sourceId of part.sourceIds) {
-      const old = state.sourceLinks.find((entry) => entry.sourceId === sourceId);
+      const old = currentLinksBySource.get(sourceId);
       if (old) old.topicId = topicId;
-      else state.sourceLinks.push({ sourceId, topicId, method: "learned-provisional" });
-      const source = state.sources.find((entry) => entry.id === sourceId);
+      else {
+        const link = { sourceId, topicId, method: "learned-provisional" };
+        state.sourceLinks.push(link); currentLinksBySource.set(sourceId, link);
+      }
+      const source = sourcesById.get(sourceId);
       source.policyVersion = ADAPTIVE_TOPIC_POLICY.version;
     }
   }

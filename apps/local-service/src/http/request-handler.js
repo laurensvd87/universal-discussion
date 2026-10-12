@@ -48,7 +48,8 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         const value = privateDiscussions[methods[action]](principal, input);
         return jsonResponse(200, value, corsOrigin);
       }
-      const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null, config.origin, transportContext);
+      const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null,
+        config.origin, transportContext, () => requireCapability(normalized.headers.authorization, config.capability, pairingVerifier));
       return jsonResponse(response.status, response.value, corsOrigin);
     } catch (error) {
       const mapped = mapError(error);
@@ -131,7 +132,7 @@ function preflight(request, config, accountsEnabled = false, accountWrites = fal
   };
 }
 
-async function route(request, service, ai, durablePairing, accounts = null, origin = null, transportContext = null) {
+async function route(request, service, ai, durablePairing, accounts = null, origin = null, transportContext = null, revalidateCapability = () => {}) {
   const path = request.url.pathname;
   function postingActor({ provider = false } = {}) {
     if (!accounts) {
@@ -226,7 +227,17 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
       if (transportContext?.leaseAuthenticatedIngestion && !transportContext.leaseAuthenticatedIngestion()) {
         fail("unavailable", "Request unavailable");
       }
-      return { status: 200, value: service.ingest(input) };
+      const isCurrent = () => {
+        if (transportContext?.isCurrent && !transportContext.isCurrent()) return false;
+        // Queued worker preparation cannot outlive pairing or an optional app
+        // session. The trusted service calls this immediately before committing.
+        try {
+          revalidateCapability();
+          if (accounts && Object.hasOwn(request.headers, "x-account-session")) accounts.me(request.headers["x-account-session"]);
+          return true;
+        } catch { return false; }
+      };
+      return { status: 200, value: await service.ingest(input, { signal: transportContext?.signal, isCurrent }) };
     }
     if (path === "/v1/related") {
       const body = readRecord(input, ["sourceId", "limit"]);

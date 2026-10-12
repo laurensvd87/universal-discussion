@@ -122,22 +122,81 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     })) representatives.push(id);
     return representatives.length;
   }
+  // A pair's score depends only on its immutable members and the fixed Source
+  // universe. An unrelated merge cannot change it. Keep eligible pairs in an
+  // exact score/key heap and discard removed endpoints lazily. Dense inputs may
+  // exceed the optional cache bound; resume the original scan in that case.
+  function mergePairs(parts, scorePair, combine) {
+    const heap=[],active=new Set(parts);
+    const ahead=(a,b)=>b.score-a.score || compare(a.key,b.key);
+    let overflow=false;
+    function offer(a,b) {
+      checkBudget();
+      if(compare(key(a),key(b))>0)[a,b]=[b,a];
+      const score=scorePair(a,b);
+      if(score===null)return;
+      // Accepted sparse-array legacy inputs can produce NaN. Their historical
+      // Array.sort comparator is not transitive; retain that exact scan path.
+      if(Number.isNaN(score)) { overflow=true; return; }
+      if(heap.length>=RELATION_CACHE_LIMIT) { overflow=true; return; }
+      const entry={a,b,score,key:key(a)+'\0'+key(b)};
+      let index=heap.length; heap.push(entry);
+      while(index>0) {
+        const parent=(index-1)>>1;
+        if(ahead(heap[parent],entry)<=0)break;
+        heap[index]=heap[parent];index=parent;
+      }
+      heap[index]=entry;
+    }
+    function take() {
+      const best=heap[0],last=heap.pop();
+      if(heap.length) {
+        let index=0;
+        while(index*2+1<heap.length) {
+          let child=index*2+1;
+          if(child+1<heap.length && ahead(heap[child+1],heap[child])<0)child++;
+          if(ahead(last,heap[child])<=0)break;
+          heap[index]=heap[child];index=child;
+        }
+        heap[index]=last;
+      }
+      return best;
+    }
+    for(let i=0;i<parts.length && !overflow;i++)for(let j=i+1;j<parts.length && !overflow;j++)offer(parts[i],parts[j]);
+    while(!overflow && heap.length) {
+      checkBudget();
+      const {a,b}=take();
+      if(!active.has(a) || !active.has(b))continue;
+      const merged=combine(a,b);
+      active.delete(a);active.delete(b);
+      parts.splice(parts.indexOf(a),1);parts.splice(parts.indexOf(b),1);
+      for(const other of parts) { offer(other,merged); if(overflow)break; }
+      parts.push(merged);parts.sort((a,b)=>compare(key(a),key(b)));active.add(merged);
+    }
+    if(!overflow)return;
+    // The same unchanged pair selection, including numeric and lexical ties.
+    for (;;) {
+      const candidates=[];
+      for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++) {
+        checkBudget();
+        const score=scorePair(parts[i],parts[j]);
+        if(score===null)continue;
+        candidates.push({i,j,score,key:key(parts[i])+'\0'+key(parts[j])});
+      }
+      candidates.sort(ahead);
+      if(!candidates.length)break;
+      const {i,j}=candidates[0];
+      parts[i]=combine(parts[i],parts[j]);parts.splice(j,1);
+      parts.sort((a,b)=>compare(key(a),key(b)));
+    }
+  }
   // Intrinsic complete-link neighborhood structure, independent of existing
   // Topic count/partition labels. Lexical IDs break numeric ties deterministically.
   const intrinsic=eligible.map(source=>({sourceIds:[source.id]}));
-  for (;;) {
-    const candidates=[];
-    for(let i=0;i<intrinsic.length;i++)for(let j=i+1;j<intrinsic.length;j++) {
-      checkBudget();
-      const score=minimum(intrinsic[i].sourceIds,intrinsic[j].sourceIds);
-      if(score+EPSILON>=ADAPTIVE_TOPIC_POLICY.tight)candidates.push({i,j,score,key:key(intrinsic[i])+'\0'+key(intrinsic[j])});
-    }
-    candidates.sort((a,b)=>b.score-a.score || compare(a.key,b.key));
-    if(!candidates.length)break;
-    const {i,j}=candidates[0];
-    intrinsic[i]={sourceIds:[...intrinsic[i].sourceIds,...intrinsic[j].sourceIds].sort(compare)};
-    intrinsic.splice(j,1); intrinsic.sort((a,b)=>compare(key(a),key(b)));
-  }
+  mergePairs(intrinsic,(a,b)=>{
+    const score=minimum(a.sourceIds,b.sourceIds);
+    return score+EPSILON>=ADAPTIVE_TOPIC_POLICY.tight ? score : null;
+  },(a,b)=>({sourceIds:[...a.sourceIds,...b.sourceIds].sort(compare)}));
   const supported=intrinsic.filter(part=>support(part.sourceIds)>=ADAPTIVE_TOPIC_POLICY.minimumSupport);
   const boundaries=new Map();
   const markedBlocks=new Map();
@@ -254,23 +313,7 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     }
     return score;
   }
-  for (;;) {
-    const candidates=[];
-    for(let i=0;i<partitions.length;i++)for(let j=i+1;j<partitions.length;j++) {
-      checkBudget();
-      const a=partitions[i],b=partitions[j];
-      // A manually anchored Topic is owner-selected, not an automatic expansion
-      // target, even when the other partition has a high-scoring vector.
-      const score=mergeScore(a,b);
-      if(score===null)continue;
-      candidates.push({i,j,score,key:key(a)+'\0'+key(b)});
-    }
-    candidates.sort((a,b)=>b.score-a.score || compare(a.key,b.key));
-    if(!candidates.length)break;
-    const {i,j}=candidates[0],a=partitions[i],b=partitions[j];
-    partitions[i]={sourceIds:[...a.sourceIds,...b.sourceIds].sort(compare),
-      pinnedTopicId:a.pinnedTopicId??b.pinnedTopicId,retainTight:a.retainTight || b.retainTight};
-    partitions.splice(j,1); partitions.sort((a,b)=>compare(key(a),key(b)));
-  }
+  mergePairs(partitions,mergeScore,(a,b)=>({sourceIds:[...a.sourceIds,...b.sourceIds].sort(compare),
+    pinnedTopicId:a.pinnedTopicId??b.pinnedTopicId,retainTight:a.retainTight || b.retainTight}));
   return {policyVersion:ADAPTIVE_TOPIC_POLICY.version,partitions,decisions};
 }

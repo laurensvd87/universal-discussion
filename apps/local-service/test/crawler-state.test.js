@@ -262,3 +262,41 @@ test("only one crawl-state owner can open a file at a time", (t) => {
   const reopened = createCrawlState({ filename });
   reopened.close();
 });
+
+test("unlimited frontier and redirect claims retain deep queued work beyond explicit historical quotas", t => {
+  const state = createCrawlState({ filename: ":memory:" });
+  t.after(() => state.close());
+  for (let index = 0; index < 101; index++) {
+    enqueue(state, `https://one.alpha.org/wiki/old-${index}`);
+    const row = state.next({ maxDepth: -1, perHost: 0, bucketLimits: new Map([["news", 0]]) });
+    state.terminal(row.urlDigest, "rejected", "fixture-complete");
+  }
+  const deep = "https://one.alpha.org/wiki/deep";
+  enqueue(state, deep, { depth: 30 });
+  assert.equal(state.next({ maxDepth: 2, perHost: 0 }), null);
+  assert.equal(state.next({ maxDepth: -1, perHost: 100 }), null);
+  assert.equal(state.next({ maxDepth: -1, perHost: 0, bucketLimits: new Map([["news", 100]]) }), null);
+  const row = state.next({ maxDepth: -1, perHost: 0, bucketLimits: new Map([["news", 0]]) });
+  assert.equal(row.url, deep);
+  assert.equal(state.claimRedirect({ url: "https://one.alpha.org/wiki/redirect", bucket: "news", depth: 30,
+    priority: 0, parentDigest: row.urlDigest }).depth, 30);
+});
+
+test("bounded staged windows skip capped sections and rotate across buckets with full SQL counts", t => {
+  const state = createCrawlState({ filename: ":memory:" });
+  t.after(() => state.close());
+  const ingested = stageNext(state, "https://one.alpha.org/full/old");
+  state.markIngested(ingested.urlDigest, { sourceId: "source-old", topicId: "topic-old" });
+  for (let index = 0; index < 20; index++) stageNext(state, `https://one.alpha.org/full/staged-${index}`);
+  const eligible = stageNext(state, "https://one.alpha.org/new/eligible");
+  const other = stageNext(state, "https://other.beta.org/new/eligible", { frontier: { bucket: "other" } });
+  const counts = state.selectionCounts();
+  assert.equal(counts.bucket.get("news"), 1);
+  assert.equal(counts.host.get("one.alpha.org"), 1);
+  const limits = new Map([["news", 0], ["other", 0]]);
+  const window = state.listStaged(2, { bucketLimits: limits, perSection: 1 });
+  assert.deepEqual(new Set(window.map(item => item.urlDigest)), new Set([eligible.urlDigest, other.urlDigest]));
+  assert.equal(state.listStaged(2, { bucketLimits: new Map([["news", 1], ["other", 0]]) })[0].urlDigest, other.urlDigest);
+  assert.equal(state.listStaged(2, { bucketLimits: limits, perHost: 1 })[0].urlDigest, other.urlDigest);
+  assert.equal(state.listStaged(2).length, 2);
+});

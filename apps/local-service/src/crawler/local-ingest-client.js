@@ -32,7 +32,9 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
   if (typeof token !== "string" || !TOKEN.test(token) || !Number.isInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 60_000 ||
       typeof requestImpl !== "function") throw new TypeError("Invalid local crawler authentication");
 
-  function request(method, apiPath, value, requestTimeoutMs = timeoutMs) {
+  function request(method, apiPath, value, requestTimeoutMs = timeoutMs, signal) {
+    if (signal !== undefined && !(signal instanceof AbortSignal)) throw new TypeError("Invalid crawler cancellation");
+    if (signal?.aborted) throw new CrawlerApiError("aborted");
     const body = value === undefined ? null : Buffer.from(JSON.stringify(value), "utf8");
     if (body && body.length > 65_536) { body.fill(0); throw new CrawlerApiError("request-capacity"); }
     return new Promise((resolve, reject) => {
@@ -40,19 +42,23 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
       const chunks = [];
       const fail = code => {
         if (settled) return;
-        settled = true; clearTimeout(timer);
+        settled = true; clearTimeout(timer); signal?.removeEventListener("abort", abort);
         for (const chunk of chunks) chunk.fill(0);
         body?.fill(0);
         try { response?.destroy(); } catch {}
         try { outgoing?.destroy(); } catch {}
         reject(new CrawlerApiError(code));
       };
+      const abort = () => fail("aborted");
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) { abort(); return; }
       timer = setTimeout(() => fail("ambiguous"), requestTimeoutMs);
       try {
         outgoing = requestImpl({ protocol: "http:", hostname: HOST, port: PORT, path: apiPath, method, agent: false,
           headers: { authorization: `Bearer ${token}`, accept: "application/json",
             ...(body ? { "content-type": "application/json", "content-length": String(body.length) } : {}) } }, incoming => {
           response = incoming;
+          if (settled) { try { incoming.destroy(); } catch {} return; }
           const contentType = incoming.headers["content-type"] ?? "";
           const length = incoming.headers["content-length"];
           if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/iu.test(contentType) ||
@@ -75,6 +81,7 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
             try { parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); }
             catch { bytes.fill(0); fail("invalid-response"); return; }
             bytes.fill(0); for (const chunk of chunks) chunk.fill(0); body?.fill(0); clearTimeout(timer); settled = true;
+            signal?.removeEventListener("abort", abort);
             if (incoming.statusCode !== 200) {
               const mapped = incoming.statusCode === 413 && plain(parsed, ["error"]) && parsed.error === "request-too-large"
                 ? "request-too-large"
@@ -93,18 +100,18 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
     });
   }
 
-  async function version() {
-    const value = await request("GET", "/v1/version");
+  async function version({ signal } = {}) {
+    const value = await request("GET", "/v1/version", undefined, timeoutMs, signal);
     if (!plain(value, ["version"]) || !isVersion(value.version)) throw new CrawlerApiError("invalid-response");
     return value.version;
   }
 
-  async function knownSourceUrls() {
+  async function knownSourceUrls({ signal } = {}) {
     const urls = [];
     const seenCursors = new Set();
     let cursor = null, expected = null, pages = 0;
     do {
-      const value = await request("POST", "/v1/catalog/page", { kind: "sources", limit: 100, cursor });
+      const value = await request("POST", "/v1/catalog/page", { kind: "sources", limit: 100, cursor }, timeoutMs, signal);
       if (!plain(value, ["catalog", "nextCursor"]) || !value.catalog || !isVersion(value.catalog.version) || !Array.isArray(value.catalog.sources) ||
           value.catalog.sources.length > 100 || typeof value.nextCursor !== "string" && value.nextCursor !== null ||
           typeof value.nextCursor === "string" && (!CURSOR.test(value.nextCursor) || seenCursors.has(value.nextCursor)) ||
@@ -120,27 +127,29 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
       if (value.nextCursor !== null) seenCursors.add(value.nextCursor);
       cursor = value.nextCursor;
     } while (cursor !== null);
-    return { version: expected ?? await version(), urls };
+    return { version: expected ?? await version({ signal }), urls };
   }
 
-  async function ingest(representation, operationId, initialVersion) {
+  async function ingest(representation, operationId, initialVersion, { signal } = {}) {
     if (!validRepresentation(representation) || !ID.test(operationId) || !isVersion(initialVersion))
       throw new TypeError("Invalid crawler ingestion");
     const generation = initialVersion.generation;
     let expected = initialVersion, ambiguous = false;
     for (let attempt = 0; attempt < 5; attempt++) {
+      if (signal?.aborted) throw new CrawlerApiError("aborted");
       try {
-        const value = await request("POST", "/v1/sources/ingest", { ...representation, expected, operationId }, INGEST_TIMEOUT_MS);
+        const value = await request("POST", "/v1/sources/ingest", { ...representation, expected, operationId }, INGEST_TIMEOUT_MS, signal);
         if (!plain(value, ["assignment", "policyVersion", "sourceId", "topicId", "version"]) || !isVersion(value.version) ||
             !ID.test(value.sourceId) || !ID.test(value.topicId) || !["provisional", "confirmed"].includes(value.assignment) ||
             typeof value.policyVersion !== "string" || value.version.generation !== expected.generation || value.version.revision < expected.revision)
           throw new CrawlerApiError("invalid-response");
         return value;
       } catch (error) {
+        if (signal?.aborted) throw new CrawlerApiError("aborted");
         if (!(error instanceof CrawlerApiError)) throw error;
         if (error.code === "ambiguous" && !ambiguous) { ambiguous = true; continue; }
         if (!["ambiguous", "conflict"].includes(error.code)) throw error;
-        expected = await version();
+        expected = await version({ signal });
         if (expected.generation !== generation) throw new CrawlerApiError("conflict");
         ambiguous = false;
       }

@@ -64,7 +64,7 @@ test("raw head enforces aggregate/count/name/value/URL limits", () => {
   assert.equal(inspectRequestHead(head({ url: "/".repeat(2049) })).status, 414);
   assert.equal(inspectRequestHead(head({ method: "PUT" })).status, 400);
   assert.equal(TRANSPORT_LIMITS.requestMs, 5000);
-  assert.equal(TRANSPORT_LIMITS.connections, 16);
+  assert.equal(TRANSPORT_LIMITS.connections, 4096);
 });
 
 test("stream adapter rejects oversized chunked bodies and never invokes application", () => {
@@ -133,4 +133,42 @@ test("aborted stream and generic application failure expose no material and no l
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(failed.response.status, 500);
   assert.equal(failed.response.body.includes("untrusted"), false);
+});
+
+test("concurrent raw body buffering is globally bounded and released on abort", () => {
+  const transport = createTransportHandler(async () => { throw new Error("Must not dispatch incomplete bodies"); });
+  const held = Array.from({ length: 128 }, () => fakeExchange());
+  for (const exchange of held) {
+    transport(exchange.request, exchange.response);
+    exchange.request.emit("data", Buffer.alloc(65_536));
+  }
+  const full = fakeExchange(); transport(full.request, full.response);
+  full.request.emit("data", Buffer.alloc(1));
+  assert.equal(full.response.status, 503);
+  held[0].request.emit("aborted");
+  const freed = fakeExchange(); transport(freed.request, freed.response);
+  freed.request.emit("data", Buffer.alloc(65_536));
+  assert.equal(freed.response.status, undefined);
+  for (const exchange of held) exchange.request.emit("aborted");
+  freed.request.emit("aborted");
+});
+
+test("slow response consumers have a global byte bound released on finish or close", async () => {
+  const body = "x".repeat(1_048_576);
+  const transport = createTransportHandler(async () => ({ status: 200, headers: {}, body }));
+  const held = [];
+  for (let index = 0; index < 17; index++) {
+    const exchange = fakeExchange();
+    exchange.response.end = function (value) { this.body = value; this.writableEnded = true; };
+    held.push(exchange);
+    transport(exchange.request, exchange.response); exchange.request.emit("end");
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(held[15].response.status, 200);
+  assert.equal(held[16].response.status, 503);
+  held[0].response.emit("finish");
+  const freed = fakeExchange(); transport(freed.request, freed.response); freed.request.emit("end");
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(freed.response.status, 200);
+  for (const exchange of held) exchange.response.emit("close");
 });

@@ -1,5 +1,38 @@
 # Project status
 
+**2026-10-12 concurrent ingestion/continuous crawler checked (ADR-107,0.13.61):**
+Owner requests researched implementation of concurrency toward thousands of
+requests, no500/count/depth default crawler stops, and latestcapacity correction.
+Normal normalized disk CLI opts into bounded read-only worker planning; only
+affected canonical closure commits main-thread under exact version/row fences.
+Concurrent comments/deletion reject stale plans, no lost updates/rebase/retry.
+Queued work renews pairing/optional account/abort/absolute-deadline immediately
+before commit; worker cannot write.8-task queue/15s lifetime, awaited retirement/
+close,256MiB old/32MiB young heap, fixed errors. HTTP4,096 sockets/backlog with
+8MiB aggregate input/16MiB output bounds; same per-request authority/limits.
+Extension0.13.61 only ingestion timer30s; ordinaryreads5s, no permission/retry.
+
+Exact adaptive heap/index optimization preserves decisions/manual/lineage and
+CPU10s; cache overflow/NaN use original scan. Owner RAM differential1,546-Source
+snapshot+pending candidate7,510ms->2,696ms/deepEqual. Actual RAM-only scoped commit
+retains all posts/revisions/immutable lineage. This improves capacity margin, not
+proof that the former transientcapacity came exclusively from one guard.
+Crawler defaults unlimited page/host/section/bucket/depth/time; explicit caps and
+public origin/path/robots/TDM/pace/dedup fences remain.775accepts/old>5000attempts/
+depth21/abortresume pass;512candidate windows/256novelty vectors/SQLcounts bounded.
+
+Independent reviews accept. Full final browser1491/backend908pass/five backend
+platform skips. CtrlC cancels in-flight API calls and prevents retry/version
+refresh, retains unacknowledged staged rows;129focusedcrawler checks pass.
+Secret scans backend762/client241zero. Isolated synthetic load1,500pages/2,000
+simultaneous warm-connected real read requests all200,p95~1202ms/max1204ms while
+worker held; commentaccepted/staleingest409 no overwrite. Test guard only4175,
+cannot reach owner4174/external/provider. Windows initial same-process SYN burst
+refused, so do not claim2,000instantnew connections/thousands writes or hostedQA.
+Very large commit/index closures, expensive reads and global-version contention
+remain limits. Activation pending checked commit and verified idle restart;
+preserve ownerstores/pairing/protectedlogin/ledger and unrelated Copilot edits.
+
 **2026-10-12 approved ingestion deadline correction active (ADR-106):**
 Owner approves authenticated canonical ingestion-only30s service/socket window
 and crawler timer plus idle normal restart. Exact normalized POST/ingest after

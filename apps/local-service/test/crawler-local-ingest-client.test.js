@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { EventEmitter } from "node:events";
+import { EventEmitter, getEventListeners } from "node:events";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 import {
@@ -302,4 +302,59 @@ test("authentication and ingestion inputs fail before any request", async () => 
     [representation(), "crawl-operation", { generation: VERSION.generation, revision: -1 }],
   ]) await assert.rejects(client.ingest(...args), /Invalid crawler ingestion/u);
   assert.equal(fixture.calls.length, 0);
+});
+
+test("pre-aborted crawler operations never dispatch loopback HTTP", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const fixture = responseFixture([]);
+  const client = createLocalIngestClient({ token: TOKEN, requestImpl: fixture.requestImpl });
+  for (const operation of [() => client.version({ signal: controller.signal }),
+    () => client.knownSourceUrls({ signal: controller.signal }),
+    () => client.ingest(representation(), "crawl-operation", VERSION, { signal: controller.signal })])
+    await assert.rejects(operation(), rejectsCode("aborted"));
+  assert.equal(fixture.calls.length, 0);
+  assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+});
+
+test("abort destroys an in-flight ingestion and terminates before ambiguous retries or version refresh", async () => {
+  const controller = new AbortController();
+  let dispatched = 0, destroyed = 0;
+  const client = createLocalIngestClient({ token: TOKEN, requestImpl() {
+    dispatched++;
+    const outgoing = new EventEmitter();
+    outgoing.end = () => {};
+    outgoing.destroy = () => { destroyed++; outgoing.emit("error", new Error("synthetic abort socket error")); };
+    return outgoing;
+  } });
+  const pending = client.ingest(representation(), "crawl-operation", VERSION, { signal: controller.signal });
+  assert.equal(getEventListeners(controller.signal, "abort").length, 1);
+  controller.abort();
+  await assert.rejects(pending, rejectsCode("aborted"));
+  assert.equal(dispatched, 1);
+  assert.equal(destroyed, 1);
+  assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+});
+
+test("abort during conflict version refresh cannot dispatch another ingestion", async () => {
+  const controller = new AbortController();
+  const fixture = responseFixture([{ status: 409, value: { error: "conflict" } }, () => {
+    controller.abort();
+    return { value: { version: { ...VERSION, revision: VERSION.revision + 1 } } };
+  }]);
+  const client = createLocalIngestClient({ token: TOKEN, requestImpl: fixture.requestImpl });
+  await assert.rejects(client.ingest(representation(), "crawl-operation", VERSION, { signal: controller.signal }), rejectsCode("aborted"));
+  assert.deepEqual(fixture.calls.map(call => call.options.path), ["/v1/sources/ingest", "/v1/version"]);
+  assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+});
+
+test("completed crawler requests remove their cancellation listeners", async () => {
+  const controller = new AbortController();
+  const fixture = responseFixture([{ value: { version: VERSION } }, { value: ingestResult() }]);
+  const client = createLocalIngestClient({ token: TOKEN, requestImpl: fixture.requestImpl });
+  await client.version({ signal: controller.signal });
+  await client.ingest(representation(), "crawl-operation", VERSION, { signal: controller.signal });
+  assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+  controller.abort();
+  assert.equal(fixture.calls.length, 2);
 });

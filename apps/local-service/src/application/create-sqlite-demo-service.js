@@ -7,10 +7,12 @@ import { existsSync } from "node:fs";
 import { createFixtureRankingAdapter } from "../adapters/fixture-ranking.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../adapters/fixture-catalog.js";
 import { createPublicDiscoveryIndex } from "../discovery/public-index.js";
+import { createIngestionWorkerQueue } from "./ingestion-worker-queue.js";
 
 export function createSqliteDemoService({ databasePath, nextId, now, repositoryOptions, storageMode = "auto",
   alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
   resolveAccountActor = null, readAccountActors = () => [],
+  asyncIngest = false, ingestionWorkerOptions = {},
   discoveryDatabasePath = databasePath === ":memory:" ? ":memory:" : `${databasePath}.discovery.sqlite` }) {
   const initialState = createDemoState({ generation: nextId("generation"), createdAt: now(), sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
   if (!["auto", "legacy", "normalized"].includes(storageMode)) throw new TypeError("Invalid canonical storage mode");
@@ -25,17 +27,23 @@ export function createSqliteDemoService({ databasePath, nextId, now, repositoryO
   }
   const repository = normalized ? createNormalizedSqliteRepository(databasePath, initialState, repositoryOptions)
     : createSqliteRepository(databasePath, initialState, repositoryOptions);
-  let discover;
+  let discover, ingestionExecutor;
   try {
+    // Legacy and RAM fixture stores retain their synchronous compatibility path.
+    // Worker isolation never migrates a store or writes an owner database itself.
+    if (asyncIngest && normalized && databasePath !== ":memory:") {
+      ingestionExecutor = createIngestionWorkerQueue({ ...ingestionWorkerOptions, databasePath });
+    }
     const service = createDiscussionService({
       repository, ranking: createFixtureRankingAdapter(), sources: SYNTHETIC_SOURCES,
       topicSeeds: SYNTHETIC_TOPIC_SEEDS, nextId, now, alternateAdapter, alternateBodyMetric, alternateRidgeAdapter,
-      resolveAccountActor, readAccountActors,
+      resolveAccountActor, readAccountActors, ingestionExecutor,
     });
     discover = createPublicDiscoveryIndex({ databasePath: discoveryDatabasePath, repository });
-    return Object.freeze({ service: Object.freeze({ ...service, discover }), close() { discover.close(); repository.close(); } });
+    return Object.freeze({ service: Object.freeze({ ...service, discover }), close() { const stopping = ingestionExecutor?.close(); discover.close(); repository.close(); return stopping; } });
   } catch (error) {
     discover?.close();
+    ingestionExecutor?.close();
     repository.close();
     throw error;
   }

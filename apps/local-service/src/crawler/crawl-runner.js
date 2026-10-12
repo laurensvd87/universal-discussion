@@ -33,15 +33,15 @@ const MAX_PAGE_REDIRECTS = 5;
 const MAX_LINKS_PER_PAGE = 64;
 const APPLY_BATCH = 250;
 const APPLY_CHECKPOINT = 25;
-const APPLY_RUN_LIMIT = 500;
+const STAGED_WINDOW = 512;
 const NOVELTY_PRIOR_LIMIT = 256;
 const MODEL_ID = "e5-small-q8-browser-main-prefix-v1";
 
 export const DEFAULT_CRAWL_LIMITS = Object.freeze({
-  maxPages: 5_000,
-  maxDepth: 2,
-  perHost: 1_250,
-  perSection: 100,
+  maxPages: 0,
+  maxDepth: -1,
+  perHost: 0,
+  perSection: 0,
   maxDurationMs: 0,
 });
 
@@ -77,7 +77,7 @@ function plainManifest(manifest) {
 function checkDependencies({ state, client, fetchPublic, embedder }) {
   const stateMethods = ["enqueue", "markExisting", "next", "claimRedirect", "stage", "terminal", "listStaged",
     "listIngestedVectors", "markIngested", "duplicateFor", "bindGeneration", "getPolicy", "setPolicy",
-    "lastRequestAt", "noteRequest", "counts", "attemptedCount"];
+    "lastRequestAt", "noteRequest", "counts", "attemptedCount", "selectionCounts"];
   if (!state || stateMethods.some(name => typeof state[name] !== "function") || !client ||
       typeof client.knownSourceUrls !== "function" || typeof client.ingest !== "function" ||
       typeof fetchPublic !== "function" || !embedder || typeof embedder.embed !== "function")
@@ -85,10 +85,10 @@ function checkDependencies({ state, client, fetchPublic, embedder }) {
 }
 
 function checkLimits({ maxPages, maxDepth, perHost, perSection, maxDurationMs }) {
-  if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > 50_000 ||
-      !Number.isInteger(maxDepth) || maxDepth < 0 || maxDepth > 8 ||
-      !Number.isInteger(perHost) || perHost < 1 || perHost > 50_000 ||
-      !Number.isInteger(perSection) || perSection < 1 || perSection > 10_000 ||
+  if (!Number.isInteger(maxPages) || maxPages < 0 || maxPages > 50_000 ||
+      !Number.isInteger(maxDepth) || maxDepth < -1 || maxDepth > 8 ||
+      !Number.isInteger(perHost) || perHost < 0 || perHost > 50_000 ||
+      !Number.isInteger(perSection) || perSection < 0 || perSection > 10_000 ||
       !Number.isInteger(maxDurationMs) || maxDurationMs < 0 || maxDurationMs > 7 * 86_400_000)
     throw new TypeError("Invalid crawler limits");
 }
@@ -165,7 +165,7 @@ export async function runCrawler({
   const isBuiltIn = manifest === BUILT_IN_SOURCE_MANIFEST;
   const campaign = plainManifest(manifest);
   const buckets = new Map(campaign.buckets.map(bucket => [bucket.id, bucket]));
-  const bucketLimits = new Map(campaign.buckets.map(bucket => [bucket.id, bucket.maxPages]));
+  const bucketLimits = new Map(campaign.buckets.map(bucket => [bucket.id, isBuiltIn ? 0 : bucket.maxPages]));
   const startedAt = clock();
   const deadline = maxDurationMs === 0 ? Infinity : startedAt + maxDurationMs;
   const stoppedHosts = new Set();
@@ -257,7 +257,7 @@ export async function runCrawler({
   }
 
   function linkRecords(capture, row, bucket, baseUrl, nofollow) {
-    if (nofollow || row.depth >= maxDepth) return [];
+    if (nofollow || maxDepth !== -1 && row.depth >= maxDepth || row.depth >= Number.MAX_SAFE_INTEGER) return [];
     return chooseDiverseLinks(capture.links, { baseUrl, bucket, limit: MAX_LINKS_PER_PAGE })
       .filter(url => !isBuiltIn || isBuiltInSourceUrl(url))
       .map((url, index) => ({ url, bucket: row.bucket, depth: row.depth + 1,
@@ -325,7 +325,7 @@ export async function runCrawler({
         }
         const finalDigest = digest(target);
         const next = state.claimRedirect({ url: target, bucket: row.bucket, depth: row.depth, priority: row.priority,
-          parentDigest: row.urlDigest, maxAttempts: maxPages, bucketLimit: bucket.maxPages, perHost });
+          parentDigest: row.urlDigest, maxAttempts: maxPages, bucketLimit: bucketLimits.get(row.bucket), perHost });
         state.terminal(row.urlDigest, "alias", "redirect-alias", { finalDigest });
         if (!next) return;
         row = next;
@@ -408,12 +408,14 @@ export async function runCrawler({
   }
 
   async function applyStaged(limit) {
-    if (!apply || !timeAvailable() || reason === "ingest-unavailable" || ingestedThisRun >= APPLY_RUN_LIMIT) return;
-    const staged = state.listStaged(50_000).map(item => ({ ...item, section: `${item.bucket}/${item.section}` }));
-    if (!staged.length) return;
-    const prior = state.listIngestedVectors(100_000).map(item => ({ ...item, section: `${item.bucket}/${item.section}` }));
-    const selected = selectDiverseCandidates(staged, { limit: Math.min(staged.length, limit, APPLY_RUN_LIMIT - ingestedThisRun), bucketLimits,
-      perHost, perSection, prior, noveltyPriorLimit: Math.min(prior.length, NOVELTY_PRIOR_LIMIT) });
+    if (!apply || !timeAvailable() || reason === "ingest-unavailable") return 0;
+    const priorCounts = state.selectionCounts();
+    const staged = state.listStaged(STAGED_WINDOW, { bucketLimits, perHost, perSection })
+      .map(item => ({ ...item, section: `${item.bucket}/${item.section}` }));
+    if (!staged.length) return 0;
+    const prior = state.listIngestedVectors(NOVELTY_PRIOR_LIMIT).map(item => ({ ...item, section: `${item.bucket}/${item.section}` }));
+    const selected = selectDiverseCandidates(staged, { limit: Math.min(staged.length, limit), bucketLimits,
+      perHost, perSection, prior, priorCounts, noveltyPriorLimit: prior.length });
     let expected = canonical.version;
     if (selected.length) progress("checkpoint", "applying");
     for (const item of selected) {
@@ -421,24 +423,31 @@ export async function runCrawler({
       const operationId = stableOperationId(item.url, item.representationDigest);
       try {
         const result = await client.ingest({ url: item.url, title: item.title,
-          embedding: { modelId: MODEL_ID, values: item.vector }, extractorVersion: item.extractorVersion }, operationId, expected);
+          embedding: { modelId: MODEL_ID, values: item.vector }, extractorVersion: item.extractorVersion }, operationId, expected, { signal });
         state.markIngested(item.urlDigest, { sourceId: result.sourceId, topicId: result.topicId });
         expected = result.version;
         canonical = { ...canonical, version: result.version };
         ingestedThisRun += 1;
         progress("ingested", "applying");
-        if (ingestedThisRun >= APPLY_RUN_LIMIT) reason = "apply-limit";
       } catch (error) {
+        if (signal?.aborted || error?.code === "aborted") { reason = "aborted"; return; }
         reason = "ingest-unavailable";
         ingestError = fixedIngestError(error);
         progress("ingest-failed", "applying");
         return;
       }
     }
+    return selected.length;
   }
 
   progress("phase", "connecting");
-  canonical = await client.knownSourceUrls();
+  try { canonical = await client.knownSourceUrls({ signal }); }
+  catch (error) {
+    if (!signal?.aborted && error?.code !== "aborted") throw error;
+    reason = "aborted";
+    progress("complete", "complete");
+    return summary({ apply, reason, attemptedThisRun, stagedThisRun, ingestedThisRun, state });
+  }
   state.bindGeneration(canonical.version.generation, { rebase });
   for (const rawUrl of canonical.urls) for (const bucket of campaign.buckets) {
     const url = normalizeCrawlUrl(rawUrl, undefined, bucket.allowedQueryKeys);
@@ -452,7 +461,7 @@ export async function runCrawler({
   await applyStaged(APPLY_BATCH);
   if (reason !== "ingest-unavailable") {
     progress("phase", "crawling");
-    while (state.attemptedCount() < maxPages && timeAvailable()) {
+    while ((maxPages === 0 || state.attemptedCount() < maxPages) && timeAvailable()) {
       const row = state.next({ maxDepth, perHost, bucketLimits, excludedHosts: stoppedHosts });
       if (!row) { reason = "frontier-empty"; break; }
       attemptedThisRun += 1;
@@ -467,14 +476,16 @@ export async function runCrawler({
       if (stagedThisRun - stagedAtCheckpoint >= APPLY_CHECKPOINT) {
         stagedAtCheckpoint = stagedThisRun;
         await applyStaged(APPLY_CHECKPOINT);
-        if (["ingest-unavailable", "apply-limit"].includes(reason)) break;
+        if (reason === "ingest-unavailable") break;
       }
     }
-    if (!["ingest-unavailable", "apply-limit"].includes(reason)) {
-      if (state.attemptedCount() >= maxPages) reason = "campaign-limit";
-      else if (!timeAvailable()) reason = signal?.aborted ? "aborted" : "time-limit";
+    if (reason !== "ingest-unavailable") {
+      if (!timeAvailable()) reason = signal?.aborted ? "aborted" : "time-limit";
+      else if (reason !== "aborted" && maxPages !== 0 && state.attemptedCount() >= maxPages) reason = "campaign-limit";
     }
-    await applyStaged(APPLY_BATCH);
+    while (await applyStaged(APPLY_BATCH)) {
+      // Each checkpoint has bounded memory; drain durable backlog until exhausted or stopped.
+    }
   }
   progress("complete", "complete");
   return summary({ apply, reason, ingestError, attemptedThisRun, stagedThisRun, ingestedThisRun, state });

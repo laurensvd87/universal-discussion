@@ -1,0 +1,23 @@
+import { parentPort, workerData } from "node:worker_threads";
+import { randomUUID } from "node:crypto";
+import { createNormalizedSqliteRepository } from "../adapters/normalized-sqlite-repository.js";
+import { readLearnedIngest } from "../domain/learned-sources.js";
+import { prepareIngestion } from "./ingestion-plan.js";
+
+// This worker has no write connection. Losing or terminating it cannot commit
+// ingestion; only the request thread may approve the exact prepared mutation.
+let repository;
+parentPort.on("message", ({ id, input, createdAt }) => {
+  try {
+    repository ??= createNormalizedSqliteRepository(workerData.databasePath, null, { readOnly: true });
+    // Validate the structured message without renormalizing the already accepted
+    // representation a second time: its exact floats determine receipt digests.
+    readLearnedIngest(input);
+    const plan = prepareIngestion(repository.load(), input, {
+      nextId: kind => `${kind}-${randomUUID()}`, now: () => createdAt,
+    });
+    parentPort.postMessage({ id, ok: true, plan });
+  } catch (error) {
+    parentPort.postMessage({ id, ok: false, code: ["conflict", "capacity", "forbidden"].includes(error?.code) ? error.code : "unavailable" });
+  }
+});

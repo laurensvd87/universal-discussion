@@ -13,7 +13,9 @@ export const TRANSPORT_LIMITS = Object.freeze({
   requestMs: 5_000,
   authenticatedModelsMs: 30_000,
   authenticatedIngestionMs: 30_000,
-  connections: 16,
+  connections: 4_096,
+  bufferedBodyBytes: 8 * 1024 * 1024,
+  bufferedResponseBytes: 16 * 1024 * 1024,
 });
 
 // Inspect raw headers: IncomingMessage.headers can merge/drop duplicates.
@@ -64,6 +66,8 @@ function reject(response, status) {
 
 export function createTransportHandler(handle) {
   const socketDeadlines = new WeakMap();
+  let bufferedBodyBytes = 0;
+  let bufferedResponseBytes = 0;
   const transport = (request, response) => {
     const inspected = inspectRequestHead(request);
     if (inspected.status) {
@@ -74,7 +78,9 @@ export function createTransportHandler(handle) {
     let finished = false;
     let leased = false;
     let size = 0;
+    let responseBytes = 0;
     const chunks = [];
+    const controller = new AbortController();
     const startedAt = performance.now();
     const socketDeadline = socketDeadlines.get(request.socket);
     let expiresAt = Math.min(startedAt + TRANSPORT_LIMITS.requestMs, socketDeadline?.expiresAt ?? Infinity);
@@ -96,24 +102,38 @@ export function createTransportHandler(handle) {
     const transportContext = Object.freeze({
       leaseAuthenticatedModels() { return leaseAuthenticatedResponse(TRANSPORT_LIMITS.authenticatedModelsMs); },
       leaseAuthenticatedIngestion() { return leaseAuthenticatedResponse(TRANSPORT_LIMITS.authenticatedIngestionMs); },
+      signal: controller.signal,
+      isCurrent() {
+        return !finished && !controller.signal.aborted && !response.destroyed && !response.writableEnded &&
+          !request.aborted && !request.socket?.destroyed && performance.now() < expiresAt;
+      },
     });
     function cleanup() {
       clearTimeout(timer);
+      bufferedBodyBytes -= size;
+      size = 0;
       chunks.length = 0;
       request.removeListener("data", onData);
       request.removeListener("end", onEnd);
     }
+    function releaseResponse() {
+      bufferedResponseBytes -= responseBytes;
+      responseBytes = 0;
+    }
     function stop(status) {
       if (finished) return;
       finished = true;
+      controller.abort();
       cleanup();
       reject(response, status);
       request.resume();
     }
     function onData(chunk) {
       if (!Buffer.isBuffer(chunk)) { stop(400); return; }
+      if (size + chunk.length > MAX_BODY_BYTES) { stop(413); return; }
+      if (bufferedBodyBytes + chunk.length > TRANSPORT_LIMITS.bufferedBodyBytes) { stop(503); return; }
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) { stop(413); return; }
+      bufferedBodyBytes += chunk.length;
       chunks.push(chunk);
     }
     async function onEnd() {
@@ -126,6 +146,10 @@ export function createTransportHandler(handle) {
         const result = await handle({ method: request.method, url: request.url, headers: inspected.headers, body }, transportContext);
         if (finished || response.destroyed) return;
         if (performance.now() >= expiresAt) { stop(408); return; }
+        const bytes = Buffer.byteLength(result.body ?? "");
+        if (bufferedResponseBytes + bytes > TRANSPORT_LIMITS.bufferedResponseBytes) { stop(503); return; }
+        responseBytes = bytes;
+        bufferedResponseBytes += bytes;
         finished = true;
         cleanup();
         response.writeHead(result.status, { ...result.headers, connection: "close" });
@@ -134,9 +158,10 @@ export function createTransportHandler(handle) {
     }
     request.on("data", onData);
     request.once("end", onEnd);
-    request.once("aborted", () => { finished = true; cleanup(); });
+    request.once("aborted", () => { finished = true; controller.abort(); cleanup(); });
     request.once("error", () => stop(400));
-    response.once("close", () => { finished = true; cleanup(); });
+    response.once("finish", releaseResponse);
+    response.once("close", () => { releaseResponse(); finished = true; controller.abort(); cleanup(); });
   };
   // The listener alone supplies socket objects; no HTTP input can reach this
   // per-socket authority closure. It also bounds incomplete/trickling headers.
@@ -165,8 +190,9 @@ export function createTransportHandler(handle) {
   return transport;
 }
 
-// The only binding call in the app. No alternate host/port or import side effect.
-export async function startLoopbackListener({ handle }) {
+// Shared server construction lets synthetic load checks exercise the exact
+// transport on an isolated test endpoint. This function never binds a socket.
+export function createLoopbackServer({ handle }) {
   const transport = createTransportHandler(handle);
   const server = createServer({
     maxHeaderSize: TRANSPORT_LIMITS.headerBytes,
@@ -192,13 +218,19 @@ export async function startLoopbackListener({ handle }) {
     const status = error.code === "HPE_HEADER_OVERFLOW" ? 431 : 400;
     socket.end(`HTTP/1.1 ${status} Invalid Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
   });
+  return server;
+}
+
+// The only binding call in the app. No alternate production endpoint or import side effect.
+export async function startLoopbackListener({ handle }) {
+  const server = createLoopbackServer({ handle });
   try {
     await new Promise((resolve, rejectStart) => {
       const failed = (error) => { server.removeListener("listening", ready); rejectStart(error); };
       const ready = () => { server.removeListener("error", failed); resolve(); };
       server.once("error", failed);
       server.once("listening", ready);
-      server.listen({ host: FIXED_HOST, port: FIXED_PORT, exclusive: true });
+      server.listen({ host: FIXED_HOST, port: FIXED_PORT, exclusive: true, backlog: TRANSPORT_LIMITS.connections });
     });
   } catch {
     server.closeAllConnections();
