@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { buildDashboardSnapshot, loadDashboardData } from "../src/data/catalog.js";
+import { buildDashboardSnapshot, loadDashboardData, loadDashboardState } from "../src/data/catalog.js";
+import { createNormalizedSqliteRepository } from "../../local-service/src/adapters/normalized-sqlite-repository.js";
 import { buildGroupingPreview, readOwnerAdapter } from "../src/data/grouping-preview.js";
 import { makeDiagonalAdapter } from "../../local-service/src/domain/diagonal-adapter.js";
 import { makeRidgeTopicAdapter } from "../../local-service/src/domain/ridge-topic-adapter.js";
@@ -92,6 +93,85 @@ test("edge scores remain cosine similarities when retained vectors have permitte
   const edge = snapshot.edges.find((item) => item.sourceId === "page-a" && item.targetId === "page-b");
   assert.ok(edge);
   assert.ok(Math.abs(edge.score - Math.cos(0.1)) < 1e-12);
+});
+
+function accountState() {
+  const accountId = "12345678-1234-4123-8123-123456789abc";
+  return applyCommand(state(), { type: "create-root", topicId: "topic-a", originSourceId: "page-a",
+    body: "SYNTHETIC_ACCOUNT_BODY_SENTINEL" },
+  { id: `account-${accountId}`, accountId, displayName: "SyntheticUser", type: "human", demo: false },
+  { nextId: () => "account-contribution-one", now: () => "2026-01-01T00:00:00.000Z" }).state;
+}
+
+function syntheticDatabase(t, label) {
+  const directory = mkdtempSync(join(tmpdir(), `topic-dashboard-${label}-`));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  return { directory, filename: join(directory, "synthetic.sqlite") };
+}
+
+test("legacy v3 account state remains readable without exposing account bodies or changing database bytes", t => {
+  const { directory, filename } = syntheticDatabase(t, "legacy-v3");
+  const input = accountState();
+  assert.equal(input.schema, "demo-state/v3");
+  const database = new DatabaseSync(filename);
+  database.exec("CREATE TABLE demo_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema TEXT NOT NULL, generation TEXT NOT NULL, revision INTEGER NOT NULL, document TEXT NOT NULL) STRICT");
+  database.prepare("INSERT INTO demo_state VALUES (1, ?, ?, ?, ?)").run(input.schema, input.generation, input.revision, JSON.stringify(input));
+  database.close();
+  const before = readFileSync(filename), modified = statSync(filename).mtimeMs;
+  const files = readdirSync(directory);
+  const now = () => new Date("2026-01-02T00:00:00.000Z");
+  const actual = loadDashboardData(filename, { now });
+  assert.deepEqual(actual, buildDashboardSnapshot(input, { now }));
+  assert.equal(JSON.stringify(actual).includes("SYNTHETIC_ACCOUNT_BODY_SENTINEL"), false);
+  assert.equal(JSON.stringify(actual).includes(input.contributions[0].authorId), false);
+  assert.deepEqual(readFileSync(filename), before);
+  assert.equal(statSync(filename).mtimeMs, modified);
+  assert.deepEqual(readdirSync(directory), files);
+});
+
+test("normalized dashboard reads only complete catalog metadata and lossless vectors with identical graph counts and positions", t => {
+  const { directory, filename } = syntheticDatabase(t, "normalized");
+  const input = accountState();
+  const template = input.contributions[0];
+  input.contributions = Array.from({ length: 1201 }, (_, index) => ({ ...structuredClone(template), id: `synthetic-account-contribution-${index}` }));
+  const repository = createNormalizedSqliteRepository(filename, input);
+  repository.close();
+  const before = readFileSync(filename), modified = statSync(filename).mtimeMs;
+  const files = readdirSync(directory);
+  const metadata = loadDashboardState(filename);
+  assert.deepEqual(metadata.sources, input.sources);
+  assert.deepEqual(metadata.topics, input.topics);
+  assert.deepEqual(metadata.sourceLinks, input.sourceLinks);
+  assert.deepEqual(metadata.contributions, []);
+  assert.equal(metadata.schema, "demo-state/v3");
+  const now = () => new Date("2026-01-02T00:00:00.000Z");
+  const actual = loadDashboardData(filename, { now });
+  assert.deepEqual(actual, buildDashboardSnapshot(input, { now }));
+  const weights = Array(384 * 384).fill(0);
+  for (let index = 0; index < 384; index++) weights[index * 384 + index] = 1;
+  const ridge = makeRidgeTopicAdapter({ weights, meanX: Array(384).fill(0), meanY: Array(384).fill(0) });
+  assert.deepEqual(buildGroupingPreview(metadata, actual, null, null, ridge), buildGroupingPreview(input, actual, null, null, ridge));
+  for (const hidden of ["SYNTHETIC_ACCOUNT_BODY_SENTINEL", template.authorId, "embedding", "revisions"]) {
+    assert.equal(JSON.stringify(actual).includes(hidden), false);
+  }
+  assert.equal(JSON.stringify(metadata).includes("SYNTHETIC_ACCOUNT_BODY_SENTINEL"), false);
+  assert.equal(JSON.stringify(metadata).includes(template.authorId), false);
+  assert.deepEqual(readFileSync(filename), before);
+  assert.equal(statSync(filename).mtimeMs, modified);
+  assert.deepEqual(readdirSync(directory), files);
+  const inspection = new DatabaseSync(filename, { readOnly: true });
+  try { assert.equal(inspection.prepare("PRAGMA journal_mode").get().journal_mode, "delete"); }
+  finally { inspection.close(); }
+});
+
+test("dashboard never creates a missing database and retains the separate 1000-page graph guard", t => {
+  const { filename } = syntheticDatabase(t, "missing");
+  assert.throws(() => loadDashboardState(filename), { code: "ENOENT" });
+  assert.equal(existsSync(filename), false);
+  const input = state();
+  input.sources = Array.from({ length: 1001 }, (_, index) => learned(`synthetic-page-${index}`, 0));
+  input.sourceLinks = input.sources.map(source => ({ sourceId: source.id, topicId: "topic-a", method: "learned-provisional" }));
+  assert.throws(() => buildDashboardSnapshot(input), /Dashboard capacity exceeded: 1001 pages; maximum 1000/u);
 });
 
 test("alternate preview covers every displayed Source once, preserving manual pins as singletons", () => {

@@ -183,6 +183,10 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     protocol: "local-service/v1", capability: durablePairing ? "paired-durable-v1" : "paired-demo",
   } };
   if (request.method === "GET" && path === "/v1/catalog") return { status: 200, value: service.catalog() };
+  if (request.method === "GET" && path === "/v1/version") return { status: 200, value: { version: service.version() } };
+  if (request.method === "POST" && path === "/v1/catalog/context") return { status: 200, value: service.catalogContext(parseJsonBody(request)) };
+  if (request.method === "POST" && path === "/v1/catalog/page") return { status: 200, value: service.catalogPage(parseJsonBody(request)) };
+  if (request.method === "POST" && path === "/v1/discussions/page") return { status: 200, value: service.discussionPage(parseJsonBody(request)) };
   if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {
     return { status: 200, value: service.discover.search(parseJsonBody(request)) };
   }

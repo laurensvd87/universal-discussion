@@ -42,7 +42,7 @@ export function assertExpected(current, expectedValue) {
   return expected;
 }
 
-export function assertTransition(current, next, reset) {
+export function assertTransition(current, next, reset, { largeScale = false } = {}) {
   if (!reset && current.schema === ACCOUNT_STATE_SCHEMA && next.schema !== ACCOUNT_STATE_SCHEMA)
     fail("conflict", "Account state cannot be downgraded");
   if (reset) {
@@ -54,12 +54,13 @@ export function assertTransition(current, next, reset) {
     fail("conflict", "Invalid successor version");
   }
   if (!reset && (current.schema === next.schema || next.schema === ACCOUNT_STATE_SCHEMA)) {
+    const previousById = new Map(current.contributions.map(entry => [entry.id, entry]));
     for (const root of next.contributions.filter((entry) => entry.rootId === null)) {
-      const previous = current.contributions.find((entry) => entry.id === root.id);
+      const previous = previousById.get(root.id);
       if (previous && (previous.originalTopicId !== root.originalTopicId || previous.learnedOrigin !== root.learnedOrigin)) {
         fail("conflict", "Original publication context changed");
       }
     }
   }
-  assertReadableDiscussions(next);
+  if (!largeScale) assertReadableDiscussions(next);
 }

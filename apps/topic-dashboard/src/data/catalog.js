@@ -4,6 +4,8 @@ import { DatabaseSync } from "node:sqlite";
 import { assertValidPersistedState } from "../../../local-service/src/domain/persisted-state.js";
 import { MAX_DOCUMENT_BYTES } from "../../../local-service/src/domain/repository-contract.js";
 import { LEARNED_SOURCE_PROVENANCE } from "../../../local-service/src/domain/learned-sources.js";
+import { createNormalizedSqliteRepository } from "../../../local-service/src/adapters/normalized-sqlite-repository.js";
+import { ACCOUNT_STATE_SCHEMA } from "../../../local-service/src/accounts/account-principal.js";
 
 const MAX_GRAPH_PAGES = 1_000;
 const NEIGHBORS_PER_PAGE = 3;
@@ -16,37 +18,48 @@ export function loadDashboardData(databasePath, { now = () => new Date() } = {})
 export function loadDashboardState(databasePath) {
   if (!statSync(databasePath).isFile()) throw new Error("Dashboard database is not a file");
   const database = new DatabaseSync(databasePath, { readOnly: true });
+  let normalized = false;
   try {
     const objects = database.prepare("SELECT name, type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all();
-    if (objects.length !== 1 || objects[0].name !== "demo_state" || objects[0].type !== "table") {
-      throw new Error("Unsupported dashboard database schema");
-    }
-    const columns = database.prepare("PRAGMA table_info(demo_state)").all().map((column) => column.name);
-    if (columns.join(",") !== "singleton,schema,generation,revision,document") {
-      throw new Error("Unsupported dashboard database schema");
-    }
-    const row = database.prepare("SELECT schema, generation, revision, document FROM demo_state WHERE singleton = 1").get();
-    if (!row || row.schema !== "demo-state/v2" || typeof row.document !== "string" ||
-        Buffer.byteLength(row.document, "utf8") > MAX_DOCUMENT_BYTES) {
-      throw new Error("Unsupported or incomplete dashboard snapshot");
-    }
-    let state;
-    try { state = JSON.parse(row.document); }
-    catch { throw new Error("Dashboard snapshot is unreadable"); }
-    if (state.schema !== row.schema || state.generation !== row.generation || state.revision !== row.revision) {
-      throw new Error("Dashboard snapshot metadata is inconsistent");
-    }
-    assertValidPersistedState(state);
-    return state;
+    normalized = objects.some(object => object.name === "canonical_meta" && object.type === "table");
+    if (!normalized) return loadLegacyState(database, objects);
   } finally {
     database.close();
   }
+  // Close schema inspection before opening the adapter's separate read handle.
+  // readOnly never initializes/migrates storage or changes journal mode.
+  const repository = createNormalizedSqliteRepository(databasePath, null, { readOnly: true });
+  try { return repository.readCatalogSnapshot(); }
+  finally { repository.close(); }
+}
+
+function loadLegacyState(database, objects) {
+  if (objects.length !== 1 || objects[0].name !== "demo_state" || objects[0].type !== "table") {
+    throw new Error("Unsupported dashboard database schema");
+  }
+  const columns = database.prepare("PRAGMA table_info(demo_state)").all().map((column) => column.name);
+  if (columns.join(",") !== "singleton,schema,generation,revision,document") {
+    throw new Error("Unsupported dashboard database schema");
+  }
+  const row = database.prepare("SELECT schema, generation, revision, document FROM demo_state WHERE singleton = 1").get();
+  if (!row || !["demo-state/v2", ACCOUNT_STATE_SCHEMA].includes(row.schema) || typeof row.document !== "string" ||
+      Buffer.byteLength(row.document, "utf8") > MAX_DOCUMENT_BYTES) {
+    throw new Error("Unsupported or incomplete dashboard snapshot");
+  }
+  let state;
+  try { state = JSON.parse(row.document); }
+  catch { throw new Error("Dashboard snapshot is unreadable"); }
+  if (state.schema !== row.schema || state.generation !== row.generation || state.revision !== row.revision) {
+    throw new Error("Dashboard snapshot metadata is inconsistent");
+  }
+  assertValidPersistedState(state, { largeScale: false });
+  return state;
 }
 
 // State remains private in memory. The returned allowlisted DTO contains no
 // embeddings, comments, account identifiers, operation IDs, or page extracts.
 export function buildDashboardSnapshot(state, { now = () => new Date() } = {}) {
-  assertValidPersistedState(state);
+  assertValidPersistedState(state, { largeScale: true });
   const learned = state.sources.filter((source) => source.provenance === LEARNED_SOURCE_PROVENANCE)
     .sort((a, b) => a.id.localeCompare(b.id, "en"));
   if (learned.length > MAX_GRAPH_PAGES) {

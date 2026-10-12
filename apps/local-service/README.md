@@ -1,5 +1,57 @@
 # Local service
 
+## Normalized canonical storage and ranked Discover (2026-10-12)
+
+Implemented and synthetic-tested, **not yet converted on the owner's database**.
+The trusted factory can select `storageMode: "normalized"` for isolated new
+databases. Default `auto` preserves legacy files and opens already normalized
+files; an existing legacy database additionally requires explicit
+`repositoryOptions.allowLegacyMigration: true`. Normal CLI startup never silently
+converts retained data. Obtain the recovery/backup and outage decision before
+using that option on real data. The old reader cannot reopen a committed conversion.
+
+The relational adapter uses indexed records and changed-row transactions, without
+the old aggregate 8 MiB snapshot/1,000-contribution ceiling. Existing per-field,
+ownership, revision, deletion and HTTP bounds remain. Source/Topic counts have no
+retained-data ceiling; 100-item pages are read windows. Vectors/IDs/stamps stay exact.
+Private/account SQLite and protected credentials remain separate and unchanged.
+
+New paired read routes:
+
+| Route | Request / result |
+| --- | --- |
+| `GET /v1/version` | `{version}` without a catalog download |
+| `POST /v1/catalog/context` | `{sourceId,topicId}` (nullable), exact selected public metadata |
+| `POST /v1/catalog/page` | `{kind:"sources"\|"topics",limit,cursor}`, `{catalog,nextCursor}` |
+| `POST /v1/discussions/page` | `{topicId,limit,cursor}`, versioned flat `items`/`nextCursor` |
+
+Pages contain at most 100 items and adapt to the existing 1 MiB response budget.
+Cursors bind the canonical generation/revision, selection and limit. Stale cursors
+restart with conflict; flat parent references are not complete-thread authority.
+The extension's matcher/controller/toolbar use cheap version and scoped context
+reads; reload 0.13.52 only after the matching service restart/cutover.
+
+Discover chooses each Topic's best BM25 document, then orders tied relevance by
+visible public replies descending, recency and stable ID. More roots do not count
+as replies. Blank-query browsing stays recent-first. Derived schema/ranking changes
+invalidate old cursors and rebuild counts. Normalized writes update only affected
+Topic projections; private/withdrawn text never enters results.
+
+Global ingest/regroup, alternate projections and account erasure still have
+whole-state paths; exact vector scans and affected-Topic closure costs remain.
+The flat-page API does not yet replace full-thread UI rendering. This is a local
+storage foundation, not hosted high-throughput acceptance. See
+[ADR-098](../../decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md)
+and top [STATUS](../../plans/STATUS.md) for final verification and activation gate.
+
+The standalone dashboard uses this adapter's `{readOnly:true}` mode and
+`readCatalogSnapshot()` for normalized files. It loads metadata/vectors only,
+not contribution payloads/revision bodies or account records, and cannot create,
+migrate, change journal settings or write canonical data. Legacy v2/v3 support and
+its existing 1,000-page visual guard remain; the latter does not limit storage.
+
+## Earlier active local features
+
 2026-10-11, extension **0.13.50**: owner-requested private conversations and public
 discovery are active in normal account-enabled composition. The latest client
 normalizes invisible direction marks in the already bounded Insight page prefix
@@ -26,10 +78,11 @@ Reads verify a cheap canonical watermark, avoiding full snapshots per search;
 updates reconcile after accepted canonical writes, and mismatches fail closed.
 Queries are literal tokenized terms (not model/semantic search), capped at 256
 characters/16 terms, with pages up to 50 and five safe page links per result.
-Private text never enters it. A synthetic 12,000-Topic index is tested; canonical
-whole-document storage remains limited to 8 MiB and public DTOs remain bounded.
-Large hosted ingestion requires the planned normalized persistence, not merely
-this index. See [ADR-096](../../decisions/ADR-096-private-conversations-and-indexed-discovery.md).
+Private text never enters it. A synthetic 12,000-Topic index is tested. Legacy
+whole-document storage remains limited to 8 MiB until the separately approved
+conversion above; public DTOs remain bounded in both formats. A public search
+index alone does not establish hosted scalability. See
+[ADR-096](../../decisions/ADR-096-private-conversations-and-indexed-discovery.md).
 
 2026-10-11: learned E5 **related-page retrieval now uses >=0.88**, previously
 0.85 ([ADR-088](../../decisions/ADR-088-related-e5-floor-088.md)). Confirmed

@@ -7,6 +7,27 @@ const url = "https://example.com/article";
 const origin = "https://example.com";
 const deferred = () => { let resolve; const promise = new Promise((done) => { resolve = done; }); return { promise, resolve }; };
 const tick = () => new Promise((done) => setImmediate(done));
+test("version-only capture reuses an accepted exact document and invalidates on canonical version change", async () => {
+  let revision = 4, ingestions = 0, versionReads = 0;
+  const base = fixture({ client: {
+    async catalog() { throw new Error("Full catalog must not be read"); },
+    async version() { versionReads++; return { version: { generation: "g", revision } }; },
+    async ingest(payload) {
+      assert.equal(payload.expected.revision, revision); ingestions++; revision++;
+      return { version: { generation: "g", revision }, sourceId: "source-late", topicId: "topic-late", assignment: "provisional" };
+    },
+  } });
+  await base.matcher.refresh(); await base.matcher.refresh();
+  assert.equal(versionReads, 2); assert.equal(ingestions, 1);
+  assert.equal(base.matcher.currentState().sourceId, "source-late");
+  revision++;
+  await base.matcher.refresh();
+  assert.equal(ingestions, 2);
+  base.dependencies.reader.read = async () => ({ documentId: "replacement-document", result: {
+    status: "collected", url, title: "Synthetic article", text: "Different document", extractorVersion: "main-text-prefix/v1",
+  } });
+  await base.matcher.refresh(); assert.equal(ingestions, 3);
+});
 function fixture(overrides = {}) {
   const calls = [];
   const state = { enabled: true, sessionWindowId: 1, sessionRevision: 1, blockedOrigins: [],

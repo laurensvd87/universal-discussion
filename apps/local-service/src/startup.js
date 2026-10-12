@@ -29,11 +29,11 @@ export function createProcessDependencies() {
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
   chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, insightDebug = null,
   ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
-  accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null }) {
+  accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null, canonicalStorageMode = "auto" }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
   let accounts = null, accountRepository = null, privateDiscussions = null;
-  const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric,
+  const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric, storageMode: canonicalStorageMode,
     alternateRidgeAdapter,
     ...(accountsEnabled ? { resolveAccountActor: id => accounts.principalForAccountId(id),
       readAccountActors: () => accounts?.publicActors() ?? [] } : {}) });

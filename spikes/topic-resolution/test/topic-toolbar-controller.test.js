@@ -24,6 +24,7 @@ function harness(options = {}) {
   const writes = []; let marker = options.marker; let reads = 0; let discussionReads = 0; let alternateReads = 0;
   const painted = new Map();
   const controller = createTopicToolbarController({
+    ...(options.catalogContext ? { catalogContext: options.catalogContext } : {}),
     catalog: async (request) => { reads++; return options.catalog ? options.catalog(request) : catalog(); },
     discussion: async (id, request) => { discussionReads++; return options.discussion ? options.discussion(id, request) : discussion(); },
     alternateDiscussion: async (id, catalogValue, projection, request) => {
@@ -42,6 +43,79 @@ function harness(options = {}) {
 const alternate = (patch = {}) => ({ mode: "alternate-provisional", sourceId: "source-a", version: { generation: "generation-a", revision: 2 },
   policyVersion: "ridge1-qualified-complete-link/v1", representation: "owner-local-linear-teacher-transfer/ridge1-v1",
   sourceIds: ["source-a", "source-b"], roots: [], pinnedRoots: [], ...patch });
+
+test("bounded toolbar context resolves an exact Source beyond the first 100 and proves only returned peers", async () => {
+  const sources = Array.from({ length: 201 }, (_, index) => source(`source-${index}`, `https://example.com/page-${index}`));
+  const current = sources[200];
+  for (const [peers, roots, color] of [[[], [], "topic"], [sources.slice(0, 100), [], "shared"],
+    [sources.slice(0, 100), [{ ...visible("published-root"), replies: [] }], "posts"]]) {
+    const selections = [];
+    const h = harness({ catalog: () => { throw new Error("Full catalog must not be read"); },
+      catalogContext: (selection) => { selections.push(selection); return catalog([current, ...peers]); },
+      discussion: id => { assert.equal(id, current.topicId); return discussion(roots); },
+    });
+    await h.controller.update(ready({ sourceId: current.id, url: current.url }));
+    assert.equal(h.painted.get(7), color);
+    assert.equal(h.reads(), 0);
+    assert.deepEqual(selections, [{ sourceId: current.id, topicId: current.topicId }]);
+  }
+});
+
+test("processing connection verification requests null context without Topic or post evidence", async () => {
+  const selections = [];
+  const h = harness({ catalog: () => { throw new Error("Full catalog must not be read"); },
+    catalogContext: selection => { selections.push(selection); return catalog(); } });
+  await h.controller.update({ phase: "processing", presentationTabId: 7, sourceId: "stale-source", topicId: "stale-topic" }, { verify: true });
+  assert.deepEqual(selections, [{ sourceId: null, topicId: null }]);
+  assert.equal(h.painted.get(7), "connected");
+  assert.equal(h.discussionReads(), 0);
+});
+
+test("missing or mismatched current Source context grants no page color despite returned peers", async () => {
+  for (const sources of [[source("source-b", "https://example.org/b")],
+    [source("source-a", "https://example.com/other"), source("source-b", "https://example.org/b")],
+    [source("source-a", ready().url, null), source("source-b", "https://example.org/b")]]) {
+    const h = harness({ catalogContext: () => catalog(sources) });
+    await h.controller.update(ready());
+    assert.equal(h.discussionReads(), 0);
+    assert.equal(h.painted.get(null), "connected");
+    assert.ok(!["topic", "shared", "posts"].includes(h.painted.get(7)));
+  }
+});
+
+test("late bounded context cannot paint a prior tab or clear a newer confirmed context", async () => {
+  const gate = deferred(); let count = 0, oldSignal;
+  const h = harness({ catalogContext: (_selection, { signal }) => {
+    if (++count === 1) { oldSignal = signal; return gate.promise; }
+    return catalog();
+  } });
+  const pending = h.controller.update(ready()); await flush();
+  await h.controller.update(ready({ tabId: 8, sequence: 2 }));
+  assert.equal(oldSignal.aborted, true);
+  gate.resolve(catalog(undefined, 99)); await pending;
+  assert.equal(h.painted.get(8), "shared");
+  assert.ok(!["topic", "shared", "posts"].includes(h.painted.get(7)));
+  await h.controller.update(ready({ tabId: 8, sequence: 3 }));
+  assert.equal(h.painted.get(8), "shared");
+});
+
+test("coherent old bounded snapshots fail closed and reconciliation retains exact Source/Topic selection", async () => {
+  let revision = 3;
+  const h = harness({ catalogContext: () => catalog(undefined, revision), discussion: () => discussion([], revision) });
+  await h.controller.update(ready()); assert.equal(h.painted.get(7), "shared");
+  revision = 2;
+  await h.controller.update(ready());
+  assert.equal(h.painted.get(null), "disconnected");
+  assert.ok(!["topic", "shared", "posts"].includes(h.painted.get(7)));
+  let reads = 0;
+  const selections = [];
+  const reconciled = harness({ catalog: () => { throw new Error("Full catalog must not be read"); },
+    catalogContext: selection => { selections.push(selection); return catalog(undefined, ++reads === 1 ? 2 : 3); },
+    discussion: () => discussion([], 3) });
+  await reconciled.controller.update(ready());
+  assert.equal(reconciled.painted.get(7), "shared");
+  assert.deepEqual(selections, [{ sourceId: "source-a", topicId: "topic-a" }, { sourceId: "source-a", topicId: "topic-a" }]);
+});
 test("catalog sharing requires exact learned Source, URL, Topic and distinct learned page", () => {
   assert.equal(hasSharedLearnedTopic(ready(), catalog()), true);
   const a = source("source-a", ready().url);

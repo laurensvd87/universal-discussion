@@ -48,7 +48,7 @@ export function createAccountLifecycle({ accounts, service, ai, privateDiscussio
       const start = body.after === null ? 0 : rows.findIndex(row => row.cursor === body.after) + 1;
       if (body.after !== null && start === 0) fail("conflict", "Export changed");
       const page = rows.slice(start, start + 1);
-      return { status: 200, value: { ...own, version: service.catalog().version,
+      return { status: 200, value: { ...own, version: typeof service.version === "function" ? service.version() : service.catalog().version,
         posts: page.map(row => row.post), next: start + 1 < rows.length ? page[0].cursor : null } };
     },
   });

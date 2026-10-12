@@ -1,8 +1,17 @@
 # Portable backend and hosting plan
 
-Updated: 2026-10-11.
+Updated: 2026-10-12.
 Status: future architecture proposal, not deployment or data-migration approval.
 Decision record: [ADR-092](../decisions/ADR-092-portable-self-hosted-backend-plan.md).
+
+Local canonical checkpoint: [ADR-098](../decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md)
+implements normalized SQLite and scoped/versioned read/write integration in the
+current local application. Aggregate JSON/post ceilings are removed in that
+adapter; conversion of the owner's legacy file awaits recovery approval. This
+preserves current exact vectors, Topics, posts and ownership, and is not a second
+portable identity or a PostgreSQL migration. Global ingest/regroup and full-thread
+UI paths still need scale work. H1's hosted PostgreSQL/matching/import/identity/
+client integration and operations acceptance remain open; no deployment follows.
 
 Implementation checkpoint: the owner now approves repository preparation under
 [ADR-093](../decisions/ADR-093-private-portable-backend-rehearsal.md). The

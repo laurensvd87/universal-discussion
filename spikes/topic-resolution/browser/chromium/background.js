@@ -21,7 +21,7 @@ const client = createLocalServiceClient({ fetchImpl: globalThis.fetch.bind(globa
       await captureSession.stop();
     }
   } });
-const toolbar = createTopicToolbarController({ catalog: client.catalog, discussion: client.discussion,
+const toolbar = createTopicToolbarController({ catalog: client.catalog, catalogContext: client.catalogContext, discussion: client.discussion,
   alternateDiscussion: client.alternateDiscussion,
   readMode: () => readTopicViewMode(api.storage.session),
   paint: createTopicToolbarPainter(api.action),

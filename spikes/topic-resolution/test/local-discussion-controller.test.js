@@ -1047,6 +1047,102 @@ function backgroundHarness(overrides = {}) {
     setResolution(patch) { resolution = { ...resolution, ...patch }; }, publish: () => ui.controller.updatePageResolution(resolution) };
 }
 
+test("bounded catalog selects an exact learned Source outside the initial slice and refreshes manual Topic context", async () => {
+  const contexts = [];
+  let ui;
+  ui = backgroundHarness({ client: {
+    async catalog() { throw new Error("Full catalog must not be read"); },
+    async catalogContext(selection) {
+      contexts.push(selection);
+      const full = ui.service.catalog();
+      const sources = full.sources.filter(source => selection.sourceId
+        ? source.id === selection.sourceId : source.provenance !== "owner-local-page-embedding/v1");
+      const ids = new Set(sources.map(source => source.topicId));
+      if (selection.topicId) ids.add(selection.topicId);
+      return { ...full, sources, topics: full.topics.filter(topic => ids.has(topic.id)) };
+    },
+  } });
+  const learned = ui.ingest();
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().sourceId, learned.sourceId);
+  assert.deepEqual(contexts[0], { sourceId: null, topicId: null });
+  assert.deepEqual(contexts[1], { sourceId: learned.sourceId, topicId: learned.topicId });
+  await ui.controller.selectTopic(learned.topicId);
+  assert.deepEqual(contexts.at(-1), { sourceId: null, topicId: learned.topicId });
+  assert.equal(ui.controller.currentState().sourceId, null);
+  assert.equal(ui.controller.currentState().phase, "ready");
+  ui.controller.dispose();
+});
+
+test("missing Source and stale bounded refresh cannot preserve write authority or attach drafts", async () => {
+  let ui, revisionOffset = 0, missing = false;
+  ui = harness({ client: {
+    async catalog() { throw new Error("Full catalog must not be read"); },
+    async catalogContext() {
+      const full = structuredClone(ui.service.catalog());
+      full.version.revision += revisionOffset;
+      if (missing) full.sources = [];
+      return full;
+    },
+  } });
+  await ui.controller.open();
+  ui.controller.setDraft("Keep the unsent draft detached");
+  missing = true;
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().sourceId, null);
+  assert.equal(ui.controller.currentState().draft.detached, true);
+  assert.equal(await ui.controller.submitDraft(), false);
+  missing = false; revisionOffset = 2;
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  revisionOffset = 1;
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().phase, "error");
+  assert.equal(ui.controller.currentState().error, "conflict");
+  assert.equal(await ui.controller.submitDraft(), false);
+  ui.controller.dispose();
+});
+
+test("late exact Source context cannot replace a later manual Topic selection", async () => {
+  const gate = deferred();
+  let ui;
+  ui = backgroundHarness({ client: {
+    async catalog() { throw new Error("Full catalog must not be read"); },
+    async catalogContext(selection) {
+      const snapshot = structuredClone(ui.service.catalog());
+      if (selection.sourceId) await gate.promise;
+      return snapshot;
+    },
+  } });
+  await ui.controller.open();
+  const manualTopic = ui.controller.currentState().catalog.topics[0].id;
+  ui.ingest();
+  const pending = ui.publish();
+  await turn();
+  await ui.controller.selectTopic(manualTopic);
+  gate.resolve(); await pending;
+  assert.equal(ui.controller.currentState().selection, "manual");
+  assert.equal(ui.controller.currentState().topicId, manualTopic);
+  assert.equal(ui.controller.currentState().sourceId, null);
+  ui.controller.dispose();
+});
+
+test("bounded catalog absence never lets reset skip capture pause and fresh canonical version", async () => {
+  let ui, pauses = 0, contexts = 0;
+  ui = harness({ async pausePageMatching() { pauses++; }, client: {
+    async catalog() { throw new Error("Full catalog must not be read"); },
+    async catalogContext() { contexts++; return ui.service.catalog(); },
+  } });
+  await ui.controller.open();
+  assert.equal(ui.controller.currentState().catalog.sources.some(source => source.provenance === "owner-local-page-embedding/v1"), false);
+  const previousContexts = contexts;
+  assert.equal(await ui.controller.reset("RESET DEMO STATE"), true);
+  assert.equal(pauses, 1);
+  assert.ok(contexts >= previousContexts + 2);
+  ui.controller.dispose();
+});
+
 test("first-use HTTPS grant establishes a fresh tab witness before learned Source becomes writable", async () => {
   const url = "http://127.0.0.1:4173/background-fixture/page-a.html";
   let granted = false;

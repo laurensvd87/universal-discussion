@@ -1,5 +1,15 @@
 # Synthetic-only normalized-state migration and recovery plan
 
+2026-10-12 implementation checkpoint: [ADR-098](../../../../../decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md)
+implements a lossless `canonical-relational/v1` adapter, scoped ordinary commands,
+indexed bounded catalog/contribution pages and streamed/incremental public search.
+Synthetic migration, failure, lifecycle, authority and scale checks pass.
+The design below is retained as history: proposed names/edge tables are not the
+active adapter schema, and historical 100-Source/100-Topic limits were already
+removed by earlier decisions. No owner database was opened/copied/converted for
+this implementation. The separate real-data recovery and outage gate below still
+applies; default startup does not convert legacy storage.
+
 Status: design for review, 2026-10-05. No owner database was opened, copied, or converted. This plan does not activate a schema, remove the current 100-Source/100-Topic limits, or authorize a backup/export. It follows ADR-016, ADR-023, and ADR-044. Implement and test against freshly constructed synthetic `demo-state/v1` and `/v2` rows in isolated temporary databases first; obtain a separate owner-data/security decision before a real cutover.
 
 ## Source contract and proposed shape

@@ -8,6 +8,19 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current normalized canonical storage/Discover (2026-10-12, ADR-098, 0.13.52):
+synthetic implementation and independent Trust pass. Indexed relational SQLite,
+scoped ordinary commands, version/exact context and bounded keyset pages remove
+normalized aggregate limits; best-document BM25 ranks ahead of visible reply ties.
+Privacy, immutable lineage, ownership, full generated-target proofs and deletion
+remain. Private/account stores stay separate. Owner DB/service were not migrated
+or restarted. Default startup never converts a legacy file. Next required step is
+the explicit recovery/backup/location/retention/outage gate from the migration
+plan; no backup/export or actual cutover without owner approval. Do not reload
+0.13.52 before its matching backend restart. Global ingest/regroup/alternate and
+account-erasure/full-thread UI scalability remain incomplete; never claim hosted
+or thousand-ingests/second readiness. Read top STATUS/HANDOFF and ADR-098.
+
 Current private assistant validation fix (2026-10-11, ADR-096, 0.13.50): shared
 Insight page reading removes only Unicode direction-formatting marks from the
 already bounded captured prefix, preserves multilingual visible prose and exact

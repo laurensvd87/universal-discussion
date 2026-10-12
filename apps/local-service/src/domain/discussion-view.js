@@ -8,10 +8,18 @@ export function discussionView(state, topicId) {
   const discussion = state.discussions.find((entry) => entry.topicId === topicId);
   if (!topic || !discussion) fail("not-found", "Object unavailable");
   const contributions = state.contributions.filter((entry) => entry.discussionId === discussion.id);
+  const repliesByRoot = new Map();
+  for (const entry of contributions) {
+    if (entry.rootId === null) continue;
+    if (!repliesByRoot.has(entry.rootId)) repliesByRoot.set(entry.rootId, []);
+    repliesByRoot.get(entry.rootId).push(entry);
+  }
+  const index = { sources: new Map(state.sources.map(source => [source.id, source])),
+    topics: new Map(state.discussions.map(item => [item.id, item.topicId])) };
   const roots = contributions.filter((entry) => entry.rootId === null).sort(newestFirst).flatMap((root) => {
-    const replies = contributions.filter((entry) => entry.rootId === root.id).sort(oldestFirst);
+    const replies = (repliesByRoot.get(root.id) ?? []).sort(oldestFirst);
     if (root.withdrawn && replies.every((entry) => entry.withdrawn)) return [];
-    return [{ ...projectContribution(root, state), replies: replies.map((entry) => projectContribution(entry, state)) }];
+    return [{ ...projectContribution(root, state, index), replies: replies.map((entry) => projectContribution(entry, state, index)) }];
   });
   return {
     version: { generation: state.generation, revision: state.revision },
@@ -31,10 +39,10 @@ export function assertReadableDiscussions(state) {
   }
 }
 
-function projectContribution(entry, state) {
+export function projectContribution(entry, state, index = null) {
   if (entry.withdrawn) return { id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId, state: "deleted", label: "Deleted by user" };
-  const source = state.sources.find((item) => item.id === entry.originSourceId);
-  const currentTopicId = state.discussions.find((item) => item.id === entry.discussionId)?.topicId;
+  const source = index ? index.sources.get(entry.originSourceId) : state.sources.find((item) => item.id === entry.originSourceId);
+  const currentTopicId = index ? index.topics.get(entry.discussionId) : state.discussions.find((item) => item.id === entry.discussionId)?.topicId;
   return {
     id: entry.id, rootId: entry.rootId, replyToId: entry.replyToId,
     state: "visible", authorId: entry.authorId, actorType: entry.actorType,

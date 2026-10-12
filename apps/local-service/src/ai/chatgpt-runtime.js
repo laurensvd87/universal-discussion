@@ -175,12 +175,14 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     jobs.clear(); active = null;
   }
   function inspectContext(input) {
-    const catalog = service.catalog();
-    if (!same(input.expected, catalog.version)) fail("conflict", "State changed");
     const context = input.context;
     if (!context || typeof context !== "object" || !context.topic || !context.currentSource) fail("invalid", "Invalid request");
     const sourceId = context.currentSource.id, topicId = context.topic.id;
-    const discussion = service.discussion(topicId);
+    const catalog = typeof service.catalogContext === "function" ? service.catalogContext({ sourceId, topicId }) : service.catalog();
+    if (!same(input.expected, catalog.version)) fail("conflict", "State changed");
+    const includeDiscussion = context.coverage?.discussionIncluded === true;
+    const discussion = typeof service.insightDiscussion === "function"
+      ? service.insightDiscussion(topicId, includeDiscussion) : service.discussion(topicId);
     const related = service.related(sourceId, 20);
     if (!same(catalog.version, discussion.version) || !same(catalog.version, related.version)) fail("conflict", "State changed");
     const excluded = input.excludedRelatedSourceIds ?? [];
@@ -190,7 +192,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       // only from that exact catalog-derived pool; rebuild the bounded request
       // after exclusion so the next eligible source fills a freed slot.
       const localChoices = buildInsightContext({ catalog, discussion, related, sourceId, topicId,
-        includeDiscussion: context.coverage?.discussionIncluded === true, sourceLimit: sourceId === null ? 20 : 21 });
+        includeDiscussion, sourceLimit: sourceId === null ? 20 : 21 });
       const allowedRelatedSourceIds = [...localChoices.sameTopicSources, ...localChoices.relatedSources]
         .map((source) => source.id);
       const selectedIds = new Set(allowedRelatedSourceIds);
@@ -198,7 +200,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
           excluded.some((id) => typeof id !== "string" || !selectedIds.has(id)) ||
           new Set(excluded).size !== excluded.length) fail("invalid", "Invalid request");
       rebuilt = buildInsightContext({ catalog, discussion, related, sourceId, topicId,
-        includeDiscussion: context.coverage?.discussionIncluded === true,
+        includeDiscussion,
         allowedRelatedSourceIds, excludedRelatedSourceIds: excluded,
         sourceLimit: sourceId === null ? 5 : 6 });
     } catch { fail("invalid", "Invalid request"); }
@@ -210,7 +212,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
   }
   function inspectFollowup(questionId, destinationTopicId, sourceId, currentTopicId, expected) {
     const id = readId(questionId);
-    const discussion = service.discussion(destinationTopicId);
+    const discussion = typeof service.discussionForContribution === "function"
+      ? service.discussionForContribution(destinationTopicId, id) : service.discussion(destinationTopicId);
     if (!same(discussion.version, expected)) fail("conflict", "State changed");
     for (const root of discussion.roots) {
       const target = root.id === id ? root : root.replies.find((entry) => entry.id === id);

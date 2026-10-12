@@ -128,6 +128,30 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
     async health({ signal } = {}) { return request("/health", undefined, undefined, readHealth, signal); },
     async healthWithToken(token, { signal } = {}) { return request("/health", undefined, undefined, readHealth, signal, token); },
     async catalog({ signal } = {}) { return request("/catalog", undefined, undefined, readCatalog, signal); },
+    async version({ signal } = {}) {
+      return request("/version", undefined, undefined, (value) => {
+        if (!value || Object.keys(value).length !== 1 || !Object.hasOwn(value, "version")) throw new TypeError("Invalid version response");
+        return { version: readVersion(value.version) };
+      }, signal);
+    },
+    async catalogContext(value = { sourceId: null, topicId: null }, { signal } = {}) {
+      const body = input(() => {
+        if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+            Reflect.ownKeys(value).length !== 2 || !Object.hasOwn(value, "sourceId") || !Object.hasOwn(value, "topicId")) throw new TypeError("Invalid context");
+        const descriptors = Object.getOwnPropertyDescriptors(value);
+        if (!["sourceId", "topicId"].every(key => descriptors[key].enumerable && Object.hasOwn(descriptors[key], "value"))) throw new TypeError("Invalid context");
+        return { sourceId: value.sourceId === null ? null : readId(value.sourceId),
+          topicId: value.topicId === null ? null : readId(value.topicId) };
+      });
+      return request("/catalog/context", body, undefined, (value) => {
+        const catalog = readCatalog(value);
+        const source = catalog.sources.find(entry => entry.id === body.sourceId);
+        if ((body.sourceId !== null && !source) ||
+            (body.topicId !== null && !catalog.topics.some(entry => entry.id === body.topicId)) ||
+            (body.sourceId !== null && body.topicId !== null && source.topicId !== body.topicId)) throw new TypeError("Invalid context projection");
+        return catalog;
+      }, signal);
+    },
     async ingest(payload, { signal } = {}) {
       const body = input(() => readIngestion(payload));
       return request("/sources/ingest", body, undefined, (value) => {

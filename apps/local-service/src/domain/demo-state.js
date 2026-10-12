@@ -54,7 +54,7 @@ function commandRecord(command, fields, optional = []) {
   return input;
 }
 
-export function applyCommand(state, command, actor, { nextId, now, generatedProof = null }) {
+export function applyCommand(state, command, actor, { nextId, now, generatedProof = null, largeScale = false }) {
   const account = isAccountPrincipal(actor);
   if (!actor || actor.type !== "human" || (actor.demo !== true && !account)) fail("forbidden", "Action unavailable");
   if (command === null || typeof command !== "object" || Array.isArray(command)) fail("invalid", "Invalid request");
@@ -108,7 +108,7 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
       ...(type === "share-insight" ? { insight: { kind: "generated", operatorId: actor.id } } : {}),
       body, timestamp, originSourceId: origin?.id,
       association: rootAssociation(topicId, origin),
-    });
+    }, largeScale);
     result = { contributionId };
   } else if (type === "reply" || type === "share-insight-reply") {
     const generated = type === "share-insight-reply";
@@ -150,7 +150,7 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
       actorType: generated ? "agent" : "human",
       ...(generated ? { insight: { kind: "generated", operatorId: actor.id } } : {}),
       body, timestamp, originSourceId: origin?.id,
-    });
+    }, largeScale);
     result = { contributionId };
   } else if (type === "edit") {
     const input = commandRecord(command, ["contributionId", "body"]);
@@ -192,8 +192,8 @@ function ownsContribution(contribution, actorId) {
     : contribution.actorType === "human" && contribution.authorId === actorId;
 }
 
-function addContribution(state, input) {
-  if (state.contributions.length >= LIMITS.contributions) fail("capacity", "Capacity reached");
+function addContribution(state, input, largeScale = false) {
+  if (!largeScale && state.contributions.length >= LIMITS.contributions) fail("capacity", "Capacity reached");
   state.contributions.push({
     id: input.id,
     discussionId: input.discussionId,

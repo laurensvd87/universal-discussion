@@ -135,9 +135,19 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
       if (state.healthUnavailable) throw new Error("Synthetic local service unavailable");
       return new Response(JSON.stringify({ protocol: "local-service/v1", capability: "paired-demo" }), { headers });
     }
-    if (url.endsWith("/catalog")) {
+    if (url.endsWith("/catalog") || url.endsWith("/catalog/context") || url.endsWith("/version")) {
       if (state.catalogUnavailable) throw new Error("Synthetic catalog unavailable");
-      return new Response(JSON.stringify(state.catalog ?? { version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] }), { headers });
+      const value = state.catalog ?? { version: { generation: "generation-a", revision: 0 }, model: { id: "hand-authored-demo-vectors/1", status: "fixture-only" }, actors: [], topics: [], sources: [] };
+      if (url.endsWith("/catalog/context")) {
+        assert.equal(options.method, "POST");
+        const selection = JSON.parse(options.body);
+        assert.deepEqual(Object.keys(selection).sort(), ["sourceId", "topicId"]);
+        assert.ok(selection.sourceId === null || typeof selection.sourceId === "string");
+        assert.ok(selection.topicId === null || typeof selection.topicId === "string");
+      } else {
+        assert.equal(options.method, "GET"); assert.equal(options.body, undefined);
+      }
+      return new Response(JSON.stringify(url.endsWith("/version") ? { version: value.version } : value), { headers });
     }
     if (url.endsWith("/topics/topic-a/discussion")) return new Response(JSON.stringify({ version: state.catalog.version, topic: { id: "topic-a", title: "Synthetic Topic", kind: "general" }, discussionId: "discussion-a", roots: state.roots }), { headers });
     assert.ok(url.endsWith("/sources/ingest"));
@@ -480,9 +490,9 @@ test("automatic transient retries stop after four attempts without a new browser
   h.state.catalogUnavailable = true;
   await h.advance();
   for (const delay of [2000, 4000, 8000, 16000]) await h.advanceBy(delay);
-  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/catalog")).length, 5);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/version")).length, 5);
   await h.advanceBy(32000);
-  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/catalog")).length, 5);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/version")).length, 5);
   assert.equal(h.calls.reads, 0);
 });
 for (const change of ["unsupported-url", "incognito"]) {
@@ -730,7 +740,10 @@ test("ready same-Topic peer colors only the current tab with bounded catalog and
   const last = h.calls.icons.at(-1);
   assert.equal(last.tabId, 7); assert.equal(last.imageData[16].colors[0], "#38bdf8");
   assert.equal(h.state.toolbarTabId, 7);
-  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/catalog")).length, 2);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/version")).length, 1);
+  const contexts = h.calls.fetches.filter((call) => call.url.endsWith("/catalog/context"));
+  assert.deepEqual(contexts.map(call => JSON.parse(call.body)), [{ sourceId: "source-a", topicId: "topic-a" }]);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/catalog")).length, 0);
   assert.equal(h.calls.reads, 1); assert.equal(h.calls.embeddings, 1);
   const count = h.calls.fetches.length;
   await h.send("status"); await h.send("status"); assert.equal(h.calls.fetches.length, count);

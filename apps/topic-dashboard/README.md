@@ -27,6 +27,14 @@ not automatically deleted. They contain retained page URLs and titles, so do
 not share them casually. Delete both files if you no longer want the extra
 copies. The source SQLite database remains unchanged.
 
+The reader supports existing legacy v2/v3 databases and normalized canonical
+SQLite. It opens them read-only, without creating a missing file, migrating data,
+or changing journal settings. Normalized reads load catalog metadata and retained
+vectors into local memory; they do not read contribution bodies or account records.
+Exported snapshots contain neither vectors nor discussion/account data. Legacy
+files retain their existing document validation limits. This dashboard support
+does not authorize a service migration or backend restart.
+
 The counts distinguish all saved Sources from learned pages. Only the
 latter are plotted; synthetic demonstration data is omitted from the map.
 The original capture policy cannot guarantee that every retained title/URL

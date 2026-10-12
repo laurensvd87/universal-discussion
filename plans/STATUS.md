@@ -1,5 +1,55 @@
 # Project status
 
+**2026-10-12 normalized canonical storage and ranked Discover verified, 0.13.52:**
+Owner-requested local relational SQLite now stores Topics, Discussions, Sources,
+lossless vectors, links, contributions/revisions and receipts separately. The
+normalized adapter removes the aggregate 8 MiB/1,000-message limits without
+adding a retained Source/Topic ceiling; existing field/HTTP/privacy limits remain.
+Ordinary service reads/posts use indexed scopes and changed-row transactions,
+not whole-catalog serialization. New version/exact-context/catalog-page/flat
+discussion-page routes retain pairing and current authority checks. Byte-adaptive
+revision-bound keysets have no paging gaps. Extension controller/background/toolbar
+use exact contexts even when the current Source is outside the initial read window.
+Standalone dashboard supports legacy v2/v3 and normalized catalogs through a
+genuine read-only handle, without journal changes or contribution-body loading.
+Safe exports and the existing 1,000-page visual guard remain; that is not a
+canonical retention ceiling. Missing files/unknown schemas cannot be initialized.
+Discover ranks each Topic's best BM25 document first, then visible replies on
+ties, recency and ID. Private/withdrawn entries never contribute; normalized writes
+incrementally reconcile affected Topic projections with strict watermarks.
+
+Independent Trust accepts migration/CAS/identity/closure/ownership/deletion and
+provider-target fences; 46 focused authority/lifecycle/private checks plus separate
+501-historical-Topic and 30-member alternate-group checks pass. Root integration
+adds a 620-historical-destination regression, official bounded Insight-pool
+composition, dense-Topic metadata-only context and complete target-body edit
+invalidation. Scale fixtures exceed 8 MiB, 1,000 posts, 1,000 Topics and 2,600
+Sources, including a 1,300-vector inventory. Restricted full suites pass **587
+backend tests/four skips**, **1,328 browser tests** and **14 dashboard tests**.
+Independent read-only review adds 29 repository checks/nine dashboard data checks.
+Isolated Chrome community
+interaction and 320/390/480px layouts pass without horizontal overflow or uncaught
+errors; no provider call. Both secret scans have zero findings.
+
+**Prepared, not activated on owner data.** Legacy startup remains unchanged;
+already normalized files dispatch automatically, but conversion requires explicit
+trusted selection and migration permission. No owner DB was opened/copied/migrated,
+no process was restarted and no new backup/provider/hosting operation occurred.
+Before cutover obtain the owner's recovery arrangement (protected backup and its
+location/retention/restore rules, or no duplicate with post-commit limitations) and
+outage approval. v2/v3 IDs/version remain exact; historical v1 retains its reviewed
+one-time revision increment. Successful conversion drops the old blob atomically;
+old binaries then fail closed. Account/private stores and saved pairing/login
+are not conversion targets. Wait to reload 0.13.52 until the matching backend is
+restarted at that approved cutover. See ADR-098 and the recovery plan.
+
+Remaining scale work is explicit: global ingest/regroup/alternate planning and
+account erasure still use whole-state paths; exact vector scans and affected-Topic
+closure/indexing costs remain. Flat contribution pages are not yet a fully paged
+panel/thread UI; dashboard graph pagination/neighborhood scaling remains open.
+No thousand-ingests/second, hosted readiness or semantic-quality
+claim follows. Murmingle presentation and all existing approval boundaries remain.
+
 **2026-10-12 Murmingle brand introduced, extension 0.13.51:**
 The owner selects **Murmingle** with **Where conversations meet.** as the primary
 tagline. Popup and side-panel headers now show both; Chrome's extension label,
@@ -11,9 +61,9 @@ Topic/Source/Discussion authority, permission, storage, account, provider or
 network behavior changes. Focused restricted browser checks pass **51/51**;
 isolated Chromium community interaction and 320/390/480px layout checks pass
 with no horizontal overflow, and root visually checks the 320px header. Browser
-secret scan checks 224 files with zero findings; diff whitespace passes. The
-shared worktree's full restricted suite is not claimed because unrelated active
-normalized-storage/background-matching edits currently fail their own tests.
+secret scan checks 224 files with zero findings; diff whitespace passes. At this
+branding checkpoint the full shared suite was not claimed because normalized
+storage/background edits were in progress; completed verification is recorded above.
 Reload the unpacked extension only; backend restart is unnecessary. See ADR-097.
 
 **2026-10-11 private assistant validation fix verified, 0.13.50:**

@@ -118,6 +118,37 @@ function json(value, status = 200, headers = {}) {
   return new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8", ...headers } });
 }
 function client(fetchImpl, extras = {}) { return createLocalServiceClient({ fetchImpl, getToken: async () => TOKEN, ...extras }); }
+test("version and exact catalog context use bounded fixed endpoints and reject omitted or forged selection metadata", async () => {
+  const catalog = demoService().catalog();
+  const source = catalog.sources.find(entry => entry.topicId !== null);
+  const selection = { sourceId: source.id, topicId: source.topicId };
+  const calls = [];
+  const adapter = client(async (url, options) => {
+    calls.push([url, options.method, options.body]);
+    return json(url.endsWith("/version") ? { version: VERSION } : catalog);
+  });
+  assert.deepEqual(await adapter.version(), { version: VERSION });
+  assert.deepEqual(await adapter.catalogContext(selection), catalog);
+  assert.deepEqual(calls, [
+    ["http://127.0.0.1:4174/v1/version", "GET", undefined],
+    ["http://127.0.0.1:4174/v1/catalog/context", "POST", JSON.stringify(selection)],
+  ]);
+  for (const invalid of [{}, { sourceId: null }, { ...selection, text: "hidden" },
+    { ...selection, sourceId: "https://example.com" }, { ...selection, topicId: undefined }]) {
+    await assert.rejects(adapter.catalogContext(invalid), { code: "invalid-request" });
+  }
+  assert.equal(calls.length, 2);
+  let reads = 0;
+  await assert.rejects(adapter.catalogContext({ topicId: null, get sourceId() { reads++; return null; } }), { code: "invalid-request" });
+  assert.equal(reads, 0);
+  for (const invalid of [{ ...catalog, sources: [] }, { ...catalog, topics: [] },
+    { ...catalog, sources: catalog.sources.map(entry => entry.id === source.id ? { ...entry, topicId: null } : entry) }]) {
+    await assert.rejects(client(async () => json(invalid)).catalogContext(selection), { code: "invalid-response" });
+  }
+  for (const invalid of [{ version: { ...VERSION, revision: -1 } }, { version: VERSION, sources: [] }, VERSION]) {
+    await assert.rejects(client(async () => json(invalid)).version(), { code: "invalid-response" });
+  }
+});
 test("prior-discussion GET transfers only a Source ID and rejects malformed summaries", async () => {
   const sourceId = "source-demo";
   const valid = { version: VERSION, sourceId, currentTopicId: "topic-current",

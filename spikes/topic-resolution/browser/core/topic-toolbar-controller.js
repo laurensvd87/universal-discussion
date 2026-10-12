@@ -33,7 +33,7 @@ function hasVisibleRoot(roots) {
 
 // One inert tab integer survives worker suspension, allowing reconstruction to
 // clear Chrome's override. Connection means a last verified read, never a token.
-export function createTopicToolbarController({ catalog, discussion, alternateDiscussion, readMode, paint, readMarker, writeMarker, removeMarker }) {
+export function createTopicToolbarController({ catalog, catalogContext, discussion, alternateDiscussion, readMode, paint, readMarker, writeMarker, removeMarker }) {
   let epoch = 0;
   let abort = new AbortController();
   let pending = Promise.resolve();
@@ -44,6 +44,7 @@ export function createTopicToolbarController({ catalog, discussion, alternateDis
   let initialized = false;
   let initializationFailed = false;
   let alternateCache = null;
+  let lastCatalogVersion = null;
   const removed = new Set();
   const base = () => connected ? (matchingOff ? "off" : "connected") : "disconnected";
   function serial(operation) {
@@ -81,6 +82,7 @@ export function createTopicToolbarController({ catalog, discussion, alternateDis
     abort.abort(); abort = new AbortController();
     const signal = abort.signal;
     const snapshot = { ...state };
+    if (pairingChanged) lastCatalogVersion = null;
     const presentationTabId = tabId(snapshot.presentationTabId) ? snapshot.presentationTabId : null;
     if (pairingChanged || ["unpaired", "error"].includes(snapshot.phase)) connected = false;
     if (pairingChanged || snapshot.phase !== "ready") alternateCache = null;
@@ -99,11 +101,21 @@ export function createTopicToolbarController({ catalog, discussion, alternateDis
       if (initialized) { await neutralize(); if (epoch === own) await paintBase(); }
     });
     if (snapshot.phase !== "ready" && !verify) return clearing.catch(() => {});
+    async function readSnapshot() {
+      const selected = snapshot.phase === "ready"
+        ? { sourceId: snapshot.sourceId, topicId: snapshot.topicId } : { sourceId: null, topicId: null };
+      const value = readCatalog(await (typeof catalogContext === "function"
+        ? catalogContext(selected, { signal }) : catalog({ signal })));
+      if (epoch !== own) return value;
+      if (lastCatalogVersion?.generation === value.version.generation && value.version.revision < lastCatalogVersion.revision) throw new Error("stale-catalog");
+      lastCatalogVersion = value.version;
+      return value;
+    }
     return (async () => {
       try {
         await clearing;
         if (!initialized || initializationFailed || epoch !== own) return;
-        let value = readCatalog(await catalog({ signal }));
+        let value = await readSnapshot();
         if (epoch !== own) return;
         connected = true;
         await serial(async () => { if (epoch === own) await paintBase(); });
@@ -114,7 +126,7 @@ export function createTopicToolbarController({ catalog, discussion, alternateDis
         const projection = readDiscussion(await discussion(snapshot.topicId, { signal }), snapshot.topicId);
         if (epoch !== own) return;
         if (projection.version.generation !== value.version.generation || projection.version.revision !== value.version.revision) {
-          value = readCatalog(await catalog({ signal }));
+          value = await readSnapshot();
           if (epoch !== own) return;
           if (projection.version.generation !== value.version.generation || projection.version.revision !== value.version.revision) throw new Error("incoherent-read");
           if (!hasCurrentTopic(snapshot, value)) return;

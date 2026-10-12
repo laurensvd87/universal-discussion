@@ -1,5 +1,18 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Scoped canonical reads (0.13.52)
+
+The panel, background matching and toolbar use cheap version/exact context reads
+instead of downloading the whole catalog. Existing Source/Topic, document,
+account and posting checks remain. Initial 100-item catalogs are read windows,
+not storage ceilings. Discover's relevance/reply tie-break is server-owned.
+
+The matching backend/storage changes are tested but the owner's database has not
+been converted or service restarted. **Wait to reload this version until the
+approved backend cutover.** Backup/recovery choice is still required; no pairing,
+ChatGPT login, private data or posts are reset. See
+[ADR-098](../../../decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md).
+
 ## Murmingle brand (0.13.51)
 
 The extension is now presented as **Murmingle**, with **Where conversations

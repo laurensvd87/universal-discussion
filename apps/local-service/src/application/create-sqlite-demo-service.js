@@ -1,16 +1,30 @@
 import { createDiscussionService } from "./discussion-service.js";
 import { createDemoState } from "../domain/demo-state.js";
 import { createSqliteRepository } from "../adapters/sqlite-repository.js";
+import { createNormalizedSqliteRepository } from "../adapters/normalized-sqlite-repository.js";
+import { DatabaseSync } from "node:sqlite";
+import { existsSync } from "node:fs";
 import { createFixtureRankingAdapter } from "../adapters/fixture-ranking.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../adapters/fixture-catalog.js";
 import { createPublicDiscoveryIndex } from "../discovery/public-index.js";
 
-export function createSqliteDemoService({ databasePath, nextId, now, repositoryOptions,
+export function createSqliteDemoService({ databasePath, nextId, now, repositoryOptions, storageMode = "auto",
   alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
   resolveAccountActor = null, readAccountActors = () => [],
   discoveryDatabasePath = databasePath === ":memory:" ? ":memory:" : `${databasePath}.discovery.sqlite` }) {
   const initialState = createDemoState({ generation: nextId("generation"), createdAt: now(), sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
-  const repository = createSqliteRepository(databasePath, initialState, repositoryOptions);
+  if (!["auto", "legacy", "normalized"].includes(storageMode)) throw new TypeError("Invalid canonical storage mode");
+  // Existing owner databases never migrate as a side effect of startup. Auto
+  // dispatch only opens an already-committed format; explicit conversion is a
+  // separate reviewed/offline operation. New legacy fixtures remain compatible.
+  let normalized = storageMode === "normalized";
+  if (storageMode === "auto" && databasePath !== ":memory:" && existsSync(databasePath)) {
+    const inspection = new DatabaseSync(databasePath, { readOnly: true });
+    try { normalized = Boolean(inspection.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='canonical_meta'").get()); }
+    finally { inspection.close(); }
+  }
+  const repository = normalized ? createNormalizedSqliteRepository(databasePath, initialState, repositoryOptions)
+    : createSqliteRepository(databasePath, initialState, repositoryOptions);
   let discover;
   try {
     const service = createDiscussionService({

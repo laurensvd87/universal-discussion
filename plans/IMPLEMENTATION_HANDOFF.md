@@ -1,5 +1,47 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 normalized canonical storage/Discover ranking is implemented and
+verified, extension 0.13.52. Read ADR-098 and top STATUS first. The owner database
+and running service were **not** converted/restarted. Next step is the explicit
+real-data recovery/outage gate in
+`apps/local-service/experiments/topic-cloud/sqlite/MIGRATION_RECOVERY_PLAN.md`:
+ask whether a protected temporary local backup may exist, its destination,
+retention/restore/deletion rules, or whether no duplicate is desired with only
+pre-commit rollback. Do not infer backup/export permission from code/Git approval.
+Never auto-migrate `data/demo.sqlite`, reset credentials, downgrade v3 or claim
+0.13.52 is already active. Reload it only with the matching restarted backend.
+
+Trusted factory `storageMode:"normalized"` creates synthetic relational storage;
+legacy conversion additionally requires `repositoryOptions.allowLegacyMigration:true`.
+Default auto keeps legacy files and opens already normalized files. Atomic lossless
+v2/v3 import preserves version/IDs/stamps/revisions/lineage/ownership and drops the
+old blob only after full reverse verification; old binaries fail closed afterward.
+Metadata/Topic/thread/owner scopes and changed-row writes preserve global CAS,
+closure and exact generated-message proof. Private/account stores remain separate.
+Do not weaken full-body target checks to paged snippets or add thread history.
+
+New paired GET `/v1/version` and POST `/v1/catalog/context`, `/v1/catalog/page`,
+`/v1/discussions/page` are public bounded read contracts. Initial 100-item windows
+are not storage ceilings. Flat contribution pages retain off-page parent IDs,
+not complete-thread/write authority. Exact historical/alternate metadata batches
+stay version-bound. Discover uses best-document BM25 then visible reply ties;
+literal-token search, no private/withdrawn count, recent-first blank browse.
+Normalized projection updates reconcile affected Topics; mismatches fail closed.
+
+Standalone dashboard reads legacy v2/v3 and normalized metadata with the genuine
+read-only adapter (`readCatalogSnapshot`, contributions empty); no journal change,
+initialization, migration or loaded contribution bodies. Safe DTOs and the
+1,000-page visual guard remain; that is not a canonical storage limit.
+
+Final restricted evidence: 587 backend passes/four skips, 1,328 browser passes,
+14 dashboard passes and separately reviewed read-only storage/dashboard checks,
+independent Trust, synthetic scale/lifecycle/normalized account+AI/private composed
+checks, isolated Chrome interactions/layouts and zero-findings secret scans.
+The old aggregate limits are absent only in normalized storage. Global ingest,
+regroup, alternate projections and account erasure remain full-state; exact-vector
+scan and complete affected-Topic work remain. Full-thread UI pagination and
+PostgreSQL/current-client integration are later work, not completed hosted scale.
+
 2026-10-12 Murmingle branding is implemented in extension 0.13.51. The shared
 popup/side-panel header visibly reads **Murmingle** and **Where conversations
 meet.**; manifest name/action tooltip, document titles and toolbar statuses match.
@@ -7,9 +49,10 @@ Use `docs/BRAND_LANGUAGE.md` for future site/interface copy and ADR-097 for the
 decision boundary. Package names and provider-facing agent identity deliberately
 stay unchanged. Focused restricted browser checks pass 51/51; isolated Chromium
 community flows and 320/390/480px layouts pass without overflow, with root visual
-review at 320px. Secret scan and diff whitespace pass. Do not claim the current
-shared worktree's full restricted suite: unrelated in-progress normalized-storage/
-background-matching changes fail it. Reload the unpacked extension only; no
+review at 320px. Secret scan and diff whitespace pass. At this branding checkpoint
+the full shared suite was not claimed because normalized-storage/background edits
+were still in progress; completed verification is recorded above. That branding
+change alone needed a reload only; no
 backend restart, data migration, permission or authority change.
 
 2026-10-11 private assistant validation fix is verified in extension 0.13.50.

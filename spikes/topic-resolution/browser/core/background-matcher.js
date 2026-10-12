@@ -67,7 +67,8 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
         if (alive(own)) { lastIngest = null; publish({ phase: "not-enabled" }); } return;
       }
       if (!await isPaired()) { if (alive(own)) { lastIngest = null; publish({ phase: "unpaired" }); } return; }
-      const catalog = await client.catalog({ signal });
+      const versionOnly = typeof client.version === "function";
+      const catalog = await (versionOnly ? client.version({ signal }) : client.catalog({ signal }));
       if (!await authorized(tab, own, preferences.sessionRevision)) { if (alive(own)) lastIngest = null; return; }
       publish({ phase: "processing", reason: "reading" });
       let capture = await reader.read(tab.tabId, tab.sourceUrl, tab.url);
@@ -91,7 +92,7 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
       publish({ reason: "matching" });
       const source = catalog.sources?.find((item) => item.id === lastIngest?.sourceId);
       if (lastIngest && sameVersion(catalog.version, lastIngest.version) &&
-          source?.url === tab.sourceUrl && source.topicId === lastIngest.topicId &&
+          (versionOnly || (source?.url === tab.sourceUrl && source.topicId === lastIngest.topicId)) &&
           lastIngest.documentId === documentId && lastIngest.title === title &&
           lastIngest.extractorVersion === extractorVersion && sameEmbedding(lastIngest.embedding, embedding)) {
         publish({ phase: "ready", reason: null, sourceId: lastIngest.sourceId,

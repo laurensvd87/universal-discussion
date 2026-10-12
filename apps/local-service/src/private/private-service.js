@@ -166,7 +166,8 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
       id(body.operationId); id(body.sourceId); text(body.body);
       const replay = receipt(actorId, body.operationId, body);
       if (replay) return replay;
-      const source = publicService.catalog().sources.find(entry => entry.id === body.sourceId);
+      const source = typeof publicService.exactSource === "function" ? publicService.exactSource(body.sourceId)
+        : publicService.catalog().sources.find(entry => entry.id === body.sourceId);
       const inspected = inspectPageUrl(body.sourceUrl);
       if (!source || source.url !== body.sourceUrl || !inspected.supported || inspected.url !== body.sourceUrl ||
           !body.sourceUrl.startsWith("https://")) fail("forbidden", "Source unavailable");

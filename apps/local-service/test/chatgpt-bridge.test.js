@@ -78,7 +78,7 @@ test("bridge backfills from visible candidates after the first choice is exclude
   const catalog = { ...original, sources: [...original.sources.map((source) =>
     source.id === sourceId ? { ...source, url: "https://maker.example/independent-astronomy-study",
       title: "Independent astronomy study" } : source), ...added] };
-  const service = { ...base, catalog: () => catalog };
+  const service = { ...base, catalog: () => catalog, catalogContext: () => catalog };
   const projection = { catalog, discussion: service.discussion(topicId),
     related: service.related(sourceId, 20), sourceId, topicId };
   const local = buildInsightContext({ ...projection, sourceLimit: 21 });
@@ -126,7 +126,7 @@ test("excluding all twenty visible choices never surfaces an unseen twenty-first
     url: `https://maker.example/more-public-${index + 1}`,
     title: `More public source ${index + 1}` }));
   const catalog = { ...original, sources: [...original.sources, ...added] };
-  const service = { ...base, catalog: () => catalog };
+  const service = { ...base, catalog: () => catalog, catalogContext: () => catalog };
   const projection = { catalog, discussion: service.discussion(topicId),
     related: service.related(sourceId, 20), sourceId, topicId };
   const local = buildInsightContext({ ...projection, sourceLimit: 21 });

@@ -13,14 +13,22 @@ future website copy.
 
 ## Current state
 
-Extension **0.13.51** introduces the **Murmingle** name and the header line
-**Where conversations meet.** It includes **Private chats** and **Discover**. Reload it under
-`chrome://extensions`; the local backend has already been restarted without
-resetting pairing, login or discussions.
+Extension **0.13.52** keeps the **Murmingle** name and **Where conversations
+meet.** It includes **Private chats** and **Discover**. The latest backend adds
+normalized canonical SQLite storage and Discover ranking by best textual match,
+then visible replies when relevance ties. Scoped reads/posts no longer load or
+rewrite the entire canonical snapshot; byte-bounded catalog/discussion pages are
+available. The normalized adapter has no 8 MiB aggregate or 1,000-post ceiling.
+The standalone dashboard supports both storage formats without changing data.
+
+**Activation is pending:** your existing database and running service remain
+unchanged. Real conversion needs your recovery/backup choice first. Wait to
+reload 0.13.52 until the matching backend is restarted at that cutover. See
+[ADR-098](decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md).
 
 The latest client fixes an Insight page-text validation mismatch involving
 invisible language-formatting marks and gives private failures useful, safe error
-messages. No backend restart is needed. A previously failed request is not
+messages. That earlier client-only fix needed no backend restart. A previously failed request is not
 replayed: keep its original public page open and use a fresh private message/
 sparkle attempt. Offline composition and browser checks pass; live private
 ChatGPT quality has not been retested.
@@ -42,8 +50,10 @@ the selected message/AI parent plus bounded public-page context—not full histo
 The public-profile restriction still applies. See
 [ADR-096](decisions/ADR-096-private-conversations-and-indexed-discovery.md).
 Search uses SQLite FTS5 and bounded pagination, tested with 12,000 synthetic
-topics. The existing canonical storage limit remains; large hosted ingestion
-still needs normalized storage. No remote hosting or store release is activated.
+topics. Legacy storage keeps its old limits until the approved conversion.
+Global matching/regrouping and fully paginated thread UI still need further work;
+larger local persistence is not proof of high-throughput hosted ingestion.
+No remote hosting or store release is activated.
 
 Extension **0.13.48** automatically removes common session/tracking parameters
 from eligible public-page links before matching, storing or using them in

@@ -54,6 +54,15 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   let preparingLearned = false;
   let alternateRequest = 0;
   let activeContext = null;
+  async function readCatalogContext(sourceId, topicId, options) {
+    const catalog = await (typeof client.catalogContext === "function"
+      ? client.catalogContext({ sourceId, topicId }, options) : client.catalog(options));
+    const previous = state.catalog?.version;
+    if (previous && catalog.version.generation === previous.generation && catalog.version.revision < previous.revision) {
+      throw Object.assign(new Error("Stale catalog context"), { code: "conflict" });
+    }
+    return catalog;
+  }
   function postingActor(catalog) {
     const selected = readPostingActor();
     if (selected !== undefined) return catalog.actors.some(actor => actor.id === selected) ? selected : null;
@@ -237,7 +246,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (stillCurrent()) publish({ earlierDiscussions: [...earlierDiscussions] });
     }
   }
-  async function loadSelection(ownEpoch) {
+  async function loadSelection(ownEpoch, refreshCatalog = false) {
     const topicId = state.topicId;
     const sourceId = state.sourceId;
     if (!topicId && !sourceId) { publish({ phase: "choose-topic" }); return; }
@@ -253,6 +262,19 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         }
       }
       let catalog = state.catalog;
+      if (refreshCatalog && typeof client.catalogContext === "function") {
+        catalog = await readCatalogContext(sourceId, topicId, options);
+        if (ownEpoch !== epoch || disposed) return;
+        const source = catalog.sources.find(entry => entry.id === sourceId);
+        if ((sourceId && (!source || source.topicId !== topicId)) ||
+            (topicId && !catalog.topics.some(entry => entry.id === topicId))) {
+          detach();
+          publish({ catalog, actorId: postingActor(catalog), sourceId: null, topicId: null,
+            phase: "choose-topic", error: "context-changed" });
+          return;
+        }
+        publish({ catalog, actorId: postingActor(catalog) });
+      }
       let [discussion, related, prior] = await Promise.all([
         topicId ? client.discussion(topicId, options) : null, sourceId ? client.related(sourceId, 20, options) : null,
         sourceId ? readPrior() : null,
@@ -271,7 +293,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         // mismatch stays unavailable instead of presenting mismatched Topics.
         try {
           const [freshCatalog, freshDiscussion, freshRelated, freshPrior] = await Promise.all([
-            client.catalog(options), topicId ? client.discussion(topicId, options) : null,
+            readCatalogContext(sourceId, topicId, options), topicId ? client.discussion(topicId, options) : null,
             client.related(sourceId, 20, options), readPrior(),
           ]);
           if (ownEpoch !== epoch || disposed) return;
@@ -332,9 +354,12 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (ownEpoch !== epoch || disposed || ownManual !== manualSelection) return;
       if (!sameActiveTabObservation(observation, final)) { invalidate(); return; }
       const sourceId = localServiceSourceId(view);
-      const source = state.catalog?.sources.find((entry) => entry.id === sourceId);
+      const catalog = typeof client.catalogContext === "function"
+        ? await readCatalogContext(sourceId, null, { signal: abort.signal }) : state.catalog;
+      if (ownEpoch !== epoch || disposed || ownManual !== manualSelection) return;
+      const source = catalog?.sources.find((entry) => entry.id === sourceId);
       if (!source?.topicId) return;
-      publish({ sourceId, topicId: source.topicId, selection: "automatic" });
+      publish({ catalog, actorId: postingActor(catalog), sourceId, topicId: source.topicId, selection: "automatic" });
       await loadSelection(ownEpoch);
     } catch { /* Unsupported contexts offer manual selection; no observed data leaves this module. */ }
   }
@@ -345,7 +370,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   async function applyReadyResolution(resolution, ownEpoch, ownManual) {
     if (!isReadyPageResolution(resolution) || ownEpoch !== epoch || disposed || ownManual !== manualSelection || state.selection === "manual") return;
-    const catalog = await client.catalog({ signal: abort.signal });
+    const catalog = await readCatalogContext(resolution.sourceId, resolution.topicId, { signal: abort.signal });
     if (ownEpoch !== epoch || disposed || ownManual !== manualSelection || state.selection === "manual") return;
     const current = await freshResolution();
     if (ownEpoch !== epoch || disposed || !samePageResolution(resolution, current) || !isReadyPageResolution(current)) return;
@@ -423,7 +448,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         return;
       }
       await client.health({ signal: abort.signal });
-      const catalog = await client.catalog({ signal: abort.signal });
+      const catalog = await readCatalogContext(state.sourceId, state.topicId, { signal: abort.signal });
       if (ownEpoch !== epoch || disposed) return;
       const actorId = postingActor(catalog);
       if (state.selection === "manual" && state.sourceId) {
@@ -477,7 +502,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     manualSelection += 1; cancel(); detach();
     publish({ topicId, sourceId: null, selection: "manual", viewingPriorDiscussion,
       discussion: null, related: null, priorDiscussions: null, priorDiscussionsError: null });
-    await loadSelection(epoch);
+    await loadSelection(epoch, true);
   }
   async function selectActor(actorId) {
     if (readPostingActor() !== undefined) return;
@@ -492,7 +517,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     manualSelection += 1; cancel(); detach();
     publish({ sourceId, topicId: source.topicId, selection: "manual", viewingPriorDiscussion: false,
       discussion: null, related: null, priorDiscussions: null, priorDiscussionsError: null });
-    await loadSelection(epoch);
+    await loadSelection(epoch, true);
   }
   function setDraft(body) {
     const selectedDiscussionLoading = state.phase === "loading" && state.catalog?.sources.some((source) =>
@@ -552,7 +577,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         if (!pausePageMatching) return false;
         preparingLearned = true;
         await pausePageMatching();
-        const catalog = await client.catalog({ signal: abort.signal });
+        const catalog = await readCatalogContext(state.sourceId, state.topicId, { signal: abort.signal });
         if (ownEpoch !== epoch || disposed) return false;
         expected = catalog.version;
       } else if (state.selection === "background") {
@@ -714,7 +739,9 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   function createTopic(title, kind) { return mutate({ type: "create-topic", title, kind }); }
   function reset(confirmation) {
     if (confirmation !== "RESET DEMO STATE") return Promise.resolve(false);
-    return mutate({}, { reset: true, learned: state.catalog?.sources.some((source) => source.provenance === "owner-local-page-embedding/v1") === true });
+    // A bounded catalog cannot prove the absence of learned Sources elsewhere.
+    return mutate({}, { reset: true, learned: typeof client.catalogContext === "function" ||
+      state.catalog?.sources.some((source) => source.provenance === "owner-local-page-embedding/v1") === true });
   }
   function learnedSource() { return state.catalog?.sources.find((entry) => entry.id === state.sourceId && entry.provenance === "owner-local-page-embedding/v1"); }
   function correctSource(topicId, confirmation) {

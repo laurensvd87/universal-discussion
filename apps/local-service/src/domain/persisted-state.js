@@ -10,15 +10,15 @@ const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
 const ACTORS = new Set(["demo-alex", "demo-blair"]);
 const UNSAFE_TEXT = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 
-export function assertValidPersistedState(state) {
-  return assertState(state, false);
+export function assertValidPersistedState(state, { largeScale = false } = {}) {
+  return assertState(state, false, largeScale);
 }
 
 export function assertValidLegacyPersistedState(state) {
   return assertState(state, true);
 }
 
-function assertState(state, legacy) {
+function assertState(state, legacy, largeScale = false) {
   record(state, ["schema", "generation", "revision", "topics", "discussions", "contributions", "sources", "sourceLinks"]);
   const accountState = !legacy && state.schema === ACCOUNT_STATE_SCHEMA;
   if (!(state.schema === (legacy ? "demo-state/v1" : STATE_SCHEMA) || accountState) || !integer(state.revision, 0)) invalid();
@@ -26,7 +26,9 @@ function assertState(state, legacy) {
   text(state.generation, 128);
   array(state.topics);
   array(state.discussions);
-  array(state.contributions, LIMITS.contributions);
+  // Normalized storage bounds individual records and API pages, not the whole
+  // retained catalog. Legacy snapshot readers keep their original ceiling.
+  array(state.contributions, largeScale ? Infinity : LIMITS.contributions);
   array(state.sources);
   array(state.sourceLinks);
 
@@ -44,6 +46,7 @@ function assertState(state, legacy) {
     return discussion.id;
   });
   if (discussionIds.size !== topicIds.size || new Set(state.discussions.map((entry) => entry.topicId)).size !== topicIds.size) invalid();
+  const discussionsById = new Map(state.discussions.map(entry => [entry.id, entry]));
 
   const sourceIds = unique(state.sources, (source) => {
     const learned = source.provenance === LEARNED_SOURCE_PROVENANCE;
@@ -62,15 +65,17 @@ function assertState(state, legacy) {
     }
     return source.id;
   });
+  const sourcesById = new Map(state.sources.map(entry => [entry.id, entry]));
   const linkedSources = new Set();
   for (const link of state.sourceLinks) {
     record(link, ["sourceId", "topicId", "method"]);
     text(link.sourceId, 128); text(link.topicId, 128); text(link.method, 64);
     if (!sourceIds.has(link.sourceId) || !topicIds.has(link.topicId) || linkedSources.has(link.sourceId)) invalid();
-    const source = state.sources.find((item) => item.id === link.sourceId);
+    const source = sourcesById.get(link.sourceId);
     if (source.provenance === LEARNED_SOURCE_PROVENANCE && !["learned-provisional", "manual-confirmed"].includes(link.method)) invalid();
     linkedSources.add(link.sourceId);
   }
+  const linksBySource = new Map(state.sourceLinks.map(entry => [entry.sourceId, entry]));
   if (state.sources.some((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && !linkedSources.has(source.id))) invalid();
 
   const contributionIds = unique(state.contributions, (contribution) => {
@@ -103,17 +108,17 @@ function assertState(state, legacy) {
         text(contribution.originalTopicId, 128);
         if (typeof contribution.learnedOrigin !== "boolean") invalid();
         const anchor = contribution.anchor;
-        const currentTopic = state.discussions.find((entry) => entry.id === contribution.discussionId)?.topicId;
+        const currentTopic = discussionsById.get(contribution.discussionId)?.topicId;
         if (anchor?.kind === "topic") {
           record(anchor, ["kind", "topicId"]); text(anchor.topicId, 128);
           if (anchor.topicId !== currentTopic) invalid();
         } else if (anchor?.kind === "source") {
           record(anchor, ["kind", "sourceId", "stamp"]); text(anchor.sourceId, 128);
-          const source = state.sources.find((entry) => entry.id === anchor.sourceId);
+          const source = sourcesById.get(anchor.sourceId);
           if (contribution.withdrawn || contribution.originSourceId !== anchor.sourceId || !source ||
               contribution.learnedOrigin !== (source.provenance === LEARNED_SOURCE_PROVENANCE) ||
               !/^[a-f0-9]{64}$/u.test(anchor.stamp) || anchor.stamp !== sourceStamp(source) ||
-              state.sourceLinks.find((entry) => entry.sourceId === source.id)?.topicId !== currentTopic) invalid();
+              linksBySource.get(source.id)?.topicId !== currentTopic) invalid();
         } else invalid();
       }
     }
@@ -142,21 +147,25 @@ function assertState(state, legacy) {
       if (!contributionIds.has(contribution.replyToId)) invalid();
       const target = contributionsById.get(contribution.replyToId);
       if (target.discussionId !== contribution.discussionId || (target.rootId ?? target.id) !== root.id) invalid();
-      // Command-time targets already exist, but a persisted state must also
-      // reject cycles introduced by corruption or a malformed import.
-      const ancestors = new Set([contribution.id]);
-      let ancestor = target;
-      while (ancestor !== null) {
-        if (ancestors.has(ancestor.id)) invalid();
-        ancestors.add(ancestor.id);
-        ancestor = ancestor.replyToId === null ? null : contributionsById.get(ancestor.replyToId);
-        if (ancestor === undefined) invalid();
-      }
     }
     // Generated replies may address any canonical message in this thread.
     // The existence, discussion, root ancestry and cycle checks above apply
     // equally to human and generated replies, including older withdrawn targets.
     if (contribution.actorType === "agent" && !contribution.withdrawn && contribution.replyToId === null) invalid();
+  }
+  // Every edge was checked above. Memoize finished ancestor chains so deeply
+  // nested discussions remain linear to validate, while cycles still fail.
+  const finished = new Set();
+  for (const contribution of state.contributions) {
+    const chain = new Set();
+    let ancestor = contribution;
+    while (ancestor && !finished.has(ancestor.id)) {
+      if (chain.has(ancestor.id)) invalid();
+      chain.add(ancestor.id);
+      ancestor = ancestor.replyToId === null ? null : contributionsById.get(ancestor.replyToId);
+      if (ancestor === undefined) invalid();
+    }
+    for (const id of chain) finished.add(id);
   }
   return state;
 }
