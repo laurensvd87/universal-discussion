@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 crawler response-timeout now diagnosed, no runtime correction yet.
+Owner run736 ingested/12840 queued/five staged; canonical revision1564/933 learned.
+One staged candidate has exact operation+digest committed receipt. Transport
+checks five-second absolute expiry AFTER synchronous service.ingest/save and can
+replace accepted200 with408. Synthetic controlled-clock6s replay reproduces it;
+read-only independent review agrees. CPU planner budget10s exceeds transport5s.
+Exact live slow phase unmeasured. No owner write, provider call, restart or crawl.
+Ask owner before ingestion-only authenticated30s socket/response lease+matching
+crawler deadline. Preserve raw ingress/unauth/other5s, CPU10s/all authority and
+byte/generation limits/no added retry. Model-only ADR-104 approval is not ingest
+approval. Do not add blanket408 retry: current operation receipt may disappear
+after overwrite/forget, and408 can occur after commit. Next manual run reconciles
+known URLs into existing, without fixing the deadline. Leave ledger/data intact.
+
 2026-10-12 ADR-105 catalog growth checked; reboot preserves all recorded state.
 Normal service startup/minute sampler writes only derived aggregate history in
 data/topic-growth.sqlite,24h minute/older hourly90d/max4096. Canonical active Topic

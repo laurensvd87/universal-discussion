@@ -1,5 +1,28 @@
 # Project status
 
+**2026-10-12 crawler HTTP408 diagnosis, correction not yet authorized:**
+Owner's new Apply run stops response-timeout after one confirmed ingestion;
+ledger736 ingested/12840 queued/five staged. Read-only canonical inspection finds
+revision1564/933 learned pages and one staged candidate with exact matching
+operation ID AND representation digest already committed. No URL/title/vector
+or credential is exported. This confirms an accepted write without successful
+response reconciliation, not a failed fetch or an empty frontier.
+Transport's five-second absolute deadline also covers synchronous canonical
+ingestion. After handler returns, it replaces even an accepted200 with408 when
+the clock expired. Controlled-clock six-second synthetic replay reproduces
+committed=true/408/success-body-not-delivered; independent read-only review agrees.
+Planner CPU budget is ten seconds, longer than the five-second response window.
+Exact live phase duration/CPU-vs-disk cause remains unmeasured, but the response
+deadline failure and committed pending operation are now evidenced.
+No runtime edit/restart/crawl/ingest/provider call. Proposed owner gate: bounded
+authenticated ingestion-only absolute30s response/socket lease plus matching
+crawler deadline, retaining raw ingress/unauthenticated/other routes5s, CPU10s,
+all authority/byte/generation guards and no added retry. ADR-104 approved only
+model-list lease, so do not broaden it without approval. Blanket408 retry is not
+safe merely because it is complete: post-commit uncertainty and later Source
+overwrite/forget can invalidate current operation receipts. Manual next-run
+known-URL reconciliation preserves data but does not fix the transport mismatch.
+
 **2026-10-12 catalog growth and reboot recovery (ADR-105):**
 Owner requests backend page/Topic history plus Topics(y) over pages(x). The normal
 service records startup/minute aggregate samples in ignored topic-growth.sqlite;
