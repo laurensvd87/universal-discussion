@@ -67,10 +67,15 @@ Actual isolated-browser EUIPO, USPTO, WIPO and aggregate TMview searches return
 no exact Murmingle record. TMview fuzzy/WIPO phonetic results are recorded,
 alongside relevant registered MURMUR/MINGLE component marks and current-status
 corrections. This is preliminary screening, not legal clearance or launch approval.
-Direct UKIPO querying remains incomplete behind its security challenge. Automatic
-approval review rejected sending the local logo to TMview without explicit upload
-permission; no upload or workaround occurred. Image similarity screening remains
-pending that permission. The dated report is
+Direct UKIPO querying remains incomplete behind its security challenge. Following
+explicit owner upload permission, TMview/WIPO image searches accepted the approved
+128px icon. TMview's first 90 of 629 scoped records were inspected, with unavailable
+images excluded from visual negatives; WIPO's five rendered scoped shape
+records were reviewed, not its full ranked inventory. NetSeed's figurative mark
+is flagged: EU 018950827 and US 98284569 current registrations independently verified,
+UK00003980178 aggregate status only. Monochrome comparison shows materially
+different silhouettes, not legal non-confusion. Broader figurative/common-law
+and professional assessment remain; no redesign was inferred. The dated report is
 `research/MURMINGLE_TRADEMARK_SCREENING_2026-10-12.md`; the brand guide links it.
 No app/service/data/permission change, provider inference or trademark filing.
 

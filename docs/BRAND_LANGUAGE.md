@@ -87,5 +87,7 @@ interface copy.
 
 The [12 October 2026 preliminary trademark screen](../research/MURMINGLE_TRADEMARK_SCREENING_2026-10-12.md)
 records actual EU/US/international exact-name negatives and related marks for
-assessment. Direct UKIPO and registry image-similarity checks remain incomplete;
-the brand is not legally cleared by that screening.
+assessment. Authorized TMview/WIPO image searches are recorded, with NetSeed's
+figurative mark flagged for professional comparison. Direct UKIPO verification
+and broader clearance remain incomplete; neither name nor logo is legally
+cleared by that screening.

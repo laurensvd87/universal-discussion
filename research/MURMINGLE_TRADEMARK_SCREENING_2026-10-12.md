@@ -1,14 +1,17 @@
 # Preliminary trademark screening for Murmingle
 
 Date: 12 October 2026. Requested markets: European Union, United Kingdom and
-United States. Live register checks ran between 10:52 and 11:12 CEST
-(08:52–09:12 UTC).
+United States. Name checks ran between 10:52 and 11:12 CEST
+(08:52–09:12 UTC); authorized logo checks followed from 11:23 CEST.
 
 No exact **Murmingle** record appeared in the completed EUIPO, USPTO, WIPO or
 TMview searches. This supports retaining the name for further assessment, but
 does not establish legal clearance. Relevant registered **MURMUR** and
 **MINGLE** component marks cover software, forums or social networking. The
-UKIPO direct search and registered-logo similarity search remain incomplete.
+UKIPO direct search remains incomplete. Completed logo searches identified
+NetSeed's figurative mark as a comparison candidate in all three markets;
+its EU and US registrations were independently verified. The symbols differ,
+but their shared two-form composition and software coverage merit assessment.
 
 This is a preliminary factual screen, not a legal opinion, registration,
 permission to launch, or assurance against infringement. No app behavior,
@@ -132,11 +135,82 @@ established exact copy of the approved filled Shared space logo. Sharing a
 general motif does not establish infringement, and this web check cannot clear
 the logo against registered figurative marks.
 
-The attempted TMview image-search upload of the approved 128px PNG was rejected
-by automatic approval review because explicit authorization to send the local
-logo to that third-party service was missing. **No upload occurred.** Registry
-image similarity searching remains pending approval; no search result is
-inferred from that blocked action. No upload through an alternate route was used.
+The owner subsequently explicitly authorized sending the approved logo to
+TMview and WIPO solely for image-similarity searches. Both accepted the existing
+128px extension PNG, including its dark rounded-square background. No name
+restriction was combined with the image searches. The earlier rejected upload
+did not send a file; these completed searches followed the new permission.
+
+### Registered logo image searches
+
+TMview's EUIPO Image Search returned 988 candidates globally. Filtering through
+the portal to classes 9/38/42/45 and EUIPO, UKIPO, USPTO, participating EU national
+offices/Benelux, and WIPO returned **629** at 09:27:53 UTC. All statuses remained
+included. The first **90** result records were inspected over three pages;
+available thumbnails were compared visually. Numerous US/UK thumbnails were
+missing and are not visual negatives. Madrid records were not filtered by
+designation, so inclusion alone does not establish rights in a requested market.
+Neither the 629 count nor ranking is a legal-confusion score.
+
+The full-image crop was 0–128 in both dimensions, with colour and OCR options
+off. The returned office filter was
+`EM,GB,US,WO,BX,CY,CZ,DE,DK,ES,FI,FR,LT,MT,PL,PT,RO,SE,SK`.
+[TMview image-search snapshot](https://www.tmdn.org/tmview/#/tmview/results?page=1&pageSize=30&criteria=C&imageId=8877132&imageName=092315588-12102026.png&segmentLeft=0&segmentRight=128&segmentTop=0&segmentBottom=128&colour=false&ocr=false&fOffices=EM,GB,US,WO,BX,CY,CZ,DE,DK,ES,FI,FR,LT,MT,PL,PT,RO,SE,SK&fNiceClass=9,38,42,45).
+The uploaded-image reference may expire; this is not a permanently reproducible
+database negative.
+
+WIPO completed both conceptual and shape searches with the same asset. Global
+conceptual ranking displayed 4,949,087 at 09:25:52 UTC, with the initial 60
+summaries inspected; global shape ranking displayed 36,192,332 at 09:29:55 UTC,
+with five rendered records inspected. These are not near-match counts. The
+scoped shape search at 09:41:07 UTC selected offices US/GB/EM/WO and classes
+9/38/42/45. Its displayed 1,773,678 results represent a broadly ranked inventory,
+not that many near-identical marks. Although the interface labelled the page
+1–60, only five records rendered for inspection; no review of the other 55 is
+claimed. Its first result was Unity Studios ApS, EUTM 018253506, displayed as
+registered in classes 9/38/42: two open chain-like loops, visually distinct from
+Murmingle's filled speech shapes and lens-shaped opening. Its opened WIPO record
+includes social/interactive software, online communications and software
+development/rental, so the services overlap even though the artwork differs.
+Its current status/specification are WIPO aggregate observations, not independent
+EUIPO verification. This limited WIPO review supplements TMview; it is not an
+exhaustive image clearance.
+[WIPO image-search service](https://www.wipo.int/en/web/global-brand-database),
+[Unity Studios WIPO detail](https://branddb.wipo.int/en/similarlogo/brand/EM500000018253506),
+[Unity Studios EU record](https://euipo.europa.eu/eSearch/#details/trademarks/018253506).
+
+### Figurative comparison candidates
+
+**NetSeed Limited's symbol is the most useful follow-up candidate from the
+reviewed TMview results.** The UK thumbnail shows two opposing rounded bands
+with an open wavy channel between them. Current EU and US originating-register
+images were also inspected, including a monochrome side-by-side comparison with
+Murmingle's unchanged SVG geometry.
+
+| Territory | Record and status | Relevant specification |
+| --- | --- | --- |
+| EU | Figurative EUTM **018950827**; NetSeed Limited; registered 25 April 2024; expiry 14 November 2033. Current eSearch details verified. | Classes 9/42. Includes broadly worded software, downloadable applications, software design, hosting and SaaS/PaaS, alongside cryptocurrency/security services. It cannot be dismissed as exclusively a cryptocurrency mark. [EUIPO record](https://euipo.europa.eu/eSearch/#details/trademarks/018950827). |
+| US | Stylized **S**, serial **98284569**, registration **7710032**; NetSeed Limited; LIVE/REGISTERED, registered 4 March 2025. Current USPTO details verified. | Classes 9/42. Downloadable cryptocurrency/wallet software, plus storage, programming and security-related services. Colour is not claimed, so recolouring alone should not be treated as a solution. [USPTO record](https://tmsearch.uspto.gov/search/search-results/98284569). |
+| UK | Figurative **UK00003980178**; NetSeed Limited; classes 9/42, registered according to TMview. | Originating UKIPO detail access also encountered its security check; current full UK goods/status still require direct verification. [UKIPO record](https://trademarks.ipo.gov.uk/ipo-tmcase/page/Results/1/UK00003980178). |
+
+The complete silhouettes are materially different: Murmingle consists of
+laterally overlapping rounded speech forms, an enclosed lens-shaped negative
+space, and upward/downward tails. NetSeed has vertically stacked wave-like bands
+forming an S, diagonal tapered ends and a wavy open channel. This is an observed
+visual distinction, not a legal finding of non-confusion. Do not treat the logo
+as cleared or automatically replace it solely on the basis of this candidate.
+
+Other reviewed motifs included Bluesona's opposing outlined rectangular
+chat/arrow forms (**UK00003400523**, class 42, registered in TMview), Digium's
+opposed outlined chat forms (**IR 1256758**, classes 9/42, expired in TMview),
+and Cargo School and Consulting's split rounded icon (**EUTM 018811155**).
+Cargo's current EU register confirms registration on 12 June 2024, classes 9/42,
+broad software plus image-processing software/services; its centre is a white
+disc with triangular controls rather than overlapping speech shapes.
+[Cargo EUIPO record](https://euipo.europa.eu/eSearch/#details/trademarks/018811155).
+These were not identical copies; expired status alone does not settle continuing
+marketplace rights. The dark app tile also returned many refresh/arrow symbols,
+so additional symbol-only and figurative-code searches remain useful.
 
 ## Remaining clearance work
 
@@ -145,10 +219,10 @@ inferred from that blocked action. No upload through an alternate route was used
    query was submitted or access control bypassed. TMview's aggregate exact-name
    negative is useful supplemental evidence, not a completed UKIPO search.
    [UKIPO entry point](https://trademarks.ipo.gov.uk/ipo-tmtext).
-2. With explicit permission, submit the approved logo to TMview/WIPO image
-   similarity search and inspect relevant figurative marks, including current
-   status, goods/services and territorial coverage. Upload is for searching,
-   not a trademark application or publication of a filing.
+2. Obtain professional comparison of the NetSeed figurative registrations and
+   verify its full UK record. Extend the bounded image review with symbol-only,
+   monochrome and relevant figurative/design-code searches, missing images and
+   territorial coverage. Completed uploads were searches, not applications.
 3. Assess the listed MURMUR/MINGLE marks against the whole Murmingle name and
    the actual intended specification, especially forum/social-network services.
 4. Complete material national/state registers and marketplace/unregistered-rights
