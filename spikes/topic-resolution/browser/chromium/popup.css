@@ -577,6 +577,7 @@ body[data-ui-mode="developer"] main { gap: 14px; }
 .action-panel, .fixture-panel, .result-card { border-color: var(--line); background: var(--surface); box-shadow: none; }
 .brand-lockup { display: grid; gap: 2px; min-width: 0; }
 .brand-name { color: var(--ink); font-size: 14px; font-weight: 760; letter-spacing: -.02em; }
+.brand-tagline { color: var(--ink-soft); font-size: 11px; line-height: 15px; }
 .connection-status { color: var(--ink-soft); font-size: 12px; line-height: 17px; }
 .connection-status[data-state="connected"] { color: #4b5d3d; }
 .connection-status[data-state="connected"]::before { background: #4f8659; }
@@ -1083,10 +1084,12 @@ body[data-ui-mode="user"] .popup-topbar {
 }
 body[data-ui-mode="user"] .brand-lockup { grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 0 8px; }
 body[data-ui-mode="user"] .brand-lockup::before {
-  content: ""; grid-row: 1 / span 2; width: 22px; height: 22px; background: #aeb5ff;
+  content: ""; grid-row: 1 / span 3; width: 22px; height: 22px; background: #aeb5ff;
   mask: url("icons/conversation.svg") center / contain no-repeat;
 }
+body[data-ui-mode="user"] :is(.brand-name, .brand-tagline, .connection-status) { grid-column: 2; min-width: 0; }
 body[data-ui-mode="user"] .brand-name { font-size: 16px; font-weight: 720; letter-spacing: -.02em; }
+body[data-ui-mode="user"] .brand-tagline { color: #d9d4e5; font-size: 11px; line-height: 14px; }
 body[data-ui-mode="user"] .connection-status { font-size: 11px; line-height: 15px; color: var(--ink-soft); }
 body[data-ui-mode="user"] .connection-status[data-state="connected"] { color: #9dd6ad; }
 body[data-ui-mode="user"] .app-settings-button { color: var(--ink-soft); border-radius: 9px; }
@@ -1294,7 +1297,9 @@ body[data-ui-mode="user"] #app-settings-view :is(h2, h3, strong) { color: var(--
 @media (max-width: 240px) {
   body[data-ui-mode="user"] .brand-lockup { grid-template-columns: minmax(0, 1fr); }
   body[data-ui-mode="user"] .brand-lockup::before { display: none; }
+  body[data-ui-mode="user"] :is(.brand-name, .brand-tagline, .connection-status) { grid-column: 1; }
   body[data-ui-mode="user"] .brand-name { font-size: 14px; overflow-wrap: anywhere; }
+  body[data-ui-mode="user"] .brand-tagline { overflow-wrap: anywhere; }
   body[data-ui-mode="user"] .connection-status { overflow-wrap: anywhere; }
   body[data-ui-mode="user"] #discussion-model-host { grid-template-columns: minmax(0, 1fr); }
   body[data-ui-mode="user"] #discussion-model-host #insight-model-status { grid-column: 1; }

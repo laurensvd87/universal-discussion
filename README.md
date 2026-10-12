@@ -1,14 +1,20 @@
-# Universal Discussion Layer
+# Murmingle
 
-A browser-first discussion app built around
+**Where conversations meet.**
+
+Murmingle is a browser-first discussion app built around
 `Content -> Semantic Topic -> Discussion`: different sources about the same
 underlying topic should lead to one conversation, with human and AI
 contributions clearly distinguished. The planned sequence is extension, readable
 web conversations, then Android and iOS; public hosting is not yet approved.
 
+See [the brand-language guide](docs/BRAND_LANGUAGE.md) for reusable product and
+future website copy.
+
 ## Current state
 
-Extension **0.13.50** includes **Private chats** and **Discover**. Reload it under
+Extension **0.13.51** introduces the **Murmingle** name and the header line
+**Where conversations meet.** It includes **Private chats** and **Discover**. Reload it under
 `chrome://extensions`; the local backend has already been restarted without
 resetting pairing, login or discussions.
 

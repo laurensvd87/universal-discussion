@@ -124,8 +124,8 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   assert.deepEqual(manifest, {
     manifest_version: 3,
-    name: "Universal Discussion - Local PoC",
-    version: "0.13.50",
+    name: "Murmingle - Local PoC",
+    version: "0.13.51",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -133,7 +133,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     host_permissions: ["http://127.0.0.1/*"],
     optional_host_permissions: ["https://*/*"],
     background: { service_worker: "chromium/background.js", type: "module" },
-    action: { default_title: "Open Universal Discussion" },
+    action: { default_title: "Open Murmingle" },
     side_panel: { default_path: "chromium/sidepanel.html" },
     content_security_policy: {
       extension_pages: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174 https:; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';",

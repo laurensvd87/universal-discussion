@@ -26,7 +26,10 @@ test("actual icon images contain all toolbar colors at both scales", () => {
 
 test("painter sets localized title and actual imageData only on intended tab", async () => {
   assert.equal(typeof EN.toolbarDisconnected, "string"); assert.equal(typeof EN.toolbarPosts, "string");
-  assert.equal(EN.toolbarMatchingOff, "Universal Discussion — matching off. Open the popup and choose Resume matching.");
+  assert.equal(EN.toolbarMatchingOff, "Murmingle — matching off. Open the panel and choose Resume matching.");
+  for (const key of ["toolbarDisconnected", "toolbarConnected", "toolbarMatchingOff", "toolbarTopic", "toolbarShared", "toolbarPosts"]) {
+    assert.match(EN[key], /^Murmingle — /u, key);
+  }
   const calls = [];
   const paint = createTopicToolbarPainter({ setTitle: async (value) => calls.push(["title", value]), setIcon: async (value) => calls.push(["icon", value]) }, FakeCanvas);
   await paint(null, "disconnected"); await paint(7, "posts"); await paint(7, "off");

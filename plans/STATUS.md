@@ -1,5 +1,21 @@
 # Project status
 
+**2026-10-12 Murmingle brand introduced, extension 0.13.51:**
+The owner selects **Murmingle** with **Where conversations meet.** as the primary
+tagline. Popup and side-panel headers now show both; Chrome's extension label,
+action tooltip, document titles and dynamic toolbar status copy use Murmingle.
+README/charter and a canonical brand-language guide preserve reusable website
+and interface copy. Package identifiers, historical records and the separate
+provider-facing agent identity remain unchanged. Presentation only: no matching,
+Topic/Source/Discussion authority, permission, storage, account, provider or
+network behavior changes. Focused restricted browser checks pass **51/51**;
+isolated Chromium community interaction and 320/390/480px layout checks pass
+with no horizontal overflow, and root visually checks the 320px header. Browser
+secret scan checks 224 files with zero findings; diff whitespace passes. The
+shared worktree's full restricted suite is not claimed because unrelated active
+normalized-storage/background-matching edits currently fail their own tests.
+Reload the unpacked extension only; backend restart is unnecessary. See ADR-097.
+
 **2026-10-11 private assistant validation fix verified, 0.13.50:**
 Shared Insight reading now removes only Unicode direction-formatting marks from
 the existing 4,096-character public page prefix. Visible Arabic/Hebrew/English

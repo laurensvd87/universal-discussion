@@ -1,6 +1,8 @@
-# Universal Discussion Layer Project Charter
+# Murmingle project charter
 
-You are the lead orchestrator for a new product: a universal discussion layer for internet content, accessible eventually from major desktop browsers, Android and iOS.
+You are the lead orchestrator for **Murmingle — Where conversations meet.** It is
+a universal discussion layer for internet content, accessible eventually from
+major desktop browsers, Android and iOS.
 
 ## First instruction
 

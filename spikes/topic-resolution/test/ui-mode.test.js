@@ -149,6 +149,26 @@ test("Topic matching defaults after restart, while Legacy E5 lasts through popup
   assert.equal(await writeTopicViewMode({ set: async (value) => writes.push(value) }, "forged"), false);
 });
 
+test("popup and sidepanel show Murmingle branding while preserving live connection and settings accessibility", () => {
+  for (const surface of ["popup", "sidepanel"]) {
+    const html = readFileSync(new URL(`../browser/chromium/${surface}.html`, import.meta.url), "utf8");
+    assert.match(html, /<title>Murmingle<\/title>/u, surface);
+    const lockup = html.match(/<div class="brand-lockup">([\s\S]*?)<\/div>/u)?.[1];
+    assert.ok(lockup, `${surface}: visible brand lockup`);
+    assert.match(lockup, /<span class="brand-name">Murmingle<\/span>/u, surface);
+    assert.match(lockup, /<span class="brand-tagline">Where conversations meet\.<\/span>/u, surface);
+    assert.doesNotMatch(lockup, /\b(?:hidden|aria-hidden)\b/u, `${surface}: branding stays readable`);
+    const connection = lockup.match(/<span\b[^>]*\bid="connection-status"[^>]*>/u)?.[0];
+    assert.ok(connection, `${surface}: connection status remains separate`);
+    assert.match(connection, /\brole="status"/u, surface);
+    assert.match(connection, /\baria-live="polite"/u, surface);
+    const settings = html.match(/<button\b[^>]*\bid="app-settings-button"[^>]*>/u)?.[0];
+    assert.ok(settings, `${surface}: settings button remains available`);
+    assert.match(settings, /\baria-label="Settings"/u, surface);
+    assert.match(settings, /\baria-controls="app-settings-view"/u, surface);
+  }
+});
+
 test("User layout removes the page-title Topic header and hides account identity and diagnostics", () => {
   const html = readFileSync(new URL("../browser/chromium/popup.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../browser/chromium/popup.css", import.meta.url), "utf8");

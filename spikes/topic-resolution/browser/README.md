@@ -1,5 +1,15 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Murmingle brand (0.13.51)
+
+The extension is now presented as **Murmingle**, with **Where conversations
+meet.** in the shared popup and side-panel header. Chrome's extension label,
+action tooltip, document titles and toolbar status text use the same name. This
+is presentation only: matching, data, identity, permissions, provider behavior
+and write authority are unchanged. See
+[ADR-097](../../../decisions/ADR-097-murmingle-brand-name.md) and the
+[brand-language guide](../../../docs/BRAND_LANGUAGE.md).
+
 ## Public page links (0.13.48)
 
 Reload the extension under `chrome://extensions`. Common session IDs and tracking

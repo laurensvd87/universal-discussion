@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 Murmingle branding is implemented in extension 0.13.51. The shared
+popup/side-panel header visibly reads **Murmingle** and **Where conversations
+meet.**; manifest name/action tooltip, document titles and toolbar statuses match.
+Use `docs/BRAND_LANGUAGE.md` for future site/interface copy and ADR-097 for the
+decision boundary. Package names and provider-facing agent identity deliberately
+stay unchanged. Focused restricted browser checks pass 51/51; isolated Chromium
+community flows and 320/390/480px layouts pass without overflow, with root visual
+review at 320px. Secret scan and diff whitespace pass. Do not claim the current
+shared worktree's full restricted suite: unrelated in-progress normalized-storage/
+background-matching changes fail it. Reload the unpacked extension only; no
+backend restart, data migration, permission or authority change.
+
 2026-10-11 private assistant validation fix is verified in extension 0.13.50.
 Shared Insight page reader strips only direction-formatting marks after the
 existing 4,096-character capture, preserving visible multilingual text and exact
