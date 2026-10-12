@@ -13,7 +13,7 @@ future website copy.
 
 ## Current state
 
-Extension **0.13.59** presents the Chrome extension simply as **Murmingle**. Its
+Extension **0.13.60** presents the Chrome extension simply as **Murmingle**. Its
 approved **Shared space** logo uses two opposing speech shapes with an open
 shared center, across the header and Chrome icons. The compact header omits the
 name and tagline; connection text appears only as a red exception when the local
@@ -38,6 +38,14 @@ Sarcastic were also checked with two synthetic live GPT-6 Luna responses;
 the remaining styles have offline prompt/transport checks, not live quality QA.
 Existing messages are never rewritten. See
 [ADR-101](decisions/ADR-101-twenty-result-pages-and-sparkle-voices.md).
+
+Authenticated model-list responses now have thirty seconds total instead of
+being cut off locally at five; incoming and other request limits stay unchanged.
+Background matching recovers once from a proven non-writing concurrent-version
+conflict, after renewing page/session checks. It never retries a lost or uncertain
+write response. The service is restarted, pairing/ChatGPT login restored, and
+the live model list loads. Reload the extension under `chrome://extensions` to
+activate its matching correction. See [ADR-104](decisions/ADR-104-authenticated-model-deadline-and-matching-conflict-recovery.md).
 
 Empty discussions now offer related-page links from the existing backend library.
 Discover with an empty search box shows pages related to the current page; typing

@@ -8,6 +8,18 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current guarded availability fixes (2026-10-12, ADR-104, 0.13.60): owner approves
+authenticated model-only response lease, absolute thirty seconds from socket
+acceptance; raw ingress/unauthenticated/other routes retain five seconds. One
+matching retry requires private transport brand for complete canonical ingestion
+409, same-generation strictly newer version and renewed exact page/session/document
+authority; operation ID/representation stay exact, no reread/reembed. Lost/uncertain
+responses never retry. Trust/full client/backend/isolated Chrome pass; idle normal
+service restart preserves data/pairing/protected login, live model list loads
+seven entries. The separately reviewed ADR-102 planner optimization is loaded
+by this same restart. Reload extension. Never interrupt a running crawler; no
+extra inference grant follows. Read STATUS/HANDOFF before older diagnostic notes.
+
 Current voice diagnostics (2026-10-12, ADR-103, backend-only 0.13.59): owner
 approves fixed voice + SHA-256 of actual serialized request instructions + local
 dispatch time/schema in the bounded known Temp voice-request-trace.log. Normal

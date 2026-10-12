@@ -1,5 +1,30 @@
 # Project status
 
+**2026-10-12 approved availability fixes active (ADR-104, 0.13.60):**
+Authenticated empty model GETs alone lease both loopback response/socket clocks
+to thirty seconds total from acceptance after existing authority checks. Raw
+ingress, unauthenticated/other routes, byte/connection limits remain unchanged.
+Late/repeated/forged leases cannot revive or extend expiry. Matching retries once
+only for a private transport-branded, complete canonical non-writing ingestion
+409, with same-generation strictly greater validated version and renewed exact
+page/session/window/permission/pairing/document checks. Stable operation ID and
+URL/title/vector/model/extractor are unchanged; no reread/reembed or retry of
+uncertain writes. This does not prove the owner's specific unavailable badge
+was a conflict, or fix every load/provider failure.
+
+Independent Trust accepts. All 1,488 restricted extension tests and full backend
+838 tests pass (five platform skips). Isolated actual-Chrome community/layout
+checks pass at 320/390/480 px without exceptions/overflow. Secret scan750/zero.
+Verified idle normal restart (no crawler process, only service listening socket,
+no private generation) preserves canonical revision1200/596 Sources/637 Topics/
+69 contributions and two private chats/three messages. Pairing/protected ChatGPT
+login restore; one read-only live catalog returns seven models in 1,358 ms. No
+inference, page transfer, canonical ingestion or posting. Reload extension to
+activate browser recovery. Sarcasm trace still awaits owner's deliberate test.
+The restart also activates the separately reviewed/committed ADR-102 planner
+correction described below; its former pending-activation note is superseded.
+Unrelated Copilot changes remain preserved and excluded.
+
 **2026-10-12 repeated crawler ingestion stall corrected; backend activation pending:**
 The owner confirms 393 crawler Sources accepted, then repeated Apply runs stop at
 zero new ingestions with 125 staged and 10,822 queued rows. Read-only canonical

@@ -11,6 +11,7 @@ export const TRANSPORT_LIMITS = Object.freeze({
   urlUnits: 2_048,
   callbackUrlUnits: 8_192,
   requestMs: 5_000,
+  authenticatedModelsMs: 30_000,
   connections: 16,
 });
 
@@ -61,7 +62,8 @@ function reject(response, status) {
 }
 
 export function createTransportHandler(handle) {
-  return (request, response) => {
+  const socketDeadlines = new WeakMap();
+  const transport = (request, response) => {
     const inspected = inspectRequestHead(request);
     if (inspected.status) {
       reject(response, inspected.status);
@@ -69,10 +71,29 @@ export function createTransportHandler(handle) {
       return;
     }
     let finished = false;
+    let leased = false;
     let size = 0;
     const chunks = [];
-    const timer = setTimeout(() => stop(408), TRANSPORT_LIMITS.requestMs);
+    const startedAt = performance.now();
+    const socketDeadline = socketDeadlines.get(request.socket);
+    let expiresAt = Math.min(startedAt + TRANSPORT_LIMITS.requestMs, socketDeadline?.expiresAt ?? Infinity);
+    let timer = setTimeout(() => stop(408), Math.max(0, expiresAt - startedAt));
     timer.unref();
+    const transportContext = Object.freeze({
+      leaseAuthenticatedModels() {
+        const now = performance.now();
+        if (finished || leased || response.destroyed || response.writableEnded || request.aborted || request.socket?.destroyed ||
+            now >= expiresAt || (socketDeadline && !socketDeadline.leaseAuthenticatedModels(now))) return false;
+        leased = true;
+        // Both timers use the same absolute accept-time deadline. No extra
+        // thirty seconds after collecting headers/body or proving authority.
+        expiresAt = socketDeadline?.expiresAt ?? startedAt + TRANSPORT_LIMITS.authenticatedModelsMs;
+        clearTimeout(timer);
+        timer = setTimeout(() => stop(408), Math.max(0, expiresAt - now));
+        timer.unref();
+        return true;
+      },
+    });
     function cleanup() {
       clearTimeout(timer);
       chunks.length = 0;
@@ -99,8 +120,9 @@ export function createTransportHandler(handle) {
         body = size === 0 ? null : new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks, size));
       } catch { stop(400); return; }
       try {
-        const result = await handle({ method: request.method, url: request.url, headers: inspected.headers, body });
+        const result = await handle({ method: request.method, url: request.url, headers: inspected.headers, body }, transportContext);
         if (finished || response.destroyed) return;
+        if (performance.now() >= expiresAt) { stop(408); return; }
         finished = true;
         cleanup();
         response.writeHead(result.status, { ...result.headers, connection: "close" });
@@ -113,10 +135,36 @@ export function createTransportHandler(handle) {
     request.once("error", () => stop(400));
     response.once("close", () => { finished = true; cleanup(); });
   };
+  // The listener alone supplies socket objects; no HTTP input can reach this
+  // per-socket authority closure. It also bounds incomplete/trickling headers.
+  transport.bindSocket = (socket) => {
+    const acceptedAt = performance.now();
+    let closed = false;
+    let leased = false;
+    const state = {
+      expiresAt: acceptedAt + TRANSPORT_LIMITS.requestMs,
+      leaseAuthenticatedModels(now) {
+        if (closed || leased || socket.destroyed || now >= state.expiresAt) return false;
+        leased = true;
+        state.expiresAt = acceptedAt + TRANSPORT_LIMITS.authenticatedModelsMs;
+        clearTimeout(deadline);
+        deadline = setTimeout(() => socket.destroy(), Math.max(0, state.expiresAt - now));
+        deadline.unref();
+        return true;
+      },
+    };
+    let deadline = setTimeout(() => socket.destroy(), TRANSPORT_LIMITS.requestMs);
+    deadline.unref();
+    socketDeadlines.set(socket, state);
+    socket.once("close", () => { closed = true; clearTimeout(deadline); socketDeadlines.delete(socket); });
+    socket.on("error", () => {});
+  };
+  return transport;
 }
 
 // The only binding call in the app. No alternate host/port or import side effect.
 export async function startLoopbackListener({ handle }) {
+  const transport = createTransportHandler(handle);
   const server = createServer({
     maxHeaderSize: TRANSPORT_LIMITS.headerBytes,
     headersTimeout: TRANSPORT_LIMITS.requestMs,
@@ -125,19 +173,13 @@ export async function startLoopbackListener({ handle }) {
     connectionsCheckingInterval: 250,
     requireHostHeader: true,
     rejectNonStandardBodyWrites: true,
-  }, createTransportHandler(handle));
+  }, transport);
   // Keep rawHeaders complete within maxHeaderSize; Node's count cap truncates
   // its header projection instead of rejecting. Our inspection rejects >32.
   server.maxHeadersCount = 0;
   server.maxRequestsPerSocket = 1;
   server.maxConnections = TRANSPORT_LIMITS.connections;
-  server.on("connection", (socket) => {
-    // An absolute lifetime also bounds incomplete headers and trickle/pipelined input.
-    const deadline = setTimeout(() => socket.destroy(), TRANSPORT_LIMITS.requestMs);
-    deadline.unref();
-    socket.once("close", () => clearTimeout(deadline));
-    socket.on("error", () => {});
-  });
+  server.on("connection", transport.bindSocket);
   server.on("checkContinue", (_request, response) => reject(response, 400));
   server.on("checkExpectation", (_request, response) => reject(response, 400));
   server.on("upgrade", (_request, socket) => socket.destroy());

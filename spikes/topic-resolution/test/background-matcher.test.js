@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createBackgroundMatcher } from "../browser/core/background-matcher.js";
 import { createInferenceHost } from "../browser/chromium/inference-host.js";
+import { createLocalServiceClient, LocalServiceClientError } from "../browser/core/local-service-client.js";
 
 const url = "https://example.com/article";
 const origin = "https://example.com";
@@ -272,6 +273,138 @@ test("a conflicting ingestion is not retried or reported as a match", async () =
   assert.equal(count, 1); assert.equal(base.matcher.currentState().reason, "conflict");
   assert.equal(base.matcher.currentState().topicId, null);
 });
+
+async function confirmedConflict() {
+  const client = createLocalServiceClient({ getToken: () => "synthetic-test-capability-for-client-only",
+    fetchImpl: async () => new Response('{"error":"conflict"}', { status: 409, headers: { "content-type": "application/json" } }) });
+  try {
+    await client.ingest({ expected: { generation: "g", revision: 4 }, operationId: "operation-a", url,
+      title: "Synthetic", extractorVersion: "main-text-prefix/v1",
+      embedding: { modelId: "e5-small-q8-browser-main-prefix-v1", values: [1, ...Array(383).fill(0)] } });
+  } catch (error) { return error; }
+  assert.fail("Expected transport conflict");
+}
+function recoveryFixture({ legacy = false, fresh = { generation: "g", revision: 6 } } = {}) {
+  const base = fixture();
+  const events = [];
+  let reads = 0, revision = 4, operations = 0;
+  const payloads = [];
+  const version = async () => {
+    events.push("version"); reads++;
+    return { version: reads === 2 ? fresh : { generation: "g", revision } };
+  };
+  base.dependencies.client = {
+    ...(legacy ? { catalog: version } : { version, catalog: async () => { throw new Error("Unexpected catalog read"); } }),
+    async ingest(payload) {
+      events.push("ingest"); payloads.push(payload);
+      if (payloads.length === 1) throw await confirmedConflict();
+      revision = payload.expected.revision + 1;
+      return { version: { generation: "g", revision }, sourceId: "source-a", topicId: "topic-a", assignment: "provisional" };
+    },
+  };
+  base.dependencies.nextOperationId = () => { operations++; return "operation-a"; };
+  // Capture is also a same-document witness: its attestation must renew on retry.
+  base.dependencies.reader.attest = async (...args) => {
+    events.push("attest"); assert.deepEqual(args, [1, "document-a", url, url]);
+    return { status: "attested" };
+  };
+  // Recreate after replacement of client (the matcher captures dependency references).
+  base.matcher = createBackgroundMatcher(base.dependencies);
+  return { ...base, events, payloads, operations: () => operations };
+}
+for (const legacy of [false, true]) test(`confirmed matching conflict renews version and document once (${legacy ? "catalog fallback" : "version only"})`, async () => {
+  const base = recoveryFixture({ legacy });
+  await base.matcher.refresh();
+  assert.equal(base.matcher.currentState().phase, "ready");
+  assert.deepEqual(base.events, ["version", "attest", "ingest", "version", "attest", "ingest"]);
+  assert.deepEqual(base.calls, ["read", "embed"]);
+  assert.equal(base.operations(), 1);
+  assert.equal(base.payloads.length, 2);
+  const [first, second] = base.payloads;
+  assert.deepEqual(first.expected, { generation: "g", revision: 4 });
+  assert.deepEqual(second.expected, { generation: "g", revision: 6 });
+  const withoutVersion = ({ expected, ...rest }) => JSON.stringify(rest);
+  assert.equal(withoutVersion(first), withoutVersion(second));
+  assert.strictEqual(first.embedding, second.embedding);
+  assert.ok(Object.isFrozen(first.embedding.values));
+  assert.ok(!withoutVersion(first).includes("bounded article text"));
+  if (!legacy) {
+    await base.matcher.refresh();
+    assert.equal(base.payloads.length, 2, "cache uses accepted revision seven rather than renewed revision six");
+  }
+});
+for (const fresh of [null, {}, { generation: "replacement", revision: 6 }, { generation: "g", revision: 4 },
+  { generation: "g", revision: 3 }, { generation: "g", revision: -1 }, { generation: "g", revision: 5.1 },
+  { generation: "g", revision: Number.MAX_SAFE_INTEGER + 1 }, { generation: "g", revision: 6, extra: true }]) {
+  test(`matching conflict rejects malformed/replaced/non-increasing version ${JSON.stringify(fresh)}`, async () => {
+    const base = recoveryFixture({ fresh }); await base.matcher.refresh();
+    assert.equal(base.payloads.length, 1); assert.equal(base.matcher.currentState().reason, "conflict");
+    assert.equal(base.events.filter(event => event === "attest").length, 1);
+  });
+}
+for (const error of [new LocalServiceClientError("conflict"), { code: "conflict", confirmedIngestionConflict: true },
+  ...["unavailable", "invalid-request", "unauthorized", "invalid-response", "capacity", "unknown"].map(code => {
+    const failure = new LocalServiceClientError(code); failure.confirmedIngestionConflict = true; return failure;
+  })]) test(`unconfirmed or uncertain ${error.code} cannot recover`, async () => {
+  const base = recoveryFixture();
+  base.dependencies.client.ingest = async payload => { base.payloads.push(payload); throw error; };
+  await base.matcher.refresh();
+  assert.equal(base.payloads.length, 1);
+  assert.deepEqual(base.events, ["version", "attest"]);
+  assert.notEqual(base.matcher.currentState().phase, "ready");
+});
+test("a second confirmed matching conflict remains terminal", async () => {
+  const base = recoveryFixture();
+  base.dependencies.client.ingest = async payload => { base.payloads.push(payload); throw await confirmedConflict(); };
+  await base.matcher.refresh();
+  assert.equal(base.payloads.length, 2); assert.equal(base.operations(), 1);
+  assert.equal(base.matcher.currentState().reason, "conflict");
+});
+for (const stage of ["conflict", "version", "attest", "result"]) {
+  for (const change of ["navigate", "document", "stop", "session", "window", "tab", "close", "permission", "block", "unpaired", "invalidate", "dispose"]) {
+    test(`${change} during recovery ${stage} prevents late matching`, async () => {
+      const base = recoveryFixture();
+      let documentChanged = false;
+      const mutate = () => {
+        if (change === "navigate") base.state.tab.url += "?sid=replacement";
+        if (change === "document") { documentChanged = true; if (stage === "result") base.matcher.invalidate(); }
+        if (change === "stop") base.state.enabled = false;
+        if (change === "session") base.state.sessionRevision++;
+        if (change === "window") base.state.tab.windowId++;
+        if (change === "tab") base.state.tab.tabId++;
+        if (change === "close") base.state.tab = null;
+        if (change === "permission") base.state.permitted = false;
+        if (change === "block") base.state.blockedOrigins = [origin];
+        if (change === "unpaired") base.state.paired = false;
+        if (change === "invalidate") base.matcher.invalidate();
+        if (change === "dispose") base.matcher.dispose();
+      };
+      const ingest = base.dependencies.client.ingest;
+      base.dependencies.client.ingest = async payload => {
+        if (stage === "conflict" && base.payloads.length === 0) mutate();
+        const result = await ingest(payload);
+        if (stage === "result") mutate();
+        return result;
+      };
+      const version = base.dependencies.client.version;
+      let versions = 0;
+      base.dependencies.client.version = async () => {
+        const result = await version(); if (++versions === 2 && stage === "version") mutate(); return result;
+      };
+      const attest = base.dependencies.reader.attest;
+      let attestations = 0;
+      base.dependencies.reader.attest = async (...args) => {
+        const result = await attest(...args); if (++attestations === 2 && stage === "attest") mutate();
+        return documentChanged ? { status: "unsupported", reason: "document-mismatch" } : result;
+      };
+      await base.matcher.refresh();
+      assert.notEqual(base.matcher.currentState().phase, "ready");
+      assert.equal(base.matcher.currentState().topicId, null);
+      assert.equal(base.payloads.length, stage === "result" ? 2 : 1);
+      assert.deepEqual(base.calls, ["read", "embed"]);
+    });
+  }
+}
 test("offscreen host reuses packaged document and closes it on abort", async () => {
   let exists = false; let closed = 0; const message = deferred();
   const host = createInferenceHost({ runtime: { getURL: x => `chrome-extension://test/${x}`,

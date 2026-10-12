@@ -1,5 +1,24 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-104 guarded availability corrections active; extension 0.13.60
+needs reload. Authenticated normalized empty model GET alone leases socket/handler
+to thirty seconds absolute from acceptance; five-second raw/unauth/other routes
+and existing caps remain. Internal context only, never HTTP timeout fields.
+Matching retries once after actual complete canonical ingestion409 branded by a
+module-private WeakSet, fresh same-generation strictly higher revision, renewed
+page/session/window/permission/pairing/block/epoch/document checks. Same operation
+and representation; no reread/embed. Generic/unproven/second409, generation change
+or uncertain lost-write response remain terminal. Trust accepts, extension1488
+and full backend838/five skips pass; isolated Chrome320/390/480 layouts pass.
+Idle normal restart preserves revision1200/596 Sources/637 Topics/69 posts and
+two private chats/three messages, pairing/protected login restored. Live read-only
+model catalog returns seven in1,358ms. No inference/ingestion/posting. Service
+PTY session53784; never interrupt running crawler for restarts. This restart also
+loads the separately reviewed/committed ADR-102 exact-planner optimization;
+the pending-activation note below is historical. Copilot changes are separate.
+Await deliberate public Sarcastic generation to read known content-free trace;
+model-list verification is not style quality QA.
+
 2026-10-12 crawler stall: optimized canonical adaptive planner and fixed
 ingestError diagnostics are checked but not yet loaded by the running backend.
 Normal service restart is required; restarting only the crawler leaves the old

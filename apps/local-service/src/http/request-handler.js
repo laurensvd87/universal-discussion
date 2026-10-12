@@ -10,7 +10,7 @@ const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-d
 
 export function createRequestHandler({ service, config, ai = null, pairingVerifier = null, accounts = null,
   accountWrites = false, accountLifecycle = null, privateDiscussions = null }) {
-  return async function handle(request) {
+  return async function handle(request, transportContext = null) {
     let corsOrigin = null;
     try {
       const normalized = normalizeRequest(request);
@@ -47,7 +47,7 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         const value = privateDiscussions[methods[action]](principal, input);
         return jsonResponse(200, value, corsOrigin);
       }
-      const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null, config.origin);
+      const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null, config.origin, transportContext);
       return jsonResponse(response.status, response.value, corsOrigin);
     } catch (error) {
       const mapped = mapError(error);
@@ -130,7 +130,7 @@ function preflight(request, config, accountsEnabled = false, accountWrites = fal
   };
 }
 
-async function route(request, service, ai, durablePairing, accounts = null, origin = null) {
+async function route(request, service, ai, durablePairing, accounts = null, origin = null, transportContext = null) {
   const path = request.url.pathname;
   function postingActor({ provider = false } = {}) {
     if (!accounts) {
@@ -159,6 +159,12 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     if (request.method === "GET" && path === "/v1/ai/diagnostics") return { status: 200, value: ai.diagnostics() };
     if (request.method === "GET" && path === "/v1/ai/models") {
       if (accounts && Object.hasOwn(request.headers, "x-account-session")) postingActor({ provider: true });
+      // Only the internal transport context can lease response time, after the
+      // normalized empty GET and all Host/Origin/pairing/account checks pass.
+      // Native privileged GETs retain requireOrigin's existing omission rule.
+      if (transportContext?.leaseAuthenticatedModels && !transportContext.leaseAuthenticatedModels()) {
+        fail("unavailable", "Request unavailable");
+      }
       return { status: 200, value: await ai.models() };
     }
     if (request.method === "POST") {

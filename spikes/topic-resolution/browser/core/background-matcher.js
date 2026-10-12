@@ -1,4 +1,6 @@
 import { inspectPageNavigationUrl } from "./page-content-policy.js";
+import { isConfirmedIngestionConflict } from "./local-service-client.js";
+import { readVersion } from "./local-service-contract.js";
 
 // One foreground observation, never a tab catalog/history. All capabilities are
 // injected; invalidation aborts ingestion and prevents late inference rendering.
@@ -100,8 +102,34 @@ export function createBackgroundMatcher({ getPreferences, readForeground, hasPer
         return;
       }
       lastIngest = null;
-      const result = await client.ingest({ expected: catalog.version, operationId: nextOperationId(),
-        url: tab.sourceUrl, title, embedding, extractorVersion }, { signal });
+      // Keep the original representation and operation identity through the one
+      // confirmed non-writing conflict recovery. No page text is read or embedded again.
+      const representation = Object.freeze({ operationId: nextOperationId(), url: tab.sourceUrl, title,
+        embedding: Object.freeze({ modelId: embedding.modelId, values: Object.freeze([...embedding.values]) }),
+        extractorVersion });
+      const expected = Object.freeze({ ...catalog.version });
+      let result;
+      try {
+        result = await client.ingest({ expected, ...representation }, { signal });
+      } catch (error) {
+        if (!isConfirmedIngestionConflict(error)) throw error;
+        if (!await authorized(tab, own, preferences.sessionRevision)) return;
+        const fresh = await (versionOnly ? client.version({ signal }) : client.catalog({ signal }));
+        if (!await authorized(tab, own, preferences.sessionRevision)) return;
+        let renewed;
+        try {
+          const prior = readVersion(expected);
+          renewed = readVersion(fresh.version);
+          if (renewed.generation !== prior.generation || renewed.revision <= prior.revision) throw error;
+        } catch { throw error; }
+        const renewedAttestation = await reader.attest(tab.tabId, documentId, tab.sourceUrl, tab.url);
+        if (!alive(own)) return;
+        if (renewedAttestation.status !== "attested" || !await authorized(tab, own, preferences.sessionRevision)) {
+          if (alive(own)) publish({ phase: "unsupported", reason: "document-changed" });
+          return;
+        }
+        result = await client.ingest({ expected: Object.freeze(renewed), ...representation }, { signal });
+      }
       if (!await authorized(tab, own, preferences.sessionRevision)) return;
       if (result.version && Array.isArray(embedding.values)) lastIngest = {
         tabId: tab.tabId, windowId: tab.windowId, sessionRevision: preferences.sessionRevision,

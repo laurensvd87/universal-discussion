@@ -9,6 +9,9 @@ const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
 const MAX_RESPONSE_BYTES = 1_048_576;
 const encoder = new TextEncoder();
+const confirmedIngestionConflicts = new WeakSet();
+// Construction/code properties cannot manufacture evidence of a received response.
+export function isConfirmedIngestionConflict(error) { return confirmedIngestionConflicts.has(error); }
 
 export class LocalServiceClientError extends Error {
   constructor(code) { super("Local service request failed"); this.name = "LocalServiceClientError"; this.code = code; }
@@ -68,6 +71,35 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
       if (controller.signal.aborted) { await response.body?.cancel?.().catch(() => {}); fail("unavailable"); }
       if (!response || response.redirected || (response.url && response.url !== url)) fail("invalid-response");
       if (response.status !== 200) {
+        let confirmedConflict = false;
+        if (path === "/sources/ingest" && response.status === 409 &&
+            /^application\/json(?:\s*;\s*charset=utf-8)?$/iu.test(response.headers?.get("content-type") ?? "") &&
+            response.body && typeof response.body.getReader === "function") {
+          const length = response.headers?.get("content-length");
+          if (length === null || length === undefined || (/^\d+$/u.test(length) && Number(length) <= 256)) {
+            const reader = response.body.getReader();
+            activeReader = reader;
+            const chunks = []; let bytesRead = 0; let completed = false;
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (controller.signal.aborted) fail("unavailable");
+                if (done) { completed = true; break; }
+                if (!(value instanceof Uint8Array) || (bytesRead += value.byteLength) > 256) break;
+                chunks.push(value);
+              }
+              if (completed && bytesRead <= 256 && (length === null || length === undefined || Number(length) === bytesRead)) {
+                const bytes = new Uint8Array(bytesRead); let offset = 0;
+                for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+                // Exact canonical server bytes exclude duplicate keys, extra fields,
+                // truncated streams, ambiguous envelopes and arbitrary 409 responses.
+                confirmedConflict = new TextDecoder("utf-8", { fatal: true }).decode(bytes) === '{"error":"conflict"}' &&
+                  !controller.signal.aborted;
+              }
+            } catch { /* Unproven rejection remains a terminal generic conflict. */ }
+            finally { await reader.cancel().catch(() => {}); reader.releaseLock(); activeReader = undefined; }
+          }
+        }
         const authError = response.status === 401 && accountToken ? await readAccountAuthError(response, controller.signal) : null;
         await response.body?.cancel?.().catch(() => {});
         if (response.status === 401 && accountToken && authError !== "unauthorized") {
@@ -78,6 +110,10 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
           try { await onUnauthorized(token); } catch { /* A failed clear cannot turn rejection into success. */ }
         }
         const code = { 400: "invalid-request", 401: "unauthorized", 409: "conflict", 413: "capacity" }[response.status] ?? "unavailable";
+        if (confirmedConflict && !controller.signal.aborted) {
+          const error = new LocalServiceClientError("conflict");
+          confirmedIngestionConflicts.add(error); throw error;
+        }
         fail(code);
       }
       const contentType = response.headers?.get("content-type") ?? "";
