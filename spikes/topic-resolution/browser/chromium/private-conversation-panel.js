@@ -46,13 +46,18 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   const actions = node("div", null, "private-composer-actions"); actions.append(spark, send);
   composer.append(target, draft, actions);
   root.append(header, list, status, composer);
-  let disposed = false, active = false, actorId = null, epoch = 0, busy = false, timer = null;
-  let inbox = [], inboxCursor = null, conversation = null, entries = [], cursor = null, replyToId = null;
+  let disposed = false, active = false, available = true, actorId = null, epoch = 0, busy = false, timer = null;
+  let detachedDraft = null;
+  let inbox = [], inboxCursor = null, publicInbox = [], publicInboxCursor = null;
+  let privateInboxFailed = false, publicInboxFailed = false;
+  let conversation = null, entries = [], cursor = null, replyToId = null;
+  let selection = "private";
   let rendered = null, error = "", pendingOperation = null, pendingStart = null;
   let latestRead = 0;
   const olderReads = new Set();
   const ownActor = () => readActor();
-  const valid = (ticket, actor) => !disposed && ticket === epoch && actor === ownActor() && actor === actorId;
+  const hasPublicChats = () => typeof client.accountPublicChats === "function";
+  const valid = (ticket, actor) => !disposed && available && ticket === epoch && actor === ownActor() && actor === actorId;
   function operation() { return randomId(); }
   function failMessage(errorValue) {
     return errorValue?.code === "authentication-required" ? text("privateSignIn")
@@ -73,8 +78,11 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   }
   function stopTimer() { if (timer !== null) unschedule(timer); timer = null; }
   function reset() {
-    epoch += 1; stopTimer(); conversation = null; entries = []; inbox = []; inboxCursor = cursor = replyToId = null;
+    epoch += 1; stopTimer(); conversation = null; entries = []; inbox = []; publicInbox = [];
+    inboxCursor = publicInboxCursor = cursor = replyToId = null; selection = "private";
+    privateInboxFailed = publicInboxFailed = false;
     draft.value = ""; pendingOperation = pendingStart = null; busy = false; error = ""; rendered = null;
+    detachedDraft = null;
     olderReads.clear(); latestRead += 1;
     list.replaceChildren(); render();
   }
@@ -86,24 +94,25 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   function render() {
     const title = conversation ? conversation.title : text("privateChats");
     heading.textContent = title; heading.title = title;
-    headerLock.hidden = !conversation;
+    const publicPreview = selection === "public";
+    headerLock.hidden = !conversation || publicPreview;
     back.hidden = !conversation;
-    composer.hidden = !conversation || !actorId;
-    draft.readOnly = busy;
+    composer.hidden = !actorId || publicPreview || !conversation && !detachedDraft;
+    draft.readOnly = busy || !available || !conversation;
     const selected = entries.find(item => item.id === replyToId);
     const missingTarget = Boolean(draft.value.trim() && replyToId && !selected);
-    send.disabled = busy || !draft.value.trim() || !selected;
-    target.textContent = missingTarget ? text("privateChanged")
+    send.disabled = !available || publicPreview || busy || !draft.value.trim() || !selected;
+    target.textContent = missingTarget || detachedDraft && !conversation ? text("privateChanged")
       : selected ? text(selected.actorType === "agent" ? "privateReplyAssistant" : "privateReplyMessage") : "";
-    target.hidden = !selected && !missingTarget;
-    spark.disabled = busy || !selected || selected.actorType !== "human" || selected.generation?.state !== "none" ||
+    target.hidden = !selected && !missingTarget && !detachedDraft;
+    spark.disabled = !available || publicPreview || busy || !selected || selected.actorType !== "human" || selected.generation?.state !== "none" ||
       readPublicState()?.sourceId !== conversation?.sourceId;
     root.setAttribute("aria-busy", String(busy));
     const running = entries.some(item => item.generation?.state === "running");
     status.dataset.loading = String(busy || running);
-    status.textContent = error || (!actorId ? text("privateSignIn") : "");
+    status.textContent = error || (!actorId ? text("privateSignIn") : !available ? text("privateUnavailable") : detachedDraft ? text("privateChanged") : "");
     status.setAttribute("aria-label", running ? text("privateThinking") : busy ? text("communityLoading") : status.textContent);
-    const signature = JSON.stringify([actorId, conversation?.id, entries, inbox, cursor, inboxCursor, busy]);
+    const signature = JSON.stringify([actorId, selection, conversation, entries, inbox, publicInbox, cursor, inboxCursor, publicInboxCursor, busy]);
     if (signature === rendered) return;
     rendered = signature;
     list.replaceChildren();
@@ -111,20 +120,31 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
       const signIn = button("privateSignInButton", () => { void requestSignIn(); }); list.append(signIn); return;
     }
     if (!conversation) {
-      if (!inbox.length) list.append(node("p", "privateEmpty", "community-empty"));
-      for (const chat of inbox) {
-        const card = button(null, () => void open(chat.id), "private-chat-card");
+      const combined = [...inbox.map(chat => ({ ...chat, kind: "private" })), ...publicInbox.map(chat => ({ ...chat, kind: "public" }))]
+        .sort((a, b) => (Date.parse(b.updatedAt ?? b.createdAt) || 0) - (Date.parse(a.updatedAt ?? a.createdAt) || 0) ||
+          `${a.kind}:${a.id}`.localeCompare(`${b.kind}:${b.id}`));
+      if (available && !busy && !combined.length && !privateInboxFailed && !publicInboxFailed) list.append(node("p", hasPublicChats() ? "myChatsEmpty" : "privateEmpty", "community-empty"));
+      for (const chat of combined) {
+        const card = button(null, () => void open(chat.id, chat.kind), "private-chat-card");
+        card.setAttribute("data-chat-kind", chat.kind); card.setAttribute("data-chat-id", chat.id);
         const titleRow = node("span", null, "private-chat-title");
         const name = node("strong"); name.textContent = chat.title;
         const origin = node("span");
         const inspected = inspectPageUrl(chat.sourceUrl);
         origin.textContent = inspected.supported ? new URL(inspected.url).hostname : "";
-        titleRow.append(privateLock(), name);
+        if (chat.kind === "private") titleRow.append(privateLock());
+        else if (chat.actorType === "agent") {
+          const identity = node("span", null, "private-identity private-identity-agent");
+          identity.setAttribute("aria-label", text("privateAssistant")); identity.title = text("privateAssistant");
+          titleRow.append(identity);
+        }
+        titleRow.append(name);
         card.append(titleRow, origin); list.append(card);
       }
-      if (inboxCursor) list.append(button("communityMore", () => void loadInbox(true)));
+      if (inboxCursor || publicInboxCursor || privateInboxFailed || publicInboxFailed) list.append(button("communityMore", () => void loadInbox(true)));
       return;
     }
+    if (publicPreview) { renderPublicConversation(); return; }
     for (const message of entries) {
       const bubble = node("article", null, `private-bubble private-bubble-${message.actorType}`);
       bubble.setAttribute("data-message-id", message.id);
@@ -167,21 +187,95 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     list.append(remove);
   }
   async function loadInbox(more = false) {
-    syncAccount(); if (!active || !actorId || busy) return;
+    syncAccount(); if (!available || !active || !actorId || busy) return;
     const ticket = epoch, actor = actorId; busy = true; error = ""; render();
     try {
-      const page = await request("list", { after: more ? inboxCursor : null, limit: 25 });
+      const fetchPrivate = !more || Boolean(inboxCursor) || privateInboxFailed;
+      const fetchPublic = hasPublicChats() && (!more || Boolean(publicInboxCursor) || publicInboxFailed);
+      const results = await Promise.allSettled([
+        fetchPrivate ? request("list", { after: more ? inboxCursor : null, limit: 25 }, actor) : null,
+        fetchPublic ? client.accountPublicChats("list", { after: more ? publicInboxCursor : null, limit: 25 }, actor) : null,
+      ]);
       if (!valid(ticket, actor)) return;
-      inbox = more ? [...inbox, ...page.conversations] : page.conversations; inboxCursor = page.next;
+      const merge = (loaded, fresh) => [...new Map([...loaded, ...fresh].map(chat => [chat.id, chat])).values()];
+      const [privateResult, publicResult] = results;
+      if (fetchPrivate) {
+        privateInboxFailed = privateResult.status === "rejected";
+        if (!privateInboxFailed) { const page = privateResult.value; inbox = merge(more ? inbox : [], page.conversations); inboxCursor = page.next; }
+        else if (!more) { inbox = []; inboxCursor = null; }
+      }
+      if (fetchPublic) {
+        publicInboxFailed = publicResult.status === "rejected";
+        if (!publicInboxFailed) { const page = publicResult.value; publicInbox = merge(more ? publicInbox : [], page.chats); publicInboxCursor = page.next; }
+        else { publicInbox = []; publicInboxCursor = null; }
+      }
+      error = privateInboxFailed && publicInboxFailed ? text("myChatsUnavailable")
+        : publicInboxFailed ? text("myChatsPublicUnavailable")
+          : privateInboxFailed ? text(hasPublicChats() ? "myChatsPrivateUnavailable" : "privateUnavailable") : "";
     } catch (failure) { if (valid(ticket, actor)) error = failMessage(failure); }
     finally { if (valid(ticket, actor)) { busy = false; render(); } }
   }
-  async function open(id) {
-    if (busy) return; epoch += 1; stopTimer(); entries = []; cursor = null; replyToId = null; draft.value = "";
+  function publicSourceLink(url, compact = false) {
+    const checked = inspectPageUrl(url);
+    if (!checked.supported) return null;
+    const source = node("a", "myChatsOpenPage"); source.href = checked.url;
+    source.target = "_blank"; source.rel = "noopener noreferrer"; source.referrerPolicy = "no-referrer";
+    source.setAttribute("aria-label", text("myChatsOpenPage"));
+    if (compact) { source.textContent = "↗"; source.title = text("myChatsOpenPage"); }
+    source.addEventListener("click", () => showView("discussion"));
+    return source;
+  }
+  function renderPublicConversation() {
+    const label = node("p", "myChatsPublic", "community-empty"); list.append(label);
+    const source = publicSourceLink(conversation.sourceUrl); if (source) list.append(source);
+    for (const message of entries) {
+      const bubble = node("article", null, `private-bubble private-bubble-${message.actorType}`);
+      bubble.setAttribute("data-message-id", message.id);
+      const meta = node("div", null, "private-message-meta");
+      const identity = node("span", null, `private-identity private-identity-${message.actorType}`);
+      identity.setAttribute("aria-label", text(message.actorType === "agent" ? "uiAgentBadge" : "uiHumanBadge"));
+      const author = node("span"); author.textContent = message.authorLabel;
+      const time = node("time"); time.dateTime = message.createdAt;
+      const date = new Date(message.createdAt); time.textContent = Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      meta.append(identity, author, time);
+      const prose = node("div", null, "private-message-body");
+      if (message.state === "deleted") prose.textContent = text("discoveryDeleted");
+      else if (message.actorType === "agent") appendInsightCitationNodes(document, prose, message.body);
+      else prose.textContent = message.body;
+      bubble.append(meta, prose);
+      const messageSource = publicSourceLink(message.sourceUrl, true); if (messageSource) bubble.append(messageSource);
+      list.append(bubble);
+    }
+    if (cursor) list.append(button("communityMore", () => void readPublicConversation(true)));
+  }
+  async function readPublicConversation(more = false) {
+    syncAccount(); if (!available || !actorId || selection !== "public" || !conversation?.id || busy) return;
+    const ticket = epoch, actor = actorId, id = conversation.id, after = more ? cursor : null;
+    if (more && !after) return;
+    busy = true; error = ""; render();
+    try {
+      const page = await client.accountPublicChats("read", { rootId: id, after, limit: 25 }, actor);
+      if (!valid(ticket, actor) || selection !== "public" || conversation?.id !== id) return;
+      conversation = page.conversation;
+      entries = [...new Map([...(more ? entries : []), ...page.messages].map(message => [message.id, message])).values()];
+      cursor = page.next;
+    } catch { if (valid(ticket, actor)) {
+      entries = []; cursor = null; conversation = { id, title: text("privateChats") };
+      error = text("myChatsPublicUnavailable");
+    } }
+    finally { if (valid(ticket, actor)) { busy = false; render(); } }
+  }
+  async function open(id, kind = "private") {
+    if (!available || busy) return; epoch += 1; stopTimer(); entries = []; cursor = null; replyToId = null; draft.value = "";
+    if (kind === "private" && detachedDraft?.actor === actorId && detachedDraft.id === id) {
+      draft.value = detachedDraft.body; replyToId = detachedDraft.replyToId; detachedDraft = null;
+    }
+    selection = kind; error = ""; olderReads.clear(); pendingOperation = null;
     conversation = { id, title: text("privateChats") }; rendered = null; showView("private"); await readConversation();
   }
   async function readConversation(more = false, revealId = null) {
-    syncAccount(); if (!actorId || !conversation?.id) return;
+    if (selection === "public") return readPublicConversation(more);
+    syncAccount(); if (!available || !actorId || !conversation?.id) return;
     const ticket = epoch, actor = actorId, id = conversation.id;
     const after = more ? cursor : null;
     if (more && (!after || olderReads.has(after))) return;
@@ -216,6 +310,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   }
   async function start(body, withInsight = false) {
     syncAccount();
+    if (!available) return false;
     if (!actorId) { await requestSignIn(); return false; }
     if (busy) return false;
     const snapshot = readPublicState();
@@ -235,6 +330,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
         () => attestStart(snapshot));
       if (!valid(ticket, actor)) return false;
       pendingStart = null;
+      selection = "private";
       conversation = { id: outcome.conversationId, revision: outcome.revision, sourceId: source.id, sourceUrl: source.url, title: body.trim().slice(0, 80) || text("privateStarter") };
       entries = []; cursor = replyToId = null; draft.value = ""; rendered = null; accepted = true;
       showView("private");
@@ -246,7 +342,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   }
   async function submit(event) {
     event.preventDefault(); syncAccount();
-    if (busy || !actorId || !conversation || !draft.value.trim() || !entries.some(item => item.id === replyToId)) return;
+    if (!available || selection === "public" || busy || !actorId || !conversation || !draft.value.trim() || !entries.some(item => item.id === replyToId)) return;
     const body = draft.value, ticket = epoch, actor = actorId, id = conversation.id;
     const clickedTarget = replyToId, clickedRevision = conversation.revision;
     const parent = entries.find(item => item.id === clickedTarget);
@@ -274,7 +370,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     finally { if (valid(ticket, actor)) { busy = false; render(); } }
   }
   async function generateSelected() {
-    if (busy || !conversation || !actorId) return;
+    if (!available || selection === "public" || busy || !conversation || !actorId) return;
     const selected = entries.find(item => item.id === replyToId);
     if (!selected || selected.actorType !== "human" || selected.generation?.state !== "none") return;
     const ticket = epoch, actor = actorId, id = conversation.id, clickedRevision = conversation.revision; busy = true; error = ""; render();
@@ -287,7 +383,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     finally { if (valid(ticket, actor)) { busy = false; render(); } }
   }
   async function removeConversation() {
-    if (busy || !conversation || !actorId) return;
+    if (!available || selection === "public" || busy || !conversation || !actorId) return;
     const id = conversation.id, ticket = epoch, actor = actorId; busy = true; render();
     try {
       await request("delete", { conversationId: id });
@@ -299,6 +395,18 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   draft.addEventListener("input", render); composer.addEventListener("submit", submit);
   render();
   return Object.freeze({ start,
+    setAvailable(value) {
+      const next = Boolean(value); if (next === available) return;
+      syncAccount(); available = next;
+      if (!next) {
+        const retained = selection === "private" && conversation && draft.value.trim()
+          ? { actor: actorId, id: conversation.id, replyToId, body: draft.value } : detachedDraft;
+        reset(); detachedDraft = retained;
+        if (retained) { draft.value = retained.body; replyToId = retained.replyToId; }
+        render();
+      } else if (active) { void loadInbox(); }
+      else render();
+    },
     setActive(value) {
       active = value; syncAccount(); stopTimer();
       if (active && !busy) { if (conversation) void readConversation(); else void loadInbox(); }
@@ -306,6 +414,6 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     accountChanged() { if (syncAccount() && active) void loadInbox(); },
     observe() { syncAccount(); if (conversation) render(); },
     dispose() { disposed = true; epoch += 1; stopTimer(); draft.value = ""; pendingOperation = pendingStart = null;
-      olderReads.clear(); entries = inbox = []; conversation = null; root.replaceChildren(); },
+      olderReads.clear(); entries = inbox = publicInbox = []; conversation = detachedDraft = null; root.replaceChildren(); },
   });
 }

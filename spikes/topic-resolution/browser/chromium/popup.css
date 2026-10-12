@@ -1521,6 +1521,7 @@ body[data-ui-surface="sidepanel"][data-ui-mode="user"] #app-view-private:not([hi
 .related-page-card:hover, .discovery-related-card:hover { border-color: #bba2ff80; background: #382c5259; }
 .related-page-card:focus-visible, .discovery-related-link:focus-visible { outline: 2px solid #bba2ff; outline-offset: 3px; border-radius: 12px; }
 .private-chat-title strong { min-width: 0; }
+.private-chat-title .private-identity { flex: none; align-self: center; }
 .private-conversation-lock { display: inline-block; flex: none; width: 14px; height: 14px; color: #bca8e8; background: currentColor; mask: url("icons/lock.svg") center / contain no-repeat; }
 .private-composer { flex: none; display: grid; gap: 7px; padding-block: 10px; border-top: 1px solid #a88cff24; }
 .community-view textarea, .community-view input {

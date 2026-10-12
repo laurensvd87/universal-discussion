@@ -8,6 +8,19 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current combined My chats (2026-10-12, ADR-096, 0.13.57): public roots with
+surviving own human/AI-operator participation join private chats in the account
+inbox. Derive principal from named app auth/pairing/exact Origin; never claim
+legacy demo posts. Existing normalized indexes/current revisions/signed bound
+cursors, no DDL/migration/history/snapshot read. SQL activity/ancestry still grows
+with participating threads. Public previews stay read-only; source links return
+to normal current-page authority. Keep private store/replies/generation separate,
+namespaced pools, partial failures and stale/logout/disconnect fences. Independent
+Trust/full offline/isolated Chrome checks pass. Approved idle normal restart is
+complete with pairing/provider sign-in/counts preserved; reload client, app auth
+may need renewal. Read top STATUS/HANDOFF and ADR-096. Personality/voice selector
+is discussed only, not implemented. No provider/hosting/permission expansion.
+
 Current contextual discovery (2026-10-12, ADR-096, 0.13.56): empty User Discussion
 offers existing related-page links only when no visible direct/earlier/alternate/
 related conversation remains. Blank Discover shows current-page related Sources

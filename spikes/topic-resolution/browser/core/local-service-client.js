@@ -3,7 +3,7 @@ import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDi
   readIngestion, readIngestionOutcome, readAlternateDiscussion, isAccountActorId } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 import { readAccountAuthError } from "./account-auth-response.js";
-import { readDiscovery, readPrivateResponse } from "./community-contract.js";
+import { readDiscovery, readPrivateResponse, readAccountPublicChatsRequest, readAccountPublicChatsResponse } from "./community-contract.js";
 
 const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
@@ -124,6 +124,12 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
     privateConversation(action, value, actorId, { signal, beforeDispatch } = {}) {
       if (!["create", "list", "read", "send", "generate", "delete"].includes(action) || !isAccountActorId(actorId)) fail("invalid-request");
       return request(`/private/${action}`, value, actorId, readPrivateResponse, signal, undefined, beforeDispatch);
+    },
+    accountPublicChats(action, value, actorId, { signal, beforeDispatch } = {}) {
+      if (!isAccountActorId(actorId)) fail("invalid-request");
+      const payload = input(() => readAccountPublicChatsRequest(action, value));
+      return request(`/account/public-chats/${action}`, payload, actorId,
+        response => readAccountPublicChatsResponse(action, response, payload.rootId), signal, undefined, beforeDispatch);
     },
     async health({ signal } = {}) { return request("/health", undefined, undefined, readHealth, signal); },
     async healthWithToken(token, { signal } = {}) { return request("/health", undefined, undefined, readHealth, signal, token); },

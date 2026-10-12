@@ -28,7 +28,8 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         // Account credential handling requires the configured browser Origin;
         // privileged browser GET omissions use strict POST read equivalents.
         if (normalized.headers.origin !== config.origin) fail("origin", "Request unavailable");
-        const response = accountLifecycle && ["/v1/account/data", "/v1/account/delete", "/v1/account/private-data"].includes(normalized.url.pathname)
+        const response = accountLifecycle && ["/v1/account/data", "/v1/account/delete", "/v1/account/private-data",
+          "/v1/account/public-chats/list", "/v1/account/public-chats/read"].includes(normalized.url.pathname)
           ? accountLifecycle.route(normalized) : routeAccountRequest(normalized, accounts);
         return jsonResponse(response.status, response.value, corsOrigin);
       }

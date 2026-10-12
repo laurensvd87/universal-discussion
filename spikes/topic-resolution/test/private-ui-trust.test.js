@@ -79,8 +79,8 @@ test("private client accepts the existing fifty-provider-citation bound and reje
   assert.throws(() => readPrivateResponse({ messages: Array(26).fill({ body: "bounded" }) }), TypeError);
 });
 
-function panelFixture({ inbox = false, copy } = {}) {
-  const created = [], calls = [], reads = []; let actor = ACTOR, generationVersion = 1, failNextSend = false, holdGeneration = null;
+function panelFixture({ inbox = false, copy, publicChats } = {}) {
+  const created = [], calls = [], reads = [], inboxReads = [], views = []; let actor = ACTOR, generationVersion = 1, failNextSend = false, holdGeneration = null;
   const document = { activeElement: null,
     createTextNode(value) { return { tag: "#text", textContent: value, children: [] }; },
     createElement(tag) {
@@ -103,11 +103,11 @@ function panelFixture({ inbox = false, copy } = {}) {
   const panel = mountPrivateConversationPanel(document, root, {
     ...(copy ? { messages: copy } : {}),
     readActor: () => actor, requestSignIn: async () => false, randomId: () => `operation-${++sequence}`,
-    showView() {}, attestStart: async () => true,
+    showView(view) { views.push(view); }, attestStart: async () => true,
     readPublicState: () => ({ phase: "ready", sourceId: SOURCE, topicId: TOPIC,
       catalog: { sources: [{ id: SOURCE, topicId: TOPIC, url: "https://example.com/" }] } }),
     prepareGeneration: () => holdGeneration?.promise ?? Promise.resolve({ model: `fixture-${generationVersion}` }),
-    client: { command() { assert.fail("Private text reached public command"); },
+    client: { ...(publicChats ? { accountPublicChats: publicChats } : {}), command() { assert.fail("Private text reached public command"); },
       async privateConversation(action, input, owner) {
         calls.push({ action, input: structuredClone(input), owner });
         if (action === "create") return { conversationId: conversation.id, messageId: messages[0].id, revision: 1 };
@@ -116,11 +116,12 @@ function panelFixture({ inbox = false, copy } = {}) {
           if (failNextSend) { failNextSend = false; throw { code: "unavailable" }; }
           return { conversationId: conversation.id, messageId: "accepted-human", revision: 3 };
         }
-        if (action === "list") return { conversations: inbox ? [{ ...conversation }] : [], next: null };
+        if (action === "list") return inboxReads.length ? inboxReads.shift() : { conversations: inbox ? [{ ...conversation }] : [], next: null };
         throw new Error(`Unexpected action ${action}`);
       } } });
   const draft = created.find(item => item.id === "private-message-body"), form = created.find(item => item.tag === "form");
-  return { panel, root, draft, calls, document, form,
+  return { panel, root, draft, calls, document, form, views,
+    queueInbox(value) { inboxReads.push(value); },
     page(items = messages, revision = 2, next = null) { return { conversation: { ...conversation, revision }, messages: structuredClone(items), next }; },
     messages: structuredClone(messages), queueRead(value) { reads.push(value); },
     async open() {
@@ -147,6 +148,131 @@ test("a failed private send preserves its exact operation payload across a delib
 });
 
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); };
+const publicChat = (id, updatedAt, extra = {}) => ({ id, visibility: "public", title: `Public ${id}`,
+  topicId: TOPIC, discussionId: "discussion", actorType: "human", ownedHuman: true, ownedAgent: false,
+  createdAt: "2026-10-10T10:00:00.000Z", updatedAt, sourceId: SOURCE, sourceUrl: "https://example.com/", ...extra });
+const feed = f => f.root.children.find(item => item.id === "private-chat-feed");
+const chatCards = f => feed(f).children.filter(item => item.className === "private-chat-card");
+const descendants = item => [item, ...item.children.flatMap(descendants)];
+
+test("My chats mixes bounded private/public pools by activity, keeps bots and ID namespaces separate", async () => {
+  const calls = [];
+  const f = panelFixture({ inbox: true, publicChats: async (action, input, actor) => {
+    calls.push({ action, input, actor });
+    if (action === "list") return { chats: [publicChat("private-conversation", "2026-10-12T10:00:00.000Z"),
+      publicChat("bot", "2026-10-12T11:00:00.000Z", { actorType: "agent", ownedAgent: true })], next: null };
+    return { conversation: publicChat(input.rootId, "2026-10-12T10:00:00.000Z"), messages: [], next: null };
+  } });
+  f.panel.setActive(true); await flush();
+  assert.deepEqual(chatCards(f).map(card => [card.attributes["data-chat-kind"], card.attributes["data-chat-id"]]),
+    [["public", "bot"], ["public", "private-conversation"], ["private", "private-conversation"]]);
+  assert.equal(descendants(chatCards(f)[0]).filter(node => node.className === "private-identity private-identity-agent").length, 1);
+  assert.equal(descendants(chatCards(f)[1]).filter(node => node.className === "private-conversation-lock").length, 0);
+  chatCards(f)[1].listeners.get("click")(); await flush();
+  assert.deepEqual(calls.at(-1), { action: "read", input: { rootId: "private-conversation", after: null, limit: 25 }, actor: ACTOR });
+  assert.equal(f.calls.filter(call => call.action === "read").length, 0);
+  f.root.children[0].children[0].listeners.get("click")(); await flush();
+  chatCards(f).find(card => card.attributes["data-chat-kind"] === "private").listeners.get("click")(); await flush();
+  assert.equal(f.calls.at(-1).input.conversationId, "private-conversation");
+  assert.ok(calls.every(call => call.input.limit === 25)); f.panel.dispose();
+});
+
+test("My chats pages pools independently, deduplicates cards and exposes fixed partial errors", async () => {
+  const calls = []; let count = 0;
+  const f = panelFixture({ copy: { myChatsPublicUnavailable: "Some public chats are unavailable." }, publicChats: async (action, input) => {
+    calls.push(input); count++;
+    if (count === 2) throw new Error("PRIVATE_RAW_ERROR");
+    return { chats: [publicChat("one", "2026-10-12T10:00:00.000Z")], next: count === 1 ? "public-next" : null };
+  } });
+  const privateChat = { id: "private", title: "Private", sourceUrl: "https://example.com/", createdAt: "2026-10-11T10:00:00.000Z" };
+  f.queueInbox({ conversations: [privateChat], next: "private-next" });
+  f.queueInbox({ conversations: [privateChat], next: null });
+  f.panel.setActive(true); await flush(); f.more().listeners.get("click")(); await flush();
+  assert.equal(chatCards(f).length, 1);
+  assert.equal(f.calls.filter(call => call.action === "list").at(-1).input.after, "private-next");
+  assert.equal(calls.at(-1).after, "public-next");
+  assert.equal(f.root.children.find(node => node.className === "community-status").textContent, "Some public chats are unavailable.");
+  assert.equal(JSON.stringify(f.root.children).includes("PRIVATE_RAW_ERROR"), false);
+  f.more().listeners.get("click")(); await flush();
+  assert.equal(f.calls.filter(call => call.action === "list").length, 2);
+  assert.equal(calls.at(-1).after, null); assert.equal(f.more(), undefined); f.panel.dispose();
+});
+
+test("public My chats preview pages read-only messages and only deliberate safe source links leave the view", async () => {
+  const calls = [], chat = publicChat("public", "2026-10-12T10:00:00.000Z");
+  const message = { id: "public-human", actorType: "human", state: "visible", body: "<script>text only</script>",
+    authorLabel: "Other person", createdAt: chat.createdAt, sourceUrl: "javascript:unsafe" };
+  const f = panelFixture({ publicChats: async (action, input) => {
+    calls.push({ action, input });
+    return action === "list" ? { chats: [chat], next: null } : { conversation: chat,
+      messages: input.after ? [{ ...message, id: "public-agent", actorType: "agent", body: "Answer" }] : [message],
+      next: input.after ? null : "later" };
+  } });
+  f.panel.setActive(true); await flush(); chatCards(f)[0].listeners.get("click")(); await flush();
+  assert.equal(f.form.hidden, true); assert.equal(f.root.children[0].children.find(node => node.className === "private-conversation-lock").hidden, true);
+  assert.equal(descendants(feed(f)).some(node => ["private-delete", "private-spark", "private-message-reply"].includes(node.className)), false);
+  assert.equal(descendants(feed(f)).find(node => node.className === "private-message-body").textContent, message.body);
+  f.draft.value = "Attempt public mutation"; await f.submit();
+  assert.equal(f.calls.filter(call => ["send", "generate", "delete"].includes(call.action)).length, 0);
+  f.more().listeners.get("click")(); await flush(); assert.deepEqual(f.bubbles(), ["public-human", "public-agent"]);
+  const links = descendants(feed(f)).filter(node => node.tag === "a"); assert.equal(links.length, 1);
+  assert.equal(links[0].href, "https://example.com/"); assert.equal(links[0].target, "_blank"); assert.equal(links[0].rel, "noopener noreferrer");
+  assert.equal(f.views.includes("discussion"), false); links[0].listeners.get("click")(); assert.equal(f.views.at(-1), "discussion");
+  assert.ok(calls.every(call => ["list", "read"].includes(call.action))); f.panel.dispose();
+});
+
+for (const both of [false, true]) {
+  test(`My chats does not claim an empty complete inbox when ${both ? "both pools fail" : "the private pool fails"}`, async () => {
+    const copy = { myChatsPrivateUnavailable: "Private chats unavailable.", myChatsUnavailable: "Chats unavailable." };
+    const f = panelFixture({ copy, publicChats: async () => {
+      if (both) throw new Error("ACCOUNT_RAW_FAILURE");
+      return { chats: [publicChat("available-public", "2026-10-12T10:00:00.000Z")], next: null };
+    } });
+    f.queueInbox(Promise.reject(new Error("PRIVATE_RAW_FAILURE")));
+    f.panel.setActive(true); await flush();
+    assert.equal(chatCards(f).length, both ? 0 : 1); assert.ok(f.more());
+    assert.equal(f.root.children.find(node => node.className === "community-status").textContent,
+      both ? copy.myChatsUnavailable : copy.myChatsPrivateUnavailable);
+    assert.equal(descendants(feed(f)).some(node => node.textContent === EN.myChatsEmpty && node.tag === "p"), false);
+    assert.equal(JSON.stringify(f.root.children).includes("RAW_FAILURE"), false); f.panel.dispose();
+  });
+}
+
+test("sign-out and account switches fence pending public inbox/preview data", async () => {
+  const pending = deferred(), chat = publicChat("late", "2026-10-12T10:00:00.000Z");
+  let holdRead = false;
+  const f = panelFixture({ inbox: true, publicChats: async action => action === "read" || holdRead
+    ? pending.promise : { chats: [chat], next: null } });
+  f.panel.setActive(true); await flush(); chatCards(f)[0].listeners.get("click")();
+  f.setActor(null); pending.resolve({ conversation: chat, messages: [{ id: "secret", body: "ACCOUNT_PRIVATE_SECRET" }], next: null }); await flush();
+  assert.equal(chatCards(f).length, 0); assert.equal(f.bubbles().length, 0);
+  assert.equal(JSON.stringify(f.root.children).includes("ACCOUNT_PRIVATE_SECRET"), false);
+  assert.equal(f.draft.value, ""); f.panel.dispose();
+  const lateInbox = deferred();
+  const g = panelFixture({ publicChats: () => lateInbox.promise }); g.panel.setActive(true);
+  g.setActor(null); lateInbox.resolve({ chats: [chat], next: null }); await flush();
+  assert.equal(chatCards(g).length, 0); g.panel.dispose();
+});
+
+test("disconnect clears loaded chats and fences pending reads while detaching an unsent private draft", async () => {
+  const pending = deferred();
+  const f = panelFixture({ inbox: true, publicChats: async action => action === "read" ? pending.promise
+    : { chats: [publicChat("public", "2026-10-12T10:00:00.000Z")], next: null } });
+  await f.panel.start("Private opener"); f.draft.value = "Unsent private reply";
+  f.panel.setAvailable(false);
+  assert.equal(f.bubbles().length, 0); assert.equal(chatCards(f).length, 0);
+  assert.equal(f.draft.value, "Unsent private reply"); assert.equal(f.draft.readOnly, true); assert.equal(f.form.hidden, false);
+  await f.submit(); assert.equal(f.calls.filter(call => call.action === "send").length, 0);
+  f.panel.setActive(true); f.panel.setAvailable(true); await flush();
+  chatCards(f).find(card => card.attributes["data-chat-kind"] === "private").listeners.get("click")(); await flush();
+  assert.equal(f.draft.value, "Unsent private reply"); assert.equal(f.draft.readOnly, false);
+  f.root.children[0].children[0].listeners.get("click")(); await flush();
+  chatCards(f).find(card => card.attributes["data-chat-kind"] === "public").listeners.get("click")();
+  f.panel.setAvailable(false); pending.resolve({ conversation: publicChat("public", "2026-10-12T10:00:00.000Z"),
+    messages: [{ id: "late", body: "LATE_PUBLIC_BODY" }], next: null }); await flush();
+  assert.equal(JSON.stringify(f.root.children).includes("LATE_PUBLIC_BODY"), false); f.panel.dispose();
+});
+
 test("My chats marks private cards and the open conversation with localized accessible locks", async () => {
   assert.equal(EN.privateChats, "My chats");
   const copy = { privateChats: "Localized chats", privateConversation: "Localized private conversation" };

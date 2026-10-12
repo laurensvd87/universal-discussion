@@ -1,5 +1,23 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Combined My chats (0.13.57)
+
+My chats now combines your private conversations and public threads where your
+account posted or operated an assistant contribution, including participation
+under another person's root. Private cards retain a lock; assistant-opened
+public threads use the sparkle. Existing Alex/Blair demo contributions remain
+unclaimed. Separate bounded pages are combined by available activity timestamps.
+
+Public previews are read-only. Follow the source link to join through the normal
+current-page discussion; this inbox grants no off-page reply/Insight/delete
+authority. Sign-out/disconnect fences late reads; public read failures clear
+cached text. Private replies and one-shot generation remain unchanged.
+
+The approved backend restart is complete; reload the extension to 0.13.57.
+App sign-in may need renewal; pairing, ChatGPT sign-in and stored chats remain.
+Offline ownership/transport tests and isolated Chrome checks cover both kinds of
+conversation and 320/390/480px layouts. No new browser permission or provider call.
+
 ## Related-page discovery (0.13.56)
 
 An empty Discussion offers compact related-page links above the composer. Visible
@@ -17,8 +35,9 @@ chat is included. Reload the extension only; backend restart is unnecessary.
 
 The former Private chats tab is now **My chats**. Private conversations have a
 compact lock icon with a localized accessible label/tool tip, in the list and
-open-conversation header. The list still contains only the signed-in account's
-private conversations; the rename does not publish them or change their replies.
+open-conversation header. At 0.13.55 the list contained only the signed-in
+account's private conversations; the combined 0.13.57 view above supersedes that
+limitation without publishing private data or changing its replies.
 English copy remains in the language pack. Reload the extension only; no backend
 restart or new permission. Isolated Chrome checks cover locks, private replies,
 typing and overflow-free 320/390/480px layouts.

@@ -103,6 +103,60 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
       verifyIndexed("contributions", row, value); return value;
     });
   }
+  // My chats reads only the current revision of bounded selected messages.
+  // Export/command reads retain their separate complete-revision semantics.
+  function currentContribution(row) {
+    const value = decoded(row.payload);
+    verifyIndexed("contributions", row, { ...value, revisions: { length: row.revision_count } });
+    const latest = database.prepare("SELECT payload FROM canonical_revisions WHERE contribution_id=? AND ordinal=?")
+      .get(row.id, row.revision_count - 1);
+    if (value.withdrawn ? row.revision_count !== 0 || latest : !latest) fail("storage-corrupt", "Local database is inconsistent");
+    return { ...value, revisions: latest ? [decoded(latest.payload)] : [] };
+  }
+  const ownedPublic = `SELECT COALESCE(root_id,id) AS root_id,1 AS human,0 AS agent
+    FROM canonical_contributions INDEXED BY canonical_contributions_author WHERE author_id=?
+      AND json_extract(payload,'$.actorType')='human' AND json_extract(payload,'$.withdrawn')=0
+      AND json_extract(payload,'$.visibility')='local-public'
+    UNION ALL SELECT COALESCE(root_id,id),0,1
+    FROM canonical_contributions INDEXED BY canonical_contributions_operator WHERE operator_id=?
+      AND json_extract(payload,'$.actorType')='agent' AND json_extract(payload,'$.withdrawn')=0
+      AND json_extract(payload,'$.visibility')='local-public'`;
+  function publicChatHeader(actorId, rootId, ownership) {
+    // The owner-index mirror is an optimization, never independent authority.
+    // Verify bounded concrete witnesses for both types before accepting a root.
+    for (const [kind,column] of [["human","author_id"],["agent","operator_id"]]) {
+      if (!ownership[kind]) continue;
+      const witness=database.prepare(`SELECT * FROM canonical_contributions WHERE ${column}=? AND COALESCE(root_id,id)=?
+        AND json_extract(payload,'$.actorType')=? AND json_extract(payload,'$.withdrawn')=0
+        AND json_extract(payload,'$.visibility')='local-public' ORDER BY id LIMIT 1`).get(actorId,rootId,kind);
+      if (!witness) fail("storage-corrupt","Local database is inconsistent");
+      const entry=decoded(witness.payload);
+      verifyIndexed("contributions",witness,{...entry,revisions:{length:witness.revision_count}});
+      if (kind === "human" ? entry.authorId !== actorId : entry.insight?.operatorId !== actorId) fail("storage-corrupt","Local database is inconsistent");
+    }
+    const row = database.prepare("SELECT * FROM canonical_contributions WHERE id=? AND root_id IS NULL").get(rootId);
+    if (!row) fail("not-found", "Object unavailable");
+    const root = currentContribution(row);
+    const discussionRow = database.prepare("SELECT * FROM canonical_discussions WHERE id=?").get(root.discussionId);
+    const topicRow = discussionRow && database.prepare("SELECT * FROM canonical_topics WHERE id=?").get(discussionRow.topic_id);
+    if (!discussionRow || !topicRow) fail("storage-corrupt", "Local database is inconsistent");
+    const topic = decoded(topicRow.payload), discussion = decoded(discussionRow.payload);
+    verifyIndexed("topics", topicRow, topic); verifyIndexed("discussions", discussionRow, discussion);
+    // Recency uses surviving current revisions; erased historical text is never read.
+    const updated = database.prepare(`SELECT MAX(COALESCE(json_extract(v.payload,'$.createdAt'),c.created_at)) AS updated
+      FROM canonical_contributions c LEFT JOIN canonical_revisions v ON v.contribution_id=c.id AND v.ordinal=c.revision_count-1
+      WHERE c.id=? OR c.root_id=?`).get(rootId,rootId).updated;
+    return { root, topic, ownedHuman: Boolean(ownership.human), ownedAgent: Boolean(ownership.agent), updatedAt: updated ?? root.createdAt };
+  }
+  function publicSources(entries) {
+    return [...new Set(entries.filter(entry => !entry.withdrawn && entry.originSourceId).map(entry => entry.originSourceId))].map(id => {
+      const row = database.prepare("SELECT id,url,payload FROM canonical_sources WHERE id=?").get(id);
+      if (!row) fail("storage-corrupt", "Local database is inconsistent");
+      const source = decoded(row.payload);
+      if (source.id !== row.id || source.url !== row.url) fail("storage-corrupt", "Local database is inconsistent");
+      return { id: source.id, url: source.url };
+    });
+  }
   function stateFromQueries(queries = {}) {
     const state = { ...metadata() };
     for (const [name, [table]] of Object.entries(COLLECTIONS)) {
@@ -531,6 +585,47 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     readOperation(operationId) { readId(operationId); return checkedRead(() => sources(database.prepare("SELECT s.* FROM canonical_sources s JOIN canonical_operation_receipts r ON r.source_id=s.id WHERE r.operation_id=? ORDER BY s.ordinal LIMIT 1").all(operationId))[0] ?? null); },
     readThread(rootId) { readId(rootId); return checkedRead(() => contributions(database.prepare("SELECT * FROM canonical_contributions WHERE id=? OR root_id=? ORDER BY ordinal").all(rootId, rootId))); },
     accountContributions(actorId) { readId(actorId); return checkedRead(() => contributions(database.prepare("SELECT * FROM canonical_contributions WHERE author_id=? OR operator_id=? ORDER BY ordinal").all(actorId, actorId))); },
+    readAccountPublicChats(actorId, input = {}) {
+      readId(actorId); const { after = null, limit = 25, expectedVersion = null } = input;
+      if (!Number.isInteger(limit) || limit<1 || limit>100) fail("invalid","Invalid request");
+      if (after !== null) { const cursor=readRecord(after,["updatedAt","id"]); readText(cursor.updatedAt,64); readId(cursor.id); }
+      return checkedRead(meta => {
+        const roots = database.prepare(`WITH owned_roots AS (
+          SELECT root_id,MAX(human) AS human,MAX(agent) AS agent FROM (${ownedPublic}) GROUP BY root_id
+        ), active_roots AS (
+          SELECT o.*,(SELECT MAX(COALESCE(json_extract(v.payload,'$.createdAt'),c.created_at))
+            FROM canonical_contributions c LEFT JOIN canonical_revisions v ON v.contribution_id=c.id AND v.ordinal=c.revision_count-1
+            WHERE c.id=o.root_id OR c.root_id=o.root_id) AS updated_at FROM owned_roots o
+        ) SELECT * FROM active_roots WHERE (? IS NULL OR (updated_at,root_id)<(?,?))
+          ORDER BY updated_at DESC,root_id DESC LIMIT ?`).all(actorId,actorId,after?.id??null,after?.updatedAt??null,after?.id??null,limit+1);
+        const items = roots.slice(0,limit).map(row => publicChatHeader(actorId,row.root_id,row));
+        return { version: { generation: meta.generation, revision: meta.revision }, items,
+          sources: publicSources(items.map(item => item.root)), next: roots.length>limit ? {updatedAt:items.at(-1).updatedAt,id:items.at(-1).root.id} : null };
+      },expectedVersion);
+    },
+    readAccountPublicChat(actorId, rootId, { after = null, limit = 25, expectedVersion = null } = {}) {
+      readId(actorId); readId(rootId);
+      if (!Number.isInteger(limit) || limit<1 || limit>100) fail("invalid","Invalid request");
+      if (after !== null) { const cursor=readRecord(after,["createdAt","id"]); after={createdAt:readText(cursor.createdAt,64),id:readId(cursor.id)}; }
+      return checkedRead(meta => {
+        const owner = database.prepare(`SELECT MAX(human) AS human,MAX(agent) AS agent FROM (${ownedPublic}) WHERE root_id=?`)
+          .get(actorId,actorId,rootId);
+        if (!owner.human && !owner.agent) fail("not-found","Object unavailable");
+        const conversation=publicChatHeader(actorId,rootId,owner);
+        // Keep exactly the visible messages and their necessary deleted ancestors.
+        // Recursive work contains IDs only, not complete bodies/history in RAM.
+        const rows=database.prepare(`WITH RECURSIVE retained(id,parent) AS (
+          SELECT id,COALESCE(reply_to_id,root_id) FROM canonical_contributions
+            WHERE (id=? OR root_id=?) AND json_extract(payload,'$.withdrawn')=0
+          UNION SELECT c.id,COALESCE(c.reply_to_id,c.root_id) FROM canonical_contributions c JOIN retained r ON c.id=r.parent
+        ) SELECT c.* FROM canonical_contributions c JOIN (SELECT DISTINCT id FROM retained) r ON r.id=c.id
+          WHERE (? IS NULL OR (c.created_at,c.id)>(?,?)) ORDER BY c.created_at,c.id LIMIT ?`)
+          .all(rootId,rootId,after?.id??null,after?.createdAt??null,after?.id??null,limit+1);
+        const items=rows.slice(0,limit).map(currentContribution);
+        return { version:{generation:meta.generation,revision:meta.revision},conversation,items,
+          sources:publicSources([conversation.root,...items]),next:rows.length>limit ? {createdAt:items.at(-1).createdAt,id:items.at(-1).id}:null };
+      },expectedVersion);
+    },
     counts() { return checkedRead(() => Object.fromEntries(Object.entries(COLLECTIONS).map(([name, [table]]) => [name, database.prepare(`SELECT count(*) AS total FROM ${table}`).get().total]))); },
     close() { database.close(); },
   });

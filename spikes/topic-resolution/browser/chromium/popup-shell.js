@@ -259,6 +259,7 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     // search view, so reconnect cannot briefly reuse another page's suggestions.
     community?.discovery?.observePage?.(state);
     community?.discovery?.observeConnected(view.connection === "connected" || view.connection === "unverified");
+    community?.private?.setAvailable?.(view.connection === "connected" || view.connection === "unverified");
     const connectionProblem = ["disconnected", "unavailable", "extension-unavailable", "unverified"].includes(view.connection);
     connection.dataset.state = view.connection;
     connection.hidden = !connectionProblem;

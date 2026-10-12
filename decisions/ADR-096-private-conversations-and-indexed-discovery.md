@@ -101,6 +101,59 @@ canonical whole-document store still has an 8 MiB limit and bounded public
 read DTOs; this feature does not remove those ingestion/storage constraints.
 Normalized paged canonical storage and a hosted database remain future work.
 
+### Combined account My chats refinement (2026-10-12, 0.13.57)
+
+The owner requests their non-private conversations and those of their bots in
+My chats too. Include distinct public roots with a surviving account-authored
+human message or account-operated assistant message, even if the contribution
+is a reply beneath another user's opener. Ownership comes only from immutable
+account author/operator IDs, never email, display name or a bot's author ID;
+legacy Alex/Blair posts remain unclaimed. Private visibility/storage are unchanged.
+
+Two read-only account routes derive the active named principal server-side after
+device pairing and exact Origin: `public-chats/list` and `public-chats/read`.
+Whitelist safe display DTOs only, not account exports, identities, credentials,
+historical revisions or private data. Listing orders by current thread activity
+with stable root-ID ties; message previews are oldest-first. Pages allocate at
+most 25 selected current bodies/headers and adapt to the HTTP byte bound. Signed
+cursors bind account, canonical version, action, root and limit; restart or
+context change requires a fresh page. Deleted text/author/source is not projected;
+deleted ancestors remain only when required by surviving messages. Regrouped
+roots use their current canonical destination. Last-owned withdrawal removes
+membership and normal account deletion revokes reads.
+
+Use existing normalized owner/root indexes without schema migration, whole
+catalog snapshots or complete revision-history loads. Indexed ownership mirrors
+are optimizations, not independent authority: concrete author/operator witnesses
+must agree with canonical payloads. SQL still aggregates account-owned thread
+activity and ancestry IDs before selecting a page; large-scale constant work is
+not claimed. Legacy stores use their existing bounded snapshot fallback.
+
+The client merges independently paged private/public pools with namespaced IDs,
+activity ordering, duplicate suppression and fixed partial-failure explanations.
+Only private entries/headers have locks. Public previews stay read-only; safe
+deliberate source links return to the normal page discussion, never confer
+off-page write, Insight or deletion authority. Sign-out/account switch clears
+data; disconnect fences pending reads and visibly detaches unsent private text.
+Rejected public reads clear cached bodies, titles, links and cursors. Existing
+private typing, reply and one-attempt assistant generation are preserved.
+
+Independent Trust catches/fixes legacy version projection, indexed ownership
+mirror and stale public-text edges. Restricted browser checks pass 1,367/1,367;
+backend passes 632 with five optional skips. A large synthetic fixture exceeds
+the old snapshot budget while proving no normalized snapshot/history reads.
+Isolated actual Chrome checks mixed human/assistant/private cards, read-only
+previews, unchanged private replies and 320/390/480px layouts without overflow
+or uncaught errors; root reviews screenshots. Secret scans/diff checks pass.
+
+The owner separately approves an idle normal-service restart. It is complete:
+canonical generation/revision and 243 Topics/201 Sources/65 contribution records,
+two private chats/three private messages remain exact; saved pairing and protected
+ChatGPT connection restore. Real paired health passes and guest calls to both
+new account routes reject with 401. App sessions may need sign-in renewal; actual
+owner account-inbox interaction awaits extension reload. No provider inference,
+new permission, account claiming/migration, mail, hosting or publication follows.
+
 ## Verification
 
 Require focused storage, cross-account and Origin tests; private export/deletion

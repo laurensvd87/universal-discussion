@@ -1,5 +1,27 @@
 # Local service
 
+## Combined account My chats (2026-10-12, extension 0.13.57)
+
+Normal account composition exposes read-only `POST /v1/account/public-chats/list`
+with `{after,limit}` and `POST /v1/account/public-chats/read` with
+`{rootId,after,limit}`. Device pairing, exact extension Origin and an active named
+app account are required; the caller cannot supply an owner identity. Membership
+is a surviving public human author or verified assistant operator contribution,
+including a reply beneath another user's root. Legacy demo posts stay unclaimed.
+
+Pages contain at most 25 current bodies/headers, adapt to the response byte budget,
+and use signed account/version/action/root/limit-bound cursors. Listing is recent
+activity first; preview messages are oldest first. Stale/restarted cursors conflict.
+Normalized paths use existing owner/thread indexes and never load the canonical
+snapshot or historical revision text. Account/root activity aggregation and
+recursive ancestry still grow with participating threads; this is not constant-
+time or billion-thread readiness. No DDL or migration is introduced.
+
+Private SQLite and its API remain separate; no private data enters this public
+projection, Discover or the dashboard. The inbox grants no posting/generation/
+deletion authority. The owner-approved idle restart is complete with records,
+pairing and protected provider sign-in unchanged; app sessions may need renewal.
+
 ## Online recovery and active canonical storage (2026-10-12)
 
 The owner-approved canonical conversion is complete. Normal service startup now

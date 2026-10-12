@@ -1,5 +1,30 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 extension 0.13.57: My chats combines private conversations and public
+roots with surviving account human/AI-operator participation, including replies
+under other authors. Never claim demo posts by labels/email/bot identity. Read
+ADR-096; new strict POST account `public-chats/list`/`read` routes derive the named
+active principal after pairing/exact Origin. Existing normalized owner/thread
+indexes, current revisions and signed account/version/action/root/limit cursors
+avoid full snapshots/history; no DDL/migration. Page/body allocation is bounded,
+but recency/ancestry SQL work still grows with account/thread size.
+
+Separate private/public UI pools/cursors are namespaced, merged by available
+activity and partial failures are explicit. Lock only private entries/headers;
+public previews are read-only and safe source links return to normal page
+authority. Clear stale public text on rejected reads and all loaded data on
+logout/disconnect; visibly detach unsent private drafts. Preserve private reply/
+typing/one-attempt generation, account and page authority. No provider scope.
+
+Independent Trust/focused checks and full restricted browser 1,367/backend632
+passes (five optional skips), synthetic large-store fixture and actual Chrome
+320/390/480px mixed-inbox/preview/private-regression checks pass. Root screenshot
+review/secret scans/diff checks pass. Explicitly approved idle restart completed:
+canonical version/IDs/counts and private counts exact, pairing/provider login
+restored, health/new-route guest rejection pass. Normal service remains running;
+reload extension, app sign-in may need renewal. Actual owner inbox use not yet
+observed. Personality/voice selector is not implemented—do not imply otherwise.
+
 2026-10-12 extension 0.13.56: empty Discussion offers existing related-page cards
 only without visible direct/earlier/alternate/related conversations. Blank Discover
 shows current-page related links locally; typing searches the full public library

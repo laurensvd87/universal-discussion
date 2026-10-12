@@ -13,14 +13,17 @@ future website copy.
 
 ## Current state
 
-Extension **0.13.56** presents the Chrome extension simply as **Murmingle**. Its
+Extension **0.13.57** presents the Chrome extension simply as **Murmingle**. Its
 approved **Shared space** logo uses two opposing speech shapes with an open
 shared center, across the header and Chrome icons. The compact header omits the
 name and tagline; connection text appears only as a red exception when the local
 service is unavailable or its connection cannot be verified. **Where conversations
 meet.** remains saved for the future site and onboarding. It includes **My chats**
 and **Discover**. Private conversations have a lock icon in the list and open-chat
-header; My chats currently lists your account's private conversations only.
+header. **My chats** combines private chats with public threads where your
+account or its assistant contributed, including replies to someone else's
+thread. Public previews offer source links to rejoin the normal discussion;
+legacy Alex/Blair demo posts are never assigned to your account.
 
 Empty discussions now offer related-page links from the existing backend library.
 Discover with an empty search box shows pages related to the current page; typing
@@ -51,7 +54,7 @@ ChatGPT quality has not been retested.
   stays private to your signed-in app account; it cannot appear in public search
   or discussions. Use the sparkle for its first assistant answer. Replying to
   your own private AI automatically starts one follow-up attempt, without a retry
-  loop. Reopen conversations in **Private chats**, or delete them there.
+  loop. Reopen conversations in **My chats**, or delete private chats there.
 - **Discover** searches public topics, discussion messages and linked pages in
   the backend. Open a result to read it, or follow a page link. Reading needs
   pairing, not an app account; private chatting requires app sign-in/username.

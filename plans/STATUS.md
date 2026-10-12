@@ -1,5 +1,32 @@
 # Project status
 
+**2026-10-12 combined My chats verified/active backend, extension 0.13.57:**
+The account inbox now includes private chats and public threads with surviving
+own human or assistant-operator contributions, including replies beneath other
+authors. Legacy demo posts remain unclaimed. Existing indexed owner/root reads
+project bounded current text only; signed cursors fence account/version/action/
+root/limit. No DDL/migration or snapshot/history loads on the normalized path.
+Private SQLite stays separate. SQL activity/ancestry work is still proportional
+to participating roots/threads, not a constant-time large-scale claim.
+
+The UI combines separately paged pools by available activity, namespaces IDs,
+shows locks only for private conversations and offers read-only public previews
+with safe source-page links. Fixed partial failures, stale-text clearing and
+logout/disconnect/late-read fences preserve private draft and authority behavior.
+Independent Trust accepted after legacy-version, mirrored ownership and stale-
+text corrections. Full restricted browser checks pass 1,367/1,367; backend 632
+passes/five optional skips. Isolated Chrome checks mixed human/bot/private lists,
+public preview, unchanged private replies and 320/390/480px layouts; root reviews
+screenshots, no overflow/uncaught errors. Secret scans/diff checks pass.
+
+The explicitly approved idle restart is complete. Canonical generation/revision
+and all counts remain exact (243 Topics/201 Sources/65 contribution records,
+two private chats/three private messages); pairing and protected ChatGPT sign-in
+restore. Real health and new-route guest rejection pass. Reload extension to
+0.13.57; app account may need signing in again. Actual owner inbox interaction is
+not yet observed. No provider call, mail, new permission or hosted scope. See
+ADR-096. AI personality/voice selection remains a discussed, unimplemented idea.
+
 **2026-10-12 contextual related-page discovery verified, extension 0.13.56:**
 Empty User Discussion offers compact safe page links above the composer when no
 visible current/earlier/alternate/related conversation remains; tombstone-only

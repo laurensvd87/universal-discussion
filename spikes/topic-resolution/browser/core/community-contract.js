@@ -1,4 +1,5 @@
 import { inspectPageUrl } from "./page-content-policy.js";
+import { record as exactRecord, readId, readVersion } from "./local-service-contract.js";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/u;
@@ -55,4 +56,63 @@ export function readPrivateResponse(value) {
   };
   inspect(value);
   return value;
+}
+
+// Public account previews are a narrow read projection, not an account export
+// or a current-page write/Insight attestation. Reject unexpected/secret fields.
+function publicCursor(value) {
+  if (value === null) return null;
+  string(value, 2048);
+  if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/u.test(value)) throw new TypeError("Invalid chat cursor");
+  return value;
+}
+function publicArray(value, project) {
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype || value.length > 25) throw new TypeError("Invalid chat page");
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  if (Reflect.ownKeys(descriptors).length !== value.length + 1) throw new TypeError("Invalid chat page");
+  const items = Array.from({length:value.length}, (_, index) => {
+    const descriptor = descriptors[index];
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor, "value")) throw new TypeError("Invalid chat page");
+    return project(descriptor.value);
+  });
+  if (new Set(items.map(item => item.id)).size !== items.length) throw new TypeError("Duplicate chat entry");
+  return items;
+}
+function publicSource(value) { return value === null ? null : url(string(value, 8192)); }
+function actorType(value) {
+  if (!["human", "agent"].includes(value)) throw new TypeError("Invalid chat actor");
+  return value;
+}
+function publicChat(value) {
+  const item = exactRecord(value, ["id", "visibility", "topicId", "discussionId", "title", "sourceId", "sourceUrl", "createdAt", "updatedAt", "actorType", "ownedHuman", "ownedAgent"]);
+  if (item.visibility !== "public" || typeof item.ownedHuman !== "boolean" || typeof item.ownedAgent !== "boolean" || !item.ownedHuman && !item.ownedAgent) throw new TypeError("Invalid owned conversation");
+  if ((item.sourceId === null) !== (item.sourceUrl === null)) throw new TypeError("Invalid chat source");
+  return {id:readId(item.id),visibility:"public",topicId:readId(item.topicId),discussionId:readId(item.discussionId),
+    title:string(item.title,200),sourceId:item.sourceId === null ? null : readId(item.sourceId),sourceUrl:publicSource(item.sourceUrl),
+    createdAt:string(item.createdAt,64),updatedAt:string(item.updatedAt,64),actorType:actorType(item.actorType),
+    ownedHuman:item.ownedHuman,ownedAgent:item.ownedAgent};
+}
+function publicMessage(value) {
+  const item = exactRecord(value, ["id", "replyToId", "actorType", "state", "body", "createdAt", "authorLabel", "sourceUrl"]);
+  if (!["visible", "deleted"].includes(item.state) || item.state === "deleted" && (item.body !== "" || item.sourceUrl !== null)) throw new TypeError("Invalid public message");
+  const message = {id:readId(item.id),replyToId:item.replyToId === null ? null : readId(item.replyToId),
+    actorType:actorType(item.actorType),state:item.state,body:string(item.body,8000,item.state === "deleted"),
+    createdAt:string(item.createdAt,64),authorLabel:string(item.authorLabel,200),sourceUrl:publicSource(item.sourceUrl)};
+  if (message.replyToId === message.id) throw new TypeError("Invalid message parent");
+  return message;
+}
+export function readAccountPublicChatsRequest(action, value) {
+  if (!["list", "read"].includes(action)) throw new TypeError("Invalid chat action");
+  const item = exactRecord(value, action === "list" ? ["after", "limit"] : ["rootId", "after", "limit"]);
+  if (!Number.isInteger(item.limit) || item.limit < 1 || item.limit > 25) throw new TypeError("Invalid chat limit");
+  return {...(action === "read" ? {rootId:readId(item.rootId)} : {}),after:publicCursor(item.after),limit:item.limit};
+}
+export function readAccountPublicChatsResponse(action, value, rootId = null) {
+  const item = exactRecord(value, action === "list" ? ["version", "chats", "next"] : ["version", "conversation", "messages", "next"]);
+  const common = {version:readVersion(item.version),next:publicCursor(item.next)};
+  if (action === "list") return {...common,chats:publicArray(item.chats,publicChat)};
+  if (action !== "read") throw new TypeError("Invalid chat action");
+  const conversation = publicChat(item.conversation);
+  if (conversation.id !== rootId) throw new TypeError("Wrong chat destination");
+  return {...common,conversation,messages:publicArray(item.messages,publicMessage)};
 }

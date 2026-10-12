@@ -11,6 +11,7 @@ import { createSnapshotTopicPlanner } from "../domain/alternate-topic-cache.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 import { isAccountPrincipal, ACCOUNT_COMMANDS, isAccountActor } from "../accounts/account-principal.js";
 import { createCanonicalPages } from "./canonical-pages.js";
+import { createAccountPublicChats } from "./account-public-chats.js";
 
 export const DEMO_ACTORS = Object.freeze([
   Object.freeze({ id: "demo-alex", displayName: "Alex · synthetic", type: "human", demo: true }),
@@ -39,6 +40,9 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
   function version(state) { return { generation: state.generation, revision: state.revision }; }
   const normalized = typeof repository.saveScoped === "function";
   const pages = createCanonicalPages(repository);
+  const accountPublicChats = createAccountPublicChats({ repository, authorLabel(id) {
+    try { return actorFor(id).displayName; } catch { return "Human"; }
+  } });
   function catalogProjection(state) {
     const links = new Map(state.sourceLinks.map(link => [link.sourceId, link.topicId]));
     return frozenClone({ version: version(state), model: ranking.model,
@@ -368,6 +372,8 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       return frozenClone(entries.filter(entry => !entry.withdrawn &&
         (entry.actorType === "human" ? entry.authorId === actorId : entry.insight?.operatorId === actorId)));
     },
+    accountPublicChats(actorId, input) { return accountPublicChats.list(actorId, input); },
+    accountPublicChat(actorId, input) { return accountPublicChats.read(actorId, input); },
     withdrawAccountContributions(actorId) {
       if (!isAccountActor(actorId)) fail("forbidden", "Actor unavailable");
       let current = repository.load();

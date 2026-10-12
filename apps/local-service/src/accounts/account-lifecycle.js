@@ -24,6 +24,12 @@ export function createAccountLifecycle({ accounts, service, ai, privateDiscussio
       let body;
       try { body = JSON.parse(request.body); } catch { fail("invalid", "Invalid request"); }
       if (!body || typeof body !== "object" || Array.isArray(body)) fail("invalid", "Invalid request");
+      if (["/v1/account/public-chats/list", "/v1/account/public-chats/read"].includes(request.url.pathname)) {
+        const principal = accounts.resolvePrincipal(token);
+        const value = request.url.pathname.endsWith("/list") ? service.accountPublicChats(principal.id, body)
+          : service.accountPublicChat(principal.id, body);
+        return { status: 200, value };
+      }
       if (request.url.pathname === "/v1/account/delete") {
         if (Object.keys(body).join() !== "confirmation" || body.confirmation !== "DELETE MY ACCOUNT")
           fail("invalid", "Invalid request");

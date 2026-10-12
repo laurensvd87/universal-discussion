@@ -52,7 +52,25 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
         createdAt:'2026-10-11T15:01:00.000Z',citations:[],insight:{operatorId:state.actorId,model:'synthetic'}});
       chat.revision++;
     };
+    const publicChats=[
+      {id:'public-owned-human',visibility:'public',topicId:'topic-visual',discussionId:'discussion-visual',title:'Could quieter streets make a better city?',
+        sourceId:'source-visual',sourceUrl:'https://example.com/article',createdAt:'2026-10-11T16:00:00.000Z',updatedAt:'2026-10-11T16:30:00.000Z',actorType:'human',ownedHuman:true,ownedAgent:false},
+      {id:'public-owned-assistant',visibility:'public',topicId:'topic-visual',discussionId:'discussion-visual',title:'The missing piece is how junctions handle turning traffic.',
+        sourceId:'source-related-junctions',sourceUrl:'https://example.org/streets',createdAt:'2026-10-11T16:15:00.000Z',updatedAt:'2026-10-11T16:15:00.000Z',actorType:'agent',ownedHuman:false,ownedAgent:true}];
     const client={
+      accountPublicChats:async(action,value)=>{
+        if(action==='list')return structuredClone({version:state.catalog.version,chats:publicChats,next:null});
+        if(action==='read'){
+          const conversation=publicChats.find(chat=>chat.id===value.rootId);
+          if(!conversation)throw Error('Missing fixture public root');
+          return structuredClone({version:state.catalog.version,conversation,messages:[
+            {id:conversation.id,replyToId:null,actorType:conversation.actorType,state:'visible',body:conversation.title,
+              createdAt:conversation.createdAt,authorLabel:'Alex',sourceUrl:conversation.sourceUrl},
+            {id:'public-reply-'+conversation.id,replyToId:conversation.id,actorType:'human',state:'visible',
+              body:'A quieter route would help, but it still needs safe crossings.',createdAt:conversation.updatedAt,authorLabel:'Blair',sourceUrl:null}],next:null});
+        }
+        throw Error('Unexpected fixture public account request');
+      },
       privateConversation:async(action,value,actor,options)=>{
         if(options?.beforeDispatch && !await options.beforeDispatch())throw Error('Fixture context changed');
         if(action==='create'){
@@ -144,10 +162,25 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     return {heading:root.querySelector('h2').textContent,label:icon.getAttribute('aria-label'),visible:icon.getClientRects().length>0,
       headerLockHidden:root.querySelector('.community-heading .private-conversation-lock').getClientRects().length===0};
   })()`,sessionId), {heading:"My chats",label:"Private conversation",visible:true,headerLockHidden:true});
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.private-chat-card')].map(card=>({id:card.dataset.chatId,kind:card.dataset.chatKind,
+    lock:!!card.querySelector('.private-conversation-lock'),sparkle:!!card.querySelector('.private-identity-agent')}))`,sessionId),[
+    {id:'public-owned-human',kind:'public',lock:false,sparkle:false},
+    {id:'public-owned-assistant',kind:'public',lock:false,sparkle:true},
+    {id:'private-chat-fixture',kind:'private',lock:true,sparkle:false}]);
   for(const width of [390,320,480]) {
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
     await capture(`community-my-chats-${width}`,sessionId,{fluid:true});
   }
+  await evaluate("document.querySelector('[data-chat-id=public-owned-assistant]').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.equal(await evaluate(`(() => {const root=document.querySelector('#app-view-private');return root.querySelector('.private-composer').hidden&&root.querySelector('.private-conversation-lock').hidden&&
+    root.querySelectorAll('[data-message-id]').length===2&&!root.querySelector('.private-delete')&&
+    !root.querySelector('.private-message-reply')&&!root.querySelector('.private-message-tools .private-spark');})()`,sessionId),true);
+  for(const width of [390,320,480]) {
+    await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
+    await capture(`community-my-public-chat-${width}`,sessionId,{fluid:true});
+  }
+  assert.deepEqual(await evaluate(`(() => {const link=document.querySelector('#app-view-private .community-feed>a');return {href:link.href,target:link.target,rel:link.rel,referrerPolicy:link.referrerPolicy};})()`,sessionId),
+    {href:'https://example.org/streets',target:'_blank',rel:'noopener noreferrer',referrerPolicy:'no-referrer'});
   await evaluate("document.querySelector('#app-tab-discover').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   for(const width of [390,320,480]){
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
@@ -172,5 +205,5 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   await capture("community-discovery-preview",sessionId,{fluid:true});
   assert.equal(await evaluate("!document.querySelector('#discovery-preview').hidden && document.querySelectorAll('.discovery-message').length===2 && window.communityState.sourceId==='source-visual'",sessionId),true);
   await evaluate("window.communityDispose()",sessionId);
-  process.stdout.write("Community Chrome checks: empty Discussion/blank Discover related pages, typed global search, My chats/private lock labels, private replies, source links/focus and 320/390/480px layouts passed.\n");
+  process.stdout.write("Community Chrome checks: related pages/global search, mixed human/bot/private My chats, read-only public previews, private replies, source links/focus and 320/390/480px layouts passed.\n");
 }
