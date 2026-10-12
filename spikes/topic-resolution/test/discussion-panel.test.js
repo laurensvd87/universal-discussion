@@ -2081,6 +2081,8 @@ test("one inline composer follows exact nested target, keeps selection on refres
   const composer = ui.byId("discussion-composer"), body = ui.byId("discussion-body");
   const card = descendants(ui.root).find((item) => item.attributes["data-post-id"] === "reply-child");
   assert.equal(card.nextSibling, composer);
+  assert.equal(ui.byId("discussion-model-host").hidden, true);
+  assert.equal(ui.byId("discussion-voice-host").hidden, false);
   assert.equal(descendants(ui.root).filter((item) => item === composer).length, 1);
   assert.equal(ui.byId("discussion-discard").hidden, true);
   assert.equal(ui.byId("discussion-back-to-new-thread").hidden, false);

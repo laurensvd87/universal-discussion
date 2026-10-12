@@ -30,7 +30,7 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     state.catalog.topics.push({id:'topic-related-urban',title:'Calmer city centers',kind:'general'});
     state.related={version:state.catalog.version,results:recommendationPages.map(source=>({...source,
       relationship:source.topicId===state.topicId?'same-topic':'related'}))};
-    const ai={available:true,busy:false,status:'prepared',draft:'',preview:null,
+    const ai={available:true,busy:false,status:'prepared',draft:'',preview:null,preferences:{replyLanguage:'en'},
       context:{topic:state.catalog.topics.find(topic=>topic.id===state.topicId),
         currentSource:state.catalog.sources.find(source=>source.id===state.sourceId),sameTopicSources:[],relatedSources:[],discussion:[]},
       ai:{connected:true,planEnabled:true,pending:false,model:'synthetic',models:[{slug:'synthetic',displayName:'Synthetic model'}]}};
@@ -42,7 +42,9 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
       submitDraft:async()=>{window.communityCalls.publicWrites++;return true}};
     publicPanel.bind(new Proxy(controller,{get:(value,key)=>value[key]??(()=>{})}));
     const insights=mountInsightPanel(document,insightRoot);
-    const insightController=new Proxy({currentState:()=>ai},{get:(value,key)=>value[key]??(()=>{})});
+    const insightController=new Proxy({currentState:()=>ai,setInsightPreferences:preferences=>{
+      ai.preferences={...preferences};insights.render(ai);privatePanel?.observe();return true;
+    }},{get:(value,key)=>value[key]??(()=>{})});
     insights.bind(insightController);publicPanel.bindInsight(insightController);publicPanel.renderInsightState(ai);
     shell=mountPopupShell(document,{onModeChange:mode=>publicPanel.setMode(mode)});
     const addAnswer=human=>{
@@ -57,9 +59,16 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
         sourceId:'source-visual',sourceUrl:'https://example.com/article',createdAt:'2026-10-11T16:00:00.000Z',updatedAt:'2026-10-11T16:30:00.000Z',actorType:'human',ownedHuman:true,ownedAgent:false},
       {id:'public-owned-assistant',visibility:'public',topicId:'topic-visual',discussionId:'discussion-visual',title:'The missing piece is how junctions handle turning traffic.',
         sourceId:'source-related-junctions',sourceUrl:'https://example.org/streets',createdAt:'2026-10-11T16:15:00.000Z',updatedAt:'2026-10-11T16:15:00.000Z',actorType:'agent',ownedHuman:false,ownedAgent:true}];
+    window.communityPublicChats=publicChats;
+    const matches=(title,query)=>!query||query.toLowerCase().trim().split(/\s+/).every(term=>title.toLowerCase().includes(term));
     const client={
       accountPublicChats:async(action,value)=>{
-        if(action==='list')return structuredClone({version:state.catalog.version,chats:publicChats,next:null});
+        if(action==='list'){
+          const filtered=publicChats.filter(chat=>matches(chat.title,value.query));
+          const start=value.after?Number(value.after.split('-').at(-1)):0;
+          return structuredClone({version:state.catalog.version,chats:filtered.slice(start,start+value.limit),
+            next:start+value.limit<filtered.length?'fixture-page-'+(start+value.limit):null});
+        }
         if(action==='read'){
           const conversation=publicChats.find(chat=>chat.id===value.rootId);
           if(!conversation)throw Error('Missing fixture public root');
@@ -93,7 +102,7 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
           return {conversationId:chat.id,messageId:human.id,revision:chat.revision,replayed:false,generation:human.generation};
         }
         if(action==='read')return structuredClone({conversation:chat,messages:privateMessages,next:null});
-        if(action==='list')return structuredClone({conversations:chat?[chat]:[],next:null});
+        if(action==='list')return structuredClone({conversations:chat&&matches(chat.title,value.query)?[chat]:[],next:null});
         throw Error('Unexpected fixture private request');
       },
       discover:async input=>{window.communityCalls.searches++;window.communityLastSearch=input;return {version:{generation:'community',revision:1},query:'cycling',nextCursor:null,
@@ -109,7 +118,8 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
               origin:{url:'https://example.com/neighborhood',title:'A calmer city center'}}]}]})
     };
     privatePanel=mountPrivateConversationPanel(document,document.querySelector('#app-view-private'),{
-      client,readActor:()=>state.actorId,requestSignIn:async()=>true,prepareGeneration:async()=>({context:{currentSource:{id:state.sourceId}}}),
+      client,readActor:()=>state.actorId,readInsightState:()=>ai,setInsightPreferences:preferences=>insightController.setInsightPreferences(preferences),
+      requestSignIn:async()=>true,prepareGeneration:async()=>({context:{currentSource:{id:state.sourceId}}}),
       attestStart:async()=>true,readPublicState:()=>state,showView:view=>shell.navigate(view),randomId:()=> 'fixture-operation-'+(++sequence)});
     const discover=mountDiscoveryPanel(document,document.querySelector('#app-view-discover'),{client});
     shell.bindCommunity({private:privatePanel,discovery:discover});
@@ -120,6 +130,10 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   })()`, sessionId);
   await browser.send("Emulation.setDeviceMetricsOverride", {width:390,height:650,deviceScaleFactor:1,mobile:false}, sessionId);
   assert.equal(await evaluate("document.querySelector('#app-tab-private').textContent", sessionId), "My chats");
+  assert.equal(await evaluate("document.querySelector('#discussion-voice-host #insight-voice')?.options.length",sessionId),12);
+  await evaluate(`(() => {const voice=document.querySelector('#insight-voice');voice.value='funny';voice.dispatchEvent(new Event('change',{bubbles:true}));})()`,sessionId);
+  assert.equal(await evaluate("document.querySelector('#insight-voice').value",sessionId),'funny');
+  assert.deepEqual(await evaluate("window.communityCalls",sessionId),{creates:0,generates:0,sends:0,publicWrites:0,searches:0},"choosing a voice never calls a provider");
   assert.equal(await evaluate("!document.querySelector('#discussion-related-page-suggestions').hidden && document.querySelectorAll('#discussion-related-page-suggestions .related-page-card').length===2",sessionId),true);
   for(const width of [390,320,480]) {
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
@@ -134,6 +148,9 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   await evaluate("document.querySelector('#discussion-composer').requestSubmit();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   assert.deepEqual(await evaluate("window.communityCalls",sessionId),{creates:1,generates:0,sends:0,publicWrites:0,searches:0});
   assert.equal(await evaluate("!document.querySelector('#app-view-private').hidden && document.querySelectorAll('.private-bubble').length===1",sessionId),true);
+  assert.equal(await evaluate("document.querySelector('#private-insight-voice').value",sessionId),'funny');
+  await evaluate(`(() => {const voice=document.querySelector('#private-insight-voice');voice.value='skeptic';voice.dispatchEvent(new Event('change',{bubbles:true}));})()`,sessionId);
+  assert.equal(await evaluate("document.querySelector('#insight-voice').value",sessionId),'skeptic');
   assert.deepEqual(await evaluate(`(() => {
     const icon=document.querySelector('#app-view-private .community-heading .private-conversation-lock');
     return {label:icon.getAttribute('aria-label'),role:icon.getAttribute('role'),visible:icon.getClientRects().length>0,
@@ -175,12 +192,52 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   assert.equal(await evaluate(`(() => {const root=document.querySelector('#app-view-private');return root.querySelector('.private-composer').hidden&&root.querySelector('.private-conversation-lock').hidden&&
     root.querySelectorAll('[data-message-id]').length===2&&!root.querySelector('.private-delete')&&
     !root.querySelector('.private-message-reply')&&!root.querySelector('.private-message-tools .private-spark');})()`,sessionId),true);
+  assert.equal(await evaluate("document.querySelector('#private-insight-voice').getClientRects().length===0",sessionId),true,"public previews expose no assistant controls");
   for(const width of [390,320,480]) {
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
     await capture(`community-my-public-chat-${width}`,sessionId,{fluid:true});
   }
   assert.deepEqual(await evaluate(`(() => {const link=document.querySelector('#app-view-private .community-feed>a');return {href:link.href,target:link.target,rel:link.rel,referrerPolicy:link.referrerPolicy};})()`,sessionId),
     {href:'https://example.org/streets',target:'_blank',rel:'noopener noreferrer',referrerPolicy:'no-referrer'});
+  await evaluate(`(() => {
+    const template=window.communityPublicChats[0];
+    window.communityPublicChats.splice(0,window.communityPublicChats.length,...Array.from({length:60},(_,index)=>({...template,
+      id:'public-search-'+index,title:index===57?'Needle: a useful conversation beyond the first page':
+        'A longer conversation about practical changes, uncertain evidence and the details that matter when comparing several public sources. Thread '+index,
+      updatedAt:'2026-10-12T12:00:00.000Z'})));
+    document.querySelector('#app-view-private .community-heading button').click();
+  })();new Promise(resolve=>setTimeout(resolve,30))`,sessionId);
+  assert.equal(await evaluate("document.querySelectorAll('.private-chat-card').length",sessionId),26,"first bounded public page plus private pool");
+  for(const width of [390,320,480]) {
+    await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
+    const metrics=await evaluate(`(() => {
+      const feed=document.querySelector('#private-chat-feed');
+      feed.scrollTop=0;
+      const cards=[...feed.querySelectorAll('.private-chat-card')];
+      const boxes=cards.map(card=>card.getBoundingClientRect());
+      const contained=cards.every(card=>[...card.querySelectorAll('strong,span')].every(child=>
+        child.getBoundingClientRect().bottom<=card.getBoundingClientRect().bottom+1));
+      const gaps=boxes.slice(1).every((box,index)=>box.top>=boxes[index].bottom+8);
+      const before=document.querySelector('#my-chats-search').getBoundingClientRect().top;
+      feed.scrollTop=feed.scrollHeight;
+      const fixedSearch=Math.abs(before-document.querySelector('#my-chats-search').getBoundingClientRect().top)<1;
+      feed.scrollTop=0;return {contained,gaps,fixedSearch,scrolls:feed.scrollHeight>feed.clientHeight};
+    })()`,sessionId);
+    assert.deepEqual(metrics,{contained:true,gaps:true,fixedSearch:true,scrolls:true},'long cards contain text without overlap; search stays fixed');
+    await capture('community-my-chats-long-list-'+width,sessionId,{fluid:true});
+  }
+  await evaluate(`(() => {const search=document.querySelector('#my-chats-search');search.focus();search.value='needle';
+    search.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#my-chats-search-form').requestSubmit();})();new Promise(resolve=>setTimeout(resolve,30))`,sessionId);
+  assert.equal(await evaluate("document.querySelectorAll('.private-chat-card').length===1&&document.querySelector('.private-chat-card').dataset.chatId==='public-search-57'&&document.activeElement===document.querySelector('#my-chats-search')",sessionId),true,"search finds a conversation beyond loaded pages without losing focus");
+  await capture('community-my-chats-search',sessionId,{fluid:true});
+  await evaluate(`(() => {const search=document.querySelector('#my-chats-search');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));
+    document.querySelector('#my-chats-search-form').requestSubmit();})();new Promise(resolve=>setTimeout(resolve,30))`,sessionId);
+  await evaluate("document.querySelector('#private-chat-feed>button:not(.private-chat-card)').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.equal(await evaluate("document.querySelectorAll('.private-chat-card').length",sessionId),51,"load more continues bounded result pools");
+  await evaluate(`(() => {const style=document.createElement('style');style.id='community-large-type';style.textContent='.private-chat-card strong {font-size:22px}';document.head.append(style);})();new Promise(resolve=>setTimeout(resolve,30))`,sessionId);
+  await capture('community-my-chats-large-text',sessionId,{fluid:true});
+  assert.equal(await evaluate(`[...document.querySelectorAll('.private-chat-card')].every(card=>card.querySelector('strong').getBoundingClientRect().bottom<=card.getBoundingClientRect().bottom+1)`,sessionId),true);
+  await evaluate("document.querySelector('#community-large-type').remove()",sessionId);
   await evaluate("document.querySelector('#app-tab-discover').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   for(const width of [390,320,480]){
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
@@ -204,6 +261,23 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   await evaluate("document.querySelector('.discovery-title').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   await capture("community-discovery-preview",sessionId,{fluid:true});
   assert.equal(await evaluate("!document.querySelector('#discovery-preview').hidden && document.querySelectorAll('.discovery-message').length===2 && window.communityState.sourceId==='source-visual'",sessionId),true);
+  await evaluate(`(() => {
+    const state=window.communityState;
+    state.discussion={discussionId:'discussion-visual',roots:[{id:'voice-root',rootId:null,state:'visible',actorType:'human',
+      authorId:state.actorId,body:'What would improve the crossing?',createdAt:'2026-10-12T12:00:00.000Z',replies:[
+        {id:'voice-reply',rootId:'voice-root',replyToId:'voice-root',state:'visible',actorType:'human',authorId:state.actorId,
+          body:'Separate the turning traffic.',createdAt:'2026-10-12T12:01:00.000Z'}]}]};
+    state.draft={mode:'reply',targetId:'voice-reply',body:'How would that work here?',detached:false};
+    window.communityPublic.render(state);window.communityShell.navigate('discussion');window.communityShell.render(state);
+    document.querySelector('#discussion-body').focus();
+  })()`,sessionId);
+  assert.equal(await evaluate("document.querySelector('#insight-voice').getClientRects().length>0&&document.querySelector('#discussion-model-host').hidden&&document.querySelector('#discussion-composer').parentElement!==document.querySelector('#discussion-root-dock')",sessionId),true,"inline reply keeps voice visible without model clutter or duplicate composer");
+  for(const width of [390,320,480]) {
+    await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
+    await capture('community-inline-reply-voice-'+width,sessionId,{fluid:true});
+  }
+  await evaluate(`(() => {const select=document.querySelector('#insight-voice');select.value='mediator';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,sessionId);
+  assert.equal(await evaluate("document.querySelector('#discussion-body').value==='How would that work here?'&&document.querySelectorAll('#insight-voice').length===1",sessionId),true);
   await evaluate("window.communityDispose()",sessionId);
-  process.stdout.write("Community Chrome checks: related pages/global search, mixed human/bot/private My chats, read-only public previews, private replies, source links/focus and 320/390/480px layouts passed.\n");
+  process.stdout.write("Community Chrome checks: related pages/global search, mixed My chats/read-only previews, synchronized compact voice selectors, private replies, source links/focus and 320/390/480px layouts passed.\n");
 }

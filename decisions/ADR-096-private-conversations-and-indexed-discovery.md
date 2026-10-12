@@ -154,6 +154,43 @@ new account routes reject with 401. App sessions may need sign-in renewal; actua
 owner account-inbox interaction awaits extension reload. No provider inference,
 new permission, account claiming/migration, mail, hosting or publication follows.
 
+### My chats search and scrolling refinement (2026-10-12, 0.13.58)
+
+The owner requests account-inbox search and reports long cards visually spilling
+into adjacent entries. A fixed compact search field sits outside the scrollable
+list. Content-sized grid rows/intrinsic card heights retain wrapped titles, origin
+labels and gaps; the same shared layout safeguards apply to private bubbles and
+Discover cards. Use bounded result pages/Load more rather than unbounded initial
+reads. Fully paginated arbitrary discussion/reply trees remain later scalability
+work; this does not implement numbered pages across every tab.
+
+Both account-public and private list requests accept an optional query of at most
+256 characters. Blank input preserves unfiltered behavior. Literal AND substring
+matching examines current visible public thread text and safe Topic/Source titles
+only within actual account participation; private matching examines owned private
+titles/current messages in its separate store. Never index private data into
+Discover/canonical storage, match withdrawn/history text or transfer queries to a
+provider. Existing SQL owner/thread indexes scope work before bounded projection;
+no snapshot/history loads or schema migration. This is not FTS, semantic search or
+constant-time work; SQLite case folding is ASCII-only, other characters match
+literally with exact case.
+
+Public signed cursors include the normalized query. Filtered private pages use
+signed owner/current owner-version/query/action/limit/last-ID cursors, while old
+unfiltered ID pagination remains compatible. Query/version/account changes and
+restart reject filtered stale cursors. UI debounce/Enter/IME handling preserves
+search focus, fences old reads and resets separate pools/cursors; clearing restores
+the normal inbox. Logout/disconnect/disposal clears query data and pending timers.
+Private unsent text remains visibly detached after disconnect. Fixed partial
+failures remain explicit; public previews remain read-only.
+
+Independent Trust includes account isolation, body-tail hits outside the first
+page, literal operators/emoji, current-only deletion/history checks, forged and
+stale/query-bound cursors and real synthetic private restart. Actual Chrome tests
+60 synthetic public cards, search hit 57, additional page loading, fixed search
+while scrolling, wrapped-title containment/gaps at 320/390/480px and enlarged text.
+No owner/provider calls occur in these fixtures. Final evidence is in STATUS.
+
 ## Verification
 
 Require focused storage, cross-account and Origin tests; private export/deletion

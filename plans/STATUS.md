@@ -1,5 +1,38 @@
 # Project status
 
+**2026-10-12 compact voices/search/layout verified and activated, 0.13.58:**
+The native twelve-style voice selector sits beside Start a new thread, remains
+available in inline replies and synchronizes with private-chat controls. Choice
+persists through existing local preferences without a generation request.
+Standard preserves the four original prompts/full provider packet exactly;
+static overlays never change factual/source/citation/privacy/proof authority.
+Independent Trust covers invalid enums/getters before dispatch, clicked-settings
+races, private preparation and exact failed-send reuse. No live inference QA.
+
+My chats searches actual account public/private participation across unloaded
+pages. Optional bounded literal AND query, owner-scoped current-text SQL, signed
+query/version cursors and separate stores preserve privacy; no DDL/migration.
+Matching uses ASCII case folding, exact case otherwise; it is not semantic/FTS or
+constant-time search. Fixed search/debounce/Enter/IME, pool/epoch/auth fences and
+content-sized grid rows correct compressed/overlapping multi-line cards. Existing
+Load more remains bounded; arbitrary discussion/reply-tree pagination is still
+future work, not numbered pages for every tab.
+
+Full restricted browser checks pass 1,379/1,379; backend 652 passes/five optional
+skips. Independent voice/search Trust accepted. Actual isolated Chrome tests
+synchronized selectors/inline replies, unchanged private replies, 60 long cards,
+hit 57 beyond initial pages, Load more, fixed search while scrolling, enlarged
+text and 320/390/480px containment. Root reviews screenshots; no horizontal
+overflow or uncaught exceptions. Secret scans: 235 browser/713 backend files,
+zero findings; diff checks pass. Isolated unpaired startup notices are not owner
+connection evidence; owner interaction/live model style quality remain untested.
+
+Owner permits normal local restarts as needed, not busy-job interruption or new
+hosting/provider scope. Idle restart is complete; canonical version/record counts
+and private totals remain exact, saved pairing/protected ChatGPT sign-in restore,
+real paired health passes and guest search rejects 401. Reload extension to
+0.13.58; app sign-in may need renewal. See ADR-100 and ADR-096.
+
 **2026-10-12 combined My chats verified/active backend, extension 0.13.57:**
 The account inbox now includes private chats and public threads with surviving
 own human or assistant-operator contributions, including replies beneath other
@@ -24,7 +57,7 @@ and all counts remain exact (243 Topics/201 Sources/65 contribution records,
 two private chats/three private messages); pairing and protected ChatGPT sign-in
 restore. Real health and new-route guest rejection pass. Reload extension to
 0.13.57; app account may need signing in again. Actual owner inbox interaction is
-not yet observed. No provider call, mail, new permission or hosted scope. See
+not yet observed. No inference request, mail, new permission or hosted scope. See
 ADR-096. AI personality/voice selection remains a discussed, unimplemented idea.
 
 **2026-10-12 contextual related-page discovery verified, extension 0.13.56:**

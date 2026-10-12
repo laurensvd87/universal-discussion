@@ -12,6 +12,12 @@ const compare = (a,b) => a<b ? -1 : a>b ? 1 : 0;
 const position = entry => ({createdAt:entry.createdAt,id:entry.id});
 const safeUrl = source => source && inspectPageUrl(source.url).supported && inspectPageUrl(source.url).url === source.url ? source.url : null;
 
+export function normalizeMyChatsQuery(value) {
+  if (typeof value !== "string" || value.length > 256 ||
+    /[\u0000-\u0008\u000b\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]|[\uD800-\uDFFF]/u.test(value)) fail("invalid", "Invalid request");
+  return value.replace(/\s+/gu," ").trim();
+}
+
 // Account-authenticated read projections. These pages grant no write/AI authority.
 export function createAccountPublicChats({repository,authorLabel}) {
   const cursorKey=randomBytes(32);
@@ -20,12 +26,12 @@ export function createAccountPublicChats({repository,authorLabel}) {
     if(typeof repository.version === "function") return readExpectedVersion(repository.version());
     const state=repository.load();return readExpectedVersion({generation:state.generation,revision:state.revision});
   };
-  function encode(actorId,route,rootId,limit,version,after) {
+  function encode(actorId,route,rootId,limit,version,after,query) {
     if(after===null) return null;
-    const payload=Buffer.from(JSON.stringify({schema:"account-public-chats/v1",actorId,route,rootId,limit,version,after})).toString("base64url");
+    const payload=Buffer.from(JSON.stringify({schema:"account-public-chats/v1",actorId,route,rootId,limit,version,after,query})).toString("base64url");
     return `${payload}.${createHmac("sha256",cursorKey).update(payload).digest("base64url")}`;
   }
-  function decode(value,actorId,route,rootId,limit,expected) {
+  function decode(value,actorId,route,rootId,limit,expected,query) {
     if(value===null) return null;
     if(typeof value!=="string" || value.length>2048 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/u.test(value)) fail("invalid","Invalid request");
     const [payload,signature]=value.split(".");
@@ -35,9 +41,9 @@ export function createAccountPublicChats({repository,authorLabel}) {
     let cursor;
     try { cursor=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(Buffer.from(payload,"base64url"))); }
     catch { fail("invalid","Invalid request"); }
-    cursor=readRecord(cursor,["schema","actorId","route","rootId","limit","version","after"]);
+    cursor=readRecord(cursor,["schema","actorId","route","rootId","limit","version","after","query"]);
     if(cursor.schema!=="account-public-chats/v1" || cursor.actorId!==actorId || cursor.route!==route ||
-      cursor.rootId!==rootId || cursor.limit!==limit) fail("conflict","Chats changed");
+      cursor.rootId!==rootId || cursor.limit!==limit || cursor.query!==query) fail("conflict","Chats changed");
     assertExpected(expected,readExpectedVersion(cursor.version));
     if(route==="list") {
       const after=readRecord(cursor.after,["updatedAt","id"]);
@@ -62,7 +68,7 @@ export function createAccountPublicChats({repository,authorLabel}) {
       createdAt:entry.createdAt,authorLabel:entry.withdrawn ? "Deleted by user" : authorLabel(entry.actorType==="agent" ? entry.insight.operatorId : entry.authorId).slice(0,200),
       sourceUrl:safeUrl(source)};
   }
-  function legacy(actorId,rootId,after,limit,expected) {
+  function legacy(actorId,rootId,after,limit,expected,query) {
     const state=repository.load();assertExpected(state,expected);
     const ownedEntries=state.contributions.filter(entry=>owned(entry,actorId));
     const rootIds=new Set(ownedEntries.map(entry=>entry.rootId??entry.id));
@@ -76,7 +82,13 @@ export function createAccountPublicChats({repository,authorLabel}) {
         updatedAt:thread.map(entry=>entry.revisions.at(-1)?.createdAt??entry.createdAt).sort(compare).at(-1)};
     }
     if(rootId===null) {
-      const roots=[...rootIds].map(header).sort((a,b)=>compare(b.updatedAt,a.updatedAt)||compare(b.root.id,a.root.id))
+      const roots=[...rootIds].map(header).filter(item=>!query || query.split(" ").every(term=> {
+        const source=!item.root.withdrawn && state.sources.find(source=>source.id===item.root.originSourceId);
+        const texts=[item.topic.title,...(safeUrl(source)?[source.title]:[]),...state.contributions.filter(entry=>
+          (entry.id===item.root.id || entry.rootId===item.root.id) && !entry.withdrawn && entry.visibility==="local-public").map(entry=>entry.revisions.at(-1)?.body??"")];
+        const fold=text=>text.replace(/[A-Z]/gu,char=>char.toLowerCase());
+        return texts.some(text=>fold(text).includes(fold(term)));
+      })).sort((a,b)=>compare(b.updatedAt,a.updatedAt)||compare(b.root.id,a.root.id))
         .filter(item=>after===null || item.updatedAt<after.updatedAt || item.updatedAt===after.updatedAt && item.root.id<after.id);
       const items=roots.slice(0,limit);
       return {version:expected,items,sources:state.sources,next:roots.length>limit ? {updatedAt:items.at(-1).updatedAt,id:items.at(-1).root.id}:null};
@@ -95,19 +107,21 @@ export function createAccountPublicChats({repository,authorLabel}) {
   }
   function page(actorId,value,route) {
     if(!isAccountActor(actorId)) fail("forbidden","Actor unavailable");
-    const input=readRecord(value,route==="list" ? ["after","limit"]:["rootId","after","limit"]);
+    const fields=route==="list" ? ["after","limit"]:["rootId","after","limit"];
+    const input=readRecord(value,route==="list" ? [...fields,"query"]:fields,fields);
+    const query=route==="list" && Object.hasOwn(input,"query") ? normalizeMyChatsQuery(input.query):"";
     const rootId=route==="list" ? null:readId(input.rootId),limit=input.limit;
     if(!Number.isInteger(limit)||limit<1||limit>25) fail("invalid","Invalid request");
-    const expected=version(),after=decode(input.after,actorId,route,rootId,limit,expected);
-    const page=normalized ? route==="list" ? repository.readAccountPublicChats(actorId,{after,limit,expectedVersion:expected})
-      :repository.readAccountPublicChat(actorId,rootId,{after,limit,expectedVersion:expected}) :legacy(actorId,rootId,after,limit,expected);
+    const expected=version(),after=decode(input.after,actorId,route,rootId,limit,expected,query);
+    const page=normalized ? route==="list" ? repository.readAccountPublicChats(actorId,{after,limit,expectedVersion:expected,query})
+      :repository.readAccountPublicChat(actorId,rootId,{after,limit,expectedVersion:expected}) :legacy(actorId,rootId,after,limit,expected,query);
     assertExpected(page.version,expected);
     const result=route==="list" ? {version:expected,chats:[],next:null}:
       {version:expected,conversation:chat(page.conversation,page.sources),messages:[],next:null};
     const key=route==="list" ? "chats":"messages";
     for(let index=0;index<page.items.length;index++) {
       const entry=page.items[index],projected=route==="list" ? chat(entry,page.sources):message(entry,page.sources);
-      const next=index<page.items.length-1 || page.next!==null ? encode(actorId,route,rootId,limit,expected,route==="list" ? {updatedAt:entry.updatedAt,id:entry.root.id}:position(entry)):null;
+      const next=index<page.items.length-1 || page.next!==null ? encode(actorId,route,rootId,limit,expected,route==="list" ? {updatedAt:entry.updatedAt,id:entry.root.id}:position(entry),query):null;
       const candidate={...result,[key]:[...result[key],projected],next};
       if(Buffer.byteLength(JSON.stringify(candidate))>MAX_RESPONSE_BYTES-4096) {
         if(!result[key].length) fail("capacity","Chat page capacity reached");

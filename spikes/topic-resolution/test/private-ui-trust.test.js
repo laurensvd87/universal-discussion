@@ -119,7 +119,7 @@ function panelFixture({ inbox = false, copy, publicChats } = {}) {
         if (action === "list") return inboxReads.length ? inboxReads.shift() : { conversations: inbox ? [{ ...conversation }] : [], next: null };
         throw new Error(`Unexpected action ${action}`);
       } } });
-  const draft = created.find(item => item.id === "private-message-body"), form = created.find(item => item.tag === "form");
+  const draft = created.find(item => item.id === "private-message-body"), form = created.find(item => item.className === "private-composer");
   return { panel, root, draft, calls, document, form, views,
     queueInbox(value) { inboxReads.push(value); },
     page(items = messages, revision = 2, next = null) { return { conversation: { ...conversation, revision }, messages: structuredClone(items), next }; },

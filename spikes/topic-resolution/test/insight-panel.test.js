@@ -401,7 +401,7 @@ test("compact workspace keeps account and context secondary while exposing redac
   const quickActions = ui.byId("insight-quick-actions");
   assert.equal(ui.byId("insight-workspace").children.includes(quickActions), true);
   assert.deepEqual(quickActions.children.map((item) => item.id),
-    [undefined, "insight-model", "insight-model-status", "insight-createInsights", "insight-quick-status", "insight-plan-usage"]);
+    [undefined, "insight-model", "insight-model-status", "insight-voice", "insight-createInsights", "insight-quick-status", "insight-plan-usage"]);
   assert.equal(ui.byId("insight-account-details").children.includes(ui.byId("insight-model")), false);
   assert.equal(ui.created.some((item) => item.textContent === INSIGHT_EN.disconnected), false);
   ui.panel.render(state({ ai: { connected: true, planEnabled: true, pending: false, models: [{ slug: "model-a", displayName: "Model A" }],

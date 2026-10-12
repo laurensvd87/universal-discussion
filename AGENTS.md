@@ -8,6 +8,20 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current compact voices/My chats search (2026-10-12, 0.13.58, ADR-100/096): twelve
+fixed writing styles use the existing local preference/deliberate request path.
+Standard prompt and full packet are byte-identical; static tone cannot expand
+source/tool/citation/privacy/identity/sharing authority. Selector sits directly
+in root/inline/private composers, not Settings; preserve typing/click snapshots/
+private exact payload reuse. My chats search is owner-scoped current literal AND
+SQL with bound cursors/separate stores, no DDL/private public indexing/history.
+ASCII case folding only, not semantic/constant-time. Content-sized rows and fixed
+search fix overlapping cards. Independent/full offline/actual synthetic Chrome
+checks pass; normal idle restart is complete and records/pairing/provider sign-in
+preserved. Reload client; app auth may need renewal. User permits routine local
+restarts, not active-work cancellation/deployment or expanded provider scope.
+Read top STATUS/HANDOFF; older unimplemented-voice notes below are superseded.
+
 Current combined My chats (2026-10-12, ADR-096, 0.13.57): public roots with
 surviving own human/AI-operator participation join private chats in the account
 inbox. Derive principal from named app auth/pairing/exact Origin; never claim

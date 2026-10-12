@@ -1,5 +1,26 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Compact voices and My chats search (0.13.58)
+
+The small dropdown beside Start a new thread switches among twelve writing
+styles and remains available in inline replies. Private chats have a synchronized
+composer dropdown. Standard preserves the original prompt; a choice is saved
+locally and changes only future generation, never triggers a provider request.
+Citation/source/privacy/proof limits stay unchanged. Labels are language-pack
+driven; this is text tone, not speech or twelve autonomous bots.
+
+My chats searches account-owned public/private conversation titles/current text,
+including results beyond the loaded page. Search stays above the scrolling list;
+Enter/debounce/IME and clearing preserve focus and fence stale results. Cards size
+to wrapped titles rather than compressing into neighbors. Load more uses bounded
+pages. Search is literal AND matching, ASCII-case-insensitive, not semantic or
+global library search (use Discover for that). No private public-index projection.
+
+Backend and extension must be updated together; activation is recorded in top
+STATUS/HANDOFF. Reload 0.13.58 after the matching normal-service restart. Pairing
+and protected ChatGPT sign-in stay saved; app sign-in may need renewal. See
+[ADR-100](../../../decisions/ADR-100-assistant-voices.md) and ADR-096.
+
 ## Combined My chats (0.13.57)
 
 My chats now combines your private conversations and public threads where your

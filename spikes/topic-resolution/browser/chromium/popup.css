@@ -1501,6 +1501,14 @@ body[data-ui-surface="sidepanel"][data-ui-mode="user"] #app-view-private:not([hi
   animation: community-appear .22s ease-out;
 }
 .private-chat-card { display: grid; gap: 5px; text-align: left; }
+.community-feed > * { flex-shrink: 0; }
+.community-feed { grid-auto-rows: minmax(min-content, max-content); }
+.private-chat-card, .private-bubble, .discovery-card { height: auto; min-height: min-content; overflow-wrap: anywhere; }
+.private-chat-card strong { line-height: 1.45; }
+.private-chat-card > span { min-width: 0; overflow-wrap: anywhere; }
+.my-chats-search-form { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px; margin-bottom: 10px; }
+.my-chats-search-form input { font-size: 13px; }
+.my-chats-search-form button { width: auto; min-height: 38px; padding: 7px 10px; font-size: 12px; }
 .private-chat-card strong { font-size: 14px; overflow-wrap: anywhere; }
 .private-chat-card span { color: #a4a1b4; font-size: 11px; }
 .private-chat-card .private-chat-title { display: flex; align-items: baseline; gap: 7px; color: inherit; min-width: 0; }
@@ -1553,6 +1561,17 @@ body[data-ui-mode="user"] #discussion-root-dock .discussion-composer-actions:has
   grid-template-columns: 32px minmax(0, 1fr) auto;
 }
 body[data-ui-mode="user"] #discussion-root-dock #discussion-model-host { grid-column: 2; }
+body[data-ui-mode="user"] #discussion-root-dock #discussion-model-host {
+  display: block;
+}
+body[data-ui-mode="user"] #discussion-root-dock #discussion-model-host #insight-model-status { grid-column: 1 / -1; }
+body[data-ui-mode="user"] #discussion-root-dock #discussion-model-host #insight-model { grid-column: 1; grid-row: 1; }
+.insight-voice-select { width: 108px; max-width: 120px; min-width: 0; font-size: 12px; }
+.discussion-composer-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.discussion-composer-header .discussion-new-thread-heading { flex: 1; min-width: 0; margin: 0; }
+#discussion-voice-host { flex: none; margin-left: auto; }
+body[data-ui-mode="user"] #discussion-voice-host #insight-voice { width: 108px; min-height: 26px; padding: 3px 7px; font-size: 11px; }
+.private-composer-actions .insight-voice-select { flex: 0 1 108px; min-height: 36px; padding-inline: 7px; }
 body[data-ui-mode="user"] #discussion-root-dock #discussion-composer #discussion-ai-insights { grid-column: 3; }
 body[data-ui-mode="user"] #discussion-root-dock #discussion-composer #discussion-submit { grid-column: 4; }
 body[data-ui-mode="user"] #discussion-root-dock #discussion-composer .discussion-composer-actions:has(#discussion-ai-insights[hidden]) #discussion-submit { grid-column: 3; }

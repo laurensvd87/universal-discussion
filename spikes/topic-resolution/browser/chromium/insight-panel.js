@@ -1,6 +1,7 @@
 import { INSIGHT_EN } from "../locales/insight-en.js";
 import { appendInsightCitationNodes, formatInsightCitations } from "../core/insight-citations.js";
 import { REPLY_LANGUAGE_OPTIONS, DELIVERY_COUNTRY_OPTIONS, CURRENCY_OPTIONS } from "../core/insight-preferences.js";
+import { INSIGHT_VOICES, normalizeInsightVoice } from "../core/insight-voices.js";
 
 const FAILURE_STAGE_MESSAGES = Object.freeze({
   "callback-invalid": "aiFailureCallbackInvalid",
@@ -143,6 +144,19 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   const modelStatus = node("p", null, "insight-model-status");
   modelStatus.setAttribute("role", "status"); modelStatus.setAttribute("aria-live", "polite");
   listen(model, "change", () => controller?.selectModel(model.value));
+  const voice = node("select", null, "insight-voice");
+  voice.className = "insight-voice-select";
+  voice.setAttribute("aria-label", text("assistantVoice")); voice.title = text("assistantVoice");
+  for (const choice of INSIGHT_VOICES) {
+    const option = node("option", choice.labelKey); option.value = choice.id; voice.append(option);
+  }
+  listen(voice, "change", () => {
+    if (!controller || voice.disabled) return;
+    const preferences = { ...controller.currentState().preferences };
+    const selected = normalizeInsightVoice(voice.value);
+    if (selected === "standard") delete preferences.voice; else preferences.voice = selected;
+    controller.setInsightPreferences(preferences);
+  });
   const diagnostics = node("details", null, "insight-diagnostics");
   diagnostics.className = "insight-subdetails developer-only";
   diagnostics.append(node("summary", "diagnostics"));
@@ -177,7 +191,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   listen(cost, "change", () => controller?.setCostConsent(cost.checked));
   const quickActions = node("div", null, "insight-quick-actions");
   quickActions.className = "insight-quick-actions";
-  quickActions.append(modelLabel, model, modelStatus);
+  quickActions.append(modelLabel, model, modelStatus, voice);
   const create = button(quickActions, "createInsights", () => {
     void controller?.createInsights({ automatic: document.body?.dataset?.uiMode === "user" });
   });
@@ -276,6 +290,8 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
     replyLanguage.value = state.preferences?.replyLanguage ?? "en";
     deliveryCountry.value = state.preferences?.deliveryCountry ?? "";
     currency.value = state.preferences?.currency ?? "";
+    voice.value = state.preferences?.voice ?? "standard";
+    voice.disabled = Boolean(state.busy || ["generating", "fetchingRelated", "preparingArticle", "resuming"].includes(state.ai?.status));
     browserLanguageHint.checked = state.browserLanguageHintEnabled !== false;
     preferencesStatus.textContent = ["saveFailed", "loadFailed"].includes(state.preferencesStatus)
       ? text(state.preferencesStatus === "saveFailed" ? "preferencesSaveFailed" : "preferencesLoadFailed") : "";

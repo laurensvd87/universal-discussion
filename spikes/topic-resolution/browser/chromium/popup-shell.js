@@ -79,9 +79,16 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
   const insightSettingsNodes = insightSettingsSelectors.map((selector) => find(selector)).filter(Boolean);
   const originalInsightPlaces = new Map(insightSettingsNodes.map((element) =>
     [element, { parent: element.parentElement, next: element.nextSibling }]));
+  const voiceNode = find("#insight-voice");
+  const voicePlace = voiceNode ? {parent:voiceNode.parentElement,next:voiceNode.nextSibling} : null;
   const composerModelNodes = new Set(['label[for="insight-model"]', "#insight-model", "#insight-model-status"]
     .map((selector) => find(selector)).filter(Boolean));
   function placeInsightWorkspace(mode) {
+    if (voiceNode && mode === "user") move("#insight-voice", find("#discussion-voice-host"));
+    else if (voiceNode && voicePlace?.parent && voiceNode.parentElement !== voicePlace.parent) {
+      if (voicePlace.next?.parentElement === voicePlace.parent) voicePlace.parent.insertBefore(voiceNode,voicePlace.next);
+      else voicePlace.parent.append(voiceNode);
+    }
     const host = find("#app-discussion-insights-host");
     if (mode === "developer") move("#app-discussion-insights-host", find("#local-discussion"));
     else if (host?.parentElement === find("#local-discussion"))

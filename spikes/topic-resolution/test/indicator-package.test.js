@@ -90,6 +90,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/insight-context.js",
     "core/insight-controller.js",
     "core/insight-preferences.js",
+    "core/insight-voices.js",
     "core/local-ai-client.js",
     "core/local-discussion-controller.js",
     "core/local-service-client.js",
@@ -132,7 +133,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Murmingle",
-    version: "0.13.57",
+    version: "0.13.58",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",

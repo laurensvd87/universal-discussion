@@ -175,7 +175,9 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   root.append(feed);
   const composer = node("form"); composer.id = "discussion-composer";
   const newThreadHeading = node("h3", "uiNewThread"); newThreadHeading.className = "discussion-new-thread-heading";
-  composer.append(newThreadHeading);
+  const composerHeader = node("div"); composerHeader.className = "discussion-composer-header";
+  const voiceHost = node("div"); voiceHost.id = "discussion-voice-host";
+  composerHeader.append(newThreadHeading, voiceHost); composer.append(composerHeader);
   const mode = node("p"); rootDock.append(composer);
   const replyContext = node("div"); replyContext.id = "discussion-reply-context";
   const replyAuthor = node("span"); replyAuthor.className = "discussion-reply-author";
@@ -935,6 +937,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     backToNewThread.disabled = posting || state.busy;
     backToNewThread.textContent = text(state.draft.body.trim() ? "uiDiscardDraftToNewThread" : "uiBackToNewThread");
     modelHost.hidden = uiMode === "user" && state.draft.mode !== "root";
+    voiceHost.hidden = uiMode !== "user" || state.draft.mode === "edit";
     const postingSource = selectedPostingSource(state);
     originDisclosure.textContent = state.draft.mode === "edit" ? text("discussionOriginEdit") : postingSource
       ? text(uiMode === "user" ? "uiOriginDisclosure" : "discussionOriginDisclosure").replace("{title}", postingSource.title)

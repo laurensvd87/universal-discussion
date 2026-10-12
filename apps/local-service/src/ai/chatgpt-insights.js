@@ -954,7 +954,7 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
       if (calls.length >= 5) fail("rate-limit");
       calls.push(dispatchTime); // A dispatched call consumes a slot, even on failure or cancellation.
       const payload = { model, store: false, stream: true,
-        instructions: buildInsightInstructions(Boolean(followup), useWebResearch),
+        instructions: buildInsightInstructions(Boolean(followup), useWebResearch, preferences?.voice),
         input: [{ role: "user", content: userText }],
         tools: [],
       };

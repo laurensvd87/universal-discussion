@@ -1,11 +1,13 @@
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { EN } from "../locales/en.js";
+import { INSIGHT_VOICES, normalizeInsightVoice } from "../core/insight-voices.js";
 
 // Private data is RAM-only in this surface. Durable storage belongs exclusively
 // to the account-scoped backend, never the public controller/catalog.
 export function mountPrivateConversationPanel(document, root, { client, readActor,
   requestSignIn, prepareGeneration, attestStart, readPublicState, showView, randomId,
+  readInsightState, setInsightPreferences,
   messages = EN, schedule = setTimeout, unschedule = clearTimeout }) {
   const text = key => messages[key] ?? EN[key];
   root.setAttribute("aria-label", text("privateChats"));
@@ -34,6 +36,11 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     draft.value = ""; pendingOperation = null; error = ""; olderReads.clear(); render(); void loadInbox();
   });
   header.append(back, headerLock, heading);
+  const searchForm = node("form", null, "my-chats-search-form"); searchForm.id = "my-chats-search-form";
+  const search = node("input"); search.id = "my-chats-search"; search.type = "search"; search.maxLength = 256;
+  search.placeholder = text("myChatsSearch"); search.setAttribute("aria-label", text("myChatsSearch"));
+  const searchButton = node("button", "myChatsSearchButton"); searchButton.type = "submit";
+  searchForm.append(search, searchButton);
   const list = node("div", null, "community-feed"); list.id = "private-chat-feed";
   const status = node("p", null, "community-status"); status.setAttribute("role", "status");
   const composer = node("form", null, "private-composer");
@@ -43,9 +50,21 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   const send = node("button", "privateSend", "private-send"); send.type = "submit";
   const spark = button("privateGenerate", () => void generateSelected(), "private-spark");
   spark.setAttribute("aria-label", text("privateGenerate")); spark.title = text("privateGenerate"); spark.textContent = "";
-  const actions = node("div", null, "private-composer-actions"); actions.append(spark, send);
+  const voice = node("select", null, "insight-voice-select"); voice.id = "private-insight-voice";
+  voice.setAttribute("aria-label", text("assistantVoice")); voice.title = text("assistantVoice");
+  for (const choice of INSIGHT_VOICES) {
+    const option = node("option", choice.labelKey); option.value = choice.id; voice.append(option);
+  }
+  voice.addEventListener("change", () => {
+    if (voice.disabled || voice.hidden || !setInsightPreferences) return;
+    const preferences = { ...readInsightState?.()?.preferences };
+    const selected = normalizeInsightVoice(voice.value);
+    if (selected === "standard") delete preferences.voice; else preferences.voice = selected;
+    setInsightPreferences(preferences);
+  });
+  const actions = node("div", null, "private-composer-actions"); actions.append(voice, spark, send);
   composer.append(target, draft, actions);
-  root.append(header, list, status, composer);
+  root.append(header, searchForm, list, status, composer);
   let disposed = false, active = false, available = true, actorId = null, epoch = 0, busy = false, timer = null;
   let detachedDraft = null;
   let inbox = [], inboxCursor = null, publicInbox = [], publicInboxCursor = null;
@@ -54,6 +73,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   let selection = "private";
   let rendered = null, error = "", pendingOperation = null, pendingStart = null;
   let latestRead = 0;
+  let searchTimer = null, composingSearch = false, searchQuery = "";
   const olderReads = new Set();
   const ownActor = () => readActor();
   const hasPublicChats = () => typeof client.accountPublicChats === "function";
@@ -77,8 +97,28 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     return client.privateConversation(action, value, actor, { beforeDispatch });
   }
   function stopTimer() { if (timer !== null) unschedule(timer); timer = null; }
+  function stopSearchTimer() { if (searchTimer !== null) unschedule(searchTimer); searchTimer = null; }
+  function clearInboxForSearch() {
+    epoch += 1; busy = false; inbox = []; publicInbox = []; inboxCursor = publicInboxCursor = null;
+    privateInboxFailed = publicInboxFailed = false; error = ""; rendered = null;
+    render();
+  }
+  function dispatchSearch() {
+    if (disposed) return;
+    stopSearchTimer(); syncAccount();
+    if (disposed || composingSearch || !active || !available || !actorId || conversation) return;
+    searchQuery = search.value.trim().slice(0, 256); clearInboxForSearch(); void loadInbox();
+  }
+  function searchChanged() {
+    if (disposed) return;
+    stopSearchTimer(); syncAccount();
+    if (disposed || !active || !available || !actorId || conversation) return;
+    searchQuery = search.value.trim().slice(0, 256); clearInboxForSearch();
+    if (!composingSearch) searchTimer = schedule(() => { searchTimer = null; dispatchSearch(); }, 200);
+  }
   function reset() {
-    epoch += 1; stopTimer(); conversation = null; entries = []; inbox = []; publicInbox = [];
+    epoch += 1; stopTimer(); stopSearchTimer(); searchQuery = ""; search.value = ""; composingSearch = false;
+    conversation = null; entries = []; inbox = []; publicInbox = [];
     inboxCursor = publicInboxCursor = cursor = replyToId = null; selection = "private";
     privateInboxFailed = publicInboxFailed = false;
     draft.value = ""; pendingOperation = pendingStart = null; busy = false; error = ""; rendered = null;
@@ -97,7 +137,16 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     const publicPreview = selection === "public";
     headerLock.hidden = !conversation || publicPreview;
     back.hidden = !conversation;
+    searchForm.hidden = !actorId || !available || Boolean(conversation);
+    search.disabled = !available || !actorId;
+    searchButton.disabled = search.disabled || composingSearch;
     composer.hidden = !actorId || publicPreview || !conversation && !detachedDraft;
+    const insightState = readInsightState?.();
+    voice.value = insightState?.preferences?.voice ?? "standard";
+    voice.hidden = composer.hidden || !conversation || !available;
+    voice.disabled = voice.hidden || busy || !setInsightPreferences || Boolean(insightState?.busy) ||
+      ["generating", "fetchingRelated", "preparingArticle", "resuming"].includes(insightState?.ai?.status) ||
+      entries.some(item => item.generation?.state === "running");
     draft.readOnly = busy || !available || !conversation;
     const selected = entries.find(item => item.id === replyToId);
     const missingTarget = Boolean(draft.value.trim() && replyToId && !selected);
@@ -123,7 +172,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
       const combined = [...inbox.map(chat => ({ ...chat, kind: "private" })), ...publicInbox.map(chat => ({ ...chat, kind: "public" }))]
         .sort((a, b) => (Date.parse(b.updatedAt ?? b.createdAt) || 0) - (Date.parse(a.updatedAt ?? a.createdAt) || 0) ||
           `${a.kind}:${a.id}`.localeCompare(`${b.kind}:${b.id}`));
-      if (available && !busy && !combined.length && !privateInboxFailed && !publicInboxFailed) list.append(node("p", hasPublicChats() ? "myChatsEmpty" : "privateEmpty", "community-empty"));
+      if (available && !busy && !combined.length && !privateInboxFailed && !publicInboxFailed) list.append(node("p", searchQuery ? "myChatsSearchEmpty" : hasPublicChats() ? "myChatsEmpty" : "privateEmpty", "community-empty"));
       for (const chat of combined) {
         const card = button(null, () => void open(chat.id, chat.kind), "private-chat-card");
         card.setAttribute("data-chat-kind", chat.kind); card.setAttribute("data-chat-id", chat.id);
@@ -193,8 +242,8 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
       const fetchPrivate = !more || Boolean(inboxCursor) || privateInboxFailed;
       const fetchPublic = hasPublicChats() && (!more || Boolean(publicInboxCursor) || publicInboxFailed);
       const results = await Promise.allSettled([
-        fetchPrivate ? request("list", { after: more ? inboxCursor : null, limit: 25 }, actor) : null,
-        fetchPublic ? client.accountPublicChats("list", { after: more ? publicInboxCursor : null, limit: 25 }, actor) : null,
+        fetchPrivate ? request("list", { after: more ? inboxCursor : null, limit: 25, ...(searchQuery ? { query: searchQuery } : {}) }, actor) : null,
+        fetchPublic ? client.accountPublicChats("list", { after: more ? publicInboxCursor : null, limit: 25, ...(searchQuery ? { query: searchQuery } : {}) }, actor) : null,
       ]);
       if (!valid(ticket, actor)) return;
       const merge = (loaded, fresh) => [...new Map([...loaded, ...fresh].map(chat => [chat.id, chat])).values()];
@@ -266,7 +315,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     finally { if (valid(ticket, actor)) { busy = false; render(); } }
   }
   async function open(id, kind = "private") {
-    if (!available || busy) return; epoch += 1; stopTimer(); entries = []; cursor = null; replyToId = null; draft.value = "";
+    if (!available || busy) return; epoch += 1; stopTimer(); stopSearchTimer(); entries = []; cursor = null; replyToId = null; draft.value = "";
     if (kind === "private" && detachedDraft?.actor === actorId && detachedDraft.id === id) {
       draft.value = detachedDraft.body; replyToId = detachedDraft.replyToId; detachedDraft = null;
     }
@@ -392,6 +441,10 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     } catch (failure) { if (valid(ticket, actor)) error = failMessage(failure); }
     finally { if (valid(ticket, actor)) { busy = false; render(); } }
   }
+  search.addEventListener("input", searchChanged);
+  search.addEventListener("compositionstart", () => { composingSearch = true; stopSearchTimer(); searchChanged(); });
+  search.addEventListener("compositionend", () => { composingSearch = false; searchChanged(); });
+  searchForm.addEventListener("submit", event => { event.preventDefault(); dispatchSearch(); });
   draft.addEventListener("input", render); composer.addEventListener("submit", submit);
   render();
   return Object.freeze({ start,
@@ -408,12 +461,15 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
       else render();
     },
     setActive(value) {
+      stopSearchTimer();
+      if (!value) composingSearch = false;
+      if (!value && !conversation) { epoch += 1; busy = false; }
       active = value; syncAccount(); stopTimer();
       if (active && !busy) { if (conversation) void readConversation(); else void loadInbox(); }
     },
     accountChanged() { if (syncAccount() && active) void loadInbox(); },
     observe() { syncAccount(); if (conversation) render(); },
-    dispose() { disposed = true; epoch += 1; stopTimer(); draft.value = ""; pendingOperation = pendingStart = null;
+    dispose() { disposed = true; epoch += 1; stopTimer(); stopSearchTimer(); search.value = searchQuery = ""; draft.value = ""; pendingOperation = pendingStart = null;
       olderReads.clear(); entries = inbox = publicInbox = []; conversation = detachedDraft = null; root.replaceChildren(); },
   });
 }

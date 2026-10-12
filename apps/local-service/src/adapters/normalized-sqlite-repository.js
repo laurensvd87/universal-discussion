@@ -7,6 +7,8 @@ import { migrateLegacyState } from "../domain/state-migration.js";
 import { assertExpected, MAX_DOCUMENT_BYTES } from "../domain/repository-contract.js";
 import { ACCOUNT_STATE_SCHEMA } from "../accounts/account-principal.js";
 import { frozenClone, readId, readExpectedVersion, readRecord, readText } from "../domain/validation.js";
+import { normalizeMyChatsQuery } from "../application/account-public-chats.js";
+import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
 export const NORMALIZED_STORAGE_FORMAT = "canonical-relational/v1";
 const FORMAT = NORMALIZED_STORAGE_FORMAT;
@@ -587,6 +589,18 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     accountContributions(actorId) { readId(actorId); return checkedRead(() => contributions(database.prepare("SELECT * FROM canonical_contributions WHERE author_id=? OR operator_id=? ORDER BY ordinal").all(actorId, actorId))); },
     readAccountPublicChats(actorId, input = {}) {
       readId(actorId); const { after = null, limit = 25, expectedVersion = null } = input;
+      const query=Object.hasOwn(input,"query") ? normalizeMyChatsQuery(input.query):"";
+      // Only URL metadata enters this policy callback; text matching stays in SQL.
+      database.function("my_chats_safe_source", {deterministic:true}, value=> {
+        const inspected=inspectPageUrl(value);return inspected.supported && inspected.url===value ? 1:0;
+      });
+      const terms=query ? query.split(" "):[];
+      const search=terms.map(()=>`(instr(lower(json_extract(t.payload,'$.title')),lower(?))>0 OR
+        (json_extract(r.payload,'$.withdrawn')=0 AND my_chats_safe_source(s.url)=1 AND instr(lower(json_extract(s.payload,'$.title')),lower(?))>0) OR
+        EXISTS (SELECT 1 FROM canonical_contributions m JOIN canonical_revisions v
+          ON v.contribution_id=m.id AND v.ordinal=m.revision_count-1
+          WHERE (m.id=o.root_id OR m.root_id=o.root_id) AND json_extract(m.payload,'$.withdrawn')=0
+          AND json_extract(m.payload,'$.visibility')='local-public' AND instr(lower(json_extract(v.payload,'$.body')),lower(?))>0))`).join(" AND ");
       if (!Number.isInteger(limit) || limit<1 || limit>100) fail("invalid","Invalid request");
       if (after !== null) { const cursor=readRecord(after,["updatedAt","id"]); readText(cursor.updatedAt,64); readId(cursor.id); }
       return checkedRead(meta => {
@@ -596,8 +610,11 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
           SELECT o.*,(SELECT MAX(COALESCE(json_extract(v.payload,'$.createdAt'),c.created_at))
             FROM canonical_contributions c LEFT JOIN canonical_revisions v ON v.contribution_id=c.id AND v.ordinal=c.revision_count-1
             WHERE c.id=o.root_id OR c.root_id=o.root_id) AS updated_at FROM owned_roots o
-        ) SELECT * FROM active_roots WHERE (? IS NULL OR (updated_at,root_id)<(?,?))
-          ORDER BY updated_at DESC,root_id DESC LIMIT ?`).all(actorId,actorId,after?.id??null,after?.updatedAt??null,after?.id??null,limit+1);
+        ) SELECT o.* FROM active_roots o JOIN canonical_contributions r ON r.id=o.root_id
+          JOIN canonical_discussions d ON d.id=r.discussion_id JOIN canonical_topics t ON t.id=d.topic_id
+          LEFT JOIN canonical_sources s ON s.id=r.origin_source_id
+          WHERE (? IS NULL OR (updated_at,o.root_id)<(?,?)) ${search?`AND ${search}`:""}
+          ORDER BY updated_at DESC,o.root_id DESC LIMIT ?`).all(actorId,actorId,after?.id??null,after?.updatedAt??null,after?.id??null,...terms.flatMap(term=>[term,term,term]),limit+1);
         const items = roots.slice(0,limit).map(row => publicChatHeader(actorId,row.root_id,row));
         return { version: { generation: meta.generation, revision: meta.revision }, items,
           sources: publicSources(items.map(item => item.root)), next: roots.length>limit ? {updatedAt:items.at(-1).updatedAt,id:items.at(-1).root.id} : null };

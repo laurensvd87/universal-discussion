@@ -103,9 +103,11 @@ function publicMessage(value) {
 }
 export function readAccountPublicChatsRequest(action, value) {
   if (!["list", "read"].includes(action)) throw new TypeError("Invalid chat action");
-  const item = exactRecord(value, action === "list" ? ["after", "limit"] : ["rootId", "after", "limit"]);
+  const hasQuery=action==="list" && Object.hasOwn(value??{},"query");
+  const item = exactRecord(value, action === "list" ? ["after", "limit",...(hasQuery?["query"]:[])] : ["rootId", "after", "limit"]);
+  if(hasQuery && (typeof item.query!=="string" || item.query.length>256 || /[\u0000-\u0008\u000b\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]|[\uD800-\uDFFF]/u.test(item.query))) throw new TypeError("Invalid chat query");
   if (!Number.isInteger(item.limit) || item.limit < 1 || item.limit > 25) throw new TypeError("Invalid chat limit");
-  return {...(action === "read" ? {rootId:readId(item.rootId)} : {}),after:publicCursor(item.after),limit:item.limit};
+  return {...(action === "read" ? {rootId:readId(item.rootId)} : {}),after:publicCursor(item.after),limit:item.limit,...(hasQuery?{query:item.query.replace(/\s+/gu," ").trim()}: {})};
 }
 export function readAccountPublicChatsResponse(action, value, rootId = null) {
   const item = exactRecord(value, action === "list" ? ["version", "chats", "next"] : ["version", "conversation", "messages", "next"]);

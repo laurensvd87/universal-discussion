@@ -1,5 +1,28 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 extension 0.13.58: compact 12-style writing voice directly beside new
+thread heading and in inline/private replies, never Settings. Read ADR-100;
+shared fixed enum/optional locally persisted preference, static backend overlays,
+Standard prompt/payload exact. Preserve source/citation/evidence/120-word/privacy/
+tool/account/page/target/exact-sharing rules, clicked settings and private payload
+reuse. No provider request on selection, new autonomous bot or audio functionality.
+
+My chats search covers whole actual-owned public/private lists through optional
+256-character literal AND query, current safe titles/visible bodies only, signed
+query-bound pages and existing owner/thread indexes. No DDL, private public-index
+projection, old revisions, snapshot scan or constant-time/semantic claim. ASCII
+case folding only. Search/scroll layout is fixed: input outside feed, intrinsic
+card rows, wrapping/contained labels, bounded Load more, IME/focus/epoch/auth/
+disconnect cleanup. Complete arbitrary public thread pagination remains later.
+
+Independent voice/search Trust accepts; restricted full browser 1,379/backend652
+passes (five optional skips), actual synthetic Chrome long-list/search/inline/
+private checks and enlarged text/320/390/480px screenshots pass. Root reviews,
+zero secret findings (235/713 files), diff check passes. Owner-approved idle normal
+restart complete, canonical/private totals/version exact, pairing/provider sign-in
+restored and live health/guest query auth boundary pass. Reload 0.13.58; app login
+may need renewal. No live style-quality inference or owner UI interaction QA.
+
 2026-10-12 extension 0.13.57: My chats combines private conversations and public
 roots with surviving account human/AI-operator participation, including replies
 under other authors. Never claim demo posts by labels/email/bot identity. Read

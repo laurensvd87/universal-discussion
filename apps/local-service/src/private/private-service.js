@@ -1,8 +1,9 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { PrivateRepository } from "./private-repository.js";
 import { isAccountActor, isAccountPrincipal } from "../accounts/account-principal.js";
 import { fail, ServiceError } from "../domain/errors.js";
 import { readRecord } from "../domain/validation.js";
+import { normalizeMyChatsQuery } from "../application/account-public-chats.js";
 import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 import { safeInsightCitationUrl } from "../../../../spikes/topic-resolution/browser/core/insight-citations.js";
 
@@ -36,6 +37,7 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
   const repository = new PrivateRepository(databasePath);
   const db = repository.db;
   const running = new Map();
+  const searchCursorKey=randomBytes(32);
   let closed = false;
   function principalActor(principal) {
     if (closed || !isAccountPrincipal(principal)) fail("forbidden", "Actor unavailable");
@@ -183,11 +185,40 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
       return result(conversationId, messageId, false);
     },
     list(principal, input) {
-      const actorId = principalActor(principal), body = page(input);
-      const rows = db.prepare("SELECT * FROM private_conversations WHERE owner_id=? AND id>? ORDER BY id LIMIT ?")
-        .all(actorId, body.after ?? "", body.limit + 1);
+      const actorId = principalActor(principal), body = readRecord(input,["after","limit","query"],["after","limit"]);
+      if (!Number.isInteger(body.limit) || body.limit<1 || body.limit>25) fail("invalid","Invalid request");
+      const query=Object.hasOwn(body,"query") ? normalizeMyChatsQuery(body.query):"";
+      const version=repository.version(actorId);
+      let after=body.after;
+      if (after!==null && query) {
+        if(typeof after==="string" && ID.test(after)) fail("conflict","Chats changed");
+        if(typeof after!=="string" || after.length>2048 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/u.test(after)) fail("invalid","Invalid request");
+        const [payload,signature]=after.split(".");
+        const wanted=createHmac("sha256",searchCursorKey).update(payload).digest(),supplied=Buffer.from(signature,"base64url");
+        if(supplied.length!==wanted.length || !timingSafeEqual(supplied,wanted)) fail("conflict","Chats changed");
+        let cursor;
+        try {cursor=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(Buffer.from(payload,"base64url")));} catch {fail("invalid","Invalid request");}
+        cursor=readRecord(cursor,["owner","version","query","limit","action","after"]);
+        if(cursor.owner!==actorId || cursor.version!==version || cursor.query!==query || cursor.limit!==body.limit || cursor.action!=="private-list") fail("conflict","Chats changed");
+        after=id(cursor.after);
+      } else if(after!==null) {
+        if(typeof after==="string" && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/u.test(after)) fail("conflict","Chats changed");
+        id(after);
+      }
+      const terms=query ? query.split(" "):[];
+      const search=terms.map(()=>`(instr(lower(c.title),lower(?))>0 OR EXISTS
+        (SELECT 1 FROM private_messages m WHERE m.conversation_id=c.id AND instr(lower(m.body),lower(?))>0))`).join(" AND ");
+      const rows = db.prepare(`SELECT c.* FROM private_conversations c WHERE c.owner_id=? AND c.id>?
+        ${search?`AND ${search}`:""} ORDER BY c.id LIMIT ?`)
+        .all(actorId, after ?? "", ...terms.flatMap(term=>[term,term]), body.limit + 1);
+      let next=rows.length>body.limit ? rows[body.limit-1].id:null;
+      if(next!==null && query) {
+        const payload=Buffer.from(JSON.stringify({owner:actorId,version,query,limit:body.limit,action:"private-list",after:next})).toString("base64url");
+        next=`${payload}.${createHmac("sha256",searchCursorKey).update(payload).digest("base64url")}`;
+      }
+      if(repository.version(actorId)!==version) fail("conflict","Chats changed");
       return { conversations: rows.slice(0, body.limit).map(conversationDto),
-        next: rows.length > body.limit ? rows[body.limit - 1].id : null };
+        next };
     },
     read(principal, input) {
       const actorId = principalActor(principal), body = page(input, ["conversationId"]);

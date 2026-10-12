@@ -335,6 +335,7 @@ insightController = createInsightController({
   shareOnCompletion: true,
   onStateChange: (state) => {
     insightPanel.render(state); discussionPanel.renderInsightState?.(state);
+    privatePanel?.observe();
     const key = JSON.stringify([state.ai.connected, state.ai.pending, state.ai.account?.clientId]);
     if (accountPanel && key !== accountAiObservation) {
       accountAiObservation = key;
@@ -399,6 +400,8 @@ privatePanel = mountPrivateConversationPanel(document, document.querySelector("#
   requestSignIn: () => accountPanel.requestSignIn(),
   readPublicState: () => localDiscussion.currentState(), showView: popupShell.navigate,
   randomId: () => crypto.randomUUID(),
+  readInsightState: insightController.currentState,
+  setInsightPreferences: preferences => insightController.setInsightPreferences(preferences),
   attestStart: localDiscussion.attestPrivateStart,
   prepareGeneration: sourceId => preparePrivateGeneration({ sourceId,
     readState: localDiscussion.currentState, readInsight: insightController.currentState,

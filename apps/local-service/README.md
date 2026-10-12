@@ -1,5 +1,22 @@
 # Local service
 
+## Writing voices and own-chat search (2026-10-12, 0.13.58)
+
+The validated optional `preferences.voice` selects one of twelve static tone
+paragraphs for existing deliberate Insight/reply/private requests. Standard is
+omitted and preserves the complete original prompt/payload. No custom prompt,
+new tool/source authority, automatic inference, schema change or provider QA.
+
+Public/private list APIs accept optional `query` (256 characters), normalized
+whitespace and literal AND substring matching of current own-thread/conversation
+content. No matching of old revision/deleted text or exposure of private data in
+public routes/indexes. Filtered cursors bind normalized query and appropriate
+account/version/action/limit; unfiltered private ID cursors remain compatible.
+Existing owner/thread indexes scope SQL work, not whole snapshot/history reads;
+matching is ASCII-case-insensitive and literal exact-case for other characters.
+No FTS/semantic/constant-time throughput claim. See ADR-096 and ADR-100; live local
+activation/restart verification is recorded in STATUS/HANDOFF.
+
 ## Combined account My chats (2026-10-12, extension 0.13.57)
 
 Normal account composition exposes read-only `POST /v1/account/public-chats/list`
