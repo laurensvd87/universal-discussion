@@ -13,8 +13,13 @@ Independent client review verifies a separate concurrency mechanism: matching
 reads the canonical version before page extraction/embedding, then submits that
 old version; concurrent crawler writes can cause a non-writing409 conflict that
 is not automatically retried. Fourteen relevant offline regressions pass and
-document that current behaviour. The generic matching notice does not identify
-its exact cause; the affected public page/worker reason is still needed.
+document that current behaviour. The owner identifies ThreadShift and the top
+"Not verified" badge. That badge specifically maps cached connection success
+plus worker error/reason unavailable, not conflict or unsupported content.
+Read-only SQL confirms one saved ThreadShift Source with Topic membership;
+three later local health probes succeed in 41/5/3ms. This supports a transient
+service-verification failure, not a missing saved Topic. Its precise timeout/
+transport detail remains unavailable; the conflict mechanism is a separate risk.
 The crawler and service are not interrupted. Guarded authenticated model-response
 deadline and narrow reattested matching-conflict recovery are proposed, not
 implemented; transport/resource/security authority remains unchanged pending
