@@ -1,5 +1,25 @@
 # Project status
 
+**2026-10-12 model-list/matching failures diagnosed, corrections not activated:**
+Read-only paired checks show the service and protected ChatGPT connection remain
+available. Existing diagnostics record a model timeout followed by successful
+catalog loads. One fresh model-catalog GET failed locally while the backend later
+recorded success: the HTTP listener imposes a five-second absolute socket/handler
+lifetime, shorter than the client's thirty-second and provider's twenty-five-
+second model deadlines. Local health/version reads also took up to four seconds
+during the owner's running crawler Apply. No generation or page text was sent.
+
+Independent client review verifies a separate concurrency mechanism: matching
+reads the canonical version before page extraction/embedding, then submits that
+old version; concurrent crawler writes can cause a non-writing409 conflict that
+is not automatically retried. Fourteen relevant offline regressions pass and
+document that current behaviour. The generic matching notice does not identify
+its exact cause; the affected public page/worker reason is still needed.
+The crawler and service are not interrupted. Guarded authenticated model-response
+deadline and narrow reattested matching-conflict recovery are proposed, not
+implemented; transport/resource/security authority remains unchanged pending
+explicit owner direction. Voice trace remains empty; sarcasm live check pending.
+
 **2026-10-12 crawler Apply checkpoints and progress correction (ADR-102):**
 The owner reported unchanged dashboard counts during a confirmed active `-Apply`
 run. A read-only check found revision 804/194 learned pages with no crawler
