@@ -9,7 +9,8 @@ import { APP_DATABASE_PATH } from "../../local-service/src/startup.js";
 import { NORMALIZED_STORAGE_FORMAT } from "../../local-service/src/adapters/normalized-sqlite-repository.js";
 import { ACCOUNT_STATE_SCHEMA } from "../../local-service/src/accounts/account-principal.js";
 import { readExpectedVersion } from "../../local-service/src/domain/validation.js";
-import { buildDashboardSnapshot, loadDashboardState } from "./data/catalog.js";
+import { createCatalogGrowthStore, readCatalogGrowthCounts, readCatalogGrowthHistory, validateCatalogGrowthHistory } from "../../local-service/src/metrics/catalog-growth.js";
+import { buildDashboardSnapshot, buildStatsOnlyDashboardSnapshot, DashboardGraphCapacityError, loadDashboardState, MAX_GRAPH_PAGES } from "./data/catalog.js";
 import { buildGroupingPreview, LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH, LOCAL_RIDGE_ADAPTER_PATH, readInstalledOwnerTopicConfiguration } from "./data/grouping-preview.js";
 
 const webPath = fileURLToPath(new URL("../web/", import.meta.url));
@@ -19,19 +20,29 @@ const scriptTag = '<script src="./app.js" defer data-dashboard-script></script>'
 const dataTag = '<script id="dashboard-data" type="application/json"></script>';
 const previewTag = '<script id="dashboard-preview-data" type="application/json"></script>';
 const SNAPSHOT_FILE = "snapshot.js";
+const growthTag = '<script id="dashboard-growth-data" type="application/json"></script>';
+let lastGraphBundle = null;
+
+function safeGrowth(growth) {
+  if (growth === null || growth === undefined) return null;
+  try { return validateCatalogGrowthHistory(growth); }
+  catch { return null; }
+}
 
 function replaceOnce(document, needle, replacement) {
   if (document.split(needle).length !== 2) throw new Error("Dashboard template changed unexpectedly");
   return document.replace(needle, replacement);
 }
 
-export function renderDashboardDocument({ template, style, script, snapshot, preview = null }) {
+export function renderDashboardDocument({ template, style, script, snapshot, preview = null, growth = null }) {
   const safeJson = serializeSnapshot(snapshot);
   let document = replaceOnce(template, styleTag, `<style>${style}</style>`);
   document = replaceOnce(document, scriptTag, `<script>${script}</script>`);
   document = replaceOnce(document, dataTag, `<script id="dashboard-data" type="application/json">${safeJson}</script>`);
   if (document.includes(previewTag)) document = replaceOnce(document, previewTag,
     `<script id="dashboard-preview-data" type="application/json">${serializeSnapshot(preview)}</script>`);
+  if (document.includes(growthTag)) document = replaceOnce(document, growthTag,
+    `<script id="dashboard-growth-data" type="application/json">${serializeSnapshot(safeGrowth(growth))}</script>`);
   return document;
 }
 
@@ -40,22 +51,51 @@ function serializeSnapshot(snapshot) {
     .replaceAll("\u2028", "\\u2028").replaceAll("\u2029", "\\u2029");
 }
 
-export function renderSnapshotScript(snapshot, preview = null) {
+export function renderSnapshotScript(snapshot, preview = null, growth = null) {
   return `globalThis.__topicAtlasSnapshot = ${serializeSnapshot(snapshot)};\n` +
-    `globalThis.__topicAtlasPreview = ${serializeSnapshot(preview)};\n`;
+    `globalThis.__topicAtlasPreview = ${serializeSnapshot(preview)};\n` +
+    `globalThis.__topicAtlasGrowth = ${serializeSnapshot(safeGrowth(growth))};\n`;
 }
 
-function readDashboardBundle(databasePath, now, adapter, bodyMetric, ridgeAdapter) {
+function readDashboardBundle(databasePath, now, adapter, bodyMetric, ridgeAdapter, { recordInitial = false } = {}) {
+  const point = readCatalogGrowthCounts(databasePath, { now });
+  const growthPath = path.join(path.dirname(databasePath), "topic-growth.sqlite");
+  let growth = null, store;
+  try {
+    if (recordInitial) {
+      store = createCatalogGrowthStore(growthPath, { now });
+      store.sample(point);
+      growth = store.read();
+    } else growth = readCatalogGrowthHistory(growthPath, { now });
+  } catch { /* Aggregate recording failure does not disable the canonical view. */ }
+  finally { try { store?.close(); } catch {} }
+  if (point.learnedPages > MAX_GRAPH_PAGES) {
+    return { snapshot: buildStatsOnlyDashboardSnapshot(point), preview: null, growth };
+  }
+  const keys = JSON.parse(readDashboardRefreshKey(databasePath));
+  keys.pop(); // History changes do not require another vector/PCA/Topic graph.
+  const graphKey = JSON.stringify([path.resolve(databasePath), keys,
+    adapter?.manifestSha256 ?? null, bodyMetric?.manifestSha256 ?? null, ridgeAdapter?.manifestSha256 ?? null]);
+  if (lastGraphBundle?.key === graphKey && lastGraphBundle.snapshot.growthSeriesId === point.seriesId) {
+    return { snapshot: lastGraphBundle.snapshot, preview: lastGraphBundle.preview, growth };
+  }
   const state = loadDashboardState(databasePath);
-  const snapshot = buildDashboardSnapshot(state, { now });
+  let snapshot;
+  try { snapshot = buildDashboardSnapshot(state, { now }); }
+  catch (error) {
+    if (!(error instanceof DashboardGraphCapacityError)) throw error;
+    // Ingestion can cross the graph limit between the aggregate and graph read.
+    return { snapshot: buildStatsOnlyDashboardSnapshot(readCatalogGrowthCounts(databasePath, { now })), preview: null, growth };
+  }
   const preview = buildGroupingPreview(state, snapshot, adapter, bodyMetric, ridgeAdapter);
-  return { snapshot, preview };
+  lastGraphBundle = { key: graphKey, snapshot, preview };
+  return { snapshot, preview, growth };
 }
 
 export function readDashboardRefreshKey(databasePath = APP_DATABASE_PATH, {
   ridgePath = LOCAL_RIDGE_ADAPTER_PATH, adapterPath = LOCAL_ADAPTER_PATH,
-  bodyPath = LOCAL_BODY_METRIC_PATH } = {}) {
-  const artifactKeys = [ridgePath, adapterPath, bodyPath].map(filename => {
+  bodyPath = LOCAL_BODY_METRIC_PATH, growthPath = path.join(path.dirname(databasePath), "topic-growth.sqlite") } = {}) {
+  const artifactKeys = [ridgePath, adapterPath, bodyPath, growthPath].map(filename => {
     try { const info = lstatSync(filename); return [info.size, info.mtimeMs, info.ctimeMs, info.isFile(), info.isSymbolicLink()]; }
     catch { return "absent"; }
   });
@@ -89,16 +129,16 @@ export function readDashboardRevision(databasePath = APP_DATABASE_PATH) {
 export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
   now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
   const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
-  const { snapshot, preview } = readDashboardBundle(databasePath, now,
+  const { snapshot, preview, growth } = readDashboardBundle(databasePath, now,
     adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
-    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null);
+    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null, { recordInitial: true });
   const document = renderDashboardDocument({
     template: readFileSync(path.join(webPath, "index.html"), "utf8"),
     style: readFileSync(path.join(webPath, "style.css"), "utf8"),
     script: readFileSync(path.join(webPath, "app.js"), "utf8"),
-    snapshot, preview,
+    snapshot, preview, growth,
   });
-  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview));
+  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview, growth));
   writePrivateAtomic(outputPath, document);
   return { outputPath, counts: snapshot.counts };
 }
@@ -106,10 +146,10 @@ export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath
 export function generateDashboardSnapshot({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
   now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
   const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
-  const { snapshot, preview } = readDashboardBundle(databasePath, now,
+  const { snapshot, preview, growth } = readDashboardBundle(databasePath, now,
     adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
     ridgeAdapter ?? installed.alternateRidgeAdapter ?? null);
-  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview));
+  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview, growth));
   return { outputPath, counts: snapshot.counts };
 }
 
@@ -179,7 +219,7 @@ export async function runDashboardCli(args = process.argv.slice(2)) {
   const initialRevision = oneShot ? undefined : readDashboardRefreshKey();
   const result = generateDashboard();
   if (!oneShot) await openReport(result.outputPath);
-  process.stdout.write(`Dashboard ready: ${result.counts.displayedPages} captured pages in ${result.counts.topics} Topics.\n${result.outputPath}\n`);
+  process.stdout.write(`Dashboard ready: ${result.counts.learnedSources} captured pages in ${result.counts.topics} canonical Topics${result.counts.displayedPages === 0 && result.counts.learnedSources > MAX_GRAPH_PAGES ? "; graph paused, aggregate history remains available" : ""}.\n${result.outputPath}\n`);
   if (!oneShot) {
     const watcher = watchDashboard({ initialRevision,
       onError: (error) => process.stderr.write(`Dashboard refresh delayed: ${error.message}\n`) });

@@ -9,7 +9,8 @@ const MAX_RESPONSE = 1_048_576;
 const MAX_CATALOG_PAGES = 1_000;
 const MAX_CATALOG_SOURCES = 100_000;
 const INGEST_ERROR_CODES = new Set(["request-capacity", "request-too-large", "invalid-response", "invalid-request",
-  "unauthorized", "forbidden", "conflict", "capacity", "unavailable", "ambiguous"]);
+  "unauthorized", "forbidden", "conflict", "capacity", "unavailable", "ambiguous",
+  "response-timeout", "service-error", "service-unavailable"]);
 
 export function fixedIngestError(error) {
   // Never forward remote/error text, arbitrary codes, or caller-controlled objects.
@@ -74,7 +75,8 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
             if (incoming.statusCode !== 200) {
               const mapped = incoming.statusCode === 413 && plain(parsed, ["error"]) && parsed.error === "request-too-large"
                 ? "request-too-large"
-                : { 400: "invalid-request", 401: "unauthorized", 403: "forbidden", 409: "conflict", 413: "capacity" }[incoming.statusCode] ?? "unavailable";
+                : { 400: "invalid-request", 401: "unauthorized", 403: "forbidden", 408: "response-timeout",
+                  409: "conflict", 413: "capacity", 500: "service-error", 503: "service-unavailable" }[incoming.statusCode] ?? "unavailable";
               reject(new CrawlerApiError(mapped)); return;
             }
             resolve(parsed);

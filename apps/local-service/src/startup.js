@@ -16,6 +16,7 @@ import { createAccountLifecycle } from "./accounts/account-lifecycle.js";
 import { loadProtectedAccountKey } from "./accounts/protected-account-key.js";
 import { createPrivateDiscussionService } from "./private/private-service.js";
 import { startCanonicalBackupRetention } from "./ops/backup-retention.js";
+import { startCatalogGrowthSampler } from "./metrics/catalog-growth.js";
 
 export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
 
@@ -100,12 +101,16 @@ export async function startLocalApplication(options) {
       onOutcome: value => {
         if (value.outcome === "failed") process.stderr.write("Canonical backup expiry cleanup unavailable; service remains connected.\n");
       } });
+    const catalogGrowth = startCatalogGrowthSampler({ databasePath: options.databasePath,
+      onOutcome: value => {
+        if (value.outcome === "failed") process.stderr.write("Local catalog growth sampling unavailable; service remains connected.\n");
+      } });
     let closed = false;
     return Object.freeze({
       async close() {
         if (closed) return;
         closed = true;
-        try { await backupRetention.close(); await listener.close(); } finally { application.close(); }
+        try { await catalogGrowth.close(); await backupRetention.close(); await listener.close(); } finally { application.close(); }
       },
     });
   } catch (error) {

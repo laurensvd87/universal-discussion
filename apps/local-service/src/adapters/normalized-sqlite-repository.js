@@ -11,6 +11,13 @@ import { normalizeMyChatsQuery } from "../application/account-public-chats.js";
 import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
 export const NORMALIZED_STORAGE_FORMAT = "canonical-relational/v1";
+
+// Read-only aggregate consumers share the exact storage schema contract without
+// opening a repository that loads catalog payloads or embedding vectors.
+export function assertNormalizedCatalogSchema(database) {
+  validateSchema(database.prepare("SELECT name,type,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all());
+}
+
 const FORMAT = NORMALIZED_STORAGE_FORMAT;
 const COLLECTIONS = {
   topics: ["canonical_topics", "id"], discussions: ["canonical_discussions", "id"],

@@ -33,7 +33,10 @@ counts and fixed status labels, without tokens, URLs, titles or article text.
 If a run ends with `ingest-unavailable`, its `ingestError` and the immediately
 preceding terminal line give a fixed failure class. `capacity` means the service
 rejected work at an existing capacity/budget guard; `ambiguous` means a response
-was lost, incomplete or timed out. Queued/staged work stays in the ledger. Rerun
+was lost, incomplete or timed out. Complete HTTP 408, 500 and 503 responses now
+report `response-timeout`, `service-error` and `service-unavailable`, respectively.
+Older `unavailable` output cannot retrospectively identify which status occurred.
+These labels do not add retries or extend deadlines. Queued/staged work stays in the ledger. Rerun
 uses the same operation identity to reconcile a possibly accepted request.
 Repetition alone cannot resolve a deterministic service failure.
 

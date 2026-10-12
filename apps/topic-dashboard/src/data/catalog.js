@@ -7,8 +7,12 @@ import { LEARNED_SOURCE_PROVENANCE } from "../../../local-service/src/domain/lea
 import { createNormalizedSqliteRepository } from "../../../local-service/src/adapters/normalized-sqlite-repository.js";
 import { ACCOUNT_STATE_SCHEMA } from "../../../local-service/src/accounts/account-principal.js";
 
-const MAX_GRAPH_PAGES = 1_000;
+export const MAX_GRAPH_PAGES = 1_000;
 const NEIGHBORS_PER_PAGE = 3;
+
+export class DashboardGraphCapacityError extends Error {
+  constructor(count) { super(`Dashboard capacity exceeded: ${count} pages; maximum ${MAX_GRAPH_PAGES}`); }
+}
 
 // Opens the existing service database without creating, migrating, or writing it.
 export function loadDashboardData(databasePath, { now = () => new Date() } = {}) {
@@ -63,7 +67,7 @@ export function buildDashboardSnapshot(state, { now = () => new Date() } = {}) {
   const learned = state.sources.filter((source) => source.provenance === LEARNED_SOURCE_PROVENANCE)
     .sort((a, b) => a.id.localeCompare(b.id, "en"));
   if (learned.length > MAX_GRAPH_PAGES) {
-    throw new Error(`Dashboard capacity exceeded: ${learned.length} pages; maximum ${MAX_GRAPH_PAGES}`);
+    throw new DashboardGraphCapacityError(learned.length);
   }
   const links = new Map(state.sourceLinks.map((link) => [link.sourceId, link.topicId]));
   const unitVectors = learned.map((source) => {
@@ -90,8 +94,20 @@ export function buildDashboardSnapshot(state, { now = () => new Date() } = {}) {
   const catalogRevision = createHash("sha256")
     .update(JSON.stringify([state.generation, state.revision]), "utf8").digest("hex");
   return { schemaVersion: 1, generatedAt: now().toISOString(), catalogRevision,
+    growthSeriesId: createHash("sha256").update(state.generation, "utf8").digest("hex"), graphLimited: false,
     counts: { totalSources: state.sources.length, learnedSources: learned.length,
       displayedPages: pages.length, topics: topics.length, totalTopics: state.topics.length }, topics, pages, edges };
+}
+
+// Keep aggregate monitoring available beyond the graph's reviewed vector/PCA
+// budget. No Source rows or vectors are loaded, sampled or silently omitted.
+export function buildStatsOnlyDashboardSnapshot(point) {
+  return { schemaVersion: 1, generatedAt: point.at,
+    catalogRevision: createHash("sha256").update(JSON.stringify([point.seriesId, point.revision]), "utf8").digest("hex"),
+    growthSeriesId: point.seriesId, graphLimited: true,
+    counts: { totalSources: point.totalSources, learnedSources: point.learnedPages,
+      displayedPages: 0, topics: point.activeTopics, totalTopics: point.totalTopics },
+    topics: [], pages: [], edges: [] };
 }
 
 function mean(numbers) { return numbers.reduce((sum, value) => sum + value, 0) / numbers.length; }

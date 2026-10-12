@@ -10,7 +10,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const STATE_FILE = path.join(ROOT, "data", "topic-crawler.sqlite");
 const STOP_CODES = new Set(["aborted", "time-limit", "policy-unavailable", "policy-state-invalid", "embedding-unavailable",
   "request-capacity", "request-too-large", "invalid-response", "invalid-request", "unauthorized", "forbidden", "conflict", "capacity",
-  "unavailable", "ambiguous"]);
+  "unavailable", "ambiguous", "response-timeout", "service-error", "service-unavailable"]);
 
 export function createProgressReporter({ write = value => process.stdout.write(value),
   schedule = setInterval, cancel = clearInterval } = {}) {

@@ -1,5 +1,30 @@
 # Project status
 
+**2026-10-12 catalog growth and reboot recovery (ADR-105):**
+Owner requests backend page/Topic history plus Topics(y) over pages(x). The normal
+service records startup/minute aggregate samples in ignored topic-growth.sqlite;
+dashboard offers both views, windows, deltas/pages-per-active-Topic and separate
+total retained Topics. Counts are canonical active learned-page Topics, not Ridge
+display groups/empty Topics. Only time/generation hash/revision/counts are retained;
+no URLs/title/vector/body/account/token/provider calls. Recent24h minute buckets,
+older hourly90d/max4096; no invented historical/offline samples. Gaps/generations
+split lines and deletion may move down/left. No convergence/plateau promise.
+Above1000 learned pages, map pauses while vector-free aggregate history continues.
+Watcher is read-only and unchanged graphs reuse a version/artifact-bound cache.
+
+Independent base/integration review accepts; backend focused30/dashboard restricted
+21/full backend846 pass+five skips, isolated Chrome growth14 fixtures and existing
+browser regression pass. Sampler startup prunes even on failed canonical reads;
+failures cannot stop service. Last generic crawler unavailable has no recoverable
+HTTP status; next complete408/500/503 reports response-timeout/service-error/
+service-unavailable without adding retries. RAM replay at932 learns takes2123ms
+planner/323ms full synthetic service, so this stop is not proven capacity.
+Reboot preserves revision1559/939 Sources/931 learned/897 active canonical Topics/
+980 total Topics, crawler735 ingested/12840 queued/seven staged and five recorded
+history points. No canonical/private/account write, inference or agent crawl.
+Final normal service recovery/activation is recorded after reviewed commit below;
+unrelated Copilot edits remain excluded. Dashboard restart loads both chart views.
+
 **2026-10-12 contribution-goal refinement checked; activation pending:**
 The owner reports that Funny still feels like a summary with a joke, and explicitly
 requests Standard summary versus standalone funny/sarcastic/clever/etc. posts.

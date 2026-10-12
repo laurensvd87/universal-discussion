@@ -14,6 +14,12 @@
       <div class="top-actions"><span id="data-age" class="data-age">Lokale Momentaufnahme</span><span id="refresh-hint" class="refresh-hint" hidden>Prüft alle 3 s · neue Daten nur bei laufendem Watcher</span><label id="load-label" class="button button-secondary" for="file-input">JSON laden</label><label id="preview-load-label" class="button button-secondary" for="file-input" hidden>Vorschau laden</label><input id="file-input" type="file" accept=".json,application/json" hidden><button id="reload-button" class="button button-secondary" type="button">Aktualisieren</button></div>
     </header>
 
+    <section class="growth-panel" aria-labelledby="growth-heading">
+      <div class="growth-header"><div><span class="eyebrow">KATALOG IM ZEITVERLAUF</span><h2 id="growth-heading">Seiten und aktive kanonische Topics</h2></div><div class="growth-windows" role="group" aria-label="Zeitraum"><button type="button" data-growth-window="1h" aria-pressed="false">1 h</button><button type="button" data-growth-window="24h" aria-pressed="true">24 h</button><button type="button" data-growth-window="7d" aria-pressed="false">7 Tage</button><button type="button" data-growth-window="all" aria-pressed="false">Gesamt</button></div></div>
+      <div class="growth-views" role="group" aria-label="Diagrammansicht"><button type="button" data-growth-view="time" aria-pressed="true">Zeitverlauf</button><button type="button" data-growth-view="pages" aria-pressed="false">Topics über Seiten</button></div>
+      <div class="growth-layout"><div><div id="growth-key" class="growth-key"><span class="growth-pages">Gelernte Seiten</span><span class="growth-topics">Aktive kanonische Topics</span></div><svg id="growth-chart" viewBox="0 0 840 180" role="img" aria-labelledby="growth-chart-title growth-chart-description"><title id="growth-chart-title">Verlauf der Katalogzahlen</title><desc id="growth-chart-description">Noch keine Messpunkte.</desc><g id="growth-plot"></g></svg></div><div id="growth-metrics" class="growth-metrics" aria-label="Aktuelle kanonische Katalogzahlen"></div></div>
+      <p id="growth-status" class="growth-status" role="status">Verlauf derzeit nicht verfügbar.</p><p class="growth-note">Aktive Topics haben mindestens eine verknüpfte gelernte Seite. Die Kurven zeigen die kanonische Zuordnung, unabhängig vom Kartenmodus. Löschungen können Zahlen senken; Lücken und Katalogwechsel unterbrechen die Linien. Ein Plateau ist keine zugesicherte Eigenschaft.</p>
+    </section>
     <main class="workspace">
       <aside class="sidebar" aria-label="Filter und Topics">
         <div class="sidebar-intro"><span class="eyebrow">DEIN LOKALER KATALOG</span><h2>Seiten im Zusammenhang sehen.</h2><p>Eine Karte der erfassten Seiten, ihrer Topics und ihrer nächsten Nachbarn.</p></div>
@@ -58,6 +64,7 @@
   </div>
   <script id="dashboard-data" type="application/json"></script>
   <script id="dashboard-preview-data" type="application/json"></script>
+  <script id="dashboard-growth-data" type="application/json"></script>
   <script src="./app.js" defer data-dashboard-script></script>
 </body>
 </html>

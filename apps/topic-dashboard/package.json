@@ -7,7 +7,8 @@
     "start": "node src/cli.js",
     "test": "node --test --test-isolation=none test/*.test.js",
     "test:restricted": "node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none test/*.test.js",
-    "test:browser": "node test/web-smoke.mjs"
+    "test:browser": "node test/web-smoke.mjs",
+    "test:browser:growth": "node test/growth-web-smoke.mjs"
   },
   "engines": {
     "node": ">=24"

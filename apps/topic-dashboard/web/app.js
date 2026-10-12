@@ -11,6 +11,113 @@
     for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, String(value));
     return node;
   };
+  const growthState = { data: null, window: '24h', view: 'time' };
+  const growthTime = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+  function normalizeGrowth(input, current) {
+    const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value) &&
+      Object.keys(value).sort().join(',') === [...keys].sort().join(',');
+    if (!exact(input, ['schemaVersion', 'retention', 'points']) || input.schemaVersion !== 'catalog-growth/v1' ||
+        !exact(input.retention, ['minuteHours', 'hourlyDays', 'maxPoints']) || input.retention.minuteHours !== 24 ||
+        input.retention.hourlyDays !== 90 || input.retention.maxPoints !== 4096 ||
+        !Array.isArray(input.points) || input.points.length > 4096) throw new Error('Invalid growth history');
+    let previous = null;
+    const revisions = new Map();
+    const points = input.points.map((row) => {
+      if (!exact(row, ['at', 'seriesId', 'revision', 'totalSources', 'learnedPages', 'activeTopics', 'totalTopics']) ||
+          typeof row.at !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(row.at) ||
+          !Number.isFinite(Date.parse(row.at)) || new Date(row.at).toISOString() !== row.at ||
+          typeof row.seriesId !== 'string' || !/^[a-f0-9]{64}$/u.test(row.seriesId) ||
+          !['revision', 'totalSources', 'learnedPages', 'activeTopics', 'totalTopics'].every(key => Number.isSafeInteger(row[key]) && row[key] >= 0) ||
+          row.learnedPages > row.totalSources || row.activeTopics > row.totalTopics || row.activeTopics > row.learnedPages ||
+          (previous && row.at < previous.at) || (revisions.has(row.seriesId) && row.revision < revisions.get(row.seriesId))) {
+        throw new Error('Invalid growth point');
+      }
+      revisions.set(row.seriesId, row.revision);
+      previous = row;
+      return { ...row, time: Date.parse(row.at) };
+    });
+    if (points.length && (!current.growthSeriesId || points.at(-1).seriesId !== current.growthSeriesId)) throw new Error('Mismatched growth series');
+    return points;
+  }
+  function loadGrowth(input, current) {
+    try { growthState.data = normalizeGrowth(input, current); }
+    catch { growthState.data = null; }
+    renderGrowth();
+  }
+  function renderGrowth() {
+    const plot = $('growth-plot'), metrics = $('growth-metrics');
+    plot.replaceChildren(); metrics.replaceChildren();
+    for (const button of document.querySelectorAll('[data-growth-window]')) button.setAttribute('aria-pressed', String(button.dataset.growthWindow === growthState.window));
+    for (const button of document.querySelectorAll('[data-growth-view]')) button.setAttribute('aria-pressed', String(button.dataset.growthView === growthState.view));
+    const byPages = growthState.view === 'pages';
+    $('growth-chart').setAttribute('viewBox', byPages ? '0 0 840 210' : '0 0 840 180');
+    $('growth-chart-title').textContent = byPages ? 'Aktive kanonische Topics über gelernte Seiten' : 'Verlauf der Katalogzahlen';
+    $('growth-key').replaceChildren(...(byPages ? [textElement('span', 'growth-topics', 'Aktive kanonische Topics; Messpunkte in zeitlicher Reihenfolge')] :
+      [textElement('span', 'growth-pages', 'Gelernte Seiten'), textElement('span', 'growth-topics', 'Aktive kanonische Topics')]));
+    const all = growthState.data;
+    $('growth-chart').hidden = !all?.length;
+    if (!all?.length) {
+      $('growth-status').textContent = all ? 'Verlauf wird ab jetzt aufgezeichnet.' : 'Verlauf derzeit nicht verfügbar.';
+      $('growth-chart-description').textContent = 'Noch keine gültigen Messpunkte.';
+      return;
+    }
+    const latest = all.at(-1);
+    const durations = { '1h': 3600000, '24h': 86400000, '7d': 604800000, all: Infinity };
+    const points = all.filter(point => point.time >= latest.time - durations[growthState.window]);
+    const currentSeries = points.filter(point => point.seriesId === latest.seriesId);
+    const first = currentSeries[0];
+    const metric = (label, value, delta = null) => {
+      const node = textElement('div', 'growth-metric', '');
+      node.append(textElement('strong', '', value), textElement('span', '', label));
+      if (delta !== null) node.append(textElement('small', '', `Δ ${delta > 0 ? '+' : ''}${format.format(delta)} im Messzeitraum`));
+      metrics.append(node);
+    };
+    metric('gelernte Seiten', format.format(latest.learnedPages), latest.learnedPages - first.learnedPages);
+    metric('aktive kanonische Topics', format.format(latest.activeTopics), latest.activeTopics - first.activeTopics);
+    metric('Seiten je aktivem Topic', latest.activeTopics ? new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(latest.learnedPages / latest.activeTopics) : '—');
+    metric('Topics gesamt (inkl. leerer)', format.format(latest.totalTopics));
+    const minimum = points[0].time, span = Math.max(60000, latest.time - minimum);
+    const maximum = Math.max(1, ...points.map(point => byPages ? point.activeTopics : Math.max(point.learnedPages, point.activeTopics)));
+    const maximumPages = Math.max(1, ...points.map(point => point.learnedPages));
+    const x = point => 58 + (byPages ? point.learnedPages / maximumPages : (point.time - minimum) / span) * 756;
+    const y = value => 140 - value / maximum * 112;
+    for (const fraction of [0, .5, 1]) {
+      plot.append(svg('line', { x1: 58, x2: 814, y1: y(maximum * fraction), y2: y(maximum * fraction), class: 'growth-grid' }));
+      const label = svg('text', { x: 50, y: y(maximum * fraction) + 4, 'text-anchor': 'end', class: 'growth-axis' });
+      label.textContent = format.format(Math.round(maximum * fraction)); plot.append(label);
+    }
+    for (const [point, anchor] of [[points[0], 'start'], [latest, 'end']]) {
+      const label = svg('text', { x: anchor === 'start' ? 58 : 814, y: 170, 'text-anchor': anchor, class: 'growth-axis' });
+      label.textContent = byPages ? format.format(anchor === 'start' ? 0 : maximumPages) : growthTime.format(new Date(point.time)); plot.append(label);
+    }
+    if (byPages) {
+      const horizontal = svg('text', { x: 436, y: 199, 'text-anchor': 'middle', class: 'growth-axis', 'data-growth-axis': 'x' });
+      horizontal.textContent = 'Gelernte Seiten (x)';
+      const vertical = svg('text', { x: 58, y: 15, class: 'growth-axis', 'data-growth-axis': 'y' });
+      vertical.textContent = 'Aktive kanonische Topics (y)';
+      plot.append(horizontal, vertical);
+    }
+    const segments = [];
+    for (const point of points) {
+      const previous = segments.at(-1)?.at(-1);
+      const recent = previous && previous.time >= latest.time - 86400000;
+      if (!previous || point.seriesId !== previous.seriesId || point.time - previous.time > (recent ? 5 * 60000 : 90 * 60000)) segments.push([]);
+      segments.at(-1).push(point);
+    }
+    for (const [key, suffix] of (byPages ? [['activeTopics', 'topics']] : [['learnedPages', 'pages'], ['activeTopics', 'topics']])) {
+      for (const segment of segments) {
+        const line = svg('path', { d: segment.map((point, index) => `${index ? 'L' : 'M'}${x(point).toFixed(2)},${y(point[key]).toFixed(2)}`).join(' '), class: `growth-line growth-line-${suffix}` });
+        plot.append(line);
+        const last = segment.at(-1);
+        const dot = svg('circle', { cx: x(last), cy: y(last[key]), r: 3, class: `growth-dot-${suffix}` });
+        appendTitle(dot, `${growthTime.format(new Date(last.time))}: ${byPages ? `${format.format(last.learnedPages)} gelernte Seiten, ` : ''}${format.format(last[key])} ${key === 'learnedPages' ? 'gelernte Seiten' : 'aktive kanonische Topics'}`);
+        plot.append(dot);
+      }
+    }
+    $('growth-chart-description').textContent = `${points.length} Messpunkte. ${byPages ? 'X-Achse: gelernte Seiten. Y-Achse: aktive kanonische Topics. Verbindung in zeitlicher Reihenfolge; Löschungen können nach links und unten führen. ' : ''}Gelernte Seiten aktuell ${latest.learnedPages}, aktive kanonische Topics ${latest.activeTopics}. Änderungen seit ${growthTime.format(new Date(first.time))}: Seiten ${latest.learnedPages - first.learnedPages}, Topics ${latest.activeTopics - first.activeTopics}.`;
+    $('growth-status').textContent = points.length === 1 ? `Erster Messpunkt: ${growthTime.format(new Date(latest.time))}. Verlauf wird ab jetzt aufgezeichnet.` :
+      `${format.format(points.length)} Messpunkte · Stand ${growthTime.format(new Date(latest.time))} · Δ seit ${growthTime.format(new Date(first.time))}, nur im aktuellen Katalog. Aufzeichnung: 24 h minutengenau, danach stündlich, bis zu 90 Tage.`;
+  }
 
   function showStatus(message) {
     $('status').textContent = message;
@@ -57,6 +164,8 @@
     return {
       generatedAt: typeof input.generatedAt === 'string' ? input.generatedAt : '',
       catalogRevision: typeof input.catalogRevision === 'string' && /^[a-f0-9]{64}$/u.test(input.catalogRevision) ? input.catalogRevision : null,
+      growthSeriesId: typeof input.growthSeriesId === 'string' && /^[a-f0-9]{64}$/u.test(input.growthSeriesId) ? input.growthSeriesId : null,
+      graphLimited: input.graphLimited === true,
       topics, pages, edges,
       counts: { totalSources: number(counts.totalSources, pages.length), learnedSources: number(counts.learnedSources, pages.length), displayedPages: pages.length, topics: number(counts.topics, topics.length), totalTopics: number(counts.totalTopics, topics.length) },
       byTopic: new Map(topics.map((topic) => [topic.id, topic])),
@@ -121,6 +230,7 @@
     $('topic-metric-label').textContent = state.grouping === 'experimental' ? 'Matching-Gruppen' : 'Legacy-Topics';
     $('topic-heading').textContent = state.grouping === 'experimental' ? 'MATCHING-GRUPPEN' : 'LEGACY-TOPICS';
     $('count-context').textContent = `${format.format(state.data.pages.length)} Seiten · ${format.format(state.data.counts.topics)} ${state.grouping === 'experimental' ? 'Matching-Gruppen' : 'Legacy-Topics'} · ${format.format(state.data.counts.totalSources)} Sources gesamt`;
+    if (state.data.graphLimited) $('count-context').textContent = `${format.format(state.data.counts.learnedSources)} gelernte Seiten · ${format.format(state.data.counts.totalTopics)} Topics gesamt · Karte pausiert`;
     render();
   }
 
@@ -211,6 +321,8 @@
       pageLayer.append(g);
     }
     $('empty-state').hidden = pages.length !== 0;
+    $('empty-state').replaceChildren(textElement('strong', '', state.data.graphLimited ? 'Karte pausiert: mehr als 1.000 gelernte Seiten' : 'Keine passenden Seiten'),
+      textElement('span', '', state.data.graphLimited ? 'Katalogzahlen und Verlauf werden weiter aktualisiert.' : 'Suche oder Topic-Auswahl ändern.'));
     $('map-title').textContent = topic ? topic.title : 'Alle Seiten';
     $('visible-count').textContent = `${format.format(pages.length)} von ${format.format(state.data.pages.length)} Seiten`;
   }
@@ -287,7 +399,7 @@
   }
   function selectTopic(id) { state.topicId = state.topicId === id ? null : id; state.pageId = null; render(); }
   function selectPage(id) { state.pageId = id; render(); }
-  function load(raw, { preserve = false, announce = true, preview = null } = {}) {
+  function load(raw, { preserve = false, announce = true, preview = null, growth = null } = {}) {
     const next = normalize(raw);
     let nextPreview = null;
     if (preview !== null) {
@@ -301,7 +413,7 @@
     state.preview = nextPreview;
     state.currentData = next;
     state.data = state.grouping === 'experimental' && state.preview ? previewData(next, state.preview) : next;
-    state.snapshotKey = JSON.stringify([raw, preview]);
+    state.snapshotKey = JSON.stringify([raw, preview, growth]);
     state.topicId = hadTopicFilter && selectedSourceId ? state.data.byPage.get(selectedSourceId)?.topicId ?? null : null;
     state.pageId = preserve && state.data.byPage.has(state.pageId) ? state.pageId : null;
     if (!preserve) { state.query = ''; $('search-input').value = ''; }
@@ -311,6 +423,7 @@
     $('data-age').textContent = Number.isNaN(date.getTime()) ? 'Lokale Momentaufnahme' : `Stand ${new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' }).format(date)}`;
     if (!preserve) state.view = { x: 0, y: 0, w: 1000, h: 700 };
     updateView(); updateGrouping();
+    loadGrowth(growth, next);
     if (announce) showStatus(`${format.format(state.data.pages.length)} erfasste Seiten geladen.`);
   }
 
@@ -346,6 +459,14 @@
   $('close-selection').addEventListener('click', () => { state.topicId = null; state.pageId = null; render(); });
   $('grouping-current').addEventListener('click', () => selectGrouping('current'));
   $('grouping-experimental').addEventListener('click', () => selectGrouping('experimental'));
+  for (const button of document.querySelectorAll('[data-growth-window]')) button.addEventListener('click', () => {
+    growthState.window = button.dataset.growthWindow;
+    renderGrowth();
+  });
+  for (const button of document.querySelectorAll('[data-growth-view]')) button.addEventListener('click', () => {
+    growthState.view = button.dataset.growthView;
+    renderGrowth();
+  });
   $('file-input').addEventListener('change', async (event) => {
     const file = event.target.files?.[0]; if (!file) return;
     try {
@@ -365,6 +486,7 @@
     bridgePending = true;
     delete globalThis.__topicAtlasSnapshot;
     delete globalThis.__topicAtlasPreview;
+    delete globalThis.__topicAtlasGrowth;
     const script = document.createElement('script');
     script.src = `./snapshot.js?refresh=${Date.now()}`;
     const finish = () => { script.remove(); bridgePending = false; manualPending = false; };
@@ -372,11 +494,12 @@
       try {
         const next = globalThis.__topicAtlasSnapshot;
         const preview = globalThis.__topicAtlasPreview ?? null;
+        const growth = globalThis.__topicAtlasGrowth ?? null;
         if (!next || typeof next.generatedAt !== 'string' || !next.generatedAt) throw new Error('Ungültiger Snapshot.');
-        if (JSON.stringify([next, preview]) === state.snapshotKey) {
+        if (JSON.stringify([next, preview, growth]) === state.snapshotKey) {
           if (manual || manualPending) showStatus('Kein neuer Datenstand. Prüfe, ob der Watcher läuft.');
         } else {
-          load(next, { preserve: true, announce: false, preview });
+          load(next, { preserve: true, announce: false, preview, growth });
           showStatus(`Neuer Datenstand geladen: ${$('data-age').textContent}.`);
         }
       } catch (error) {
@@ -394,7 +517,12 @@
     if (embedded?.textContent.trim()) {
       const previewElement = $('dashboard-preview-data');
       const preview = previewElement?.textContent.trim() ? JSON.parse(previewElement.textContent) : null;
-      load(JSON.parse(embedded.textContent), { preview });
+      let growth = null;
+      try {
+        const growthElement = $('dashboard-growth-data');
+        growth = growthElement?.textContent.trim() ? JSON.parse(growthElement.textContent) : null;
+      } catch { /* Malformed history must not discard an otherwise valid map. */ }
+      load(JSON.parse(embedded.textContent), { preview, growth });
       embeddedReport = true;
       $('load-label').hidden = true;
       $('preview-load-label').hidden = true;

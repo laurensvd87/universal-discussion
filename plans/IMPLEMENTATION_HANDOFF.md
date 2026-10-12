@@ -1,5 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-105 catalog growth checked; reboot preserves all recorded state.
+Normal service startup/minute sampler writes only derived aggregate history in
+data/topic-growth.sqlite,24h minute/older hourly90d/max4096. Canonical active Topic
+means linked learned page, not Ridge/empty Topic. No content/URL/vector/account
+or provider scope. Dashboard Time and Topics(y)/pages(x) preserve gaps/generations/
+decreases; map pauses >1000 while statistics continue vector-free. Watcher reads
+only, caches unchanged graph to avoid history-feedback/PCA work. Initial dashboard
+records one baseline; no retroactive/offline points or plateau promise.
+Backend focused30/full846+five skips/dashboard21/actual Chrome growth14 and existing
+browser pass; independent base/integration review accepts. Generic old unavailable
+cannot identify precise status; new408/500/503 fixed codes add no retry/deadline.
+Reboot counts revision1559/939 Sources/931 learned/897 active/980 total Topics;
+crawler735 ingested/12840 queued/seven staged/history five points survive. Never
+delete/reset ledger or interrupt running work. Normal recovery after checked commit
+will also load separately committed contribution-goal prompts; old pending note
+below is superseded only after that recovery is confirmed. No inference grant.
+Copilot edits are unrelated/excluded. Restart dashboard to load new chart code.
+
 2026-10-12 ADR-100 contribution-goal refinement CHECKED, activation PENDING:
 owner wants Standardopening summary, other11 actual voice posts, not analysis
 decorated with style. One-liners/no minimum/usually<=60/max120; no required recap,

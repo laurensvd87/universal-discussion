@@ -220,7 +220,8 @@ test("response envelopes, capacity and status failures are fixed and do not echo
     });
   }
 
-  for (const [status, code] of [[400, "invalid-request"], [401, "unauthorized"], [403, "forbidden"], [409, "conflict"], [413, "capacity"], [500, "unavailable"]]) {
+  for (const [status, code] of [[400, "invalid-request"], [401, "unauthorized"], [403, "forbidden"], [408, "response-timeout"],
+    [409, "conflict"], [413, "capacity"], [500, "service-error"], [503, "service-unavailable"]]) {
     const fixture = responseFixture([{ status, value: { private: "must-not-echo" } }]);
     await assert.rejects(createLocalIngestClient({ token: TOKEN, requestImpl: fixture.requestImpl }).version(), error => {
       assert.equal(rejectsCode(code)(error), true);

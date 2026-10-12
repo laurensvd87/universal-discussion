@@ -23,6 +23,29 @@ A crawler preview stages pages in its separate ledger, so preview progress does
 not increase dashboard counts. Startup and revision polling support both legacy
 v2/v3 and normalized canonical metadata.
 
+## Catalog growth
+
+The top panel offers **Zeitverlauf** (learned pages and active canonical Topics
+over time) and **Topics über Seiten** (pages on x, Topics on y). Choose 1 h,
+24 h, seven days or the entire retained history. Current counts, changes and
+pages per active Topic appear beside the plot. Active Topics have at least one
+linked learned page; the separate total includes empty retained Topics. These
+are canonical assignments, not the Ridge1 display groups selected for the map.
+
+The normal service samples on startup and every minute, even without an open
+dashboard. Initial dashboard generation also records one baseline; its watcher
+only reads history. The separate ignored service file `data/topic-growth.sqlite`
+contains timestamps, a hashed catalog generation, revisions and aggregate counts,
+never URLs, titles, vectors, discussions, accounts or credentials. It survives
+computer restarts. Keep the last 24 hours at minute resolution, older samples at
+hour resolution for up to 90 days, with at most 4,096 points. Maintenance runs
+when the sampler/store opens and on accepted samples; reads filter expired points.
+No samples are invented for time before recording or while the service is off.
+
+Catalog changes and recording gaps break lines. Deletion may decrease counts;
+the pages-axis view connects samples in time order, including backward movement.
+The chart measures whether growth slows; it cannot promise a Topic plateau.
+
 The generated file is
 `%LOCALAPPDATA%\Temp\universal-discussion-dashboard\dashboard.html` on a
 typical Windows installation; the command prints the exact path. A sibling
@@ -46,13 +69,14 @@ The original capture policy cannot guarantee that every retained title/URL
 is public, so inspect the report before sharing it.
 Circle position is approximate 2D PCA; highlighted connections use cosine
 scores from the original embeddings. This does not validate provisional Topic
-membership. The program currently refuses a snapshot over 1,000 learned
-pages rather than silently dropping them. This does not limit the catalog's
-storage count.
+membership. Above 1,000 learned pages the map pauses and the dashboard continues
+with aggregate counts and growth history, without loading vectors or silently
+sampling pages. This does not limit the catalog's storage count.
 
 Run `npm run test:restricted` for synthetic data, read-only, and safe
 HTML-export checks with network/process calls denied. `npm run test:browser`
 runs a separate synthetic headless-Chrome smoke when Chrome is installed.
+`npm run test:browser:growth` checks the growth views with synthetic histories.
 No npm dependencies or model download are needed.
 
 ## Topic-Matching and Legacy E5 comparison
