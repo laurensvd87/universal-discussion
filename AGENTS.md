@@ -8,6 +8,16 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current voice/task separation (2026-10-12, ADR-100 refinement, backend-only
+0.13.60): user requests selected voice, not shared neutral/critical/sober tone.
+Nonstandard voice block replaces thoughtful-contributor identity and old subordinate
+suffix; exact task/evidence/language/research/citation core and Standard4 hashes/
+packets remain. Funny may be silly/absurd throughout, Sarcastic requires irony,
+recognizable fictional expression allowed without per-joke disclaimers; real
+facts/quotes/prices/sources remain grounded. Trust26 focused pass; live style is
+unproven. Activation requires safe idle service restart: active crawler Apply
+was observed and not interrupted. No new inference grant. Read STATUS/HANDOFF.
+
 Current guarded availability fixes (2026-10-12, ADR-104, 0.13.60): owner approves
 authenticated model-only response lease, absolute thirty seconds from socket
 acceptance; raw ingress/unauthenticated/other routes retain five seconds. One

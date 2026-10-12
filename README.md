@@ -39,6 +39,12 @@ the remaining styles have offline prompt/transport checks, not live quality QA.
 Existing messages are never rewritten. See
 [ADR-101](decisions/ADR-101-twenty-result-pages-and-sparkle-voices.md).
 
+Selected voices now control delivery instead of inheriting a sober contributor
+tone. Funny can be silly or absurd; Sarcastic should use recognizable irony.
+Clearly nonliteral jokes are allowed, while real facts and sources still need
+support. Standard is unchanged. This backend-only update awaits a safe service
+restart after the active crawler finishes; live style quality is not yet retested.
+
 Authenticated model-list responses now have thirty seconds total instead of
 being cut off locally at five; incoming and other request limits stay unchanged.
 Background matching recovers once from a proven non-writing concurrent-version

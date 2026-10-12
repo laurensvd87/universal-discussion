@@ -92,3 +92,41 @@ Existing posts are not rewritten. This is backend-only; extension remains 0.13.5
 Independent offline checks/restart evidence are recorded at the top of STATUS.
 The two earlier live checks covered only Funny/Sarcastic and consumed their grant;
 no new provider inference or live-quality claim follows for the other voices.
+
+## 2026-10-12 refinement: selected voice owns delivery
+
+The owner rejects a shared neutral/critical tone for selected voices and
+clarifies that Funny need not sound sober: silly, exaggerated or absurd expression
+is welcome. The observed public Sarcastic dispatch fingerprint matched the exact
+intended instructions, but the owner's reported answer lacked recognizable irony.
+This is a style-quality failure, not evidence of missing voice transport; why
+that model under-delivered is not established.
+
+Standard retains all four historical instruction hashes and request bytes.
+Non-Standard prompts no longer inherit the opening “thoughtful forum contributor”
+identity or a subordinate style suffix. They begin with one server-owned selected
+voice block, followed by the unchanged complete format/task/language/evidence/
+research/citation core. No common instruction prescribes neutral, critical or
+sober delivery. Being useful, accurate about literal claims and clear about
+evidence does not require an analytical tone.
+
+Recognizable fictional comic imagery, exaggeration and irony are allowed as
+expression, not evidence, without a mandatory disclaimer on every joke. Real
+facts, prices, quotations and sources must still not be invented. Funny can
+carry the useful point in a comic voice throughout; Sarcastic must actually use
+irony rather than mere neutral criticism, without manufacturing contradictions,
+forcing negativity or mocking people/harm. Other nine voice signatures remain.
+No recycled catchphrase, extra length, forced closing question or changed tool
+authority follows. Fixed voice blocks are bounded at 1,050 characters; the
+largest is 1,026, with no duplicated task/evidence text. This replaces the earlier
+700-character suffix/layout constraint, not provider-context limits.
+
+The OpenAI Docs skill informed the explicit separation of identity, task rules,
+examples and untrusted context using [official prompt-engineering guidance](https://developers.openai.com/api/docs/guides/prompt-engineering).
+Independent checks compare the shared core in all 44 non-Standard combinations,
+retain Standard hashes/full packets and test opening/reply/private serialization,
+source/tool/citation limits and trace identity. Actual model-style compliance
+remains a live quality question; offline tests do not prove better generated text.
+No new provider inference, output archive, schema, UI, permission or historical
+rewrite. Backend-only activation waits for a safe idle restart; do not interrupt
+the owner's active crawler Apply. Final tests/activation state live in STATUS.

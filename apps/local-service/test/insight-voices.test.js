@@ -58,9 +58,38 @@ test("all four standard prompts retain the existing exact bytes", () => {
     const prompts = IDS.map((voice) => buildInsightInstructions(followup, research, voice));
     assert.equal(new Set(prompts).size, 12);
     for (const prompt of prompts.slice(1)) {
-      assert.ok(prompt.startsWith(`${original} `));
-      assert.match(prompt, /all task, evidence, brevity, privacy, research and citation rules take precedence/u);
-      assert.match(prompt, /Do not force a quirky phrase, heading, sign-off or closing question/u);
+      const task = original.slice("Write as a thoughtful forum contributor. ".length);
+      assert.ok(prompt.endsWith(task));
+      assert.equal(prompt.slice(prompt.indexOf("Lead with the answer")), task);
+      assert.doesNotMatch(prompt, /Write as a thoughtful forum contributor/u);
+      assert.match(prompt, /selected writing voice is required delivery throughout the answer/u);
+      assert.match(prompt, /Task, evidence, brevity, privacy, research and citation rules remain binding/u);
+      assert.match(prompt, /Avoid recycled catchphrases, headings, sign-offs or forced closing questions/u);
+    }
+  }
+});
+
+test("serialized opening, public reply and private packets preserve all fields beyond selected instructions and the existing voice preference", async () => {
+  for (const mode of ["opening", "reply", "private"]) for (const research of [false, true]) {
+    if (mode === "private" && research) continue;
+    let standard;
+    for (const voice of IDS) {
+      const { adapter, calls } = fixture({ researched: research });
+      try {
+        await adapter.createInsight({ ...request, allowWebResearch: research, preferences: { replyLanguage: "de", voice },
+          ...(mode === "opening" ? {} : { followup: { parentBody: "Bounded opener", questionBody: "Explain the supplied claim." } })
+        }, { suppressDebug: mode === "private" });
+        assert.equal(calls.length, 1);
+        const payload = structuredClone(calls[0]);
+        assert.equal(payload.instructions, buildInsightInstructions(mode !== "opening", research, voice));
+        delete payload.instructions;
+        const input = JSON.parse(payload.input[0].content);
+        assert.deepEqual(input.preferences, { replyLanguage: "de", ...(voice === "standard" ? {} : { voice }) });
+        delete input.preferences.voice;
+        payload.input[0].content = JSON.stringify(input);
+        if (voice === "standard") standard = JSON.stringify(payload);
+        else assert.equal(JSON.stringify(payload), standard, `${mode}/${research}/${voice}`);
+      } finally { adapter.dispose(); }
     }
   }
 });

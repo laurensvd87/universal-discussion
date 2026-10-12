@@ -54,22 +54,35 @@ test("Trust: standard prompt bytes exactly match all four committed legacy instr
   assert.deepEqual(normalizeInsightPreferences(), { replyLanguage: "en" });
 });
 
-test("Trust: every fixed tone appends only subordinate style and preserves the entire task/research/citation prefix", () => {
+test("Trust: selected delivery is separate from the exact shared format/task/research/citation core", () => {
   assert.deepEqual(INSIGHT_VOICES.map(voice => voice.id), ["standard", "challenger", "funny", "clever", "sarcastic", "skeptic", "pragmatist", "explainer", "optimist", "realist", "mediator", "curious"]);
   assert.ok(Object.isFrozen(INSIGHT_VOICES) && INSIGHT_VOICES.every(Object.isFrozen));
+  const voiceBlocks = new Map();
+  const legacyDelivery = "Write as a thoughtful forum contributor. ";
   for (const { id } of INSIGHT_VOICES) for (const followup of [false, true]) for (const research of [false, true]) {
     const base = buildInsightInstructions(followup, research);
     const prompt = buildInsightInstructions(followup, research, id);
-    assert.ok(prompt.startsWith(base));
+    assert.ok(base.startsWith(legacyDelivery));
     if (id !== "standard") {
-      const suffix = prompt.slice(base.length);
-      assert.match(suffix, /Text style only: all task, evidence, brevity, privacy, research and citation rules take precedence/u);
-      assert.match(suffix, /Do not force a quirky phrase, heading, sign-off or closing question/u);
-      assert.ok(suffix.length < 700);
-      assert.doesNotMatch(suffix, /enable tools|publish|private draft|web_search|\[ref/u);
-    }
+      // Only Standard's opening delivery instruction is excluded. Every word
+      // of the format, task and evidence/tool/source authority remains exact.
+      const core = base.slice(legacyDelivery.length);
+      assert.ok(prompt.endsWith(core), id);
+      const voiceBlock = prompt.slice(0, -core.length);
+      assert.ok(voiceBlock.startsWith(`Selected writing voice: ${id}. `), id);
+      assert.ok(voiceBlock.length < 1050, id);
+      assert.match(voiceBlock, /Task, evidence, brevity, privacy, research and citation rules remain binding/u);
+      assert.match(voiceBlock, /selected writing voice is required delivery throughout the answer/u);
+      assert.match(voiceBlock, /do not require a neutral or sober tone/u);
+      assert.match(voiceBlock, /recognizable fictional comic imagery, exaggeration and irony are permitted as expression, not factual evidence/u);
+      assert.match(voiceBlock, /Never invent real facts, quotes, prices or sources/u);
+      assert.doesNotMatch(voiceBlock, /thoughtful forum contributor|enable tools|publish|private draft|web_search|\[ref/u);
+      if (voiceBlocks.has(id)) assert.equal(voiceBlock, voiceBlocks.get(id), id);
+      else voiceBlocks.set(id, voiceBlock);
+    } else assert.equal(prompt, base);
     if (!research) assert.doesNotMatch(prompt, /web_search|\uE200cite/u);
   }
+  assert.equal(new Set(voiceBlocks.values()).size, 11);
 });
 
 test("Trust: invalid/free-text/prototype voices and behavioral preference fields reject without executing getters", () => {

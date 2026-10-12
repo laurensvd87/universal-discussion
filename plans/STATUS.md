@@ -1,5 +1,25 @@
 # Project status
 
+**2026-10-12 selected voice/task separation implemented; activation pending:**
+The owner rejects shared neutral/critical/sober tone and explicitly welcomes
+silly/absurd Funny expression. Nonstandard prompts now start with only the
+selected fixed voice, without the thoughtful-contributor identity or subordinate
+style suffix. Entire task/format/language/evidence/research/citation core stays
+exact; Standard4 hashes/full packets remain byte-identical. Funny conveys the
+point in its comic voice throughout; Sarcastic requires actual irony, not neutral
+critique, without invented contradictions/forced negativity. Recognizable fictional
+expression is permitted, not invented real facts/prices/quotes/sources; no
+per-joke disclaimer. Other nine voice signatures remain; fixed block <=1050
+characters, actual maximum1026. No new tools/context/model/schema/UI/permissions.
+
+Independent Trust accepts with26 focused restricted checks across voices, modes,
+packet serialization, authority and actual dispatch trace. Full backend839 pass
+with five platform skips; secret scan750/zero and diff checks pass. No agent inference or
+live-quality claim; owner's observed old Sarcastic output remains unchanged.
+Service/crawler unchanged: verified active project crawler Apply process36324
+means normal restart is deferred until idle. Client remains0.13.60; extension
+reload alone cannot activate these backend prompts. See ADR-100 refinement.
+
 **2026-10-12 owner Sarcastic test: dispatch confirmed, style under-delivered:**
 The known content-free trace contains one public dispatch selecting sarcastic.
 Its SHA-256 exactly matches the current opening-post/research-enabled Sarcastic
