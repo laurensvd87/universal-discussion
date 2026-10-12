@@ -28,7 +28,7 @@ export function createProcessDependencies() {
 }
 
 export function openDormantLocalApplication({ config: input, databasePath, nextId, now,
-  chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, insightDebug = null,
+  chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, insightDebug = null, insightRequestTrace = null,
   ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
   accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null, canonicalStorageMode = "auto" }) {
   const config = validateStartupConfig(input);
@@ -42,7 +42,7 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
   let accountLifecycle = null;
   try { runtime = ai ?? createChatGPTRuntime({ service: database.service, dataDir: path.dirname(databasePath),
     fetchImpl: chatgptFetchImpl, refreshStore: chatgptRefreshStore,
-    onInsightTrace: insightTrace, onInsightDebug: insightDebug }); }
+    onInsightTrace: insightTrace, onInsightDebug: insightDebug, onInsightRequestTrace: insightRequestTrace }); }
   catch (error) { database.close(); throw error; }
   try {
     if (accountsEnabled) {

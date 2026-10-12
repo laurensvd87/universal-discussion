@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 import { buildInsightInstructions } from "./insight-prompts.js";
 import { normalizeInsightPreferences } from "../../../../spikes/topic-resolution/browser/core/insight-preferences.js";
@@ -785,10 +786,11 @@ function completeHeaderlessFailureCode(raw) {
 }
 
 /** Injected transport only; construction performs no I/O. All limits reset on process restart. */
-export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.now, onTrace, onDebug }) {
+export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.now, onTrace, onDebug, onRequestTrace }) {
   if (typeof fetchImpl !== "function" || typeof getAccessToken !== "function" || typeof now !== "function" ||
       (onTrace !== undefined && typeof onTrace !== "function") ||
-      (onDebug !== undefined && typeof onDebug !== "function")) fail("invalid-input");
+      (onDebug !== undefined && typeof onDebug !== "function") ||
+      (onRequestTrace !== undefined && typeof onRequestTrace !== "function")) fail("invalid-input");
   let active = null;
   let disposed = false;
   let listed = new Set();
@@ -965,8 +967,22 @@ export function createChatGptInsights({ fetchImpl, getAccessToken, now = Date.no
         payload.tool_choice = broadReply && !requireReplySearch ? "auto" : "required";
       }
       if (!suppressDebug) debug({ phase: "request", payload });
+      const serializedPayload = JSON.stringify(payload);
+      check(requestSignal);
+      if (modelEpoch !== before) fail("cancelled");
+      if (!suppressDebug && onRequestTrace) {
+        try {
+          // Hash the instructions in the exact bytes about to be dispatched,
+          // including any existing opt-in debug callback's synchronous changes.
+          const instructionFingerprint = createHash("sha256")
+            .update(JSON.parse(serializedPayload).instructions, "utf8").digest("hex");
+          const sent = onRequestTrace(Object.freeze({ schema: "insight-request-trace/v1",
+            voice: preferences?.voice ?? "standard", instructionFingerprint, at: dispatchTime }));
+          if (sent && typeof sent.then === "function") void Promise.resolve(sent).catch(() => {});
+        } catch { /* Minimal diagnostics never change a research result. */ }
+      }
       const response = await fetchImpl(`${API}/responses`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: requestSignal,
+        "Content-Type": "application/json" }, body: serializedPayload, signal: requestSignal,
         redirect: "error", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
       check(requestSignal);
       if (response?.redirected || response?.url && response.url !== `${API}/responses`) fail("invalid-response", "response-redirect");

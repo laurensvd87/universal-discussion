@@ -100,7 +100,7 @@ function validateRegistration(value) {
 }
 
 export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore = null, now = Date.now,
-  onInsightTrace = null, onInsightDebug = null,
+  onInsightTrace = null, onInsightDebug = null, onInsightRequestTrace = null,
   connectionAdapter, insightsAdapter } = {}) {
   if (typeof fetchImpl !== "function" && !connectionAdapter) return null;
   const store = connectionAdapter ? null : createChatGPTRegistrationStore(dataDir);
@@ -111,7 +111,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     fetchImpl, refreshStore: protectedStore, now });
   const insights = insightsAdapter ?? createChatGptInsights({ fetchImpl, getAccessToken: connection.getAccessToken,
     now, ...(typeof onInsightTrace === "function" ? { onTrace: onInsightTrace } : {}),
-    ...(typeof onInsightDebug === "function" ? { onDebug: onInsightDebug } : {}) });
+    ...(typeof onInsightDebug === "function" ? { onDebug: onInsightDebug } : {}),
+    ...(typeof onInsightRequestTrace === "function" ? { onRequestTrace: onInsightRequestTrace } : {}) });
   const jobs = new Map();
   const seen = new Set();
   const diagnosticEvents = [];

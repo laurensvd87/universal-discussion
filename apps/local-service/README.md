@@ -1,5 +1,19 @@
 # Local service
 
+## Content-free writing-voice diagnostics (2026-10-12, ADR-103)
+
+Normal owner-local startup enables a small voice-dispatch log at
+`%TEMP%/universal-discussion-insight-trace/voice-request-trace.log` and prints that
+path. Each public generation dispatch records only fixed voice, SHA-256 of the
+actual serialized request's instruction string, a local epoch timestamp and the
+schema identifier. No page/comment/input hash, URL, model, account, token or answer
+is logged. Private generation keeps its existing diagnostic suppression.
+The fixed log retains validated recent lines within 64 KiB; temp cleanup/manual
+removal clears it. Unsafe/unavailable storage or logging errors cannot block the
+service or generation. There is no extra provider request or request-body change.
+A fingerprint proves local dispatch instructions, not provider receipt/adherence;
+past posts cannot be retrospectively attributed to a voice. See ADR-103 and STATUS.
+
 ## Recent twenty-result inbox pages (2026-10-12, 0.13.59)
 
 Private list accepts optional `order: "recent"` with `after: null|signedCursor`,

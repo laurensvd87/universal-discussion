@@ -8,6 +8,14 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current voice diagnostics (2026-10-12, ADR-103, backend-only 0.13.59): owner
+approves fixed voice + SHA-256 of actual serialized request instructions + local
+dispatch time/schema in the bounded known Temp voice-request-trace.log. Normal
+CLI enables it; private suppressDebug excludes it. No content/account/URL/token/
+output/input hash, extra inference or prompt change. Trace is a best-effort local
+attempt, not provider adherence/post audit. Read STATUS/HANDOFF; inspect the log
+after the owner's next deliberate public test, never ask for credential uploads.
+
 Current all-voice refinement (2026-10-12, backend-only 0.13.59, ADR-100): all eleven
 non-Standard static voices now have concrete distinct writing behaviours/examples;
 nine strengthened, Funny/Sarcastic already strong. Standard hashes/full packets

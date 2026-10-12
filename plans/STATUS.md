@@ -1,5 +1,30 @@
 # Project status
 
+**2026-10-12 content-free voice dispatch trace active (ADR-103):**
+Owner approves selected-voice and actual instruction fingerprint diagnostics.
+Public generation logs only schema, fixed voice, SHA-256 of the decoded instruction
+string in the exact serialized POST, and local dispatch epoch time. Normal CLI
+prints the fixed Temp/universal-discussion-insight-trace/voice-request-trace.log
+path; the strict sink keeps validated recent lines within 64 KiB, rejects unsafe
+links/getters/proxies and drops malformed prior records without retaining content.
+No page/comment/URL/model/account/token/output or input hash; private suppressDebug
+also suppresses this trace. Logging failure never blocks generation/startup.
+Packets/prompts/permissions/retries remain unchanged. This is best-effort local
+attempt evidence, not provider acceptance, output quality or a durable post audit.
+
+Independent Trust accepts with 139 focused checks; all 689 core restricted backend
+checks pass with five platform skips (crawler-in-progress tests excluded). A
+previous cursor-tamper test had a random unused-base64-padding-bit alias; test-only
+correction changes significant signature bits, leaves production policy unchanged
+and passes 20 repeated runs. Secret scan: 745 files/zero findings; diff check clean.
+Owner-approved idle restart is complete: canonical revision 804 and 244 Topics/
+202 Sources/69 contributions, private two chats/three messages stay exact; saved
+pairing and protected ChatGPT login restore. Trace file initialized empty; no
+agent inference or invented live trace. Next owner action: select Sarcastic and
+make one deliberate public generation; agent reads the fixed log afterward.
+Client remains 0.13.59, no reload needed; app sign-in may renew. External crawler
+and other user changes are preserved and excluded from this increment.
+
 **2026-10-12 owner-local public Topic crawler verified (ADR-102):**
 The requested PowerShell crawler now needs no operator-supplied origins. Its fixed
 `wikimedia-balanced-v1` campaign starts sixteen subject buckets on the exact

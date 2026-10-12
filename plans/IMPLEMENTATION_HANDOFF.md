@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-103 minimal voice diagnostics active, client remains 0.13.59.
+Normal CLI logs only fixed voice, SHA-256 UTF-8 of actual serialized POST's decoded
+instructions, local epoch timestamp and schema to the known bounded Temp file
+universal-discussion-insight-trace/voice-request-trace.log. No content/URL/account/
+model/token/input hash. Private suppressDebug excludes traces; malformed/linked
+paths and sink failures cannot affect generation. Packets/prompts stay unchanged.
+Trace proves a local dispatch attempt, not provider adherence or saved-post linkage.
+Independent Trust139/core689 pass (five platform skips; unfinished crawler tests
+excluded), secret scan745/zero; test-only base64 tamper flake corrected, policy
+unchanged. Idle restart preserves revision804/244 Topics/202 Sources/69 posts and
+two private chats/three messages, saved pairing/protected ChatGPT sign-in restored.
+Await one deliberate public Sarcastic generation from owner, then read fixed log
+without asking for uploads or making an extra provider call. App auth may renew.
+Do not stage unrelated crawler/README/ops/package/grouping changes with this work.
+
 2026-10-12 ADR-102 owner-local crawler: run from repository root with
 `.\apps\local-service\ops\crawl-topics.ps1` for real-network preview/staging and
 add `-Apply` only for deliberate canonical ingestion. No origin list is needed:

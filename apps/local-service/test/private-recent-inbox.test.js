@@ -61,7 +61,11 @@ test("recent cursors bind owner/query/limit/order/version and never expose forei
   const unfiltered = f.list();
   f.create("different owner activity", BOB);
   assert.equal(f.list(unfiltered.next).conversations.length, 20);
-  assert.throws(() => f.list(`${unfiltered.next.slice(0, -1)}${unfiltered.next.endsWith("A") ? "B" : "A"}`), conflict);
+  const [payload, signature] = unfiltered.next.split(".");
+  // Change significant bits, not the final character's unused base64url padding bits.
+  const tamperedSignature = `${signature.startsWith("A") ? "B" : "A"}${signature.slice(1)}`;
+  assert.notDeepEqual(Buffer.from(tamperedSignature, "base64url"), Buffer.from(signature, "base64url"));
+  assert.throws(() => f.list(`${payload}.${tamperedSignature}`), conflict);
   f.service.remove(ALICE, { conversationId: unfiltered.conversations[0].id });
   assert.throws(() => f.list(unfiltered.next), conflict);
   assert.ok(!f.list().conversations.some(chat => chat.id === unfiltered.conversations[0].id));

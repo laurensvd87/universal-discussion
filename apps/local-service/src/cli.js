@@ -4,6 +4,7 @@ import { APP_DATABASE_PATH, startLocalApplication } from "./startup.js";
 import { createProtectedRefreshStore } from "./ai/protected-refresh-store.js";
 import { createInsightTraceLog } from "./ai/insight-trace-log.js";
 import { createRawInsightDebugLog } from "./ai/raw-insight-debug-log.js";
+import { createVoiceRequestTraceLog } from "./ai/voice-request-trace-log.js";
 import { validateStartupConfig, FIXED_HOST, FIXED_PORT } from "./http/startup-config.js";
 import { startLoopbackListener } from "./http/loopback-listener.js";
 import { changePairing, PAIRING_FILE_NAME } from "./http/pairing-store.js";
@@ -44,6 +45,9 @@ export async function runCli(args = process.argv.slice(2)) {
     return;
   }
   const traceLog = rawDebug ? createInsightTraceLog() : null;
+  let voiceRequestTraceLog = null;
+  try { voiceRequestTraceLog = createVoiceRequestTraceLog(); }
+  catch { /* Diagnostics availability never prevents service startup. */ }
   const rawDebugLog = createRawInsightDebugLog({ enabled: rawDebug });
   if (rawDebug && !rawDebugLog.enabled) throw new Error("Raw insight debug log unavailable");
   const application = await startLocalApplication({
@@ -69,8 +73,9 @@ export async function runCli(args = process.argv.slice(2)) {
       catch { /* Diagnostics never change a research result. */ }
     },
     insightDebug: rawDebug ? (entry) => rawDebugLog.capture(entry) : null,
+    insightRequestTrace: voiceRequestTraceLog ? (trace) => voiceRequestTraceLog.write(trace) : null,
   });
-  process.stdout.write(`Local discussion service listening at http://${FIXED_HOST}:${FIXED_PORT}\n${rawDebug ? `Insight trace log: ${traceLog.filePath}\nRaw insight debug log: ${rawDebugLog.filePath}\n` : ""}Persistent pairing active. Local accounts enabled; email disabled. Stop with Ctrl+C.\n`);
+  process.stdout.write(`Local discussion service listening at http://${FIXED_HOST}:${FIXED_PORT}\n${voiceRequestTraceLog ? `Voice request trace log: ${voiceRequestTraceLog.filePath}\n` : "Voice request trace log unavailable.\n"}${rawDebug ? `Insight trace log: ${traceLog.filePath}\nRaw insight debug log: ${rawDebugLog.filePath}\n` : ""}Persistent pairing active. Local accounts enabled; email disabled. Stop with Ctrl+C.\n`);
   let stopping = false;
   const shutdown = async () => {
     if (stopping) return;
