@@ -8,6 +8,13 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current all-voice refinement (2026-10-12, backend-only 0.13.59, ADR-100): all eleven
+non-Standard static voices now have concrete distinct writing behaviours/examples;
+nine strengthened, Funny/Sarcastic already strong. Standard hashes/full packets
+and source/research/citation/privacy/brevity/context authority remain exact.
+Independent offline checks/idle restart pass; no new live inference grant,
+retained field, client update or historical rewrite. Read top STATUS/HANDOFF.
+
 Current twenty-result pages/voice menus (2026-10-12, 0.13.59, ADR-101): My chats
 merges signed owner-scoped recent streams into twenty total cards; Previous
 replays cursor/skip metadata with fresh version checks, never old cached bodies.

@@ -65,3 +65,30 @@ The owner permits normal local-service restarts as needed; check for idle work
 and preserve data/pairing/protected provider sign-in. This does not authorize
 interrupting active requests, new listeners, provider inference, deployment,
 spending, mail or public/store release. App sessions may need renewal on restart.
+
+## 2026-10-12 refinement: all styles must be distinguishable
+
+The owner clarifies that Funny/Sarcastic were examples, not the only styles that
+should be expressive. Strengthen the remaining nine non-Standard overlays with
+concrete observable behaviours and short explicitly fictional style-only examples,
+not generic personality adjectives. Keep Funny/Sarcastic's already stronger
+guidance and Standard's four prompts/full provider packets byte-identical.
+Every complete style suffix remains under 700 characters. No rigid catchphrase,
+persona announcement, longer answer, invented facts or mandatory disagreement.
+
+Challenger tests an assumption with a fair counterargument; Skeptic separates
+evidence from inference; Realist makes constraints/consequences concrete;
+Pragmatist offers a grounded next step. Clever reframes a supported implication;
+Explainer makes a mechanism plain; Optimist identifies a credible opportunity;
+Mediator locates agreement and the actual disagreement without false balance;
+Curious explores a relevant unresolved implication without compulsory questions.
+Each remains a useful forum contribution, not a performance replacing the task.
+
+The OpenAI Docs skill guided concrete tone instructions/examples using
+[official prompt-engineering guidance](https://developers.openai.com/api/docs/guides/prompt-engineering).
+Prompt separation, factual/source/citation/privacy/brevity rules, fixed enums,
+private payload reuse and current-page/account/target proof are unchanged.
+Existing posts are not rewritten. This is backend-only; extension remains 0.13.59.
+Independent offline checks/restart evidence are recorded at the top of STATUS.
+The two earlier live checks covered only Funny/Sarcastic and consumed their grant;
+no new provider inference or live-quality claim follows for the other voices.

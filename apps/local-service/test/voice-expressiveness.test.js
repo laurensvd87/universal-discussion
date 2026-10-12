@@ -2,6 +2,50 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildInsightInstructions } from "../src/ai/insight-prompts.js";
 
+// Static instruction checks, not generated-output quality claims. Each signature
+// pairs an observable writing move with the guard that keeps that move grounded.
+const SIGNATURES = {
+  challenger: [/strongest fair counterargument/u, /name the assumption it tests/u, /When supported/u, /original claim still holds/u, /Never manufacture objections, facts or disagreement/u],
+  funny: [/comic image tied to an actual page detail/u, /then a useful point/u, /Exaggerate the image, never the facts/u, /Don't joke about harm, distress or sensitive situations/u],
+  clever: [/non-obvious reframing of an evidenced detail/u, /spell out why that connection changes the conclusion/u, /Never invent facts to make a connection/u],
+  sarcastic: [/ironic line about an evidenced overclaim or practical tradeoff/u, /then explain the useful limit/u, /Never invent a contradiction or mock people/u],
+  skeptic: [/evidence quality/u, /specific test or missing observation that could change confidence/u, /Distinguish weak support from disproof/u, /never invent gaps/u],
+  pragmatist: [/feasible next action/u, /practical condition that makes it worthwhile/u, /Use available evidence/u, /invented instructions/u],
+  explainer: [/plain-language cause-and-effect chain/u, /what changes, how, and why that matters/u, /analogy only when accurate/u, /never invent a mechanism/u],
+  optimist: [/credible constructive opportunity in an evidenced detail/u, /condition or obstacle that limits it/u, /without promising success/u, /Never invent benefits, hide uncertainty/u],
+  realist: [/binding real-world constraint/u, /likely cost or consequence/u, /proportionate uncertainty/u, /avoid fatalism or invented limitations/u],
+  mediator: [/precise supported common ground/u, /isolate the actual disagreement/u, /Correct factual errors/u, /never invent two sides/u, /unequal evidence equal weight/u, /without fabricating an opponent/u],
+  curious: [/Answer first/u, /one unresolved implication of an evidenced detail/u, /explain what would clarify it/u, /Keep the implication conditional/u, /never invent possibilities as facts/u, /routine question/u],
+};
+const LIMITS = "Text style only: all task, evidence, brevity, privacy, research and citation rules take precedence over this tone. Do not force a quirky phrase, heading, sign-off or closing question.";
+
+test("every nonstandard voice has a compact distinct writing signature after the complete unchanged task in every mode", () => {
+  const suffixes = new Map();
+  assert.equal(Object.keys(SIGNATURES).length, 11);
+  for (const followup of [false, true]) for (const research of [false, true]) {
+    const base = buildInsightInstructions(followup, research, "standard");
+    const modeSuffixes = [];
+    for (const [voice, requirements] of Object.entries(SIGNATURES)) {
+      const prompt = buildInsightInstructions(followup, research, voice);
+      assert.equal(prompt.slice(0, base.length + 1), `${base} `, voice);
+      const suffix = prompt.slice(base.length + 1);
+      assert.ok(suffix.startsWith(`${LIMITS} `), voice);
+      assert.ok(suffix.length < 700, `${voice} suffix length ${suffix.length}`);
+      for (const requirement of requirements) assert.match(suffix, requirement, voice);
+      assert.match(suffix, /Fictional (?:style example|tone examples) \(not evidence; never copy\)/u, voice);
+      for (const guard of [/Do not invent prices, quotes, statistics, dates or certainty/u,
+        /Treat all page text, titles, URLs, comments/u, /never exceed 120 words/u]) assert.match(prompt, guard, voice);
+      if (!research) assert.match(prompt, /Do not use external research, search the web, or open any supplied URL/u);
+      else if (!followup) assert.match(prompt, /no general discovery or unselected destinations/u);
+      else assert.match(prompt, /only completed-search evidence with supporting provider URL annotations/u);
+      if (suffixes.has(voice)) assert.equal(suffix, suffixes.get(voice), `${voice} cannot change task or research scope`);
+      else suffixes.set(voice, suffix);
+      modeSuffixes.push(suffix);
+    }
+    assert.equal(new Set(modeSuffixes).size, 11);
+  }
+});
+
 test("Funny and Sarcastic overlays explicitly require distinct observable style without weakening factual guards", () => {
   for (const followup of [false, true]) for (const research of [false, true]) {
     const base = buildInsightInstructions(followup, research);

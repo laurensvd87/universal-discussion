@@ -32,8 +32,11 @@ it remembers your choice without generating anything. Source/privacy rules remai
 the same. My chats now searches your public/private conversations beyond loaded
 pages; its fixed search and content-sized cards prevent the reported overlap.
 Lists show **20 results per page** with Previous/Next, including nested replies.
-Funny and Sarcastic use more distinct style guidance, checked with two synthetic
-live GPT-6 Luna responses. Existing messages are never rewritten. See
+All eleven non-Standard voices now have concrete, distinct writing behaviours
+and bounded fictional style examples. Standard stays unchanged. Funny and
+Sarcastic were also checked with two synthetic live GPT-6 Luna responses;
+the remaining styles have offline prompt/transport checks, not live quality QA.
+Existing messages are never rewritten. See
 [ADR-101](decisions/ADR-101-twenty-result-pages-and-sparkle-voices.md).
 
 Empty discussions now offer related-page links from the existing backend library.

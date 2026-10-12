@@ -1,5 +1,22 @@
 # Project status
 
+**2026-10-12 all assistant styles strengthened, backend refinement of 0.13.59:**
+The owner requests expressive behaviour for every voice, not only the two tested
+styles. Nine remaining static overlays now specify concrete writing moves and
+short marked fictional style examples. All eleven non-Standard suffixes remain
+under 700 characters; Standard's four prompt hashes/full packets, Funny/Sarcastic,
+shared factual/source/research/citation/privacy/brevity and clicked-context rules
+are unchanged. Existing posts are not rewritten; no schema/client/permission change.
+Independent Trust accepts with 128 focused offline regressions; root's prompt/
+adapter/voice run passes 98/98, secret scan 736 files/zero findings and diff checks.
+These are prompt/transport checks, not live quality evidence for nine new styles.
+No new inference; previous Funny/Sarcastic two-check permission remains consumed.
+Normal idle restart activates the backend change; revision 800/244 Topics/202
+Sources/68 posts and private two chats/three messages are preserved. Pairing and
+protected ChatGPT login restore; app sign-in may need renewal. No extension reload
+is needed if already on 0.13.59. See ADR-100 refinement; unrelated crawler work
+and Copilot/page-policy edits are excluded from this increment.
+
 **2026-10-12 twenty-result pages/voice menus verified and active, 0.13.59:**
 My chats now shows twenty total mixed public/private results with Previous/Next;
 cursor/skip/scroll metadata replays fresh batches, never cached old card bodies.

@@ -13,8 +13,11 @@ still scales with owned conversations; results are byte-bounded, not constant-ti
 The client merges both recent streams into twenty total visible cards and
 revalidates versions on page navigation; fresh entry binds fresh versions.
 
-Funny/Sarcastic static prompt overlays are more explicit while Standard remains
-byte-identical. An explicit `node harness/run-live-voice-qa.js --run-live` harness
+All eleven non-Standard static overlays now specify a distinct observable writing
+behaviour, with bounded fictional style-only examples; facts and tool/source
+authority remain unchanged. Standard remains byte-identical. Only Funny/Sarcastic
+have live style QA so far; other voices are checked offline. An explicit
+`node harness/run-live-voice-qa.js --run-live` harness
 requires an exclusively free port and caps two research-off synthetic requests;
 it is never part of startup/tests. Owner authorized and root completed exactly
 two checks for this change; further inference needs its own approval. See ADR-101.

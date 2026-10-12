@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 backend-only refinement, extension remains 0.13.59: all eleven
+non-Standard voices now use concrete distinct writing moves/marked fictional
+examples. Nine overlays strengthened; Funny/Sarcastic already strong, untouched.
+Standard four prompt hashes/full packets and all task/source/citation/tool/privacy/
+120-word/account/context rules remain exact. Fixed enums/storage/request snapshots
+unchanged; no old-message rewrite, new retained field or extra inference.
+Independent Trust 128/root 98 offline regressions pass, secret scan 736/zero. No live
+quality claim for nine new styles; prior two-check approval is consumed.
+Normal idle restart activates prompts, data version/counts and saved pairing/
+protected login preserved. App sign-in may renew; no additional client reload if
+already on 0.13.59. ADR-100 refinement records scope. Unrelated crawler/Copilot/page-
+policy work remains outside this commit; do not stage it as voice changes.
+
 2026-10-12 extension 0.13.59: twenty-result Previous/Next across My chats,
 Discover search/retained page suggestions, Discussion roots/related/page links,
 each nested sibling reply list and private/public inbox message previews. My
