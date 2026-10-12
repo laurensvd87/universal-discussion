@@ -1,7 +1,7 @@
 # ADR-108: Concurrent public connection and page reads
 
 Date: 2026-10-12
-Status: Owner approved; independently reviewed and checked, final activation pending
+Status: Owner approved; independently reviewed, checked and active locally
 
 ## Request and evidence
 
@@ -145,3 +145,27 @@ inferences per second, unlimited catalog growth or a hosted multi-user deploymen
 There is one bounded public planner and one canonical writer. Very large closures,
 expensive account/private/search routes and CPU/network/resource overload retain
 their own limits; further hosted/write-heavy scaling remains a separate gate.
+
+## Local activation
+
+Implementation3610282/eb17ae2 is committed. The owner-authorized normal restarts
+activate public-read isolation and final startup warmup. Final servicePTY51099
+uses the saved Origin and normal mode. Canonical revision2200 /1,571 Sources /
+1,594 Topics /75 contributions and serialized canonical/private/crawler database
+fingerprints match exactly before and after. No owner ingestion or AI generation
+was performed. Protected sign-in restores connected/not pending; no private claim
+was running. The final restart also preserves the pairing file fingerprint.
+
+The first restart loads the separately checked Murmingle naming compatibility:
+successful authentication upgrades only the pairing verifier's domain. Its file
+fingerprint therefore changes once, but the existing saved token and unchanged
+Origin remain valid (checked in RAM without printing credentials). No new token
+or pairing reset is required.
+
+Actual first selected page-context read after final startup: HTTP200 in4,413ms,
+then9ms for the next read; related4ms and alternate discussion7ms. All17 concurrent
+health probes returned200, slowest7ms. The earlier cold worker initialization
+timeout is addressed by the startup prime; this measured check stays within the
+unchanged5s bound, not a guarantee under arbitrary overload or catalog growth.
+Owner reopens the panel and manually runs the sameApplyscript. Extension0.13.61
+already supports this unchanged protocol; app account sign-in may need renewal.

@@ -1,5 +1,39 @@
 # Project status
 
+**2026-10-12 concurrent public connection/page reads ACTIVE (ADR-108):**
+Owner approves complete connection-path concurrency and explicitly allows restart
+once crawler stopped response-timeout after25accepted. Normal normalizeddisk CLI
+isolates public catalog/context/page, related/prior/alternate/discussion reads in
+readonly worker;32distincttasks/4096coalescedwaiters/8MiBinputs/1MiBresults/15s,
+heap256/32MiB. Existing5s ordinary/client deadlines, exact current-version/pairing/
+optionalaccount/abort and final encoding fences remain; no read rebase/retry.
+Bounded8-claim ingestion barrier drains admitted read/HTTP continuations before
+original guarded commit, no wait-timeDBlock; fresh read admissions between claims.
+Comments/deletion remain independently writable and invalidate stale plans.
+Exact Ridge/index/related preparation preserves thresholds/bitidentical geometry;
+normalized alternate reads use full affected thread closure, metadata-only related
+cache resets perrevision. Coalesced frozen DTO/weak encoding reuse never indexes
+private/provider/account output. Empty public context warms worker initialization
+in parallel startup; no selected-page/provider/capture/owner write follows.
+
+Fullbackend972pass/five skips, additional lifecycle testpass; restrictedextension
+1496pass, isolated Chrome and independent Trust/performance/scope reviews accept.
+Scans774/243zero. Synthetic4175only fullpath2000learned/2000simultaneous reads all200:
+coldmax2514ms,warm1474ms,concurrentaccepted-ingest2423ms;27coalescedtasks/wave.
+Prepared real ingest released with admitted reads active returns200/newrevision+1,
+newSourcevisible; stalepreparedingest409 preserves accepted comment. Overflow413
+whilehealth/version4ms. Not2000new-SYNburst/differentheavykeys/writes/inferences,
+not hosted release/unlimitedgrowth; resource/largeclosure/account/private/search
+limits remain. Implementation3610282/eb17ae2 committed; final normal service
+PTY51099 active. Actual owner selectedcontext4413ms then9ms,related4ms/alternate7ms,
+17healthprobesall200/max7ms. Revision2200/1571Sources/1594Topics/75posts and canonical/
+private/crawler fingerprints match, final restart pairing hash exact and protected
+login connected/notpending. First restart also activates checked separate naming
+compatibility: pairing verifier domain upgraded only, saved token/origin remain
+valid (verified privately); never publish credentials. Owner reopens panel and
+manually runs sameApplyscript; no extension version change required, appauth may
+renew. Preserve all unrelated naming/Copilot edits; no owner ingestion/inference.
+
 **2026-10-12 concurrent ingestion/continuous crawler active (ADR-107,0.13.61):**
 Owner requests researched implementation of concurrency toward thousands of
 requests, no500/count/depth default crawler stops, and latestcapacity correction.

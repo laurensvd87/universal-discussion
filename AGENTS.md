@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current concurrent public connection/page reads (2026-10-12, ADR-108): owner
+approves isolation for all connection reads/thousands readers and restart after
+crawler stopped. Read STATUS/HANDOFF. Verified final normal service restart is
+complete; canonical/private/crawler records, pairing and protected sign-in remain.
+Read-only bounded worker coalesces public requests; exact current-version/auth/
+optional session/abort/deadline checks precede delivery. Bounded ingestion barrier
+lets admitted read batches finish before original scoped commit; no rebase/retry.
+Exact Ridge/related optimization and full affected thread scopes preserve lineage,
+thresholds and authority. Full backend972+five skips/additional lifecycle pass,
+extension1496/Chrome/Trust; isolated2000simultaneous fullpathreadwaves all200 plus
+accepted ingestion/newSource visibility. This is not hosted readiness, thousands
+of distinct heavy jobs/writes/inferences or unlimited growth. Empty public startup
+warmup selects no page/provider. Owner explicitly permits routine restarts even
+nonidle here; preserve accepted data and do not infer provider permission. No
+extension version change required; preserve unrelated naming/Copilot work.
+
 Current concurrent ingestion/continuous crawler (2026-10-12, ADR-107,0.13.61):
 owner explicitly requests researched concurrency toward thousands of requests,
 no default500/page/depth crawler stops, and capacity correction. Verified idle

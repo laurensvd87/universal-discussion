@@ -1,5 +1,27 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-108 concurrent public read paths ACTIVE, owner approves all connection
+needs/thousands readers and restart after crawler response-timeout. Read STATUS and
+ADR-108:32distinct readonly tasks/4096waiters, exactversion/auth/session/abort/final
+encoding guards, no readleaseextension/rebase/retry. Ingest8-claim boundedbarrier
+drains admittedreads +HTTPmicrotasks, noDBlock, freshreadturn betweenwrites. Comments
+and deletion stillinvalidate staleplans. ExactRidge/fullmetric/related preparation,
+scopedalternate fullsubthreads, weakimmutableencoding/actorrenewal passindependent
+Trust. Emptypubliccontext primesworker duringstartup, noselectedpage/provider/capture.
+Fullbackend972+five skips/additional1lifecyclepass, extension1496restricted/Chrome;
+secrets774/243zero. Real synthetic2000learned/2000fullpathreadwavesall200 coldmax2514,
+warm1474/concurrentacceptedwrite2423ms/27jobs; ingest200version+1/newSourcevisible,
+staleplan409/commentpreserved; overflow413health4ms. Warm-connected workloads only,
+not new-SYNburst/differentheavykeys/thousandswrites or hostedQA/unlimitedcatalog.
+Implementation3610282/eb17ae2 committed; normal final servicePTY51099, actual owner
+Sourcecontext4413ms then9ms,related4ms/alternate7ms,17health200max7ms. Revision2200/
+1571Sources/1594Topics/75posts/canonical-private-ledgerfingerprints exact; final
+pairing hash exact/provider connectednotpending. Firstrestart loads separately
+checked namingcompatibility, pairingverifier domainupgrades but saved token/Origin
+verifiedvalid; no credentialoutput. Reopenpanel/sameApplyscript manually; noextension
+versionchange, appauthmayrenew. Noownerwrites/inference. Preserveunrelatedrename/
+Copilotdirtyedits; do notstageentiredocs blindly. No provider/hosting expansion.
+
 2026-10-12 ADR-107 researched concurrent worker/continuouscrawler ACTIVE.
 CLI asyncIngest:true normalizeddisk only, legacy/RAMsyncfallback.
 Readonlyworker fullprepare ->minimalaffectedclosure ->main saveScoped exact
