@@ -1,5 +1,39 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-102 owner-local crawler: run from repository root with
+`.\apps\local-service\ops\crawl-topics.ps1` for real-network preview/staging and
+add `-Apply` only for deliberate canonical ingestion. No origin list is needed:
+the repository-owned campaign has sixteen knowledge buckets across exact
+`en/de/fr/es.wikipedia.org` origins, defaults to 5,000 attempts/depth two and
+accepts only query-free main-namespace `/wiki/` paths. The fixed ignored ledger
+at `apps/local-service/data/topic-crawler.sqlite` is the no-revisit/reboot-resume
+authority; do not delete it as routine cleanup and do not run two crawler
+processes. Enter the existing pairing token only in the hidden prompt. Keep the
+service running, create the existing encrypted canonical backup before a material
+apply, and restart the updated backend before the first apply so it accepts the
+new exact extractor provenance.
+
+Preview never calls canonical ingest. Apply uses signed/version-bound loopback
+catalog/ingest routes, stable operation IDs and at most 250 selected staged rows
+before plus 250 after crawl work per invocation. Re-run apply for remaining rows.
+Generation replacement fails closed unless the operator deliberately reviews and
+uses `-RebaseState`; this abandons unfinished work and never restores data or
+revisits terminal pages. Fetch is anonymous static HTTPS with public DNS pinning,
+exact-origin redirects, durable >=2s origin pacing, robots/X-Robots/meta/TDMRep
+checks and bounded parsing. It stores no raw article text and invokes no provider.
+The extension/browser capture contract remains two extractors; only exact backend
+matching allowlists add `crawler-static-html-prefix/v1`.
+
+Verification: independent Trust accepts after all identified policy/parser/reset
+fixes; restricted crawler 93/93, Topic planner 74/74, browser boundary 76/76,
+learned/canonical 24/24 and full backend 782 pass/five platform skips; the
+745-file backend secret scan has zero findings. A real packaged E5 offline smoke
+produces the expected 384-dimensional unit vector.
+No live crawl, owner data mutation, listener restart or deployment was performed.
+Do not claim 5,000 created Topics, semantic quality, open-web coverage or bulk
+throughput: policy/deduplication reduce candidates and canonical global regrouping
+is serial/growing. Read ADR-102 and `apps/local-service/ops/CRAWLER.md` before use.
+
 2026-10-12 backend-only refinement, extension remains 0.13.59: all eleven
 non-Standard voices now use concrete distinct writing moves/marked fictional
 examples. Nine overlays strengthened; Funny/Sarcastic already strong, untouched.

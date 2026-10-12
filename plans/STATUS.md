@@ -1,5 +1,42 @@
 # Project status
 
+**2026-10-12 owner-local public Topic crawler verified (ADR-102):**
+The requested PowerShell crawler now needs no operator-supplied origins. Its fixed
+`wikimedia-balanced-v1` campaign starts sixteen subject buckets on the exact
+English, German, French and Spanish Wikipedia origins, discovers only query-free
+main-namespace `/wiki/` links and defaults to 5,000 durable attempts. Preview
+performs real public fetch/extract/local-E5 work but makes no canonical write;
+`-Apply` sends serial diversity-selected representations through the paired
+loopback API in at most 250 staged candidates before and 250 after crawling.
+The separate ignored `data/topic-crawler.sqlite` frontier records URL digests,
+terminal outcomes, fingerprints, vectors and policy/pacing state without raw page
+text. Rerunning the same command after Ctrl+C or a reboot resumes queued/staged
+work; existing canonical URLs, completed rows and uncertain interrupted fetches
+are not revisited. Stable operation IDs reconcile an interrupted ingest response.
+
+Anonymous HTTPS fetching validates every DNS answer, pins and verifies the public
+peer, follows no redirect internally, sends a fixed descriptive user agent and
+has strict time/header/body/decompression/MIME bounds. Exact-origin/path checks,
+durable two-second minimum pacing, robots, X-Robots/meta noindex/noai/notrain and
+TDMRep precedence fail closed. Static HTML only: no JavaScript, login, cookies,
+forms, search/provider call or private browser context. Raw HTML/text remains
+process-only. Exact backend allowlists admit `crawler-static-html-prefix/v1` in
+the existing E5 space; the browser reader retains its two prior extractor
+versions. A canonical-generation change stops automatic retry.
+
+Independent Trust found and rechecked generation, policy-expiry, real-world
+robots-label, HTML-tokenizer/metadata and crawl-delay corrections, with no
+remaining blocker. Network-denied crawler checks pass 93/93; focused Topic
+planner checks 74/74, browser boundary checks 76/76 and learned/canonical checks
+24/24. The packaged pinned E5 smoke returns 384 finite unit-normalized values.
+The full restricted backend suite passes 782 with five platform skips (787 total);
+the backend secret scan checks 745 files with zero findings.
+No live crawl, owner database write, service restart, provider request or
+deployment occurred. This remains a slow serial local workflow: current global
+Topic regrouping grows with the catalog, so a large campaign needs repeated
+bounded applies and is not hosted/high-throughput readiness. See the crawler
+operator guide; restart the updated local service before the first `-Apply`.
+
 **2026-10-12 Murmingle preliminary trademark screen, EU/UK/US:**
 Actual isolated-browser EUIPO, USPTO, WIPO and aggregate TMview searches return
 no exact Murmingle record. TMview fuzzy/WIPO phonetic results are recorded,

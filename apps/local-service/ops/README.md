@@ -1,5 +1,10 @@
 # Online canonical recovery
 
+For the separate restart-safe public Topic crawler, including preview/apply
+commands, limits, retained state and policy behavior, see
+[the crawler operator guide](CRAWLER.md). Preview makes real public requests but
+does not modify the canonical database; `-Apply` is the deliberate write mode.
+
 From `apps/local-service`, with Node **24.16+** on the same Windows user profile:
 
 ```powershell

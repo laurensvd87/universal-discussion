@@ -7,7 +7,7 @@ const LEARNED = 'owner-local-page-embedding/v1';
 const MODEL = 'e5-small-q8-browser-main-prefix-v1';
 // Exact current input transform space; an unrelated future extractor must not
 // become comparable just because another validation allowlist grows.
-const EXTRACTORS = new Set(['main-text-prefix/v1','article-container-prefix/v1']);
+const EXTRACTORS = new Set(['main-text-prefix/v1','article-container-prefix/v1','crawler-static-html-prefix/v1']);
 const EPSILON = 1e-12;
 // A full regrouping runs synchronously on every ingestion. Bound CPU work while
 // retaining the snapshot and response byte limits as the data-size guards.

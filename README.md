@@ -57,6 +57,16 @@ credentials, with no plaintext staging or automatic restore. The backend is read
 for the updated extension; its separate GUI changes keep their own verification.
 See [ADR-099](decisions/ADR-099-online-encrypted-canonical-backup-and-cutover.md).
 
+An explicit owner-local PowerShell crawler can now stage a broad public Source
+campaign and, with `-Apply`, submit diversity-selected pages through the normal
+canonical API. It needs no supplied origin list: the fixed campaign spans sixteen
+subjects on four exact Wikipedia language origins and defaults to 5,000 page
+attempts. Its separate SQLite ledger prevents repeat visits and resumes after a
+reboot when the same command is run again. Preview still performs real public
+requests but never changes canonical Topics. See the
+[crawler operator guide](apps/local-service/ops/CRAWLER.md) and
+[ADR-102](decisions/ADR-102-owner-local-public-topic-crawler.md).
+
 The latest client fixes an Insight page-text validation mismatch involving
 invisible language-formatting marks and gives private failures useful, safe error
 messages. That earlier client-only fix needed no backend restart. A previously failed request is not
@@ -1067,7 +1077,9 @@ the additional verifier experiment is deferred and persistent pairing stays gate
   extension reload/restart checks remain manual; real-news accuracy is unvalidated.
 - Wrong-topic correction, Stop/site blocking, Forget page and confirmed learned
   Topic/data deletion are implemented. Matching defaults off; manual Topic choice
-  remains available. There is no external search or crawler.
+  remains available. This browser-capture path performs no external search or
+  crawl; ADR-102's separate explicit owner-local operator command is the only
+  crawler.
 - Older exact-URL/fingerprint fixtures, metadata-only MDN/loopback checks and six
   hand-authored Harbor vectors remain separate diagnostics with synthetic labels.
 - The secured, bounded `/v1` API listens only when explicitly started on
@@ -1310,7 +1322,9 @@ Known permitted Sources come first; external web search is
 parked and is not a prerequisite. The recorded options remain in the
 [discovery options and costs](research/RELATED_PAGE_DISCOVERY_2026-09-28.md).
 AI handoff/import and a shared service follow their data/security approvals.
-The design avoids a crawler, a mandatory per-site API and a mandatory AI vendor.
+The browser design avoids an automatic crawler, a mandatory per-site API and a
+mandatory AI vendor. ADR-102 later added a separate, deliberate owner-local
+crawler with fixed exact origins; it did not add background or open-web crawling.
 For mobile, investigate sharing and Safari integration before assuming a WebView
 can observe content in other apps.
 

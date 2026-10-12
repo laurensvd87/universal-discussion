@@ -9,9 +9,11 @@ export const LEARNED_SOURCE_PROVENANCE = "owner-local-page-embedding/v1";
 export const LEARNED_TOPIC_PROVENANCE = "owner-local-learned-topic/v1";
 export const BROWSER_MODEL_ID = "e5-small-q8-browser-main-prefix-v1";
 export const EXTRACTOR_VERSION = "main-text-prefix/v1";
-// ADR-021 explicitly reviews both capture policies in the unchanged E5 space.
-// This is an exact allowlist, not general compatibility by vector dimension.
-export function compatibleExtractor(version) { return PAGE_CONTENT_EXTRACTOR_VERSIONS.includes(version); }
+// ADR-021 explicitly reviews both browser capture policies. ADR-102 separately
+// admits the bounded static crawler representation in the unchanged E5 space;
+// it does not widen the browser reader's own two-version output contract.
+const COMPATIBLE_EXTRACTORS = new Set([...PAGE_CONTENT_EXTRACTOR_VERSIONS, "crawler-static-html-prefix/v1"]);
+export function compatibleExtractor(version) { return COMPATIBLE_EXTRACTORS.has(version); }
 export const MATCH_POLICY_VERSION = "provisional-all-source-cosine/v1";
 export const LEARNED_COMMANDS = new Set(["correct-source", "forget-source", "delete-learned-topic", "clear-learned-data"]);
 

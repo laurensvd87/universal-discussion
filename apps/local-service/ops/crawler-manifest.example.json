@@ -1,0 +1,78 @@
+{
+  "schema": "murmingle-crawl-manifest/v1",
+  "rightsAcknowledged": true,
+  "buckets": [
+    {
+      "id": "earth-science",
+      "rightsBasis": "PLACEHOLDER ONLY - replace with a documented permission or public-license review before use",
+      "maxPages": 40,
+      "allowedHosts": [
+        "earth-science.example.com"
+      ],
+      "allowedQueryKeys": [],
+      "seeds": [
+        "https://earth-science.example.com/articles/"
+      ]
+    },
+    {
+      "id": "computing",
+      "rightsBasis": "PLACEHOLDER ONLY - replace with a documented permission or public-license review before use",
+      "maxPages": 40,
+      "allowedHosts": [
+        "computing.example.org"
+      ],
+      "allowedQueryKeys": [],
+      "seeds": [
+        "https://computing.example.org/guides/"
+      ]
+    },
+    {
+      "id": "history-culture",
+      "rightsBasis": "PLACEHOLDER ONLY - replace with a documented permission or public-license review before use",
+      "maxPages": 40,
+      "allowedHosts": [
+        "history-culture.example.net"
+      ],
+      "allowedQueryKeys": [],
+      "seeds": [
+        "https://history-culture.example.net/reference/"
+      ]
+    },
+    {
+      "id": "public-health",
+      "rightsBasis": "PLACEHOLDER ONLY - replace with a documented permission or public-license review before use",
+      "maxPages": 40,
+      "allowedHosts": [
+        "public-health.example.com"
+      ],
+      "allowedQueryKeys": [],
+      "seeds": [
+        "https://public-health.example.com/topics/"
+      ]
+    },
+    {
+      "id": "economics-policy",
+      "rightsBasis": "PLACEHOLDER ONLY - replace with a documented permission or public-license review before use",
+      "maxPages": 40,
+      "allowedHosts": [
+        "economics-policy.example.org"
+      ],
+      "allowedQueryKeys": [],
+      "seeds": [
+        "https://economics-policy.example.org/explainers/"
+      ]
+    },
+    {
+      "id": "arts-language",
+      "rightsBasis": "PLACEHOLDER ONLY - replace with a documented permission or public-license review before use",
+      "maxPages": 40,
+      "allowedHosts": [
+        "arts-language.example.net"
+      ],
+      "allowedQueryKeys": [],
+      "seeds": [
+        "https://arts-language.example.net/subjects/"
+      ]
+    }
+  ]
+}

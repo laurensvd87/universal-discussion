@@ -1,0 +1,198 @@
+import { createHash } from "node:crypto";
+
+export const CRAWLER_EXTRACTOR_VERSION = "crawler-static-html-prefix/v1";
+const MAX_TEXT = 4_096;
+const MAX_TITLE = 200;
+const MAX_LINKS = 4_000;
+const MIN_TEXT = 160;
+const SKIP = new Set(["script", "style", "noscript", "template", "svg", "canvas", "iframe", "object", "embed"]);
+const CHROME = new Set(["nav", "header", "footer", "aside", "form"]);
+const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+const ENTITY = new Map([["amp", "&"], ["lt", "<"], ["gt", ">"], ["quot", "\""], ["apos", "'"], ["nbsp", " "]]);
+
+function decodeEntities(value) {
+  return value.replace(/&(?:#(x[0-9a-f]+|[0-9]+)|([a-z][a-z0-9]+));/giu, (whole, numeric, named) => {
+    if (numeric) {
+      const radix = numeric[0].toLowerCase() === "x" ? 16 : 10;
+      const digits = radix === 16 ? numeric.slice(1) : numeric;
+      const point = Number.parseInt(digits, radix);
+      return Number.isInteger(point) && point > 0 && point <= 0x10ffff && !(point >= 0xd800 && point <= 0xdfff)
+        ? String.fromCodePoint(point) : " ";
+    }
+    return ENTITY.get(named.toLowerCase()) ?? " ";
+  });
+}
+
+function normalizedText(value) {
+  return decodeEntities(value).normalize("NFKC").replace(/[\u0000-\u001f\u007f-\u009f]+/gu, " ").replace(/\s+/gu, " ").trim();
+}
+
+function attributes(source) {
+  if (source.length > 16_384) throw new TypeError("Invalid crawler document");
+  const result = Object.create(null);
+  let index = 0, count = 0;
+  while (index < source.length) {
+    while (/\s/u.test(source[index] ?? "")) index++;
+    if (index >= source.length || source[index] === "/") break;
+    const start = index;
+    while (index < source.length && !/[\s=/>]/u.test(source[index])) index++;
+    const name = source.slice(start, index).toLowerCase();
+    if (!name) { index++; continue; }
+    while (/\s/u.test(source[index] ?? "")) index++;
+    let value = "";
+    if (source[index] === "=") {
+      index++;
+      while (/\s/u.test(source[index] ?? "")) index++;
+      const quote = source[index] === "\"" || source[index] === "'" ? source[index++] : null;
+      const valueStart = index;
+      if (quote) while (index < source.length && source[index] !== quote) index++;
+      else while (index < source.length && !/[\s>]/u.test(source[index])) index++;
+      value = decodeEntities(source.slice(valueStart, index));
+      if (quote && source[index] === quote) index++;
+    }
+    if (++count > 128) throw new TypeError("Invalid crawler document");
+    if (!Object.hasOwn(result, name)) result[name] = value;
+  }
+  return result;
+}
+
+function directiveSet(value) {
+  return new Set((value ?? "").toLowerCase().split(/[\s,;]+/u).filter(Boolean));
+}
+
+function append(target, value, maximum = MAX_TEXT * 3) {
+  if (!value || target.length >= maximum) return target;
+  return `${target}${target ? " " : ""}${value}`.slice(0, maximum);
+}
+
+function* htmlTokens(html) {
+  let offset = 0;
+  while (offset < html.length) {
+    if (html[offset] !== "<") {
+      const next = html.indexOf("<", offset);
+      const end = next < 0 ? html.length : next;
+      yield html.slice(offset, end);
+      offset = end;
+      continue;
+    }
+    if (html.startsWith("<!--", offset)) {
+      const end = html.indexOf("-->", offset + 4);
+      if (end < 0) throw new TypeError("Invalid crawler document");
+      yield html.slice(offset, end + 3);
+      offset = end + 3;
+      continue;
+    }
+    let quote = null, end = offset + 1;
+    for (; end < html.length; end += 1) {
+      const character = html[end];
+      if (quote !== null) {
+        if (character === quote) quote = null;
+      } else if (character === "\"" || character === "'") quote = character;
+      else if (character === ">") break;
+    }
+    if (end >= html.length || quote !== null) throw new TypeError("Invalid crawler document");
+    yield html.slice(offset, end + 1);
+    offset = end + 1;
+  }
+}
+
+export function captureStaticHtml(html, pageUrl) {
+  if (typeof html !== "string" || !html || html.length > 2 * 1024 * 1024 || typeof pageUrl !== "string")
+    throw new TypeError("Invalid crawler document");
+  let skipDepth = 0, chromeDepth = 0, hiddenDepth = 0, preferredDepth = 0, titleDepth = 0, locDepth = 0;
+  let fallback = "", preferred = "", title = "", locText = "", canonical = null;
+  let noindex = false, nofollow = false, tdmReservation = null, tdmReservationInvalid = false;
+  let activeAnchor = null;
+  const links = [];
+  const stack = [];
+  let tokenCount = 0;
+  for (const token of htmlTokens(html)) {
+    if (++tokenCount > 100_000) throw new TypeError("Invalid crawler document");
+    if (token[0] !== "<") {
+      const text = normalizedText(token);
+      if (!text) continue;
+      if (titleDepth) title = append(title, text, MAX_TITLE * 3);
+      if (locDepth) locText = append(locText, text, 2_048);
+      if (activeAnchor) activeAnchor.text = append(activeAnchor.text, text, 300);
+      if (!skipDepth && !chromeDepth && !hiddenDepth) {
+        fallback = append(fallback, text);
+        if (preferredDepth) preferred = append(preferred, text);
+      }
+      continue;
+    }
+    if (/^<!--|^<!/u.test(token)) continue;
+    const match = /^<\s*(\/?)\s*([a-zA-Z][\w:-]*)([\s\S]*?)>$/u.exec(token);
+    if (!match) continue;
+    const closing = Boolean(match[1]), name = match[2].toLowerCase(), selfClosing = /\/\s*>$/u.test(token);
+    if (closing) {
+      if (name === "a" && activeAnchor) { if (links.length < MAX_LINKS) links.push(activeAnchor); activeAnchor = null; }
+      if (name === "loc" && locDepth) {
+        if (locText && links.length < MAX_LINKS) links.push({ href: locText, text: "sitemap" });
+        locText = "";
+      }
+      const index = stack.map(frame => frame.name).lastIndexOf(name);
+      if (index >= 0) for (const frame of stack.splice(index)) {
+        if (frame.skip) skipDepth = Math.max(0, skipDepth - 1);
+        if (frame.chrome) chromeDepth = Math.max(0, chromeDepth - 1);
+        if (frame.hidden) hiddenDepth = Math.max(0, hiddenDepth - 1);
+        if (frame.preferred) preferredDepth = Math.max(0, preferredDepth - 1);
+        if (frame.title) titleDepth = Math.max(0, titleDepth - 1);
+        if (frame.loc) locDepth = Math.max(0, locDepth - 1);
+      }
+      continue;
+    }
+    const attrs = attributes(match[3]);
+    const hidden = Object.hasOwn(attrs, "hidden") || attrs["aria-hidden"]?.toLowerCase() === "true" ||
+      /(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden)(?:\s*!important)?\s*(?:;|$)/iu.test(attrs.style ?? "");
+    if (name === "meta") {
+      const key = (attrs.name || attrs["http-equiv"] || "").toLowerCase();
+      if (key === "robots" || key === "x-robots-tag" || key === "murmingletopiccrawler") {
+        const directives = directiveSet(attrs.content);
+        noindex ||= directives.has("noindex") || directives.has("none") || directives.has("noai") || directives.has("notrain");
+        nofollow ||= directives.has("nofollow") || directives.has("none");
+      }
+      if (key === "tdm-reservation") {
+        const content = attrs.content ?? "";
+        if (!/^[01]$/u.test(content)) tdmReservationInvalid = true;
+        else if (tdmReservation !== null && tdmReservation !== Number(content)) tdmReservationInvalid = true;
+        else tdmReservation = Number(content);
+      }
+    }
+    if (name === "link") {
+      const rel = directiveSet(attrs.rel);
+      if (rel.has("canonical") && typeof attrs.href === "string" && canonical === null) canonical = attrs.href;
+      if ((rel.has("alternate") || rel.has("sitemap")) && typeof attrs.href === "string" && links.length < MAX_LINKS)
+        links.push({ href: attrs.href, text: "alternate" });
+    }
+    if (name === "a" && typeof attrs.href === "string" && !skipDepth && !chromeDepth && !hiddenDepth && !hidden)
+      activeAnchor = { href: attrs.href, text: "" };
+    if (!selfClosing && !VOID.has(name)) {
+      if (stack.length >= 256) throw new TypeError("Invalid crawler document");
+      const frame = { name, skip: SKIP.has(name), chrome: CHROME.has(name), hidden,
+        preferred: name === "main" || name === "article", title: name === "title", loc: name === "loc" };
+      stack.push(frame);
+      if (frame.skip) skipDepth++;
+      if (frame.chrome) chromeDepth++;
+      if (frame.hidden) hiddenDepth++;
+      if (frame.preferred) preferredDepth++;
+      if (frame.title) titleDepth++;
+      if (frame.loc) locDepth++;
+    }
+  }
+  if (activeAnchor && links.length < MAX_LINKS) links.push(activeAnchor);
+  const selected = preferred.length >= MIN_TEXT ? preferred : fallback;
+  const text = normalizedText(selected).slice(0, MAX_TEXT);
+  const safeTitle = normalizedText(title).slice(0, MAX_TITLE) || new URL(pageUrl).hostname.slice(0, MAX_TITLE);
+  const hash = text ? createHash("sha256").update(text).digest("hex") : null;
+  return Object.freeze({ title: safeTitle, text, contentHash: hash, links: Object.freeze(links), canonical,
+    directives: Object.freeze({ noindex, nofollow, tdmReservation, tdmReservationInvalid }), extractorVersion: CRAWLER_EXTRACTOR_VERSION,
+    eligible: text.length >= MIN_TEXT });
+}
+
+export function parseXRobotsTag(value, product = "murmingletopiccrawler") {
+  const directives = directiveSet(value);
+  // Product-scoped values are tolerated conservatively: any negative directive
+  // in the combined header applies to this local crawler.
+  return Object.freeze({ noindex: directives.has("noindex") || directives.has("none") || directives.has("noai"),
+    nofollow: directives.has("nofollow") || directives.has("none"), product });
+}

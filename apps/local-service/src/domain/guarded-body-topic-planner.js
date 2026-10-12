@@ -14,7 +14,7 @@ export const GUARDED_BODY_TOPIC_POLICY = Object.freeze({
 const LEARNED = 'owner-local-page-embedding/v1';
 const MODEL = 'e5-small-q8-browser-main-prefix-v1';
 const ID = /^[A-Za-z0-9._:-]{1,128}$/u;
-const EXTRACTORS = new Set(['main-text-prefix/v1', 'article-container-prefix/v1']);
+const EXTRACTORS = new Set(['main-text-prefix/v1', 'article-container-prefix/v1', 'crawler-static-html-prefix/v1']);
 const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const invalid = () => { throw new TypeError('Invalid guarded BODY Topic planner input'); };
 const capacity = () => fail('capacity', 'Guarded BODY matching work budget reached');
