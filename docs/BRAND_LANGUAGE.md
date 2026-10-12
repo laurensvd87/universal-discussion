@@ -19,6 +19,17 @@ remains:
 The name suggests many voices gathering into one conversation. It should feel
 human, curious and welcoming rather than technical or institutional.
 
+## Mark and product surfaces
+
+The Murmingle mark is a rounded conversation form containing an **M** made from
+two paths meeting in the center. Use the standalone mark where the surrounding
+surface already names Murmingle, such as Chrome's side-panel frame. Keep clear
+space around it and do not combine it with another generic chat icon.
+
+The compact extension header uses the mark without repeating the product name
+or tagline. **Where conversations meet.** remains the primary brand line for a
+website, onboarding and other surfaces with room to introduce the product.
+
 ## Reusable copy
 
 ### One sentence

@@ -159,7 +159,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
   Object.defineProperty(globalThis, "OffscreenCanvas", { configurable: true, value: class {
     constructor(width, height) { this.width = width; this.height = height; }
     getContext() { const colors = []; return { scale() {}, clearRect() {}, beginPath() {}, moveTo() {}, lineTo() {},
-      quadraticCurveTo() {}, closePath() {}, arc() {}, fill() { colors.push(this.fillStyle); },
+      quadraticCurveTo() {}, closePath() {}, arc() {}, fill() { colors.push(this.fillStyle); }, stroke() {},
       getImageData: () => ({ width: this.width, height: this.height, colors }) }; }
   } });
   const sender = { id: EXTENSION_ID, url: api.runtime.getURL("chromium/popup.html") };

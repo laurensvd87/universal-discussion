@@ -45,6 +45,8 @@ export const EN = Object.freeze({
   uiDeveloper: "Developer",
   uiConnected: "Connected to local service",
   uiConnectionLastChecked: "Last checked during the latest service operation; no continuous heartbeat.",
+  uiConnectionProblem: "Not connected",
+  uiConnectionUnverifiedShort: "Not verified",
   uiConnecting: "Connecting…",
   uiDisconnected: "Disconnected",
   uiServiceUnavailable: "Local service unavailable",

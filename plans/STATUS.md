@@ -1,5 +1,28 @@
 # Project status
 
+**2026-10-12 compact Murmingle identity verified, extension 0.13.53:**
+Chrome's extension name is exactly **Murmingle**, without Local PoC. The panel
+bar no longer repeats the name or **Where conversations meet.**; it uses a new
+packaged Murmingle mark whose meeting paths form an M. The tagline remains
+canonical for the future site/onboarding. Connected and connecting states take
+no status space; disconnected/unavailable/unverified states show one concise red
+warning with full accessible detail. Repeated marketing welcome copy is removed,
+while functional pairing/status controls remain. Presentation only: matching,
+Topic/Source/Discussion authority, accounts, provider behavior, storage,
+permissions and networking are unchanged. Focused restricted checks pass 56/56;
+the full restricted browser suite passes after updating its Canvas test double
+for the M stroke. GPT-6.1 Sol reviews the production diff; unverified copy is
+truthfully shortened to **Not verified**. Isolated Chrome brand and community
+checks pass, including a fully visible red warning beside a long username at
+320px and community layouts at 320/390/480px. Root reviews the screenshots.
+The extended popup visual run passes its compact-header/welcome/feed assertions
+but later times out capturing a community screenshot; it is not claimed as a
+complete pass. Separate focused brand/community runs pass. Browser secret scan
+checks 224 files with zero findings; diff whitespace passes.
+Because 0.13.53 includes the pending
+0.13.52 normalized-storage integration, do not reload it before the approved
+backend cutover/restart and recovery choice described below. See ADR-097.
+
 **2026-10-12 normalized canonical storage and ranked Discover verified, 0.13.52:**
 Owner-requested local relational SQLite now stores Topics, Discussions, Sources,
 lossless vectors, links, contributions/revisions and receipts separately. The

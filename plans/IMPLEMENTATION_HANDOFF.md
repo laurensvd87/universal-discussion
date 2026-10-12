@@ -1,5 +1,20 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 compact Murmingle presentation is implemented in extension 0.13.53.
+The Chrome name is exactly **Murmingle**; the in-panel header uses the packaged
+Murmingle mark without repeating name/tagline or marketing welcome copy. Healthy
+and connecting states take no status space; exceptional states show concise red
+copy with full accessible detail. Pairing/status controls remain. Read updated
+ADR-097 and `docs/BRAND_LANGUAGE.md`. This is presentation only. Focused checks
+pass 56/56, the full restricted browser suite passes, and GPT-6.1 Sol reviews
+the diff. Isolated Chrome brand and community checks pass, including a long
+username beside the fully visible warning at 320px, with root screenshot review.
+The extended visual harness later times out on a community screenshot; do not
+claim that entire run passed. The separate focused brand/community runs pass.
+Secret scan and diff whitespace pass. Because this build includes 0.13.52's
+pending normalized-storage client integration, do not reload before the approved
+recovery/cutover and matching backend restart described next.
+
 2026-10-12 normalized canonical storage/Discover ranking is implemented and
 verified, extension 0.13.52. Read ADR-098 and top STATUS first. The owner database
 and running service were **not** converted/restarted. Next step is the explicit

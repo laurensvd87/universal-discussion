@@ -44,6 +44,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/icons/conversation.svg",
     "chromium/icons/edit.svg",
     "chromium/icons/lock.svg",
+    "chromium/icons/murmingle.svg",
     "chromium/icons/pages.svg",
     "chromium/icons/person.svg",
     "chromium/icons/robot.svg",
@@ -124,8 +125,8 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   assert.deepEqual(manifest, {
     manifest_version: 3,
-    name: "Murmingle - Local PoC",
-    version: "0.13.52",
+    name: "Murmingle",
+    version: "0.13.53",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -182,7 +183,7 @@ test("every runtime import and document resource remains inside the unpacked roo
     .map((match) => match[1]);
   assert.deepEqual(documentReferences.filter(value => value.startsWith("#")), []);
   const documentResources = documentReferences.filter(value => !value.startsWith("#"));
-  assert.deepEqual(documentResources.sort(), ["account-sheet.css", "popup.css", "popup.js"]);
+  assert.deepEqual(documentResources.sort(), ["account-sheet.css", "icons/murmingle.svg", "popup.css", "popup.js"]);
   for (const resource of documentResources) {
     const resolved = path.resolve(path.dirname(popupHtmlPath), resource);
     assert.ok(resolved.startsWith(rootPrefix), `${resource} escapes the extension root`);
@@ -307,6 +308,11 @@ test("popup contains only local external assets and basic accessible bindings", 
   );
   assert.doesNotMatch(withoutExpectedScript, /<script\b/iu);
   assert.doesNotMatch(html, /\son[a-z]+\s*=/iu);
+  assert.match(html, /<img class="brand-mark" src="icons\/murmingle\.svg" alt="Murmingle">/u);
+  const logo = await readFile(path.join(browserDirectory, "chromium", "icons", "murmingle.svg"), "utf8");
+  assert.match(logo, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 32 32">\s*<mask id="murmingle-cutout">\s*<rect width="32" height="32" fill="#fff"\/>\s*<path d="[A-Za-z0-9 .,+-]+" fill="none" stroke="#000" stroke-width="2\.8" stroke-linecap="round" stroke-linejoin="round"\/>\s*<\/mask>\s*<path d="[A-Za-z0-9 .,+-]+" fill="#aeb5ff" mask="url\(#murmingle-cutout\)"\/>\s*<\/svg>\s*$/u);
+  assert.doesNotMatch(logo, /<script|<foreignObject|<image|href\s*=|\son[a-z]+\s*=|@import|https?:\/\/(?!www\.w3\.org\/2000\/svg)/iu);
+  assert.deepEqual([...logo.matchAll(/url\(([^)]+)\)/gu)].map(match => match[1]), ["#murmingle-cutout"], "logo references only its local mask");
   const withoutApprovedUrls = html
     .replaceAll("https://example.com/", "")
     .replaceAll("https://example.org/", "")

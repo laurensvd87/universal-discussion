@@ -11,9 +11,8 @@
     <main>
       <div class="popup-topbar">
         <div class="brand-lockup">
-          <span class="brand-name">Murmingle</span>
-          <span class="brand-tagline">Where conversations meet.</span>
-          <span id="connection-status" class="connection-status" role="status" aria-live="polite"></span>
+          <img class="brand-mark" src="icons/murmingle.svg" alt="Murmingle">
+          <span id="connection-status" class="connection-status" role="status" aria-live="polite" hidden></span>
         </div>
         <button id="app-settings-button" class="app-settings-button user-only" type="button" aria-label="Settings" aria-controls="app-settings-view"></button>
       </div>
@@ -33,11 +32,8 @@
         <p id="product-intro" class="intro"></p>
       </header>
 
-      <section id="app-welcome" class="user-only app-welcome" aria-labelledby="app-welcome-heading" hidden>
-        <p id="app-welcome-kicker" class="app-kicker"></p>
-        <h1 id="app-welcome-heading"></h1>
+      <section id="app-welcome" class="user-only app-welcome" aria-label="Connection setup" hidden>
         <div id="app-welcome-connection"></div>
-        <p id="app-welcome-intro"></p>
       </section>
       <nav id="app-navigation" class="user-only app-navigation" hidden>
         <button id="app-tab-discussion" type="button" aria-controls="app-view-discussion" aria-current="page"></button>

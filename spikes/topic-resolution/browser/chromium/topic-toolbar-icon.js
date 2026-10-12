@@ -22,8 +22,10 @@ export function drawTopicToolbarIcon(state, Canvas = globalThis.OffscreenCanvas)
     context.lineTo(3, 15); context.lineTo(3, 12);
     context.quadraticCurveTo(2, 12, 2, 10); context.lineTo(2, 4);
     context.quadraticCurveTo(2, 2, 4, 2); context.closePath(); context.fill();
-    context.fillStyle = "#ffffff";
-    for (const x of [5, 8, 11]) { context.beginPath(); context.arc(x, 7, 0.8, 0, 2 * Math.PI); context.fill(); }
+    context.strokeStyle = "#ffffff"; context.lineWidth = 1.35;
+    context.lineCap = "round"; context.lineJoin = "round";
+    context.beginPath(); context.moveTo(4.5, 9); context.lineTo(4.5, 5.5);
+    context.lineTo(8, 8.5); context.lineTo(11.5, 5.5); context.lineTo(11.5, 9); context.stroke();
     imageData[size] = context.getImageData(0, 0, size, size);
   }
   return imageData;

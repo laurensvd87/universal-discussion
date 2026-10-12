@@ -1,5 +1,17 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Compact Murmingle identity (0.13.53)
+
+Chrome names the extension **Murmingle**. The in-panel bar therefore uses only
+the dedicated Murmingle mark, account control and Settings instead of repeating
+the name and tagline. Connected/connecting states use no status space; a concise
+red warning appears only when connection is absent or unverified, with the full
+state retained for assistive technology. Marketing welcome copy is removed while
+the functional connection controls remain. The primary tagline **Where
+conversations meet.** stays in the brand-language guide for future website and
+onboarding use. No matching, account, provider or write authority changes. See
+[ADR-097](../../../decisions/ADR-097-murmingle-brand-name.md).
+
 ## Scoped canonical reads (0.13.52)
 
 The panel, background matching and toolbar use cheap version/exact context reads

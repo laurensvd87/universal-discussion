@@ -2,6 +2,7 @@
 // This normal extension tab is a synthetic visual companion, not native sidePanel trust evidence.
 // No service, real account, provider or webpage access.
 // Run manually: node harness/run-popup-visual-check.js after
+// Header-only evidence: node harness/run-popup-visual-check.js after --brand-only
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -43,7 +44,7 @@ async function capture(name, sessionId, { fluid = false } = {}) {
     `${name}: companion popup body width follows the scrollbar-reduced viewport`);
   assert.ok(metrics.scrollWidth <= metrics.clientWidth, `${name}: no horizontal overflow`);
   assert.deepEqual(metrics.escaped, [], `${name}: visible elements stay within popup width`);
-  const screenshot = await browser.send("Page.captureScreenshot", { format: "png" }, sessionId);
+  const screenshot = await browser.send("Page.captureScreenshot", { format: "png" }, sessionId, 20000);
   const target = path.join(outputRoot, `${stage}-${name}.png`);
   writeFileSync(target, Buffer.from(screenshot.data, "base64"));
   process.stdout.write(`${JSON.stringify({name, target, metrics})}\n`);
@@ -64,7 +65,7 @@ async function checkWelcomeFirstViewport(sessionId, width) {
   assert.equal(result.height, 510);
   assert.equal(result.scrollY, 0, "first-run welcome starts at the top");
   assert.equal(result.welcomeVisible, true);
-  assert.deepEqual(result.order, ["app-welcome-kicker", "app-welcome-heading", "app-welcome-connection", "app-welcome-intro"]);
+  assert.deepEqual(result.order, ["app-welcome-connection"]);
   assert.ok(result.scrollWidth <= result.clientWidth, `${width}px welcome has no horizontal overflow`);
   for (const control of result.controls) {
     assert.ok(control.visible && control.top >= 0 && control.bottom <= 510 &&
@@ -182,6 +183,32 @@ try {
   assert.ok(ready);
   assert.deepEqual(popupExceptions, [], "popup startup has no uncaught runtime exceptions");
   await capture("connection", sessionId);
+  if (stage === "after") {
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 320, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+    const header = await evaluate(`(() => {
+      let button=document.querySelector('.account-profile-button');
+      window.visualAccountButton={existing:!!button,text:button?.textContent};
+      if(!button){button=document.createElement('button');button.className='account-profile-button';
+        button.id='visual-long-username';document.querySelector('#app-settings-button').before(button);}
+      button.textContent='@very_long_synthetic_username';
+      const status=document.querySelector('#connection-status');
+      const row=document.querySelector('.popup-topbar'), mark=document.querySelector('.brand-mark');
+      return {statusHidden:status.hidden,statusWidth:status.clientWidth,statusScrollWidth:status.scrollWidth,
+        statusRight:status.getBoundingClientRect().right,brandRight:status.parentElement.getBoundingClientRect().right,
+        statusText:status.textContent,markWidth:mark.getBoundingClientRect().width,
+        rowHeight:row.getBoundingClientRect().height};
+    })()`, sessionId);
+    assert.equal(header.statusHidden, false);
+    assert.equal(header.statusText, 'Not connected');
+    assert.ok(header.statusWidth >= header.statusScrollWidth, `connection warning remains fully visible beside a long username: ${JSON.stringify(header)}`);
+    assert.ok(header.statusRight <= header.brandRight + 1, 'connection warning is not clipped by the brand container');
+    assert.equal(header.markWidth, 28);
+    assert.ok(header.rowHeight <= 57, 'connection warning does not add a second header row');
+    await capture("connection-long-username-320", sessionId);
+    await evaluate("if(window.visualAccountButton.existing)document.querySelector('.account-profile-button').textContent=window.visualAccountButton.text;else document.querySelector('#visual-long-username').remove()", sessionId);
+    await browser.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 600, deviceScaleFactor: 1, mobile: false }, sessionId);
+  }
+  if (!process.argv.includes("--brand-only")) {
   let welcomeMarkup = await evaluate("document.body.innerHTML", sessionId);
   if (stage === "after") {
     // Replace only renderers with synthetic states. Their callbacks are inert.
@@ -1282,7 +1309,7 @@ try {
       draft:{body:'',detached:false,mode:'root',targetId:null}};
     window.visualDiscussionPanel=panel;window.visualDiscussionState=state;
     panel.bind(new Proxy({currentState:()=>state},{get:(object,key)=>object[key]??(()=>{})})); panel.render(state);
-    const status=document.querySelector('#connection-status');status.textContent='Synthetic design preview';status.dataset.state='connected';
+    const status=document.querySelector('#connection-status');status.textContent='';status.hidden=true;status.dataset.state='connected';
     document.querySelector('#insight-account-details').setAttribute('data-ready','true');
     scrollTo(0,0);
   })()`, sessionId);
@@ -1354,6 +1381,7 @@ try {
   await evaluate("scrollTo(0,0)", sessionId);
   await capture("developer", sessionId);
   await checkReachable("#discussion-body", sessionId);
+  }
   }
   assert.deepEqual(popupExceptions, [], "popup rendering has no uncaught runtime exceptions");
 } finally {

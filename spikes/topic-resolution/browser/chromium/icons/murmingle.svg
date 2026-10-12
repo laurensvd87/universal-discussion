@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <mask id="murmingle-cutout">
+    <rect width="32" height="32" fill="#fff"/>
+    <path d="M9 17v-7l7 6 7-6v7" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </mask>
+  <path d="M8 4h16a6 6 0 0 1 6 6v8a6 6 0 0 1-6 6h-7l-8 5v-5H8a6 6 0 0 1-6-6v-8a6 6 0 0 1 6-6Z" fill="#aeb5ff" mask="url(#murmingle-cutout)"/>
+</svg>

@@ -60,7 +60,7 @@ test("connection and discussion-loading state rely on current catalog and resolu
   assert.equal(projectDiscussionShell({ ...ready, phase: "choose-topic", resolution: { phase: "error", reason: "unavailable" } }).connection, "unverified");
 });
 
-test("shell uses native keyboard buttons, accessible pressed state, visible connection text and removes listeners", async () => {
+test("shell uses native keyboard buttons, accessible pressed state, exception-only connection text and removes listeners", async () => {
   const nodes = new Map();
   const uiActions = [];
   for (const id of ["#ui-mode-user", "#ui-mode-developer", "#connection-status", "#ui-mode-toggle", "#capture-controls-link", "#capture-settings-summary", "#page-matching",
@@ -84,7 +84,31 @@ test("shell uses native keyboard buttons, accessible pressed state, visible conn
     assert.equal(nodes.get(id).open, true);
   assert.equal(nodes.get("#ui-mode-developer").attributes["aria-pressed"], "true");
   shell.render({ phase: "choose-topic", catalog: { topics: [] } });
-  assert.equal(nodes.get("#connection-status").textContent, EN.uiConnected);
+  const status = nodes.get("#connection-status");
+  assert.equal(status.textContent, "");
+  assert.equal(status.hidden, true);
+  assert.equal(status.dataset.state, "connected");
+  assert.equal(status.attributes["aria-label"], EN.uiConnected);
+  assert.equal(status.attributes.title, `${EN.uiConnected}. ${EN.uiConnectionLastChecked}`);
+  shell.render({ phase: "connecting" });
+  assert.equal(status.textContent, "");
+  assert.equal(status.hidden, true);
+  assert.equal(status.dataset.state, "connecting");
+  assert.equal(status.attributes["aria-label"], EN.uiConnecting);
+  for (const [state, expectedState, detail] of [
+    [{ phase: "disconnected" }, "disconnected", EN.uiDisconnected],
+    [{ phase: "error", error: "unavailable" }, "unavailable", EN.uiServiceUnavailable],
+    [{ phase: "error", error: "extension-connection-unavailable" }, "extension-unavailable", EN.uiExtensionUnavailable],
+    [{ phase: "choose-topic", catalog: { topics: [] }, resolution: { phase: "error", reason: "unavailable" } }, "unverified", EN.uiConnectionUnverified],
+  ]) {
+    shell.render(state);
+    assert.equal(status.textContent, expectedState === "unverified" ? "Not verified" : "Not connected", expectedState);
+    assert.equal(status.hidden, false, expectedState);
+    assert.equal(status.dataset.state, expectedState);
+    assert.equal(status.attributes["aria-label"], detail);
+    assert.equal(status.attributes.title, `${detail}. ${EN.uiConnectionLastChecked}`);
+  }
+  shell.render({ phase: "choose-topic", catalog: { topics: [] } });
   assert.equal(document.body.dataset.topicState, "idle");
   nodes.get("#capture-controls-link").listeners.get("click")();
   nodes.get("#insight-account-details").setAttribute("data-ready", "true");
@@ -149,15 +173,21 @@ test("Topic matching defaults after restart, while Legacy E5 lasts through popup
   assert.equal(await writeTopicViewMode({ set: async (value) => writes.push(value) }, "forged"), false);
 });
 
-test("popup and sidepanel show Murmingle branding while preserving live connection and settings accessibility", () => {
+test("popup and sidepanel show only an accessible Murmingle logo and functional connection setup", () => {
   for (const surface of ["popup", "sidepanel"]) {
     const html = readFileSync(new URL(`../browser/chromium/${surface}.html`, import.meta.url), "utf8");
     assert.match(html, /<title>Murmingle<\/title>/u, surface);
     const lockup = html.match(/<div class="brand-lockup">([\s\S]*?)<\/div>/u)?.[1];
     assert.ok(lockup, `${surface}: visible brand lockup`);
-    assert.match(lockup, /<span class="brand-name">Murmingle<\/span>/u, surface);
-    assert.match(lockup, /<span class="brand-tagline">Where conversations meet\.<\/span>/u, surface);
-    assert.doesNotMatch(lockup, /\b(?:hidden|aria-hidden)\b/u, `${surface}: branding stays readable`);
+    const logo = lockup.match(/<img\b[^>]*\bclass="brand-mark"[^>]*>/u)?.[0];
+    assert.ok(logo, `${surface}: visible logo`);
+    assert.match(logo, /\bsrc="icons\/murmingle\.svg"/u, surface);
+    assert.match(logo, /\balt="Murmingle"/u, surface);
+    assert.doesNotMatch(logo, /\b(?:hidden|aria-hidden)\b/u, `${surface}: logo stays accessible`);
+    assert.doesNotMatch(html, /brand-name|brand-tagline|Where conversations meet|id="app-welcome-(?:kicker|heading|intro)"/u, surface);
+    const welcome = html.match(/<section id="app-welcome"[^>]*>([\s\S]*?)<\/section>/u)?.[1];
+    assert.match(welcome, /^\s*<div id="app-welcome-connection"><\/div>\s*$/u, `${surface}: only functional connection host`);
+    assert.match(html, /<section id="app-welcome"[^>]*aria-label="Connection setup"/u, surface);
     const connection = lockup.match(/<span\b[^>]*\bid="connection-status"[^>]*>/u)?.[0];
     assert.ok(connection, `${surface}: connection status remains separate`);
     assert.match(connection, /\brole="status"/u, surface);
@@ -247,11 +277,10 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   const draft = get("#insight-body"); draft.value = "Private unsent draft";
   let creates = 0; get("#insight-createInsights").addEventListener("click", () => { creates++; });
   const shell = mountPopupShell(document, { messages: {
-    uiWelcomeTitle: "Localized welcome", uiPagesSameTopicIntro: "Localized shared pages",
+    uiPagesSameTopicIntro: "Localized shared pages",
     uiPagesNoTopicIntro: "Localized setup pages",
     uiSettingsTitle: "Localized settings", uiNavigationLabel: "Localized navigation",
   } });
-  assert.equal(get("#app-welcome-heading").textContent, "Localized welcome");
   assert.equal(get("#app-settings-button").textContent, "Localized settings");
   assert.equal(get("#app-navigation").getAttribute("aria-label"), "Localized navigation");
   assert.equal(get("#app-tab-pages").textContent, EN.uiTabPages, "missing translation uses English fallback");

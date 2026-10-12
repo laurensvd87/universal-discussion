@@ -25,8 +25,6 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
   const text = (key) => messages?.[key] ?? EN[key];
   const shellCopy = [
     ["#app-settings-button", "uiSettingsTitle"],
-    ["#app-welcome-kicker", "uiWelcomeKicker"], ["#app-welcome-heading", "uiWelcomeTitle"],
-    ["#app-welcome-intro", "uiWelcomeIntro"],
     ["#app-tab-discussion", "uiTabDiscussion"], ["#app-tab-pages", "uiTabPages"],
     ["#app-tab-discover", "uiDiscoverTab"], ["#app-tab-private", "privateChats"],
     ["#app-pages-heading", "uiTabPages"],
@@ -258,7 +256,13 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
     }
     const view = projectDiscussionShell(state, messages);
     community?.discovery?.observeConnected(view.connection === "connected" || view.connection === "unverified");
-    connection.dataset.state = view.connection; connection.textContent = view.connectionText;
+    const connectionProblem = ["disconnected", "unavailable", "extension-unavailable", "unverified"].includes(view.connection);
+    connection.dataset.state = view.connection;
+    connection.hidden = !connectionProblem;
+    connection.textContent = connectionProblem
+      ? text(view.connection === "unverified" ? "uiConnectionUnverifiedShort" : "uiConnectionProblem") : "";
+    connection.setAttribute("aria-label", view.connectionText);
+    connection.setAttribute("title", `${view.connectionText}. ${text("uiConnectionLastChecked")}`);
     document.body.dataset.topicState = view.topicState;
     if (app.nav && document.body.dataset.uiMode === "user") {
       placeInsightWorkspace("user");

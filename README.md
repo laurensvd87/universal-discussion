@@ -13,8 +13,11 @@ future website copy.
 
 ## Current state
 
-Extension **0.13.52** keeps the **Murmingle** name and **Where conversations
-meet.** It includes **Private chats** and **Discover**. The latest backend adds
+Extension **0.13.53** presents the Chrome extension simply as **Murmingle**. Its
+compact in-panel header uses the Murmingle mark without repeating the name or
+tagline; connection text appears only as a red exception when the local service
+is unavailable or its connection cannot be verified. **Where conversations meet.** remains saved for the future site
+and onboarding. It includes **Private chats** and **Discover**. The latest backend adds
 normalized canonical SQLite storage and Discover ranking by best textual match,
 then visible replies when relevance ties. Scoped reads/posts no longer load or
 rewrite the entire canonical snapshot; byte-bounded catalog/discussion pages are
@@ -23,7 +26,7 @@ The standalone dashboard supports both storage formats without changing data.
 
 **Activation is pending:** your existing database and running service remain
 unchanged. Real conversion needs your recovery/backup choice first. Wait to
-reload 0.13.52 until the matching backend is restarted at that cutover. See
+reload 0.13.53 until the matching backend is restarted at that cutover. See
 [ADR-098](decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md).
 
 The latest client fixes an Insight page-text validation mismatch involving
