@@ -1,6 +1,6 @@
 # Project status
 
-**2026-10-12 approved ingestion deadline correction checked (ADR-106):**
+**2026-10-12 approved ingestion deadline correction active (ADR-106):**
 Owner approves authenticated canonical ingestion-only30s service/socket window
 and crawler timer plus idle normal restart. Exact normalized POST/ingest after
 Host/Origin/pairing/optionalaccount/full learned-input checks receives internal
@@ -14,9 +14,15 @@ accepted writes within30s now deliver success; longer work may still be uncertai
 Independent review accepts; real normalized RAM canonical29+existingmodel28
 deadline checks57, otherHTTP/service32 and crawlerclient13 pass. Full final
 backend878 pass/five platform skips; secret753/zero, diffclean. No owner ingestion,
-provider call/page fetch or client authority/permission change. Activation awaits
-verified idle normal restart, preserving ledger/data/pairing/protected login;
-older diagnosis-only gate below is superseded by explicit owner approval.
+provider inference/page fetch or client authority/permission change. Implementation
+d493eaa committed/pushed; verified idle normal restart activates the correction.
+No crawler or established service connection/private running claim was present.
+Canonical revision1568/941 Sources/982 Topics/75 posts and serialized canonical/
+private/crawler database SHA-256 values plus pairing file hash remain exact.
+Protected ChatGPT login restores connected/not pending; health/version/status
+reads pass. Service PTY27204. Owner starts crawler manually with same Apply script;
+no extension reload required, app account session may need renewal. Older
+diagnosis-only gate below is superseded by explicit owner approval and activation.
 
 **2026-10-12 crawler HTTP408 diagnosis, correction not yet authorized:**
 Owner's new Apply run stops response-timeout after one confirmed ingestion;

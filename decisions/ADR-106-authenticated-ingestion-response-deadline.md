@@ -1,7 +1,7 @@
 # ADR-106: Authenticated ingestion response deadline
 
 Date: 2026-10-12
-Status: Owner approved; implemented and independently reviewed, activation pending
+Status: Owner approved; implemented, independently reviewed and active
 
 ## Context
 
@@ -60,8 +60,14 @@ Crawler tests cover ingestion-only timers, eleven-second success without retry,
 exact conflict payloads, unchanged catalog deadlines and terminal complete 408.
 Independent review accepts. Focused deadline tests57 and HTTP/service32 pass;
 crawler client13 pass. Full final offline backend878 pass with five platform
-skips; secret scan753 files/zero findings and diff checks pass. An idle normal
-restart remains the required activation step.
+skips; secret scan753 files/zero findings and diff checks pass. Implementation
+d493eaa is committed/pushed. Verified idle normal restart activates the change;
+canonical revision1568/941 Sources/982 total Topics/75 contributions stay exact.
+Serialized canonical, private and crawler database SHA-256 values and pairing
+file hash match before/after. Protected ChatGPT login restores connected/not
+pending; read-only health/version/status checks pass. No agent owner ingestion,
+provider inference or public fetch occurs. Service PTY27204. App account session
+may need renewal; a newly started crawler loads its longer client timer.
 Pairing, protected provider login, canonical/private/account state and crawler
 ledger must remain intact. No root-run owner ingestion, provider inference, public
 page fetch or expanded browser retry follows this correction.

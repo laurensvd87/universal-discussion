@@ -1,6 +1,6 @@
 # Implementation handoff: local-service discussion MVP
 
-2026-10-12 ADR-106 ingestion-only30s fix approved/checked; activation pending.
+2026-10-12 ADR-106 ingestion-only30s fix approved/checked/ACTIVE.
 Exact authenticated normalized POST/ingest plus full learnedinput validation
 leases both service/socket clocks to absolute socketaccept+30s; no late/repeated/
 dead revival or expired-before-dispatch write. Raw ingress/unauth/invalid/other5s,
@@ -8,9 +8,13 @@ models30s/CPU10s/body/connections/authority/generation/op identity unchanged.
 Only crawleringest timer30s; catalog/version10s. Complete408 still terminal,
 ambiguity/conflict loop unchanged; no background retry or root-owned ingest.
 Trust accepts/deadlines57/otherHTTP32/client13/full final backend878+five skips/
-secret753zero/diffclean. Next verify idle then normal restart only exact listener
-PID; preserve canonical/private/ledger/pairing and protected login. The owner's
-yes supersedes earlier diagnosis-only gate. No inference/client reload grant.
+secret753zero/diffclean. Implementation d493eaa committed/pushed; verified idle
+normal restart only exact old listenerPID27440, no crawler/established connections/
+private runningclaim. Service PTY27204 active; canonical revision1568/941 Sources/
+982 Topics/75 posts and serialized canonical/private/crawler SHA256 plus pairing
+hash exact. Protected ChatGPT login connected/not pending, health/version/status
+reads pass. Owner manually restarts same Apply script; no client reload needed,
+app auth may renew. Earlier diagnosis-only gate superseded. No inference grant.
 
 2026-10-12 crawler response-timeout now diagnosed, no runtime correction yet.
 Owner run736 ingested/12840 queued/five staged; canonical revision1564/933 learned.
