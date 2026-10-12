@@ -15,8 +15,9 @@ suffix; exact task/evidence/language/research/citation core and Standard4 hashes
 packets remain. Funny may be silly/absurd throughout, Sarcastic requires irony,
 recognizable fictional expression allowed without per-joke disclaimers; real
 facts/quotes/prices/sources remain grounded. Trust26 focused pass; live style is
-unproven. Activation requires safe idle service restart: active crawler Apply
-was observed and not interrupted. No new inference grant. Read STATUS/HANDOFF.
+unproven. Safe idle restart after confirmed crawler completion now activates it;
+pairing/protected login/canonical/private counts preserved. Client needs no reload,
+app session may renew. No new inference grant. Read STATUS/HANDOFF.
 
 Current guarded availability fixes (2026-10-12, ADR-104, 0.13.60): owner approves
 authenticated model-only response lease, absolute thirty seconds from socket

@@ -128,5 +128,7 @@ retain Standard hashes/full packets and test opening/reply/private serialization
 source/tool/citation limits and trace identity. Actual model-style compliance
 remains a live quality question; offline tests do not prove better generated text.
 No new provider inference, output archive, schema, UI, permission or historical
-rewrite. Backend-only activation waits for a safe idle restart; do not interrupt
-the owner's active crawler Apply. Final tests/activation state live in STATUS.
+rewrite. Backend-only idle activation is complete after the owner confirmed
+crawler completion; health and protected login restore, canonical/private counts
+stay exact. No new provider inference was made. Do not interrupt running work
+for activation. Final tests/activation state live in STATUS.

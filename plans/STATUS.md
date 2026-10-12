@@ -1,6 +1,6 @@
 # Project status
 
-**2026-10-12 selected voice/task separation implemented; activation pending:**
+**2026-10-12 selected voice/task separation active after idle restart:**
 The owner rejects shared neutral/critical/sober tone and explicitly welcomes
 silly/absurd Funny expression. Nonstandard prompts now start with only the
 selected fixed voice, without the thoughtful-contributor identity or subordinate
@@ -16,9 +16,14 @@ Independent Trust accepts with26 focused restricted checks across voices, modes,
 packet serialization, authority and actual dispatch trace. Full backend839 pass
 with five platform skips; secret scan750/zero and diff checks pass. No agent inference or
 live-quality claim; owner's observed old Sarcastic output remains unchanged.
-Service/crawler unchanged: verified active project crawler Apply process36324
-means normal restart is deferred until idle. Client remains0.13.60; extension
-reload alone cannot activate these backend prompts. See ADR-100 refinement.
+The owner confirms crawler completion; process inspection verifies no crawler,
+only the service listening socket and no private generation. Approved normal
+restart activates the prompts. Canonical revision1552/939 Sources/980 Topics/
+70 contributions and two private chats/three messages remain exact; pairing and
+protected ChatGPT login restore, health/status reads pass. No inference, model
+catalog request, ingestion or posting. Client remains0.13.60; no reload needed.
+App account session may renew. Actual new-prompt style quality awaits a deliberate
+owner test. See ADR-100 refinement.
 
 **2026-10-12 owner Sarcastic test: dispatch confirmed, style under-delivered:**
 The known content-free trace contains one public dispatch selecting sarcastic.

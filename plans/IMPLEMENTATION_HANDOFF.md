@@ -1,8 +1,8 @@
 # Implementation handoff: local-service discussion MVP
 
-2026-10-12 ADR-100 selected voice/task separation implemented, backend restart
-PENDING because verified owner crawler Apply process36324 remains active. Do not
-interrupt it. Selected11 nonstandard voices lead delivery, no shared thoughtful/
+2026-10-12 ADR-100 selected voice/task separation ACTIVE after owner confirmed
+crawler completion and verified idle normal restart. Never interrupt active work.
+Selected11 nonstandard voices lead delivery, no shared thoughtful/
 neutral/critical/sober identity or subordinate style suffix. Complete shared task/
 format/evidence/language/research/citation core stays exact, Standard4 hashes and
 packets unchanged. Funny allows absurd/silly imagery throughout; Sarcastic actual
@@ -11,9 +11,12 @@ Recognizable nonliteral expression allowed without every-joke disclaimer; litera
 facts/prices/quotes/sources remain grounded. Fixedblock<=1050 (max1026), other9
 signatures intact. Trust26 focused/full backend839 pass+five skips, secret750/zero
 and diff checks pass. No live inference/style-quality claim,
-UI/schema/permission/context expansion or old-post rewrite; extension0.13.60
-reload alone is insufficient. After verified idle, normal service restart under
-standing approval preserves pairing/login/data; then owner deliberate style test.
+UI/schema/permission/context expansion or old-post rewrite. Pre/post canonical
+revision1552/939 Sources/980 Topics/70 posts and private two chats/three messages
+stay exact; pairing/protected ChatGPT login restore and health/status pass. No
+new inference, model catalog call, ingestion or posting. Extension0.13.60 needs
+no reload; app session may renew. Service PTY86160. Await deliberate owner style
+test of the new prompt; older dispatch fingerprint is historical, not new QA.
 
 2026-10-12 owner public Sarcastic test is now observed: the known content-free
 trace has one sarcastic dispatch whose instruction fingerprint matches exactly
