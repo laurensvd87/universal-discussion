@@ -1,7 +1,7 @@
 # ADR-108: Concurrent public connection and page reads
 
 Date: 2026-10-12
-Status: Owner approved; implemented and under final verification, activation pending
+Status: Owner approved; independently reviewed and checked, final activation pending
 
 ## Request and evidence
 
@@ -35,6 +35,11 @@ discussion and exact Source methods are admitted. Worker data contains trusted
 canonical location and already installed fixed adapter coefficients, never
 private/account databases, provider credentials, browsing capture or a fetch.
 Health, version, pairing and short account checks stay outside the expensive queue.
+An empty-context disposable read initializes the read-only connection and fixed
+coefficients in parallel with normal startup. It selects no page and invokes no
+Ridge planning, account callback, provider or capture. Failure is best effort,
+version-fenced and cannot authorize a write; shutdown awaits pending retirement.
+This reduces first-request initialization cost, not a new read deadline guarantee.
 
 Tasks coalesce by exact method, validated canonicalized input and generation/
 revision. Defaults bound 32 distinct tasks, 4,096 waiters, 8 MiB aggregate distinct
@@ -120,7 +125,19 @@ health and version. The first passing cold wave had p95 3,088 ms / max 3,105 ms;
 warm max 1,400 ms and post-comment max 2,166 ms, all HTTP200 with 27 coalesced tasks
 per wave. Controlled 32-task overflow rejected capacity while health/version
 completed in 5 ms. A comment survived while stale ingestion returned conflict.
-Final continuous-read/accepted-write verification and activation are recorded below.
+Final startup-primed fixture: cold p95 2,489 ms / max 2,514 ms, warm max 1,474 ms,
+concurrent-write wave max 2,423 ms, all HTTP200. A second real prepared ingestion
+was released only after all 2,000 reads entered the handler, with a read worker
+still active. Every old-version read completed before the accepted commit;
+ingestion returned200 at revision+1 with its new Source visible (7,857 ms including
+preparation and the controlled hold). A further100 reads passed after the write.
+Overflow retained413 while health/version took4 ms. No owner data was used.
+
+Full final backend972 pass/five platform skips and restricted extension1,496 pass;
+an additional focused startup-shutdown lifecycle test passes. Isolated Chrome
+checks pass. Secret scans backend774/client243 files found zero. All authority,
+scope, performance and lifecycle slices received independent review. Final local
+activation and actual owner connection-path timing are recorded below.
 
 Sockets are preconnected in batches: this does not prove an instantaneous 2,000
 fresh-connection burst, 2,000 different expensive tasks, thousands of writes or

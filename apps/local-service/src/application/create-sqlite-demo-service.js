@@ -38,6 +38,12 @@ export function createSqliteDemoService({ databasePath, nextId, now, repositoryO
     if (asyncReads && normalized && databasePath !== ":memory:") {
       readExecutor = createCanonicalReadQueue({ ...readWorkerOptions, databasePath,
         alternateAdapter, alternateBodyMetric, alternateRidgeAdapter });
+      // Initialize the existing read-only connection and fixed coefficients in
+      // parallel with normal startup, not inside the first five-second browser
+      // read. Empty public context needs no page selection or provider call.
+      // This disposable preparation never blocks startup or writes canonical data.
+      void readExecutor.read("catalogContext", { sourceId: null, topicId: null },
+        { version: repository.version() }).catch(() => {});
     }
     const service = createDiscussionService({
       repository, ranking: createFixtureRankingAdapter(), sources: SYNTHETIC_SOURCES,
