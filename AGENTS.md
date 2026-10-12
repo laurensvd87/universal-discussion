@@ -8,6 +8,19 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current recovery/cutover (2026-10-12, ADR-099): the owner explicitly approves
+seven-day encrypted canonical backup and one-time migration/restart, requiring
+routine backups to stay online. Implemented/reviewed Windows Worker/RAM snapshot,
+AES-GCM/DPAPI/strict ACLs and startup/hourly expiry; no plaintext fallback,
+recurring snapshot creation, automatic restore or private/account/credential
+backup. Real canonical v3 cutover is complete with exact record/version checks;
+normal service runs with saved pairing and restored provider sign-in. Earlier
+pending-cutover warnings are superseded. App login may need renewal after that
+one-time restart; backup itself leaves sessions/listener intact. Read top
+STATUS/HANDOFF and ADR-099. Any rollback must preserve later accepted writes and
+deletion; old binaries cannot read normalized storage. New provider/hosting/store
+scope remains gated. Separate concurrent GUI work owns its own verification.
+
 Current normalized canonical storage/Discover (2026-10-12, ADR-098, 0.13.52):
 synthetic implementation and independent Trust pass. Indexed relational SQLite,
 scoped ordinary commands, version/exact context and bounded keyset pages remove

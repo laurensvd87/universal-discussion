@@ -1,5 +1,23 @@
 # Local service
 
+## Online recovery and active canonical storage (2026-10-12)
+
+The owner-approved canonical conversion is complete. Normal service startup now
+opens the normalized v3 database with unchanged records/IDs and saved pairing/
+protected ChatGPT login. New scoped catalog/version/page/Discover routes pass
+live paired reads. Earlier pending-conversion notes below are historical.
+
+`npm run backup:canonical` creates a verified encrypted canonical recovery point
+**without stopping the service or resetting sessions**. No plaintext staging or
+provider request. Windows CurrentUser DPAPI/ACLs protect fresh AES-GCM keys; the
+file is kept only in ignored `data/canonical-migration-backups`. Seven-day expiry
+is maintained at startup/hourly and can be run manually with `-- --prune`.
+Powered-off cleanup waits for startup. No periodic backup creation, automatic
+restore, private/account/credential backup or off-device copy is enabled.
+
+See the [operator guide](ops/README.md) and
+[ADR-099](../../decisions/ADR-099-online-encrypted-canonical-backup-and-cutover.md).
+
 ## Normalized canonical storage and ranked Discover (2026-10-12)
 
 Implemented and synthetic-tested, **not yet converted on the owner's database**.

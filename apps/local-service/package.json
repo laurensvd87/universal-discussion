@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node src/cli.js",
+    "backup:canonical": "node src/ops/backup-cli.js",
+    "migrate:canonical": "node src/ops/migration-cli.js",
+    "check:online-backup": "node harness/check-online-backup.js",
     "test": "node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none test/*.test.js",
     "test:embeddings": "node --import ../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none experiments/embeddings/test/*.test.js",
     "test:integration": "node --import ./harness/loopback-only-capabilities.js --test --test-isolation=none integration/*.integration.js",

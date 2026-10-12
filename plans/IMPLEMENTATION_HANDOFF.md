@@ -1,5 +1,31 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 ADR-099 owner-local recovery/cutover is completed. Read top STATUS and
+ADR-099 before older pending-migration instructions. The owner explicitly approved
+seven-day encrypted canonical backup, migration and one-time restart, while
+requiring routine backup availability. Canonical storage is now normalized v3;
+exact reverse comparison preserves all IDs/version/data at conversion. Pairing and
+protected provider sign-in restore; current paired health/scoped/page/Discover
+reads pass. Never downgrade/reset/auto-restore from the recovery file.
+
+`npm run backup:canonical` is the online manual command; `-- --verify <filename>`
+verifies in RAM and `-- --prune` enforces recognized seven-day expiry. Backups live
+only in ignored `data/canonical-migration-backups`. Windows CurrentUser DPAPI/ACLs
+protect fresh AES-GCM keys; no plaintext staging/credentials/account/private backup
+and no automatic recurring creation. Startup/hourly expiry runs without stopping
+the service; powered-off cleanup waits for startup. Native snapshot memory budget
+is 256 MiB, not a canonical storage ceiling. Node 24.16+ required; missing secure
+protection/capabilities fail closed, never plaintext. Full disaster recovery and
+non-Windows key protection remain later gates.
+
+Migration CLI is operator-only, exclusive fixed-port claim, exact verified latest
+backup and transaction-bound expected legacy state BEFORE DDL. It is not an HTTP
+admin API or automatic startup migration. Old binaries cannot read normalized
+storage; recovery is deliberate and must not resurrect later-deleted data without
+new direction. No automatic restore is implemented. Backend checks 619/five skips,
+dashboard 14; independent Trust and real Windows DPAPI/online-health rehearsal
+pass. Separate concurrent GUI work remains its own verification/commit scope.
+
 2026-10-12 compact Murmingle presentation is implemented in extension 0.13.53.
 The Chrome name is exactly **Murmingle**; the in-panel header uses the packaged
 Murmingle mark without repeating name/tagline or marketing welcome copy. Healthy

@@ -30,6 +30,19 @@ function command(state, value, suffix = "new") {
   }).state;
 }
 
+test("read-only normalized RAM snapshot roundtrips and cannot write or target disk", t => {
+  const file = databasePath(t); const initial = fixture();
+  const original = createNormalizedSqliteRepository(file,initial); original.close();
+  const raw = new DatabaseSync(file,{readOnly:true}); const snapshotBytes=raw.serialize(); raw.close();
+  const restored=createNormalizedSqliteRepository(":memory:",null,{readOnly:true,snapshotBytes});
+  assert.deepEqual(restored.load(),initial); assert.throws(()=>restored.save(restored.version(),initial),code("storage-read-only")); restored.close();
+  assert.throws(()=>createNormalizedSqliteRepository(file,null,{readOnly:true,snapshotBytes}),code("storage-schema"));
+  assert.throws(()=>createNormalizedSqliteRepository(":memory:",null,{snapshotBytes}),code("storage-schema"));
+  assert.throws(()=>createNormalizedSqliteRepository(":memory:",null,{readOnly:true,snapshotBytes:Buffer.alloc(100)}));
+  assert.throws(()=>createNormalizedSqliteRepository(":memory:",null,{readOnly:true,snapshotBytes:[]}));
+  snapshotBytes.fill(0);
+});
+
 test("normalized roundtrip preserves all record fields, ordinals, versions and revisions", t => {
   const file = databasePath(t); const initial = fixture();
   const repository = createNormalizedSqliteRepository(file, initial);
@@ -54,6 +67,38 @@ test("legacy v2 and account v3 migrate atomically and retire duplicate body blob
     assert.throws(() => createSqliteRepository(file, fixture()), code("storage-schema"));
     const reopened = createNormalizedSqliteRepository(file, fixture()); assert.deepEqual(reopened.load(), initial); reopened.close();
   }
+});
+
+test("trusted legacy cutover fence rejects a newer commit before normalized DDL",t=>{
+  const file=databasePath(t),before=fixture(); const legacy=createSqliteRepository(file,before);
+  const next=command(before,{type:"create-root",topicId:"topic-one",body:"Accepted after backup"},"race"); legacy.save(legacy.version(),next); legacy.close();
+  const bytes=readFileSync(file);
+  assert.throws(()=>createNormalizedSqliteRepository(file,null,{allowLegacyMigration:true,expectedLegacyState:before}),code("conflict"));
+  assert.deepEqual(readFileSync(file),bytes);
+  const raw=new DatabaseSync(file,{readOnly:true});
+  assert.equal(raw.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name LIKE 'canonical_%'").get().n,0);
+  assert.deepEqual(JSON.parse(raw.prepare("SELECT document FROM demo_state").get().document),next); raw.close();
+  const converted=createNormalizedSqliteRepository(file,null,{allowLegacyMigration:true,expectedLegacyState:next}); assert.deepEqual(converted.load(),next); converted.close();
+  assert.throws(()=>createNormalizedSqliteRepository(file,null,{allowLegacyMigration:true,expectedLegacyState:next}),code("conflict"));
+});
+
+test("trusted legacy cutover fence detects payload tampering without a version change",t=>{
+  const file=databasePath(t),before=fixture(); const legacy=createSqliteRepository(file,before); legacy.close();
+  const tampered=structuredClone(before); tampered.topics[0].title="Changed without advancing revision";
+  const raw=new DatabaseSync(file); raw.prepare("UPDATE demo_state SET document=?").run(JSON.stringify(tampered)); raw.close(); const bytes=readFileSync(file);
+  assert.throws(()=>createNormalizedSqliteRepository(file,null,{allowLegacyMigration:true,expectedLegacyState:before}),code("conflict")); assert.deepEqual(readFileSync(file),bytes);
+});
+
+test("rejected legacy cutover fence preserves a held WAL database and journal",t=>{
+  const file=databasePath(t),before=fixture(); const legacy=createSqliteRepository(file,before); legacy.close();
+  const writer=new DatabaseSync(file); writer.exec("PRAGMA journal_mode=WAL");
+  try {
+    const changed=structuredClone(before); changed.topics[0].title="Accepted WAL change";
+    writer.prepare("UPDATE demo_state SET document=?").run(JSON.stringify(changed));
+    const bytes=readFileSync(file),wal=readFileSync(`${file}-wal`);
+    assert.throws(()=>createNormalizedSqliteRepository(file,null,{allowLegacyMigration:true,expectedLegacyState:before}),code("conflict"));
+    assert.deepEqual(readFileSync(file),bytes); assert.deepEqual(readFileSync(`${file}-wal`),wal); assert.equal(writer.prepare("PRAGMA journal_mode").get().journal_mode,"wal");
+  } finally {writer.close();}
 });
 
 test("legacy v1 migration preserves original topic lineage without guessing Source", t => {

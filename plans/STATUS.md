@@ -1,5 +1,41 @@
 # Project status
 
+**2026-10-12 online encrypted recovery and canonical cutover active (ADR-099):**
+The owner approves a seven-day encrypted canonical recovery point and the
+one-time conversion/restart, requiring routine backups not to disconnect the
+service. SQLite snapshots run in a bounded Worker through a read-only transaction;
+source locks release before verification, encryption or Windows key protection.
+AES-256-GCM authenticates the recovery metadata and image; a fresh key is wrapped
+with CurrentUser DPAPI in an owner/System-only directory. No plaintext staging,
+private/account store or credential backup, provider inference or auto-restore.
+Manual `npm run backup:canonical` leaves the listener and sessions alone. Startup
+and hourly maintenance remove expired recognized ciphertext/partials, without
+creating new snapshots or touching canonical state. Offline expiry rejects reuse;
+physical cleanup resumes when the service runs. This is local profile-bound
+recovery, not off-device disaster recovery or forensic erasure.
+
+Independent Trust accepts crypto/path/retention and transaction-bound cutover
+checks, including writer races and Windows junction/dangling-sidecar rejection.
+Restricted backend checks pass 619/five skips (one new file-symlink privilege skip),
+dashboard checks 14. The browser baseline passed 1,328 before separate concurrent
+presentation edits; their current GUI verification belongs to that work. Actual
+Windows encryption/RAM recovery/expiry rehearsal passed with 48 running-service
+health probes and zero failures; both secret scans have zero findings.
+
+The approved owner recovery point was created online and verified before stopping
+the existing exact project service. Conversion requires an exact latest backup
+schema/version/counts/digest and compares its legacy witness again INSIDE the
+migration transaction before DDL. Owner v3 IDs, generation/revision, vectors,
+lineage and every retained canonical record matched exactly after conversion.
+Normal service is restarted with unchanged pairing and restored protected ChatGPT
+sign-in. Live health/version/exact-context/catalog-page/Discover reads return 200;
+239 Topics, 198 Sources and 57 canonical contribution records remain. Subsequent
+browser writes may advance revision normally. Normalized storage/search are now
+active; the earlier pending-cutover warnings below are historical and superseded.
+Reload the updated extension when its separate GUI changes are verified. App
+sessions may require deliberate sign-in after this one-time backend restart.
+Backups themselves do not restart it. No inference QA, new permissions or hosting.
+
 **2026-10-12 compact Murmingle identity verified, extension 0.13.53:**
 Chrome's extension name is exactly **Murmingle**, without Local PoC. The panel
 bar no longer repeats the name or **Where conversations meet.**; it uses a new

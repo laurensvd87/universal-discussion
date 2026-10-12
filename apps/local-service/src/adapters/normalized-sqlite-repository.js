@@ -238,7 +238,9 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     publish(next); publishChanges(before, next, reset); return frozenClone(next);
   }
   try {
-    if (readOnly && (databasePath === ":memory:" || !existsSync(databasePath))) fail("storage-schema", "Existing canonical database required");
+    const snapshot = options.snapshotBytes;
+    if (snapshot !== undefined && (databasePath !== ":memory:" || !readOnly || !(snapshot instanceof Uint8Array) || snapshot.length < 100 || snapshot.length > 256 * 1024 * 1024 || typeof DatabaseSync.prototype.deserialize !== "function")) fail("storage-schema", "Invalid canonical memory snapshot");
+    if (readOnly && snapshot === undefined && (databasePath === ":memory:" || !existsSync(databasePath))) fail("storage-schema", "Existing canonical database required");
     // Inspect an existing file through a read-only handle before changing its
     // journal mode. Declining migration must not checkpoint a legacy WAL.
     if (!readOnly && databasePath !== ":memory:" && existsSync(databasePath) && options.allowLegacyMigration !== true) {
@@ -247,20 +249,29 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
         if (inspection.prepare("SELECT 1 FROM sqlite_master WHERE name='demo_state' AND type='table'").get()) fail("storage-migration-required", "Explicit canonical migration required");
       } finally { inspection.close(); }
     }
-    database = new DatabaseSync(databasePath, { readOnly });
+    database = new DatabaseSync(databasePath, { readOnly: snapshot === undefined && readOnly });
+    if (snapshot !== undefined) {
+      database.deserialize(snapshot);
+      database.exec("PRAGMA query_only=ON");
+    }
     try {
       const results = database.prepare("PRAGMA quick_check").all();
       if (results.length !== 1 || results[0].quick_check !== "ok") fail("storage-corrupt", "Local database is inconsistent");
     } catch { fail("storage-corrupt", "Local database is inconsistent"); }
     if (readOnly) {
+      if(options.expectedLegacyState !== undefined) fail("conflict", "Canonical migration source changed");
       validateSchema(database.prepare("SELECT name,type,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all());
       checkedRead(() => catalogState());
     } else {
-      database.exec("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000");
+      // A fenced cutover must not checkpoint/change the source journal before
+      // the expected legacy state is compared under its write transaction.
+      if(options.expectedLegacyState === undefined) database.exec("PRAGMA journal_mode=DELETE");
+      database.exec("PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000");
       transaction(() => {
         const objects = database.prepare("SELECT name,type,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all();
         const legacy = objects.find(object => object.name === "demo_state");
         if (objects.some(object => object.name === "canonical_meta")) {
+          if (options.expectedLegacyState !== undefined) fail("conflict", "Canonical migration source changed");
           validateSchema(objects); readState(); return;
         }
         let seed = initialState;
@@ -276,10 +287,17 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
           seed = decoded(row.document);
           if (!seed || seed.schema !== row.schema || seed.generation !== row.generation || seed.revision !== row.revision) fail("storage-corrupt", "Local database is inconsistent");
           try {
-            if (row.schema === "demo-state/v1") { assertValidLegacyPersistedState(seed); seed = migrateLegacyState(seed); validate(seed); }
+            if (row.schema === "demo-state/v1") assertValidLegacyPersistedState(seed);
             else validate(seed);
           } catch { fail("storage-corrupt", "Local database is inconsistent"); }
-        } else validate(seed);
+          // Trusted cutover proof belongs inside the same write transaction as
+          // the import, before any DDL and before a possible v1 transformation.
+          if (options.expectedLegacyState !== undefined && !isDeepStrictEqual(seed,options.expectedLegacyState)) fail("conflict", "Canonical migration source changed");
+          if (row.schema === "demo-state/v1") { seed=migrateLegacyState(seed); validate(seed); }
+        } else {
+          if(options.expectedLegacyState !== undefined) fail("conflict", "Canonical migration source changed");
+          validate(seed);
+        }
         for (const ddl of DDL) database.exec(ddl);
         database.prepare("INSERT INTO canonical_meta VALUES(1,?,?,?,?)").run(FORMAT, seed.schema, seed.generation, seed.revision);
         for (const [name] of Object.entries(COLLECTIONS)) seed[name].forEach((value, index) => writeEntity(name, value, index));

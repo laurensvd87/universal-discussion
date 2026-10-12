@@ -24,10 +24,13 @@ rewrite the entire canonical snapshot; byte-bounded catalog/discussion pages are
 available. The normalized adapter has no 8 MiB aggregate or 1,000-post ceiling.
 The standalone dashboard supports both storage formats without changing data.
 
-**Activation is pending:** your existing database and running service remain
-unchanged. Real conversion needs your recovery/backup choice first. Wait to
-reload 0.13.53 until the matching backend is restarted at that cutover. See
-[ADR-098](decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md).
+**Backend storage is active:** the approved encrypted recovery point and lossless
+conversion/restart are complete. IDs, saved records, pairing and protected ChatGPT
+login are preserved. Routine `npm run backup:canonical` stays online; seven-day
+expiry is maintained at startup/hourly. It excludes accounts/private chats and
+credentials, with no plaintext staging or automatic restore. The backend is ready
+for the updated extension; its separate GUI changes keep their own verification.
+See [ADR-099](decisions/ADR-099-online-encrypted-canonical-backup-and-cutover.md).
 
 The latest client fixes an Insight page-text validation mismatch involving
 invisible language-formatting marks and gives private failures useful, safe error

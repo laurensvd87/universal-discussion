@@ -15,6 +15,7 @@ import { AccountService } from "./accounts/account-service.js";
 import { createAccountLifecycle } from "./accounts/account-lifecycle.js";
 import { loadProtectedAccountKey } from "./accounts/protected-account-key.js";
 import { createPrivateDiscussionService } from "./private/private-service.js";
+import { startCanonicalBackupRetention } from "./ops/backup-retention.js";
 
 export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
 
@@ -95,12 +96,16 @@ export async function startLocalApplication(options) {
     // The fixed port is owned before renewing a rotating credential, so a
     // second local process cannot race the same stored refresh token.
     await Promise.resolve().then(() => application.restore()).catch(() => false);
+    const backupRetention = startCanonicalBackupRetention({ dataDir: path.dirname(options.databasePath),
+      onOutcome: value => {
+        if (value.outcome === "failed") process.stderr.write("Canonical backup expiry cleanup unavailable; service remains connected.\n");
+      } });
     let closed = false;
     return Object.freeze({
       async close() {
         if (closed) return;
         closed = true;
-        try { await listener.close(); } finally { application.close(); }
+        try { await backupRetention.close(); await listener.close(); } finally { application.close(); }
       },
     });
   } catch (error) {
