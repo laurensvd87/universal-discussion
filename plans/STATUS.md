@@ -1,5 +1,46 @@
 # Project status
 
+**2026-10-12 twenty-result pages/voice menus verified and active, 0.13.59:**
+My chats now shows twenty total mixed public/private results with Previous/Next;
+cursor/skip/scroll metadata replays fresh batches, never cached old card bodies.
+Private recent listing adds owner/version/query/action/order/limit-bound signed
+cursors and current-message activity, no DDL; legacy ID DTOs remain unchanged.
+SQL/client share lexical timestamp/ID DESC ordering. Fresh Back/entry renews
+bindings; later page navigation still rejects changed versions. Discover search,
+blank recommendations, Discussion root/related/page-link lists and each nested
+sibling reply list use twenty-item windows. Public previews/private messages use
+existing bounded reads. New accepted-post reveal/focus and editor/IME/context/
+historical destination proof fences remain. No arbitrary-size full-tree transport
+or constant-time account search/recency claim; retained metadata budgets remain.
+
+The lower-right corner arrow on sparkle buttons opens twelve voices; the main
+sparkle still generates. Native popovers, keyboard/focus, busy closure/disposal
+and local preferences keep selection separate from provider/posting authority.
+User dropdowns disappear; Developer control remains. Funny/Sarcastic static
+overlays are more expressive while Standard/all source/proof rules remain exact.
+Owner-approved two synthetic GPT-6 Luna checks complete: playful cable analogy
+(69 words), dry "effortless" critique (71 words), no search, saved output or posts.
+This consumed two-check permission; no future inference grant. Historical saved
+Threadshift posts were read-only inspected, never rewritten; stored records do
+not prove historical selected voice. See ADR-101 and ADR-100.
+
+Independent Trust accepts after fresh-entry version, rapid double-click and
+timestamp tie corrections. Full restricted browser checks pass 1,402/1,402;
+backend checks pass 665 with five optional skips. Actual isolated Chrome passes
+30 screenshots, 320/390/480px, open root/private/inline voice menus, main-center
+versus corner hit targets, mixed twenty-card replacement/Previous, search hit57,
+45 recommendations (20/20/5), previews/private regression and enlarged text.
+Root reviews screenshots and corrects inherited inline-menu button styling;
+no horizontal overflow or uncaught exceptions. Secret scans: 239 browser/723
+backend files, zero findings; whitespace checks pass.
+
+Owner-approved idle shutdown for the two checks and normal restart are complete.
+Canonical generation/revision800 and counts (244 Topics/202 Sources/68 posts),
+private two chats/three messages remain exact; saved pairing/protected ChatGPT
+login restore. Real paired health/status and guest account-route rejection are
+checked. Reload extension 0.13.59; app sign-in may need renewal. No new permission,
+mail, crawler, public/store hosting or deployment. Unrelated user files preserved.
+
 **2026-10-12 compact voices/search/layout verified and activated, 0.13.58:**
 The native twelve-style voice selector sits beside Start a new thread, remains
 available in inline replies and synchronizes with private-chat controls. Choice

@@ -1,5 +1,24 @@
 # Local service
 
+## Recent twenty-result inbox pages (2026-10-12, 0.13.59)
+
+Private list accepts optional `order: "recent"` with `after: null|signedCursor`,
+`limit: 1..25` and existing optional literal `query`. It returns `updatedAt`,
+an owner-only `ownerVersion`, and a signed cursor bound to owner, query, limit,
+action, order and private revision. Activity uses the maximum current message
+timestamp, falling back to conversation creation; SQL orders timestamp/ID text
+descending. The default legacy ID listing is unchanged. No DDL, body archive,
+public private-index projection or new auth/provider scope. SQL aggregation work
+still scales with owned conversations; results are byte-bounded, not constant-time.
+The client merges both recent streams into twenty total visible cards and
+revalidates versions on page navigation; fresh entry binds fresh versions.
+
+Funny/Sarcastic static prompt overlays are more explicit while Standard remains
+byte-identical. An explicit `node harness/run-live-voice-qa.js --run-live` harness
+requires an exclusively free port and caps two research-off synthetic requests;
+it is never part of startup/tests. Owner authorized and root completed exactly
+two checks for this change; further inference needs its own approval. See ADR-101.
+
 ## Writing voices and own-chat search (2026-10-12, 0.13.58)
 
 The validated optional `preferences.voice` selects one of twelve static tone

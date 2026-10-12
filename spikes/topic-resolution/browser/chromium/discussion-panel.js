@@ -6,6 +6,7 @@ import { inspectPageUrl } from "../core/page-content-policy.js";
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { resolveDiscussionTarget } from "../core/discussion-target.js";
 import { projectRelatedPages } from "../core/related-page-suggestions.js";
+import { mountAssistantVoicePicker } from "./assistant-voice-picker.js";
 
 export function mountDiscussionPanel(document, root, { messages = EN, onPrivateSend = null, onPrivateInsight = null } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -34,6 +35,13 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   function listen(item, event, callback) {
     item.addEventListener(event, callback); handlers.push([item, event, callback]);
   }
+  function selectVoice(voice) {
+    if (!insightController?.setInsightPreferences) return false;
+    const preferences = { ...(insightController.currentState?.()?.preferences ?? lastInsightState?.preferences ?? {}) };
+    if (voice === "standard") delete preferences.voice;
+    else preferences.voice = voice;
+    insightController.setInsightPreferences(preferences);
+  }
   function button(key, callback, parent = root) {
     const item = node("button", key); item.type = "button";
     item.id = key.replace(/^discussion/u, "discussion-").replace(/[A-Z]/gu, (value) => `-${value.toLowerCase()}`).replace("--", "-");
@@ -42,6 +50,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   const heading = node("h2", "discussionHeading"); heading.id = "discussion-heading";
   const insightShortcut = node("button", "uiCreateInsights"); insightShortcut.type = "button";
   insightShortcut.id = "discussion-ai-insights"; insightShortcut.className = "insight-shortcut";
+  const rootVoicePicker = mountAssistantVoicePicker(document, { button: insightShortcut, messages, onVoiceSelect: selectVoice });
   listen(insightShortcut, "click", () => {
     if (posting || insightShortcut.hidden || insightShortcut.disabled || !insightController) return;
     if (uiMode === "user") {
@@ -211,7 +220,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   const insightActivity = node("span"); insightActivity.id = "discussion-insight-activity";
   insightActivity.setAttribute("role", "status"); insightActivity.setAttribute("aria-live", "polite");
   insightShortcut.setAttribute("aria-describedby", insightActivity.id);
-  composerActions.append(privacy, modelHost, insightShortcut, submit, insightActivity);
+  composerActions.append(privacy, modelHost, rootVoicePicker.element, submit, insightActivity);
   composer.append(mode, replyContext, bodyLabel, body, detached, composerActions);
   listen(body, "input", () => { sizeReplyBody(); controller?.setDraft(body.value); });
   listen(body, "compositionstart", () => { composing = true; });
@@ -333,9 +342,12 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   }
   root.append(rootDock);
   let threadHandlers = [];
+  let threadVoicePickers = [];
   let priorHandlers = [];
   let priorSignature;
   function clearThreadHandlers() {
+    for (const picker of threadVoicePickers) picker.dispose();
+    threadVoicePickers = [];
     for (const [item, callback] of threadHandlers) item.removeEventListener("click", callback);
     threadHandlers = [];
   }
@@ -520,7 +532,14 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
             lastState.phase !== "ready" || lastState.error) return;
         callback();
       };
-      item.addEventListener("click", guardedClick); threadHandlers.push([item, guardedClick]); actions.append(item);
+      item.addEventListener("click", guardedClick); threadHandlers.push([item, guardedClick]);
+      if (key === "discussionGetInsights") {
+        const picker = mountAssistantVoicePicker(document, { button: item, messages, onVoiceSelect: selectVoice });
+        picker.update({ voice: lastInsightState?.preferences?.voice ?? "standard", disabled: item.disabled ||
+          Boolean(lastInsightState?.busy) || ["preparingArticle", "fetchingRelated", "generating", "resuming"]
+            .includes(lastInsightState?.ai?.status), hidden: item.hidden });
+        threadVoicePickers.push(picker); actions.append(picker.element);
+      } else actions.append(item);
     }
     if (rootEntry.state === "visible" && canonicalRoot) action("discussionReply", () => {
       if (!resolveDiscussionTarget(lastState, entry.id, destination)) return;
@@ -558,7 +577,9 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   let renderedFreshRead;
   let renderedUiMode;
   let renderedRelatedDiscussions;
+  let renderedRelatedContext;
   let renderedRelatedPages;
+  let relatedPagesContext;
   let observedViewKey;
   let observedContributionIds = new Set();
   let observedDiscussion = false;
@@ -569,6 +590,73 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   let pendingFeedPosition = null;
   let confirmationContext;
   let connectionPosition = "before";
+  const presentationPages = new Map();
+  const relatedOpenTopics = new Set();
+  let paginationContext;
+  const pageSize = 20;
+  function pageWindow(key, items) {
+    const page = Math.min(presentationPages.get(key) ?? 0, Math.max(0, Math.ceil(items.length / pageSize) - 1));
+    if (lastState?.phase === "ready" && presentationPages.has(key)) presentationPages.set(key, page);
+    return items.slice(page * pageSize, (page + 1) * pageSize);
+  }
+  function pager(key, items) {
+    if (items.length <= pageSize) return null;
+    pageWindow(key, items);
+    const page = presentationPages.get(key) ?? 0;
+    const controls = node("nav"); controls.className = "discussion-pagination";
+    controls.setAttribute("data-pagination-key", key);
+    controls.setAttribute("aria-label", text("paginationPage").replace("{page}", String(page + 1)));
+    const context = paginationContext;
+    for (const [direction, delta, label] of [["previous", -1, "paginationPrevious"], ["next", 1, "paginationNext"]]) {
+      const action = node("button", label); action.type = "button";
+      action.setAttribute("data-page-direction", direction);
+      action.disabled = delta < 0 ? page === 0 : (page + 1) * pageSize >= items.length;
+      const callback = () => {
+        if (disposed || action.disabled || paginationContext !== context || !lastState ||
+            lastState.phase !== "ready" || lastState.busy || lastState.needsFreshRead || lastState.error || composing) return;
+        for (const group of relatedDiscussionsList.children)
+          if (group.getAttribute?.("data-related-topic-id")) {
+            const id = group.getAttribute("data-related-topic-id");
+            if (group.open) relatedOpenTopics.add(id); else relatedOpenTopics.delete(id);
+          }
+        presentationPages.set(key, page + delta);
+        render(lastState);
+        const candidates = [...(root.querySelectorAll?.("[data-page-direction]") ?? [])]
+          .filter((item) => item.parentElement?.getAttribute("data-pagination-key") === key && !item.disabled);
+        const replacement = candidates.find((item) => item.getAttribute("data-page-direction") === direction) ?? candidates[0];
+        replacement?.focus?.({ preventScroll: true });
+      };
+      action.addEventListener("click", callback); threadHandlers.push([action, callback]);
+      if (direction === "next") {
+        const label = node("span"); label.textContent = text("paginationPage").replace("{page}", String(page + 1));
+        label.setAttribute("aria-live", "polite"); controls.append(label);
+      }
+      controls.append(action);
+    }
+    return controls;
+  }
+  function selectTargetPage(roots, target) {
+    const rootIndex = roots.findIndex((entry) => entry.id === target || entry.replies?.some((reply) => reply.id === target));
+    if (rootIndex < 0) return;
+    const rootPage = Math.floor(rootIndex / pageSize);
+    if (rootPage !== (presentationPages.get("roots") ?? 0)) presentationPages.set("roots", rootPage);
+    const rootEntry = roots[rootIndex], tree = visibleThread(rootEntry);
+    const byId = new Map((rootEntry.replies ?? []).map((entry) => [entry.id, entry]));
+    const visited = new Set();
+    let id = target;
+    while (id !== rootEntry.id && !visited.has(id)) {
+      visited.add(id);
+      const entry = byId.get(id);
+      if (!entry) break;
+      const parentId = tree.byParent.has(entry.replyToId) && entry.replyToId !== id ? entry.replyToId : rootEntry.id;
+      const siblings = (tree.byParent.get(parentId) ?? []).filter((child) => tree.retained.has(child.id));
+      const index = siblings.findIndex((child) => child.id === id);
+      const key = `children:${rootEntry.id}:${parentId}`;
+      if (index >= 0 && Math.floor(index / pageSize) !== (presentationPages.get(key) ?? 0))
+        presentationPages.set(key, Math.floor(index / pageSize));
+      id = parentId;
+    }
+  }
   function postSlot(parent, id) {
     for (const child of parent.children ?? []) {
       if (child.getAttribute?.("data-post-id") === id) return { parent, card: child };
@@ -690,6 +778,17 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     insightHost ??= document.querySelector?.("#app-discussion-insights-host");
     const previousState = lastState;
     lastState = state;
+    const nextPaginationContext = JSON.stringify([state.sourceId, state.topicId, state.actorId, uiMode,
+      state.topicViewMode, state.catalog?.version?.generation ?? state.discussion?.version?.generation ?? null]);
+    // Loading a same-context refresh can temporarily omit the generation witness.
+    const temporaryRefresh = ["loading", "connecting"].includes(state.phase) && previousState &&
+      state.sourceId === previousState.sourceId && state.topicId === previousState.topicId &&
+      state.actorId === previousState.actorId && state.topicViewMode === previousState.topicViewMode;
+    if ((!temporaryRefresh && paginationContext !== nextPaginationContext) ||
+        state.error === "context-changed" || ["disconnected", "error"].includes(state.phase)) {
+      presentationPages.clear(); relatedOpenTopics.clear();
+      paginationContext = nextPaginationContext;
+    }
     const readyContext = readyPresentationContext(state);
     if (state.error === "context-changed" || ["disconnected", "error"].includes(state.phase)) {
       pendingFeedPosition = null;
@@ -937,7 +1036,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     backToNewThread.disabled = posting || state.busy;
     backToNewThread.textContent = text(state.draft.body.trim() ? "uiDiscardDraftToNewThread" : "uiBackToNewThread");
     modelHost.hidden = uiMode === "user" && state.draft.mode !== "root";
-    voiceHost.hidden = uiMode !== "user" || state.draft.mode === "edit";
+    voiceHost.hidden = true;
     const postingSource = selectedPostingSource(state);
     originDisclosure.textContent = state.draft.mode === "edit" ? text("discussionOriginEdit") : postingSource
       ? text(uiMode === "user" ? "uiOriginDisclosure" : "discussionOriginDisclosure").replace("{title}", postingSource.title)
@@ -1046,6 +1145,11 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
         (entry.id === state.createdPost.id || entry.replies?.some((reply) =>
           reply.id === state.createdPost.id && reply.state === "visible"))) ? state.createdPost : null;
     const createdKey = createdPost && `${createdPost.discussionId}:${createdPost.actorId}:${createdPost.id}`;
+    const pagedRoots = displayRoots.filter((entry) => uiMode !== "user" || visibleThread(entry).shown);
+    const newlySelectedTarget = inlineTarget && (previousState?.draft.targetId !== inlineTarget ||
+      previousState?.draft.mode !== state.draft.mode);
+    if (newlySelectedTarget) selectTargetPage(pagedRoots, inlineTarget);
+    if (createdKey && focusedCreatedPost !== createdKey) selectTargetPage(pagedRoots, createdPost.id);
     const activeInsight = ["preparingArticle", "fetchingRelated", "generating", "resuming"]
       .includes(lastInsightState?.ai?.status);
     for (const target of [inlineTarget, activeInsight ? followupTarget() : null,
@@ -1068,7 +1172,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     // Input updates leave contribution buttons in place so keyboard focus survives.
     const signature = JSON.stringify([state.discussion, alternateView, displayRoots,
       [...earlierTargets],
-      state.sourceId, state.topicId, state.phase, state.error]);
+      state.sourceId, state.topicId, state.phase, state.error, [...presentationPages]]);
     const changedThread = signature !== renderedDiscussion || renderedActor !== state.actorId ||
       Boolean(createdKey && focusedCreatedPost !== createdKey) ||
       renderedBusy !== state.busy || renderedFreshRead !== state.needsFreshRead || renderedUiMode !== uiMode;
@@ -1092,7 +1196,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       clearThreadHandlers(); const cards = [];
       let branchSerial = 0;
       let pinnedHeadingAdded = false;
-      for (const rootEntry of displayRoots) {
+      for (const rootEntry of pageWindow("roots", pagedRoots)) {
         const tree = visibleThread(rootEntry);
         if (uiMode === "user" && !tree.shown) continue;
         if (alternateView?.pinnedRoots.some((entry) => entry.id === rootEntry.id) &&
@@ -1123,11 +1227,23 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
             group.append(toggle);
           }
           const byParent = tree.byParent;
+          const pageReplyIds = new Set();
+          const pendingParents = [rootEntry.id];
+          const pagedParents = new Set();
+          while (pendingParents.length) {
+            const parentId = pendingParents.pop();
+            if (pagedParents.has(parentId)) continue;
+            pagedParents.add(parentId);
+            const siblings = (byParent.get(parentId) ?? []).filter((child) => tree.retained.has(child.id));
+            for (const child of pageWindow(`children:${rootEntry.id}:${parentId}`, siblings)) {
+              pageReplyIds.add(child.id); pendingParents.push(child.id);
+            }
+          }
           // Create every node before linking parents and children. Same-time replies
           // can sort before their parent by ID, so array position is not lineage.
           const assembled = new Map();
           const childContainers = new Map();
-          for (const reply of replies) {
+          for (const reply of replies.filter((entry) => pageReplyIds.has(entry.id))) {
             const branch = node("div"); branch.className = "discussion-reply-branch";
             branch.append(contribution(reply, rootEntry, state, arrivals.has(reply.id), route));
             const children = (byParent.get(reply.id) ?? []).filter((child) => tree.retained.has(child.id));
@@ -1161,9 +1277,12 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
             childContainers.set(rootEntry.id, replyContent);
             replyList.append(replyContent);
             group.append(toggle, replyList);
-            for (const reply of replies) {
-              const parentId = byParent.has(reply.replyToId) && reply.replyToId !== reply.id ? reply.replyToId : rootEntry.id;
-              childContainers.get(parentId).append(assembled.get(reply.id));
+            for (const [parentId, container] of childContainers) {
+              const siblings = (byParent.get(parentId) ?? []).filter((child) => tree.retained.has(child.id));
+              const key = `children:${rootEntry.id}:${parentId}`;
+              for (const reply of pageWindow(key, siblings)) container.append(assembled.get(reply.id));
+              const controls = pager(key, siblings);
+              if (controls) container.append(controls);
             }
           }
         } else for (const reply of rootEntry.replies ?? [])
@@ -1171,6 +1290,8 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
         cards.push(group);
       }
       if (state.discussion && !cards.length) cards.push(node("p", uiMode === "user" ? "uiDiscussionEmpty" : "discussionEmpty"));
+      const rootPager = pager("roots", pagedRoots);
+      if (rootPager) cards.push(rootPager);
       thread.replaceChildren(...cards); renderedDiscussion = signature; renderedActor = state.actorId; renderedBusy = state.busy;
       renderedFreshRead = state.needsFreshRead; renderedUiMode = uiMode;
       if (state.phase === "ready" && state.discussion && pendingFeedPosition) {
@@ -1258,14 +1379,28 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
         .filter((root) => !visibleRootIds.has(root.id)) }))
       .filter((entry) => entry.roots.length > 0) : [];
     relatedDiscussions.hidden = uiMode !== "user" || readOnlyRelated.length === 0;
-    const relatedSignature = JSON.stringify(readOnlyRelated);
-    if (relatedSignature !== renderedRelatedDiscussions) {
-      const openTopics = new Set([...relatedDiscussionsList.children]
-        .filter((item) => item.open).map((item) => item.getAttribute("data-related-topic-id")));
-      const cards = readOnlyRelated.map((relatedTopic) => {
+    const relatedRoots = readOnlyRelated.flatMap((entry) => entry.roots.map((root) => ({ topic: entry, root })));
+    const relatedWindow = pageWindow("related", relatedRoots);
+    const relatedPageTopics = readOnlyRelated.map((entry) => ({ ...entry,
+      roots: relatedWindow.filter((item) => item.topic.topicId === entry.topicId).map((item) => item.root) }))
+      .filter((entry) => entry.roots.length);
+    const relatedSignature = JSON.stringify([readOnlyRelated, presentationPages.get("related"), paginationContext]);
+    if (changedThread || relatedSignature !== renderedRelatedDiscussions) {
+      threadHandlers = threadHandlers.filter(([item, callback]) => {
+        if (item.parentElement?.getAttribute("data-pagination-key") !== "related") return true;
+        item.removeEventListener("click", callback); return false;
+      });
+      if (renderedRelatedContext === paginationContext) {
+        for (const group of relatedDiscussionsList.children) {
+          const id = group.getAttribute("data-related-topic-id");
+          if (!id) continue;
+          if (group.open) relatedOpenTopics.add(id); else relatedOpenTopics.delete(id);
+        }
+      }
+      const cards = relatedPageTopics.map((relatedTopic) => {
         const group = node("details"); group.className = "related-discussion-topic";
         group.setAttribute("data-related-topic-id", relatedTopic.topicId);
-        group.open = openTopics.has(relatedTopic.topicId);
+        group.open = relatedOpenTopics.has(relatedTopic.topicId);
         const summary = node("summary"); summary.className = "related-discussion-summary";
         const title = node("span"); title.textContent = relatedTopic.title;
         const count = node("span"); count.className = "related-discussion-count";
@@ -1318,8 +1453,11 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
         }
         return group;
       });
+      const relatedPager = pager("related", relatedRoots);
+      if (relatedPager) cards.push(relatedPager);
       relatedDiscussionsList.replaceChildren(...cards);
       renderedRelatedDiscussions = relatedSignature;
+      renderedRelatedContext = paginationContext;
     }
     const projectedPages = projectRelatedPages(state);
     const hasVisibleConversations = displayRoots.some((entry) => visibleThread(entry).shown) ||
@@ -1329,9 +1467,18 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       !readError && !loadingDiscussions && !state.error && !state.needsFreshRead &&
       projectedPages.contextKey !== null && !projectedPages.loading && projectedPages.pages.length > 0;
     relatedPageSuggestions.hidden = !showRelatedPages;
-    const pageSignature = JSON.stringify(showRelatedPages ? [projectedPages.contextKey, projectedPages.pages] : null);
-    if (pageSignature !== renderedRelatedPages) {
-      relatedPageSuggestionsList.replaceChildren(...(showRelatedPages ? projectedPages.pages : []).map((page) => {
+    if (projectedPages.contextKey && projectedPages.contextKey !== relatedPagesContext) {
+      presentationPages.delete("pages"); relatedPagesContext = projectedPages.contextKey;
+    }
+    const suggestedPageWindow = showRelatedPages ? pageWindow("pages", projectedPages.pages) : [];
+    const pageSignature = JSON.stringify(showRelatedPages ? [projectedPages.contextKey, projectedPages.pages,
+      presentationPages.get("pages")] : null);
+    if (changedThread || pageSignature !== renderedRelatedPages) {
+      threadHandlers = threadHandlers.filter(([item, callback]) => {
+        if (item.parentElement?.getAttribute("data-pagination-key") !== "pages") return true;
+        item.removeEventListener("click", callback); return false;
+      });
+      const cards = (showRelatedPages ? suggestedPageWindow : []).map((page) => {
         const card = node("a"); card.className = "related-page-card";
         card.href = page.url; card.target = "_blank"; card.rel = "noopener noreferrer";
         card.referrerPolicy = "no-referrer";
@@ -1340,7 +1487,10 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
         const outgoing = node("span"); outgoing.className = "related-page-outgoing"; outgoing.textContent = "↗";
         outgoing.setAttribute("aria-hidden", "true");
         card.append(title, hostname, outgoing); return card;
-      }));
+      });
+      const controls = showRelatedPages ? pager("pages", projectedPages.pages) : null;
+      if (controls) cards.push(controls);
+      relatedPageSuggestionsList.replaceChildren(...cards);
       renderedRelatedPages = pageSignature;
     }
     const modelStatus = state.related?.model?.status ?? state.catalog?.model.status;
@@ -1405,6 +1555,9 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     insightShortcut.title = shortcutLabel;
     insightShortcut.textContent = uiMode === "user" && replyMode ? ""
       : text(setupNeeded ? "uiInsightSetupButton" : "uiCreateInsights");
+    rootVoicePicker.update({ voice: state?.preferences?.voice ?? "standard", disabled: insightShortcut.disabled, hidden: insightShortcut.hidden });
+    for (const picker of threadVoicePickers) picker.update({ voice: state?.preferences?.voice ?? "standard",
+      disabled: Boolean(picker.element.children[0]?.disabled) || active || Boolean(state?.busy) });
     const inlineFollowup = Boolean(followupTarget());
     insightActivity.hidden = inlineFollowup;
     insightActivity.textContent = inlineFollowup ? "" : active ? text(stageKey) : hasResult ? text("uiInsightReady")
@@ -1427,6 +1580,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   }
   function dispose() {
     if (disposed) return; disposed = true; token.value = ""; body.value = ""; clearThreadHandlers(); clearPriorHandlers();
+    rootVoicePicker.dispose();
     for (const [item, event, callback] of handlers) item.removeEventListener(event, callback);
     root.replaceChildren();
   }

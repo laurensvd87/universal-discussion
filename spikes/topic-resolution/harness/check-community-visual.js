@@ -34,7 +34,8 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
       context:{topic:state.catalog.topics.find(topic=>topic.id===state.topicId),
         currentSource:state.catalog.sources.find(source=>source.id===state.sourceId),sameTopicSources:[],relatedSources:[],discussion:[]},
       ai:{connected:true,planEnabled:true,pending:false,model:'synthetic',models:[{slug:'synthetic',displayName:'Synthetic model'}]}};
-    let privatePanel,shell,sequence=0,chat=null,privateMessages=[];
+    let privatePanel,shell,sequence=0,chat=null,privateMessages=[],ownerVersion=0;
+    window.communityListPackets=[];
     window.communityCalls={creates:0,generates:0,sends:0,publicWrites:0,searches:0};
     const publicPanel=mountDiscussionPanel(document,root,{onPrivateSend:body=>privatePanel.start(body),onPrivateInsight:body=>privatePanel.start(body,true)});
     const controller={currentState:()=>state,setDraft:body=>{state.draft={...state.draft,body};publicPanel.render(state)},
@@ -43,7 +44,7 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     publicPanel.bind(new Proxy(controller,{get:(value,key)=>value[key]??(()=>{})}));
     const insights=mountInsightPanel(document,insightRoot);
     const insightController=new Proxy({currentState:()=>ai,setInsightPreferences:preferences=>{
-      ai.preferences={...preferences};insights.render(ai);privatePanel?.observe();return true;
+      ai.preferences={...preferences};insights.render(ai);publicPanel.renderInsightState(ai);privatePanel?.observe();return true;
     }},{get:(value,key)=>value[key]??(()=>{})});
     insights.bind(insightController);publicPanel.bindInsight(insightController);publicPanel.renderInsightState(ai);
     shell=mountPopupShell(document,{onModeChange:mode=>publicPanel.setMode(mode)});
@@ -52,7 +53,7 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
       privateMessages.push({id:'private-answer-'+(++sequence),replyToId:human.id,actorType:'agent',
         body:'Prioritize protected junctions, not just longer routes. The busiest crossings are where the trade-off becomes real.',
         createdAt:'2026-10-11T15:01:00.000Z',citations:[],insight:{operatorId:state.actorId,model:'synthetic'}});
-      chat.revision++;
+      chat.revision++;ownerVersion++;chat.updatedAt=chat.createdAt;
     };
     const publicChats=[
       {id:'public-owned-human',visibility:'public',topicId:'topic-visual',discussionId:'discussion-visual',title:'Could quieter streets make a better city?',
@@ -62,9 +63,13 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     window.communityPublicChats=publicChats;
     const matches=(title,query)=>!query||query.toLowerCase().trim().split(/\s+/).every(term=>title.toLowerCase().includes(term));
     const client={
+      version:async()=>({version:structuredClone(state.catalog.version)}),
       accountPublicChats:async(action,value)=>{
         if(action==='list'){
-          const filtered=publicChats.filter(chat=>matches(chat.title,value.query));
+          if(!Object.hasOwn(value,'after'))throw Error('Missing public list cursor');
+          window.communityListPackets.push({kind:'public',...value});
+          const filtered=publicChats.filter(chat=>matches(chat.title,value.query)).sort((a,b)=>
+            a.updatedAt===b.updatedAt ? a.id===b.id?0:a.id>b.id?-1:1 : a.updatedAt>b.updatedAt?-1:1);
           const start=value.after?Number(value.after.split('-').at(-1)):0;
           return structuredClone({version:state.catalog.version,chats:filtered.slice(start,start+value.limit),
             next:start+value.limit<filtered.length?'fixture-page-'+(start+value.limit):null});
@@ -72,11 +77,16 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
         if(action==='read'){
           const conversation=publicChats.find(chat=>chat.id===value.rootId);
           if(!conversation)throw Error('Missing fixture public root');
-          return structuredClone({version:state.catalog.version,conversation,messages:[
+          const allMessages=[
             {id:conversation.id,replyToId:null,actorType:conversation.actorType,state:'visible',body:conversation.title,
               createdAt:conversation.createdAt,authorLabel:'Alex',sourceUrl:conversation.sourceUrl},
             {id:'public-reply-'+conversation.id,replyToId:conversation.id,actorType:'human',state:'visible',
-              body:'A quieter route would help, but it still needs safe crossings.',createdAt:conversation.updatedAt,authorLabel:'Blair',sourceUrl:null}],next:null});
+              body:'A quieter route would help, but it still needs safe crossings.',createdAt:conversation.updatedAt,authorLabel:'Blair',sourceUrl:null},
+            ...Array.from({length:43},(_,index)=>({id:'public-page-reply-'+index,replyToId:conversation.id,actorType:'human',state:'visible',
+              body:'A further bounded reply '+index,createdAt:conversation.updatedAt,authorLabel:'Blair',sourceUrl:null}))];
+          const start=Number(value.after??0);
+          return structuredClone({version:state.catalog.version,conversation,messages:allMessages.slice(start,start+value.limit),
+            next:start+value.limit<allMessages.length?String(start+value.limit):null});
         }
         throw Error('Unexpected fixture public account request');
       },
@@ -86,7 +96,7 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
           window.communityCalls.creates++;
           chat={id:'private-chat-fixture',visibility:'private',sourceId:state.sourceId,
             sourceUrl:state.catalog.sources.find(source=>source.id===state.sourceId).url,title:value.body,
-            revision:1,createdAt:'2026-10-11T15:00:00.000Z'};
+            revision:1,createdAt:'2026-10-11T15:00:00.000Z',updatedAt:'2026-10-11T15:00:00.000Z'};ownerVersion++;
           privateMessages=[{id:'private-opener',replyToId:null,actorType:'human',body:value.body,
             citations:[],createdAt:chat.createdAt,generation:{state:'none'}}];
           return {conversationId:chat.id,messageId:'private-opener',revision:chat.revision,replayed:false,generation:{state:'none'}};
@@ -97,12 +107,19 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
           const parent=privateMessages.find(message=>message.id===value.replyToId);
           const human={id:'private-human-'+(++sequence),replyToId:parent.id,actorType:'human',body:value.body,
             citations:[],createdAt:'2026-10-11T15:02:00.000Z',generation:{state:'none'}};
-          privateMessages.push(human);chat.revision++;
+          privateMessages.push(human);chat.revision++;ownerVersion++;
           if(parent.actorType==='agent'){if(!value.generation)throw Error('Missing generation');addAnswer(human)}
           return {conversationId:chat.id,messageId:human.id,revision:chat.revision,replayed:false,generation:human.generation};
         }
-        if(action==='read')return structuredClone({conversation:chat,messages:privateMessages,next:null});
-        if(action==='list')return structuredClone({conversations:chat&&matches(chat.title,value.query)?[chat]:[],next:null});
+        if(action==='read'){
+          const end=privateMessages.length-Number(value.after??0),start=Math.max(0,end-value.limit);
+          return structuredClone({conversation:chat,messages:privateMessages.slice(start,end),next:start>0?String(privateMessages.length-start):null});
+        }
+        if(action==='list'){
+          if(!Object.hasOwn(value,'after'))throw Error('Missing private list cursor');
+          window.communityListPackets.push({kind:'private',...value});
+          return structuredClone({conversations:chat&&matches(chat.title,value.query)?[chat]:[],next:null,ownerVersion});
+        }
         throw Error('Unexpected fixture private request');
       },
       discover:async input=>{window.communityCalls.searches++;window.communityLastSearch=input;return {version:{generation:'community',revision:1},query:'cycling',nextCursor:null,
@@ -125,15 +142,21 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     shell.bindCommunity({private:privatePanel,discovery:discover});
     publicPanel.render(state);shell.render(state);insights.render(ai);publicPanel.renderInsightState(ai);
     document.body.dataset.uiSurface='sidepanel';document.body.dataset.extensionSurface='sidepanel';
-    window.communityState=state;window.communityPublic=publicPanel;window.communityPrivate=privatePanel;window.communityShell=shell;
+    window.communityState=state;window.communityPublic=publicPanel;window.communityPrivate=privatePanel;window.communityShell=shell;window.communityDiscovery=discover;
     window.communityDispose=()=>{privatePanel.dispose();discover.dispose();publicPanel.dispose();insights.dispose();shell.dispose()};
   })()`, sessionId);
   await browser.send("Emulation.setDeviceMetricsOverride", {width:390,height:650,deviceScaleFactor:1,mobile:false}, sessionId);
   assert.equal(await evaluate("document.querySelector('#app-tab-private').textContent", sessionId), "My chats");
-  assert.equal(await evaluate("document.querySelector('#discussion-voice-host #insight-voice')?.options.length",sessionId),12);
-  await evaluate(`(() => {const voice=document.querySelector('#insight-voice');voice.value='funny';voice.dispatchEvent(new Event('change',{bubbles:true}));})()`,sessionId);
+  assert.equal(await evaluate("document.querySelector('#discussion-ai-insights-voice-toggle').getClientRects().length>0",sessionId),true);
+  await evaluate(`(() => {document.querySelector('#discussion-ai-insights-voice-toggle').click();
+    const picker=document.querySelector('#discussion-ai-insights').closest('.assistant-voice-control');
+    if(picker.querySelectorAll('[role=menuitemradio]').length!==12)throw Error('Missing fixed voice choices');})()`,sessionId);
+  await capture("community-root-voice-menu",sessionId,{fluid:true});
+  await evaluate("document.querySelector('#discussion-ai-insights').closest('.assistant-voice-control').querySelector('[data-voice=funny]').click()",sessionId);
   assert.equal(await evaluate("document.querySelector('#insight-voice').value",sessionId),'funny');
   assert.deepEqual(await evaluate("window.communityCalls",sessionId),{creates:0,generates:0,sends:0,publicWrites:0,searches:0},"choosing a voice never calls a provider");
+  assert.equal(await evaluate(`(() => {const button=document.querySelector('#discussion-ai-insights'),r=button.getBoundingClientRect();
+    return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('button')===button;})()`,sessionId),true,"root generation center stays distinct from the corner voice button");
   assert.equal(await evaluate("!document.querySelector('#discussion-related-page-suggestions').hidden && document.querySelectorAll('#discussion-related-page-suggestions .related-page-card').length===2",sessionId),true);
   for(const width of [390,320,480]) {
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
@@ -148,9 +171,14 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   await evaluate("document.querySelector('#discussion-composer').requestSubmit();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   assert.deepEqual(await evaluate("window.communityCalls",sessionId),{creates:1,generates:0,sends:0,publicWrites:0,searches:0});
   assert.equal(await evaluate("!document.querySelector('#app-view-private').hidden && document.querySelectorAll('.private-bubble').length===1",sessionId),true);
-  assert.equal(await evaluate("document.querySelector('#private-insight-voice').value",sessionId),'funny');
-  await evaluate(`(() => {const voice=document.querySelector('#private-insight-voice');voice.value='skeptic';voice.dispatchEvent(new Event('change',{bubbles:true}));})()`,sessionId);
+  assert.equal(await evaluate("document.querySelector('#private-generate-voice-toggle').getAttribute('aria-label').includes('Funny')",sessionId),true);
+  await evaluate("document.querySelector('#private-generate-voice-toggle').click()",sessionId);
+  await capture("community-private-voice-menu",sessionId,{fluid:true});
+  await evaluate("document.querySelector('#private-generate').closest('.assistant-voice-control').querySelector('[data-voice=skeptic]').click()",sessionId);
   assert.equal(await evaluate("document.querySelector('#insight-voice').value",sessionId),'skeptic');
+  assert.deepEqual(await evaluate("window.communityCalls",sessionId),{creates:1,generates:0,sends:0,publicWrites:0,searches:0},"private voice menu only changes the preference");
+  assert.equal(await evaluate(`(() => {const button=document.querySelector('#private-generate'),r=button.getBoundingClientRect();
+    return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('button')===button;})()`,sessionId),true,"private generation center stays distinct from the corner voice button");
   assert.deepEqual(await evaluate(`(() => {
     const icon=document.querySelector('#app-view-private .community-heading .private-conversation-lock');
     return {label:icon.getAttribute('aria-label'),role:icon.getAttribute('role'),visible:icon.getClientRects().length>0,
@@ -190,9 +218,13 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   }
   await evaluate("document.querySelector('[data-chat-id=public-owned-assistant]').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   assert.equal(await evaluate(`(() => {const root=document.querySelector('#app-view-private');return root.querySelector('.private-composer').hidden&&root.querySelector('.private-conversation-lock').hidden&&
-    root.querySelectorAll('[data-message-id]').length===2&&!root.querySelector('.private-delete')&&
+    root.querySelectorAll('[data-message-id]').length===20&&!root.querySelector('.private-delete')&&
     !root.querySelector('.private-message-reply')&&!root.querySelector('.private-message-tools .private-spark');})()`,sessionId),true);
-  assert.equal(await evaluate("document.querySelector('#private-insight-voice').getClientRects().length===0",sessionId),true,"public previews expose no assistant controls");
+  assert.equal(await evaluate("document.querySelector('#private-generate-voice-toggle').getClientRects().length===0",sessionId),true,"public previews expose no assistant controls");
+  await evaluate("window.communityPreviewFirst=[...document.querySelectorAll('[data-message-id]')].map(item=>item.dataset.messageId);document.querySelector('#my-chats-next').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.equal(await evaluate("document.querySelectorAll('[data-message-id]').length===20&&![...document.querySelectorAll('[data-message-id]')].some(item=>window.communityPreviewFirst.includes(item.dataset.messageId))",sessionId),true);
+  await evaluate("document.querySelector('#my-chats-previous').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('[data-message-id]')].map(item=>item.dataset.messageId)",sessionId),await evaluate("window.communityPreviewFirst",sessionId));
   for(const width of [390,320,480]) {
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
     await capture(`community-my-public-chat-${width}`,sessionId,{fluid:true});
@@ -204,10 +236,10 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     window.communityPublicChats.splice(0,window.communityPublicChats.length,...Array.from({length:60},(_,index)=>({...template,
       id:'public-search-'+index,title:index===57?'Needle: a useful conversation beyond the first page':
         'A longer conversation about practical changes, uncertain evidence and the details that matter when comparing several public sources. Thread '+index,
-      updatedAt:'2026-10-12T12:00:00.000Z'})));
+      updatedAt:new Date(Date.parse('2026-10-12T12:00:00.000Z')-index*1000).toISOString()})));
     document.querySelector('#app-view-private .community-heading button').click();
   })();new Promise(resolve=>setTimeout(resolve,30))`,sessionId);
-  assert.equal(await evaluate("document.querySelectorAll('.private-chat-card').length",sessionId),26,"first bounded public page plus private pool");
+  assert.equal(await evaluate("document.querySelectorAll('.private-chat-card').length",sessionId),20,"twenty combined public/private cards total");
   for(const width of [390,320,480]) {
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
     const metrics=await evaluate(`(() => {
@@ -232,8 +264,11 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   await capture('community-my-chats-search',sessionId,{fluid:true});
   await evaluate(`(() => {const search=document.querySelector('#my-chats-search');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));
     document.querySelector('#my-chats-search-form').requestSubmit();})();new Promise(resolve=>setTimeout(resolve,30))`,sessionId);
-  await evaluate("document.querySelector('#private-chat-feed>button:not(.private-chat-card)').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
-  assert.equal(await evaluate("document.querySelectorAll('.private-chat-card').length",sessionId),51,"load more continues bounded result pools");
+  await evaluate("window.communityInboxFirst=[...document.querySelectorAll('.private-chat-card')].map(card=>card.dataset.chatId);document.querySelector('#my-chats-next').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.equal(await evaluate("document.querySelectorAll('.private-chat-card').length===20&&![...document.querySelectorAll('.private-chat-card')].some(card=>window.communityInboxFirst.includes(card.dataset.chatId))",sessionId),true,"Next replaces the twenty-card window");
+  await evaluate("document.querySelector('#my-chats-previous').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('.private-chat-card')].map(card=>card.dataset.chatId)",sessionId),await evaluate("window.communityInboxFirst",sessionId),"Previous replays a freshly validated window");
+  assert.equal(await evaluate("window.communityListPackets.every(packet=>Object.hasOwn(packet,'after')&&[1,20].includes(packet.limit))",sessionId),true);
   await evaluate(`(() => {const style=document.createElement('style');style.id='community-large-type';style.textContent='.private-chat-card strong {font-size:22px}';document.head.append(style);})();new Promise(resolve=>setTimeout(resolve,30))`,sessionId);
   await capture('community-my-chats-large-text',sessionId,{fluid:true});
   assert.equal(await evaluate(`[...document.querySelectorAll('.private-chat-card')].every(card=>card.querySelector('strong').getBoundingClientRect().bottom<=card.getBoundingClientRect().bottom+1)`,sessionId),true);
@@ -251,6 +286,23 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   assert.ok(discovery.focused&&discovery.stable&&!discovery.privateVisible);
   assert.ok(discovery.links.length===2&&discovery.links.every(link=>link.rel==='noopener noreferrer'&&link.target==='_blank'));
   assert.equal(await evaluate("window.communityCalls.searches",sessionId),0,"blank Discover shows pages without a global browse request");
+  await evaluate(`(() => {
+    const state=window.communityState;
+    const extra=Array.from({length:43},(_,index)=>({id:'source-extra-'+index,topicId:state.topicId,
+      title:'A further related public page '+index,url:'https://example.org/related-'+index}));
+    state.catalog.sources.push(...extra);state.related.results.push(...extra.map(source=>({...source,relationship:'same-topic'})));
+    window.communityDiscovery.observePage(state);
+    window.communityRelatedFirst=[...document.querySelectorAll('.discovery-related-link')].map(link=>link.href);
+  })()`,sessionId);
+  assert.equal(await evaluate("document.querySelectorAll('.discovery-related-link').length",sessionId),20,"blank related metadata uses twenty-result pages");
+  await evaluate("document.querySelector('#discovery-more').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.equal(await evaluate("document.querySelectorAll('.discovery-related-link').length===20&&![...document.querySelectorAll('.discovery-related-link')].some(link=>window.communityRelatedFirst.includes(link.href))",sessionId),true);
+  await capture("community-discover-related-page-two",sessionId,{fluid:true});
+  await evaluate("document.querySelector('#discovery-more').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.equal(await evaluate("document.querySelectorAll('.discovery-related-link').length===5&&document.querySelector('#discovery-more').disabled",sessionId),true);
+  await evaluate("document.querySelector('#discovery-previous').click();document.querySelector('#discovery-previous').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('.discovery-related-link')].map(link=>link.href)",sessionId),await evaluate("window.communityRelatedFirst",sessionId));
+  assert.equal(await evaluate("window.communityCalls.searches",sessionId),0,"paging blank related metadata dispatches no global search");
   await evaluate(`(() => {
     const input=document.querySelector('#discovery-search');input.value='cycling';
     input.dispatchEvent(new Event('input',{bubbles:true}));
@@ -271,13 +323,18 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     window.communityPublic.render(state);window.communityShell.navigate('discussion');window.communityShell.render(state);
     document.querySelector('#discussion-body').focus();
   })()`,sessionId);
-  assert.equal(await evaluate("document.querySelector('#insight-voice').getClientRects().length>0&&document.querySelector('#discussion-model-host').hidden&&document.querySelector('#discussion-composer').parentElement!==document.querySelector('#discussion-root-dock')",sessionId),true,"inline reply keeps voice visible without model clutter or duplicate composer");
+  assert.equal(await evaluate(`(() => {const picker=document.querySelector('[data-contribution-id=voice-reply][data-action=getinsights]')?.closest('.assistant-voice-control');
+    return picker?.querySelector('.assistant-voice-toggle').getClientRects().length>0&&document.querySelector('#discussion-model-host').hidden&&
+      document.querySelector('#discussion-composer').parentElement!==document.querySelector('#discussion-root-dock');})()`,sessionId),true,"inline reply keeps its message voice arrow visible without model clutter or duplicate composer");
   for(const width of [390,320,480]) {
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
     await capture('community-inline-reply-voice-'+width,sessionId,{fluid:true});
   }
-  await evaluate(`(() => {const select=document.querySelector('#insight-voice');select.value='mediator';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,sessionId);
+  await evaluate(`(() => {const picker=document.querySelector('[data-contribution-id=voice-reply][data-action=getinsights]').closest('.assistant-voice-control');
+    picker.scrollIntoView({block:'nearest'});picker.querySelector('.assistant-voice-toggle').click();})()`,sessionId);
+  await capture('community-inline-reply-voice-menu',sessionId,{fluid:true});
+  await evaluate("document.querySelector('[data-contribution-id=voice-reply][data-action=getinsights]').closest('.assistant-voice-control').querySelector('[data-voice=mediator]').click()",sessionId);
   assert.equal(await evaluate("document.querySelector('#discussion-body').value==='How would that work here?'&&document.querySelectorAll('#insight-voice').length===1",sessionId),true);
   await evaluate("window.communityDispose()",sessionId);
-  process.stdout.write("Community Chrome checks: related pages/global search, mixed My chats/read-only previews, synchronized compact voice selectors, private replies, source links/focus and 320/390/480px layouts passed.\n");
+  process.stdout.write("Community Chrome checks: related pages/global search, twenty-result My chats/read-only preview pages, synchronized sparkle voice menus, private replies, source links/focus and 320/390/480px layouts passed.\n");
 }

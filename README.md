@@ -13,7 +13,7 @@ future website copy.
 
 ## Current state
 
-Extension **0.13.58** presents the Chrome extension simply as **Murmingle**. Its
+Extension **0.13.59** presents the Chrome extension simply as **Murmingle**. Its
 approved **Shared space** logo uses two opposing speech shapes with an open
 shared center, across the header and Chrome icons. The compact header omits the
 name and tagline; connection text appears only as a red exception when the local
@@ -25,13 +25,16 @@ account or its assistant contributed, including replies to someone else's
 thread. Public previews offer source links to rejoin the normal discussion;
 legacy Alex/Blair demo posts are never assigned to your account.
 
-Choose a writing **voice** beside Start a new thread: Standard, Challenger, Funny,
+Choose a writing **voice** through the small corner arrow on the sparkle button: Standard, Challenger, Funny,
 Clever, Sarcastic, Skeptic, Pragmatist, Explainer, Optimist, Realist, Mediator or
-Curious. The compact selector also stays available for replies and private chats;
+Curious. The menu also stays available for message replies and private chats;
 it remembers your choice without generating anything. Source/privacy rules remain
 the same. My chats now searches your public/private conversations beyond loaded
 pages; its fixed search and content-sized cards prevent the reported overlap.
-Lists load bounded additional pages. See [ADR-100](decisions/ADR-100-assistant-voices.md).
+Lists show **20 results per page** with Previous/Next, including nested replies.
+Funny and Sarcastic use more distinct style guidance, checked with two synthetic
+live GPT-6 Luna responses. Existing messages are never rewritten. See
+[ADR-101](decisions/ADR-101-twenty-result-pages-and-sparkle-voices.md).
 
 Empty discussions now offer related-page links from the existing backend library.
 Discover with an empty search box shows pages related to the current page; typing

@@ -161,6 +161,58 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
       task.controller.abort(); failClaim(messageId, "cancelled");
     }
   }
+  function recentList(actorId, body, query) {
+    const version = repository.version(actorId);
+    let after = null;
+    if (body.after !== null) {
+      if (typeof body.after !== "string" || body.after.length > 2048 ||
+          !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/u.test(body.after)) fail("invalid", "Invalid request");
+      const [payload, signature] = body.after.split(".");
+      const wanted = createHmac("sha256", searchCursorKey).update(payload).digest();
+      const supplied = Buffer.from(signature, "base64url");
+      if (supplied.length !== wanted.length || !timingSafeEqual(supplied, wanted)) fail("conflict", "Chats changed");
+      try { after = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(payload, "base64url"))); }
+      catch { fail("invalid", "Invalid request"); }
+      after = readRecord(after, ["owner", "version", "query", "limit", "action", "order", "updatedAt", "id"]);
+      if (after.owner !== actorId || after.version !== version || after.query !== query ||
+          after.limit !== body.limit || after.action !== "private-list" || after.order !== "recent") fail("conflict", "Chats changed");
+      id(after.id);
+      if (typeof after.updatedAt !== "string" || !after.updatedAt || after.updatedAt.length > 128 ||
+          UNSAFE.test(after.updatedAt)) fail("invalid", "Invalid request");
+    }
+    const terms = query ? query.split(" ") : [];
+    const search = terms.map(() => `(instr(lower(c.title),lower(?))>0 OR EXISTS
+      (SELECT 1 FROM private_messages m WHERE m.conversation_id=c.id AND instr(lower(m.body),lower(?))>0))`).join(" AND ");
+    // Existing owner/thread indexes scope current metadata. SQL activity aggregation
+    // grows with owned conversations; no message bodies or history are loaded in JS.
+    const rows = db.prepare(`WITH owned AS (
+      SELECT c.*, COALESCE((SELECT MAX(m.created_at) FROM private_messages m
+        WHERE m.conversation_id=c.id),c.created_at) AS updated_at
+      FROM private_conversations c WHERE c.owner_id=? ${search ? `AND ${search}` : ""})
+      SELECT * FROM owned ${after ? "WHERE updated_at<? OR (updated_at=? AND id<?)" : ""}
+      ORDER BY updated_at DESC,id DESC LIMIT ?`).all(actorId, ...terms.flatMap(term => [term, term]),
+        ...(after ? [after.updatedAt, after.updatedAt, after.id] : []), body.limit + 1);
+    const conversations = [];
+    let bytes = 8_192; // Includes bounded envelope and signed cursor overhead.
+    for (const row of rows.slice(0, body.limit)) {
+      const projected = { ...conversationDto(row), updatedAt: row.updated_at };
+      const size = Buffer.byteLength(JSON.stringify(projected));
+      if (bytes + size > 1_048_576) {
+        if (!conversations.length) fail("storage-failure", "Private storage failed");
+        break;
+      }
+      bytes += size + 1; conversations.push(projected);
+    }
+    let next = null;
+    if (rows.length > conversations.length) {
+      const last = conversations.at(-1);
+      const payload = Buffer.from(JSON.stringify({ owner: actorId, version, query, limit: body.limit,
+        action: "private-list", order: "recent", updatedAt: last.updatedAt, id: last.id })).toString("base64url");
+      next = `${payload}.${createHmac("sha256", searchCursorKey).update(payload).digest("base64url")}`;
+    }
+    if (repository.version(actorId) !== version) fail("conflict", "Chats changed");
+    return { conversations, ownerVersion: version, next };
+  }
   return Object.freeze({
     create(principal, input) {
       const actorId = principalActor(principal);
@@ -185,9 +237,13 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
       return result(conversationId, messageId, false);
     },
     list(principal, input) {
-      const actorId = principalActor(principal), body = readRecord(input,["after","limit","query"],["after","limit"]);
+      const actorId = principalActor(principal), body = readRecord(input,["after","limit","query","order"],["after","limit"]);
       if (!Number.isInteger(body.limit) || body.limit<1 || body.limit>25) fail("invalid","Invalid request");
       const query=Object.hasOwn(body,"query") ? normalizeMyChatsQuery(body.query):"";
+      if (Object.hasOwn(body, "order")) {
+        if (body.order !== "recent") fail("invalid", "Invalid request");
+        return recentList(actorId, body, query);
+      }
       const version=repository.version(actorId);
       let after=body.after;
       if (after!==null && query) {

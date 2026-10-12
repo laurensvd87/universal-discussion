@@ -3,7 +3,6 @@ import { inspectPageUrl, inspectPageNavigationUrl } from "./page-content-policy.
 // Presentation work budgets, not canonical storage or ingestion limits.
 const CATALOG_BUDGET = 512;
 const RELATED_BUDGET = 100;
-const PAGE_LIMIT = 20;
 const unsafeText = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu;
 const validId = value => typeof value === "string" && /^[A-Za-z0-9._:-]{1,128}$/u.test(value);
 const sameVersion = (left, right) => left && right && validId(left.generation) &&
@@ -56,7 +55,7 @@ export function projectRelatedPages(state) {
     }
     const pages = [], ids = new Set([current.id]), urls = new Set([current.url]);
     function append(source, relationship) {
-      if (pages.length >= PAGE_LIMIT || !validId(source?.id) || ids.has(source.id) ||
+      if (!validId(source?.id) || ids.has(source.id) ||
           !safeUrl(source.url) || urls.has(source.url)) return;
       const hostname = new URL(source.url).hostname;
       const title = typeof source.title === "string"

@@ -145,7 +145,7 @@ export function mountInsightPanel(document, root, { messages = INSIGHT_EN } = {}
   modelStatus.setAttribute("role", "status"); modelStatus.setAttribute("aria-live", "polite");
   listen(model, "change", () => controller?.selectModel(model.value));
   const voice = node("select", null, "insight-voice");
-  voice.className = "insight-voice-select";
+  voice.className = "insight-voice-select developer-only";
   voice.setAttribute("aria-label", text("assistantVoice")); voice.title = text("assistantVoice");
   for (const choice of INSIGHT_VOICES) {
     const option = node("option", choice.labelKey); option.value = choice.id; voice.append(option);

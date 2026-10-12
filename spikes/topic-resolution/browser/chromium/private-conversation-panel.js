@@ -1,7 +1,17 @@
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { EN } from "../locales/en.js";
-import { INSIGHT_VOICES, normalizeInsightVoice } from "../core/insight-voices.js";
+import { normalizeInsightVoice } from "../core/insight-voices.js";
+import { mountAssistantVoicePicker } from "./assistant-voice-picker.js";
+
+// Match each backend stream's SQLite TEXT DESC, id DESC ordering exactly.
+// Parsing dates or locale collation would reorder valid legacy timestamps/IDs
+// across a cursor boundary and could skip newer buffered entries.
+function compareChats(a, b) {
+  const descending = (left, right) => left === right ? 0 : left < right ? 1 : -1;
+  return descending(a.updatedAt ?? a.createdAt ?? "", b.updatedAt ?? b.createdAt ?? "") ||
+    descending(a.id, b.id) || (a.kind === b.kind ? 0 : a.kind === "private" ? -1 : 1);
+}
 
 // Private data is RAM-only in this surface. Durable storage belongs exclusively
 // to the account-scoped backend, never the public controller/catalog.
@@ -49,22 +59,23 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   draft.placeholder = text("privatePlaceholder"); draft.setAttribute("aria-label", text("privatePlaceholder"));
   const send = node("button", "privateSend", "private-send"); send.type = "submit";
   const spark = button("privateGenerate", () => void generateSelected(), "private-spark");
+  spark.id = "private-generate";
   spark.setAttribute("aria-label", text("privateGenerate")); spark.title = text("privateGenerate"); spark.textContent = "";
-  const voice = node("select", null, "insight-voice-select"); voice.id = "private-insight-voice";
-  voice.setAttribute("aria-label", text("assistantVoice")); voice.title = text("assistantVoice");
-  for (const choice of INSIGHT_VOICES) {
-    const option = node("option", choice.labelKey); option.value = choice.id; voice.append(option);
-  }
-  voice.addEventListener("change", () => {
-    if (voice.disabled || voice.hidden || !setInsightPreferences) return;
+  const voice = mountAssistantVoicePicker(document, {button:spark,messages,onVoiceSelect(value) {
+    if (busy || composer.hidden || !available || !setInsightPreferences) return false;
     const preferences = { ...readInsightState?.()?.preferences };
-    const selected = normalizeInsightVoice(voice.value);
+    const selected = normalizeInsightVoice(value);
     if (selected === "standard") delete preferences.voice; else preferences.voice = selected;
     setInsightPreferences(preferences);
-  });
-  const actions = node("div", null, "private-composer-actions"); actions.append(voice, spark, send);
+  }});
+  const actions = node("div", null, "private-composer-actions"); actions.append(voice.element, send);
   composer.append(target, draft, actions);
-  root.append(header, searchForm, list, status, composer);
+  const pagination = node("nav", null, "community-pagination");
+  const previous = button("paginationPrevious", () => void changePage(-1)); previous.id = "my-chats-previous";
+  const pageLabel = node("span"); pageLabel.setAttribute("aria-live", "polite");
+  const next = button("paginationNext", () => void changePage(1)); next.id = "my-chats-next";
+  pagination.append(previous, pageLabel, next);
+  root.append(header, searchForm, list, pagination, status, composer);
   let disposed = false, active = false, available = true, actorId = null, epoch = 0, busy = false, timer = null;
   let detachedDraft = null;
   let inbox = [], inboxCursor = null, publicInbox = [], publicInboxCursor = null;
@@ -73,6 +84,10 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   let selection = "private";
   let rendered = null, error = "", pendingOperation = null, pendingStart = null;
   let latestRead = 0;
+  const messagePickers = [];
+  let inboxPage = 0, inboxBoundaries = [], inboxBoundary = null, inboxEnd = null;
+  let privateVersion = null, publicVersion = null;
+  let messagePage = 0, messageBoundaries = [null], messageScroll = [];
   let searchTimer = null, composingSearch = false, searchQuery = "";
   const olderReads = new Set();
   const ownActor = () => readActor();
@@ -98,9 +113,29 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   }
   function stopTimer() { if (timer !== null) unschedule(timer); timer = null; }
   function stopSearchTimer() { if (searchTimer !== null) unschedule(searchTimer); searchTimer = null; }
+  const sameVersion = (a, b) => a?.generation === b?.generation && a?.revision === b?.revision;
+  const cloneBoundary = (value, metadata = false) => value && ({
+    private: { ...value.private, buffer: metadata ? [] : [...value.private.buffer], replay: metadata ? value.private.buffer.length > 0 || value.private.replay : value.private.replay },
+    public: { ...value.public, buffer: metadata ? [] : [...value.public.buffer], replay: metadata ? value.public.buffer.length > 0 || value.public.replay : value.public.replay }, scroll: value.scroll ?? 0 });
+  function clearPages() {
+    inboxPage = 0; inboxBoundaries = []; inboxBoundary = inboxEnd = null;
+    privateVersion = publicVersion = null; messagePage = 0; messageBoundaries = [null]; messageScroll = [];
+  }
+  async function changePage(direction) {
+    if (busy || !available || !actorId) return;
+    if (!conversation) return loadInbox(direction > 0 ? true : "previous");
+    const older = selection === "private" ? direction < 0 : direction > 0;
+    const index = messagePage + (older ? 1 : -1);
+    if (index < 0 || older && !cursor) return;
+    messageScroll[messagePage] = list.scrollTop ?? 0;
+    if (older) messageBoundaries[index] = cursor;
+    busy = true; render();
+    try { await (selection === "public" ? readPublicConversation(index) : readConversation(index)); }
+    finally { busy = false; render(); }
+  }
   function clearInboxForSearch() {
     epoch += 1; busy = false; inbox = []; publicInbox = []; inboxCursor = publicInboxCursor = null;
-    privateInboxFailed = publicInboxFailed = false; error = ""; rendered = null;
+    privateInboxFailed = publicInboxFailed = false; error = ""; rendered = null; clearPages();
     render();
   }
   function dispatchSearch() {
@@ -124,6 +159,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     draft.value = ""; pendingOperation = pendingStart = null; busy = false; error = ""; rendered = null;
     detachedDraft = null;
     olderReads.clear(); latestRead += 1;
+    clearPages();
     list.replaceChildren(); render();
   }
   function syncAccount() {
@@ -142,11 +178,14 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     searchButton.disabled = search.disabled || composingSearch;
     composer.hidden = !actorId || publicPreview || !conversation && !detachedDraft;
     const insightState = readInsightState?.();
-    voice.value = insightState?.preferences?.voice ?? "standard";
-    voice.hidden = composer.hidden || !conversation || !available;
-    voice.disabled = voice.hidden || busy || !setInsightPreferences || Boolean(insightState?.busy) ||
+    const voiceHidden = composer.hidden || !conversation || !available;
+    const voiceDisabled = busy || !available || !setInsightPreferences || Boolean(insightState?.busy) ||
       ["generating", "fetchingRelated", "preparingArticle", "resuming"].includes(insightState?.ai?.status) ||
       entries.some(item => item.generation?.state === "running");
+    voice.update({voice:insightState?.preferences?.voice ?? "standard",hidden:voiceHidden,
+      disabled:voiceHidden || voiceDisabled});
+    messagePickers.forEach(picker=>picker.update({voice:insightState?.preferences?.voice ?? "standard",
+      disabled:voiceDisabled}));
     draft.readOnly = busy || !available || !conversation;
     const selected = entries.find(item => item.id === replyToId);
     const missingTarget = Boolean(draft.value.trim() && replyToId && !selected);
@@ -157,21 +196,26 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     spark.disabled = !available || publicPreview || busy || !selected || selected.actorType !== "human" || selected.generation?.state !== "none" ||
       readPublicState()?.sourceId !== conversation?.sourceId;
     root.setAttribute("aria-busy", String(busy));
+    pagination.hidden = !actorId || !available;
+    pageLabel.textContent = (text("paginationPage") ?? "Page {page}").replace("{page}", String((conversation ? messagePage : inboxPage) + 1));
+    previous.disabled = busy || (conversation ? selection === "private" ? !cursor : messagePage === 0 : inboxPage === 0);
+    next.disabled = busy || (conversation ? selection === "private" ? messagePage === 0 : !cursor : !inboxEnd ||
+      ![inboxEnd.private, inboxEnd.public].some(pool => pool.buffer.length || pool.next));
     const running = entries.some(item => item.generation?.state === "running");
     status.dataset.loading = String(busy || running);
     status.textContent = error || (!actorId ? text("privateSignIn") : !available ? text("privateUnavailable") : detachedDraft ? text("privateChanged") : "");
     status.setAttribute("aria-label", running ? text("privateThinking") : busy ? text("communityLoading") : status.textContent);
-    const signature = JSON.stringify([actorId, selection, conversation, entries, inbox, publicInbox, cursor, inboxCursor, publicInboxCursor, busy]);
+    const signature = JSON.stringify([actorId, selection, conversation, entries, inbox, publicInbox, cursor, inboxCursor, publicInboxCursor, inboxPage, messagePage, busy]);
     if (signature === rendered) return;
     rendered = signature;
+    messagePickers.forEach(picker=>picker.dispose()); messagePickers.length = 0;
     list.replaceChildren();
     if (!actorId) {
       const signIn = button("privateSignInButton", () => { void requestSignIn(); }); list.append(signIn); return;
     }
     if (!conversation) {
       const combined = [...inbox.map(chat => ({ ...chat, kind: "private" })), ...publicInbox.map(chat => ({ ...chat, kind: "public" }))]
-        .sort((a, b) => (Date.parse(b.updatedAt ?? b.createdAt) || 0) - (Date.parse(a.updatedAt ?? a.createdAt) || 0) ||
-          `${a.kind}:${a.id}`.localeCompare(`${b.kind}:${b.id}`));
+        .sort(compareChats);
       if (available && !busy && !combined.length && !privateInboxFailed && !publicInboxFailed) list.append(node("p", searchQuery ? "myChatsSearchEmpty" : hasPublicChats() ? "myChatsEmpty" : "privateEmpty", "community-empty"));
       for (const chat of combined) {
         const card = button(null, () => void open(chat.id, chat.kind), "private-chat-card");
@@ -190,7 +234,6 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
         titleRow.append(name);
         card.append(titleRow, origin); list.append(card);
       }
-      if (inboxCursor || publicInboxCursor || privateInboxFailed || publicInboxFailed) list.append(button("communityMore", () => void loadInbox(true)));
       return;
     }
     if (publicPreview) { renderPublicConversation(); return; }
@@ -217,7 +260,14 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
         const generate = button("privateGenerate", () => { if (busy) return; replyToId = message.id; void generateSelected(); }, "private-spark");
         generate.textContent = ""; generate.title = text("privateGenerate"); generate.setAttribute("aria-label", text("privateGenerate"));
         generate.disabled = busy || readPublicState()?.sourceId !== conversation.sourceId;
-        tools.append(generate);
+        const picker = mountAssistantVoicePicker(document,{button:generate,messages,onVoiceSelect(value) {
+          if (busy || !available || !setInsightPreferences || entries.some(item => item.generation?.state === "running")) return false;
+          const preferences = {...readInsightState?.()?.preferences};
+          if (value === "standard") delete preferences.voice; else preferences.voice = value;
+          setInsightPreferences(preferences);
+        }});
+        picker.update({voice:readInsightState?.()?.preferences?.voice ?? "standard",disabled:voiceDisabled});
+        messagePickers.push(picker); tools.append(picker.element);
       }
       const checked = inspectPageUrl(conversation.sourceUrl);
       if (checked.supported) {
@@ -231,38 +281,74 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
       }
       list.append(bubble);
     }
-    if (cursor) list.append(button("communityMore", () => void readConversation(true)));
     const remove = button("privateDelete", () => void removeConversation(), "private-delete");
     list.append(remove);
   }
   async function loadInbox(more = false) {
     syncAccount(); if (!available || !active || !actorId || busy) return;
+    // Fresh entry/refresh binds new store versions; only page navigation reuses
+    // the previous cursor/history contract.
+    if (!more) {
+      inboxPage = 0; inboxBoundaries = []; inboxBoundary = inboxEnd = null;
+      privateVersion = publicVersion = null;
+    }
     const ticket = epoch, actor = actorId; busy = true; error = ""; render();
     try {
-      const fetchPrivate = !more || Boolean(inboxCursor) || privateInboxFailed;
-      const fetchPublic = hasPublicChats() && (!more || Boolean(publicInboxCursor) || publicInboxFailed);
-      const results = await Promise.allSettled([
-        fetchPrivate ? request("list", { after: more ? inboxCursor : null, limit: 25, ...(searchQuery ? { query: searchQuery } : {}) }, actor) : null,
-        fetchPublic ? client.accountPublicChats("list", { after: more ? publicInboxCursor : null, limit: 25, ...(searchQuery ? { query: searchQuery } : {}) }, actor) : null,
-      ]);
-      if (!valid(ticket, actor)) return;
-      const merge = (loaded, fresh) => [...new Map([...loaded, ...fresh].map(chat => [chat.id, chat])).values()];
-      const [privateResult, publicResult] = results;
-      if (fetchPrivate) {
-        privateInboxFailed = privateResult.status === "rejected";
-        if (!privateInboxFailed) { const page = privateResult.value; inbox = merge(more ? inbox : [], page.conversations); inboxCursor = page.next; }
-        else if (!more) { inbox = []; inboxCursor = null; }
+      const targetPage = more === "previous" ? inboxPage - 1 : more ? inboxPage + 1 : 0;
+      if (targetPage < 0) return;
+      if (more && typeof client.version === "function") {
+        const [canonical, owner] = await Promise.all([client.version(), request("list", {order:"recent",limit:1,after:null,
+          ...(searchQuery ? {query:searchQuery} : {})}, actor)]);
+        if (!valid(ticket, actor)) return;
+        if (publicVersion && !sameVersion(publicVersion, canonical.version) || privateVersion !== null && privateVersion !== owner.ownerVersion)
+          throw Object.assign(new Error("Changed"), {code:"conflict"});
       }
-      if (fetchPublic) {
-        publicInboxFailed = publicResult.status === "rejected";
-        if (!publicInboxFailed) { const page = publicResult.value; publicInbox = merge(more ? publicInbox : [], page.chats); publicInboxCursor = page.next; }
-        else { publicInbox = []; publicInboxCursor = null; }
+      if (inboxBoundary) { inboxBoundary.scroll = list.scrollTop ?? 0; inboxBoundaries[inboxPage] = cloneBoundary(inboxBoundary,true); }
+      const emptyPool = enabled => ({buffer:[],next:null,started:!enabled,batchAfter:null,skip:0});
+      let boundary = more === "previous" ? cloneBoundary(inboxBoundaries[targetPage]) : more ? cloneBoundary(inboxEnd) :
+        {private:emptyPool(true),public:emptyPool(hasPublicChats()),scroll:0};
+      if (!boundary) return;
+      inboxBoundary = cloneBoundary(boundary);
+      const refill = async (kind) => {
+        const pool = boundary[kind];
+        if (pool.buffer.length || !pool.replay && pool.started && !pool.next) return;
+        try {
+          const payload = {after:pool.replay ? pool.batchAfter : pool.next,limit:20,...(searchQuery ? {query:searchQuery} : {})};
+          const page = kind === "private" ? await request("list", {...payload,order:"recent"},actor) : await client.accountPublicChats("list",payload,actor);
+          if (!valid(ticket,actor)) return;
+          if (kind === "private") {
+            if (privateVersion !== null && page.ownerVersion !== undefined && privateVersion !== page.ownerVersion) throw Object.assign(new Error("Changed"),{code:"conflict"});
+            privateVersion = page.ownerVersion ?? privateVersion; privateInboxFailed = false;
+          } else {
+            if (publicVersion && page.version && !sameVersion(publicVersion,page.version)) throw Object.assign(new Error("Changed"),{code:"conflict"});
+            publicVersion = page.version ?? publicVersion; publicInboxFailed = false;
+          }
+          const skip = pool.replay ? pool.skip : 0;
+          pool.batchAfter = payload.after; pool.skip = skip; pool.replay = false;
+          pool.buffer = (page.conversations ?? page.chats).slice(skip); pool.next = page.next; pool.started = true;
+        } catch (failure) {
+          if (failure?.code === "conflict") throw failure;
+          if (kind === "private") privateInboxFailed = true; else publicInboxFailed = true;
+          pool.started = true; pool.next = null; pool.buffer = [];
+        }
+      };
+      const merged = [];
+      while (merged.length < 20) {
+        await Promise.all([refill("private"),refill("public")]);
+        if (!valid(ticket,actor)) return;
+        const choices = ["private","public"].filter(kind => boundary[kind].buffer.length);
+        if (!choices.length) break;
+        choices.sort((a,b) => compareChats({...boundary[a].buffer[0],kind:a},{...boundary[b].buffer[0],kind:b}));
+        const kind = choices[0]; merged.push({...boundary[kind].buffer.shift(),kind}); boundary[kind].skip++;
       }
+      inbox = merged.filter(chat => chat.kind === "private"); publicInbox = merged.filter(chat => chat.kind === "public");
+      inboxCursor = boundary.private.next; publicInboxCursor = boundary.public.next;
+      inboxPage = targetPage; inboxEnd = boundary;
       error = privateInboxFailed && publicInboxFailed ? text("myChatsUnavailable")
         : publicInboxFailed ? text("myChatsPublicUnavailable")
           : privateInboxFailed ? text(hasPublicChats() ? "myChatsPrivateUnavailable" : "privateUnavailable") : "";
-    } catch (failure) { if (valid(ticket, actor)) error = failMessage(failure); }
-    finally { if (valid(ticket, actor)) { busy = false; render(); } }
+    } catch (failure) { if (valid(ticket, actor)) { inbox = []; publicInbox = []; clearPages(); error = failMessage(failure); } }
+    finally { if (valid(ticket, actor)) { busy = false; render(); list.scrollTop = inboxBoundary?.scroll ?? 0; } }
   }
   function publicSourceLink(url, compact = false) {
     const checked = inspectPageUrl(url);
@@ -295,24 +381,27 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
       const messageSource = publicSourceLink(message.sourceUrl, true); if (messageSource) bubble.append(messageSource);
       list.append(bubble);
     }
-    if (cursor) list.append(button("communityMore", () => void readPublicConversation(true)));
   }
-  async function readPublicConversation(more = false) {
-    syncAccount(); if (!available || !actorId || selection !== "public" || !conversation?.id || busy) return;
-    const ticket = epoch, actor = actorId, id = conversation.id, after = more ? cursor : null;
-    if (more && !after) return;
+  async function readPublicConversation(pageIndex = 0) {
+    syncAccount(); if (!available || !actorId || selection !== "public" || !conversation?.id) return;
+    const ticket = epoch, actor = actorId, id = conversation.id, after = messageBoundaries[pageIndex] ?? null;
     busy = true; error = ""; render();
     try {
-      const page = await client.accountPublicChats("read", { rootId: id, after, limit: 25 }, actor);
+      if (pageIndex !== 0 && typeof client.version === "function") {
+        const current = await client.version();
+        if (!valid(ticket,actor)) return;
+        if (publicVersion && !sameVersion(publicVersion,current.version)) throw Object.assign(new Error("Changed"),{code:"conflict"});
+      }
+      const page = await client.accountPublicChats("read", { rootId: id, after, limit: 20 }, actor);
       if (!valid(ticket, actor) || selection !== "public" || conversation?.id !== id) return;
       conversation = page.conversation;
-      entries = [...new Map([...(more ? entries : []), ...page.messages].map(message => [message.id, message])).values()];
-      cursor = page.next;
+      entries = page.messages; cursor = page.next; messagePage = pageIndex;
+      publicVersion = page.version ?? publicVersion;
     } catch { if (valid(ticket, actor)) {
-      entries = []; cursor = null; conversation = { id, title: text("privateChats") };
+      entries = []; cursor = null; messagePage = 0; messageBoundaries = [null]; conversation = { id, title: text("privateChats") };
       error = text("myChatsPublicUnavailable");
     } }
-    finally { if (valid(ticket, actor)) { busy = false; render(); } }
+    finally { if (valid(ticket, actor)) { busy = false; render(); list.scrollTop = messageScroll[messagePage] ?? 0; } }
   }
   async function open(id, kind = "private") {
     if (!available || busy) return; epoch += 1; stopTimer(); stopSearchTimer(); entries = []; cursor = null; replyToId = null; draft.value = "";
@@ -320,42 +409,42 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
       draft.value = detachedDraft.body; replyToId = detachedDraft.replyToId; detachedDraft = null;
     }
     selection = kind; error = ""; olderReads.clear(); pendingOperation = null;
+    messagePage = 0; messageBoundaries = [null]; messageScroll = [];
     conversation = { id, title: text("privateChats") }; rendered = null; showView("private"); await readConversation();
   }
-  async function readConversation(more = false, revealId = null) {
-    if (selection === "public") return readPublicConversation(more);
+  async function readConversation(pageIndex = false, revealId = null) {
+    if (selection === "public") return readPublicConversation(pageIndex === false ? messagePage : pageIndex);
     syncAccount(); if (!available || !actorId || !conversation?.id) return;
     const ticket = epoch, actor = actorId, id = conversation.id;
-    const after = more ? cursor : null;
-    if (more && (!after || olderReads.has(after))) return;
-    if (more) olderReads.add(after);
-    const sequence = more ? null : ++latestRead;
+    const index = pageIndex === false ? (revealId ? 0 : messagePage) : pageIndex;
+    const after = messageBoundaries[index] ?? null;
+    const sequence = ++latestRead;
     try {
-      const page = await request("read", { conversationId: id, after, limit: 25 });
-      if (!valid(ticket, actor) || id !== conversation?.id || !more && sequence !== latestRead ||
+      const page = await request("read", { conversationId: id, after, limit: 20 });
+      if (!valid(ticket, actor) || id !== conversation?.id || sequence !== latestRead ||
           page.conversation.revision < (conversation.revision ?? 0)) return;
+      if (index !== 0 && conversation.revision !== undefined && page.conversation.revision !== conversation.revision)
+        throw Object.assign(new Error("Changed"),{code:"conflict"});
       conversation = page.conversation;
-      const overlapping = page.messages.some(item => entries.some(loaded => loaded.id === item.id));
-      // After a large jump, retain reachable contiguous pages, not an invisible gap.
-      if (!more && entries.length && !overlapping && page.next) { entries = []; cursor = null; }
-      const merged = new Map();
-      for (const item of more ? [...page.messages, ...entries] : [...entries, ...page.messages]) merged.set(item.id, item);
       const hadEntries = entries.length > 0;
       const previousLatestId = entries.at(-1)?.id;
-      entries = [...merged.values()];
-      if (more || !hadEntries) cursor = page.next;
+      entries = page.messages; cursor = page.next; messagePage = index;
+      if (revealId) { messageBoundaries = [null]; messageScroll = []; }
       // Replies default to the latest AI message, ensuring a normal back-and-forth.
       if (revealId || !draft.value.trim()) replyToId = entries.at(-1)?.id ?? null;
       render();
       const latest = entries.at(-1);
-      const reveal = !more && (!hadEntries || latest?.actorType === "agent" && latest.id !== previousLatestId && !draft.value.trim())
+      list.scrollTop = messageScroll[index] ?? 0;
+      const reveal = index === 0 && (!hadEntries || latest?.actorType === "agent" && latest.id !== previousLatestId && !draft.value.trim())
         ? latest?.id : revealId;
       if (reveal) [...list.children].find(item => item.getAttribute?.("data-message-id") === reveal)
         ?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
       stopTimer();
-      if (active && entries.some(item => item.generation?.state === "running")) timer = schedule(() => { timer = null; void readConversation(); }, 1000);
-    } catch (failure) { if (valid(ticket, actor) && (more || sequence === latestRead)) { error = failMessage(failure); render(); } }
-    finally { if (more && valid(ticket, actor)) olderReads.delete(after); }
+      if (active && index === 0 && entries.some(item => item.generation?.state === "running")) timer = schedule(() => { timer = null; void readConversation(); }, 1000);
+    } catch (failure) { if (valid(ticket, actor) && sequence === latestRead) {
+      entries = []; cursor = null; messagePage = 0; messageBoundaries = [null];
+      conversation = {id,title:text("privateChats")}; error = failMessage(failure); render();
+    } }
   }
   async function start(body, withInsight = false) {
     syncAccount();
@@ -469,7 +558,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     },
     accountChanged() { if (syncAccount() && active) void loadInbox(); },
     observe() { syncAccount(); if (conversation) render(); },
-    dispose() { disposed = true; epoch += 1; stopTimer(); stopSearchTimer(); search.value = searchQuery = ""; draft.value = ""; pendingOperation = pendingStart = null;
+    dispose() { disposed = true; epoch += 1; stopTimer(); stopSearchTimer(); voice.dispose(); messagePickers.forEach(picker=>picker.dispose()); search.value = searchQuery = ""; draft.value = ""; pendingOperation = pendingStart = null;
       olderReads.clear(); entries = inbox = publicInbox = []; conversation = detachedDraft = null; root.replaceChildren(); },
   });
 }

@@ -1,5 +1,26 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Twenty-result pages and sparkle voice menus (0.13.59)
+
+My chats combines public/private results into exactly twenty cards per page.
+Previous/Next replaces, rather than appends, results. Search still covers the
+account's entire eligible library. Discover search/recommendations, Discussion
+roots/related conversations/page links and each nested sibling reply list use
+twenty-item windows too. Private conversations open their latest twenty messages;
+Previous reads older messages. Accepted new messages remain revealed and focused.
+
+The corner arrow on each eligible sparkle button opens twelve writing voices;
+clicking the sparkle itself still generates. No always-visible User dropdown,
+provider request on selection or changed source/account authority. Menus use
+native popovers so scrolling containers cannot clip them, with keyboard support.
+Funny/Sarcastic have stronger bounded style guidance; two approved synthetic
+live GPT-6 Luna checks were short, distinct and unposted, not a broad quality eval.
+
+Reload extension 0.13.59 after the normal backend restart. Reading requires saved
+pairing; account sign-in may need renewal. See ADR-101 for version-bound cursor
+replay and retained-metadata/transport limitations; this is presentation paging,
+not new network discovery or unlimited full-tree transport.
+
 ## Compact voices and My chats search (0.13.58)
 
 The small dropdown beside Start a new thread switches among twelve writing

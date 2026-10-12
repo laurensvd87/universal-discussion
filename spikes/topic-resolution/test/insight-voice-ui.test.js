@@ -81,26 +81,29 @@ test("private composer shares current voice without refetch or focus loss; list 
       },
     },
   });
-  const voice = ui.byId("private-insight-voice"); assert.equal(voice.hidden, true);
+  const toggle = ui.byId("private-generate-voice-toggle");
+  const voice = ui.created.find(item => item.className === "assistant-voice-control");
+  const menu = voice.children.find(item => item.className === "assistant-voice-menu");
+  assert.equal(voice.hidden, true);
   panel.setActive(true); await flush();
   const feed = ui.byId("private-chat-feed");
   feed.children.find(item => item.className === "private-chat-card" && item.children[0]?.children?.some(child => child.textContent === "Private"))
     .listeners.get("click")(); await flush();
-  assert.equal(voice.hidden, false); assert.equal(voice.value, "standard");
-  assert.equal(voice.attributes["aria-label"], "Assistant voice"); assert.equal(voice.children.length, 12);
+  assert.equal(voice.hidden, false);
+  assert.equal(toggle.attributes["aria-label"], "Assistant voice: Standard"); assert.equal(menu.children.length, 12);
   const draft = ui.byId("private-message-body"); draft.value = "Still typing"; draft.focus();
   const beforeReads = calls.filter(item => item[0] === "read").length;
-  voice.value = "mediator"; voice.listeners.get("change")();
-  assert.equal(current.preferences.voice, "mediator"); assert.equal(ui.document.activeElement, draft);
+  toggle.listeners.get("click")({}); menu.children.find(item=>item.attributes["data-voice"] === "mediator").listeners.get("click")({});
+  assert.equal(current.preferences.voice, "mediator");
   assert.equal(draft.value, "Still typing"); assert.equal(calls.filter(item => item[0] === "read").length, beforeReads);
-  current = state({ replyLanguage: "en", voice: "challenger" }); panel.observe(); assert.equal(voice.value, "challenger");
-  current.busy = true; panel.observe(); assert.equal(voice.disabled, true);
+  current = state({ replyLanguage: "en", voice: "challenger" }); panel.observe(); assert.match(toggle.attributes["aria-label"], /Challenger/);
+  current.busy = true; panel.observe(); assert.equal(toggle.disabled, true);
   current.busy = false;
   ui.created.find(item => item.tag === "button" && item.textContent === "All chats").listeners.get("click")(); await flush();
   assert.equal(voice.hidden, true);
   feed.children.find(item => item.className === "private-chat-card" && item.children[0]?.children?.some(child => child.textContent === "Public"))
     .listeners.get("click")(); await flush();
-  assert.equal(voice.hidden, true); assert.equal(voice.disabled, true);
+  assert.equal(voice.hidden, true); assert.equal(toggle.disabled, true);
   actor = null; panel.observe(); assert.equal(voice.hidden, true); panel.dispose();
   assert.ok(calls.every(item => ["list", "read", "public-list", "public-read", "preferences"].includes(item[0])));
 });

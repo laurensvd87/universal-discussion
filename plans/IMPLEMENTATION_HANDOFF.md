@@ -1,5 +1,34 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 extension 0.13.59: twenty-result Previous/Next across My chats,
+Discover search/retained page suggestions, Discussion roots/related/page links,
+each nested sibling reply list and private/public inbox message previews. My
+chats merges separate recent streams into twenty total cards using SQL-compatible
+lexical timestamp/ID DESC; fresh entry renews versions, page replay re-fetches
+cursor/skip metadata under version checks without old body caches. Optional private
+`order:"recent"` returns updatedAt/ownerVersion and signed bound cursors; default
+legacy ID DTO remains exact. No DDL/private public-index projection. Preserve
+accepted-post reveal, typing/IME, drafts, Source/Topic/account and historical
+destination proof. Twenty-item presentation is not arbitrary-size tree transport;
+existing full DTO byte budgets and owner SQL scaling remain. Read ADR-101.
+
+Sparkle corner arrow opens a fixed twelve-voice native popover; main click still
+generates. No visible User dropdown, request on selection, stale choice while busy
+or target/source expansion. Developer native selector remains. Funny/Sarcastic
+static overlays stronger; Standard prompt/full packet unchanged. Exactly two
+owner-approved synthetic GPT-6 Luna requests pass a small style check, 69/71 words,
+without web tools/saving/posting; permission consumed, not future inference scope.
+Old saved Threadshift posts unchanged; selected historical voice is not stored.
+
+Independent Trust accepts, full browser 1,402 passes, actual isolated Chrome30
+screenshots pass menu fit/20-card replacement/Previous/search57/45 suggestions/
+private workflow/enlarged text/320/390/480px and no exceptions. Root reviews;
+zero secret findings239/723, diff checks pass; backend665 passes/five optional skips.
+Idle normal service restart complete; generation/revision800 and 244/202/68
+canonical counts/two private chats/three messages exact, saved pairing/protected
+login restore. Reload0.13.59; app sign-in may need renewal. Unrelated dirty
+Copilot instructions/untracked crawler work must not be staged as this change.
+
 2026-10-12 extension 0.13.58: compact 12-style writing voice directly beside new
 thread heading and in inline/private replies, never Settings. Read ADR-100;
 shared fixed enum/optional locally persisted preference, static backend overlays,

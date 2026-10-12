@@ -145,7 +145,7 @@ test("suggestion count and catalog work use explicit presentation budgets", () =
   const state = ready();
   state.catalog.sources = [state.catalog.sources[0], ...Array.from({ length: 600 }, (_, index) => source(`page-${index}`))];
   state.related = null;
-  assert.equal(projectRelatedPages(state).pages.length, 20);
+  assert.equal(projectRelatedPages(state).pages.length, 511);
   state.catalog.sources = [state.catalog.sources[0], ...Array.from({ length: 511 }, (_, index) => source(`other-${index}`, "topic-other")), source("outside-budget")];
   assert.equal(projectRelatedPages(state).pages.length, 0);
 });

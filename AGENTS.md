@@ -8,6 +8,20 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current twenty-result pages/voice menus (2026-10-12, 0.13.59, ADR-101): My chats
+merges signed owner-scoped recent streams into twenty total cards; Previous
+replays cursor/skip metadata with fresh version checks, never old cached bodies.
+Fresh entry/Back renews versions. Optional private recent listing is schema-free;
+legacy ID DTO/Standard prompt/full packet remain exact. Discover/Discussion
+lists and per-parent reply siblings use twenty-item presentation windows, not
+arbitrary-size backend tree transport. Sparkle corner arrow opens voice popover;
+main button generates, selection never does. Preserve busy/context/IME/disposal/
+private exact-retry and historical route proof fences. Funny/Sarcastic stronger;
+two explicitly approved synthetic live checks passed and consumed that grant.
+Independent Trust/full offline/actual Chrome verification and idle restart pass,
+data/pairing/protected login preserved; reload client, app sign-in may renew.
+Read top STATUS/HANDOFF. No new provider tools/permission/crawler/mail/release.
+
 Current compact voices/My chats search (2026-10-12, 0.13.58, ADR-100/096): twelve
 fixed writing styles use the existing local preference/deliberate request path.
 Standard prompt and full packet are byte-identical; static tone cannot expand

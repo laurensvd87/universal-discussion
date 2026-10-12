@@ -88,6 +88,7 @@ test("Trust: uncertain private send preserves exact voice payload on deliberate 
       append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
       setAttribute(key, value) { this.attributes[key] = value; }, getAttribute(key) { return this.attributes[key]; },
       addEventListener(name, fn) { this.listeners.set(name, fn); }, scrollIntoView() {},
+      removeEventListener(name, fn) { if (this.listeners.get(name) === fn) this.listeners.delete(name); },
       get lastElementChild() { return this.children.at(-1); } };
     elements.push(element); return element;
   } };
@@ -114,8 +115,10 @@ test("Trust: uncertain private send preserves exact voice payload on deliberate 
   const draft = elements.find(element => element.id === "private-message-body"), form = elements.find(element => element.className === "private-composer");
   draft.value = "An accepted bounded private reply.";
   await form.listeners.get("submit")({ preventDefault() {} });
-  const voice = elements.find(element => element.id === "private-insight-voice");
-  voice.value = "funny"; voice.listeners.get("change")();
+  const toggle = elements.find(element => element.id === "private-generate-voice-toggle");
+  toggle.listeners.get("click")({ stopPropagation() {} });
+  const funny = elements.find(element => element.className === "assistant-voice-option" && element.attributes["data-voice"] === "funny");
+  funny.listeners.get("click")({ stopPropagation() {} });
   assert.equal(preferences.voice, "funny");
   await form.listeners.get("submit")({ preventDefault() {} });
   assert.equal(sends.length, 2); assert.deepEqual(sends[1], sends[0]);

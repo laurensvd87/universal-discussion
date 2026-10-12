@@ -70,7 +70,7 @@ test("User insight action lives in the composer and starts one automatic private
   const shortcut = ui.byId("discussion-ai-insights");
   const composer = ui.byId("discussion-composer");
   assert.equal(shortcut.type, "button");
-  assert.ok(composer.children.some((item) => item.children?.includes(shortcut)));
+  assert.ok(descendants(composer).includes(shortcut));
   assert.equal(shortcut.disabled, false);
   shortcut.listeners.get("click")();
   assert.deepEqual(actions, [{ automatic: true }]);
@@ -106,6 +106,57 @@ test("composer provides a single model rehome target without duplicating control
   assert.ok(composer.children.some((item) => item.children?.includes(modelHost)));
   assert.equal(ui.created.filter((item) => item.id === "discussion-model-host").length, 1);
   assert.equal(ui.created.some((item) => item.id === "insight-model"), false);
+});
+
+test("root and message corner voice menus save the current preference snapshot without generation", () => {
+  const ui = harness();
+  const preferences = [], generations = [];
+  let current = { context: { currentSource: { id: "source-demo" } }, preferences: { language: "de", voice: "friendly" },
+    ai: { planEnabled: true, model: "chosen", status: "idle" } };
+  ui.panel.bindInsight({ currentState: () => current,
+    setInsightPreferences: value => { preferences.push(value); current = { ...current, preferences: value }; ui.panel.renderInsightState(current); },
+    createInsights: options => { generations.push(options); return Promise.resolve(true); } });
+  const shortcut = ui.byId("discussion-ai-insights"), control = shortcut.parentElement;
+  const toggle = control.children.find(item => item.className === "assistant-voice-toggle");
+  assert.equal(toggle.hidden === true, false);
+  toggle.listeners.get("click")({});
+  current = { ...current, preferences: { language: "nl", country: "NL", voice: "friendly" } };
+  const menu = control.children.find(item => item.className === "assistant-voice-menu");
+  const standard = menu.children.find(item => item.attributes["data-voice"] === "standard");
+  standard.listeners.get("click")({});
+  assert.deepEqual(preferences, [{ language: "nl", country: "NL" }]);
+  assert.deepEqual(generations, []);
+  shortcut.listeners.get("click")();
+  assert.deepEqual(generations, [{ automatic: true }]);
+  const spark = descendants(ui.root).find(item => item.attributes["data-action"] === "getinsights");
+  assert.equal(spark.parentElement.className, "assistant-voice-control");
+  const corner = spark.parentElement.children.find(item => item.className === "assistant-voice-toggle");
+  assert.equal(corner.disabled, spark.disabled);
+  assert.equal(ui.byId("discussion-voice-host").hidden, true);
+});
+
+test("per-message corner voice choice closes and disables through provider work without re-enabling unavailable targets", () => {
+  const ui = harness();
+  const insight = { context: { currentSource: { id: "source-demo" } },
+    preferences: {}, ai: { planEnabled: true, model: "chosen", status: "idle" } };
+  ui.panel.bindInsight({ currentState: () => insight, setInsightPreferences: () => {} });
+  ui.panel.render(state({ sourceId: "source-demo" }));
+  const spark = descendants(ui.root).find(item => item.attributes["data-action"] === "getinsights");
+  const corner = spark.parentElement.children.find(item => item.className === "assistant-voice-toggle");
+  const menu = spark.parentElement.children.find(item => item.className === "assistant-voice-menu");
+  assert.equal(corner.disabled, false);
+  corner.listeners.get("click")({}); assert.equal(menu.hidden, false);
+  for (const status of ["preparingArticle", "fetchingRelated", "generating", "resuming"]) {
+    ui.panel.renderInsightState({ ...insight, ai: { ...insight.ai, status } });
+    assert.equal(corner.disabled, true); assert.equal(menu.hidden, true);
+  }
+  ui.panel.renderInsightState({ ...insight, busy: true }); assert.equal(corner.disabled, true);
+  ui.panel.renderInsightState(insight); assert.equal(corner.disabled, false);
+  ui.panel.render(state());
+  const disabledSpark = descendants(ui.root).find(item => item.attributes["data-action"] === "getinsights");
+  ui.panel.renderInsightState(insight);
+  assert.equal(disabledSpark.disabled, true);
+  assert.equal(disabledSpark.parentElement.children.find(item => item.className === "assistant-voice-toggle").disabled, true);
 });
 test("Insight entry is offered only while composing a new thread in User Mode", () => {
   const ui = harness();
@@ -1004,7 +1055,8 @@ test("owned robot post can be withdrawn but never edited; withdrawn root retains
     replies: [{ id: "human-reply", rootId: "ai-root", state: "visible", authorId: "demo-alex", actorType: "human", body: "Question" }] };
   ui.panel.render(state({ discussion: { roots: [agent] } }));
   const card = descendants(ui.root).find((item) => item.tag === "article" && item.children.some((child) => child.className === "discussion-body"));
-  const actions = descendants(card).filter((item) => item.tag === "button").map((item) => item.attributes["data-action"]);
+  const actions = descendants(card).filter((item) => item.tag === "button" && item.attributes["data-action"])
+    .map((item) => item.attributes["data-action"]);
   assert.deepEqual(actions, ["reply", "getinsights", "withdraw"]);
   assert.equal(descendants(card).find((item) => item.attributes["data-action"] === "getinsights").disabled, true);
   descendants(card).find((item) => item.attributes["data-action"] === "withdraw").listeners.get("click")();
@@ -2082,7 +2134,7 @@ test("one inline composer follows exact nested target, keeps selection on refres
   const card = descendants(ui.root).find((item) => item.attributes["data-post-id"] === "reply-child");
   assert.equal(card.nextSibling, composer);
   assert.equal(ui.byId("discussion-model-host").hidden, true);
-  assert.equal(ui.byId("discussion-voice-host").hidden, false);
+  assert.equal(ui.byId("discussion-voice-host").hidden, true);
   assert.equal(descendants(ui.root).filter((item) => item === composer).length, 1);
   assert.equal(ui.byId("discussion-discard").hidden, true);
   assert.equal(ui.byId("discussion-back-to-new-thread").hidden, false);

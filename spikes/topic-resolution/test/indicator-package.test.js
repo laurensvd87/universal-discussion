@@ -38,6 +38,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/account-sheet.css",
     "chromium/account-sheet.js",
     "chromium/active-tab-reader.js",
+    "chromium/assistant-voice-picker.js",
     "chromium/background.js",
     "chromium/discovery-panel.js",
     "chromium/discussion-panel.js",
@@ -133,7 +134,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Murmingle",
-    version: "0.13.58",
+    version: "0.13.59",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",

@@ -87,6 +87,7 @@ function panelFixture({ inbox = false, copy, publicChats } = {}) {
       const item = { tag, children: [], listeners: new Map(), attributes: {}, dataset: {}, value: "", textContent: "",
         append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
         setAttribute(key, value) { this.attributes[key] = value; }, addEventListener(event, fn) { this.listeners.set(event, fn); },
+        removeEventListener(event,fn) { if (this.listeners.get(event) === fn) this.listeners.delete(event); },
         focus() { document.activeElement = this; }, scrollIntoView() {},
         get lastElementChild() { return this.children.at(-1); } };
       created.push(item); return item;
@@ -131,7 +132,8 @@ function panelFixture({ inbox = false, copy, publicChats } = {}) {
       await flush();
     },
     bubbles() { return root.children.find(item => item.id === "private-chat-feed").children.filter(item => item.tag === "article").map(item => item.attributes["data-message-id"]); },
-    more() { return root.children.find(item => item.id === "private-chat-feed").children.find(item => item.tag === "button" && item.textContent === EN.communityMore); },
+    more() { const privateView = created.find(item => item.id === "my-chats-search-form").hidden && !form.hidden;
+      return created.find(item => item.id === (privateView ? "my-chats-previous" : "my-chats-next")); },
     submit: () => form.listeners.get("submit")({ preventDefault() {} }),
     setActor(value) { actor = value; panel.accountChanged(); },
     pauseGeneration() { holdGeneration = deferred(); return holdGeneration; },
@@ -169,12 +171,12 @@ test("My chats mixes bounded private/public pools by activity, keeps bots and ID
   assert.equal(descendants(chatCards(f)[0]).filter(node => node.className === "private-identity private-identity-agent").length, 1);
   assert.equal(descendants(chatCards(f)[1]).filter(node => node.className === "private-conversation-lock").length, 0);
   chatCards(f)[1].listeners.get("click")(); await flush();
-  assert.deepEqual(calls.at(-1), { action: "read", input: { rootId: "private-conversation", after: null, limit: 25 }, actor: ACTOR });
+  assert.deepEqual(calls.at(-1), { action: "read", input: { rootId: "private-conversation", after: null, limit: 20 }, actor: ACTOR });
   assert.equal(f.calls.filter(call => call.action === "read").length, 0);
   f.root.children[0].children[0].listeners.get("click")(); await flush();
   chatCards(f).find(card => card.attributes["data-chat-kind"] === "private").listeners.get("click")(); await flush();
   assert.equal(f.calls.at(-1).input.conversationId, "private-conversation");
-  assert.ok(calls.every(call => call.input.limit === 25)); f.panel.dispose();
+  assert.ok(calls.every(call => call.input.limit === 20)); f.panel.dispose();
 });
 
 test("My chats pages pools independently, deduplicates cards and exposes fixed partial errors", async () => {
@@ -187,15 +189,15 @@ test("My chats pages pools independently, deduplicates cards and exposes fixed p
   const privateChat = { id: "private", title: "Private", sourceUrl: "https://example.com/", createdAt: "2026-10-11T10:00:00.000Z" };
   f.queueInbox({ conversations: [privateChat], next: "private-next" });
   f.queueInbox({ conversations: [privateChat], next: null });
-  f.panel.setActive(true); await flush(); f.more().listeners.get("click")(); await flush();
-  assert.equal(chatCards(f).length, 1);
+  f.panel.setActive(true); await flush();
+  assert.equal(chatCards(f).length, 3);
   assert.equal(f.calls.filter(call => call.action === "list").at(-1).input.after, "private-next");
   assert.equal(calls.at(-1).after, "public-next");
   assert.equal(f.root.children.find(node => node.className === "community-status").textContent, "Some public chats are unavailable.");
   assert.equal(JSON.stringify(f.root.children).includes("PRIVATE_RAW_ERROR"), false);
-  f.more().listeners.get("click")(); await flush();
-  assert.equal(f.calls.filter(call => call.action === "list").length, 2);
-  assert.equal(calls.at(-1).after, null); assert.equal(f.more(), undefined); f.panel.dispose();
+  f.panel.setActive(true); await flush();
+  assert.equal(f.calls.filter(call => call.action === "list").length, 3);
+  assert.equal(calls.at(-1).after, null); assert.equal(f.more().disabled, true); f.panel.dispose();
 });
 
 test("public My chats preview pages read-only messages and only deliberate safe source links leave the view", async () => {
@@ -214,7 +216,7 @@ test("public My chats preview pages read-only messages and only deliberate safe 
   assert.equal(descendants(feed(f)).find(node => node.className === "private-message-body").textContent, message.body);
   f.draft.value = "Attempt public mutation"; await f.submit();
   assert.equal(f.calls.filter(call => ["send", "generate", "delete"].includes(call.action)).length, 0);
-  f.more().listeners.get("click")(); await flush(); assert.deepEqual(f.bubbles(), ["public-human", "public-agent"]);
+  f.more().listeners.get("click")(); await flush(); assert.deepEqual(f.bubbles(), ["public-agent"]);
   const links = descendants(feed(f)).filter(node => node.tag === "a"); assert.equal(links.length, 1);
   assert.equal(links[0].href, "https://example.com/"); assert.equal(links[0].target, "_blank"); assert.equal(links[0].rel, "noopener noreferrer");
   assert.equal(f.views.includes("discussion"), false); links[0].listeners.get("click")(); assert.equal(f.views.at(-1), "discussion");
@@ -346,7 +348,7 @@ test("late private latest reads cannot roll back a newer answer or conversation 
   assert.equal(sent.input.expectedRevision, 4); assert.equal(sent.input.replyToId, "new-private-agent"); f.panel.dispose();
 });
 
-test("private older-page loads deduplicate a repeated click and survive a latest poll", async () => {
+test("private older-page loads deduplicate a repeated click and replace current messages", async () => {
   const f = panelFixture(); f.queueRead(f.page(f.messages, 2, "private-human")); await f.panel.start("Private opener");
   const earlier = { ...f.messages[0], id: "earlier-human", body: "Earlier private root" }, old = deferred();
   f.queueRead(old.promise);
@@ -354,9 +356,9 @@ test("private older-page loads deduplicate a repeated click and survive a latest
   more.listeners.get("click")(); more.listeners.get("click")();
   assert.equal(f.calls.filter(call => call.action === "read" && call.input.after === "private-human").length, 1);
   old.resolve(f.page([earlier, f.messages[0]], 2)); await flush();
-  assert.deepEqual(f.bubbles(), ["earlier-human", "private-human", "private-agent"]);
+  assert.deepEqual(f.bubbles(), ["earlier-human", "private-human"]);
   f.queueRead(f.page(f.messages, 2, "private-human")); f.panel.setActive(true); await flush();
-  assert.deepEqual(f.bubbles(), ["earlier-human", "private-human", "private-agent"]); f.panel.dispose();
+  assert.deepEqual(f.bubbles(), ["private-human", "private-agent"]); f.panel.dispose();
 });
 
 test("a non-overlapping latest page keeps its earlier cursor without retargeting an unsent private reply", async () => {

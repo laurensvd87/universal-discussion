@@ -9,6 +9,7 @@ function fixture() {
     const item = { tag, children: [], listeners: new Map(), attributes: {}, dataset: {}, value: "", textContent: "",
       append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
       setAttribute(key, value) { this.attributes[key] = value; }, addEventListener(event, fn) { this.listeners.set(event, fn); },
+      removeEventListener(event,fn) { if (this.listeners.get(event) === fn) this.listeners.delete(event); },
       focus() { document.activeElement = this; }, scrollIntoView() {} };
     created.push(item); return item;
   } };
@@ -16,7 +17,7 @@ function fixture() {
   function reply(kind, packet) {
     const title = packet.query ?? "Unfiltered";
     const chat = { id: `${kind}-${title}`, title, sourceId: "source", sourceUrl: "https://example.com/", visibility: kind };
-    return { [kind === "private" ? "conversations" : "chats"]: [chat], next: packet.after ? null : `${kind}-cursor-${title}` };
+    return { [kind === "private" ? "conversations" : "chats"]: Array.from({length:20},(_,index) => ({...chat,id: `${kind}-${index}-${title}`})), next: packet.after ? null : `${kind}-cursor-${title}` };
   }
   function request(kind, action, packet) {
     calls.push({ kind, action, packet });
@@ -38,7 +39,7 @@ function fixture() {
     hold(value) { hold = value; }, logout() { actor = null; panel.accountChanged(); },
   };
 }
-test("My chats search debounces both bounded pools, preserves input focus, and continues query through Load more", async () => {
+test("My chats search debounces both bounded pools, preserves input focus, and continues query through Next", async () => {
   const ui = fixture(); ui.panel.setActive(true); await flush();
   assert.ok(ui.calls.every(call => !Object.hasOwn(call.packet, "query")));
   ui.input.focus(); ui.type("  two words  ");
@@ -46,9 +47,9 @@ test("My chats search debounces both bounded pools, preserves input focus, and c
   assert.equal(ui.tasks.size, 1); assert.equal([...ui.tasks.values()][0].delay, 200);
   assert.equal(ui.calls.length, 2); ui.fire(); await flush();
   assert.equal(ui.document.activeElement, ui.input); assert.equal(ui.input.value, "  two words  ");
-  assert.ok(ui.calls.slice(2).every(call => call.packet.query === "two words" && call.packet.limit === 25 && call.packet.after === null));
-  ui.feed.children.find(item => item.tag === "button" && item.className !== "private-chat-card").listeners.get("click")(); await flush();
-  assert.deepEqual(ui.calls.slice(-2).map(call => call.packet.after), ["private-cursor-two words", "public-cursor-two words"]);
+  assert.ok(ui.calls.slice(2).every(call => call.packet.query === "two words" && call.packet.limit === 20 && call.packet.after === null));
+  ui.created.find(item => item.id === "my-chats-next").listeners.get("click")(); await flush();
+  assert.ok(ui.calls.slice(-2).every(call => call.packet.after?.endsWith("two words") || call.packet.after === null));
   assert.ok(ui.calls.slice(-2).every(call => call.packet.query === "two words"));
   ui.type(""); ui.enter(); await flush(); assert.equal(ui.tasks.size, 0);
   assert.ok(ui.calls.slice(-2).every(call => !Object.hasOwn(call.packet, "query") && call.packet.after === null));

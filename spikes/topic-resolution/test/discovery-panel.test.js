@@ -82,10 +82,10 @@ test("safe text/cards and source links open read-only preview with existing cita
   ui.panel.dispose();
 });
 
-test("load more appends bounded pages, cursor conflict clears cached text and offers refresh",async () => {
+test("Next replaces bounded pages, cursor conflict clears cached text and offers refresh",async () => {
   const ui=harness();ui.start();ui.requests[0].resolve(page("First","cursor-1"));await settle();ui.click("discovery-more");
   assert.equal(ui.calls[1][1].cursor,"cursor-1");ui.requests[1].resolve(page("Second","cursor-2"));await settle();
-  assert.equal(ui.byId("discovery-results").children.length,2);ui.click("discovery-more");
+  assert.equal(ui.byId("discovery-results").children.length,1);ui.click("discovery-more");
   ui.requests[2].reject({code:"conflict"});await settle();assert.equal(ui.byId("discovery-results").children.length,0);
   assert.equal(ui.byId("discovery-refresh").hidden,false);assert.match(ui.byId("discovery-status").textContent,/changed/);
   ui.click("discovery-refresh");assert.equal(ui.calls[3][1].cursor,null);ui.panel.dispose();
@@ -120,7 +120,7 @@ test("blank and whitespace input never dispatch library reads, including submit 
   ui.byId("discovery-search").listeners.get("keydown")({key:"Enter",preventDefault() {}});
   ui.click("discovery-refresh");
   assert.equal(ui.calls.length,0);assert.equal(ui.timers.size,0);
-  assert.equal(ui.byId("discovery-more").hidden,true);ui.panel.dispose();
+  assert.equal(ui.byId("discovery-more").disabled,true);ui.panel.dispose();
 });
 
 test("clearing a query aborts global search and rejects its late result",async () => {
