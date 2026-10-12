@@ -7,7 +7,8 @@ Decision record: [ADR-092](../decisions/ADR-092-portable-self-hosted-backend-pla
 Local canonical checkpoint: [ADR-098](../decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md)
 implements normalized SQLite and scoped/versioned read/write integration in the
 current local application. Aggregate JSON/post ceilings are removed in that
-adapter; conversion of the owner's legacy file awaits recovery approval. This
+adapter; the approved lossless owner-local conversion is complete under
+[ADR-099](../decisions/ADR-099-online-encrypted-canonical-backup-and-cutover.md). This
 preserves current exact vectors, Topics, posts and ownership, and is not a second
 portable identity or a PostgreSQL migration. Global ingest/regroup and full-thread
 UI paths still need scale work. H1's hosted PostgreSQL/matching/import/identity/
@@ -307,7 +308,7 @@ an actual owner-data cutover is a later, separately reviewed operation.
 | H1 Relational backend | Async query/transaction repositories, PostgreSQL migrations, normalized records, exact matching reference, paginated reads | Same domain/rights tests; unrelated concurrent writes succeed; replay cannot duplicate a post; synthetic v2/v3 imports, key/identity continuity and crash recovery pass |
 | H2 Portable package | Pinned Linux images, unattended API/worker entrypoints, Compose, sample config, health/readiness, migration and backup/restore commands | Same synthetic suite on Windows/WSL and Linux; development ingress bound to host loopback; no owner databases/grants mounted; AI/mail off |
 | H3 Incremental matching and jobs | Affected-neighborhood planning, durable jobs/outbox, versioned caches and bounded retrieval | Exact-vs-index comparison on frozen evidence; no silent canonical rerouting; deletion invalidates indexes/jobs; worker crashes do not duplicate writes |
-| H4 Private pilot readiness | Real app authentication, client endpoint support, TLS, abuse/moderation, rights, monitoring and restore rehearsal | Cross-account access denied; report/block/admin scope tested; limits enforced; approved audience/data/host/budget and actual restore evidence before access |
+| H4 Private pilot readiness | Real app authentication, client endpoint support, TLS, abuse/moderation, rights, monitoring, automated online backups and restore rehearsal | Cross-account access denied; report/block/admin scope tested; limits enforced; approved audience/data/host/budget, unattended backup/failure-alert evidence and actual restore evidence before access |
 | H5 Hosting migration | Same images on Linux host or compatible managed PostgreSQL; rehearsed cutover/runbook | IDs, ownership, replies, withdrawals and model versions preserved; no stale dual writers; verified backups and rollback after new writes |
 | H6 Measured scaling | Additional workers/API replicas, connection pooling, database/index tuning or managed database | Shared sessions/leases/idempotency work across processes; measured latency, recall and recovery targets; spending changes explicitly approved |
 
@@ -386,6 +387,18 @@ computer/server, protect decryption keys separately, and perform a restore drill
 before a pilot. PostgreSQL logical dumps support cross-machine migration; a
 container image or named volume alone is not a backup.
 [PostgreSQL backup documentation](https://www.postgresql.org/docs/current/backup-dump.html).
+
+**Owner requirement (2026-10-12): hosted backups must be automated from the first
+hosted pilot, not depend on someone running a command.** Routine backup creation
+and expiry must keep the service and sessions connected. Include a scheduler,
+encrypted off-host storage, retention cleanup, backup-age/failure alerts and
+periodic tested restoration as deployment acceptance. Define recoverable coverage
+for canonical data, accounts, private conversations, necessary configuration and
+separately protected keys; the current Windows canonical-only recovery file is
+not sufficient. Exact cadence, retention, destination, keys and costs must be
+agreed in the hosting activation package. This records a future requirement,
+not permission to start a local schedule, transfer data or buy hosting now.
+
 Start a private-pilot recovery proposal at at most 24 hours of data loss and
 restoration within four hours, subject to demonstrated restore results and owner
 acceptance; tighten the target before making public reliability promises.

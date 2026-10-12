@@ -86,6 +86,17 @@ later accepted writes; any actual recovery must be deliberate, offline, verified
 and scoped to the owner's then-current instructions. Cross-platform/off-device
 disaster recovery and a future larger-than-memory snapshot method remain open.
 
+## Hosted follow-up requirement (2026-10-12)
+
+The owner requires automated backups when moving to a hosted backend. Scheduled
+creation must remain online, with encrypted off-host copies, defined retention,
+failure/backup-age alerts and tested restoration before hosted pilot acceptance.
+Recovery coverage must include the hosted application's durable state, not only
+the current canonical-only Windows file. The hosting activation package still
+defines exact cadence, coverage, destination, key protection, retention and cost.
+See `plans/BACKEND_HOSTING_PLAN.md`. No local recurring snapshot creation,
+off-device transfer, spending or deployment is activated by this requirement.
+
 ## One-time cutover
 
 Create/verify the approved recovery point online, identify the exact project process

@@ -1,5 +1,11 @@
 # Project status
 
+**2026-10-12 hosted backup requirement recorded:** the owner requires automated
+online backups from the first hosted pilot. Hosting acceptance includes scheduling,
+encrypted off-host recovery, retention, failure alerts and restore tests; coverage
+must extend beyond the current canonical-only local file. See BACKEND_HOSTING_PLAN
+and ADR-099. No local schedule, external transfer or hosting activation follows.
+
 **2026-10-12 approved Shared space logo implemented, extension 0.13.54:**
 The owner selects **A — Shared space** from the saved concept board. Two opposing
 speech shapes leave an open shared center; this replaces the earlier M placeholder.

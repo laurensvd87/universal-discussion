@@ -1,5 +1,11 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 owner requirement: the hosted backend must have automated online
+backups before pilot access, including off-host encryption, retention, alerts and
+tested recovery of the required durable state. Read BACKEND_HOSTING_PLAN and
+ADR-099; do not carry the local manual/canonical-only limitation into hosting.
+Exact operational scope remains a hosting gate, not a local activation request.
+
 2026-10-12 approved Shared space logo A is implemented in extension 0.13.54.
 Read ADR-097 and `docs/BRAND_LANGUAGE.md`; the concept board is saved under
 `docs/brand`. The opposing speech shapes and open center replace the M placeholder
