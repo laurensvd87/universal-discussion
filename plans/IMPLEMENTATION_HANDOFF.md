@@ -1,5 +1,16 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 dashboard startup/polling correction under ADR-098: revision reads now
+use normalized canonical metadata or legacy v2/v3 metadata through a read-only
+handle. The prior startup refresh check still queried the removed demo_state
+table despite the snapshot reader already supporting normalized storage. Run
+`npm start` again from `apps/topic-dashboard`; no service restart is needed.
+Preview crawler pages are staged separately and appear here only after ingestion.
+The 1,000-page graph guard remains. Live refresh-key/catalog checks preserve
+canonical bytes/mtime, and `npm start -- --no-open` generates the 194-page report.
+Independent review accepts; restricted dashboard tests pass 18/18.
+No database migration, deletion, provider request or crawler interruption.
+
 2026-10-12 ADR-103 minimal voice diagnostics active, client remains 0.13.59.
 Normal CLI logs only fixed voice, SHA-256 UTF-8 of actual serialized POST's decoded
 instructions, local epoch timestamp and schema to the known bounded Temp file

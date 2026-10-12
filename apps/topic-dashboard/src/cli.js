@@ -6,6 +6,9 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { APP_DATABASE_PATH } from "../../local-service/src/startup.js";
+import { NORMALIZED_STORAGE_FORMAT } from "../../local-service/src/adapters/normalized-sqlite-repository.js";
+import { ACCOUNT_STATE_SCHEMA } from "../../local-service/src/accounts/account-principal.js";
+import { readExpectedVersion } from "../../local-service/src/domain/validation.js";
 import { buildDashboardSnapshot, loadDashboardState } from "./data/catalog.js";
 import { buildGroupingPreview, LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH, LOCAL_RIDGE_ADAPTER_PATH, readInstalledOwnerTopicConfiguration } from "./data/grouping-preview.js";
 
@@ -63,11 +66,20 @@ export function readDashboardRefreshKey(databasePath = APP_DATABASE_PATH, {
 export function readDashboardRevision(databasePath = APP_DATABASE_PATH) {
   const database = new DatabaseSync(databasePath, { readOnly: true });
   try {
-    const row = database.prepare("SELECT schema, generation, revision FROM demo_state WHERE singleton = 1").get();
-    if (!row || row.schema !== "demo-state/v2" || typeof row.generation !== "string" ||
-        !Number.isSafeInteger(row.revision) || row.revision < 0) {
+    // Poll only storage metadata, never catalog payloads or legacy documents.
+    const objects = database.prepare("SELECT name, type FROM sqlite_master WHERE name IN ('canonical_meta', 'demo_state')").all();
+    const normalized = objects.find(object => object.name === "canonical_meta");
+    const metadata = normalized ?? objects.find(object => object.name === "demo_state");
+    if (!metadata || metadata.type !== "table") throw new Error("Unsupported dashboard database schema");
+    const row = database.prepare(normalized
+      ? "SELECT format, schema, generation, revision FROM canonical_meta WHERE singleton = 1"
+      : "SELECT schema, generation, revision FROM demo_state WHERE singleton = 1").get();
+    if (!row || (normalized && row.format !== NORMALIZED_STORAGE_FORMAT) ||
+        !["demo-state/v2", ACCOUNT_STATE_SCHEMA].includes(row.schema)) {
       throw new Error("Unsupported or incomplete dashboard snapshot");
     }
+    try { readExpectedVersion({ generation: row.generation, revision: row.revision }); }
+    catch { throw new Error("Unsupported or incomplete dashboard snapshot"); }
     return JSON.stringify([row.generation, row.revision]);
   } finally {
     database.close();

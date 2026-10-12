@@ -1,5 +1,19 @@
 # Project status
 
+**2026-10-12 dashboard startup and refresh polling corrected (ADR-098):**
+Normal dashboard startup previously checked the removed legacy `demo_state`
+table before its already compatible normalized snapshot reader could run.
+Startup/refresh revision checks now read normalized canonical metadata or legacy
+v2/v3 metadata, validate format and generation/revision, and close the read-only
+handle without reading catalog/contribution/account payloads or changing storage.
+Independent review accepts; all 18 restricted dashboard tests pass, including
+normalized/legacy startup, refresh/reset and database immutability regressions.
+Live refresh-key/catalog checks and `npm start -- --no-open` succeed with 194
+ingested pages; canonical database bytes and mtime remain exact. Restart only the
+dashboard command. Crawler preview staging remains separate from visible canonical
+ingestion; the existing 1,000-page graph guard remains. No service restart,
+database mutation/migration/deletion, provider request or crawler interruption.
+
 **2026-10-12 content-free voice dispatch trace active (ADR-103):**
 Owner approves selected-voice and actual instruction fingerprint diagnostics.
 Public generation logs only schema, fixed voice, SHA-256 of the decoded instruction

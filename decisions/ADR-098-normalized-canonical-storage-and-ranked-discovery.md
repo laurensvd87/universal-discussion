@@ -88,6 +88,13 @@ records; existing safe exported DTOs still omit vectors and identity/post data.
 Missing/unknown/legacy-with-normalized-reader files fail closed. The existing
 1,000-learned-page visualization guard remains, not a canonical retention ceiling.
 
+2026-10-12 dashboard polling correction: startup and refresh-key reads now select
+the existing normalized `canonical_meta` or legacy v2/v3 `demo_state` metadata.
+They validate storage format and generation/revision without reading catalog,
+contribution or account payloads. This closes the remaining legacy-only polling
+path that prevented normal dashboard startup after cutover; the existing graph
+capacity and read-only snapshot/export behavior are unchanged.
+
 ## Discover order
 
 The public FTS5 projection selects each Topic's **best matching document**, ordered

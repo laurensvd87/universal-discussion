@@ -18,6 +18,11 @@ checks that file immediately. Keep the terminal open for new snapshots; Ctrl+C
 stops monitoring and leaves the last view readable. For a one-shot export
 without opening a browser or monitoring, use `npm start -- --no-open`.
 
+The dashboard follows canonical ingestion, including crawler `-Apply` batches.
+A crawler preview stages pages in its separate ledger, so preview progress does
+not increase dashboard counts. Startup and revision polling support both legacy
+v2/v3 and normalized canonical metadata.
+
 The generated file is
 `%LOCALAPPDATA%\Temp\universal-discussion-dashboard\dashboard.html` on a
 typical Windows installation; the command prints the exact path. A sibling
