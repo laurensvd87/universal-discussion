@@ -10,8 +10,9 @@ These instructions are the shared contract for Codex and other agents that disco
 
 Current concurrent ingestion/continuous crawler (2026-10-12, ADR-107,0.13.61):
 owner explicitly requests researched concurrency toward thousands of requests,
-no default500/page/depth crawler stops, and capacity correction. Read topSTATUS/
-HANDOFF for activation. Read-only worker prepares exact affected closure; main
+no default500/page/depth crawler stops, and capacity correction. Verified idle
+normal restart is complete; stores/pairing/protected login/ledger are exact.
+Read topSTATUS/HANDOFF. Read-only worker prepares exact affected closure; main
 scoped commit renews pairing/session/abort/deadline and checks global version,
 never overwriting concurrent comments/deletion. Bounded8-task/15s queue, awaited
 termination/close, fixed failures;4,096socket/8MiBinput/16MiBoutput bounds. Exact

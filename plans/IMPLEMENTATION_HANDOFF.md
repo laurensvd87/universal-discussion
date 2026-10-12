@@ -1,7 +1,7 @@
 # Implementation handoff: local-service discussion MVP
 
-2026-10-12 ADR-107 researched concurrent worker/continuouscrawler CHECKED,
-activation pending. CLI asyncIngest:true normalizeddisk only, legacy/RAMsyncfallback.
+2026-10-12 ADR-107 researched concurrent worker/continuouscrawler ACTIVE.
+CLI asyncIngest:true normalizeddisk only, legacy/RAMsyncfallback.
 Readonlyworker fullprepare ->minimalaffectedclosure ->main saveScoped exact
 generation/revision/oldrows; pairing/optionalaccount/abort/deadline renewed right
 beforecommit.8-task/15s queue, awaitedtermination/close,256/32MiB heap; nooperation
@@ -17,8 +17,13 @@ Independentreviews accept; fullfinalbrowser1491/backend908+five skips,
 load2000warm-connectedreadrequests/1500pages all200,p95~1202ms/max1204 whileworker
 held, commentaccepted/staleplan409. Thisisnot2knew-SYNburst (Windowsrefused),
 2kwrites/sec/arbitraryendpoint latency or hostedreadiness. Mainlargecommit/index
-and global-versioncontention remain. Next finishchecks/commit/verifiedidle normal
-restart; nointerruptcrawler orownerwrite/inference. PreserveCopilotunrelated.
+and global-versioncontention remain. Implementation dcd3561 committed; verified
+idle normal restart only exact listenerPID4104, no crawler/establishedconnections/
+private runningclaim/providerpending. Service PTY44188; canonical revision2173/
+1546 Sources/1570 Topics/75 posts and serialized canonical/private/crawler SHA256
+plus pairinghash exact. Protected ChatGPT login connected/not pending; health/
+version/status pass. Reload client0.13.61; owner manually runs same Apply script,
+app auth may renew. No ownerwrite/inference; preserveCopilotunrelated.
 
 2026-10-12 ADR-106 ingestion-only30s fix approved/checked/ACTIVE.
 Exact authenticated normalized POST/ingest plus full learnedinput validation

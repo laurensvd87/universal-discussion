@@ -1,7 +1,7 @@
 # ADR-107: Concurrent ingestion preparation and continuous crawling
 
 Date: 2026-10-12
-Status: Owner requested; implemented and independently reviewed, activation pending
+Status: Owner requested; implemented, independently reviewed and active locally
 
 ## Request and research
 
@@ -116,3 +116,16 @@ unlimited catalog-growth guarantee. Expensive reads, very large commit closures,
 single-writer contention and global optimistic-version conflicts remain scaling
 limits. Further hosted/write-heavy scaling requires its separate architecture,
 load, identity, recovery and deployment gates; do not silently relax proofs.
+
+## Local activation
+
+Implementation dcd3561 is committed. The verified idle normal listener PID4104
+was stopped and the normal CLI restarted with the existing saved pairing Origin,
+no debug mode/token rotation or implicit migration. Service PTY44188 is active.
+No crawler, established service connection, private running claim or pending
+provider operation was present. Health/version/AI status reads pass; protected
+sign-in restores connected/not pending. Canonical revision2173,1,546 Sources,
+1,570 Topics and75 posts are unchanged. Serialized canonical/private/crawler
+database fingerprints and the pairing file fingerprint match exactly before and
+after restart. Reload extension0.13.61; the owner starts the same Apply crawler
+command manually. App authentication may need renewal after the normal restart.

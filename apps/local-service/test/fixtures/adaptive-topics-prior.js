@@ -275,5 +275,3 @@ export function priorPlanAdaptiveTopics({ sources, sourceLinks, previousPartitio
   }
   return {policyVersion:ADAPTIVE_TOPIC_POLICY.version,partitions,decisions};
 }
-
-

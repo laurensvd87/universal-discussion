@@ -1,6 +1,6 @@
 # Project status
 
-**2026-10-12 concurrent ingestion/continuous crawler checked (ADR-107,0.13.61):**
+**2026-10-12 concurrent ingestion/continuous crawler active (ADR-107,0.13.61):**
 Owner requests researched implementation of concurrency toward thousands of
 requests, no500/count/depth default crawler stops, and latestcapacity correction.
 Normal normalized disk CLI opts into bounded read-only worker planning; only
@@ -30,8 +30,14 @@ worker held; commentaccepted/staleingest409 no overwrite. Test guard only4175,
 cannot reach owner4174/external/provider. Windows initial same-process SYN burst
 refused, so do not claim2,000instantnew connections/thousands writes or hostedQA.
 Very large commit/index closures, expensive reads and global-version contention
-remain limits. Activation pending checked commit and verified idle restart;
-preserve ownerstores/pairing/protectedlogin/ledger and unrelated Copilot edits.
+remain limits. Implementation dcd3561 committed; verified idle normal restart
+activates it. Only verified idle listener PID4104 stopped; no crawler/established
+connection/private running claim/provider pending operation. Service PTY44188.
+Canonical revision2173/1546 Sources/1570 Topics/75 posts and serialized canonical/
+private/crawler database SHA256 plus pairing file hash remain exact. Protected
+ChatGPT login restores connected/not pending; health/version/status reads pass.
+Reload extension0.13.61, then owner manually starts the same Apply script; app
+account session may need renewal. Unrelated Copilot edits remain untouched.
 
 **2026-10-12 approved ingestion deadline correction active (ADR-106):**
 Owner approves authenticated canonical ingestion-only30s service/socket window
