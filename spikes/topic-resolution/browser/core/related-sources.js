@@ -117,10 +117,8 @@ function cosine(left, right) {
     left.modelId !== right.modelId ||
     left.values.length !== right.values.length
   ) return null;
-  const dot = left.values.reduce(
-    (sum, value, index) => sum + value * right.values[index],
-    0,
-  );
+  let dot = 0;
+  for (let index = 0; index < left.values.length; index++) dot += left.values[index] * right.values[index];
   return Math.max(-1, Math.min(1, dot));
 }
 
@@ -141,6 +139,65 @@ function compareCandidates(left, right) {
   );
 }
 
+function readSettings(options) {
+  const settings = readRecord(options, ["limit", "minSimilarity"], true);
+  const limit = Object.hasOwn(settings, "limit") ? settings.limit : 5;
+  const minSimilarity = Object.hasOwn(settings, "minSimilarity") ? settings.minSimilarity : 0.65;
+  if (!Number.isInteger(limit) || limit < 0 || limit > MAXIMUM_RESULTS ||
+      !Number.isFinite(minSimilarity) || minSimilarity < -1 || minSimilarity > 1) invalid();
+  return { limit, minSimilarity };
+}
+
+function sourceUnits(candidate) {
+  return candidate.id.length + candidate.url.length + candidate.title.length +
+    (candidate.topicId?.length ?? 0) +
+    (candidate.embedding === null ? 0 : candidate.embedding.modelId.length + candidate.embedding.values.length);
+}
+
+function appendCandidate(ranked, source, candidate, minSimilarity) {
+  if (candidate.id === source.id || candidate.url === source.url) return;
+  const confirmed = source.topicId !== null && source.topicId === candidate.topicId;
+  const similarity = confirmed ? null : cosine(source.embedding, candidate.embedding);
+  if (!confirmed && (similarity === null || similarity < minSimilarity)) return;
+  ranked.push({ id: candidate.id, url: candidate.url, title: candidate.title, topicId: candidate.topicId,
+    relationship: confirmed ? "same-topic" : "related", method: confirmed ? "confirmed-topic" : "vector-similarity", similarity });
+}
+
+function finishRanked(ranked, limit) {
+  ranked.sort(compareCandidates);
+  const seenIds = new Set(), seenUrls = new Set(), result = [];
+  for (const candidate of ranked) {
+    if (seenIds.has(candidate.id) || seenUrls.has(candidate.url)) continue;
+    seenIds.add(candidate.id); seenUrls.add(candidate.url);
+    if (result.length < limit) result.push(Object.freeze(candidate));
+  }
+  return Object.freeze(result);
+}
+
+// Explicit caller-owned preparation for repeated reads of one immutable current
+// snapshot. The closure stores only validated normalized copies, never observes
+// later caller mutations, and has no global cache or independent version/write
+// authority. Callers must discard it whenever their authoritative snapshot moves.
+export function prepareRelatedSources(candidates) {
+  try {
+    const sources = [], values = readArray(candidates, MAXIMUM_SOURCES);
+    let inputUnits = 0;
+    for (const value of values) {
+      const candidate = readSource(value);
+      inputUnits += sourceUnits(candidate);
+      if (inputUnits > MAXIMUM_INPUT_UNITS) invalid();
+      sources.push(candidate);
+    }
+    return Object.freeze({ rank(query, options = {}) {
+      try {
+        const { limit, minSimilarity } = readSettings(options), source = readSource(query), ranked = [];
+        for (const candidate of sources) appendCandidate(ranked, source, candidate, minSimilarity);
+        return finishRanked(ranked, limit);
+      } catch { invalid(); }
+    } });
+  } catch { invalid(); }
+}
+
 /**
  * Rank offline sources using existing associations or compatible
  * vectors. Equal non-null topicId values are trusted caller associations, never
@@ -149,15 +206,7 @@ function compareCandidates(left, right) {
  */
 export function rankRelatedSources(query, candidates, options = {}) {
   try {
-    const settings = readRecord(options, ["limit", "minSimilarity"], true);
-    const limit = Object.hasOwn(settings, "limit") ? settings.limit : 5;
-    const minSimilarity = Object.hasOwn(settings, "minSimilarity")
-      ? settings.minSimilarity
-      : 0.65;
-    if (
-      !Number.isInteger(limit) || limit < 0 || limit > MAXIMUM_RESULTS ||
-      !Number.isFinite(minSimilarity) || minSimilarity < -1 || minSimilarity > 1
-    ) invalid();
+    const { limit, minSimilarity } = readSettings(options);
     const source = readSource(query);
     const sources = readArray(candidates, MAXIMUM_SOURCES);
     let inputUnits = 0;
@@ -167,35 +216,11 @@ export function rankRelatedSources(query, candidates, options = {}) {
       // A source's text code units and vector coordinates each consume at
       // least one byte in its serialized snapshot. Bound total ranking work
       // even for callers that bypass the service's snapshot limit.
-      inputUnits += candidate.id.length + candidate.url.length + candidate.title.length +
-        (candidate.topicId?.length ?? 0) +
-        (candidate.embedding === null ? 0 : candidate.embedding.modelId.length + candidate.embedding.values.length);
+      inputUnits += sourceUnits(candidate);
       if (inputUnits > MAXIMUM_INPUT_UNITS) invalid();
-      if (candidate.id === source.id || candidate.url === source.url) continue;
-      const confirmed = source.topicId !== null && source.topicId === candidate.topicId;
-      const similarity = confirmed ? null : cosine(source.embedding, candidate.embedding);
-      if (!confirmed && (similarity === null || similarity < minSimilarity)) continue;
-      ranked.push({
-        id: candidate.id,
-        url: candidate.url,
-        title: candidate.title,
-        topicId: candidate.topicId,
-        relationship: confirmed ? "same-topic" : "related",
-        method: confirmed ? "confirmed-topic" : "vector-similarity",
-        similarity,
-      });
+      appendCandidate(ranked, source, candidate, minSimilarity);
     }
-    ranked.sort(compareCandidates);
-    const seenIds = new Set();
-    const seenUrls = new Set();
-    const result = [];
-    for (const candidate of ranked) {
-      if (seenIds.has(candidate.id) || seenUrls.has(candidate.url)) continue;
-      seenIds.add(candidate.id);
-      seenUrls.add(candidate.url);
-      if (result.length < limit) result.push(Object.freeze(candidate));
-    }
-    return Object.freeze(result);
+    return finishRanked(ranked, limit);
   } catch {
     // Never include private URL/query/title/vector values in validation errors.
     invalid();

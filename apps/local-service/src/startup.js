@@ -32,12 +32,12 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
   chatgptFetchImpl, chatgptRefreshStore = null, insightTrace = null, insightDebug = null, insightRequestTrace = null,
   ai, pairingVerifier = null, alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
   accountsEnabled = false, accountHmacKey = null, accountDatabasePath = null, canonicalStorageMode = "auto",
-  asyncIngest = false, ingestionWorkerOptions }) {
+  asyncIngest = false, ingestionWorkerOptions, asyncReads = asyncIngest, readWorkerOptions }) {
   const config = validateStartupConfig(input);
   mkdirSync(path.dirname(databasePath), { recursive: true });
   let accounts = null, accountRepository = null, privateDiscussions = null;
   const database = createSqliteDemoService({ databasePath, nextId, now, alternateAdapter, alternateBodyMetric, storageMode: canonicalStorageMode,
-    alternateRidgeAdapter, asyncIngest, ingestionWorkerOptions,
+    alternateRidgeAdapter, asyncIngest, ingestionWorkerOptions, asyncReads, readWorkerOptions,
     ...(accountsEnabled ? { resolveAccountActor: id => accounts.principalForAccountId(id),
       readAccountActors: () => accounts?.publicActors() ?? [] } : {}) });
   let runtime;

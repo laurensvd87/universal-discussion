@@ -20,7 +20,7 @@ function setup(t, { ai = true, accounts = null, wrapHandle = (handle) => handle 
   let modelCalls = 0;
   let pairingCalls = 0;
   const pendingModels = new Promise((resolve) => { resolveModels = resolve; });
-  const handle = createRequestHandler({ config, service: { catalog: () => pendingModels },
+  const handle = createRequestHandler({ config, service: { catalog: () => ({ syntheticCatalog: true }) },
     ai: ai ? { models() { modelCalls += 1; return pendingModels; } } : null,
     pairingVerifier: { verify(value) { pairingCalls += 1; return value === config.capability; } },
     accounts, accountWrites: accounts !== null,

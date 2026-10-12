@@ -33,12 +33,12 @@ const distance = (a, b) => {
   for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; total += d * d; }
   return Math.sqrt(total);
 };
-// A coordinate projection is contractive, so it can rule out a pair but never
-// rule it in. Indexing it reduces exact-retrieval cost in high-dimensional
-// unrelated catalogs; every admitted pair still uses all 384 coordinates.
-const projectedDistance = (a, b) => {
+// Use all coordinates for the exact metric bound. A short coordinate projection
+// was safe but loose for dense Ridge vectors, revisiting almost every rejected
+// dot pair. Full distance tightens only pruning; admission still uses rawDot.
+const indexedDistance = (a, b) => {
   let total = 0;
-  for (let i = 0; i < 48; i++) { const d = a[i] - b[i]; total += d * d; }
+  for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; total += d * d; }
   return Math.sqrt(total);
 };
 function summarize(center) {
@@ -146,7 +146,7 @@ class MetricForest {
     this.work();
     const pivot = items[0];
     const ordered = items.slice(1).map(item => {
-      this.work(); return { item, d: projectedDistance(pivot.center, item.center) };
+      this.work(); return { item, d: indexedDistance(pivot.center, item.center) };
     }).sort((a, b) => a.d - b.d || a.item.id - b.item.id);
     const middle = ordered.length >>> 1;
     const node = { pivot, center: pivot.center, maxNorm: pivot.normSquared, maxSize: pivot.size ?? 1,
@@ -196,7 +196,7 @@ class MetricForest {
       if (requireSupported && query.size === 1 && node.maxSize === 1) return false;
       if (query.major.length && boxUpper(query, node) + EPS < bound()) return false;
       if ((query.normSquared + node.maxNorm - inheritedMinimum ** 2) / 2 + EPS < bound()) return false;
-      const d = projectedDistance(query.center, node.center);
+      const d = indexedDistance(query.center, node.center);
       if (node.pivot.active && (query.normSquared + node.pivot.normSquared - d * d) / 2 + EPS >= bound() &&
           visit(node.pivot)) return true;
       const leftMin = Math.max(inheritedMinimum, node.leftMin - d, d - node.leftMax, 0);

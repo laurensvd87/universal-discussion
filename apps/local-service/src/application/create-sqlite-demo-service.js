@@ -8,11 +8,12 @@ import { createFixtureRankingAdapter } from "../adapters/fixture-ranking.js";
 import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../adapters/fixture-catalog.js";
 import { createPublicDiscoveryIndex } from "../discovery/public-index.js";
 import { createIngestionWorkerQueue } from "./ingestion-worker-queue.js";
+import { createCanonicalReadQueue } from "./canonical-read-queue.js";
 
 export function createSqliteDemoService({ databasePath, nextId, now, repositoryOptions, storageMode = "auto",
   alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
   resolveAccountActor = null, readAccountActors = () => [],
-  asyncIngest = false, ingestionWorkerOptions = {},
+  asyncIngest = false, ingestionWorkerOptions = {}, asyncReads = asyncIngest, readWorkerOptions = {},
   discoveryDatabasePath = databasePath === ":memory:" ? ":memory:" : `${databasePath}.discovery.sqlite` }) {
   const initialState = createDemoState({ generation: nextId("generation"), createdAt: now(), sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
   if (!["auto", "legacy", "normalized"].includes(storageMode)) throw new TypeError("Invalid canonical storage mode");
@@ -27,23 +28,31 @@ export function createSqliteDemoService({ databasePath, nextId, now, repositoryO
   }
   const repository = normalized ? createNormalizedSqliteRepository(databasePath, initialState, repositoryOptions)
     : createSqliteRepository(databasePath, initialState, repositoryOptions);
-  let discover, ingestionExecutor;
+  let discover, ingestionExecutor, readExecutor;
   try {
     // Legacy and RAM fixture stores retain their synchronous compatibility path.
     // Worker isolation never migrates a store or writes an owner database itself.
     if (asyncIngest && normalized && databasePath !== ":memory:") {
       ingestionExecutor = createIngestionWorkerQueue({ ...ingestionWorkerOptions, databasePath });
     }
+    if (asyncReads && normalized && databasePath !== ":memory:") {
+      readExecutor = createCanonicalReadQueue({ ...readWorkerOptions, databasePath,
+        alternateAdapter, alternateBodyMetric, alternateRidgeAdapter });
+    }
     const service = createDiscussionService({
       repository, ranking: createFixtureRankingAdapter(), sources: SYNTHETIC_SOURCES,
       topicSeeds: SYNTHETIC_TOPIC_SEEDS, nextId, now, alternateAdapter, alternateBodyMetric, alternateRidgeAdapter,
-      resolveAccountActor, readAccountActors, ingestionExecutor,
+      resolveAccountActor, readAccountActors, ingestionExecutor, readExecutor,
     });
     discover = createPublicDiscoveryIndex({ databasePath: discoveryDatabasePath, repository });
-    return Object.freeze({ service: Object.freeze({ ...service, discover }), close() { const stopping = ingestionExecutor?.close(); discover.close(); repository.close(); return stopping; } });
+    return Object.freeze({ service: Object.freeze({ ...service, discover }), close() {
+      const stopping = Promise.all([ingestionExecutor?.close(), readExecutor?.close()]);
+      discover.close(); repository.close(); return stopping;
+    } });
   } catch (error) {
     discover?.close();
     ingestionExecutor?.close();
+    readExecutor?.close();
     repository.close();
     throw error;
   }

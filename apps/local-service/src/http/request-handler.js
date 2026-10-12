@@ -11,6 +11,10 @@ const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-d
 
 export function createRequestHandler({ service, config, ai = null, pairingVerifier = null, accounts = null,
   accountWrites = false, accountLifecycle = null, privateDiscussions = null }) {
+  // Coalesced immutable public reads share their encoding too. This weak identity
+  // map cannot look up a request/version, retain a historical response on its own,
+  // skip current authority fences, or cache private/provider/account DTOs.
+  const publicReadEncodings = new WeakMap();
   return async function handle(request, transportContext = null) {
     let corsOrigin = null;
     try {
@@ -50,7 +54,16 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
       }
       const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null,
         config.origin, transportContext, () => requireCapability(normalized.headers.authorization, config.capability, pairingVerifier));
-      return jsonResponse(response.status, response.value, corsOrigin);
+      let encoded;
+      if (response.publicRead === true && !response.isCurrent()) fail("unavailable", "Read unavailable");
+      if (response.publicRead === true && Object.isFrozen(response.value)) {
+        encoded = publicReadEncodings.get(response.value);
+        if (encoded === undefined) {
+          encoded = JSON.stringify(response.value);
+          if (Buffer.byteLength(encoded, "utf8") <= MAX_RESPONSE_BYTES) publicReadEncodings.set(response.value, encoded);
+        }
+      }
+      return jsonResponse(response.status, response.value, corsOrigin, encoded);
     } catch (error) {
       const mapped = mapError(error);
       return jsonResponse(mapped.status, { error: mapped.label }, corsOrigin);
@@ -134,6 +147,25 @@ function preflight(request, config, accountsEnabled = false, accountWrites = fal
 
 async function route(request, service, ai, durablePairing, accounts = null, origin = null, transportContext = null, revalidateCapability = () => {}) {
   const path = request.url.pathname;
+  async function publicRead(method, input = null) {
+    const expected = typeof service.version === "function" ? service.version() : null;
+    const isCurrent = () => {
+      if (transportContext?.signal?.aborted || transportContext?.isCurrent && !transportContext.isCurrent()) return false;
+      revalidateCapability();
+      if (accounts && Object.hasOwn(request.headers, "x-account-session")) accounts.me(request.headers["x-account-session"]);
+      if (expected !== null) {
+        const current = service.version();
+        if (current.generation !== expected.generation || current.revision !== expected.revision) fail("conflict", "State changed");
+      }
+      return true;
+    };
+    if (!isCurrent()) fail("unavailable", "Read unavailable");
+    const value = typeof service.readPublic === "function"
+      ? await service.readPublic(method, input, { signal: transportContext?.signal, isCurrent })
+      : await (method === "related" ? service.related(input.sourceId, input.limit) : service[method](input));
+    if (!isCurrent()) fail("unavailable", "Read unavailable");
+    return { status: 200, value, publicRead: true, isCurrent };
+  }
   function postingActor({ provider = false } = {}) {
     if (!accounts) {
       const actorId = request.headers["x-demo-actor"];
@@ -191,11 +223,11 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
   if (request.method === "GET" && path === "/v1/health") return { status: 200, value: {
     protocol: "local-service/v1", capability: durablePairing ? "paired-durable-v1" : "paired-demo",
   } };
-  if (request.method === "GET" && path === "/v1/catalog") return { status: 200, value: service.catalog() };
+  if (request.method === "GET" && path === "/v1/catalog") return publicRead("catalog");
   if (request.method === "GET" && path === "/v1/version") return { status: 200, value: { version: service.version() } };
-  if (request.method === "POST" && path === "/v1/catalog/context") return { status: 200, value: service.catalogContext(parseJsonBody(request)) };
-  if (request.method === "POST" && path === "/v1/catalog/page") return { status: 200, value: service.catalogPage(parseJsonBody(request)) };
-  if (request.method === "POST" && path === "/v1/discussions/page") return { status: 200, value: service.discussionPage(parseJsonBody(request)) };
+  if (request.method === "POST" && path === "/v1/catalog/context") return publicRead("catalogContext", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/catalog/page") return publicRead("catalogPage", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/discussions/page") return publicRead("discussionPage", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {
     return { status: 200, value: service.discover.search(parseJsonBody(request)) };
   }
@@ -203,19 +235,19 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
   if (request.method === "GET" && alternateMatch) {
     let sourceId;
     try { sourceId = decodeURIComponent(alternateMatch[1]); } catch { fail("invalid", "Invalid request"); }
-    return { status: 200, value: service.alternateDiscussion(sourceId) };
+    return publicRead("alternateDiscussion", sourceId);
   }
   const priorMatch = /^\/v1\/sources\/([^/]+)\/prior-discussions$/u.exec(path);
   if (request.method === "GET" && priorMatch) {
     let sourceId;
     try { sourceId = decodeURIComponent(priorMatch[1]); } catch { fail("invalid", "Invalid request"); }
-    return { status: 200, value: service.priorDiscussions(sourceId) };
+    return publicRead("priorDiscussions", sourceId);
   }
   const discussionMatch = /^\/v1\/topics\/([^/]+)\/discussion$/u.exec(path);
   if (request.method === "GET" && discussionMatch) {
     let topicId;
     try { topicId = decodeURIComponent(discussionMatch[1]); } catch { fail("invalid", "Invalid request"); }
-    return { status: 200, value: service.discussion(topicId) };
+    return publicRead("discussion", topicId);
   }
   if (request.method === "POST") {
     const input = parseJsonBody(request);
@@ -241,7 +273,7 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     }
     if (path === "/v1/related") {
       const body = readRecord(input, ["sourceId", "limit"]);
-      return { status: 200, value: service.related(body.sourceId, body.limit) };
+      return publicRead("related", body);
     }
     if (path === "/v1/commands") {
       const body = readRecord(input, ["expected", "command"]);
@@ -282,8 +314,8 @@ function parseJsonBody(request) {
   try { return JSON.parse(request.body); } catch { fail("invalid", "Invalid request"); }
 }
 
-function jsonResponse(status, value, origin = null) {
-  const body = status === 204 ? "" : JSON.stringify(value);
+function jsonResponse(status, value, origin = null, encoded = undefined) {
+  const body = status === 204 ? "" : encoded ?? JSON.stringify(value);
   if (Buffer.byteLength(body, "utf8") > MAX_RESPONSE_BYTES) {
     return { status: 500, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }, body: '{"error":"internal"}' };
   }

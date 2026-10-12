@@ -4,7 +4,7 @@ import { priorDiscussionsView } from "../domain/prior-discussions.js";
 import { fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId, readRecord } from "../domain/validation.js";
 import { operationDigestFor, sourceStamp } from "../domain/source-threads.js";
-import { rankRelatedSources } from "../../../../spikes/topic-resolution/browser/core/related-sources.js";
+import { prepareRelatedSources } from "../../../../spikes/topic-resolution/browser/core/related-sources.js";
 import { applyLearnedCommand, applyLearnedIngest, BROWSER_MODEL_ID, compatibleExtractor, ingestionResult, LEARNED_COMMANDS, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, readLearnedIngest } from "../domain/learned-sources.js";
 import { createOwnerTopicPlanner } from "../domain/owner-topic-planner.js";
 import { createSnapshotTopicPlanner } from "../domain/alternate-topic-cache.js";
@@ -21,7 +21,7 @@ const ALTERNATE_SOURCE_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 
 export function createDiscussionService({ repository, ranking, sources, topicSeeds, nextId, now,
   alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
-  resolveAccountActor = null, readAccountActors = () => [], ingestionExecutor = null }) {
+  resolveAccountActor = null, readAccountActors = () => [], ingestionExecutor = null, readExecutor = null }) {
   const actors = new Map(DEMO_ACTORS.map((actor) => [actor.id, actor]));
   function actorFor(actorId) {
     const actor = isAccountActor(actorId) && typeof resolveAccountActor === "function"
@@ -75,6 +75,10 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
   // Exact vector retrieval is deliberately retained for the current matching
   // algorithm. It scans vectors, never all contribution bodies/revisions.
   let rankingSnapshot = null;
+  let relatedSnapshot = null;
+  const relatedReads = new Map();
+  const preparedRelated = new Map();
+  const actorProjections = new WeakMap();
   function rankingState() {
     if (!normalized) return repository.load();
     const expected = repository.version();
@@ -114,6 +118,38 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
   }
 
   const api = Object.freeze({
+    // Only public HTTP reads use the isolated executor. Provider/private context
+    // helpers retain their existing exact synchronous authority paths.
+    readPublic(method, input, guards = {}) {
+      if (!["catalog", "catalogContext", "catalogPage", "discussion", "discussionPage",
+        "exactSource", "related", "priorDiscussions", "alternateDiscussion"].includes(method))
+        fail("invalid", "Invalid public read");
+      const invoke = () => method === "related" ? api.related(input.sourceId, input.limit) : api[method](input);
+      if (readExecutor === null) return invoke();
+      const expected = api.version();
+      const isCurrent = () => !guards.signal?.aborted &&
+        (typeof guards.isCurrent !== "function" || guards.isCurrent()) && sameVersion(api.version(), expected);
+      if (!isCurrent()) fail("unavailable", "Read unavailable");
+      return readExecutor.read(method, input, { version: expected, signal: guards.signal }).then(value => {
+        if (guards.signal?.aborted || typeof guards.isCurrent === "function" && !guards.isCurrent())
+          fail("unavailable", "Read unavailable");
+        if (!sameVersion(api.version(), expected)) fail("conflict", "State changed");
+        // Account data never enters the worker. Public actor labels are renewed
+        // at delivery using exactly the existing catalog projection rules.
+        if (["catalog", "catalogContext", "catalogPage"].includes(method)) {
+          const actors = [...DEMO_ACTORS, ...readAccountActors().filter(isAccountPrincipal)]
+            .map(({ id, displayName, type }) => ({ id, displayName, type }));
+          const signature = JSON.stringify(actors);
+          const previous = actorProjections.get(value);
+          if (previous?.signature === signature) return previous.projection;
+          const projection = frozenClone(method === "catalogPage"
+            ? { ...value, catalog: { ...value.catalog, actors } } : { ...value, actors });
+          actorProjections.set(value, { signature, projection });
+          return projection;
+        }
+        return value;
+      });
+    },
     actor(actorId) {
       return actorFor(actorId);
     },
@@ -220,16 +256,31 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const state = rankingState();
       const source = state.sources.find((entry) => entry.id === sourceId);
       if (!source) fail("not-found", "Object unavailable");
+      // Bounded derived metadata only, no discussion bodies or additional vectors.
+      // A changed canonical revision obtains a fresh ranking snapshot and clears
+      // these entries before lookup; deleted Sources can never reuse an old read.
+      if (relatedSnapshot !== state) { relatedReads.clear(); preparedRelated.clear(); relatedSnapshot = state; }
+      const cacheKey = JSON.stringify([sourceId, limit]);
+      if (relatedReads.has(cacheKey)) return relatedReads.get(cacheKey);
+      const remember = value => {
+        if (relatedReads.size >= 32) relatedReads.delete(relatedReads.keys().next().value);
+        relatedReads.set(cacheKey, value); return value;
+      };
       const linksBySource = new Map(state.sourceLinks.map(link => [link.sourceId, link]));
       if (source.provenance === LEARNED_SOURCE_PROVENANCE) {
-        const candidates = state.sources.filter((entry) => entry.provenance === LEARNED_SOURCE_PROVENANCE && entry.embedding.modelId === source.embedding.modelId && compatibleExtractor(entry.extractorVersion)).map((entry) => ({
-          id: entry.id, url: entry.url, title: entry.title, embedding: entry.embedding,
-          topicId: linksBySource.get(entry.id)?.method === "manual-confirmed" ? linksBySource.get(entry.id).topicId : null,
-        }));
-        const results = rankRelatedSources(candidates.find((entry) => entry.id === sourceId), candidates, { limit, minSimilarity: 0.88 }).map(
+        let prepared = preparedRelated.get(source.embedding.modelId);
+        if (!prepared) {
+          const candidates = state.sources.filter((entry) => entry.provenance === LEARNED_SOURCE_PROVENANCE && entry.embedding.modelId === source.embedding.modelId && compatibleExtractor(entry.extractorVersion)).map((entry) => ({
+            id: entry.id, url: entry.url, title: entry.title, embedding: entry.embedding,
+            topicId: linksBySource.get(entry.id)?.method === "manual-confirmed" ? linksBySource.get(entry.id).topicId : null,
+          }));
+          prepared = { queries: new Map(candidates.map(candidate => [candidate.id, candidate])), ranker: prepareRelatedSources(candidates) };
+          preparedRelated.set(source.embedding.modelId, prepared);
+        }
+        const results = prepared.ranker.rank(prepared.queries.get(sourceId), { limit, minSimilarity: 0.88 }).map(
           ({ id, url, title, relationship, method }) => ({ id, url, title, topicId: linksBySource.get(id)?.topicId ?? null, relationship, method }),
         );
-        return frozenClone({ version: version(state), model: { id: BROWSER_MODEL_ID, status: "experimental-local" }, results });
+        return remember(frozenClone({ version: version(state), model: { id: BROWSER_MODEL_ID, status: "experimental-local" }, results }));
       }
       const rankable = state.sources.map((entry) => ({
         id: entry.id, url: entry.url, title: entry.title,
@@ -240,7 +291,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
         ({ id, url, title, topicId, relationship, method }) =>
           ({ id, url, title, topicId, relationship, method }),
       );
-      return frozenClone({ version: version(state), model: ranking.model, results });
+      return remember(frozenClone({ version: version(state), model: ranking.model, results }));
     },
     discussion(topicId) {
       topicId = readId(topicId);
@@ -273,7 +324,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       sourceId = readId(sourceId);
       if (!ALTERNATE_SOURCE_ID.test(sourceId)) fail("invalid", "Invalid request");
       if (ownerPlanner === null) fail("unavailable", "Alternate discussion unavailable");
-      const state = repository.load();
+      let state = normalized ? repository.readSourceState(sourceId) : repository.load();
       const source = state.sources.find((entry) => entry.id === sourceId);
       const link = state.sourceLinks.find((entry) => entry.sourceId === sourceId);
       if (!source || source.provenance !== LEARNED_SOURCE_PROVENANCE || !link) fail("not-found", "Object unavailable");
@@ -288,13 +339,28 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       }
       if (link.method !== "learned-provisional") fail("unavailable", "Alternate discussion unavailable");
       let plan;
-      try { plan = alternatePlan(state); }
+      try { plan = alternatePlan(normalized ? rankingState() : state); }
       catch (error) {
         if (error instanceof TypeError) fail("unavailable", "Alternate discussion unavailable");
         throw error;
       }
       const group = plan.partitions.find((part) => part.sourceIds.includes(sourceId));
       if (!group) fail("unavailable", "Alternate discussion unavailable");
+      if (normalized) {
+        const expected = version(state);
+        const metadata = metadataScope(group.sourceIds, [link.topicId], expected);
+        const topicIds = new Set(metadata.sourceLinks.map(value => value.topicId));
+        topicIds.add(link.topicId);
+        const collected = Object.fromEntries(["topics", "discussions", "sources", "sourceLinks", "contributions"]
+          .map(name => [name, new Map()]));
+        for (const scope of [metadata, ...[...topicIds].map(id => repository.readTopicState(id))]) {
+          if (!sameVersion(scope, expected)) fail("conflict", "State changed");
+          for (const [name, entries] of Object.entries(collected)) for (const value of scope[name])
+            entries.set(name === "sourceLinks" ? value.sourceId : value.id, value);
+        }
+        state = { schema: metadata.schema, ...expected,
+          ...Object.fromEntries(Object.entries(collected).map(([name, entries]) => [name, [...entries.values()]])) };
+      }
       const members = new Set(group.sourceIds);
       const sourceById = new Map(state.sources.map((entry) => [entry.id, entry]));
       const linkById = new Map(state.sourceLinks.map((entry) => [entry.sourceId, entry]));
@@ -338,15 +404,21 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const input = readLearnedIngest(value);
       if (ingestionExecutor !== null) {
         return ingestionExecutor.prepare(input, { createdAt: now(), signal: guards.signal }).then(plan => {
-          if (guards.signal?.aborted || typeof guards.isCurrent === "function" && !guards.isCurrent())
-            fail("unavailable", "Ingestion unavailable");
-          if (plan.receipt) {
-            const current = repository.version();
-            if (!sameVersion(current, plan.version)) fail("conflict", "State changed");
-            return frozenClone({ version: current, ...plan.result });
-          }
-          const saved = repository.saveScoped(input.expected, plan.before, plan.after);
-          return frozenClone({ version: version(saved), ...plan.result });
+          const commit = () => {
+            if (guards.signal?.aborted || typeof guards.isCurrent === "function" && !guards.isCurrent())
+              fail("unavailable", "Ingestion unavailable");
+            if (plan.receipt) {
+              const current = repository.version();
+              if (!sameVersion(current, plan.version)) fail("conflict", "State changed");
+              return frozenClone({ version: current, ...plan.result });
+            }
+            const saved = repository.saveScoped(input.expected, plan.before, plan.after);
+            return frozenClone({ version: version(saved), ...plan.result });
+          };
+          // Finish the bounded admitted read batch before advancing its version.
+          // No lock, mutation, rebase or retry happens while this promise waits.
+          return readExecutor !== null && typeof readExecutor.withCommit === "function"
+            ? readExecutor.withCommit(commit, { signal: guards.signal, isCurrent: guards.isCurrent }) : commit();
         });
       }
       const state = repository.load();

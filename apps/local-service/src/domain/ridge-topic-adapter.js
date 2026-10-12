@@ -67,15 +67,22 @@ export function readRidgeTopicAdapter(value, { expectedParameterSha256 = null } 
   return Object.freeze({ ...canonical, manifestSha256: value.manifestSha256 });
 }
 export function createRidgeTopicTransform(artifact) {
-  const { weights, meanX, meanY } = readRidgeTopicAdapter(artifact);
+  const checked = readRidgeTopicAdapter(artifact);
+  // Private numeric copies retain every binary64 coefficient exactly. Frozen
+  // ordinary-array element reads in this 384x384 loop are much more expensive;
+  // the closure exposes neither these buffers nor any transformed vectors.
+  const weights = Float64Array.from(checked.weights);
+  const meanX = Float64Array.from(checked.meanX), meanY = Float64Array.from(checked.meanY);
   return Object.freeze(function transform(vector) {
     const source = numbers(vector, 384, 1 + 1e-5);
     const norm = Math.hypot(...source);
     if (!Number.isFinite(norm) || Math.abs(norm - 1) > 1e-5) fail();
+    const centered = new Float64Array(384);
+    for (let j = 0; j < 384; j++) centered[j] = source[j] / norm - meanX[j];
     const result = new Array(384);
     for (let k = 0; k < 384; k++) {
       let value = meanY[k];
-      for (let j = 0; j < 384; j++) value += weights[k * 384 + j] * (source[j] / norm - meanX[j]);
+      for (let j = 0; j < 384; j++) value += weights[k * 384 + j] * centered[j];
       if (!Number.isFinite(value)) fail();
       result[k] = value;
     }
