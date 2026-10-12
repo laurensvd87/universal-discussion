@@ -79,7 +79,7 @@ test("private client accepts the existing fifty-provider-citation bound and reje
   assert.throws(() => readPrivateResponse({ messages: Array(26).fill({ body: "bounded" }) }), TypeError);
 });
 
-function panelFixture({ inbox = false } = {}) {
+function panelFixture({ inbox = false, copy } = {}) {
   const created = [], calls = [], reads = []; let actor = ACTOR, generationVersion = 1, failNextSend = false, holdGeneration = null;
   const document = { activeElement: null,
     createTextNode(value) { return { tag: "#text", textContent: value, children: [] }; },
@@ -101,6 +101,7 @@ function panelFixture({ inbox = false } = {}) {
   let sequence = 0;
   const root = document.createElement("section");
   const panel = mountPrivateConversationPanel(document, root, {
+    ...(copy ? { messages: copy } : {}),
     readActor: () => actor, requestSignIn: async () => false, randomId: () => `operation-${++sequence}`,
     showView() {}, attestStart: async () => true,
     readPublicState: () => ({ phase: "ready", sourceId: SOURCE, topicId: TOPIC,
@@ -146,6 +147,38 @@ test("a failed private send preserves its exact operation payload across a delib
 });
 
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); };
+test("My chats marks private cards and the open conversation with localized accessible locks", async () => {
+  assert.equal(EN.privateChats, "My chats");
+  const copy = { privateChats: "Localized chats", privateConversation: "Localized private conversation" };
+  const f = panelFixture({ inbox: true, copy });
+  assert.equal(f.root.attributes["aria-label"], copy.privateChats);
+  const header = f.root.children.find(item => item.className === "community-heading");
+  const heading = header.children.find(item => item.tag === "h2");
+  const headerLock = header.children.find(item => item.className === "private-conversation-lock");
+  assert.equal(heading.textContent, copy.privateChats);
+  assert.equal(headerLock.hidden, true);
+  f.panel.setActive(true); await flush();
+  const card = f.root.children.find(item => item.id === "private-chat-feed").children
+    .find(item => item.className === "private-chat-card");
+  const titleRow = card.children.find(item => item.className === "private-chat-title");
+  const cardLock = titleRow.children.find(item => item.className === "private-conversation-lock");
+  for (const icon of [cardLock, headerLock]) {
+    assert.equal(icon.attributes.role, "img");
+    assert.equal(icon.attributes["aria-label"], copy.privateConversation);
+    assert.equal(icon.title, copy.privateConversation);
+    assert.equal(icon.textContent, "");
+  }
+  assert.equal(titleRow.children.find(item => item.tag === "strong").textContent, "Private opener");
+  card.listeners.get("click")(); await flush();
+  assert.equal(headerLock.hidden, false);
+  assert.equal(heading.textContent, "Private opener");
+  assert.ok(f.calls.every(call => call.action === "list" || call.action === "read"));
+  header.children.find(item => item.tag === "button").listeners.get("click")(); await flush();
+  assert.equal(headerLock.hidden, true);
+  assert.equal(heading.textContent, copy.privateChats);
+  f.panel.dispose();
+});
+
 for (const [code, key, useful] of [
   ["invalid-input", "privateGenerationInvalidInput", /context.*rejected.*message is saved.*Code: invalid-input/i],
   ["model-unavailable", "privateGenerationModelUnavailable", /choose an available model/i],

@@ -47,6 +47,17 @@ private data through bounded pages. Staged account deletion disables sessions,
 cancels jobs, withdraws public contributions, erases private data and then purges
 identity; startup resumes interrupted deletion before serving requests.
 
+### Presentation refinement (2026-10-12, 0.13.55)
+
+The owner renames the Private chats surface to **My chats** and requests private
+indicators. Use the existing packaged lock icon on each private list entry and
+the open-conversation header, with localized accessible labels/tool tips. The
+surface currently remains private-only and account-scoped; no public-list
+integration, visibility toggle on accepted conversations, publication, new
+provider context or account/API change follows. The inbox header has no lock
+claim about all future chats. Actual Chrome and restricted tests verify this
+presentation and the unchanged isolation/reply behavior.
+
 ## Discover
 
 Use a separate derived SQLite FTS5 index containing only public Topic titles,

@@ -1,5 +1,13 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 extension 0.13.55: My chats replaces the Private chats label; list
+entries and open private chats show localized accessible lock icons. Existing
+private-only/account-scoped API and automatic private reply semantics remain;
+the rename does not make chats public or add own-public-thread listing. Restricted
+browser 1,330/1,330 and actual isolated Chrome/320/390/480px checks pass, with root
+screenshot review and zero secret findings. Reload extension only, no restart.
+See ADR-096; hosted backup preparation remains separate and dormant.
+
 2026-10-12 owner requirement: the hosted backend must have automated online
 backups before pilot access, including off-host encryption, retention, alerts and
 tested recovery of the required durable state. Read BACKEND_HOSTING_PLAN and

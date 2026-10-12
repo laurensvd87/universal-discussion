@@ -93,6 +93,7 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     window.communityDispose=()=>{privatePanel.dispose();discover.dispose();publicPanel.dispose();insights.dispose();shell.dispose()};
   })()`, sessionId);
   await browser.send("Emulation.setDeviceMetricsOverride", {width:390,height:650,deviceScaleFactor:1,mobile:false}, sessionId);
+  assert.equal(await evaluate("document.querySelector('#app-tab-private').textContent", sessionId), "My chats");
   await evaluate(`(() => {
     const body=document.querySelector('#discussion-body');body.value='What would make cycling here safer?';body.dispatchEvent(new Event('input',{bubbles:true}));
     document.querySelector('#discussion-private-toggle').click();
@@ -102,6 +103,11 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   await evaluate("document.querySelector('#discussion-composer').requestSubmit();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   assert.deepEqual(await evaluate("window.communityCalls",sessionId),{creates:1,generates:0,sends:0,publicWrites:0,searches:0});
   assert.equal(await evaluate("!document.querySelector('#app-view-private').hidden && document.querySelectorAll('.private-bubble').length===1",sessionId),true);
+  assert.deepEqual(await evaluate(`(() => {
+    const icon=document.querySelector('#app-view-private .community-heading .private-conversation-lock');
+    return {label:icon.getAttribute('aria-label'),role:icon.getAttribute('role'),visible:icon.getClientRects().length>0,
+      packagedMask:getComputedStyle(icon).maskImage.includes('/icons/lock.svg')};
+  })()`,sessionId), {label:"Private conversation",role:"img",visible:true,packagedMask:true});
   await evaluate("document.querySelector('.private-message-tools .private-spark').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   assert.equal(await evaluate("document.querySelectorAll('.private-bubble-agent').length",sessionId),1);
   await evaluate(`(() => {
@@ -118,6 +124,17 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   }
   await evaluate("document.querySelector('#app-tab-discussion').click();document.querySelector('#app-tab-private').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   assert.equal(await evaluate("window.communityCalls.generates",sessionId),2,"reopening never generates again");
+  await evaluate("document.querySelector('#app-view-private .community-heading button').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
+  assert.deepEqual(await evaluate(`(() => {
+    const root=document.querySelector('#app-view-private');
+    const icon=root.querySelector('.private-chat-card .private-conversation-lock');
+    return {heading:root.querySelector('h2').textContent,label:icon.getAttribute('aria-label'),visible:icon.getClientRects().length>0,
+      headerLockHidden:root.querySelector('.community-heading .private-conversation-lock').getClientRects().length===0};
+  })()`,sessionId), {heading:"My chats",label:"Private conversation",visible:true,headerLockHidden:true});
+  for(const width of [390,320,480]) {
+    await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
+    await capture(`community-my-chats-${width}`,sessionId,{fluid:true});
+  }
   await evaluate("document.querySelector('#app-tab-discover').click();new Promise(resolve=>setTimeout(resolve,30))",sessionId);
   for(const width of [390,320,480]){
     await browser.send("Emulation.setDeviceMetricsOverride",{width,height:650,deviceScaleFactor:1,mobile:false},sessionId);
@@ -134,5 +151,5 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   await capture("community-discovery-preview",sessionId,{fluid:true});
   assert.equal(await evaluate("!document.querySelector('#discovery-preview').hidden && document.querySelectorAll('.discovery-message').length===2 && window.communityState.sourceId==='source-visual'",sessionId),true);
   await evaluate("window.communityDispose()",sessionId);
-  process.stdout.write("Community Chrome checks: private lock/send/generate/automatic reply/resume, public-only read-only discovery, source links, focused typing, 320/390/480px layout passed.\n");
+  process.stdout.write("Community Chrome checks: My chats/private lock labels, send/generate/automatic reply/resume, public-only read-only discovery, source links, focused typing, 320/390/480px layout passed.\n");
 }

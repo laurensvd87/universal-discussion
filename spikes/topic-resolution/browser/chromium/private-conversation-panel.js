@@ -8,6 +8,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   requestSignIn, prepareGeneration, attestStart, readPublicState, showView, randomId,
   messages = EN, schedule = setTimeout, unschedule = clearTimeout }) {
   const text = key => messages[key] ?? EN[key];
+  root.setAttribute("aria-label", text("privateChats"));
   const node = (tag, key, className) => {
     const value = document.createElement(tag);
     if (key) value.textContent = text(key);
@@ -18,13 +19,21 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     const item = node("button", key, className); item.type = "button";
     item.addEventListener("click", action); return item;
   };
+  const privateLock = () => {
+    const icon = node("span", null, "private-conversation-lock");
+    icon.setAttribute("role", "img");
+    icon.setAttribute("aria-label", text("privateConversation"));
+    icon.title = text("privateConversation");
+    return icon;
+  };
   const header = node("div", null, "community-heading");
   const heading = node("h2", "privateChats");
+  const headerLock = privateLock();
   const back = button("privateBack", () => {
     epoch += 1; stopTimer(); busy = false; conversation = null; entries = []; cursor = replyToId = null;
     draft.value = ""; pendingOperation = null; error = ""; olderReads.clear(); render(); void loadInbox();
   });
-  header.append(back, heading);
+  header.append(back, headerLock, heading);
   const list = node("div", null, "community-feed"); list.id = "private-chat-feed";
   const status = node("p", null, "community-status"); status.setAttribute("role", "status");
   const composer = node("form", null, "private-composer");
@@ -77,6 +86,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   function render() {
     const title = conversation ? conversation.title : text("privateChats");
     heading.textContent = title; heading.title = title;
+    headerLock.hidden = !conversation;
     back.hidden = !conversation;
     composer.hidden = !conversation || !actorId;
     draft.readOnly = busy;
@@ -104,11 +114,13 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
       if (!inbox.length) list.append(node("p", "privateEmpty", "community-empty"));
       for (const chat of inbox) {
         const card = button(null, () => void open(chat.id), "private-chat-card");
+        const titleRow = node("span", null, "private-chat-title");
         const name = node("strong"); name.textContent = chat.title;
         const origin = node("span");
         const inspected = inspectPageUrl(chat.sourceUrl);
         origin.textContent = inspected.supported ? new URL(inspected.url).hostname : "";
-        card.append(name, origin); list.append(card);
+        titleRow.append(privateLock(), name);
+        card.append(titleRow, origin); list.append(card);
       }
       if (inboxCursor) list.append(button("communityMore", () => void loadInbox(true)));
       return;

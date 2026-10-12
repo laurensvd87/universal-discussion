@@ -1,5 +1,15 @@
 # Project status
 
+**2026-10-12 My chats presentation verified, extension 0.13.55:** the former
+Private chats tab is My chats; private list entries/open-chat headers have compact
+accessible lock icons. Copy and section labels remain language-pack-driven.
+The list remains private-only and account-scoped, without auth/API/publication or
+reply changes. Restricted browser checks pass 1,330/1,330; isolated Chrome verifies
+locks, unchanged private reply behavior and 320/390/480px layouts with no overflow
+or uncaught errors. Root reviews narrow list/chat screenshots. Browser secret scan
+checks 226 files with zero findings. Reload extension only; service stays running.
+See ADR-096. Dormant hosted backup preparation is recorded in its own checkpoint.
+
 **2026-10-12 hosted backup requirement recorded:** the owner requires automated
 online backups from the first hosted pilot. Hosting acceptance includes scheduling,
 encrypted off-host recovery, retention, failure alerts and restore tests; coverage

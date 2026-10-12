@@ -1,5 +1,15 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## My chats and private indicators (0.13.55)
+
+The former Private chats tab is now **My chats**. Private conversations have a
+compact lock icon with a localized accessible label/tool tip, in the list and
+open-conversation header. The list still contains only the signed-in account's
+private conversations; the rename does not publish them or change their replies.
+English copy remains in the language pack. Reload the extension only; no backend
+restart or new permission. Isolated Chrome checks cover locks, private replies,
+typing and overflow-free 320/390/480px layouts.
+
 ## Approved Shared space logo (0.13.54)
 
 The owner selects logo concept **A**: two opposing speech shapes with a shared

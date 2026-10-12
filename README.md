@@ -13,13 +13,15 @@ future website copy.
 
 ## Current state
 
-Extension **0.13.54** presents the Chrome extension simply as **Murmingle**. Its
+Extension **0.13.55** presents the Chrome extension simply as **Murmingle**. Its
 approved **Shared space** logo uses two opposing speech shapes with an open
 shared center, across the header and Chrome icons. The compact header omits the
 name and tagline; connection text appears only as a red exception when the local
 service is unavailable or its connection cannot be verified. **Where conversations
-meet.** remains saved for the future site and onboarding. It includes **Private
-chats** and **Discover**. The latest backend adds
+meet.** remains saved for the future site and onboarding. It includes **My chats**
+and **Discover**. Private conversations have a lock icon in the list and open-chat
+header; My chats currently lists your account's private conversations only.
+The latest backend adds
 normalized canonical SQLite storage and Discover ranking by best textual match,
 then visible replies when relevance ties. Scoped reads/posts no longer load or
 rewrite the entire canonical snapshot; byte-bounded catalog/discussion pages are

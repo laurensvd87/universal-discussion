@@ -1503,6 +1503,9 @@ body[data-ui-surface="sidepanel"][data-ui-mode="user"] #app-view-private:not([hi
 .private-chat-card { display: grid; gap: 5px; text-align: left; }
 .private-chat-card strong { font-size: 14px; overflow-wrap: anywhere; }
 .private-chat-card span { color: #a4a1b4; font-size: 11px; }
+.private-chat-card .private-chat-title { display: flex; align-items: baseline; gap: 7px; color: inherit; min-width: 0; }
+.private-chat-title strong { min-width: 0; }
+.private-conversation-lock { display: inline-block; flex: none; width: 14px; height: 14px; color: #bca8e8; background: currentColor; mask: url("icons/lock.svg") center / contain no-repeat; }
 .private-composer { flex: none; display: grid; gap: 7px; padding-block: 10px; border-top: 1px solid #a88cff24; }
 .community-view textarea, .community-view input {
   box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid #aaa2c540;

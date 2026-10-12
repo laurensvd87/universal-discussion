@@ -27,7 +27,7 @@ test("synthetic account preview stays isolated from the activated normal account
     assert.doesNotMatch(await read(filename), /accounts-preview/);
   }
   const manifest = JSON.parse(await read("manifest.json"));
-  assert.equal(manifest.version, "0.13.54");
+  assert.equal(manifest.version, "0.13.55");
   assert.doesNotMatch(JSON.stringify(manifest), /account-(?:client|controller|sheet)|accounts-preview/);
 });
 
