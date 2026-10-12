@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Murmingle",
-  "version": "0.13.53",
+  "version": "0.13.54",
   "description": "Opt-in on-device page matching and shared local Topic discussions.",
   "minimum_chrome_version": "116",
   "incognito": "not_allowed",
@@ -9,8 +9,18 @@
   "host_permissions": ["http://127.0.0.1/*"],
   "optional_host_permissions": ["https://*/*"],
   "background": { "service_worker": "chromium/background.js", "type": "module" },
+  "icons": {
+    "16": "chromium/icons/murmingle-16.png",
+    "32": "chromium/icons/murmingle-32.png",
+    "48": "chromium/icons/murmingle-48.png",
+    "128": "chromium/icons/murmingle-128.png"
+  },
   "action": {
-    "default_title": "Open Murmingle"
+    "default_title": "Open Murmingle",
+    "default_icon": {
+      "16": "chromium/icons/murmingle-16.png",
+      "32": "chromium/icons/murmingle-32.png"
+    }
   },
   "side_panel": { "default_path": "chromium/sidepanel.html" },
   "content_security_policy": {

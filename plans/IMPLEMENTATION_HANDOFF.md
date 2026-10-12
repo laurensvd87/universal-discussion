@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-12 approved Shared space logo A is implemented in extension 0.13.54.
+Read ADR-097 and `docs/BRAND_LANGUAGE.md`; the concept board is saved under
+`docs/brand`. The opposing speech shapes and open center replace the M placeholder
+across SVG/header, dynamic toolbar and native Chrome icons. Shared geometry lives
+in `chromium/murmingle-geometry.js`; `node harness/generate-murmingle-icons.js`
+regenerates local PNGs. Keep the central lens open and the existing state colors.
+Focused restricted checks pass 168/168; real Chrome raster checks verify all six
+sizes and exact SVG/Canvas alpha parity. Root reviews the icon against concept A.
+Isolated Chrome brand/community checks pass at the existing narrow widths; root
+reviews the loaded 28px header mark and fully visible 320px exception row. Browser
+secret scan checks 226 files with zero findings; diff whitespace passes.
+Presentation only.
+Backend cutover is complete, so this update needs only an extension reload.
+
 2026-10-12 ADR-099 owner-local recovery/cutover is completed. Read top STATUS and
 ADR-099 before older pending-migration instructions. The owner explicitly approved
 seven-day encrypted canonical backup, migration and one-time restart, while

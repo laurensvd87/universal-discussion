@@ -2,7 +2,8 @@
 
 Date: 2026-10-12
 
-Status: Owner-approved local presentation change, refined in extension 0.13.53.
+Status: Owner-approved local presentation change; Shared space logo selected
+and implemented in extension 0.13.54.
 
 ## Decision
 
@@ -13,7 +14,10 @@ well.
 
 The compact extension header shows the standalone Murmingle mark rather than
 repeating the product name and tagline already supplied by Chrome's panel frame.
-The mark is a conversation form with two paths meeting as an **M**. Healthy and
+The owner selects concept **A — Shared space**: two opposing speech shapes
+leave their overlap open as a shared center. The production vector replaces the
+earlier M-in-a-speech-bubble placeholder. The header, toolbar and packaged Chrome
+icons use the same geometry; existing toolbar state colors remain. Healthy and
 in-progress connection states occupy no header text; exceptional disconnected,
 unavailable or unverified states show one concise red warning while retaining
 the detailed accessible state. Marketing welcome copy is omitted so functional

@@ -6,10 +6,10 @@ import { EN } from "../browser/locales/en.js";
 class FakeCanvas {
   constructor(width, height) { this.width = width; this.height = height; }
   getContext() {
-    const fills = [], strokes = [];
+    const fills = [], fillRules = [], strokes = [];
     return { scale() {}, clearRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, quadraticCurveTo() {}, closePath() {}, arc() {},
-      fill() { fills.push(this.fillStyle); }, stroke() { strokes.push(this.strokeStyle); },
-      getImageData: () => ({ width: this.width, height: this.height, fills, strokes }) };
+      fill(rule) { fills.push(this.fillStyle); fillRules.push(rule); }, stroke() { strokes.push(this.strokeStyle); },
+      getImageData: () => ({ width: this.width, height: this.height, fills, fillRules, strokes }) };
   }
 }
 
@@ -21,7 +21,8 @@ test("actual icon images contain all toolbar colors at both scales", () => {
     for (const size of [16, 32]) {
       assert.equal(images[size].width, size); assert.equal(images[size].height, size);
       assert.deepEqual(images[size].fills, [TOOLBAR_COLORS[state]]);
-      assert.deepEqual(images[size].strokes, ["#ffffff"]);
+      assert.deepEqual(images[size].fillRules, ["evenodd"]);
+      assert.deepEqual(images[size].strokes, []);
     }
   }
 });

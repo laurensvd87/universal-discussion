@@ -1,5 +1,17 @@
 # Local related-page, discussion-preview and metadata proof of concept
 
+## Approved Shared space logo (0.13.54)
+
+The owner selects logo concept **A**: two opposing speech shapes with a shared
+open center. It replaces the M placeholder in the header and toolbar; Chrome's
+native extension icon also uses this mark. The packaged SVG is the master, with
+matching generated bitmap icons. Existing status colors and the compact header
+are preserved. See the [brand guide](../../../docs/BRAND_LANGUAGE.md).
+
+This presentation update requires only an extension reload. The approved backend
+cutover is now complete; the pending-cutover warning in the historical 0.13.52
+entry below is superseded by top STATUS/HANDOFF.
+
 ## Compact Murmingle identity (0.13.53)
 
 Chrome names the extension **Murmingle**. The in-panel bar therefore uses only

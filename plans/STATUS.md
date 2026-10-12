@@ -1,5 +1,24 @@
 # Project status
 
+**2026-10-12 approved Shared space logo implemented, extension 0.13.54:**
+The owner selects **A — Shared space** from the saved concept board. Two opposing
+speech shapes leave an open shared center; this replaces the earlier M placeholder.
+The compact header and state-colored toolbar share vector geometry; static Chrome
+16/32/48/128px icons use the approved periwinkle-on-dark rounded-square treatment.
+The brand guide preserves selection, source assets, colors, clear space and
+regeneration instructions. Existing connection warnings and toolbar state colors
+remain unchanged. Focused restricted package/UI/toolbar/background checks pass
+168/168. Actual isolated Chrome raster checks pass at 16/24/28/32/48/128px:
+transparent center, opaque speech shapes and identical SVG/Canvas alpha pixels.
+Root reviews the native128 icon and 320px header against the approved concept.
+Isolated Chrome brand and community checks pass, including a loaded SVG and a
+fully visible warning beside a long username at 320px, and 320/390/480px community
+layouts with no overflow or uncaught errors. Browser secret scan checks 226 files
+with zero findings; diff whitespace passes. Presentation only; no backend,
+provider, account, permission or matching change. The backend cutover below is
+already complete; this update needs only an extension reload. See ADR-097 and
+`docs/BRAND_LANGUAGE.md`.
+
 **2026-10-12 online encrypted recovery and canonical cutover active (ADR-099):**
 The owner approves a seven-day encrypted canonical recovery point and the
 one-time conversion/restart, requiring routine backups not to disconnect the

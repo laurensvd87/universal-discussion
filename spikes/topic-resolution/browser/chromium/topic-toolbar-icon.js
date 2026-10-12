@@ -1,5 +1,6 @@
 import { EN } from "../locales/en.js";
 import { TOOLBAR_STATES } from "../core/topic-toolbar-controller.js";
+import { traceMurmingle } from "./murmingle-geometry.js";
 
 export const TOOLBAR_COLORS = Object.freeze({ disconnected: "#dc2626", connected: "#64748b", off: "#64748b", topic: "#16a34a", shared: "#38bdf8", posts: "#1d4ed8" });
 const TITLES = { disconnected: "toolbarDisconnected", connected: "toolbarConnected", off: "toolbarMatchingOff", topic: "toolbarTopic", shared: "toolbarShared", posts: "toolbarPosts" };
@@ -12,20 +13,11 @@ export function drawTopicToolbarIcon(state, Canvas = globalThis.OffscreenCanvas)
     const canvas = new Canvas(size, size);
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Toolbar icon unavailable");
-    context.scale(size / 16, size / 16);
-    context.clearRect(0, 0, 16, 16);
+    context.scale(size / 32, size / 32);
+    context.clearRect(0, 0, 32, 32);
     context.fillStyle = TOOLBAR_COLORS[state];
-    context.beginPath();
-    context.moveTo(4, 2); context.lineTo(12, 2);
-    context.quadraticCurveTo(14, 2, 14, 4); context.lineTo(14, 10);
-    context.quadraticCurveTo(14, 12, 12, 12); context.lineTo(7, 12);
-    context.lineTo(3, 15); context.lineTo(3, 12);
-    context.quadraticCurveTo(2, 12, 2, 10); context.lineTo(2, 4);
-    context.quadraticCurveTo(2, 2, 4, 2); context.closePath(); context.fill();
-    context.strokeStyle = "#ffffff"; context.lineWidth = 1.35;
-    context.lineCap = "round"; context.lineJoin = "round";
-    context.beginPath(); context.moveTo(4.5, 9); context.lineTo(4.5, 5.5);
-    context.lineTo(8, 8.5); context.lineTo(11.5, 5.5); context.lineTo(11.5, 9); context.stroke();
+    traceMurmingle(context);
+    context.fill("evenodd");
     imageData[size] = context.getImageData(0, 0, size, size);
   }
   return imageData;

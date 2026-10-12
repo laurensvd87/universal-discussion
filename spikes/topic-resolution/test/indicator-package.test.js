@@ -44,6 +44,10 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/icons/conversation.svg",
     "chromium/icons/edit.svg",
     "chromium/icons/lock.svg",
+    "chromium/icons/murmingle-128.png",
+    "chromium/icons/murmingle-16.png",
+    "chromium/icons/murmingle-32.png",
+    "chromium/icons/murmingle-48.png",
     "chromium/icons/murmingle.svg",
     "chromium/icons/pages.svg",
     "chromium/icons/person.svg",
@@ -55,6 +59,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/insight-page-reader.js",
     "chromium/insight-panel.js",
     "chromium/insight-preference-storage.js",
+    "chromium/murmingle-geometry.js",
     "chromium/page-content-reader.js",
     "chromium/page-matching-panel.js",
     "chromium/page-metadata-reader.js",
@@ -126,7 +131,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Murmingle",
-    version: "0.13.53",
+    version: "0.13.54",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",
@@ -134,7 +139,13 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     host_permissions: ["http://127.0.0.1/*"],
     optional_host_permissions: ["https://*/*"],
     background: { service_worker: "chromium/background.js", type: "module" },
-    action: { default_title: "Open Murmingle" },
+    icons: {
+      "16": "chromium/icons/murmingle-16.png", "32": "chromium/icons/murmingle-32.png",
+      "48": "chromium/icons/murmingle-48.png", "128": "chromium/icons/murmingle-128.png",
+    },
+    action: { default_title: "Open Murmingle", default_icon: {
+      "16": "chromium/icons/murmingle-16.png", "32": "chromium/icons/murmingle-32.png",
+    } },
     side_panel: { default_path: "chromium/sidepanel.html" },
     content_security_policy: {
       extension_pages: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:4174 https:; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';",
@@ -157,6 +168,22 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
 test("production popup does not wire anonymous related-page fetching into Insights", async () => {
   const script = await readFile(path.resolve(browserDirectory, "chromium/popup.js"), "utf8");
   assert.doesNotMatch(script, /createRelatedPageExcerptReader|readRelatedExcerpts/u);
+});
+
+test("native Chrome identity icons are local PNGs with their declared dimensions", async () => {
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  for (const [size, resource] of Object.entries(manifest.icons)) {
+    const file = path.resolve(browserDirectory, resource);
+    assert.ok(file.startsWith(`${browserDirectory}${path.sep}`));
+    const png = await readFile(file);
+    assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+    assert.equal(png.toString("ascii", 12, 16), "IHDR");
+    assert.equal(png.readUInt32BE(16), Number(size));
+    assert.equal(png.readUInt32BE(20), Number(size));
+  }
+  for (const [size, resource] of Object.entries(manifest.action.default_icon)) {
+    assert.equal(resource, manifest.icons[size]);
+  }
 });
 
 test("every runtime import and document resource remains inside the unpacked root", async () => {
@@ -310,9 +337,9 @@ test("popup contains only local external assets and basic accessible bindings", 
   assert.doesNotMatch(html, /\son[a-z]+\s*=/iu);
   assert.match(html, /<img class="brand-mark" src="icons\/murmingle\.svg" alt="Murmingle">/u);
   const logo = await readFile(path.join(browserDirectory, "chromium", "icons", "murmingle.svg"), "utf8");
-  assert.match(logo, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 32 32">\s*<mask id="murmingle-cutout">\s*<rect width="32" height="32" fill="#fff"\/>\s*<path d="[A-Za-z0-9 .,+-]+" fill="none" stroke="#000" stroke-width="2\.8" stroke-linecap="round" stroke-linejoin="round"\/>\s*<\/mask>\s*<path d="[A-Za-z0-9 .,+-]+" fill="#aeb5ff" mask="url\(#murmingle-cutout\)"\/>\s*<\/svg>\s*$/u);
+  assert.match(logo, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 32 32">\s*<path d="[A-Za-z0-9 .,+-]+" fill="#aeb5ff" fill-rule="evenodd"\/>\s*<\/svg>\s*$/u);
   assert.doesNotMatch(logo, /<script|<foreignObject|<image|href\s*=|\son[a-z]+\s*=|@import|https?:\/\/(?!www\.w3\.org\/2000\/svg)/iu);
-  assert.deepEqual([...logo.matchAll(/url\(([^)]+)\)/gu)].map(match => match[1]), ["#murmingle-cutout"], "logo references only its local mask");
+  assert.doesNotMatch(logo, /url\s*\(/iu, "the shared center is geometry with no external resources");
   const withoutApprovedUrls = html
     .replaceAll("https://example.com/", "")
     .replaceAll("https://example.org/", "")

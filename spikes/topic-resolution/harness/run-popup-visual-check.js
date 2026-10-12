@@ -196,6 +196,7 @@ try {
       return {statusHidden:status.hidden,statusWidth:status.clientWidth,statusScrollWidth:status.scrollWidth,
         statusRight:status.getBoundingClientRect().right,brandRight:status.parentElement.getBoundingClientRect().right,
         statusText:status.textContent,markWidth:mark.getBoundingClientRect().width,
+        markLoaded:mark.complete&&mark.naturalWidth>0,
         rowHeight:row.getBoundingClientRect().height};
     })()`, sessionId);
     assert.equal(header.statusHidden, false);
@@ -203,6 +204,7 @@ try {
     assert.ok(header.statusWidth >= header.statusScrollWidth, `connection warning remains fully visible beside a long username: ${JSON.stringify(header)}`);
     assert.ok(header.statusRight <= header.brandRight + 1, 'connection warning is not clipped by the brand container');
     assert.equal(header.markWidth, 28);
+    assert.equal(header.markLoaded, true, 'packaged brand SVG loads in the extension');
     assert.ok(header.rowHeight <= 57, 'connection warning does not add a second header row');
     await capture("connection-long-username-320", sessionId);
     await evaluate("if(window.visualAccountButton.existing)document.querySelector('.account-profile-button').textContent=window.visualAccountButton.text;else document.querySelector('#visual-long-username').remove()", sessionId);
