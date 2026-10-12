@@ -1,5 +1,17 @@
 # Project status
 
+**2026-10-12 Murmingle preliminary trademark screen, EU/UK/US:**
+Actual isolated-browser EUIPO, USPTO, WIPO and aggregate TMview searches return
+no exact Murmingle record. TMview fuzzy/WIPO phonetic results are recorded,
+alongside relevant registered MURMUR/MINGLE component marks and current-status
+corrections. This is preliminary screening, not legal clearance or launch approval.
+Direct UKIPO querying remains incomplete behind its security challenge. Automatic
+approval review rejected sending the local logo to TMview without explicit upload
+permission; no upload or workaround occurred. Image similarity screening remains
+pending that permission. The dated report is
+`research/MURMINGLE_TRADEMARK_SCREENING_2026-10-12.md`; the brand guide links it.
+No app/service/data/permission change, provider inference or trademark filing.
+
 **2026-10-12 all assistant styles strengthened, backend refinement of 0.13.59:**
 The owner requests expressive behaviour for every voice, not only the two tested
 styles. Nine remaining static overlays now specify concrete writing moves and
