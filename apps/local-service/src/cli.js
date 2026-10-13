@@ -1,7 +1,7 @@
 import { pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
 import { APP_DATABASE_PATH, startLocalApplication } from "./startup.js";
-import { createProtectedRefreshStore } from "./ai/protected-refresh-store.js";
+import { createExistingProtectedRefreshStore } from "./ai/existing-protected-refresh-store.js";
 import { createInsightTraceLog } from "./ai/insight-trace-log.js";
 import { createRawInsightDebugLog } from "./ai/raw-insight-debug-log.js";
 import { createVoiceRequestTraceLog } from "./ai/voice-request-trace-log.js";
@@ -62,6 +62,7 @@ export async function runCli(args = process.argv.slice(2), { databasePath = APP_
     // reinterpret the old >=1-member curve as the new >=2-member measure.
     catalogGrowthVersion: 2,
     pairingPath,
+    readOnlyPairingCompatibility: true,
     nextId: (prefix) => `${prefix}-${randomUUID()}`,
     now: () => new Date().toISOString(),
     // ADR-091: approved owner-local accounts, no real mail transport. App
@@ -72,7 +73,7 @@ export async function runCli(args = process.argv.slice(2), { databasePath = APP_
     // requires deliberate generation or an accepted own-AI private reply.
     // No import-time provider I/O or automatic retry.
     chatgptFetchImpl: globalThis.fetch.bind(globalThis),
-    chatgptRefreshStore: createProtectedRefreshStore,
+    chatgptRefreshStore: createExistingProtectedRefreshStore,
     // The sink independently validates the structural DTO before persistence.
     insightTrace: (trace) => {
       try {

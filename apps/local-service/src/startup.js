@@ -7,7 +7,7 @@ import { createSqliteDemoService } from "./application/create-sqlite-demo-servic
 import { createRequestHandler } from "./http/request-handler.js";
 import { validateStartupConfig } from "./http/startup-config.js";
 import { startLoopbackListener } from "./http/loopback-listener.js";
-import { loadPairingVerifier } from "./http/pairing-store.js";
+import { loadPairingVerifier, loadReadOnlyCompatiblePairingVerifier } from "./http/pairing-store.js";
 import { createChatGPTRuntime } from "./ai/chatgpt-runtime.js";
 import { readInstalledOwnerTopicConfiguration } from "./application/owner-topic-configuration.js";
 import { AccountRepository } from "./accounts/account-repository.js";
@@ -93,7 +93,8 @@ export async function startLocalApplication(options) {
   try {
     const listener = await startLoopbackListener({ handle: application.handle });
     try {
-      if (options.pairingPath) activeVerifier = loadPairingVerifier({ filePath: options.pairingPath, origin: application.config.origin });
+      if (options.pairingPath) activeVerifier = (options.readOnlyPairingCompatibility === true
+        ? loadReadOnlyCompatiblePairingVerifier : loadPairingVerifier)({ filePath: options.pairingPath, origin: application.config.origin });
     } catch (error) {
       await listener.close();
       throw error;

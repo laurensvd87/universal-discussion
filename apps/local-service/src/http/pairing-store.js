@@ -96,6 +96,22 @@ export function changePairing({ filePath, origin, action }) {
   return token;
 }
 
+// Read-only compatibility for already accepted persisted verifiers. It never
+// migrates, rewrites, rotates or exposes the owner's pairing record/token.
+export function loadReadOnlyCompatiblePairingVerifier({ filePath, origin }) {
+  checkOrigin(origin);
+  const record = readRecord(filePath);
+  if (record.origin !== origin || record.state !== "active") throw unavailable();
+  const expected = Buffer.from(record.verifier, "hex");
+  return Object.freeze({ verify(token) {
+    if (typeof token !== "string" || !TOKEN_PATTERN.test(token)) return false;
+    const old = createHash("sha256").update("universal-discussion-layer/pairing/v1\0").update(origin).update("\0").update(token).digest();
+    const current = createHash("sha256").update("murmingle/pairing/v1\0").update(origin).update("\0").update(token).digest();
+    const matchesOld = timingSafeEqual(old, expected), matchesCurrent = timingSafeEqual(current, expected);
+    return matchesOld || matchesCurrent;
+  } });
+}
+
 export function loadPairingVerifier({ filePath, origin }) {
   checkOrigin(origin);
   const record = readRecord(filePath);
