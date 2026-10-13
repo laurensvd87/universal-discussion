@@ -94,7 +94,9 @@ test("normal service paths work beyond legacy aggregate limits without loading t
   assert.deepEqual(service.accountContributions(OTHER_ACCOUNT),[]);
   const context=service.catalogContext({sourceId,topicId});
   assert.ok(context.sources.some(source => source.id === sourceId));
-  assert.ok(context.topics.some(topic => topic.id === id("topic",0)),"same-Source historical metadata is available");
+  assert.ok(!context.topics.some(topic => topic.id === id("topic",0)),"fast canonical context omits optional historical metadata");
+  const enriched=service.enrichment({sourceId,topicId,includeAlternate:false});
+  assert.ok(enriched.catalog.topics.some(topic => topic.id === id("topic",0)),"same-Source historical metadata is available through enrichment");
   assert.ok(Buffer.byteLength(JSON.stringify(context))<1024*1024);
   const bootstrap=service.catalogContext({sourceId:null,topicId:null});
   assert.ok(bootstrap.sources.length<=100);
@@ -399,8 +401,21 @@ test("more than 500 historical Source destinations batch metadata while selected
     },readTopicState(topicId) {topicReads++;return raw.readTopicState(topicId);}});
   assert.equal(service.priorDiscussions(sourceId).topics.length,620);
   const context=service.catalogContext({sourceId,topicId:current});
-  assert.equal(context.topics.length,621);
-  assert.equal(new Set(context.topics.map(topic => topic.id)).size,621);
+  assert.equal(context.topics.length,1,"fast context remains selected-Topic scoped");
+  // Keep the dense canonical fixture intact for the separate Insight/body-cap
+  // assertions. A second exact store exercises historical enrichment when its
+  // mandatory canonical discussion fits the existing response budget.
+  const boundedSeed={...seed,contributions:seed.contributions.filter(entry=>entry.discussionId!==`discussion-${current}`)};
+  const bounded=createNormalizedSqliteRepository(path.join(dir.value,"historical-enrichment.sqlite"),boundedSeed);
+  dir.closers.push(()=>bounded.close());
+  const enrichmentService=serviceFor({...bounded,readMetadataScope(input) {
+    batches.push({topics:input.topicIds?.length??0,sources:input.sourceIds?.length??0});
+    assert.ok((input.topicIds?.length??0)<=500);assert.ok((input.sourceIds?.length??0)<=500);
+    return bounded.readMetadataScope(input);
+  }});
+  const enriched=enrichmentService.enrichment({sourceId,topicId:current,includeAlternate:false});
+  assert.equal(enriched.catalog.topics.length,621);
+  assert.equal(new Set(enriched.catalog.topics.map(topic=>topic.id)).size,621);
   assert.ok(batches.some(batch => batch.topics === 500));
   assert.ok(batches.some(batch => batch.topics === 121));
   assert.ok(Buffer.byteLength(JSON.stringify(context))<1024*1024-4096);

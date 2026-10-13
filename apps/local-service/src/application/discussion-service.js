@@ -21,7 +21,7 @@ const ALTERNATE_SOURCE_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 
 export function createDiscussionService({ repository, ranking, sources, topicSeeds, nextId, now,
   alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
-  resolveAccountActor = null, readAccountActors = () => [], ingestionExecutor = null, readExecutor = null }) {
+  resolveAccountActor = null, readAccountActors = () => [], ingestionExecutor = null, readExecutor = null, projectionExecutor = null }) {
   const actors = new Map(DEMO_ACTORS.map((actor) => [actor.id, actor]));
   function actorFor(actorId) {
     const actor = isAccountActor(actorId) && typeof resolveAccountActor === "function"
@@ -122,27 +122,29 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     // helpers retain their existing exact synchronous authority paths.
     readPublic(method, input, guards = {}) {
       if (!["catalog", "catalogContext", "catalogPage", "discussion", "discussionPage",
-        "exactSource", "related", "priorDiscussions", "alternateDiscussion"].includes(method))
+        "exactSource", "related", "priorDiscussions", "alternateDiscussion", "enrichment"].includes(method))
         fail("invalid", "Invalid public read");
       const invoke = () => method === "related" ? api.related(input.sourceId, input.limit) : api[method](input);
-      if (readExecutor === null) return invoke();
+      const executor = ["related", "priorDiscussions", "alternateDiscussion", "enrichment"].includes(method)
+        ? projectionExecutor : readExecutor;
+      if (executor === null) return invoke();
       const expected = api.version();
       const isCurrent = () => !guards.signal?.aborted &&
         (typeof guards.isCurrent !== "function" || guards.isCurrent()) && sameVersion(api.version(), expected);
       if (!isCurrent()) fail("unavailable", "Read unavailable");
-      return readExecutor.read(method, input, { version: expected, signal: guards.signal }).then(value => {
+      return executor.read(method, input, { version: expected, signal: guards.signal }).then(value => {
         if (guards.signal?.aborted || typeof guards.isCurrent === "function" && !guards.isCurrent())
           fail("unavailable", "Read unavailable");
         if (!sameVersion(api.version(), expected)) fail("conflict", "State changed");
         // Account data never enters the worker. Public actor labels are renewed
         // at delivery using exactly the existing catalog projection rules.
-        if (["catalog", "catalogContext", "catalogPage"].includes(method)) {
+        if (["catalog", "catalogContext", "catalogPage", "enrichment"].includes(method)) {
           const actors = [...DEMO_ACTORS, ...readAccountActors().filter(isAccountPrincipal)]
             .map(({ id, displayName, type }) => ({ id, displayName, type }));
           const signature = JSON.stringify(actors);
           const previous = actorProjections.get(value);
           if (previous?.signature === signature) return previous.projection;
-          const projection = frozenClone(method === "catalogPage"
+          const projection = frozenClone(["catalogPage", "enrichment"].includes(method)
             ? { ...value, catalog: { ...value.catalog, actors } } : { ...value, actors });
           actorProjections.set(value, { signature, projection });
           return projection;
@@ -184,21 +186,6 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
         const linkedTopic = topicIdFor(current, sourceId);
         if (topicId !== null && linkedTopic !== topicId) fail("conflict", "State changed");
         topicId ??= linkedTopic; sourceIds.add(sourceId);
-        for (const result of api.related(sourceId, 20).results) sourceIds.add(result.id);
-        const prior = api.priorDiscussions(sourceId);
-        if (!sameVersion(prior.version, expected)) fail("conflict", "State changed");
-        for (const topic of prior.topics) topicIds.add(topic.id);
-        // The client validates every alternate group member and canonical root
-        // destination. Include their exact metadata, not just nearest neighbours,
-        // so a bounded initial catalog cannot disable a valid Ridge projection.
-        const source = current.sources.find(entry => entry.id === sourceId);
-        if (ownerPlanner && source.provenance === LEARNED_SOURCE_PROVENANCE &&
-            current.sourceLinks.find(link => link.sourceId === sourceId)?.method === "learned-provisional") {
-          let group;
-          try { group = alternatePlan(rankingState()).partitions.find(part => part.sourceIds.includes(sourceId)); }
-          catch { /* An unavailable alternate view never changes canonical scope. */ }
-          for (const id of group?.sourceIds ?? []) sourceIds.add(id);
-        }
       }
       if (topicId !== null) {
         topicIds.add(topicId);
@@ -210,6 +197,56 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const catalog = catalogProjection(metadataScope(sourceIds, topicIds, expected));
       if (Buffer.byteLength(JSON.stringify(catalog), "utf8") > MAX_RESPONSE_BYTES - 4096) fail("capacity", "Catalog context capacity reached");
       return catalog;
+    },
+    enrichment(value) {
+      const input = readRecord(value, ["sourceId", "topicId", "includeAlternate"]);
+      const sourceId = readId(input.sourceId), topicId = readId(input.topicId);
+      if (typeof input.includeAlternate !== "boolean") fail("invalid", "Invalid request");
+      const base = api.catalogContext({ sourceId, topicId }), expected = base.version;
+      const discussion = api.discussion(topicId);
+      if (!sameVersion(discussion.version, expected)) fail("conflict", "State changed");
+      const errors = { related: null, prior: null, alternate: null };
+      const optional = (name, work) => {
+        try {
+          const result = work();
+          if (!sameVersion(result.version, expected)) fail("conflict", "State changed");
+          return result;
+        } catch (error) {
+          errors[name] = ["capacity", "conflict", "unavailable"].includes(error?.code) ? error.code : "invalid-response";
+          return null;
+        }
+      };
+      let related = optional("related", () => api.related(sourceId, 20));
+      let priorDiscussions = optional("prior", () => api.priorDiscussions(sourceId));
+      let alternateDiscussion = input.includeAlternate ? optional("alternate", () => api.alternateDiscussion(sourceId)) : null;
+      let catalog = base;
+      try {
+        if (normalized) {
+          const sourceIds = new Set(base.sources.map(source => source.id)), topicIds = new Set(base.topics.map(topic => topic.id));
+          for (const source of related?.results ?? []) sourceIds.add(source.id);
+          for (const topic of priorDiscussions?.topics ?? []) topicIds.add(topic.id);
+          for (const id of alternateDiscussion?.sourceIds ?? []) sourceIds.add(id);
+          for (const root of [...(alternateDiscussion?.roots ?? []), ...(alternateDiscussion?.pinnedRoots ?? [])])
+            topicIds.add(root.canonicalTopicId);
+          catalog = catalogProjection(metadataScope(sourceIds, topicIds, expected));
+        }
+      } catch (error) {
+        const code = ["capacity", "conflict", "unavailable"].includes(error?.code) ? error.code : "invalid-response";
+        if (related) errors.related = code;
+        if (priorDiscussions) errors.prior = code;
+        if (alternateDiscussion) errors.alternate = code;
+        related = null; priorDiscussions = null; alternateDiscussion = null; catalog = base;
+      }
+      let bundle = { catalog, discussion, related, priorDiscussions, alternateDiscussion, errors };
+      if (Buffer.byteLength(JSON.stringify(bundle), "utf8") > MAX_RESPONSE_BYTES - 4096) {
+        if (related) errors.related = "capacity";
+        if (priorDiscussions) errors.prior = "capacity";
+        if (alternateDiscussion) errors.alternate = "capacity";
+        bundle = { catalog: base, discussion, related: null, priorDiscussions: null, alternateDiscussion: null, errors };
+      }
+      if (!sameVersion(api.version(), expected)) fail("conflict", "State changed");
+      if (Buffer.byteLength(JSON.stringify(bundle), "utf8") > MAX_RESPONSE_BYTES - 4096) fail("capacity", "Enrichment capacity reached");
+      return frozenClone(bundle);
     },
     catalogPage(value) {
       if (!normalized) fail("unavailable", "Paged catalog requires normalized storage");

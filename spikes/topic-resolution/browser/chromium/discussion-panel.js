@@ -903,7 +903,8 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     confirmationContext = nextConfirmationContext;
     const errorKey = { unauthorized: "discussionUnauthorized", "extension-connection-unavailable": "discussionExtensionUnavailable", "durable-pairing-required": "discussionDurableRequired",
       conflict: "discussionConflict", capacity: "discussionCapacity",
-      "invalid-request": "discussionInvalid", "invalid-response": "discussionInvalid", "context-changed": "discussionContextChanged" }[state.error];
+      "invalid-request": "discussionInvalid", "invalid-response": "discussionInvalid", "context-changed": "discussionContextChanged",
+      "context-unverified": "discussionContextUnverified" }[state.error];
     const resolving = state.resolution?.enabled === true &&
       ["checking", "processing"].includes(state.resolution?.phase);
     const matchingError = state.resolution?.enabled === true &&
@@ -914,12 +915,9 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       state.catalog?.sources.find((entry) => entry.id === state.sourceId)?.provenance === "owner-local-page-embedding/v1";
     const alternateFailed = alternateApplicable && Boolean(state.alternateError);
     const priorFailed = Boolean(state.sourceId && state.priorDiscussionsError);
-    const readError = state.phase === "error" || matchingError || alternateFailed ||
-      priorFailed;
+    const readError = state.phase === "error" || matchingError || alternateFailed || priorFailed || Boolean(state.relatedError);
     const loadingDiscussions = uiMode === "user" && !state.needsFreshRead &&
-      (["connecting", "loading"].includes(state.phase) || resolving ||
-        state.phase === "ready" && alternateApplicable && state.discussion &&
-        !state.alternateDiscussion && !state.alternateError)
+      (["connecting", "loading"].includes(state.phase) || resolving && state.phase !== "ready")
       && (!state.error || state.error === "context-changed") && !readError;
     status.setAttribute("data-loading", String(loadingDiscussions));
     loadingScene.hidden = !loadingDiscussions;
@@ -929,9 +927,11 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     if (uiMode === "user" && readError) {
       const errors = [];
       if (state.error || state.phase === "error") errors.push(text(errorKey ?? "discussionUnavailable"));
-      if (matchingError) errors.push(text("uiMatchingFailed"));
+      if (matchingError) errors.push(text(state.resolution?.phase === "error" &&
+        ["unavailable", "capacity", "conflict"].includes(state.resolution.reason) ? "uiMatchingServiceBusy" : "uiMatchingFailed"));
       if (alternateFailed) errors.push(text("uiTopicViewFailed"));
       if (priorFailed) errors.push(text("uiEarlierThreadsUnavailable"));
+      if (state.relatedError) errors.push(text("uiRelatedThreadsUnavailable"));
       status.textContent = errors.join(" ");
     }
     if (state.needsFreshRead) status.textContent = uiMode === "user" && !state.error && !readError

@@ -551,7 +551,7 @@ test("catalog capacity has a clear compact status without exposing page details"
   await turn();
   assert.equal(ui.byId("matching-status").textContent, EN.matchingCapacity);
   assert.equal(ui.byId("matching-user-status").textContent, EN.matchingCompactCapacity);
-  assert.equal(ui.byId("matching-detail").textContent, "");
+  assert.equal(ui.byId("matching-detail").textContent, "[capacity]");
   ui.panel.dispose();
 });
 

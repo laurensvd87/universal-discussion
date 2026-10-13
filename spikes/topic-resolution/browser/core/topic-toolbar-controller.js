@@ -1,4 +1,4 @@
-import { readCatalog, readDiscussion } from "./local-service-contract.js";
+import { readCatalog, readDiscussion, readEnrichment } from "./local-service-contract.js";
 import { isRidgeTopicView } from "./topic-view-mode.js";
 import { inspectPageNavigationUrl } from "./page-content-policy.js";
 
@@ -33,7 +33,7 @@ function hasVisibleRoot(roots) {
 
 // One inert tab integer survives worker suspension, allowing reconstruction to
 // clear Chrome's override. Connection means a last verified read, never a token.
-export function createTopicToolbarController({ catalog, catalogContext, discussion, alternateDiscussion, readMode, paint, readMarker, writeMarker, removeMarker }) {
+export function createTopicToolbarController({ catalog, catalogContext, discussion, alternateDiscussion, enrichment, readMode, paint, readMarker, writeMarker, removeMarker }) {
   let epoch = 0;
   let abort = new AbortController();
   let pending = Promise.resolve();
@@ -133,12 +133,52 @@ export function createTopicToolbarController({ catalog, catalogContext, discussi
         }
         const shared = hasSharedLearnedTopic(snapshot, value);
         let color = shared ? (hasPublishedPosts(projection, snapshot.topicId) ? "posts" : "shared") : "topic";
+        async function paintVerified(nextColor) {
+          if (epoch !== own || signal.aborted) return;
+          await serial(async () => {
+            if (epoch !== own || removed.has(snapshot.tabId)) return;
+            await writeMarker(snapshot.tabId);
+            marked = snapshot.tabId;
+            if (epoch !== own) { await neutralize(); return; }
+            await paint(snapshot.tabId, nextColor, () => epoch === own);
+            if (epoch !== own) await neutralize();
+          });
+        }
+        // The verified canonical badge is available before optional projection
+        // work; the latter has its own bounded transport and cannot block paints.
+        await paintVerified(color);
         // The alternate view is a read-only presentation over canonical posts.
         // If it is unavailable, the canonical icon still reports verified facts.
         let mode = "classic";
         try { if (typeof readMode === "function") mode = await readMode(); }
         catch { /* A local preference read cannot invalidate verified canonical evidence. */ }
         if (epoch !== own) return;
+        if (mode === "experimental" && typeof enrichment === "function") {
+          void (async () => {
+            try {
+              const request = { sourceId: snapshot.sourceId, topicId: snapshot.topicId, includeAlternate: true };
+              const bundle = readEnrichment(await enrichment(request, { signal }), request);
+              if (epoch !== own || signal.aborted || !hasCurrentTopic(snapshot, bundle.catalog) ||
+                  bundle.catalog.version.generation !== value.version.generation || bundle.catalog.version.revision < value.version.revision ||
+                  lastCatalogVersion?.generation === bundle.catalog.version.generation &&
+                    bundle.catalog.version.revision < lastCatalogVersion.revision ||
+                  snapshot.actorId && !bundle.catalog.actors.some(actor => actor.id === snapshot.actorId && actor.type === "human")) return;
+              const currentMode = typeof readMode === "function" ? await readMode() : "classic";
+              if (epoch !== own || signal.aborted || currentMode !== "experimental") return;
+              lastCatalogVersion = bundle.catalog.version;
+              const currentShared = hasSharedLearnedTopic(snapshot, bundle.catalog);
+              let nextColor = currentShared ? (hasPublishedPosts(bundle.discussion, snapshot.topicId) ? "posts" : "shared") : "topic";
+              const alternate = bundle.alternateDiscussion;
+              if (alternate) {
+                if (!isRidgeTopicView(alternate)) return;
+                if (alternate.mode === "alternate-provisional") nextColor = alternate.sourceIds.length > 1
+                  ? (hasVisibleRoot(alternate.roots) || hasVisibleRoot(alternate.pinnedRoots) ? "posts" : "shared") : "topic";
+              }
+              await paintVerified(nextColor);
+            } catch { /* Optional projection failure leaves the verified canonical badge. */ }
+          })();
+          return;
+        }
         if (mode === "experimental" && typeof alternateDiscussion === "function") {
           try {
             const key = `${value.version.generation}:${value.version.revision}:${snapshot.sourceId}`;
@@ -163,15 +203,7 @@ export function createTopicToolbarController({ catalog, catalogContext, discussi
             alternateCache = null;
           }
         }
-        if (epoch !== own) return;
-        await serial(async () => {
-          if (epoch !== own || removed.has(snapshot.tabId)) return;
-          await writeMarker(snapshot.tabId);
-          marked = snapshot.tabId;
-          if (epoch !== own) { await neutralize(); return; }
-          await paint(snapshot.tabId, color, () => epoch === own);
-          if (epoch !== own) await neutralize();
-        });
+        await paintVerified(color);
       } catch {
         // A failed old credential must never clear a newer pairing.
         if (epoch === own) {

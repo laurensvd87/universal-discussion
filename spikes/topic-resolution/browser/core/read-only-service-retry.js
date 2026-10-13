@@ -6,10 +6,20 @@ export function createReadOnlyServiceRetry({ open, schedule = setTimeout, cancel
   let timer = null;
   let delay = 1000;
   let disposed = false;
+  let attempts = 0;
+  let retryContext = null;
   function observe(state) {
     if (disposed) return;
-    if (["ready", "choose-topic"].includes(state?.phase)) delay = 1000;
-    if (state?.phase !== "error" || state?.error !== "unavailable") {
+    const context = JSON.stringify(state?.selection === "manual"
+      ? [state.topicId, state.sourceId, state.actorId]
+      : [state?.resolution?.currentTabId, state?.resolution?.currentWindowId, state?.resolution?.currentUrl,
+        state?.resolution?.documentId, state?.resolution?.sessionRevision, state?.actorId]);
+    if (context !== retryContext) { retryContext = context; delay = 1000; attempts = 0; }
+    if (state?.phase === "ready" || state?.phase === "choose-topic" && !state?.sourceId && !state?.topicId && !state?.resolution?.enabled)
+      { delay = 1000; attempts = 0; }
+    const readFailure = state?.readRetryable === true && ["unavailable", "capacity", "conflict"].includes(state?.error) ||
+      state?.readRetryable === undefined && state?.error === "unavailable";
+    if (state?.phase !== "error" || !readFailure || attempts >= 8) {
       if (timer !== null) cancelSchedule(timer);
       timer = null;
       return;
@@ -18,6 +28,7 @@ export function createReadOnlyServiceRetry({ open, schedule = setTimeout, cancel
     timer = schedule(() => {
       timer = null;
       if (disposed) return;
+      attempts++;
       delay = Math.min(delay * 2, 5000);
       Promise.resolve().then(open).catch(() => {});
     }, delay);

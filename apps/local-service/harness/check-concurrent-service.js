@@ -50,6 +50,7 @@ let started;
 const workerStarted = new Promise(resolve => { started = resolve; });
 let clientPeak = 0, clientActive = 0;
 const readJobs = [];
+const projectionJobs = [];
 let readJobsCompleted = 0;
 let observeReadStarted = null;
 let observeIngestionPrepared = null;
@@ -63,7 +64,7 @@ function request(route, body, extraHeaders = {}, connection) {
     clientPeak = Math.max(clientPeak, ++clientActive);
     const outgoing = http.request({ host: "127.0.0.1", port: 4175, path: route, method: bytes ? "POST" : "GET", agent: connection ? undefined : false,
       ...(connection ? { createConnection: () => connection } : {}),
-      headers: { authorization: `Bearer ${token}`, host: config.hostHeader, ...extraHeaders,
+      headers: { authorization: `Bearer ${token}`, host: config.hostHeader, origin, ...extraHeaders,
         ...(bytes ? { "content-type": "application/json", "content-length": bytes.length } : {}) } }, incoming => {
       let size = 0; const chunks = [];
       incoming.on("data", chunk => { size += chunk.length; if (size > 1_048_576) outgoing.destroy(new Error("Response bound")); else chunks.push(chunk); });
@@ -71,7 +72,8 @@ function request(route, body, extraHeaders = {}, connection) {
       incoming.on("end", () => resolve({ status: incoming.statusCode, elapsedMs: performance.now() - start,
         body: JSON.parse(Buffer.concat(chunks).toString("utf8")) }));
     });
-    outgoing.setTimeout(route === "/v1/sources/ingest" ? 30_000 : 5_000, () => outgoing.destroy(new Error("Synthetic request timed out")));
+    outgoing.setTimeout(["/v1/sources/ingest", "/v1/sources/enrichment"].includes(route) ? 30_000 : 5_000,
+      () => outgoing.destroy(new Error("Synthetic request timed out")));
     outgoing.on("error", reject);
     outgoing.end(bytes);
   }).finally(() => { clientActive--; });
@@ -81,7 +83,8 @@ try {
     storageMode: "normalized", nextId, now: () => stamp,
     readWorkerOptions: { workerFactory() {
       const real = new Worker(new URL("../src/application/canonical-read-worker.js", import.meta.url), {
-        workerData: { databasePath, alternateAdapter: null, alternateBodyMetric: null, alternateRidgeAdapter },
+        workerData: { databasePath, alternateAdapter: null, alternateBodyMetric: null, alternateRidgeAdapter: null,
+          allowedMethods: ["catalog", "catalogContext", "catalogPage", "discussion", "discussionPage", "exactSource"] },
         execArgv: process.execArgv.filter(argument => !argument.startsWith("--test")),
         resourceLimits: { maxOldGenerationSizeMb: 256, maxYoungGenerationSizeMb: 32, stackSizeMb: 4 },
       });
@@ -94,6 +97,21 @@ try {
       };
       bridge.terminate = () => real.terminate();
       real.on("message", message => { readJobsCompleted++; bridge.emit("message", message); });
+      real.on("error", error => bridge.emit("error", error));
+      real.on("exit", code => bridge.emit("exit", code));
+      return bridge;
+    } },
+    projectionWorkerOptions: { workerFactory() {
+      const real = new Worker(new URL("../src/application/canonical-read-worker.js", import.meta.url), {
+        workerData: { databasePath, alternateAdapter: null, alternateBodyMetric: null, alternateRidgeAdapter,
+          allowedMethods: ["enrichment", "related", "priorDiscussions", "alternateDiscussion"] },
+        execArgv: process.execArgv.filter(argument => !argument.startsWith("--test")),
+        resourceLimits: { maxOldGenerationSizeMb: 256, maxYoungGenerationSizeMb: 32, stackSizeMb: 4 },
+      });
+      const bridge = new EventEmitter();
+      bridge.postMessage = value => { projectionJobs.push(value.input); real.postMessage(value); };
+      bridge.terminate = () => real.terminate();
+      real.on("message", message => bridge.emit("message", message));
       real.on("error", error => bridge.emit("error", error));
       real.on("exit", code => bridge.emit("exit", code));
       return bridge;
@@ -173,9 +191,9 @@ try {
         ["health", "/v1/health"], ["version", "/v1/version"],
         ["context", "/v1/catalog/context", { sourceId, topicId }],
         ["discussion", "/v1/topics/topic-0/discussion"],
-        ["related", "/v1/related", { sourceId, limit: 20 }],
-        ["alternate", `/v1/sources/${sourceId}/alternate-discussion`],
-        ["prior", "/v1/sources/source-0/prior-discussions"],
+        ["catalog-topics", "/v1/catalog/page", { kind: "topics", limit: 1, cursor: null }],
+        ["context", "/v1/catalog/context", { sourceId, topicId }],
+        ["discussion", "/v1/topics/topic-0/discussion"],
         ["catalog-page", "/v1/catalog/page", { kind: "sources", limit: 1, cursor: null }],
       ];
       const [kind, route, body] = routes[index % routes.length];
@@ -196,35 +214,60 @@ try {
       if (kind === "health") maxHealthMs = Math.max(maxHealthMs, result.elapsedMs);
       assert.equal(result.status, 200, `${label}/${kind} returns a complete read`);
       assert.ok(result.elapsedMs < 5_000, `${label}/${kind} stays within unchanged five-second reads`);
+      assert.ok(result.elapsedMs + waveStart - connectionStart < 5_000, `${label}/${kind} includes socket acceptance setup`);
       if (kind !== "health") assert.deepEqual(result.body.version ?? result.body.catalog?.version, version);
       if (kind === "context") {
         assert.equal(result.body.sources.find(source => source.id === sourceId)?.topicId, topicId);
         assert.ok(result.body.topics.some(topic => topic.id === topicId));
-      }
-      if (kind === "alternate") {
-        assert.equal(result.body.representation, RIDGE_TOPIC_SCHEMA);
-        assert.equal(result.body.sourceId, sourceId);
-        assert.ok(result.body.sourceIds.includes(sourceId));
       }
       return { ...result, kind };
     }));
     const durations = reads.map(result => result.elapsedMs).sort((a, b) => a - b);
     const health = reads.filter(result => result.kind === "health").map(result => result.elapsedMs).sort((a, b) => a - b);
     const workerTasks = readJobs.length - previousJobs;
-    // Eight selected contexts/related/alternate keys, plus one discussion/prior/page.
-    // The normal32 task cap applies; this workload must actually coalesce duplicates.
+    // Eight selected canonical contexts, one discussion and two bounded pages.
+    // Optional projection work has its independent lane and does not join the
+    // ingestion barrier. These core reads retain the exact old-version proof.
+    assert.ok(workerTasks <= SELECTED_SOURCES + 3, `${label} stays within the eleven coalesced core keys`);
     assert.ok(workerTasks < CONCURRENT_READS / 2, `${label} coalesces repeated public reads`);
     process.stdout.write(JSON.stringify({ phase: label, fixturePages: FIXTURE_PAGES, selectedSources: SELECTED_SOURCES,
       concurrentReads: CONCURRENT_READS, clientPeak, acceptedReads: reads.length,
       elapsedMs: Math.round(performance.now() - waveStart), p50Ms: Math.round(durations[1000]),
       p95Ms: Math.round(durations[1900]), maxMs: Math.round(durations.at(-1)),
       healthP95Ms: Math.round(health[Math.floor(health.length * .95)]), healthMaxMs: Math.round(health.at(-1)),
-      ridgeRepresentation: RIDGE_TOPIC_SCHEMA, workerTasks }) + "\n");
+      projectionSeparated: true, workerTasks }) + "\n");
     return reads;
   }
+  async function enrichmentWave(label, version) {
+    const previous = projectionJobs.length;
+    const values = await Promise.all(Array.from({ length: SELECTED_SOURCES }, async (_, index) => {
+      const sourceId = `source-${index}`, topicId = `topic-${index}`;
+      const result = await request("/v1/sources/enrichment", { sourceId, topicId, includeAlternate: true });
+      assert.equal(result.status, 200, `${label}/enrichment`);
+      assert.ok(result.elapsedMs < 30_000, `${label}/enrichment bounded projection deadline`);
+      assert.deepEqual(result.body.catalog.version, version);
+      assert.deepEqual(result.body.discussion.version, version);
+      assert.equal(result.body.discussion.topic.id, topicId);
+      assert.equal(result.body.catalog.sources.find(value => value.id === sourceId)?.topicId, topicId);
+      for (const part of [result.body.related, result.body.priorDiscussions, result.body.alternateDiscussion]) {
+        assert.ok(part, `${label}/complete synthetic supplement`); assert.deepEqual(part.version, version);
+      }
+      assert.equal(result.body.alternateDiscussion.representation, RIDGE_TOPIC_SCHEMA);
+      assert.equal(result.body.alternateDiscussion.sourceId, sourceId);
+      assert.ok(result.body.alternateDiscussion.sourceIds.includes(sourceId));
+      assert.deepEqual(result.body.errors, { related: null, prior: null, alternate: null });
+      return result;
+    }));
+    assert.equal(projectionJobs.length - previous, SELECTED_SOURCES);
+    process.stdout.write(JSON.stringify({ phase: label, accepted: values.length,
+      maxMs: Math.round(Math.max(...values.map(value => value.elapsedMs))), projectionWorkerTasks: projectionJobs.length - previous,
+      ridgeRepresentation: RIDGE_TOPIC_SCHEMA, exactVersion: true }) + "\n");
+  }
   const start = performance.now();
-  const reads = await readWave("cold-learned-ridge", expected);
-  await readWave("warm-coalesced-learned-ridge", expected);
+  const reads = await readWave("cold-canonical-core", expected);
+  await readWave("warm-coalesced-canonical-core", expected);
+  await enrichmentWave("cold-independent-ridge-enrichment", expected);
+  await enrichmentWave("warm-independent-ridge-enrichment", expected);
   assert.equal(Atomics.load(gate, 0), 0, "all read requests finish while ingestion is still held");
   const comment = await request("/v1/commands", { expected, command: { type: "create-root", topicId: "topic-0",
     originSourceId: "source-0", body: "Concurrent synthetic comment remains" } }, { "x-demo-actor": "demo-alex" });
@@ -291,17 +334,18 @@ try {
   const afterWriteWarm = await Promise.all(Array.from({ length: 100 }, async (_, index) => {
     const routes = [["/v1/health"], ["/v1/version"], ["/v1/catalog/context", {
       sourceId: accepted.body.sourceId, topicId: accepted.body.topicId }],
-    ["/v1/related", { sourceId: accepted.body.sourceId, limit: 20 }],
-    [`/v1/sources/${accepted.body.sourceId}/alternate-discussion`]];
+    ["/v1/topics/topic-0/discussion"],
+    ["/v1/catalog/page", { kind: "sources", limit: 1, cursor: null }]];
     const [route, input] = routes[index % routes.length];
     const response = await request(route, input);
     assert.equal(response.status, 200);
     assert.ok(response.elapsedMs < 5_000);
-    if (route !== "/v1/health") assert.deepEqual(response.body.version, accepted.body.version);
+    if (route !== "/v1/health") assert.deepEqual(response.body.version ?? response.body.catalog?.version, accepted.body.version);
     return response;
   }));
   process.stdout.write(JSON.stringify({ phase: "after-accepted-ingestion", acceptedReads: afterWriteWarm.length,
     maxMs: Math.round(Math.max(...afterWriteWarm.map(value => value.elapsedMs))) }) + "\n");
+  await enrichmentWave("fresh-independent-enrichment-after-ingestion", accepted.body.version);
   // Hold only synthetic dispatch to deterministically saturate the normal32-job
   // queue. The real public worker resumes afterward; no production diagnostic seam.
   holdReadDispatch = true;

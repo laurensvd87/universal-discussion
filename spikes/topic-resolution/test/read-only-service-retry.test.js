@@ -26,3 +26,28 @@ test("only transient local read failures retry with a bounded delay", async () =
   retry.dispose();
   assert.equal(pending.size, 0);
 });
+
+test("only explicitly marked public capacity/conflict reads retry, with at most eight attempts per page", async () => {
+  const pending = new Map(); let serial = 0, opens = 0;
+  const retry = createReadOnlyServiceRetry({ open: () => { opens++; },
+    schedule(callback) { pending.set(++serial, callback); return serial; }, cancelSchedule(timer) { pending.delete(timer); } });
+  const resolution = { currentTabId: 7, currentWindowId: 41, currentUrl: "https://example.com/", documentId: "document-a",
+    sessionRevision: "session-one", enabled: true };
+  const state = { phase: "error", error: "capacity", readRetryable: true, resolution };
+  retry.observe({ ...state, readRetryable: false });
+  assert.equal(pending.size, 0);
+  for (let attempt = 0; attempt < 8; attempt++) {
+    retry.observe({ ...state, error: attempt % 2 ? "conflict" : "capacity" });
+    const [key, callback] = [...pending][0]; pending.delete(key); callback(); await Promise.resolve();
+    // An intermediate fast core catalog is not a successful selected-page read.
+    retry.observe({ ...state, phase: "choose-topic", error: null });
+  }
+  retry.observe(state);
+  assert.equal(opens, 8);
+  assert.equal(pending.size, 0);
+  retry.observe({ ...state, resolution: { ...resolution, currentTabId: 8 } });
+  assert.equal(pending.size, 1);
+  retry.observe({ ...state, phase: "choose-topic", error: "context-changed" });
+  assert.equal(pending.size, 0);
+  retry.dispose();
+});

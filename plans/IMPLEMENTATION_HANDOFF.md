@@ -1,5 +1,48 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-13 ADR-109/0.13.62 reviewed/backendACTIVE; fullfinalchecks pass.
+Owner agrees corecanonical first/separateoptional +authenticated30s
+projection only; core/raw5s stay. Fastcontext excludes related/prior/Ridge;
+core32/project8 readonly lanes, ingestbarrier coreonly, noSQLlockthroughCPU.
+POST/sources/enrichment exactOrigin/pairing/optionalaccount/fullschema before
+absoluteaccept+30lease; cannotrepeat/cross/revive. Coherentmandatorycatalog/
+discussion+nullable related/prior/alternate/error4codes; strictmetadata/fullproof,
+bytebounds/currentversion/finalauth renewal. Extensionpublishes coreReadyfirst,
+healthseparate, optionaloneflight/boundedreadonlyretry; nevercommands/reader/
+embedding/ingestion/providerreplay. Newerbundle samegeneration/nondecreasingrevision/
+sameSourceTopic, exactnative/document/session/actor fences. Reviewfixes retain
+partialviews/clearstalehistoricalbodies/originalfullbody-humaneditbindings; toolbar
+optionalalso usesbundle. No extraowner/providercalls/migration/credentialrotation.
+Held10sproductionworker synthetic4175:2000core200/max1374ms;ingestacceptwhileheld,
+oldoptional409/fresh200,delete/auth/cancel/8vs32overflowproofs. Existing2kcorewaves
+all200/exactversion/max1878/1733/1286ms inclsocketsetup,8Sourcebundles200. Not2k
+heavykeys/writes/sec/hostedunlimited or ownerChromeQA. Idlepreactivationrevision3063/
+2434Sources/2449Topics/75posts;no crawler/established/private-running/providerpending,
+all3store/pairingfingerprints recordedprivately. Preserve unrelatedrename/Copilot;
+stageonlynewdocsblocks, notentirefiles. NormalrestartPTY94301 exactall3storehashes/
+pairing/version/counts,providerconnected/notpending. Actualcontext13ms/warm7/
+discussion6,optional20011299ms/allsectionsokay,32coreduringoptional200/max18ms.
+Chromeisolatedpending/busycorevisible/connectedpasses;ownerreload0.13.62 andcheck,
+appsign-inmayrenew. Scans779/245zero. Noownerwrite/crawlerstart/providerinference.
+Fullbackend1011/1006pass+fiveplatformskips, exactrestrictedextension1537pass,
+independentreviews/Chrome31captures/scans pass. Pollingcan'tbypassreadretrybudget;
+toolbarstatusread-freefixture accountsfordetachedprecedingoptional dispatch.
+Read STATUS/ADR109 forfinalcommit evidence.
+
+2026-10-12 ownerstilldisconnected; ADR-108 doesnotproveactualactivecrawl usability.
+Usercontext-changed/Thispagecouldnotmatched/emptyloadingDiscussion. Pairedhealth
+3-8ms200/emptycontext100ms200 atrev2226, selectedcontext5008+5006mstimeouts,
+related/alternate413 afterward;19health200max4ms. No service restart/crawl interruption,
+ownerwrite/providercall. Avoid DBserialize diagnostic whilecrawl (lockobserved).
+Twoindependentreviews: fastcanonicalcontext mustnotwaitrelated/Ridge; separate
+coherent optional projectionlane, rendercanonicaldiscussion before supplements;
+servicehealth evidence distinctfrompage readiness, keepnative/source/doc/actor/
+draft fences. Read-only recovery canhandletransientpublicreads only, never
+backgroundreader/embed/ingest retry expansion. Contextmessage canresultsequence/
+processing change, notprovennavigation. Separateauthenticatedprojection30s timer
+requiresapproval, raw/core5sunchanged; no newcode/deadline change yet. Don't uniquely
+attributecapacity413 (pause/tasks/waiters/bytes/planner/view allsharecode).
+
 2026-10-12 ADR-108 concurrent public read paths ACTIVE, owner approves all connection
 needs/thousands readers and restart after crawler response-timeout. Read STATUS and
 ADR-108:32distinct readonly tasks/4096waiters, exactversion/auth/session/abort/final

@@ -13,7 +13,7 @@ import { createCanonicalReadQueue } from "./canonical-read-queue.js";
 export function createSqliteDemoService({ databasePath, nextId, now, repositoryOptions, storageMode = "auto",
   alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
   resolveAccountActor = null, readAccountActors = () => [],
-  asyncIngest = false, ingestionWorkerOptions = {}, asyncReads = asyncIngest, readWorkerOptions = {},
+  asyncIngest = false, ingestionWorkerOptions = {}, asyncReads = asyncIngest, readWorkerOptions = {}, projectionWorkerOptions = {},
   discoveryDatabasePath = databasePath === ":memory:" ? ":memory:" : `${databasePath}.discovery.sqlite` }) {
   const initialState = createDemoState({ generation: nextId("generation"), createdAt: now(), sources: SYNTHETIC_SOURCES, topicSeeds: SYNTHETIC_TOPIC_SEEDS });
   if (!["auto", "legacy", "normalized"].includes(storageMode)) throw new TypeError("Invalid canonical storage mode");
@@ -28,7 +28,7 @@ export function createSqliteDemoService({ databasePath, nextId, now, repositoryO
   }
   const repository = normalized ? createNormalizedSqliteRepository(databasePath, initialState, repositoryOptions)
     : createSqliteRepository(databasePath, initialState, repositoryOptions);
-  let discover, ingestionExecutor, readExecutor;
+  let discover, ingestionExecutor, readExecutor, projectionExecutor;
   try {
     // Legacy and RAM fixture stores retain their synchronous compatibility path.
     // Worker isolation never migrates a store or writes an owner database itself.
@@ -37,8 +37,12 @@ export function createSqliteDemoService({ databasePath, nextId, now, repositoryO
     }
     if (asyncReads && normalized && databasePath !== ":memory:") {
       readExecutor = createCanonicalReadQueue({ ...readWorkerOptions, databasePath,
+        allowedMethods: ["catalog", "catalogContext", "catalogPage", "discussion", "discussionPage", "exactSource"],
+        alternateAdapter: null, alternateBodyMetric: null, alternateRidgeAdapter: null });
+      projectionExecutor = createCanonicalReadQueue({ maxTasks: 8, timeoutMs: 30000, ...projectionWorkerOptions, databasePath,
+        allowedMethods: ["enrichment", "related", "priorDiscussions", "alternateDiscussion"],
         alternateAdapter, alternateBodyMetric, alternateRidgeAdapter });
-      // Initialize the existing read-only connection and fixed coefficients in
+      // Initialize the fast read-only connection in
       // parallel with normal startup, not inside the first five-second browser
       // read. Empty public context needs no page selection or provider call.
       // This disposable preparation never blocks startup or writes canonical data.
@@ -48,17 +52,18 @@ export function createSqliteDemoService({ databasePath, nextId, now, repositoryO
     const service = createDiscussionService({
       repository, ranking: createFixtureRankingAdapter(), sources: SYNTHETIC_SOURCES,
       topicSeeds: SYNTHETIC_TOPIC_SEEDS, nextId, now, alternateAdapter, alternateBodyMetric, alternateRidgeAdapter,
-      resolveAccountActor, readAccountActors, ingestionExecutor, readExecutor,
+      resolveAccountActor, readAccountActors, ingestionExecutor, readExecutor, projectionExecutor,
     });
     discover = createPublicDiscoveryIndex({ databasePath: discoveryDatabasePath, repository });
     return Object.freeze({ service: Object.freeze({ ...service, discover }), close() {
-      const stopping = Promise.all([ingestionExecutor?.close(), readExecutor?.close()]);
+      const stopping = Promise.all([ingestionExecutor?.close(), readExecutor?.close(), projectionExecutor?.close()]);
       discover.close(); repository.close(); return stopping;
     } });
   } catch (error) {
     discover?.close();
     ingestionExecutor?.close();
     readExecutor?.close();
+    projectionExecutor?.close();
     repository.close();
     throw error;
   }

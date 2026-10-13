@@ -9,7 +9,8 @@ let repository, service;
 parentPort.on("message", ({ id, input }) => {
   try {
     const task = canonicalReadInput(input.method, input.input, input.version);
-    if (!CANONICAL_READ_METHODS.includes(task.method)) throw new TypeError("Invalid public read");
+    if (!CANONICAL_READ_METHODS.includes(task.method) || workerData.allowedMethods && !workerData.allowedMethods.includes(task.method))
+      throw new TypeError("Invalid public read");
     if (!repository) {
       repository = createNormalizedSqliteRepository(workerData.databasePath, null, { readOnly: true });
       service = createDiscussionService({ repository, ranking: createFixtureRankingAdapter(),

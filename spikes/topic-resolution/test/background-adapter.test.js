@@ -757,6 +757,7 @@ test("trusted popup refresh updates posts and withdrawals without capture; statu
   assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#1d4ed8");
   h.state.roots = [{ id: "post-a", rootId: null, replyToId: null, state: "deleted", label: "Deleted by user", replies: [] }];
   await h.send("toolbar-refresh"); assert.equal(h.calls.icons.at(-1).imageData[16].colors[0], "#38bdf8");
+  await flush(); // The preceding refresh dispatches optional enrichment after its core paint.
   const reads = h.calls.fetches.length; await h.send("status"); await h.send("status");
   assert.equal(h.calls.fetches.length, reads); assert.equal(h.calls.reads, captures); assert.equal(h.calls.embeddings, embeddings);
   assert.deepEqual(await h.send("toolbar-refresh", { posts: true }), { error: "unavailable" });

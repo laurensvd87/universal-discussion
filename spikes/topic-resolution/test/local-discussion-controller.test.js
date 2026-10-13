@@ -7,6 +7,8 @@ import { validateAndProjectActiveTabResponse } from "../browser/core/indicator-c
 import { createMemoryDemoService } from "../../../apps/local-service/src/application/create-demo-service.js";
 import { createTabLifecycleObserver } from "../browser/chromium/active-tab-reader.js";
 import { LocalServiceSessionProxyError } from "../browser/core/local-service-session.js";
+import { projectDiscussionShell } from "../browser/chromium/popup-shell.js";
+import { RIDGE_POLICY, RIDGE_REPRESENTATION } from "../browser/core/topic-view-mode.js";
 
 const deferred = () => {
   let resolve, reject;
@@ -14,6 +16,220 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 const turn = () => new Promise((resolve) => setImmediate(resolve));
+function enrichmentBundle(ui, sourceId, topicId) {
+  const catalog = ui.service.catalog();
+  return { catalog, discussion: ui.service.discussion(topicId), related: ui.service.related(sourceId, 20),
+    priorDiscussions: { version: catalog.version, sourceId, currentTopicId: topicId, topics: [] },
+    alternateDiscussion: null, errors: { related: null, prior: null, alternate: null } };
+}
+
+test("production enrichment stays one-flight and cannot delay canonical Ready or verified connection", async t => {
+  const optional = deferred(); let calls = 0;
+  const ui = harness({ client: { async enrichment() { calls++; return optional.promise; } } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.setTopicViewMode("classic");
+  await ui.controller.open(); await turn();
+  const ready = ui.controller.currentState();
+  assert.equal(ready.phase, "ready");
+  assert.equal(ready.enrichmentPending, true);
+  assert.equal(projectDiscussionShell(ready).connection, "connected");
+  assert.equal(calls, 1);
+  const pendingMode = ui.controller.setTopicViewMode("classic");
+  await turn(); assert.equal(calls, 1);
+  optional.resolve(enrichmentBundle(ui, ready.sourceId, ready.topicId));
+  await pendingMode; await turn();
+  assert.equal(ui.controller.currentState().enrichmentPending, false);
+  assert.equal(ui.controller.currentState().related.version.revision, ready.catalog.version.revision);
+});
+
+test("slow failed enrichment keeps canonical feed and bounded retries cancel on navigation", async t => {
+  const pending = new Map(), delays = []; let serial = 0, optionalCalls = 0;
+  const ui = harness({ client: { async enrichment() { optionalCalls++; throw Object.assign(new Error("synthetic busy"), { code: "capacity" }); } },
+    schedule(callback, delay) { delays.push(delay); pending.set(++serial, callback); return serial; },
+    cancelSchedule(timer) { pending.delete(timer); } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.setTopicViewMode("classic"); await ui.controller.open(); await turn();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.ok(ui.controller.currentState().discussion);
+  assert.equal(ui.controller.currentState().relatedError, "capacity");
+  assert.equal(projectDiscussionShell(ui.controller.currentState()).connection, "connected");
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const [key, callback] = [...pending][0]; pending.delete(key); callback(); await turn();
+  }
+  assert.deepEqual(delays, [1000, 2000, 4000, 5000]);
+  assert.equal(optionalCalls, 5);
+  assert.equal(pending.size, 0);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  ui.invalidate();
+  assert.equal(pending.size, 0);
+});
+
+test("late enrichment cannot reattach after genuine navigation or disposal", async t => {
+  for (const change of ["navigate", "dispose"]) {
+    const optional = deferred();
+    const ui = harness({ client: { async enrichment() { return optional.promise; } } });
+    t.after(() => ui.controller.dispose());
+    await ui.controller.setTopicViewMode("classic"); await ui.controller.open(); await turn();
+    const before = ui.controller.currentState();
+    const bundle = enrichmentBundle(ui, before.sourceId, before.topicId);
+    if (change === "navigate") ui.invalidate(); else ui.controller.dispose();
+    optional.resolve(bundle); await turn();
+    assert.equal(ui.controller.currentState().sourceId, null);
+    assert.equal(ui.controller.currentState().discussion, null);
+    assert.equal(ui.controller.currentState().related, null);
+  }
+});
+
+test("fresh coherent enrichment cannot resurrect a deleted reply target", async t => {
+  const optional = deferred();
+  const ui = harness({ client: { async enrichment() { return optional.promise; } } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.setTopicViewMode("classic");
+  const source = ui.service.catalog().sources.find(value => value.id === "reserved-example-com");
+  const created = ui.service.command(ui.service.catalog().version, { type: "create-root", topicId: source.topicId,
+    body: "Published target", originSourceId: source.id }, "demo-alex");
+  await ui.controller.open(); await turn();
+  const ready = ui.controller.currentState();
+  assert.equal(ui.controller.begin("reply", created.result.contributionId), true);
+  ui.controller.setDraft("Unsent exact reply");
+  ui.service.command(ui.service.catalog().version, { type: "withdraw", contributionId: created.result.contributionId }, "demo-alex");
+  optional.resolve(enrichmentBundle(ui, ready.sourceId, ready.topicId)); await turn();
+  assert.equal(ui.controller.currentState().discussion.roots.some(root => root.id === created.result.contributionId && root.state === "visible"), false);
+  assert.equal(await ui.controller.submitDraft(), false);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+
+test("a late foreign-generation enrichment never replaces the current canonical feed", async t => {
+  const optional = deferred(), pending = new Map();
+  const ui = harness({ client: { async enrichment() { return optional.promise; } },
+    schedule(callback) { pending.set(1, callback); return 1; }, cancelSchedule(timer) { pending.delete(timer); } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.setTopicViewMode("classic"); await ui.controller.open(); await turn();
+  const ready = ui.controller.currentState();
+  const bundle = structuredClone(enrichmentBundle(ui, ready.sourceId, ready.topicId));
+  bundle.catalog.version.generation = "foreign-generation";
+  optional.resolve(bundle); await turn();
+  assert.equal(ui.controller.currentState().catalog.version.generation, ready.catalog.version.generation);
+  assert.deepEqual(ui.controller.currentState().discussion, ready.discussion);
+  assert.equal(ui.controller.currentState().relatedError, "conflict");
+  assert.equal(ui.controller.currentState().phase, "ready");
+});
+
+test("canonical public read capacity does not invalidate successful service health evidence", async t => {
+  const ui = harness({ client: { async discussion() { throw Object.assign(new Error("synthetic read busy"), { code: "capacity" }); },
+    async enrichment() { assert.fail("no optional request before canonical Ready"); } } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.open();
+  const state = ui.controller.currentState();
+  assert.equal(state.phase, "error");
+  assert.equal(state.readRetryable, true);
+  assert.equal(state.serviceConnection, "connected");
+  assert.equal(projectDiscussionShell(state).connection, "connected");
+});
+
+test("an accepted external edit detaches the old editor without overwriting newer canonical text", async t => {
+  const optional = deferred();
+  const ui = harness({ client: { async enrichment() { return optional.promise; } } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.setTopicViewMode("classic");
+  const source = ui.service.catalog().sources.find(value => value.id === "reserved-example-com");
+  const created = ui.service.command(ui.service.catalog().version, { type: "create-root", topicId: source.topicId,
+    body: "Original published text", originSourceId: source.id }, "demo-alex");
+  await ui.controller.open(); await turn();
+  assert.equal(ui.controller.begin("edit", created.result.contributionId), true);
+  ui.controller.setDraft("My unsent edit");
+  ui.service.command(ui.service.catalog().version, { type: "edit", contributionId: created.result.contributionId,
+    body: "Another already accepted edit" }, "demo-alex");
+  const ready = ui.controller.currentState();
+  optional.resolve(enrichmentBundle(ui, ready.sourceId, ready.topicId)); await turn();
+  assert.equal(ui.controller.currentState().draft.body, "My unsent edit");
+  assert.equal(ui.controller.currentState().draft.detached, true);
+  assert.equal(await ui.controller.submitDraft(), false);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  assert.equal(ui.service.discussion(source.topicId).roots[0].body, "Another already accepted edit");
+});
+
+test("partial related failure cannot erase valid alternate/prior data or its fixed alternate error", async t => {
+  for (const alternateFails of [false, true]) {
+    let ui;
+    ui = backgroundHarness({ schedule: () => 1, cancelSchedule() {}, client: { async enrichment({ sourceId, topicId }) {
+      const bundle = enrichmentBundle(ui, sourceId, topicId);
+      bundle.related = null; bundle.errors.related = "capacity";
+      if (alternateFails) bundle.errors.alternate = "unavailable";
+      else bundle.alternateDiscussion = { sourceId, version: bundle.catalog.version, sourceIds: [sourceId],
+        mode: "alternate-provisional", policyVersion: RIDGE_POLICY, representation: RIDGE_REPRESENTATION,
+        canonical: { topic: bundle.discussion.topic, discussionId: bundle.discussion.discussionId }, roots: [], pinnedRoots: [] };
+      return bundle;
+    } } });
+    t.after(() => ui.controller.dispose());
+    ui.ingest(); await ui.controller.open(); await turn();
+    const current = ui.controller.currentState();
+    assert.equal(current.phase, "ready");
+    assert.equal(current.relatedError, "capacity");
+    assert.ok(current.priorDiscussions);
+    if (alternateFails) assert.equal(current.alternateError, "unavailable");
+    else assert.equal(current.alternateDiscussion?.mode, "alternate-provisional");
+  }
+});
+
+test("a newer coherent bundle clears old historical and related bodies before optional reloading", async t => {
+  let ui, sourceId = "reserved-example-com";
+  const earlier = { id: "earlier-optional", title: "Earlier synthetic", kind: "general" };
+  const peer = { id: "peer-optional", title: "Peer synthetic", kind: "general" };
+  const peerSource = { id: "peer-source", title: "Peer page", url: "https://example.org/peer", topicId: peer.id };
+  const catalog = () => { const value = structuredClone(ui.service.catalog());
+    value.topics.push(earlier, peer); value.sources.push(peerSource); return value; };
+  let newer = false;
+  ui = harness({ schedule: () => 1, cancelSchedule() {}, client: {
+    async catalog() { return catalog(); },
+    async discussion(topicId) {
+      if (![earlier.id, peer.id].includes(topicId)) return ui.service.discussion(topicId);
+      return { version: ui.service.catalog().version, topic: topicId === earlier.id ? earlier : peer,
+        discussionId: `discussion-${topicId}`, roots: [{ id: `root-${topicId}`, rootId: null, replyToId: null,
+          state: "visible", actorType: "human", authorId: "demo-alex", body: "Old optional body", edited: false,
+          origin: { sourceId: topicId === earlier.id ? sourceId : peerSource.id,
+            url: topicId === earlier.id ? "https://example.com/" : peerSource.url, title: "Synthetic origin" },
+          createdAt: "2026-10-12T12:00:00Z", replies: [] }] };
+    },
+    async enrichment({ topicId }) {
+      const base = enrichmentBundle(ui, sourceId, topicId); base.catalog = catalog();
+      if (newer) return { ...base, related: null, priorDiscussions: null,
+        errors: { related: "capacity", prior: "capacity", alternate: null } };
+      return { ...base, related: { version: base.catalog.version, model: base.catalog.model,
+        results: [{ ...peerSource, relationship: "related", method: "synthetic" }] },
+      priorDiscussions: { version: base.catalog.version, sourceId, currentTopicId: topicId,
+        topics: [{ ...earlier, rootCount: 1, sourceCount: 1 }] } };
+    },
+  } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.setTopicViewMode("classic"); await ui.controller.open(); await turn(); await turn();
+  assert.equal(ui.controller.currentState().earlierDiscussions.length, 1);
+  assert.equal(ui.controller.currentState().relatedDiscussions.length, 1);
+  newer = true;
+  const topicId = ui.controller.currentState().topicId;
+  ui.service.command(ui.service.catalog().version, { type: "create-root", topicId, body: "New canonical revision" }, "demo-alex");
+  await ui.controller.setTopicViewMode("classic");
+  const current = ui.controller.currentState();
+  assert.equal(current.earlierDiscussions.length, 0);
+  assert.equal(current.relatedDiscussions.length, 0);
+  assert.equal(current.catalog.version.revision, ui.service.catalog().version.revision);
+  assert.equal(current.discussion.version.revision, current.catalog.version.revision);
+});
+
+test("production status polling cannot bypass bounded public-read recovery", async t => {
+  let reads = 0;
+  const ui = backgroundHarness({ client: {
+    async discussion() { reads++; throw Object.assign(new Error("synthetic busy"), { code: "capacity" }); },
+    async enrichment() { assert.fail("no optional work while canonical read fails"); },
+  } });
+  t.after(() => ui.controller.dispose());
+  ui.ingest(); await ui.controller.open();
+  assert.equal(ui.controller.currentState().readRetryable, true);
+  for (let poll = 0; poll < 5; poll++) await ui.publish();
+  assert.equal(reads, 1);
+  await ui.controller.open();
+  assert.equal(reads, 2, "an explicit read-only reopen can reattest the page and retry");
+});
 function harness(overrides = {}) {
   let id = 0;
   const service = createMemoryDemoService({ nextId: (type) => `${type}-${++id}`, now: () => "2026-09-28T12:00:00.000Z" });
@@ -1084,6 +1300,11 @@ test("missing Source and stale bounded refresh cannot preserve write authority o
       full.version.revision += revisionOffset;
       if (missing) full.sources = [];
       return full;
+    },
+    async discussion(topicId) {
+      const view = structuredClone(ui.service.discussion(topicId));
+      view.version.revision += revisionOffset;
+      return view;
     },
   } });
   await ui.controller.open();

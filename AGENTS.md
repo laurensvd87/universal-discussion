@@ -8,6 +8,18 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current independent canonical feed / optional matching (2026-10-13, ADR-109,
+0.13.62): owner approves canonical first, separate optional lane and exact-Origin
+authenticated projection30s lease only; raw/core5s remain. Read STATUS/HANDOFF
+for final evidence: fullbackend/restrictedclient/isolatedChrome/independent checks
+pass and idle normal restart preserves all3stores/pairing/provider sign-in.
+Reload extension0.13.62; owner actual-profile check remains. Core32/project8 readonly workers retain
+version/auth/session/byte/abort/final-delivery fences; ingestion drains only core.
+Coherent strict enrichment metadata never supplies new write/provider authority.
+Client separates health from page readiness, bounded read-only recovery and
+fresh native/document/actor/full-target checks; no embedding/ingestion/provider
+replay. Preserve unrelated naming/Copilot work and no additional inference grant.
+
 Current concurrent public connection/page reads (2026-10-12, ADR-108): owner
 approves isolation for all connection reads/thousands readers and restart after
 crawler stopped. Read STATUS/HANDOFF. Verified final normal service restart is

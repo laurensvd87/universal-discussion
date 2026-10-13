@@ -13,6 +13,7 @@ export const TRANSPORT_LIMITS = Object.freeze({
   requestMs: 5_000,
   authenticatedModelsMs: 30_000,
   authenticatedIngestionMs: 30_000,
+  authenticatedProjectionMs: 30_000,
   connections: 4_096,
   bufferedBodyBytes: 8 * 1024 * 1024,
   bufferedResponseBytes: 16 * 1024 * 1024,
@@ -102,6 +103,7 @@ export function createTransportHandler(handle) {
     const transportContext = Object.freeze({
       leaseAuthenticatedModels() { return leaseAuthenticatedResponse(TRANSPORT_LIMITS.authenticatedModelsMs); },
       leaseAuthenticatedIngestion() { return leaseAuthenticatedResponse(TRANSPORT_LIMITS.authenticatedIngestionMs); },
+      leaseAuthenticatedProjection() { return leaseAuthenticatedResponse(TRANSPORT_LIMITS.authenticatedProjectionMs); },
       signal: controller.signal,
       isCurrent() {
         return !finished && !controller.signal.aborted && !response.destroyed && !response.writableEnded &&

@@ -10,6 +10,9 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
     const {mountPrivateConversationPanel}=await import('./private-conversation-panel.js');
     const {mountDiscoveryPanel}=await import('./discovery-panel.js');
     window.visualShell?.dispose(); window.visualDiscussionPanel?.dispose(); window.visualInsightPanel?.dispose();
+    // The original disposed shell rehomed this node outside the discussion root.
+    // Remove that inert duplicate before the synthetic renderer owns the ID.
+    for(const stale of document.querySelectorAll('#discussion-connection-settings'))stale.remove();
     const root=document.querySelector('#local-discussion');root.replaceChildren();
     const host=document.createElement('div');host.id='app-discussion-insights-host';root.append(host);
     const insightRoot=document.querySelector('#local-insights')??document.createElement('section');
@@ -335,6 +338,37 @@ export async function checkCommunityVisual({ browser, sessionId, evaluate, captu
   await capture('community-inline-reply-voice-menu',sessionId,{fluid:true});
   await evaluate("document.querySelector('[data-contribution-id=voice-reply][data-action=getinsights]').closest('.assistant-voice-control').querySelector('[data-voice=mediator]').click()",sessionId);
   assert.equal(await evaluate("document.querySelector('#discussion-body').value==='How would that work here?'&&document.querySelectorAll('#insight-voice').length===1",sessionId),true);
+  await evaluate(`(() => {
+    const state=window.communityState;
+    state.serviceConnection='connected';state.enrichmentPending=true;state.related=null;state.relatedError=null;
+    state.alternateDiscussion=null;state.alternateError=null;state.priorDiscussionsError=null;
+    state.topicViewMode='experimental';state.catalog.sources.find(source=>source.id===state.sourceId).provenance='owner-local-page-embedding/v1';
+    state.resolution={enabled:true,phase:'ready'};
+    window.communityPublic.render(state);window.communityShell.render(state);
+  })()`,sessionId);
+  const pendingEvidence=await evaluate(`(() => ({
+    loadingHidden:document.querySelector('#discussion-loading-scene')?.hidden,
+    connection:document.querySelector('#discussion-connection-settings')?.getAttribute('data-connection'),
+    cardPresent:!!document.querySelector('[data-post-id=voice-root]'),
+    cardVisible:(document.querySelector('[data-post-id=voice-root]')?.getClientRects().length??0)>0,
+    phase:window.communityState.phase,mode:window.communityState.topicViewMode,
+    discussionVisible:document.querySelector('#app-view-discussion')?.getClientRects().length>0,
+    rootCount:window.communityState.discussion.roots.length,
+    pending:window.communityState.enrichmentPending
+  }))()`,sessionId);
+  assert.ok(pendingEvidence.loadingHidden&&pendingEvidence.connection==='connected'&&pendingEvidence.cardVisible,
+    'canonical feed stays visible and connected while optional enrichment is pending: '+JSON.stringify(pendingEvidence));
+  await capture('community-core-ready-enrichment-pending',sessionId,{fluid:true});
+  await evaluate(`(() => {
+    const state=window.communityState;state.enrichmentPending=false;
+    state.resolution={enabled:true,phase:'error',reason:'unavailable'};
+    window.communityPublic.render(state);window.communityShell.render(state);
+  })()`,sessionId);
+  assert.equal(await evaluate(`document.querySelector('#discussion-connection-settings').getAttribute('data-connection')==='connected'&&
+    document.querySelector('#discussion-status').textContent.includes('temporarily busy')&&
+    document.querySelector('[data-post-id=voice-root]')?.getClientRects().length>0`,sessionId),true,
+    "page matching busy does not hide a verified connection or canonical feed");
+  await capture('community-connected-page-matching-busy',sessionId,{fluid:true});
   await evaluate("window.communityDispose()",sessionId);
   process.stdout.write("Community Chrome checks: related pages/global search, twenty-result My chats/read-only preview pages, synchronized sparkle voice menus, private replies, source links/focus and 320/390/480px layouts passed.\n");
 }

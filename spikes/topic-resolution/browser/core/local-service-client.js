@@ -1,6 +1,7 @@
 import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDiscussion, readHealth,
   readId, readLimit, readOutcome, readPairingToken, readRelated, readPriorDiscussions, readReset, readVersion,
-  readIngestion, readIngestionOutcome, readAlternateDiscussion, isAccountActorId } from "./local-service-contract.js";
+  readIngestion, readIngestionOutcome, readAlternateDiscussion, isAccountActorId,
+  readEnrichmentRequest, readEnrichment } from "./local-service-contract.js";
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 import { readAccountAuthError } from "./account-auth-response.js";
 import { readDiscovery, readPrivateResponse, readAccountPublicChatsRequest, readAccountPublicChatsResponse } from "./community-contract.js";
@@ -9,6 +10,7 @@ const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
 const MAX_RESPONSE_BYTES = 1_048_576;
 const INGESTION_TIMEOUT_MS = 30_000;
+const PROJECTION_TIMEOUT_MS = 30_000;
 const encoder = new TextEncoder();
 const confirmedIngestionConflicts = new WeakSet();
 // Construction/code properties cannot manufacture evidence of a received response.
@@ -40,7 +42,8 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
         activeReader?.cancel().catch(() => {});
         reject(new LocalServiceClientError("unavailable"));
       };
-      timer = setTimeout(cancel, path === "/sources/ingest" ? INGESTION_TIMEOUT_MS : timeoutMs);
+      timer = setTimeout(cancel, path === "/sources/ingest" ? INGESTION_TIMEOUT_MS :
+        path === "/sources/enrichment" ? PROJECTION_TIMEOUT_MS : timeoutMs);
     });
     if (signal?.aborted) cancel();
     signal?.addEventListener("abort", cancel, { once: true });
@@ -204,6 +207,10 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
         }
         return outcome;
       }, signal);
+    },
+    async enrichment(value, { signal } = {}) {
+      const body = input(() => readEnrichmentRequest(value));
+      return request("/sources/enrichment", body, undefined, value => readEnrichment(value, body), signal);
     },
     async related(sourceId, limit = 5, { signal } = {}) {
       const body = input(() => ({ sourceId: readId(sourceId), limit: readLimit(limit) }));

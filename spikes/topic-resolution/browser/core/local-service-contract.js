@@ -323,6 +323,53 @@ export function readAlternateDiscussion(value, sourceId, catalog, canonicalDiscu
     sourceId, canonical: { topic: canonicalTopic, discussionId: canonical.discussionId }, sourceIds,
     roots: projectedRoots, pinnedRoots };
 }
+export function readEnrichmentRequest(value) {
+  const item = record(value, ["sourceId", "topicId", "includeAlternate"]);
+  if (typeof item.includeAlternate !== "boolean") invalid();
+  return { sourceId: readId(item.sourceId), topicId: readId(item.topicId), includeAlternate: item.includeAlternate };
+}
+export function readEnrichment(value, request) {
+  const input = readEnrichmentRequest(request);
+  const item = record(value, ["catalog", "discussion", "related", "priorDiscussions", "alternateDiscussion", "errors"]);
+  const catalog = readCatalog(item.catalog);
+  const source = catalog.sources.find(source => source.id === input.sourceId);
+  const topicRow = catalog.topics.find(topic => topic.id === input.topicId);
+  if (!source || source.topicId !== input.topicId || !topicRow) invalid();
+  const discussion = readDiscussion(item.discussion, input.topicId);
+  const same = version => version.generation === catalog.version.generation && version.revision === catalog.version.revision;
+  if (!same(discussion.version) || discussion.topic.title !== topicRow.title || discussion.topic.kind !== topicRow.kind) invalid();
+  const rawErrors = record(item.errors, ["related", "prior", "alternate"]);
+  const errors = {};
+  for (const key of ["related", "prior", "alternate"]) errors[key] = rawErrors[key] === null ? null :
+    oneOf(rawErrors[key], ["unavailable", "capacity", "conflict", "invalid-response"]);
+  const present = (body, error) => { if ((body === null) !== (error !== null)) invalid(); };
+  present(item.related, errors.related); present(item.priorDiscussions, errors.prior);
+  let related = null, priorDiscussions = null, alternateDiscussion = null;
+  if (item.related !== null) {
+    related = readRelated(item.related, 20);
+    if (!same(related.version)) invalid();
+    for (const entry of related.results) {
+      const row = catalog.sources.find(source => source.id === entry.id);
+      if (!row || row.url !== entry.url || row.title !== entry.title || row.topicId !== entry.topicId) invalid();
+    }
+  }
+  if (item.priorDiscussions !== null) {
+    priorDiscussions = readPriorDiscussions(item.priorDiscussions, input.sourceId);
+    if (!same(priorDiscussions.version) || priorDiscussions.currentTopicId !== input.topicId) invalid();
+    for (const entry of priorDiscussions.topics) {
+      const row = catalog.topics.find(topic => topic.id === entry.id);
+      if (!row || row.title !== entry.title || row.kind !== entry.kind) invalid();
+    }
+  }
+  if (!input.includeAlternate) {
+    if (item.alternateDiscussion !== null || errors.alternate !== null) invalid();
+  } else {
+    present(item.alternateDiscussion, errors.alternate);
+    if (item.alternateDiscussion !== null)
+      alternateDiscussion = readAlternateDiscussion(item.alternateDiscussion, input.sourceId, catalog, discussion);
+  }
+  return { catalog, discussion, related, priorDiscussions, alternateDiscussion, errors };
+}
 export function readOutcome(value, commandType) {
   const item = record(value, ["version", "result"]);
   if (commandType === "correct-source") {

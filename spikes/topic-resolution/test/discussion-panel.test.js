@@ -276,7 +276,7 @@ test("User matching states stay quiet except accessible loading and bottom error
     ui.panel.render(state({ phase: "loading", resolution }));
     assert.equal(scene.hidden, true);
     assert.equal(status.attributes["data-loading"], "false");
-    assert.equal(status.textContent, EN.uiMatchingFailed);
+    assert.equal(status.textContent, resolution.phase === "error" ? EN.uiMatchingServiceBusy : EN.uiMatchingFailed);
     assert.equal(status.hidden, false);
   }
   ui.panel.render(state({ phase: "error", error: null }));

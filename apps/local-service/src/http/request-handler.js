@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { ServiceError, fail } from "../domain/errors.js";
-import { readRecord } from "../domain/validation.js";
+import { readRecord, readId } from "../domain/validation.js";
 import { readLearnedIngest } from "../domain/learned-sources.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 import { mapAccountError, routeAccountRequest } from "../accounts/account-routes.js";
@@ -226,6 +226,17 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
   if (request.method === "GET" && path === "/v1/catalog") return publicRead("catalog");
   if (request.method === "GET" && path === "/v1/version") return { status: 200, value: { version: service.version() } };
   if (request.method === "POST" && path === "/v1/catalog/context") return publicRead("catalogContext", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/sources/enrichment") {
+    if (request.headers.origin !== origin) fail("forbidden", "Origin unavailable");
+    const input = readRecord(parseJsonBody(request), ["sourceId", "topicId", "includeAlternate"]);
+    readId(input.sourceId); readId(input.topicId);
+    if (typeof input.includeAlternate !== "boolean") fail("invalid", "Invalid request");
+    // Only this exact paired, validated public projection route gets the lease.
+    // Raw ingress and canonical context/discussion/health still have five seconds.
+    if (transportContext?.leaseAuthenticatedProjection && !transportContext.leaseAuthenticatedProjection())
+      fail("unavailable", "Request unavailable");
+    return publicRead("enrichment", input);
+  }
   if (request.method === "POST" && path === "/v1/catalog/page") return publicRead("catalogPage", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discussions/page") return publicRead("discussionPage", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {

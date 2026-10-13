@@ -5,12 +5,15 @@ import { readTopicViewMode, writeTopicViewMode } from "../core/topic-view-mode.j
 export function projectDiscussionShell(state, messages = EN) {
   const text = (key) => messages?.[key] ?? EN[key];
   let connection = "disconnected";
-  if (state.phase === "connecting") connection = "connecting";
-  else if (state.error === "unauthorized" || state.phase === "disconnected") connection = "disconnected";
+  if (state.error === "unauthorized" || state.serviceConnection === "disconnected" ||
+      state.phase === "disconnected" && state.serviceConnection !== "connected") connection = "disconnected";
   else if (state.phase === "error" && state.error === "extension-connection-unavailable") connection = "extension-unavailable";
+  else if (state.serviceConnection === "connected") connection = "connected";
+  else if (state.phase === "connecting") connection = "connecting";
+  else if (state.serviceConnection === "unavailable") connection = "unavailable";
   else if (state.phase === "error" && !["conflict", "capacity", "invalid-request", "context-changed"].includes(state.error)) connection = "unavailable";
   else if (state.catalog && ["ready", "choose-topic", "loading", "error"].includes(state.phase)) connection = "connected";
-  if (connection === "connected" && state.resolution?.phase === "error" && state.resolution.reason === "unavailable") connection = "unverified";
+  if (state.serviceConnection === undefined && connection === "connected" && state.resolution?.phase === "error" && state.resolution.reason === "unavailable") connection = "unverified";
   const selected = ["ready", "loading"].includes(state.phase) && !state.error
     ? state.catalog?.topics.find((topic) => topic.id === state.topicId) : null;
   const processing = state.resolution?.enabled === true && ["checking", "processing"].includes(state.resolution?.phase);

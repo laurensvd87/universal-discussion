@@ -1,5 +1,66 @@
 # Project status
 
+**2026-10-13 independent canonical feed / optional matching ACTIVE (ADR-109,0.13.62).**
+Owner explicitly approves fast canonical context/discussion before optional
+matching, a separate authenticated projection30s lease, core/raw5s unchanged.
+Implementation uses independent core32/projection8 bounded readonly lanes;
+projection never joins ingestion's core commit barrier. New exact-Origin paired
+enrichment endpoint returns coherent catalog/discussion + strict nullable
+related/prior/Ridge metadata and fixed errors. Current-version/auth/session/
+abort/finalencoding/byte/retirement fences remain; no command/provider/capture
+retry expansion. Client canonical-ready rendering, independent health evidence,
+singleflight optional reads and bounded transient read-only recovery preserve
+document/session/actor/draft/target authority. Review fixes protect partial
+optional views, clear old historical bodies and bind human edits to original
+full target body before adopting a newer bundle. Toolbar integration also moves
+optional Ridge off its old coupled five-second path. Independent reviews accept;
+normal backend activated, client requires0.13.62reload. No new provider inference,
+owner ingestion or migration. Final fullbackend1011 (1006pass/fiveplatformskips),
+restrictedextension1537/1537, independentreviews/isolatedChrome31captures pass.
+Polling cannot bypass the bounded read-recovery budget; legacy coherent reads
+and detached toolbar optional work retain read-free status queries.
+
+New synthetic4175only real-worker ten-second optional hold: 2000core200/max1374ms,
+ingestion accepted while optionalpending, oldoptional409/fresh200. Cancellation,
+deletion/auth expiry and separate8/32-taskoverflow leavecorehealthy. Updated
+existing2k corecold/warm/concurrentcommitwaves all200/exactversion within5s
+including socketsetup; max1878/1733/1286ms, separate8SourceRidgebundles all200.
+This is bounded core-read evidence, not thousandsheavyprojections/writes/sec,
+newSYNburst, hostedrelease/unlimitedgrowth or owner's actual Chrome verification.
+No crawler process/establishedrequest/private runningclaim/providerpending at
+preactivation check: revision3063,2434Sources/2449Topics/75posts; canonical/private/
+crawler fingerprints and saved pairing recorded privately for restart checking.
+Normal restart PTY94301 preserves exact canonical/private/crawler fingerprints,
+pairing hash and protected connected/notpending sign-in; record/version/counts
+remain exact. Actual selectedcontext13ms/warm7/discussion6, optional20011299ms
+withallsections successful;32core duringoptionalall200/max18ms. Isolated Chrome
+corevisible/connected while optionalpending orpagebusy passes; actual owner
+Chrome needs reload/check, appsign-in may renew. Scans779/245zero. Preserve
+unrelated checked-but-uncommitted Murmingle/Copilot changes.
+
+**2026-10-12 owner still disconnected during active crawl: corrective diagnosis.**
+User reports context-changed / This page could not be matched and loading empty
+Discussion. Paired health/version return200 in3-8ms, emptycontext200 ~100ms at
+revision2226; actual selectedcontext times out5008ms then5006ms, subsequentrelated/
+alternate get413capacity.19concurrenthealthprobes200/max4ms. Thus ADR-108 solved
+main event-loop blocking, not live selected-page availability under current crawl.
+Do not claim owner's extension connection is verified. Diagnostic database
+serialization hit a lock during crawl; subsequent probes are HTTP-only, no
+snapshots, write/restart/crawler interruption or provider calls.
+
+Independent read-path/client reviews identify canonicalcontext still coupled to
+related/Ridge enrichment;5s timeout retires worker and loses plan caches, commit
+barrier can reject new reads while draining. Capacity code is ambiguous (admission,
+pause, resource/planner/view bound); do not uniquely attribute413. Client derives
+connection from whole page phase, Promise.all supplements can hide canonicalfeed,
+only unavailable read retries; sequence/processing changes may show navigation
+wording without proven navigation. Preserve invalidation/write/draft fences.
+Proposed correction: fast canonical context/discussion independent of optional
+projection worker +coherent version-bound metadata; genuine health vs page state;
+bounded read-only recovery, never commands/embedding/ingestion/provider replay.
+Dedicated authenticated projection30s window needs explicit approval; raw/core
+reads remain5s. No implementation or deadline relaxation under this diagnosis.
+
 **2026-10-12 concurrent public connection/page reads ACTIVE (ADR-108):**
 Owner approves complete connection-path concurrency and explicitly allows restart
 once crawler stopped response-timeout after25accepted. Normal normalizeddisk CLI

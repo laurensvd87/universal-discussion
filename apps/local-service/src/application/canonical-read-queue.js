@@ -5,7 +5,7 @@ import { ServiceError, fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId, readRecord } from "../domain/validation.js";
 
 export const CANONICAL_READ_METHODS = Object.freeze(["catalogContext", "alternateDiscussion", "priorDiscussions", "related",
-  "catalog", "catalogPage", "discussion", "discussionPage", "exactSource"]);
+  "catalog", "catalogPage", "discussion", "discussionPage", "exactSource", "enrichment"]);
 const fixedError = code => new ServiceError(code, code === "conflict" ? "State changed" : "Public read unavailable");
 
 export function canonicalReadInput(method, input, version) {
@@ -36,7 +36,11 @@ export function canonicalReadInput(method, input, version) {
   let value = plain(input);
   if (method === "catalog") { if (value !== null) fail("invalid", "Invalid request"); }
   else if (["alternateDiscussion", "priorDiscussions", "discussion", "exactSource"].includes(method)) value = readId(value);
-  else if (method === "catalogContext") {
+  else if (method === "enrichment") {
+    const record = readRecord(value, ["sourceId", "topicId", "includeAlternate"]);
+    if (typeof record.includeAlternate !== "boolean") fail("invalid", "Invalid request");
+    value = { sourceId: readId(record.sourceId), topicId: readId(record.topicId), includeAlternate: record.includeAlternate };
+  } else if (method === "catalogContext") {
     const record = readRecord(value, ["sourceId", "topicId"]);
     value = { sourceId: record.sourceId === null ? null : readId(record.sourceId), topicId: record.topicId === null ? null : readId(record.topicId) };
   } else if (method === "related") {
@@ -51,11 +55,15 @@ export function canonicalReadInput(method, input, version) {
 
 export function createCanonicalReadQueue({ databasePath, alternateAdapter = null, alternateBodyMetric = null,
   alternateRidgeAdapter = null, maxTasks = 32, maxWaiters = 4096, maxInputBytes = 8 * 1024 * 1024,
-  timeoutMs = 15000, maxCommits = 8, workerFactory = () => new Worker(new URL("./canonical-read-worker.js", import.meta.url), {
-    workerData: { databasePath, alternateAdapter, alternateBodyMetric, alternateRidgeAdapter },
+  timeoutMs = 15000, maxCommits = 8, allowedMethods = CANONICAL_READ_METHODS,
+  workerFactory = () => new Worker(new URL("./canonical-read-worker.js", import.meta.url), {
+    workerData: { databasePath, alternateAdapter, alternateBodyMetric, alternateRidgeAdapter, allowedMethods },
     execArgv: process.execArgv.filter(argument => !argument.startsWith("--test")),
     resourceLimits: { maxOldGenerationSizeMb: 256, maxYoungGenerationSizeMb: 32, stackSizeMb: 4 },
   }) } = {}) {
+  if (!Array.isArray(allowedMethods) || !allowedMethods.length || new Set(allowedMethods).size !== allowedMethods.length ||
+      allowedMethods.some(method => !CANONICAL_READ_METHODS.includes(method))) throw new TypeError("Invalid public read methods");
+  const permittedMethods = Object.freeze([...allowedMethods]);
   if (!Number.isSafeInteger(maxWaiters) || maxWaiters < 1 || maxWaiters > 4096 ||
       !Number.isSafeInteger(maxInputBytes) || maxInputBytes < 65536 || maxInputBytes > 8 * 1024 * 1024 ||
       !Number.isSafeInteger(maxCommits) || maxCommits < 1 || maxCommits > 8)
@@ -135,6 +143,7 @@ export function createCanonicalReadQueue({ databasePath, alternateAdapter = null
     read(method, input, { version, signal, isCurrent } = {}) {
       let task;
       try { task = canonicalReadInput(method, input, version); } catch (error) { return Promise.reject(error); }
+      if (!permittedMethods.includes(method)) return Promise.reject(fixedError("invalid"));
       if (closed || retirementFailed || signal?.aborted) return Promise.reject(fixedError("unavailable"));
       if (waiterCount >= maxWaiters) return Promise.reject(fixedError("capacity"));
       const key = JSON.stringify(task), bytes = Buffer.byteLength(key, "utf8");
