@@ -9,6 +9,7 @@ import { MAX_DOCUMENT_BYTES } from "../domain/repository-contract.js";
 
 export const CATALOG_GROWTH_INTERVAL_MS = 60_000;
 export const CATALOG_GROWTH_FILENAME = "topic-growth.sqlite";
+export const CATALOG_GROWTH_V2_FILENAME = "topic-growth-v2.sqlite";
 export const CATALOG_GROWTH_RETENTION = Object.freeze({ minuteHours: 24, hourlyDays: 90, maxPoints: 4096 });
 const PROVENANCE = "owner-local-page-embedding/v1";
 const SCHEMA = "catalog-growth/v1";
@@ -18,6 +19,18 @@ const HISTORY_DDL = `CREATE TABLE catalog_growth(
   revision INTEGER NOT NULL CHECK(revision>=0), total_sources INTEGER NOT NULL CHECK(total_sources>=0),
   learned_pages INTEGER NOT NULL CHECK(learned_pages>=0), active_topics INTEGER NOT NULL CHECK(active_topics>=0),
   total_topics INTEGER NOT NULL CHECK(total_topics>=0), PRIMARY KEY(series_id,bucket)) STRICT`;
+const V1 = Object.freeze({ schema: SCHEMA, counters: COUNTERS,
+  columns: ["total_sources", "learned_pages", "active_topics", "total_topics"], ddl: HISTORY_DDL, membership: false });
+const V2 = Object.freeze({ schema: "catalog-growth/v2",
+  counters: ["totalSources", "learnedPages", "activeTopics", "totalTopics", "multiMemberTopics", "singletonTopics"],
+  columns: ["total_sources", "learned_pages", "active_topics", "total_topics", "multi_member_topics", "singleton_topics"],
+  membership: true,
+  ddl: `CREATE TABLE catalog_growth(
+    series_id TEXT NOT NULL, bucket INTEGER NOT NULL, at INTEGER NOT NULL,
+    revision INTEGER NOT NULL CHECK(revision>=0), total_sources INTEGER NOT NULL CHECK(total_sources>=0),
+    learned_pages INTEGER NOT NULL CHECK(learned_pages>=0), active_topics INTEGER NOT NULL CHECK(active_topics>=0),
+    total_topics INTEGER NOT NULL CHECK(total_topics>=0), multi_member_topics INTEGER NOT NULL CHECK(multi_member_topics>=0),
+    singleton_topics INTEGER NOT NULL CHECK(singleton_topics>=0), PRIMARY KEY(series_id,bucket)) STRICT` });
 const normalizeSQL = value => value.replace(/\s+/gu, " ").trim();
 const fail = () => { throw new Error("Catalog growth unavailable"); };
 
@@ -50,20 +63,27 @@ function epoch(now) {
   if (!Number.isSafeInteger(value) || value < 0) fail();
   return value;
 }
-function validPoint(value) {
+function validPoint(value, definition = V1) {
   if (!value || typeof value.seriesId !== "string" || !/^[a-f0-9]{64}$/u.test(value.seriesId) ||
       !Number.isSafeInteger(value.revision) || value.revision < 0 ||
       typeof value.at !== "string" || new Date(value.at).toISOString() !== value.at ||
-      COUNTERS.some(key => !Number.isSafeInteger(value[key]) || value[key] < 0) ||
-      value.learnedPages > value.totalSources || value.activeTopics > value.totalTopics || value.activeTopics > value.learnedPages) fail();
+      definition.counters.some(key => !Number.isSafeInteger(value[key]) || value[key] < 0) ||
+      value.learnedPages > value.totalSources || value.activeTopics > value.totalTopics ||
+      (definition.membership ? value.activeTopics !== value.multiMemberTopics + value.singletonTopics : value.activeTopics > value.learnedPages)) fail();
   return value;
 }
-function dto(points) { return { schemaVersion: SCHEMA, points, retention: { ...CATALOG_GROWTH_RETENTION } }; }
+function dto(points, definition = V1) { return { schemaVersion: definition.schema, points, retention: { ...CATALOG_GROWTH_RETENTION } }; }
 export function validateCatalogGrowthHistory(value) {
+  return validateHistory(value, V1);
+}
+export function validateCatalogGrowthHistoryV2(value) {
+  return validateHistory(value, V2);
+}
+function validateHistory(value, definition) {
   try {
     if (types.isProxy(value)) fail();
     const history = readRecord(value, ["schemaVersion", "points", "retention"]);
-    if (history.schemaVersion !== SCHEMA || types.isProxy(history.retention) || types.isProxy(history.points)) fail();
+    if (history.schemaVersion !== definition.schema || types.isProxy(history.retention) || types.isProxy(history.points)) fail();
     const retention = readRecord(history.retention, Object.keys(CATALOG_GROWTH_RETENTION));
     if (Object.entries(CATALOG_GROWTH_RETENTION).some(([key, expected]) => retention[key] !== expected) ||
         !Array.isArray(history.points) || history.points.length > CATALOG_GROWTH_RETENTION.maxPoints) fail();
@@ -74,19 +94,19 @@ export function validateCatalogGrowthHistory(value) {
     return dto(Array.from({ length: history.points.length }, (_, index) => {
       const descriptor = descriptors[index];
       if (!descriptor || !Object.hasOwn(descriptor, "value") || types.isProxy(descriptor.value)) fail();
-      const candidate = readRecord(descriptor.value, ["at", "seriesId", "revision", ...COUNTERS]);
-      validPoint(candidate);
+      const candidate = readRecord(descriptor.value, ["at", "seriesId", "revision", ...definition.counters]);
+      validPoint(candidate, definition);
       const at = epoch(candidate.at);
       if (at < lastAt || candidate.revision < (revisions.get(candidate.seriesId) ?? -1)) fail();
       lastAt = at; revisions.set(candidate.seriesId, candidate.revision);
       return { at: candidate.at, seriesId: candidate.seriesId, revision: candidate.revision,
-        ...Object.fromEntries(COUNTERS.map(key => [key, candidate[key]])) };
-    }));
+        ...Object.fromEntries(definition.counters.map(key => [key, candidate[key]])) };
+    }), definition);
   } catch { fail(); }
 }
-function point(row) {
+function point(row, definition = V1) {
   return validPoint({ at: new Date(row.at).toISOString(), seriesId: row.series_id, revision: row.revision,
-    totalSources: row.total_sources, learnedPages: row.learned_pages, activeTopics: row.active_topics, totalTopics: row.total_topics });
+    ...Object.fromEntries(definition.counters.map((key, index) => [key, row[definition.columns[index]]])) }, definition);
 }
 function integrity(database) {
   const results = database.prepare("PRAGMA quick_check").all();
@@ -96,6 +116,12 @@ function integrity(database) {
 // A single read transaction pins metadata, schema and all aggregate counts. No
 // normalized payload, vector, contribution, revision or account row is selected.
 export function readCatalogGrowthCounts(databasePath, { now = () => new Date() } = {}) {
+  return readCounts(databasePath, now, V1);
+}
+export function readCatalogGrowthCountsV2(databasePath, { now = () => new Date() } = {}) {
+  return readCounts(databasePath, now, V2);
+}
+function readCounts(databasePath, now, definition) {
   const filename = safePath(databasePath);
   const database = new DatabaseSync(filename, { readOnly: true });
   try {
@@ -107,13 +133,21 @@ export function readCatalogGrowthCounts(databasePath, { now = () => new Date() }
       if (database.prepare("SELECT COUNT(*) AS n FROM canonical_meta").get().n !== 1 ||
           database.prepare(`SELECT 1 FROM canonical_source_links l LEFT JOIN canonical_sources s ON s.id=l.source_id
             LEFT JOIN canonical_topics t ON t.id=l.topic_id WHERE s.id IS NULL OR t.id IS NULL LIMIT 1`).get()) fail();
-      row = database.prepare(`SELECT format,schema,generation,revision,
+      const membershipCTE = definition.membership ? `WITH memberships AS (
+        SELECT l.topic_id,COUNT(DISTINCT l.source_id) AS members FROM canonical_source_links l
+        JOIN canonical_sources s ON s.id=l.source_id JOIN canonical_topics t ON t.id=l.topic_id
+        WHERE s.provenance=? GROUP BY l.topic_id)` : "";
+      const activeSQL = definition.membership ? "(SELECT COUNT(*) FROM memberships WHERE members>=1)" :
+        `(SELECT COUNT(DISTINCT l.topic_id) FROM canonical_source_links l
+          JOIN canonical_sources s ON s.id=l.source_id JOIN canonical_topics t ON t.id=l.topic_id WHERE s.provenance=?)`;
+      row = database.prepare(`${membershipCTE} SELECT format,schema,generation,revision,
         (SELECT COUNT(*) FROM canonical_sources) AS totalSources,
         (SELECT COUNT(*) FROM canonical_sources WHERE provenance=?) AS learnedPages,
-        (SELECT COUNT(DISTINCT l.topic_id) FROM canonical_source_links l
-          JOIN canonical_sources s ON s.id=l.source_id JOIN canonical_topics t ON t.id=l.topic_id
-          WHERE s.provenance=?) AS activeTopics,
-        (SELECT COUNT(*) FROM canonical_topics) AS totalTopics FROM canonical_meta WHERE singleton=1`).get(PROVENANCE, PROVENANCE);
+        ${activeSQL} AS activeTopics,
+        (SELECT COUNT(*) FROM canonical_topics) AS totalTopics
+        ${definition.membership ? `,(SELECT COUNT(*) FROM memberships WHERE members>=2) AS multiMemberTopics,
+          (SELECT COUNT(*) FROM memberships WHERE members=1) AS singletonTopics` : ""}
+        FROM canonical_meta WHERE singleton=1`).get(PROVENANCE, PROVENANCE);
       if (!row || row.format !== NORMALIZED_STORAGE_FORMAT) fail();
     } else {
       if (objects.length !== 1 || objects[0].name !== "demo_state" || objects[0].type !== "table" ||
@@ -124,18 +158,29 @@ export function readCatalogGrowthCounts(databasePath, { now = () => new Date() }
       const metadata = database.prepare(`SELECT schema,generation,revision,length(CAST(document AS BLOB)) AS bytes,
         json_valid(document) AS valid FROM demo_state WHERE singleton=1`).get();
       if (!metadata || metadata.bytes > MAX_DOCUMENT_BYTES || metadata.valid !== 1) fail();
-      row = database.prepare(`SELECT schema,generation,revision,
+      const membershipCTE = definition.membership ? `WITH memberships AS (
+        SELECT json_extract(l.value,'$.topicId') AS topic_id,COUNT(DISTINCT json_extract(l.value,'$.sourceId')) AS members
+        FROM demo_state,json_each(document,'$.sourceLinks') l
+        JOIN json_each(document,'$.sources') s ON json_extract(s.value,'$.id')=json_extract(l.value,'$.sourceId')
+        JOIN json_each(document,'$.topics') t ON json_extract(t.value,'$.id')=json_extract(l.value,'$.topicId')
+        WHERE demo_state.singleton=1 AND json_extract(s.value,'$.provenance')=? GROUP BY json_extract(l.value,'$.topicId'))` : "";
+      const activeSQL = definition.membership ? "(SELECT COUNT(*) FROM memberships WHERE members>=1)" :
+        `(SELECT COUNT(DISTINCT json_extract(l.value,'$.topicId')) FROM json_each(document,'$.sourceLinks') l
+          JOIN json_each(document,'$.sources') s ON json_extract(s.value,'$.id')=json_extract(l.value,'$.sourceId')
+          JOIN json_each(document,'$.topics') t ON json_extract(t.value,'$.id')=json_extract(l.value,'$.topicId')
+          WHERE json_extract(s.value,'$.provenance')=?)`;
+      row = database.prepare(`${membershipCTE} SELECT schema,generation,revision,
         json_extract(document,'$.schema') AS innerSchema,json_extract(document,'$.generation') AS innerGeneration,
         json_extract(document,'$.revision') AS innerRevision,
         json_type(document,'$.sources') AS sourcesType,json_type(document,'$.topics') AS topicsType,
         json_type(document,'$.sourceLinks') AS linksType,
-        (SELECT COUNT(*) FROM json_each(document,'$.sources')) AS totalSources,
-        (SELECT COUNT(*) FROM json_each(document,'$.sources') WHERE json_extract(value,'$.provenance')=?) AS learnedPages,
-        (SELECT COUNT(DISTINCT json_extract(l.value,'$.topicId')) FROM json_each(document,'$.sourceLinks') l
-          JOIN json_each(document,'$.sources') s ON json_extract(s.value,'$.id')=json_extract(l.value,'$.sourceId')
-          JOIN json_each(document,'$.topics') t ON json_extract(t.value,'$.id')=json_extract(l.value,'$.topicId')
-          WHERE json_extract(s.value,'$.provenance')=?) AS activeTopics,
-        (SELECT COUNT(*) FROM json_each(document,'$.topics')) AS totalTopics FROM demo_state WHERE singleton=1`).get(PROVENANCE, PROVENANCE);
+        (SELECT ${definition.membership ? "COUNT(DISTINCT json_extract(value,'$.id'))" : "COUNT(*)"} FROM json_each(document,'$.sources')) AS totalSources,
+        (SELECT ${definition.membership ? "COUNT(DISTINCT json_extract(value,'$.id'))" : "COUNT(*)"} FROM json_each(document,'$.sources') WHERE json_extract(value,'$.provenance')=?) AS learnedPages,
+        ${activeSQL} AS activeTopics,
+        (SELECT COUNT(*) FROM json_each(document,'$.topics')) AS totalTopics
+        ${definition.membership ? `,(SELECT COUNT(*) FROM memberships WHERE members>=2) AS multiMemberTopics,
+          (SELECT COUNT(*) FROM memberships WHERE members=1) AS singletonTopics` : ""}
+        FROM demo_state WHERE singleton=1`).get(PROVENANCE, PROVENANCE);
       if (!row || row.innerSchema !== row.schema || row.innerGeneration !== row.generation || row.innerRevision !== row.revision ||
           row.sourcesType !== "array" || row.topicsType !== "array" || row.linksType !== "array") fail();
     }
@@ -143,28 +188,28 @@ export function readCatalogGrowthCounts(databasePath, { now = () => new Date() }
     readExpectedVersion({ generation: row.generation, revision: row.revision });
     const result = validPoint({ at: new Date(epoch(now)).toISOString(),
       seriesId: createHash("sha256").update(row.generation, "utf8").digest("hex"), revision: row.revision,
-      ...Object.fromEntries(COUNTERS.map(key => [key, row[key]])) });
+      ...Object.fromEntries(definition.counters.map(key => [key, row[key]])) }, definition);
     database.exec("COMMIT");
     return result;
   } finally { database.close(); }
 }
 
-function checkHistory(database) {
+function checkHistory(database, definition = V1) {
   integrity(database);
   const objects = database.prepare("SELECT name,type,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'").all();
   if (objects.length !== 1 || objects[0].name !== "catalog_growth" || objects[0].type !== "table" ||
-      normalizeSQL(objects[0].sql) !== normalizeSQL(HISTORY_DDL)) fail();
+      normalizeSQL(objects[0].sql) !== normalizeSQL(definition.ddl)) fail();
   const rows = database.prepare("SELECT * FROM catalog_growth LIMIT ?").all(CATALOG_GROWTH_RETENTION.maxPoints + 1);
   if (rows.length > CATALOG_GROWTH_RETENTION.maxPoints) fail();
   for (const row of rows) {
     if (!Number.isSafeInteger(row.bucket) || row.bucket !== Math.floor(row.at / CATALOG_GROWTH_INTERVAL_MS) || row.at < 0) fail();
-    point(row);
+    point(row, definition);
   }
 }
-function readHistory(database, { limit = CATALOG_GROWTH_RETENTION.maxPoints, now = () => new Date() } = {}) {
+function readHistory(database, { limit = CATALOG_GROWTH_RETENTION.maxPoints, now = () => new Date() } = {}, definition = V1) {
   if (!Number.isInteger(limit) || limit < 1 || limit > CATALOG_GROWTH_RETENTION.maxPoints) fail();
-  return validateCatalogGrowthHistory(dto(database.prepare("SELECT * FROM catalog_growth WHERE at>=? ORDER BY at DESC,series_id DESC LIMIT ?")
-    .all(epoch(now) - 90 * 86_400_000, limit).reverse().map(point)));
+  return validateHistory(dto(database.prepare("SELECT * FROM catalog_growth WHERE at>=? ORDER BY at DESC,series_id DESC LIMIT ?")
+    .all(epoch(now) - 90 * 86_400_000, limit).reverse().map(row => point(row, definition)), definition), definition);
 }
 function pruneHistory(database, current) {
   database.prepare("DELETE FROM catalog_growth WHERE at<?").run(current - 90 * 86_400_000);
@@ -177,22 +222,34 @@ function pruneHistory(database, current) {
 }
 
 export function readCatalogGrowthHistory(filename, options = {}) {
+  return readHistoryFile(filename, options, V1);
+}
+export function readCatalogGrowthHistoryV2(filename, options = {}) {
+  return readHistoryFile(filename, options, V2);
+}
+function readHistoryFile(filename, options, definition) {
   const safe = safePath(filename, { optional: true });
-  if (!existsSync(safe)) return dto([]);
+  if (!existsSync(safe)) return dto([], definition);
   const database = new DatabaseSync(safe, { readOnly: true });
-  try { database.exec("PRAGMA query_only=ON; PRAGMA busy_timeout=1000; BEGIN"); checkHistory(database); return readHistory(database, options); }
+  try { database.exec("PRAGMA query_only=ON; PRAGMA busy_timeout=1000; BEGIN"); checkHistory(database, definition); return readHistory(database, options, definition); }
   finally { database.close(); }
 }
 
 export function createCatalogGrowthStore(filename, { now = () => new Date() } = {}) {
+  return createStore(filename, now, V1);
+}
+export function createCatalogGrowthStoreV2(filename, { now = () => new Date() } = {}) {
+  return createStore(filename, now, V2);
+}
+function createStore(filename, now, definition) {
   const safe = safePath(filename, { optional: true });
   const existed = existsSync(safe);
   const database = new DatabaseSync(safe);
   try {
     database.exec("PRAGMA busy_timeout=1000; BEGIN IMMEDIATE");
     const objects = database.prepare("SELECT name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'").all();
-    if (!objects.length && !existed) database.exec(HISTORY_DDL);
-    checkHistory(database);
+    if (!objects.length && !existed) database.exec(definition.ddl);
+    checkHistory(database, definition);
     pruneHistory(database, epoch(now));
     database.exec("COMMIT");
   } catch (error) { database.close(); throw error; }
@@ -200,7 +257,7 @@ export function createCatalogGrowthStore(filename, { now = () => new Date() } = 
   return Object.freeze({
     sample(counts) {
       if (closed) fail();
-      validPoint(counts);
+      validPoint(counts, definition);
       const at = epoch(counts.at), current = epoch(now);
       if (at > current + CATALOG_GROWTH_INTERVAL_MS || at < current - 90 * 86_400_000) fail();
       safePath(safe);
@@ -212,20 +269,17 @@ export function createCatalogGrowthStore(filename, { now = () => new Date() } = 
         if (latest && (counts.revision < latest.revision || at < latest.at)) { database.exec("COMMIT"); return false; }
         const existing = database.prepare("SELECT * FROM catalog_growth WHERE series_id=? AND bucket=?")
           .get(counts.seriesId, Math.floor(at / CATALOG_GROWTH_INTERVAL_MS));
-        if (existing && existing.revision === counts.revision &&
-            existing.total_sources === counts.totalSources && existing.learned_pages === counts.learnedPages &&
-            existing.active_topics === counts.activeTopics && existing.total_topics === counts.totalTopics) {
+        if (existing && existing.revision === counts.revision && definition.counters.every((key, index) => existing[definition.columns[index]] === counts[key])) {
           database.exec("COMMIT"); return false;
         }
-        database.prepare(`INSERT INTO catalog_growth VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(series_id,bucket) DO UPDATE SET
-          at=excluded.at,revision=excluded.revision,total_sources=excluded.total_sources,learned_pages=excluded.learned_pages,
-          active_topics=excluded.active_topics,total_topics=excluded.total_topics`).run(counts.seriesId,
-          Math.floor(at / CATALOG_GROWTH_INTERVAL_MS), at, counts.revision, ...COUNTERS.map(key => counts[key]));
+        database.prepare(`INSERT INTO catalog_growth VALUES(${Array(4 + definition.counters.length).fill('?').join(',')}) ON CONFLICT(series_id,bucket) DO UPDATE SET
+          at=excluded.at,revision=excluded.revision,${definition.columns.map(column => `${column}=excluded.${column}`).join(',')}`).run(counts.seriesId,
+          Math.floor(at / CATALOG_GROWTH_INTERVAL_MS), at, counts.revision, ...definition.counters.map(key => counts[key]));
         pruneHistory(database, current);
         database.exec("COMMIT"); return true;
       } catch (error) { try { database.exec("ROLLBACK"); } catch {} throw error; }
     },
-    read(options = {}) { if (closed) fail(); safePath(safe); return readHistory(database, { now, ...options }); },
+    read(options = {}) { if (closed) fail(); safePath(safe); return readHistory(database, { now, ...options }, definition); },
     close() { if (closed) return; closed = true; database.close(); },
   });
 }
@@ -256,4 +310,12 @@ export function startCatalogGrowthSampler({ databasePath, filename = path.join(p
   return Object.freeze({ sample,
     async close() { if (closed) return; closed = true; try { clearIntervalImpl(timer); } catch {} await pending; try { store?.close(); } catch {} },
   });
+}
+
+// Opt-in composition until normal CLI activation is explicitly wired. V1 data
+// remains in its original file and is never guessed, imported or relabelled.
+export function startCatalogGrowthSamplerV2({ databasePath,
+  filename = path.join(path.dirname(databasePath), CATALOG_GROWTH_V2_FILENAME),
+  readCounts = readCatalogGrowthCountsV2, createStore = createCatalogGrowthStoreV2, ...options } = {}) {
+  return startCatalogGrowthSampler({ databasePath, filename, readCounts, createStore, ...options });
 }

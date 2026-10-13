@@ -10,7 +10,8 @@ import { NORMALIZED_STORAGE_FORMAT } from "../../local-service/src/adapters/norm
 import { ACCOUNT_STATE_SCHEMA } from "../../local-service/src/accounts/account-principal.js";
 import { readExpectedVersion } from "../../local-service/src/domain/validation.js";
 import { createCatalogGrowthStore, readCatalogGrowthCounts, readCatalogGrowthHistory, validateCatalogGrowthHistory } from "../../local-service/src/metrics/catalog-growth.js";
-import { buildDashboardSnapshot, buildStatsOnlyDashboardSnapshot, DashboardGraphCapacityError, loadDashboardState, MAX_GRAPH_PAGES } from "./data/catalog.js";
+import { createCatalogGrowthStoreV2, readCatalogGrowthCountsV2, readCatalogGrowthHistoryV2, validateCatalogGrowthHistoryV2, CATALOG_GROWTH_V2_FILENAME } from "../../local-service/src/metrics/catalog-growth.js";
+import { buildDashboardSnapshot, buildStatsOnlyDashboardSnapshot, buildDashboardSnapshotV2, buildStatsOnlyDashboardSnapshotV2, DashboardGraphCapacityError, loadDashboardState, MAX_GRAPH_PAGES } from "./data/catalog.js";
 import { buildGroupingPreview, LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH, LOCAL_RIDGE_ADAPTER_PATH, readInstalledOwnerTopicConfiguration } from "./data/grouping-preview.js";
 
 const webPath = fileURLToPath(new URL("../web/", import.meta.url));
@@ -25,6 +26,8 @@ let lastGraphBundle = null;
 
 function safeGrowth(growth) {
   if (growth === null || growth === undefined) return null;
+  try { return validateCatalogGrowthHistoryV2(growth); }
+  catch { /* Preserve strict legacy history without inventing new counters. */ }
   try { return validateCatalogGrowthHistory(growth); }
   catch { return null; }
 }
@@ -57,35 +60,40 @@ export function renderSnapshotScript(snapshot, preview = null, growth = null) {
     `globalThis.__topicAtlasGrowth = ${serializeSnapshot(safeGrowth(growth))};\n`;
 }
 
-function readDashboardBundle(databasePath, now, adapter, bodyMetric, ridgeAdapter, { recordInitial = false } = {}) {
-  const point = readCatalogGrowthCounts(databasePath, { now });
-  const growthPath = path.join(path.dirname(databasePath), "topic-growth.sqlite");
+function readDashboardBundle(databasePath, now, adapter, bodyMetric, ridgeAdapter, { recordInitial = false, formatVersion = 1 } = {}) {
+  if (![1, 2].includes(formatVersion)) throw new TypeError('Invalid dashboard format');
+  const current = formatVersion === 2;
+  const readCounts = current ? readCatalogGrowthCountsV2 : readCatalogGrowthCounts;
+  const buildSnapshot = current ? buildDashboardSnapshotV2 : buildDashboardSnapshot;
+  const buildStats = current ? buildStatsOnlyDashboardSnapshotV2 : buildStatsOnlyDashboardSnapshot;
+  const point = readCounts(databasePath, { now });
+  const growthPath = path.join(path.dirname(databasePath), current ? CATALOG_GROWTH_V2_FILENAME : "topic-growth.sqlite");
   let growth = null, store;
   try {
     if (recordInitial) {
-      store = createCatalogGrowthStore(growthPath, { now });
+      store = (current ? createCatalogGrowthStoreV2 : createCatalogGrowthStore)(growthPath, { now });
       store.sample(point);
       growth = store.read();
-    } else growth = readCatalogGrowthHistory(growthPath, { now });
+    } else growth = (current ? readCatalogGrowthHistoryV2 : readCatalogGrowthHistory)(growthPath, { now });
   } catch { /* Aggregate recording failure does not disable the canonical view. */ }
   finally { try { store?.close(); } catch {} }
   if (point.learnedPages > MAX_GRAPH_PAGES) {
-    return { snapshot: buildStatsOnlyDashboardSnapshot(point), preview: null, growth };
+    return { snapshot: buildStats(point), preview: null, growth };
   }
   const keys = JSON.parse(readDashboardRefreshKey(databasePath));
   keys.pop(); // History changes do not require another vector/PCA/Topic graph.
-  const graphKey = JSON.stringify([path.resolve(databasePath), keys,
+  const graphKey = JSON.stringify([path.resolve(databasePath), formatVersion, keys,
     adapter?.manifestSha256 ?? null, bodyMetric?.manifestSha256 ?? null, ridgeAdapter?.manifestSha256 ?? null]);
   if (lastGraphBundle?.key === graphKey && lastGraphBundle.snapshot.growthSeriesId === point.seriesId) {
     return { snapshot: lastGraphBundle.snapshot, preview: lastGraphBundle.preview, growth };
   }
   const state = loadDashboardState(databasePath);
   let snapshot;
-  try { snapshot = buildDashboardSnapshot(state, { now }); }
+  try { snapshot = buildSnapshot(state, { now }); }
   catch (error) {
     if (!(error instanceof DashboardGraphCapacityError)) throw error;
     // Ingestion can cross the graph limit between the aggregate and graph read.
-    return { snapshot: buildStatsOnlyDashboardSnapshot(readCatalogGrowthCounts(databasePath, { now })), preview: null, growth };
+    return { snapshot: buildStats(readCounts(databasePath, { now })), preview: null, growth };
   }
   const preview = buildGroupingPreview(state, snapshot, adapter, bodyMetric, ridgeAdapter);
   lastGraphBundle = { key: graphKey, snapshot, preview };
@@ -127,11 +135,11 @@ export function readDashboardRevision(databasePath = APP_DATABASE_PATH) {
 }
 
 export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
-  now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
+  now = () => new Date(), adapter, bodyMetric, ridgeAdapter, formatVersion = 1 } = {}) {
   const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
   const { snapshot, preview, growth } = readDashboardBundle(databasePath, now,
     adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
-    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null, { recordInitial: true });
+    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null, { recordInitial: true, formatVersion });
   const document = renderDashboardDocument({
     template: readFileSync(path.join(webPath, "index.html"), "utf8"),
     style: readFileSync(path.join(webPath, "style.css"), "utf8"),
@@ -144,11 +152,11 @@ export function generateDashboard({ databasePath = APP_DATABASE_PATH, outputPath
 }
 
 export function generateDashboardSnapshot({ databasePath = APP_DATABASE_PATH, outputPath = DEFAULT_REPORT_PATH,
-  now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
+  now = () => new Date(), adapter, bodyMetric, ridgeAdapter, formatVersion = 1 } = {}) {
   const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
   const { snapshot, preview, growth } = readDashboardBundle(databasePath, now,
     adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
-    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null);
+    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null, { formatVersion });
   writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview, growth));
   return { outputPath, counts: snapshot.counts };
 }
@@ -216,12 +224,13 @@ function openReport(reportPath) {
 export async function runDashboardCli(args = process.argv.slice(2)) {
   if (args.some((arg) => arg !== "--no-open")) throw new Error("Use only --no-open, or run without arguments");
   const oneShot = args.includes("--no-open");
-  const initialRevision = oneShot ? undefined : readDashboardRefreshKey();
-  const result = generateDashboard();
+  const revision = () => readDashboardRefreshKey(APP_DATABASE_PATH, { growthPath: path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME) });
+  const initialRevision = oneShot ? undefined : revision();
+  const result = generateDashboard({ formatVersion: 2 });
   if (!oneShot) await openReport(result.outputPath);
-  process.stdout.write(`Dashboard ready: ${result.counts.learnedSources} captured pages in ${result.counts.topics} canonical Topics${result.counts.displayedPages === 0 && result.counts.learnedSources > MAX_GRAPH_PAGES ? "; graph paused, aggregate history remains available" : ""}.\n${result.outputPath}\n`);
+  process.stdout.write(`Dashboard ready: ${result.counts.learnedSources} captured pages; ${result.counts.multiMemberTopics} canonical Topics (at least two learned pages), ${result.counts.singletonTopics} singleton Topics${result.counts.displayedPages === 0 && result.counts.learnedSources > MAX_GRAPH_PAGES ? "; graph paused, aggregate history remains available" : ""}.\n${result.outputPath}\n`);
   if (!oneShot) {
-    const watcher = watchDashboard({ initialRevision,
+    const watcher = watchDashboard({ initialRevision, readRevision: revision, generate: () => generateDashboardSnapshot({ formatVersion: 2 }),
       onError: (error) => process.stderr.write(`Dashboard refresh delayed: ${error.message}\n`) });
     for (const [signal, code] of [["SIGINT", 130], ["SIGTERM", 143]]) {
       process.once(signal, () => { watcher.stop(); process.exitCode = code; });

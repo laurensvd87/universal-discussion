@@ -15,8 +15,9 @@ const temporary = mkdtempSync(path.join(tmpdir(), 'topic-growth-web-'));
 const seriesId = 'a'.repeat(64);
 const point = (at, learnedPages, activeTopics, revision, series = seriesId) => ({
   at, seriesId: series, revision, totalSources: 1500, learnedPages, activeTopics, totalTopics: 500,
+  multiMemberTopics: activeTopics, singletonTopics: 0,
 });
-const history = points => ({ schemaVersion: 'catalog-growth/v1', retention: { minuteHours: 24, hourlyDays: 90, maxPoints: 4096 }, points });
+const history = points => ({ schemaVersion: 'catalog-growth/v2', retention: { minuteHours: 24, hourlyDays: 90, maxPoints: 4096 }, points });
 const snapshot = { schemaVersion: 1, generatedAt: '2026-10-12T12:00:00.000Z', catalogRevision: 'b'.repeat(64),
   growthSeriesId: seriesId, graphLimited: false,
   counts: { totalSources: 1500, learnedSources: 1010, displayedPages: 0, topics: 0, totalTopics: 500 }, topics: [], pages: [], edges: [] };
@@ -45,7 +46,7 @@ function run(name, growth, { next = growth, data = snapshot, interaction = '' } 
       document.body.dataset.finalY = document.querySelector('[data-growth-axis="y"]')?.textContent || '';
     }, 3500);
   </script></body>`);
-  assert.ok(html.includes('catalog-growth/v1') || growth === null, 'renderer embeds growth');
+  assert.ok(/catalog-growth\/v[12]/u.test(html) || growth === null, 'renderer embeds strictly validated growth');
   const file = path.join(temporary, `${name}.html`);
   writeFileSync(file, html, { mode: 0o600 });
   // The existing local script bridge carries history changes without changing graph data.
@@ -68,7 +69,8 @@ try {
   assert.match(valid, /Δ \+10 im Messzeitraum/u);
   assert.match(valid, /Δ 0 im Messzeitraum/u);
   assert.match(valid, /Topics gesamt \(inkl\. leerer\)/u);
-  assert.match(valid, /2,53/u);
+  assert.match(valid, /Singleton-Topics \(eine Seite\)/u);
+  assert.match(valid, /kanonische Topics \(≥2 Seiten\)/u);
   const hour = run('hour', good, { interaction: `document.querySelector('[data-growth-window="1h"]').click();` });
   assert.match(hour, /data-initial-paths="2"/u);
   assert.match(hour, /Erster Messpunkt/u);
@@ -80,7 +82,7 @@ try {
     interaction: `document.querySelector('[data-growth-view="pages"]').click();` });
   assert.match(relationship, /data-final-view="pages"/u);
   assert.match(relationship, /data-final-x="Gelernte Seiten \(x\)"/u);
-  assert.match(relationship, /data-final-y="Aktive kanonische Topics \(y\)"/u);
+  assert.match(relationship, /data-final-y="Topics mit ≥2 Seiten \(y\)"/u);
   assert.match(relationship, /data-final-points="2 Messpunkte/u);
   // Deletion sends the actual temporal line left and down; no x sorting or monotonic smoothing.
   assert.match(relationship, /d="M814\.00,28\.00 L806\.59,30\.73" class="growth-line growth-line-topics"/u);
@@ -88,12 +90,27 @@ try {
   const relationshipGaps = run('topics-over-pages-gaps', good, {
     interaction: `document.querySelector('[data-growth-view="pages"]').click(); document.querySelector('[data-growth-window="all"]').click();` });
   assert.match(relationshipGaps, /data-initial-paths="3"/u);
-  const limited = run('limited', good, { data: { ...snapshot, graphLimited: true } });
+  const limited = run('limited', good, { data: { ...snapshot, schemaVersion: 2, graphLimited: true,
+    counts: { ...snapshot.counts, topics: 400, multiMemberTopics: 400, singletonTopics: 0 } } });
   assert.match(limited, /Karte pausiert: mehr als 1\.000 gelernte Seiten/u);
   assert.match(limited, /id="count-learned">1\.010</u);
+  assert.match(limited, /id="count-topics">400</u);
+  assert.match(limited, /id="count-singletons">0</u);
   assert.match(limited, /class="growth-line growth-line-pages"/u);
   const empty = run('empty', history([]));
   assert.match(empty, /data-initial-growth="Verlauf wird ab jetzt aufgezeichnet\."/u);
+  const legacy = { ...good, schemaVersion: 'catalog-growth/v1', points: good.points.map(({ multiMemberTopics, singletonTopics, ...row }) => row) };
+  const old = run('legacy', legacy, { data: { ...snapshot, graphLimited: true } });
+  assert.match(old, /Legacy-Verlauf/u); assert.match(old, /data-initial-paths="0"/u);
+  assert.match(old, /id="count-topics">—</u); assert.match(old, /id="count-singletons">—</u);
+  assert.doesNotMatch(old, /class="growth-line/u);
+  const contrasting = history([point('2026-10-12T11:30:00.000Z', 10, 9, 3), point('2026-10-12T11:31:00.000Z', 20, 9, 4)]);
+  contrasting.points[0].multiMemberTopics = 1; contrasting.points[0].singletonTopics = 8;
+  contrasting.points[1].multiMemberTopics = 2; contrasting.points[1].singletonTopics = 7;
+  const contrast = run('multi-vs-active', contrasting, { interaction: `document.querySelector('[data-growth-view="pages"]').click();` });
+  assert.match(contrast, /d="M436\.00,84\.00 L814\.00,28\.00" class="growth-line growth-line-topics"/u);
+  const contrastTime = run('multi-vs-active-time', contrasting);
+  assert.match(contrastTime, /d="M58\.00,134\.40 L814\.00,128\.80" class="growth-line growth-line-topics"/u);
   for (const [name, invalid] of [
     ['unknown', { ...good, secret: '<img src=https://example.com>' }],
     ['counter', history([{ ...good.points.at(-1), learnedPages: -1 }])],

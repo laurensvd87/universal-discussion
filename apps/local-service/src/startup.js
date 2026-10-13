@@ -16,7 +16,7 @@ import { createAccountLifecycle } from "./accounts/account-lifecycle.js";
 import { loadProtectedAccountKey } from "./accounts/protected-account-key.js";
 import { createPrivateDiscussionService } from "./private/private-service.js";
 import { startCanonicalBackupRetention } from "./ops/backup-retention.js";
-import { startCatalogGrowthSampler } from "./metrics/catalog-growth.js";
+import { startCatalogGrowthSampler, startCatalogGrowthSamplerV2 } from "./metrics/catalog-growth.js";
 
 export const APP_DATABASE_PATH = fileURLToPath(new URL("../data/demo.sqlite", import.meta.url));
 
@@ -75,6 +75,8 @@ export function openDormantLocalApplication({ config: input, databasePath, nextI
 // databasePath/config are trusted composition seams for tests, never HTTP input.
 // The CLI below this adapter always uses APP_DATABASE_PATH and random dependencies.
 export async function startLocalApplication(options) {
+  if (options.catalogGrowthVersion !== undefined && ![1, 2].includes(options.catalogGrowthVersion))
+    throw new TypeError("Invalid catalog growth version");
   let activeVerifier = null;
   const pairingVerifier = options.pairingPath ? { verify: (token) => activeVerifier?.verify(token) ?? false } : null;
   // Explicit test composition opts out of installed artifacts entirely.
@@ -103,7 +105,8 @@ export async function startLocalApplication(options) {
       onOutcome: value => {
         if (value.outcome === "failed") process.stderr.write("Canonical backup expiry cleanup unavailable; service remains connected.\n");
       } });
-    const catalogGrowth = startCatalogGrowthSampler({ databasePath: options.databasePath,
+    const startGrowth = options.catalogGrowthVersion === 2 ? startCatalogGrowthSamplerV2 : startCatalogGrowthSampler;
+    const catalogGrowth = startGrowth({ databasePath: options.databasePath,
       onOutcome: value => {
         if (value.outcome === "failed") process.stderr.write("Local catalog growth sampling unavailable; service remains connected.\n");
       } });

@@ -55,6 +55,9 @@ export async function runCli(args = process.argv.slice(2)) {
     databasePath: APP_DATABASE_PATH,
     asyncIngest: true,
     incrementalMatching: true,
+    // New multi-page Topic statistics use a separate aggregate history. Never
+    // reinterpret the old >=1-member curve as the new >=2-member measure.
+    catalogGrowthVersion: 2,
     pairingPath,
     nextId: (prefix) => `${prefix}-${randomUUID()}`,
     now: () => new Date().toISOString(),

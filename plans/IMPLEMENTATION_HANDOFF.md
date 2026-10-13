@@ -1,5 +1,52 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-13 owner changes architecture direction: read ADR-111/top STATUS first.
+New pure topic-radius-index/reference-topic-membership +tests now implemented,
+NOT canonical/browser wiring. A/B/middle bridge modeltest returns bothTopics/no
+thirdTopic, original destinations preserved;2multiTopics/3uniquePages. Exact
+privateVPforest/safe metric bounds/complete:true orfailure/noTopK;32MiBretained/
+64MiBdefaulttemporary, mutableO(1)inventory and boundedstale compaction. Owner
+readonly pinnedRidge2328eligible/64query fullscanparity: transform544/build231ms,
+median2.92/p954.14ms but2298averagecomparisons (~99%). No millionvector capacity/
+latency claim. Many-to-many normalizedstorage/currentproof/DTO/feed/reference
+lifecycle/recoverycutover remain required, no service activation/restart/writes.
+
+Dashboardv2 counts>=2DISTINCTlearnedmembers plus singletons, uniquePages unchanged;
+separatetopic-growth-v2.sqlite, strictv1preserved/legacyunknownnotrelabeled. Normal
+dashboardCLI version2, backendCLI catalogGrowthVersion2 onfuturecheckedrestart;
+factorystartupdefaults preservev1. Root took over metricagent capacityfailure
+without anothermodel. Fullbackend1089/1084pass+5skip, restricteddashboard26pass,
+restrictedclient1537pass/bothisolatedChrome smokes mobile/exactcurves pass.
+Secret scan803zero. Preserveunrelateddirtyrename,
+especially dashboardCLI DEFAULT_REPORT_PATH andHTMLbrand/AGENTheading when staging.
+Owner explicitly asks activation; new radius/multiple-membership runtime does
+not exist yet. Owner now accepts fixed Topic references, new Topic on zero
+matching references, overlapping memberships on matches, and primary dashboard
+Topics>=2 distinct learned pages (singleton separate, no duplicate page counts).
+Reference lifecycle and implementation/proof/cutover verification remain.
+No restart/store mutation now;
+loading old compatibility edits is not activation of the requested architecture.
+Million-page/frequent-change requirement selects threshold Topic/Ridge1 radius
+lookup and permits overlapping membership, explicitly not raw E5. All-in-radius
+is the requested completeness contract: HNSW candidate reranking cannot prove
+no misses. Exact ball/VP metric pruning must account for norm/rounding and may
+degrade to linear in384D; no million-page speed claim. Reference lifecycle
+and many-to-many Source/Topic/current-write proofs plus recovery cutover package
+remain unresolved. No transitive inheritance of neighbor memberships or historic
+post movement/duplication. No owner-store migration/restart/activation.
+
+Pending compatibility fix (committed6e36fed, NOT loaded): root learned-sources
+exact receipt-only revisits; capacity_diagnosis adaptive-topics dense numeric
+lookup; concurrency_design bounded-evidence-graph private branded shared pair
+memo +incremental-adaptive seam. New tests adaptive-planner-performance-exact,
+adaptive-evidence-pair-cache, unchanged-ingest-trust/adaptive-capacity-trust pass
+focused independent/frozen checks. Owner readonly new-page RAM full/incremental
+entire plans equal2931/3517ms; productionreadonlyworker256MiB new6685/changed4201ms.
+Current-catalog improvement only, not final scalable architecture. Service still
+PTY19033/rev3065/2436Sources/2451Topics/75posts. Preserve exact data/pairing and
+unrelated dirty naming/Copilot changes. Finish current architecture/activation
+decision before committing/restarting; no new inference/capture grant follows.
+
 2026-10-13 ADR-110 localizedgrouping/post-independentcache backendACTIVE,0.13.62
 clientunchanged. Read STATUS/ADR110: actualmatchinginputs notgeneralcanonicalrevision;
 posts/receipts excluded, currentrouting/body/version/auth remainfresh. ReadonlySQL

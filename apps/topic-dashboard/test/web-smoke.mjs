@@ -98,10 +98,12 @@ globalThis.__topicAtlasPreview = globalThis.__smokeBridgeReads === 1 ? ${JSON.st
     status: result.stdout.match(/<div id="status"[^>]*>[^<]*/u)?.[0],
     grouping: result.stdout.match(/<div id="grouping-preview"[^>]*>/u)?.[0],
   }));
-  assert.match(result.stdout, /data-preview-topic-count="2"/u);
+  assert.match(result.stdout, /data-preview-topic-count="0"/u);
   assert.match(result.stdout, /data-current-topic-count="1"/u);
   assert.match(result.stdout, /data-default-mode="Topic-Matching"/u);
-  assert.match(result.stdout, /data-default-topic-count="2"/u);
+  assert.match(result.stdout, /data-default-topic-count="0"/u);
+  assert.match(result.stdout, /Topics \(≥2 Seiten\)/u);
+  assert.match(result.stdout, /Singleton-Topics/u);
   assert.match(result.stdout, /data-selected-source-after-switch="Details anzeigen: Erste Seite"/u);
   assert.match(result.stdout, /id="grouping-experimental"[^>]*disabled/u);
   assert.match(result.stdout, /id="map-mode"[^>]*>Legacy E5</u);

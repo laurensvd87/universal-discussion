@@ -1,5 +1,50 @@
 # Project status
 
+**2026-10-13 owner selects Topic-metric radius search and overlapping membership (ADR-111; not activated).**
+New pure exact radius index and reference-membership planner are implemented;
+owner's A/B/middle-page case passes: both memberships/feed destinations, no third
+Topic/merge/duplicate post, two >=2-member Topics and three unique pages. Not yet
+wired to canonical membership storage or extension authority; no new runtime
+model is active. Owner-readonly pinnedRidge2,328eligible: transform544ms/build231ms,
+64queries exactly exhaustive, median2.92/p954.14ms, mean2,298comparisons (~99%).
+Weak high-dimensional pruning and32MiBprototype/64MiBpeak/tier-merge stalls mean
+no million-page readiness claim. No owner writes/provider/capture/restart.
+
+Dashboard>=2-member Topic count/singletons and v2 aggregate history implemented;
+normal dashboardCLI explicitlyv2, backendCLI v2 sampler pending next reviewed
+restart. v1files/contracts preserved and never relabelled; currentcanonical
+measure only, not proof newRadiusmodel active. Fullbackend1089/1084pass+five skips,
+restrictedclient1537pass, restricted dashboard26pass/both isolatedChrome smokes
+pass; secret scan803zero. Selected parallel code-agent capacity failure
+was handled by root without silently substituting a different coding model.
+Owner requests activation and accepts fixed Topic references. No matching
+reference creates a new Topic; any matching references receive memberships,
+not another Topic. Primary dashboard Topics must have >=2 distinct learned-page
+members; singleton Topics separate, pages counted uniquely, no v1-history
+relabeling. The new canonical architecture is not an existing runtime switch:
+radius indexing/multiple canonical memberships still need implementation and
+cutover. Do not activate the old compatibility fix as though it were the new
+radius model. No service restart or owner-store change.
+Owner requires million-page growth, frequent new/changed pages, threshold-based
+identity lookup and permits multiple Topics per page. They request all pages
+within the distance, analogous to excluding distant navigation regions, and
+confirm Topic/Ridge1 rather than raw E5. Preserve pinned Ridge1/floor; no global
+connected-component closure, inferred transitive membership or threshold retune.
+Exact metric radius indexes need conservative floating-point pruning and measured
+high-dimensional performance; HNSW plus reranking does not guarantee all hits.
+Reference lifecycle, many-to-many routing/proof/schema changes and guarded
+cutover still require an explicit package. Read ADR-111 before implementing.
+
+Preceding busy-path compatibility fix is committed as6e36fed and NOT loaded:
+exact unchanged representation receipt-only ingest; bounded shared
+graph/oracle similarities and dense exact arithmetic. Independent Trust and
+focused regression pass. Read-only owner new-page full/incremental prepared
+plans exactly equal (2931/3517ms), production readonly256MiB worker new/changed
+6685/4201ms; no save. These fix measured current-catalog capacity, not quadratic
+growth for millions. Normal service remains PTY19033/revision3065. No owner
+ingestion/provider/capture/crawler/restart/migration. Preserve these edits and
+unrelated rename/Copilot work; do not activate unfinished work implicitly.
+
 **2026-10-13 localized grouping / post-independent matching ACTIVE (ADR-110,backend-only).**
 Owner explicitly requests no whole grouping rebuild on posts/existing visits
 and local new/changed-page neighborhoods. Exact Source geometry/qualification/

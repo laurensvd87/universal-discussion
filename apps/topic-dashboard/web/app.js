@@ -16,19 +16,23 @@
   function normalizeGrowth(input, current) {
     const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value) &&
       Object.keys(value).sort().join(',') === [...keys].sort().join(',');
-    if (!exact(input, ['schemaVersion', 'retention', 'points']) || input.schemaVersion !== 'catalog-growth/v1' ||
+    if (!exact(input, ['schemaVersion', 'retention', 'points']) || !['catalog-growth/v1', 'catalog-growth/v2'].includes(input.schemaVersion) ||
         !exact(input.retention, ['minuteHours', 'hourlyDays', 'maxPoints']) || input.retention.minuteHours !== 24 ||
         input.retention.hourlyDays !== 90 || input.retention.maxPoints !== 4096 ||
         !Array.isArray(input.points) || input.points.length > 4096) throw new Error('Invalid growth history');
     let previous = null;
+    const currentDefinition = input.schemaVersion === 'catalog-growth/v2';
+    const counters = ['revision', 'totalSources', 'learnedPages', 'activeTopics', 'totalTopics',
+      ...(currentDefinition ? ['multiMemberTopics', 'singletonTopics'] : [])];
     const revisions = new Map();
     const points = input.points.map((row) => {
-      if (!exact(row, ['at', 'seriesId', 'revision', 'totalSources', 'learnedPages', 'activeTopics', 'totalTopics']) ||
+      if (!exact(row, ['at', 'seriesId', ...counters]) ||
           typeof row.at !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(row.at) ||
           !Number.isFinite(Date.parse(row.at)) || new Date(row.at).toISOString() !== row.at ||
           typeof row.seriesId !== 'string' || !/^[a-f0-9]{64}$/u.test(row.seriesId) ||
-          !['revision', 'totalSources', 'learnedPages', 'activeTopics', 'totalTopics'].every(key => Number.isSafeInteger(row[key]) && row[key] >= 0) ||
-          row.learnedPages > row.totalSources || row.activeTopics > row.totalTopics || row.activeTopics > row.learnedPages ||
+          !counters.every(key => Number.isSafeInteger(row[key]) && row[key] >= 0) ||
+          row.learnedPages > row.totalSources || row.activeTopics > row.totalTopics ||
+          (currentDefinition ? row.multiMemberTopics + row.singletonTopics !== row.activeTopics : row.activeTopics > row.learnedPages) ||
           (previous && row.at < previous.at) || (revisions.has(row.seriesId) && row.revision < revisions.get(row.seriesId))) {
         throw new Error('Invalid growth point');
       }
@@ -37,7 +41,7 @@
       return { ...row, time: Date.parse(row.at) };
     });
     if (points.length && (!current.growthSeriesId || points.at(-1).seriesId !== current.growthSeriesId)) throw new Error('Mismatched growth series');
-    return points;
+    return Object.assign(points, { legacy: !currentDefinition });
   }
   function loadGrowth(input, current) {
     try { growthState.data = normalizeGrowth(input, current); }
@@ -51,10 +55,16 @@
     for (const button of document.querySelectorAll('[data-growth-view]')) button.setAttribute('aria-pressed', String(button.dataset.growthView === growthState.view));
     const byPages = growthState.view === 'pages';
     $('growth-chart').setAttribute('viewBox', byPages ? '0 0 840 210' : '0 0 840 180');
-    $('growth-chart-title').textContent = byPages ? 'Aktive kanonische Topics über gelernte Seiten' : 'Verlauf der Katalogzahlen';
-    $('growth-key').replaceChildren(...(byPages ? [textElement('span', 'growth-topics', 'Aktive kanonische Topics; Messpunkte in zeitlicher Reihenfolge')] :
-      [textElement('span', 'growth-pages', 'Gelernte Seiten'), textElement('span', 'growth-topics', 'Aktive kanonische Topics')]));
+    $('growth-chart-title').textContent = byPages ? 'Kanonische Topics mit mindestens zwei Seiten über gelernte Seiten' : 'Verlauf der Katalogzahlen';
+    $('growth-key').replaceChildren(...(byPages ? [textElement('span', 'growth-topics', 'Topics (≥2 Seiten); Messpunkte in zeitlicher Reihenfolge')] :
+      [textElement('span', 'growth-pages', 'Gelernte Seiten'), textElement('span', 'growth-topics', 'Topics (≥2 Seiten)')]));
     const all = growthState.data;
+    if (all?.legacy) {
+      $('growth-chart').hidden = true;
+      $('growth-status').textContent = 'Legacy-Verlauf (Topics mit mindestens einer Seite). Topics mit mindestens zwei Seiten sind daraus nicht bekannt; neuer Verlauf beginnt mit Version 2.';
+      $('growth-chart-description').textContent = 'Legacy-Zahlen werden nicht als Mehrseiten-Topics umgedeutet.';
+      return;
+    }
     $('growth-chart').hidden = !all?.length;
     if (!all?.length) {
       $('growth-status').textContent = all ? 'Verlauf wird ab jetzt aufgezeichnet.' : 'Verlauf derzeit nicht verfügbar.';
@@ -73,11 +83,11 @@
       metrics.append(node);
     };
     metric('gelernte Seiten', format.format(latest.learnedPages), latest.learnedPages - first.learnedPages);
-    metric('aktive kanonische Topics', format.format(latest.activeTopics), latest.activeTopics - first.activeTopics);
-    metric('Seiten je aktivem Topic', latest.activeTopics ? new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(latest.learnedPages / latest.activeTopics) : '—');
+    metric('kanonische Topics (≥2 Seiten)', format.format(latest.multiMemberTopics), latest.multiMemberTopics - first.multiMemberTopics);
+    metric('Singleton-Topics (eine Seite)', format.format(latest.singletonTopics), latest.singletonTopics - first.singletonTopics);
     metric('Topics gesamt (inkl. leerer)', format.format(latest.totalTopics));
     const minimum = points[0].time, span = Math.max(60000, latest.time - minimum);
-    const maximum = Math.max(1, ...points.map(point => byPages ? point.activeTopics : Math.max(point.learnedPages, point.activeTopics)));
+    const maximum = Math.max(1, ...points.map(point => byPages ? point.multiMemberTopics : Math.max(point.learnedPages, point.multiMemberTopics)));
     const maximumPages = Math.max(1, ...points.map(point => point.learnedPages));
     const x = point => 58 + (byPages ? point.learnedPages / maximumPages : (point.time - minimum) / span) * 756;
     const y = value => 140 - value / maximum * 112;
@@ -94,7 +104,7 @@
       const horizontal = svg('text', { x: 436, y: 199, 'text-anchor': 'middle', class: 'growth-axis', 'data-growth-axis': 'x' });
       horizontal.textContent = 'Gelernte Seiten (x)';
       const vertical = svg('text', { x: 58, y: 15, class: 'growth-axis', 'data-growth-axis': 'y' });
-      vertical.textContent = 'Aktive kanonische Topics (y)';
+      vertical.textContent = 'Topics mit ≥2 Seiten (y)';
       plot.append(horizontal, vertical);
     }
     const segments = [];
@@ -104,17 +114,17 @@
       if (!previous || point.seriesId !== previous.seriesId || point.time - previous.time > (recent ? 5 * 60000 : 90 * 60000)) segments.push([]);
       segments.at(-1).push(point);
     }
-    for (const [key, suffix] of (byPages ? [['activeTopics', 'topics']] : [['learnedPages', 'pages'], ['activeTopics', 'topics']])) {
+    for (const [key, suffix] of (byPages ? [['multiMemberTopics', 'topics']] : [['learnedPages', 'pages'], ['multiMemberTopics', 'topics']])) {
       for (const segment of segments) {
         const line = svg('path', { d: segment.map((point, index) => `${index ? 'L' : 'M'}${x(point).toFixed(2)},${y(point[key]).toFixed(2)}`).join(' '), class: `growth-line growth-line-${suffix}` });
         plot.append(line);
         const last = segment.at(-1);
         const dot = svg('circle', { cx: x(last), cy: y(last[key]), r: 3, class: `growth-dot-${suffix}` });
-        appendTitle(dot, `${growthTime.format(new Date(last.time))}: ${byPages ? `${format.format(last.learnedPages)} gelernte Seiten, ` : ''}${format.format(last[key])} ${key === 'learnedPages' ? 'gelernte Seiten' : 'aktive kanonische Topics'}`);
+        appendTitle(dot, `${growthTime.format(new Date(last.time))}: ${byPages ? `${format.format(last.learnedPages)} gelernte Seiten, ` : ''}${format.format(last[key])} ${key === 'learnedPages' ? 'gelernte Seiten' : 'Topics mit mindestens zwei Seiten'}`);
         plot.append(dot);
       }
     }
-    $('growth-chart-description').textContent = `${points.length} Messpunkte. ${byPages ? 'X-Achse: gelernte Seiten. Y-Achse: aktive kanonische Topics. Verbindung in zeitlicher Reihenfolge; Löschungen können nach links und unten führen. ' : ''}Gelernte Seiten aktuell ${latest.learnedPages}, aktive kanonische Topics ${latest.activeTopics}. Änderungen seit ${growthTime.format(new Date(first.time))}: Seiten ${latest.learnedPages - first.learnedPages}, Topics ${latest.activeTopics - first.activeTopics}.`;
+    $('growth-chart-description').textContent = `${points.length} Messpunkte. ${byPages ? 'X-Achse: eindeutige gelernte Seiten. Y-Achse: kanonische Topics mit mindestens zwei Seiten. Verbindung in zeitlicher Reihenfolge; Löschungen können nach links und unten führen. ' : ''}Gelernte Seiten aktuell ${latest.learnedPages}, Topics mit mindestens zwei Seiten ${latest.multiMemberTopics}, Singleton-Topics ${latest.singletonTopics}. Änderungen seit ${growthTime.format(new Date(first.time))}: Seiten ${latest.learnedPages - first.learnedPages}, Topics ${latest.multiMemberTopics - first.multiMemberTopics}.`;
     $('growth-status').textContent = points.length === 1 ? `Erster Messpunkt: ${growthTime.format(new Date(latest.time))}. Verlauf wird ab jetzt aufgezeichnet.` :
       `${format.format(points.length)} Messpunkte · Stand ${growthTime.format(new Date(latest.time))} · Δ seit ${growthTime.format(new Date(first.time))}, nur im aktuellen Katalog. Aufzeichnung: 24 h minutengenau, danach stündlich, bis zu 90 Tage.`;
   }
@@ -139,7 +149,7 @@
   function coordinate(value) { return Number.isFinite(value) && value >= 0 && value <= 1; }
   function safeText(value, fallback = 'Ohne Titel') { return typeof value === 'string' && value.trim() ? value.trim().slice(0, 240) : fallback; }
   function normalize(input) {
-    if (!input || input.schemaVersion !== 1 || !Array.isArray(input.topics) || !Array.isArray(input.pages) || !Array.isArray(input.edges) || !input.counts) throw new Error('Unbekanntes Dashboard-Format.');
+    if (!input || ![1, 2].includes(input.schemaVersion) || !Array.isArray(input.topics) || !Array.isArray(input.pages) || !Array.isArray(input.edges) || !input.counts) throw new Error('Unbekanntes Dashboard-Format.');
     if (input.pages.length > 10000 || input.topics.length > 10000 || input.edges.length > 30000) throw new Error('Dashboard-Datei ist zu groß.');
     const topics = [], topicIds = new Set();
     for (const row of input.topics) {
@@ -161,13 +171,26 @@
     }
     const counts = input.counts;
     const number = (value, fallback) => Number.isInteger(value) && value >= 0 ? value : fallback;
+    const membership = new Map();
+    for (const page of pages) { if (!membership.has(page.topicId)) membership.set(page.topicId, new Set()); membership.get(page.topicId).add(page.id); }
+    for (const topic of topics) topic.pageCount = membership.get(topic.id)?.size ?? 0;
+    let multiMemberTopics = [...membership.values()].filter(ids => ids.size >= 2).length;
+    let singletonTopics = [...membership.values()].filter(ids => ids.size === 1).length;
+    if (input.graphLimited === true) {
+      if (input.schemaVersion === 2) {
+        if (!Number.isSafeInteger(counts.multiMemberTopics) || counts.multiMemberTopics < 0 ||
+            !Number.isSafeInteger(counts.singletonTopics) || counts.singletonTopics < 0 ||
+            counts.multiMemberTopics + counts.singletonTopics !== counts.topics) throw new Error('Ungültige Topic-Zahlen.');
+        multiMemberTopics = counts.multiMemberTopics; singletonTopics = counts.singletonTopics;
+      } else { multiMemberTopics = singletonTopics = null; }
+    }
     return {
       generatedAt: typeof input.generatedAt === 'string' ? input.generatedAt : '',
       catalogRevision: typeof input.catalogRevision === 'string' && /^[a-f0-9]{64}$/u.test(input.catalogRevision) ? input.catalogRevision : null,
       growthSeriesId: typeof input.growthSeriesId === 'string' && /^[a-f0-9]{64}$/u.test(input.growthSeriesId) ? input.growthSeriesId : null,
       graphLimited: input.graphLimited === true,
       topics, pages, edges,
-      counts: { totalSources: number(counts.totalSources, pages.length), learnedSources: number(counts.learnedSources, pages.length), displayedPages: pages.length, topics: number(counts.topics, topics.length), totalTopics: number(counts.totalTopics, topics.length) },
+      counts: { totalSources: number(counts.totalSources, pages.length), learnedSources: input.graphLimited === true ? number(counts.learnedSources, 0) : pages.length, displayedPages: pages.length, topics: number(counts.topics, topics.length), totalTopics: number(counts.totalTopics, topics.length), multiMemberTopics, singletonTopics },
       byTopic: new Map(topics.map((topic) => [topic.id, topic])),
       byPage: new Map(pages.map((page) => [page.id, page])),
     };
@@ -213,7 +236,8 @@
     const pages = current.pages.map((page) => ({ ...page, topicId: assignment.get(page.id) }));
     return { ...current, topics, pages, byTopic: new Map(topics.map((topic) => [topic.id, topic])),
       byPage: new Map(pages.map((page) => [page.id, page])),
-      counts: { ...current.counts, topics: topics.length } };
+      counts: { ...current.counts, topics: topics.length, multiMemberTopics: topics.filter(topic => topic.pageCount >= 2).length,
+        singletonTopics: topics.filter(topic => topic.pageCount === 1).length } };
   }
 
   function updateGrouping() {
@@ -226,11 +250,12 @@
     $('preview-note').hidden = state.grouping !== 'experimental';
     $('map-mode').textContent = state.grouping === 'experimental' ? 'Topic-Matching' : 'Legacy E5';
     $('map-mode').hidden = false;
-    $('count-topics').textContent = format.format(state.data.counts.topics);
-    $('topic-metric-label').textContent = state.grouping === 'experimental' ? 'Matching-Gruppen' : 'Legacy-Topics';
-    $('topic-heading').textContent = state.grouping === 'experimental' ? 'MATCHING-GRUPPEN' : 'LEGACY-TOPICS';
-    $('count-context').textContent = `${format.format(state.data.pages.length)} Seiten · ${format.format(state.data.counts.topics)} ${state.grouping === 'experimental' ? 'Matching-Gruppen' : 'Legacy-Topics'} · ${format.format(state.data.counts.totalSources)} Sources gesamt`;
-    if (state.data.graphLimited) $('count-context').textContent = `${format.format(state.data.counts.learnedSources)} gelernte Seiten · ${format.format(state.data.counts.totalTopics)} Topics gesamt · Karte pausiert`;
+    $('count-topics').textContent = state.data.counts.multiMemberTopics === null ? '—' : format.format(state.data.counts.multiMemberTopics);
+    $('count-singletons').textContent = state.data.counts.singletonTopics === null ? '—' : format.format(state.data.counts.singletonTopics);
+    $('topic-metric-label').textContent = 'Topics (≥2 Seiten)';
+    $('topic-heading').textContent = state.grouping === 'experimental' ? 'MATCHING-GRUPPEN (INKL. SINGLETONS)' : 'KANONISCHE GRUPPEN (INKL. SINGLETONS)';
+    $('count-context').textContent = `${format.format(state.data.pages.length)} eindeutige Seiten · ${format.format(state.data.counts.multiMemberTopics)} Topics mit ≥2 Seiten · ${format.format(state.data.counts.singletonTopics)} Singletons · ${format.format(state.data.counts.totalSources)} Sources gesamt`;
+    if (state.data.graphLimited) $('count-context').textContent = `${format.format(state.data.counts.learnedSources)} eindeutige gelernte Seiten · aktuelle kanonische Zuordnung · ${format.format(state.data.counts.totalTopics)} Topic-Container gesamt · Karte pausiert${state.data.counts.multiMemberTopics === null ? '; Legacy-Mehrseitenzahlen unbekannt' : ''}`;
     render();
   }
 
@@ -418,7 +443,6 @@
     state.pageId = preserve && state.data.byPage.has(state.pageId) ? state.pageId : null;
     if (!preserve) { state.query = ''; $('search-input').value = ''; }
     $('count-learned').textContent = format.format(state.data.counts.learnedSources);
-    $('count-topics').textContent = format.format(state.data.counts.topics);
     const date = new Date(state.data.generatedAt);
     $('data-age').textContent = Number.isNaN(date.getTime()) ? 'Lokale Momentaufnahme' : `Stand ${new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' }).format(date)}`;
     if (!preserve) state.view = { x: 0, y: 0, w: 1000, h: 700 };

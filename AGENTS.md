@@ -8,6 +8,19 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current radius direction (2026-10-13, ADR-111): owner requests activation of
+fixed-reference Topic/Ridge1 threshold lookup with overlapping membership.
+Zero exhaustive matches opens a singleton; middle page matching two separate
+references sees both Topics' messages without merging Topics or duplicating
+posts. Dashboard Topics means >=2 distinct learned-page members, singletons
+separate; v2 history must not relabel v1. Exact radius/reference-planner and
+dashboard v2 components are implemented/tested but canonical many-to-many
+storage/reference lifecycle/current proofs/feed cutover remain incomplete.
+Read top STATUS/HANDOFF before activation; normal service remains unchanged.
+Do not call the old compatibility restart new-model activation or claim million
+page readiness: actual Ridge radius queries still compare ~99% of this catalog.
+Preserve data, pairing, privacy and unrelated dirty rename/Copilot work.
+
 Current localized grouping/post-independent matching (2026-10-13, ADR-110,
 backend-only): owner explicitly requests exact local page neighborhoods and no
 whole regroup on messages/unchanged visits. Source-input identity, bounded RAM

@@ -110,6 +110,25 @@ export function buildStatsOnlyDashboardSnapshot(point) {
     topics: [], pages: [], edges: [] };
 }
 
+// V1 exports keep their historical >=1 definition. V2 explicitly distinguishes
+// multi-page Topics from singleton containers; no old history is reinterpreted.
+export function buildDashboardSnapshotV2(state, options = {}) {
+  const snapshot = buildDashboardSnapshot(state, options);
+  const multiMemberTopics = snapshot.topics.filter(topic => topic.pageCount >= 2).length;
+  const singletonTopics = snapshot.topics.filter(topic => topic.pageCount === 1).length;
+  return { ...snapshot, schemaVersion: 2,
+    counts: { ...snapshot.counts, multiMemberTopics, singletonTopics } };
+}
+
+export function buildStatsOnlyDashboardSnapshotV2(point) {
+  if (!Number.isSafeInteger(point.multiMemberTopics) || point.multiMemberTopics < 0 ||
+      !Number.isSafeInteger(point.singletonTopics) || point.singletonTopics < 0 ||
+      point.multiMemberTopics + point.singletonTopics !== point.activeTopics) throw new TypeError('Invalid dashboard Topic counters');
+  const snapshot = buildStatsOnlyDashboardSnapshot(point);
+  return { ...snapshot, schemaVersion: 2,
+    counts: { ...snapshot.counts, multiMemberTopics: point.multiMemberTopics, singletonTopics: point.singletonTopics } };
+}
+
 function mean(numbers) { return numbers.reduce((sum, value) => sum + value, 0) / numbers.length; }
 
 function principalCoordinates(vectors) {
