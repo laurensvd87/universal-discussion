@@ -88,7 +88,7 @@ export function createIncrementalAdaptiveTopicPlanner({ graphBytes = 32 * 1024 *
       }
       const groups = [...initial.keys()], groupOrder = new Map(groups.map((key, index) => [key, index]));
       const prepared = graph.prepare(sources.map(source => ({ key: source.id, center: source.embedding.values, sourceIds: [source.id] })),
-        { work, forcedUnions: [...initial.values()] });
+        { work, forcedUnions: [...initial.values()], memoPairs: true });
       if (prepared === null) return fallback();
       const nextCache = new Map(), partitions = [], decisions = [];
       let reusedComponents = 0, rebuiltComponents = 0, bytes = 0;
@@ -110,7 +110,7 @@ export function createIncrementalAdaptiveTopicPlanner({ graphBytes = 32 * 1024 *
           result = oracle({ sources: members.map(id => learned.get(id)),
             sourceLinks: members.map(id => links.get(id)).filter(Boolean),
             previousPartitions: members.map(id => ({ sourceIds: [id], pinnedTopicId: null, retainTight: retained.has(id) }))
-          }, { workBudgetMs: remaining });
+          }, { workBudgetMs: remaining, pairCache: prepared.pairCache });
           rebuiltComponents++;
         }
         if (result?.policyVersion !== ADAPTIVE_TOPIC_POLICY.version || !Array.isArray(result.partitions) || !Array.isArray(result.decisions))

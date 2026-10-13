@@ -1,4 +1,6 @@
 import { performance } from 'node:perf_hooks';
+import { types } from 'node:util';
+import { readEvidencePairCache } from './bounded-evidence-graph.js';
 import { fail } from './errors.js';
 
 export const ADAPTIVE_TOPIC_POLICY = Object.freeze({ version: 'adaptive-supported-partitions/v1',
@@ -15,9 +17,11 @@ const PLANNING_BUDGET_MS = 10_000;
 // Additional relation memoization is an optional speedup, never a size gate.
 // Stop admitting entries at this bound; a miss always recomputes the exact rule.
 const RELATION_CACHE_LIMIT = 65_536;
+// Dense geometry replaces the existing sparse numeric rows, not the admission
+// or relation-cache rules. Larger/legacy inventories keep their original path.
+const DENSE_SIMILARITY_BYTES = 32 * 1024 * 1024;
 const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
 const validId = value => typeof value === 'string' && /^[A-Za-z0-9._:-]{1,128}$/u.test(value);
-const key = part => part.sourceIds.join('\0');
 const invalid = () => { throw new TypeError('Invalid adaptive Topic planner input'); };
 const dot = (a,b) => {
   // Preserve the reduce's left-to-right arithmetic, without a callback per axis.
@@ -30,7 +34,7 @@ const dot = (a,b) => {
 // Topic reuse and must preserve Topic-root/manual/legacy containers independently.
 // retainTight is one bounded sticky signal: persist it with the caller's Topic
 // partition metadata to prevent support removal immediately undoing a split.
-export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = [] }, { workBudgetMs = PLANNING_BUDGET_MS } = {}) {
+export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = [] }, { workBudgetMs = PLANNING_BUDGET_MS, pairCache = null } = {}) {
   if (!Array.isArray(sources) || !Array.isArray(sourceLinks) || !Array.isArray(previousPartitions)) invalid();
   if (!Number.isFinite(workBudgetMs) || workBudgetMs <= 0 || workBudgetMs > PLANNING_BUDGET_MS) invalid();
   const deadline = performance.now() + workBudgetMs;
@@ -72,13 +76,74 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
   const eligibleIds=eligible.map(source=>source.id);
   const indices=new Map(eligibleIds.map((id,index)=>[id,index]));
   const vectors=eligible.map(source=>source.embedding.values);
-  const similarities=eligible.map(()=>[]);
-  function similarity(a,b) {
-    if(a===b)return 1;
-    const first=indices.get(a),second=indices.get(b);
-    const low=Math.min(first,second),high=Math.max(first,second),row=similarities[low];
+  const pairCount=eligible.length*(eligible.length-1)/2;
+  let denseGeometry=(pairCount+eligible.length*384)*8<=DENSE_SIMILARITY_BYTES;
+  // Do not accelerate caller hooks, decorated arrays or historical holes: the
+  // original arithmetic observes them and its NaN sort fallback stays exact.
+  if(denseGeometry)for(const vector of vectors) {
+    if(types.isProxy(vector) || Object.getPrototypeOf(vector)!==Array.prototype || Reflect.ownKeys(vector).length!==385) {
+      denseGeometry=false;break;
+    }
+    for(let axis=0;axis<384;axis++) {
+      checkBudget();
+      const field=Object.getOwnPropertyDescriptor(vector,String(axis));
+      if(!field || !Object.hasOwn(field,'value') || !Number.isFinite(field.value)) {denseGeometry=false;break;}
+    }
+    if(!denseGeometry)break;
+  }
+  let trustedPairs=denseGeometry?readEvidencePairCache(pairCache):null,pairedIndices=null;
+  if(trustedPairs) {
+    const cacheIndices=new Map(trustedPairs.keys.map((id,index)=>[id,index]));
+    pairedIndices=eligibleIds.map(id=>cacheIndices.get(id));
+    for(let index=0;index<vectors.length;index++) {
+      checkBudget();
+      if(pairedIndices[index]===undefined || !trustedPairs.matches(pairedIndices[index],vectors[index])) {
+        trustedPairs=null;pairedIndices=null;break;
+      }
+    }
+  }
+  // Stable typed element access has the same Float64 values/arithmetic as the
+  // validated arrays. Charge these copies together with the triangular memo.
+  const denseVectors=denseGeometry && !trustedPairs?vectors.map(vector=>{
+    checkBudget();return Float64Array.from(vector);
+  }):null;
+  const denseSimilarities=denseGeometry && !trustedPairs?new Float64Array(pairCount).fill(NaN):null;
+  const rowOffsets=denseGeometry && !trustedPairs?Float64Array.from({length:eligible.length},(_,index)=>index*(2*eligible.length-index-1)/2):null;
+  const similarities=denseGeometry?null:eligible.map(()=>[]);
+  function indexedSimilarity(first,second) {
+    if(first===second)return 1;
+    if(trustedPairs)return Math.max(-1,Math.min(1,trustedPairs.score(pairedIndices[first],pairedIndices[second])));
+    const low=Math.min(first,second),high=Math.max(first,second);
+    if(denseGeometry) {
+      const offset=rowOffsets[low]+high-low-1;
+      let value=denseSimilarities[offset];
+      if(Number.isNaN(value)) {
+        const a=denseVectors[first],b=denseVectors[second];let sum=0;
+        // Same 384 multiplications and left-to-right additions as dot(), with
+        // no per-axis sparse membership probe for proven dense numeric arrays.
+        for(let axis=0;axis<384;axis++)sum+=a[axis]*b[axis];
+        value=Math.max(-1,Math.min(1,sum));denseSimilarities[offset]=value;
+      }
+      return value;
+    }
+    const row=similarities[low];
     if(row[high]===undefined)row[high]=dot(vectors[first],vectors[second]);
     return row[high];
+  }
+  function similarity(a,b) {
+    return indexedSimilarity(indices.get(a),indices.get(b));
+  }
+  const memberIndices=new WeakMap(),partitionKeys=new WeakMap();
+  function numericMembers(ids) {
+    if(!denseGeometry)return null;
+    let result=memberIndices.get(ids);
+    if(!result) {result=ids.map(id=>indices.get(id));memberIndices.set(ids,result);}
+    return result;
+  }
+  function key(part) {
+    let value=partitionKeys.get(part);
+    if(value===undefined) {value=part.sourceIds.join('\0');partitionKeys.set(part,value);}
+    return value;
   }
   // Member arrays are immutable for this invocation: every merge creates a new
   // sorted array. Complete-link scores and cohesion therefore stay exact while
@@ -91,7 +156,10 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     let row=minima.get(a);
     if(row?.has(b))return row.get(b);
     let result=Infinity;
-    for(const id of a)for(const other of b) { checkBudget(); result=Math.min(result,similarity(id,other)); }
+    if(denseGeometry)for(const id of numericMembers(a))for(const other of numericMembers(b)) {
+      checkBudget();result=Math.min(result,indexedSimilarity(id,other));
+    }
+    else for(const id of a)for(const other of b) { checkBudget(); result=Math.min(result,similarity(id,other)); }
     if(minimumEntries<RELATION_CACHE_LIMIT) {
       if(!row) { row=new WeakMap(); minima.set(a,row); }
       row.set(b,result); minimumEntries++;
@@ -100,7 +168,10 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
   }
   function maximum(a,b) {
     let result=-Infinity;
-    for(const id of a)for(const other of b) { checkBudget(); result=Math.max(result,similarity(id,other)); }
+    if(denseGeometry)for(const id of numericMembers(a))for(const other of numericMembers(b)) {
+      checkBudget();result=Math.max(result,indexedSimilarity(id,other));
+    }
+    else for(const id of a)for(const other of b) { checkBudget(); result=Math.max(result,similarity(id,other)); }
     return result;
   }
   function cohesion(ids) {
@@ -109,7 +180,8 @@ export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = 
     if(cohesions.has(ids))return cohesions.get(ids);
     let result=Infinity;
     for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++) {
-      checkBudget(); result=Math.min(result,similarity(ids[i],ids[j]));
+      checkBudget(); result=Math.min(result,denseGeometry
+        ?indexedSimilarity(numericMembers(ids)[i],numericMembers(ids)[j]):similarity(ids[i],ids[j]));
     }
     cohesions.set(ids,result);
     return result;

@@ -1,7 +1,7 @@
 import { fail } from "./errors.js";
 import { clone, readExpectedVersion, readId, readRecord, readText } from "./validation.js";
 import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
-import { pinSourceRoots, purgeLearnedThreads, removeSourceOrigins, sourceStamp } from "./source-threads.js";
+import { operationDigestFor, pinSourceRoots, purgeLearnedThreads, removeSourceOrigins, sourceStamp } from "./source-threads.js";
 import { applyAdaptiveTopicPlan } from "./adaptive-topic-integration.js";
 import { ADAPTIVE_TOPIC_POLICY } from "./adaptive-topics.js";
 
@@ -84,10 +84,51 @@ function regroup(state, dependencies) {
     ? { planner: input => planner({ ...input, generation: state.generation }) } : {});
 }
 
+// A new observation of exactly the accepted representation only renews its
+// receipt. It must not reconsider a valid current assignment (or route old
+// threads) simply because the operation ID is new. This is not a certificate
+// that imported state is a planner fixed point: old policy or incomplete routing
+// must still take the ordinary, guarded planning path.
+function canRetainCurrentAssignment(state, source, input, operationDigest) {
+  if (!source || source.provenance !== LEARNED_SOURCE_PROVENANCE ||
+      source.policyVersion !== ADAPTIVE_TOPIC_POLICY.version ||
+      source.url !== input.url || source.title !== input.title ||
+      source.extractorVersion !== input.extractorVersion ||
+      !sameAcceptedEmbedding(source.embedding, input.embedding) ||
+      source.operationDigest !== operationDigest ||
+      source.operationDigest !== operationDigestFor(source)) return false;
+  // Do not use an unchanged visit to silently leave a pending old-policy
+  // conversion behind or to claim that conversion happened.
+  if (state.sources.some(entry => entry.provenance === LEARNED_SOURCE_PROVENANCE &&
+      entry.policyVersion !== ADAPTIVE_TOPIC_POLICY.version)) return false;
+  const links = state.sourceLinks.filter(entry => entry.sourceId === source.id);
+  if (links.length !== 1 || !["learned-provisional", "manual-confirmed"].includes(links[0].method)) return false;
+  const topics = state.topics.filter(entry => entry.id === links[0].topicId);
+  if (topics.length !== 1 || topics[0].provenance === LEARNED_TOPIC_PROVENANCE &&
+      typeof topics[0].retainTight !== "boolean") return false;
+  return state.discussions.filter(entry => entry.topicId === topics[0].id).length === 1;
+}
+
+function sameAcceptedEmbedding(left, right) {
+  if (left?.modelId !== right.modelId || !Array.isArray(left?.values) ||
+      left.values.length !== 384 || Reflect.ownKeys(left.values).length !== 385) return false;
+  for (let index = 0; index < 384; index++) {
+    if (!Object.hasOwn(left.values, index) || !Number.isFinite(left.values[index]) ||
+        !Object.is(left.values[index], right.values[index])) return false;
+  }
+  return true;
+}
+
 export function applyLearnedIngest(state, input, operationDigest, dependencies) {
   const next = clone(state);
   let source = next.sources.find((item) => item.url === input.url);
   if (source && source.provenance !== LEARNED_SOURCE_PROVENANCE) fail("forbidden", "Source unavailable for ingestion");
+  if (canRetainCurrentAssignment(next, source, input, operationDigest)) {
+    source.operationId = input.operationId;
+    source.operationDigest = operationDigest;
+    next.revision += 1;
+    return { state: next, result: ingestionResult(next, source) };
+  }
   if (!source) {
     source = { id: freshId(next, dependencies.nextId, "source"), url: input.url, title: input.title,
       embedding: input.embedding, provenance: LEARNED_SOURCE_PROVENANCE,
