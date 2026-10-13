@@ -3,7 +3,7 @@ import { readDiagonalAdapter, ADAPTER_SCHEMA } from './diagonal-adapter.js';
 import { planIndexedAlternateTopics, INDEXED_TOPIC_POLICY } from './alternate-topic-planner-indexed.js';
 import { performance } from 'node:perf_hooks';
 import { fail } from './errors.js';
-import { createPracticalTopicPlanner } from './ridge-topic-planner.js';
+import { createPracticalTopicPlanner, createIncrementalPracticalTopicPlanner } from './ridge-topic-planner.js';
 import { createRidgeTopicTransform, RIDGE_TOPIC_SCHEMA } from './ridge-topic-adapter.js';
 
 // Fixed BODY calibration, applied to the indexed supported-merge algorithm.
@@ -36,9 +36,17 @@ function diagonalTransform(artifact) {
 // Artifact validation and coefficient copying happen only at construction.
 // Coordinates are transient plan-local copies; neither artifacts nor vectors
 // are exposed in the returned planner or content-free partition DTO.
-export function createOwnerTopicPlanner({ diagonalAdapter = null, bodyMetric = null, ridgeAdapter = null } = {}) {
-  if (ridgeAdapter !== null) return createPracticalTopicPlanner({ representation: RIDGE_TOPIC_SCHEMA,
-    floor: 0.8639003810829322, transform: createRidgeTopicTransform(ridgeAdapter) });
+export function createOwnerTopicPlanner({ diagonalAdapter = null, bodyMetric = null, ridgeAdapter = null,
+  incremental = false } = {}) {
+  if (typeof incremental !== 'boolean') invalid();
+  if (ridgeAdapter !== null) {
+    const options = { representation: RIDGE_TOPIC_SCHEMA, floor: 0.8639003810829322,
+      transform: createRidgeTopicTransform(ridgeAdapter) };
+    // Coefficients are immutable private copies for this instance; a different
+    // installed artifact creates a new planner, never a shared geometry cache.
+    return incremental ? createIncrementalPracticalTopicPlanner({ ...options, artifactKey: 'fixed-ridge-instance-v1' })
+      : createPracticalTopicPlanner(options);
+  }
   if (bodyMetric === null && diagonalAdapter === null) invalid();
   const body = bodyMetric !== null;
   const transform = body ? createBodyTopicMetricTransform(bodyMetric) : diagonalTransform(diagonalAdapter);

@@ -112,7 +112,9 @@ test("signed pages bind account, canonical revision, route, root and limit with 
   assert.throws(()=>f.read("other-root",readCursor,1),error=>error.code==="conflict");
   const first=f.read("own-root",null,1),second=f.read("own-root",first.next,1);
   assert.deepEqual([...first.messages,...second.messages],f.read("own-root").messages);assert.equal(second.next,null);
-  const malformed=cursor.slice(0,-1)+(cursor.endsWith("A")?"B":"A");
+  // Change significant MAC bits, not possibly-unused base64 padding bits.
+  const [payload,signature]=cursor.split(".");
+  const malformed=`${payload}.${signature.startsWith("A")?"B":"A"}${signature.slice(1)}`;
   assert.throws(()=>f.list(malformed,1),error=>["invalid","conflict"].includes(error.code));
   f.service.command(f.service.version(),{type:"edit",contributionId:"own-root",body:"Current edited body"},f.alice.actorId);
   assert.throws(()=>f.list(cursor,1),error=>error.code==="conflict");

@@ -9,6 +9,7 @@ import { ACCOUNT_STATE_SCHEMA } from "../accounts/account-principal.js";
 import { frozenClone, readId, readExpectedVersion, readRecord, readText } from "../domain/validation.js";
 import { normalizeMyChatsQuery } from "../application/account-public-chats.js";
 import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
+import { createMatchingInputHasher } from "../domain/alternate-topic-cache.js";
 
 export const NORMALIZED_STORAGE_FORMAT = "canonical-relational/v1";
 
@@ -56,6 +57,7 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
   const readOnly = options.readOnly === true;
   const listeners = new Set();
   const changeListeners = new Set();
+  const matchingListeners = new Set();
   const serialize = options.serialize ?? JSON.stringify;
   let resettingIds = false;
   const validate = state => {
@@ -262,6 +264,7 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
   }
   function publish(state) { for (const listener of listeners) { try { listener(frozenClone(state)); } catch { /* Disposable derived indexes fail closed at their watermark. */ } } }
   function publishChanges(before, after, reset = false) {
+    let matchingChanged = reset;
     const topicIds = new Set();
     const topicByDiscussion = new Map([...before.discussions, ...after.discussions].map(discussion => [discussion.id, discussion.topicId]));
     const links = [...before.sourceLinks, ...after.sourceLinks];
@@ -270,6 +273,16 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
       const next = new Map(after[name].map(value => [value[key], value]));
       for (const id of new Set([...old.keys(), ...next.keys()])) {
         if (isDeepStrictEqual(old.get(id), next.get(id))) continue;
+        if (name === "sources" && matchingListeners.size && !matchingChanged) {
+          const inputs = source => source ? [source.id, source.url, source.title, source.provenance,
+            source.extractorVersion ?? null, source.policyVersion ?? null, source.embedding] : null;
+          matchingChanged = !isDeepStrictEqual(inputs(old.get(id)), inputs(next.get(id)));
+        }
+        if (name === "sourceLinks" && matchingListeners.size && !matchingChanged) {
+          const inputs = link => link ? [link.sourceId, link.method,
+            link.method === "manual-confirmed" ? link.topicId : null] : null;
+          matchingChanged = !isDeepStrictEqual(inputs(old.get(id)), inputs(next.get(id)));
+        }
         const values = [old.get(id), next.get(id)].filter(Boolean);
         for (const value of values) {
           if (name === "topics") topicIds.add(value.id);
@@ -285,6 +298,13 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     const deletedTopicIds = before.topics.filter(topic => !after.topics.some(next => next.id === topic.id)).map(topic => topic.id);
     const event = frozenClone({ version: { generation: after.generation, revision: after.revision }, topicIds: [...topicIds].filter(Boolean), deletedTopicIds, reset });
     for (const listener of changeListeners) { try { listener(event); } catch { /* Derived watermark stays stale. */ } }
+    // A writer-local scheduling hint, not a cross-process authority/watermark.
+    // No content/vector/post payload leaves this subscription; exact readonly
+    // identity checks still govern each matching request in the worker.
+    if (matchingChanged) {
+      const matchingEvent = frozenClone({ version: event.version });
+      for (const listener of matchingListeners) { try { listener(matchingEvent); } catch { /* Background preparation is optional. */ } }
+    }
   }
   function write(expected, next, reset) {
     let before;
@@ -511,11 +531,36 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     version() { try { const { generation, revision } = metadata(); return { generation, revision }; } catch (error) { throw storageError(error); } },
     load() { return checkedRead(() => readState()); },
     readCatalogSnapshot() { return checkedRead(() => catalogState()); },
+    // Cross-process read workers cannot use writer-local change notifications.
+    // Scan exact public matching bytes, without loading posts or decoding vectors.
+    // No persisted watermark, new column, or global-version shortcut is involved.
+    readMatchingIdentity({ expectedVersion = null } = {}) {
+      return checkedRead(meta => {
+        const hasher = createMatchingInputHasher();
+        for (const row of database.prepare(`SELECT s.*,e.payload AS embedding_payload,e.model_id,
+          json_extract(e.payload,'$.modelId') AS payload_model,
+          CASE WHEN e.payload IS NULL THEN NULL ELSE json_object('modelId',json_extract(e.payload,'$.modelId'),
+            'values',json(json_extract(e.payload,'$.values'))) END AS matching_embedding,
+          (SELECT count(*) FROM json_each(e.payload)) AS embedding_fields
+          FROM canonical_sources s LEFT JOIN canonical_embeddings e ON e.source_id=s.id ORDER BY s.id`).iterate()) {
+          const source = decoded(row.payload);
+          verifyIndexed("sources", row, { ...source, embedding: row.embedding_payload === null ? null : {} });
+          if (row.model_id !== row.payload_model || row.embedding_payload !== null && row.embedding_fields !== 2)
+            fail("storage-corrupt", "Local database is inconsistent");
+          hasher.source(source, row.matching_embedding ?? "null");
+        }
+        for (const row of database.prepare("SELECT * FROM canonical_source_links ORDER BY source_id").iterate()) {
+          const link = decoded(row.payload); verifyIndexed("sourceLinks", row, link); hasher.link(link);
+        }
+        return { version: { generation: meta.generation, revision: meta.revision }, ...hasher.finish() };
+      }, expectedVersion);
+    },
     save(expected, next) { return write(expected, next, false); },
     saveScoped(expected, before, after) { return scopedWrite(expected, before, after); },
     replace(expected, next) { return write(expected, next, true); },
     subscribe(listener) { if (typeof listener !== "function") fail("invalid", "Invalid request"); listeners.add(listener); return () => listeners.delete(listener); },
     subscribeChanges(listener) { if (typeof listener !== "function") fail("invalid", "Invalid request"); changeListeners.add(listener); return () => changeListeners.delete(listener); },
+    subscribeMatching(listener) { if (typeof listener !== "function") fail("invalid", "Invalid request"); matchingListeners.add(listener); return () => matchingListeners.delete(listener); },
     listTopics(input) { return paged("topics", input); },
     listSources(input) { return paged("sources", input); },
     readCatalogPage({ kind = "topics", ...input } = {}) { if (!["topics", "sources"].includes(kind)) fail("invalid", "Invalid request"); return paged(kind, input); },

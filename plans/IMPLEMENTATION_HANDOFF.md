@@ -1,5 +1,28 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-13 ADR-110 localizedgrouping/post-independentcache backendACTIVE,0.13.62
+clientunchanged. Read STATUS/ADR110: actualmatchinginputs notgeneralcanonicalrevision;
+posts/receipts excluded, currentrouting/body/version/auth remainfresh. ReadonlySQL
+identity +source-onlyversionhint, noDDL/persistedderivedvectors. ExactRidgefloor/
+adaptive.86 dependencygraphwithallcurrentTopic unions; entireaffectedcomponents
+useunchangedoracle, unrelatedresultsreuse. Preservebridges/splits/pins/sticky/
+duplicate/tie/numerics/rootlineage/exactcommit. RAM32/32/8 Ridge+32/8adaptive,
+old+next graph64MiBtransient plusoracle/input;256MiBworker fence, fullfallback,
+nocold/largecomponent/unlimitedgrowthclaim. Compacttransformkeys+exactrawchecks
+avoidLRUthrash. Startup/debouncedSource-onlyprepare oneflight+dirtyflag, internal
+warmMatching hasnoHTTP/readPublicroute; no command/provider/pagecapture retry.
+Fullbackend1057/1052pass+five skips, exactrestrictedclient1537pass; independent
+pure/fullacceptedcanonicalworker differentials/resource/wiring pass;794/245scanszero.
+Synthetic4175/768Sources post45/edit44/revisit38ms/local488/delete471 and500core200
+max416. Readonlyowner2436Source cold9547→4444ms exact2140groups; unchanged743ms zero
+newgeometry/groupwork; syntheticduplicateadd794ms/replans3/reuses1555components.
+Oldfullowneraddition10scapacity, notcompleteparityproof; syntheticoraclesverified.
+MACtesttampernow flips significantbits (paddingaliasflake), noauthcodechange.
+Idle normal restartPTY19033 exactall3DB/pairing/version3065/counts2436/2451/75,
+providerconnectednotpending. Actualcore13/8/6ms; warmedoptional200/24ms/allsections,
+8core200max11ms. Noownerwrite/providerinference/crawlerstart/migration. Appsign-in
+mayrenew; client0.13.62noextra update. Stageours only/preserveunrelatedrename/Copilot.
+
 2026-10-13 ADR-109/0.13.62 reviewed/backendACTIVE; fullfinalchecks pass.
 Owner agrees corecanonical first/separateoptional +authenticated30s
 projection only; core/raw5s stay. Fastcontext excludes related/prior/Ridge;

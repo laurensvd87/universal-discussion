@@ -5,7 +5,7 @@ import { ServiceError, fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId, readRecord } from "../domain/validation.js";
 
 export const CANONICAL_READ_METHODS = Object.freeze(["catalogContext", "alternateDiscussion", "priorDiscussions", "related",
-  "catalog", "catalogPage", "discussion", "discussionPage", "exactSource", "enrichment"]);
+  "catalog", "catalogPage", "discussion", "discussionPage", "exactSource", "enrichment", "warmMatching"]);
 const fixedError = code => new ServiceError(code, code === "conflict" ? "State changed" : "Public read unavailable");
 
 export function canonicalReadInput(method, input, version) {
@@ -34,7 +34,7 @@ export function canonicalReadInput(method, input, version) {
     return Object.fromEntries(names.sort().map(name => [name, plain(descriptors[name].value, depth + 1)]));
   }
   let value = plain(input);
-  if (method === "catalog") { if (value !== null) fail("invalid", "Invalid request"); }
+  if (method === "catalog" || method === "warmMatching") { if (value !== null) fail("invalid", "Invalid request"); }
   else if (["alternateDiscussion", "priorDiscussions", "discussion", "exactSource"].includes(method)) value = readId(value);
   else if (method === "enrichment") {
     const record = readRecord(value, ["sourceId", "topicId", "includeAlternate"]);
@@ -55,9 +55,9 @@ export function canonicalReadInput(method, input, version) {
 
 export function createCanonicalReadQueue({ databasePath, alternateAdapter = null, alternateBodyMetric = null,
   alternateRidgeAdapter = null, maxTasks = 32, maxWaiters = 4096, maxInputBytes = 8 * 1024 * 1024,
-  timeoutMs = 15000, maxCommits = 8, allowedMethods = CANONICAL_READ_METHODS,
+  timeoutMs = 15000, maxCommits = 8, allowedMethods = CANONICAL_READ_METHODS, incrementalMatching = false,
   workerFactory = () => new Worker(new URL("./canonical-read-worker.js", import.meta.url), {
-    workerData: { databasePath, alternateAdapter, alternateBodyMetric, alternateRidgeAdapter, allowedMethods },
+    workerData: { databasePath, alternateAdapter, alternateBodyMetric, alternateRidgeAdapter, allowedMethods, incrementalMatching },
     execArgv: process.execArgv.filter(argument => !argument.startsWith("--test")),
     resourceLimits: { maxOldGenerationSizeMb: 256, maxYoungGenerationSizeMb: 32, stackSizeMb: 4 },
   }) } = {}) {

@@ -8,6 +8,18 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current localized grouping/post-independent matching (2026-10-13, ADR-110,
+backend-only): owner explicitly requests exact local page neighborhoods and no
+whole regroup on messages/unchanged visits. Source-input identity, bounded RAM
+dependency graphs/transform reuse and source-only background preparation are
+implemented/reviewed/active; read STATUS/HANDOFF. Preserve original grouping
+rules/full affected-component oracle, manual/sticky/duplicate/lineage and fresh
+version/account/document authority. Core/public deadlines unchanged, no durable
+derived vectors/DDL/provider call. Fullbackend/restrictedclient/worker differentials
+pass; idle restart preserves all3stores/pairing/provider sign-in. Client0.13.62
+unchanged, app sign-in mayrenew. Cold/largeaffectedcomponents still costly;
+do not claim hosted/unlimited/thousandswrites readiness. Preserve unrelated edits.
+
 Current independent canonical feed / optional matching (2026-10-13, ADR-109,
 0.13.62): owner approves canonical first, separate optional lane and exact-Origin
 authenticated projection30s lease only; raw/core5s remain. Read STATUS/HANDOFF

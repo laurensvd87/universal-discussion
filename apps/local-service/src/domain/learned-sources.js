@@ -78,6 +78,12 @@ export function ingestionResult(state, source) {
   return { sourceId: source.id, topicId: link.topicId, assignment: link.method === "manual-confirmed" ? "confirmed" : "provisional", policyVersion: source.policyVersion };
 }
 
+function regroup(state, dependencies) {
+  const planner = dependencies.adaptivePlanner;
+  return applyAdaptiveTopicPlan(state, dependencies, typeof planner === "function"
+    ? { planner: input => planner({ ...input, generation: state.generation }) } : {});
+}
+
 export function applyLearnedIngest(state, input, operationDigest, dependencies) {
   const next = clone(state);
   let source = next.sources.find((item) => item.url === input.url);
@@ -98,7 +104,7 @@ export function applyLearnedIngest(state, input, operationDigest, dependencies) 
     Object.assign(source, { title: input.title, embedding: input.embedding, extractorVersion: input.extractorVersion,
       operationId: input.operationId, operationDigest, policyVersion: ADAPTIVE_TOPIC_POLICY.version });
   }
-  applyAdaptiveTopicPlan(next, dependencies);
+  regroup(next, dependencies);
   next.revision += 1;
   return { state: next, result: ingestionResult(next, source) };
 }
@@ -134,13 +140,13 @@ export function applyLearnedCommand(state, value, dependencies) {
     const topicId = input.topicId === null ? createLearnedTopic(next, source.title, dependencies) : readId(input.topicId);
     if (!next.topics.some((topic) => topic.id === topicId)) fail("not-found", "Object unavailable");
     link.topicId = topicId; link.method = "manual-confirmed";
-    applyAdaptiveTopicPlan(next, dependencies);
+    regroup(next, dependencies);
     result = { ...ingestionResult(next, source), previousTopicId };
   } else if (type === "forget-source") {
     const input = readRecord(value, ["type", "sourceId"]);
     const source = learnedSource(next, input.sourceId);
     removeSources(next, [source.id]);
-    applyAdaptiveTopicPlan(next, dependencies);
+    regroup(next, dependencies);
     result = { sourceId: source.id };
   } else if (type === "delete-learned-topic") {
     const input = readRecord(value, ["type", "topicId", "confirmation"]);
@@ -150,7 +156,7 @@ export function applyLearnedCommand(state, value, dependencies) {
     const forgottenSourceIds = next.sourceLinks.filter((link) => link.topicId === topicId).map((link) => link.sourceId);
     if (forgottenSourceIds.some((id) => next.sources.find((source) => source.id === id)?.provenance !== LEARNED_SOURCE_PROVENANCE)) fail("forbidden", "Topic unavailable for deletion");
     removeSources(next, forgottenSourceIds); removeTopics(next, [topicId]);
-    applyAdaptiveTopicPlan(next, dependencies);
+    regroup(next, dependencies);
     result = { topicId, forgottenSourceIds };
   } else if (type === "clear-learned-data") {
     const input = readRecord(value, ["type", "confirmation"]);

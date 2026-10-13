@@ -4,6 +4,8 @@ import { types } from 'node:util';
 import { planIndexedAlternateTopics } from './alternate-topic-planner-indexed.js';
 import { qualifyRetainedTopicContext } from './guarded-body-topic-planner.js';
 import { fail } from './errors.js';
+import { createHash } from 'node:crypto';
+import { createBoundedEvidenceGraph } from './bounded-evidence-graph.js';
 
 export const PRACTICAL_POLICY = Object.freeze({ version: 'ridge1-qualified-complete-link/v1',
   maxWorkUnits: 100_000_000, workBudgetMs: 10_000, maxCachedPairs: 65_536,
@@ -186,6 +188,183 @@ export function createPracticalTopicPlanner({ representation, floor, transform }
         candidateEdges, comparedPairs, mergedGroups, workUnits,
         peakCachedPairs: Math.max(peakCachedPairs, coarse.diagnostics.peakCachedPairs), peakEdgeBytes,
         elapsedMs } };
+    },
+  });
+}
+
+// Exact opt-in reuse around the unchanged planner above. Components are only
+// dependency separators, not new Topic decisions. Each affected component runs
+// the original qualification/coarse/refinement algorithm from its raw inputs.
+export function createIncrementalPracticalTopicPlanner({ representation, floor, transform, artifactKey,
+  cacheLimits = {} }) {
+  if (typeof representation !== 'string' || !representation || typeof transform !== 'function' ||
+      typeof artifactKey !== 'string' || !ID.test(artifactKey)) invalid();
+  admission(floor);
+  const limits = record(cacheLimits);
+  const ceilings = { transformBytes: 32 * 1024 * 1024, graphBytes: 32 * 1024 * 1024, componentBytes: 8 * 1024 * 1024 };
+  if (Object.keys(limits).some(key => !Object.hasOwn(ceilings, key))) invalid();
+  const retained = { ...ceilings, ...limits };
+  if (Object.keys(ceilings).some(key => !Number.isSafeInteger(retained[key]) || retained[key] < 0 || retained[key] > ceilings[key])) invalid();
+  const graph = createBoundedEvidenceGraph({ edgeFloor: floor - 1e-10, maxBytes: retained.graphBytes });
+  const transforms = new Map(), components = new Map();
+  let transformBytes = 0, componentBytes = 0, generation = undefined;
+  const clear = () => { transforms.clear(); components.clear(); graph.clear(); transformBytes = componentBytes = 0; };
+  // Fixed-size binary identities avoid retaining ~15KiB decimal strings per
+  // vector. Exact raw copies still guard every digest hit (including -0).
+  const rawIdentityBytes = Buffer.alloc(384 * 8);
+  const rawKey = values => {
+    for (let index = 0; index < 384; index++) rawIdentityBytes.writeDoubleLE(values[index], index * 8);
+    return createHash('sha256').update(rawIdentityBytes).digest('hex');
+  };
+  return Object.freeze({ policyVersion: PRACTICAL_POLICY.version, representation,
+    plan(snapshot) {
+      const began = performance.now();
+      let deadline = began + PRACTICAL_POLICY.workBudgetMs, workUnits = 0;
+      const stats = { transformedSources: 0, reusedTransforms: 0, comparedGraphPairs: 0, components: 0,
+        reusedComponents: 0, replannedSources: 0, fallback: 0, transformBytes: 0, graphBytes: 0, componentBytes: 0 };
+      let budget = PRACTICAL_POLICY;
+      const work = (amount = 1) => {
+        if (!Number.isSafeInteger(amount) || amount < 0) invalid();
+        workUnits += amount;
+        if (!Number.isSafeInteger(workUnits) || workUnits > budget.maxWorkUnits || performance.now() >= deadline) capacity();
+      };
+      const usedTransforms = new Set(), usedComponents = new Set();
+      const memoTransform = values => {
+        work(); const key = rawKey(values);
+        let previous = transforms.get(key);
+        if (previous) {
+          work(384);
+          if (!values.every((value, index) => Object.is(value, previous.raw[index]))) {
+            // A digest collision must not reuse another vector's transform.
+            transformBytes -= previous.bytes; transforms.delete(key); usedTransforms.delete(key); previous = null;
+          }
+        }
+        if (previous) {
+          transforms.delete(key); transforms.set(key, previous); usedTransforms.add(key); stats.reusedTransforms++;
+          return previous.values;
+        }
+        const output = Object.freeze(Array.from(transform(values))); stats.transformedSources++;
+        checkedUnit(output); work();
+        const bytes = key.length * 2 + (384 + output.length) * 8 + 256;
+        if (bytes <= retained.transformBytes) {
+          while (transformBytes + bytes > retained.transformBytes && transforms.size) {
+            const oldest = transforms.keys().next().value; transformBytes -= transforms.get(oldest).bytes; transforms.delete(oldest); usedTransforms.delete(oldest);
+          }
+          transforms.set(key, { raw: Float64Array.from(values), values: output, bytes }); transformBytes += bytes; usedTransforms.add(key);
+        }
+        return output;
+      };
+      const full = createPracticalTopicPlanner({ representation, floor, transform: memoTransform });
+      const runFull = input => {
+        work();
+        const remainingWork = budget.maxWorkUnits - workUnits, remainingMs = deadline - performance.now();
+        if (remainingWork <= 0 || remainingMs <= 0) capacity();
+        const result = full.plan({ ...input, limits: { maxWorkUnits: remainingWork, workBudgetMs: remainingMs,
+          maxCachedPairs: budget.maxCachedPairs, maxEdgeBytes: budget.maxEdgeBytes } });
+        work(result.diagnostics.workUnits); return result;
+      };
+      const publish = result => {
+        work();
+        for (const [key, entry] of transforms) if (!usedTransforms.has(key)) { transforms.delete(key); transformBytes -= entry.bytes; }
+        for (const [key, entry] of components) if (!usedComponents.has(key)) { components.delete(key); componentBytes -= entry.bytes; }
+        stats.transformBytes = transformBytes; stats.componentBytes = componentBytes;
+        return { ...result, diagnostics: { ...result.diagnostics, workUnits, elapsedMs: performance.now() - began, incremental: stats } };
+      };
+      try {
+        const input = record(snapshot, work), options = input.limits === undefined ? {} : record(input.limits, work);
+        budget = { ...PRACTICAL_POLICY, ...options };
+        if (Object.keys(options).some(key => !['maxWorkUnits', 'workBudgetMs', 'maxCachedPairs', 'maxEdgeBytes'].includes(key)) ||
+            !Number.isSafeInteger(budget.maxWorkUnits) || budget.maxWorkUnits < 1 || budget.maxWorkUnits > PRACTICAL_POLICY.maxWorkUnits ||
+            !Number.isFinite(budget.workBudgetMs) || budget.workBudgetMs <= 0 || budget.workBudgetMs > PRACTICAL_POLICY.workBudgetMs ||
+            !Number.isSafeInteger(budget.maxCachedPairs) || budget.maxCachedPairs < 0 || budget.maxCachedPairs > PRACTICAL_POLICY.maxCachedPairs ||
+            !Number.isSafeInteger(budget.maxEdgeBytes) || budget.maxEdgeBytes < 0 || budget.maxEdgeBytes > PRACTICAL_POLICY.maxEdgeBytes) invalid();
+        deadline = began + budget.workBudgetMs; work();
+        const currentGeneration = input.generation ?? null;
+        if (currentGeneration !== null && (typeof currentGeneration !== 'string' || !ID.test(currentGeneration))) invalid();
+        if (generation !== currentGeneration) { clear(); generation = currentGeneration; }
+        if (!retained.graphBytes) { stats.fallback = 1; return publish(runFull(snapshot)); }
+        const all = new Map(), links = new Map();
+        for (const value of dense(input.sources, work)) {
+          const source = record(value, work);
+          if (typeof source.id !== 'string' || !ID.test(source.id) || all.has(source.id)) invalid();
+          all.set(source.id, { source: value, fields: source });
+        }
+        for (const value of dense(input.sourceLinks, work)) {
+          const link = record(value, work), source = all.get(link.sourceId)?.fields;
+          if (!source || links.has(link.sourceId) || typeof link.method !== 'string' || !link.method ||
+              source.provenance === LEARNED && !['learned-provisional', 'manual-confirmed'].includes(link.method)) invalid();
+          links.set(link.sourceId, value);
+        }
+        const eligible = [], partitions = [], reasons = {}, units = new Map();
+        let signatureCollision = false, scratchGraphBytes = 0;
+        const fallback = () => {
+          graph.clear(); components.clear(); componentBytes = 0;
+          eligible.length = 0; units.clear(); all.clear(); links.clear();
+          stats.fallback = 1; return publish(runFull(snapshot));
+        };
+        let learnedSources = 0, quarantinedSources = 0;
+        for (const { source, fields } of all.values()) {
+          work(); if (fields.provenance !== LEARNED) continue;
+          const link = links.get(fields.id); if (!link) invalid();
+          if (link.method !== 'learned-provisional') continue;
+          learnedSources++;
+          const embedding = record(fields.embedding, work), raw = dense(embedding.values, work, 384);
+          if (embedding.modelId !== MODEL || !EXTRACTORS.has(fields.extractorVersion) || raw.some(value => typeof value !== 'number' || !Number.isFinite(value))) invalid();
+          const norm = Math.hypot(...raw); if (!Number.isFinite(norm) || Math.abs(norm - 1) > 1e-5) invalid();
+          const reason = qualifyRetainedTopicContext({ url: fields.url, title: fields.title }); work();
+          if (reason !== null) { quarantinedSources++; reasons[reason] = (reasons[reason] ?? 0) + 1; partitions.push({ sourceIds: [fields.id] }); continue; }
+          const represented = checkedUnit(memoTransform(raw)), signature = represented.join(',');
+          const key = createHash('sha256').update(signature).digest('hex');
+          // Retain one exact represented center per duplicate evidence unit,
+          // not a full vector/string per Source in a duplicate flood. A digest
+          // collision within the inventory falls back to the unchanged oracle.
+          if (units.has(key) && units.get(key).center.join(',') !== signature) signatureCollision = true;
+          const entry = { id: fields.id, source, link,
+            rawKey: rawKey(raw) };
+          eligible.push(entry);
+          if (!units.has(key)) { units.set(key, { key, center: represented, sourceIds: [] }); scratchGraphBytes += key.length * 2 + 384 * 8 + 512; }
+          scratchGraphBytes += fields.id.length * 2 + 32;
+          if (scratchGraphBytes > retained.graphBytes) return fallback();
+          const unit = units.get(key);
+          if (!unit.sourceIds.length || compare(fields.id, unit.sourceIds[0]) < 0) { unit.center = represented; unit.sourceIds.unshift(fields.id); }
+          else unit.sourceIds.push(fields.id);
+        }
+        if (signatureCollision) return fallback();
+        const prepared = graph.prepare([...units.values()], { work });
+        if (prepared === null) return fallback();
+        stats.graphBytes = prepared.stats.bytes; stats.comparedGraphPairs = prepared.stats.comparedPairs; stats.components = prepared.components.length;
+        const byId = new Map(eligible.map(entry => [entry.id, entry]));
+        const diagnostics = { representation, floor, coarsePolicyVersion: 'alternate-indexed-body-metric/v1', sources: learnedSources,
+          qualifiedSources: eligible.length, quarantinedSources, qualificationReasons: reasons, coarsePartitions: 0,
+          coarseWorkUnits: 0, coarseComparedPairs: 0, coarseUniqueEvidenceUnits: 0, coarseDuplicateSources: 0,
+          candidateEdges: 0, comparedPairs: 0, mergedGroups: 0, peakCachedPairs: 0, peakEdgeBytes: 0 };
+        for (const component of prepared.components) {
+          work();
+          const members = component.flatMap(key => units.get(key).sourceIds).sort(compare);
+          const dependency = JSON.stringify([artifactKey, budget.maxCachedPairs, budget.maxEdgeBytes, members.map(id => [id, byId.get(id).rawKey])]);
+          const key = createHash('sha256').update(dependency).digest('hex');
+          let result = components.get(key)?.result;
+          if (result) { usedComponents.add(key); stats.reusedComponents++; }
+          else {
+            stats.replannedSources += members.length;
+            result = runFull({ sources: members.map(id => byId.get(id).source), sourceLinks: members.map(id => byId.get(id).link) });
+            const bytes = Buffer.byteLength(JSON.stringify(result), 'utf8') * 2 + key.length * 2 + 256;
+            if (bytes <= retained.componentBytes) {
+              while (componentBytes + bytes > retained.componentBytes && components.size) {
+                const oldest = components.keys().next().value; componentBytes -= components.get(oldest).bytes; components.delete(oldest); usedComponents.delete(oldest);
+              }
+              components.set(key, { result: structuredClone(result), bytes }); componentBytes += bytes; usedComponents.add(key);
+            }
+          }
+          for (const part of result.partitions) partitions.push({ sourceIds: [...part.sourceIds] });
+          for (const name of ['coarsePartitions', 'coarseWorkUnits', 'coarseComparedPairs', 'coarseUniqueEvidenceUnits', 'coarseDuplicateSources', 'candidateEdges', 'comparedPairs', 'mergedGroups']) diagnostics[name] += result.diagnostics[name];
+          diagnostics.peakCachedPairs = Math.max(diagnostics.peakCachedPairs, result.diagnostics.peakCachedPairs);
+          diagnostics.peakEdgeBytes = Math.max(diagnostics.peakEdgeBytes, result.diagnostics.peakEdgeBytes);
+        }
+        partitions.sort((a, b) => { work(); return compare(a.sourceIds[0], b.sourceIds[0]); }); work();
+        if (partitions.flatMap(part => part.sourceIds).length !== learnedSources) invalid();
+        prepared.commit(); return publish({ policyVersion: PRACTICAL_POLICY.version, partitions, diagnostics });
+      } catch (error) { clear(); throw error; }
     },
   });
 }

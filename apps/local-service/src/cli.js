@@ -54,6 +54,7 @@ export async function runCli(args = process.argv.slice(2)) {
     config: { host: FIXED_HOST, port: FIXED_PORT, origin, capability: "durable-pairing-verifier-only-placeholder" },
     databasePath: APP_DATABASE_PATH,
     asyncIngest: true,
+    incrementalMatching: true,
     pairingPath,
     nextId: (prefix) => `${prefix}-${randomUUID()}`,
     now: () => new Date().toISOString(),

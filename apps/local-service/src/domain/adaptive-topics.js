@@ -30,9 +30,10 @@ const dot = (a,b) => {
 // Topic reuse and must preserve Topic-root/manual/legacy containers independently.
 // retainTight is one bounded sticky signal: persist it with the caller's Topic
 // partition metadata to prevent support removal immediately undoing a split.
-export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = [] }) {
+export function planAdaptiveTopics({ sources, sourceLinks, previousPartitions = [] }, { workBudgetMs = PLANNING_BUDGET_MS } = {}) {
   if (!Array.isArray(sources) || !Array.isArray(sourceLinks) || !Array.isArray(previousPartitions)) invalid();
-  const deadline = performance.now() + PLANNING_BUDGET_MS;
+  if (!Number.isFinite(workBudgetMs) || workBudgetMs <= 0 || workBudgetMs > PLANNING_BUDGET_MS) invalid();
+  const deadline = performance.now() + workBudgetMs;
   let checks = 0;
   function checkBudget() {
     if ((++checks & 1023) === 0 && performance.now() > deadline) fail('capacity', 'Matching work budget reached');

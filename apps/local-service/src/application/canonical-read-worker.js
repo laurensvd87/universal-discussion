@@ -19,6 +19,7 @@ parentPort.on("message", ({ id, input }) => {
         alternateAdapter: workerData.alternateAdapter ?? null,
         alternateBodyMetric: workerData.alternateBodyMetric ?? null,
         alternateRidgeAdapter: workerData.alternateRidgeAdapter ?? null,
+        incrementalMatching: workerData.incrementalMatching === true,
       });
     }
     const before = repository.version();

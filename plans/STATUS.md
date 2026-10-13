@@ -1,5 +1,42 @@
 # Project status
 
+**2026-10-13 localized grouping / post-independent matching ACTIVE (ADR-110,backend-only).**
+Owner explicitly requests no whole grouping rebuild on posts/existing visits
+and local new/changed-page neighborhoods. Exact Source geometry/qualification/
+eligibility identity replaces globalrevision invalidation; receipts/posts excluded.
+Current posts/Topic routing/actor/version/auth proofs remain fresh. Separate
+readonly SQL identity and content-free source-change hints require no DDL.
+Ridge/adaptive dependency graphs retain unchanged edges/results, compare changed
+geometry only, and run original algorithm on entire affected components. Bridges/
+splits/manual pins/sticky retention/duplicate support/epsilon/ties preserve exact
+rules; canonical mapper/whole-subthread lineage/guarded commit stay unchanged.
+Ridge floor-only graph, adaptive conservative .86 graph +allcurrentTopic unions;
+no nearest-only/approximate grouping. Compact exact-checked transform cache fixes
+decimal-key thrash. RAM-only32/32/8MiB Ridge and32/8 adaptive caches; transient
+old+next graph can64MiB plus scratch, existing256MiB worker fence remains. Overflow
+falls back full original, no partial outputs; startupcold/largeaffectedcomponent
+can still be expensive and SQL identity checks on changed revisions staylinear.
+
+NormalCLI opts in; one background startup/source-change preparation, oneflight/
+dirtyflag/debounce, no posts/receipt scheduling or publicwarm route. Original
+factories/oracles remain differential defaults. Fullbackend1057/1052pass+five
+skips, restrictedextension1537pass, independentpure/actualworker lineage/snapshot
+equivalence and resource/finalwiring reviews pass. Guarded synthetic4175/768Source
+HTTP cold1150ms, post45/edit44/revisit38, localcomponent488/delete471;500current
+core200/max416ms. Readonlyowner2436Source originalcold9547ms/new4444 exact2140groups,
+unchanged743ms/zerotransforms+graphcomparisons+replans; syntheticduplicateadd794ms
+reuses1555components/replans3Sources. Owneradditionfulloracle10scapacity, not a
+completed owneradditiondifferential; syntheticfrozenoracle cases verified. Small
+MAC-tamper fixture changes meaningful signaturebits, not base64padding aliases;
+no production account/cursor change. Scans794/245zero, diff checkclean.
+
+Idle normal restart PTY19033 preserves exact canonical/private/crawler fingerprints,
+pairing/protectedconnectednotpending sign-in; revision3065/2436Sources/2451Topics/
+75posts. Actualcorecontext13/warm8/discussion6ms, afterbackgroundwarmup enrichment
+200/24ms/allsectionsokay;8core probesall200/max11ms. No ownerwrites/providercall/
+crawlerstart/migration. Client0.13.62 unchanged; appsign-in mayrenew. Not hosted/
+unlimited or thousandswrites/heavykeys/sec. Preserve unrelatedrename/Copilot work.
+
 **2026-10-13 independent canonical feed / optional matching ACTIVE (ADR-109,0.13.62).**
 Owner explicitly approves fast canonical context/discussion before optional
 matching, a separate authenticated projection30s lease, core/raw5s unchanged.
