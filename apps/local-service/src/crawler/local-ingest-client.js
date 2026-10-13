@@ -1,4 +1,5 @@
 import http from "node:http";
+import { readIngestionOutcome } from "../../../../spikes/topic-resolution/browser/core/local-service-contract.js";
 
 const HOST = "127.0.0.1";
 const PORT = 4174;
@@ -139,11 +140,15 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
       if (signal?.aborted) throw new CrawlerApiError("aborted");
       try {
         const value = await request("POST", "/v1/sources/ingest", { ...representation, expected, operationId }, INGEST_TIMEOUT_MS, signal);
-        if (!plain(value, ["assignment", "policyVersion", "sourceId", "topicId", "version"]) || !isVersion(value.version) ||
-            !ID.test(value.sourceId) || !ID.test(value.topicId) || !["provisional", "confirmed"].includes(value.assignment) ||
-            typeof value.policyVersion !== "string" || value.version.generation !== expected.generation || value.version.revision < expected.revision)
+        // The same strict receipt contract as the extension includes v4's
+        // sorted memberships. Reject unknown fields/policies, not valid new
+        // receipts after the canonical service has already committed them.
+        let result;
+        try { result = readIngestionOutcome(value); }
+        catch { throw new CrawlerApiError("invalid-response"); }
+        if (result.version.generation !== expected.generation || result.version.revision < expected.revision)
           throw new CrawlerApiError("invalid-response");
-        return value;
+        return result;
       } catch (error) {
         if (signal?.aborted) throw new CrawlerApiError("aborted");
         if (!(error instanceof CrawlerApiError)) throw error;

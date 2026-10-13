@@ -1,5 +1,19 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-13 crawler invalid-response after v4 fixed: src/crawler/local-ingest-client
+now shares strict readIngestionOutcome with extension, accepting topicIds and
+known new/legacy policy stamps without relaxing malformed-response/version fences.
+Only crawler client/test fixture and new crawler-reference-receipt.test.js changed;
+service stays checked1063896, extension0.13.63 unchanged. Retry/timeout bounds and
+stable operation identity remain exact. Next PowerShell crawler start loads fix;
+do not reset/rebase/delete state or rotate pairing. Active owner crawler was not
+interrupted; its DB lock declined a read-only diagnostic. Live client GET version
+works at3106, no agent canonical/crawler write/provider/fetch/restart. Seven new
+synthetic real-service/HTTP/runner tests prove both memberships/retained primary,
+accepted-but-invalid reply safety and duplicate-free resume without fetch/embed.
+Focused40pass; fullbackend1128/1123pass+five skips plus final two new focusedtests;
+scan815zero. Read top STATUS before earlier successful-cutover notes.
+
 2026-10-13 ADR-112 is the current integration decision; client 0.13.63 implements
 canonical overlapping membership DTO/feed. Owner explicitly approves fresh
 encrypted seven-day backup, stop/conversion/restart preserving old primary

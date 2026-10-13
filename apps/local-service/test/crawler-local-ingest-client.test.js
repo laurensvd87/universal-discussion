@@ -62,7 +62,7 @@ function representation(overrides = {}) {
 function ingestResult(version = { generation: VERSION.generation, revision: VERSION.revision + 1 }) {
   return {
     assignment: "provisional",
-    policyVersion: "adaptive-topic-policy/v1",
+    policyVersion: "adaptive-supported-partitions/v1",
     sourceId: "source-crawler",
     topicId: "topic-crawler",
     version,

@@ -1,5 +1,23 @@
 # Project status
 
+**2026-10-13 crawler v4 receipt compatibility corrected (ADR-112 follow-up).**
+The crawler's five-field receipt validator rejected valid v4 responses containing
+topicIds after the service could already have accepted ingestion. It now reuses
+the extension's strict readIngestionOutcome contract: reviewed legacy receipts,
+grandfathered legacy policy with memberships, and fixed-reference receipts are
+accepted; unknown fields/policies, malformed memberships and stale versions fail
+closed. Existing timeouts, retry bounds, stable operation IDs and primary crawl
+checkpoint storage are unchanged. No service restart or extension change needed;
+the next crawler process loads the fix. Never reset/rebase the existing frontier.
+Seven new real canonical/HTTP/runner tests cover bridge receipts, retained primary,
+malformed accepted replies, duplicate-free deliberate replay and restart without
+refetch/reembedding. Latest focused40/40 pass; full backend1128/1123pass+five skips
+(two final new resume tests also verified in focused run), secret scan815zero.
+Corrected client reads live service version3106. An active owner's crawler locks
+its state; read-only inspection was refused and the process was left untouched.
+No owner crawler/canonical writes, provider calls, page fetches or runtime restart
+by the agent. Preserve unrelated naming/Copilot/credential changes.
+
 **2026-10-13 canonical overlapping membership ACTIVE (ADR-112, client 0.13.63).**
 The owner requests actual wiring and explicitly approves a fresh encrypted
 seven-day canonical backup, short service stop, preserved historical assignments

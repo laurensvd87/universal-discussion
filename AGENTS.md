@@ -8,6 +8,14 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current crawler follow-up (2026-10-13, ADR-112): v4 topicIds receipts were rejected
+by the old five-field crawler decoder. Client now shares the strict reviewed
+extension receipt contract; primary checkpoint/state, retry/timeouts and stable
+operation identity unchanged. New bridge/replay/resume tests pass; next crawler
+process loads it. No service restart, extension reload, state reset/rebase, token
+rotation, provider call or agent-run crawl follows. Active owner's crawler was
+left untouched; read top STATUS/HANDOFF and preserve unrelated dirty work.
+
 Current canonical overlapping membership (2026-10-13, ADR-112, client 0.13.63):
 owner requests actual wiring and explicitly approves encrypted seven-day backup,
 brief stop, preserved old assignments/messages, conversion and restart. V4 /

@@ -120,3 +120,19 @@ feed messaging and navigation fences. Live service core reads take 4-12 ms; all
 32 parallel core reads succeed during the first 2428 ms enrichment. A strict
 current Spiegel feed read returns the new policy in 47 ms without section errors.
 These are local read observations, not million-page or hosted load benchmarks.
+
+## Crawler receipt compatibility
+
+The first post-cutover crawler attempt exposed a separate five-field response
+decoder that rejected v4's additional membership IDs after ingestion could have
+committed. The crawler now uses the same strict receipt decoder as the extension,
+including grandfathered legacy policy stamps with memberships. Unknown fields,
+unknown policies, malformed memberships and stale versions still fail closed.
+Transport retry/timeout limits and stable operation IDs are unchanged; the crawler
+checkpoint retains the primary destination, while canonical storage owns overlaps.
+
+Seven synthetic real-service/HTTP/crawler tests verify accepted bridge receipts,
+retained primary, terminal malformed replies, duplicate-free deliberate receipt
+replay and restart recognizing already accepted Sources without another fetch,
+embedding or write. This is a crawler-client correction only: no backend restart,
+new extension version, owner-state reset or agent-run ingestion is needed.
