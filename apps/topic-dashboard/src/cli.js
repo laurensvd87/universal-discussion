@@ -6,8 +6,9 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { APP_DATABASE_PATH } from "../../local-service/src/startup.js";
-import { NORMALIZED_STORAGE_FORMAT } from "../../local-service/src/adapters/normalized-sqlite-repository.js";
+import { NORMALIZED_STORAGE_FORMAT, NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT } from "../../local-service/src/adapters/normalized-sqlite-repository.js";
 import { ACCOUNT_STATE_SCHEMA } from "../../local-service/src/accounts/account-principal.js";
+import { FIXED_REFERENCE_STATE_SCHEMA } from "../../local-service/src/domain/demo-state.js";
 import { readExpectedVersion } from "../../local-service/src/domain/validation.js";
 import { createCatalogGrowthStore, readCatalogGrowthCounts, readCatalogGrowthHistory, validateCatalogGrowthHistory } from "../../local-service/src/metrics/catalog-growth.js";
 import { createCatalogGrowthStoreV2, readCatalogGrowthCountsV2, readCatalogGrowthHistoryV2, validateCatalogGrowthHistoryV2, CATALOG_GROWTH_V2_FILENAME } from "../../local-service/src/metrics/catalog-growth.js";
@@ -122,8 +123,9 @@ export function readDashboardRevision(databasePath = APP_DATABASE_PATH) {
     const row = database.prepare(normalized
       ? "SELECT format, schema, generation, revision FROM canonical_meta WHERE singleton = 1"
       : "SELECT schema, generation, revision FROM demo_state WHERE singleton = 1").get();
-    if (!row || (normalized && row.format !== NORMALIZED_STORAGE_FORMAT) ||
-        !["demo-state/v2", ACCOUNT_STATE_SCHEMA].includes(row.schema)) {
+    if (!row || (normalized && (!([NORMALIZED_STORAGE_FORMAT, NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT].includes(row.format)) ||
+        (row.schema === FIXED_REFERENCE_STATE_SCHEMA) !== (row.format === NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT))) ||
+        !["demo-state/v2", ACCOUNT_STATE_SCHEMA, FIXED_REFERENCE_STATE_SCHEMA].includes(row.schema)) {
       throw new Error("Unsupported or incomplete dashboard snapshot");
     }
     try { readExpectedVersion({ generation: row.generation, revision: row.revision }); }

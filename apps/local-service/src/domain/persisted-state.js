@@ -1,4 +1,7 @@
-import { IMPORTED_INSIGHT_AUTHOR_ID, LIMITS, STATE_SCHEMA } from "./demo-state.js";
+import { IMPORTED_INSIGHT_AUTHOR_ID, LIMITS, STATE_SCHEMA, FIXED_REFERENCE_STATE_SCHEMA } from "./demo-state.js";
+import { types,isDeepStrictEqual } from 'node:util';
+import {fail} from './errors.js';
+import { RIDGE_PARAMETER_SHA256 } from './ridge-topic-adapter.js';
 import { readBody } from "./validation.js";
 import { operationDigestFor, sourceStamp } from "./source-threads.js";
 import { BROWSER_MODEL_ID, compatibleExtractor, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE, MATCH_POLICY_VERSION, readLearnedEmbedding } from "./learned-sources.js";
@@ -20,7 +23,8 @@ export function assertValidLegacyPersistedState(state) {
 
 function assertState(state, legacy, largeScale = false) {
   record(state, ["schema", "generation", "revision", "topics", "discussions", "contributions", "sources", "sourceLinks"]);
-  const accountState = !legacy && state.schema === ACCOUNT_STATE_SCHEMA;
+  const referenceState = !legacy && state.schema === FIXED_REFERENCE_STATE_SCHEMA;
+  const accountState = !legacy && (state.schema === ACCOUNT_STATE_SCHEMA || referenceState);
   if (!(state.schema === (legacy ? "demo-state/v1" : STATE_SCHEMA) || accountState) || !integer(state.revision, 0)) invalid();
   const humanActor = value => ACTORS.has(value) || accountState && isAccountActor(value);
   text(state.generation, 128);
@@ -33,10 +37,12 @@ function assertState(state, legacy, largeScale = false) {
   array(state.sourceLinks);
 
   const topicIds = unique(state.topics, (topic) => {
-    record(topic, ["id", "kind", "title", "createdAt", ...(topic.provenance === LEARNED_TOPIC_PROVENANCE ? ["provenance", ...(!legacy ? ["retainTight"] : [])] : [])]);
+    record(topic, ["id", "kind", "title", "createdAt", ...(topic.provenance === LEARNED_TOPIC_PROVENANCE ? ["provenance", ...(!legacy ? ["retainTight"] : [])] : []),
+      ...(referenceState && Object.hasOwn(topic,'reference')?['reference']:[])]);
     text(topic.id, 128); text(topic.title, 200); text(topic.createdAt, 64);
     if (!TOPIC_KINDS.has(topic.kind)) invalid();
     if (!legacy && topic.provenance === LEARNED_TOPIC_PROVENANCE && typeof topic.retainTight !== "boolean") invalid();
+    if(referenceState && Object.hasOwn(topic,'reference'))assertValidFixedTopicReference(dataField(topic,'reference'));
     return topic.id;
   });
   const discussionIds = unique(state.discussions, (discussion) => {
@@ -50,13 +56,14 @@ function assertState(state, legacy, largeScale = false) {
 
   const sourceIds = unique(state.sources, (source) => {
     const learned = source.provenance === LEARNED_SOURCE_PROVENANCE;
-    record(source, ["id", "url", "title", "embedding", "provenance", ...(learned ? ["extractorVersion", "operationId", "operationDigest", "policyVersion"] : [])]);
+    record(source, ["id", "url", "title", "embedding", "provenance", ...(learned ? ["extractorVersion", "operationId", "operationDigest", "policyVersion",
+      ...(referenceState?['topicIds']:[])] : [])]);
     text(source.id, 128); text(source.title, 512); text(source.provenance, 128); validUrl(source.url);
     validEmbedding(source.embedding);
     if (learned) {
       text(source.title, 200); text(source.operationId, 128);
       if (!compatibleExtractor(source.extractorVersion) || !(legacy ? source.policyVersion === MATCH_POLICY_VERSION :
-          [MATCH_POLICY_VERSION, ADAPTIVE_TOPIC_POLICY.version].includes(source.policyVersion)) ||
+          [MATCH_POLICY_VERSION, ADAPTIVE_TOPIC_POLICY.version,...(referenceState?['ridge1-fixed-reference-radius/v1']:[])].includes(source.policyVersion)) ||
           !/^[a-f0-9]{64}$/u.test(source.operationDigest) || source.embedding?.modelId !== BROWSER_MODEL_ID) invalid();
       const retainedUrl = inspectRetainedSourceDtoUrl(source.url);
       if (!retainedUrl.supported || retainedUrl.url !== source.url) invalid();
@@ -77,6 +84,17 @@ function assertState(state, legacy, largeScale = false) {
   }
   const linksBySource = new Map(state.sourceLinks.map(entry => [entry.sourceId, entry]));
   if (state.sources.some((source) => source.provenance === LEARNED_SOURCE_PROVENANCE && !linkedSources.has(source.id))) invalid();
+  if(referenceState) {
+    for(const source of state.sources)if(Object.hasOwn(source,'topicIds')) {
+      denseDataArray(dataField(source,'topicIds'));
+      if(!source.topicIds.length || !source.topicIds.includes(linksBySource.get(source.id)?.topicId))invalid();
+      let prior=null;for(const topicId of source.topicIds) {
+        text(topicId,128);if(!topicIds.has(topicId) || prior!==null && prior>=topicId)invalid();prior=topicId;
+      }
+    }
+    for(const topic of state.topics)if(topic.reference!==undefined && topic.reference!==null &&
+        sourcesById.get(topic.reference.sourceId)?.provenance!==LEARNED_SOURCE_PROVENANCE)invalid();
+  }
 
   const contributionIds = unique(state.contributions, (contribution) => {
     record(contribution, ["id", "discussionId", "rootId", "replyToId", "authorId", "actorType", "visibility", "withdrawn", "createdAt", "revisions",
@@ -206,3 +224,38 @@ function validEmbedding(value) {
   if (value.values.length === 0 || value.values.some((entry) => !Number.isFinite(entry))) invalid();
 }
 function invalid() { throw new TypeError("Invalid persisted state"); }
+
+function denseDataArray(value) {
+  if(!value || types.isProxy(value) || !Array.isArray(value) || Object.getPrototypeOf(value)!==Array.prototype ||
+      Reflect.ownKeys(value).length!==value.length+1)invalid();
+  for(let index=0;index<value.length;index++) {
+    const field=Object.getOwnPropertyDescriptor(value,String(index));
+    if(!field?.enumerable || !Object.hasOwn(field,'value'))invalid();
+  }
+}
+function dataField(value,key) {
+  if(types.isProxy(value))invalid();
+  const field=Object.getOwnPropertyDescriptor(value,key);
+  if(!field?.enumerable || !Object.hasOwn(field,'value'))invalid();
+  return field.value;
+}
+export function assertValidFixedTopicReference(value) {
+  if(value===null)return value;
+  if(!value || types.isProxy(value) || Object.getPrototypeOf(value)!==Object.prototype)invalid();
+  const fields=Object.getOwnPropertyDescriptors(value);
+  if(Reflect.ownKeys(fields).length!==3 || !['sourceId','values','parameterSha256'].every(key=>fields[key]?.enumerable && Object.hasOwn(fields[key],'value')))invalid();
+  text(fields.sourceId.value,128);
+  if(fields.parameterSha256.value!==RIDGE_PARAMETER_SHA256)invalid();
+  const values=fields.values.value;denseDataArray(values);
+  if(values.length!==384 || values.some(value=>typeof value!=='number' || !Number.isFinite(value)) || Math.abs(Math.hypot(...values)-1)>1e-6)invalid();
+  return value;
+}
+export function assertFixedReferenceTransition(current,next) {
+  if(current.schema!==FIXED_REFERENCE_STATE_SCHEMA)return;
+  const oldTopics=new Map(current.topics.map(topic=>[topic.id,topic]));
+  for(const topic of next.topics) {
+    const previous=oldTopics.get(topic.id);
+    if(previous && topic.reference!==undefined && topic.reference!==null && !isDeepStrictEqual(previous.reference,topic.reference))
+      fail('conflict','Fixed Topic reference changed');
+  }
+}

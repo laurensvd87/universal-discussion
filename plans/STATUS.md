@@ -1,5 +1,23 @@
 # Project status
 
+**2026-10-13 canonical overlapping membership implementation ready for approved cutover (ADR-112, client 0.13.63).**
+The owner requests actual wiring and explicitly approves a fresh encrypted
+seven-day canonical backup, short service stop, preserved historical assignments
+and messages, conversion and restart. V4/normalized v2 adds indexed memberships
+and private fixed pinned-Ridge references; old formats never auto-convert.
+New/changed eligible pages join all fixed references in radius or create one
+Topic only after exhaustive no-match. No global regroup or transitive merge.
+Reference-page erasure disables its references; no replacement. Historical
+primary assignments/policy stamps remain, identical visits renew receipts only.
+Canonical union feed preserves original destinations/IDs; primary-only write and
+Insight authority remain. Client forces the union regardless of legacy preference
+and labels failures as incomplete. Dashboard counts overlapping >=2-member Topics
+with unique pages. Checked worker/client/isolated Chrome and adversarial tests pass;
+final whole-suite/snapshot verification and owner cutover still pending.
+Preserve unrelated naming/Copilot/pairing/credential edits; restart must use only
+the checked source snapshot with the original data directory. No provider inference.
+Current bounded index and whole-state worker admission are not million-page readiness.
+
 **2026-10-13 checked components committed; dashboard report regenerated, canonical radius model still inactive.**
 Compatibility fix6e36fed and radius/reference planner +dashboardv2 edcad40 are
 committed. Normal dashboard --no-open produces a verifiedv2 report: revision3065,

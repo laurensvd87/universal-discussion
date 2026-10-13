@@ -1,5 +1,24 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-13 ADR-112 is the current integration decision; client 0.13.63 implements
+canonical overlapping membership DTO/feed. Owner explicitly approves fresh
+encrypted seven-day backup, stop/conversion/restart preserving old primary
+assignments/messages. Synthetic checked v4/relational-v2 implementation is ready;
+final whole-suite and checked-snapshot verification precede owner cutover.
+Storage mirrors Source.topicIds and Topic.reference privately; fixed pinned
+Ridge floor, exhaustive matches, no global regroup/transitivity/raw-E5 fallback.
+Migration only adds [old primary] memberships and qualified earliest references,
+preserves every retained record/policy/ID, advances revision once. Identical old
+visits do not rematch or relabel policy. Reference erasure nulls all origin refs.
+Union reads retain original destinations and primary-only current-page write/
+Insight authority; strict version/native/account fences and incomplete-read text.
+Dashboard >=2-member count uses indexed overlaps, pages unique, old history intact.
+Real workers/HTTP-client-controller/isolated Chrome and independent Trust pass.
+Use checked source snapshot for approved restart: unrelated dirty pairing and
+credential naming/migration changes must NOT be activated by this cutover.
+No provider inference, owner captures or historical rematching. Bounded index and
+whole-state ingestion are still not million-page ingestion or hosted readiness.
+
 2026-10-13 commits6e36fed compatibility/edcad40 radiuscore+dashboardv2 complete;
 notloadedbyservice. Actualnormaldashboard--no-open verifiesrevision3065,2428
 uniquelearnedpages/49>=2membercanonicalTopics/2319singletons, graphpaused;

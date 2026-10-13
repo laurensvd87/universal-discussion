@@ -4,6 +4,7 @@ import { contributionOrigin, rootAssociation, withdrawAssociation } from "./sour
 import { ACCOUNT_COMMANDS, ACCOUNT_STATE_SCHEMA, isAccountPrincipal } from "../accounts/account-principal.js";
 
 export const STATE_SCHEMA = "demo-state/v2";
+export const FIXED_REFERENCE_STATE_SCHEMA = "demo-state/v4";
 export const IMPORTED_INSIGHT_AUTHOR_ID = "demo-imported-ai";
 export const LIMITS = Object.freeze({ contributions: 1_000, revisions: 50 });
 const TOPIC_KINDS = new Set(["general", "event", "product", "claim"]);
@@ -69,7 +70,7 @@ export function applyCommand(state, command, actor, { nextId, now, generatedProo
   const next = clone(state);
   // Add account ownership only on the first deliberate account write. Existing
   // demo owners, bodies and source lineage are never claimed or guessed.
-  if (account) next.schema = ACCOUNT_STATE_SCHEMA;
+  if (account && next.schema !== FIXED_REFERENCE_STATE_SCHEMA) next.schema = ACCOUNT_STATE_SCHEMA;
   const timestamp = now();
   let result;
 

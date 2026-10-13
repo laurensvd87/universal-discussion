@@ -2,10 +2,18 @@
 // storage.local topicViewMode preference is intentionally ignored.
 export const TOPIC_VIEW_SESSION_KEY = "topicViewModeV2";
 export const RIDGE_POLICY = "ridge1-qualified-complete-link/v1";
+export const REFERENCE_TOPIC_POLICY = "ridge1-fixed-reference-radius/v1";
 export const RIDGE_REPRESENTATION = "owner-local-linear-teacher-transfer/ridge1-v1";
 
 export function isRidgeTopicView(value) {
-  return value?.policyVersion === RIDGE_POLICY && value?.representation === RIDGE_REPRESENTATION;
+  return [RIDGE_POLICY, REFERENCE_TOPIC_POLICY].includes(value?.policyVersion) && value?.representation === RIDGE_REPRESENTATION;
+}
+export function isReferenceTopicView(value) {
+  return value?.policyVersion === REFERENCE_TOPIC_POLICY && value?.representation === RIDGE_REPRESENTATION;
+}
+export function requiresReferenceTopicView(catalog, sourceId) {
+  const source = catalog?.sources?.find(entry => entry.id === sourceId);
+  return source?.provenance === "owner-local-page-embedding/v1" && Array.isArray(source.topicIds);
 }
 
 export async function readTopicViewMode(storageSession) {

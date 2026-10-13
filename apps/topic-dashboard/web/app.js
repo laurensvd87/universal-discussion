@@ -162,8 +162,13 @@
       if (!row || typeof row.id !== 'string' || !row.id || pageIds.has(row.id) || !topicIds.has(row.topicId) || !coordinate(row.x) || !coordinate(row.y)) continue;
       const url = publicUrl(row.url);
       if (!url) continue;
+      const memberships = input.schemaVersion === 2 && row.topicIds !== undefined ? row.topicIds : [row.topicId];
+      if (!Array.isArray(memberships) || !memberships.length || memberships.length > input.topics.length ||
+          memberships.some(id => typeof id !== 'string' || !topicIds.has(id)) || !memberships.includes(row.topicId) ||
+          new Set(memberships).size !== memberships.length) throw new Error('Ungültige Topic-Zuordnung.');
       pageIds.add(row.id);
-      pages.push({ id: row.id, title: safeText(row.title), url, host: new URL(url).hostname, topicId: row.topicId, x: row.x, y: row.y });
+      pages.push({ id: row.id, title: safeText(row.title), url, host: new URL(url).hostname, topicId: row.topicId,
+        topicIds: [...memberships], x: row.x, y: row.y });
     }
     const edges = [];
     for (const row of input.edges) {
@@ -172,7 +177,9 @@
     const counts = input.counts;
     const number = (value, fallback) => Number.isInteger(value) && value >= 0 ? value : fallback;
     const membership = new Map();
-    for (const page of pages) { if (!membership.has(page.topicId)) membership.set(page.topicId, new Set()); membership.get(page.topicId).add(page.id); }
+    for (const page of pages) for (const topicId of page.topicIds) {
+      if (!membership.has(topicId)) membership.set(topicId, new Set()); membership.get(topicId).add(page.id);
+    }
     for (const topic of topics) topic.pageCount = membership.get(topic.id)?.size ?? 0;
     let multiMemberTopics = [...membership.values()].filter(ids => ids.size >= 2).length;
     let singletonTopics = [...membership.values()].filter(ids => ids.size === 1).length;
@@ -233,7 +240,7 @@
         x: members.reduce((sum, page) => sum + page.x, 0) / ids.length,
         y: members.reduce((sum, page) => sum + page.y, 0) / ids.length };
     });
-    const pages = current.pages.map((page) => ({ ...page, topicId: assignment.get(page.id) }));
+    const pages = current.pages.map((page) => ({ ...page, topicId: assignment.get(page.id), topicIds: [assignment.get(page.id)] }));
     return { ...current, topics, pages, byTopic: new Map(topics.map((topic) => [topic.id, topic])),
       byPage: new Map(pages.map((page) => [page.id, page])),
       counts: { ...current.counts, topics: topics.length, multiMemberTopics: topics.filter(topic => topic.pageCount >= 2).length,
@@ -263,7 +270,7 @@
     if (grouping === 'experimental' && !state.preview) return;
     state.chosenGrouping = grouping;
     if (grouping === state.grouping) return;
-    const selectedSourceId = state.pageId || state.data.pages.find((page) => page.topicId === state.topicId)?.id;
+    const selectedSourceId = state.pageId || state.data.pages.find((page) => page.topicIds.includes(state.topicId))?.id;
     const hadTopicFilter = !!state.topicId;
     state.grouping = grouping;
     const next = grouping === 'experimental' ? previewData(state.currentData, state.preview) : state.currentData;
@@ -278,10 +285,10 @@
   }
   function point(item) { return { x: 70 + item.x * 860, y: 58 + item.y * 584 }; }
   function searchable(page) {
-    const topic = state.data.byTopic.get(page.topicId);
-    return `${page.title} ${page.host} ${topic?.title || ''}`.toLocaleLowerCase('de').includes(state.query);
+    const titles = page.topicIds.map(id => state.data.byTopic.get(id)?.title ?? '').join(' ');
+    return `${page.title} ${page.host} ${titles}`.toLocaleLowerCase('de').includes(state.query);
   }
-  function visiblePages() { return state.data.pages.filter((page) => (!state.topicId || page.topicId === state.topicId) && searchable(page)); }
+  function visiblePages() { return state.data.pages.filter((page) => (!state.topicId || page.topicIds.includes(state.topicId)) && searchable(page)); }
   function textElement(tag, className, value) { const node = document.createElement(tag); if (className) node.className = className; node.textContent = value; return node; }
   function appendTitle(node, title) { const label = svg('title'); label.textContent = title; node.append(label); }
 
@@ -318,12 +325,15 @@
       edgeLayer.append(line);
     }
     if (selected) {
-      const a = point(selected), b = point(state.data.byTopic.get(selected.topicId));
-      edgeLayer.append(svg('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: 'topic-link', stroke: color(selected.topicId) }));
+      const a = point(selected);
+      for (const topicId of selected.topicIds) {
+        const b = point(state.data.byTopic.get(topicId));
+        edgeLayer.append(svg('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: 'topic-link', stroke: color(topicId) }));
+      }
     }
     const ranked = [...state.data.topics].sort((a, b) => b.pageCount - a.pageCount).slice(0, 7);
     for (const item of state.data.topics) {
-      const p = point(item), c = color(item.id), isSelected = item.id === selectedTopic;
+      const p = point(item), c = color(item.id), isSelected = selected ? selected.topicIds.includes(item.id) : item.id === selectedTopic;
       if (item.pageCount > 1 || isSelected) haloLayer.append(svg('circle', { cx: p.x, cy: p.y, r: Math.min(52, 17 + item.pageCount * 3), class: 'topic-halo', stroke: c }));
       const g = svg('g', { class: `topic-node${isSelected ? ' selected' : ''}` });
       g.append(svg('circle', { cx: p.x, cy: p.y, r: isSelected ? 14 : 10, class: 'outer', stroke: c }));
@@ -359,7 +369,8 @@
     const topic = state.data.byTopic.get(page?.topicId || state.topicId);
     if (page) {
       container.append(textElement('span', 'detail-kicker', 'QUELLSEITE'), textElement('h2', '', page.title), textElement('p', 'detail-host', page.host));
-      if (topic) {
+      for (const topicId of page.topicIds) {
+        const topic = state.data.byTopic.get(topicId);
         const tag = textElement('span', 'detail-topic', '');
         const dot = textElement('span', 'topic-dot', ''); dot.style.setProperty('--topic-color', color(topic.id));
         tag.append(dot, textElement('span', '', topic.title)); container.append(tag);
@@ -432,7 +443,7 @@
       catch { /* A stale or malformed preview never affects the current view. */ }
     }
     if (!preserve) state.chosenGrouping = null;
-    const selectedSourceId = preserve ? state.pageId || state.data?.pages.find((page) => page.topicId === state.topicId)?.id : null;
+    const selectedSourceId = preserve ? state.pageId || state.data?.pages.find((page) => page.topicIds.includes(state.topicId))?.id : null;
     const hadTopicFilter = preserve && !!state.topicId;
     state.grouping = nextPreview && state.chosenGrouping !== 'current' ? 'experimental' : 'current';
     state.preview = nextPreview;

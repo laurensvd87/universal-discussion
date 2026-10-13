@@ -7,6 +7,7 @@ import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { resolveDiscussionTarget } from "../core/discussion-target.js";
 import { projectRelatedPages } from "../core/related-page-suggestions.js";
 import { mountAssistantVoicePicker } from "./assistant-voice-picker.js";
+import { isReferenceTopicView, requiresReferenceTopicView } from "../core/topic-view-mode.js";
 
 export function mountDiscussionPanel(document, root, { messages = EN, onPrivateSend = null, onPrivateInsight = null } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -456,7 +457,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     }
     card.append(metadata, content);
     const actions = node("div"); actions.className = "discussion-actions";
-    const alternateRoot = state.topicViewMode === "experimental" && state.alternateDiscussion &&
+    const alternateRoot = (state.topicViewMode === "experimental" || isReferenceTopicView(state.alternateDiscussion)) && state.alternateDiscussion &&
       state.alternateDiscussion.sourceId === state.sourceId;
     const binding = { topicId: route?.topicId ?? rootEntry.canonicalTopicId ?? state.topicId,
       discussionId: route?.discussionId ?? rootEntry.canonicalDiscussionId ?? state.discussion?.discussionId,
@@ -911,7 +912,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       (state.resolution?.phase === "error" || state.resolution?.phase === "unsupported" &&
         ["capture-budget", "capture-time-budget", "capture-node-budget", "capture-head-budget",
           "capture-attribute-budget", "capture-failed", "invalid-content", "missing-region"].includes(state.resolution.reason));
-    const alternateApplicable = state.topicViewMode === "experimental" && Boolean(state.sourceId) &&
+    const alternateApplicable = (state.topicViewMode === "experimental" || requiresReferenceTopicView(state.catalog, state.sourceId)) && Boolean(state.sourceId) &&
       state.catalog?.sources.find((entry) => entry.id === state.sourceId)?.provenance === "owner-local-page-embedding/v1";
     const alternateFailed = alternateApplicable && Boolean(state.alternateError);
     const priorFailed = Boolean(state.sourceId && state.priorDiscussionsError);
@@ -929,7 +930,8 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       if (state.error || state.phase === "error") errors.push(text(errorKey ?? "discussionUnavailable"));
       if (matchingError) errors.push(text(state.resolution?.phase === "error" &&
         ["unavailable", "capacity", "conflict"].includes(state.resolution.reason) ? "uiMatchingServiceBusy" : "uiMatchingFailed"));
-      if (alternateFailed) errors.push(text("uiTopicViewFailed"));
+      if (alternateFailed) errors.push(text(requiresReferenceTopicView(state.catalog, state.sourceId)
+        ? "uiTopicMembershipFailed" : "uiTopicViewFailed"));
       if (priorFailed) errors.push(text("uiEarlierThreadsUnavailable"));
       if (state.relatedError) errors.push(text("uiRelatedThreadsUnavailable"));
       status.textContent = errors.join(" ");
@@ -1042,7 +1044,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       ? text(uiMode === "user" ? "uiOriginDisclosure" : "discussionOriginDisclosure").replace("{title}", postingSource.title)
       : text(uiMode === "user" ? "uiOriginNone" : "discussionOriginNone");
     originDisclosure.hidden = uiMode === "user";
-    const alternateView = state.topicViewMode === "experimental" && state.phase === "ready" &&
+    const alternateView = (state.topicViewMode === "experimental" || isReferenceTopicView(state.alternateDiscussion)) && state.phase === "ready" &&
       !state.needsFreshRead && state.alternateDiscussion?.sourceId === state.sourceId
       ? state.alternateDiscussion : null;
     const currentRoots = alternateView

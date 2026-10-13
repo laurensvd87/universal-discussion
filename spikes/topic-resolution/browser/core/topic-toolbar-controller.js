@@ -1,5 +1,5 @@
 import { readCatalog, readDiscussion, readEnrichment } from "./local-service-contract.js";
-import { isRidgeTopicView } from "./topic-view-mode.js";
+import { isRidgeTopicView, requiresReferenceTopicView } from "./topic-view-mode.js";
 import { inspectPageNavigationUrl } from "./page-content-policy.js";
 
 export const TOOLBAR_TAB_KEY = "pageMatchingToolbarTabId";
@@ -18,9 +18,11 @@ export function hasSharedLearnedTopic(state, value) {
   try {
     const catalog = readCatalog(value);
     const sourceUrl = inspectPageNavigationUrl(state?.url).url;
+    const current = catalog.sources.find(source => source.id === state?.sourceId);
     return hasCurrentTopic(state, catalog) && catalog.sources.some((peer) =>
       peer.provenance === LEARNED && peer.id !== state.sourceId &&
-      peer.url !== sourceUrl && peer.topicId === state.topicId);
+      peer.url !== sourceUrl && (current.topicIds
+        ? peer.topicIds?.some(id => current.topicIds.includes(id)) : peer.topicId === state.topicId));
   } catch { return false; }
 }
 export function hasPublishedPosts(value, topicId) {
@@ -153,7 +155,8 @@ export function createTopicToolbarController({ catalog, catalogContext, discussi
         try { if (typeof readMode === "function") mode = await readMode(); }
         catch { /* A local preference read cannot invalidate verified canonical evidence. */ }
         if (epoch !== own) return;
-        if (mode === "experimental" && typeof enrichment === "function") {
+        const referenceRequired = requiresReferenceTopicView(value, snapshot.sourceId);
+        if ((mode === "experimental" || referenceRequired) && typeof enrichment === "function") {
           void (async () => {
             try {
               const request = { sourceId: snapshot.sourceId, topicId: snapshot.topicId, includeAlternate: true };
@@ -164,7 +167,7 @@ export function createTopicToolbarController({ catalog, catalogContext, discussi
                     bundle.catalog.version.revision < lastCatalogVersion.revision ||
                   snapshot.actorId && !bundle.catalog.actors.some(actor => actor.id === snapshot.actorId && actor.type === "human")) return;
               const currentMode = typeof readMode === "function" ? await readMode() : "classic";
-              if (epoch !== own || signal.aborted || currentMode !== "experimental") return;
+              if (epoch !== own || signal.aborted || !referenceRequired && currentMode !== "experimental") return;
               lastCatalogVersion = bundle.catalog.version;
               const currentShared = hasSharedLearnedTopic(snapshot, bundle.catalog);
               let nextColor = currentShared ? (hasPublishedPosts(bundle.discussion, snapshot.topicId) ? "posts" : "shared") : "topic";
@@ -179,7 +182,7 @@ export function createTopicToolbarController({ catalog, catalogContext, discussi
           })();
           return;
         }
-        if (mode === "experimental" && typeof alternateDiscussion === "function") {
+        if ((mode === "experimental" || referenceRequired) && typeof alternateDiscussion === "function") {
           try {
             const key = `${value.version.generation}:${value.version.revision}:${snapshot.sourceId}`;
             let alternate = alternateCache?.key === key && alternateCache.expiresAt > Date.now() ? alternateCache.value : null;

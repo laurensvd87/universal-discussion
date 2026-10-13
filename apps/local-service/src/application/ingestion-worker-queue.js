@@ -6,9 +6,9 @@ const fixedError = code => new ServiceError(code, code === "conflict" ? "State c
 
 // A single planner avoids duplicating quadratic working sets. Admission is
 // bounded; jobs are never retried, including worker failure or cancellation.
-export function createIngestionWorkerQueue({ databasePath, maxPending = 8, timeoutMs = 15000, incrementalMatching = false,
+export function createIngestionWorkerQueue({ databasePath, maxPending = 8, timeoutMs = 15000, incrementalMatching = false, alternateRidgeAdapter = null,
   workerFactory = () => new Worker(new URL("./ingestion-worker.js", import.meta.url), {
-    workerData: { databasePath, incrementalMatching }, execArgv: process.execArgv.filter(argument => !argument.startsWith("--test")),
+    workerData: { databasePath, incrementalMatching, alternateRidgeAdapter }, execArgv: process.execArgv.filter(argument => !argument.startsWith("--test")),
     resourceLimits: { maxOldGenerationSizeMb: 256, maxYoungGenerationSizeMb: 32, stackSizeMb: 4 },
   }) }) {
   if (!Number.isSafeInteger(maxPending) || maxPending < 1 || maxPending > 32 ||

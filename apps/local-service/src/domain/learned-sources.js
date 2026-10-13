@@ -4,6 +4,7 @@ import { inspectPageUrl, PAGE_CONTENT_EXTRACTOR_VERSIONS } from "../../../../spi
 import { operationDigestFor, pinSourceRoots, purgeLearnedThreads, removeSourceOrigins, sourceStamp } from "./source-threads.js";
 import { applyAdaptiveTopicPlan } from "./adaptive-topic-integration.js";
 import { ADAPTIVE_TOPIC_POLICY } from "./adaptive-topics.js";
+import { applyFixedReferenceIngest, FIXED_REFERENCE_SCHEMA } from './fixed-reference-topic-integration.js';
 
 export const LEARNED_SOURCE_PROVENANCE = "owner-local-page-embedding/v1";
 export const LEARNED_TOPIC_PROVENANCE = "owner-local-learned-topic/v1";
@@ -75,10 +76,11 @@ function createLearnedTopic(state, title, { nextId, now }) {
 export function ingestionResult(state, source) {
   const link = state.sourceLinks.find((item) => item.sourceId === source.id);
   if (!link) fail("not-found", "Object unavailable");
-  return { sourceId: source.id, topicId: link.topicId, assignment: link.method === "manual-confirmed" ? "confirmed" : "provisional", policyVersion: source.policyVersion };
+  return { sourceId: source.id, topicId: link.topicId, ...(state.schema === FIXED_REFERENCE_SCHEMA ? { topicIds: [...source.topicIds] } : {}), assignment: link.method === "manual-confirmed" ? "confirmed" : "provisional", policyVersion: source.policyVersion };
 }
 
 function regroup(state, dependencies) {
+  if (state.schema === FIXED_REFERENCE_SCHEMA) return;
   const planner = dependencies.adaptivePlanner;
   return applyAdaptiveTopicPlan(state, dependencies, typeof planner === "function"
     ? { planner: input => planner({ ...input, generation: state.generation }) } : {});
@@ -120,6 +122,7 @@ function sameAcceptedEmbedding(left, right) {
 }
 
 export function applyLearnedIngest(state, input, operationDigest, dependencies) {
+  if (state.schema === FIXED_REFERENCE_SCHEMA) return applyFixedReferenceIngest(state, input, operationDigest, dependencies);
   const next = clone(state);
   let source = next.sources.find((item) => item.url === input.url);
   if (source && source.provenance !== LEARNED_SOURCE_PROVENANCE) fail("forbidden", "Source unavailable for ingestion");
@@ -160,6 +163,9 @@ function removeSources(state, ids) {
   removeSourceOrigins(state, ids);
   state.sources = state.sources.filter((source) => !removed.has(source.id));
   state.sourceLinks = state.sourceLinks.filter((link) => !removed.has(link.sourceId));
+  if (state.schema === FIXED_REFERENCE_SCHEMA) {
+    for (const topic of state.topics) if (removed.has(topic.reference?.sourceId)) topic.reference = null;
+  }
 }
 function removeTopics(state, ids) {
   const removed = new Set(ids);
@@ -167,6 +173,10 @@ function removeTopics(state, ids) {
   state.contributions = state.contributions.filter((contribution) => !discussions.has(contribution.discussionId));
   state.discussions = state.discussions.filter((discussion) => !discussions.has(discussion.id));
   state.topics = state.topics.filter((topic) => !removed.has(topic.id));
+  if (state.schema === FIXED_REFERENCE_SCHEMA) {
+    for (const source of state.sources) if (Array.isArray(source.topicIds))
+      source.topicIds = source.topicIds.filter(id => !removed.has(id));
+  }
 }
 
 export function applyLearnedCommand(state, value, dependencies) {
@@ -180,6 +190,10 @@ export function applyLearnedCommand(state, value, dependencies) {
     const previousTopicId = link.topicId;
     const topicId = input.topicId === null ? createLearnedTopic(next, source.title, dependencies) : readId(input.topicId);
     if (!next.topics.some((topic) => topic.id === topicId)) fail("not-found", "Object unavailable");
+    if (next.schema === FIXED_REFERENCE_SCHEMA) {
+      if (previousTopicId !== topicId) pinSourceRoots(next, source.id);
+      source.topicIds = [topicId];
+    }
     link.topicId = topicId; link.method = "manual-confirmed";
     regroup(next, dependencies);
     result = { ...ingestionResult(next, source), previousTopicId };

@@ -3,9 +3,10 @@ import { existsSync, lstatSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { types } from "node:util";
-import { assertNormalizedCatalogSchema, NORMALIZED_STORAGE_FORMAT } from "../adapters/normalized-sqlite-repository.js";
+import { assertNormalizedCatalogSchema, NORMALIZED_STORAGE_FORMAT, NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT } from "../adapters/normalized-sqlite-repository.js";
 import { readExpectedVersion, readRecord } from "../domain/validation.js";
 import { MAX_DOCUMENT_BYTES } from "../domain/repository-contract.js";
+import { FIXED_REFERENCE_STATE_SCHEMA } from "../domain/demo-state.js";
 
 export const CATALOG_GROWTH_INTERVAL_MS = 60_000;
 export const CATALOG_GROWTH_FILENAME = "topic-growth.sqlite";
@@ -130,11 +131,13 @@ function readCounts(databasePath, now, definition) {
     let row;
     if (objects.some(value => value.name === "canonical_meta" && value.type === "table")) {
       assertNormalizedCatalogSchema(database);
+      const membershipTable = definition.membership && objects.some(value => value.name === "canonical_topic_memberships" && value.type === "table")
+        ? "canonical_topic_memberships" : "canonical_source_links";
       if (database.prepare("SELECT COUNT(*) AS n FROM canonical_meta").get().n !== 1 ||
           database.prepare(`SELECT 1 FROM canonical_source_links l LEFT JOIN canonical_sources s ON s.id=l.source_id
             LEFT JOIN canonical_topics t ON t.id=l.topic_id WHERE s.id IS NULL OR t.id IS NULL LIMIT 1`).get()) fail();
       const membershipCTE = definition.membership ? `WITH memberships AS (
-        SELECT l.topic_id,COUNT(DISTINCT l.source_id) AS members FROM canonical_source_links l
+        SELECT l.topic_id,COUNT(DISTINCT l.source_id) AS members FROM ${membershipTable} l
         JOIN canonical_sources s ON s.id=l.source_id JOIN canonical_topics t ON t.id=l.topic_id
         WHERE s.provenance=? GROUP BY l.topic_id)` : "";
       const activeSQL = definition.membership ? "(SELECT COUNT(*) FROM memberships WHERE members>=1)" :
@@ -148,7 +151,11 @@ function readCounts(databasePath, now, definition) {
         ${definition.membership ? `,(SELECT COUNT(*) FROM memberships WHERE members>=2) AS multiMemberTopics,
           (SELECT COUNT(*) FROM memberships WHERE members=1) AS singletonTopics` : ""}
         FROM canonical_meta WHERE singleton=1`).get(PROVENANCE, PROVENANCE);
-      if (!row || row.format !== NORMALIZED_STORAGE_FORMAT) fail();
+      if (!row || ![NORMALIZED_STORAGE_FORMAT, NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT].includes(row.format) ||
+          (row.schema === FIXED_REFERENCE_STATE_SCHEMA) !== (row.format === NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT)) fail();
+      if (membershipTable === "canonical_topic_memberships" && database.prepare(`SELECT 1 FROM canonical_topic_memberships l
+        LEFT JOIN canonical_sources s ON s.id=l.source_id LEFT JOIN canonical_topics t ON t.id=l.topic_id
+        WHERE s.id IS NULL OR t.id IS NULL LIMIT 1`).get()) fail();
     } else {
       if (objects.length !== 1 || objects[0].name !== "demo_state" || objects[0].type !== "table" ||
           database.prepare("PRAGMA table_info(demo_state)").all().map(value => value.name).join(",") !== "singleton,schema,generation,revision,document" ||
@@ -158,7 +165,25 @@ function readCounts(databasePath, now, definition) {
       const metadata = database.prepare(`SELECT schema,generation,revision,length(CAST(document AS BLOB)) AS bytes,
         json_valid(document) AS valid FROM demo_state WHERE singleton=1`).get();
       if (!metadata || metadata.bytes > MAX_DOCUMENT_BYTES || metadata.valid !== 1) fail();
-      const membershipCTE = definition.membership ? `WITH memberships AS (
+      if (definition.membership && metadata.schema === FIXED_REFERENCE_STATE_SCHEMA) {
+        if (database.prepare(`SELECT 1 FROM demo_state,json_each(document,'$.sources') s
+          WHERE singleton=1 AND json_extract(s.value,'$.provenance')=? AND json_type(s.value,'$.topicIds') IS NOT NULL
+          AND (json_type(s.value,'$.topicIds')!='array' OR json_array_length(s.value,'$.topicIds')=0) LIMIT 1`).get(PROVENANCE) ||
+          database.prepare(`SELECT 1 FROM demo_state,json_each(document,'$.sources') s
+          LEFT JOIN json_each(document,'$.sourceLinks') l ON json_extract(l.value,'$.sourceId')=json_extract(s.value,'$.id')
+          JOIN json_each(CASE WHEN json_type(s.value,'$.topicIds')='array' THEN json_extract(s.value,'$.topicIds')
+            ELSE json_array(json_extract(l.value,'$.topicId')) END) m
+          LEFT JOIN json_each(document,'$.topics') t ON json_extract(t.value,'$.id')=m.value
+          WHERE singleton=1 AND json_extract(s.value,'$.provenance')=? AND (l.value IS NULL OR m.type!='text' OR t.value IS NULL) LIMIT 1`).get(PROVENANCE)) fail();
+      }
+      const membershipCTE = definition.membership ? metadata.schema === FIXED_REFERENCE_STATE_SCHEMA ? `WITH memberships AS (
+        SELECT m.value AS topic_id,COUNT(DISTINCT json_extract(s.value,'$.id')) AS members
+        FROM demo_state,json_each(document,'$.sources') s
+        JOIN json_each(document,'$.sourceLinks') l ON json_extract(l.value,'$.sourceId')=json_extract(s.value,'$.id')
+        JOIN json_each(CASE WHEN json_type(s.value,'$.topicIds')='array' THEN json_extract(s.value,'$.topicIds')
+          ELSE json_array(json_extract(l.value,'$.topicId')) END) m
+        JOIN json_each(document,'$.topics') t ON json_extract(t.value,'$.id')=m.value
+        WHERE demo_state.singleton=1 AND json_extract(s.value,'$.provenance')=? GROUP BY m.value)` : `WITH memberships AS (
         SELECT json_extract(l.value,'$.topicId') AS topic_id,COUNT(DISTINCT json_extract(l.value,'$.sourceId')) AS members
         FROM demo_state,json_each(document,'$.sourceLinks') l
         JOIN json_each(document,'$.sources') s ON json_extract(s.value,'$.id')=json_extract(l.value,'$.sourceId')
@@ -184,7 +209,7 @@ function readCounts(databasePath, now, definition) {
       if (!row || row.innerSchema !== row.schema || row.innerGeneration !== row.generation || row.innerRevision !== row.revision ||
           row.sourcesType !== "array" || row.topicsType !== "array" || row.linksType !== "array") fail();
     }
-    if (!["demo-state/v2", "demo-state/v3"].includes(row.schema)) fail();
+    if (!["demo-state/v2", "demo-state/v3", FIXED_REFERENCE_STATE_SCHEMA].includes(row.schema)) fail();
     readExpectedVersion({ generation: row.generation, revision: row.revision });
     const result = validPoint({ at: new Date(epoch(now)).toISOString(),
       seriesId: createHash("sha256").update(row.generation, "utf8").digest("hex"), revision: row.revision,

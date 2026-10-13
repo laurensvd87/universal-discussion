@@ -50,6 +50,7 @@ export const EN = Object.freeze({
   uiMatchingFailed: "This page could not be matched.",
   uiMatchingServiceBusy: "Page matching is temporarily busy. Saved discussions remain available.",
   uiTopicViewFailed: "Some discussions could not load.",
+  uiTopicMembershipFailed: "Not all assigned Topics could load. Showing the primary discussion only.",
   uiTopicViewOpenToReply: "Open source to reply",
   uiTopicViewPinned: "Other conversations on this page",
   uiTopicViewSavedTopicHint: "Switch to Legacy E5 to change saved topics.",

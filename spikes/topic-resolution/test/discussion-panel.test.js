@@ -538,6 +538,30 @@ test("experimental related-source growth preserves an opened reply branch", () =
     sourceIds: ["source-demo", "source-new"] } });
   assert.equal(branch().attributes["aria-expanded"], "true");
 });
+
+test("canonical multi-Topic feed is visible even with the legacy view preference and reports incomplete reads", () => {
+  const ui = harness();
+  const version = { generation: "generation-reference", revision: 3 };
+  const primary = { id: "root-1", rootId: null, state: "visible", authorId: "demo-alex", actorType: "human",
+    body: "Original message A", replies: [], canonicalTopicId: "topic-demo", canonicalDiscussionId: "discussion-demo" };
+  const secondary = { ...primary, id: "root-b", body: "Original message B", canonicalTopicId: "topic-b",
+    canonicalDiscussionId: "discussion-b", origin: { sourceId: "source-b", url: "https://example.org/article-b", title: "B" } };
+  const snapshot = state({ sourceId: "source-demo", topicViewMode: "classic",
+    catalog: { ...state().catalog, version, topics: [{ id: "topic-demo", title: "A", kind: "general" }, { id: "topic-b", title: "B", kind: "general" }],
+      sources: [{ id: "source-demo", title: "Middle", url: "https://example.org/middle", provenance: "owner-local-page-embedding/v1",
+        topicId: "topic-demo", topicIds: ["topic-b", "topic-demo"] }] },
+    discussion: { version, discussionId: "discussion-demo", roots: [primary] },
+    alternateDiscussion: { sourceId: "source-demo", policyVersion: "ridge1-fixed-reference-radius/v1",
+      representation: RIDGE_REPRESENTATION, sourceIds: ["source-demo", "source-b"], roots: [primary, secondary], pinnedRoots: [] } });
+  ui.panel.render(snapshot);
+  const cards = descendants(ui.root).filter(item => item.attributes?.["data-thread-root-id"]);
+  assert.deepEqual(cards.map(card => card.attributes["data-thread-root-id"]), ["root-1", "root-b"]);
+  assert.equal(descendants(cards[1]).some(item => ["reply", "getinsights", "edit", "withdraw"].includes(item.attributes?.["data-action"])), false);
+  ui.panel.render({ ...snapshot, alternateDiscussion: null, alternateError: "capacity" });
+  assert.ok(descendants(ui.root).some(item => item.textContent.includes(EN.uiTopicMembershipFailed)));
+  ui.panel.render({ ...snapshot, sourceId: null });
+  assert.equal(descendants(ui.root).some(item => item.attributes?.["data-thread-root-id"] === "root-b"), false);
+});
 test("Earlier topic navigation stays in Developer Mode and Back remains available", () => {
   const ui = harness();
   const prior = { sourceId: "source-demo", currentTopicId: "topic-demo", topics: [

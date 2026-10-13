@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current canonical overlapping membership (2026-10-13, ADR-112, client 0.13.63):
+owner requests actual wiring and explicitly approves encrypted seven-day backup,
+brief stop, preserved old assignments/messages, conversion and restart. V4 /
+relational v2 stores Source.topicIds plus private fixed pinned-Ridge references;
+no startup auto-migration, global regroup, transitive inheritance or raw-E5
+fallback. New/changed eligible pages join all radius hits; complete no-hit alone
+creates one Topic. Old memberships/policy stamps stay grandfathered, unchanged
+visits renew receipts. Forget erases originating references, no replacement.
+Union feed retains original post destinations; primary-only current-page write/
+Insight and exact historical/native/account proofs remain. Dashboard multi-member
+Topics count overlaps, pages once. Checked synthetic/storage/realworker/HTTPclient/
+isolated Chrome and independent Trust pass; read top STATUS/HANDOFF for cutover.
+Unrelated dirty pairing/credential rename changes must not be activated by this
+restart; use a checked source snapshot with the original trusted data directory.
+No provider inference grant or million-page/hosted scalability claim follows.
+
 Current radius direction (2026-10-13, ADR-111): owner requests activation of
 fixed-reference Topic/Ridge1 threshold lookup with overlapping membership.
 Zero exhaustive matches opens a singleton; middle page matching two separate

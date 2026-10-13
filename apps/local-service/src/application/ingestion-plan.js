@@ -41,12 +41,16 @@ export function ingestionScopes(before, after) {
         add("discussions", value.discussionId); add("contributions", value.rootId); add("contributions", value.replyToId);
         add("sources", value.originSourceId); add("sources", value.anchor?.sourceId);
       }
-      for (const id of selected.sources) add("sourceLinks", id);
+      for (const id of selected.sources) {
+        add("sourceLinks", id);
+        for (const topicId of map.sources.get(id)?.topicIds ?? []) add("topics", topicId);
+      }
       for (const id of selected.sourceLinks) {
         const value = map.sourceLinks.get(id);
         if (value) { add("sources", value.sourceId); add("topics", value.topicId); }
       }
       for (const id of selected.discussions) add("topics", map.discussions.get(id)?.topicId);
+      for (const id of selected.topics) add("sources", map.topics.get(id)?.reference?.sourceId);
       for (const value of map.discussions.values()) if (selected.topics.has(value.topicId)) add("discussions", value.id);
     }
   } while (expanded);

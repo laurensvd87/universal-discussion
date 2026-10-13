@@ -1,8 +1,9 @@
 import { DatabaseSync } from "node:sqlite";
 import { existsSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
+import {createHash} from 'node:crypto';
 import { ServiceError, fail } from "../domain/errors.js";
-import { assertValidLegacyPersistedState, assertValidPersistedState } from "../domain/persisted-state.js";
+import { assertValidLegacyPersistedState, assertValidPersistedState,assertFixedReferenceTransition,assertValidFixedTopicReference } from "../domain/persisted-state.js";
 import { migrateLegacyState } from "../domain/state-migration.js";
 import { assertExpected, MAX_DOCUMENT_BYTES } from "../domain/repository-contract.js";
 import { ACCOUNT_STATE_SCHEMA } from "../accounts/account-principal.js";
@@ -10,16 +11,21 @@ import { frozenClone, readId, readExpectedVersion, readRecord, readText } from "
 import { normalizeMyChatsQuery } from "../application/account-public-chats.js";
 import { inspectPageUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 import { createMatchingInputHasher } from "../domain/alternate-topic-cache.js";
+import { FIXED_REFERENCE_STATE_SCHEMA } from '../domain/demo-state.js';
+import { migrateReferenceTopicState } from '../domain/reference-state-migration.js';
 
 export const NORMALIZED_STORAGE_FORMAT = "canonical-relational/v1";
+export const NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT = 'canonical-relational/v2';
 
 // Read-only aggregate consumers share the exact storage schema contract without
 // opening a repository that loads catalog payloads or embedding vectors.
 export function assertNormalizedCatalogSchema(database) {
-  validateSchema(database.prepare("SELECT name,type,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all());
+  const format=validateSchema(database.prepare("SELECT name,type,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all());
+  const row=database.prepare('SELECT format,schema FROM canonical_meta WHERE singleton=1').get();
+  if(!row || row.format!==format || (format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT
+    ?row.schema!==FIXED_REFERENCE_STATE_SCHEMA:!['demo-state/v2',ACCOUNT_STATE_SCHEMA].includes(row.schema)))fail('storage-schema','Unsupported local database schema');
+  return format;
 }
-
-const FORMAT = NORMALIZED_STORAGE_FORMAT;
 const COLLECTIONS = {
   topics: ["canonical_topics", "id"], discussions: ["canonical_discussions", "id"],
   sources: ["canonical_sources", "id"], sourceLinks: ["canonical_source_links", "sourceId"],
@@ -49,11 +55,19 @@ const DDL = [
   "CREATE INDEX canonical_receipts_operation ON canonical_operation_receipts(operation_id,source_id)",
 ];
 const EXPECTED_OBJECTS = DDL.map(sql => ({ name: sql.match(/^CREATE (?:TABLE|INDEX) ([^( ]+)/u)[1], type: sql.startsWith("CREATE TABLE") ? "table" : "index", sql }));
+const REFERENCE_DDL=[
+  'CREATE TABLE canonical_topic_memberships(source_id TEXT NOT NULL REFERENCES canonical_sources(id) DEFERRABLE INITIALLY DEFERRED, topic_id TEXT NOT NULL REFERENCES canonical_topics(id) DEFERRABLE INITIALLY DEFERRED, PRIMARY KEY(source_id,topic_id)) STRICT',
+  'CREATE INDEX canonical_memberships_topic ON canonical_topic_memberships(topic_id,source_id)',
+  'CREATE TABLE canonical_topic_references(topic_id TEXT PRIMARY KEY REFERENCES canonical_topics(id) DEFERRABLE INITIALLY DEFERRED, source_id TEXT REFERENCES canonical_sources(id) DEFERRABLE INITIALLY DEFERRED, payload TEXT NOT NULL) STRICT',
+  'CREATE INDEX canonical_references_source ON canonical_topic_references(source_id,topic_id)',
+];
+const REFERENCE_OBJECTS=REFERENCE_DDL.map(sql=>({name:sql.match(/^CREATE (?:TABLE|INDEX) ([^( ]+)/u)[1],type:sql.startsWith('CREATE TABLE')?'table':'index',sql}));
 
 // Opening this adapter is an explicit migration operation. The legacy table is
 // removed only after validated row import, inside the same atomic transaction.
 export function createNormalizedSqliteRepository(databasePath, initialState, options = {}) {
   let database;
+  let format=NORMALIZED_STORAGE_FORMAT;
   const readOnly = options.readOnly === true;
   const listeners = new Set();
   const changeListeners = new Set();
@@ -90,7 +104,8 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
   }
   function metadata() {
     const row = database.prepare("SELECT * FROM canonical_meta WHERE singleton=1").get();
-    if (!row || row.format !== FORMAT || !["demo-state/v2", ACCOUNT_STATE_SCHEMA].includes(row.schema)) fail("storage-schema", "Unsupported local database schema");
+    if (!row || row.format !== format || (format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT
+      ?row.schema!==FIXED_REFERENCE_STATE_SCHEMA:!["demo-state/v2", ACCOUNT_STATE_SCHEMA].includes(row.schema))) fail("storage-schema", "Unsupported local database schema");
     try { readExpectedVersion({ generation: row.generation, revision: row.revision }); } catch { fail("storage-corrupt", "Local database is inconsistent"); }
     return { schema: row.schema, generation: row.generation, revision: row.revision };
   }
@@ -100,6 +115,7 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
       const embedding = database.prepare("SELECT payload FROM canonical_embeddings WHERE source_id=?").get(row.id);
       value.embedding = embedding ? decoded(embedding.payload) : null;
       verifyIndexed("sources", row, value);
+      if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT)verifyMembership(value);
       if (embedding && decoded(embedding.payload).modelId !== database.prepare("SELECT model_id FROM canonical_embeddings WHERE source_id=?").get(row.id).model_id) fail("storage-corrupt", "Local database is inconsistent");
       const receipt = database.prepare("SELECT operation_id,operation_digest FROM canonical_operation_receipts WHERE source_id=?").get(row.id);
       if (Object.hasOwn(value, "operationId") ? !receipt || receipt.operation_id !== value.operationId || receipt.operation_digest !== value.operationDigest : receipt !== undefined) fail("storage-corrupt", "Local database is inconsistent");
@@ -202,6 +218,35 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     const receipts = database.prepare("SELECT * FROM canonical_operation_receipts ORDER BY source_id").all();
     const wantedReceipts = new Map(state.sources.filter(source => source.operationId !== undefined).map(source => [source.id, source]));
     if (receipts.length !== wantedReceipts.size || receipts.some(row => { const source = wantedReceipts.get(row.source_id); return !source || source.operationId !== row.operation_id || source.operationDigest !== row.operation_digest; })) fail("storage-corrupt", "Local database is inconsistent");
+    if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT) {
+      for(const source of state.sources)verifyMembership(source);
+      for(const topic of state.topics)verifyReference(topic);
+    }
+  }
+  function membershipIds(source) {
+    if(source.topicIds)return source.topicIds;
+    const link=database.prepare('SELECT topic_id FROM canonical_source_links WHERE source_id=?').get(source.id);
+    return link?[link.topic_id]:[];
+  }
+  function verifyMembership(source) {
+    const rows=database.prepare('SELECT topic_id FROM canonical_topic_memberships WHERE source_id=? ORDER BY topic_id').all(source.id);
+    const ids=membershipIds(source),primary=database.prepare('SELECT topic_id FROM canonical_source_links WHERE source_id=?').get(source.id)?.topic_id;
+    if(!isDeepStrictEqual(rows.map(row=>row.topic_id),ids) || source.provenance==='owner-local-page-embedding/v1' && (!primary || !ids.includes(primary)))fail('storage-corrupt','Local database is inconsistent');
+  }
+  function verifyReference(topic) {
+    const row=database.prepare('SELECT source_id,payload FROM canonical_topic_references WHERE topic_id=?').get(topic.id);
+    if(Object.hasOwn(topic,'reference')? !row || row.source_id!==(topic.reference?.sourceId??null) ||
+        !isDeepStrictEqual(decoded(row.payload),topic.reference):!!row)fail('storage-corrupt','Local database is inconsistent');
+    if(Object.hasOwn(topic,'reference')) {
+      try{assertValidFixedTopicReference(topic.reference);}catch{fail('storage-corrupt','Local database is inconsistent');}
+      if(topic.reference!==null && database.prepare('SELECT provenance FROM canonical_sources WHERE id=?').get(topic.reference.sourceId)?.provenance!=='owner-local-page-embedding/v1')fail('storage-corrupt','Local database is inconsistent');
+    }
+  }
+  function syncMembership(source) {
+    const ids=membershipIds(source),old=database.prepare('SELECT topic_id FROM canonical_topic_memberships WHERE source_id=? ORDER BY topic_id').all(source.id).map(row=>row.topic_id);
+    if(isDeepStrictEqual(old,ids))return;
+    database.prepare('DELETE FROM canonical_topic_memberships WHERE source_id=?').run(source.id);
+    for(const topicId of ids)database.prepare('INSERT INTO canonical_topic_memberships VALUES(?,?)').run(source.id,topicId);
   }
   function writeEntity(name, value, ordinal) {
     const [table] = COLLECTIONS[name];
@@ -221,6 +266,15 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     const columns = [...Object.keys(fields), "ordinal", "payload"];
     const primary = name === "sourceLinks" ? "source_id" : "id";
     database.prepare(`INSERT INTO ${table}(${columns.join(",")}) VALUES(${columns.map(() => "?").join(",")}) ON CONFLICT(${primary}) DO UPDATE SET ${columns.filter(column => column !== primary).map(column => `${column}=excluded.${column}`).join(",")}`).run(...Object.values(fields), ordinal, encoded(payload));
+    if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT) {
+      if(name==='sources')syncMembership(value);
+      if(name==='sourceLinks')syncMembership(decoded(database.prepare('SELECT payload FROM canonical_sources WHERE id=?').get(value.sourceId).payload));
+      if(name==='topics') {
+        if(Object.hasOwn(value,'reference'))database.prepare('INSERT INTO canonical_topic_references VALUES(?,?,?) ON CONFLICT(topic_id) DO UPDATE SET source_id=excluded.source_id,payload=excluded.payload')
+          .run(value.id,value.reference?.sourceId??null,encoded(value.reference));
+        else database.prepare('DELETE FROM canonical_topic_references WHERE topic_id=?').run(value.id);
+      }
+    }
     if (name === "sources") {
       const oldEmbedding = database.prepare("SELECT payload FROM canonical_embeddings WHERE source_id=?").get(value.id);
       const embeddingText = value.embedding === null ? null : encoded(value.embedding);
@@ -241,6 +295,11 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     }
   }
   function removeEntity(name, id) {
+    if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT) {
+      if(name==='sources')database.prepare('DELETE FROM canonical_topic_memberships WHERE source_id=?').run(id);
+      if(name==='sourceLinks')database.prepare('DELETE FROM canonical_topic_memberships WHERE source_id=?').run(id);
+      if(name==='topics')database.prepare('DELETE FROM canonical_topic_references WHERE topic_id=?').run(id);
+    }
     if (name === "sources") {
       database.prepare("DELETE FROM canonical_embeddings WHERE source_id=?").run(id);
       database.prepare("DELETE FROM canonical_operation_receipts WHERE source_id=?").run(id);
@@ -310,6 +369,7 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     let before;
     transaction(() => {
       const current = readState(); assertExpected(current, expected); validate(next); transition(current, next, reset);
+      if((next.schema===FIXED_REFERENCE_STATE_SCHEMA)!==(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT))fail('storage-migration-required','Explicit reference migration required');
       before = current;
       if (reset) database.exec("DELETE FROM canonical_id_registry");
       resettingIds = reset;
@@ -342,20 +402,44 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
       if (results.length !== 1 || results[0].quick_check !== "ok") fail("storage-corrupt", "Local database is inconsistent");
     } catch { fail("storage-corrupt", "Local database is inconsistent"); }
     if (readOnly) {
-      if(options.expectedLegacyState !== undefined) fail("conflict", "Canonical migration source changed");
-      validateSchema(database.prepare("SELECT name,type,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all());
+      if(options.expectedLegacyState !== undefined || options.referenceMigration!==undefined) fail("conflict", "Canonical migration source changed");
+      format=assertNormalizedCatalogSchema(database);
       checkedRead(() => catalogState());
     } else {
       // A fenced cutover must not checkpoint/change the source journal before
       // the expected legacy state is compared under its write transaction.
-      if(options.expectedLegacyState === undefined) database.exec("PRAGMA journal_mode=DELETE");
+      if(options.expectedLegacyState === undefined && options.referenceMigration===undefined) database.exec("PRAGMA journal_mode=DELETE");
       database.exec("PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000");
       transaction(() => {
         const objects = database.prepare("SELECT name,type,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all();
         const legacy = objects.find(object => object.name === "demo_state");
         if (objects.some(object => object.name === "canonical_meta")) {
           if (options.expectedLegacyState !== undefined) fail("conflict", "Canonical migration source changed");
-          validateSchema(objects); readState(); return;
+          format=assertNormalizedCatalogSchema(database);
+          const before=readState();
+          if(options.referenceMigration!==undefined) {
+            const {expectedState,nextState}=options.referenceMigration;
+            if(format!==NORMALIZED_STORAGE_FORMAT || !isDeepStrictEqual(before,expectedState))fail('conflict','Canonical migration source changed');
+            validate(nextState);transition(before,nextState,false);
+            if(nextState.schema!==FIXED_REFERENCE_STATE_SCHEMA)fail('invalid','Invalid reference migration');
+            const preserved={...nextState,schema:before.schema,revision:before.revision,
+              sources:nextState.sources.map(({topicIds,...source})=>source),topics:nextState.topics.map(({reference,...topic})=>topic)};
+            if(!isDeepStrictEqual(preserved,before))fail('conflict','Canonical migration changed retained records');
+            const primary=new Map(before.sourceLinks.map(link=>[link.sourceId,link]));
+            for(const source of nextState.sources)if(source.provenance==='owner-local-page-embedding/v1' &&
+                !isDeepStrictEqual(source.topicIds,[primary.get(source.id)?.topicId]))fail('conflict','Canonical migration changed retained memberships');
+            for(const topic of nextState.topics)if(topic.reference!==undefined && topic.reference!==null &&
+                (primary.get(topic.reference.sourceId)?.topicId!==topic.id || primary.get(topic.reference.sourceId)?.method!=='learned-provisional'))
+              fail('conflict','Invalid migration reference witness');
+            for(const ddl of REFERENCE_DDL)database.exec(ddl);
+            format=NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT;
+            database.prepare('UPDATE canonical_meta SET format=?,schema=?,revision=? WHERE singleton=1').run(format,nextState.schema,nextState.revision);
+            difference(before,nextState);
+            for(const source of nextState.sources)syncMembership(source);
+            options.beforeCommit?.();
+            if(!isDeepStrictEqual(readState(),nextState))fail('storage-corrupt','Canonical migration verification failed');
+          }
+          return;
         }
         let seed = initialState;
         if (objects.length) {
@@ -381,8 +465,10 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
           if(options.expectedLegacyState !== undefined) fail("conflict", "Canonical migration source changed");
           validate(seed);
         }
-        for (const ddl of DDL) database.exec(ddl);
-        database.prepare("INSERT INTO canonical_meta VALUES(1,?,?,?,?)").run(FORMAT, seed.schema, seed.generation, seed.revision);
+        if(options.referenceMigration!==undefined)fail('conflict','Canonical migration source changed');
+        format=seed.schema===FIXED_REFERENCE_STATE_SCHEMA?NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT:NORMALIZED_STORAGE_FORMAT;
+        for (const ddl of [...DDL,...(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT?REFERENCE_DDL:[])]) database.exec(ddl);
+        database.prepare("INSERT INTO canonical_meta VALUES(1,?,?,?,?)").run(format, seed.schema, seed.generation, seed.revision);
         for (const [name] of Object.entries(COLLECTIONS)) seed[name].forEach((value, index) => writeEntity(name, value, index));
         options.beforeCommit?.();
         if (!isDeepStrictEqual(readState(), seed)) fail("storage-corrupt", "Canonical migration verification failed");
@@ -417,6 +503,10 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     const selectedDiscussion = database.prepare("SELECT * FROM canonical_discussions WHERE topic_id=?").get(topicId);
     if (!selectedTopic || !selectedDiscussion) fail("not-found", "Object unavailable");
     const messageRows = contributionRows ?? database.prepare("SELECT * FROM canonical_contributions WHERE discussion_id=? ORDER BY ordinal").all(selectedDiscussion.id);
+    if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT) {
+      const sourceIds=database.prepare('SELECT source_id FROM canonical_topic_memberships WHERE topic_id=? ORDER BY source_id').all(topicId).map(row=>row.source_id);
+      return closureState({sourceIds,topicIds:[topicId],contributionRows:messageRows});
+    }
     const sourceRows = database.prepare(`SELECT DISTINCT s.* FROM canonical_sources s WHERE s.id IN (SELECT source_id FROM canonical_source_links WHERE topic_id=?)
       OR s.id IN (SELECT origin_source_id FROM canonical_contributions WHERE discussion_id=? AND origin_source_id IS NOT NULL) ORDER BY s.ordinal`).all(topicId, selectedDiscussion.id);
     const links = new Map(); const topics = new Map([[selectedTopic.id, selectedTopic]]); const discussions = new Map([[selectedDiscussion.id, selectedDiscussion]]);
@@ -445,6 +535,10 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
       const discussion = database.prepare("SELECT * FROM canonical_discussions WHERE topic_id=?").get(topicId);
       if (!topic || !discussion) fail("not-found", "Object unavailable");
       topics.set(topic.id, topic); discussions.set(discussion.id, discussion);
+      if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT) {
+        const value=decoded(topic.payload);verifyReference(value);
+        if(value.reference!==undefined && value.reference!==null)addSource(value.reference.sourceId);
+      }
     };
     const addSource = sourceId => {
       if (sourceRows.has(sourceId)) return;
@@ -453,6 +547,10 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
       sourceRows.set(source.id, source);
       const link = database.prepare("SELECT * FROM canonical_source_links WHERE source_id=?").get(sourceId);
       if (link) { links.set(link.source_id, link); addTopic(link.topic_id); }
+      if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT) {
+        const value=decoded(source.payload);verifyMembership(value);
+        for(const topicId of membershipIds(value))addTopic(topicId);
+      }
     };
     topicIds.forEach(addTopic); sourceIds.forEach(addSource);
     for (const row of contributionRows) {
@@ -470,6 +568,7 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
       const current = metadata(); assertExpected(current, expected); assertExpected(before, expected);
       if (before.schema !== current.schema) fail("conflict", "State changed");
       validate(before); validate(after); transition(before, after, false);
+      if((after.schema===FIXED_REFERENCE_STATE_SCHEMA)!==(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT))fail('storage-migration-required','Explicit reference migration required');
       const modifiedDiscussions = new Set(); const modifiedSources = new Set();
       for (const [name, [table, key]] of Object.entries(COLLECTIONS)) {
         const old = new Map(before[name].map(value => [value[key], value]));
@@ -531,12 +630,44 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
     version() { try { const { generation, revision } = metadata(); return { generation, revision }; } catch (error) { throw storageError(error); } },
     load() { return checkedRead(() => readState()); },
     readCatalogSnapshot() { return checkedRead(() => catalogState()); },
+    storageFormat:()=>format,
+    readTopicMemberships({sourceId=null,topicId=null,expectedVersion=null}={}) {
+      if(sourceId!==null)readId(sourceId);if(topicId!==null)readId(topicId);
+      if(sourceId===null && topicId===null)fail('invalid','Membership scope required');
+      return checkedRead(meta=>{
+        const table=format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT?'canonical_topic_memberships':'canonical_source_links';
+        const where=sourceId!==null?'source_id=?'+(topicId!==null?' AND topic_id=?':''):'topic_id=?';
+        const parameters=sourceId!==null?[sourceId,...(topicId!==null?[topicId]:[])]:[topicId];
+        const rows=database.prepare(`SELECT source_id,topic_id FROM ${table} WHERE ${where} ORDER BY source_id,topic_id`).all(...parameters);
+        for(const row of rows) {
+          const source=decoded(database.prepare('SELECT payload FROM canonical_sources WHERE id=?').get(row.source_id).payload);
+          if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT)verifyMembership(source);
+          if(!database.prepare('SELECT 1 FROM canonical_topics WHERE id=?').get(row.topic_id))fail('storage-corrupt','Local database is inconsistent');
+        }
+        return {version:{generation:meta.generation,revision:meta.revision},items:rows.map(row=>({sourceId:row.source_id,topicId:row.topic_id}))};
+      },expectedVersion);
+    },
+    readTopicReferencesPage(input={}) {
+      const {after,limit,expectedVersion}=paging(input);
+      return checkedRead(meta=>{
+        if(format!==NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT)return {version:{generation:meta.generation,revision:meta.revision},items:[],nextCursor:null};
+        const rows=after===null?database.prepare('SELECT topic_id,payload FROM canonical_topic_references ORDER BY topic_id LIMIT ?').all(limit+1)
+          :database.prepare('SELECT topic_id,payload FROM canonical_topic_references WHERE topic_id>? ORDER BY topic_id LIMIT ?').all(after,limit+1);
+        const items=rows.slice(0,limit).map(row=>{
+          const topic=decoded(database.prepare('SELECT payload FROM canonical_topics WHERE id=?').get(row.topic_id).payload);verifyReference(topic);
+          return {topicId:row.topic_id,reference:topic.reference};
+        });
+        return {version:{generation:meta.generation,revision:meta.revision},items,nextCursor:rows.length>limit?rows[limit-1].topic_id:null};
+      },expectedVersion);
+    },
     // Cross-process read workers cannot use writer-local change notifications.
     // Scan exact public matching bytes, without loading posts or decoding vectors.
     // No persisted watermark, new column, or global-version shortcut is involved.
     readMatchingIdentity({ expectedVersion = null } = {}) {
       return checkedRead(meta => {
         const hasher = createMatchingInputHasher();
+        const referenceRouting=meta.schema===FIXED_REFERENCE_STATE_SCHEMA?createHash('sha256').update('fixed-reference-routing/v1'):null;
+        const addRouting=value=>{const text=JSON.stringify(value);referenceRouting.update(`${Buffer.byteLength(text)}:`).update(text);};
         for (const row of database.prepare(`SELECT s.*,e.payload AS embedding_payload,e.model_id,
           json_extract(e.payload,'$.modelId') AS payload_model,
           CASE WHEN e.payload IS NULL THEN NULL ELSE json_object('modelId',json_extract(e.payload,'$.modelId'),
@@ -548,11 +679,26 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
           if (row.model_id !== row.payload_model || row.embedding_payload !== null && row.embedding_fields !== 2)
             fail("storage-corrupt", "Local database is inconsistent");
           hasher.source(source, row.matching_embedding ?? "null");
+          if(referenceRouting){verifyMembership(source);addRouting(['source',source.id,membershipIds(source)]);}
         }
         for (const row of database.prepare("SELECT * FROM canonical_source_links ORDER BY source_id").iterate()) {
           const link = decoded(row.payload); verifyIndexed("sourceLinks", row, link); hasher.link(link);
         }
-        return { version: { generation: meta.generation, revision: meta.revision }, ...hasher.finish() };
+        const identity=hasher.finish();
+        if(referenceRouting) {
+          // Fixed coordinates are immutable/private JSON bytes. Validate their
+          // indexed mirror without decoding384 numbers for every comment read.
+          for(const row of database.prepare(`SELECT t.id,json_type(t.payload,'$.reference') AS reference_type,
+            json_extract(t.payload,'$.reference') AS topic_reference,json_extract(t.payload,'$.reference.sourceId') AS witness,
+            r.topic_id,r.source_id,r.payload FROM canonical_topics t LEFT JOIN canonical_topic_references r ON r.topic_id=t.id ORDER BY t.id`).iterate()) {
+            if(row.reference_type===null ? row.topic_id!==null : row.topic_id===null || row.source_id!==row.witness ||
+                (row.reference_type==='null'?row.payload!=='null':row.reference_type!=='object' || row.topic_reference!==row.payload))
+              fail('storage-corrupt','Local database is inconsistent');
+            addRouting(['topic',row.id,row.payload]);
+          }
+          identity.routing=referenceRouting.update(identity.routing).digest('hex');
+        }
+        return { version: { generation: meta.generation, revision: meta.revision }, ...identity };
       }, expectedVersion);
     },
     save(expected, next) { return write(expected, next, false); },
@@ -606,9 +752,15 @@ export function createNormalizedSqliteRepository(databasePath, initialState, opt
       if (limit > 100) fail("invalid", "Invalid request");
       return checkedRead(meta => {
         if (!database.prepare("SELECT 1 FROM canonical_topics WHERE id=?").get(topicId)) fail("not-found", "Object unavailable");
-        const rows = after === null ? database.prepare("SELECT s.* FROM canonical_source_links l JOIN canonical_sources s ON s.id=l.source_id WHERE l.topic_id=? ORDER BY l.source_id LIMIT ?").all(topicId, limit + 1)
-          : database.prepare("SELECT s.* FROM canonical_source_links l JOIN canonical_sources s ON s.id=l.source_id WHERE l.topic_id=? AND l.source_id>? ORDER BY l.source_id LIMIT ?").all(topicId, after, limit + 1);
-        for (const row of rows) { const link = verifiedSourceLink(row.id); if (link?.topic_id !== topicId) fail("storage-corrupt", "Local database is inconsistent"); }
+        const table=format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT?'canonical_topic_memberships':'canonical_source_links';
+        const rows = after === null ? database.prepare(`SELECT s.* FROM ${table} l JOIN canonical_sources s ON s.id=l.source_id WHERE l.topic_id=? ORDER BY l.source_id LIMIT ?`).all(topicId, limit + 1)
+          : database.prepare(`SELECT s.* FROM ${table} l JOIN canonical_sources s ON s.id=l.source_id WHERE l.topic_id=? AND l.source_id>? ORDER BY l.source_id LIMIT ?`).all(topicId, after, limit + 1);
+        for (const row of rows) {
+          if(format===NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT) {
+            const source=decoded(row.payload);verifyMembership(source);
+            if(!membershipIds(source).includes(topicId))fail('storage-corrupt','Local database is inconsistent');
+          }else {const link=verifiedSourceLink(row.id);if(link?.topic_id!==topicId)fail('storage-corrupt','Local database is inconsistent');}
+        }
         return { version: { generation: meta.generation, revision: meta.revision }, items: sources(rows.slice(0, limit)), nextCursor: rows.length > limit ? rows[limit - 1].id : null };
       }, expectedVersion);
     },
@@ -714,9 +866,11 @@ function columnsFor(name, value) {
   return { id: value.id, discussion_id: value.discussionId, root_id: value.rootId, reply_to_id: value.replyToId, author_id: value.authorId, operator_id: value.insight?.operatorId ?? null, origin_source_id: value.originSourceId ?? null, anchor_source_id: value.anchor?.kind === "source" ? value.anchor.sourceId : null, created_at: value.createdAt, revision_count: value.revisions.length };
 }
 function transition(current, next, reset) {
-  if (current.schema === ACCOUNT_STATE_SCHEMA && next.schema !== ACCOUNT_STATE_SCHEMA && !reset) fail("conflict", "Account state cannot be downgraded");
+  if (!reset && (current.schema===FIXED_REFERENCE_STATE_SCHEMA && next.schema!==FIXED_REFERENCE_STATE_SCHEMA ||
+      current.schema === ACCOUNT_STATE_SCHEMA && ![ACCOUNT_STATE_SCHEMA,FIXED_REFERENCE_STATE_SCHEMA].includes(next.schema))) fail("conflict", "Account state cannot be downgraded");
   if (reset ? next.generation === current.generation || next.revision !== 0 : next.generation !== current.generation || next.revision !== current.revision + 1) fail("conflict", "Invalid successor version");
   if (!reset) {
+    assertFixedReferenceTransition(current,next);
     const previous = new Map(current.contributions.map(value => [value.id, value]));
     for (const root of next.contributions.filter(value => value.rootId === null)) {
       const old = previous.get(root.id);
@@ -725,7 +879,20 @@ function transition(current, next, reset) {
   }
 }
 function validateSchema(objects) {
-  const actual = objects;
-  if (actual.length !== EXPECTED_OBJECTS.length || EXPECTED_OBJECTS.some(expected => !actual.some(value => value.name === expected.name && value.type === expected.type && value.sql === expected.sql))) fail("storage-schema", "Unsupported local database schema");
+  const matches=expected=>objects.length===expected.length && expected.every(wanted=>objects.some(value=>value.name===wanted.name && value.type===wanted.type && value.sql===wanted.sql));
+  if(matches(EXPECTED_OBJECTS))return NORMALIZED_STORAGE_FORMAT;
+  if(matches([...EXPECTED_OBJECTS,...REFERENCE_OBJECTS]))return NORMALIZED_FIXED_REFERENCE_STORAGE_FORMAT;
+  fail("storage-schema", "Unsupported local database schema");
 }
 function storageError(error) { return error instanceof ServiceError ? error : new ServiceError("storage-failure", "Local storage failed"); }
+
+// Explicit operator composition only. Representation work happens after the
+// readonly connection closes; exact whole-state comparison fences the later
+// write transaction. No startup caller invokes this conversion automatically.
+export function migrateNormalizedReferenceStorage(databasePath,expected,{represent,beforeCommit}={}) {
+  let repository=createNormalizedSqliteRepository(databasePath,null,{readOnly:true});let before;
+  try {before=repository.load();assertExpected(before,expected);}finally{repository.close();}
+  const nextState=migrateReferenceTopicState(before,{represent});
+  repository=createNormalizedSqliteRepository(databasePath,null,{referenceMigration:{expectedState:before,nextState},beforeCommit});
+  try {return repository.load();}finally{repository.close();}
+}

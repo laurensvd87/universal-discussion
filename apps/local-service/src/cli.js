@@ -27,11 +27,13 @@ export function parsePairingCliArguments(args) {
   return { origin: parseCliArguments(args.slice(0, 2)), action: args[2].slice("--pairing-".length) };
 }
 
-export async function runCli(args = process.argv.slice(2)) {
+// Trusted operator composition permits a checked source snapshot to use the
+// unchanged owner data directory. These are not public CLI flags or HTTP input.
+export async function runCli(args = process.argv.slice(2), { databasePath = APP_DATABASE_PATH, topicConfiguration = null } = {}) {
   const { origin, action, rawDebug = false } = parsePairingCliArguments(args);
   // Pairing secrets may only be revealed in a developer's interactive terminal.
   if (!process.stdout.isTTY) throw new Error("Start the local service in an interactive terminal for manual pairing");
-  const pairingPath = path.join(path.dirname(APP_DATABASE_PATH), PAIRING_FILE_NAME);
+  const pairingPath = path.join(path.dirname(databasePath), PAIRING_FILE_NAME);
   if (action !== "start") {
     // The same exclusive fixed-port claim excludes the service and competing
     // administrators before any verifier read or write.
@@ -52,7 +54,8 @@ export async function runCli(args = process.argv.slice(2)) {
   if (rawDebug && !rawDebugLog.enabled) throw new Error("Raw insight debug log unavailable");
   const application = await startLocalApplication({
     config: { host: FIXED_HOST, port: FIXED_PORT, origin, capability: "durable-pairing-verifier-only-placeholder" },
-    databasePath: APP_DATABASE_PATH,
+    databasePath,
+    ...(topicConfiguration ?? {}),
     asyncIngest: true,
     incrementalMatching: true,
     // New multi-page Topic statistics use a separate aggregate history. Never

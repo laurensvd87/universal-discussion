@@ -3,7 +3,8 @@ import { inspectPageUrl, inspectRetainedSourceDtoUrl, PAGE_CONTENT_EXTRACTOR_VER
 const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const KINDS = ["general", "event", "product", "claim"];
 const ACTORS = ["demo-alex", "demo-blair"];
-const LEARNED_POLICIES = ["provisional-all-source-cosine/v1", "adaptive-supported-partitions/v1"];
+export const REFERENCE_TOPIC_POLICY = "ridge1-fixed-reference-radius/v1";
+const LEARNED_POLICIES = ["provisional-all-source-cosine/v1", "adaptive-supported-partitions/v1", REFERENCE_TOPIC_POLICY];
 // Every valid catalog/prior-topic JSON row takes more than 32 bytes on the wire.
 // The HTTP client rejects responses over 1 MiB, so this bounds direct projections
 // without retaining the retired 100-row PoC ceiling.
@@ -56,6 +57,12 @@ function unique(items) {
 }
 function oneOf(value, values) { if (!values.includes(value)) invalid(); return value; }
 function nullableId(value) { return value === null ? null : readId(value); }
+function topicMemberships(value, primary) {
+  const ids = array(value, MAX_CATALOG_ENTRIES, readId);
+  if (primary === null || !ids.length || !ids.includes(primary) ||
+      ids.some((id, index) => index > 0 && ids[index - 1] >= id)) invalid();
+  return ids;
+}
 function sourceUrl(value) {
   text(value, 8192);
   if (/\s|\\/u.test(value)) invalid();
@@ -174,11 +181,16 @@ export function readCatalog(value) {
   }));
   const topicIds = new Set(topics.map((item) => item.id));
   const sources = unique(array(item.sources, MAX_CATALOG_ENTRIES, (value) => {
-    const source = record(value, ["id", "url", "title", "provenance", "topicId"]);
+    const hasMemberships = Object.hasOwn(value ?? {}, "topicIds");
+    const source = record(value, ["id", "url", "title", "provenance", "topicId", ...(hasMemberships ? ["topicIds"] : [])]);
     const topicId = nullableId(source.topicId);
     if (topicId !== null && !topicIds.has(topicId)) invalid();
+    const memberships = hasMemberships ? topicMemberships(source.topicIds, topicId) : null;
+    if (memberships && (source.provenance !== "owner-local-page-embedding/v1" ||
+        memberships.some(id => !topicIds.has(id)))) invalid();
     return { id: readId(source.id), url: retainedSourceDtoUrl(source.url), title: text(source.title, 512),
-      provenance: oneOf(source.provenance, ["project-created-hand-authored-demo/1", "project-created-reserved-domain-bridge/1", "owner-local-page-embedding/v1"]), topicId };
+      provenance: oneOf(source.provenance, ["project-created-hand-authored-demo/1", "project-created-reserved-domain-bridge/1", "owner-local-page-embedding/v1"]), topicId,
+      ...(memberships ? { topicIds: memberships } : {}) };
   }));
   return { version: readVersion(item.version), model: model(item.model), actors, topics, sources };
 }
@@ -271,7 +283,7 @@ export function readAlternateDiscussion(value, sourceId, catalog, canonicalDiscu
     ? ["alternate-local-neighborhood/v1", "alternate-indexed-independent-evidence/v2"].includes(item.policyVersion)
     : item.representation === "owner-local-body-topic-metric/v1" && item.policyVersion === "alternate-indexed-body-metric/v1" ||
       item.representation === "owner-local-linear-teacher-transfer/ridge1-v1" &&
-      item.policyVersion === "ridge1-qualified-complete-link/v1";
+      ["ridge1-qualified-complete-link/v1", REFERENCE_TOPIC_POLICY].includes(item.policyVersion);
   if (!knownPolicy ||
       readId(item.sourceId) !== sourceId) invalid();
   const version = readVersion(item.version);
@@ -281,15 +293,19 @@ export function readAlternateDiscussion(value, sourceId, catalog, canonicalDiscu
   const canonical = record(item.canonical, ["topic", "discussionId"]);
   const canonicalTopic = topic(canonical.topic);
   const current = catalog.sources.find((source) => source.id === sourceId);
+  const referenceView = item.policyVersion === REFERENCE_TOPIC_POLICY;
   if (current?.provenance !== "owner-local-page-embedding/v1" || current.topicId !== canonicalTopic.id ||
       canonicalTopic.id !== canonicalDiscussion.topic.id || canonicalTopic.title !== canonicalDiscussion.topic.title ||
       canonicalTopic.kind !== canonicalDiscussion.topic.kind ||
       readId(canonical.discussionId) !== canonicalDiscussion.discussionId) invalid();
+  if (referenceView !== Array.isArray(current.topicIds) ||
+      referenceView && !current.topicIds.includes(canonicalTopic.id)) invalid();
   const sourceIds = array(item.sourceIds, MAX_CATALOG_ENTRIES, readId);
   if (!sourceIds.includes(sourceId) || new Set(sourceIds).size !== sourceIds.length ||
       (mode === "canonical-pinned" && (sourceIds.length !== 1 || sourceIds[0] !== sourceId)) ||
       sourceIds.some((id) => !catalog.sources.some((source) => source.id === id &&
-        source.provenance === "owner-local-page-embedding/v1" && source.topicId !== null))) invalid();
+        source.provenance === "owner-local-page-embedding/v1" && source.topicId !== null &&
+        (!referenceView || source.topicIds?.some(id => current.topicIds.includes(id)))))) invalid();
   const allIds = new Set();
   function roots(value, pinned) {
     return array(value, 1000, (raw) => {
@@ -303,7 +319,7 @@ export function readAlternateDiscussion(value, sourceId, catalog, canonicalDiscu
         [...fields, "canonicalTopicId", "canonicalDiscussionId"]);
       const id = readId(canonicalTopicId);
       const topicRow = catalog.topics.find((entry) => entry.id === id);
-      if (!topicRow || (pinned && id !== canonicalTopic.id)) invalid();
+      if (!topicRow || (pinned && id !== canonicalTopic.id) || referenceView && !current.topicIds.includes(id)) invalid();
       const discussionId = readId(canonicalDiscussionId);
       if (id === canonicalTopic.id && discussionId !== canonicalDiscussion.discussionId) invalid();
       const rendered = readDiscussion({ version, topic: { id: topicRow.id, title: topicRow.title, kind: topicRow.kind },
@@ -312,7 +328,7 @@ export function readAlternateDiscussion(value, sourceId, catalog, canonicalDiscu
         if (allIds.has(entry.id)) invalid();
         allIds.add(entry.id);
       }
-      if (!pinned && mode === "alternate-provisional" && rendered.origin && !sourceIds.includes(rendered.origin.sourceId)) invalid();
+      if (!referenceView && !pinned && mode === "alternate-provisional" && rendered.origin && !sourceIds.includes(rendered.origin.sourceId)) invalid();
       return { ...rendered, canonicalTopicId: id, canonicalDiscussionId: discussionId };
     });
   }
@@ -373,10 +389,13 @@ export function readEnrichment(value, request) {
 export function readOutcome(value, commandType) {
   const item = record(value, ["version", "result"]);
   if (commandType === "correct-source") {
-    const result = record(item.result, ["sourceId", "topicId", "previousTopicId", "assignment", "policyVersion"]);
+    const hasMemberships = Object.hasOwn(item.result ?? {}, "topicIds");
+    const result = record(item.result, ["sourceId", "topicId", "previousTopicId", "assignment", "policyVersion", ...(hasMemberships ? ["topicIds"] : [])]);
+    const memberships = hasMemberships ? topicMemberships(result.topicIds, result.topicId) : null;
+    if (result.policyVersion === REFERENCE_TOPIC_POLICY && !memberships) invalid();
     return { version: readVersion(item.version), result: { sourceId: readId(result.sourceId), topicId: readId(result.topicId),
       previousTopicId: nullableId(result.previousTopicId), assignment: oneOf(result.assignment, ["confirmed"]),
-      policyVersion: oneOf(result.policyVersion, LEARNED_POLICIES) } };
+      policyVersion: oneOf(result.policyVersion, LEARNED_POLICIES), ...(memberships ? { topicIds: memberships } : {}) } };
   }
   if (["forget-source", "delete-learned-topic", "clear-learned-data"].includes(commandType)) {
     const fields = commandType === "forget-source" ? ["sourceId"] : commandType === "delete-learned-topic" ? ["topicId", "forgottenSourceIds"] : ["forgottenSourceIds", "deletedTopicIds"];
@@ -405,10 +424,13 @@ export function readIngestion(value) {
     extractorVersion: oneOf(item.extractorVersion, PAGE_CONTENT_EXTRACTOR_VERSIONS) };
 }
 export function readIngestionOutcome(value) {
-  const item = record(value, ["version", "sourceId", "topicId", "assignment", "policyVersion"]);
+  const hasMemberships = Object.hasOwn(value ?? {}, "topicIds");
+  const item = record(value, ["version", "sourceId", "topicId", "assignment", "policyVersion", ...(hasMemberships ? ["topicIds"] : [])]);
+  const memberships = hasMemberships ? topicMemberships(item.topicIds, item.topicId) : null;
+  if (item.policyVersion === REFERENCE_TOPIC_POLICY && !memberships) invalid();
   return { version: readVersion(item.version), sourceId: readId(item.sourceId), topicId: readId(item.topicId),
     assignment: oneOf(item.assignment, ["provisional", "confirmed"]),
-    policyVersion: oneOf(item.policyVersion, LEARNED_POLICIES) };
+    policyVersion: oneOf(item.policyVersion, LEARNED_POLICIES), ...(memberships ? { topicIds: memberships } : {}) };
 }
 export function readReset(value) { const item = record(value, ["version"]); return { version: readVersion(item.version) }; }
 export function freeze(value) {

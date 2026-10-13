@@ -9,7 +9,7 @@ import { MAX_DOCUMENT_BYTES } from "../domain/repository-contract.js";
 import { runCanonicalBackupWorker } from "./canonical-backup-worker.js";
 
 function failure() { return new Error("Canonical conversion failed; keep service writes stopped and use the verified recovery record"); }
-function canonicalPath(dataDir) {
+export function canonicalPath(dataDir) {
   if (typeof dataDir !== "string" || !path.isAbsolute(dataDir) || path.resolve(dataDir) !== dataDir) throw failure();
   const filename = path.join(dataDir, "demo.sqlite");
   for (let current = filename; ; current = path.dirname(current)) {

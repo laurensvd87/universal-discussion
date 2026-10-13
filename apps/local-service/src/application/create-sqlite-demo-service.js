@@ -36,7 +36,7 @@ export function createSqliteDemoService({ databasePath, nextId, now, repositoryO
     // Legacy and RAM fixture stores retain their synchronous compatibility path.
     // Worker isolation never migrates a store or writes an owner database itself.
     if (asyncIngest && normalized && databasePath !== ":memory:") {
-      ingestionExecutor = createIngestionWorkerQueue({ ...ingestionWorkerOptions, databasePath, incrementalMatching });
+      ingestionExecutor = createIngestionWorkerQueue({ ...ingestionWorkerOptions, databasePath, incrementalMatching, alternateRidgeAdapter });
     }
     if (asyncReads && normalized && databasePath !== ":memory:") {
       readExecutor = createCanonicalReadQueue({ ...readWorkerOptions, databasePath,

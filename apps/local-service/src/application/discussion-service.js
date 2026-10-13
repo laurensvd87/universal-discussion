@@ -12,6 +12,9 @@ import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 import { isAccountPrincipal, ACCOUNT_COMMANDS, isAccountActor } from "../accounts/account-principal.js";
 import { createCanonicalPages } from "./canonical-pages.js";
 import { createAccountPublicChats } from "./account-public-chats.js";
+import { createInstalledFixedReferenceMatcher, FIXED_REFERENCE_SCHEMA } from "../domain/fixed-reference-topic-integration.js";
+import { REFERENCE_TOPIC_POLICY_VERSION } from "../domain/reference-topic-membership.js";
+import { RIDGE_TOPIC_SCHEMA } from "../domain/ridge-topic-adapter.js";
 
 export const DEMO_ACTORS = Object.freeze([
   Object.freeze({ id: "demo-alex", displayName: "Alex · synthetic", type: "human", demo: true }),
@@ -22,7 +25,7 @@ const ALTERNATE_SOURCE_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
 export function createDiscussionService({ repository, ranking, sources, topicSeeds, nextId, now,
   alternateAdapter = null, alternateBodyMetric = null, alternateRidgeAdapter = null,
   resolveAccountActor = null, readAccountActors = () => [], ingestionExecutor = null, readExecutor = null, projectionExecutor = null,
-  incrementalMatching = false, adaptivePlanner = null }) {
+  incrementalMatching = false, adaptivePlanner = null, referenceMatcher = null }) {
   const actors = new Map(DEMO_ACTORS.map((actor) => [actor.id, actor]));
   function actorFor(actorId) {
     const actor = isAccountActor(actorId) && typeof resolveAccountActor === "function"
@@ -32,6 +35,10 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     return actor;
   }
   let ownerPlanner = null;
+  if (referenceMatcher === null && alternateRidgeAdapter !== null) {
+    try { referenceMatcher = createInstalledFixedReferenceMatcher(alternateRidgeAdapter); }
+    catch { /* Canonical v4 ingestion fails closed without its pinned metric. */ }
+  }
   if (alternateAdapter !== null || alternateBodyMetric !== null || alternateRidgeAdapter !== null) {
     try { ownerPlanner = createOwnerTopicPlanner({ diagonalAdapter: alternateAdapter, bodyMetric: alternateBodyMetric,
       ridgeAdapter: alternateRidgeAdapter, incremental: incrementalMatching }); }
@@ -53,8 +60,9 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       topics: state.topics.map(({ id, title, kind, provenance }) => ({
         id, title, kind, ...(provenance === LEARNED_TOPIC_PROVENANCE ? { learned: true } : {}),
       })),
-      sources: state.sources.map(({ id, url, title, provenance }) => ({
+      sources: state.sources.map(({ id, url, title, provenance, topicIds }) => ({
         id, url, title, provenance, topicId: links.get(id) ?? null,
+        ...(state.schema === FIXED_REFERENCE_SCHEMA && topicIds ? { topicIds: [...topicIds] } : {}),
       })),
     });
   }
@@ -97,7 +105,8 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       // returned Source-to-Topic assignments must reflect the current commit.
       if (identity.routing !== rankingIdentity.routing) {
         const current = metadataScope(rankingSnapshot.sources.map(source => source.id), [], expected);
-        metadata = { topics: current.topics, discussions: current.discussions, sourceLinks: current.sourceLinks };
+        metadata = { schema: current.schema, topics: current.topics, discussions: current.discussions, sourceLinks: current.sourceLinks,
+          ...(current.schema === FIXED_REFERENCE_SCHEMA ? { sources: current.sources } : {}) };
       }
       rankingSnapshot = { ...rankingSnapshot, ...metadata, ...expected };
       rankingIdentity = identity; snapshotIdentities.set(rankingSnapshot, identity);
@@ -105,17 +114,19 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     }
     const state = { schema: "demo-state/v2", ...expected, topics: [], discussions: [],
       sources: [], sourceLinks: [], contributions: [] };
-    const topics = new Map(), discussions = new Map();
+    const topics = new Map(), discussions = new Map(), sourceLinks = new Map();
     let after = null;
     do {
       const page = repository.readCatalogPage({ kind: "sources", after, limit: 500, expectedVersion: expected });
       const metadata = repository.readMetadataScope({ sourceIds: page.items.map(source => source.id), expectedVersion: expected });
-      state.sources.push(...page.items); state.sourceLinks.push(...metadata.sourceLinks);
+      state.schema = metadata.schema;
+      state.sources.push(...page.items);
+      for (const link of metadata.sourceLinks) sourceLinks.set(link.sourceId, link);
       for (const topic of metadata.topics) topics.set(topic.id, topic);
       for (const discussion of metadata.discussions) discussions.set(discussion.id, discussion);
       after = page.nextCursor;
     } while (after !== null);
-    state.topics = [...topics.values()]; state.discussions = [...discussions.values()];
+    state.topics = [...topics.values()]; state.discussions = [...discussions.values()]; state.sourceLinks = [...sourceLinks.values()];
     rankingSnapshot = state;
     rankingIdentity = identity ?? matchingInputIdentity(state);
     snapshotIdentities.set(state, rankingIdentity);
@@ -159,6 +170,43 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       return repository.readTopicState(topicId);
     }
     return repository.load();
+  }
+
+  function fixedMembershipView(initial, source, link) {
+    const expected = version(initial), topicIds = source.topicIds;
+    if (!Array.isArray(topicIds) || !topicIds.includes(link.topicId)) fail("unavailable", "Membership unavailable");
+    let state = initial;
+    if (normalized) {
+      const collected = Object.fromEntries(["topics", "discussions", "sources", "sourceLinks", "contributions"]
+        .map(name => [name, new Map()]));
+      for (const topicId of topicIds) {
+        const scope = repository.readTopicState(topicId);
+        if (!sameVersion(scope, expected)) fail("conflict", "State changed");
+        for (const [name, entries] of Object.entries(collected)) for (const value of scope[name])
+          entries.set(name === "sourceLinks" ? value.sourceId : value.id, value);
+      }
+      state = { schema: FIXED_REFERENCE_SCHEMA, ...expected,
+        ...Object.fromEntries(Object.entries(collected).map(([name, entries]) => [name, [...entries.values()]])) };
+    }
+    const current = discussionView(state, link.topicId);
+    const base = { policyVersion: REFERENCE_TOPIC_POLICY_VERSION, representation: RIDGE_TOPIC_SCHEMA,
+      version: expected, sourceId: source.id, canonical: { topic: current.topic, discussionId: current.discussionId } };
+    const seen = new Set(), roots = [];
+    for (const topicId of topicIds) {
+      const view = discussionView(state, topicId);
+      for (const root of view.roots) {
+        if (seen.has(root.id)) fail("unavailable", "Duplicate membership discussion");
+        seen.add(root.id);
+        roots.push({ ...root, canonicalTopicId: topicId, canonicalDiscussionId: view.discussionId });
+      }
+    }
+    roots.sort(newestRootFirst);
+    const sourceIds = state.sources.filter(entry => entry.provenance === LEARNED_SOURCE_PROVENANCE &&
+      entry.topicIds?.some(id => topicIds.includes(id))).map(entry => entry.id).sort();
+    if (!sourceIds.includes(source.id)) fail("unavailable", "Membership unavailable");
+    // All stored messages remain in their original canonical destinations. This
+    // combined read is not authority for secondary-Topic writes or provider use.
+    return boundedAlternateView({ ...base, mode: "alternate-provisional", sourceIds, roots, pinnedRoots: [] });
   }
 
   const api = Object.freeze({
@@ -207,6 +255,8 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     // Internal background preparation only: no account/post DTO, capture,
     // provider work or write. Request delivery still applies its own version gate.
     warmMatching() {
+      const current = normalized ? repository.readMetadataScope({}) : repository.load();
+      if (current.schema === FIXED_REFERENCE_SCHEMA) return frozenClone(version(current));
       const state = rankingState();
       if (ownerPlanner !== null) alternatePlan(state);
       renewRelated(state);
@@ -411,11 +461,12 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     alternateDiscussion(sourceId) {
       sourceId = readId(sourceId);
       if (!ALTERNATE_SOURCE_ID.test(sourceId)) fail("invalid", "Invalid request");
-      if (ownerPlanner === null) fail("unavailable", "Alternate discussion unavailable");
       let state = normalized ? repository.readSourceState(sourceId) : repository.load();
       const source = state.sources.find((entry) => entry.id === sourceId);
       const link = state.sourceLinks.find((entry) => entry.sourceId === sourceId);
       if (!source || source.provenance !== LEARNED_SOURCE_PROVENANCE || !link) fail("not-found", "Object unavailable");
+      if (state.schema === FIXED_REFERENCE_SCHEMA) return fixedMembershipView(state, source, link);
+      if (ownerPlanner === null) fail("unavailable", "Alternate discussion unavailable");
       const current = discussionView(state, link.topicId);
       const canonical = { topic: current.topic, discussionId: current.discussionId };
       const base = { policyVersion: ownerPlanner.policyVersion, representation: ownerPlanner.representation,
@@ -518,7 +569,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
         return frozenClone({ version: version(state), ...ingestionResult(state, receipt) });
       }
       if (state.revision !== input.expected.revision) fail("conflict", "State changed");
-      const outcome = applyLearnedIngest(state, input, operationDigest, { nextId, now, ...(adaptivePlanner === null ? {} : { adaptivePlanner }) });
+      const outcome = applyLearnedIngest(state, input, operationDigest, { nextId, now, referenceMatcher, ...(adaptivePlanner === null ? {} : { adaptivePlanner }) });
       const saved = repository.save(input.expected, outcome.state);
       return frozenClone({ version: version(saved), ...outcome.result });
     },

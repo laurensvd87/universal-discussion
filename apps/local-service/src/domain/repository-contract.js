@@ -1,8 +1,9 @@
 import { fail } from "./errors.js";
-import { assertValidPersistedState } from "./persisted-state.js";
+import { assertValidPersistedState,assertFixedReferenceTransition } from "./persisted-state.js";
 import { assertReadableDiscussions, MAX_RESPONSE_BYTES } from "./discussion-view.js";
 import { readExpectedVersion } from "./validation.js";
 import { ACCOUNT_STATE_SCHEMA } from "../accounts/account-principal.js";
+import { FIXED_REFERENCE_STATE_SCHEMA } from './demo-state.js';
 
 export const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 const encoder = new TextEncoder();
@@ -43,7 +44,9 @@ export function assertExpected(current, expectedValue) {
 }
 
 export function assertTransition(current, next, reset, { largeScale = false } = {}) {
-  if (!reset && current.schema === ACCOUNT_STATE_SCHEMA && next.schema !== ACCOUNT_STATE_SCHEMA)
+  if(!reset)assertFixedReferenceTransition(current,next);
+  if (!reset && (current.schema === FIXED_REFERENCE_STATE_SCHEMA && next.schema !== FIXED_REFERENCE_STATE_SCHEMA ||
+      current.schema === ACCOUNT_STATE_SCHEMA && ![ACCOUNT_STATE_SCHEMA,FIXED_REFERENCE_STATE_SCHEMA].includes(next.schema)))
     fail("conflict", "Account state cannot be downgraded");
   if (reset) {
     if (next.generation === current.generation || next.revision !== 0) fail("conflict", "Invalid reset version");
@@ -53,7 +56,7 @@ export function assertTransition(current, next, reset, { largeScale = false } = 
   ) {
     fail("conflict", "Invalid successor version");
   }
-  if (!reset && (current.schema === next.schema || next.schema === ACCOUNT_STATE_SCHEMA)) {
+  if (!reset && (current.schema === next.schema || [ACCOUNT_STATE_SCHEMA,FIXED_REFERENCE_STATE_SCHEMA].includes(next.schema))) {
     const previousById = new Map(current.contributions.map(entry => [entry.id, entry]));
     for (const root of next.contributions.filter((entry) => entry.rootId === null)) {
       const previous = previousById.get(root.id);

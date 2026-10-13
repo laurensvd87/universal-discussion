@@ -6,6 +6,7 @@ import { MAX_DOCUMENT_BYTES } from "../../../local-service/src/domain/repository
 import { LEARNED_SOURCE_PROVENANCE } from "../../../local-service/src/domain/learned-sources.js";
 import { createNormalizedSqliteRepository } from "../../../local-service/src/adapters/normalized-sqlite-repository.js";
 import { ACCOUNT_STATE_SCHEMA } from "../../../local-service/src/accounts/account-principal.js";
+import { FIXED_REFERENCE_STATE_SCHEMA } from "../../../local-service/src/domain/demo-state.js";
 
 export const MAX_GRAPH_PAGES = 1_000;
 const NEIGHBORS_PER_PAGE = 3;
@@ -46,7 +47,7 @@ function loadLegacyState(database, objects) {
     throw new Error("Unsupported dashboard database schema");
   }
   const row = database.prepare("SELECT schema, generation, revision, document FROM demo_state WHERE singleton = 1").get();
-  if (!row || !["demo-state/v2", ACCOUNT_STATE_SCHEMA].includes(row.schema) || typeof row.document !== "string" ||
+  if (!row || !["demo-state/v2", ACCOUNT_STATE_SCHEMA, FIXED_REFERENCE_STATE_SCHEMA].includes(row.schema) || typeof row.document !== "string" ||
       Buffer.byteLength(row.document, "utf8") > MAX_DOCUMENT_BYTES) {
     throw new Error("Unsupported or incomplete dashboard snapshot");
   }
@@ -114,10 +115,23 @@ export function buildStatsOnlyDashboardSnapshot(point) {
 // multi-page Topics from singleton containers; no old history is reinterpreted.
 export function buildDashboardSnapshotV2(state, options = {}) {
   const snapshot = buildDashboardSnapshot(state, options);
-  const multiMemberTopics = snapshot.topics.filter(topic => topic.pageCount >= 2).length;
-  const singletonTopics = snapshot.topics.filter(topic => topic.pageCount === 1).length;
-  return { ...snapshot, schemaVersion: 2,
-    counts: { ...snapshot.counts, multiMemberTopics, singletonTopics } };
+  const sources = new Map(state.sources.map(source => [source.id, source]));
+  const pages = snapshot.pages.map(page => ({ ...page,
+    topicIds: [...(sources.get(page.id).topicIds ?? [page.topicId])] }));
+  const byTopic = new Map();
+  for (const page of pages) for (const topicId of new Set(page.topicIds)) {
+    if (!byTopic.has(topicId)) byTopic.set(topicId, new Map());
+    byTopic.get(topicId).set(page.id, page);
+  }
+  const topics = state.topics.filter(topic => byTopic.has(topic.id)).map(topic => {
+    const members = [...byTopic.get(topic.id).values()];
+    return { id: topic.id, title: topic.title, kind: topic.kind, pageCount: members.length,
+      x: mean(members.map(page => page.x)), y: mean(members.map(page => page.y)) };
+  });
+  const multiMemberTopics = topics.filter(topic => topic.pageCount >= 2).length;
+  const singletonTopics = topics.filter(topic => topic.pageCount === 1).length;
+  return { ...snapshot, schemaVersion: 2, pages, topics,
+    counts: { ...snapshot.counts, topics: topics.length, multiMemberTopics, singletonTopics } };
 }
 
 export function buildStatsOnlyDashboardSnapshotV2(point) {

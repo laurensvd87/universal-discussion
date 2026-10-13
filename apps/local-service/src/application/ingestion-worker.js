@@ -4,11 +4,17 @@ import { createNormalizedSqliteRepository } from "../adapters/normalized-sqlite-
 import { readLearnedIngest } from "../domain/learned-sources.js";
 import { prepareIngestion } from "./ingestion-plan.js";
 import { createIncrementalAdaptiveTopicPlanner } from "../domain/incremental-adaptive-topics.js";
+import { createInstalledFixedReferenceMatcher } from "../domain/fixed-reference-topic-integration.js";
 
 // This worker has no write connection. Losing or terminating it cannot commit
 // ingestion; only the request thread may approve the exact prepared mutation.
 let repository;
 const adaptivePlanner = workerData.incrementalMatching === true ? createIncrementalAdaptiveTopicPlanner() : null;
+let referenceMatcher = null;
+if (workerData.alternateRidgeAdapter != null) {
+  try { referenceMatcher = createInstalledFixedReferenceMatcher(workerData.alternateRidgeAdapter); }
+  catch { /* A v4 ingest fails closed; no raw E5 or old grouping fallback. */ }
+}
 parentPort.on("message", ({ id, input, createdAt }) => {
   try {
     repository ??= createNormalizedSqliteRepository(workerData.databasePath, null, { readOnly: true });
@@ -18,6 +24,7 @@ parentPort.on("message", ({ id, input, createdAt }) => {
     const plan = prepareIngestion(repository.load(), input, {
       nextId: kind => `${kind}-${randomUUID()}`, now: () => createdAt,
       ...(adaptivePlanner === null ? {} : { adaptivePlanner }),
+      ...(referenceMatcher === null ? {} : { referenceMatcher }),
     });
     parentPort.postMessage({ id, ok: true, plan });
   } catch (error) {

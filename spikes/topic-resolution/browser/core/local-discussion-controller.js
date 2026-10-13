@@ -2,7 +2,7 @@ import { classifyActiveTabSnapshot, sameActiveTabObservation } from "./active-ta
 import { validateAndProjectActiveTabResponse } from "./indicator-contract.js";
 import { localServiceSourceId } from "../fixtures/local-service-fixture-bridge.js";
 import { readPostOrigin, isAccountActorId } from "./local-service-contract.js";
-import { isRidgeTopicView } from "./topic-view-mode.js";
+import { isRidgeTopicView, requiresReferenceTopicView } from "./topic-view-mode.js";
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
 import { inspectPageNavigationUrl } from "./page-content-policy.js";
@@ -136,7 +136,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     const sourceId = state.sourceId, catalog = state.catalog, discussion = state.discussion;
     const requestNumber = ++alternateRequest;
     const source = catalog?.sources.find((entry) => entry.id === sourceId);
-    if (state.topicViewMode !== "experimental" || state.phase !== "ready" || !sourceId ||
+    const required = requiresReferenceTopicView(catalog, sourceId);
+    if (!required && state.topicViewMode !== "experimental" || state.phase !== "ready" || !sourceId ||
         source?.provenance !== "owner-local-page-embedding/v1" || !discussion ||
         !sameVersion(catalog.version, discussion.version)) {
       publish({ alternateDiscussion: null, alternateError: state.topicViewMode === "experimental" ? "unavailable" : null });
@@ -147,13 +148,13 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (typeof client.alternateDiscussion !== "function") throw { code: "unavailable" };
       const view = await client.alternateDiscussion(sourceId, catalog, discussion, { signal: abort.signal });
       if (!isRidgeTopicView(view)) throw { code: "unavailable" };
-      if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || state.topicViewMode !== "experimental" ||
+      if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || !required && state.topicViewMode !== "experimental" ||
           state.sourceId !== sourceId || state.phase !== "ready" || state.needsFreshRead ||
           !sameVersion(state.catalog?.version, catalog.version) ||
           !sameVersion(state.discussion?.version, discussion.version)) return;
       publish({ alternateDiscussion: view, alternateError: null });
     } catch (error) {
-      if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || state.topicViewMode !== "experimental") return;
+      if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || !required && state.topicViewMode !== "experimental") return;
       if (error?.code === "unauthorized") { await failure(error, ownEpoch); return; }
       publish({ alternateDiscussion: null, alternateError: error?.code ?? "unavailable" });
     }
@@ -163,7 +164,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     alternateRequest += 1;
     publish({ topicViewMode: mode, alternateDiscussion: null, alternateError: null });
     if (typeof client.enrichment === "function") await loadEnrichment(epoch);
-    else if (mode === "experimental") await loadAlternateView(epoch);
+    else if (mode === "experimental" || requiresReferenceTopicView(state.catalog, state.sourceId)) await loadAlternateView(epoch);
     return true;
   }
   async function loadRelatedDiscussions(ownEpoch, catalog, discussion, related, sourceId, topicId, options) {
@@ -324,7 +325,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       (finalActor === undefined || finalActor === actorId);
   }
   function loadEnrichment(ownEpoch) {
-    const sourceId = state.sourceId, topicId = state.topicId, includeAlternate = state.topicViewMode === "experimental";
+    const sourceId = state.sourceId, topicId = state.topicId,
+      includeAlternate = state.topicViewMode === "experimental" || requiresReferenceTopicView(state.catalog, state.sourceId);
     if (!sourceId || !topicId || state.phase !== "ready" || typeof client.enrichment !== "function" || disposed || ownEpoch !== epoch)
       return Promise.resolve();
     if (enrichmentFlight?.epoch === ownEpoch && enrichmentFlight.sourceId === sourceId && enrichmentFlight.topicId === topicId &&
@@ -341,7 +343,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         if (!await enrichmentAuthority(ownEpoch, sourceId, topicId, resolution, context, actorId)) return;
         const bundle = await client.enrichment({ sourceId, topicId, includeAlternate }, options);
         if (!await enrichmentAuthority(ownEpoch, sourceId, topicId, resolution, context, actorId) ||
-            state.selection !== selection || (state.topicViewMode === "experimental") !== includeAlternate) return;
+            state.selection !== selection || (state.topicViewMode === "experimental" || requiresReferenceTopicView(state.catalog, sourceId)) !== includeAlternate) return;
         const previous = state.catalog?.version, next = bundle.catalog?.version;
         const previousSource = state.catalog?.sources.find(source => source.id === sourceId);
         const incomingSource = bundle.catalog?.sources.find(source => source.id === sourceId);
