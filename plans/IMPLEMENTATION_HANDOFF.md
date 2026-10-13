@@ -1,5 +1,15 @@
 # Implementation handoff: local-service discussion MVP
 
+2026-10-13 commits6e36fed compatibility/edcad40 radiuscore+dashboardv2 complete;
+notloadedbyservice. Actualnormaldashboard--no-open verifiesrevision3065,2428
+uniquelearnedpages/49>=2membercanonicalTopics/2319singletons, graphpaused;
+newtopic-growth-v2.sqlite onepoint andTempMurmingle reportonlyderivedwrites.
+Canonical/private/crawler/profile/provider untouched; no migration/restart.
+Live extension stillusesuniqueSourceprimarylink: many-to-many storage/current
+DTO/proof/feed integration remains before middlepage cansee bothTopics there.
+Never call the modeltest/newdashboard counts radiusactivation. Remainingdirty
+workis unrelatedrename/Copilot (including dashboardreportpath/brand), preserve.
+
 2026-10-13 owner changes architecture direction: read ADR-111/top STATUS first.
 New pure topic-radius-index/reference-topic-membership +tests now implemented,
 NOT canonical/browser wiring. A/B/middle bridge modeltest returns bothTopics/no

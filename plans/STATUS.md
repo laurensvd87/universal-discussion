@@ -1,5 +1,17 @@
 # Project status
 
+**2026-10-13 checked components committed; dashboard report regenerated, canonical radius model still inactive.**
+Compatibility fix6e36fed and radius/reference planner +dashboardv2 edcad40 are
+committed. Normal dashboard --no-open produces a verifiedv2 report: revision3065,
+2428unique learnedPages/49canonical multi-memberTopics/2319singletons, graph
+pausedabove1000pages; newtopic-growth-v2.sqlite starts with oneaggregatepoint.
+Only the derived v2history/report were written; no canonical/private/crawler
+mutation, activeprofile access, providerinference, migration or service restart.
+The canonical store/DTO/feed still require actual many-to-many integration before
+the owner's middle page can display both Topics in the live extension. Do not
+call the pure bridge test or existing-model statistics live activation. Preserve
+remaining unrelated naming/Copilot edits. See ADR-111 for exact rules/bench limits.
+
 **2026-10-13 owner selects Topic-metric radius search and overlapping membership (ADR-111; not activated).**
 New pure exact radius index and reference-membership planner are implemented;
 owner's A/B/middle-page case passes: both memberships/feed destinations, no third

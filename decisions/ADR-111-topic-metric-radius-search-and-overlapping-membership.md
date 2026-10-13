@@ -150,7 +150,12 @@ checked restart. Twenty-six restricted dashboard tests and both isolated Chrome
 smokes pass, including mobile layout, exact curve values and unknown v1 counts.
 The backend suite passes 1,084 tests with five platform skips (1,089 total).
 All 1,537 restricted client tests pass; the secret scan finds no issues in 803 files.
-The live service is unchanged; activation still needs normalized many-to-many
+The checked components are committed as `edcad40`. The normal dashboard report
+was regenerated at revision 3065 with 2,428 unique learned pages, 49 canonical
+multi-member Topics and 2,319 singleton Topics. A separate v2 history begins with
+one aggregate point; existing canonical/private/crawler stores were not written.
+These counts describe the existing canonical model, not activated overlapping
+membership. The live service is unchanged; activation still needs normalized many-to-many
 membership/reference storage, current proof/DTO/feed integration, reference
 erasure and replacement semantics, and tested recovery/cutover. Existing owner
 data, pairing and active browser profile have not been changed.
