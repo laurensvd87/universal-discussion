@@ -3,8 +3,11 @@
 2026-10-13 ADR-112 is the current integration decision; client 0.13.63 implements
 canonical overlapping membership DTO/feed. Owner explicitly approves fresh
 encrypted seven-day backup, stop/conversion/restart preserving old primary
-assignments/messages. Synthetic checked v4/relational-v2 implementation is ready;
-final whole-suite and checked-snapshot verification precede owner cutover.
+assignments/messages. V4/relational-v2 owner conversion and activation are COMPLETE
+at revision3066/samegeneration:2436Sources/2451Topiccontainers/75posts. Every old
+retained record equals the verified backup after stripping only added fields,
+schema and revision.2289fixedreferences;49multiTopics/2319singletons/2428uniquepages.
+Private/crawler/pairing hashes remain exact; provider connected/notpending.
 Storage mirrors Source.topicIds and Topic.reference privately; fixed pinned
 Ridge floor, exhaustive matches, no global regroup/transitivity/raw-E5 fallback.
 Migration only adds [old primary] memberships and qualified earliest references,
@@ -14,8 +17,24 @@ Union reads retain original destinations and primary-only current-page write/
 Insight authority; strict version/native/account fences and incomplete-read text.
 Dashboard >=2-member count uses indexed overlaps, pages unique, old history intact.
 Real workers/HTTP-client-controller/isolated Chrome and independent Trust pass.
-Use checked source snapshot for approved restart: unrelated dirty pairing and
-credential naming/migration changes must NOT be activated by this cutover.
+Working-tree backend1123/1118pass+5skip,restrictedclient1542pass/dashboard31pass;
+checked snapshot backend1114/1107pass+7skip(noartifact),client1541pass/dashboard31;
+separate installed-artifactworker2pass/packagedChrome/independentTrust pass,
+identitysnapshot24pass/scan814zero. Onlinebackup revision3065 expires
+2026-10-20T08:18:21.563Z, existing ignored canonical-migration-backups directory.
+Implementationf358a2b/read-onlyidentitycompatibility1063896. Initial single-domain
+checked reader exposed existing current-nameVerifier401; reviewed known-two-domain
+helper resolves it WITHOUT rewritingpairing. New protectedadapter selects one
+existing host-derived DPAPIpath; no namingmigration/readdeletion orfallback after
+corruptcurrentrecord, normalrenewal onlyselectedpath.
+Active service PTY19178 uses local ignored data/reference-runtime-1063896 source;
+stable operator apps/local-service/data/reference-cutover-operator.mjs start uses
+originaldataDir/pinnedmodel/samepairing. Do NOT load unrelated dirty credential/
+pairing naming work. Reload extension0.13.63; appsession mayrenew. Livehealth/
+version/AIall200,core12/6/4ms; firstenrichment2428ms while32coreall200/max12ms;
+currentSpiegel strictclient47ms/newpolicy/allsections okay. Dashboard regenerated.
+Owner readonlyRAMconversion1952ms/newpageplan445ms, notaccepted syntheticingest.
+Never automaticrestore/staleimage oroldbinary rollback after laterwrites/deletion.
 No provider inference, owner captures or historical rematching. Bounded index and
 whole-state ingestion are still not million-page ingestion or hosted readiness.
 

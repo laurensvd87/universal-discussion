@@ -1,6 +1,6 @@
 # Project status
 
-**2026-10-13 canonical overlapping membership implementation ready for approved cutover (ADR-112, client 0.13.63).**
+**2026-10-13 canonical overlapping membership ACTIVE (ADR-112, client 0.13.63).**
 The owner requests actual wiring and explicitly approves a fresh encrypted
 seven-day canonical backup, short service stop, preserved historical assignments
 and messages, conversion and restart. V4/normalized v2 adds indexed memberships
@@ -12,10 +12,42 @@ primary assignments/policy stamps remain, identical visits renew receipts only.
 Canonical union feed preserves original destinations/IDs; primary-only write and
 Insight authority remain. Client forces the union regardless of legacy preference
 and labels failures as incomplete. Dashboard counts overlapping >=2-member Topics
-with unique pages. Checked worker/client/isolated Chrome and adversarial tests pass;
-final whole-suite/snapshot verification and owner cutover still pending.
-Preserve unrelated naming/Copilot/pairing/credential edits; restart must use only
-the checked source snapshot with the original data directory. No provider inference.
+with unique pages. Full working-tree backend: 1123 tests, 1118 pass, five platform
+skips; restricted extension: 1542 pass; dashboard: 31 pass. Isolated packaged
+Chrome, real pinned-artifact workers and independent Trust pass. Checked commit
+snapshot backend: 1114 tests, 1107 pass, seven skips (no installed artifact there);
+client: 1541 pass; dashboard: 31 pass. Separate installed-artifact tests pass both.
+Identity snapshot focused tests: 24 pass; secret scan: 814 files, zero findings.
+Implementation f358a2b and identity compatibility 1063896 are committed.
+
+Owner conversion and activation are complete. The encrypted DPAPI/AES-GCM backup
+was created online at revision 3065 and expires 2026-10-20T08:18:21.563Z in the
+existing canonical-migration-backups directory. V4 advances to revision 3066 in
+the same generation, preserving every retained prior record exactly: the complete
+stripped-state digest equals the verified backup. There remain 2436 Sources,
+2451 Topic containers and 75 posts, with 2289 enabled fixed references. Private,
+crawler and pairing files are byte-identical; provider sign-in is connected,
+not pending. No inference, page capture, contribution write or crawler run.
+
+The initial checked runtime exposed an existing current-name pairing verifier
+incompatible with the old single-domain reader. The reviewed fix verifies only
+the two known exact-Origin domains without rewriting or rotating the file. It
+reads one pinned existing DPAPI credential path without naming migration or
+read-side deletion; ordinary renewal stays on that selected path. The unrelated
+unfinished credential/pairing implementations were not loaded or committed.
+
+Active checked source: data/reference-runtime-1063896. Stable local operator:
+apps/local-service/data/reference-cutover-operator.mjs start, PTY19178. These are
+ignored source-only artifacts using the original owner data directory. Reload
+extension 0.13.63; app session may renew, pairing token is unchanged. Live health,
+version and AI status return 200. Core context 12/warm 6/discussion 4 ms; first
+enrichment 2428 ms while 32 parallel core reads all return 200, maximum 12 ms.
+A strict current Spiegel client proof returns the new policy in 47 ms with no
+section errors. Dashboard regenerated: 2428 unique learned pages, 49 multi-member
+Topics, 2319 singletons; graph paused above its existing limit. Readonly owner
+RAM conversion 1952 ms/new-page preparation 445 ms, never saved. Preserve unrelated
+naming/Copilot/pairing/credential edits. Never auto-restore a stale backup or use
+an old binary on normalized v2 after subsequent writes or deletion.
 Current bounded index and whole-state worker admission are not million-page readiness.
 
 **2026-10-13 checked components committed; dashboard report regenerated, canonical radius model still inactive.**

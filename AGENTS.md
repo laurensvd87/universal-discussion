@@ -19,9 +19,18 @@ visits renew receipts. Forget erases originating references, no replacement.
 Union feed retains original post destinations; primary-only current-page write/
 Insight and exact historical/native/account proofs remain. Dashboard multi-member
 Topics count overlaps, pages once. Checked synthetic/storage/realworker/HTTPclient/
-isolated Chrome and independent Trust pass; read top STATUS/HANDOFF for cutover.
+isolated Chrome and independent Trust pass; owner cutover is COMPLETE at revision
+3066/samegeneration,2436Sources/2451Topiccontainers/75posts, exactoldrecord backup
+equality and unchangedprivate/crawler/pairing hashes. Existing sign-in connected.
+Read top STATUS/HANDOFF; active checkedsource data/reference-runtime-1063896,
+local operator data/reference-cutover-operator.mjs start, PTY19178. Identity fix
+1063896 verifiesexistingpairing read-only across two known exactOrigin namespaces
+and selectsoneexistingDPAPIpath without naming migration/readdeletion. Reload
+extension0.13.63; appsession mayrenew. No inference/capture/crawler/post QA grant.
 Unrelated dirty pairing/credential rename changes must not be activated by this
 restart; use a checked source snapshot with the original trusted data directory.
+Seven-day encryptedbackup expires2026-10-20T08:18:21.563Z; neverautorestore a stale
+image oropen normalizedv2 with anoldbinary after laterwrites/deletion.
 No provider inference grant or million-page/hosted scalability claim follows.
 
 Current radius direction (2026-10-13, ADR-111): owner requests activation of

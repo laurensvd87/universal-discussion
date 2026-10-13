@@ -1,7 +1,7 @@
 # ADR-112 Canonical fixed reference Topic membership
 
 Date: 2026-10-13
-Status: Owner approves implementation and encrypted backup, conversion and activation; verification before cutover
+Status: Implemented and activated after owner-approved encrypted backup and conversion
 
 ## Canonical membership and references
 
@@ -76,6 +76,22 @@ automatically. Unrelated unfinished credential/pairing changes must not be loade
 by this cutover; a checked source snapshot may use the same trusted data directory
 and pinned installed Topic configuration without adding public CLI flags.
 
+Activation exposed an already existing current-name pairing verifier. The checked
+runtime now verifies the two known hash domains against the same exact-Origin
+active record without rewriting or rotating it. It selects one existing
+host-derived Windows DPAPI credential path without naming migration or read-side
+deletion; corrupt current records never cause legacy fallback. Normal credential
+renewal updates only that selected path. The unfinished naming implementations
+remain outside the checked runtime and commit.
+
+Conversion is complete at revision 3066 in the original generation. All 2436
+Sources, 2451 Topic containers and 75 posts are preserved; the complete old-state
+digest equals the verified backup after removing only added fields/schema/revision.
+There are 2289 enabled fixed references. Private, crawler and pairing files are
+byte-identical, and normal provider sign-in is connected. The encrypted backup
+expires on 2026-10-20 at 08:18:21.563 UTC. No page capture, crawler run, synthetic
+owner ingest, contribution write or provider inference occurred during cutover.
+
 ## Verification and scale limits
 
 Real memory and normalized services, scoped commits, the strict HTTP/client/
@@ -94,3 +110,13 @@ The ingestion worker still materializes canonical state before preparing scoped
 changes. Exhausted resources fail closed, never report incomplete matches as
 empty. Streaming persistent reference lookup, bounded large-union pagination and
 large-scale ingestion measurements remain follow-up engineering work.
+
+Final working-tree suites pass 1118 backend tests with five platform skips,
+1542 restricted client tests and 31 dashboard tests. The checked source snapshot
+also passes its full suites, with two additional skips for the absent installed
+artifact; separate real-worker artifact tests pass. The isolated packaged Chrome
+test verifies both original discussions, secondary read-only actions, incomplete
+feed messaging and navigation fences. Live service core reads take 4-12 ms; all
+32 parallel core reads succeed during the first 2428 ms enrichment. A strict
+current Spiegel feed read returns the new policy in 47 ms without section errors.
+These are local read observations, not million-page or hosted load benchmarks.
