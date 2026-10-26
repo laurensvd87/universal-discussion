@@ -5,12 +5,13 @@ import { readLearnedIngest } from "../domain/learned-sources.js";
 import { MAX_RESPONSE_BYTES } from "../domain/discussion-view.js";
 import { mapAccountError, routeAccountRequest } from "../accounts/account-routes.js";
 import { isAccountActor } from "../accounts/account-principal.js";
+import { inspectPageNavigationUrl } from "../../../../spikes/topic-resolution/browser/core/page-content-policy.js";
 
 export const MAX_BODY_BYTES = 65_536;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
 
 export function createRequestHandler({ service, config, ai = null, pairingVerifier = null, accounts = null,
-  accountWrites = false, accountLifecycle = null, privateDiscussions = null }) {
+  accountWrites = false, accountLifecycle = null, privateDiscussions = null, topicSpaces = null }) {
   // Coalesced immutable public reads share their encoding too. This weak identity
   // map cannot look up a request/version, retain a historical response on its own,
   // skip current authority fences, or cache private/provider/account DTOs.
@@ -33,9 +34,9 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         // Account credential handling requires the configured browser Origin;
         // privileged browser GET omissions use strict POST read equivalents.
         if (normalized.headers.origin !== config.origin) fail("origin", "Request unavailable");
-        const response = accountLifecycle && ["/v1/account/data", "/v1/account/delete", "/v1/account/private-data",
+        const response = await (accountLifecycle && ["/v1/account/data", "/v1/account/delete", "/v1/account/private-data",
           "/v1/account/public-chats/list", "/v1/account/public-chats/read"].includes(normalized.url.pathname)
-          ? accountLifecycle.route(normalized) : routeAccountRequest(normalized, accounts);
+          ? accountLifecycle.route(normalized) : routeAccountRequest(normalized, accounts));
         return jsonResponse(response.status, response.value, corsOrigin);
       }
       if (normalized.url.pathname.startsWith("/v1/private/")) {
@@ -49,13 +50,13 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         if (!Object.hasOwn(methods, action)) fail("not-found", "Object unavailable");
         // Generation is separately provider-bound inside the service at dispatch
         // and completion. An unavailable grant must not discard an accepted reply.
-        const value = privateDiscussions[methods[action]](principal, input);
+        const value = await privateDiscussions[methods[action]](principal, input);
         return jsonResponse(200, value, corsOrigin);
       }
       const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null,
-        config.origin, transportContext, () => requireCapability(normalized.headers.authorization, config.capability, pairingVerifier));
+        config.origin, transportContext, () => requireCapability(normalized.headers.authorization, config.capability, pairingVerifier), topicSpaces);
       let encoded;
-      if (response.publicRead === true && !response.isCurrent()) fail("unavailable", "Read unavailable");
+      if (typeof response.isCurrent === "function" && !response.isCurrent()) fail("unavailable", "Read unavailable");
       if (response.publicRead === true && Object.isFrozen(response.value)) {
         encoded = publicReadEncodings.get(response.value);
         if (encoded === undefined) {
@@ -145,25 +146,34 @@ function preflight(request, config, accountsEnabled = false, accountWrites = fal
   };
 }
 
-async function route(request, service, ai, durablePairing, accounts = null, origin = null, transportContext = null, revalidateCapability = () => {}) {
+async function route(request, service, ai, durablePairing, accounts = null, origin = null, transportContext = null, revalidateCapability = () => {}, topicSpaces = null) {
   const path = request.url.pathname;
   async function publicRead(method, input = null) {
-    const expected = typeof service.version === "function" ? service.version() : null;
+    // PostgreSQL read facades own one repeatable-read snapshot (and any
+    // cross-call version agreement) internally. Sampling the global revision
+    // around them would reject a coherent page whenever the crawler commits.
+    const expected = service.coherentSnapshotReads === true ? null :
+      typeof service.version === "function" ? await service.version() : null;
     const isCurrent = () => {
       if (transportContext?.signal?.aborted || transportContext?.isCurrent && !transportContext.isCurrent()) return false;
       revalidateCapability();
       if (accounts && Object.hasOwn(request.headers, "x-account-session")) accounts.me(request.headers["x-account-session"]);
-      if (expected !== null) {
-        const current = service.version();
-        if (current.generation !== expected.generation || current.revision !== expected.revision) fail("conflict", "State changed");
-      }
       return true;
     };
     if (!isCurrent()) fail("unavailable", "Read unavailable");
-    const value = typeof service.readPublic === "function"
+    if (expected !== null) {
+      const current = await service.version();
+      if (current.generation !== expected.generation || current.revision !== expected.revision) fail("conflict", "State changed");
+    }
+    const value = typeof service.readPublic === "function" && method !== "discover"
       ? await service.readPublic(method, input, { signal: transportContext?.signal, isCurrent })
-      : await (method === "related" ? service.related(input.sourceId, input.limit) : service[method](input));
+      : await (method === "related" ? service.related(input.sourceId, input.limit) :
+        method === "discover" ? service.discover.search(input) : service[method](input));
     if (!isCurrent()) fail("unavailable", "Read unavailable");
+    if (expected !== null) {
+      const current = await service.version();
+      if (current.generation !== expected.generation || current.revision !== expected.revision) fail("conflict", "State changed");
+    }
     return { status: 200, value, publicRead: true, isCurrent };
   }
   function postingActor({ provider = false } = {}) {
@@ -177,6 +187,16 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     if (provider && !accounts.matchesChatGPTIdentity(actor.accountId)) fail("forbidden", "Provider account unavailable");
     return actor.id;
   }
+  function requestCurrent(actorId, { provider = false } = {}) {
+    try {
+      if (transportContext?.signal?.aborted ||
+          transportContext?.isCurrent && !transportContext.isCurrent()) return false;
+      revalidateCapability();
+      if (!accounts) return true;
+      const actor = accounts.resolvePrincipal(request.headers["x-account-session"]);
+      return actor.id === actorId && (!provider || accounts.matchesChatGPTIdentity(actor.accountId));
+    } catch { return false; }
+  }
   // Optional session headers on reads are validated without exposing identity
   // namespaces. Guests need device pairing, not an application account.
   if (accounts && Object.hasOwn(request.headers, "x-account-session")) {
@@ -188,7 +208,8 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     if (request.method === "GET" && path === "/v1/ai/status") return { status: 200, value: ai.status() };
     if (request.method === "GET" && path === "/v1/ai/insights/resumable") {
       const actorId = postingActor();
-      return { status: 200, value: ai.resumable(actorId) };
+      return { status: 200, value: await ai.resumable(actorId,
+        { isCurrent: () => requestCurrent(actorId) }) };
     }
     if (request.method === "GET" && path === "/v1/ai/diagnostics") return { status: 200, value: ai.diagnostics() };
     if (request.method === "GET" && path === "/v1/ai/models") {
@@ -210,37 +231,98 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
       const actorId = postingActor({ provider: path === "/v1/ai/insights" });
       if (path === "/v1/ai/insights/resumable") {
         readRecord(input, []);
-        return { status: 200, value: ai.resumable(actorId) };
+        return { status: 200, value: await ai.resumable(actorId,
+          { isCurrent: () => requestCurrent(actorId) }) };
       }
       if (path === "/v1/ai/insights") {
-        try { return { status: 200, value: ai.create(input, actorId) }; }
+        // Exact paired provider work may include a snapshot-coherent PostgreSQL
+        // context rebuild before the asynchronous provider job can be accepted.
+        // Reuse the one-shot provider/model lease; its deadline remains absolute
+        // from socket acceptance and cannot be renewed by this route.
+        if (transportContext?.leaseAuthenticatedModels && !transportContext.leaseAuthenticatedModels())
+          fail("unavailable", "Request unavailable");
+        const isCurrent = () => requestCurrent(actorId, { provider: true });
+        if (!isCurrent()) fail("unavailable", "Request unavailable");
+        try { return { status: 200, value: await ai.create(input, actorId,
+          { signal: transportContext?.signal, isCurrent }) }; }
         catch (error) { if (accounts && error instanceof ServiceError && error.code === "unauthorized") fail("forbidden", "Provider account unavailable"); throw error; }
       }
-      if (path === "/v1/ai/insights/result") return { status: 200, value: ai.result(input, actorId) };
-      if (path === "/v1/ai/insights/cancel") return { status: 200, value: ai.cancel(input, actorId) };
+      if (path === "/v1/ai/insights/result") return { status: 200, value: await ai.result(input, actorId,
+        { isCurrent: () => requestCurrent(actorId) }) };
+      if (path === "/v1/ai/insights/cancel") return { status: 200, value: await ai.cancel(input, actorId) };
     }
   }
   if (request.method === "GET" && path === "/v1/health") return { status: 200, value: {
     protocol: "local-service/v1", capability: durablePairing ? "paired-durable-v1" : "paired-demo",
   } };
   if (request.method === "GET" && path === "/v1/catalog") return publicRead("catalog");
-  if (request.method === "GET" && path === "/v1/version") return { status: 200, value: { version: service.version() } };
+  if (request.method === "GET" && path === "/v1/version") return { status: 200, value: { version: await service.version() } };
   if (request.method === "POST" && path === "/v1/catalog/context") return publicRead("catalogContext", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/catalog/selection") return publicRead("selection", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/catalog/url-selection") {
+    if (request.headers.origin !== origin) fail("forbidden", "Origin unavailable");
+    const input = readRecord(parseJsonBody(request), ["url"]);
+    const inspected = inspectPageNavigationUrl(input.url);
+    if (!inspected.supported || inspected.url !== input.url || inspected.documentUrl !== input.url)
+      fail("invalid", "Invalid request");
+    // The exact saved-discussion projection can queue behind concurrent public
+    // reads. Lease only after Host/Origin/pairing and the complete fixed-point
+    // persistence URL have passed; the deadline remains absolute from accept.
+    if (transportContext?.leaseAuthenticatedProjection && !transportContext.leaseAuthenticatedProjection())
+      fail("unavailable", "Request unavailable");
+    return publicRead("urlSelection", input);
+  }
   if (request.method === "POST" && path === "/v1/sources/enrichment") {
     if (request.headers.origin !== origin) fail("forbidden", "Origin unavailable");
     const input = readRecord(parseJsonBody(request), ["sourceId", "topicId", "includeAlternate"]);
     readId(input.sourceId); readId(input.topicId);
     if (typeof input.includeAlternate !== "boolean") fail("invalid", "Invalid request");
-    // Only this exact paired, validated public projection route gets the lease.
+    // Only exact paired, validated public projection routes get the lease.
     // Raw ingress and canonical context/discussion/health still have five seconds.
     if (transportContext?.leaseAuthenticatedProjection && !transportContext.leaseAuthenticatedProjection())
       fail("unavailable", "Request unavailable");
     return publicRead("enrichment", input);
   }
   if (request.method === "POST" && path === "/v1/catalog/page") return publicRead("catalogPage", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/catalog/source-urls" && typeof service.sourceUrlPage === "function")
+    return publicRead("sourceUrlPage", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discussions/page") return publicRead("discussionPage", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {
-    return { status: 200, value: service.discover.search(parseJsonBody(request)) };
+    return publicRead("discover", parseJsonBody(request));
+  }
+  if (topicSpaces !== null && request.method === "POST" && path.startsWith("/v1/topic-spaces/")) {
+    if (request.headers.origin !== origin) fail("forbidden", "Origin unavailable");
+    const input = parseJsonBody(request);
+    if (path === "/v1/topic-spaces/query" || path === "/v1/topic-spaces/owner") {
+      const isCurrent = () => {
+        if (transportContext?.signal?.aborted || transportContext?.isCurrent && !transportContext.isCurrent()) return false;
+        revalidateCapability();
+        if (accounts && Object.hasOwn(request.headers, "x-account-session")) accounts.me(request.headers["x-account-session"]);
+        return true;
+      };
+      if (!isCurrent()) fail("unavailable", "Read unavailable");
+      let value;
+      if (path.endsWith("/query")) {
+        value = await topicSpaces.query(input, { signal: transportContext?.signal, isCurrent });
+      } else {
+        readRecord(input, []);
+        const actorId = accounts && Object.hasOwn(request.headers, "x-account-session") ? postingActor() : null;
+        value = await topicSpaces.owner(actorId);
+      }
+      if (!isCurrent()) fail("unavailable", "Read unavailable");
+      return { status: 200, value, isCurrent, ...(path.endsWith("/query") ? { publicRead: true } : {}) };
+    }
+    if (path === "/v1/topic-spaces/policy") {
+      // Device pairing and demo actor headers never grant owner policy writes.
+      if (!accounts || !Object.hasOwn(request.headers, "x-account-session")) fail("forbidden", "Actor unavailable");
+      const actorId = postingActor();
+      if (!isAccountActor(actorId)) fail("forbidden", "Actor unavailable");
+      const isCurrent = () => requestCurrent(actorId);
+      if (!isCurrent()) fail("unavailable", "Request unavailable");
+      const value = await topicSpaces.updatePolicy(input, actorId, { isCurrent });
+      if (!isCurrent()) fail("unavailable", "Request unavailable");
+      return { status: 200, value, isCurrent };
+    }
   }
   const alternateMatch = /^\/v1\/sources\/([^/]+)\/alternate-discussion$/u.exec(path);
   if (request.method === "GET" && alternateMatch) {
@@ -289,10 +371,14 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     if (path === "/v1/commands") {
       const body = readRecord(input, ["expected", "command"]);
       const actorId = postingActor({ provider: ["share-insight", "share-insight-reply"].includes(body.command?.type) });
-      const persist = (proof) => service.command(body.expected, body.command, actorId, proof);
-      const outcome = ["share-insight", "share-insight-reply"].includes(body.command?.type)
-        ? (ai ? ai.share(body, actorId, persist) : fail("forbidden", "Action unavailable"))
-        : persist(null);
+      // Generated publication is revalidated by the AI runtime immediately before
+      // this call. It may safely advance the stale global catalog CAS to that exact
+      // authoritative snapshot; ordinary commands remain bound to the wire value.
+      const persist = (proof, expected = body.expected) => service.command(expected, body.command, actorId, proof);
+      const outcome = await (["share-insight", "share-insight-reply"].includes(body.command?.type)
+        ? (ai ? ai.share(body, actorId, persist,
+          { isCurrent: () => requestCurrent(actorId, { provider: true }) }) : fail("forbidden", "Action unavailable"))
+        : persist(null));
       return { status: 200, value: {
         version: outcome.version,
         result: outcome.result,
@@ -301,7 +387,7 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
     if (path === "/v1/demo/reset") {
       if (accounts) fail("forbidden", "Operator action unavailable");
       const body = readRecord(input, ["expected", "confirmation"]);
-      const state = service.reset(body.expected, body.confirmation);
+      const state = await service.reset(body.expected, body.confirmation);
       ai?.reset?.();
       return { status: 200, value: { version: { generation: state.generation, revision: state.revision } } };
     }

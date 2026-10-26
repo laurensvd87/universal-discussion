@@ -7,6 +7,7 @@ import { ServiceError } from "../src/domain/errors.js";
 
 const config = { hostHeader: "127.0.0.1:4174", origin: `chrome-extension://${"a".repeat(32)}`, capability: "synthetic-projection-capability" };
 const input = { sourceId: "source-test", topicId: "topic-test", includeAlternate: true };
+const urlInput = { url: "https://articles.synthetic.org/article?id=1" };
 const flush = async () => { for (let i = 0; i < 16; i++) await Promise.resolve(); };
 function setup(t, { wrap = handle => handle, accounts = null } = {}) {
   let now = 0, revision = 0, valid = true, calls = 0, complete, context;
@@ -57,6 +58,14 @@ test("validated paired enrichment completes after eleven seconds without extendi
   assert.equal(TRANSPORT_LIMITS.requestMs, 5_000); assert.equal(TRANSPORT_LIMITS.authenticatedProjectionMs, 30_000);
 });
 
+test("validated exact saved-discussion URL selection receives the authenticated projection lease", async t => {
+  const f = setup(t); const x = f.exchange({ url: "/v1/catalog/url-selection" });
+  x.send(JSON.stringify(urlInput)); await flush();
+  assert.equal(f.calls, 1); assert.deepEqual(f.time.live(), [30_000, 30_000]);
+  f.time.advance(11_000); f.finish(); await flush();
+  assert.equal(x.response.status, 200); assert.equal(JSON.parse(x.response.body).synthetic, "projection-payload");
+});
+
 test("projection lease is absolute from acceptance and cannot be repeated or crossed", async t => {
   const f = setup(t); const connection = f.socket(); f.time.elapse(4_900);
   const x = f.exchange({ connection }); x.send(); await flush();
@@ -83,6 +92,30 @@ for (const [name, options, body, status] of [
   ["null topic", {}, { ...input, topicId: null }, 400],
   ["nonboolean alternate", {}, { ...input, includeAlternate: 1 }, 400],
 ]) test(`${name} cannot lease or dispatch enrichment`, async t => {
+  const f = setup(t, { wrap: handle => async (request, context) => {
+    const result = await handle(request, context); assert.equal(result.status, status); return new Promise(() => {});
+  } });
+  const x = f.exchange(options); x.send(JSON.stringify(body)); await flush();
+  assert.equal(f.calls, 0); assert.deepEqual(f.time.live(), [5_000, 5_000]);
+  f.time.advance(5_000); assert.equal(x.connection.destroyed, true);
+});
+
+for (const [name, options, body, status] of [
+  ["missing pairing", { headers: { Authorization: null } }, urlInput, 401],
+  ["wrong pairing", { headers: { Authorization: "Bearer rejected" } }, urlInput, 401],
+  ["wrong Host", { headers: { Host: "localhost:4174" } }, urlInput, 403],
+  ["wrong Origin", { headers: { Origin: "https://example.org" } }, urlInput, 403],
+  ["missing Origin", { headers: { Origin: null } }, urlInput, 403],
+  ["query", { url: "/v1/catalog/url-selection?timeout=30000" }, urlInput, 400],
+  ["wrong method", { method: "GET", url: "/v1/catalog/url-selection" }, urlInput, 400],
+  ["wrong content type", { url: "/v1/catalog/url-selection", headers: { "Content-Type": "text/plain" } }, urlInput, 400],
+  ["missing URL", { url: "/v1/catalog/url-selection" }, {}, 400],
+  ["caller timeout", { url: "/v1/catalog/url-selection" }, { ...urlInput, timeout: 30_000 }, 400],
+  ["private URL", { url: "/v1/catalog/url-selection" }, { url: "https://articles.synthetic.org/private/thread" }, 400],
+  ["fragment URL", { url: "/v1/catalog/url-selection" }, { url: `${urlInput.url}#fragment` }, 400],
+  ["tracking URL", { url: "/v1/catalog/url-selection" }, { url: `${urlInput.url}&utm_source=test` }, 400],
+  ["session URL", { url: "/v1/catalog/url-selection" }, { url: `${urlInput.url}&sid=secret` }, 400],
+]) test(`${name} cannot lease or dispatch exact URL selection`, async t => {
   const f = setup(t, { wrap: handle => async (request, context) => {
     const result = await handle(request, context); assert.equal(result.status, status); return new Promise(() => {});
   } });

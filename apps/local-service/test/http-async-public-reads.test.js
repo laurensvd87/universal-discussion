@@ -12,6 +12,8 @@ const config = { hostHeader: "127.0.0.1:4174", origin: `chrome-extension://${"a"
 const reads = [
   ["GET", "/v1/catalog", null, "catalog"],
   ["POST", "/v1/catalog/context", { sourceId: null, topicId: null }, "catalogContext"],
+  ["POST", "/v1/catalog/selection", { sourceId: "source-1", topicId: "topic-1" }, "selection"],
+  ["POST", "/v1/catalog/url-selection", { url: "https://articles.synthetic.org/article" }, "urlSelection"],
   ["POST", "/v1/catalog/page", { kind: "sources", limit: 1, cursor: null }, "catalogPage"],
   ["POST", "/v1/discussions/page", {}, "discussionPage"],
   ["GET", "/v1/topics/topic-1/discussion", null, "discussion"],

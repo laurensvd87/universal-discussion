@@ -17,11 +17,16 @@ function clock(t) {
 function setup(t, { ai = true, accounts = null, wrapHandle = (handle) => handle } = {}) {
   const time = clock(t);
   let resolveModels;
+  let resolveInsight;
   let modelCalls = 0;
+  let insightCalls = 0;
+  let insightAuthority = null;
   let pairingCalls = 0;
   const pendingModels = new Promise((resolve) => { resolveModels = resolve; });
+  const pendingInsight = new Promise((resolve) => { resolveInsight = resolve; });
   const handle = createRequestHandler({ config, service: { catalog: () => ({ syntheticCatalog: true }) },
-    ai: ai ? { models() { modelCalls += 1; return pendingModels; } } : null,
+    ai: ai ? { models() { modelCalls += 1; return pendingModels; },
+      create(_value, _actorId, authority) { insightCalls += 1; insightAuthority = authority; return pendingInsight; } } : null,
     pairingVerifier: { verify(value) { pairingCalls += 1; return value === config.capability; } },
     accounts, accountWrites: accounts !== null,
   });
@@ -51,8 +56,10 @@ function setup(t, { ai = true, accounts = null, wrapHandle = (handle) => handle 
     transport(request, response);
     return { request, response, connection };
   }
-  return { time, socket, exchange, transport, handle, resolveModels,
-    get modelCalls() { return modelCalls; }, get pairingCalls() { return pairingCalls; } };
+  return { time, socket, exchange, transport, handle, resolveModels, resolveInsight,
+    get modelCalls() { return modelCalls; }, get insightCalls() { return insightCalls; },
+    get insightAuthority() { return insightAuthority; },
+    get pairingCalls() { return pairingCalls; } };
 }
 
 test("authenticated model response leases both deadlines and completes beyond five seconds", async (t) => {
@@ -70,6 +77,40 @@ test("authenticated model response leases both deadlines and completes beyond fi
   assert.equal(exchange.response.headers.connection, "close");
   assert.equal(exchange.connection.destroyed, true);
   assert.equal(exchange.request.listenerCount("data"), 0);
+});
+
+test("authenticated Insight preflight uses the same absolute provider lease", async (t) => {
+  const fixture = setup(t);
+  const exchange = fixture.exchange({ method: "POST", url: "/v1/ai/insights",
+    headers: { "Content-Type": "application/json", "X-Demo-Actor": "demo-alex" } });
+  exchange.request.emit("data", Buffer.from("{}"));
+  exchange.request.emit("end");
+  assert.equal(fixture.pairingCalls, 2);
+  assert.equal(fixture.insightCalls, 1);
+  assert.equal(fixture.insightAuthority.isCurrent(), true);
+  fixture.time.advance(6_000);
+  assert.equal(exchange.connection.destroyed, false);
+  fixture.resolveInsight({ operationId: "synthetic", state: "running" });
+  await flush();
+  assert.equal(exchange.response.status, 200);
+  assert.equal(exchange.connection.destroyed, true);
+});
+
+test("expired Insight transport invalidates provider pre-dispatch authority", async (t) => {
+  const fixture = setup(t);
+  const exchange = fixture.exchange({ method: "POST", url: "/v1/ai/insights",
+    headers: { "Content-Type": "application/json", "X-Demo-Actor": "demo-alex" } });
+  exchange.request.emit("data", Buffer.from("{}"));
+  exchange.request.emit("end");
+  assert.equal(fixture.insightCalls, 1);
+  assert.equal(fixture.insightAuthority.isCurrent(), true);
+  fixture.time.advance(30_000);
+  assert.equal(exchange.connection.destroyed, true);
+  assert.equal(fixture.insightAuthority.signal.aborted, true);
+  assert.equal(fixture.insightAuthority.isCurrent(), false);
+  fixture.resolveInsight({ operationId: "late", state: "running" });
+  await flush();
+  assert.equal(exchange.response.status, undefined);
 });
 
 test("native privileged authenticated model GET keeps existing omitted-Origin semantics", async (t) => {
