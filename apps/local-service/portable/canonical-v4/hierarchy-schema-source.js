@@ -5,7 +5,7 @@ import { open } from 'node:fs/promises';
 
 const INPUT_BYTES = 148666;
 const INPUT_SHA256 = 'bdb10afc73c8eb0ef6c44b8d0433095f8e88ed7cedbec2970904566fd66577f6';
-const OUTPUT_SHA256 = 'f0d838927ed10b17d71261d3e5f8cc36924421d60f1322032b6d39f643b0b518';
+const OUTPUT_SHA256 = '3940520b803f4de36ed6c8a74e95638eefd575cc632699103f1fe41cee1ccb36';
 const BOUNDARY_SHA256 = '6e0ac824f9963ed20db9504b81432a41ffbe86cff00b7a569ba88fb28d8a3490';
 const SCHEMA_URL = new URL('./experimental/hierarchy-native-scoped-ingestion-v2/schema.sql', import.meta.url);
 const BOUNDARY_URL = new URL('./experimental/hierarchy-native-scoped-ingestion-v2/boundary.sql', import.meta.url);
@@ -26,6 +26,35 @@ const ALIAS_FIXES = Object.freeze([
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 const refuse = () => { throw new TypeError('Hierarchy schema source identity mismatch'); };
 
+function issueCommandSpan(source) {
+  const signature = 'CREATE FUNCTION hierarchy_native_scoped_ingestion_v2.issue_command(v jsonb,p_params jsonb) RETURNS text';
+  const start = source.indexOf(signature);
+  if (start === -1 || source.indexOf(signature, start + 1) !== -1) refuse();
+  const end = source.indexOf('\nEND $$;', start);
+  if (end === -1) refuse();
+  return { start, end: end + '\nEND $$;'.length };
+}
+
+function renameIssueMaterial(source) {
+  const { start, end } = issueCommandSpan(source);
+  const body = source.slice(start, end);
+  if (/\bmaterial_\b/u.test(body) || [...body.matchAll(/\bmaterial\b/gu)].length !== 6) refuse();
+  for (const [fragment, count] of [
+    ['m jsonb; material jsonb; mode_ text;', 1],
+    ['material:=(p_params->>3)::jsonb;', 1],
+    ["material->>'url'", 3],
+    ["material->>'documentHash'", 1],
+  ]) if (body.split(fragment).length - 1 !== count) refuse();
+  return source.slice(0, start) + body.replace(/\bmaterial\b/gu, 'material_') + source.slice(end);
+}
+
+function inverseIssueMaterial(source) {
+  const { start, end } = issueCommandSpan(source);
+  const body = source.slice(start, end);
+  if ([...body.matchAll(/\bmaterial_\b/gu)].length !== 6) refuse();
+  return source.slice(0, start) + body.replace(/\bmaterial_\b/gu, 'material') + source.slice(end);
+}
+
 async function readPinnedSource(url, length, expectedHash) {
   const file = await open(url, 'r');
   try {
@@ -44,9 +73,9 @@ async function readPinnedSource(url, length, expectedHash) {
   }
 }
 
-/** Repair two PL/pgSQL CASE delimiters and two overlapping table aliases.
+/** Repair two CASE delimiters, two table aliases and one shadowing local name.
  * PostgreSQL's IF reader otherwise treats the CASE's THEN as its own delimiter.
- * Alias changes keep table bindings/predicates and intended record variables.
+ * Alias/local changes keep table bindings, predicates and record variables.
  * All other source bytes remain unchanged; this is not a general SQL rewriter.
  */
 export function materializeHierarchySchemaSource(source) {
@@ -65,8 +94,9 @@ export function materializeHierarchySchemaSource(source) {
     if (position === -1 || corrected.indexOf(before, position + 1) !== -1) refuse();
     corrected = corrected.slice(0, position) + after + corrected.slice(position + before.length);
   }
+  corrected = renameIssueMaterial(corrected);
   if (sha256(corrected) !== OUTPUT_SHA256) refuse();
-  let inverse = corrected;
+  let inverse = inverseIssueMaterial(corrected);
   for (const expression of EXPRESSIONS)
     inverse = inverse.replace('>=(' + expression + ') THEN', '>=' + expression + ' THEN');
   for (const [before, after] of ALIAS_FIXES) inverse = inverse.replace(after, before);

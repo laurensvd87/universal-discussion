@@ -57,8 +57,16 @@ overlappingSQLaliases (root_hook hygiene, notprovenactualcause); exactoutput
 148697Bf0d83892...0b518/fullinverse/54+2PLgrammar PASS. RPCsame-error diagnostic
 capture nowkeepsclosedoperation/function/line/positions only; exactprivatecall
 causalVM+realinertsession testsPASS, no realfixturegrant. Source independently
-accepted;29 guardedNode/12purePython PASS. Current map358842B37e39d51...32abb
-binds2351/273601536B. Final binding/freshresources/ONEdecision pending, noactivation.
+accepted;29 guardedNode/12purePython PASS. Prior map358842B37e39d51...32abb
+bound2351/273601536B beforeactual91958; noactivation.
+Latest820819cd actual91958 CLOSEDexit1/42702 with exactfixtureFailure
+rpc:issue_command/internalPosition297/functionLine39; savedindependent6d73781b...
+3128/all2351endpins PASS. SourcePLAST maps297 tolocalmaterial in jobsURLquery;
+normalmaterializer nowrenamesONLY6localmaterial occurrences inissue_command to
+material_ (tablecolumn untouched); wholefunctionASTalpha-inverse/externalbytes/
+fulloriginalinverse PASS. Output148703B3940520b...ccb36,54+2grammar/29Node PASS.
+SOURCE independentlyaccepted. Currentmap358842B0199e54a...de1bf binds2351/
+273603521B; finalbindings/freshresources/separateONEactual pending, noactivation.
 Real hierarchy quality and product integration remain open. Clean Git is not completion.
 
 LATEST26Oct nativePGv1 ONEactual23991 CLOSEDexit1/bootstrapOWNED_SERVER_START/

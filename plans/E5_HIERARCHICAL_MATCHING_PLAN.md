@@ -2,7 +2,10 @@
 
 26 October current: the latest normal native check reached its first canonical
 child after schema/setup, then failed42702. Parent normal retirement and child
-owned smart-stop are recorded; no child completed. Exact failing SQL is unknown.
+owned smart-stop are recorded; no child completed. The latest diagnostic points
+to issue_command/line39/position297; offline source mapping identifies its local
+material name colliding with a table column. Only those six local references are
+now renamed, with full inverse/AST checks. Runtime resolution remains unproven.
 Earlier42601 delimiters are repaired; the normal bounded materializer now also
 renames two overlapping aliases without claiming the prior cause. All25 original
 assertion bodies remain unchanged.

@@ -4,7 +4,10 @@
 
 The latest normal native run reached its first canonical child after schema/setup
 but failed42702. Its independent audit verifies parent normal retirement, child
-owned smart-stop and2,350 end-pins; no child completed and exact SQL is unknown.
+owned smart-stop and2,351 end-pins; no child completed. Retained finite diagnostics
+point to issue_command/line39/position297. Offline source mapping identifies its
+local material name shadowing jobs.material; a six-reference scoped rename now
+passes full inverse/AST checks, without claiming runtime resolution.
 Original outputs, catalog snapshots and
 raw source commits are preserved, as are all frozen nativev1/v2 files.
 

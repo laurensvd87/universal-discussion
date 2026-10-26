@@ -7,11 +7,15 @@ The Git backlog is committed and pushed: historical research is archived in
 edits in2c796408. Generated profiles, captures, vectors and downloaded tooling
 remain local and ignored. These checkpoints are not releases.
 
-The latest real native check (normal source26c6df2b, session32423) passed schema
+The latest real native check (normal source820819cd, session91958) passed schema
 installation and publication/policy setup, then failed the first canonical child
 with42702. Parent normal retirement and child owned smart-stop are independently
-recorded; all2,350 input pins pass. No canonical child completed, and the exact
-failing SQL/function is unretained. Outputs, per-run snapshot and exact Git source
+recorded; all2,351 input pins pass. No canonical child completed, and the retained
+diagnostic records issue_command/line39/internal position297. Offline parsing maps
+that offset to the local material variable colliding with jobs.material; the normal
+materializer now renames only its six local references, preserving table columns
+and every outside-function byte. Exact function AST alpha-inverse and full source
+inverse pass; corrected output148703B has hash3940520b...ccb36. Outputs, per-run snapshot and exact Git source
 bytes remain preserved. The earlier8f934974 generic startup failure remains separate.
 
 The earlier nativev2 check reached startup/scratch creation but failed42601.
@@ -31,7 +35,7 @@ closed operation/function/line observation and distinct bounded positions, never
 raw messages or SQL.29 guarded Node and12 pure Python tests pass, including the
 actual private call source with invented clients and the real inert session. A real
 filesystem-only Python/Node marker, claim, cache and replay check also passes.
-The current358842-byte catalog37e39d51...32abb binds2,351 inputs. Final binding,
+The current358842-byte catalog0199e54a...de1bf binds2,351 inputs. Final binding,
 fresh resources and a separate actual decision precede another native check.
 All2,338 frozen predecessor inputs remain unchanged.
 

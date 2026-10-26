@@ -50,6 +50,11 @@ f0d83892...0b518/54schema+2boundaryPLblocksPASS; actualcauseunproven. PrivateRPC
 diagnostics retain onlysame-error finiteoperation/functionline/positions, never
 rawSQL.29Node/12Python PASS includingcausalprivatecall/inertsession. Newcurrent
 map358842B37e39d51...32abb/2351inputs273601536B awaitsfinalbinding/ONEdecision.
+That820819cd actual91958 failed42702butretained exactrpcissue_command/line39/
+internal297; independent6d737...3128/all2351PASS. Sourceoffset mapslocalmaterial
+collision; SOURCErenames6localbindingsonly, output148703B3940520b...ccb36, full
+ASTalpha-inverse/outsidebytes/originalinverse/54+2grammar and29NodePASS. Current
+map358842B0199e54a...de1bf2351/273603521B awaitsfinalbinding/freshONEdecision.
 Nativev1 session23991 remains closed failed at bootstrap,SQL0; all2338/map/output immutable.
 Actual hierarchy quality, canonical SQL/native concurrency and live product
 integration remain unfinished. Crawler4060/API19868/worker36616/dashboard6644
