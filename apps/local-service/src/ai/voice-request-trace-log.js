@@ -101,7 +101,7 @@ export function createVoiceRequestTraceLog({ tempDirectory = tmpdir() } = {}) {
   let filePath;
   try {
     if (typeof tempDirectory !== "string" || !path.isAbsolute(tempDirectory)) throw new Error("unavailable");
-    directory = path.join(tempDirectory, "universal-discussion-insight-trace");
+    directory = path.join(tempDirectory, "murmingle-insight-trace");
     filePath = path.join(directory, "voice-request-trace.log");
     checkAncestors(tempDirectory);
     try { mkdirSync(directory, { mode: 0o700 }); }

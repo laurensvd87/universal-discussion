@@ -2,7 +2,7 @@ import { constants, closeSync, fstatSync, lstatSync, mkdirSync, openSync, unlink
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const DIRECTORY = "universal-discussion-insight-trace";
+const DIRECTORY = "murmingle-insight-trace";
 const FILE = "insight-trace.log";
 const MAX_BYTES = 65_536;
 const EVENTS = ["response.created", "response.in_progress", "response.output_item.added",

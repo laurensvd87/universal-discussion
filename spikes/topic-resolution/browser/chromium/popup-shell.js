@@ -156,7 +156,9 @@ export function mountPopupShell(document, { storageLocal, storageSession, onMode
   on(find("#app-settings-back"), "click", () => {
     navigate("discussion");
     const composer = find("#discussion-body");
-    (composer && !composer.hidden ? composer : find("#app-settings-button"))?.focus?.({ preventScroll: true });
+    const canFocusComposer = Boolean(lastState?.catalog && composer && !composer.hidden && !composer.disabled &&
+      !composer.closest?.("[hidden], [inert]"));
+    (canFocusComposer ? composer : find("#app-settings-button"))?.focus?.({ preventScroll: true });
   });
   function renderTopicView(state) {
     const mode = state?.topicViewMode ?? requestedTopicMode;

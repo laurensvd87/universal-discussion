@@ -13,7 +13,7 @@ import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../src/adapters/fixtur
 import { deterministicDependencies } from "./helpers.js";
 
 function temporaryDatabase(t) {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "universal-discussion-local-service-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-local-service-"));
   t.after(() => {
     assert.ok(directory.startsWith(os.tmpdir()));
     rmSync(directory, { recursive: true, force: true });

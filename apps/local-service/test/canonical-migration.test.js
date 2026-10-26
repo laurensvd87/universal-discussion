@@ -11,7 +11,7 @@ import { migrateCanonicalStorage } from "../src/ops/canonical-migration.js";
 import { runMigrationCli } from "../src/ops/migration-cli.js";
 
 function fixture(t) {
-  const dataDir = mkdtempSync(path.join(tmpdir(), "udl-migration-check-"));
+  const dataDir = mkdtempSync(path.join(tmpdir(), "murmingle-migration-check-"));
   t.after(() => rmSync(dataDir, { recursive: true, force: true }));
   const state = createDemoState({ generation: "synthetic-conversion", createdAt: "2026-10-12T00:00:00.000Z",
     sources: [], topicSeeds: [{ id: "topic-one", title: "Synthetic", kind: "general" }] });
@@ -55,7 +55,7 @@ test("dangling redirected journal sidecars are rejected before legacy SQL reads"
   } finally { unlinkSync(sidecar); }
 });
 test("conversion CLI validates before claiming and releases its exclusive claim", async () => {
-  const filename = "canonical-2026-10-12T12-00-00-000Z-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.udlbackup";
+  const filename = "canonical-2026-10-12T12-00-00-000Z-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.murmingle-backup";
   let closed = 0, claims = 0, migrations = 0;
   const options = { dataDir: path.join(tmpdir(), "synthetic", "data"), claim: async () => { claims++; return { close: async () => { closed++; } }; },
     migrate: async () => { migrations++; throw new Error("Synthetic failure"); }, output() {} };

@@ -6,9 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchChromiumPipe } from "./chromium-pipe.js";
 import { checkCommunityVisual } from "./check-community-visual.js";
+import { checkTopicSpaceVisual } from "./check-topic-space-visual.js";
 
-const profileRoot=mkdtempSync(path.join(os.tmpdir(),"udl-community-visual-"));
-const outputRoot=path.join(os.tmpdir(),"udl-popup-design-review");
+const profileRoot=mkdtempSync(path.join(os.tmpdir(),"murmingle-community-visual-"));
+const outputRoot=path.join(os.tmpdir(),"murmingle-popup-design-review");
 mkdirSync(outputRoot,{recursive:true});
 let browser,sessionId;
 const exceptions=[];
@@ -51,10 +52,11 @@ try{
   assert.equal(await evaluate("!!document.querySelector('#insight-model')"),true);
   await evaluate("window.dispatchEvent(new Event('pagehide'))");
   await checkCommunityVisual({browser,sessionId,evaluate,capture});
+  await checkTopicSpaceVisual({browser,sessionId,evaluate,capture});
   assert.deepEqual(exceptions,[],"packaged community UI has no uncaught errors");
 }finally{
   await browser?.close();
   assert.equal(path.dirname(path.resolve(profileRoot)),path.resolve(os.tmpdir()));
-  assert.ok(path.basename(profileRoot).startsWith("udl-community-visual-"));
+  assert.ok(path.basename(profileRoot).startsWith("murmingle-community-visual-"));
   rmSync(profileRoot,{recursive:true,force:true});
 }

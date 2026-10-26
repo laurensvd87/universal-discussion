@@ -50,7 +50,7 @@ function fixture(options = {}) {
     if (url === REVOKE) return revocationResponse;
     assert.fail(`Unexpected endpoint: ${url}`);
   };
-  const connection = createChatGPTConnection({ hostId: "urn:uuid:synthetic-host", agentName: "Universal Discussion",
+  const connection = createChatGPTConnection({ hostId: "urn:uuid:synthetic-host", agentName: "Murmingle",
     readRegistration: async () => options.readImpl ? options.readImpl(registration) : registration,
     writeRegistration: async (value) => { if (options.writeImpl) await options.writeImpl(value);
       writes.push(value); registration = value; },
@@ -82,7 +82,7 @@ test("dynamic registration uses one-use state, nonce and S256 PKCE; tokens stay 
   assert.equal(auth.pathname, "/api/accounts/authorize");
   assert.equal(auth.searchParams.get("client_id"), "dynamic_agent_client");
   assert.equal(auth.searchParams.get("ext_agent_host_id"), "urn:uuid:synthetic-host");
-  assert.equal(auth.searchParams.get("agent_name_hint"), "Universal Discussion");
+  assert.equal(auth.searchParams.get("agent_name_hint"), "Murmingle");
   assert.equal(auth.searchParams.get("redirect_uri"), REDIRECT);
   assert.equal(auth.searchParams.get("resource"), "https://api.openai.com/v1");
   assert.equal(auth.searchParams.get("scope"), SCOPE);
@@ -129,7 +129,7 @@ test("a matching callback cannot be exchanged twice or replaced while exchange i
   const f = fixture();
   const original = f.connection;
   const auth = await f.start();
-  const delayed = createChatGPTConnection({ hostId: "urn:uuid:synthetic-host", agentName: "Universal Discussion",
+  const delayed = createChatGPTConnection({ hostId: "urn:uuid:synthetic-host", agentName: "Murmingle",
     readRegistration: async () => null, writeRegistration: async () => {}, now: () => NOW,
     random: () => Buffer.alloc(32, 7), fetchImpl: async () => new Promise((resolve) => { release = resolve; }) });
   const pendingAuth = new URL(await delayed.start({ redirectUri: REDIRECT }));
@@ -383,7 +383,7 @@ test("explicit disconnect clears account A before dynamic registration of accoun
   const second = await f.start();
   assert.equal(second.searchParams.get("client_id"), "dynamic_agent_client");
   assert.equal(second.searchParams.has("login_hint"), false);
-  assert.equal(second.searchParams.get("agent_name_hint"), "Universal Discussion");
+  assert.equal(second.searchParams.get("agent_name_hint"), "Murmingle");
   f.setTokens(tokenResponse("oaiapp_account_b", second.searchParams.get("nonce"), {
     id_token: idToken("oaiapp_account_b", second.searchParams.get("nonce"),
       { sub: "account-2", email: "second@example.com" }) }));

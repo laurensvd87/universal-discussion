@@ -11,12 +11,13 @@ import { ACCOUNT_STATE_SCHEMA } from "../../local-service/src/accounts/account-p
 import { FIXED_REFERENCE_STATE_SCHEMA } from "../../local-service/src/domain/demo-state.js";
 import { readExpectedVersion } from "../../local-service/src/domain/validation.js";
 import { createCatalogGrowthStore, readCatalogGrowthCounts, readCatalogGrowthHistory, validateCatalogGrowthHistory } from "../../local-service/src/metrics/catalog-growth.js";
-import { createCatalogGrowthStoreV2, readCatalogGrowthCountsV2, readCatalogGrowthHistoryV2, validateCatalogGrowthHistoryV2, CATALOG_GROWTH_V2_FILENAME } from "../../local-service/src/metrics/catalog-growth.js";
+import { createCatalogGrowthStoreV2, readCatalogGrowthCountsV2, readCatalogGrowthHistoryV2, validateCatalogGrowthHistoryV2,
+  startCatalogGrowthSamplerV2, CATALOG_GROWTH_V2_FILENAME } from "../../local-service/src/metrics/catalog-growth.js";
 import { buildDashboardSnapshot, buildStatsOnlyDashboardSnapshot, buildDashboardSnapshotV2, buildStatsOnlyDashboardSnapshotV2, DashboardGraphCapacityError, loadDashboardState, MAX_GRAPH_PAGES } from "./data/catalog.js";
 import { buildGroupingPreview, LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH, LOCAL_RIDGE_ADAPTER_PATH, readInstalledOwnerTopicConfiguration } from "./data/grouping-preview.js";
 
 const webPath = fileURLToPath(new URL("../web/", import.meta.url));
-export const DEFAULT_REPORT_PATH = path.join(tmpdir(), "universal-discussion-dashboard", "dashboard.html");
+export const DEFAULT_REPORT_PATH = path.join(tmpdir(), "murmingle-dashboard", "dashboard.html");
 const styleTag = '<link rel="stylesheet" href="./style.css" data-dashboard-style>';
 const scriptTag = '<script src="./app.js" defer data-dashboard-script></script>';
 const dataTag = '<script id="dashboard-data" type="application/json"></script>';
@@ -101,14 +102,76 @@ function readDashboardBundle(databasePath, now, adapter, bodyMetric, ridgeAdapte
   return { snapshot, preview, growth };
 }
 
-export function readDashboardRefreshKey(databasePath = APP_DATABASE_PATH, {
-  ridgePath = LOCAL_RIDGE_ADAPTER_PATH, adapterPath = LOCAL_ADAPTER_PATH,
-  bodyPath = LOCAL_BODY_METRIC_PATH, growthPath = path.join(path.dirname(databasePath), "topic-growth.sqlite") } = {}) {
-  const artifactKeys = [ridgePath, adapterPath, bodyPath, growthPath].map(filename => {
+async function readPostgresDashboardBundle(source, growthPath, now, adapter, bodyMetric, ridgeAdapter,
+  { recordInitial = false } = {}) {
+  if (!source || typeof source.readSnapshot !== "function" || typeof growthPath !== "string" || !path.isAbsolute(growthPath))
+    throw new TypeError("Invalid PostgreSQL dashboard source");
+  const current = await source.readSnapshot({ now, graphLimit: MAX_GRAPH_PAGES });
+  if (!current || !current.header || !current.point || !Object.hasOwn(current, "state"))
+    throw new Error("PostgreSQL dashboard unavailable");
+  let growth = null, store;
+  try {
+    if (recordInitial) {
+      store = createCatalogGrowthStoreV2(growthPath, { now });
+      store.sample(current.point);
+      growth = store.read();
+    } else growth = readCatalogGrowthHistoryV2(growthPath, { now });
+  } catch { /* Derived history failure never disables the canonical dashboard. */ }
+  finally { try { store?.close(); } catch {} }
+  if (current.state === null) {
+    return { snapshot: buildStatsOnlyDashboardSnapshotV2(current.point), preview: null, growth };
+  }
+  const graphKey = JSON.stringify(["postgresql", current.point.seriesId, current.header.catalogVersion,
+    ...dashboardArtifactKeys([LOCAL_RIDGE_ADAPTER_PATH, LOCAL_ADAPTER_PATH, LOCAL_BODY_METRIC_PATH]),
+    adapter?.manifestSha256 ?? null, bodyMetric?.manifestSha256 ?? null, ridgeAdapter?.manifestSha256 ?? null]);
+  if (lastGraphBundle?.key === graphKey && lastGraphBundle.snapshot.growthSeriesId === current.point.seriesId) {
+    return { snapshot: lastGraphBundle.snapshot, preview: lastGraphBundle.preview, growth };
+  }
+  let snapshot;
+  try { snapshot = buildDashboardSnapshotV2(current.state, { now }); }
+  catch (error) {
+    if (!(error instanceof DashboardGraphCapacityError)) throw error;
+    // The source pins counts and catalog rows to one snapshot, so this is only
+    // a defense against a caller supplying a lower graph limit than this CLI.
+    return { snapshot: buildStatsOnlyDashboardSnapshotV2(current.point), preview: null, growth };
+  }
+  const preview = buildGroupingPreview(current.state, snapshot, adapter, bodyMetric, ridgeAdapter);
+  lastGraphBundle = { key: graphKey, snapshot, preview };
+  return { snapshot, preview, growth };
+}
+
+function dashboardArtifactKeys(filenames) {
+  return filenames.map(filename => {
     try { const info = lstatSync(filename); return [info.size, info.mtimeMs, info.ctimeMs, info.isFile(), info.isSymbolicLink()]; }
     catch { return "absent"; }
   });
+}
+
+export function readDashboardRefreshKey(databasePath = APP_DATABASE_PATH, {
+  ridgePath = LOCAL_RIDGE_ADAPTER_PATH, adapterPath = LOCAL_ADAPTER_PATH,
+  bodyPath = LOCAL_BODY_METRIC_PATH, growthPath = path.join(path.dirname(databasePath), "topic-growth.sqlite") } = {}) {
+  const artifactKeys = dashboardArtifactKeys([ridgePath, adapterPath, bodyPath, growthPath]);
   return JSON.stringify([readDashboardRevision(databasePath), ...artifactKeys]);
+}
+
+export async function readPostgresDashboardRefreshKey(source, {
+  ridgePath = LOCAL_RIDGE_ADAPTER_PATH, adapterPath = LOCAL_ADAPTER_PATH,
+  bodyPath = LOCAL_BODY_METRIC_PATH,
+  growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME) } = {}) {
+  if (!source || typeof source.readRevision !== "function") throw new TypeError("Invalid PostgreSQL dashboard source");
+  return JSON.stringify([await source.readRevision(), ...dashboardArtifactKeys([ridgePath, adapterPath, bodyPath, growthPath])]);
+}
+
+export function startPostgresDashboardGrowthSampler({ source,
+  growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME),
+  now = () => new Date(), setIntervalImpl = setInterval, clearIntervalImpl = clearInterval,
+  onOutcome = () => {} } = {}) {
+  if (!source || typeof source.readCounts !== "function" || typeof growthPath !== "string" || !path.isAbsolute(growthPath) ||
+      typeof now !== "function" || typeof setIntervalImpl !== "function" || typeof clearIntervalImpl !== "function" ||
+      typeof onOutcome !== "function") throw new TypeError("Invalid PostgreSQL dashboard growth sampler");
+  return startCatalogGrowthSamplerV2({ databasePath: growthPath, filename: growthPath, now,
+    readCounts: (_databasePath, options) => source.readCounts(options),
+    setIntervalImpl, clearIntervalImpl, onOutcome });
 }
 
 // The revision includes generation because a reset can start again at revision zero.
@@ -159,6 +222,35 @@ export function generateDashboardSnapshot({ databasePath = APP_DATABASE_PATH, ou
   const { snapshot, preview, growth } = readDashboardBundle(databasePath, now,
     adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
     ridgeAdapter ?? installed.alternateRidgeAdapter ?? null, { formatVersion });
+  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview, growth));
+  return { outputPath, counts: snapshot.counts };
+}
+
+export async function generatePostgresDashboard({ source, outputPath = DEFAULT_REPORT_PATH,
+  growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME),
+  now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
+  const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
+  const { snapshot, preview, growth } = await readPostgresDashboardBundle(source, growthPath, now,
+    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
+    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null, { recordInitial: true });
+  const document = renderDashboardDocument({
+    template: readFileSync(path.join(webPath, "index.html"), "utf8"),
+    style: readFileSync(path.join(webPath, "style.css"), "utf8"),
+    script: readFileSync(path.join(webPath, "app.js"), "utf8"),
+    snapshot, preview, growth,
+  });
+  writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview, growth));
+  writePrivateAtomic(outputPath, document);
+  return { outputPath, counts: snapshot.counts };
+}
+
+export async function generatePostgresDashboardSnapshot({ source, outputPath = DEFAULT_REPORT_PATH,
+  growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME),
+  now = () => new Date(), adapter, bodyMetric, ridgeAdapter } = {}) {
+  const installed = adapter === undefined && bodyMetric === undefined && ridgeAdapter === undefined ? readInstalledOwnerTopicConfiguration() : {};
+  const { snapshot, preview, growth } = await readPostgresDashboardBundle(source, growthPath, now,
+    adapter ?? installed.alternateAdapter ?? null, bodyMetric ?? installed.alternateBodyMetric ?? null,
+    ridgeAdapter ?? installed.alternateRidgeAdapter ?? null);
   writePrivateAtomic(path.join(path.dirname(outputPath), SNAPSHOT_FILE), renderSnapshotScript(snapshot, preview, growth));
   return { outputPath, counts: snapshot.counts };
 }
@@ -236,6 +328,33 @@ export async function runDashboardCli(args = process.argv.slice(2)) {
       onError: (error) => process.stderr.write(`Dashboard refresh delayed: ${error.message}\n`) });
     for (const [signal, code] of [["SIGINT", 130], ["SIGTERM", 143]]) {
       process.once(signal, () => { watcher.stop(); process.exitCode = code; });
+    }
+  }
+  return result;
+}
+
+// Startup owns credential loading and pool lifecycle. The dashboard accepts an
+// already-created read-only source, so no password, URL, or fallback SQLite path
+// is embedded in this package.
+export async function runPostgresDashboardCli({ source, args = process.argv.slice(2),
+  growthPath = path.join(path.dirname(APP_DATABASE_PATH), CATALOG_GROWTH_V2_FILENAME) } = {}) {
+  if (args.some(arg => arg !== "--no-open")) throw new Error("Use only --no-open, or run without arguments");
+  const oneShot = args.includes("--no-open");
+  const revision = () => readPostgresDashboardRefreshKey(source, { growthPath });
+  const initialRevision = oneShot ? undefined : await revision();
+  const result = await generatePostgresDashboard({ source, growthPath });
+  if (!oneShot) await openReport(result.outputPath);
+  process.stdout.write(`Dashboard ready: ${result.counts.learnedSources} captured pages; ${result.counts.multiMemberTopics} canonical Topics (at least two learned pages), ${result.counts.singletonTopics} singleton Topics${result.counts.displayedPages === 0 && result.counts.learnedSources > MAX_GRAPH_PAGES ? "; graph paused, aggregate history remains available" : ""}.\n${result.outputPath}\n`);
+  if (!oneShot) {
+    const growthSampler = startPostgresDashboardGrowthSampler({ source, growthPath,
+      onOutcome: value => {
+        if (value.outcome === "failed") process.stderr.write("Dashboard growth sampling delayed; retrying.\n");
+      } });
+    const watcher = watchDashboard({ initialRevision, readRevision: revision,
+      generate: () => generatePostgresDashboardSnapshot({ source, growthPath }),
+      onError: error => process.stderr.write(`Dashboard refresh delayed: ${error.message}\n`) });
+    for (const [signal, code] of [["SIGINT", 130], ["SIGTERM", 143]]) {
+      process.once(signal, () => { watcher.stop(); void growthSampler.close().catch(() => {}); process.exitCode = code; });
     }
   }
   return result;

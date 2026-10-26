@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promis
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { createBrowserEncoder } from '../browser/embedding/e5-browser.js';
+import { createBrowserEncoder, readBoundedPackagedBytes } from '../browser/embedding/e5-browser.js';
 import { DIMENSIONS, E5_REVISION, EXTRACTOR_VERSION, inputText, MODEL_ID, MODEL_SHA256,
   ORT_VERSION, poolHidden, prefixTokenInput, readAssetManifest, TOKENIZER_SHA256,
   TOKENIZER_VERSION } from '../browser/embedding/embedding-contract.js';
@@ -116,6 +116,54 @@ test('failed initialization stays failed and concurrent calls reject without a r
   release(); await first;
 });
 
+function assetStream(chunks, error = null) {
+  const counts = { reads:0,cancels:0,releases:0 };
+  return { counts, body: { getReader() { return {
+    async read() { const index=counts.reads++; if(error)throw error;return index<chunks.length?{value:chunks[index],done:false}:{done:true}; },
+    async cancel() { counts.cancels++; }, releaseLock() { counts.releases++; },
+  }; } } };
+}
+const assetHash = bytes => createHash('sha256').update(bytes).digest('hex');
+
+test('packaged streaming uses one manifest-bounded buffer and verifies exact bytes across chunks', async () => {
+  const bytes=Uint8Array.from([1,2,3,4,5]), stream=assetStream([bytes.subarray(0,2),bytes.subarray(2)]);
+  const result=await readBoundedPackagedBytes(stream.body,bytes.length,assetHash(bytes));
+  assert.deepEqual(result,bytes);assert.equal(result.buffer.byteLength,bytes.length);
+  assert.deepEqual(stream.counts,{reads:3,cancels:0,releases:1});
+  const manifest=assetStream([Uint8Array.from([1,2,3])]);
+  const bounded=await readBoundedPackagedBytes(manifest.body,16);
+  assert.deepEqual([...bounded],[1,2,3]);assert.equal(bounded.buffer.byteLength,16,
+    'short bounded manifest keeps a view on its one preallocation, not another concatenation allocation');
+});
+
+test('packaged streaming immediately owns chunks, even when a reader reuses its backing buffer', async () => {
+  const shared=new Uint8Array(2);let reads=0,released=0;
+  const body={getReader:()=>({async read(){reads++;if(reads>2)return{done:true};shared.fill(reads);return{done:false,value:shared};},async cancel(){assert.fail('valid stream cancelled');},releaseLock(){released++;}})};
+  const expected=Uint8Array.from([1,1,2,2]);
+  assert.deepEqual(await readBoundedPackagedBytes(body,4,assetHash(expected)),expected);
+  assert.equal(released,1);
+});
+
+test('packaged stream overflow, short reads, hash mismatch and read failures cancel and release the reader', async () => {
+  const cases=[
+    {chunks:[Uint8Array.from([1,2,3])],maximum:2,hash:assetHash(Uint8Array.from([1,2]))},
+    {chunks:[Uint8Array.from([1])],maximum:2,hash:assetHash(Uint8Array.from([1,2]))},
+    {chunks:[Uint8Array.from([1,2])],maximum:2,hash:'0'.repeat(64)},
+    {chunks:[],maximum:2,hash:null,error:new Error('synthetic read failure')},
+  ];
+  for(const item of cases){const stream=assetStream(item.chunks,item.error);await assert.rejects(readBoundedPackagedBytes(stream.body,item.maximum,item.hash));assert.equal(stream.counts.cancels,1);assert.equal(stream.counts.releases,1);}
+  for(const maximum of [0,-1,1.5,Infinity,120*1024*1024+1]){
+    const stream=assetStream([]);await assert.rejects(readBoundedPackagedBytes(stream.body,maximum));assert.equal(stream.counts.reads,0);
+  }
+});
+
+test('packaged hash failure also cancels and releases without changing encoder failure policy', async t => {
+  t.mock.method(crypto.subtle,'digest',async()=>{throw new Error('synthetic digest failure');});
+  const stream=assetStream([Uint8Array.from([1,2])]);
+  await assert.rejects(readBoundedPackagedBytes(stream.body,2,'0'.repeat(64)),/synthetic digest failure/u);
+  assert.equal(stream.counts.cancels,1);assert.equal(stream.counts.releases,1);
+});
+
 test('asset manifest requires pinned graph/tokenizer/runtime identity and fixed local filenames', () => {
   assert.equal(readAssetManifest(manifest()).size, 9);
   for (const [key, value] of [['modelId', 'node-e5'], ['revision', 'main'], ['ortVersion', 'other'], ['extractorVersion', 'other']]) {
@@ -136,7 +184,7 @@ test('packaging budget accounts for existing experiment, extension assets and pe
 });
 
 test('packaging verifies exact source/destination bytes, resumes valid copies and rejects links/path escapes', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'udl-browser-assets-'));
+  const root = await mkdtemp(path.join(os.tmpdir(), 'murmingle-browser-assets-'));
   try {
     const sourceRoot = path.join(root, 'input'); const outputRoot = path.join(root, 'output');
     await mkdir(sourceRoot); await mkdir(outputRoot);

@@ -1,5 +1,5 @@
 {
-  "name": "@universal-discussion/portable-backend",
+  "name": "@murmingle/portable-backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,7 @@
   "engines": { "node": ">=24" },
   "scripts": {
     "test": "node --import ../../../spikes/topic-resolution/harness/deny-external-capabilities.js --test --test-isolation=none test/*.test.js",
+    "test:canonical-v4-native": "node integration/canonical-v4-runtime-native-check.js",
     "api": "node src/main.js api",
     "worker": "node src/main.js worker",
     "migrate": "node src/main.js migrate",

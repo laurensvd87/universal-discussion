@@ -90,6 +90,9 @@ test("private composer shares current voice without refetch or focus loss; list 
   feed.children.find(item => item.className === "private-chat-card" && item.children[0]?.children?.some(child => child.textContent === "Private"))
     .listeners.get("click")(); await flush();
   assert.equal(voice.hidden, false);
+  const heading = ui.root.children[0].children.find(item => item.tag === "h2");
+  assert.equal(heading.tabIndex, -1);
+  assert.equal(ui.document.activeElement, heading, "opening a chat focuses the persistent conversation heading");
   assert.equal(toggle.attributes["aria-label"], "Assistant voice: Standard"); assert.equal(menu.children.length, 12);
   const draft = ui.byId("private-message-body"); draft.value = "Still typing"; draft.focus();
   const beforeReads = calls.filter(item => item[0] === "read").length;
@@ -100,6 +103,7 @@ test("private composer shares current voice without refetch or focus loss; list 
   current.busy = true; panel.observe(); assert.equal(toggle.disabled, true);
   current.busy = false;
   ui.created.find(item => item.tag === "button" && item.textContent === "All chats").listeners.get("click")(); await flush();
+  assert.equal(ui.document.activeElement, ui.byId("my-chats-search"), "Back focuses the visible inbox search");
   assert.equal(voice.hidden, true);
   feed.children.find(item => item.className === "private-chat-card" && item.children[0]?.children?.some(child => child.textContent === "Public"))
     .listeners.get("click")(); await flush();

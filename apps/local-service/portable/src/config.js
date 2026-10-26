@@ -20,23 +20,23 @@ export async function readSecretFile(filename, { platform = process.platform } =
 
 export async function loadConfig(env = process.env, { readSecret = readSecretFile, role = 'api' } = {}) {
   if (process.getuid?.() === 0 || process.getgid?.() === 0) invalid();
-  if (env.UDL_MODE !== 'synthetic-rehearsal' || env.DATABASE_URL || env.PGPASSWORD) invalid();
-  const port = Number(env.UDL_PORT ?? '4185');
+  if (env.MURMINGLE_MODE !== 'synthetic-rehearsal' || env.DATABASE_URL || env.PGPASSWORD) invalid();
+  const port = Number(env.MURMINGLE_PORT ?? '4185');
   if (!Number.isInteger(port) || port < 1024 || port > 65535 || port === 4174) invalid();
-  const bind = env.UDL_BIND ?? '127.0.0.1';
+  const bind = env.MURMINGLE_BIND ?? '127.0.0.1';
   if (!['127.0.0.1', '0.0.0.0'].includes(bind)) invalid();
-  const allowedHost = env.UDL_ALLOWED_HOST ?? `127.0.0.1:${port}`;
+  const allowedHost = env.MURMINGLE_ALLOWED_HOST ?? `127.0.0.1:${port}`;
   if (allowedHost !== `127.0.0.1:${port}`) invalid();
-  const allowedOrigin = env.UDL_ALLOWED_ORIGIN ?? 'https://client.example';
+  const allowedOrigin = env.MURMINGLE_ALLOWED_ORIGIN ?? 'https://client.example';
   if (allowedOrigin !== 'https://client.example') invalid();
-  const host = env.UDL_DATABASE_HOST ?? 'db';
-  const database = env.UDL_DATABASE_NAME ?? 'udl_synthetic';
-  const user = env.UDL_DATABASE_USER ?? 'udl_app';
-  if (!['db', '127.0.0.1', 'localhost'].includes(host) || !/^udl_synthetic(?:_[a-z0-9_]+)?$/.test(database) || !['udl_app', 'udl_owner'].includes(user) || (env.UDL_DATABASE_PORT && env.UDL_DATABASE_PORT !== '5432')) invalid();
-  const readToken = role === 'api' ? await readSecret(env.UDL_READ_TOKEN_FILE) : null;
-  const password = await readSecret(env.UDL_DATABASE_PASSWORD_FILE);
-  const alex = role === 'seed-fixture' && env.UDL_ALEX_TOKEN_FILE ? await readSecret(env.UDL_ALEX_TOKEN_FILE) : null;
-  const blair = role === 'seed-fixture' && env.UDL_BLAIR_TOKEN_FILE ? await readSecret(env.UDL_BLAIR_TOKEN_FILE) : null;
+  const host = env.MURMINGLE_DATABASE_HOST ?? 'db';
+  const database = env.MURMINGLE_DATABASE_NAME ?? 'murmingle_synthetic';
+  const user = env.MURMINGLE_DATABASE_USER ?? 'murmingle_app';
+  if (!['db', '127.0.0.1', 'localhost'].includes(host) || !/^murmingle_synthetic(?:_[a-z0-9_]+)?$/.test(database) || !['murmingle_app', 'murmingle_owner'].includes(user) || (env.MURMINGLE_DATABASE_PORT && env.MURMINGLE_DATABASE_PORT !== '5432')) invalid();
+  const readToken = role === 'api' ? await readSecret(env.MURMINGLE_READ_TOKEN_FILE) : null;
+  const password = await readSecret(env.MURMINGLE_DATABASE_PASSWORD_FILE);
+  const alex = role === 'seed-fixture' && env.MURMINGLE_ALEX_TOKEN_FILE ? await readSecret(env.MURMINGLE_ALEX_TOKEN_FILE) : null;
+  const blair = role === 'seed-fixture' && env.MURMINGLE_BLAIR_TOKEN_FILE ? await readSecret(env.MURMINGLE_BLAIR_TOKEN_FILE) : null;
   if ([readToken, alex, blair].filter(Boolean).some(token => !/^[A-Za-z0-9_-]{43,128}$/.test(token))) invalid();
   const secrets = [readToken, password, alex, blair].filter(Boolean);
   if (new Set(secrets).size !== secrets.length) invalid();

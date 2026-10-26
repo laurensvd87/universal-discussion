@@ -6,28 +6,39 @@ const assetBase = new URL('./.assets/', import.meta.url);
 const hex = bytes => Array.from(new Uint8Array(bytes), value => value.toString(16).padStart(2, '0')).join('');
 
 // Packaged same-extension reads only. No CDN, server model path or first-run download.
-async function packagedBytes(filename, maximum) {
+async function packagedBytes(filename, maximum, expectedHash = null) {
   if (assetBase.protocol !== 'chrome-extension:' || !/^[A-Za-z0-9_.-]+$/u.test(filename)) throw new Error('Packaged embedding assets unavailable');
   const url = new URL(filename, assetBase).href;
   const response = await fetch(url, { redirect: 'error', credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(30000) });
   if (!response.ok || response.redirected || response.url !== url || !response.body) throw new Error('Packaged embedding assets unavailable');
-  const chunks = [];
+  return readBoundedPackagedBytes(response.body, maximum, expectedHash);
+}
+
+// The allocation bound comes from the validated packaged manifest (or the
+// fixed small manifest cap), never Content-Length. Copy each chunk immediately:
+// retaining chunks plus a concatenation buffer duplicates the whole model.
+export async function readBoundedPackagedBytes(body, maximum, expectedHash = null) {
+  if (!Number.isSafeInteger(maximum) || maximum <= 0 || maximum > 120 * 1024 * 1024 ||
+      expectedHash !== null && (typeof expectedHash !== 'string' || !/^[a-f0-9]{64}$/u.test(expectedHash)))
+    throw new Error('Invalid packaged embedding asset bound');
+  const bytes = new Uint8Array(maximum);
   let length = 0;
-  const reader = response.body.getReader();
+  const reader = body.getReader();
   try {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
+      if (!(value instanceof Uint8Array) || value.byteLength > maximum - length)
+        throw new Error('Packaged embedding asset exceeds bound');
+      bytes.set(value, length);
       length += value.byteLength;
-      if (length > maximum) throw new Error('Packaged embedding asset exceeds bound');
-      chunks.push(value);
     }
+    if (expectedHash !== null && (length !== maximum ||
+        hex(await crypto.subtle.digest('SHA-256', bytes)) !== expectedHash))
+      throw new Error('Packaged embedding integrity mismatch');
+    return length === maximum ? bytes : bytes.subarray(0, length);
   } catch (error) { await reader.cancel().catch(() => {}); throw error; }
   finally { reader.releaseLock(); }
-  const bytes = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return bytes;
 }
 
 async function initializePackaged() {
@@ -35,10 +46,7 @@ async function initializePackaged() {
   const manifest = readAssetManifest(JSON.parse(decoder.decode(await packagedBytes('manifest.json', 16384))));
   async function verified(filename) {
     const spec = manifest.get(filename);
-    const bytes = await packagedBytes(filename, spec.bytes);
-    if (bytes.length !== spec.bytes || hex(await crypto.subtle.digest('SHA-256', bytes)) !== spec.sha256)
-      throw new Error('Packaged embedding integrity mismatch');
-    return bytes;
+    return packagedBytes(filename, spec.bytes, spec.sha256);
   }
   // Verify executable files before their ordinary same-origin module imports.
   for (const filename of ['tokenizers.mjs', 'ort.wasm.min.mjs', 'ort-wasm-simd-threaded.mjs']) await verified(filename);

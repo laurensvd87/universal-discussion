@@ -135,6 +135,33 @@
     if (message) showStatus.timer = setTimeout(() => { $('status').textContent = ''; }, 5000);
   }
 
+  const snapshotHealth = { live: false, failure: null };
+  function renderSnapshotHealth() {
+    const indicator = $('snapshot-health');
+    const publish = (phase, message) => {
+      if (indicator.dataset.state !== phase) indicator.dataset.state = phase;
+      // Unchanged polling must not repeatedly announce the same live-region text.
+      if (indicator.textContent !== message) indicator.textContent = message;
+    };
+    if (!state.currentData) { publish('empty', 'Noch keine Momentaufnahme geladen.'); return; }
+    if (!snapshotHealth.live) {
+      publish('static', 'Statische Momentaufnahme · keine automatische Aktualisierung.');
+      return;
+    }
+    const at = Date.parse(state.currentData.generatedAt);
+    const clockSkew = Number.isFinite(at) && at > Date.now() + 30000;
+    const stale = Number.isFinite(at) && Date.now() - at >= 180000;
+    const age = !Number.isFinite(at) ? 'Zeitstand der Momentaufnahme nicht prüfbar.' : clockSkew
+      ? 'Zeitstempel mehr als 30 Sekunden in der Zukunft: mögliche Uhrzeitabweichung; Aktualität nicht prüfbar.'
+      : stale ? 'Momentaufnahme mindestens 3 Minuten alt.' : '';
+    const phase = snapshotHealth.failure ? 'error' : clockSkew ? 'clock-skew' : stale || !Number.isFinite(at) ? 'stale' : 'current';
+    const message = snapshotHealth.failure
+      ? `${snapshotHealth.failure === 'timeout' ? 'Zeitlimit bei der lokalen Aktualisierung.' : 'Lokale Aktualisierung fehlgeschlagen.'} Letzte geladene Zahlen bleiben sichtbar. ${age} Der Zustand von Crawler und Datenbank ist daraus nicht bekannt.`
+      : age ? `${age} Letzte geladene Zahlen bleiben sichtbar; der Zustand von Watcher, Crawler und Datenbank ist daraus nicht bekannt.`
+        : 'Lokale Momentaufnahme aktuell · automatische Prüfung alle 3 Sekunden.';
+    publish(phase, message);
+  }
+
   function publicUrl(value) {
     if (typeof value !== 'string' || value.length > 2048) return null;
     try {
@@ -356,8 +383,8 @@
       pageLayer.append(g);
     }
     $('empty-state').hidden = pages.length !== 0;
-    $('empty-state').replaceChildren(textElement('strong', '', state.data.graphLimited ? 'Karte pausiert: mehr als 1.000 gelernte Seiten' : 'Keine passenden Seiten'),
-      textElement('span', '', state.data.graphLimited ? 'Katalogzahlen und Verlauf werden weiter aktualisiert.' : 'Suche oder Topic-Auswahl ändern.'));
+    $('empty-state').replaceChildren(textElement('strong', '', state.data.graphLimited ? 'Karte aus Kapazitätsgründen nicht enthalten' : 'Keine passenden Seiten'),
+      textElement('span', '', state.data.graphLimited ? 'Die Momentaufnahme enthält nur Katalogzahlen und Verlauf, keine Kartenpunkte. Dies ist kein leeres Suchergebnis.' : 'Suche oder Topic-Auswahl ändern.'));
     $('map-title').textContent = topic ? topic.title : 'Alle Seiten';
     $('visible-count').textContent = `${format.format(pages.length)} von ${format.format(state.data.pages.length)} Seiten`;
   }
@@ -459,6 +486,7 @@
     if (!preserve) state.view = { x: 0, y: 0, w: 1000, h: 700 };
     updateView(); updateGrouping();
     loadGrowth(growth, next);
+    renderSnapshotHealth();
     if (announce) showStatus(`${format.format(state.data.pages.length)} erfasste Seiten geladen.`);
   }
 
@@ -515,34 +543,51 @@
   });
   let embeddedReport = false;
   let bridgePending = false;
+  let bridgeSequence = 0;
   let manualPending = false;
   function refreshBridge(manual = false) {
     if (bridgePending) { if (manual) manualPending = true; return; }
     bridgePending = true;
+    const sequence = ++bridgeSequence;
     delete globalThis.__topicAtlasSnapshot;
     delete globalThis.__topicAtlasPreview;
     delete globalThis.__topicAtlasGrowth;
     const script = document.createElement('script');
     script.src = `./snapshot.js?refresh=${Date.now()}`;
-    const finish = () => { script.remove(); bridgePending = false; manualPending = false; };
+    let finished = false;
+    const finish = () => {
+      if (finished || sequence !== bridgeSequence) return false;
+      finished = true; clearTimeout(timeout); script.onload = script.onerror = null;
+      script.remove(); bridgePending = false; manualPending = false;
+      return true;
+    };
+    const timeout = setTimeout(() => {
+      if (!finish()) return;
+      snapshotHealth.failure = 'timeout'; renderSnapshotHealth();
+    }, 10000);
     script.onload = () => {
+      if (finished || sequence !== bridgeSequence) return;
       try {
         const next = globalThis.__topicAtlasSnapshot;
         const preview = globalThis.__topicAtlasPreview ?? null;
         const growth = globalThis.__topicAtlasGrowth ?? null;
         if (!next || typeof next.generatedAt !== 'string' || !next.generatedAt) throw new Error('Ungültiger Snapshot.');
         if (JSON.stringify([next, preview, growth]) === state.snapshotKey) {
-          if (manual || manualPending) showStatus('Kein neuer Datenstand. Prüfe, ob der Watcher läuft.');
+          if (manual || manualPending) showStatus('Momentaufnahme unverändert; keine neuen Katalogänderungen bekannt.');
         } else {
           load(next, { preserve: true, announce: false, preview, growth });
           showStatus(`Neuer Datenstand geladen: ${$('data-age').textContent}.`);
         }
-      } catch (error) {
-        if (manual || manualPending) showStatus(`Aktualisierung fehlgeschlagen: ${error.message}`);
+        snapshotHealth.failure = null; renderSnapshotHealth();
+      } catch {
+        snapshotHealth.failure = 'invalid'; renderSnapshotHealth();
+        if (manual || manualPending) showStatus('Lokale Aktualisierung fehlgeschlagen. Letzte Momentaufnahme bleibt sichtbar.');
       } finally { finish(); }
     };
     script.onerror = () => {
-      if (manual || manualPending) showStatus('Kein neuer Datenstand gefunden. Prüfe, ob der Watcher läuft.');
+      if (finished || sequence !== bridgeSequence) return;
+      snapshotHealth.failure = 'load'; renderSnapshotHealth();
+      if (manual || manualPending) showStatus('Lokale Aktualisierung fehlgeschlagen. Letzte Momentaufnahme bleibt sichtbar.');
       finish();
     };
     document.head.append(script);
@@ -559,11 +604,12 @@
       } catch { /* Malformed history must not discard an otherwise valid map. */ }
       load(JSON.parse(embedded.textContent), { preview, growth });
       embeddedReport = true;
+      snapshotHealth.live = true; renderSnapshotHealth();
       $('load-label').hidden = true;
       $('preview-load-label').hidden = true;
       $('refresh-hint').hidden = false;
       refreshBridge();
-      setInterval(() => refreshBridge(), 3000);
+      setInterval(() => { renderSnapshotHealth(); refreshBridge(); }, 3000);
       return;
     }
     const response = await fetch('./snapshot.json', { cache: 'no-store' });

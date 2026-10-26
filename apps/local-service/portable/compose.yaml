@@ -1,11 +1,11 @@
-name: udl-synthetic-rehearsal
+name: murmingle-synthetic-rehearsal
 
 x-application: &application
-  image: udl-portable-synthetic:local
+  image: murmingle-portable-synthetic:local
   build:
     context: ..
     dockerfile: portable/Dockerfile
-  user: "${UDL_RUNTIME_UID:-1000}:${UDL_RUNTIME_GID:-1000}"
+  user: "${MURMINGLE_RUNTIME_UID:-1000}:${MURMINGLE_RUNTIME_GID:-1000}"
   read_only: true
   tmpfs:
     - /tmp:rw,noexec,nosuid,size=16m
@@ -16,29 +16,29 @@ x-application: &application
 
 x-runtime-environment: &runtime-environment
   NODE_ENV: production
-  UDL_MODE: synthetic-rehearsal
-  UDL_DATABASE_HOST: db
-  UDL_DATABASE_PORT: "5432"
-  UDL_DATABASE_NAME: udl_synthetic
-  UDL_DATABASE_USER: udl_app
-  UDL_DATABASE_PASSWORD_FILE: /run/secrets/app_db_password
+  MURMINGLE_MODE: synthetic-rehearsal
+  MURMINGLE_DATABASE_HOST: db
+  MURMINGLE_DATABASE_PORT: "5432"
+  MURMINGLE_DATABASE_NAME: murmingle_synthetic
+  MURMINGLE_DATABASE_USER: murmingle_app
+  MURMINGLE_DATABASE_PASSWORD_FILE: /run/secrets/app_db_password
 
 x-database: &database
   image: pgvector/pgvector:0.8.2-pg17-bookworm@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966
-  entrypoint: [/bin/sh, /opt/udl/db-entrypoint.sh]
+  entrypoint: [/bin/sh, /opt/murmingle/db-entrypoint.sh]
   command: [postgres, -c, log_statement=none, -c, log_error_verbosity=terse, -c, log_min_error_statement=panic, -c, log_parameter_max_length_on_error=0]
   environment:
-    POSTGRES_USER: udl_admin
-    POSTGRES_DB: udl_synthetic
-    POSTGRES_PASSWORD_FILE: /run/udl-db-secrets/admin_db_password
+    POSTGRES_USER: murmingle_admin
+    POSTGRES_DB: murmingle_synthetic
+    POSTGRES_PASSWORD_FILE: /run/murmingle-db-secrets/admin_db_password
     POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
   secrets: [admin_db_password, owner_db_password, app_db_password]
   tmpfs:
-    - /run/udl-db-secrets:rw,noexec,nosuid,size=1m
+    - /run/murmingle-db-secrets:rw,noexec,nosuid,size=1m
   networks: [private]
   restart: "no"
   healthcheck:
-    test: [CMD-SHELL, "pg_isready -U udl_admin -d $$POSTGRES_DB"]
+    test: [CMD-SHELL, "pg_isready -U murmingle_admin -d $$POSTGRES_DB"]
     interval: 5s
     timeout: 3s
     retries: 10
@@ -48,19 +48,19 @@ services:
     <<: *database
     volumes:
       - synthetic-db-data:/var/lib/postgresql/data
-      - ./ops/db-entrypoint.sh:/opt/udl/db-entrypoint.sh:ro
-      - ./ops/init-db.sh:/docker-entrypoint-initdb.d/10-udl.sh:ro
+      - ./ops/db-entrypoint.sh:/opt/murmingle/db-entrypoint.sh:ro
+      - ./ops/init-db.sh:/docker-entrypoint-initdb.d/10-murmingle.sh:ro
 
   api:
     <<: *application
     command: [api]
     environment:
       <<: *runtime-environment
-      UDL_BIND: 0.0.0.0
-      UDL_PORT: "4185"
-      UDL_ALLOWED_HOST: 127.0.0.1:4185
-      UDL_ALLOWED_ORIGIN: https://client.example
-      UDL_READ_TOKEN_FILE: /run/secrets/read_token
+      MURMINGLE_BIND: 0.0.0.0
+      MURMINGLE_PORT: "4185"
+      MURMINGLE_ALLOWED_HOST: 127.0.0.1:4185
+      MURMINGLE_ALLOWED_ORIGIN: https://client.example
+      MURMINGLE_READ_TOKEN_FILE: /run/secrets/read_token
     secrets: [app_db_password, read_token]
     ports: ["127.0.0.1:4185:4185"]
     depends_on:
@@ -85,8 +85,8 @@ services:
     command: [migrate]
     environment:
       <<: *runtime-environment
-      UDL_DATABASE_USER: udl_owner
-      UDL_DATABASE_PASSWORD_FILE: /run/secrets/owner_db_password
+      MURMINGLE_DATABASE_USER: murmingle_owner
+      MURMINGLE_DATABASE_PASSWORD_FILE: /run/secrets/owner_db_password
     secrets: [owner_db_password]
     depends_on:
       db: {condition: service_healthy}
@@ -97,10 +97,10 @@ services:
     command: [seed-fixture]
     environment:
       <<: *runtime-environment
-      UDL_DATABASE_USER: udl_owner
-      UDL_DATABASE_PASSWORD_FILE: /run/secrets/owner_db_password
-      UDL_ALEX_TOKEN_FILE: /run/secrets/alex_token
-      UDL_BLAIR_TOKEN_FILE: /run/secrets/blair_token
+      MURMINGLE_DATABASE_USER: murmingle_owner
+      MURMINGLE_DATABASE_PASSWORD_FILE: /run/secrets/owner_db_password
+      MURMINGLE_ALEX_TOKEN_FILE: /run/secrets/alex_token
+      MURMINGLE_BLAIR_TOKEN_FILE: /run/secrets/blair_token
     secrets: [owner_db_password, alex_token, blair_token]
     depends_on:
       db: {condition: service_healthy}
@@ -112,8 +112,8 @@ services:
     command: []
     environment:
       <<: *runtime-environment
-      UDL_ALEX_TOKEN_FILE: /run/secrets/alex_token
-      UDL_BLAIR_TOKEN_FILE: /run/secrets/blair_token
+      MURMINGLE_ALEX_TOKEN_FILE: /run/secrets/alex_token
+      MURMINGLE_BLAIR_TOKEN_FILE: /run/secrets/blair_token
     secrets: [app_db_password, alex_token, blair_token]
     depends_on:
       db: {condition: service_healthy}
@@ -122,14 +122,14 @@ services:
     <<: *database
     profiles: [restore]
     environment:
-      POSTGRES_USER: udl_admin
-      POSTGRES_DB: udl_synthetic_restore
-      POSTGRES_PASSWORD_FILE: /run/udl-db-secrets/admin_db_password
+      POSTGRES_USER: murmingle_admin
+      POSTGRES_DB: murmingle_synthetic_restore
+      POSTGRES_PASSWORD_FILE: /run/murmingle-db-secrets/admin_db_password
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
     volumes:
       - synthetic-restore-data:/var/lib/postgresql/data
-      - ./ops/db-entrypoint.sh:/opt/udl/db-entrypoint.sh:ro
-      - ./ops/init-db.sh:/docker-entrypoint-initdb.d/10-udl.sh:ro
+      - ./ops/db-entrypoint.sh:/opt/murmingle/db-entrypoint.sh:ro
+      - ./ops/init-db.sh:/docker-entrypoint-initdb.d/10-murmingle.sh:ro
 
 networks:
   private: {internal: true}

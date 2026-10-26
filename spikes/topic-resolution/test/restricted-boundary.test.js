@@ -5,7 +5,7 @@ import http from "node:http";
 import net from "node:net";
 import test from "node:test";
 
-const guard = globalThis[Symbol.for("universal-discussion.offline-capability-guard")];
+const guard = globalThis[Symbol.for("murmingle.offline-capability-guard")];
 
 test(
   "restricted harness actively denies sockets, DNS, HTTP, subprocesses, and fetch",

@@ -83,7 +83,7 @@ async function report(mode) {
 }
 
 before(async () => {
-  assert.equal(globalThis[Symbol.for('universal-discussion.offline-capability-guard')]?.version,
+  assert.equal(globalThis[Symbol.for('murmingle.offline-capability-guard')]?.version,
     'offline-capability-guard/1.0.0', 'the explicit offline guard is required');
   corpus = assertFrozenCorpus(await json(path.join(experimentRoot, 'fixtures/corpus.json')));
   assert.equal(corpus.descriptors.length, 64);

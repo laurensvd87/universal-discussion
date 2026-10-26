@@ -7,6 +7,7 @@ import { createLocalDiscussionController } from "../browser/core/local-discussio
 import { createMemoryDemoService } from "../../../apps/local-service/src/application/create-demo-service.js";
 import { lookupIndicatorFixtureByNormalizedUrl } from "../browser/fixtures/indicator-fixtures.js";
 import { RIDGE_POLICY, RIDGE_REPRESENTATION } from "../browser/core/topic-view-mode.js";
+import { createInsightController } from "../browser/core/insight-controller.js";
 
 function harness(messages, workspace, insightsTab, settingsButton, accountDetails, controllerOverrides = {}) {
   const created = [];
@@ -292,6 +293,22 @@ test("User matching states stay quiet except accessible loading and bottom error
   assert.equal(status.hidden, true);
 });
 
+test("same-page matching errors keep a saved discussion visible but disable every write action", () => {
+  const ui = harness();
+  const snapshot = state({ phase: "loading", sourceId: "source-demo",
+    catalog: { ...state().catalog, sources: [{ id: "source-demo", topicId: "topic-demo", title: "Synthetic source" }] },
+    resolution: { enabled: true, phase: "error", reason: "conflict" } });
+  ui.panel.render(snapshot);
+  assert.equal(ui.created.find((item) => item.className === "discussion-thread").hidden, false);
+  assert.equal(ui.byId("discussion-loading-scene").hidden, true);
+  assert.equal(ui.byId("discussion-status").textContent, EN.uiMatchingServiceBusy);
+  assert.equal(ui.byId("discussion-body").disabled, true);
+  assert.equal(ui.byId("discussion-submit").disabled, true);
+  assert.equal(ui.byId("discussion-ai-insights").disabled, true);
+  for (const action of descendants(ui.root).filter((item) => item.attributes["data-action"]))
+    assert.equal(action.disabled, true, action.attributes["data-action"]);
+});
+
 test("User alternate failures are bounded bottom messages and never mask read or detached warnings", () => {
   const ui = harness();
   const snapshot = state({ sourceId: "source-demo", topicViewMode: "experimental" });
@@ -385,106 +402,170 @@ function emptyPageDiscussion(patch = {}) {
       url: "https://example.com/related", title: "<img src=x> Related page" }] }, ...patch });
 }
 
-test("empty Discussion offers inert related page links above the composer", () => {
-  const ui = harness();
-  ui.panel.render(emptyPageDiscussion());
-  const section = ui.byId("discussion-related-page-suggestions");
-  assert.equal(section.hidden, false);
-  assert.equal(section.children[0].textContent, EN.relatedSuggestionsHeading);
-  const cards = section.children[1].children;
-  assert.equal(cards.length, 1);
-  const card = cards[0];
-  assert.equal(card.tag, "a");
-  assert.equal(card.href, "https://example.com/related");
-  assert.equal(card.target, "_blank");
-  assert.equal(card.rel, "noopener noreferrer");
-  assert.equal(card.referrerPolicy, "no-referrer");
-  assert.equal(card.children[0].textContent, "<img src=x> Related page");
-  assert.equal(card.children[1].textContent, "example.com");
-  assert.equal(card.children[2].textContent, "↗");
-  assert.equal(card.listeners.size, 0);
-  assert.equal(descendants(section).some((item) => item.tag === "button"), false);
-  assert.deepEqual(ui.calls, []);
-  card.focus();
-  ui.panel.render(emptyPageDiscussion());
-  assert.equal(section.children[1].children[0], card);
-  assert.equal(ui.document.activeElement, card);
-  const feed = ui.byId("discussion-feed");
-  assert.ok(feed.children.indexOf(section) > feed.children.indexOf(ui.byId("discussion-related-conversations")));
-  assert.ok(ui.root.children.indexOf(feed) < ui.root.children.indexOf(ui.byId("discussion-root-dock")));
-  ui.panel.setMode("developer");
-  assert.equal(section.hidden, true);
-  assert.equal(section.children[1].children.length, 0);
-  assert.equal(ui.byId("discussion-related").hidden, false);
-});
+function mentionHarness({ mode = "root", accepted = true, mutateAccepted = value => value,
+  aiReady = true, generate = async () => true } = {}) {
+  let current = emptyPageDiscussion({ selection: "automatic", draft: { body: "@AI, what is the biggest drawback?", mode,
+    targetId: mode === "root" ? null : "existing-root", detached: false } });
+  const parent = { id: "existing-root", rootId: null, replyToId: null, state: "visible",
+    actorType: "human", authorId: "demo-alex", body: "Product question", replies: [] };
+  if (mode !== "root") current.discussion = { ...current.discussion, roots: [parent] };
+  const calls = [];
+  const ui = harness(undefined, null, null, null, null, {
+    currentState: () => current,
+    async submitDraft() {
+      calls.push("submit");
+      if (!accepted) return false;
+      const message = { id: "accepted-mention", rootId: mode === "root" ? null : parent.id,
+        replyToId: mode === "root" ? null : parent.id, state: "visible", actorType: "human",
+        authorId: current.actorId, body: current.draft.body, replies: [] };
+      current = mutateAccepted({ ...current,
+        draft: { body: "", detached: false, mode: "root", targetId: null },
+        discussion: { ...current.discussion, roots: mode === "root" ? [message] : [{ ...parent, replies: [message] }] },
+        createdPost: { id: message.id, actorId: current.actorId, sourceId: current.sourceId,
+          topicId: current.topicId, discussionId: current.discussion.discussionId } });
+      ui.panel.render(current); return true;
+    },
+  });
+  ui.panel.bindInsight({ currentState: () => ({ ai: { planEnabled: aiReady, model: aiReady ? "selected" : "", status: "idle" } }),
+    async createFollowup(...args) { calls.push(["generate", ...args]); return generate(); } });
+  return { ...ui, calls, current: () => current,
+    send: () => ui.byId("discussion-composer").listeners.get("submit")({ preventDefault() {} }) };
+}
 
-test("empty Discussion uses same-Topic page metadata without a conversation snapshot", () => {
-  const ui = harness();
-  const snapshot = emptyPageDiscussion();
-  ui.panel.render({ ...snapshot, discussion: null, related: { ...snapshot.related, results: [] },
-    catalog: { ...snapshot.catalog, sources: snapshot.catalog.sources.map((source) => ({ ...source,
-      topicId: "topic-demo" })) } });
-  const section = ui.byId("discussion-related-page-suggestions");
-  assert.equal(section.hidden, false);
-  assert.equal(section.children[1].children[0].href, "https://example.com/related");
-  assert.deepEqual(ui.calls, []);
-});
-
-test("related page fallback counts live trees and ignores tombstone-only trees", () => {
-  const ui = harness();
-  const section = ui.byId("discussion-related-page-suggestions");
-  const deleted = { id: "deleted-root", state: "deleted", replies: [
-    { id: "deleted-reply", rootId: "deleted-root", state: "deleted" }] };
-  const snapshot = emptyPageDiscussion();
-  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion, roots: [deleted] } });
-  assert.equal(section.hidden, false);
-  const live = { ...state().discussion.roots[0], replies: [] };
-  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion, roots: [live] } });
-  assert.equal(section.hidden, true);
-  ui.panel.render({ ...snapshot, discussion: { ...snapshot.discussion, roots: [{ ...deleted,
-    replies: [{ id: "live-reply", rootId: deleted.id, state: "visible", actorType: "human",
-      authorId: "demo-alex", body: "Still visible" }] }] } });
-  assert.equal(section.hidden, true);
-  ui.panel.render({ ...snapshot, relatedDiscussions: [{ topicId: "related-topic", title: "Related",
-    rootCount: 1, roots: [{ ...live, replyCount: 0 }] }] });
-  assert.equal(section.hidden, true);
-  const historical = samePageHistory(live);
-  const historyVersion = snapshot.catalog.version;
-  ui.panel.render({ ...snapshot, ...historical, catalog: { ...historical.catalog,
-    version: historyVersion, sources: snapshot.catalog.sources },
-    discussion: { ...historical.discussion, version: historyVersion },
-    priorDiscussions: { ...historical.priorDiscussions, version: historyVersion },
-    earlierDiscussions: historical.earlierDiscussions.map((prior) => ({ ...prior, version: historyVersion })),
-    related: snapshot.related });
-  assert.equal(section.hidden, true);
-  ui.panel.render({ ...snapshot, topicViewMode: "experimental", alternateDiscussion: {
-    sourceId: "source-demo", sourceIds: ["source-demo"], roots: [live], pinnedRoots: [] } });
-  assert.equal(section.hidden, true);
-  ui.panel.render({ ...snapshot, topicViewMode: "experimental", alternateDiscussion: {
-    sourceId: "source-demo", sourceIds: ["source-demo"], roots: [deleted], pinnedRoots: [] } });
-  assert.equal(section.hidden, false);
-});
-
-test("related page fallback clears during navigation, reads, errors and disconnect", () => {
-  const ui = harness();
-  const section = ui.byId("discussion-related-page-suggestions");
-  const snapshot = emptyPageDiscussion();
-  for (const patch of [{ phase: "loading" }, { phase: "disconnected" }, { phase: "error" },
-    { needsFreshRead: true }, { error: "context-changed" }, { sourceId: "other-source" },
-    { priorDiscussionsError: "unavailable" }, { alternateError: "unavailable", topicViewMode: "experimental",
-      catalog: { ...snapshot.catalog, sources: snapshot.catalog.sources.map((source) => ({ ...source,
-        provenance: "owner-local-page-embedding/v1" })) } },
-    { resolution: { enabled: true, phase: "checking", url: "https://other.example/story" } }]) {
-    ui.panel.render(snapshot);
-    assert.equal(section.hidden, false);
-    ui.panel.render({ ...snapshot, ...patch });
-    assert.equal(section.hidden, true, JSON.stringify(patch));
-    assert.equal(section.children[1].children.length, 0);
+test("submitting @AI publishes the human post first and requests one reply to its accepted canonical ID", async () => {
+  for (const mode of ["root", "reply"]) {
+    const ui = mentionHarness({ mode });
+    await ui.send();
+    assert.deepEqual(ui.calls, ["submit", ["generate", "accepted-mention"]]);
+    ui.panel.render(ui.current()); ui.panel.render(ui.current());
+    assert.equal(ui.calls.length, 2, "polling cannot replay a deliberate mention");
   }
-  ui.panel.render({ ...snapshot, related: { ...snapshot.related, results: [
-    ...snapshot.related.results, { id: "unsafe", url: "javascript:alert(1)", title: "Unsafe", relationship: "related" },
-    { id: "current", url: "https://example.org/story", title: "Current", relationship: "same-topic" }] } });
-  assert.equal(section.children[1].children.length, 1);
+});
+
+test("failed writes, edits, changed context and mismatched published bodies cannot dispatch an AI mention", async () => {
+  for (const options of [
+    { accepted: false }, { mode: "edit" },
+    { mutateAccepted: value => ({ ...value, actorId: "demo-blair" }) },
+    { mutateAccepted: value => ({ ...value, sourceId: null }) },
+    { mutateAccepted: value => ({ ...value, needsFreshRead: true }) },
+    { mutateAccepted: value => ({ ...value, createdPost: null }) },
+    { mutateAccepted: value => ({ ...value, discussion: { ...value.discussion,
+      roots: value.discussion.roots.map(root => ({ ...root, body: "Edited elsewhere" })) } }) },
+  ]) {
+    const ui = mentionHarness(options); await ui.send();
+    assert.equal(ui.calls.some(call => Array.isArray(call) && call[0] === "generate"), false);
+  }
+});
+
+test("missing model or failed mention generation leaves the saved post and offers an explicit retry only", async () => {
+  const setup = mentionHarness({ aiReady: false }); await setup.send();
+  assert.deepEqual(setup.calls, ["submit"]);
+  assert.equal(setup.byId("discussion-mention-status").textContent, EN.uiAiMentionSetup);
+  const failed = mentionHarness({ generate: async () => { throw new Error("private provider detail"); } });
+  await failed.send();
+  assert.equal(failed.byId("discussion-mention-status").textContent, EN.uiAiMentionUnavailable);
+  assert.equal(failed.byId("discussion-mention-status").hidden, false);
+  assert.equal(failed.current().discussion.roots[0].body, "@AI, what is the biggest drawback?");
+});
+
+test("a second submit during AI mention generation cannot publish or invoke twice", async () => {
+  let release;
+  const ui = mentionHarness({ generate: () => new Promise(resolve => { release = resolve; }) });
+  const first = ui.send(); await new Promise(resolve => setImmediate(resolve));
+  await ui.send(); assert.deepEqual(ui.calls, ["submit", ["generate", "accepted-mention"]]);
+  release(true); await first;
+});
+
+test("real discussion and Insight controllers post one AI answer to each deliberate @AI root or nested reply", async () => {
+  const ui = harness();
+  let sequence = 0, insight;
+  const requests = [], commands = [];
+  const service = createMemoryDemoService({ nextId: kind => `${kind}-${++sequence}`,
+    now: () => "2026-10-15T08:00:00.000Z" });
+  const client = {
+    health: async () => ({}), catalog: async () => service.catalog(),
+    discussion: async id => service.discussion(id), related: async (id, limit) => service.related(id, limit),
+    priorDiscussions: async id => service.priorDiscussions(id),
+    command: async (expected, command, actor) => {
+      commands.push(command);
+      const generated = ["share-insight", "share-insight-reply"].includes(command.type);
+      return service.command(expected, command, actor, generated ? {
+        kind: "generated-insight", operationId: command.operationId, actorId: actor,
+        topicId: command.topicId, originSourceId: command.originSourceId, body: command.body,
+        rootId: command.rootId ?? null, replyToId: command.replyToId ?? null,
+        discussionId: command.discussionId ?? null,
+      } : null);
+    },
+  };
+  const discussion = createLocalDiscussionController({ client, session: { isPaired: async () => true },
+    readActiveTab: async () => ({ tabId: 7, url: "https://example.com/" }),
+    observeTabLifecycle: () => () => {}, lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
+    onStateChange: snapshot => { insight?.observe(snapshot); ui.panel.render(snapshot); },
+  });
+  insight = createInsightController({ shareInsight: review => discussion.shareInsight(review), shareOnCompletion: true,
+    randomId: () => `mention-op-${++sequence}`,
+    readArticle: async () => ({ url: "https://example.com/", documentId: "synthetic-document", text: "Public product page." }),
+    attestArticle: async () => true,
+    onStateChange: snapshot => ui.panel.renderInsightState(snapshot),
+    aiClient: {
+      status: async () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "synthetic-client", label: "Owner" } }),
+      models: async () => [{ slug: "synthetic-model", displayName: "Synthetic" }],
+      start: async request => { requests.push(request); return { operationId: request.operationId, state: "running" }; },
+      result: async operationId => ({ operationId, state: "completed", result: {
+        body: "The biggest drawback is the limited capacity.", model: "synthetic-model", citations: [] } }),
+      cancel: async () => true,
+    },
+  });
+  ui.panel.bind(discussion); ui.panel.bindInsight(insight);
+  await discussion.open(); await insight.checkConnection(); await insight.loadModels();
+  for (const index of [0, 1]) {
+    if (index) {
+      const roots = discussion.currentState().discussion.roots;
+      const generated = roots.flatMap(root => root.replies).find(reply => reply.actorType === "agent");
+      assert.ok(generated); assert.equal(discussion.begin("reply", generated.id), true);
+    }
+    discussion.setDraft(index ? "@ai, explain that drawback" : "@AI, what is the biggest drawback?");
+    await ui.byId("discussion-composer").listeners.get("submit")({ preventDefault() {} });
+    assert.equal(requests.length, index + 1);
+    const question = commands.filter(command => ["create-root", "reply"].includes(command.type)).at(-1);
+    const share = commands.filter(command => command.type === "share-insight-reply").at(-1);
+    assert.ok(share, "completed response must be published through the exact generated-reply path");
+    assert.equal(share.replyToId, requests.at(-1).followupQuestionId);
+    const target = discussion.currentState().discussion.roots.flatMap(root => [root, ...root.replies])
+      .find(entry => entry.id === share.replyToId);
+    assert.equal(target.body, question.body);
+    assert.equal(share.body, "The biggest drawback is the limited capacity.");
+  }
+  await discussion.open(); assert.equal(requests.length, 2);
+  insight.dispose(); discussion.dispose(); ui.panel.dispose();
+});
+
+test("Discussion never renders related-page suggestions, including empty or tombstone-only conversations", () => {
+  const ui = harness(), snapshot = emptyPageDiscussion();
+  const deleted = { id: "deleted-root", state: "deleted", replies: [] };
+  for (const patch of [{}, { discussion: null }, { discussion: { ...snapshot.discussion, roots: [deleted] } },
+    { phase: "loading" }, { phase: "disconnected" }, { needsFreshRead: true },
+    { error: "context-changed" }, { topicViewMode: "experimental", alternateDiscussion: {
+      sourceId: "source-demo", sourceIds: ["source-demo"], roots: [deleted], pinnedRoots: [] } }]) {
+    ui.panel.render({ ...snapshot, ...patch });
+    assert.equal(ui.byId("discussion-related-page-suggestions"), undefined);
+    assert.equal(descendants(ui.byId("discussion-feed")).some(item => item.className === "related-page-card"), false);
+  }
+  assert.deepEqual(ui.calls, []);
+  assert.ok(ui.byId("discussion-root-dock"));
+  ui.panel.dispose();
+});
+
+test("hiding page suggestions does not remove developer matching diagnostics or actual conversations", () => {
+  const ui = harness();
+  ui.panel.render(emptyPageDiscussion());
+  assert.equal(ui.byId("discussion-related").hidden, true);
+  ui.panel.setMode("developer");
+  assert.equal(ui.byId("discussion-related").hidden, false);
+  assert.equal(ui.byId("discussion-related-page-suggestions"), undefined);
+  ui.panel.render(state());
+  assert.ok(descendants(ui.byId("discussion-feed")).some(item => item.attributes["data-post-id"]));
+  ui.panel.dispose();
 });
 test("experimental view shows grouped and pinned roots while cross-topic actions stay disabled", () => {
   const ui = harness();
@@ -1616,6 +1697,45 @@ test("typing preserves contribution button focus; language fallback and disposal
   assert.equal(ui.created.some((item) => item.listeners.size > 0), false);
 });
 
+test("saved discussion matching permits local root typing and preserves IME while delivery stays gated", async () => {
+  const ui = harness(); const generations = [];
+  ui.panel.bindInsight({ currentState: () => ({ context: { currentSource: { id: "source-demo" } },
+    ai: { planEnabled: true, model: "chosen", status: "idle" } }),
+    createInsights: options => { generations.push(options); return Promise.resolve(true); } });
+  const loading = state({ phase: "loading", sourceId: "source-demo", selection: "background",
+    resolution: { enabled: true, phase: "processing" }, related: null });
+  loading.catalog.sources[0].topicId = loading.topicId;
+  loading.discussion.topic = { id: loading.topicId };
+  ui.panel.render(loading);
+  const body = ui.byId("discussion-body"), submit = ui.byId("discussion-submit"),
+    shortcut = ui.byId("discussion-ai-insights"), composer = ui.byId("discussion-composer");
+  assert.equal(composer.hidden, false);
+  assert.equal(body.disabled, false);
+  body.focus(); body.listeners.get("compositionstart")();
+  body.value = "@AI Local composing text";
+  ui.panel.render({ ...loading, resolution: { ...loading.resolution, phase: "checking" } });
+  assert.equal(body.value, "@AI Local composing text");
+  assert.equal(ui.document.activeElement, body);
+  body.listeners.get("compositionend")();
+  assert.deepEqual(ui.calls.at(-1), ["setDraft", "@AI Local composing text"]);
+  const staged = { ...loading, draft: { ...loading.draft, body: "@AI Local composing text" } };
+  ui.panel.render(staged);
+  assert.equal(submit.disabled, true); assert.equal(shortcut.disabled, true);
+  await composer.listeners.get("submit")({ preventDefault() {} });
+  shortcut.listeners.get("click")();
+  assert.equal(ui.calls.some(([kind]) => kind === "submitDraft" || kind === "begin"), false);
+  assert.deepEqual(generations, []);
+  for (const patch of [{ busy: true }, { needsFreshRead: true },
+    { draft: { ...staged.draft, detached: true } }, { draft: { ...staged.draft, mode: "reply" } },
+    { draft: { ...staged.draft, mode: "edit" } }]) {
+    ui.panel.render({ ...staged, ...patch });
+    assert.equal(body.disabled, true);
+    assert.equal(submit.disabled, true);
+    assert.equal(shortcut.disabled, true);
+  }
+  ui.panel.dispose();
+});
+
 test("selected discussion loading permits a root draft while posting and Insights remain gated", () => {
   const ui = harness();
   const loading = state({ phase: "loading", sourceId: "source-demo", discussion: null, related: null });
@@ -1651,7 +1771,8 @@ test("selected discussion loading permits a root draft while posting and Insight
   assert.equal(ui.byId("discussion-submit").disabled, true);
   assert.equal(ui.byId("discussion-reattach").disabled, true);
   ui.panel.render(state({ related: null }));
-  assert.equal(ui.byId("discussion-ai-insights").disabled, true);
+  assert.equal(ui.byId("discussion-ai-insights").hidden, false);
+  assert.equal(ui.byId("discussion-ai-insights").disabled, false);
   for (const phase of ["connecting", "choose-topic", "disconnected", "error"]) {
     ui.panel.render(state({ phase }));
     assert.equal(ui.byId("discussion-body").disabled, true);
@@ -1923,10 +2044,14 @@ test("nested replies name their agent parent without visible AI badge text", () 
   const cue = (id) => descendants(descendants(ui.root)
     .find((item) => item.attributes["data-post-id"] === id))
     .find((item) => item.className === "discussion-parent-cue");
-  assert.equal(cue("generated-child").textContent, "Reply to Alex");
+  assert.equal(cue("generated-parent").textContent, "@Alex:");
+  assert.equal(cue("generated-parent").attributes["data-reply-to-id"], "root");
+  assert.equal(cue("generated-parent").attributes["aria-label"], "Reply to Alex");
+  assert.equal(cue("generated-child").textContent, "@AI:");
+  assert.equal(cue("generated-child").attributes["data-reply-to-id"], "generated-parent");
   assert.equal(cue("generated-child").attributes["aria-label"], "Reply to AI-generated · shared by Alex");
   assert.equal(cue("generated-child").title, cue("generated-child").attributes["aria-label"]);
-  assert.equal(cue("imported-child").textContent, "Reply to Alex · unverified import");
+  assert.equal(cue("imported-child").textContent, "@Alex · unverified import:");
   assert.equal(cue("imported-child").attributes["aria-label"],
     "Reply to AI-assisted · unverified manual import · shared by Alex");
   assert.equal(cue("imported-child").title, cue("imported-child").attributes["aria-label"]);

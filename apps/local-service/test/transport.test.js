@@ -21,7 +21,7 @@ function fakeExchange(overrides = {}) {
 }
 
 test("dormant imports leave the offline guard intact and CLI accepts only one extension Origin", () => {
-  assert.ok(globalThis[Symbol.for("universal-discussion.offline-capability-guard")]);
+  assert.ok(globalThis[Symbol.for("murmingle.offline-capability-guard")]);
   assert.equal(parseCliArguments(["--origin", ORIGIN]), ORIGIN);
   for (const args of [[], ["--origin", "null"], ["--origin", ORIGIN, "--port", "4175"], ["--origin", "https://example.com"]]) {
     assert.throws(() => parseCliArguments(args));

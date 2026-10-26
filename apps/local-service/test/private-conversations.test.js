@@ -252,6 +252,41 @@ test("private runtime refuses provider identity/source changes and cancellation 
   assert.deepEqual(runtime.resumable(ALICE.id), { job: null });
 });
 
+test("private preflight reserves the provider lane and aborts before dispatch", async t => {
+  const f = fixture(t);
+  const identity = { issuer: "https://auth.openai.com", clientId: "fixture", subject: "alice" };
+  const generation = f.generation(), catalog = f.canonical.catalog();
+  const bundle = { version: catalog.version, catalog, discussion: f.canonical.discussion(TOPIC),
+    related: f.canonical.related(SOURCE, 20), anchor: f.publicService.insightAnchor(TOPIC, SOURCE),
+    followupDiscussion: null };
+  const releases = [];
+  let providerCalls = 0;
+  const service = { ...f.publicService,
+    insightBundle: () => new Promise(resolve => { releases.push(resolve); }) };
+  const runtime = createChatGPTRuntime({ service,
+    connectionAdapter: { accountIdentity: () => identity,
+      status: () => ({ connected: true, planEnabled: true, account: { clientId: "fixture", label: "Alice" } }),
+      dispose() {} },
+    insightsAdapter: { async createInsight() { providerCalls += 1;
+      return { body: "Private response", citations: [], model: "fixture" }; }, cancel() {}, dispose() {} } });
+  t.after(() => runtime.dispose());
+  const input = { ...generation, followup: { parentBody: "Private AI", questionBody: "Private human" } };
+  const first = runtime.generatePrivate(input, ALICE.id);
+  await assert.rejects(runtime.generatePrivate(input, ALICE.id), failure("conflict"));
+  assert.throws(() => runtime.create({ ...generation, operationId: "public-during-private" }, ALICE.id),
+    failure("conflict"));
+  releases.shift()(bundle);
+  assert.equal((await first).body, "Private response");
+  assert.equal(providerCalls, 1);
+
+  const abort = new AbortController();
+  const cancelled = runtime.generatePrivate(input, ALICE.id, { signal: abort.signal });
+  abort.abort();
+  releases.shift()(bundle);
+  await assert.rejects(cancelled, failure("conflict"));
+  assert.equal(providerCalls, 1, "aborted preflight never reaches the provider");
+});
+
 test("private runtime accepts unrelated public revisions but rejects a reset recreating the identical Source", async t => {
   const f = fixture(t); let release;
   const identity = { issuer: "https://auth.openai.com", clientId: "fixture", subject: "alice" };

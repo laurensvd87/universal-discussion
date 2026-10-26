@@ -1,13 +1,13 @@
 import { EN } from "../locales/en.js";
 import { projectDiscussionShell } from "./popup-shell.js";
 import { readPostOrigin } from "../core/local-service-contract.js";
-import { ownsContribution, selectedPostingSource } from "../core/local-discussion-controller.js";
+import { canStageRootDraft, ownsContribution, selectedPostingSource } from "../core/local-discussion-controller.js";
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { resolveDiscussionTarget } from "../core/discussion-target.js";
-import { projectRelatedPages } from "../core/related-page-suggestions.js";
 import { mountAssistantVoicePicker } from "./assistant-voice-picker.js";
 import { isReferenceTopicView, requiresReferenceTopicView } from "../core/topic-view-mode.js";
+import { hasAiMention } from "../core/discussion-mentions.js";
 
 export function mountDiscussionPanel(document, root, { messages = EN, onPrivateSend = null, onPrivateInsight = null } = {}) {
   const text = (key) => messages?.[key] ?? EN[key];
@@ -52,6 +52,12 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   const insightShortcut = node("button", "uiCreateInsights"); insightShortcut.type = "button";
   insightShortcut.id = "discussion-ai-insights"; insightShortcut.className = "insight-shortcut";
   const rootVoicePicker = mountAssistantVoicePicker(document, { button: insightShortcut, messages, onVoiceSelect: selectVoice });
+  function openInsightSetup() {
+    document.querySelector?.("#app-settings-button")?.click?.();
+    const accountDetails = document.querySelector?.("#insight-account-details");
+    if (accountDetails) accountDetails.open = true;
+    document.querySelector?.("#insight-account-details > summary")?.focus?.({ preventScroll: true });
+  }
   listen(insightShortcut, "click", () => {
     if (posting || insightShortcut.hidden || insightShortcut.disabled || !insightController) return;
     if (uiMode === "user") {
@@ -60,10 +66,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       if (replyMode && !questionId || !replyMode && lastState?.draft?.mode !== "root") return;
       const ai = lastInsightState?.ai ?? insightController.currentState?.()?.ai;
       if (!ai?.planEnabled || !ai?.model) {
-        document.querySelector?.("#app-settings-button")?.click?.();
-        const accountDetails = document.querySelector?.("#insight-account-details");
-        if (accountDetails) accountDetails.open = true;
-        document.querySelector?.("#insight-account-details > summary")?.focus?.({ preventScroll: true });
+        openInsightSetup();
         return;
       }
       if (privateRoot && !replyMode && onPrivateInsight) {
@@ -223,6 +226,9 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   insightShortcut.setAttribute("aria-describedby", insightActivity.id);
   composerActions.append(privacy, modelHost, rootVoicePicker.element, submit, insightActivity);
   composer.append(mode, replyContext, bodyLabel, body, detached, composerActions);
+  const mentionStatus = node("p"); mentionStatus.id = "discussion-mention-status";
+  mentionStatus.setAttribute("role", "status"); mentionStatus.hidden = true;
+  composer.append(mentionStatus);
   listen(body, "input", () => { sizeReplyBody(); controller?.setDraft(body.value); });
   listen(body, "compositionstart", () => { composing = true; });
   listen(body, "compositionend", () => {
@@ -236,6 +242,9 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     event.preventDefault();
     if (submit.disabled || posting || !controller) return;
     posting = true;
+    const submitted = lastState;
+    const invokeAi = !privateRoot && submitted?.draft.mode !== "edit" && hasAiMention(submitted?.draft.body);
+    mentionStatus.hidden = true;
     if (lastState) render(lastState);
     try {
       if (privateRoot && lastState?.draft.mode === "root" && onPrivateSend) {
@@ -246,7 +255,40 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
             privateRoot = false; controller.discardDraft();
           }
         }
-      } else await controller.submitDraft();
+      } else {
+        const accepted = await controller.submitDraft();
+        if (accepted && invokeAi && !disposed) {
+          mentionStatus.textContent = text("uiAiMentionUnavailable"); mentionStatus.hidden = false;
+          const current = controller.currentState(), created = current.createdPost;
+          const samePage = current.phase === "ready" && !current.needsFreshRead &&
+            current.actorId === submitted.actorId && current.sourceId === submitted.sourceId &&
+            current.topicId === submitted.topicId &&
+            current.catalog?.version?.generation === submitted.catalog?.version?.generation &&
+            JSON.stringify(current.resolution ?? null) === JSON.stringify(submitted.resolution ?? null);
+          const target = samePage && created && created.actorId === submitted.actorId &&
+            created.sourceId === submitted.sourceId && created.id !== submitted.createdPost?.id
+            ? resolveDiscussionTarget(current, created.id, {
+              topicId: created.topicId, discussionId: created.discussionId,
+              ...(created.rootId ? { rootId: created.rootId } : {}) }) : null;
+          if (target?.target.actorType === "human" && target.target.authorId === submitted.actorId &&
+              target.target.body === submitted.draft.body && selectedPostingSource(current)) {
+            const ai = lastInsightState?.ai ?? insightController?.currentState?.()?.ai;
+            if (!insightController || !ai?.planEnabled || !ai?.model) {
+              mentionStatus.textContent = text("uiAiMentionSetup"); mentionStatus.hidden = false;
+              openInsightSetup();
+            } else {
+              mentionStatus.hidden = true;
+              let generated = false;
+              try {
+                generated = await insightController.createFollowup(target.target.id,
+                  ...(target.earlier ? [{ topicId: target.topicId, discussionId: target.discussionId,
+                    rootId: target.root.id, rootBody: target.root.body, targetBody: target.target.body }] : []));
+              } catch { /* Fixed local guidance; a provider operation is never replayed. */ }
+              if (!generated && !disposed) mentionStatus.hidden = false;
+            }
+          }
+        }
+      }
     }
     finally { posting = false; if (lastState && !disposed) render(lastState); }
   });
@@ -265,12 +307,6 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   const relatedDiscussionsList = node("div"); relatedDiscussionsList.className = "related-discussions-list";
   relatedDiscussions.append(relatedDiscussionsHeading, relatedDiscussionsList);
   feed.append(relatedDiscussions);
-  const relatedPageSuggestions = node("section"); relatedPageSuggestions.id = "discussion-related-page-suggestions";
-  relatedPageSuggestions.className = "related-page-suggestions user-only"; relatedPageSuggestions.hidden = true;
-  const relatedPageSuggestionsHeading = node("h3", "relatedSuggestionsHeading");
-  const relatedPageSuggestionsList = node("div"); relatedPageSuggestionsList.className = "related-page-suggestions-list";
-  relatedPageSuggestions.append(relatedPageSuggestionsHeading, relatedPageSuggestionsList);
-  feed.append(relatedPageSuggestions);
   const provenance = node("p"); provenance.id = "discussion-provenance"; provenance.className = "developer-only"; root.append(provenance);
   const learnedControls = node("section"); learnedControls.id = "discussion-learned-controls";
   const learnedIntro = node("p", "discussionCorrectionIntro");
@@ -492,17 +528,20 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       } catch { /* Invalid projections never become navigable links. */ }
     }
     if (entry === rootEntry && entry.regrouped === true) card.append(node("p", "discussionRegrouped"));
-    if (uiMode === "user" && entry !== rootEntry && entry.replyToId && entry.replyToId !== rootEntry.id) {
-      const parent = rootEntry.replies?.find((item) => item.id === entry.replyToId);
+    if (uiMode === "user" && entry !== rootEntry && entry.replyToId) {
+      const parent = entry.replyToId === rootEntry.id ? rootEntry
+        : rootEntry.replies?.find((item) => item.id === entry.replyToId);
       const parentActor = state.catalog.actors.find((item) => item.id === parent?.authorId);
       const parentGenerated = parent?.insight?.kind === "generated";
       const operator = actorName(state.catalog.actors.find((item) => item.id === parent?.insight?.operatorId));
       const parentName = parent?.state === "deleted" ? text("discussionDeleted")
-        : parent?.actorType === "agent" ? text(parentGenerated ? "uiGeneratedInsightOperator" : "uiImportedInsightOperator")
+        : parent?.actorType === "agent" ? parentGenerated ? "AI" : text("uiImportedInsightOperator")
           .replace("{operator}", operator) : actorName(parentActor);
       if (parentName) {
         const parentCue = node("p"); parentCue.className = "discussion-parent-cue";
-        parentCue.textContent = text("uiInReplyTo").replace("{author}", compactText(parentName, 48));
+        parentCue.textContent = `@${compactText(parentName, 48)}:`;
+        parentCue.setAttribute("data-reply-to-id", entry.replyToId);
+        parentCue.setAttribute("aria-label", text("uiInReplyTo").replace("{author}", parentName));
         if (parent?.state === "visible" && parent.actorType === "agent") {
           const provenance = text(parentGenerated ? "uiGeneratedInsightProvenance" : "discussionImportedInsight")
             .replace("{operator}", operator);
@@ -550,6 +589,11 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
         typeof rootEntry.body === "string" && typeof entry.body === "string") {
       action("discussionGetInsights", () => {
         if (!insightController || !insightTarget(entry.id, lastState, destination)) return;
+        const ai = lastInsightState?.ai ?? insightController.currentState?.()?.ai;
+        if (uiMode === "user" && ai && (ai.planEnabled === false || ai.model === "")) {
+          openInsightSetup();
+          return;
+        }
         if (uiMode === "developer") {
           const workspace = document.querySelector?.("#insight-workspace");
           if (workspace) workspace.open = true;
@@ -579,8 +623,6 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
   let renderedUiMode;
   let renderedRelatedDiscussions;
   let renderedRelatedContext;
-  let renderedRelatedPages;
-  let relatedPagesContext;
   let observedViewKey;
   let observedContributionIds = new Set();
   let observedDiscussion = false;
@@ -908,6 +950,8 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       "context-unverified": "discussionContextUnverified" }[state.error];
     const resolving = state.resolution?.enabled === true &&
       ["checking", "processing"].includes(state.resolution?.phase);
+    const retainedMatchingReadOnly = state.phase === "loading" && Boolean(state.discussion) &&
+      state.resolution?.enabled === true && ["checking", "processing", "error"].includes(state.resolution?.phase);
     const matchingError = state.resolution?.enabled === true &&
       (state.resolution?.phase === "error" || state.resolution?.phase === "unsupported" &&
         ["capture-budget", "capture-time-budget", "capture-node-budget", "capture-head-budget",
@@ -917,7 +961,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     const alternateFailed = alternateApplicable && Boolean(state.alternateError);
     const priorFailed = Boolean(state.sourceId && state.priorDiscussionsError);
     const readError = state.phase === "error" || matchingError || alternateFailed || priorFailed || Boolean(state.relatedError);
-    const loadingDiscussions = uiMode === "user" && !state.needsFreshRead &&
+    const loadingDiscussions = uiMode === "user" && !retainedMatchingReadOnly && !state.needsFreshRead &&
       (["connecting", "loading"].includes(state.phase) || resolving && state.phase !== "ready")
       && (!state.error || state.error === "context-changed") && !readError;
     status.setAttribute("data-loading", String(loadingDiscussions));
@@ -971,12 +1015,11 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       body.value = state.draft.body;
     body.rows = uiMode === "user" && state.draft.mode === "reply" ? 1 : 3;
     sizeReplyBody();
-    const loadingSelected = state.phase === "loading" && Boolean(state.topicId && state.sourceId) &&
+    const loadingSelected = state.phase === "loading" && !retainedMatchingReadOnly && Boolean(state.topicId && state.sourceId) &&
       state.catalog?.sources.some((entry) => entry.id === state.sourceId && entry.topicId === state.topicId);
-    composer.hidden = uiMode === "user" && !posting && !selectedTopicReady && !loadingSelected &&
+    const stagingRoot = uiMode === "user" && canStageRootDraft(state);
+    composer.hidden = uiMode === "user" && !posting && !selectedTopicReady && !loadingSelected && !stagingRoot &&
       !state.draft.body.trim() && !state.draft.detached && state.draft.mode === "root";
-    const stagingRoot = uiMode === "user" && state.draft.mode === "root" && !state.draft.detached && loadingSelected &&
-      !state.busy && !state.needsFreshRead;
     body.disabled = !ready && !stagingRoot && !(posting && state.phase === "ready" && !state.needsFreshRead);
     body.readOnly = posting;
     detached.hidden = !state.draft.detached;
@@ -1461,40 +1504,6 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
       renderedRelatedDiscussions = relatedSignature;
       renderedRelatedContext = paginationContext;
     }
-    const projectedPages = projectRelatedPages(state);
-    const hasVisibleConversations = displayRoots.some((entry) => visibleThread(entry).shown) ||
-      readOnlyRelated.some((entry) => entry.roots.some((root) =>
-        root.state !== "deleted" || visibleThread(root).shown));
-    const showRelatedPages = uiMode === "user" && state.phase === "ready" && !hasVisibleConversations &&
-      !readError && !loadingDiscussions && !state.error && !state.needsFreshRead &&
-      projectedPages.contextKey !== null && !projectedPages.loading && projectedPages.pages.length > 0;
-    relatedPageSuggestions.hidden = !showRelatedPages;
-    if (projectedPages.contextKey && projectedPages.contextKey !== relatedPagesContext) {
-      presentationPages.delete("pages"); relatedPagesContext = projectedPages.contextKey;
-    }
-    const suggestedPageWindow = showRelatedPages ? pageWindow("pages", projectedPages.pages) : [];
-    const pageSignature = JSON.stringify(showRelatedPages ? [projectedPages.contextKey, projectedPages.pages,
-      presentationPages.get("pages")] : null);
-    if (changedThread || pageSignature !== renderedRelatedPages) {
-      threadHandlers = threadHandlers.filter(([item, callback]) => {
-        if (item.parentElement?.getAttribute("data-pagination-key") !== "pages") return true;
-        item.removeEventListener("click", callback); return false;
-      });
-      const cards = (showRelatedPages ? suggestedPageWindow : []).map((page) => {
-        const card = node("a"); card.className = "related-page-card";
-        card.href = page.url; card.target = "_blank"; card.rel = "noopener noreferrer";
-        card.referrerPolicy = "no-referrer";
-        const title = node("span"); title.className = "related-page-title"; title.textContent = page.title;
-        const hostname = node("span"); hostname.className = "related-page-hostname"; hostname.textContent = page.hostname;
-        const outgoing = node("span"); outgoing.className = "related-page-outgoing"; outgoing.textContent = "↗";
-        outgoing.setAttribute("aria-hidden", "true");
-        card.append(title, hostname, outgoing); return card;
-      });
-      const controls = showRelatedPages ? pager("pages", projectedPages.pages) : null;
-      if (controls) cards.push(controls);
-      relatedPageSuggestionsList.replaceChildren(...cards);
-      renderedRelatedPages = pageSignature;
-    }
     const modelStatus = state.related?.model?.status ?? state.catalog?.model.status;
     model.textContent = !state.catalog ? "" : text(modelStatus === "experimental-local" ? "discussionModelLearned" : modelStatus === "model-unavailable" ? "discussionModelUnavailable" : "discussionModelFixture");
     const selectedSource = state.catalog?.sources.find((source) => source.id === state.sourceId);
@@ -1532,7 +1541,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     const previousTarget = followupTarget();
     lastInsightState = state;
     const selectedTopicReady = lastState?.phase === "ready" && !lastState.busy && !lastState.needsFreshRead &&
-      !lastState.error && Boolean(lastState.discussion && lastState.related) &&
+      !lastState.error && Boolean(lastState.discussion) &&
       lastState.catalog?.topics.some((entry) => entry.id === lastState.topicId);
     const aiStatus = state?.ai?.status;
     const active = ["preparingArticle", "fetchingRelated", "generating", "resuming"].includes(aiStatus);

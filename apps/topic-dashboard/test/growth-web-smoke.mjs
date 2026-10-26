@@ -92,7 +92,8 @@ try {
   assert.match(relationshipGaps, /data-initial-paths="3"/u);
   const limited = run('limited', good, { data: { ...snapshot, schemaVersion: 2, graphLimited: true,
     counts: { ...snapshot.counts, topics: 400, multiMemberTopics: 400, singletonTopics: 0 } } });
-  assert.match(limited, /Karte pausiert: mehr als 1\.000 gelernte Seiten/u);
+  assert.match(limited, /Karte aus Kapazitätsgründen nicht enthalten/u);
+  assert.match(limited, /Dies ist kein leeres Suchergebnis\./u);
   assert.match(limited, /id="count-learned">1\.010</u);
   assert.match(limited, /id="count-topics">400</u);
   assert.match(limited, /id="count-singletons">0</u);

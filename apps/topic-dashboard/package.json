@@ -1,5 +1,5 @@
 {
-  "name": "@universal-discussion/topic-dashboard",
+  "name": "@murmingle/topic-dashboard",
   "version": "0.1.0",
   "private": true,
   "type": "module",

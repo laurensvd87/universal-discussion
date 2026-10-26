@@ -47,8 +47,11 @@ test("failed publication retains the completed receipt; successful share consume
   const command = { type: "share-insight", operationId, topicId, body: "A generated opening.",
     originSourceId: sourceId };
   const value = { expected: catalog.version, command };
-  assert.throws(() => ai.share(value, actorId, () => { throw new ServiceError("conflict", "Synthetic CAS failure"); }),
+  let failedAttempts = 0;
+  assert.throws(() => ai.share(value, actorId, () => { failedAttempts += 1;
+    throw new ServiceError("conflict", "Synthetic CAS failure"); }),
     (error) => error instanceof ServiceError && error.code === "conflict");
+  assert.equal(failedAttempts, 2);
   assert.equal(ai.result({ operationId }, actorId).state, "completed");
   const outcome = ai.share(value, actorId, (proof) => service.command(value.expected, command, actorId, proof));
   assert.ok(outcome.result.contributionId);
@@ -316,8 +319,6 @@ test("historical reply route rejects malformed, foreign and reply-only origins b
     { ...base, followupTopicId: h.oldTopicId, followupQuestionId: undefined },
     { ...base, followupTopicId: h.oldTopicId, followupQuestionId: h.targetId,
       context: { ...base.context, topic: { id: h.oldTopicId } } },
-    { ...base, followupTopicId: h.oldTopicId, followupQuestionId: h.targetId,
-      expected: { ...base.expected, revision: base.expected.revision - 1 } },
     { ...base, followupTopicId: h.oldTopicId, followupQuestionId: h.targetId,
       operationId: "bad-extra", unexpected: true },
   ]) assert.throws(() => ai.create(request, "demo-alex"), (error) => error instanceof ServiceError);

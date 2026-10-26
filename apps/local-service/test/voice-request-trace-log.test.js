@@ -17,7 +17,7 @@ function withTemp(run) {
 
 test("fixed path records only normalized diagnostic metadata for all fixed voices", () => withTemp((tempDirectory) => {
   const log = createVoiceRequestTraceLog({ tempDirectory });
-  assert.equal(log.filePath, path.join(tempDirectory, "universal-discussion-insight-trace", "voice-request-trace.log"));
+  assert.equal(log.filePath, path.join(tempDirectory, "murmingle-insight-trace", "voice-request-trace.log"));
   for (const voice of ["standard", "challenger", "funny", "clever", "sarcastic", "skeptic",
     "pragmatist", "explainer", "optimist", "realist", "mediator", "curious"]) {
     assert.equal(log.write(Object.freeze({ ...trace(Number.MAX_SAFE_INTEGER), voice })), true);

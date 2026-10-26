@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import { projectPageResolution, isReadyPageResolution } from "../browser/core/page-resolution-contract.js";
 import { EN } from "../browser/locales/en.js";
 
@@ -28,6 +29,14 @@ function embedding() { const values = Array(384).fill(0); values[0] = 1; return 
 async function harness(t, { enabled = true, paired = true, blocked = [], autoEligible = false } = {}) {
   const descriptors = new Map(["chrome", "fetch", "OffscreenCanvas"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   t.mock.timers.enable({ apis: ["setTimeout"] });
+  // Fake-clock settlement must not depend on an unrelated real crypto worker
+  // completing between two setImmediate calls. Keep exact SHA256 bytes, scoped
+  // to this test; matcher tests exercise the genuine WebCrypto implementation.
+  t.mock.method(crypto.subtle, "digest", async (algorithm, bytes) => {
+    assert.equal(algorithm, "SHA-256");
+    const digest = createHash("sha256").update(bytes).digest();
+    return digest.buffer.slice(digest.byteOffset, digest.byteOffset + digest.byteLength);
+  });
   const events = Object.fromEntries(["message", "connect", "activated", "updated", "removed", "replaced", "focus", "windowRemoved", "permissionAdded", "permissionRemoved", "storageChanged"].map((name) => [name, event()]));
   const gates = [];
   const pendingControls = [];
@@ -39,6 +48,7 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
     tab: { id: 7, active: true, incognito: false, status: "complete", url: PAGE },
     window: { id: 1, focused: true, type: "normal" }, permitted: true, exists: false,
     writeGate: null, permissionGate: null, embedGate: null, unauthorized: false, healthUnavailable: false, catalogUnavailable: false,
+    ingestFailures: [],
     windowError: false, tabQueryError: false, startWindowFailures: 0,
     popupContexts: [], panelContexts: [], popupAnswer: null,
     now: 0, windowQueryHook: null, tabQueryHook: null,
@@ -151,6 +161,9 @@ async function harness(t, { enabled = true, paired = true, blocked = [], autoEli
     }
     if (url.endsWith("/topics/topic-a/discussion")) return new Response(JSON.stringify({ version: state.catalog.version, topic: { id: "topic-a", title: "Synthetic Topic", kind: "general" }, discussionId: "discussion-a", roots: state.roots }), { headers });
     assert.ok(url.endsWith("/sources/ingest"));
+    const ingestFailure = state.ingestFailures.shift();
+    if (ingestFailure) return new Response(JSON.stringify({ error: ingestFailure === 409 ? "conflict" : "capacity" }),
+      { status: ingestFailure, headers });
     assert.ok(!options.body.includes("bounded public article sample"));
     return new Response(JSON.stringify({ version: { generation: "generation-a", revision: 1 }, sourceId: "source-a", topicId: "topic-a", assignment: "provisional", policyVersion: "provisional-all-source-cosine/v1" }), { headers });
   };
@@ -442,16 +455,17 @@ test("an automatic Start race recovers without a later tab event or popup", asyn
   assert.equal(h.state.capture.windowId, 1);
   assert.equal(h.calls.reads, 1);
 });
-test("repeated automatic Start races exhaust the bounded retry window", async (t) => {
+test("repeated automatic Start races continue at the capped retry interval", async (t) => {
   const h = await harness(t, { enabled: false, autoEligible: true }); await flush();
   h.state.startWindowFailures = 5;
   await h.advance();
   for (const delay of [2000, 4000, 8000, 16000]) await h.advanceBy(delay);
   assert.equal(h.state.startWindowFailures, 0);
   assert.equal(h.calls.reads, 0);
-  await h.advanceBy(32000);
-  assert.equal(h.calls.reads, 0);
-  assert.equal(h.state.capture.windowId, null);
+  await h.advanceBy(15999); assert.equal(h.calls.reads, 0);
+  await h.advanceBy(1);
+  assert.equal(h.calls.reads, 1);
+  assert.equal(h.state.capture.windowId, 1);
 });
 for (const change of ["stop", "block", "window-close", "unpair", "permission-revoked"]) {
   test(`a pending automatic retry cannot capture after ${change}`, async (t) => {
@@ -485,16 +499,34 @@ test("navigation replaces a pending retry with a fresh active-tab observation", 
   assert.equal(ingestions.length, 1);
   assert.equal(JSON.parse(ingestions[0].body).url, h.state.tab.url);
 });
-test("automatic transient retries stop after four attempts without a new browser event", async (t) => {
+test("automatic transient retries remain single-flight and recover at the capped interval", async (t) => {
   const h = await harness(t);
   h.state.catalogUnavailable = true;
   await h.advance();
   for (const delay of [2000, 4000, 8000, 16000]) await h.advanceBy(delay);
   assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/version")).length, 5);
-  await h.advanceBy(32000);
+  await h.advanceBy(15999);
   assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/version")).length, 5);
-  assert.equal(h.calls.reads, 0);
+  h.state.catalogUnavailable = false;
+  await h.advanceBy(1);
+  assert.equal(h.calls.fetches.filter((call) => call.url.endsWith("/version")).length, 6);
+  assert.equal(h.calls.reads, 1);
 });
+
+for (const [status, reason] of [[409, "conflict"], [413, "capacity"]]) {
+  test(`a definite matching ${reason} retries inside the unchanged capture lease`, async (t) => {
+    const h = await harness(t);
+    h.state.ingestFailures.push(status);
+    await h.advance();
+    const failed = await h.send("status");
+    assert.equal(failed.phase, "error"); assert.equal(failed.reason, reason);
+    assert.equal(h.calls.reads, 1);
+    await h.advanceBy(2000);
+    const recovered = await h.send("status");
+    assert.equal(recovered.phase, "ready"); assert.equal(recovered.reason, null);
+    assert.equal(h.calls.reads, 2);
+  });
+}
 for (const change of ["unsupported-url", "incognito"]) {
   test(`a ${change} page does not trigger automatic foreground retries`, async (t) => {
     const h = await harness(t, { enabled: false, autoEligible: true });

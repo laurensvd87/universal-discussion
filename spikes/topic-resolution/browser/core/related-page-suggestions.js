@@ -20,7 +20,7 @@ function safeUrl(value) {
 export function projectRelatedPages(state) {
   try {
     const resolution = state?.resolution;
-    const loading = ["connecting", "loading"].includes(state?.phase) ||
+    const loading = state?.enrichmentPending === true || ["connecting", "loading"].includes(state?.phase) ||
       ["checking", "processing"].includes(resolution?.phase);
     if (state?.phase !== "ready" || state.error || state.needsFreshRead ||
         state.connected === false || !validId(state.sourceId) || !validId(state.topicId) ||
@@ -77,7 +77,7 @@ export function projectRelatedPages(state) {
           (candidate.relationship === "same-topic" && source.topicId !== state.topicId)) continue;
       append(source, source.topicId === state.topicId ? "same-topic" : "related");
     }
-    return output(contextKey, pages);
+    return output(contextKey, pages, loading);
   } catch {
     return output(null);
   }

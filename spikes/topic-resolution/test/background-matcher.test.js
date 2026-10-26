@@ -3,6 +3,7 @@ import test from "node:test";
 import { createBackgroundMatcher } from "../browser/core/background-matcher.js";
 import { createInferenceHost } from "../browser/chromium/inference-host.js";
 import { createLocalServiceClient, LocalServiceClientError } from "../browser/core/local-service-client.js";
+import { inputText } from "../browser/embedding/embedding-contract.js";
 
 const url = "https://example.com/article";
 const origin = "https://example.com";
@@ -48,7 +49,7 @@ function fixture(overrides = {}) {
     nextOperationId: () => "operation-a", ...overrides,
   };
   const matcher = createBackgroundMatcher(dependencies);
-  return { matcher, state, calls, dependencies };
+  return { matcher, state, calls, dependencies, capture };
 }
 test("background matching sends only explicit fields and resolves delayed Topic", async () => {
   const { matcher, calls } = fixture();
@@ -60,6 +61,20 @@ test("background matching sends only explicit fields and resolves delayed Topic"
   assert.deepEqual(payload.expected, { generation: "g", revision: 4 });
   assert.ok(!JSON.stringify(matcher.currentState()).includes("bounded article text"));
   assert.ok(!JSON.stringify(payload).includes("bounded article text"));
+});
+test("a successful ingestion followed by a local witness failure is never automatically replayable", async () => {
+  let ingestions = 0;
+  const base = fixture({ readForeground: async () => {
+    if (ingestions > 0) throw Object.assign(new Error("synthetic local witness failure"), { code: "unavailable" });
+    return { tabId: 1, windowId: 1, url };
+  } });
+  const ingest = base.dependencies.client.ingest;
+  base.dependencies.client.ingest = async payload => { ingestions++; return ingest(payload); };
+  await base.matcher.refresh();
+  assert.equal(ingestions, 1);
+  assert.equal(base.matcher.currentState().phase, "error");
+  assert.equal(base.matcher.currentState().reason, "unavailable");
+  assert.equal(base.matcher.canRetry(), false);
 });
 test("session/tracking URLs keep an exact document witness but ingest only the public Source", async () => {
   const base = fixture();
@@ -86,16 +101,16 @@ test("session/tracking URLs keep an exact document witness but ingest only the p
 });
 for (const stage of ["catalog", "read", "embed", "attest", "ingest"]) {
   test(`changing only a stripped session during ${stage} rejects late matching`, async () => {
-    const pending = deferred();
+    const pending = deferred(), entered = deferred();
     const base = fixture(stage === "embed" ? { embed: async () => {
-      await pending.promise; return { modelId: "browser", values: [1] };
+      entered.resolve(); await pending.promise; return { modelId: "browser", values: [1] };
     } } : {});
     base.state.tab.url = `${url}?sid=synthetic-first`;
     const target = stage === "catalog" || stage === "ingest" ? base.dependencies.client :
       stage === "read" || stage === "attest" ? base.dependencies.reader : base.dependencies;
     const original = target[stage];
-    if (stage !== "embed") target[stage] = async (...args) => { await pending.promise; return original(...args); };
-    const work = base.matcher.refresh(); await tick();
+    if (stage !== "embed") target[stage] = async (...args) => { entered.resolve(); await pending.promise; return original(...args); };
+    const work = base.matcher.refresh(); await entered.promise;
     base.state.tab.url = `${url}?sid=synthetic-second`;
     pending.resolve(); await work;
     assert.notEqual(base.matcher.currentState().phase, "ready");
@@ -154,7 +169,7 @@ test("identical attested refresh reuses the current source without another write
   assert.equal(revision, 5);
   assert.equal(attestations, 2);
   assert.deepEqual(base.calls.map((call) => typeof call === "string" ? call : "ingest"),
-    ["read", "embed", "ingest", "read", "embed"]);
+    ["read", "embed", "ingest", "read"]);
   assert.equal(base.matcher.currentState().phase, "ready");
   assert.equal(base.matcher.currentState().topicId, "topic-a");
 });
@@ -173,13 +188,101 @@ test("changed vector, catalog or session requires ingestion again", async () => 
         version: { generation: "g", revision } };
     };
     await base.matcher.refresh();
-    if (change === "vector") vector = 0.9;
+    if (change === "vector") { vector = 0.9; base.capture.result.text += ' Changed fixed-model input.'; }
     if (change === "version") revision++;
     if (change === "link") linkedTopic = "topic-b";
     if (change === "session") base.state.sessionRevision++;
     await base.matcher.refresh();
     assert.equal(base.calls.filter((call) => typeof call === "object").length, 2, change);
   }
+});
+
+function computationFixture(overrides={}) {
+  let revision=4,operation=0;
+  const base=fixture({...overrides,nextOperationId:()=>`operation-${++operation}`,client:{
+    async version(){return{version:{generation:'g',revision}};},
+    async ingest(payload){base.calls.push(payload);revision++;return{version:{generation:'g',revision},sourceId:'source-a',topicId:'topic-a',assignment:'provisional'};},
+  }});
+  return {...base,advanceRevision(){revision++;}};
+}
+const embedCalls = base => base.calls.filter(call=>call==='embed').length;
+const writes = base => base.calls.filter(call=>typeof call==='object');
+
+test('same-document computation reuse keeps fresh capture and native attestation and current-revision write flow', async () => {
+  const base=computationFixture();let attestations=0;
+  base.dependencies.reader.attest=async()=>{attestations++;return{status:'attested'};};
+  await base.matcher.refresh();await base.matcher.refresh();
+  assert.equal(embedCalls(base),1);assert.equal(base.calls.filter(call=>call==='read').length,2);assert.equal(attestations,2);assert.equal(writes(base).length,1);
+  base.advanceRevision();await base.matcher.refresh();
+  assert.equal(embedCalls(base),1,'new revision reuses computation, never old Ready authority');
+  assert.equal(writes(base).length,2);assert.notEqual(writes(base)[0].operationId,writes(base)[1].operationId);
+  assert.ok(writes(base)[1].expected.revision>writes(base)[0].expected.revision);
+  assert.deepEqual(Object.keys(writes(base)[1]).sort(),['embedding','expected','extractorVersion','operationId','title','url']);
+  assert.equal(JSON.stringify(base.matcher.currentState()).includes('inputDigest'),false);
+});
+
+test('computation reuse requires exact tab/window/document URL/document/session/title/extractor/input witnesses', async () => {
+  for(const change of ['tab','window','url','document','session','title','extractor','input','surrogate']){
+    const base=computationFixture();
+    if(change==='surrogate')base.capture.result.text='Synthetic \ud800';
+    await base.matcher.refresh();
+    if(change==='tab')base.state.tab.tabId++;
+    if(change==='window'){base.state.tab.windowId++;base.state.sessionWindowId++;}
+    if(change==='url')base.state.tab.url+='?sid=different-native-document';
+    if(change==='document')base.capture.documentId='replacement-document';
+    if(change==='session')base.state.sessionRevision++;
+    if(change==='title')base.capture.result.title='Changed title';
+    if(change==='extractor')base.capture.result.extractorVersion='article-container-prefix/v1';
+    if(change==='input')base.capture.result.text+=' Changed input.';
+    if(change==='surrogate')base.capture.result.text='Synthetic \ud801';
+    await base.matcher.refresh();assert.equal(embedCalls(base),2,change);
+  }
+});
+
+test('digest rejection or invalid digest disables reuse and falls back to ordinary embedding', async () => {
+  for(const digestInput of [async()=>{throw new Error('synthetic unavailable digest');},async()=>null,async()=>'',async()=>new Uint8Array(32)]){
+    const base=computationFixture({digestInput});await base.matcher.refresh();await base.matcher.refresh();
+    assert.equal(embedCalls(base),2);assert.equal(writes(base).length,1);assert.equal(base.matcher.currentState().phase,'ready');
+  }
+});
+
+test('default digest input bounds agree with the fixed embedding contract without importing its runtime into core', async t => {
+  const digest=crypto.subtle.digest.bind(crypto.subtle);let hashes=0;
+  t.mock.method(crypto.subtle,'digest',async(...args)=>{hashes++;return digest(...args);});
+  for(const text of ['ordinary text','main\ntext\tregion','x'.repeat(4096),'','  ','x'.repeat(4097),null,1,'x\u0000y','x\u007fy']){
+    let accepted=true;try{inputText(text);}catch{accepted=false;}
+    const before=hashes;
+    const base=computationFixture({embed:async value=>{inputText(value);return{modelId:'synthetic',values:[1]};}});
+    base.capture.result.text=text;await base.matcher.refresh();
+    assert.equal(hashes-before,accepted?1:0);assert.equal(base.matcher.currentState().phase,accepted?'ready':'error');
+    base.matcher.dispose();
+  }
+});
+
+test('delayed hashing cannot reuse computation after invalidation or permission loss', async () => {
+  for(const action of ['invalidate','permission']){
+    const pending=deferred();let digests=0;
+    const base=computationFixture({digestInput:async()=>++digests===1?'a'.repeat(64):pending.promise});
+    await base.matcher.refresh();const refresh=base.matcher.refresh();await tick();
+    if(action==='invalidate')base.matcher.invalidate();else base.state.permitted=false;
+    pending.resolve('a'.repeat(64));await refresh;
+    assert.notEqual(base.matcher.currentState().phase,'ready');assert.equal(embedCalls(base),1);assert.equal(writes(base).length,1);
+  }
+});
+
+test('cached computation never bypasses failed native attestation and failure clears subsequent reuse', async () => {
+  const base=computationFixture();await base.matcher.refresh();
+  base.dependencies.reader.attest=async()=>({status:'document-changed'});
+  await base.matcher.refresh();assert.equal(base.matcher.currentState().phase,'unsupported');assert.equal(writes(base).length,1);assert.equal(embedCalls(base),1);
+  base.dependencies.reader.attest=async()=>({status:'attested'});
+  await base.matcher.refresh();assert.equal(embedCalls(base),2);assert.equal(writes(base).length,2);
+});
+
+test('an uncertain write never seeds computation reuse or automatic retry authority', async () => {
+  const base=computationFixture();const ingest=base.dependencies.client.ingest;let failed=false;
+  base.dependencies.client.ingest=async payload=>{if(!failed){failed=true;throw Object.assign(new Error('synthetic lost acknowledgement'),{code:'unavailable'});}return ingest(payload);};
+  await base.matcher.refresh();assert.equal(base.matcher.canRetry(),false);assert.equal(base.matcher.currentState().phase,'error');
+  await base.matcher.refresh();assert.equal(embedCalls(base),2);assert.equal(base.matcher.currentState().phase,'ready');
 });
 
 test("a permission interruption clears reuse even after permission returns", async () => {
@@ -272,6 +375,7 @@ test("a conflicting ingestion is not retried or reported as a match", async () =
   await base.matcher.refresh();
   assert.equal(count, 1); assert.equal(base.matcher.currentState().reason, "conflict");
   assert.equal(base.matcher.currentState().topicId, null);
+  assert.equal(base.matcher.canRetry(), false);
 });
 
 async function confirmedConflict() {
@@ -283,6 +387,16 @@ async function confirmedConflict() {
       embedding: { modelId: "e5-small-q8-browser-main-prefix-v1", values: [1, ...Array(383).fill(0)] } });
   } catch (error) { return error; }
   assert.fail("Expected transport conflict");
+}
+async function confirmedCapacity() {
+  const client = createLocalServiceClient({ getToken: () => "synthetic-test-capability-for-client-only",
+    fetchImpl: async () => new Response('{"error":"capacity"}', { status: 413, headers: { "content-type": "application/json" } }) });
+  try {
+    await client.ingest({ expected: { generation: "g", revision: 4 }, operationId: "operation-a", url,
+      title: "Synthetic", extractorVersion: "main-text-prefix/v1",
+      embedding: { modelId: "e5-small-q8-browser-main-prefix-v1", values: [1, ...Array(383).fill(0)] } });
+  } catch (error) { return error; }
+  assert.fail("Expected transport capacity");
 }
 function recoveryFixture({ legacy = false, fresh = { generation: "g", revision: 6 } } = {}) {
   const base = fixture();
@@ -352,13 +466,23 @@ for (const error of [new LocalServiceClientError("conflict"), { code: "conflict"
   assert.equal(base.payloads.length, 1);
   assert.deepEqual(base.events, ["version", "attest"]);
   assert.notEqual(base.matcher.currentState().phase, "ready");
+  assert.equal(base.matcher.canRetry(), false);
 });
-test("a second confirmed matching conflict remains terminal", async () => {
+test("a second confirmed matching conflict ends the inline attempt but permits fenced backoff", async () => {
   const base = recoveryFixture();
   base.dependencies.client.ingest = async payload => { base.payloads.push(payload); throw await confirmedConflict(); };
   await base.matcher.refresh();
   assert.equal(base.payloads.length, 2); assert.equal(base.operations(), 1);
   assert.equal(base.matcher.currentState().reason, "conflict");
+  assert.equal(base.matcher.canRetry(), true);
+});
+test("a confirmed matching capacity rejection permits fenced backoff without an inline replay", async () => {
+  const base = recoveryFixture();
+  base.dependencies.client.ingest = async payload => { base.payloads.push(payload); throw await confirmedCapacity(); };
+  await base.matcher.refresh();
+  assert.equal(base.payloads.length, 1); assert.equal(base.operations(), 1);
+  assert.equal(base.matcher.currentState().reason, "capacity");
+  assert.equal(base.matcher.canRetry(), true);
 });
 for (const stage of ["conflict", "version", "attest", "result"]) {
   for (const change of ["navigate", "document", "stop", "session", "window", "tab", "close", "permission", "block", "unpaired", "invalidate", "dispose"]) {

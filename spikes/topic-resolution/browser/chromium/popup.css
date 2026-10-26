@@ -916,9 +916,7 @@ body[data-ui-mode="user"] .discussion-replies {
   margin-left: 7px; border-left: 2px solid #7a96f5; padding-left: 9px;
 }
 body[data-ui-mode="user"] .discussion-reply-children {
-  margin-left: 8px; border-left: 2px solid #fa9c76; padding-left: 8px;
-}
-body[data-ui-mode="user"] .discussion-reply-children .discussion-reply-children {
+  /* Canonical branches retain collapse/paging, but every reply shares one inset. */
   margin-left: 0; border-left: 0; padding-left: 0;
 }
 body[data-ui-mode="user"] .discussion-branch-toggle {
@@ -1213,8 +1211,7 @@ body[data-ui-mode="user"] .discussion-parent-cue { color: var(--ink-soft) !impor
 body[data-ui-mode="user"] .discussion-actor-badge-human { color: #cbd3ff; background: #343d64; }
 body[data-ui-mode="user"] .discussion-actor-badge-agent { color: #dfc9ff; background: #49375f; }
 body[data-ui-mode="user"] .discussion-replies { margin-left: 10px; padding-left: 10px; border-color: #51588c; }
-body[data-ui-mode="user"] .discussion-reply-children { margin-left: 10px; padding-left: 10px; border-color: #51588c; }
-body[data-ui-mode="user"] .discussion-reply-children .discussion-reply-children { margin-left: 0; padding-left: 0; border: 0; }
+body[data-ui-mode="user"] .discussion-reply-children { margin-left: 0; padding-left: 0; border: 0; }
 body[data-ui-mode="user"] .discussion-source-link { color: #c5caff; border-color: var(--line); background: var(--surface-muted); border-radius: 9px; }
 body[data-ui-mode="user"] .discussion-source-link:hover { background: #303445; }
 body[data-ui-mode="user"] .related-discussions { border-color: var(--line); }
@@ -1635,3 +1632,16 @@ body[data-ui-mode="user"] #discussion-root-dock #discussion-composer .discussion
 .account-profile-button:focus-visible { outline: 2px solid #c2b4ff; outline-offset: 3px; }
 @media (max-width: 340px) { .account-profile-button { max-width: 8rem; padding-inline: .4rem; } }
 @media (prefers-reduced-motion: reduce) { .account-profile-button { transition: none; } }
+.topic-space-panel { padding-bottom: 1rem; }
+.topic-space-panel form { display: flex; flex-wrap: wrap; gap: .4rem; }
+.topic-space-panel form label { flex-basis: 100%; }
+.topic-space-panel input[type="search"] { min-width: 0; flex: 1; }
+.topic-space-panel input[type="range"] { display: block; width: 100%; margin: .5rem 0; }
+.topic-space-slider-endpoints { display: flex; justify-content: space-between; font-size: .8rem; color: var(--ink-soft, #586676); margin: -.3rem 0 .5rem; }
+.topic-space-panel article > input[type="text"] { display: block; width: 100%; max-width: 100%; box-sizing: border-box; margin-bottom: .5rem; }
+.topic-space-panel article > label { display: block; margin-top: .5rem; }
+.topic-space-panel section > label { display: block; margin-top: .6rem; }
+.topic-space-panel article { overflow-wrap: anywhere; }
+.topic-space-panel article section { margin-top: .6rem; }
+.topic-space-panel article section > button { text-align: left; }
+.topic-space-panel nav { display: flex; justify-content: space-between; margin-top: .6rem; }

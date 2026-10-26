@@ -110,7 +110,7 @@ globalThis.__topicAtlasPreview = globalThis.__smokeBridgeReads === 1 ? ${JSON.st
   assert.match(result.stdout, /id="map" viewBox="125 87\.5 750 525"/u);
   assert.match(result.stdout, /class="page-row active"/u);
   assert.match(result.stdout, /id="map-title">Neues Topic/u);
-  assert.match(result.stdout, /Kein neuer Datenstand\. Prüfe, ob der Watcher läuft\./u);
+  assert.match(result.stdout, /Momentaufnahme unverändert; keine neuen Katalogänderungen bekannt\./u);
   const ordinary = spawnSync(browser, [
     '--headless=new', '--disable-gpu', '--disable-background-networking', '--no-first-run',
     `--user-data-dir=${path.join(temporary, 'ordinary-profile')}`, '--virtual-time-budget=3600', '--dump-dom', pathToFileURL(file).href,

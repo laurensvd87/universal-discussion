@@ -64,10 +64,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   let database;
   try {
     const config = await loadConfig(process.env, { role: 'worker' });
-    if (config.database.user !== 'udl_app') throw new Error('App role required');
+    if (config.database.user !== 'murmingle_app') throw new Error('App role required');
     const tokens = {
-      alex: await readSecretFile(process.env.UDL_ALEX_TOKEN_FILE),
-      blair: await readSecretFile(process.env.UDL_BLAIR_TOKEN_FILE),
+      alex: await readSecretFile(process.env.MURMINGLE_ALEX_TOKEN_FILE),
+      blair: await readSecretFile(process.env.MURMINGLE_BLAIR_TOKEN_FILE),
     };
     database = await createPgDatabase({ config: config.database });
     process.stdout.write(`${JSON.stringify(await verifySyntheticDatabase({ database, tokens }))}\n`);

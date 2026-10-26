@@ -61,7 +61,7 @@ function rawRequest(text, { end = true } = {}) {
 }
 
 test("separate integration guard denies external I/O and non-approved endpoints", () => {
-  assert.ok(globalThis[Symbol.for("universal-discussion.loopback-capability-guard")]);
+  assert.ok(globalThis[Symbol.for("murmingle.loopback-capability-guard")]);
   const denied = (fn) => assert.throws(fn, { code: "LOOPBACK_CAPABILITY_DENIED" });
   denied(() => lookup("example.com", () => {}));
   denied(() => fetch("http://127.0.0.1:4174/v1/health"));
@@ -74,7 +74,7 @@ test("separate integration guard denies external I/O and non-approved endpoints"
 });
 
 test("approved fixed loopback transport, rejection bounds, persistence and restart pairing", { timeout: 30000 }, async () => {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-loopback-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-loopback-"));
   const databasePath = path.join(directory, "demo.sqlite");
   let application;
   try {
@@ -172,7 +172,7 @@ test("approved fixed loopback transport, rejection bounds, persistence and resta
     try { await application?.close(); } finally {
       const target = path.resolve(directory);
       assert.equal(path.dirname(target), path.resolve(os.tmpdir()));
-      assert.ok(path.basename(target).startsWith("udl-loopback-"));
+      assert.ok(path.basename(target).startsWith("murmingle-loopback-"));
       rmSync(target, { recursive: true, force: true });
     }
   }

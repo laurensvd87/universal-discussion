@@ -13,12 +13,19 @@ function string(value, max, empty = false) {
 }
 function id(value) { if (!ID.test(string(value, 128))) throw new TypeError("Invalid identifier"); return value; }
 function count(value) { if (!Number.isSafeInteger(value) || value < 0) throw new TypeError("Invalid count"); return value; }
+function readScope(value) {
+  const descriptor = Object.getOwnPropertyDescriptor(value, "scope");
+  if (!descriptor) return {};
+  if (!descriptor.enumerable || !Object.hasOwn(descriptor, "value") || typeof descriptor.value !== "string" ||
+      !/^[a-f0-9]{64}$/u.test(descriptor.value)) throw new TypeError("Invalid read-only scope");
+  return {scope:descriptor.value};
+}
 function url(value) {
   if (inspectPageUrl(value)?.url !== value || !inspectPageUrl(value)?.supported) throw new TypeError("Invalid source URL");
   return value;
 }
 export function readDiscovery(value) {
-  record(value); record(value.version);
+  record(value); readScope(value); record(value.version);
   id(value.version.generation); count(value.version.revision); string(value.query, 256, true);
   if (!Array.isArray(value.results) || value.results.length > 25 ||
       !(value.nextCursor === null || typeof value.nextCursor === "string" && value.nextCursor.length <= 2048)) throw new TypeError("Invalid discovery page");
@@ -110,8 +117,9 @@ export function readAccountPublicChatsRequest(action, value) {
   return {...(action === "read" ? {rootId:readId(item.rootId)} : {}),after:publicCursor(item.after),limit:item.limit,...(hasQuery?{query:item.query.replace(/\s+/gu," ").trim()}: {})};
 }
 export function readAccountPublicChatsResponse(action, value, rootId = null) {
-  const item = exactRecord(value, action === "list" ? ["version", "chats", "next"] : ["version", "conversation", "messages", "next"]);
-  const common = {version:readVersion(item.version),next:publicCursor(item.next)};
+  const scope = readScope(value);
+  const item = exactRecord(value, [...(action === "list" ? ["version", "chats", "next"] : ["version", "conversation", "messages", "next"]),...Object.keys(scope)]);
+  const common = {version:readVersion(item.version),next:publicCursor(item.next),...scope};
   if (action === "list") return {...common,chats:publicArray(item.chats,publicChat)};
   if (action !== "read") throw new TypeError("Invalid chat action");
   const conversation = publicChat(item.conversation);

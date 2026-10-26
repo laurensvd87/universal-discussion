@@ -4,7 +4,7 @@ import { createIngestionWorkerQueue } from "./ingestion-worker-queue.js";
 import { ServiceError, fail } from "../domain/errors.js";
 import { frozenClone, readExpectedVersion, readId, readRecord } from "../domain/validation.js";
 
-export const CANONICAL_READ_METHODS = Object.freeze(["catalogContext", "alternateDiscussion", "priorDiscussions", "related",
+export const CANONICAL_READ_METHODS = Object.freeze(["catalogContext", "selection", "alternateDiscussion", "priorDiscussions", "related",
   "catalog", "catalogPage", "discussion", "discussionPage", "exactSource", "enrichment", "warmMatching"]);
 const fixedError = code => new ServiceError(code, code === "conflict" ? "State changed" : "Public read unavailable");
 
@@ -40,9 +40,10 @@ export function canonicalReadInput(method, input, version) {
     const record = readRecord(value, ["sourceId", "topicId", "includeAlternate"]);
     if (typeof record.includeAlternate !== "boolean") fail("invalid", "Invalid request");
     value = { sourceId: readId(record.sourceId), topicId: readId(record.topicId), includeAlternate: record.includeAlternate };
-  } else if (method === "catalogContext") {
+  } else if (["catalogContext", "selection"].includes(method)) {
     const record = readRecord(value, ["sourceId", "topicId"]);
     value = { sourceId: record.sourceId === null ? null : readId(record.sourceId), topicId: record.topicId === null ? null : readId(record.topicId) };
+    if (method === "selection" && value.topicId === null) fail("invalid", "Invalid request");
   } else if (method === "related") {
     const record = readRecord(value, ["sourceId", "limit"]);
     if (!Number.isInteger(record.limit) || record.limit < 0 || record.limit > 100) fail("invalid", "Invalid request");

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { rankRelatedSources } from "../browser/core/related-sources.js";
+import { rankRelatedSources, prepareRelatedSources, prepareRelatedSource, createRelatedSourcesPreparation, parseRelatedEmbeddingJson } from "../browser/core/related-sources.js";
 
 const embedding = (values, modelId = "hand-authored-test-vectors/v1") => ({ modelId, values });
 const source = (id, overrides = {}) => ({
@@ -15,6 +15,50 @@ const query = () => source("query");
 const rejects = (operation) => assert.throws(operation, {
   name: "TypeError",
   message: "Invalid related-source input",
+});
+
+test("optional fallback returns just the best 0.80+ candidate only when ordinary results are empty", () => {
+  const options = { limit: 20, minSimilarity: 0.88, fallbackMinSimilarity: 0.8 };
+  const scored = (id, score) => source(id, { embedding: embedding([score, Math.sqrt(1 - score * score)]) });
+  const cases = [
+    [[scored("below", 0.799999)], []],
+    [[source("boundary", { embedding: embedding([0.8, 0.6]) })], ["boundary"]],
+    [[scored("a", 0.81), scored("best", 0.87), scored("c", 0.85)], ["best"]],
+    [[scored("weak", 0.87), scored("strong", 0.9), scored("stronger", 0.95)], ["stronger", "strong"]],
+    [[source("query"), source("same-url", { url: query().url }), scored("best", 0.85)], ["best"]],
+    [[scored("b", 0.85), scored("a", 0.85), scored("a", 0.85)], ["a"]],
+    [[scored("weak", 0.85), source("incompatible", { embedding: embedding([1, 0], "another-model") })], ["weak"]],
+    [[source("missing", { embedding: null }), source("dimension", { embedding: embedding([1, 0, 0]) })], []],
+  ];
+  for (const [candidates, expected] of cases) {
+    const before = structuredClone(candidates);
+    const result = rankRelatedSources(query(), candidates, options);
+    assert.deepEqual(result.map(item => item.id), expected);
+    assert.deepEqual(prepareRelatedSources(candidates).rank(query(), options), result);
+    const tokenPreparation = createRelatedSourcesPreparation();
+    tokenPreparation.appendPrepared(candidates.map(prepareRelatedSource));
+    assert.deepEqual(tokenPreparation.finish().rankPrepared(prepareRelatedSource(query()), options), result);
+    assert.deepEqual(rankRelatedSources(query(), candidates.toReversed(), options), result);
+    assert.deepEqual(rankRelatedSources(query(), candidates, { ...options, limit: 0 }), []);
+    assert.deepEqual(candidates, before);
+    assert.ok(result.every(item => item.relationship === "related" && item.method === "vector-similarity" &&
+      !Object.hasOwn(item, "fallback")));
+  }
+  assert.deepEqual(rankRelatedSources(source("query", { topicId: "pinned" }), [
+    scored("weaker", 0.85), source("confirmed", { topicId: "pinned", embedding: null }),
+  ], options).map(item => item.id), ["confirmed"]);
+});
+
+test("fallback settings and every candidate stay fully validated", () => {
+  for (const fallbackMinSimilarity of [NaN, Infinity, -1.01, 0.89, "0.8", null, undefined]) {
+    rejects(() => rankRelatedSources(query(), [], { minSimilarity: 0.88, fallbackMinSimilarity }));
+  }
+  const options = { limit: 0, minSimilarity: 0.88, fallbackMinSimilarity: 0.8 };
+  const bad = source("malformed-late", { embedding: embedding([NaN, 0]) });
+  rejects(() => rankRelatedSources(query(), [source("strong"), bad], options));
+  rejects(() => prepareRelatedSources([source("strong"), bad]));
+  const withGetter = { minSimilarity: 0.88, get fallbackMinSimilarity() { assert.fail("accessor executed"); } };
+  rejects(() => rankRelatedSources(query(), [], withGetter));
 });
 
 test("compatible hand-authored vectors retrieve related sources without assigning a Topic", () => {
@@ -221,6 +265,18 @@ test("dimension and string bounds are enforced with generic errors", () => {
   assert.equal(rankRelatedSources(source("query", { embedding: embedding(Array(1_536).fill(1)) }), [maximum]).length, 1);
 });
 
+test("prepared relational catalogs have a finite 16 Mi-unit budget; direct input stays at 8", () => {
+  const url = `https://example.org/${'x'.repeat(8100)}`;
+  const candidate = source('large', { url, embedding: embedding([1]) });
+  const underPreparedBudget = Array(1100).fill(candidate);
+  rejects(() => rankRelatedSources(query(), underPreparedBudget, { limit: 0 }));
+  const prepared = prepareRelatedSources(underPreparedBudget);
+  assert.deepEqual(prepared.rank(query(), { limit: 0 }), []);
+  // Exhaustive validation still happens after crossing the legacy document cap.
+  rejects(() => prepareRelatedSources([...underPreparedBudget, { ...candidate, title: '' }]));
+  rejects(() => prepareRelatedSources(Array(2200).fill(candidate)));
+});
+
 test("oversized candidate and vector arrays reject before descriptor enumeration", () => {
   let getterCalls = 0;
   let descriptorEnumerations = 0;
@@ -250,4 +306,46 @@ test("invalid/credentialed/non-web URL values reject without exposing input in e
     "https://user:private-secret@example.com/", " https://example.com/",
     "https://example.com/line\nbreak", "https:\\example.com/private-secret",
   ]) rejects(() => rankRelatedSources(query(), [source("candidate", { url })]));
+});
+
+test('opaque prepared Sources preserve exact scores, own their copies and cannot be forged', () => {
+  const options = { limit: 100, minSimilarity: 0.88, fallbackMinSimilarity: 0.8 };
+  for (const values of [[0.88, Math.sqrt(1-0.88**2), -0], [Number.MIN_VALUE, 0, -0], [1e300, 1e299, -0]]) {
+    const input = source('candidate', { embedding: embedding(values) });
+    const current = source('query', { embedding: embedding([1,0,-0]) });
+    const expected = rankRelatedSources(current, [input], options);
+    const token = prepareRelatedSource(input), queryToken = prepareRelatedSource(current);
+    assert.deepEqual(Object.keys(token), []);
+    assert.ok(Object.isFrozen(token));
+    input.title = 'later changed'; input.embedding.values.fill(-1); current.embedding.values.fill(-1);
+    const p = createRelatedSourcesPreparation(); p.appendPrepared([token]);
+    assert.deepEqual(p.finish().rankPrepared(queryToken, options), expected);
+    rejects(() => prepareRelatedSources([token]));
+  }
+  const p = createRelatedSourcesPreparation(); p.appendPrepared([prepareRelatedSource(source('ok'))]);
+  rejects(() => p.appendPrepared([Object.freeze({})]));
+  rejects(() => p.finish());
+  const ready = prepareRelatedSources([source('candidate')]);
+  rejects(() => ready.rankPrepared(Object.freeze({})));
+  rejects(() => ready.rankPrepared(source('query')));
+  let getters = 0;
+  const values = [1,0]; Object.defineProperty(values,'0',{enumerable:true,get(){getters++;return 1;}});
+  rejects(() => prepareRelatedSource(source('bad', {embedding:embedding(values)})));
+  assert.equal(getters,0);
+});
+
+test('parser-owned and untrusted inputs mint the same exact prepared ranking without repeat reads', () => {
+  const current = source('query'), plain = source('candidate', { embedding:embedding([.88,Math.sqrt(1-.88**2)]) });
+  const owned = {...plain,embedding:parseRelatedEmbeddingJson(JSON.stringify(plain.embedding))};
+  const options = {limit:20,minSimilarity:.88,fallbackMinSimilarity:.8};
+  const expected = rankRelatedSources(current,[plain],options), queryToken=prepareRelatedSource(current);
+  for(const input of [plain,owned]) {
+    const p=createRelatedSourcesPreparation();p.appendPrepared([prepareRelatedSource(input)]);
+    assert.deepEqual(p.finish().rankPrepared(queryToken,options),expected);
+  }
+  const token=prepareRelatedSource(source('large',{url:`https://example.org/${'x'.repeat(8100)}`,embedding:embedding([1])}));
+  const p=createRelatedSourcesPreparation();
+  p.appendPrepared(Array(1100).fill(token));
+  rejects(()=>p.appendPrepared(Array(1100).fill(token)));
+  rejects(()=>p.finish());
 });

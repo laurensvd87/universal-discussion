@@ -42,6 +42,68 @@ test("production enrichment stays one-flight and cannot delay canonical Ready or
   assert.equal(ui.controller.currentState().related.version.revision, ready.catalog.version.revision);
 });
 
+test("scoped alternate Topics publish before slow optional enrichment settles", async t => {
+  const optional = deferred();
+  let ui, alternateReads = 0;
+  ui = harness({ client: {
+    async catalog() {
+      const catalog = structuredClone(ui.service.catalog());
+      catalog.sources.push({ id: "learned-fast", url: "https://example.com/fast", title: "Fast overlap",
+        provenance: "owner-local-page-embedding/v1", topicId: "reserved-domain-demo" });
+      return catalog;
+    },
+    async enrichment({ sourceId, topicId }) {
+      if (sourceId === "learned-fast") return optional.promise;
+      return enrichmentBundle(ui, sourceId, topicId);
+    },
+    async alternateDiscussion(sourceId, catalog, discussion) {
+      alternateReads += 1;
+      return { mode: "alternate-provisional", sourceId, version: catalog.version,
+        policyVersion: RIDGE_POLICY, representation: RIDGE_REPRESENTATION,
+        canonical: { topic: discussion.topic, discussionId: discussion.discussionId },
+        sourceIds: [sourceId], roots: [], pinnedRoots: [] };
+    },
+  } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.open();
+  await ui.controller.selectSource("learned-fast");
+  await turn();
+  const state = ui.controller.currentState();
+  assert.equal(state.phase, "ready");
+  assert.equal(state.enrichmentPending, true);
+  assert.equal(state.alternateDiscussion?.sourceId, "learned-fast");
+  assert.equal(alternateReads, 1);
+});
+
+test("atomic canonical selection replaces an older held catalog after an unrelated revision", async t => {
+  const optional = deferred();
+  let ui, selectionInput = null, contextReads = 0, splitReads = 0, heldRevision = null;
+  ui = harness({ client: {
+    async catalogContext() { contextReads += 1; return ui.service.catalog(); },
+    async selection(input) {
+      selectionInput = input;
+      heldRevision = ui.controller.currentState().catalog.version.revision;
+      ui.service.command(ui.service.catalog().version,
+        { type: "create-topic", title: "Unrelated concurrent topic", kind: "general" }, "demo-alex");
+      const catalog = ui.service.catalog();
+      assert.ok(catalog.version.revision > heldRevision);
+      return { catalog, discussion: ui.service.discussion(input.topicId) };
+    },
+    async discussion() { splitReads += 1; throw new Error("split discussion read must not run"); },
+    async enrichment() { return optional.promise; },
+  } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.open();
+  const current = ui.controller.currentState();
+  assert.deepEqual(selectionInput, { sourceId: "reserved-example-com", topicId: "reserved-domain-demo" });
+  assert.equal(current.phase, "ready");
+  assert.ok(current.catalog.version.revision > heldRevision);
+  assert.equal(current.catalog.version.revision, current.discussion.version.revision);
+  assert.equal(current.discussion.topic.id, "reserved-domain-demo");
+  assert.equal(splitReads, 0);
+  assert.equal(contextReads, 2);
+});
+
 test("slow failed enrichment keeps canonical feed and bounded retries cancel on navigation", async t => {
   const pending = new Map(), delays = []; let serial = 0, optionalCalls = 0;
   const ui = harness({ client: { async enrichment() { optionalCalls++; throw Object.assign(new Error("synthetic busy"), { code: "capacity" }); } },
@@ -504,6 +566,40 @@ test("distinct related Topics with visible posts load read-only below the curren
   assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
 });
 
+test("a same-generation later related discussion revision remains a valid read-only preview", async () => {
+  let candidates;
+  const ui = harness({ client: {
+    async catalog() { return candidates.catalog; },
+    async related() { return candidates.related; },
+    async discussion(id) {
+      const view = candidates.discussion(id);
+      return id === "related-topic-0" ? { ...view,
+        version: { ...view.version, revision: view.version.revision + 7 } } : view;
+    },
+  } });
+  candidates = relatedCandidates(ui.service, 1, [0]);
+  await ui.controller.open(); await turn();
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions.map((entry) => entry.topicId),
+    ["related-topic-0"]);
+});
+
+test("a later related view still needs the exact catalog Topic metadata", async () => {
+  let candidates;
+  const ui = harness({ client: {
+    async catalog() { return candidates.catalog; },
+    async related() { return candidates.related; },
+    async discussion(id) {
+      const view = candidates.discussion(id);
+      return id === "related-topic-0" ? { ...view,
+        version: { ...view.version, revision: view.version.revision + 1 },
+        topic: { ...view.topic, title: "Changed after the selected catalog snapshot" } } : view;
+    },
+  } });
+  candidates = relatedCandidates(ui.service, 1, [0]);
+  await ui.controller.open(); await turn();
+  assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
+});
+
 test("related discussions keep searching after four empty Topics", async () => {
   let candidates;
   const ui = harness({ client: {
@@ -578,8 +674,8 @@ test("an unauthorized result in the same batch overrides a filled related-card q
   assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
 });
 
-test("late batch after navigation or version change cannot publish old related cards", async () => {
-  for (const stale of ["tab", "version"]) {
+test("late batch after navigation, an older revision, or another generation cannot publish related cards", async () => {
+  for (const stale of ["tab", "older-version", "foreign-generation"]) {
     let candidates;
     const pending = deferred();
     const ui = harness({ client: {
@@ -590,12 +686,16 @@ test("late batch after navigation or version change cannot publish old related c
         return candidates.discussion(id);
       },
     } });
+    ui.service.command(ui.service.catalog().version,
+      { type: "create-topic", title: "Revision floor", kind: "general" }, "demo-alex");
     candidates = relatedCandidates(ui.service, 5, [0, 4]);
     await ui.controller.open();
     await turn();
     if (stale === "tab") ui.invalidate();
+    else if (stale === "older-version") pending.resolve({ ...candidates.discussion("related-topic-4"),
+      version: { ...candidates.catalog.version, revision: candidates.catalog.version.revision - 1 } });
     else pending.resolve({ ...candidates.discussion("related-topic-4"),
-      version: { ...candidates.catalog.version, revision: candidates.catalog.version.revision + 1 } });
+      version: { ...candidates.catalog.version, generation: "foreign-generation" } });
     if (stale === "tab") pending.resolve(candidates.discussion("related-topic-4"));
     await turn();
     assert.deepEqual(ui.controller.currentState().relatedDiscussions, []);
@@ -708,9 +808,11 @@ function earlierFixture(overrides = {}) {
           rootId: id, replyToId: id, state: "visible", body: "Full historical reply",
           authorId: "demo-alex", actorType: "human" },
           ...(acceptedReply?.rootId === id ? [acceptedReply] : [])] });
-      return { ...view, version: overrides.staleVersion ?
-        { ...view.version, revision: view.version.revision + 1 } : view.version,
-        roots: [root("same-page", "reserved-example-com"),
+      return { ...view, version: { ...view.version,
+        revision: view.version.revision + (overrides.versionOffset ?? 0),
+        ...(overrides.generation ? { generation: overrides.generation } : {}) },
+        roots: [root("same-page", Object.hasOwn(overrides, "rootSourceId") ?
+          overrides.rootSourceId : "reserved-example-com"),
           root("other-page", "reserved-example-org"), root("no-origin", null)] };
     },
   } });
@@ -737,6 +839,23 @@ test("earlier Source roots preload visibly and bind only exact same-Source repli
   assert.equal(await ui.controller.shareInsight({ replyToId: "same-page" }), false);
   assert.equal(ui.requests.filter(([kind, id]) => kind === "discussion" && id === "harbor-s2").length, 1);
   assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+test("a same-generation later earlier-discussion revision stays presentation-only", async () => {
+  const ui = earlierFixture({ versionOffset: 5 });
+  await ui.controller.open(); await turn();
+  const state = ui.controller.currentState();
+  assert.equal(state.earlierDiscussions.length, 1);
+  assert.equal(state.earlierDiscussions[0].version.revision,
+    state.catalog.version.revision + 5);
+  assert.equal(ui.controller.begin("reply", "same-page", {
+    topicId: "harbor-s2", discussionId: state.earlierDiscussions[0].discussionId }), false);
+  assert.equal(ui.controller.currentState().draft.mode, "root");
+});
+test("a later earlier-discussion view cannot move a historical root to another Source", async () => {
+  const ui = earlierFixture({ versionOffset: 1, rootSourceId: "reserved-example-org" });
+  await ui.controller.open(); await turn();
+  assert.deepEqual(ui.controller.currentState().earlierDiscussions, []);
+  assert.equal(ui.controller.currentState().discussion.topic.id, "reserved-domain-demo");
 });
 test("historical human reply uses its original discussion and cues the accepted post without changing Source", async () => {
   const ui = earlierFixture({ acceptReply: true });
@@ -769,9 +888,12 @@ test("earlier preload is fenced on navigation, manual selection, and logout", as
     assert.deepEqual(ui.controller.currentState().earlierDiscussions, []);
   }
 });
-test("stale or unavailable earlier reads do not hide current discussion", async () => {
-  for (const options of [{ staleVersion: true }, { error: "unavailable" }]) {
+test("older, foreign-generation, or unavailable earlier reads do not hide current discussion", async () => {
+  for (const options of [{ versionOffset: -1, raiseRevision: true },
+    { generation: "foreign-generation" }, { error: "unavailable" }]) {
     const ui = earlierFixture(options);
+    if (options.raiseRevision) ui.service.command(ui.service.catalog().version,
+      { type: "create-topic", title: "Earlier revision floor", kind: "general" }, "demo-alex");
     await ui.controller.open(); await turn();
     const state = ui.controller.currentState();
     assert.equal(state.phase, "ready");
@@ -922,6 +1044,40 @@ test("extension pairing RPC failure stays distinct from local HTTP outage", asyn
   assert.equal(ui.controller.currentState().error, "extension-connection-unavailable");
   assert.equal(healthCalls, 0);
   assert.equal(ui.clears(), 0);
+});
+
+test("a generated share review survives only a same-generation advancing crawler revision", async () => {
+  let accepted = null;
+  const ui = harness({ client: { async command(expected, command, actorId) {
+    ui.requests.push(["command", command]);
+    accepted = { expected, command, actorId };
+    return { result: { contributionId: "synthetic-generated-post" } };
+  } } });
+  await ui.controller.open();
+  const reviewed = ui.controller.currentState();
+  const review = { topicId: reviewed.topicId, sourceId: reviewed.sourceId,
+    actorId: reviewed.actorId, expected: reviewed.discussion.version,
+    body: "A generated answer already reviewed by the user.", operationId: "generated-operation-0001" };
+  ui.service.command(ui.service.catalog().version,
+    { type: "create-topic", title: "Unrelated crawler Topic", kind: "general" }, "demo-alex");
+  await ui.controller.open();
+  const advanced = ui.controller.currentState();
+  assert.ok(advanced.discussion.version.revision > review.expected.revision);
+  assert.equal(await ui.controller.shareInsight(review), true);
+  assert.equal(accepted.expected.revision, advanced.discussion.version.revision);
+  assert.equal(accepted.expected.generation, review.expected.generation);
+  assert.equal(accepted.command.type, "share-insight");
+  assert.equal(accepted.command.operationId, review.operationId);
+  const calls = ui.requests.filter(([kind]) => kind === "command").length;
+  assert.equal(await ui.controller.shareInsight({ ...review,
+    expected: { ...review.expected, revision: advanced.discussion.version.revision + 1 } }), false);
+  assert.equal(await ui.controller.shareInsight({ ...review,
+    expected: { ...review.expected, generation: "foreign-generation" } }), false);
+  for (const invalid of [{ topicId: "harbor-s2" }, { sourceId: "reserved-example-org" },
+    { actorId: "demo-blair" }, { body: " " }, { replyToId: "missing-target" }]) {
+    assert.equal(await ui.controller.shareInsight({ ...review, ...invalid }), false);
+  }
+  assert.equal(ui.requests.filter(([kind]) => kind === "command").length, calls);
 });
 
 test("root and reply link their own deliberately selected Sources; manual Topic has no origin", async () => {
@@ -1282,8 +1438,7 @@ test("bounded catalog selects an exact learned Source outside the initial slice 
   await ui.controller.open();
   assert.equal(ui.controller.currentState().phase, "ready");
   assert.equal(ui.controller.currentState().sourceId, learned.sourceId);
-  assert.deepEqual(contexts[0], { sourceId: null, topicId: null });
-  assert.deepEqual(contexts[1], { sourceId: learned.sourceId, topicId: learned.topicId });
+  assert.deepEqual(contexts[0], { sourceId: learned.sourceId, topicId: learned.topicId });
   await ui.controller.selectTopic(learned.topicId);
   assert.deepEqual(contexts.at(-1), { sourceId: null, topicId: learned.topicId });
   assert.equal(ui.controller.currentState().sourceId, null);
@@ -1492,19 +1647,181 @@ test("delayed learned readiness loads real service Topic and comment; manual sel
   assert.equal(ui.controller.currentState().draft.detached, false);
 });
 
-test("background document/processing changes detach drafts without retargeting, late stale status rejected on submit", async () => {
+test("same-page matching retries retain the saved discussion read-only and recover exact authority", async () => {
+  const ui = backgroundHarness(); await ui.controller.open(); const learned = ui.ingest(); await ui.publish();
+  ui.controller.setDraft("Saved canonical message"); assert.equal(await ui.controller.submitDraft(), true);
+  ui.controller.setDraft("Unsent text remains locked while matching retries");
+  const commands = ui.requests.filter(([type]) => type === "command").length;
+  ui.setResolution({ phase: "checking", reason: null, documentId: null, sourceId: null, topicId: null,
+    assignment: null, sequence: 2 });
+  await ui.publish();
+  let current = ui.controller.currentState();
+  assert.equal(current.phase, "loading");
+  assert.equal(current.sourceId, learned.sourceId); assert.equal(current.topicId, learned.topicId);
+  assert.equal(current.discussion.roots[0].body, "Saved canonical message");
+  assert.equal(current.draft.body, "Unsent text remains locked while matching retries");
+  ui.controller.setDraft("Local draft can change while matching retries");
+  assert.equal(ui.controller.currentState().draft.body, "Local draft can change while matching retries");
+  assert.equal(ui.controller.begin("reply", current.discussion.roots[0].id), false);
+  assert.equal(await ui.controller.submitDraft(), false);
+  assert.equal(ui.requests.filter(([type]) => type === "command").length, commands);
+
+  ui.setResolution({ phase: "error", reason: "conflict", sequence: 3 }); await ui.publish();
+  current = ui.controller.currentState();
+  assert.equal(current.phase, "loading"); assert.equal(current.discussion.roots[0].body, "Saved canonical message");
+
+  ui.setResolution({ phase: "ready", reason: null, documentId: "doc-1", sourceId: learned.sourceId,
+    topicId: learned.topicId, assignment: "provisional", sequence: 4 });
+  await ui.publish();
+  current = ui.controller.currentState();
+  assert.equal(current.phase, "ready"); assert.equal(current.sourceId, learned.sourceId);
+  assert.equal(current.discussion.roots[0].body, "Saved canonical message");
+  assert.equal(current.draft.detached, false);
+  assert.equal(current.draft.body, "Local draft can change while matching retries");
+});
+
+test("initial matching failure bypasses a failing broad catalog and loads the exact saved URL read-only", async () => {
+  let ui; const selectedUrls = []; let broadReads = 0;
+  ui = backgroundHarness({ client: {
+    async catalogContext({ sourceId, topicId }) {
+      if (sourceId && topicId) return ui.service.catalog();
+      broadReads += 1; throw Object.assign(new Error("broad catalog unavailable"), { code: "unavailable" });
+    },
+    async urlSelection({ url }) {
+      selectedUrls.push(url);
+      const catalog = ui.service.catalog();
+      const source = catalog.sources.find((entry) => entry.url === url && entry.provenance === "owner-local-page-embedding/v1");
+      return { catalog, discussion: ui.service.discussion(source.topicId) };
+    },
+  } });
+  const learned = ui.ingest();
+  const canonicalUrl = ui.resolution().url;
+  ui.service.command(ui.service.catalog().version, { type: "create-root", topicId: learned.topicId,
+    originSourceId: learned.sourceId, body: "Saved while the matcher is busy" }, "demo-alex");
+  const documentUrl = `${canonicalUrl}?sid=private-session&utm_source=tracking`;
+  ui.setResolution({ phase: "error", reason: "conflict", documentId: null,
+    sourceId: null, topicId: null, assignment: null, sequence: 2,
+    url: documentUrl, currentUrl: documentUrl });
+  await ui.controller.open();
+  const current = ui.controller.currentState();
+  assert.equal(broadReads, 0);
+  assert.deepEqual(selectedUrls, [canonicalUrl]);
+  assert.equal(JSON.stringify(selectedUrls).includes("private-session"), false);
+  assert.equal(current.phase, "loading");
+  assert.equal(current.selection, "background");
+  assert.equal(current.sourceId, learned.sourceId);
+  assert.equal(current.topicId, learned.topicId);
+  assert.equal(current.discussion.roots[0].body, "Saved while the matcher is busy");
+  ui.controller.setDraft("@AI Local draft awaits matcher Ready");
+  assert.equal(ui.controller.currentState().draft.body, "@AI Local draft awaits matcher Ready");
+  assert.equal(ui.controller.begin("reply", current.discussion.roots[0].id), false);
+  assert.equal(await ui.controller.submitDraft(), false);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  ui.setResolution({ phase: "ready", reason: null, documentId: "doc-1", sourceId: learned.sourceId,
+    topicId: learned.topicId, assignment: "provisional", sequence: 3 });
+  await ui.publish();
+  assert.equal(ui.controller.currentState().phase, "ready");
+  assert.equal(ui.controller.currentState().draft.body, "@AI Local draft awaits matcher Ready");
+  assert.equal(ui.controller.currentState().draft.detached, false);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  ui.controller.dispose();
+});
+
+test("late exact URL selection cannot attach after the current tab navigates", async () => {
+  const pending = deferred(); let ui;
+  ui = backgroundHarness({ client: { async urlSelection() { return pending.promise; } } });
+  const learned = ui.ingest();
+  ui.setResolution({ phase: "processing", reason: "matching", documentId: "doc-1",
+    sourceId: null, topicId: null, assignment: null, sequence: 2 });
+  const opening = ui.controller.open(); await turn();
+  const catalog = ui.service.catalog();
+  ui.setResolution({ currentUrl: `${ui.resolution().url}?navigation=changed`, sequence: 3 });
+  pending.resolve({ catalog, discussion: ui.service.discussion(learned.topicId) });
+  await opening;
+  const current = ui.controller.currentState();
+  assert.equal(current.discussion, null);
+  assert.equal(current.sourceId, null);
+  assert.equal(current.topicId, null);
+  assert.notEqual(current.phase, "ready");
+  ui.controller.dispose();
+});
+
+test("navigation still clears a retained read-only matching snapshot and detaches its draft", async () => {
   const ui = backgroundHarness(); await ui.controller.open(); ui.ingest(); await ui.publish();
-  ui.controller.setDraft("Keep this text detached");
-  ui.setResolution({ phase: "checking", documentId: null, sourceId: null, topicId: null, sequence: 2 }); await ui.publish();
-  assert.equal(ui.controller.currentState().discussion, null); assert.equal(ui.controller.currentState().draft.detached, true);
-  const catalogSource = ui.service.catalog().sources.find((source) => source.provenance === "owner-local-page-embedding/v1");
-  ui.setResolution({ phase: "ready", documentId: "doc-2", sourceId: catalogSource.id, topicId: catalogSource.topicId, assignment: "provisional" });
-  await ui.publish(); assert.equal(ui.controller.currentState().draft.detached, true);
-  ui.controller.reattachDraft();
-  ui.setResolution({ currentUrl: ui.resolution().url + "?navigation=changed" });
+  ui.controller.setDraft("Do not carry this text across navigation");
+  ui.setResolution({ phase: "checking", reason: null, documentId: null, sourceId: null, topicId: null,
+    assignment: null, sequence: 2 });
+  await ui.publish(); assert.ok(ui.controller.currentState().discussion);
+  ui.controller.setDraft("Typed during matching before navigation");
+  ui.setResolution({ currentUrl: ui.resolution().url + "?navigation=changed", sequence: 3 });
+  await ui.publish();
+  assert.equal(ui.controller.currentState().discussion, null);
+  assert.equal(ui.controller.currentState().sourceId, null);
+  assert.equal(ui.controller.currentState().draft.detached, true);
+  assert.equal(ui.controller.currentState().draft.body, "Typed during matching before navigation");
   assert.equal(await ui.controller.submitDraft(), false);
   assert.equal(ui.requests.some(([type]) => type === "command"), false);
-  assert.equal(ui.controller.currentState().draft.detached, true);
+});
+
+test("a replacement document witness clears the retained snapshot before loading its canonical selection", async () => {
+  const published = [];
+  const ui = backgroundHarness({ onStateChange: state => published.push(state) });
+  await ui.controller.open(); const learned = ui.ingest(); await ui.publish();
+  ui.controller.setDraft("This draft belongs to the first document witness");
+  ui.setResolution({ phase: "checking", reason: null, documentId: null, sourceId: null, topicId: null,
+    assignment: null, sequence: 2 });
+  await ui.publish(); assert.ok(ui.controller.currentState().discussion);
+  ui.controller.setDraft("Typed while waiting for the first document to match");
+
+  const replacementStart = published.length;
+  ui.setResolution({ phase: "ready", reason: null, documentId: "doc-2", sourceId: learned.sourceId,
+    topicId: learned.topicId, assignment: "provisional", sequence: 3 });
+  await ui.publish();
+
+  const replacementStates = published.slice(replacementStart);
+  assert.ok(replacementStates.some(state => state.discussion === null && state.sourceId === null &&
+    state.topicId === null && state.draft.detached),
+  "the old snapshot must be removed before the replacement document is read");
+  const current = ui.controller.currentState();
+  assert.equal(current.phase, "ready");
+  assert.equal(current.sourceId, learned.sourceId);
+  assert.equal(current.draft.detached, true);
+  assert.equal(current.draft.body, "Typed while waiting for the first document to match");
+});
+
+test("account change detaches a local root draft staged during saved-page matching", async t => {
+  const ui = backgroundHarness(); t.after(() => ui.controller.dispose());
+  await ui.controller.open(); ui.ingest(); await ui.publish();
+  ui.setResolution({ phase: "processing", reason: "matching", sourceId: null, topicId: null,
+    assignment: null, sequence: 2 });
+  await ui.publish();
+  ui.controller.setDraft("@AI Local text belongs to the previous account");
+  assert.equal(ui.controller.currentState().draft.detached, false);
+  ui.controller.accountChanged();
+  await turn();
+  const current = ui.controller.currentState();
+  assert.equal(current.draft.detached, true);
+  assert.equal(current.draft.body, "@AI Local text belongs to the previous account");
+  ui.controller.setDraft("Do not silently attach to the new account");
+  assert.equal(ui.controller.currentState().draft.body, current.draft.body);
+  assert.equal(await ui.controller.submitDraft(), false);
+  assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+});
+
+test("a null or malformed resolution cannot preserve a saved background discussion", async () => {
+  for (const invalidResolution of [null, { phase: "checking" }]) {
+    const ui = backgroundHarness(); await ui.controller.open(); ui.ingest(); await ui.publish();
+    ui.controller.setDraft("Detach when the matcher loses its validated context");
+    await ui.controller.updatePageResolution(invalidResolution);
+    const current = ui.controller.currentState();
+    assert.equal(current.discussion, null);
+    assert.equal(current.sourceId, null);
+    assert.equal(current.topicId, null);
+    assert.equal(current.draft.detached, true);
+    assert.equal(await ui.controller.submitDraft(), false);
+    assert.equal(ui.requests.some(([type]) => type === "command"), false);
+    ui.controller.dispose();
+  }
 });
 
 test("correction pauses before fresh-version write, detaches unsent text and moves source-anchored root with its Topic", async () => {

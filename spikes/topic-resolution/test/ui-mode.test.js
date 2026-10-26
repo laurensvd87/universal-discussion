@@ -3,6 +3,15 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createUiModePreference, UI_MODE_KEY } from "../browser/chromium/ui-mode.js";
 import { mountPopupShell, projectDiscussionShell } from "../browser/chromium/popup-shell.js";
+
+test("verified health evidence remains connected during selected-page read and matching failures", () => {
+  const state = { phase: "error", error: "unavailable", serviceConnection: "connected", catalog: { topics: [] },
+    resolution: { enabled: true, phase: "error", reason: "unavailable" } };
+  assert.equal(projectDiscussionShell(state).connection, "connected");
+  assert.equal(projectDiscussionShell({ ...state, serviceConnection: "unavailable" }).connection, "unavailable");
+  assert.equal(projectDiscussionShell({ ...state, error: "unauthorized" }).connection, "disconnected");
+  assert.equal(projectDiscussionShell({ ...state, error: "extension-connection-unavailable" }).connection, "extension-unavailable");
+});
 import { EN } from "../browser/locales/en.js";
 import { TOPIC_VIEW_SESSION_KEY, readTopicViewMode, writeTopicViewMode } from "../browser/core/topic-view-mode.js";
 
@@ -297,6 +306,7 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   assert.equal(get("#app-source-context").hidden, true);
   assert.equal(get("#discussion-connection-settings").parentElement, get("#app-settings-connection"));
   get("#app-settings-back").click();
+  assert.equal(document.activeElement, get("#app-settings-button"), "disconnected Settings Back restores a visible toolbar control");
   const connected = { phase: "ready", catalog: { topics: [{ id: "t", title: "Topic" }],
     sources: [{ id: "s", title: "Actual page title", url: "https://example.org/story" }] }, topicId: "t", sourceId: "s",
     related: { results: [] } };
@@ -317,6 +327,11 @@ test("app navigation rehomes controls without calling Create or losing drafts", 
   get("#app-settings-button").click();
   assert.equal(get("#app-source-context").hidden, true);
   get("#app-settings-back").click();
+  assert.equal(document.activeElement, get("#discussion-body"), "connected Settings Back restores the composer");
+  get("#discussion-body").disabled = true;
+  get("#app-settings-button").click(); get("#app-settings-back").click();
+  assert.equal(document.activeElement, get("#app-settings-button"), "disabled composer cannot swallow Settings Back focus");
+  get("#discussion-body").disabled = false;
   assert.equal(get("#app-source-context").hidden, true);
   assert.equal(get("#app-navigation").hidden, false);
   get("#app-tab-discover").click();

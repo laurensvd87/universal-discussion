@@ -130,6 +130,8 @@ export const EN = Object.freeze({
   uiCommentPlaceholder: "Join the conversation…",
   uiReplyBody: "Your reply",
   uiReplyPlaceholder: "Write a reply…",
+  uiAiMentionSetup: "Message saved. Choose an AI model, then use the sparkle on your message to request a reply.",
+  uiAiMentionUnavailable: "Message saved. No AI reply was sent. You can request one using the sparkle on your message.",
   uiReplyToAuthor: "Replying to {author}",
   uiReplyUnknownAuthor: "unknown author",
   uiReplyTargetUnavailable: "Reply target unavailable",

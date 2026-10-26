@@ -74,6 +74,7 @@ test("public read validation rejects writes, getters and oversized input without
     ownKeys() { accessed = true; return []; }, getOwnPropertyDescriptor() { accessed = true; return undefined; } });
   await assert.rejects(queue.read("catalogContext", proxy, { version }), error => error.code === "invalid");
   assert.equal(accessed, false, "proxy traps never execute");
+  await assert.rejects(queue.read("selection", { sourceId: null, topicId: null }, { version }), error => error.code === "invalid");
   await assert.rejects(queue.read("catalogPage", { large: "x".repeat(65537) }, { version }), error => error.code === "invalid");
   assert.equal(workers.length, 0); await queue.close();
 });
@@ -92,6 +93,7 @@ test("real readonly worker preserves public context, related, alternate and exac
   const expected = app.service.version();
   const checks = [
     ["catalogContext", { sourceId: accepted.sourceId, topicId: accepted.topicId }],
+    ["selection", { sourceId: accepted.sourceId, topicId: accepted.topicId }],
     ["alternateDiscussion", accepted.sourceId], ["priorDiscussions", accepted.sourceId],
     ["related", { sourceId: accepted.sourceId, limit: 20 }], ["catalog", null],
     ["catalogPage", { kind: "sources", limit: 20, cursor: null }], ["discussion", accepted.topicId],

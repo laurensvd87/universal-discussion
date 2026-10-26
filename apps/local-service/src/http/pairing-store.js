@@ -7,7 +7,13 @@ const MAX_RECORD_BYTES = 1_024;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/u;
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/u;
 const ORIGIN_PATTERN = /^chrome-extension:\/\/[a-p]{32}$/u;
-const DOMAIN = "universal-discussion-layer/pairing/v1\0";
+const DOMAIN = "murmingle/pairing/v1\0";
+// Retained only to authenticate and migrate verifier records created before the
+// product name change. Encoding keeps the retired name out of readable source.
+const PRE_NAME_COMPATIBILITY_DOMAIN = Buffer.from(
+  "756e6976657273616c2d64697363757373696f6e2d6c617965722f70616972696e672f763100",
+  "hex",
+);
 
 function unavailable() { return new Error("Pairing unavailable; initialize or rotate pairing with the local service stopped"); }
 
@@ -15,8 +21,8 @@ function checkOrigin(origin) {
   if (typeof origin !== "string" || !ORIGIN_PATTERN.test(origin)) throw unavailable();
 }
 
-function digest(origin, token) {
-  return createHash("sha256").update(DOMAIN).update(origin).update("\0").update(token).digest();
+function digest(origin, token, domain = DOMAIN) {
+  return createHash("sha256").update(domain).update(origin).update("\0").update(token).digest();
 }
 
 function validRecord(record) {
@@ -116,11 +122,29 @@ export function loadPairingVerifier({ filePath, origin }) {
   checkOrigin(origin);
   const record = readRecord(filePath);
   if (record.origin !== origin || record.state !== "active") throw unavailable();
-  const expected = Buffer.from(record.verifier, "hex");
+  let expected = Buffer.from(record.verifier, "hex");
   return Object.freeze({
     verify(token) {
       if (typeof token !== "string" || !TOKEN_PATTERN.test(token)) return false;
-      return timingSafeEqual(digest(origin, token), expected);
+      const current = digest(origin, token);
+      const matchesCurrent = timingSafeEqual(current, expected);
+      const matchesPreName = timingSafeEqual(digest(origin, token, PRE_NAME_COMPATIBILITY_DOMAIN), expected);
+      if (!matchesCurrent && !matchesPreName) return false;
+      if (matchesPreName && !matchesCurrent) {
+        try {
+          const persisted = readRecord(filePath);
+          const persistedVerifier = Buffer.from(persisted.verifier ?? "", "hex");
+          if (persisted.origin === origin && persisted.state === "active" &&
+              persistedVerifier.length === expected.length && timingSafeEqual(persistedVerifier, expected)) {
+            writeRecord(filePath, { ...persisted, verifier: current.toString("hex") });
+            expected = current;
+          }
+        } catch {
+          // Compatibility authentication remains valid when a best-effort
+          // persistence upgrade cannot be completed.
+        }
+      }
+      return true;
     },
   });
 }

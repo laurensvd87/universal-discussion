@@ -212,10 +212,11 @@ export class AccountService {
   }
   setUsername(accessToken,input) {
     const {username} = shape(input,['username']); string(username,24);
-    if (!/^[A-Za-z0-9_]{3,24}$/.test(username) || RESERVED.has(username.toLowerCase())) throw new AccountError('username-unavailable');
+    const usernameKey = username.toLowerCase();
+    if (!/^[A-Za-z0-9_]{3,24}$/.test(username) || RESERVED.has(usernameKey) || usernameKey.startsWith('ai_') || usernameKey.startsWith('_ai')) throw new AccountError('username-unavailable');
     return this.repository.transaction(() => {
       const row = this.authenticated(accessToken);
-      try { this.db.prepare('UPDATE accounts SET username=?,username_key=? WHERE id=?').run(username,username.toLowerCase(),row.id); }
+      try { this.db.prepare('UPDATE accounts SET username=?,username_key=? WHERE id=?').run(username,usernameKey,row.id); }
       catch (error) { if (error.code === 'ERR_SQLITE_ERROR' && error.message.includes('UNIQUE')) throw new AccountError('username-unavailable'); throw error; }
       return this.me(accessToken);
     });

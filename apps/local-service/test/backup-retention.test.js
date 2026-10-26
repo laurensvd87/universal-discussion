@@ -40,9 +40,13 @@ test("retention serializes expiry work and sanitizes failures without stopping a
 test("backup CLI exposes fixed canonical-only create/verify/expiry actions", async () => {
   assert.deepEqual(parseBackupArguments([]), { operation: "create" });
   assert.deepEqual(parseBackupArguments(["--prune"]), { operation: "prune" });
-  const filename = "canonical-2026-10-12T12-00-00-000Z-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.udlbackup";
+  const filename = "canonical-2026-10-12T12-00-00-000Z-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.murmingle-backup";
+  // Encoded suffix covers command-line verification of still-live pre-name files.
+  const preNameSuffix = Buffer.from("LnVkbGJhY2t1cA==", "base64").toString("ascii");
+  const preNameFilename = filename.replace(".murmingle-backup", preNameSuffix);
   assert.equal(parseBackupArguments(["--verify", filename]).filename, filename);
-  for (const args of [["--database", "elsewhere"], ["--restore"], ["--verify", "../demo.sqlite"], ["--verify", filename, "extra"]])
+  assert.equal(parseBackupArguments(["--verify", preNameFilename]).filename, preNameFilename);
+  for (const args of [["--database", "elsewhere"], ["--restore"], ["--verify", "../demo.sqlite"], ["--verify", filename, "extra"], ["--verify", filename.replace("-backup", "backup")]])
     assert.throws(() => parseBackupArguments(args));
   const calls = [], output = [];
   await runBackupCli([], { dataDir, run: async value => { calls.push(value); return { filename, expiresAt: "2026-10-19T12:00:00.000Z" }; },

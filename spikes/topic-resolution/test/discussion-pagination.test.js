@@ -124,7 +124,7 @@ test("Related discussion windows hold 20 roots across topic groups with read-onl
   assert.equal(ui.all().find(item => item.attributes["data-related-topic-id"] === "related-1").open, false);
 });
 
-test("empty Discussion pages 45 retained safe page links without changing source or requesting data", () => {
+test("empty Discussion omits retained page links and their pager without changing selection", () => {
   const state = fixture([]);
   state.sourceId = "source-current";
   state.catalog.sources = [{ id: state.sourceId, topicId: "topic", title: "Current", url: "https://example.org/current" },
@@ -132,17 +132,11 @@ test("empty Discussion pages 45 retained safe page links without changing source
       title: `Source ${index}`, url: `https://example.org/page-${index}` }))];
   const ui = harness(state);
   const links = () => ui.all().filter(item => item.className === "related-page-card");
-  assert.equal(links().length, 20); assert.equal(links()[0].href, "https://example.org/page-0");
-  ui.click("pages", "next");
-  assert.equal(links().length, 20); assert.equal(links()[0].href, "https://example.org/page-20");
+  assert.equal(links().length, 0);assert.equal(ui.pager("pages"),undefined);
   ui.panel.render({ ...state, phase: "loading", discussion: null }); ui.panel.render(state);
-  assert.equal(links()[0].href, "https://example.org/page-20");
-  ui.click("pages", "next"); assert.equal(links().length, 5);
-  ui.click("pages", "previous"); assert.equal(links().length, 20);
-  assert.equal(links().some(link => link.listeners.size > 0 || descendants(link).some(child => child.attributes["data-action"])), false);
+  assert.equal(links().length, 0);assert.equal(state.sourceId,"source-current");
   ui.panel.render({ ...state, sourceId: "source-0" });
-  assert.equal(links().length, 20); assert.equal(ui.pager("pages").children[0].disabled, true);
-  assert.equal(links().some(link => link.href === "https://example.org/page-0"), false);
+  assert.equal(links().length, 0);assert.equal(ui.pager("pages"),undefined);
 });
 
 test("accepted root/reply cues select their pages and open ancestry before the one-time focus", () => {

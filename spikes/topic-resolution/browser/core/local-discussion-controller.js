@@ -31,6 +31,17 @@ export function ownsContribution(entry, actorId) {
     ? ["manual-import", "generated"].includes(entry.insight?.kind) && entry.insight.operatorId === actorId
     : entry.authorId === actorId);
 }
+// Local text staging conveys no posting or provider authority. A retained saved
+// snapshot may accept a root draft while its current-page matcher is still busy;
+// all delivery paths continue to require Ready and their fresh authority checks.
+export function canStageRootDraft(state) {
+  if (state.phase !== "loading" || state.busy || state.needsFreshRead ||
+      state.draft.mode !== "root" || state.draft.detached ||
+      !state.catalog?.sources.some(source => source.id === state.sourceId && source.topicId === state.topicId)) return false;
+  return !state.discussion || state.selection === "background" &&
+    state.discussion.topic?.id === state.topicId && state.resolution?.enabled === true &&
+    ["checking", "processing", "error"].includes(state.resolution.phase);
+}
 
 // Owns transient selection/drafts only; the service owns all canonical data.
 export function createLocalDiscussionController({ client, session, readActiveTab,
@@ -53,6 +64,10 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   let manualSelection = 0;
   let observationSequence = 0;
   let preparingLearned = false;
+  // A transient rematch clears its worker result before a replacement
+  // documentId exists. Retain only the last verified document witness so a
+  // same-URL reload cannot inherit the old discussion when matching returns.
+  let retainedBackgroundDocumentId = null;
   let alternateRequest = 0;
   let activeContext = null;
   let selectionFlight = null, resolutionFlight = null, enrichmentFlight = null;
@@ -131,8 +146,12 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   function sameVersion(left, right) {
     return left?.generation === right?.generation && left?.revision === right?.revision;
   }
+  function sameGenerationAtOrAfter(expected, observed) {
+    return expected?.generation === observed?.generation &&
+      Number.isSafeInteger(expected?.revision) && Number.isSafeInteger(observed?.revision) &&
+      observed.revision >= expected.revision;
+  }
   async function loadAlternateView(ownEpoch) {
-    if (typeof client.enrichment === "function") return loadEnrichment(ownEpoch);
     const sourceId = state.sourceId, catalog = state.catalog, discussion = state.discussion;
     const requestNumber = ++alternateRequest;
     const source = catalog?.sources.find((entry) => entry.id === sourceId);
@@ -156,6 +175,10 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     } catch (error) {
       if (ownEpoch !== epoch || requestNumber !== alternateRequest || disposed || !required && state.topicViewMode !== "experimental") return;
       if (error?.code === "unauthorized") { await failure(error, ownEpoch); return; }
+      // The combined enrichment request remains the authoritative fallback.
+      // A fast scoped projection losing a global-revision race must not flash an
+      // error while that coherent request is still in flight.
+      if (typeof client.enrichment === "function") return;
       publish({ alternateDiscussion: null, alternateError: error?.code ?? "unavailable" });
     }
   }
@@ -163,7 +186,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     if (mode !== "classic" && mode !== "experimental") return false;
     alternateRequest += 1;
     publish({ topicViewMode: mode, alternateDiscussion: null, alternateError: null });
-    if (typeof client.enrichment === "function") await loadEnrichment(epoch);
+    if (typeof client.enrichment === "function") {
+      const fast = mode === "experimental" || requiresReferenceTopicView(state.catalog, state.sourceId)
+        ? loadAlternateView(epoch) : Promise.resolve();
+      await Promise.all([fast, loadEnrichment(epoch)]);
+    }
     else if (mode === "experimental" || requiresReferenceTopicView(state.catalog, state.sourceId)) await loadAlternateView(epoch);
     return true;
   }
@@ -206,7 +233,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
           continue;
         }
         const view = outcome.value;
-        if (!sameVersion(catalog.version, view?.version) ||
+        if (!sameGenerationAtOrAfter(catalog.version, view?.version) ||
             view?.topic?.id !== batch[index] || !catalog.topics.some((topic) =>
               topic.id === view.topic.id && topic.title === view.topic.title && topic.kind === view.topic.kind)) return;
         if (!Array.isArray(view.roots) || view.roots.some((entry) => !entry ||
@@ -253,7 +280,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       for (let index = 0; index < outcomes.length; index += 1) {
         if (outcomes[index].status !== "fulfilled") continue;
         const view = outcomes[index].value, entry = batch[index];
-        if (!sameVersion(view?.version, catalog.version) ||
+        if (!sameGenerationAtOrAfter(catalog.version, view?.version) ||
             view?.topic?.id !== entry.id || view.topic.title !== entry.title ||
             view.topic.kind !== entry.kind || typeof view.discussionId !== "string" ||
             !catalog.topics.some((topic) => topic.id === entry.id &&
@@ -287,9 +314,14 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       relatedError: null, priorDiscussionsError: null, readRetryable: false });
     try {
       const options = { signal: abort.signal };
-      let catalog = state.catalog;
-      if (refreshCatalog) catalog = await readCatalogContext(sourceId, topicId, options);
-      const discussion = await client.discussion(topicId, options);
+      let catalog = state.catalog, discussion;
+      if (typeof client.selection === "function") {
+        const selected = await client.selection({ sourceId, topicId }, options);
+        catalog = selected.catalog; discussion = selected.discussion;
+      } else {
+        if (refreshCatalog) catalog = await readCatalogContext(sourceId, topicId, options);
+        discussion = await client.discussion(topicId, options);
+      }
       if (disposed || ownEpoch !== epoch || state.sourceId !== sourceId || state.topicId !== topicId) return;
       if (!sameVersion(catalog.version, discussion.version)) {
         catalog = await readCatalogContext(sourceId, topicId, options);
@@ -300,7 +332,11 @@ export function createLocalDiscussionController({ client, session, readActiveTab
           catalog.sources.find(source => source.id === sourceId)?.topicId !== topicId)
         throw Object.assign(new Error("Selection changed"), { code: "conflict" });
       publish({ catalog, discussion, actorId: postingActor(catalog), phase: "ready", error: null, readRetryable: false });
-      if (sourceId) void loadEnrichment(ownEpoch);
+      if (sourceId) {
+        if (state.topicViewMode === "experimental" || requiresReferenceTopicView(catalog, sourceId))
+          void loadAlternateView(ownEpoch);
+        void loadEnrichment(ownEpoch);
+      }
     } catch (error) { await failure(error, ownEpoch, true); }
   }
   async function enrichmentAuthority(ownEpoch, sourceId, topicId, resolution, context, actorId) {
@@ -532,6 +568,66 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     const result = await readPageResolution();
     return result === null ? null : projectPageResolution(result);
   }
+  function readOnlyPageWitness(resolution, snapshot) {
+    if (!resolution?.enabled || resolution.contextReason !== null || resolution.currentTabId === null ||
+        resolution.currentUrl === null || resolution.currentOrigin === null || resolution.currentWindowId === null ||
+        resolution.sessionWindowId !== resolution.currentWindowId || resolution.hostAccess !== true ||
+        resolution.blockedOrigins.includes(resolution.currentOrigin) ||
+        snapshot?.tabId !== resolution.currentTabId ||
+        (snapshot.windowId !== undefined && snapshot.windowId !== resolution.currentWindowId)) return null;
+    const inspected = inspectPageNavigationUrl(snapshot.url);
+    if (!inspected.supported || inspected.documentUrl !== resolution.currentUrl ||
+        inspected.origin !== resolution.currentOrigin) return null;
+    return {
+      tabId: resolution.currentTabId, windowId: resolution.currentWindowId,
+      documentUrl: inspected.documentUrl, sourceUrl: inspected.url, origin: inspected.origin,
+      sessionRevision: resolution.sessionRevision,
+      blockedOrigins: [...resolution.blockedOrigins],
+    };
+  }
+  function sameReadOnlyPageWitness(left, right) {
+    return left && right && left.tabId === right.tabId && left.windowId === right.windowId &&
+      left.documentUrl === right.documentUrl && left.sourceUrl === right.sourceUrl &&
+      left.origin === right.origin && left.sessionRevision === right.sessionRevision &&
+      left.blockedOrigins.length === right.blockedOrigins.length &&
+      left.blockedOrigins.every((origin, index) => origin === right.blockedOrigins[index]);
+  }
+  async function applyStoredUrlSelection(resolution, ownEpoch, ownManual, snapshotPromise) {
+    if (typeof client.urlSelection !== "function" || isReadyPageResolution(resolution) ||
+        ownEpoch !== epoch || disposed || ownManual !== manualSelection || state.selection === "manual") return;
+    const snapshot = await snapshotPromise;
+    const witness = readOnlyPageWitness(resolution, snapshot);
+    if (!witness || ownEpoch !== epoch || disposed || ownManual !== manualSelection || state.selection === "manual") return;
+    const ownObservation = observationSequence;
+    let selected;
+    try { selected = await client.urlSelection({ url: witness.sourceUrl }, { signal: abort.signal }); }
+    catch (error) {
+      if (error?.code === "unauthorized") throw error;
+      return;
+    }
+    if (ownEpoch !== epoch || disposed || ownManual !== manualSelection ||
+        ownObservation !== observationSequence || state.selection === "manual") return;
+    const current = await freshResolution();
+    const finalSnapshot = await readActiveTab().catch(() => null);
+    const finalWitness = readOnlyPageWitness(current, finalSnapshot);
+    if (ownEpoch !== epoch || disposed || ownManual !== manualSelection ||
+        ownObservation !== observationSequence || state.selection === "manual" ||
+        !sameReadOnlyPageWitness(witness, finalWitness)) return;
+    if (isReadyPageResolution(current)) {
+      await applyReadyResolution(current, ownEpoch, ownManual);
+      return;
+    }
+    const source = selected.catalog.sources.find((entry) => entry.url === witness.sourceUrl &&
+      entry.provenance === "owner-local-page-embedding/v1");
+    if (!source?.topicId || selected.discussion.topic.id !== source.topicId ||
+        !sameVersion(selected.catalog.version, selected.discussion.version)) return;
+    retainedBackgroundDocumentId = null;
+    publish({ catalog: selected.catalog, discussion: selected.discussion,
+      actorId: postingActor(selected.catalog), resolution: current,
+      sourceId: source.id, topicId: source.topicId, selection: "background",
+      phase: "loading", error: null, readRetryable: false, enrichmentPending: false,
+      needsFreshRead: false });
+  }
   function applyReadyResolution(resolution, ownEpoch, ownManual) {
     if (resolutionFlight?.epoch === ownEpoch && resolutionFlight.manual === ownManual &&
         samePageResolution(resolutionFlight.resolution, resolution)) return resolutionFlight.promise;
@@ -576,6 +672,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   async function updatePageResolution(input) {
     if (disposed || preparingLearned) return;
+    if (state.selection !== "background" || !state.discussion) retainedBackgroundDocumentId = null;
     let resolution;
     try { resolution = input === null ? null : projectPageResolution(input); }
     catch { resolution = null; }
@@ -588,9 +685,25 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       previous.sessionWindowId !== resolution.sessionWindowId || previous.sessionRevision !== resolution.sessionRevision ||
       previous.hostAccess !== resolution.hostAccess || previous.enabled !== resolution.enabled ||
       previous.blockedOrigins.length !== resolution.blockedOrigins.length || previous.blockedOrigins.some((value, index) => value !== resolution.blockedOrigins[index]) ||
-      previous.documentId && resolution.documentId && previous.documentId !== resolution.documentId);
+      previous.documentId && resolution.documentId && previous.documentId !== resolution.documentId ||
+      retainedBackgroundDocumentId && resolution.documentId && retainedBackgroundDocumentId !== resolution.documentId);
     const backgroundChanged = state.selection === "background" && !samePageResolution(previous, resolution);
-    if (foregroundChanged || backgroundChanged || (state.selection === "automatic" && resolution?.enabled)) {
+    const savedBackgroundSelection = state.selection === "background" && Boolean(state.catalog && state.discussion &&
+      state.sourceId && state.topicId) && !foregroundChanged && !actualWitnessChanged;
+    const transientSamePageMatch = savedBackgroundSelection &&
+      ["checking", "processing", "error"].includes(resolution?.phase);
+    const recoveredSamePageMatch = savedBackgroundSelection && isReadyPageResolution(resolution) &&
+      resolution.sourceId === state.sourceId && resolution.topicId === state.topicId;
+    if (backgroundChanged && transientSamePageMatch) {
+      retainedBackgroundDocumentId ??= previous?.documentId ?? null;
+      // Keep the accepted snapshot for reading, but move out of Ready so every
+      // existing composer, reply, mutation and Insight gate stays closed.
+      publish({ resolution, phase: "loading", error: null });
+    } else if (backgroundChanged && recoveredSamePageMatch) {
+      retainedBackgroundDocumentId = null;
+      publish({ resolution });
+    } else if (foregroundChanged || backgroundChanged || (state.selection === "automatic" && resolution?.enabled)) {
+      retainedBackgroundDocumentId = null;
       cancel(); detach();
       const keepManual = state.selection === "manual" && !foregroundChanged;
       publish({ resolution, discussion: null, related: null, priorDiscussions: null, priorDiscussionsError: null,
@@ -635,6 +748,32 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       if (ownEpoch !== epoch || disposed) return;
       healthVerified = true;
       publish({ serviceConnection: "connected" });
+      // Resolve the exact foreground page before the bounded chooser catalog.
+      // A large null/null projection is optional presentation and must not
+      // prevent a known page's saved discussion from loading.
+      let resolution = null, pageAttempted = false, resolutionRead = false;
+      if (state.selection !== "manual") {
+        resolution = await freshResolution();
+        resolutionRead = true;
+        if (ownEpoch !== epoch || disposed) return;
+        publish({ resolution });
+        if (resolution?.enabled) {
+          pageAttempted = true;
+          if (isReadyPageResolution(resolution)) await applyReadyResolution(resolution, ownEpoch, ownManual);
+          else await applyStoredUrlSelection(resolution, ownEpoch, ownManual, snapshotPromise);
+          if (ownEpoch !== epoch || disposed) return;
+          if (state.selection === "background" && state.catalog && state.discussion &&
+              state.sourceId && state.topicId && ["ready", "loading"].includes(state.phase)) {
+            if (!mutationPending && state.phase === "ready") publish({ needsFreshRead: false });
+            return;
+          }
+          // A Ready matcher already supplied the exact IDs and the scoped read
+          // owns its retry/error state. Falling through to the broad chooser
+          // would erase that bounded-recovery fence and trigger poll retries.
+          if (isReadyPageResolution(resolution) && state.selection === "background" &&
+              state.sourceId && state.topicId) return;
+        }
+      }
       const catalog = await readCatalogContext(state.sourceId, state.topicId, { signal: abort.signal });
       if (ownEpoch !== epoch || disposed) return;
       const actorId = postingActor(catalog);
@@ -651,11 +790,18 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         await loadSelection(ownEpoch);
       } else {
         publish({ topicId: null, sourceId: null });
-        const resolution = await freshResolution();
-        if (ownEpoch !== epoch || disposed) return;
-        publish({ resolution });
-        if (resolution?.enabled) await applyReadyResolution(resolution, ownEpoch, ownManual);
-        else await observeContext(ownEpoch, ownManual, snapshotPromise);
+        if (!resolutionRead) {
+          resolution = await freshResolution();
+          resolutionRead = true;
+          if (ownEpoch !== epoch || disposed) return;
+          publish({ resolution });
+        }
+        if (resolution?.enabled) {
+          if (!pageAttempted) {
+            if (isReadyPageResolution(resolution)) await applyReadyResolution(resolution, ownEpoch, ownManual);
+            else await applyStoredUrlSelection(resolution, ownEpoch, ownManual, snapshotPromise);
+          }
+        } else await observeContext(ownEpoch, ownManual, snapshotPromise);
       }
       if (ownEpoch === epoch && !disposed && !mutationPending &&
           ["ready", "choose-topic"].includes(state.phase)) publish({ needsFreshRead: false });
@@ -710,10 +856,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     await loadSelection(epoch, true);
   }
   function setDraft(body) {
-    const selectedDiscussionLoading = state.phase === "loading" && state.catalog?.sources.some((source) =>
-      source.id === state.sourceId && source.topicId === state.topicId) &&
-      state.draft.mode === "root" && !state.draft.detached;
-    if (mutationPending || !(state.phase === "ready" || selectedDiscussionLoading) || state.needsFreshRead ||
+    if (mutationPending || !(state.phase === "ready" || canStageRootDraft(state)) || state.needsFreshRead ||
         typeof body !== "string" || body.length > 8000) return;
     publish({ draft: { ...state.draft, body } });
   }
@@ -919,7 +1062,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     if (!review || state.phase !== "ready" || state.busy || state.needsFreshRead ||
         review.topicId !== state.topicId || review.actorId !== state.actorId ||
         review.sourceId !== (selectedPostingSource(state)?.id ?? null) ||
-        review.expected?.generation !== version?.generation || review.expected?.revision !== version?.revision ||
+        !sameGenerationAtOrAfter(review.expected, version) ||
         typeof review.body !== "string" || !review.body.trim() || review.body.length > 8_000 ||
         typeof review.operationId !== "string") return Promise.resolve(false);
     if (review.replyToId) {

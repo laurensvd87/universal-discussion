@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Universal Discussion private portable rehearsal
+  title: Murmingle private portable rehearsal
   version: 0.1.0
   description: >-
     Synthetic-only, operator-paired rehearsal. Not a public API, not compatible

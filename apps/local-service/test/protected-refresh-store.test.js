@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile, writeFile, mkdtemp, unlink, rmdir, stat } from "node:fs/promises";
+import { EventEmitter } from "node:events";
+import { readFile, writeFile, mkdir, mkdtemp, rm, unlink, rmdir, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { PassThrough, Writable } from "node:stream";
 import test from "node:test";
 import { createProtectedRefreshStore } from "../src/ai/protected-refresh-store.js";
 
@@ -13,6 +15,46 @@ const synthetic = {
 };
 const HOST_ID = "urn:uuid:11111111-1111-4111-8111-111111111111";
 const FILE_NAME = `chatgpt-refresh-${createHash("sha256").update(HOST_ID).digest("hex").slice(0, 32)}.dpapi`;
+const PRE_NAME_DIRECTORY = Buffer.from("VW5pdmVyc2FsRGlzY3Vzc2lvbkxheWVy", "base64").toString("utf8");
+
+function fakePowerShell(records, calls) {
+  return () => {
+    const child = new EventEmitter();
+    child.stdout = new PassThrough();
+    child.stderr = new PassThrough();
+    child.kill = () => {};
+    let input = "";
+    child.stdin = new Writable({
+      write(chunk, encoding, done) { input += chunk.toString("utf8"); done(); },
+      final(done) {
+        queueMicrotask(() => {
+          try {
+            const request = JSON.parse(input);
+            calls.push(request);
+            let output = "";
+            if (request.operation === "read") output = records.get(request.path) ?? "null";
+            else if (request.operation === "write") records.set(request.path, request.record);
+            else if (request.operation === "clear") {
+              records.delete(request.path);
+              records.delete(`${request.path}.tmp`);
+              records.delete(`${request.path}.bak`);
+            } else throw new Error("unexpected operation");
+            if (output) child.stdout.write(output);
+            child.stdout.end();
+            child.stderr.end();
+            child.emit("close", 0);
+          } catch {
+            child.stdout.end();
+            child.stderr.end();
+            child.emit("close", 1);
+          }
+        });
+        done();
+      },
+    });
+    return child;
+  };
+}
 
 test("unsupported or unavailable protected storage fails closed", async () => {
   assert.equal(createProtectedRefreshStore({ platform: "linux", hostId: HOST_ID }), null);
@@ -24,10 +66,10 @@ test("unsupported or unavailable protected storage fails closed", async () => {
 });
 
 test("Windows DPAPI protects, replaces and deletes synthetic rotating tokens",
-  { skip: process.platform !== "win32" || process.env.UDL_TEST_WINDOWS_DPAPI !== "1" }, async () => {
-  const localAppData = await mkdtemp(join(tmpdir(), "udl-dpapi-test-"));
+  { skip: process.platform !== "win32" || process.env.MURMINGLE_TEST_WINDOWS_DPAPI !== "1" }, async () => {
+  const localAppData = await mkdtemp(join(tmpdir(), "murmingle-dpapi-test-"));
   const store = createProtectedRefreshStore({ localAppData, hostId: HOST_ID });
-  const directory = join(localAppData, "UniversalDiscussionLayer");
+  const directory = join(localAppData, "Murmingle");
   const file = join(directory, FILE_NAME);
   assert.ok(store);
   try {
@@ -59,9 +101,53 @@ test("Windows DPAPI protects, replaces and deletes synthetic rotating tokens",
   }
 });
 
+test("pre-name protected record migrates to Murmingle before its old copy is cleared", async () => {
+  const root = await mkdtemp(join(tmpdir(), "murmingle-dpapi-fake-"));
+  const localAppData = join(root, "app-data");
+  const systemRoot = join(root, "windows");
+  const executable = join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+  const canonicalFile = join(localAppData, "Murmingle", FILE_NAME);
+  const preNameFile = join(localAppData, PRE_NAME_DIRECTORY, FILE_NAME);
+  const records = new Map([[preNameFile, JSON.stringify(synthetic)]]);
+  const calls = [];
+  await mkdir(localAppData, { recursive: true });
+  await mkdir(dirname(executable), { recursive: true });
+  await writeFile(executable, "synthetic executable placeholder");
+  try {
+    const store = createProtectedRefreshStore({
+      platform: "win32", localAppData, systemRoot, hostId: HOST_ID,
+      spawnImpl: fakePowerShell(records, calls),
+    });
+    assert.ok(store);
+    assert.deepEqual(await store.read(), synthetic);
+    assert.equal(records.get(canonicalFile), JSON.stringify(synthetic));
+    assert.equal(records.has(preNameFile), false);
+    assert.deepEqual(calls.map(({ operation, path }) => [operation, path]), [
+      ["read", canonicalFile], ["read", preNameFile], ["write", canonicalFile],
+      ["read", canonicalFile], ["clear", preNameFile],
+    ]);
+
+    const rotated = { ...synthetic, refreshToken: "synthetic-rotated-refresh-token" };
+    records.set(preNameFile, JSON.stringify(synthetic));
+    await store.write(rotated);
+    assert.equal(records.get(canonicalFile), JSON.stringify(rotated));
+    assert.equal(records.has(preNameFile), false);
+
+    records.set(preNameFile, JSON.stringify(synthetic));
+    await store.clear();
+    assert.equal(records.has(canonicalFile), false);
+    assert.equal(records.has(preNameFile), false);
+    assert.deepEqual(calls.slice(-2).map(({ operation, path }) => [operation, path]), [
+      ["clear", canonicalFile], ["clear", preNameFile],
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("invalid credential shape is never handed to protected storage",
-  { skip: process.platform !== "win32" || process.env.UDL_TEST_WINDOWS_DPAPI !== "1" }, async () => {
-  const localAppData = await mkdtemp(join(tmpdir(), "udl-dpapi-invalid-"));
+  { skip: process.platform !== "win32" || process.env.MURMINGLE_TEST_WINDOWS_DPAPI !== "1" }, async () => {
+  const localAppData = await mkdtemp(join(tmpdir(), "murmingle-dpapi-invalid-"));
   const store = createProtectedRefreshStore({ localAppData, hostId: HOST_ID });
   try {
     await assert.rejects(store.write({ ...synthetic, accessToken: "synthetic-access" }));

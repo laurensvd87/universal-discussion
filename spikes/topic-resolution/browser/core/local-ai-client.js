@@ -1,6 +1,8 @@
 import { readActorId, readPairingToken, isAccountActorId } from "./local-service-contract.js";
 import { readAccountAuthError } from "./account-auth-response.js";
 import { inspectPageUrl } from "./page-content-policy.js";
+
+const PROVIDER_START_TIMEOUT_MS = 30_000;
 import { normalizeInsightPreferences } from "./insight-preferences.js";
 
 const BASE = "http://127.0.0.1:4174/v1/ai";
@@ -229,6 +231,7 @@ export function createLocalAiClient({ fetchImpl, getToken, getAccountToken = () 
       if (Object.hasOwn(value, "preferences") && value.preferences === undefined) invalid();
       if (Object.hasOwn(value, "preferences"))
         value = { ...value, preferences: normalizeInsightPreferences(value.preferences) };
+      if (Object.hasOwn(value, "includeRelatedSources") && typeof value.includeRelatedSources !== "boolean") invalid();
       if (value.followupTopicId !== undefined &&
           (id(value.followupTopicId) === value.context?.topic?.id ||
             typeof value.followupQuestionId !== "string" || !ID.test(value.followupQuestionId))) invalid();
@@ -249,7 +252,7 @@ export function createLocalAiClient({ fetchImpl, getToken, getAccountToken = () 
           seen.add(excerpt.sourceId);
         }
       }
-      const started = await request("/insights", value, actorId, options.signal);
+      const started = await request("/insights", value, actorId, options.signal, PROVIDER_START_TIMEOUT_MS);
       keys(started, ["operationId", "state"]);
       if (started.operationId !== value.operationId || started.state !== "running") invalid();
       return { operationId: started.operationId, state: started.state };

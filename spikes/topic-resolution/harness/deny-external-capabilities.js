@@ -8,7 +8,7 @@ import { syncBuiltinESMExports } from "node:module";
 import net from "node:net";
 import tls from "node:tls";
 
-const guardSymbol = Symbol.for("universal-discussion.offline-capability-guard");
+const guardSymbol = Symbol.for("murmingle.offline-capability-guard");
 
 function denied(capability) {
   const error = new Error(`Offline test denied ${capability}`);

@@ -1,5 +1,5 @@
 {
-  "name": "@universal-discussion/embedding-experiment-runtime",
+  "name": "@murmingle/embedding-experiment-runtime",
   "version": "0.0.0",
   "private": true,
   "type": "module",

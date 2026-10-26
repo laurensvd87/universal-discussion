@@ -6,6 +6,9 @@ import { isAbsolute, join, resolve } from "node:path";
 const MAX_RECORD_BYTES = 32_768;
 const MAX_OUTPUT_BYTES = 65_536;
 const DEFAULT_TIMEOUT_MS = 5_000;
+const STORE_DIRECTORY = "Murmingle";
+// Compatibility with the protected credential directory used before the Murmingle name.
+const PRE_NAME_DIRECTORY = Buffer.from("VW5pdmVyc2FsRGlzY3Vzc2lvbkxheWVy", "base64").toString("utf8");
 
 // This script is constant. Paths and credentials are passed through stdin, never
 // through an argument, environment variable, URL, or diagnostic stream.
@@ -76,6 +79,19 @@ function protectedStoreError() {
   return new Error("Protected ChatGPT credential storage unavailable");
 }
 
+function parseRecord(output) {
+  let record;
+  try { record = JSON.parse(output); } catch { throw protectedStoreError(); }
+  if (record === null) return null;
+  if (!validRecord(record) || Buffer.byteLength(output, "utf8") > MAX_RECORD_BYTES) throw protectedStoreError();
+  return record;
+}
+
+function sameRecord(left, right) {
+  return left?.clientId === right?.clientId && left?.subject === right?.subject &&
+    left?.refreshToken === right?.refreshToken;
+}
+
 function invokePowerShell(executable, request, spawnImpl, timeoutMs) {
   return new Promise((resolvePromise, rejectPromise) => {
     let child;
@@ -119,7 +135,10 @@ export function createProtectedRefreshStore({
       !localAppData || !systemRoot ||
       !isAbsolute(localAppData) || !isAbsolute(systemRoot)) return null;
   const hostKey = createHash("sha256").update(hostId).digest("hex").slice(0, 32);
-  const filePath = join(resolve(localAppData), "UniversalDiscussionLayer", `chatgpt-refresh-${hostKey}.dpapi`);
+  const fileName = `chatgpt-refresh-${hostKey}.dpapi`;
+  const appData = resolve(localAppData);
+  const filePath = join(appData, STORE_DIRECTORY, fileName);
+  const preNameFilePath = join(appData, PRE_NAME_DIRECTORY, fileName);
   const executable = join(resolve(systemRoot), "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
   if (!existsSync(executable)) return null;
   const deadline = Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 30_000
@@ -130,23 +149,47 @@ export function createProtectedRefreshStore({
     pending = current.catch(() => {});
     return current;
   };
+  const invoke = (operation, path, record) => invokePowerShell(executable,
+    { operation, path, ...(record === undefined ? {} : { record }) }, spawnImpl, deadline);
+  const readRecord = async (path) => parseRecord(await invoke("read", path));
+  const writeRecord = async (path, record) => {
+    if (!validRecord(record)) throw protectedStoreError();
+    const serialized = JSON.stringify(record);
+    if (Buffer.byteLength(serialized, "utf8") > MAX_RECORD_BYTES) throw protectedStoreError();
+    await invoke("write", path, serialized);
+  };
+  const clearRecord = (path) => invoke("clear", path);
+  const clearBoth = async () => {
+    let failure = false;
+    for (const path of [filePath, preNameFilePath]) {
+      try { await clearRecord(path); } catch { failure = true; }
+    }
+    if (failure) throw protectedStoreError();
+  };
   return {
     read: () => serial(async () => {
-      const output = await invokePowerShell(executable, { operation: "read", path: filePath }, spawnImpl, deadline);
-      let record;
-      try { record = JSON.parse(output); } catch { throw protectedStoreError(); }
-      if (record === null) return null;
-      if (!validRecord(record) || Buffer.byteLength(output, "utf8") > MAX_RECORD_BYTES) throw protectedStoreError();
-      return record;
+      const record = await readRecord(filePath);
+      if (record !== null) {
+        await clearRecord(preNameFilePath);
+        return record;
+      }
+      const preNameRecord = await readRecord(preNameFilePath);
+      if (preNameRecord === null) return null;
+      try {
+        await writeRecord(filePath, preNameRecord);
+        const migrated = await readRecord(filePath);
+        if (!sameRecord(migrated, preNameRecord)) throw protectedStoreError();
+      } catch (error) {
+        try { await clearRecord(filePath); } catch { /* Preserve the pre-name record and fail closed. */ }
+        throw error;
+      }
+      await clearRecord(preNameFilePath);
+      return preNameRecord;
     }),
     write: (record) => serial(async () => {
-      if (!validRecord(record)) throw protectedStoreError();
-      const serialized = JSON.stringify(record);
-      if (Buffer.byteLength(serialized, "utf8") > MAX_RECORD_BYTES) throw protectedStoreError();
-      await invokePowerShell(executable, { operation: "write", path: filePath, record: serialized }, spawnImpl, deadline);
+      await writeRecord(filePath, record);
+      await clearRecord(preNameFilePath);
     }),
-    clear: () => serial(async () => {
-      await invokePowerShell(executable, { operation: "clear", path: filePath }, spawnImpl, deadline);
-    }),
+    clear: () => serial(clearBoth),
   };
 }

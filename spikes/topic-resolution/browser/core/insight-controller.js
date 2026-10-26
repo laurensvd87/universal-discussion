@@ -7,6 +7,9 @@ import { normalizeInsightPreferences, DEFAULT_INSIGHT_PREFERENCES } from "./insi
 
 const UNSAFE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 const sameVersion = (a, b) => a && b && a.generation === b.generation && a.revision === b.revision;
+const sameGenerationAtOrAfter = (expected, observed) => Boolean(expected && observed &&
+  expected.generation === observed.generation && Number.isSafeInteger(expected.revision) &&
+  Number.isSafeInteger(observed.revision) && observed.revision >= expected.revision);
 const RESEARCH_FAILURE_STATUS = Object.freeze({
   "rate-limit": "usageLimit", "model-unavailable": "modelUnavailable",
   "unsupported-capability": "webResearchUnavailable", unauthorized: "authorizationExpired",
@@ -96,6 +99,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   randomId = () => globalThis.crypto.randomUUID(), shareOnCompletion = false, requestSignIn = () => {} }) {
   let observed = null;
   let boundKey = null;
+  let preparedRelated = null;
   let disposed = false;
   let pending = false;
   let review = null;
@@ -107,6 +111,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   let manualModel = null;
   let diagnosticsBusy = false;
   let automaticStartBusy = false;
+  let deliberateRequests = 0;
   let resumeBusy = false;
   let job = null;
   let completedJob = null;
@@ -144,7 +149,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       observed.catalog?.actors.some((actor) => actor.id === observed.actorId && actor.type === "human") &&
       observed.discussion?.topic?.id === observed.topicId &&
       sameVersion(observed.catalog.version, observed.discussion.version) &&
-      (!observed.related || sameVersion(observed.related.version, observed.catalog.version));
+      (!observed.related || sameGenerationAtOrAfter(observed.catalog.version, observed.related.version));
   }
   function contextKey(value) {
     const catalog = value?.catalog;
@@ -184,7 +189,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   }
   function clear(status = "idle") {
     cancelJob(); purgeCompleted(); epoch++;
-    boundKey = null; review = null;
+    boundKey = null; preparedRelated = null; review = null;
     publish({ context: null, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, followup: null, status, ai: { ...state.ai, articleText: "", article: null,
       result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null,
       diagnostics: { ...state.ai.diagnostics, relatedExcerpts: null } } });
@@ -212,6 +217,12 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const previous = completedJob; completedJob = null;
     if (previous) void aiClient?.cancel(previous.id, previous.actorId).catch(() => {});
   }
+  function refreshOptionalContext() {
+    if (preparedRelated !== null || observed?.related === null || job || completedJob || pending ||
+        automaticStartBusy || deliberateRequests > 0 || resumeBusy || state.status !== "prepared" || state.draft ||
+        state.excludedRelatedSourceIds.length !== 0 || state.ai.article || state.ai.articleText) return false;
+    return prepare();
+  }
   function observe(value) {
     if (disposed) return;
     observed = value;
@@ -226,14 +237,14 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       if (boundKey === null && eligible()) prepare();
     }
     else if (boundKey === null && eligible()) prepare();
-    else publish();
+    else if (!refreshOptionalContext()) publish();
   }
   function prepare({ includeDiscussion = false } = {}) {
     if (disposed || pending || job || completedJob || !eligible()) return false;
     try {
       const context = buildInsightContext({ ...observed, includeDiscussion: includeDiscussion === true,
         sourceLimit: observed.sourceId === null ? 20 : 21 });
-      boundKey = key(); review = null;
+      boundKey = key(); preparedRelated = observed.related ?? null; review = null;
       cancelJob(); purgeCompleted(); epoch++;
       publish({ context, excludedRelatedSourceIds: [], relatedExcerptCount: null, draft: "", preview: null, followup: null, status: "prepared", ai: { ...state.ai, articleText: "", article: null,
         result: null, costConsent: false, status: "idle", error: null, researchFailureDetail: null,
@@ -491,6 +502,8 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   }
   async function createInsights({ automatic = false } = {}) {
     if (!disposed && observed?.phase === "ready" && !observed.actorId) { requestSignIn(); return false; }
+    deliberateRequests += 1;
+    try {
     const clickedEpoch = epoch, clickedKey = key(), clickedAccount = accountKey();
     const clickedRevision = preferenceRevision;
     let clickedSettings = { preferences: { ...state.preferences }, browserLanguageHintEnabled: state.browserLanguageHintEnabled };
@@ -513,9 +526,15 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     }
     if (automaticStartBusy || completedJob) return false;
     return runInsights({ skipConsent: false, preferenceSettings: clickedSettings, publishOnCompletion: shareOnCompletion === true });
+    } finally {
+      deliberateRequests = Math.max(0, deliberateRequests - 1);
+      refreshOptionalContext();
+    }
   }
   async function createFollowup(questionId, destination = null) {
     if (!disposed && observed?.phase === "ready" && !observed.actorId) { requestSignIn(); return false; }
+    deliberateRequests += 1;
+    try {
     const clickedEpoch = epoch, clickedKey = key(), clickedAccount = accountKey();
     const targetAtClick = resolveDiscussionTarget(observed, questionId, destination);
     const clickedTarget = targetAtClick && { topicId: targetAtClick.topicId, discussionId: targetAtClick.discussionId,
@@ -548,6 +567,10 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       return await runInsights({ skipConsent: true, followup, preferences,
         publishOnCompletion: shareOnCompletion === true });
     } finally { automaticStartBusy = false; }
+    } finally {
+      deliberateRequests = Math.max(0, deliberateRequests - 1);
+      refreshOptionalContext();
+    }
   }
   async function runInsights({ skipConsent, followup = null, preferences, preferenceSettings, publishOnCompletion = false }) {
     await relatedPreferenceReady;
@@ -574,7 +597,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
     const active = () => !disposed && epoch === current && boundKey === expectedKey &&
       !materiallyChanged(observed) && job?.id === operationId;
     try {
-      const requestContext = buildInsightContext({ ...observed,
+      const requestContext = buildInsightContext({ ...observed, related: preparedRelated,
         includeDiscussion: !followup && state.context.coverage.discussionIncluded,
         excludedRelatedSourceIds: state.excludedRelatedSourceIds,
         allowedRelatedSourceIds: [...state.context.sameTopicSources, ...state.context.relatedSources]
@@ -583,6 +606,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
       const request = { operationId, model: state.ai.model, context: requestContext, preferences,
         excludedRelatedSourceIds: [...state.excludedRelatedSourceIds], articleText: state.ai.articleText,
         allowWebResearch: false, expected: { ...observed.catalog.version },
+        includeRelatedSources: preparedRelated !== null,
         ...(followup ? { followupQuestionId: followup.questionId,
           ...(followup.topicId !== observed.topicId ? { followupTopicId: followup.topicId } : {}) } : {}) };
       if (state.relatedPageTextEnabled && readRelatedExcerpts) {
@@ -756,7 +780,7 @@ export function createInsightController({ shareInsight, onStateChange = () => {}
   function cancelInsights() { if (!job) return false; cancelJob(); epoch++; aiPatch({ status: "cancelled", result: null }); return true; }
   function dispose() {
     detachJob(); completedJob = null; epoch++; connectionEpoch++; invalidateModels();
-    disposed = true; observed = null; boundKey = null; review = null;
+    disposed = true; observed = null; boundKey = null; preparedRelated = null; deliberateRequests = 0; review = null;
     state = { available: false, context: null, excludedRelatedSourceIds: [],
       relatedPageTextEnabled: true, relatedExcerptCount: null,
       draft: "", preview: null, followup: null, status: "idle", busy: false,

@@ -5,16 +5,28 @@ import { fail } from "../domain/errors.js";
 // then one canonical transaction removes all owned bodies; startup completes
 // interrupted erasure before the service accepts account operations.
 export function createAccountLifecycle({ accounts, service, ai, privateDiscussions = null }) {
+  const mapResult = (value, next) => value && typeof value.then === "function" ? value.then(next) : next(value);
   function finish(accountId) {
     const actorId = `account-${accountId}`;
     ai?.cancelAccount?.(actorId);
     privateDiscussions?.cancelAccount(actorId);
-    service.withdrawAccountContributions(actorId);
-    privateDiscussions?.eraseAccount(actorId);
-    return accounts.finishDeletion(accountId);
+    return mapResult(service.withdrawAccountContributions(actorId), () => {
+      privateDiscussions?.eraseAccount(actorId);
+      return accounts.finishDeletion(accountId);
+    });
   }
   return Object.freeze({
-    resume() { for (const id of accounts.listDeletingAccountIds()) finish(id); },
+    resume() {
+      let pending = null;
+      for (const id of accounts.listDeletingAccountIds()) {
+        if (pending) pending = pending.then(() => finish(id));
+        else {
+          const result = finish(id);
+          if (result && typeof result.then === "function") pending = Promise.resolve(result);
+        }
+      }
+      return pending ?? undefined;
+    },
     route(request) {
       if (Object.hasOwn(request.headers, "x-demo-actor")) fail("forbidden", "Action unavailable");
       if (request.method !== "POST" || request.headers["content-type"] !== "application/json" ||
@@ -28,13 +40,13 @@ export function createAccountLifecycle({ accounts, service, ai, privateDiscussio
         const principal = accounts.resolvePrincipal(token);
         const value = request.url.pathname.endsWith("/list") ? service.accountPublicChats(principal.id, body)
           : service.accountPublicChat(principal.id, body);
-        return { status: 200, value };
+        return mapResult(value, resolved => ({ status: 200, value: resolved }));
       }
       if (request.url.pathname === "/v1/account/delete") {
         if (Object.keys(body).join() !== "confirmation" || body.confirmation !== "DELETE MY ACCOUNT")
           fail("invalid", "Invalid request");
         const { accountId } = accounts.beginDeletion(token);
-        return { status: 200, value: finish(accountId) };
+        return mapResult(finish(accountId), value => ({ status: 200, value }));
       }
       if (request.url.pathname === "/v1/account/private-data" && privateDiscussions) {
         const own = accounts.exportOwnAccount(token);
@@ -44,18 +56,21 @@ export function createAccountLifecycle({ accounts, service, ai, privateDiscussio
           !(body.after === null || typeof body.after === "string" && /^[A-Za-z0-9._:-]{1,128}$/u.test(body.after)))
         fail("invalid", "Invalid request");
       const own = accounts.exportOwnAccount(token);
-      const posts = service.accountContributions(`account-${own.account.id}`).toSorted((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-      // One revision per bounded page, including retained edit history. A post
-      // with fifty long revisions must not exceed the export transport budget.
-      const rows = posts.flatMap(post => post.revisions.map((revision, revisionIndex) => ({
-        cursor: `${post.id}:${revisionIndex}`,
-        post: { ...post, revisions: [revision], revisionIndex, totalRevisions: post.revisions.length },
-      })));
-      const start = body.after === null ? 0 : rows.findIndex(row => row.cursor === body.after) + 1;
-      if (body.after !== null && start === 0) fail("conflict", "Export changed");
-      const page = rows.slice(start, start + 1);
-      return { status: 200, value: { ...own, version: typeof service.version === "function" ? service.version() : service.catalog().version,
-        posts: page.map(row => row.post), next: start + 1 < rows.length ? page[0].cursor : null } };
+      return mapResult(service.accountContributions(`account-${own.account.id}`), values => {
+        const posts = values.toSorted((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+        // One revision per bounded page, including retained edit history. A post
+        // with fifty long revisions must not exceed the export transport budget.
+        const rows = posts.flatMap(post => post.revisions.map((revision, revisionIndex) => ({
+          cursor: `${post.id}:${revisionIndex}`,
+          post: { ...post, revisions: [revision], revisionIndex, totalRevisions: post.revisions.length },
+        })));
+        const start = body.after === null ? 0 : rows.findIndex(row => row.cursor === body.after) + 1;
+        if (body.after !== null && start === 0) fail("conflict", "Export changed");
+        const page = rows.slice(start, start + 1);
+        const current = typeof service.version === "function" ? service.version() : service.catalog().version;
+        return mapResult(current, version => ({ status: 200, value: { ...own, version,
+          posts: page.map(row => row.post), next: start + 1 < rows.length ? page[0].cursor : null } }));
+      });
     },
   });
 }

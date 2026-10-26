@@ -65,6 +65,6 @@ if (typeof globalThis.WebSocket === "function") {
   });
 }
 syncBuiltinESMExports();
-Object.defineProperty(globalThis, Symbol.for("universal-discussion.loopback-capability-guard"), {
+Object.defineProperty(globalThis, Symbol.for("murmingle.loopback-capability-guard"), {
   value: Object.freeze({ version: "loopback-capability-guard/1.0.0", host: "127.0.0.1", port: 4174 }),
 });

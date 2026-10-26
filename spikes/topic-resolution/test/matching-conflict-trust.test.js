@@ -68,4 +68,5 @@ test("Trust: an accepted canonical ingestion with a lost response is never autom
   assert.equal(f.posts.length, 1); assert.deepEqual(f.counts(), { reads: 1, embeddings: 1, attestations: 1, versions: 1 });
   assert.equal(f.service.catalog().sources.filter(source => source.url === SOURCE_URL).length, 1);
   assert.equal(f.matcher.currentState().sourceId, null);
+  assert.equal(f.matcher.canRetry(), false);
 });

@@ -231,7 +231,10 @@ export function buildInsightContext({ catalog, discussion, related, sourceId, to
     const rankedPeers = [];
     const rankedPeerIds = new Set();
     const relatedIds = new Set();
-    const nominated = related === null && sourceId === null ? [] : entries(field(related, "results"), MAX_RELATED_RESULTS);
+    // Related discovery is optional. Canonical Topic membership from the
+    // catalog remains sufficient for a current-page Insight while enrichment
+    // is still running or unavailable.
+    const nominated = related === null ? [] : entries(field(related, "results"), MAX_RELATED_RESULTS);
     for (const result of nominated) {
       const id = readId(field(result, "id"));
       const source = catalogById.get(id);

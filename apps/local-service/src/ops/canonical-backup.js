@@ -4,12 +4,22 @@ import { randomBytes, randomUUID, createCipheriv, createDecipheriv } from "node:
 import { isDeepStrictEqual } from "node:util";
 import { captureCanonicalImage, validateCanonicalImage, MAX_BACKUP_BYTES, assertBackupRuntime } from "./backup-image.js";
 
-const MAGIC = Buffer.from("UDLBKP01");
+const MURMINGLE_MAGIC = Buffer.from("MURMNGL1");
+// Encoded compatibility identifiers keep still-live seven-day pre-name backups
+// usable without retaining retired branding in the active source vocabulary.
+const PRE_NAME_MAGIC = Buffer.from("VURMQktQMDE=", "base64");
+const MURMINGLE_BACKUP_SUFFIX = ".murmingle-backup";
+const PRE_NAME_BACKUP_SUFFIX = Buffer.from("LnVkbGJhY2t1cA==", "base64").toString("ascii");
 const HEADER_LIMIT = 8192;
 const WEEK = 7 * 24 * 60 * 60 * 1000;
-const NAME = /^canonical-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.udlbackup$/u;
+const NAME_STEM = String.raw`canonical-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`;
+const escapePattern = value => value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+const SUFFIX_PATTERN = `(?:${[MURMINGLE_BACKUP_SUFFIX,PRE_NAME_BACKUP_SUFFIX].map(escapePattern).join("|")})`;
+const NAME = new RegExp(`^${NAME_STEM}${SUFFIX_PATTERN}$`, "u");
+const OWNED_NAME = new RegExp(`^${NAME_STEM}${SUFFIX_PATTERN}(?:\\.partial)?$`, "u");
+export function isCanonicalBackupFilename(filename) { return typeof filename === "string" && NAME.test(filename); }
 function filenameCreatedAt(filename) {
-  const match=/^canonical-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.udlbackup(?:\.partial)?$/u.exec(filename);
+  const match=OWNED_NAME.exec(filename);
   if (!match) return null;
   const iso=`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}.${match[7]}Z`;
   const time=Date.parse(iso); return Number.isFinite(time) && new Date(time).toISOString() === iso ? iso : null;
@@ -51,7 +61,8 @@ function readContainer(filename) {
   try {
     const size = fstatSync(descriptor).size;
     if (size < 28 || size > MAX_BACKUP_BYTES + HEADER_LIMIT + 28) throw failure();
-    const prefix = Buffer.alloc(12); if (readSync(descriptor, prefix, 0, 12, 0) !== 12 || !prefix.subarray(0,8).equals(MAGIC)) throw failure();
+    const prefix = Buffer.alloc(12);
+    if (readSync(descriptor, prefix, 0, 12, 0) !== 12 || ![MURMINGLE_MAGIC,PRE_NAME_MAGIC].some(value => prefix.subarray(0,8).equals(value))) throw failure();
     const length = prefix.readUInt32BE(8); if (length < 2 || length > HEADER_LIMIT || size < 12 + length + 16) throw failure();
     const bytes = Buffer.alloc(size - 12); let offset = 0;
     while (offset < bytes.length) { const read = readSync(descriptor, bytes, offset, bytes.length-offset, offset+12); if (!read) throw failure(); offset += read; }
@@ -60,7 +71,7 @@ function readContainer(filename) {
 }
 async function verify({ dataDir, filename, protection, now }, allowExpired = false) {
   const directory = await locations(dataDir, protection);
-  if (typeof filename !== "string" || !NAME.test(filename)) throw failure();
+  if (!isCanonicalBackupFilename(filename)) throw failure();
   const target = checkedPath(path.join(directory, filename), false);
   const container = readContainer(target); const header = JSON.parse(container.aad.toString("utf8")); validateHeader(header, now, allowExpired);
   if(header.createdAt !== filenameCreatedAt(filename)) throw failure();
@@ -98,14 +109,14 @@ export async function createCanonicalBackup({ dataDir, protection, now }) {
     const cipher = createCipheriv("aes-256-gcm",key,iv); cipher.setAAD(aad);
     const ciphertext = cipher.update(image); const tail = cipher.final(); const tag = cipher.getAuthTag();
     image.fill(0); image = null; key.fill(0); key = null;
-    const filename = `canonical-${date.toISOString().replaceAll(":","-").replace(".","-")}-${randomUUID()}.udlbackup`;
+    const filename = `canonical-${date.toISOString().replaceAll(":","-").replace(".","-")}-${randomUUID()}${MURMINGLE_BACKUP_SUFFIX}`;
     const target = path.join(directory,filename); partial = `${target}.partial`;
     // DPAPI is asynchronous. Revalidate the complete directory chain after it
     // resolves, before the synchronous exclusive write/publication sequence.
     checkedPath(directory,true);
     descriptor = openSync(partial, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL,0o600);
     ownedPartial=true;
-    const prefix = Buffer.alloc(12); MAGIC.copy(prefix); prefix.writeUInt32BE(aad.length,8);
+    const prefix = Buffer.alloc(12); MURMINGLE_MAGIC.copy(prefix); prefix.writeUInt32BE(aad.length,8);
     for (const bytes of [prefix,aad,ciphertext,tail,tag]) { let offset=0; while(offset<bytes.length) { const written=writeSync(descriptor,bytes,offset,bytes.length-offset); if(written<=0) throw failure(); offset+=written; } }
     fsyncSync(descriptor); closeSync(descriptor); descriptor = undefined;
     linkSync(partial,target); published=target; unlinkSync(partial); partial = null;

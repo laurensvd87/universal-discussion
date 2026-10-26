@@ -184,6 +184,7 @@ export function createAccountController({ client, storage, renderer = () => {}, 
     setUsername(username) {
       if (!["username", "profile"].includes(state.stage) || !credentials) return Promise.resolve(false);
       const value = String(username).trim();
+      if (/^(?:ai$|ai_|_ai)/i.test(value)) { patch({ error: accountEnglish.username_reserved }); return Promise.resolve(false); }
       if (!/^[A-Za-z0-9_]{3,24}$/.test(value)) { patch({ error: accountEnglish.usernameInvalid }); return Promise.resolve(false); }
       const access = credentials.accessToken;
       return run(async (ticket) => {

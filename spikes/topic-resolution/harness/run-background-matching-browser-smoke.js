@@ -67,7 +67,7 @@ function fixtureUrl(name) { return `${name === 'b' ? 'https://example.org' : ORI
 export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHROME, { alternateOnly = false, ridgeOnly = false, bodyMetricOnly = false, sidePanelOnly = false } = {}) {
   const targetedOnly = alternateOnly || ridgeOnly || bodyMetricOnly;
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-background-smoke-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'murmingle-background-smoke-'));
   const databasePath = path.join(directory, 'demo.sqlite');
   const pairingPath = path.join(directory, 'pairing.json');
   const targets = new Map(), sessionTargets = new Map(), tasks = new Set(), workers = [], requests = [], errors = [], ingestions = [];
@@ -189,7 +189,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
   }
   async function screenshot(name) {
     // Optional generated evidence of owned synthetic UI only, never an owner profile.
-    const destination = process.env.UDL_UI_SCREENSHOT_DIR;
+    const destination = process.env.MURMINGLE_UI_SCREENSHOT_DIR;
     if (!destination) return;
     assert.ok(path.isAbsolute(destination) && (await lstat(destination)).isDirectory());
     await evaluate('window.scrollTo(0,0)');
@@ -428,7 +428,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
     await startService();
     const page = await wait(() => [...targets.values()].find(item => item.ready && item.url === 'about:blank'), 'owned foreground page');
     pageSession = page.sessionId;
-    if (sidePanelOnly && process.env.UDL_UI_SCREENSHOT_DIR) {
+    if (sidePanelOnly && process.env.MURMINGLE_UI_SCREENSHOT_DIR) {
       const window = await browser.send('Browser.getWindowForTarget',{targetId:page.targetId});
       await browser.send('Browser.setWindowBounds',{windowId:window.windowId,bounds:{width:1200,height:960}});
     }
@@ -911,7 +911,7 @@ export async function runBackgroundMatchingBrowserSmoke(executable = DEFAULT_CHR
       try { await application?.close(); } finally {
         await Promise.allSettled([...tasks]);
         assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
-        assert.ok(path.basename(directory).startsWith('udl-background-smoke-'));
+        assert.ok(path.basename(directory).startsWith('murmingle-background-smoke-'));
         await rm(directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
       }
     }

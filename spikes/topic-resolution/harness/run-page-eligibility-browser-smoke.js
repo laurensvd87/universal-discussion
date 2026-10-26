@@ -69,7 +69,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 // every other non-extension request is failed before the browser can fetch it.
 export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME, { popupFocusDiagnostics = false } = {}) {
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-eligibility-smoke-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'murmingle-eligibility-smoke-'));
   const targets = new Map(), tasks = new Set(), errors = [], inferenceTargets = new Set();
   let browser, extensionId, pageSession, popupTarget, popupSession, deadline, workerSession;
   let interceptedDocuments = 0, ownedFaviconRequests = 0, blockedRequests = 0, runtimeExceptions = 0, embeddingRequests = 0;
@@ -622,8 +622,8 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     assert.equal(before.currentUrl, ARTICLE);
     assert.equal(before.enabled, false);
     assert.deepEqual(before.blockedOrigins, []);
-    if (process.env.UDL_UI_SCREENSHOT_DIR) {
-      const destination = process.env.UDL_UI_SCREENSHOT_DIR;
+    if (process.env.MURMINGLE_UI_SCREENSHOT_DIR) {
+      const destination = process.env.MURMINGLE_UI_SCREENSHOT_DIR;
       assert.ok(path.isAbsolute(destination) && (await lstat(destination)).isDirectory());
       const image = await browser.send('Page.captureScreenshot', { format: 'png' }, popupSession);
       await writeFile(path.join(destination, 'user-disconnected-eligibility.png'), Buffer.from(image.data, 'base64'), { flag: 'wx' });
@@ -698,7 +698,7 @@ export async function runPageEligibilityBrowserSmoke(executable = DEFAULT_CHROME
     try { await browser?.close(); } finally {
       await Promise.allSettled([...tasks]);
       assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
-      assert.ok(path.basename(directory).startsWith('udl-eligibility-smoke-'));
+      assert.ok(path.basename(directory).startsWith('murmingle-eligibility-smoke-'));
       await rm(directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     }
   }

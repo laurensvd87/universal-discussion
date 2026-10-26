@@ -5,7 +5,7 @@ import { runRole } from '../src/main.js';
 import { processOneJob, runWorker } from '../src/worker.js';
 import { checkReady } from '../src/healthcheck.js';
 
-const env={UDL_MODE:'synthetic-rehearsal',UDL_READ_TOKEN_FILE:'read',UDL_DATABASE_PASSWORD_FILE:'database'};
+const env={MURMINGLE_MODE:'synthetic-rehearsal',MURMINGLE_READ_TOKEN_FILE:'read',MURMINGLE_DATABASE_PASSWORD_FILE:'database'};
 function deps(events, controller) {return {
   configOptions:{readSecret:async file=>file.padEnd(48,'x')},
   createDatabase:async()=>({close:async()=>events.push('close')}),createRepository:()=>({}),
@@ -17,13 +17,13 @@ test('import does not listen; explicit roles never migrate or seed implicitly',a
   await runRole('api',{env,dependencies:deps(events,controller),signal:controller.signal});
   assert.deepEqual(events,['server','listen:127.0.0.1:4185','shutdown','close']);
   events.length=0;
-  await runRole('migrate',{env:{...env,UDL_DATABASE_USER:'udl_owner'},dependencies:deps(events,controller)});
+  await runRole('migrate',{env:{...env,MURMINGLE_DATABASE_USER:'murmingle_owner'},dependencies:deps(events,controller)});
   assert.deepEqual(events,['migrate','close']);
-  await assert.rejects(runRole('api',{env:{...env,UDL_DATABASE_USER:'udl_owner'},dependencies:deps(events,controller)}),/database-role/);
+  await assert.rejects(runRole('api',{env:{...env,MURMINGLE_DATABASE_USER:'murmingle_owner'},dependencies:deps(events,controller)}),/database-role/);
   events.length=0;
-  await assert.rejects(runRole('seed-fixture',{env:{...env,UDL_DATABASE_USER:'udl_owner'},dependencies:deps(events,controller)}),/fixture-tokens/);
+  await assert.rejects(runRole('seed-fixture',{env:{...env,MURMINGLE_DATABASE_USER:'murmingle_owner'},dependencies:deps(events,controller)}),/fixture-tokens/);
   assert.deepEqual(events,['close']);
-  await runRole('seed-fixture',{env:{...env,UDL_DATABASE_USER:'udl_owner',UDL_ALEX_TOKEN_FILE:'alex',UDL_BLAIR_TOKEN_FILE:'blair'},dependencies:deps(events,controller)});
+  await runRole('seed-fixture',{env:{...env,MURMINGLE_DATABASE_USER:'murmingle_owner',MURMINGLE_ALEX_TOKEN_FILE:'alex',MURMINGLE_BLAIR_TOKEN_FILE:'blair'},dependencies:deps(events,controller)});
   assert.deepEqual(events,['close','seed','close']);
 });
 test('worker only completes fixture bookkeeping with exact durable lease',async()=>{

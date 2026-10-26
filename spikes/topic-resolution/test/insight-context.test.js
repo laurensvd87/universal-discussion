@@ -66,14 +66,18 @@ test("known private paths are skipped before filling five related article slots"
   assert.equal(context.relatedSources.length, 5);
 });
 
-test("Topic-only selection accepts no related projection, but a selected Source requires one", () => {
+test("Topic and selected-Source contexts remain valid while optional related discovery is absent", () => {
   const selectedTopic = { ...input(), sourceId: null, related: null };
   const context = buildInsightContext(selectedTopic);
   assert.equal(context.currentSource, null);
   assert.deepEqual(context.sameTopicSources.map((item) => item.id), ["current", "peer-a", "peer-b"]);
   assert.deepEqual(context.relatedSources, []);
   assert.equal(context.coverage.relatedTotal, 0);
-  assert.throws(() => buildInsightContext({ ...selectedTopic, sourceId: "current" }), /Invalid insight context/);
+  const selectedSource = buildInsightContext({ ...selectedTopic, sourceId: "current" });
+  assert.equal(selectedSource.currentSource.id, "current");
+  assert.deepEqual(selectedSource.sameTopicSources.map((item) => item.id), ["peer-a", "peer-b"]);
+  assert.deepEqual(selectedSource.relatedSources, []);
+  assert.equal(selectedSource.coverage.relatedTotal, 0);
 });
 
 test("six total source slots prioritize all same-Topic catalog sources", () => {

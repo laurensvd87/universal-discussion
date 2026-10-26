@@ -26,15 +26,20 @@ test("Insight preferences normalize only on start and invalid metadata cannot re
 });
 
 test("Insight client accepts explicit web-research opt-out without changing the request", async () => {
-  let body;
+  let body, calls = 0;
   const value = client(async (_url, options) => {
+    calls += 1;
     body = JSON.parse(options.body);
     return response(_url, { operationId: "op-a", state: "running" });
   });
   const request = { operationId: "op-a", model: "model-a", articleText: "Public synthetic text.",
-    allowWebResearch: false };
+    allowWebResearch: false, includeRelatedSources: false };
   assert.deepEqual(await value.start(request, "demo-alex"), { operationId: "op-a", state: "running" });
   assert.equal(body.allowWebResearch, false);
+  assert.equal(body.includeRelatedSources, false);
+  for (const includeRelatedSources of [null, "false", 0])
+    await assert.rejects(value.start({ ...request, includeRelatedSources }, "demo-alex"), TypeError);
+  assert.equal(calls, 1);
 });
 
 test("fixed loopback endpoint and guarded request options", async () => {
@@ -211,7 +216,7 @@ test("diagnostics require paired fixed-code events and discard provider data", a
   ]) await assert.rejects(client(async (url) => response(url, value)).diagnostics(), TypeError);
 });
 
-test("model listing has its own 30-second deadline", async () => {
+test("model listing and exact Insight preflight have their own 30-second deadlines", async () => {
   const realSetTimeout = globalThis.setTimeout;
   const delays = [];
   globalThis.setTimeout = (callback, delay, ...args) => {
@@ -220,9 +225,13 @@ test("model listing has its own 30-second deadline", async () => {
   };
   try {
     const value = createLocalAiClient({ fetchImpl: async (url) => response(url,
-      url.endsWith("/models") ? { models: [] } : { connected: false, planEnabled: false, pending: false, account: null }),
+      url.endsWith("/models") ? { models: [] } : url.endsWith("/insights")
+        ? { operationId: "deadline-start", state: "running" }
+        : { connected: false, planEnabled: false, pending: false, account: null }),
     getToken: async () => "a".repeat(64), timeoutMs: 1234 });
     await value.status(); await value.models();
-    assert.deepEqual(delays, [1234, 30000]);
+    await value.start({ operationId: "deadline-start", model: "model-a",
+      articleText: "Public synthetic text.", allowWebResearch: false }, "demo-alex");
+    assert.deepEqual(delays, [1234, 30000, 30000]);
   } finally { globalThis.setTimeout = realSetTimeout; }
 });

@@ -122,6 +122,25 @@ test("learned related retrieval preserves manually confirmed same-Topic associat
   }]);
 });
 
+test("learned Related uses one best 0.80+ fallback with the ordinary DTO and never changes membership", () => {
+  for (const [scores, expected] of [
+    [[0.79999], []], [[0.800001], [0]], [[0.81, 0.85, 0.87], [2]],
+    [[0.85, 0.90, 0.89], [1, 2]],
+  ]) {
+    const { service, repository } = setup();
+    const query = service.ingest(input(service, "fallback-query"));
+    const candidates = scores.map((score, index) => service.ingest(input(service,
+      `fallback-${index}`, Math.acos(score))));
+    const before = repository.load();
+    const result = service.related(query.sourceId, 100);
+    assert.deepEqual(result.results.map(item => item.id), expected.map(index => candidates[index].sourceId));
+    assert.deepEqual(service.related(query.sourceId, 0).results, []);
+    assert.ok(result.results.every(item => item.relationship === "related" && item.method === "vector-similarity" &&
+      !Object.hasOwn(item, "similarity") && !Object.hasOwn(item, "embedding") && !Object.hasOwn(item, "fallback")));
+    assert.deepEqual(repository.load(), before);
+  }
+});
+
 test("ingestion retains one current source/receipt, repeats idempotently and fences stale writes/reset", () => {
   const { service, repository } = setup();
   const request = input(service, "repeat");
@@ -293,7 +312,7 @@ test("existing 100 Sources and a discussion survive a 101st SQLite ingestion", (
   // in domain.test.js. Preserve a real discussion while crossing Source 100.
   const learnedTopic = before.sources.find((entry) => entry.provenance === "owner-local-page-embedding/v1").topicId;
   command(service, { type: "create-root", topicId: learnedTopic, body: "Keep this existing discussion" });
-  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-learned-capacity-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-learned-capacity-"));
   const databasePath = path.join(directory, "demo.sqlite");
   t.after(() => { assert.ok(directory.startsWith(os.tmpdir())); rmSync(directory, { recursive: true, force: true }); });
   const sqlite = createSqliteRepository(databasePath, repository.load());
@@ -313,7 +332,7 @@ test("existing 100 Sources and a discussion survive a 101st SQLite ingestion", (
 });
 
 test("SQLite preserves learned state/assignment across reopen and durably clears matching material", (t) => {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-learned-service-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-learned-service-"));
   const databasePath = path.join(directory, "demo.sqlite");
   t.after(() => { assert.ok(directory.startsWith(os.tmpdir())); rmSync(directory, { recursive: true, force: true }); });
   const dependencies = deterministicDependencies();

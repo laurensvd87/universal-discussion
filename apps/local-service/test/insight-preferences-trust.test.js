@@ -82,7 +82,10 @@ test("independent trust: supplied preferences remain JSON settings in one tool-f
 test("independent trust: every prompt branch preserves hint priority and research/source authority", () => {
   for (const reply of [true, false]) for (const research of [true, false]) {
     const instructions = buildInsightInstructions(reply, research);
-    assert.match(instructions, /preferred reply language is authoritative/u);
+    if (reply) {
+      assert.match(instructions, /language of the question or request in selectedMessage, even when it differs from preferences.replyLanguage/u);
+      assert.doesNotMatch(instructions, /preferred reply language is authoritative/u);
+    } else assert.match(instructions, /preferred reply language is authoritative/u);
     assert.match(instructions, /browserLanguage is only a Chrome interface-language hint and must not override/u);
     assert.match(instructions, /Do not infer a delivery country or currency from browser language/u);
     assert.match(instructions, /never invent rates or convert unsupported totals/u);

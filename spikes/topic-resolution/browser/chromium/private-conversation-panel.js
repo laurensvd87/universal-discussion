@@ -40,10 +40,12 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   };
   const header = node("div", null, "community-heading");
   const heading = node("h2", "privateChats");
+  heading.tabIndex = -1;
   const headerLock = privateLock();
   const back = button("privateBack", () => {
     epoch += 1; stopTimer(); busy = false; conversation = null; entries = []; cursor = replyToId = null;
     draft.value = ""; pendingOperation = null; error = ""; olderReads.clear(); render(); void loadInbox();
+    (available && actorId ? search : heading).focus?.({ preventScroll: true });
   });
   header.append(back, headerLock, heading);
   const searchForm = node("form", null, "my-chats-search-form"); searchForm.id = "my-chats-search-form";
@@ -86,7 +88,7 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   let latestRead = 0;
   const messagePickers = [];
   let inboxPage = 0, inboxBoundaries = [], inboxBoundary = null, inboxEnd = null;
-  let privateVersion = null, publicVersion = null;
+  let privateVersion = null, publicVersion = null, publicScope = null;
   let messagePage = 0, messageBoundaries = [null], messageScroll = [];
   let searchTimer = null, composingSearch = false, searchQuery = "";
   const olderReads = new Set();
@@ -114,12 +116,15 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
   function stopTimer() { if (timer !== null) unschedule(timer); timer = null; }
   function stopSearchTimer() { if (searchTimer !== null) unschedule(searchTimer); searchTimer = null; }
   const sameVersion = (a, b) => a?.generation === b?.generation && a?.revision === b?.revision;
+  const samePublicPage = page => publicScope && page.scope
+    ? publicScope === page.scope && publicVersion?.generation === page.version?.generation && page.version.revision >= publicVersion.revision
+    : sameVersion(publicVersion, page.version);
   const cloneBoundary = (value, metadata = false) => value && ({
     private: { ...value.private, buffer: metadata ? [] : [...value.private.buffer], replay: metadata ? value.private.buffer.length > 0 || value.private.replay : value.private.replay },
     public: { ...value.public, buffer: metadata ? [] : [...value.public.buffer], replay: metadata ? value.public.buffer.length > 0 || value.public.replay : value.public.replay }, scroll: value.scroll ?? 0 });
   function clearPages() {
     inboxPage = 0; inboxBoundaries = []; inboxBoundary = inboxEnd = null;
-    privateVersion = publicVersion = null; messagePage = 0; messageBoundaries = [null]; messageScroll = [];
+    privateVersion = publicVersion = publicScope = null; messagePage = 0; messageBoundaries = [null]; messageScroll = [];
   }
   async function changePage(direction) {
     if (busy || !available || !actorId) return;
@@ -290,22 +295,25 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     // the previous cursor/history contract.
     if (!more) {
       inboxPage = 0; inboxBoundaries = []; inboxBoundary = inboxEnd = null;
-      privateVersion = publicVersion = null;
+      privateVersion = publicVersion = publicScope = null;
     }
     const ticket = epoch, actor = actorId; busy = true; error = ""; render();
     try {
       const targetPage = more === "previous" ? inboxPage - 1 : more ? inboxPage + 1 : 0;
       if (targetPage < 0) return;
-      if (more && typeof client.version === "function") {
-        const [canonical, owner] = await Promise.all([client.version(), request("list", {order:"recent",limit:1,after:null,
-          ...(searchQuery ? {query:searchQuery} : {})}, actor)]);
+      if (more && (publicScope || typeof client.version === "function")) {
+        const [canonical, owner, publicHead] = await Promise.all([publicScope ? null : client.version(), request("list", {order:"recent",limit:1,after:null,
+          ...(searchQuery ? {query:searchQuery} : {})}, actor), publicScope ? client.accountPublicChats("list",
+          {limit:20,after:null,...(searchQuery ? {query:searchQuery} : {})},actor) : null]);
         if (!valid(ticket, actor)) return;
-        if (publicVersion && !sameVersion(publicVersion, canonical.version) || privateVersion !== null && privateVersion !== owner.ownerVersion)
+        if (publicVersion && (publicHead ? !samePublicPage(publicHead) : !sameVersion(publicVersion, canonical.version)) ||
+            privateVersion !== null && privateVersion !== owner.ownerVersion)
           throw Object.assign(new Error("Changed"), {code:"conflict"});
+        if(publicHead){publicVersion=publicHead.version;publicScope=publicHead.scope??null;}
       }
       if (inboxBoundary) { inboxBoundary.scroll = list.scrollTop ?? 0; inboxBoundaries[inboxPage] = cloneBoundary(inboxBoundary,true); }
       const emptyPool = enabled => ({buffer:[],next:null,started:!enabled,batchAfter:null,skip:0});
-      let boundary = more === "previous" ? cloneBoundary(inboxBoundaries[targetPage]) : more ? cloneBoundary(inboxEnd) :
+      let boundary = more === "previous" ? cloneBoundary(inboxBoundaries[targetPage],true) : more ? cloneBoundary(inboxEnd,true) :
         {private:emptyPool(true),public:emptyPool(hasPublicChats()),scroll:0};
       if (!boundary) return;
       inboxBoundary = cloneBoundary(boundary);
@@ -320,8 +328,8 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
             if (privateVersion !== null && page.ownerVersion !== undefined && privateVersion !== page.ownerVersion) throw Object.assign(new Error("Changed"),{code:"conflict"});
             privateVersion = page.ownerVersion ?? privateVersion; privateInboxFailed = false;
           } else {
-            if (publicVersion && page.version && !sameVersion(publicVersion,page.version)) throw Object.assign(new Error("Changed"),{code:"conflict"});
-            publicVersion = page.version ?? publicVersion; publicInboxFailed = false;
+            if (publicVersion && page.version && !samePublicPage(page)) throw Object.assign(new Error("Changed"),{code:"conflict"});
+            publicVersion = page.version ?? publicVersion; publicScope=page.scope??null; publicInboxFailed = false;
           }
           const skip = pool.replay ? pool.skip : 0;
           pool.batchAfter = payload.after; pool.skip = skip; pool.replay = false;
@@ -410,7 +418,10 @@ export function mountPrivateConversationPanel(document, root, { client, readActo
     }
     selection = kind; error = ""; olderReads.clear(); pendingOperation = null;
     messagePage = 0; messageBoundaries = [null]; messageScroll = [];
-    conversation = { id, title: text("privateChats") }; rendered = null; showView("private"); await readConversation();
+    conversation = { id, title: text("privateChats") }; rendered = null; showView("private");
+    // Restore focus as the activated card is replaced. Polls and delayed reads
+    // never repeat this deliberate navigation focus change.
+    render(); heading.focus?.({ preventScroll: true }); await readConversation();
   }
   async function readConversation(pageIndex = false, revealId = null) {
     if (selection === "public") return readPublicConversation(pageIndex === false ? messagePage : pageIndex);

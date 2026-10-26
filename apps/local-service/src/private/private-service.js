@@ -117,7 +117,8 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
           ...(Object.hasOwn(generation, "preferences") ? ["preferences"] : [])]);
         if (generation.context?.currentSource?.id !== conversation.source_id ||
             generation.context?.currentSource?.url !== conversation.source_url) fail("conflict", "Source changed");
-        const anchor = publicService.insightAnchor(generation.context?.topic?.id, conversation.source_id);
+        const anchorValue = publicService.insightAnchor(generation.context?.topic?.id, conversation.source_id);
+        const anchor = anchorValue && typeof anchorValue.then === "function" ? await anchorValue : anchorValue;
         const anchorDigest = digest({ ...anchor, version: null });
         const answer = await ai.generatePrivate({ ...structuredClone(generation),
           followup: { parentBody: (parent?.actor_type === "agent" ? parent.body : human.body).slice(0, 2_000),
@@ -125,7 +126,9 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
         if (closed || controller.signal.aborted) return;
         principalActor(principal);
         if (!canGenerate(actorId)) fail("conflict", "Provider account changed");
-        const currentAnchor = publicService.insightAnchor(anchor.topicId, conversation.source_id);
+        const currentAnchorValue = publicService.insightAnchor(anchor.topicId, conversation.source_id);
+        const currentAnchor = currentAnchorValue && typeof currentAnchorValue.then === "function"
+          ? await currentAnchorValue : currentAnchorValue;
         if (currentAnchor.version.generation !== anchor.version.generation ||
             digest({ ...currentAnchor, version: null }) !== anchorDigest) fail("conflict", "Source changed");
         const current = owned(actorId, conversation.id);
@@ -220,21 +223,28 @@ export function createPrivateDiscussionService({ databasePath, ai, publicService
       id(body.operationId); id(body.sourceId); text(body.body);
       const replay = receipt(actorId, body.operationId, body);
       if (replay) return replay;
-      const source = typeof publicService.exactSource === "function" ? publicService.exactSource(body.sourceId)
-        : publicService.catalog().sources.find(entry => entry.id === body.sourceId);
-      const inspected = inspectPageUrl(body.sourceUrl);
-      if (!source || source.url !== body.sourceUrl || !inspected.supported || inspected.url !== body.sourceUrl ||
-          !body.sourceUrl.startsWith("https://")) fail("forbidden", "Source unavailable");
-      publicService.insightAnchor(source.topicId, source.id);
-      let conversationId, messageId;
-      repository.transaction(() => {
-        conversationId = id(nextId("private-conversation"));
-        db.prepare("INSERT INTO private_conversations VALUES (?,?,'private',?,?,?,1,?)")
-          .run(conversationId, actorId, source.id, source.url, body.body.trim().slice(0, 160), now());
-        messageId = insertHuman(conversationId, null, body.body);
-        storeReceipt(actorId, body.operationId, body, conversationId, messageId);
-      }, actorId);
-      return result(conversationId, messageId, false);
+      const sourceValue = typeof publicService.exactSource === "function" ? publicService.exactSource(body.sourceId)
+        : publicService.catalog();
+      const complete = source => {
+        if (source?.sources) source = source.sources.find(entry => entry.id === body.sourceId);
+        const inspected = inspectPageUrl(body.sourceUrl);
+        if (!source || source.url !== body.sourceUrl || !inspected.supported || inspected.url !== body.sourceUrl ||
+            !body.sourceUrl.startsWith("https://")) fail("forbidden", "Source unavailable");
+        const anchored = publicService.insightAnchor(source.topicId, source.id);
+        const persist = () => {
+          let conversationId, messageId;
+          repository.transaction(() => {
+            conversationId = id(nextId("private-conversation"));
+            db.prepare("INSERT INTO private_conversations VALUES (?,?,'private',?,?,?,1,?)")
+              .run(conversationId, actorId, source.id, source.url, body.body.trim().slice(0, 160), now());
+            messageId = insertHuman(conversationId, null, body.body);
+            storeReceipt(actorId, body.operationId, body, conversationId, messageId);
+          }, actorId);
+          return result(conversationId, messageId, false);
+        };
+        return anchored && typeof anchored.then === "function" ? anchored.then(persist) : persist();
+      };
+      return sourceValue && typeof sourceValue.then === "function" ? sourceValue.then(complete) : complete(sourceValue);
     },
     list(principal, input) {
       const actorId = principalActor(principal), body = readRecord(input,["after","limit","query","order"],["after","limit"]);

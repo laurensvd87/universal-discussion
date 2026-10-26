@@ -3,7 +3,7 @@ import { request as nodeRequest } from "node:https";
 import { isIP } from "node:net";
 import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 
-export const CRAWLER_USER_AGENT = "MurmingleTopicCrawler/1.0 (+https://github.com/laurensvd87/universal-discussion)";
+export const CRAWLER_USER_AGENT = "MurmingleTopicCrawler/1.0";
 
 export const PUBLIC_FETCH_POLICY = Object.freeze({
   timeoutMs: 15_000,

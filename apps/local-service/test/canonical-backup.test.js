@@ -12,8 +12,13 @@ import { captureCanonicalImage,validateCanonicalImage } from "../src/ops/backup-
 import { createCanonicalBackup,verifyCanonicalBackup,pruneExpiredCanonicalBackups } from "../src/ops/canonical-backup.js";
 import { runCanonicalBackupWorker } from "../src/ops/canonical-backup-worker.js";
 const now = "2026-10-12T12:00:00.000Z";
+const currentMagic = Buffer.from("MURMNGL1");
+const currentSuffix = ".murmingle-backup";
+// Encoded fixtures exercise compatibility with backups created before naming.
+const preNameMagic = Buffer.from("VURMQktQMDE=", "base64");
+const preNameSuffix = Buffer.from("LnVkbGJhY2t1cA==", "base64").toString("ascii");
 function fixture(t,normalized=false) {
-  const dataDir=mkdtempSync(path.join(tmpdir(),"udl-backup-")); t.after(()=>rmSync(dataDir,{recursive:true,force:true}));
+  const dataDir=mkdtempSync(path.join(tmpdir(),"murmingle-backup-")); t.after(()=>rmSync(dataDir,{recursive:true,force:true}));
   const state=createDemoState({generation:"synthetic-backup",createdAt:now,sources:[],topicSeeds:[{id:"topic-one",title:"Secret synthetic title",kind:"general"}]});
   const repo=(normalized?createNormalizedSqliteRepository:createSqliteRepository)(path.join(dataDir,"demo.sqlite"),state); repo.close();
   const protection={prepareDirectory:async directory=>mkdirSync(directory,{recursive:true,mode:0o700}),wrapKey:async key=>Buffer.from(key),unwrapKey:async key=>Buffer.from(key)};
@@ -29,8 +34,17 @@ test("encrypted canonical legacy and normalized backup verifies exact image with
     assert.equal(Date.parse(result.expiresAt)-Date.parse(result.createdAt),604800000);
     assert.deepEqual(readFileSync(path.join(options.dataDir,"demo.sqlite")),before);
     const encrypted=readFileSync(path.join(options.dataDir,"canonical-migration-backups",result.filename)); assert.equal(encrypted.includes(Buffer.from("Secret synthetic title")),false);
+    assert.ok(result.filename.endsWith(currentSuffix)); assert.deepEqual(encrypted.subarray(0,8),currentMagic);
     assert.deepEqual(await verifyCanonicalBackup({...options,filename:result.filename}),result);
   }
+});
+test("pre-name seven-day containers remain verifiable and eligible for expiry cleanup",async t=>{
+  const options=fixture(t),result=await createCanonicalBackup(options),directory=path.join(options.dataDir,"canonical-migration-backups");
+  const current=path.join(directory,result.filename),filename=`${result.filename.slice(0,-currentSuffix.length)}${preNameSuffix}`,target=path.join(directory,filename),bytes=readFileSync(current);
+  preNameMagic.copy(bytes,0); writeFileSync(target,bytes,{flag:"wx",mode:0o600}); unlinkSync(current);
+  assert.deepEqual(await verifyCanonicalBackup({...options,filename}),{...result,filename});
+  assert.deepEqual(await pruneExpiredCanonicalBackups({...options,now:result.expiresAt}),{removed:1});
+  assert.deepEqual(readdirSync(directory),[]);
 });
 test("tamper, wrong key, expiration and unavailable protection fail closed",async t=>{
   const options=fixture(t); const result=await createCanonicalBackup(options); const filename=path.join(options.dataDir,"canonical-migration-backups",result.filename); const original=readFileSync(filename);

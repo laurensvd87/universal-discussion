@@ -191,6 +191,50 @@ test("resume gate waits for a ready Topic after model startup and checks each co
   assert.equal(attempts, 2);
 });
 
+test("root and reply clicks pin current-page context when optional Related arrives during page reading", async () => {
+  let sequence = 0;
+  const service = createMemoryDemoService({ nextId: (kind) => `${kind}-${++sequence}`,
+    now: () => "2026-09-29T12:00:00.000Z" });
+  const catalog = service.catalog();
+  const source = catalog.sources.find((entry) => entry.topicId !== null);
+  const root = { id: "late-related-root", rootId: null, replyToId: null, state: "visible",
+    authorId: "demo-alex", actorType: "human", body: "Why does this happen?",
+    createdAt: "2026-09-29T12:00:00.000Z", edited: false, replies: [] };
+  const discussion = { ...service.discussion(source.topicId), roots: [root] };
+  const initial = { phase: "ready", busy: false, needsFreshRead: false, error: null,
+    catalog, discussion, related: null, sourceId: source.id, topicId: source.topicId,
+    actorId: "demo-alex", selection: "automatic", resolution: { documentId: "doc-current" } };
+
+  for (const mode of ["root", "reply"]) {
+    let releaseArticle;
+    const requests = [];
+    const insight = createInsightController({ shareInsight: async () => true,
+      aiClient: {
+        status: async () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+        models: async () => [{ slug: "model-a" }],
+        start: async (request) => { requests.push(request); return { operationId: request.operationId, state: "running" }; },
+        result: async (operationId) => ({ operationId, state: "completed",
+          result: { body: "Pinned answer", model: "model-a", citations: [] } }),
+        cancel: async () => true,
+      },
+      readArticle: () => new Promise((resolve) => { releaseArticle = resolve; }),
+      attestArticle: async () => true, randomId: () => `late-related-${mode}` });
+    insight.observe(initial);
+    assert.equal(insight.currentState().context.relatedSources.length, 0);
+    await insight.checkConnection(); await insight.loadModels();
+    const running = mode === "root" ? insight.createInsights({ automatic: true }) : insight.createFollowup(root.id);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(typeof releaseArticle, "function", mode);
+    insight.observe({ ...initial, related: service.related(source.id, 20) });
+    releaseArticle({ url: source.url, documentId: "doc-current", text: "Current public page" });
+    assert.equal(await running, true, mode);
+    assert.equal(requests.length, 1, mode);
+    assert.equal(requests[0].includeRelatedSources, false, mode);
+    assert.deepEqual(requests[0].context.relatedSources, [], mode);
+    insight.dispose();
+  }
+});
+
 test("formatted generated result -> one explicit immutable AI-labelled local root", async () => {
   const app = await generatedHarness(); const { insight, discussion, service } = app;
   assert.equal(insight.currentState().available, true);

@@ -30,7 +30,7 @@ function withTemp(run) {
 
 test("fixed temp path stores only a validated structural line", () => withTemp((tempDirectory) => {
   const log = createInsightTraceLog({ tempDirectory });
-  assert.equal(log.filePath, path.join(tempDirectory, "universal-discussion-insight-trace", "insight-trace.log"));
+  assert.equal(log.filePath, path.join(tempDirectory, "murmingle-insight-trace", "insight-trace.log"));
   assert.equal(log.write(trace()), true);
   const raw = readFileSync(log.filePath, "utf8");
   assert.equal(raw, `INSIGHT_TRACE ${JSON.stringify(trace())}\n`);

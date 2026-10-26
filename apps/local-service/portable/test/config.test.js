@@ -5,21 +5,21 @@ import { mkdtemp, writeFile, rm, chmod } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-const env = { UDL_MODE: 'synthetic-rehearsal', UDL_READ_TOKEN_FILE: 'read', UDL_DATABASE_PASSWORD_FILE: 'password' };
+const env = { MURMINGLE_MODE: 'synthetic-rehearsal', MURMINGLE_READ_TOKEN_FILE: 'read', MURMINGLE_DATABASE_PASSWORD_FILE: 'password' };
 const options = { readSecret: async filename => `${filename}-`.padEnd(48, 'x') };
 test('config requires explicit rehearsal and separate protected secrets', async () => {
   const config = await loadConfig(env, options);
-  assert.equal(config.port, 4185); assert.equal(config.database.user, 'udl_app');
+  assert.equal(config.port, 4185); assert.equal(config.database.user, 'murmingle_app');
   assert.equal(config.allowedOrigin, 'https://client.example');
-  for (const patch of [{ UDL_MODE: undefined }, { UDL_PORT: '4174' }, { DATABASE_URL: 'secret' }, { PGPASSWORD: 'secret' }, { UDL_DATABASE_HOST: 'remote.example' }, { UDL_DATABASE_NAME: 'owner_data' }, { UDL_ALLOWED_HOST: '*' }, { UDL_ALLOWED_ORIGIN: 'https://real.example' }, { UDL_BIND: '::' }, { UDL_DATABASE_USER: 'postgres' }]) {
+  for (const patch of [{ MURMINGLE_MODE: undefined }, { MURMINGLE_PORT: '4174' }, { DATABASE_URL: 'secret' }, { PGPASSWORD: 'secret' }, { MURMINGLE_DATABASE_HOST: 'remote.example' }, { MURMINGLE_DATABASE_NAME: 'owner_data' }, { MURMINGLE_ALLOWED_HOST: '*' }, { MURMINGLE_ALLOWED_ORIGIN: 'https://real.example' }, { MURMINGLE_BIND: '::' }, { MURMINGLE_DATABASE_USER: 'postgres' }]) {
     await assert.rejects(loadConfig({ ...env, ...patch }, options), /portable-config-invalid/);
   }
   await assert.rejects(loadConfig(env, { readSecret: async () => 'same-secret' }), /portable-config-invalid/);
-  const worker = await loadConfig({ UDL_MODE:'synthetic-rehearsal', UDL_DATABASE_PASSWORD_FILE:'password' },{...options,role:'worker'});
+  const worker = await loadConfig({ MURMINGLE_MODE:'synthetic-rehearsal', MURMINGLE_DATABASE_PASSWORD_FILE:'password' },{...options,role:'worker'});
   assert.equal(worker.readToken,null); assert.deepEqual(worker.fixtureTokens,{alex:null,blair:null});
 });
 test('secret reading rejects relative files, short values, and Linux broad access', async () => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'udl-portable-secret-'));
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'murmingle-portable-secret-'));
   const filename = path.join(dir, 'secret');
   try {
     await assert.rejects(readSecretFile('relative'), /portable-config-invalid/);

@@ -55,6 +55,34 @@ test('username uniqueness, injection and forged actor inputs are denied',t=>{
   assert.equal(f.service.setReplyEmail(alice.session.accessToken,{enabled:true}).replyEmail,true);
 });
 
+test('AI usernames are reserved case-insensitively for first naming and renaming',t=>{
+  const f = fixture(); t.after(()=>f.repository.close());
+  const account = login(f);
+  const token = account.session.accessToken;
+  const reserved = ['ai','AI','Ai','ai_','AI_shopper','aI_Helper','_ai','_AI','_AiHelper'];
+  for (const username of reserved) {
+    assert.throws(()=>f.service.setUsername(token,{username}),/username-unavailable/);
+    assert.equal(f.service.me(token).username,null);
+  }
+  for (const username of ['Aidan','chair','daily_reader','trail_ai','my_ai_shopper']) {
+    assert.equal(f.service.setUsername(token,{username}).username,username);
+  }
+  for (const username of reserved) {
+    assert.throws(()=>f.service.setUsername(token,{username}),/username-unavailable/);
+    assert.equal(f.service.me(token).username,'my_ai_shopper');
+  }
+});
+
+test('existing AI-prefixed human accounts remain readable without migration',t=>{
+  const f = fixture(); t.after(()=>f.repository.close());
+  const account = login(f);
+  f.repository.database.prepare('UPDATE accounts SET username=?,username_key=? WHERE id=?')
+    .run('AI_Historical','ai_historical',account.account.id);
+  assert.equal(f.service.me(account.session.accessToken).username,'AI_Historical');
+  assert.equal(f.service.resolvePrincipal(account.session.accessToken).displayName,'AI_Historical');
+  assert.equal(f.service.setUsername(account.session.accessToken,{username:'HumanReader'}).username,'HumanReader');
+});
+
 test('malformed shapes and getters never execute',t=>{
   const f = fixture(); t.after(()=>f.repository.close());
   let executed = false;

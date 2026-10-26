@@ -40,6 +40,19 @@ test("legacy ready fixtures need no backend-absent Source field or discussion ro
   assert.equal(projectRelatedPages(state).pages.length, 2);
 });
 
+test("canonical Ready shows real optional-enrichment activity instead of claiming the library is empty", () => {
+  const state = ready();
+  state.enrichmentPending = true;
+  state.related = null;
+  state.catalog.sources = [state.catalog.sources[0]];
+  const pending = projectRelatedPages(state);
+  assert.ok(pending.contextKey);
+  assert.deepEqual(pending.pages, []);
+  assert.equal(pending.loading, true);
+  state.enrichmentPending = false;
+  assert.equal(projectRelatedPages(state).loading, false);
+});
+
 test("wrong related Source or version fails closed", () => {
   for (const relatedPatch of [{ sourceId: "source-foreign" }, { version: { ...version, revision: 3 } },
     { version: { ...version, generation: "another-generation" } }, { version: {} }]) {

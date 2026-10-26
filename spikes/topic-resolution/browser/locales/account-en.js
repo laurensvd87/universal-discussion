@@ -8,7 +8,7 @@ export const accountEnglish = Object.freeze({
   logout: "Sign out", close: "Close", busy: "Please wait…", done: "You're signed in. Your draft is ready.",
   emailInvalid: "Enter a valid email address.", codeInvalid: "Enter the six-digit code.",
   usernameInvalid: "Use 3–24 letters, numbers or underscores.", username_taken: "That username is taken. Try another.",
-  username_reserved: "Choose another username.", code_expired: "This code expired. Send a new one.",
+  username_reserved: "AI names are reserved. Choose a username other than AI or one starting with AI_ or _AI.", code_expired: "This code expired. Send a new one.",
   code_invalid: "That code did not work. Try again.", rate_limited: "Please wait before trying again.",
   session_expired: "Please sign in again.", unavailable: "Couldn't complete that. Please try again.",
   emailComingSoon: "Email sign-in coming soon", connectChatGPT: "Connect ChatGPT",

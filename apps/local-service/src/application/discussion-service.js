@@ -213,7 +213,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
     // Only public HTTP reads use the isolated executor. Provider/private context
     // helpers retain their existing exact synchronous authority paths.
     readPublic(method, input, guards = {}) {
-      if (!["catalog", "catalogContext", "catalogPage", "discussion", "discussionPage",
+      if (!["catalog", "catalogContext", "selection", "catalogPage", "discussion", "discussionPage",
         "exactSource", "related", "priorDiscussions", "alternateDiscussion", "enrichment"].includes(method))
         fail("invalid", "Invalid public read");
       const invoke = () => method === "related" ? api.related(input.sourceId, input.limit) : api[method](input);
@@ -230,13 +230,13 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
         if (!sameVersion(api.version(), expected)) fail("conflict", "State changed");
         // Account data never enters the worker. Public actor labels are renewed
         // at delivery using exactly the existing catalog projection rules.
-        if (["catalog", "catalogContext", "catalogPage", "enrichment"].includes(method)) {
+        if (["catalog", "catalogContext", "selection", "catalogPage", "enrichment"].includes(method)) {
           const actors = [...DEMO_ACTORS, ...readAccountActors().filter(isAccountPrincipal)]
             .map(({ id, displayName, type }) => ({ id, displayName, type }));
           const signature = JSON.stringify(actors);
           const previous = actorProjections.get(value);
           if (previous?.signature === signature) return previous.projection;
-          const projection = frozenClone(["catalogPage", "enrichment"].includes(method)
+          const projection = frozenClone(["selection", "catalogPage", "enrichment"].includes(method)
             ? { ...value, catalog: { ...value.catalog, actors } } : { ...value, actors });
           actorProjections.set(value, { signature, projection });
           return projection;
@@ -305,6 +305,31 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       const catalog = catalogProjection(metadataScope(sourceIds, topicIds, expected));
       if (Buffer.byteLength(JSON.stringify(catalog), "utf8") > MAX_RESPONSE_BYTES - 4096) fail("capacity", "Catalog context capacity reached");
       return catalog;
+    },
+    selection(value) {
+      const input = readRecord(value, ["sourceId", "topicId"]);
+      const sourceId = input.sourceId === null ? null : readId(input.sourceId);
+      const topicId = readId(input.topicId);
+      let catalog, discussion;
+      if (!normalized) {
+        const state = repository.load();
+        if (!state.topics.some(topic => topic.id === topicId) ||
+            sourceId !== null && !state.sources.some(source => source.id === sourceId))
+          fail("not-found", "Object unavailable");
+        if (sourceId !== null && topicIdFor(state, sourceId) !== topicId) fail("conflict", "State changed");
+        catalog = catalogProjection(state);
+        discussion = frozenClone(discussionView(state, topicId));
+      } else {
+        const expected = repository.version();
+        catalog = api.catalogContext({ sourceId, topicId });
+        discussion = api.discussion(topicId);
+        if (!sameVersion(catalog.version, expected) || !sameVersion(discussion.version, expected) ||
+            !sameVersion(api.version(), expected)) fail("conflict", "State changed");
+      }
+      const result = { catalog, discussion };
+      if (Buffer.byteLength(JSON.stringify(result), "utf8") > MAX_RESPONSE_BYTES - 4096)
+        fail("capacity", "Selection capacity reached");
+      return frozenClone(result);
     },
     enrichment(value) {
       const input = readRecord(value, ["sourceId", "topicId", "includeAlternate"]);
@@ -415,7 +440,7 @@ export function createDiscussionService({ repository, ranking, sources, topicSee
       };
       if (source.provenance === LEARNED_SOURCE_PROVENANCE) {
         const prepared = prepareLearnedRelated(state, source, linksBySource);
-        const results = prepared.ranker.rank(prepared.queries.get(sourceId), { limit, minSimilarity: 0.88 }).map(
+        const results = prepared.ranker.rank(prepared.queries.get(sourceId), { limit, minSimilarity: 0.88, fallbackMinSimilarity: 0.8 }).map(
           ({ id, url, title, relationship, method }) => ({ id, url, title, relationship, method }),
         );
         return remember(frozenClone({ model: { id: BROWSER_MODEL_ID, status: "experimental-local" }, results }));

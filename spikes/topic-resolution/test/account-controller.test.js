@@ -32,6 +32,28 @@ test("first verification requires username; changed context is returned without 
   f.context({ topicId: "topic-b" }); await f.controller.setUsername("new_reader");
   assert.equal(f.notified[0].context.topicId, "topic-a"); assert.equal(f.notified[0].currentContext.topicId, "topic-b");
 });
+test("AI username reservations block first naming and renaming before dispatch", async () => {
+  for (const initialUsername of [null, "reader"]) {
+    const submitted = [];
+    const f = fixture({ client: {
+      verifyCode: async () => ({ account: { ...account, username: initialUsername }, session }),
+      setUsername: async (_, { username }) => { submitted.push(username); return { ...account, username }; },
+    } });
+    await login(f);
+    for (const username of ["ai", "AI", "Ai", "ai_", "AI_shopper", "aI_Helper", "_ai", "_AI", "_AiHelper"]) {
+      assert.equal(await f.controller.setUsername(username), false);
+      assert.match(f.controller.renderSnapshot().error, /AI names are reserved/);
+      assert.equal(f.controller.renderSnapshot().account.username, initialUsername ?? "");
+    }
+    assert.deepEqual(submitted, []);
+    for (const username of ["Aidan", "chair", "daily_reader", "trail_ai", "my_ai_shopper"]) {
+      assert.equal(await f.controller.setUsername(username), true);
+      assert.equal(f.controller.renderSnapshot().account.username, username);
+    }
+    assert.deepEqual(submitted, ["Aidan", "chair", "daily_reader", "trail_ai", "my_ai_shopper"]);
+  }
+});
+
 test("local validation and cooldown avoid extra requests", async () => {
   const f = fixture(); f.controller.open(); await f.controller.requestCode("invalid"); assert.equal(f.calls.length, 0);
   await f.controller.requestCode("reader@example.test"); await f.controller.requestCode(); assert.equal(f.calls.length, 1);

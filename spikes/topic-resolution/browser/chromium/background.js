@@ -169,7 +169,12 @@ async function refreshAndRetry(own) {
   if (own !== presentationEpoch) return;
   const state = matcher.currentState();
   const missingForeground = state.phase === "unsupported" && state.reason === "no-focused-page";
-  const transientError = state.phase === "error" && state.reason === "unavailable";
+  // These results are explicitly non-accepting responses (or an unavailable
+  // transport) and may recover while the current capture lease is still
+  // valid. Keep one fenced retry flight alive at a capped interval; status
+  // polling remains read-only and never starts capture work.
+  const transientError = state.phase === "error" &&
+    ["unavailable", "capacity", "conflict"].includes(state.reason) && matcher.canRetry();
   if (start !== "health-unavailable" && start !== "foreground-unavailable" &&
       start !== "start-unavailable" && !missingForeground && !transientError) return;
   if (missingForeground && !TRANSIENT_CONTEXT_REASONS.has(lastForegroundReason)) return;
@@ -187,8 +192,9 @@ async function refreshAndRetry(own) {
     if (transientError && state.url && settings.blockedOrigins.includes(inspectPageNavigationUrl(state.url).origin)) return;
   } catch { return; }
   if (own !== presentationEpoch) return;
-  const delay = RETRY_DELAYS[retryCount++];
-  if (delay === undefined) return;
+  const delayIndex = Math.min(retryCount, RETRY_DELAYS.length - 1);
+  const delay = RETRY_DELAYS[delayIndex];
+  retryCount = Math.min(retryCount + 1, RETRY_DELAYS.length);
   retryTimer = setTimeout(() => { retryTimer = undefined; void refreshAndRetry(own); }, delay);
 }
 async function observePresentation(windowId, own = presentationEpoch) {

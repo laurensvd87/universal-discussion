@@ -10,9 +10,9 @@ try {
   settings = Object.fromEntries(env.split(/\r?\n/).filter((line) => /^[A-Z_]+=/.test(line)).map((line) => line.split('=')));
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
 if (process.platform !== 'win32') {
-  const uid = Number(process.env.UDL_RUNTIME_UID ?? settings.UDL_RUNTIME_UID ?? 1000);
-  const gid = Number(process.env.UDL_RUNTIME_GID ?? settings.UDL_RUNTIME_GID ?? 1000);
-  if (uid <= 0 || gid <= 0 || uid !== process.getuid() || gid !== process.getgid()) throw new Error('UDL_RUNTIME_UID/GID must match a non-root Linux operator');
+  const uid = Number(process.env.MURMINGLE_RUNTIME_UID ?? settings.MURMINGLE_RUNTIME_UID ?? 1000);
+  const gid = Number(process.env.MURMINGLE_RUNTIME_GID ?? settings.MURMINGLE_RUNTIME_GID ?? 1000);
+  if (uid <= 0 || gid <= 0 || uid !== process.getuid() || gid !== process.getgid()) throw new Error('MURMINGLE_RUNTIME_UID/GID must match a non-root Linux operator');
 }
 for (const name of names) {
   const path = `${directory}/secrets/${name}`;

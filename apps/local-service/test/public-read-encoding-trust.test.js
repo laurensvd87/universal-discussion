@@ -12,19 +12,21 @@ const actor = name => ({ id: `account-${actorId}`, accountId: actorId, type: "hu
 const request = (url = "/v1/catalog", extra = {}) => ({ method: "GET", url, body: null,
   headers: { host: config.hostHeader, origin: config.origin, authorization: `Bearer ${config.capability}`, ...extra } });
 
-for (const method of ["catalog", "catalogContext", "catalogPage"]) {
+for (const method of ["catalog", "catalogContext", "selection", "catalogPage"]) {
   test(`Trust: ${method} renews actor labels while sharing an immutable coalesced projection`, async () => {
     let displayName = "First_name";
     const catalog = { version, actors: [], topics: [], sources: [{ id: "source-one", title: "Immutable public Source" }] };
-    const workerValue = frozenClone(method === "catalogPage" ? { version, catalog, nextCursor: null } : catalog);
+    const workerValue = frozenClone(method === "catalogPage" ? { version, catalog, nextCursor: null } :
+      method === "selection" ? { catalog, discussion: { version, roots: [] } } : catalog);
     const calls = [];
     const service = createDiscussionService({ repository: { version: () => version }, ranking: { model: {} }, sources: [], topicSeeds: [],
       nextId: () => "unused", now: () => "unused", readAccountActors: () => [actor(displayName)],
       readExecutor: { async read(...args) { calls.push(args); return workerValue; } } });
-    const input = method === "catalog" ? null : method === "catalogContext" ? { sourceId: null, topicId: null } : { kind: "sources", limit: 1, cursor: null };
+    const input = method === "catalog" ? null : method === "catalogContext" ? { sourceId: null, topicId: null } :
+      method === "selection" ? { sourceId: null, topicId: "topic-one" } : { kind: "sources", limit: 1, cursor: null };
     const first = await service.readPublic(method, input), repeated = await service.readPublic(method, input);
     assert.equal(first, repeated, "unchanged labels reuse the same immutable DTO");
-    const projection = value => method === "catalogPage" ? value.catalog : value;
+    const projection = value => ["selection", "catalogPage"].includes(method) ? value.catalog : value;
     assert.equal(projection(first).actors.at(-1).displayName, "First_name");
     assert.deepEqual(Object.keys(projection(first).actors.at(-1)).sort(), ["displayName", "id", "type"]);
     assert.throws(() => { projection(first).sources[0].title = "Changed"; }, TypeError);

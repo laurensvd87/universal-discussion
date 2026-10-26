@@ -59,10 +59,53 @@ test("paired bridge reconstructs the exact context from twenty local nominations
   const actor = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
   const input = { operationId: "twenty-nominations", model: "synthetic", context,
     articleText: "Public synthetic article.", allowWebResearch: false, expected: catalog.version };
-  assert.equal((await handle(request("POST", "/v1/ai/insights", input, actor))).status, 200);
+  let leases = 0;
+  assert.equal((await handle(request("POST", "/v1/ai/insights", input, actor),
+    { leaseAuthenticatedModels() { leases += 1; return true; } })).status, 200);
+  assert.equal(leases, 1);
   assert.deepEqual(limits, [20, 20]);
   assert.deepEqual(seen, [context]);
   assert.ok(context.sameTopicSources.length + context.relatedSources.length <= 4);
+  ai.dispose();
+});
+
+test("explicit current-page Insight skips optional similarity and still rejects injected sources", async () => {
+  const base = demoService();
+  const catalog = base.catalog();
+  const sourceId = "harbor-overview";
+  const topicId = catalog.sources.find((source) => source.id === sourceId).topicId;
+  const context = buildInsightContext({ catalog, discussion: base.discussion(topicId),
+    related: null, sourceId, topicId });
+  let relatedReads = 0, providerStarts = 0;
+  const service = { ...base, related() {
+    relatedReads += 1;
+    throw new Error("optional similarity must not run");
+  } };
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
+    insightsAdapter: { createInsight: async ({ context: providerContext }) => {
+      providerStarts += 1;
+      assert.deepEqual(providerContext, context);
+      return { body: "Current-page finding.", citations: [], model: "synthetic" };
+    }, cancel() {}, dispose() {} } });
+  const handle = createRequestHandler({ service, config, ai });
+  const actor = { origin: ORIGIN, "x-demo-actor": "demo-alex" };
+  const input = { operationId: "current-page-only", model: "synthetic", context,
+    articleText: "Public synthetic article.", allowWebResearch: false,
+    includeRelatedSources: false, expected: catalog.version };
+  assert.equal((await handle(request("POST", "/v1/ai/insights", input, actor))).status, 200);
+  await Promise.resolve();
+  assert.equal(relatedReads, 0);
+  assert.equal(providerStarts, 1);
+
+  const injected = catalog.sources.find((source) => source.topicId !== topicId);
+  const forged = { ...context, relatedSources: [{ id: injected.id, url: injected.url, title: injected.title }],
+    coverage: { ...context.coverage, relatedTotal: 1 } };
+  assert.equal((await handle(request("POST", "/v1/ai/insights", {
+    ...input, operationId: "current-page-forged", context: forged,
+  }, actor))).status, 400);
+  assert.equal(relatedReads, 0);
+  assert.equal(providerStarts, 1);
   ai.dispose();
 });
 
@@ -663,7 +706,7 @@ test("forged context, stale revision, invalid actor and missing capability never
   ai.dispose();
 });
 
-test("unrelated catalog revision preserves the private result and requires current CAS to share", async () => {
+test("unrelated catalog revision preserves and publishes the exact private result with server revalidation", async () => {
   const { service, catalog, context } = fixture();
   let finish;
   const ai = createChatGPTRuntime({ service,
@@ -684,11 +727,122 @@ test("unrelated catalog revision preserves the private result and requires curre
   assert.deepEqual(body(await handle(request("GET", "/v1/ai/insights/resumable", null, actor))).job.expected, current);
   const command = { type: "share-insight", operationId: "stale-one", topicId: context.topic.id,
     originSourceId: context.currentSource.id, body: "Synthetic finding" };
-  assert.equal((await handle(request("POST", "/v1/commands", { expected: catalog.version, command }, actor))).status, 409);
-  assert.equal(service.discussion(context.topic.id).roots.length, 1);
-  assert.equal((await handle(request("POST", "/v1/commands", { expected: current, command }, actor))).status, 200);
+  assert.equal((await handle(request("POST", "/v1/commands", { expected: catalog.version, command }, actor))).status, 200);
   assert.equal(service.discussion(context.topic.id).roots.length, 2);
+  assert.equal((await handle(request("POST", "/v1/commands", { expected: current, command }, actor))).status, 404);
   ai.dispose();
+});
+
+test("an unrelated newer revision does not block exact Insight preflight", async () => {
+  const { service, catalog, context } = fixture();
+  service.command(catalog.version, { type: "create-root", topicId: "harbor-s2",
+    body: "Unrelated concurrent post" }, "demo-alex");
+  let calls = 0;
+  const ai = createChatGPTRuntime({ service,
+    connectionAdapter: { status: () => ({ connected: true, planEnabled: true, pending: false, account: null }), dispose() {} },
+    insightsAdapter: { createInsight: async () => { calls += 1;
+      return { body: "Synthetic finding", citations: [], model: "synthetic" }; }, cancel() {}, dispose() {} } });
+  const outcome = await ai.create({ operationId: "concurrent-preflight", model: "synthetic", context,
+    articleText: "Public article.", allowWebResearch: false, expected: catalog.version }, "demo-alex");
+  assert.equal(outcome.state, "running");
+  assert.equal(calls, 1);
+  ai.dispose();
+});
+
+test("deferred Insight preflight cannot outlive transport, provider identity or runtime reset", async () => {
+  async function scenario(kind, expectedCode) {
+    const { service: base, catalog, context } = fixture();
+    const sourceId = context.currentSource.id, topicId = context.topic.id;
+    const bundle = { version: catalog.version, catalog, discussion: base.discussion(topicId),
+      related: base.related(sourceId, 20), anchor: base.insightAnchor(topicId, sourceId),
+      followupDiscussion: null };
+    let release, current = true, providerCalls = 0;
+    let identity = { issuer: "https://auth.openai.com", clientId: "fixture", subject: "one" };
+    const service = { ...base, insightBundle: () => new Promise(resolve => { release = resolve; }) };
+    const connectionAdapter = {
+      status: () => ({ connected: true, planEnabled: true, pending: false, account: null }),
+      accountIdentity: () => identity,
+      dispose() {},
+    };
+    const ai = createChatGPTRuntime({ service, connectionAdapter,
+      insightsAdapter: { createInsight: async () => { providerCalls += 1;
+        return { body: "Never dispatched", citations: [], model: "synthetic" }; }, cancel() {}, dispose() {} } });
+    const pending = ai.create({ operationId: `deferred-${kind}`, model: "synthetic", context,
+      articleText: "Public article.", allowWebResearch: false, expected: catalog.version }, "demo-alex",
+    { isCurrent: () => current });
+    if (kind === "transport") current = false;
+    else if (kind === "identity") identity = { ...identity, subject: "two" };
+    else ai.reset();
+    release(bundle);
+    await assert.rejects(pending, error => error?.code === expectedCode);
+    assert.equal(providerCalls, 0);
+    assert.deepEqual(await ai.resumable("demo-alex"), { job: null });
+    ai.dispose();
+  }
+  await scenario("transport", "unavailable");
+  await scenario("identity", "unauthorized");
+  await scenario("reset", "conflict");
+});
+
+test("deferred completed-job validation renews provider and request authority before delivery or share", async () => {
+  async function scenario(action) {
+    const { service: base, catalog, context } = fixture();
+    const sourceId = context.currentSource.id, topicId = context.topic.id;
+    const bundle = { anchor: base.insightAnchor(topicId, sourceId), followupDiscussion: null };
+    let release, current = true, connected = true, persists = 0;
+    let identity = { issuer: "https://auth.openai.com", clientId: "fixture", subject: "one" };
+    let defer = true;
+    const service = { ...base,
+      insightJobBundle: () => defer ? new Promise(resolve => { release = resolve; }) : bundle };
+    const ai = createChatGPTRuntime({ service,
+      connectionAdapter: {
+        status: () => ({ connected, planEnabled: connected, pending: false, account: null }),
+        accountIdentity: () => identity,
+        dispose() {},
+      },
+      insightsAdapter: { createInsight: async () =>
+        ({ body: "Generated answer", citations: [], model: "synthetic" }), cancel() {}, dispose() {} } });
+    const operationId = `completed-${action}`;
+    assert.equal((await ai.create({ operationId, model: "synthetic", context,
+      articleText: "Public article.", allowWebResearch: false, expected: catalog.version }, "demo-alex")).state,
+    "running");
+    await Promise.resolve(); await Promise.resolve();
+    let pending;
+    if (action === "result") pending = ai.result({ operationId }, "demo-alex");
+    else if (action === "expired-result") pending = ai.result({ operationId }, "demo-alex",
+      { isCurrent: () => current });
+    else if (action === "resumable") pending = ai.resumable("demo-alex");
+    else pending = ai.share({ expected: catalog.version, command: { type: "share-insight", operationId,
+      topicId, originSourceId: sourceId, body: "Generated answer" } }, "demo-alex",
+    () => { persists += 1; return { version: catalog.version, result: { contributionId: "never" } }; },
+    { isCurrent: () => current });
+    if (action === "result") identity = { ...identity, subject: "two" };
+    else if (action === "expired-result") current = false;
+    else if (action === "resumable") connected = false;
+    else current = false;
+    release(bundle);
+    if (action === "result") assert.deepEqual(await pending,
+      { operationId, state: "failed", error: "stale-context" });
+    else if (action === "expired-result") {
+      await assert.rejects(pending, error => error?.code === "unavailable");
+      current = true; defer = false;
+      assert.deepEqual(await ai.result({ operationId }, "demo-alex"), { operationId, state: "completed",
+        result: { body: "Generated answer", citations: [], model: "synthetic" } });
+    }
+    else if (action === "resumable") assert.deepEqual(await pending, { job: null });
+    else {
+      await assert.rejects(pending, error => error?.code === "unavailable");
+      current = true; defer = false;
+      assert.equal((await ai.resumable("demo-alex")).job.operationId, operationId,
+        "a request-local share failure must preserve the completed job");
+    }
+    assert.equal(persists, 0);
+    ai.dispose();
+  }
+  await scenario("result");
+  await scenario("expired-result");
+  await scenario("resumable");
+  await scenario("share");
 });
 
 test("reset and disconnect clear late provider results and cannot replay operation IDs", async () => {

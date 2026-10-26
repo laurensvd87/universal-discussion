@@ -85,7 +85,7 @@ async function composition() {
     dispose() { controller.dispose(); discussion.dispose(); discovery.dispose(); } };
 }
 
-test("Trust: real canonical service/controller drives both contextual page surfaces with tracked exact navigation", async () => {
+test("Trust: retained metadata stays safe while Discussion omits page suggestions", async () => {
   const f = await composition(), state = f.controller.currentState();
   assert.equal(state.phase, "ready"); assert.equal(state.selection, "background");
   assert.equal(typeof state.catalog.version.generation, "string");
@@ -94,9 +94,8 @@ test("Trust: real canonical service/controller drives both contextual page surfa
   assert.ok(projected.contextKey.includes("RAM_ONLY_SESSION"));
   assert.equal(projected.pages.some(page => page.url === "https://news.public.org/related"), true);
   assert.equal(JSON.stringify(projected.pages).includes("RAM_ONLY_SESSION"), false);
-  const fallback = f.byId("discussion-related-page-suggestions");
-  assert.equal(fallback.hidden, false);
-  for (const root of [fallback, f.byId("discovery-results")]) {
+  assert.equal(f.byId("discussion-related-page-suggestions"), undefined);
+  for (const root of [f.byId("discovery-results")]) {
     const links = f.all(root).filter(element => element.tag === "a");
     assert.ok(links.some(link => link.href === "https://news.public.org/related"));
     assert.ok(links.every(link => link.href !== "https://news.public.org/current"));
@@ -106,7 +105,7 @@ test("Trust: real canonical service/controller drives both contextual page surfa
   assert.deepEqual(f.searchCalls, []);
   const before = f.service.catalog().version;
   await f.navigate();
-  assert.equal(fallback.hidden, true); assert.equal(fallback.children[1].children.length, 0);
+  assert.equal(f.byId("discussion-related-page-suggestions"), undefined);
   assert.equal(f.byId("discovery-results").children.length, 0);
   assert.deepEqual(f.service.catalog().version, before); assert.deepEqual(f.searchCalls, []);
   f.dispose();
@@ -129,20 +128,20 @@ test("Trust: real navigation preserves deliberate global query, while clear fenc
   f.dispose();
 });
 
-test("Trust: actual accepted root hides Discussion fallback and withdrawal reveals it without altering Discover", async () => {
-  const f = await composition(), fallback = f.byId("discussion-related-page-suggestions");
+test("Trust: actual accepted root and withdrawal never reintroduce Discussion page suggestions", async () => {
+  const f = await composition();
   const created = f.service.command(f.service.catalog().version, { type: "create-root",
     topicId: f.current.topicId, body: "Synthetic visible conversation" }, "demo-alex");
   await f.controller.open(); await settle();
   assert.equal(f.controller.currentState().discussion.roots[0].state, "visible");
-  assert.equal(fallback.hidden, true); assert.equal(fallback.children[1].children.length, 0);
+  assert.equal(f.byId("discussion-related-page-suggestions"), undefined);
   assert.ok(f.byId("discovery-results").children.length > 0);
   f.service.command(f.service.catalog().version, { type: "withdraw",
     contributionId: created.result.contributionId }, "demo-alex");
   await f.controller.open(); await settle();
   // discussionView deliberately omits a withdrawn root with no live replies.
   assert.deepEqual(f.controller.currentState().discussion.roots, []);
-  assert.equal(fallback.hidden, false);
+  assert.equal(f.byId("discussion-related-page-suggestions"), undefined);
   assert.deepEqual(f.searchCalls, []);
   f.dispose();
 });

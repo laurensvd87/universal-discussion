@@ -48,8 +48,8 @@ test("fixed voices are immutable scalar enums; standard preserves canonical sett
   }
 });
 
-test("Standard openings select summary tasks while both Standard reply prompts retain exact legacy bytes", () => {
-  const expected = ["a43f9b5cc948b46f41871bfeb22088a9e9c4009bf010dcce6c98e57b7e866972", "2724cda6a02ca22db2a9107b84af879dd109bec8560e8c0405035b9113522f6f", "3bb8065ac1437ecb7f153de25cb403a87ff49c8516b49921fd008b5cf3bd4334", "fe3cd4b3b5b39e776e71feba137b34499ed09273bf31af16bbe91f013f37fc9d"];
+test("Standard opening bytes stay exact while replies use the approved question-language policy", () => {
+  const expected = ["a43f9b5cc948b46f41871bfeb22088a9e9c4009bf010dcce6c98e57b7e866972", "2724cda6a02ca22db2a9107b84af879dd109bec8560e8c0405035b9113522f6f", "4607c033818e1781ca4c5cae38c4890c9ecbe33cf9ffa1b25dbf4a40668ee55f", "ac1afb42572f1eb1064c4630219ac859227ef335ad003d28574b03163bd16191"];
   let index = 0;
   for (const followup of [false, true]) for (const research of [false, true]) {
     const original = buildInsightInstructions(followup, research);

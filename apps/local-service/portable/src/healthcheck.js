@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { pathToFileURL } from 'node:url';
 
-export async function checkReady({ request = http.request, port = Number(process.env.UDL_PORT ?? 4185) } = {}) {
+export async function checkReady({ request = http.request, port = Number(process.env.MURMINGLE_PORT ?? 4185) } = {}) {
   if (!Number.isInteger(port) || port < 1024 || port > 65535) return false;
   return new Promise(resolve => {
     const probe = request({ host: '127.0.0.1', port, path: '/health/ready', method: 'GET', headers: { host: `127.0.0.1:${port}` }, timeout: 3000 }, response => {

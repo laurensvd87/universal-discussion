@@ -40,7 +40,7 @@ export function createSqliteDemoService({ databasePath, nextId, now, repositoryO
     }
     if (asyncReads && normalized && databasePath !== ":memory:") {
       readExecutor = createCanonicalReadQueue({ ...readWorkerOptions, databasePath,
-        allowedMethods: ["catalog", "catalogContext", "catalogPage", "discussion", "discussionPage", "exactSource"],
+        allowedMethods: ["catalog", "catalogContext", "selection", "catalogPage", "discussion", "discussionPage", "exactSource"],
         alternateAdapter: null, alternateBodyMetric: null, alternateRidgeAdapter: null });
       projectionExecutor = createCanonicalReadQueue({ maxTasks: 8, timeoutMs: 30000, ...projectionWorkerOptions, databasePath,
         allowedMethods: ["enrichment", "related", "priorDiscussions", "alternateDiscussion", "warmMatching"], incrementalMatching,

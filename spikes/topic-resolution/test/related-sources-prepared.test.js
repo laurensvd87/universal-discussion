@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { rankRelatedSources, prepareRelatedSources } from '../browser/core/related-sources.js';
+import { rankRelatedSources, prepareRelatedSources, prepareRelatedSource, createRelatedSourcesPreparation } from '../browser/core/related-sources.js';
 import { rankRelatedSources as priorRank } from './fixtures/related-sources-prior.js';
 
 function random(seed) { let state=seed>>>0;return ()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;}; }
@@ -18,12 +18,15 @@ test('prepared and ordinary retrieval exactly match frozen arithmetic, associati
     candidates[5].url=candidates[6].url+'#fragment';
     candidates[7].embedding=null;
     const prepared=prepareRelatedSources(candidates),before=JSON.stringify(candidates);
-    assert.ok(Object.isFrozen(prepared));assert.deepEqual(Object.keys(prepared),['rank']);
+    assert.ok(Object.isFrozen(prepared));assert.deepEqual(Object.keys(prepared),['rank','rankPrepared']);
+    const tokenPreparation=createRelatedSourcesPreparation();tokenPreparation.appendPrepared(candidates.map(prepareRelatedSource));
+    const tokenPrepared=tokenPreparation.finish();
     for(const query of [candidates[0],source('query',Array.from({length:384},()=>rng()-.5),'confirmed')])
       for(const limit of [0,1,20,100])for(const minSimilarity of [-1,0,.88,1]) {
         const options={limit,minSimilarity},expected=priorRank(query,candidates,options);
         assert.deepEqual(rankRelatedSources(query,candidates,options),expected);
         assert.deepEqual(prepared.rank(query,options),expected);
+        assert.deepEqual(tokenPrepared.rankPrepared(prepareRelatedSource(query),options),expected);
         assert.ok(Object.isFrozen(prepared.rank(query,options)));
       }
     assert.equal(JSON.stringify(candidates),before);
@@ -45,10 +48,13 @@ test('extreme/subnormal normalization and exact threshold decisions retain froze
   for(const values of [[Number.MAX_VALUE,Number.MAX_VALUE/2],[Number.MIN_VALUE,Number.MIN_VALUE],[-0,1]]) {
     const query=source('q',values),candidates=[source('a',values),source('b',[1,0]),source('c',null,'confirmed')];
     const prepared=prepareRelatedSources(candidates);
+    const tokenPreparation=createRelatedSourcesPreparation();tokenPreparation.appendPrepared(candidates.map(prepareRelatedSource));
+    const tokenPrepared=tokenPreparation.finish();
     for(const minSimilarity of [.88-1e-12,.88,.88+1e-12,-1,1]) {
       const options={limit:100,minSimilarity},expected=priorRank(query,candidates,options);
       assert.deepEqual(rankRelatedSources(query,candidates,options),expected);
       assert.deepEqual(prepared.rank(query,options),expected);
+      assert.deepEqual(tokenPrepared.rankPrepared(prepareRelatedSource(query),options),expected);
     }
   }
 });

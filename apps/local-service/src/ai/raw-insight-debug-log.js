@@ -4,7 +4,7 @@ import path from "node:path";
 
 const MAX_BYTES = 1_048_576;
 const MAX_EXCHANGES = 3;
-const DIRECTORY = `universal-discussion-insight-raw-${process.getuid?.() ?? "user"}`;
+const DIRECTORY = `murmingle-insight-raw-${process.getuid?.() ?? "user"}`;
 const FILE = "exchanges.log";
 const REQUEST_KEYS = ["model", "store", "stream", "instructions", "input", "tools"];
 const FORBIDDEN_KEY = /(?:authorization|headers?|cookies?|token|pairing|callback|secret|password|api.?key)/iu;
