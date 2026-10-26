@@ -8,6 +8,23 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct ordinary010+011 actual6dadf6fd/session76811 CLOSEDexit0/PASS,
+run-946fd2d98a6812cc78ffc6d7a623a95618e2ee56de4b5e32. Expanded25ledger proves
+human+generatedroot snapshots/replay, ancestor+leafrefs, SQLownerpolicy->actual
+grouping, historicalmanual/root/replyIDs, headwait+appfeedMVCC, visibilityrollback/
+withdraw/Sourceerase/DBisolation with all prior persistence fences. Parent862B
+9fc06e76...05919/stdout4436B04bb4847...68936/stderr0; child5051B4d2053f3...12209.
+OIDs16384/17364 dropped, ownedPG2420smartstopped, parentnormal/emptyJob/handles/
+2EOF/endpinsTRUE/emergencyFALSE. Independent14895Baudit474ab2a583c83b9b3d82c8783863842ffde94e030746867470fc7a5ea2da34e7
+data/semantic-hierarchy-feeds-native-actual-audit-20261027.json authenticated+FULLread.
+All2370/273840676B+32normal/map33Git6dad joinsPASS; oldf87outputpins unchanged.
+Both migrations remain UNREGISTERED/liveuntouched; fixturevectors/generatedproof
+invented, NOTquality/UI/manyuserstress proof. Crawler4060 originalstart advancing
+3454/stderr0; API19868/worker36616/dashboard6644 originalstarts/55433absent.
+Next integrate canonical feed read DTO/controller/client and actual matcher startup/
+worker, verified currentSource reclassification+honestlegacyadoption, owner UI and
+multiuser/crawler load+real UI checks before live cutover. GoalACTIVE/notcomplete.
+
 CURRENT26Oct production010 ONE actual f87a9e03/session8435 CLOSEDexit0/PASS:
 run-d2c254ca2fc202d34bce2dd731175725e24ef8c277dad909. All NEW25points/3groups,
 restrictedroles/realbinarychildpath/atomicrollback/renew/title/manualIDs/

@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+Latest actual010+011:6dadf6fd/session76811 CLOSEDexit0/expanded25PASS. Human+AI
+root snapshot/replay/ancestor+leaffeed/DBownerpolicy->realgrouping/historicalreply/
+manualIDs/headwait+appfeedread/visibilityrollback/withdraw/erase/DBisolation prove
+the backend foundation on invented fixture vectors/content. Run946fd2d...b5e32,
+parent9fc06e76...05919/stdout04bb4847...68936/child4d2053f3...12209/stderr0.
+Both scratchDBs dropped; ownedPG2420smartstop +parentnormal/emptyJob/handles/EOF/
+all2370endpins are verified separately. Independent14895Baudit474ab2a5...a34e7
+authenticated+FULLread. All32normal+map33rawGit6dad joinsPASS; priorf87run unchanged.
+Still no live installation, model startup/worker wiring, public feed DTO/route/UI,
+verifiedlegacyadoption or manyuserload proof. Next implement actual read/controller/
+browser composition and currentSource reclassification/adoption without recrawling
+unchanged material. Preserve discussions/privacy/crawler and keep goal active.
+
 Latest actual: f87a9e03/session8435 CLOSEDexit0, new25 semantic SQL ledger PASS.
 Run run-d2c254ca2fc202d34bce2dd731175725e24ef8c277dad909, parenta6e720b7...22724/
 stdout48969fd3...543c/stderr0; child7d2a77a8...a3821. Restrictedroles, actual child

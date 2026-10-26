@@ -1,5 +1,13 @@
 # Hierarchical topic assignment and discussion plan
 
+Latest backend evidence:6dadf6fd/session76811 expanded native25PASS now covers
+root semantic snapshots, indexed ancestor/child feeds, owner policy consumption,
+human/generated root creation/replay, historical replies/manual IDs, visibility/
+withdraw/erase and app feed reads during real head contention. Independent audit
+474ab2a5...a34e7 verifies all2370 endpins and normal owned cleanup. These functions
+are not installed live. Product reads/routes/browser, old-data reclassification/
+adoption, startup/worker, owner UI and representative concurrency/UI remain open.
+
 Production steps1/2 below now have actual isolated native SQL evidence (f87a9e03,
 session8435): owner registry/CAS, canonical+semantic atomic apply, roles, rollback,
 renewal/title/version retention, manual destinations, bounded head contention and

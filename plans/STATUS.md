@@ -1,5 +1,25 @@
 # Project status
 
+## Latest: hierarchy feeds and owner grouping pass real PostgreSQL checks
+
+Source6dadf6fd/session76811 completed the expanded25-point isolated native suite.
+Human and generated AI roots retain their supported paths and original canonical
+destinations; both ancestor and child feeds return them. Real SQL owner policy
+changes the selected grouping without rewriting confidence or stored paths.
+Historical replies, replay, manual reassignment, concurrent feed reads during a
+held write, withdrawal, visibility rollback and Source-erasure cascades all pass.
+The generated content and vectors are invented fixtures, not provider/quality tests.
+
+Both scratch databases were dropped, the owned server smart-stopped, and the
+parent retired normally with all2370 end pins verified and zero stderr. Independent
+audit474ab2a5...a34e7 is authenticated and fully read. Evidence is retained in
+portable/data/hierarchy-native-runs/run-946fd2d98a6812cc78ffc6d7a623a95618e2ee56de4b5e32.
+Code is committed/pushed. Live migrations, services and crawler remain unchanged.
+
+Next required work is product integration: canonical feed DTOs and browser routes,
+matcher startup/worker wiring, verified background classification/adoption for old
+data, owner controls and real UI/many-user load validation before live cutover.
+
 ## Production persistence passed real PostgreSQL checks on 26 October
 
 Source f87a9e03/session8435 completed the new25-point semantic SQL suite on
@@ -17,14 +37,14 @@ many-user throughput, real-page quality or live installation. Live services and 
 crawler remain unchanged. Next work adds actual root snapshots/ancestor feed edges
 and owner-wide per-topic grouping, then connects those reads/writes to the product.
 
-The root-feed foundation is now implemented as unregistered production source:
+The root-feed foundation is implemented as unregistered production source:
 migration011 captures qualified human/AI roots with full paths and original reply
 destinations, stores indexed ancestor edges, filters current visibility and erases
 derived context on withdrawal/Source forget. Owner-wide default/per-node cuts use
 only supported ancestors. Its adapter preserves bigint keyset positions. Root19
 guarded JavaScript and17 driver checks pass; all16 SQL statements/5 PL bodies parse.
-The expanded real SQL suite is reviewed next, with a distinct new catalog and run;
-none of these feed functions is installed in the live application yet.
+Its expanded real SQL suite has now passed as described above; none of these feed
+functions is installed in the live application yet.
 
 ## Earlier checkpoints (superseded by the actual result above)
 
