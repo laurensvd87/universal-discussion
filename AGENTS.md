@@ -8,6 +8,17 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT26Oct production semantic SQL suite SOURCE Root+Trustaccepted: NEW exact
+25 ledger/3 groups8+8+6, genuine invented binary child, owner/app/submitter/worker
+roles, rollback-after-legacy, renew/title/manual IDs, observed head lock/MVCC,
+erase/two DB isolation. Root17PythonPASS0.307s +8guardedNodePASS111ms, NOTSQL.
+Existing maintained driver now fixed semantic-native-check.js; old25 assertion
+bodies/results unchanged. Same native lifecycle/caps/epochs/8 lifetime clients.
+Catalog361149B SHA60b1b3753c0ed00c1dac2139152868ededec9eb0e458412024f4b5b228bf7c16,
+2365files/273795081B, authenticate+endpinsPASS; closure77/no missing local paths.
+NO actual SQL decision/run yet; original services/crawler4060 advancing3329.
+Production migration010 still unregistered, no live changes. GoalACTIVE.
+
 CURRENT26Oct production persistence foundation SOURCE Root+Trustaccepted,
 UNREGISTERED/UNEXECUTED: canonical-v4/migrations/010-semantic-hierarchy.sql19578B
 2a647b0a...a8355 +semantic-repository.js9055B551626a3...63b26. Inert owner model

@@ -19,7 +19,8 @@ REPO = HERE.parents[3]
 OWN = 'apps/local-service/portable/integration/'
 OLD = OWN + 'native-hierarchy-postgres-v2/'
 NODE = 'C:/Program Files/nodejs/node.exe'
-ENTRY = OWN + 'hierarchy-native-check.js'
+ENTRY = OWN + 'semantic-native-check.js'
+SEMANTIC_LEDGER = 'apps/local-service/portable/test/semantic-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
 MIB = 1048576
@@ -32,9 +33,22 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/test/hierarchy-native-call.test.js',
     'apps/local-service/portable/test/hierarchy-native-assertions.js',
     OWN + 'hierarchy-native-context.js', OWN + 'hierarchy-native-cluster.js',
+    OWN + 'hierarchy-native-check.js',
     ENTRY, OWN + 'hierarchy-native-driver.py', OWN + 'hierarchy_native_driver_test.py',
     OWN + 'hierarchy-native-run.js',
     'apps/local-service/portable/test/hierarchy-native-run.test.js',
+    OWN + 'semantic-native-context.js', OWN + 'semantic-native-check.test.js',
+    SEMANTIC_LEDGER,
+    'apps/local-service/portable/test/semantic-native-assertions.js',
+    'apps/local-service/portable/canonical-v4/migrations/010-semantic-hierarchy.sql',
+    'apps/local-service/portable/canonical-v4/semantic-repository.js',
+    'apps/local-service/portable/canonical-v4/ingestion-repository.js',
+    'apps/local-service/portable/canonical-v4/bootstrap/001-admin.sql',
+    'apps/local-service/src/application/hierarchy-ingestion-preparation.js',
+    'apps/local-service/src/domain/hierarchy-rooted-matcher.js',
+    'apps/local-service/src/domain/hierarchy-binary-detail.js',
+    'apps/local-service/src/domain/hierarchical-e5-observed-head-policy.js',
+    'spikes/topic-resolution/browser/core/local-service-contract.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),
@@ -82,6 +96,118 @@ def diagnostic_controller_type(supervisor, windows):
                         break
             return super().remember(translated, cleanup, fallback)
     return Controller
+
+
+def semantic_completion(stdout, stderr, exit_code):
+    """Validate this production suite, never alias historical synthetic cases.
+
+    The frozen supervisor's transport record still has25/3 fields. Acceptance
+    additionally binds the shared *new* ledger, exact semantic proof schema,
+    actual restricted roles, bounded lock-contention scope and normal cleanup.
+    It deliberately makes no multi-user throughput or matching-quality claim.
+    """
+    result = {'schema':'native-hierarchy-postgres-json-report/v2', 'accepted':False,
+        'code':'input-type', 'stdoutBytes':0, 'stderrBytes':0,
+        'stdoutSha256':None, 'stderrSha256':None, 'testPoints':0, 'outerTests':0}
+    def refused(code):
+        result['code'] = code
+        return result
+    def pairs(items):
+        out = {}
+        for key, value in items:
+            if key in out:
+                raise ValueError('duplicate')
+            out[key] = value
+        return out
+    def parse(raw):
+        return json.loads(raw.decode('utf8'), object_pairs_hook=pairs,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError('constant')))
+    def shape(value, keys):
+        return type(value) is dict and set(value) == set(keys.split())
+    def integer(value, expected):
+        return type(value) is int and value == expected
+    if type(stdout) is not bytes or type(stderr) is not bytes:
+        return result
+    result.update(stdoutBytes=len(stdout), stderrBytes=len(stderr),
+        stdoutSha256=hashlib.sha256(stdout).hexdigest(), stderrSha256=hashlib.sha256(stderr).hexdigest())
+    if len(stdout) > 262144:
+        return refused('stdout-limit')
+    if len(stderr) > 65536:
+        return refused('stderr-limit')
+    if type(exit_code) is not int or exit_code != 0:
+        return refused('exit-status')
+    try:
+        if not stdout.endswith(b'\n') or stdout.count(b'\n') != 1:
+            return refused('json-encoding')
+        value = parse(stdout)
+    except (ValueError, UnicodeError, RecursionError):
+        return refused('json-encoding')
+    if not shape(value, 'schema accepted primary server cleanup proof'):
+        return refused('json-shape')
+    if value['schema'] != 'canonical-semantic-postgres-result/v1' or value['accepted'] is not True or value['primary'] is not None:
+        return refused('json-proof')
+    server = value['server']
+    if (not shape(server, 'port version ownershipVerified') or not integer(server['port'],55433)
+            or not integer(server['version'],170011) or server['ownershipVerified'] is not True):
+        return refused('json-proof')
+    cleanup = value['cleanup']
+    if (not shape(cleanup,'reason stopped childExited clientsClosed physicalSettled directoryRetained')
+            or cleanup['reason'] != 'verified-own-server-smart-stopped'
+            or not all(cleanup[key] is True for key in cleanup if key != 'reason')):
+        return refused('json-cleanup')
+    proof = value['proof']
+    if not shape(proof, 'schema status nativeExecuted pendingAssertions cases restrictedRoleValidated concurrencyScope multiUserLoadValidated semanticQualityMeasured lastObservedSqlFailure cleanup'):
+        return refused('json-shape')
+    if (proof['schema'] != 'canonical-semantic-postgres-proof/v1' or proof['status'] != 'passed'
+            or proof['nativeExecuted'] is not True or not integer(proof['pendingAssertions'],0)
+            or proof['restrictedRoleValidated'] is not True
+            or proof['concurrencyScope'] != 'head-switch-vs-apply-and-mvcc-read'
+            or proof['multiUserLoadValidated'] is not False or proof['semanticQualityMeasured'] is not False
+            or proof['lastObservedSqlFailure'] is not None):
+        return refused('json-proof')
+    # This fixed file is part of the authenticated catalog and end pins. Reading
+    # it grants no authority and does not permit caller-selected case names.
+    try:
+        raw = (REPO/SEMANTIC_LEDGER).read_bytes()
+        if not 0 < len(raw) <= 16384:
+            return refused('json-cases')
+        groups = parse(raw)
+        if type(groups) is not list or len(groups) != 3:
+            return refused('json-cases')
+        expected = []
+        for index, group in enumerate(groups):
+            if (not shape(group, 'name children') or type(group['name']) is not str
+                    or type(group['children']) is not list or len(group['children']) != (8,8,6)[index]
+                    or any(type(name) is not str for name in group['children'])):
+                return refused('json-cases')
+            expected.append({'name':group['name'], 'depth':0, 'status':'passed'})
+            expected.extend({'name':name, 'depth':1, 'status':'passed'} for name in group['children'])
+        cases = proof['cases']
+        if (type(cases) is not list or len(cases) != 25 or cases != expected
+                or len({row['name'] for row in expected}) != 25
+                or any(not shape(row,'name depth status') or type(row['depth']) is not int for row in cases)):
+            return refused('json-cases')
+    except (OSError, ValueError, UnicodeError, RecursionError):
+        return refused('json-cases')
+    result.update(testPoints=25, outerTests=3)
+    dbs = proof['cleanup']
+    if (not shape(dbs, 'status used finished adminClosed failureCount databases') or dbs['status'] != 'passed'
+            or not integer(dbs['used'],2) or dbs['finished'] is not True or dbs['adminClosed'] is not True
+            or not integer(dbs['failureCount'],0) or type(dbs['databases']) is not list or len(dbs['databases']) != 2):
+        return refused('json-cleanup')
+    for index, row in enumerate(dbs['databases']):
+        if (not shape(row, 'name oid created closed dropped pending cleanupFailures')
+                or row['name'] != 'murmingle_hierarchy_fixture_20261026_'+('a' if index == 0 else 'b')
+                or type(row['oid']) is not str or not 1 <= len(row['oid']) <= 10
+                or not all('0' <= char <= '9' for char in row['oid']) or row['oid'].startswith('0')
+                or not 0 < int(row['oid']) <= 4294967295
+                or not all(row[key] is True for key in ('created','closed','dropped'))
+                or not integer(row['pending'],0) or not integer(row['cleanupFailures'],0)):
+            return refused('json-cleanup')
+    if dbs['databases'][0]['oid'] == dbs['databases'][1]['oid']:
+        return refused('json-cleanup')
+    result.update(accepted=True, code='complete')
+    return result
 
 
 def load_pinned(name):
@@ -393,7 +519,7 @@ def execute(external_sha):
         return W.OwnedFixtureProcess(B, api=native_api_type(W, run)(B))
 
     controller = diagnostic_controller_type(S, modules['windows'])(authenticate=authenticate, end_pins=catalog.end_pins,
-        host_sample=host, boundary_factory=boundary, validate=S.validate_completion,
+        host_sample=host, boundary_factory=boundary, validate=semantic_completion,
         clock=time.monotonic, pause=time.sleep, workspace_check=workspace, started_at=STARTED)
     result = controller.run()
     if publisher.prepared:

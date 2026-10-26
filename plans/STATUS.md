@@ -1,5 +1,14 @@
 # Project status
 
+The new production semantic native suite is source-reviewed and ready for its
+separate actual-run decision. It has its own exact25 ledger (3 groups8/8/6), a
+real invented binary child, actual restricted-role/rollback/renewal/manual-ID/
+head-contention/MVCC/erasure/isolation checks. Root17 pure Python and8 guarded
+Node tests pass; these do not execute SQL. The maintained owned driver reuses
+the original physical lifecycle/limits, preserving the older25 assertions and
+results as distinct prior evidence. Its new2365-input catalog is authenticated
+before/after; no actual database invocation or live installation has occurred.
+
 ## Current checkpoint on 26 October: conservative real GTA result and ingestion preparation
 
 The first ordinary production persistence foundation is source-reviewed: migration

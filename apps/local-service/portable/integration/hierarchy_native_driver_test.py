@@ -4,6 +4,7 @@ import contextlib
 import ctypes
 import hashlib
 import io
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -105,10 +106,84 @@ class MaintainedDriverTest(unittest.TestCase):
         base = self.I.FileCatalog('a'*64)._inventory()
         maintained = D.catalog_type(self.I)('a'*64)._inventory()
         self.assertEqual(len(base), 2338)
-        self.assertEqual(len(D.NORMAL_KEYS), 13)
         self.assertEqual(maintained-base, D.NORMAL_KEYS)
-        self.assertEqual(len(maintained), 2351)
+        self.assertEqual(len(maintained), 2338+len(D.NORMAL_KEYS))
         self.assertTrue(all((D.REPO/key).is_file() for key in D.NORMAL_KEYS))
+        self.assertEqual(D.ENTRY, D.OWN+'semantic-native-check.js')
+        self.assertIn(D.SEMANTIC_LEDGER, D.NORMAL_KEYS)
+
+    def semantic_result(self):
+        groups = json.loads((D.REPO/D.SEMANTIC_LEDGER).read_bytes())
+        cases = []
+        for group in groups:
+            cases.append({'name':group['name'],'depth':0,'status':'passed'})
+            cases.extend({'name':name,'depth':1,'status':'passed'} for name in group['children'])
+        databases = [{'name':'murmingle_hierarchy_fixture_20261026_'+suffix,
+            'oid':str(17000+index), 'created':True,'closed':True,'dropped':True,
+            'pending':0,'cleanupFailures':0} for index,suffix in enumerate(('a','b'))]
+        return {'schema':'canonical-semantic-postgres-result/v1','accepted':True,'primary':None,
+            'server':{'port':55433,'version':170011,'ownershipVerified':True},
+            'cleanup':{'reason':'verified-own-server-smart-stopped','stopped':True,'childExited':True,
+                'clientsClosed':True,'physicalSettled':True,'directoryRetained':True},
+            'proof':{'schema':'canonical-semantic-postgres-proof/v1','status':'passed','nativeExecuted':True,
+                'pendingAssertions':0,'cases':cases,'restrictedRoleValidated':True,
+                'concurrencyScope':'head-switch-vs-apply-and-mvcc-read','multiUserLoadValidated':False,
+                'semanticQualityMeasured':False,'lastObservedSqlFailure':None,
+                'cleanup':{'status':'passed','used':2,'finished':True,'adminClosed':True,'failureCount':0,'databases':databases}}}
+
+    def complete(self, value):
+        return D.semantic_completion((json.dumps(value,separators=(',',':'))+'\n').encode(),b'',0)
+
+    def test_semantic_completion_binds_its_own_cases_and_frozen_transport(self):
+        value=self.semantic_result()
+        self.assertEqual(len(value['proof']['cases']),25)
+        report=self.complete(value)
+        self.assertTrue(report['accepted'])
+        self.assertEqual(self.S.checked_completion(report),report)
+        self.assertEqual(report['code'],'complete')
+        value['schema']='native-hierarchy-postgres-result/v2'
+        self.assertEqual(self.complete(value)['code'],'json-proof')
+
+    def test_semantic_case_identity_order_depth_and_completion_are_required(self):
+        for change in ('name','order','depth','bool-depth','missing','status','extra'):
+            value=self.semantic_result();cases=value['proof']['cases']
+            if change=='name':cases[1]['name']='a different successful assertion'
+            elif change=='order':cases[1],cases[2]=cases[2],cases[1]
+            elif change=='depth':cases[1]['depth']=0
+            elif change=='bool-depth':cases[1]['depth']=True
+            elif change=='missing':cases.pop()
+            elif change=='status':cases[1]['status']='failed'
+            else:cases[1]['extra']=True
+            self.assertEqual(self.complete(value)['code'],'json-cases',change)
+
+    def test_semantic_roles_scope_and_honest_quality_flags_are_required(self):
+        changes={'restrictedRoleValidated':False,'nativeExecuted':False,'pendingAssertions':True,
+            'concurrencyScope':'many-user-load','multiUserLoadValidated':True,
+            'semanticQualityMeasured':True,'lastObservedSqlFailure':{'caseIndex':1,'role':'owner','sqlState':'P0001'}}
+        for key,replacement in changes.items():
+            value=self.semantic_result();value['proof'][key]=replacement
+            self.assertEqual(self.complete(value)['code'],'json-proof',key)
+
+    def test_semantic_normal_physical_and_database_cleanup_are_required(self):
+        for key in ('stopped','childExited','clientsClosed','physicalSettled','directoryRetained'):
+            value=self.semantic_result();value['cleanup'][key]=False
+            self.assertEqual(self.complete(value)['code'],'json-cleanup',key)
+        for bad in ('0','01','4294967296','１２３',123,True):
+            value=self.semantic_result();value['proof']['cleanup']['databases'][0]['oid']=bad
+            self.assertEqual(self.complete(value)['code'],'json-cleanup',repr(bad))
+        value=self.semantic_result();value['proof']['cleanup']['databases'][1]['oid']=value['proof']['cleanup']['databases'][0]['oid']
+        self.assertEqual(self.complete(value)['code'],'json-cleanup')
+        value=self.semantic_result();value['proof']['cleanup']['databases'][0]['pending']=True
+        self.assertEqual(self.complete(value)['code'],'json-cleanup')
+
+    def test_semantic_output_bounds_encoding_and_duplicate_fields(self):
+        for stdout,stderr,exit_code,expected in (
+            ('x',b'',0,'input-type'),(b'x'*262145,b'',0,'stdout-limit'),
+            (b'{}\n',b'x'*65537,0,'stderr-limit'),(b'{}\n',b'',True,'exit-status'),
+            (b'{}\n',b'',1,'exit-status'),(b'{}',b'',0,'json-encoding'),
+            (b'{}\n{}\n',b'',0,'json-encoding'),(b'{"a":1,"a":1}\n',b'',0,'json-encoding'),
+            (b'{"a":NaN}\n',b'',0,'json-encoding'),(b'\xff\n',b'',0,'json-encoding')):
+            self.assertEqual(D.semantic_completion(stdout,stderr,exit_code)['code'],expected)
 
     def test_finite_native_error_is_retained_without_altering_first_failure(self):
         def controller(cls):

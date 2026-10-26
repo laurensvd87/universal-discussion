@@ -1,0 +1,39 @@
+[
+  {
+    "name": "semantic installation, topology stability and actual role boundaries",
+    "children": [
+      "semantic schema starts inert with an empty installed head and no learned Sources",
+      "actual numeric owner registration is inert, byte-bound and idempotent",
+      "app role cannot register, activate or mutate semantic records",
+      "crawler submitter cannot register, activate or apply semantic writes",
+      "worker cannot call legacy apply, register models or directly mutate semantic tables",
+      "cross-model node ancestry is stable while distinct models with the same ancestry register",
+      "repeatable-read and serializable owner registration explicitly reject without mutation",
+      "owner activation is explicit and current-head revision compare-and-swap rejects stale control"
+    ]
+  },
+  {
+    "name": "operation-bound semantic apply and canonical rollback on the physical SQL transaction",
+    "children": [
+      "actual app enqueue and worker lease retain the exact title-inclusive canonical material",
+      "stale installed matcher rejects before any legacy canonical mutation",
+      "registered topology rejects a numerically prepared non-ancestor path",
+      "actual worker SQL rejects an invalid title vector without canonical mutation",
+      "post-legacy semantic insertion failure rolls back Source, receipt, numeric input and job completion",
+      "successful apply binds Source write-version, operation digest and both exact numeric vectors",
+      "completed operation status and exact enqueue replay do not duplicate semantic or canonical writes",
+      "excluded challenge context remains canonically isolated with empty ineligible semantic path"
+    ]
+  },
+  {
+    "name": "renewal, stable destinations, bounded head contention, erasure and database isolation",
+    "children": [
+      "identical renewal deduplicates numeric input while recording the new Source write-version",
+      "title-only change creates a new title-inclusive digest, numeric input and Source observation",
+      "ordinary semantic ingest preserves manually confirmed canonical Topic and Discussion IDs",
+      "actual worker head share blocks owner activation while an unrelated app MVCC status read completes",
+      "canonical Source forget cascades both vectors and observations while retaining its original discussion",
+      "second fresh database cannot reuse the first database registry, current head or worker authority"
+    ]
+  }
+]

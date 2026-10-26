@@ -1,5 +1,15 @@
 # Implementation handoff: local-service discussion MVP
 
+Next execution is the maintained semantic production SQL suite, source-reviewed
+by Root+Trust with its distinct25 ledger and proof/result schemas. Root17 pure
+Python+8 guarded Node pass; exact catalog361149B/2365 inputs SHA60b1b3753c0ed00c1dac2139152868ededec9eb0e458412024f4b5b228bf7c16
+authenticates and end-pins. Genuine invented binary child now checks successful
+fine-path persistence. Same original native caps/epochs/8 lifetime connections;
+old25 fixture evidence remains separate. No actual-run decision/invocation yet.
+Before actual: independent catalog check, fresh resource/services/port proof,
+Root ONE decision; then monitor that returned handle, audit results and cleanup.
+No live migration/startup/crawler change. Goal remains active.
+
 ## Current continuation: GTA heldout conservative result; server preparation bridge next
 
 Production foundation SOURCE now accepted, not registered/executed: migration010
