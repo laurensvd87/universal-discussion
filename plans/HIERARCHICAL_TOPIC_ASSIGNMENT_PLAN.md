@@ -9,6 +9,44 @@ derive title embeddings on the worker, avoiding a browser payload change. Actual
 canonical storage/routing, ancestor feeds, owner cuts and concurrent UI use remain
 required; presentation-only grouping does not complete this plan. See current STATUS.
 
+## Next production integration
+
+Use the existing durable ingestion queue and operation authority. The native proof
+repository and publication219 remain fixture/record-binding components; installing
+their old queue boundary would conflict with live ingestion. Do not label the
+ordinary operation-bound numeric preparation a native capture witness.
+
+1. Install the reviewed matcher identity and immutable semantic topology through
+   trusted startup/migration ownership. Semantic node IDs are separate from
+   canonical Topic/Discussion IDs; existing shared destinations must be supported.
+2. Extend canonical apply on one physical transaction connection. Validate the
+   existing lease, generation, Source witness and title-inclusive material digest;
+   persist paired input/decision with accepted Source write version before commit.
+   Deduplicate immutable numeric inputs across identical renewals. Failure must
+   roll back both canonical mutation and semantic persistence.
+3. Persist root semantic snapshots and indexed ancestor edges in root creation's
+   transaction. Replies retain each root's original canonical destination. Erasure,
+   visibility and withdrawal must invalidate feeds in the same transaction. Keep
+   historical unclassified roots readable; adopt only with an explicit verified
+   representation/origin rule, never fabricated historical capture provenance.
+4. Add semantic topic search and ancestor feeds to the real read facade/controller.
+   Preserve per-root canonical IDs and target checks across shared feeds. The
+   Discover surface remains one page-independent Search Topics; Discussion shows
+   conversations, without related-page suggestions.
+5. Map the existing owner-wide specificity control and topic-specific overrides to
+   stable semantic-node prefixes. Store full supported paths independently of the
+   chosen display cut. A cut can make a decision broader; it cannot invent a more
+   specific confident node. No personal browsing override or new admin-login scope.
+6. Replace foreground dependence on nearest-reference grouping with semantic
+   assignments/feeds, retaining old discussion destinations and source-local
+   posting containers where needed. Validate cold/warm reads, saved human posting,
+   simultaneous users+crawler, restricted roles and rollback on isolated native
+   PostgreSQL before live cutover. Then register/start the application matcher and
+   perform the already authorized orderly crawler restart with preserved progress.
+
+Completion requires the actual application path and UI to use these persisted
+assignments. The current numerical benchmarks and UI source fix are prerequisites.
+
 Earlier26 October: numeric rooted composition is implemented (c89d5f33), including
 exact declared ancestry, root gating, deepest accepted path and sibling LCA. Real
 detail is still unaccepted: Recipe TEST has one false refinement; GTA fitting lost

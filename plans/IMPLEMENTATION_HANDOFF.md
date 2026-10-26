@@ -16,8 +16,19 @@ pairing. Historical arbitrary Source title/body rows still need provenance check
 Use operationDigest for sourceVersion, never title-excluding sourceStamp. New
 hierarchy-ingestion-preparation.js/test source is implemented/reviewed with bounded
 numeric cache and serialized encoding; worker nowawaits representation and keeps
-abort/SQL fences. Root21guarded tests pass. Actual local-model component test next;
-no repository/startup/canonical integration or live deployment yet.
+abort/SQL fences. Root21guarded tests pass. Actual local-model component92295
+CLOSED0/receiptade94855...77bee:66/22ms prepare,.72/.45ms cachehit, exacttitlevectors,
+3E5calls including synthetic title-only invalidation. InmemoryTRAINenvelopes only,
+not SQLclaims/quality/heldout evidence. No repository/startup/live deployment yet.
+
+Saved human posting source is now Root/Trustaccepted: exact document attest from
+existing Chrome reader, private canonical binding, late-document establishment and
+coherent samegeneration revision renewal. Human root/reply only; AI/private/edit
+stay Ready-gated. Root263/Trust211 focused checks pass. Real isolated native panel
+standard/account regression45calls/0errors/320pxnooverflow also passes, artifacts
+data/hierarchy-fast-post-panel-qa-20261026; new saved-path actualbrowser latency is
+not yet measured. Do not claim ownerlive activation. See current hierarchy plan
+for production SQL/feeds/owner cut integration; do not reuse the fixture queue.
 
 ## Earlier continuation: rooted composition implemented; real detail still unaccepted
 

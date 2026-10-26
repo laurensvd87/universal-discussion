@@ -1419,6 +1419,215 @@ function backgroundHarness(overrides = {}) {
     setResolution(patch) { resolution = { ...resolution, ...patch }; }, publish: () => ui.controller.updatePageResolution(resolution) };
 }
 
+function savedPostingHarness(overrides = {}) {
+  let ui;
+  ui = backgroundHarness({
+    readActiveTab: async () => ({ tabId: ui.resolution().currentTabId, windowId: ui.resolution().currentWindowId, url: ui.resolution().currentUrl }),
+    attestSavedDocument: async () => true,
+    ...overrides,
+    client: { async urlSelection({ url }) {
+      const catalog = ui.service.catalog(), source = catalog.sources.find(s => s.url === url);
+      return { catalog, discussion: ui.service.discussion(source.topicId) };
+    }, ...overrides.client },
+  });
+  const learned = ui.ingest();
+  ui.setResolution({ phase: "processing", reason: "embedding", sourceId: null, topicId: null, assignment: null });
+  return { ...ui, learned };
+}
+
+test("verified saved document permits human root and reply during matching without granting other Ready gates", async t => {
+  const docs = [], tabs = [];
+  const ui = savedPostingHarness({ attestSavedDocument: async witness => { docs.push(witness); return true; },
+    attestActiveContext: async witness => { tabs.push(witness); return true; } });
+  t.after(() => ui.controller.dispose());
+  await ui.controller.open();
+  let state = ui.controller.currentState();
+  assert.equal(state.phase, "loading"); assert.equal(state.humanPostingReady, true);
+  assert.equal(await ui.controller.attestPrivateStart(state), false);
+  assert.deepEqual(Object.keys(docs[0]).sort(), ["tabId", "windowId", "documentId", "documentUrl", "sourceUrl", "origin", "sessionRevision", "blockedOrigins"].sort());
+  ui.controller.setDraft("Human post before optional matching finishes");
+  assert.equal(await ui.controller.submitDraft(), true);
+  state = ui.controller.currentState();
+  assert.equal(state.phase, "loading"); assert.equal(state.humanPostingReady, true);
+  const root = state.discussion.roots[0];assert.equal(root.body, "Human post before optional matching finishes");
+  assert.equal(ui.controller.begin("edit", root.id), false);
+  assert.equal(await ui.controller.createTopic("Not a human post", "general"), false);
+  assert.equal(await ui.controller.withdraw(root.id), false);
+  assert.equal(ui.controller.begin("reply", root.id), true);
+  ui.controller.setDraft("Human reply before matching finishes");
+  assert.equal(await ui.controller.submitDraft(), true);
+  const commands = ui.requests.filter(([kind]) => kind === "command");
+  assert.deepEqual(commands.map(([,command]) => command.type), ["create-root", "reply"]);
+  assert.equal(commands[0][1].topicId, ui.learned.topicId);assert.equal(commands[1][1].originSourceId, ui.learned.sourceId);
+  assert.equal(tabs.length, 4, "both existing owning-tab attestations still run for each post");
+  assert.equal(docs.every(w => w.documentId === "doc-1"), true);
+});
+
+test("saved URL without native capability or exact eligible document stays read-only", async t => {
+  for (const [options, alter] of [[{ attestSavedDocument: null }, u => {}], [{}, u => u.setResolution({ documentId: null })],
+    [{}, u => u.setResolution({ phase: "unsupported" })], [{}, u => u.setResolution({ tabId: 8 })], [{}, u => u.setResolution({ hostAccess: false })]]) {
+    const ui = savedPostingHarness(options);
+    t.after(() => ui.controller.dispose());alter(ui);await ui.controller.open();
+    assert.equal(ui.controller.currentState().humanPostingReady, false);
+    ui.controller.setDraft("Only local text");assert.equal(await ui.controller.submitDraft(), false);
+    assert.equal(ui.requests.some(([kind]) => kind === "command"), false);
+  }
+});
+
+test("initial matching error with an exact attested captured document permits only human posting", async t => {
+  const ui = savedPostingHarness();t.after(() => ui.controller.dispose());
+  ui.setResolution({ phase: "error", reason: "unavailable", documentId: "doc-1" });await ui.controller.open();
+  const state = ui.controller.currentState();assert.equal(state.phase, "loading");assert.equal(state.humanPostingReady, true);
+  assert.equal(await ui.controller.attestPrivateStart(state), false);
+  ui.controller.setDraft("Saved discussion works despite optional matching error");assert.equal(await ui.controller.submitDraft(), true);
+  assert.equal(ui.requests.filter(([type]) => type === "command").length, 1);
+});
+
+test("initial matching error without a document witness remains read-only", async t => {
+  let nativeCalls = 0;const ui = savedPostingHarness({ attestSavedDocument: async () => { nativeCalls++;return true; } });
+  t.after(() => ui.controller.dispose());ui.setResolution({ phase: "error", reason: "unavailable", documentId: null });await ui.controller.open();
+  assert.equal(ui.controller.currentState().humanPostingReady, false);assert.equal(nativeCalls, 0);
+  ui.controller.setDraft("Local draft only");assert.equal(await ui.controller.submitDraft(), false);
+  assert.equal(ui.requests.some(([type]) => type === "command"), false);
+});
+
+test("matching-only progress keeps saved human destination while replacement witnesses detach", async t => {
+  const ui = savedPostingHarness();t.after(() => ui.controller.dispose());await ui.controller.open();
+  ui.controller.setDraft("Bound to saved destination");
+  ui.setResolution({ reason: "matching", sequence: 2 });await ui.publish();
+  assert.equal(ui.controller.currentState().humanPostingReady, true);
+  ui.setResolution({ documentId: null, phase: "checking", sequence: 3 });await ui.publish();
+  assert.equal(ui.controller.currentState().humanPostingReady, false);assert.equal(ui.controller.currentState().draft.detached, true);
+});
+
+test("a document published after the fast saved read enables human posting before matcher Ready", async t => {
+  let calls = 0;
+  const ui = savedPostingHarness({ attestSavedDocument: async () => { calls++;return true; } });t.after(() => ui.controller.dispose());
+  ui.setResolution({ phase: "checking", reason: null, documentId: null, tabId: null, url: null });
+  await ui.controller.open();assert.equal(ui.controller.currentState().humanPostingReady, false);
+  ui.controller.setDraft("Typed while the saved discussion opens");
+  ui.setResolution({ phase: "processing", reason: "embedding", documentId: "doc-1", tabId: 7, url: ui.resolution().currentUrl, sequence: 2 });
+  await ui.publish();
+  const state = ui.controller.currentState();assert.equal(state.phase, "loading");assert.equal(state.humanPostingReady, true);
+  assert.equal(state.draft.detached, false);assert.equal(state.draft.body, "Typed while the saved discussion opens");assert.equal(calls, 1);
+  assert.equal(await ui.controller.submitDraft(), true);assert.equal(ui.requests.filter(([type]) => type === "command").length, 1);
+});
+
+test("coherent renewal accepts unrelated revision growth for root and exact original reply", async t => {
+  for (const mode of ["root", "reply"]) {
+    const ui = savedPostingHarness();t.after(() => ui.controller.dispose());
+    if (mode === "reply") ui.service.command(ui.service.catalog().version, { type: "create-root", topicId: ui.learned.topicId,
+      body: "Original reply target", originSourceId: ui.learned.sourceId }, "demo-alex");
+    await ui.controller.open();
+    const initial = ui.controller.currentState();
+    if (mode === "reply") assert.equal(ui.controller.begin("reply", initial.discussion.roots[0].id), true);
+    ui.controller.setDraft("Survives unrelated crawler revision");
+    ui.service.command(ui.service.catalog().version, { type: "create-topic", title: "Unrelated ingestion", kind: "general" }, "demo-alex");
+    assert.equal(await ui.controller.submitDraft(), true, mode);
+    const final = ui.controller.currentState();assert.equal(final.topicId, initial.topicId);assert.equal(final.discussion.discussionId, initial.discussion.discussionId);
+    assert.equal(final.catalog.version.revision, final.discussion.version.revision);assert.ok(final.catalog.version.revision > initial.catalog.version.revision);
+  }
+});
+
+test("coherent saved renewal rejects changed target body, withdrawn target, generation or destination", async t => {
+  for (const change of ["body", "withdrawn", "generation", "destination", "source"]) {
+    let changed = false, ui;
+    ui = savedPostingHarness({ client: { async urlSelection({ url }) {
+      const catalog = ui.service.catalog(), source = catalog.sources.find(s => s.url === url), discussion = ui.service.discussion(source.topicId);
+      if (changed) {
+        if (change === "body") discussion.roots[0].body = "Changed target after draft binding";
+        if (change === "withdrawn") discussion.roots[0].state = "withdrawn";
+        if (change === "generation") { catalog.version.generation = "different-generation";discussion.version.generation = "different-generation"; }
+        if (change === "destination") discussion.discussionId = "different-discussion";
+        if (change === "source") source.id = "different-source";
+      }
+      return { catalog, discussion };
+    } } });t.after(() => ui.controller.dispose());
+    ui.service.command(ui.service.catalog().version, { type: "create-root", topicId: ui.learned.topicId, body: "Original root", originSourceId: ui.learned.sourceId }, "demo-alex");
+    await ui.controller.open();assert.equal(ui.controller.begin("reply", ui.controller.currentState().discussion.roots[0].id), true);
+    ui.controller.setDraft("Never follows a changed target");changed = true;
+    assert.equal(await ui.controller.submitDraft(), false, change);assert.equal(ui.controller.currentState().draft.detached, true, change);
+    assert.equal(ui.requests.some(([type]) => type === "command"), false, change);
+  }
+});
+
+test("saved source origin eligibility is checked before native binding and again on coherent renewal", async t => {
+  for (const stage of ["initial", "renewal"]) {
+    let tightened = stage === "initial", ui;
+    ui = savedPostingHarness({ client: { async urlSelection({ url }) {
+      const catalog = ui.service.catalog(), source = catalog.sources.find(s => s.url === url);
+      const discussion = ui.service.discussion(source.topicId);
+      if (tightened) source.title = "Invalid\u0000historical origin";
+      return { catalog, discussion };
+    } } });t.after(() => ui.controller.dispose());await ui.controller.open();
+    if (stage === "initial") assert.equal(ui.controller.currentState().humanPostingReady, false);
+    else { assert.equal(ui.controller.currentState().humanPostingReady, true);tightened = true; }
+    ui.controller.setDraft("Cannot attach an invalid origin");assert.equal(await ui.controller.submitDraft(), false, stage);
+    assert.equal(ui.requests.some(([type]) => type === "command"), false);
+  }
+});
+
+test("fresh posting rechecks native document, account, privacy, URL and canonical version without poll assistance", async t => {
+  for (const kind of ["native", "document", "url", "account", "blocked", "session", "host", "destination"]) {
+    let actor, attested = true;
+    const ui = savedPostingHarness({ readPostingActor: () => actor, attestSavedDocument: async () => attested });
+    t.after(() => ui.controller.dispose());await ui.controller.open();ui.controller.setDraft("Must not escape changed context");
+    if (kind === "native") attested = false;
+    if (kind === "document") ui.setResolution({ documentId: "doc-2" });
+    if (kind === "url") ui.setResolution({ currentUrl: ui.resolution().url + "?changed=yes" });
+    if (kind === "account") actor = "unknown-account";
+    if (kind === "blocked") ui.setResolution({ blockedOrigins: [ui.resolution().currentOrigin] });
+    if (kind === "session") ui.setResolution({ sessionRevision: "different-session" });
+    if (kind === "host") ui.setResolution({ hostAccess: false });
+    if (kind === "destination") ui.setResolution({ phase: "ready", sourceId: ui.learned.sourceId, topicId: "different-topic" });
+    assert.equal(await ui.controller.submitDraft(), false, kind);
+    assert.equal(ui.requests.some(([type]) => type === "command"), false, kind);
+  }
+});
+
+test("late native attestation cannot establish or submit after context invalidation", async t => {
+  for (const stage of ["open", "submit"]) {
+    const gate = deferred();let pause = stage === "open";
+    const ui = savedPostingHarness({ attestSavedDocument: async () => pause ? gate.promise : true });t.after(() => ui.controller.dispose());
+    let pending;
+    if (stage === "open") pending = ui.controller.open();
+    else { await ui.controller.open();ui.controller.setDraft("Late human write");pause = true;pending = ui.controller.submitDraft(); }
+    await turn();ui.invalidate();gate.resolve(true);await pending;
+    assert.equal(ui.controller.currentState().humanPostingReady, false);
+    assert.equal(ui.requests.some(([type]) => type === "command"), false);
+  }
+});
+
+test("saved human delivery rechecks after its final owning-tab and native yields", async t => {
+  for (const stage of ["final-native", "second-tab"]) {
+    let nativeCalls = 0, tabCalls = 0, ui;
+    ui = savedPostingHarness({
+      attestSavedDocument: async () => { nativeCalls++;return stage !== "final-native" || nativeCalls !== 3; },
+      attestActiveContext: async () => { if (++tabCalls === 2 && stage === "second-tab") ui.setResolution({ documentId: "doc-2" });return true; },
+    });
+    t.after(() => ui.controller.dispose());await ui.controller.open();ui.controller.setDraft("Cannot dispatch after a late change");
+    assert.equal(await ui.controller.submitDraft(), false, stage);
+    assert.equal(ui.requests.some(([type]) => type === "command"), false, stage);
+    assert.equal(ui.controller.currentState().draft.detached, true);
+    assert.equal(tabCalls, 2);
+  }
+});
+
+test("later matcher destination and account change never reattach a saved human draft", async t => {
+  for (const change of ["destination", "document", "account", "privacy"]) {
+    const ui = savedPostingHarness();t.after(() => ui.controller.dispose());await ui.controller.open();
+    ui.controller.setDraft("Original saved discussion draft");
+    if (change === "destination") ui.setResolution({ phase: "ready", sourceId: ui.learned.sourceId, topicId: "reserved-domain-demo" });
+    if (change === "document") ui.setResolution({ documentId: "doc-2", sequence: 2 });
+    if (change === "privacy") ui.setResolution({ blockedOrigins: [ui.resolution().currentOrigin] });
+    if (change === "account") { ui.controller.accountChanged();await turn(); }
+    else await ui.publish();
+    assert.equal(ui.controller.currentState().draft.detached, true, change);
+    assert.equal(await ui.controller.submitDraft(), false, change);
+    assert.equal(ui.requests.some(([type]) => type === "command"), false, change);
+  }
+});
+
 test("bounded catalog selects an exact learned Source outside the initial slice and refreshes manual Topic context", async () => {
   const contexts = [];
   let ui;

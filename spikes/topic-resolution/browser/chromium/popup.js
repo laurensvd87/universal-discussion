@@ -5,6 +5,7 @@ import {
   createWindowBoundTabLifecycleObserver,
 } from "./active-tab-reader.js";
 import { createPageMetadataReader } from "./page-metadata-reader.js";
+import { createSavedDocumentAttestor } from "./page-content-reader.js";
 import { createActiveTabController } from "../core/active-tab-controller.js";
 import { createIndicatorController } from "../core/indicator-controller.js";
 import { createPageMetadataController } from "../core/page-metadata-controller.js";
@@ -314,7 +315,9 @@ const localDiscussion = createLocalDiscussionController({
       return actual.tabId === expected?.tabId && actual.url === expected?.url &&
         actual.windowId === expected?.windowId;
     } catch { return false; }
-  } } : {}),
+  }, attestSavedDocument: createSavedDocumentAttestor({
+    readActiveTab: activeTabReader.read, scriptingApi: globalThis.chrome.scripting,
+  }) } : {}),
   lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
   readPageResolution: () => matchingPanel.readResolution(),
   pausePageMatching: () => matchingPanel.pauseMatching(),

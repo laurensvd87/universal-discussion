@@ -309,6 +309,25 @@ test("same-page matching errors keep a saved discussion visible but disable ever
     assert.equal(action.disabled, true, action.attributes["data-action"]);
 });
 
+test("attested saved discussion enables human root/reply controls while AI, private and edit controls wait", () => {
+  const ui = harness();
+  const snapshot = state({ phase: "loading", humanPostingReady: true, sourceId: "source-demo",
+    resolution: { enabled: true, phase: "processing", reason: "matching" },
+    draft: { body: "Human message while matching continues", detached: false, mode: "root", targetId: null } });
+  snapshot.catalog.sources[0].topicId = snapshot.topicId;
+  ui.panel.render(snapshot);
+  assert.equal(ui.byId("discussion-body").disabled, false);
+  assert.equal(ui.byId("discussion-submit").disabled, false);
+  assert.equal(ui.byId("discussion-ai-insights").disabled, true);
+  for (const action of descendants(ui.root).filter(item => item.attributes["data-action"]))
+    assert.equal(action.disabled, action.attributes["data-action"] !== "reply", action.attributes["data-action"]);
+  ui.panel.render({ ...snapshot, draft: { ...snapshot.draft, body: "@AI please answer this" } });
+  assert.equal(ui.byId("discussion-body").disabled, false, "the mention remains editable");
+  assert.equal(ui.byId("discussion-submit").disabled, true, "AI mentions keep the existing Ready gate");
+  ui.panel.render({ ...snapshot, humanPostingReady: false });
+  assert.equal(ui.byId("discussion-submit").disabled, true);
+});
+
 test("User alternate failures are bounded bottom messages and never mask read or detached warnings", () => {
   const ui = harness();
   const snapshot = state({ sourceId: "source-demo", topicViewMode: "experimental" });

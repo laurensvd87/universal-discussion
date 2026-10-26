@@ -5,6 +5,7 @@ import { canStageRootDraft, ownsContribution, selectedPostingSource } from "../c
 import { inspectPageUrl } from "../core/page-content-policy.js";
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { resolveDiscussionTarget } from "../core/discussion-target.js";
+import { canPostHumanDiscussion } from "../core/discussion-readiness.js";
 import { mountAssistantVoicePicker } from "./assistant-voice-picker.js";
 import { isReferenceTopicView, requiresReferenceTopicView } from "../core/topic-view-mode.js";
 import { hasAiMention } from "../core/discussion-mentions.js";
@@ -243,7 +244,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     if (submit.disabled || posting || !controller) return;
     posting = true;
     const submitted = lastState;
-    const invokeAi = !privateRoot && submitted?.draft.mode !== "edit" && hasAiMention(submitted?.draft.body);
+    const invokeAi = submitted?.phase === "ready" && !privateRoot && submitted?.draft.mode !== "edit" && hasAiMention(submitted?.draft.body);
     mentionStatus.hidden = true;
     if (lastState) render(lastState);
     try {
@@ -564,12 +565,13 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
         ? "uiGenerateInsightReplyLabel" : "uiGenerateInsightReplyUnavailable") : text(key);
       item.setAttribute("aria-label", actionLabel);
       item.title = actionLabel;
-      item.disabled = !canonicalRoot || !available || state.busy || state.needsFreshRead || state.phase !== "ready";
+      const readyForAction = value => value?.phase === "ready" || key === "discussionReply" && canPostHumanDiscussion(value);
+      item.disabled = !canonicalRoot || !available || state.busy || state.needsFreshRead || !readyForAction(state);
       item.setAttribute("data-action", key.replace(/^discussion/u, "").toLowerCase());
       item.setAttribute("data-contribution-id", entry.id);
       const guardedClick = () => {
         if (item.disabled || !lastState || lastState.busy || lastState.needsFreshRead ||
-            lastState.phase !== "ready" || lastState.error) return;
+            !readyForAction(lastState) || lastState.error) return;
         callback();
       };
       item.addEventListener("click", guardedClick); threadHandlers.push([item, guardedClick]);
@@ -1001,6 +1003,11 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     choices(actor, state.catalog?.actors ?? [], state.actorId);
     title.disabled = kind.disabled = create.disabled = !state.catalog || !usable;
     const ready = state.phase === "ready" && !state.busy && !state.needsFreshRead;
+    const humanReady = canPostHumanDiscussion(state) && !state.busy && !state.needsFreshRead &&
+      !state.error && !privateRoot && ["root", "reply"].includes(state.draft.mode);
+    // Mentions keep their existing AI readiness gate; ordinary human messages
+    // can use an independently attested saved discussion while matching runs.
+    const humanSubmitReady = humanReady && !hasAiMention(state.draft.body);
     const compositionContextChanged = previousState?.sourceId !== state.sourceId ||
       previousState?.topicId !== state.topicId || previousState?.draft.mode !== state.draft.mode ||
       previousState?.draft.targetId !== state.draft.targetId ||
@@ -1018,9 +1025,9 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     const loadingSelected = state.phase === "loading" && !retainedMatchingReadOnly && Boolean(state.topicId && state.sourceId) &&
       state.catalog?.sources.some((entry) => entry.id === state.sourceId && entry.topicId === state.topicId);
     const stagingRoot = uiMode === "user" && canStageRootDraft(state);
-    composer.hidden = uiMode === "user" && !posting && !selectedTopicReady && !loadingSelected && !stagingRoot &&
+    composer.hidden = uiMode === "user" && !posting && !selectedTopicReady && !humanReady && !loadingSelected && !stagingRoot &&
       !state.draft.body.trim() && !state.draft.detached && state.draft.mode === "root";
-    body.disabled = !ready && !stagingRoot && !(posting && state.phase === "ready" && !state.needsFreshRead);
+    body.disabled = !ready && !humanReady && !stagingRoot && !(posting && state.phase === "ready" && !state.needsFreshRead);
     body.readOnly = posting;
     detached.hidden = !state.draft.detached;
     reattach.hidden = !state.draft.detached; reattach.disabled = !ready;
@@ -1033,7 +1040,7 @@ export function mountDiscussionPanel(document, root, { messages = EN, onPrivateS
     composer.setAttribute("data-composer-mode", state.draft.mode);
     composer.setAttribute("data-inline-target", uiMode === "user" && state.draft.mode === "reply" &&
       replyTarget && !state.draft.detached ? "valid" : "unavailable");
-    submit.disabled = posting || !ready || state.draft.detached || !state.draft.body.trim() ||
+    submit.disabled = posting || !(ready || humanSubmitReady) || state.draft.detached || !state.draft.body.trim() ||
       state.draft.mode === "reply" && !replyTarget || state.draft.mode === "edit" && !editTarget;
     mode.textContent = text((uiMode === "user" ? { root: "discussionComposerRoot", reply: "uiReplyMode", edit: "uiEditMode" }
       : { root: "discussionComposerRoot", reply: "discussionComposerReply", edit: "discussionComposerEdit" })[state.draft.mode])

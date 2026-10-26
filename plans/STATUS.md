@@ -22,9 +22,23 @@ Worker integration can use the existing durable title/body payload; no browser
 title-vector field is necessary. New bounded preparation validates that exact
 material, encodes its title locally, reuses cached numeric work and uses the
 title-inclusive operation digest for freshness. The worker now awaits preparation
-while preserving abort/SQL fences. Root21 guarded tests pass; the new component
-is not connected to canonical storage or startup. Its actual installed-model check
-is next. SourceStamp alone is insufficient because it excludes title.
+while preserving abort/SQL fences. Root21 guarded tests pass. Actual installed-model
+component check (source09c63823/session92295) passed: identical saved title vectors,
+66/22ms preparation and0.72/0.45ms cache hits without extra encoding. These are
+in-memory diagnostic envelopes over two public TRAIN records, not accepted SQL
+claims or new quality evidence. The component is not connected to canonical
+storage or startup. SourceStamp alone is insufficient because it excludes title.
+
+The saved-discussion posting delay now has a source-reviewed fix. Human roots and
+replies can use a private exact-native-document binding while semantic matching
+runs or fails; provider/private/edit gates retain Ready. Late document publication
+and unrelated crawler revision growth are covered. Fresh coherent URL selections
+renew catalog+discussion together; changed targets, generation, destination, account,
+document or privacy state refuse/detach. Root263 focused tests and independent211
+checks pass. Real isolated Chromium regression also passes45 intercepted calls,
+zero runtime errors and320px layout, preserving user data/services. That browser
+run covers standard panel/account flows; the new saved-path real-browser latency
+and live activation remain unverified. Artifacts: hierarchy-fast-post-panel-qa-20261026.
 
 ## Earlier checkpoint: real child tests and collection repair
 

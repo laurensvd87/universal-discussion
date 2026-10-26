@@ -6,6 +6,7 @@ import { isRidgeTopicView, requiresReferenceTopicView } from "./topic-view-mode.
 import { resolveDiscussionTarget } from "./discussion-target.js";
 import { projectPageResolution, isReadyPageResolution, samePageResolution } from "./page-resolution-contract.js";
 import { inspectPageNavigationUrl } from "./page-content-policy.js";
+import { canPostHumanDiscussion } from "./discussion-readiness.js";
 
 function freeze(value) {
   if (value && typeof value === "object") {
@@ -33,7 +34,8 @@ export function ownsContribution(entry, actorId) {
 }
 // Local text staging conveys no posting or provider authority. A retained saved
 // snapshot may accept a root draft while its current-page matcher is still busy;
-// all delivery paths continue to require Ready and their fresh authority checks.
+// Human delivery separately requires Ready or a private verified saved-document
+// binding. Provider/private/edit delivery continues to require Ready.
 export function canStageRootDraft(state) {
   if (state.phase !== "loading" || state.busy || state.needsFreshRead ||
       state.draft.mode !== "root" || state.draft.detached ||
@@ -46,7 +48,7 @@ export function canStageRootDraft(state) {
 // Owns transient selection/drafts only; the service owns all canonical data.
 export function createLocalDiscussionController({ client, session, readActiveTab,
   observeTabLifecycle, lookupByNormalizedUrl, readPageResolution = null, pausePageMatching = null,
-  validatePairing = async () => {}, attestActiveContext = null, onStateChange = () => {},
+  validatePairing = async () => {}, attestActiveContext = null, attestSavedDocument = null, onStateChange = () => {},
   readPostingActor = () => undefined, requestSignIn = () => {}, schedule = setTimeout, cancelSchedule = clearTimeout }) {
   let state = { phase: "disconnected", error: null, catalog: null, discussion: null,
     topicViewMode: "experimental", alternateDiscussion: null, alternateError: null,
@@ -68,6 +70,8 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   // documentId exists. Retain only the last verified document witness so a
   // same-URL reload cannot inherit the old discussion when matching returns.
   let retainedBackgroundDocumentId = null;
+  let verifiedSavedBinding = null;
+  let savedBindingFlight = null;
   let alternateRequest = 0;
   let activeContext = null;
   let selectionFlight = null, resolutionFlight = null, enrichmentFlight = null;
@@ -97,8 +101,29 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       alternateDiscussion: null, alternateError: null, createdPost: null } : {}) };
     if (!disposed) onStateChange(currentState());
   }
-  function currentState() { return freeze(structuredClone(state)); }
+  function savedBindingCurrent() {
+    const b = verifiedSavedBinding;
+    return Boolean(b && state.phase === "loading" && state.selection === "background" &&
+      !state.needsFreshRead && state.sourceId === b.sourceId && state.topicId === b.topicId &&
+      state.discussion?.discussionId === b.discussionId && state.discussion?.topic.id === b.topicId &&
+      state.actorId === b.actorId && postingActor(state.catalog) === b.actorId &&
+      sameVersion(state.catalog?.version, b.version) && sameVersion(state.discussion?.version, b.version) &&
+      savedPostingSource(b) &&
+      sameSavedWitness(b.witness, savedWitness(state.resolution)));
+  }
+  function savedPostingSource(binding = verifiedSavedBinding, catalog = state.catalog) {
+    const source = binding && catalog?.sources.find(s => s.id === binding.sourceId && s.topicId === binding.topicId &&
+      s.url === binding.witness.sourceUrl && s.provenance === "owner-local-page-embedding/v1");
+    if (!source) return null;
+    try { readPostOrigin({ sourceId: source.id, url: source.url, title: source.title });return source; }
+    catch { return null; }
+  }
+  function targetState() { return { ...state, humanPostingReady: savedBindingCurrent() }; }
+  function humanReady() { return canPostHumanDiscussion(targetState()); }
+  function currentState() { return freeze(structuredClone(targetState())); }
   function cancel() {
+    verifiedSavedBinding = null;
+    savedBindingFlight = null;
     epoch += 1; alternateRequest += 1; abort.abort(); abort = new AbortController();
     selectionFlight = resolutionFlight = enrichmentFlight = null;
     if (enrichmentTimer !== null) cancelSchedule(enrichmentTimer);
@@ -592,6 +617,63 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       left.blockedOrigins.length === right.blockedOrigins.length &&
       left.blockedOrigins.every((origin, index) => origin === right.blockedOrigins[index]);
   }
+  function savedWitness(resolution, snapshot = null) {
+    if (!resolution?.documentId || !["processing", "checking", "error", "ready"].includes(resolution.phase) ||
+        resolution.tabId !== resolution.currentTabId || resolution.url !== resolution.currentUrl) return null;
+    const observed = snapshot ?? { tabId: resolution.currentTabId, windowId: resolution.currentWindowId, url: resolution.currentUrl };
+    if (observed.windowId !== resolution.currentWindowId) return null;
+    const witness = readOnlyPageWitness(resolution, observed);
+    return witness ? { ...witness, documentId: resolution.documentId } : null;
+  }
+  function sameSavedWitness(left, right) {
+    return sameReadOnlyPageWitness(left, right) && left.documentId === right.documentId;
+  }
+  function coherentSavedSelection(selected, binding) {
+    return sameVersion(selected.catalog.version, selected.discussion.version) &&
+      sameGenerationAtOrAfter(binding.version, selected.catalog.version) &&
+      selected.discussion.topic.id === binding.topicId && selected.discussion.discussionId === binding.discussionId &&
+      postingActor(selected.catalog) === binding.actorId && Boolean(savedPostingSource(binding, selected.catalog));
+  }
+  function freshSavedTarget(selected, targetId, binding) {
+    return resolveDiscussionTarget({ ...state, catalog: selected.catalog, discussion: selected.discussion,
+      priorDiscussions: null, earlierDiscussions: [], humanPostingReady: true }, targetId, binding);
+  }
+  function renewSavedSnapshot(selected, binding) {
+    binding.version = { ...selected.catalog.version };
+    publish({ catalog: selected.catalog, discussion: selected.discussion, priorDiscussions: null,
+      priorDiscussionsError: null, earlierDiscussions: [], related: null, relatedDiscussions: [],
+      alternateDiscussion: null, alternateError: null });
+  }
+  async function establishSavedBinding(ownEpoch, ownManual) {
+    if (savedBindingFlight) return savedBindingFlight;
+    if (typeof attestSavedDocument !== "function" || typeof client.urlSelection !== "function" ||
+        state.phase !== "loading" || state.selection !== "background" || !["processing", "error"].includes(state.resolution?.phase) ||
+        state.needsFreshRead || verifiedSavedBinding || !state.discussion || !state.actorId) return;
+    const document = savedWitness(state.resolution);
+    if (!document) return;
+    const binding = { witness: document, actorId: state.actorId, sourceId: state.sourceId, topicId: state.topicId,
+      discussionId: state.discussion.discussionId, version: { ...state.catalog.version } };
+    if (!savedPostingSource(binding)) return;
+    const ownObservation = observationSequence;
+    const flight = (async () => {
+      let attested = false;
+      try { attested = await attestSavedDocument(freeze(structuredClone(document))) === true; } catch { /* Read-only fallback. */ }
+      if (!attested || ownEpoch !== epoch || disposed || ownManual !== manualSelection || ownObservation !== observationSequence) return;
+      const selected = await client.urlSelection({ url: document.sourceUrl }, { signal: abort.signal });
+      const current = await freshResolution(), observed = await readActiveTab().catch(() => null);
+      if (ownEpoch !== epoch || disposed || ownManual !== manualSelection || ownObservation !== observationSequence) return;
+      if (state.selection !== "background" || state.sourceId !== binding.sourceId || state.topicId !== binding.topicId ||
+          state.actorId !== binding.actorId || !sameSavedWitness(document, savedWitness(current, observed)) ||
+          isReadyPageResolution(current) && (current.sourceId !== binding.sourceId || current.topicId !== binding.topicId) ||
+          !coherentSavedSelection(selected, binding)) { invalidateContext();return; }
+      if (state.draft.mode === "reply" && !freshSavedTarget(selected, state.draft.targetId, state.draft.targetBinding)) { invalidateContext();return; }
+      verifiedSavedBinding = binding;
+      renewSavedSnapshot(selected, binding);
+      publish({ resolution: current });
+    })();
+    savedBindingFlight = flight;
+    try { await flight; } finally { if (savedBindingFlight === flight) savedBindingFlight = null; }
+  }
   async function applyStoredUrlSelection(resolution, ownEpoch, ownManual, snapshotPromise) {
     if (typeof client.urlSelection !== "function" || isReadyPageResolution(resolution) ||
         ownEpoch !== epoch || disposed || ownManual !== manualSelection || state.selection === "manual") return;
@@ -621,12 +703,15 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       entry.provenance === "owner-local-page-embedding/v1");
     if (!source?.topicId || selected.discussion.topic.id !== source.topicId ||
         !sameVersion(selected.catalog.version, selected.discussion.version)) return;
+    const actorId = postingActor(selected.catalog);
+    verifiedSavedBinding = null;
     retainedBackgroundDocumentId = null;
     publish({ catalog: selected.catalog, discussion: selected.discussion,
-      actorId: postingActor(selected.catalog), resolution: current,
+      actorId, resolution: current,
       sourceId: source.id, topicId: source.topicId, selection: "background",
       phase: "loading", error: null, readRetryable: false, enrichmentPending: false,
       needsFreshRead: false });
+    await establishSavedBinding(ownEpoch, ownManual);
   }
   function applyReadyResolution(resolution, ownEpoch, ownManual) {
     if (resolutionFlight?.epoch === ownEpoch && resolutionFlight.manual === ownManual &&
@@ -696,8 +781,12 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       resolution.sourceId === state.sourceId && resolution.topicId === state.topicId;
     if (backgroundChanged && transientSamePageMatch) {
       retainedBackgroundDocumentId ??= previous?.documentId ?? null;
-      // Keep the accepted snapshot for reading, but move out of Ready so every
-      // existing composer, reply, mutation and Insight gate stays closed.
+      // Matching progress does not replace a verified saved destination. Keep
+      // provider/private/edit gates outside Ready; human delivery separately
+      // requires the same exact document and fresh pre-dispatch checks.
+      if (verifiedSavedBinding && !sameSavedWitness(verifiedSavedBinding.witness, savedWitness(resolution))) {
+        verifiedSavedBinding = null; detach();
+      }
       publish({ resolution, phase: "loading", error: null });
     } else if (backgroundChanged && recoveredSamePageMatch) {
       retainedBackgroundDocumentId = null;
@@ -711,6 +800,12 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         phase: state.catalog ? "choose-topic" : "disconnected", error: actualWitnessChanged ? "context-changed" : "context-unverified" });
     } else if (!sameProjectedResolution(previous, resolution)) publish({ resolution });
     if (mutationPending || state.needsFreshRead || !state.catalog || state.selection === "manual") return;
+    if (state.selection === "background" && state.discussion && state.phase === "loading" &&
+        ["processing", "error"].includes(resolution?.phase) && resolution.documentId && !verifiedSavedBinding) {
+      const ownEpoch = epoch;
+      try { await establishSavedBinding(ownEpoch, manualSelection); }
+      catch (error) { await failure(error, ownEpoch, true); }
+    }
     // Status polling observes authority; only the bounded public-read recovery
     // path reopens a failed unchanged selection in the production adapter.
     if (typeof client.enrichment === "function" && state.phase === "error" && state.readRetryable &&
@@ -856,7 +951,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     await loadSelection(epoch, true);
   }
   function setDraft(body) {
-    if (mutationPending || !(state.phase === "ready" || canStageRootDraft(state)) || state.needsFreshRead ||
+    if (mutationPending || !(humanReady() || canStageRootDraft(state)) || state.needsFreshRead ||
         typeof body !== "string" || body.length > 8000) return;
     publish({ draft: { ...state.draft, body } });
   }
@@ -865,19 +960,19 @@ export function createLocalDiscussionController({ client, session, readActiveTab
     publish({ draft: { ...state.draft, detached: false, mode: "root", targetId: null } });
   }
   function canReplyToAlternate(root) {
-    return state.phase === "ready" && !state.needsFreshRead && !state.busy &&
+    return humanReady() && !state.needsFreshRead && !state.busy &&
       root?.state === "visible" && root.canonicalTopicId === state.topicId &&
       root.canonicalDiscussionId === state.discussion?.discussionId &&
       state.discussion.roots.some((entry) => entry.id === root.id && entry.state === "visible");
   }
   function begin(mode, targetId = null, destination = null) {
-    if (state.phase !== "ready" || state.needsFreshRead || mutationPending || state.draft.body) return false;
+    if (!(mode === "edit" ? state.phase === "ready" : humanReady()) || state.needsFreshRead || mutationPending || state.draft.body) return false;
     const entries = state.discussion.roots.flatMap((root) => [root, ...root.replies]);
-    const target = mode === "reply" ? resolveDiscussionTarget(state, targetId, destination)?.target :
+    const target = mode === "reply" ? resolveDiscussionTarget(targetState(), targetId, destination)?.target :
       entries.find((entry) => entry.id === targetId);
     if (mode !== "root" && (!target || target.state !== "visible")) return false;
     if (mode === "edit" && (!ownsContribution(target, state.actorId) || target.actorType === "agent")) return false;
-    const binding = mode === "reply" ? resolveDiscussionTarget(state, targetId, destination) : null;
+    const binding = mode === "reply" ? resolveDiscussionTarget(targetState(), targetId, destination) : null;
     const root = binding?.root;
     if (mode === "reply" && root?.state !== "visible") return false;
     publish({ draft: { body: mode === "edit" ? target.body : "", detached: false, mode, targetId,
@@ -891,8 +986,10 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   async function mutate(command, { reset = false, learned = false } = {}) {
     if (!state.actorId && readPostingActor() !== undefined && !disposed) { requestSignIn(); return false; }
     if (mutationPending || state.needsFreshRead || !state.catalog || !state.actorId || disposed) return false;
-    if (!["ready", "choose-topic"].includes(state.phase)) return false;
-    if (!reset && !learned && command.type !== "create-topic" && state.phase !== "ready") return false;
+    const savedHuman = ["create-root", "reply"].includes(command.type) && savedBindingCurrent();
+    const savedBinding = savedHuman ? verifiedSavedBinding : null;
+    if (!["ready", "choose-topic"].includes(state.phase) && !savedHuman) return false;
+    if (!reset && !learned && command.type !== "create-topic" && state.phase !== "ready" && !savedHuman) return false;
     const attestedEpoch = epoch;
     if (attestActiveContext) {
       let trusted = false;
@@ -915,6 +1012,25 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         const catalog = await readCatalogContext(state.sourceId, state.topicId, { signal: abort.signal });
         if (ownEpoch !== epoch || disposed) return false;
         expected = catalog.version;
+      } else if (savedHuman) {
+        let attested = false;
+        try { attested = await attestSavedDocument(freeze(structuredClone(savedBinding.witness))) === true; } catch { /* Fail closed. */ }
+        const current = await freshResolution();
+        const observed = await readActiveTab().catch(() => null);
+        if (ownEpoch !== epoch || disposed) return false;
+        if (!attested || verifiedSavedBinding !== savedBinding || !savedBindingCurrent() ||
+            !sameSavedWitness(savedBinding.witness, savedWitness(current, observed)) ||
+            isReadyPageResolution(current) && (current.sourceId !== savedBinding.sourceId || current.topicId !== savedBinding.topicId)) {
+          contextInvalidated = true; invalidateContext(); return false;
+        }
+        const selected = await client.urlSelection({ url: savedBinding.witness.sourceUrl }, { signal: abort.signal });
+        if (ownEpoch !== epoch || disposed) return false;
+        if (!savedBindingCurrent() || !coherentSavedSelection(selected, savedBinding) ||
+            command.type === "reply" && !freshSavedTarget(selected, command.replyToId, command.targetBinding)) {
+          contextInvalidated = true; invalidateContext(); return false;
+        }
+        renewSavedSnapshot(selected, savedBinding);
+        expected = selected.discussion.version;
       } else if (state.selection === "background") {
         const current = await freshResolution();
         if (ownEpoch !== epoch || disposed) return false;
@@ -933,11 +1049,26 @@ export function createLocalDiscussionController({ client, session, readActiveTab
         if (ownEpoch !== epoch || disposed) return false;
         if (!trusted) { contextInvalidated = true; invalidateContext(); return false; }
       }
+      if (savedHuman) {
+        // The catalog and owning-tab reads above can yield. Re-attest the exact
+        // document after them, then recheck current privacy/account/destination
+        // immediately before canonical command construction and dispatch.
+        let attested = false;
+        try { attested = await attestSavedDocument(freeze(structuredClone(savedBinding.witness))) === true; } catch { /* Fail closed. */ }
+        const current = await freshResolution();
+        const observed = await readActiveTab().catch(() => null);
+        if (ownEpoch !== epoch || disposed) return false;
+        if (!attested || verifiedSavedBinding !== savedBinding || !savedBindingCurrent() ||
+            !sameSavedWitness(savedBinding.witness, savedWitness(current, observed)) ||
+            isReadyPageResolution(current) && (current.sourceId !== savedBinding.sourceId || current.topicId !== savedBinding.topicId)) {
+          contextInvalidated = true; invalidateContext(); return false;
+        }
+      }
       const acceptedContext = { topicId: state.topicId, sourceId: state.sourceId,
         actorId: state.actorId, discussionId: state.discussion?.discussionId,
         activeContext: activeContext ? { ...activeContext } : null };
       if (command.type === "reply" || command.type === "share-insight-reply") {
-        const binding = resolveDiscussionTarget(state, command.replyToId, {
+        const binding = resolveDiscussionTarget(targetState(), command.replyToId, {
           topicId: command.destinationTopicId ?? command.topicId ?? state.topicId,
           discussionId: command.discussionId, rootId: command.rootId,
           ...(command.targetBinding ?? {}) });
@@ -1032,7 +1163,7 @@ export function createLocalDiscussionController({ client, session, readActiveTab
   }
   function submitDraft() {
     const draft = state.draft;
-    if (draft.detached || !draft.body.trim() || state.phase !== "ready") return Promise.resolve(false);
+    if (draft.detached || !draft.body.trim() || !humanReady() || draft.mode === "edit" && state.phase !== "ready") return Promise.resolve(false);
     let command;
     if (draft.mode === "edit") {
       if (!editTargetMatches(draft)) {
@@ -1041,14 +1172,14 @@ export function createLocalDiscussionController({ client, session, readActiveTab
       command = { type: "edit", contributionId: draft.targetId, body: draft.body, editBinding: draft.editBinding };
     }
     else if (draft.mode === "reply") {
-      const binding = resolveDiscussionTarget(state, draft.targetId, draft.targetBinding);
+      const binding = resolveDiscussionTarget(targetState(), draft.targetId, draft.targetBinding);
       if (!binding) return Promise.resolve(false);
       command = { type: "reply", discussionId: binding.discussionId,
         rootId: binding.root.id, replyToId: binding.target.id, body: draft.body,
         destinationTopicId: binding.topicId, targetBinding: draft.targetBinding };
     } else command = { type: "create-root", topicId: state.topicId, body: draft.body };
     if (["create-root", "reply"].includes(command.type)) {
-      command.originSourceId = selectedPostingSource(state)?.id ?? null;
+      command.originSourceId = selectedPostingSource(state)?.id ?? (savedBindingCurrent() ? savedPostingSource()?.id ?? null : null);
     }
     return mutate(command);
   }

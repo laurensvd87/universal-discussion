@@ -50,3 +50,12 @@ test("stale metadata, hidden targets and related projections confer no reply aut
   state.relatedDiscussions = [{ topicId: "earlier", roots: [{ id: "reply" }] }];
   assert.equal(resolveDiscussionTarget(state, "reply"), null);
 });
+
+test("human-ready loading resolves only the same canonical bound reply chain", () => {
+  const state = fixture();state.phase = "loading";
+  assert.equal(resolveDiscussionTarget(state, "reply"), null);
+  state.humanPostingReady = true;
+  assert.equal(resolveDiscussionTarget(state, "reply")?.discussionId, "earlier-discussion");
+  assert.equal(resolveDiscussionTarget(state, "reply", { discussionId: "different" }), null);
+  state.needsFreshRead = true;assert.equal(resolveDiscussionTarget(state, "reply"), null);
+});

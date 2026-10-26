@@ -267,3 +267,31 @@ export function createPageContentReader(scriptingApi) {
 export function readPageContent(chromeApi, tabId, expectedUrl, expectedDocumentUrl = expectedUrl) {
   return createPageContentReader(chromeApi.scripting).read(tabId, expectedUrl, expectedDocumentUrl);
 }
+
+// Identity-only check for a saved public discussion. No page text is collected,
+// and successful attestation conveys no fresh semantic/provider authority.
+export function createSavedDocumentAttestor({ readActiveTab, scriptingApi }) {
+  if (typeof readActiveTab !== "function") throw new TypeError("Document attestor unavailable");
+  return async expected => {
+    try {
+      exact(expected, ["tabId", "windowId", "documentUrl", "sourceUrl", "origin", "sessionRevision", "blockedOrigins", "documentId"]);
+      const witness = { ...expected, blockedOrigins: [...expected.blockedOrigins] };
+      const navigation = inspectPageNavigationUrl(witness.documentUrl);
+      if (!Number.isSafeInteger(witness.tabId) || witness.tabId < 0 ||
+          !Number.isSafeInteger(witness.windowId) || witness.windowId < 0 ||
+          !documentIdValid(witness.documentId) || !documentIdValid(witness.sessionRevision) ||
+          !navigation.supported || navigation.documentUrl !== witness.documentUrl ||
+          navigation.url !== witness.sourceUrl || navigation.origin !== witness.origin ||
+          witness.blockedOrigins.includes(witness.origin)) return false;
+      const matches = actual => {
+        const current = inspectPageNavigationUrl(actual?.url);
+        return actual?.tabId === witness.tabId && actual?.windowId === witness.windowId &&
+          current.supported && current.documentUrl === witness.documentUrl && current.url === witness.sourceUrl;
+      };
+      if (!matches(await readActiveTab())) return false;
+      const proof = await createPageContentReader(scriptingApi).attest(witness.tabId, witness.documentId,
+        witness.sourceUrl, witness.documentUrl);
+      return proof.status === "attested" && proof.url === witness.sourceUrl && matches(await readActiveTab());
+    } catch { return false; }
+  };
+}

@@ -23,8 +23,23 @@ shared local title encoding avoids browserwirechange. Use title-inclusive
 operationDigest for classifier sourceVersion; sourceStamp EXCLUDES title.32numeric
 cached/8distinctpending (NOTwaiterbound), serialencoder/coalescing/failednotcached/
 closeblocks latepublish; no canonical/nativeauthority. Worker nowawaits preparation
-with originalabort/SQLlease fences. Root21guardedPASS259.3ms; actual installed-model
-component check stillpending. Notinstalled/wired torepository/startup.
+with originalabort/SQLlease fences. Source09c63823/Root21guardedPASS259.3ms.
+Actual installed-model component92295 CLOSED0: publicTRAIN1/5 envelopes, titlevector
+diff0,66/22ms preparation/cache.72/.45ms/zeroextraE5,3E5calls inclsynthetic titlechange,
+init1022ms. Receiptade94855...77bee indata/hierarchy-ingestion-preparation-actual-
+20261026.json. Inmemoryclaims/NO SQLclaims/NO DB/NOheldout/NOnewqualityclaim.
+Notinstalled/wired torepository/startup.
+
+Fast human posting SOURCE implemented+Root/Trustaccepted: private exactnative
+document binding makes savedcanonical root/reply usable whilematcherprocessing/
+error. Phase staysLoading; AI/private/edit/othermutations keepReady. Late doc
+publication establishesbinding; samegeneration unrelatedcrawlerrevision renews
+catalog+discussion together/freshCAS; remap/generation/rootbody/account/privacy/
+documentchanges refuse/detach. No URL-onlyproof; readPostOrigineligibility retained.
+Root263focusedPASS1027ms/independent211PASS. Actual isolatedChrome standardpanel
+regression45calls/0errors/320pxnooverflow, Rootviewedimage; itdoesNOTmeasure new
+saved-path latency orownerlivepanel. QAdata/hierarchy-fast-post-panel-qa-20261026.
+No livebackend/crawlerrestart/ownerposts. Fullhierarchy storage/feeds stillOPEN.
 
 Maintained matcher c89d5f33 committed/pushed. Root+independent SOURCE
 review accepted root-gated binary details, declared full paths, deepest supported

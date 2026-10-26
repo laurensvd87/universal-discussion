@@ -1,10 +1,11 @@
+import { canPostHumanDiscussion } from "./discussion-readiness.js";
 const sameVersion = (a, b) => Boolean(a && b && a.generation === b.generation && a.revision === b.revision);
 
 // Resolve only a canonical visible chain from the selected discussion or a
 // version-matched earlier same-Source read. Related/alternate projections are
 // deliberately outside this authority path.
 export function resolveDiscussionTarget(state, targetId, binding = null) {
-  if (state?.phase !== "ready" || state.needsFreshRead || typeof targetId !== "string" ||
+  if (!canPostHumanDiscussion(state) || state.needsFreshRead || typeof targetId !== "string" ||
       !state.topicId || !state.catalog || !state.discussion ||
       state.catalog.version && state.discussion.version &&
         !sameVersion(state.catalog.version, state.discussion.version) ||
