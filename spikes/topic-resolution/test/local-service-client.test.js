@@ -149,6 +149,84 @@ test("version and exact catalog context use bounded fixed endpoints and reject o
     await assert.rejects(client(async () => json(invalid)).version(), { code: "invalid-response" });
   }
 });
+test("atomic selection accepts only an exact same-snapshot catalog and discussion", async () => {
+  const service = demoService(), catalog = service.catalog();
+  const source = catalog.sources.find(entry => entry.topicId !== null);
+  const selection = { sourceId: source.id, topicId: source.topicId };
+  const discussion = service.discussion(source.topicId), calls = [];
+  const adapter = client(async (url, options) => {
+    calls.push([url, options.method, options.body]);
+    return json({ catalog, discussion });
+  });
+  assert.deepEqual(await adapter.selection(selection), { catalog, discussion });
+  const manualSelection = { sourceId: null, topicId: selection.topicId };
+  assert.deepEqual(await adapter.selection(manualSelection), { catalog, discussion });
+  assert.deepEqual(calls, [
+    ["http://127.0.0.1:4174/v1/catalog/selection", "POST", JSON.stringify(selection)],
+    ["http://127.0.0.1:4174/v1/catalog/selection", "POST", JSON.stringify(manualSelection)],
+  ]);
+  for (const invalid of [{}, { sourceId: null }, { ...selection, hidden: true },
+    { ...selection, sourceId: "https://example.com" }, { ...selection, topicId: null }]) {
+    await assert.rejects(adapter.selection(invalid), { code: "invalid-request" });
+  }
+  assert.equal(calls.length, 2);
+  for (const invalid of [
+    { catalog, discussion: { ...discussion, version: { ...discussion.version, revision: discussion.version.revision + 1 } } },
+    { catalog: { ...catalog, sources: [] }, discussion },
+    { catalog, discussion: { ...discussion, topic: { ...discussion.topic, id: "other-topic" } } },
+    { catalog, discussion, extra: true },
+  ]) await assert.rejects(client(async () => json(invalid)).selection(selection), { code: "invalid-response" });
+});
+test("exact URL selection sends only a sanitized persistence URL and accepts one coherent learned Source", async () => {
+  const service = demoService(), catalog = structuredClone(service.catalog());
+  const topic = catalog.topics[0];
+  const url = "https://articles.synthetic.org/current?id=1";
+  const source = { id: "learned-url-selection", url, title: "Current synthetic article",
+    provenance: "owner-local-page-embedding/v1", topicId: topic.id };
+  catalog.sources.push(source);
+  const discussion = service.discussion(topic.id), calls = [];
+  const adapter = client(async (requestUrl, options) => {
+    calls.push([requestUrl, options.method, options.body]);
+    return json({ catalog, discussion });
+  });
+  assert.deepEqual(await adapter.urlSelection({ url }), { catalog, discussion });
+  assert.deepEqual(calls, [["http://127.0.0.1:4174/v1/catalog/url-selection", "POST", JSON.stringify({ url })]]);
+  for (const invalid of [{}, { url, hidden: true }, { url: `${url}#private` },
+    { url: `${url}&utm_source=tracking` }, { url: `${url}&sid=session` }, { url: "https://articles.synthetic.org/private" }]) {
+    await assert.rejects(adapter.urlSelection(invalid), { code: "invalid-request" });
+  }
+  let reads = 0;
+  const getter = {}; Object.defineProperty(getter, "url", { enumerable: true, get() { reads++; return url; } });
+  await assert.rejects(adapter.urlSelection(getter), { code: "invalid-request" });
+  assert.equal(reads, 0);
+  assert.equal(calls.length, 1);
+  for (const invalid of [
+    { catalog: { ...catalog, sources: catalog.sources.filter((entry) => entry.id !== source.id) }, discussion },
+    { catalog: { ...catalog, sources: [...catalog.sources, { ...source, id: "learned-url-selection-duplicate" }] }, discussion },
+    { catalog, discussion: { ...discussion, version: { ...discussion.version, revision: discussion.version.revision + 1 } } },
+    { catalog, discussion: { ...discussion, topic: { ...discussion.topic, id: catalog.topics[1].id } } },
+  ]) await assert.rejects(client(async () => json(invalid)).urlSelection({ url }), { code: "invalid-response" });
+});
+test("exact URL selection alone keeps the existing thirty-second projection client lease", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const service = demoService(), catalog = structuredClone(service.catalog()), topic = catalog.topics[0];
+  const url = "https://articles.synthetic.org/current?id=1";
+  catalog.sources.push({ id: "learned-url-timeout", url, title: "Current synthetic article",
+    provenance: "owner-local-page-embedding/v1", topicId: topic.id });
+  let signal, calls = 0;
+  const adapter = client(async (_requestUrl, options) => {
+    calls++; signal = options.signal; return new Promise(() => {});
+  });
+  const pending = adapter.urlSelection({ url });
+  const rejection = assert.rejects(pending, { code: "unavailable" });
+  await Promise.resolve(); await Promise.resolve();
+  t.mock.timers.tick(5_000); await Promise.resolve();
+  assert.equal(signal.aborted, false);
+  t.mock.timers.tick(24_999); await Promise.resolve();
+  assert.equal(signal.aborted, false);
+  t.mock.timers.tick(1); await rejection;
+  assert.equal(signal.aborted, true); assert.equal(calls, 1);
+});
 test("prior-discussion GET transfers only a Source ID and rejects malformed summaries", async () => {
   const sourceId = "source-demo";
   const valid = { version: VERSION, sourceId, currentTopicId: "topic-current",
@@ -368,6 +446,35 @@ test("strict command/input allowlist prevents context, vectors, role and raw URL
   await assert.rejects(api.related("harbor-overview", 101), code("invalid-request"));
   await assert.rejects(api.reset(VERSION, "yes"), code("invalid-request"));
   assert.equal(calls, 0);
+});
+
+test("concurrent human and generated appends accept any advancing revision in the same generation", async () => {
+  const expected = { generation: "generation-test", revision: 7 };
+  const commands = [
+    { type: "create-root", topicId: "topic-a", body: "Synthetic root" },
+    { type: "reply", discussionId: "discussion-a", rootId: "root-a", replyToId: null, body: "Synthetic reply" },
+    { type: "share-insight", topicId: "topic-a", body: "Synthetic generated root",
+      operationId: "generated-root", originSourceId: "source-a" },
+    { type: "share-insight-reply", topicId: "topic-a", discussionId: "discussion-a",
+      rootId: "root-a", replyToId: "reply-a", body: "Synthetic generated reply",
+      operationId: "generated-reply", originSourceId: "source-a" },
+  ];
+  for (const command of commands) {
+    const result = { contributionId: `contribution-${command.type}` };
+    const accepted = { version: { generation: expected.generation, revision: 9 }, result };
+    assert.deepEqual(await client(async () => json(accepted)).command(expected, command, "demo-alex"), accepted);
+    for (const version of [
+      { generation: "other-generation", revision: 9 },
+      { generation: expected.generation, revision: expected.revision },
+      { generation: expected.generation, revision: expected.revision - 1 },
+    ]) {
+      await assert.rejects(client(async () => json({ version, result })).command(expected, command, "demo-alex"),
+        code("invalid-response"));
+    }
+  }
+  await assert.rejects(client(async () => json({ version: { generation: expected.generation, revision: 9 },
+    result: { contributionId: "contribution-withdraw" } })).command(expected,
+      { type: "withdraw", contributionId: "root-a" }, "demo-alex"), code("invalid-response"));
 });
 
 test("accessors and symbols are rejected without invoking untrusted input", async () => {

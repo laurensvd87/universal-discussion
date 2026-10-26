@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLocalServiceClient, LocalServiceClientError, isConfirmedIngestionConflict } from "../browser/core/local-service-client.js";
+import { createLocalServiceClient, LocalServiceClientError, isConfirmedIngestionConflict,
+  isConfirmedIngestionRejection } from "../browser/core/local-service-client.js";
 import { createBackgroundMatcher } from "../browser/core/background-matcher.js";
 import { createRequestHandler } from "../../../apps/local-service/src/http/request-handler.js";
 import { demoService } from "../../../apps/local-service/test/helpers.js";
@@ -19,9 +20,26 @@ test("only complete canonical ingestion HTTP409 brands the transport error", asy
   const client = clientFor(async () => new Response(body, { status: 409, headers: { "content-type": "application/json" } }));
   const error = await rejection(client);
   assert.equal(error.code, "conflict"); assert.ok(isConfirmedIngestionConflict(error));
+  assert.ok(isConfirmedIngestionRejection(error));
   const constructed = new LocalServiceClientError("conflict"); constructed.confirmedIngestionConflict = true;
   for (const value of [constructed, { code: "conflict", confirmedIngestionConflict: true }, null, undefined, "conflict"])
     assert.equal(isConfirmedIngestionConflict(value), false);
+});
+test("only complete canonical ingestion HTTP413 capacity brands a retry-safe rejection", async () => {
+  const exact = await rejection(clientFor(async () => new Response('{"error":"capacity"}',
+    { status: 413, headers: { "content-type": "application/json" } })));
+  assert.equal(exact.code, "capacity");
+  assert.equal(isConfirmedIngestionRejection(exact), true);
+  assert.equal(isConfirmedIngestionConflict(exact), false);
+  for (const value of ['{"error":"request-too-large"}', '{"error":"capacity","extra":true}', '{"error":']) {
+    const error = await rejection(clientFor(async () => new Response(value,
+      { status: 413, headers: { "content-type": "application/json" } })));
+    assert.equal(error.code, "capacity");
+    assert.equal(isConfirmedIngestionRejection(error), false);
+  }
+  const constructed = new LocalServiceClientError("capacity");
+  constructed.confirmedIngestionRejection = true;
+  assert.equal(isConfirmedIngestionRejection(constructed), false);
 });
 for (const value of ['', '{"error":', '{"error":"other"}', '{"error":"conflict","extra":true}',
   '{"error":"conflict","error":"conflict"}', '{"error":"conflict"} trailing', body + ' '.repeat(300)]) {

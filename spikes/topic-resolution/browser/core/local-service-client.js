@@ -5,6 +5,9 @@ import { freeze, readActorId, readCatalog, readCommand, readConfirmation, readDi
 import { LocalServiceSessionProxyError } from "./local-service-session.js";
 import { readAccountAuthError } from "./account-auth-response.js";
 import { readDiscovery, readPrivateResponse, readAccountPublicChatsRequest, readAccountPublicChatsResponse } from "./community-contract.js";
+import { inspectPageNavigationUrl } from "./page-content-policy.js";
+import { parseTopicSpaceQueryRequest, parseTopicSpacesResponse, parseTopicSpaceOwnerResponse,
+  parseTopicSpacePolicyRequest } from "./topic-space-contract.js";
 
 const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
@@ -13,8 +16,10 @@ const INGESTION_TIMEOUT_MS = 30_000;
 const PROJECTION_TIMEOUT_MS = 30_000;
 const encoder = new TextEncoder();
 const confirmedIngestionConflicts = new WeakSet();
+const confirmedIngestionRejections = new WeakSet();
 // Construction/code properties cannot manufacture evidence of a received response.
 export function isConfirmedIngestionConflict(error) { return confirmedIngestionConflicts.has(error); }
+export function isConfirmedIngestionRejection(error) { return confirmedIngestionRejections.has(error); }
 
 export class LocalServiceClientError extends Error {
   constructor(code) { super("Local service request failed"); this.name = "LocalServiceClientError"; this.code = code; }
@@ -43,7 +48,7 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
         reject(new LocalServiceClientError("unavailable"));
       };
       timer = setTimeout(cancel, path === "/sources/ingest" ? INGESTION_TIMEOUT_MS :
-        path === "/sources/enrichment" ? PROJECTION_TIMEOUT_MS : timeoutMs);
+        path === "/sources/enrichment" || path === "/catalog/url-selection" ? PROJECTION_TIMEOUT_MS : timeoutMs);
     });
     if (signal?.aborted) cancel();
     signal?.addEventListener("abort", cancel, { once: true });
@@ -75,8 +80,8 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
       if (controller.signal.aborted) { await response.body?.cancel?.().catch(() => {}); fail("unavailable"); }
       if (!response || response.redirected || (response.url && response.url !== url)) fail("invalid-response");
       if (response.status !== 200) {
-        let confirmedConflict = false;
-        if (path === "/sources/ingest" && response.status === 409 &&
+        let confirmedRejection = null;
+        if (path === "/sources/ingest" && [409, 413].includes(response.status) &&
             /^application\/json(?:\s*;\s*charset=utf-8)?$/iu.test(response.headers?.get("content-type") ?? "") &&
             response.body && typeof response.body.getReader === "function") {
           const length = response.headers?.get("content-length");
@@ -97,8 +102,9 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
                 for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
                 // Exact canonical server bytes exclude duplicate keys, extra fields,
                 // truncated streams, ambiguous envelopes and arbitrary 409 responses.
-                confirmedConflict = new TextDecoder("utf-8", { fatal: true }).decode(bytes) === '{"error":"conflict"}' &&
-                  !controller.signal.aborted;
+                const received = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+                const expected = response.status === 409 ? '{"error":"conflict"}' : '{"error":"capacity"}';
+                if (received === expected && !controller.signal.aborted) confirmedRejection = response.status;
               }
             } catch { /* Unproven rejection remains a terminal generic conflict. */ }
             finally { await reader.cancel().catch(() => {}); reader.releaseLock(); activeReader = undefined; }
@@ -114,9 +120,11 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
           try { await onUnauthorized(token); } catch { /* A failed clear cannot turn rejection into success. */ }
         }
         const code = { 400: "invalid-request", 401: "unauthorized", 409: "conflict", 413: "capacity" }[response.status] ?? "unavailable";
-        if (confirmedConflict && !controller.signal.aborted) {
-          const error = new LocalServiceClientError("conflict");
-          confirmedIngestionConflicts.add(error); throw error;
+        if (confirmedRejection && !controller.signal.aborted) {
+          const error = new LocalServiceClientError(code);
+          confirmedIngestionRejections.add(error);
+          if (confirmedRejection === 409) confirmedIngestionConflicts.add(error);
+          throw error;
         }
         fail(code);
       }
@@ -160,6 +168,19 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
     }
   }
   return Object.freeze({
+    topicSpaces(value, { signal } = {}) {
+      const payload = input(() => parseTopicSpaceQueryRequest(value));
+      return request("/topic-spaces/query", payload, undefined, parseTopicSpacesResponse, signal);
+    },
+    topicSpaceOwner(actorId, { signal, beforeDispatch } = {}) {
+      if (!isAccountActorId(actorId)) fail("authentication-required");
+      return request("/topic-spaces/owner", {}, actorId, parseTopicSpaceOwnerResponse, signal, undefined, beforeDispatch);
+    },
+    updateTopicSpacePolicy(value, actorId, { signal, beforeDispatch } = {}) {
+      if (!isAccountActorId(actorId)) fail("authentication-required");
+      const payload = input(() => parseTopicSpacePolicyRequest(value));
+      return request("/topic-spaces/policy", payload, actorId, parseTopicSpaceOwnerResponse, signal, undefined, beforeDispatch);
+    },
     discover: (value, { signal } = {}) => request("/discover/search", value, undefined, readDiscovery, signal),
     privateConversation(action, value, actorId, { signal, beforeDispatch } = {}) {
       if (!["create", "list", "read", "send", "generate", "delete"].includes(action) || !isAccountActorId(actorId)) fail("invalid-request");
@@ -196,6 +217,53 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
             (body.topicId !== null && !catalog.topics.some(entry => entry.id === body.topicId)) ||
             (body.sourceId !== null && body.topicId !== null && source.topicId !== body.topicId)) throw new TypeError("Invalid context projection");
         return catalog;
+      }, signal);
+    },
+    async selection(value, { signal } = {}) {
+      const body = input(() => {
+        if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+            Reflect.ownKeys(value).length !== 2 || !Object.hasOwn(value, "sourceId") || !Object.hasOwn(value, "topicId")) throw new TypeError("Invalid selection");
+        const descriptors = Object.getOwnPropertyDescriptors(value);
+        if (!["sourceId", "topicId"].every(key => descriptors[key].enumerable && Object.hasOwn(descriptors[key], "value"))) throw new TypeError("Invalid selection");
+        return { sourceId: value.sourceId === null ? null : readId(value.sourceId), topicId: readId(value.topicId) };
+      });
+      return request("/catalog/selection", body, undefined, (value) => {
+        if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+            Object.keys(value).sort().join() !== "catalog,discussion") throw new TypeError("Invalid selection response");
+        const catalog = readCatalog(value.catalog);
+        const discussion = readDiscussion(value.discussion, body.topicId);
+        const source = body.sourceId === null ? null : catalog.sources.find(entry => entry.id === body.sourceId);
+        if (catalog.version.generation !== discussion.version.generation ||
+            catalog.version.revision !== discussion.version.revision ||
+            !catalog.topics.some(entry => entry.id === body.topicId) ||
+            (body.sourceId !== null && (!source || source.topicId !== body.topicId))) throw new TypeError("Invalid selection response");
+        return { catalog, discussion };
+      }, signal);
+    },
+    async urlSelection(value, { signal } = {}) {
+      const body = input(() => {
+        if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+            Reflect.ownKeys(value).length !== 1 || !Object.hasOwn(value, "url")) throw new TypeError("Invalid URL selection");
+        const descriptor = Object.getOwnPropertyDescriptor(value, "url");
+        if (!descriptor?.enumerable || !Object.hasOwn(descriptor, "value")) throw new TypeError("Invalid URL selection");
+        const inspected = inspectPageNavigationUrl(descriptor.value);
+        if (!inspected.supported || inspected.url !== descriptor.value || inspected.documentUrl !== descriptor.value)
+          throw new TypeError("Invalid URL selection");
+        return { url: descriptor.value };
+      });
+      return request("/catalog/url-selection", body, undefined, (value) => {
+        if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+            Object.keys(value).sort().join() !== "catalog,discussion") throw new TypeError("Invalid URL selection response");
+        const catalog = readCatalog(value.catalog);
+        const matches = catalog.sources.filter((source) => source.url === body.url &&
+          source.provenance === "owner-local-page-embedding/v1");
+        if (matches.length !== 1 || !matches[0].topicId) throw new TypeError("Invalid URL selection response");
+        const discussion = readDiscussion(value.discussion, matches[0].topicId);
+        if (catalog.version.generation !== discussion.version.generation ||
+            catalog.version.revision !== discussion.version.revision ||
+            !catalog.topics.some((topic) => topic.id === matches[0].topicId))
+          throw new TypeError("Invalid URL selection response");
+        return { catalog, discussion };
       }, signal);
     },
     async ingest(payload, { signal } = {}) {
@@ -235,7 +303,11 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
       const actor = input(() => readActorId(actorId));
       return request("/commands", body, actor, (value) => {
         const outcome = readOutcome(value, body.command.type);
-        if (outcome.version.generation !== body.expected.generation || outcome.version.revision !== body.expected.revision + 1) {
+        const concurrentAppend = ["create-root", "reply", "share-insight", "share-insight-reply"]
+          .includes(body.command.type);
+        if (outcome.version.generation !== body.expected.generation ||
+            (concurrentAppend ? outcome.version.revision <= body.expected.revision :
+              outcome.version.revision !== body.expected.revision + 1)) {
           throw new TypeError("Invalid local service value");
         }
         return outcome;
