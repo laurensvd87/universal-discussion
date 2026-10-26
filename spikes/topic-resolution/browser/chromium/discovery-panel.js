@@ -2,15 +2,35 @@ import { inspectPageUrl } from "../core/page-content-policy.js";
 import { appendInsightCitationNodes } from "../core/insight-citations.js";
 import { EN } from "../locales/en.js";
 import { projectRelatedPages } from "../core/related-page-suggestions.js";
+import { record, readId, readDiscussion } from "../core/local-service-contract.js";
 
-export function mountDiscoveryPanel(document, root, { client, messages = {}, onOpenDiscussion = null,
+// Share the actual popup callback composition with the focused panel tests.
+// Only canonical IDs cross this seam, never cached card bodies or authority.
+export function createTopicSpacePreviewOpener({ preview, beforeOpen = () => {} }) {
+  return (topicId, thread) => {
+    beforeOpen();
+    return preview.openDiscussion(topicId, { topicId, discussionId: thread.discussionId, rootId: thread.rootId });
+  };
+}
+
+function previewTarget(topicId, value) {
+  if (value === undefined) return null;
+  try {
+    const target = record(value, ["topicId", "discussionId", "rootId"]);
+    if (readId(target.topicId) !== readId(topicId)) throw new TypeError("Changed");
+    return Object.freeze({ topicId: target.topicId, discussionId: readId(target.discussionId), rootId: readId(target.rootId) });
+  } catch { throw Object.assign(new Error("Changed"), { code: "conflict" }); }
+}
+
+export function mountDiscoveryPanel(document, root, { client, messages = {}, onOpenDiscussion = null, onPreviewChange = null, previewOnly = false,
   setTimeout: schedule = globalThis.setTimeout, clearTimeout: cancel = globalThis.clearTimeout } = {}) {
   const text = key => typeof messages?.[key] === "string" ? messages[key] : EN[key];
   const fixed = [];
   const transient = [];
   let active = false, connected = false, disposed = false, epoch = 0, pending = null, timer = null;
-  let results = [], cursor = null, query = "", resultVersion = null, busy = false;
+  let results = [], cursor = null, query = "", resultVersion = null, resultScope = null, busy = false;
   let suggestions = {contextKey:null,pages:[],loading:false}, suggestionSignature = "";
+  let previewActive = false, pageWitness = null;
   let pageIndex = 0, pageCursors = [null], pageScroll = [], previewTopic = null, previewPage = 0, previewVersion = null;
   function node(tag, content = "", className = "") {
     const element = document.createElement(tag); element.textContent = content;
@@ -45,7 +65,8 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
   const pageLabel = node("span"); pageLabel.setAttribute("aria-live","polite");
   const pagination = node("nav","","community-pagination"); pagination.append(previous,pageLabel,more);
   const refresh = button(text("discoveryRefresh"),"discovery-refresh"); refresh.hidden = true;
-  root.replaceChildren(heading,form,status,spinner,list,detail,pagination,refresh);
+  root.replaceChildren(...(previewOnly ? [status,spinner,detail] : [heading,form,status,spinner,list,detail,pagination,refresh]));
+  if(previewOnly)root.hidden=true;
   function renderPager() {
     pagination.hidden = Boolean(previewTopic);
     previous.disabled = busy || pageIndex === 0;
@@ -55,6 +76,7 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
   }
 
   function available() { return active && connected && !disposed; }
+  function previewVisibility(value) { if(previewActive===value)return;previewActive=value;onPreviewChange?.(value); }
   function activity(value) {
     busy = value; spinner.hidden = !value;
     root.setAttribute("aria-busy",String(value)); renderPager();
@@ -71,6 +93,8 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
     return link;
   }
   function renderResults() {
+    previewVisibility(false);
+    if(previewOnly){removeHandlers(transient);detail.replaceChildren();detail.hidden=true;previewTopic=null;root.hidden=true;return;}
     heading.textContent = text("discoveryHeading");
     removeHandlers(transient); list.replaceChildren(); detail.replaceChildren();
     detail.hidden = true; list.hidden = false; form.hidden = false;
@@ -88,6 +112,7 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
     }
   }
   function renderRelated() {
+    previewVisibility(false);
     removeHandlers(transient); list.replaceChildren(); detail.replaceChildren();
     detail.hidden = true; list.hidden = false; form.hidden = false;
     more.hidden = true; refresh.hidden = true;
@@ -109,6 +134,7 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
       text(suggestions.contextKey ? "relatedSuggestionsEmpty" : "relatedSuggestionsContext");
   }
   async function search(targetPage = 0) {
+    if(previewOnly)return;
     if (!available() || busy && targetPage !== 0) return;
     if (!input.value.trim()) {
       invalidate(); results = []; cursor = null; resultVersion = null; pageIndex = targetPage; renderRelated(); return;
@@ -123,10 +149,14 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
     try {
       const page = await client.discover({query,limit:20,cursor:nextCursor},{signal:abort.signal});
       if (!available() || requestEpoch !== epoch) return;
-      if (targetPage !== 0 && resultVersion && (resultVersion.generation !== page.version.generation || resultVersion.revision !== page.version.revision))
+      const stableScope = resultScope && page.scope && resultScope === page.scope &&
+        resultVersion?.generation === page.version.generation && page.version.revision >= resultVersion.revision;
+      const compatiblePage = resultScope && page.scope ? stableScope :
+        resultVersion?.generation === page.version.generation && resultVersion.revision === page.version.revision;
+      if (targetPage !== 0 && resultVersion && !compatiblePage)
         throw Object.assign(new Error("Changed"),{code:"conflict"});
       results = page.results; pageIndex = targetPage; pageCursors[targetPage + 1] = page.nextCursor;
-      resultVersion = page.version; cursor = page.nextCursor; renderResults();
+      resultVersion = page.version; resultScope = page.scope ?? null; cursor = page.nextCursor; renderResults();
       status.textContent = results.length ? "" : text("discoveryEmpty");
       list.scrollTop = pageScroll[targetPage] ?? 0;
     } catch (error) {
@@ -157,33 +187,59 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
     const link = sourceLink(entry.origin); if (link) article.append(link);
     return article;
   }
-  async function openDiscussion(topicId, targetPage = 0) {
+  async function openDiscussion(topicId, targetPage = 0, requestedTarget = undefined, locateTarget = false) {
     invalidate(); const requestEpoch = epoch;
+    root.hidden=false;
     const expectedVersion = previewVersion;
+    previewTopic = topicId;
+    removeHandlers(transient);
     detail.replaceChildren();
+    list.hidden = true; form.hidden = true; detail.hidden = false; more.hidden = true; refresh.hidden = true;
+    function backButton() {
+      const back = button(text("discoveryBack"),"discovery-back");
+      listen(back,"click",() => {
+        invalidate(); previewTopic = null;
+        if(previewOnly){renderResults();status.textContent="";return;}
+        if(input.value.trim()){results=[];cursor=null;renderResults();}else renderRelated();
+        status.textContent = ""; input.focus?.();
+        if(input.value.trim())void search();
+      },transient);
+      return back;
+    }
+    const cancelPreview = backButton();detail.append(cancelPreview);
+    previewVisibility(true);
     status.textContent = text("discoveryLoading"); activity(true);
+    cancelPreview.focus?.();
     const abort = new AbortController(); pending = abort;
     try {
-      const discussion = await client.discussion(topicId,{signal:abort.signal});
+      const target = previewTarget(topicId, requestedTarget);
+      const fresh = await client.discussion(topicId,{signal:abort.signal});
       if (!available() || requestEpoch !== epoch) return;
-      if (targetPage !== 0 && expectedVersion && (expectedVersion.generation !== discussion.version.generation || expectedVersion.revision !== discussion.version.revision))
+      let discussion = fresh;
+      if (target) {
+        try { discussion = readDiscussion(fresh, target.topicId); }
+        catch { throw Object.assign(new Error("Changed"), { code: "conflict" }); }
+        if (discussion.discussionId !== target.discussionId ||
+            !discussion.roots.some(entry => entry.id === target.rootId && visibleTree(entry)))
+          throw Object.assign(new Error("Changed"), { code: "conflict" });
+      }
+      if ((targetPage !== 0 || target && !locateTarget) && expectedVersion && (expectedVersion.generation !== discussion.version.generation || expectedVersion.revision !== discussion.version.revision))
         throw Object.assign(new Error("Changed"),{code:"conflict"});
       previewVersion = discussion.version;
       removeHandlers(transient);
       list.hidden = true; form.hidden = true; more.hidden = true; refresh.hidden = true; detail.hidden = false;
-      const back = button(text("discoveryBack"),"discovery-back");
       const changedVersion = resultVersion && discussion.version &&
         (resultVersion.generation !== discussion.version.generation || resultVersion.revision !== discussion.version.revision);
-      listen(back,"click",() => {
-        invalidate(); previewTopic = null; renderResults(); status.textContent = ""; input.focus?.();
-        if (changedVersion) void search();
-      },transient);
+      const back = backButton();
       const title = node("h3",discussion.topic.title); title.tabIndex = -1;
       detail.replaceChildren(back,title,node("p",text("discoveryReadOnly"),"field-note"));
       const visible = discussion.roots.filter(visibleTree);
+      if (target && locateTarget) targetPage = Math.floor(visible.findIndex(entry => entry.id === target.rootId) / 20);
       previewTopic = topicId; previewPage = targetPage; renderPager();
+      let targetCard = null;
       for (const thread of visible.slice(targetPage * 20,(targetPage + 1) * 20)) {
-        const tree = node("div","","discovery-thread"); tree.append(messageCard(thread));
+        const tree = node("div","","discovery-thread"), card = messageCard(thread); tree.append(card);
+        if (target && locateTarget && thread.id === target.rootId) targetCard = card;
         const replies = (thread.replies ?? []).filter(reply => reply.state === "visible");
         let replyPage = 0, replyPending = false;
         const body = node("div");
@@ -224,16 +280,19 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
       const previewPager = node("nav","","community-pagination");
       const prev = button(text("paginationPrevious"),"discovery-preview-previous"); prev.disabled = targetPage === 0;
       const next = button(text("paginationNext"),"discovery-preview-next"); next.disabled = (targetPage + 1) * 20 >= visible.length;
-      listen(prev,"click",() => { if (!prev.disabled) void openDiscussion(topicId,previewPage - 1); },transient);
-      listen(next,"click",() => { if (!next.disabled) void openDiscussion(topicId,previewPage + 1); },transient);
+      listen(prev,"click",() => { if (!prev.disabled) void openDiscussion(topicId,previewPage - 1,target ?? undefined); },transient);
+      listen(next,"click",() => { if (!next.disabled) void openDiscussion(topicId,previewPage + 1,target ?? undefined); },transient);
       previewPager.append(prev,node("span",(text("paginationPage") ?? "Page {page}").replace("{page}",String(targetPage + 1))),next);
       detail.append(previewPager);
-      status.textContent = ""; title.focus?.();
+      status.textContent = "";
+      if (targetCard) { targetCard.tabIndex = -1; targetCard.focus?.(); }
+      else title.focus?.();
       onOpenDiscussion?.({topicId,discussion});
     } catch (failure) {
       if (available() && requestEpoch === epoch) {
         results = []; cursor = null; pageIndex = 0; pageCursors = [null]; previewVersion = null;
         renderResults(); status.textContent = text(failure?.code === "conflict" ? "discoveryChanged" : "discoveryUnavailable"); refresh.hidden = false;
+        if(previewOnly)root.hidden=false;
       }
     } finally { if (requestEpoch === epoch) { pending = null; activity(false); } }
   }
@@ -252,9 +311,11 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
   listen(refresh,"click",() => { void search(); });
   status.textContent = text("discoveryConnect");
   return Object.freeze({
+    openDiscussion(topicId, target = undefined) { if (available()) return openDiscussion(topicId,0,target,target !== undefined); },
     setActive(value) {
       if (disposed || active === Boolean(value)) return;
       active = Boolean(value); invalidate();
+      if(!active && previewActive){previewTopic=null;if(previewOnly || input.value.trim())renderResults();else renderRelated();}
       if (available()) void search();
     },
     observeConnected(value) {
@@ -262,26 +323,32 @@ export function mountDiscoveryPanel(document, root, { client, messages = {}, onO
       connected = Boolean(value); invalidate();
       if (!connected) {
         results = []; cursor = null; resultVersion = null; pageIndex = 0; pageCursors = [null]; pageScroll = []; previewTopic = null;
-        if (input.value.trim()) renderResults(); else renderRelated();
+        if (previewOnly || input.value.trim()) renderResults(); else renderRelated();
         status.textContent = text("discoveryConnect");
       }
       else if (active) void search();
     },
     observePage(state) {
-      if (disposed) return;
+      if (disposed || previewOnly) return;
+      const witness = JSON.stringify([state?.sourceId??null,state?.topicId??null,state?.currentUrl??state?.resolution?.currentUrl??null,
+        state?.catalog?.version?.generation??null]);
+      const actualPageChanged = pageWitness !== null && pageWitness !== witness;
+      pageWitness = witness;
       const next = projectRelatedPages(state);
       const signature = JSON.stringify(next);
-      if (signature === suggestionSignature) return;
+      if (signature === suggestionSignature && !actualPageChanged) return;
       const contextChanged = next.contextKey !== suggestions.contextKey;
       suggestions = next; suggestionSignature = signature;
+      if(previewActive && !actualPageChanged)return;
       if (!input.value.trim()) {
-        if (contextChanged) { invalidate(); pageIndex = 0; pageCursors = [null]; pageScroll = []; }
+        if (contextChanged || actualPageChanged) { invalidate(); pageIndex = 0; pageCursors = [null]; pageScroll = []; }
         renderRelated();
       }
     },
     dispose() {
       if (disposed) return;
       disposed = true; invalidate(); removeHandlers(fixed); removeHandlers(transient); root.replaceChildren();
+      previewVisibility(false);
     },
   });
 }
