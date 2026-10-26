@@ -18,15 +18,20 @@ No release, deployment, native/model/provider execution or quality acceptance is
 implied by these checkpoints. Existing consumed studies/maps/output remain immutable.
 Read-flight SOURCE repair1e0d27d1 independently accepted: removable subscribers,
 one physical-job fanout, falsy failures/abort priority;23 focused/discovery PASS.
-Separate OPEN security gate: async account/export responses need post-await
-pairing/session/transport delivery fencing; committed WIP is not release-ready.
-Existing nativePGv2 cluster2 corrected by Root,34 guarded fake tests PASS, but full
-source review/catalog/finalpins/ONEactual decision remain absent. NO new variant.
+Account/private post-await delivery fix4f454466 now independently SOURCE accepted:
+103 focused/account/trust +99 separate provider/deadline regressions PASS; not deployed.
+Existing nativePGv2 correction independently SOURCE accepted;81 guarded64MiB Node
+and92 purePython PASS. Fixedcatalog356686B ddd4676e...9fc37 binds2338/273418938B;
+Final bindings accepted; ONE actual session31144 CLOSEDexit1 at checks/SQLSTATE42601.
+Bootstrap and scratch creation/drop ran; pure case passed, canonical child assertions0.
+Parent normal Job retirement and child owned smart-stop independently retained;
+saved-failure audit18aaf642...cf7bf PASS/all2338endpins, not SQL acceptance.
+All consumed v2 inputs/map/output now IMMUTABLE; no retry/adoption/new variant.
 Nativev1actual23991 remains CLOSEDfailed/SQL0; no rerun/adoption. Overall hierarchy
 quality/canonical SQL/native concurrency/admin/UI/live integration still unfinished.
 Crawler4060 and API19868/worker36616/dashboard6644 original starts preserved.
-Next: resolve known delivery gap, validate existing v2, then real hierarchy quality
-and product integration. Do not substitute clean Git or pure tests for goal completion.
+Next: read-only diagnosis of42601; exact failed SQL statement was not retained.
+Real hierarchy quality and product integration remain open. Clean Git is not completion.
 
 LATEST26Oct nativePGv1 ONEactual23991 CLOSEDexit1/bootstrapOWNED_SERVER_START/
 SQL0. Root+independent savedfailureauditPASS f449ec56...18b6eb/all2338endpins.

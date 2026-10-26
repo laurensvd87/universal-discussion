@@ -14,14 +14,21 @@ discovery tests pass. Pending physical jobs retain task admission even when all
 subscribers cancel; canceled subscribers no longer accumulate promise reactions.
 This is committed source, not a live memory-cause or latency claim.
 
-Known open security finding: account/export async adapters can finish after
-session/pairing/transport revocation. Add post-await delivery checks, treating
-intentional logout/deletion/session renewal separately; do not claim an observed
-live disclosure. Resolve before deployment of the async account port.
+Account/export/private post-await delivery finding is closed in source4f454466,
+independently accepted:103 focused/account/trust and99 provider/deadline regression
+tests PASS. Exact session/identity and transport/pairing are rejoined; deliberate
+logout/deletion/renewal acknowledgments remain valid. No observed live disclosure
+or deployment claim.
 
-Existing nativePGv2 Root cluster2 correction passes34 guarded fake tests. Full
-independent source review/catalog/endpins/fresh resources/separate ONEactual
-decision are still required. No new variant or native invocation. Nativev1
+Existing nativePGv2 Root correction now independently SOURCE accepted;81 guarded
+64MiB Node/92 Python PASS. Fixedcatalog356686B FILEddd4676e...9fc37/2338inputs/
+273418938B. Final bindings passed, then ONE actual session31144 CLOSEDexit1:
+bootstrap/scratch creation succeeded; checks failed with SQLSTATE42601. Pure case
+passed, canonical child assertions0; exact failed SQL statement not retained.
+Parent normal Job retirement and child owned smart-stop have separate evidence.
+Independent saved-failure audit18aaf642...cf7bf PASS/all2338endpins, not successful
+SQL proof. All consumed v2 inputs/map/output IMMUTABLE; no retry/new variant.
+Next is read-only SQL diagnosis, not another fixture run. Nativev1
 session23991 remains closed failed at bootstrap,SQL0; all2338/map/output immutable.
 Actual hierarchy quality, canonical SQL/native concurrency and live product
 integration remain unfinished. Crawler4060/API19868/worker36616/dashboard6644

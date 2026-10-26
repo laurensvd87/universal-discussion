@@ -13,18 +13,27 @@ on disk and are excluded from Git. No source or application data was deleted.
 The read-flight source fix in `1e0d27d1` removes canceled subscribers instead of
 retaining a promise callback per reader. Independent source review accepted it;
 23 focused/discovery tests pass. This code has not been deployed to the running
-service. A separate known privacy gate remains: asynchronous account/export
-responses need pairing, session and transport checks after awaited work.
+service. Commit `4f454466` also closes the asynchronous account/export/private
+delivery gap in source: exact identity, pairing, session and transport are checked
+after awaited work. Independent source review accepted it;103 focused account/
+trust tests and99 additional provider/deadline regressions pass. It is not deployed.
 
 The existing second native PostgreSQL fixture now separates PID-file ownership
-from SQL startup identity;34 guarded simulated lifecycle tests pass. It still
-requires full source review, authenticated inputs and a separate actual decision.
-There is no new native run or measured semantic-quality result. The first native
-attempt remains a closed bootstrap failure with zero completed SQL assertions.
+from SQL startup identity;81 guarded Node and92 pure Python tests pass. Independent
+source review accepted it, and the fixed catalog binds2,338 inputs. Final binding
+passed, followed by one isolated actual run (session31144, exit1): startup and
+scratch database creation succeeded, but checks failed with SQLSTATE42601. The
+pure case passed; no canonical child assertion completed. The exact failed SQL
+statement was not retained. Scratch cleanup and the child server's owned smart
+stop are recorded separately from normal parent Job retirement. Independent
+saved-failure audit18aaf642...cf7bf passed all2,338 end-pins; it is not SQL acceptance.
+All consumed v2 inputs, catalog and output are immutable. No retry or new variant.
+The first native attempt remains a closed bootstrap failure. Semantic quality is
+still unmeasured.
 
 The crawler and application services retain their original process starts.
-The next implementation priority is the known account delivery gap, followed by
-validation of the existing fixture and the real hierarchy/page/discussion flow.
+The next implementation priority is read-only diagnosis of the SQL syntax error,
+then the real hierarchy/page/discussion flow and semantic-quality measurements.
 Clean Git is a recovery checkpoint, not completion of hierarchical matching.
 
 ## Latest continuation: 26 October

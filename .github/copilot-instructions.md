@@ -5,8 +5,13 @@ Use the repository-wide workflow in `AGENTS.md` as the shared project contract. 
 Current continuation26October: read the new Git-consolidation sections at the top
 of AGENTS, STATUS and IMPLEMENTATION_HANDOFF. Archival/WIP commits preserve the
 backlog; they are not release or hierarchy-quality acceptance. No new experiment
-variants or old-run retries. The async account post-await delivery gap remains
-open; keep all consumed source/maps/output immutable and the crawler running.
+variants or old-run retries. The account/private post-await source fix4f454466 is
+accepted but not deployed; keep consumed source/maps/output immutable and the crawler running.
+Existing nativePGv2 actual31144 is closed failed at checks/42601, after successful
+bootstrap/scratch creation. Canonical child assertions0; child owned smart-stop
+and parent normal Job retirement recorded separately. All2338 end-pins accepted
+by independent saved-failure audit18aaf642...cf7bf. No retry/new variant. Diagnose
+SQL read-only; the exact failed statement was not retained.
 
 Current ADR132 hierarchy candidate OFFLINE/notactivated: compactfrozenE5heads,
 fresh384synthetics; locked90assigned/89safe,36/36leaf but59/60non-root correct.
