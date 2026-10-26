@@ -28,7 +28,13 @@ passed, canonical child assertions0; exact failed SQL statement not retained.
 Parent normal Job retirement and child owned smart-stop have separate evidence.
 Independent saved-failure audit18aaf642...cf7bf PASS/all2338endpins, not successful
 SQL proof. All consumed v2 inputs/map/output IMMUTABLE; no retry/new variant.
-Next is read-only SQL diagnosis, not another fixture run. Nativev1
+Offline diagnosis found2 invalid IF/CASE delimiters, repaired by normal pinned
+hierarchy-schema-source.js without changing old SQL. Normal hierarchy-repository,
+private context, exact25-assertion suite, cluster/entry/279-line driver now compose
+explicitly; independent source review accepted,9 Node/6 purePython PASS. Fixed
+catalog358353B a21320cb...7cab0/2348inputs/273547782B includes unchanged old2338.
+Final binding/fresh resources/separateONEdecision precede actual normal execution;
+no frozen v2 retry or live activation. Nativev1
 session23991 remains closed failed at bootstrap,SQL0; all2338/map/output immutable.
 Actual hierarchy quality, canonical SQL/native concurrency and live product
 integration remain unfinished. Crawler4060/API19868/worker36616/dashboard6644

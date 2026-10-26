@@ -4,8 +4,11 @@
 Native SQL validation reached startup but failed42601. Offline parsing found two
 invalid IF/CASE delimiters; the normal hash-pinned schema materializer corrects
 only those four bytes and passes the complete schema/boundary grammar check.
-It is not yet consumed by a maintained initializer. This repairs a concrete SQL
-source blocker, not E5 quality: native assertions, real semantic evaluation and
+The maintained private initializer now consumes it explicitly; the normal native
+composition preserves all25 assertions and original guards (9 Node/6 Python pass,
+independent source review accepted; final2,348-input binding and actual decision
+pending). This repairs a concrete SQL source blocker, not E5 quality: native
+assertions, real semantic evaluation and
 product activation remain open. No consumed fixture will be rerun or edited, and
 no new full experiment variant is needed for the next explicit integration step.
 

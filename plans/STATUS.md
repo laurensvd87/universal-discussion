@@ -40,9 +40,15 @@ without editing the historical schema. Four guarded tests pass. Its actual outpu
 passes135 outer SQL statements and54 PL/pgSQL blocks; the unchanged boundary
 passes5 statements and2 blocks with pglast7.21/PostgreSQL17.7 grammar. This is
 syntax evidence, not successful PostgreSQL installation or canonical assertions.
-The loader is not yet called by a maintained database initializer. That explicit
-integration and native checks precede the real hierarchy/page/discussion flow
-and semantic-quality measurements; frozen v2 will not be rerun.
+The maintained private initializer now explicitly consumes the loader. Its normal
+repository/context/assertion suite preserves all25 original SQL assertion bodies.
+The normal cluster/entry and279-line driver reuse reviewed controllers and native
+retirement while binding fresh paths. Independent source review accepted the
+composition;9 guarded Node and6 pure Python tests pass. The fixed358353-byte catalog
+a21320cb...7cab0 binds2,348 inputs, including all2,338 frozen predecessor inputs.
+Final binding, fresh resources and a separate actual decision still precede native
+execution. Real hierarchy/page/discussion and semantic-quality evidence remain open;
+frozen v2 will not be rerun.
 Clean Git is a recovery checkpoint, not completion of hierarchical matching.
 
 ## Latest continuation: 26 October

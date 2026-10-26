@@ -8,10 +8,13 @@ completed. Its inputs and output are immutable; owned server cleanup is verified
 Offline parsing identifies two invalid IF/CASE delimiters in the frozen schema.
 The normal hierarchy-schema-source.js now repairs exactly four bytes, with pinned
 input/output hashes and bounded raw reads. Four guarded tests and parsing of all
-54 corrected schema PL/pgSQL blocks pass. No maintained initializer consumes it
-yet; no database or matching-quality acceptance follows. Next is explicit normal
-integration and native validation preserving all25 assertions, without another
-full experiment copy. Existing discussions and crawler remain unchanged.
+54 corrected schema PL/pgSQL blocks pass. The normal private initializer now
+consumes it explicitly; all25 original assertion bodies remain unchanged. The
+normal cluster/entry/driver composition reuses frozen controllers, with fresh
+paths and unchanged resource/retirement guards. Independent source review and
+9 Node/6 Python tests pass. Final binding of the2,348-input catalog and a separate
+actual decision remain required; no SQL or matching-quality acceptance follows.
+Existing discussions and crawler remain unchanged.
 
 Earlier dated implementation boundaries below are historical where superseded.
 

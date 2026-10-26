@@ -4,3 +4,9 @@ canonical-v4/** -text
 integration/native-hierarchy-*/** -text
 integration/scoped-native-isolated-*/** -text
 integration/ridge-finite-native-v1/** -text
+# Maintained hierarchy checks preserve their reviewed raw FILE bytes too.
+integration/hierarchy-native-*.js -text
+integration/hierarchy-native-driver.py -text
+integration/hierarchy_native_driver_test.py -text
+integration/hierarchy-native-reviewed-sources.json -text
+test/hierarchy-*.js -text

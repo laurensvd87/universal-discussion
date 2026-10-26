@@ -34,9 +34,13 @@ Offline diagnosis found two invalid IF/CASE delimiters in install_attestation an
 issue_command. Normal hierarchy-schema-source.js repairs only these four bytes,
 with fixed original/corrected hashes and bounded raw reads. Four guarded tests
 PASS; actual loader output parses135SQL+54PLpgSQL and unchanged boundary5+2.
-Not wired into frozen v2; no SQL execution/activation follows. Exact failed actual
-statement remains unretained. Next: maintained initializer/native test composition
-without a full experiment copy, preserving all25 assertions and original guards.
+Normal initializer/private context now explicitly consume the repair; all25 old
+assertion bodies preserved. New normal cluster/entry/279-line driver reuse frozen
+controllers, session/ledger and native retirement; fresh parent/output only.
+Source independently accepted;9 guardedNode/6 purePython PASS. Catalog358353B
+a21320cb...7cab0 binds2348/273547782B, including all original2338 unchanged.
+Final binding/fresh resources/separate ONE actual decision still pending. No SQL
+execution or activation from this source checkpoint; never rerun frozen v2.
 Real hierarchy quality and product integration remain open. Clean Git is not completion.
 
 LATEST26Oct nativePGv1 ONEactual23991 CLOSEDexit1/bootstrapOWNED_SERVER_START/
