@@ -41,8 +41,16 @@ Normal per-run storage/claim/finite-error composition now independently accepted
 19Node/12Python PASS plus realfilesystem-only Python/Nodewire+replay PASS. Current
 catalog358679B894a5c24...49a35/2350inputs273579513B; original2338 unchanged.
 Final binding/fresh resources/separateONEdecision precede next normal actual;
-no frozen v2 retry or live activation. Nativev1
-session23991 remains closed failed at bootstrap,SQL0; all2338/map/output immutable.
+no frozen v2 retry or live activation.
+Latestnormal26c6 actual32423 thenreachedfirstcanonicalchildbutfailed42702 after
+schema/setup; parentnormal+childownsmartstop recorded, savedindependent7e19a6c3...
+7e18/all2350endpins PASS. No childcompleted/exactstatementunretained. NormalSQL
+materializer adds2exactaliasrenames with unchangedbindings/inverse, output148697B
+f0d83892...0b518/54schema+2boundaryPLblocksPASS; actualcauseunproven. PrivateRPC
+diagnostics retain onlysame-error finiteoperation/functionline/positions, never
+rawSQL.29Node/12Python PASS includingcausalprivatecall/inertsession. Newcurrent
+map358842B37e39d51...32abb/2351inputs273601536B awaitsfinalbinding/ONEdecision.
+Nativev1 session23991 remains closed failed at bootstrap,SQL0; all2338/map/output immutable.
 Actual hierarchy quality, canonical SQL/native concurrency and live product
 integration remain unfinished. Crawler4060/API19868/worker36616/dashboard6644
 retain original starts. Clean Git is not goal completion.

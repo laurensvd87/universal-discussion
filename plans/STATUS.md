@@ -7,15 +7,18 @@ The Git backlog is committed and pushed: historical research is archived in
 edits in2c796408. Generated profiles, captures, vectors and downloaded tooling
 remain local and ignored. These checkpoints are not releases.
 
-The latest real native check (normal source8f934974) stopped early with generic
-execution-failure and zero completed canonical assertions. Independent audit
-verified emergency parent Job retirement, handles, EOFs and all2,348 input pins;
-there is no child lifecycle/smart-stop result and the actual cause is unknown.
-Its outputs, catalog snapshot and exact Git source bytes remain preserved.
+The latest real native check (normal source26c6df2b, session32423) passed schema
+installation and publication/policy setup, then failed the first canonical child
+with42702. Parent normal retirement and child owned smart-stop are independently
+recorded; all2,350 input pins pass. No canonical child completed, and the exact
+failing SQL/function is unretained. Outputs, per-run snapshot and exact Git source
+bytes remain preserved. The earlier8f934974 generic startup failure remains separate.
 
 The earlier nativev2 check reached startup/scratch creation but failed42601.
 Offline parsing identified two invalid IF/CASE delimiters. The normal bounded
-schema loader repairs exactly four bytes without editing the frozen SQL. All
+schema loader repairs delimiters without editing the frozen SQL. It now also
+renames two overlapping table aliases with full-text inverse checks; this is
+source namespace hygiene, not proof of the prior42702 cause. All
 54 schema and2 boundary PL/pgSQL blocks now parse, but this is not SQL execution.
 The maintained private initializer consumes the repair; all25 original assertion
 bodies remain unchanged.
@@ -23,9 +26,12 @@ bodies remain unchanged.
 The normal runner now creates fresh internal per-run directories with immutable
 catalog/marker files and a permanent claim bound to the original NodePID. It
 retains finite native failure codes without retrying operations. Independent
-source review accepted it;19 guarded Node and12 pure Python tests pass. A real
+source review accepted it. The private RPC wrapper now retains only a same-error
+closed operation/function/line observation and distinct bounded positions, never
+raw messages or SQL.29 guarded Node and12 pure Python tests pass, including the
+actual private call source with invented clients and the real inert session. A real
 filesystem-only Python/Node marker, claim, cache and replay check also passes.
-The current358679-byte catalog894a5c24...49a35 binds2,350 inputs. Final binding,
+The current358842-byte catalog37e39d51...32abb binds2,351 inputs. Final binding,
 fresh resources and a separate actual decision precede another native check.
 All2,338 frozen predecessor inputs remain unchanged.
 

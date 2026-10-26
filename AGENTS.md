@@ -47,8 +47,18 @@ immutable per-run map/marker and permanent one-use childclaim/exactNodePID.
 Finite native/error categories retained without retry; all25 assertions unchanged.
 Per-run SOURCE independently accepted;19 guardedNode/12 purePython PASS; real
 filesystem-only Python/Node claim/cache/replay joins PASS, not nativeSQL.
-Current catalog358679B894a5c24...49a35 binds2350/273579513B; original2338 unchanged.
-Final binding/fresh resources/separate ONE actual decision pending; no activation.
+Prior catalog358679B894a5c24...49a35 bound2350/273579513B; original2338 unchanged.
+That accepted binding preceded actual32423 below; no activation.
+Latest normal26c6 actual32423 CLOSEDexit1 at firstcanonical child/42702 after
+schema+publication/policy setup. Parentnormal/childownsmartstop/endpins2350 PASS;
+independent saved7e19a6c3...7e18. Exactfunction/statement unretained. Run31cc33...
+snapshot+outputs and rawGit26c6 retained. Normalmaterializer nowalso renames two
+overlappingSQLaliases (root_hook hygiene, notprovenactualcause); exactoutput
+148697Bf0d83892...0b518/fullinverse/54+2PLgrammar PASS. RPCsame-error diagnostic
+capture nowkeepsclosedoperation/function/line/positions only; exactprivatecall
+causalVM+realinertsession testsPASS, no realfixturegrant. Source independently
+accepted;29 guardedNode/12purePython PASS. Current map358842B37e39d51...32abb
+binds2351/273601536B. Final binding/freshresources/ONEdecision pending, noactivation.
 Real hierarchy quality and product integration remain open. Clean Git is not completion.
 
 LATEST26Oct nativePGv1 ONEactual23991 CLOSEDexit1/bootstrapOWNED_SERVER_START/

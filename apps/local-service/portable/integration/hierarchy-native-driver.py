@@ -29,6 +29,7 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/canonical-v4/hierarchy-repository.js',
     'apps/local-service/portable/test/hierarchy-schema-source.test.js',
     'apps/local-service/portable/test/hierarchy-native-composition.test.js',
+    'apps/local-service/portable/test/hierarchy-native-call.test.js',
     'apps/local-service/portable/test/hierarchy-native-assertions.js',
     OWN + 'hierarchy-native-context.js', OWN + 'hierarchy-native-cluster.js',
     ENTRY, OWN + 'hierarchy-native-driver.py', OWN + 'hierarchy_native_driver_test.py',

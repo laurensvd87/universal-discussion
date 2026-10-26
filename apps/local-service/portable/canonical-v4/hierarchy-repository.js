@@ -7,14 +7,98 @@ import {sourceStamp} from '../../src/domain/source-threads.js';
 import {inspectPageUrl} from '../../../../spikes/topic-resolution/browser/core/page-content-policy.js';
 const fixtures=new WeakSet(),initialized=new WeakSet();
 const initializationFailures=new WeakMap();
+const RPC_NAMES=Object.freeze(['install_publication','install_attestation','set_owner_policy','control_publication','issue_command','enqueue_issued',
+ 'claim','complete','heartbeat','revoke','cleanup','list_jobs','cleanup_finalizations','revoke_attestation','expire_issued','create_root',
+ 'forget_local','read_native_feed','lookup_operation','resolve_native_source']);
+const BOOTSTRAP_STAGES=Object.freeze(['canonical-fixture-seed','hierarchy-schema-load','hierarchy-schema-install','hierarchy-boundary-install']);
+// Exact argument type spellings from the immutable schema, deliberately finite.
+const CONTEXT_SIGNATURES=Object.freeze({
+ active_artifact_hash:'',
+ admit_new:'text,bigint,text,text,text,text,text,text,text,double precision[],double precision[],text',
+ assert_issued:'text,text',
+ assert_publication:'text,text',
+ assert_witness:'text,text',
+ attach_native_decision:'text,text,jsonb',
+ before_publish:'',
+ claim:'text,text,text,text,text,text,integer',
+ cleanup:'text,text,text,text',
+ cleanup_finalizations:'',
+ clear_container_incarnation:'',
+ complete:'text,text,text,text,text,text,integer',
+ control_publication:'text,bigint,text',
+ create_root:'text,text,text,text,text,text,text,text,text,text,text,text',
+ dirty_feed:'text',
+ enqueue:'text,text,text,jsonb,integer,text',
+ enqueue_issued:'text,text,text,text',
+ enter_gate:'boolean',
+ erasure_hook:'',
+ exact_keys:'jsonb,text[]',
+ expire_issued:'',
+ finalize_commit:'',
+ flush_feed:'',
+ forget_local:'text,text',
+ guard_legacy_queue:'',
+ guard_source_update:'',
+ heartbeat:'text,text,text,text,text,text,integer,integer',
+ install_attestation:'jsonb',
+ install_publication:'jsonb,jsonb,text',
+ issue_command:'jsonb,jsonb',
+ job_summary:'hierarchy_native_scoped_ingestion_v2.jobs',
+ list_jobs:'text,text,integer',
+ lock_issued_enqueue:'text,text,text,jsonb',
+ lookup_operation:'text,text,text,text',
+ native_live:'text,text',
+ native_root_edges:'',
+ native_source_erasure:'',
+ publish:'jsonb,jsonb',
+ queue_source_erasure:'',
+ read_native_feed:'text,text,bigint,bigint,text,integer',
+ reclassify:'text,text,text,text',
+ reject_update:'',
+ resolve_native_source:'text,text',
+ retire_jobs:'text[],text,boolean,text[]',
+ retire_native_issued:'text[],text,boolean,text[]',
+ retire_source_operations:'',
+ revoke:'text,text,text,text',
+ revoke_attestation:'text',
+ root_hook:'',
+ scoped_forget:'text,text',
+ scrub_job:'text,text,text,text',
+ scrub_native_job:'',
+ set_owner_policy:'text,text,bigint,jsonb,text,text',
+ sha:'text',
+ update_source:'text,bigint,text,text,text,text,text,text,text,double precision[],double precision[],text,bigint,text,text',
+ validate_params:'text,jsonb',
+ wire_hash:'double precision[]',
+});
+function diagnosticStage(stage){return typeof stage==='string'&&(BOOTSTRAP_STAGES.includes(stage)||stage.startsWith('rpc:')&&RPC_NAMES.includes(stage.slice(4)));}
+function ownDiagnostic(error,key){const field=Object.getOwnPropertyDescriptor(error,key);return field&&Object.hasOwn(field,'value')?field.value:undefined;}
+function diagnosticPosition(value,max){return typeof value==='string'&&/^[1-9][0-9]{0,6}$/u.test(value)&&Number(value)<=max?value:null;}
+/** Pure data projection cannot register an error or confer fixture authority.
+ * A matched context frame is an observation, never an assertion of root cause.
+ */
+export function projectHierarchyFixtureFailure(error,stage){
+ if(!diagnosticStage(stage)||!error||typeof error!=='object'||types.isProxy(error))return null;
+ const code=ownDiagnostic(error,'code'),position=diagnosticPosition(ownDiagnostic(error,'position'),1000000),
+  internalPosition=diagnosticPosition(ownDiagnostic(error,'internalPosition'),1000000);
+ const sqlState=typeof code==='string'&&/^[A-Z0-9]{5}$/u.test(code)?code:null;
+ let functionName=null,functionLine=null;
+ const where=ownDiagnostic(error,'where');
+ if(typeof where==='string'&&where.length<=8192){
+  const lines=where.split('\n');
+  if(lines.length<=64)for(const line of lines){
+   const frame=/^PL\/pgSQL function hierarchy_native_scoped_ingestion_v2\.([a-z_]+)\(([^()]*)\) line ([1-9][0-9]{0,5}) at (?:SQL statement|RAISE|assignment|IF|RETURN|PERFORM|EXECUTE|FOR over SELECT rows)$/u.exec(line);
+   if(frame&&Object.hasOwn(CONTEXT_SIGNATURES,frame[1])&&CONTEXT_SIGNATURES[frame[1]]===frame[2]&&Number(frame[3])<=100000){functionName=frame[1];functionLine=frame[3];break;}
+  }
+ }
+ return Object.freeze({stage,sqlState,position,internalPosition,functionName,functionLine});
+}
 // Diagnostics grant no authority and retain no error text or SQL content.
 function noteInitializationFailure(error,stage){
  try{
   if(!error||typeof error!=='object'||types.isProxy(error)||initializationFailures.has(error))return;
-  const code=Object.getOwnPropertyDescriptor(error,'code'),offset=Object.getOwnPropertyDescriptor(error,'position');
-  const sqlState=code&&Object.hasOwn(code,'value')&&typeof code.value==='string'&&/^[A-Z0-9]{5}$/u.test(code.value)?code.value:null;
-  const position=offset&&Object.hasOwn(offset,'value')&&typeof offset.value==='string'&&/^[0-9]{1,7}$/u.test(offset.value)&&Number(offset.value)<=1000000?offset.value:null;
-  initializationFailures.set(error,Object.freeze({stage,sqlState,position}));
+  initializationFailures.set(error,null); // A failed first projection stays final.
+  initializationFailures.set(error,projectHierarchyFixtureFailure(error,stage));
  }catch{} // Diagnostics must never replace the original thrown value.
 }
 export function describeHierarchyFixtureFailure(error){
@@ -61,10 +145,11 @@ export function prepareFastAdmission(value){
 
 function fixture(db){if(!fixtures.has(db)||!initialized.has(db))invalid();}
 async function call(db,name,args){
- fixture(db);return db.transaction(async tx=>{
+ fixture(db);if(!RPC_NAMES.includes(name))invalid();
+ try{return await db.transaction(async tx=>{
   const {rows}=await tx.query('SELECT '+SCHEMA+'.'+name+'('+args.map((_,i)=>'$'+(i+1)).join(',')+') AS result',args);
   if(rows.length!==1)invalid();return freeze(rows[0].result);
- });
+ });}catch(error){noteInitializationFailure(error,'rpc:'+name);throw error;}
 }
 /** No caller DB/options/path. Actual canonical001-009 synthetic fixture ONLY.
  * Creating it is a separately gated database execution, not a pure-test step. */

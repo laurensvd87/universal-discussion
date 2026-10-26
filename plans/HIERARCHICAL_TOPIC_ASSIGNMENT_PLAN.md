@@ -2,19 +2,22 @@
 
 ## Current implementation boundary on 26 October
 
-The latest normal native run failed early before canonical assertions. Its
-independent audit verifies parent emergency retirement and2,348 end-pins; the
-actual exception/cause remains unknown. Original outputs, catalog snapshots and
+The latest normal native run reached its first canonical child after schema/setup
+but failed42702. Its independent audit verifies parent normal retirement, child
+owned smart-stop and2,350 end-pins; no child completed and exact SQL is unknown.
+Original outputs, catalog snapshots and
 raw source commits are preserved, as are all frozen nativev1/v2 files.
 
 The normal initializer explicitly consumes the bounded schema loader that repairs
-two IF/CASE delimiters (four bytes). All54 corrected schema PL/pgSQL blocks parse;
+two IF/CASE delimiters and two overlapping table aliases. All54 corrected schema
+PL/pgSQL blocks parse; alias hygiene is not proof of the prior runtime cause.
 all25 original SQL assertion bodies remain unchanged. The maintained runner now
 uses fresh internal per-run paths, an immutable catalog snapshot and a permanent
 claim bound to the original NodePID. Finite native error codes survive.
 
-Independent source review,19 Node/12 Python and real filesystem-only cross-language
-checks pass. The current2,350-input catalog still requires final binding, fresh
+Independent source review,29 Node/12 Python and real filesystem-only cross-language
+checks pass. Same-error RPC diagnostics retain only finite operation/function/line
+and positions. The current2,351-input catalog still requires final binding, fresh
 resources and a separate actual decision. No native SQL or matching-quality
 acceptance is claimed. Existing discussions and the crawler remain unchanged;
 actual database, semantic, owner-control, UI and live-activation goals stay open.

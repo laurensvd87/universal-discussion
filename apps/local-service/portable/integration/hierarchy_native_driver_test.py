@@ -105,9 +105,9 @@ class MaintainedDriverTest(unittest.TestCase):
         base = self.I.FileCatalog('a'*64)._inventory()
         maintained = D.catalog_type(self.I)('a'*64)._inventory()
         self.assertEqual(len(base), 2338)
-        self.assertEqual(len(D.NORMAL_KEYS), 12)
+        self.assertEqual(len(D.NORMAL_KEYS), 13)
         self.assertEqual(maintained-base, D.NORMAL_KEYS)
-        self.assertEqual(len(maintained), 2350)
+        self.assertEqual(len(maintained), 2351)
         self.assertTrue(all((D.REPO/key).is_file() for key in D.NORMAL_KEYS))
 
     def test_finite_native_error_is_retained_without_altering_first_failure(self):

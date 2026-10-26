@@ -25,20 +25,20 @@ export async function runNativeSqlProof(){
   let callbackOpen=true,hasPrimary=false,primary;
   const guard=()=>{if(!callbackOpen)throw fail('NATIVE_SCOPE_RETIRED');};
   const controller=createFixtureController({connectFixedRole,getOwnedIdentity,guard}),scope={live:true,controller};
-  const ledger=createAssertionLedger({guard});let outer=0,cases=null,cleanup,initializationFailure=null;
+  const ledger=createAssertionLedger({guard});let outer=0,cases=null,cleanup,fixtureFailure=null;
   try{
    await runAssertions(async(...args)=>{
     if(outer===1){if(args[0]!==CASES[1].name||ledger.snapshot().cursor!==1)throw fail('ASSERTION_INVENTORY');activeScope=scope;}
     outer++;return ledger.test(...args);
    });cases=ledger.finish();
-  }catch(error){hasPrimary=true;primary=error;initializationFailure=describeHierarchyFixtureFailure(error);}
+  }catch(error){hasPrimary=true;primary=error;fixtureFailure=describeHierarchyFixtureFailure(error);}
   finally{
    scope.live=false;activeScope=null;cleanup=await controller.finish();callbackOpen=false;
   }
   const observed=ledger.snapshot();
   return {schema:'native-hierarchy-postgres-proof/v2',status:!hasPrimary&&cases?.length===25&&cleanup.status==='passed'&&observed.pending===0?'passed':'failed',
    primary:hasPrimary?code(primary):null,cases:cases??observed.rows,pendingAssertions:observed.pending,cleanup,
-   ...(initializationFailure?{initializationFailure}:{}),
+   ...(fixtureFailure?{fixtureFailure}:{}),
    nativeExecuted:true,concurrencyValidated:false,restrictedRoleValidated:false,semanticQualityMeasured:false};
  });
 }
