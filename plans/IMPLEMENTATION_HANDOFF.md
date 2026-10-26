@@ -1,6 +1,30 @@
 # Implementation handoff: local-service discussion MVP
 
-## Current continuation: native SQL and root diagnostics passed, real children next
+## Current continuation: rooted composition implemented; real detail still unaccepted
+
+Rooted matcher c89d5f33 is committed/pushed and source-reviewed. Root gates all
+binary heads; exact declared ancestors, deepest accepted path and sibling LCA are
+implemented. No live installation. See STATUS for actual recipe failures: local
+cuts disabled; binary held-out result2f29bd48...d3e16 has one false child refinement,
+independently audited490f68bf...556. Keep Recipes disabled; its TEST is consumed.
+
+GTA fitc89d5f33/session9942 completed but disabled after9document-invalid of16;
+TRAIN0positive2negative/CAL3positive2negative. Auditeaca7b2c...5391 authenticated and
+fully read. Preserve data/hierarchy-gta-detail-fit-20261026. GTA TEST remains unused.
+Parser triage proves large data-mw metadata, not the2MiB document cap, rejected GTA
+III. Normal parser repair/tests are source-accepted; Root26PASS163.5ms, independent
+26PASS157.3ms. The runner now selects a fresh parser-repair fit directory,
+with identical subjects/labels/policy. No repaired fit has run yet. Do not adopt or
+overwrite the disabled artifact. No new versioned study/controller tree is needed.
+
+Read-only product inspection confirms paired vectors are absent from current ingest,
+canonical apply still chooses Ridge references, and discovery has no semantic
+ancestor feed. Existing owner controls use similarity-space IDs, requiring explicit
+semantic mapping. Current saved-URL reads stay read-only until matcher Ready; any
+posting-speed fix needs a separate current-document witness and unchanged account,
+foreground, permission, version and provider gates. Do not simply set phase Ready.
+
+## Earlier continuation: native SQL and root diagnostics passed, real children next
 
 The first fresh public diagnostic now completed: source457401ce/session73152 exit0,
 26/32 captured and26/26 correct roots, six parser refusals retained. All16 roots

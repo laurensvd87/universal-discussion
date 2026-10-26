@@ -1,5 +1,20 @@
 # Hierarchical topic assignment and discussion plan
 
+Current26 October: numeric rooted composition is implemented (c89d5f33), including
+exact declared ancestry, root gating, deepest accepted path and sibling LCA. Real
+detail is still unaccepted: Recipe TEST has one false refinement; GTA fitting lost
+all training positives to parser refusals, and its held-out cohort remains unused.
+A causally identified oversized unused data-mw attribute is being repaired through
+bounded streaming parsing. Full evidence and next actual step are in STATUS.
+
+Integration inspection confirms the application still submits only a body vector,
+and canonical ingestion accepts Ridge coordinates rather than semantic paths.
+Paired observation binding, semantic destination registration, existing thread/ID
+preservation, ancestor feeds, owner-wide/per-topic cuts and concurrency/UI checks
+remain required. Presentation-only grouping does not complete this plan.
+
+Earlier26 October matching evidence:
+
 26 October matching evidence: source457401ce/session73152 completed a32-page
 English public diagnostic:26 captured/26 correct roots, six parser refusals
 retained, all16 roots covered. Independent numeric audit bead3660...f9465 passes.

@@ -31,7 +31,10 @@ const SOURCES = ['./run-hierarchy-detail-quality.js', './hierarchy-gta-corpus.js
   '../../../spikes/topic-resolution/browser/core/page-content-policy.js',
   '../../../spikes/topic-resolution/browser/embedding/embedding-contract.js',
   '../../../spikes/topic-resolution/browser/embedding/.assets/manifest.json'];
-const FIT = new URL('../data/hierarchy-gta-detail-fit-20261026/', import.meta.url);
+// The first run is retained at hierarchy-gta-detail-fit-20261026: nine parser
+// refusals left no positive TRAIN support. This fresh run follows the causal
+// metadata-parser repair, using the identical subjects, labels and fit policy.
+const FIT = new URL('../data/hierarchy-gta-detail-fit-parser-repair-20261026/', import.meta.url);
 const EVALUATION = new URL('../data/hierarchy-gta-detail-evaluation-20261026/', import.meta.url);
 const flags = { productionValidated: false, assignmentAuthority: false, nativeObservation: false,
   representativePopulation: false, statisticalIndependenceClaim: false };

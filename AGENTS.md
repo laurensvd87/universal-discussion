@@ -8,6 +8,30 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT26Oct maintained matcher c89d5f33 committed/pushed. Root+independent SOURCE
+review accepted root-gated binary details, declared full paths, deepest supported
+path/LCA conflicts, compiled caches; six numeric tests, NOTlive integration.
+Recipe real-reference fit could not qualify. Binary CAL qualified3positive/4negative,
+but frozen TEST3dishes+3methods produced1false refinement (Deep_frying); recipe
+detail remains UNACCEPTED. Immutable result2f29bd48...d3e16, independent audit
+490f68bf...556. No threshold tuning/reuse as unseen TEST.
+Actual GTA TRAIN/CAL session9942 CLOSEDexit0/DISABLED:7of16scored,9document-invalid,
+TRAIN0positive2negative/CAL3positive2negative; all7rootsGames. Audit eaca7b2c...5391
+authenticated/FULLread; outputdata/hierarchy-gta-detail-fit-20261026 immutable.
+GTA TEST6 stillunused. TWO separate parser-only triage reads (no model/test) prove
+GTAIII918043B originalresponse928fe5d4...7afd fails originalparser592a0c73...4b96
+at16KiB attribute surface; data-mw value81392chars, otherattrs short. Normal parser
+repair scans/discards unused data-* metadata;128attrs/16KiB interpreted surfaces/
+global2MiB/token/depth/content caps preserved. Root26guarded testsPASS163.5ms;
+independent final parser SOURCE accepted/26PASS157.3ms; NOrepaired actualfit yet. New output path
+hierarchy-gta-detail-fit-parser-repair-20261026 preserves old run. No new study tree.
+Actual app still body-only ingestion; paired observation contract, native issuer,
+canonical destination integration/ancestor feeds, owner cuts, concurrency/roles,
+UI posting readiness/livecutover remain OPEN. Saved URL readiness currently waits
+matcher Ready; do not weaken document/account/privacy gates to bypass this.
+Crawler4060 originalstart advancing2854+, original API/worker/dashboard preserved.
+GoalACTIVE. Earlier checkpoints below are historical where superseded.
+
 LATEST26Oct realpublic diagnostic source457401ce/session73152 CLOSEDexit0.
 32EnglishWikipedia/root-onlycases:26scored/26correctroots;6document-invalid
 retained/all16rootscovered. Realrefcontrol5correct+21abstain; syntheticdetail

@@ -1,6 +1,34 @@
 # Project status
 
-## Current checkpoint on 26 October, after real SQL and root diagnostics
+## Current checkpoint on 26 October: real child tests and collection repair
+
+The reusable rooted matcher is committed and pushed as c89d5f33. It accepts only
+details under the independently accepted root, chooses the deepest supported path,
+and uses the common ancestor when independently calibrated sibling heads conflict.
+Six pure tests cover these decisions; this is not installed in the live service.
+
+Two real recipe approaches were tried. Local-reference cuts could not qualify.
+A binary member classifier qualified on calibration but failed the separate six-page
+test: all three dishes were recognized, while Deep frying was incorrectly refined
+to Recipes. That branch remains unaccepted. Saved result2f29bd48...d3e16 and
+independent audit490f68bf...556 retain the failure; no test-driven threshold repair.
+
+The first GTA training/calibration run (session9942, exit0) is disabled because nine
+of16 pages were rejected by the static parser, including all four training positives.
+All seven available pages retained Games. Independent auditeaca7b2c...5391 verifies
+the files and numeric results. The six GTA held-out subjects remain unused. Two
+parser-only reads identified an81,392-character data-mw attribute on GTA III, within
+an otherwise permitted918,043-byte document. A normal parser repair now scans and
+discards unused data metadata while preserving policy/visibility checks, attribute
+count and interpreted-surface/global limits. Root and independent peer each pass26
+guarded tests; the fresh repair run is next. Old outputs remain immutable.
+
+Product integration remains substantial: same-observation title vectors must cross
+the current body-only ingestion contract; canonical assignments, existing discussion
+IDs, ancestor feeds and owner controls must be joined. Concurrent database/role and
+real foreground UI checks remain open. The live services have not switched.
+
+## Earlier checkpoint on 26 October, after real SQL and root diagnostics
 
 The first maintained real-page comparison is now complete (source457401ce,
 session73152 exit0). Of32 predeclared English Wikipedia subjects,26 were captured

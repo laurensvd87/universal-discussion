@@ -1,5 +1,18 @@
 # E5 matching across broad and specific topics
 
+Current26 October: c89d5f33 implements cached root-gated binary membership heads
+over declared full paths. Ancestor nominations are pruned; sibling conflicts use
+their common ancestor, never incomparable head-score argmax. No live activation.
+Real recipe local references failed calibration; binary membership passed CAL but
+made one false refinement on the separate six-page TEST, so Recipes stays disabled.
+GTA is the next predeclared franchise case. Its first16-page fit could not train:
+nine parser refusals included all four positives. TEST remains unused. An observed
+81,392-character unused data-mw attribute explains one refusal; bounded parser
+repair is source-accepted with26 guarded tests. See STATUS for immutable actual
+results/audits. This is progress on real data, not representative quality acceptance.
+
+Earlier26 October root comparison:
+
 26 October real comparison: fixed paired root heads accepted26/26 successfully
 captured public Wikipedia pages correctly; six of32 predeclared pages failed the
 static parser and remain counted. All16 roots were covered. Independent numeric

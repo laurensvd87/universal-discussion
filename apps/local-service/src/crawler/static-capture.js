@@ -27,31 +27,46 @@ function normalizedText(value) {
   return decodeEntities(value).normalize("NFKC").replace(/[\u0000-\u001f\u007f-\u009f]+/gu, " ").replace(/\s+/gu, " ").trim();
 }
 
-function attributes(source) {
-  if (source.length > 16_384) throw new TypeError("Invalid crawler document");
+function attributes(source, index, end) {
   const result = Object.create(null);
-  let index = 0, count = 0;
-  while (index < source.length) {
-    while (/\s/u.test(source[index] ?? "")) index++;
-    if (index >= source.length || source[index] === "/") break;
+  let count = 0, surface = 0;
+  const budget = amount => {
+    surface += amount;
+    if (surface > 16_384) throw new TypeError("Invalid crawler document");
+  };
+  while (index < end) {
+    const whitespaceStart = index;
+    while (index < end && /\s/u.test(source[index])) index++;
+    budget(index - whitespaceStart);
+    if (index >= end || source[index] === "/") break;
     const start = index;
-    while (index < source.length && !/[\s=/>]/u.test(source[index])) index++;
-    const name = source.slice(start, index).toLowerCase();
-    if (!name) { index++; continue; }
-    while (/\s/u.test(source[index] ?? "")) index++;
-    let value = "";
+    while (index < end && !/[\s=/>]/u.test(source[index])) index++;
+    const nameEnd = index;
+    if (nameEnd === start) { index++; budget(1); continue; }
+    if (++count > 128) throw new TypeError("Invalid crawler document");
+    // Unused HTML data metadata is scanned in place, including quoted fake
+    // tags. Never allocate/decode its name or value. All other attribute
+    // surfaces retain the original 16KiB aggregate interpretation budget.
+    const ignored = nameEnd - start >= 5 && source[start].toLowerCase() === "d" &&
+      source[start + 1].toLowerCase() === "a" && source[start + 2].toLowerCase() === "t" &&
+      source[start + 3].toLowerCase() === "a" && source[start + 4] === "-";
+    while (index < end && /\s/u.test(source[index])) index++;
+    let valueStart = index, valueEnd = index;
     if (source[index] === "=") {
       index++;
-      while (/\s/u.test(source[index] ?? "")) index++;
+      while (index < end && /\s/u.test(source[index])) index++;
       const quote = source[index] === "\"" || source[index] === "'" ? source[index++] : null;
-      const valueStart = index;
-      if (quote) while (index < source.length && source[index] !== quote) index++;
-      else while (index < source.length && !/[\s>]/u.test(source[index])) index++;
-      value = decodeEntities(source.slice(valueStart, index));
+      valueStart = index;
+      if (quote) while (index < end && source[index] !== quote) index++;
+      else while (index < end && !/[\s>]/u.test(source[index])) index++;
+      valueEnd = index;
       if (quote && source[index] === quote) index++;
     }
-    if (++count > 128) throw new TypeError("Invalid crawler document");
-    if (!Object.hasOwn(result, name)) result[name] = value;
+    if (!ignored) {
+      budget(index - start);
+      const name = source.slice(start, nameEnd).toLowerCase();
+      if (!Object.hasOwn(result, name)) result[name] = decodeEntities(source.slice(valueStart, valueEnd));
+    }
   }
   return result;
 }
@@ -71,14 +86,14 @@ function* htmlTokens(html) {
     if (html[offset] !== "<") {
       const next = html.indexOf("<", offset);
       const end = next < 0 ? html.length : next;
-      yield html.slice(offset, end);
+      yield { start: offset, end, kind: "text" };
       offset = end;
       continue;
     }
     if (html.startsWith("<!--", offset)) {
       const end = html.indexOf("-->", offset + 4);
       if (end < 0) throw new TypeError("Invalid crawler document");
-      yield html.slice(offset, end + 3);
+      yield { start: offset, end: end + 3, kind: "comment" };
       offset = end + 3;
       continue;
     }
@@ -91,7 +106,7 @@ function* htmlTokens(html) {
       else if (character === ">") break;
     }
     if (end >= html.length || quote !== null) throw new TypeError("Invalid crawler document");
-    yield html.slice(offset, end + 1);
+    yield { start: offset, end: end + 1, kind: "tag" };
     offset = end + 1;
   }
 }
@@ -106,10 +121,11 @@ export function captureStaticHtml(html, pageUrl) {
   const links = [];
   const stack = [];
   let tokenCount = 0;
+  const tagStart = /<\s*(\/?)\s*([a-zA-Z][\w:-]*)/uy;
   for (const token of htmlTokens(html)) {
     if (++tokenCount > 100_000) throw new TypeError("Invalid crawler document");
-    if (token[0] !== "<") {
-      const text = normalizedText(token);
+    if (token.kind === "text") {
+      const text = normalizedText(html.slice(token.start, token.end));
       if (!text) continue;
       if (titleDepth) title = append(title, text, MAX_TITLE * 3);
       if (locDepth) locText = append(locText, text, 2_048);
@@ -120,10 +136,13 @@ export function captureStaticHtml(html, pageUrl) {
       }
       continue;
     }
-    if (/^<!--|^<!/u.test(token)) continue;
-    const match = /^<\s*(\/?)\s*([a-zA-Z][\w:-]*)([\s\S]*?)>$/u.exec(token);
+    if (token.kind === "comment" || html.startsWith("<!", token.start)) continue;
+    tagStart.lastIndex = token.start;
+    const match = tagStart.exec(html);
     if (!match) continue;
-    const closing = Boolean(match[1]), name = match[2].toLowerCase(), selfClosing = /\/\s*>$/u.test(token);
+    let tail = token.end - 2;
+    while (tail >= tagStart.lastIndex && /\s/u.test(html[tail])) tail--;
+    const closing = Boolean(match[1]), name = match[2].toLowerCase(), selfClosing = html[tail] === "/";
     if (closing) {
       if (name === "a" && activeAnchor) { if (links.length < MAX_LINKS) links.push(activeAnchor); activeAnchor = null; }
       if (name === "loc" && locDepth) {
@@ -141,7 +160,7 @@ export function captureStaticHtml(html, pageUrl) {
       }
       continue;
     }
-    const attrs = attributes(match[3]);
+    const attrs = attributes(html, tagStart.lastIndex, token.end - 1);
     const hidden = Object.hasOwn(attrs, "hidden") || attrs["aria-hidden"]?.toLowerCase() === "true" ||
       /(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden)(?:\s*!important)?\s*(?:;|$)/iu.test(attrs.style ?? "");
     if (name === "meta") {

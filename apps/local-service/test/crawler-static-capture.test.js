@@ -137,13 +137,62 @@ test("crawler-specific robots metadata is honored case-insensitively", () => {
 
 test("oversized attribute surfaces fail closed before a late policy directive", () => {
   const tooMany = Array.from({ length: 129 }, (_, index) => `data-${index}="safe"`).join(" ");
-  const tooLong = `data-padding="${"x".repeat(16_385)}"`;
+  const tooLong = `content="${"x".repeat(16_385)}"`;
   for (const attributes of [tooMany, tooLong]) {
     assert.throws(() => captureStaticHtml(`<html><head>
         <meta ${attributes} name="robots" content="noindex">
       </head><body><article>${prose("Hidden late directive", 30)}</article></body></html>`, PAGE),
     /Invalid crawler document/u);
   }
+});
+
+test("large unused metadata is skipped in place without hiding later policy attributes", () => {
+  const padding = "metadata &amp; > ".repeat(3_000);
+  for (const directive of ["noindex", "noai", "notrain", "none"]) {
+    const captured = captureStaticHtml(`<meta DATA-mw="${padding}" name="robots" content="${directive}">
+      <meta data-resources='${padding}' http-equiv='tdm-reservation' content='1'>
+      <article>${prose("Visible late policy", 30)}</article>`, PAGE);
+    assert.equal(captured.directives.noindex, true);
+    assert.equal(captured.directives.tdmReservation, 1);
+    assert.equal(captured.eligible, true);
+    assert.equal(captured.text.includes("metadata"), false);
+  }
+  const unquoted = captureStaticHtml(`<meta data-long=${"x".repeat(20_000)} name=robots content=nofollow>
+    <article>${prose("Unquoted metadata", 30)}</article>`, PAGE);
+  assert.equal(unquoted.directives.nofollow, true);
+});
+
+test("fake tags and policy inside quoted metadata stay inert while real links remain visible", () => {
+  const fake = `${"x".repeat(20_000)}<meta name='robots' content='none'><meta name='tdm-reservation' content='1'>
+    <link rel='canonical' href='https://evil.invalid/fake'><a href='https://evil.invalid/fake'>fake words</a>`;
+  const captured = captureStaticHtml(`<article data-state="${fake}" data-another='${"&quot;&gt;".repeat(3_000)}'>
+    ${prose("Visible real article", 30)}<a data-context="${fake}" href="/real">Real reference</a></article>`, PAGE);
+  assert.deepEqual(captured.directives, { noindex: false, nofollow: false, tdmReservation: null, tdmReservationInvalid: false });
+  assert.equal(captured.canonical, null);
+  assert.deepEqual(captured.links, [{ href: "/real", text: "Real reference" }]);
+  assert.equal(captured.text.includes("fake words"), false);
+  assert.equal(captured.text.includes("xxxx"), false);
+});
+
+test("late hidden, aria and style attributes after large metadata still suppress content and links", () => {
+  const padding = "ignored > metadata ".repeat(2_000);
+  const hidden = ["hidden", 'aria-hidden="true"', 'style="visibility: hidden !important;"', 'style="display:none"'];
+  const captured = captureStaticHtml(`<article>${prose("Visible outside", 30)}
+    ${hidden.map(attr => `<section data-long="${padding}" ${attr}>${prose("Must stay hidden")}<a href="/hidden">secret link</a></section>`).join("")}
+    </article>`, PAGE);
+  assert.equal(captured.text.includes("Must stay hidden"), false);
+  assert.equal(captured.text.includes("secret link"), false);
+  assert.deepEqual(captured.links, []);
+});
+
+test("metadata still counts towards the attribute cap and interpreted surfaces remain aggregate bounded", () => {
+  const padding = `data-long="${"x".repeat(20_000)}"`;
+  const attrs = Array.from({ length: 127 }, (_, i) => `data-${i}=safe`).join(" ");
+  assert.equal(captureStaticHtml(`<article ${padding} ${attrs}>${prose("Exactly counted", 30)}</article>`, PAGE).eligible, true);
+  assert.throws(() => captureStaticHtml(`<article ${padding} ${attrs} hidden>${prose("Over count", 30)}</article>`, PAGE), /Invalid crawler document/u);
+  assert.throws(() => captureStaticHtml(`<meta ${padding} name="robots" content="${"x".repeat(16_385)}">`, PAGE), /Invalid crawler document/u);
+  assert.throws(() => captureStaticHtml(`<article ${padding} class="${"x".repeat(9_000)}" style="${"x".repeat(9_000)}">${prose("Over budget", 30)}</article>`, PAGE), /Invalid crawler document/u);
+  assert.throws(() => captureStaticHtml(`<article data-long="${"x".repeat(20_000)}><meta name='robots' content='none'>`, PAGE), /Invalid crawler document/u);
 });
 
 test("XML feed loc elements become bounded discovery links", () => {
