@@ -1,5 +1,18 @@
 # Implementation handoff: local-service discussion MVP
 
+Next actual SOURCE is ready:012 storedSource verification/reclassification/adoption,
+semantic-source-repository/preparation, canonical readFacade semanticStamp/feed/
+thread and opt-in service/HTTP routes. Root36guardedNodePASS189ms+18PythonPASS278ms,
+SQL01229092B9af5affa...574aa static13SQL/7PLPASS. Same maintained native context
+loads010/011/012 raw, schema_migrations still9/no live registration. New25 ledger
+adds real application hydration+fixture-bearerHTTP, model2 storedmaterial reuse/CAS,
+no canonical state mutation, explicit retained-anchor adoption, default-zero import,
+semantic freshness/idempotence and visibility/erase. No actual invocation yet.
+Catalog363806B04aadada...fa5d9c/2381inputs274015543B/43normal/88localclosure
+auth+endpinsPASS; final independentcatalog+rawGitbinding stillrequired. Ordinary
+read-facade is the one intentional changed old sharedproduction dependency;
+2337 old rows/frozenstudycode/prioractualrun snapshots remain unchanged.
+
 Latest actual010+011:6dadf6fd/session76811 CLOSEDexit0/expanded25PASS. Human+AI
 root snapshot/replay/ancestor+leaffeed/DBownerpolicy->realgrouping/historicalreply/
 manualIDs/headwait+appfeedread/visibilityrollback/withdraw/erase/DBisolation prove

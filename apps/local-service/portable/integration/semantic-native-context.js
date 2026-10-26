@@ -12,6 +12,7 @@ const fail=code=>Object.assign(new Error('Owned semantic SQL check failed'),{cod
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const SQL_SHA='2a647b0a83bb4e9c09bbd703dc4343788a4dd57dd7f52289f5b842afaeba8355';
 const FEED_SQL_SHA='a2ccf69eb5c17bc4f64a950c053bae49dd82f9f13c913cf7fb5615602f945202';
+const STORED_SQL_SHA='9af5affa2377d218df1b2ca9daa79eddbedd78fa3bf86ccf74f97c09acf574aa';
 const roles=new Map([['postgres','observer'],['murmingle_app','app'],
  ['murmingle_ingest_worker','worker'],['murmingle_crawler_submitter','submitter']]);
 function code(error){const value=error&&Object.getOwnPropertyDescriptor(error,'code');
@@ -33,7 +34,7 @@ function ledger(){
  }};
 }
 
-async function initialize(database,generation,sql,feedSql){
+async function initialize(database,generation,sql,feedSql,storedSql){
  await database.exec('ALTER SCHEMA canonical_v4 OWNER TO murmingle_owner');
  await database.exec('SET ROLE murmingle_owner');
  await migrateCanonicalV4(database);
@@ -56,6 +57,7 @@ async function initialize(database,generation,sql,feedSql){
   // at9 until the complete hierarchy feature/cutover is validated.
   await tx.exec(sql);
   await tx.exec(feedSql);
+  await tx.exec(storedSql);
  });
 }
 
@@ -66,6 +68,8 @@ export async function runSemanticNativeProof(){
  if(raw.length!==19578||sha(raw)!==SQL_SHA)throw fail('SEMANTIC_SCHEMA_PIN');
  const feedRaw=await readFile(new URL('../canonical-v4/migrations/011-semantic-discussion-feeds.sql',import.meta.url));
  if(feedRaw.length!==14949||sha(feedRaw)!==FEED_SQL_SHA)throw fail('SEMANTIC_FEED_SCHEMA_PIN');
+ const storedRaw=await readFile(new URL('../canonical-v4/migrations/012-semantic-stored-source-preparation.sql',import.meta.url));
+ if(storedRaw.length!==29092||sha(storedRaw)!==STORED_SQL_SHA)throw fail('SEMANTIC_STORED_SCHEMA_PIN');
  return runWithOwnedScopedPostgres(async connectFixedRole=>{
   let open=true,primary=null;
   const guard=()=>{if(!open)throw fail('SEMANTIC_SCOPE_RETIRED');};
@@ -106,7 +110,7 @@ export async function runSemanticNativeProof(){
       await database.close();
      })();return closing;
     }};
-   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'));return fixture;
+   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'),storedRaw.toString('utf8'));return fixture;
   }
   let rows=null,cleanup;
   try{await runSemanticAssertions(checks.test,{acquireFixture});rows=checks.finish();}

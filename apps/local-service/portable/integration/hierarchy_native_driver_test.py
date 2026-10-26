@@ -112,6 +112,13 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertEqual(D.ENTRY, D.OWN+'semantic-native-check.js')
         self.assertIn(D.SEMANTIC_LEDGER, D.NORMAL_KEYS)
 
+    def test_new_resolution_scopes_cannot_shadow_the_reviewed_entry(self):
+        original = D.os.path.lexists
+        for key in D.NORMAL_SCOPE_ABSENCES:
+            with patch.object(D.os.path, 'lexists', side_effect=lambda path: str(path)==str(D.REPO/key) or original(path)):
+                with self.assertRaises(self.I.Refusal):
+                    D.catalog_type(self.I)('a'*64)._inventory()
+
     def semantic_result(self):
         groups = json.loads((D.REPO/D.SEMANTIC_LEDGER).read_bytes())
         cases = []

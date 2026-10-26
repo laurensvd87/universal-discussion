@@ -311,6 +311,10 @@ async function route(request, service, ai, durablePairing, accounts = null, orig
   if (request.method === "POST" && path === "/v1/catalog/source-urls" && typeof service.sourceUrlPage === "function")
     return publicRead("sourceUrlPage", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discussions/page") return publicRead("discussionPage", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/semantic/feed" && typeof service.semanticFeed === "function")
+    return publicRead("semanticFeed", parseJsonBody(request));
+  if (request.method === "POST" && path === "/v1/semantic/thread" && typeof service.semanticThread === "function")
+    return publicRead("semanticThread", parseJsonBody(request));
   if (request.method === "POST" && path === "/v1/discover/search" && service.discover) {
     return publicRead("discover", parseJsonBody(request));
   }

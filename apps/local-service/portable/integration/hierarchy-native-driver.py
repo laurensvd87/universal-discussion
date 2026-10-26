@@ -23,6 +23,10 @@ ENTRY = OWN + 'semantic-native-check.js'
 SEMANTIC_LEDGER = 'apps/local-service/portable/test/semantic-native-cases.json'
 RUNS_ROOT = REPO / 'apps/local-service/portable/data/hierarchy-native-runs'
 MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
+NORMAL_SCOPE_ABSENCES = frozenset([
+    'apps/local-service/src/http/package.json',
+    'apps/local-service/test/package.json',
+])
 MIB = 1048576
 CREATE_FLAGS = 0x8040C
 NORMAL_KEYS = frozenset([
@@ -54,6 +58,17 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/test/semantic-discussion-repository.test.js',
     'apps/local-service/src/domain/semantic-topic-grouping.js',
     'apps/local-service/src/domain/semantic-topic-grouping.test.js',
+    'apps/local-service/portable/canonical-v4/migrations/012-semantic-stored-source-preparation.sql',
+    'apps/local-service/portable/canonical-v4/semantic-source-preparation.js',
+    'apps/local-service/portable/canonical-v4/semantic-source-repository.js',
+    'apps/local-service/portable/test/semantic-source-preparation.test.js',
+    'apps/local-service/portable/test/semantic-source-repository.test.js',
+    'apps/local-service/src/application/create-postgres-canonical-service.js',
+    'apps/local-service/src/http/request-handler.js',
+    'apps/local-service/test/semantic-public-reads.test.js',
+    'apps/local-service/src/accounts/account-errors.js',
+    'apps/local-service/src/accounts/account-routes.js',
+    'apps/local-service/src/application/postgres-public-read-flights.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),
@@ -280,6 +295,8 @@ def catalog_type(inventory):
 
     class Catalog(I.FileCatalog):
         def _inventory(self):
+            for key in NORMAL_SCOPE_ABSENCES:
+                require(not os.path.lexists(REPO/key), 'resolution-shadow')
             return super()._inventory() | NORMAL_KEYS
 
         def _map(self):

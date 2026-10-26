@@ -11,10 +11,13 @@ import { createEmbeddingWireQuery, decodeEmbeddingBase64Array } from './embeddin
 import { readRelatedCatalogEvidence } from './related-catalog-evidence.js';
 import { buildRelatedCatalogIndex, createRelatedCatalogEntryPreparation, relatedCatalogChanges, rankRelatedCatalogIndex } from './related-catalog-index.js';
 import { inspectPageNavigationUrl, inspectPageUrl } from '../../../../spikes/topic-resolution/browser/core/page-content-policy.js';
+import { createCanonicalV4SemanticDiscussionRepository } from './semantic-discussion-repository.js';
 
 const CATALOG_CURSOR_SCHEMA = 'canonical-v4-catalog-page/v1';
 const DISCUSSION_CURSOR_SCHEMA = 'canonical-v4-contributions/v1';
 const DISCOVERY_CURSOR_SCHEMA = 'canonical-v4-discovery/v1';
+const SEMANTIC_FEED_CURSOR_SCHEMA = 'canonical-v4-semantic-roots/v1';
+const SEMANTIC_THREAD_CURSOR_SCHEMA = 'canonical-v4-semantic-replies/v1';
 const PAGE_BYTES = MAX_RESPONSE_BYTES - 4096;
 const MAX_PAGE_ITEMS = 100;
 // The current empty public context presents at most 100 Topics and 100 Sources;
@@ -73,6 +76,99 @@ function cursorText(value, label) {
 
 function encodeCursor(value) {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
+function semanticOrdinal(value) {
+  if (typeof value !== 'string' || !/^(0|[1-9][0-9]{0,18})$/u.test(value) || BigInt(value) > 9223372036854775807n)
+    fail('invalid', 'Invalid semantic position');
+  return value;
+}
+
+function semanticInput(value, thread = false) {
+  const input = readRecord(value, thread ? ['nodeId', 'rootId', 'limit', 'cursor'] : ['nodeId', 'limit', 'cursor'],
+    thread ? ['nodeId', 'rootId'] : ['nodeId']);
+  const nodeId = readText(input.nodeId, 160), limit = input.limit ?? 20;
+  if (nodeId !== input.nodeId || !Number.isInteger(limit) || limit < 1 || limit > 50)
+    fail('invalid', 'Invalid semantic page');
+  return { nodeId, limit, cursor: input.cursor ?? null, ...(thread ? { rootId: readId(input.rootId) } : {}) };
+}
+
+function semanticPosition(cursor, binding, schema) {
+  if (cursor === null) return null;
+  const value = readRecord(cursorText(cursor, 'semantic'), ['schema', ...Object.keys(binding), 'afterOrdinal']);
+  if (value.schema !== schema) fail('invalid', 'Invalid semantic cursor');
+  for (const key of Object.keys(binding)) if (value[key] !== binding[key]) fail('conflict', 'Semantic page changed');
+  return semanticOrdinal(value.afterOrdinal);
+}
+
+// Root/feed previews need only the latest revision. Reading all edits or every
+// reply in a shared canonical Discussion would make these bounded pages unbounded.
+async function latestContributionRows(tx, ids = null, { rootId = null, after = null, limit = null } = {}) {
+  const parameters = ids === null ? [rootId] : [...ids];
+  let predicate = ids === null ? 'c.root_id=$1 AND c.visibility=\'local-public\'' : `c.id IN (${placeholders(ids)})`;
+  if (after !== null) { parameters.push(after); predicate += ` AND c.ordinal>$${parameters.length}::bigint`; }
+  let suffix = '';
+  if (limit !== null) { parameters.push(limit); suffix = ` LIMIT $${parameters.length}`; }
+  return (await tx.query(`SELECT c.*, latest.ordinal AS latest_ordinal,latest.payload AS latest_payload
+    FROM canonical_v4.contributions c LEFT JOIN LATERAL (
+      SELECT ordinal,payload FROM canonical_v4.revisions WHERE contribution_id=c.id ORDER BY ordinal DESC LIMIT 1
+    ) latest ON true WHERE ${predicate} ORDER BY c.ordinal${suffix}`, parameters)).rows;
+}
+
+function latestContribution(row) {
+  const value = decoded(row.payload, 'contribution payload');
+  if (row.id !== value.id || row.discussion_id !== value.discussionId ||
+      !sameNullable(row.root_id, value.rootId) || !sameNullable(row.reply_to_id, value.replyToId) ||
+      !sameNullable(row.author_id, value.authorId) || !sameNullable(row.operator_id, value.insight?.operatorId) ||
+      !sameNullable(row.origin_source_id, value.originSourceId) ||
+      !sameNullable(row.anchor_source_id, value.anchor?.kind === 'source' ? value.anchor.sourceId : undefined) ||
+      row.actor_type !== value.actorType || row.visibility !== value.visibility || row.withdrawn !== value.withdrawn ||
+      row.created_at !== value.createdAt || value.visibility !== 'local-public') corrupt('Invalid semantic contribution mirror');
+  try { readId(value.id); readId(value.discussionId); semanticOrdinal(String(row.ordinal)); semanticOrdinal(String(row.write_version)); }
+  catch { corrupt('Invalid semantic contribution position'); }
+  const count = safeInteger(row.revision_count, 'revision count');
+  if (value.withdrawn) {
+    if (count !== 0 || row.latest_payload !== null || row.latest_ordinal !== null) corrupt('Invalid deleted semantic contribution');
+    return { value, revisions: [], edited: false };
+  }
+  if (!count || row.latest_ordinal === null || safeInteger(row.latest_ordinal, 'latest revision') !== count - 1 || row.latest_payload === null)
+    corrupt('Missing semantic contribution revision');
+  return { value, revisions: [verifyRevisionPayload(decoded(row.latest_payload, 'latest revision'))], edited: count > 1 };
+}
+
+async function semanticPublicContributions(tx, rows, topicId) {
+  const entries = rows.map(latestContribution), originIds = [...new Set(entries.map(entry => entry.value.originSourceId).filter(Boolean))];
+  const origins = new Map((await sourcesFromRows(tx, await sourceRowsByIds(tx, originIds)))
+    .map(entry => [entry.value.id, entry.public]));
+  return entries.map(({ value, revisions, edited }) => {
+    if (value.originSourceId && !origins.has(value.originSourceId)) corrupt('Missing semantic contribution origin');
+    const projected = publicContribution(value, revisions, origins.get(value.originSourceId), topicId);
+    return projected.state === 'deleted' ? { ...projected, actorType: value.actorType, createdAt: value.createdAt } : { ...projected, edited };
+  });
+}
+
+async function semanticRootCards(tx, references) {
+  if (!references.length) return [];
+  const ids = references.map(ref => ref.rootId), rows = await latestContributionRows(tx, ids);
+  const byId = new Map(rows.map(row => [row.id, row]));
+  if (byId.size !== references.length || rows.length !== references.length) corrupt('Missing semantic root');
+  const discussionIds = [...new Set(references.map(ref => ref.discussionId))];
+  const discussions = new Map((await tx.query(`SELECT * FROM canonical_v4.discussions WHERE id IN (${placeholders(discussionIds)})`, discussionIds)).rows
+    .map(row => { const entry = verifyDiscussionRow(row); return [entry.value.id, entry.value]; }));
+  const topicIds = [...new Set(references.map(ref => ref.topicId))];
+  const topics = new Map((await topicsFromRows(tx, await topicRowsByIds(tx, topicIds))).map(entry => [entry.value.id, entry.value]));
+  // Origins and revisions are hydrated once per bounded page, never per user/model.
+  const entries = await semanticPublicContributions(tx, references.map(ref => byId.get(ref.rootId)), null);
+  return references.map((ref, i) => {
+    const row = byId.get(ref.rootId), discussion = discussions.get(ref.discussionId), topic = topics.get(ref.topicId);
+    if (row.root_id !== null || row.withdrawn || row.visibility !== 'local-public' || row.discussion_id !== ref.discussionId ||
+        String(row.ordinal) !== ref.ordinal || !discussion || discussion.topicId !== ref.topicId || !topic)
+      corrupt('Invalid semantic root destination');
+    const root = { ...entries[i] };
+    delete root.regrouped;
+    if (decoded(row.payload, 'root payload').originalTopicId !== ref.topicId) root.regrouped = true;
+    return { topic: publicDiscussionTopic(topic), discussionId: discussion.id, root };
+  });
 }
 
 function discoveryInput(value) {
@@ -1064,6 +1160,89 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
             topicId: hydrated.find((entry) => entry.value.id === id)?.link?.topicId ?? null }));
         return assertDtoSize({ version: header.version,
           model: { id: BROWSER_MODEL_ID, status: 'experimental-local' }, results }, 'Related Sources');
+      });
+    },
+
+    async semanticStamp() {
+      // One SQL statement owns its snapshot. Background preparation changes this
+      // signature without pretending that canonical Sources/discussions changed.
+      try {
+        const { rows } = await database.query('SELECT * FROM canonical_v4.semantic_read_revision()');
+        if (rows.length !== 1 || typeof rows[0].revision !== 'string' || !/^[a-f0-9]{64}$/u.test(rows[0].revision))
+          corrupt('Invalid semantic revision');
+        let generation;
+        try { generation = readId(rows[0].generation); } catch { corrupt('Invalid semantic generation'); }
+        return frozenClone({ generation, revision: rows[0].revision });
+      } catch (error) {
+        if (error instanceof ServiceError) throw error;
+        throw new ServiceError('storage-failure', 'Semantic revision unavailable');
+      }
+    },
+
+    async semanticFeed(value) {
+      const input = semanticInput(value);
+      return snapshot(database, async tx => {
+        const header = await headerIn(tx), semantic = createCanonicalV4SemanticDiscussionRepository({ database: tx });
+        const policy = await semantic.ownerPolicy(), binding = { generation: header.version.generation,
+          policyRevision: policy.revision, nodeId: input.nodeId, limit: input.limit };
+        const before = semanticPosition(input.cursor, binding, SEMANTIC_FEED_CURSOR_SCHEMA);
+        const page = await semantic.feedReferences({ generation: binding.generation, nodeId: input.nodeId,
+          beforeOrdinal: before, limit: input.limit + 1 });
+        const refs = page.references.slice(0, input.limit), cards = await semanticRootCards(tx, refs);
+        const result = { version: header.version, policyRevision: policy.revision, nodeId: input.nodeId, roots: [], nextCursor: null };
+        for (let i = 0; i < cards.length; i++) {
+          const more = i < cards.length - 1 || page.references.length > input.limit;
+          const candidate = { ...result, roots: [...result.roots, cards[i]], nextCursor: more ? encodeCursor({
+            schema: SEMANTIC_FEED_CURSOR_SCHEMA, ...binding, afterOrdinal: refs[i].ordinal }) : null };
+          if (byteLength(candidate) > PAGE_BYTES) {
+            if (!result.roots.length) fail('capacity', 'Semantic feed capacity reached');
+            break;
+          }
+          result.roots = candidate.roots; result.nextCursor = candidate.nextCursor;
+        }
+        return result;
+      });
+    },
+
+    async semanticThread(value) {
+      const input = semanticInput(value, true);
+      return snapshot(database, async tx => {
+        const header = await headerIn(tx), semantic = createCanonicalV4SemanticDiscussionRepository({ database: tx });
+        const policy = await semantic.ownerPolicy();
+        const { rows } = await tx.query(`SELECT id,ordinal,write_version FROM canonical_v4.contributions
+          WHERE id=$1 AND root_id IS NULL AND visibility='local-public' AND withdrawn=false`, [input.rootId]);
+        if (rows.length !== 1) fail('not-found', 'Thread unavailable');
+        const position = semanticOrdinal(String(rows[0].ordinal));
+        // Global canonical ordinal uniqueness makes this one bounded keyset
+        // lookup an exact membership check, without exposing private edge tables.
+        const before = position === '9223372036854775807' ? null : String(BigInt(position) + 1n);
+        const membership = await semantic.feedReferences({ generation: header.version.generation, nodeId: input.nodeId,
+          beforeOrdinal: before, limit: 1 });
+        const ref = membership.references[0];
+        if (!ref || ref.rootId !== input.rootId || ref.ordinal !== position) fail('not-found', 'Thread unavailable');
+        const [card] = await semanticRootCards(tx, [ref]);
+        const binding = { generation: header.version.generation, policyRevision: policy.revision,
+          nodeId: input.nodeId, rootId: ref.rootId, discussionId: ref.discussionId,
+          rootVersion: semanticOrdinal(String(rows[0].write_version)), limit: input.limit };
+        const after = semanticPosition(input.cursor, binding, SEMANTIC_THREAD_CURSOR_SCHEMA);
+        const replyRows = await latestContributionRows(tx, null, { rootId: ref.rootId, after, limit: input.limit + 1 });
+        const selected = replyRows.slice(0, input.limit);
+        if (selected.some(row => row.root_id !== ref.rootId || row.discussion_id !== ref.discussionId)) corrupt('Invalid semantic thread closure');
+        const replies = await semanticPublicContributions(tx, selected, ref.topicId);
+        const result = { version: header.version, policyRevision: policy.revision, nodeId: input.nodeId,
+          ...card, root: { ...card.root, replies: [] }, nextCursor: null };
+        for (let i = 0; i < replies.length; i++) {
+          const more = i < replies.length - 1 || replyRows.length > input.limit;
+          const candidate = { ...result, root: { ...result.root, replies: [...result.root.replies, replies[i]] },
+            nextCursor: more ? encodeCursor({ schema: SEMANTIC_THREAD_CURSOR_SCHEMA, ...binding,
+              afterOrdinal: semanticOrdinal(String(selected[i].ordinal)) }) : null };
+          if (byteLength(candidate) > PAGE_BYTES) {
+            if (!result.root.replies.length) fail('capacity', 'Semantic thread capacity reached');
+            break;
+          }
+          result.root = candidate.root; result.nextCursor = candidate.nextCursor;
+        }
+        return result;
       });
     },
 

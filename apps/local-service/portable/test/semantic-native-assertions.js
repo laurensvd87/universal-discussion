@@ -14,6 +14,11 @@ import {createCanonicalV4SemanticRepository} from '../canonical-v4/semantic-repo
 import {createCanonicalV4SemanticDiscussionRepository} from '../canonical-v4/semantic-discussion-repository.js';
 import {createCanonicalV4RuntimeRepository} from '../canonical-v4/runtime-repository.js';
 import {createCanonicalV4LifecycleRepository} from '../canonical-v4/lifecycle-repository.js';
+import {createCanonicalV4SemanticSourceRepository} from '../canonical-v4/semantic-source-repository.js';
+import {createStoredSourceHierarchyPreparation} from '../canonical-v4/semantic-source-preparation.js';
+import {createCanonicalV4ReadFacade} from '../canonical-v4/read-facade.js';
+import {createPostgresCanonicalService} from '../../src/application/create-postgres-canonical-service.js';
+import {createRequestHandler} from '../../src/http/request-handler.js';
 import {sourceStamp} from '../../src/domain/source-threads.js';
 import {RIDGE_PARAMETER_SHA256} from '../../src/domain/ridge-topic-adapter.js';
 import semanticGroups from './semantic-native-cases.json' with {type:'json'};
@@ -83,10 +88,12 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  const identity1=JSON.stringify(describeRootedHierarchyMatcher(matcher1)),hash1=sha(identity1),hash2=digest(describeRootedHierarchyMatcher(matcher2));
  let fixture=null,owner=null,worker=null,app=null,submitter=null,observer=null,fixtureB=null,workerB=null;
  let ownerSemantic,workerSemantic,ownerFeeds,appFeeds,appRuntime,appLifecycle,appIngest,workerIngest,A,initial,excluded,serial=0,encoderCalls=0;
- let humanRoot,aiRoot,manualRoot,originalSnapshots,originalDestination,defaultOwnerPolicy;
+ let humanRoot,aiRoot,manualRoot,legacyRoot,originalSnapshots,originalDestination,defaultOwnerPolicy,reads,service,workerSources,ownerSources;
+ let storedEncoderCalls=0;
  const actor=Object.freeze({id:'demo-alex',type:'human',demo:true});
  const nextId=kind=>`semantic-${kind}-${++serial}`,now=()=>new Date().toISOString();
  const preparation=createHierarchyIngestionPreparation({matcher:matcher1,embedTitle:async()=>{encoderCalls++;return {modelId:MODEL,values:axis(0)};}});
+ const storedPreparation=createStoredSourceHierarchyPreparation({matcher:matcher2,embedTitle:async()=>{storedEncoderCalls++;return {modelId:MODEL,values:axis(0)};}});
  const repo=database=>createCanonicalV4IngestionRepository({database,nextId,now});
  const semantic=database=>createCanonicalV4SemanticRepository({database,nextId,now});
  const feed=(nodeId='games')=>appFeeds.feedReferences({generation:fixture.generation,nodeId,beforeOrdinal:null,limit:100});
@@ -95,6 +102,34 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  async function humanPost(label,{topicId=A.topicId,sourceId=A.sourceId}={}){
   return appRuntime.command({actorId:actor.id,requestId:'semantic-post-'+label,expected:await fixture.header(),
    command:{type:'create-root',topicId,body:'Invented human SQL root '+label,originSourceId:sourceId}});
+ }
+ async function canonicalState(){return scalar(owner,`SELECT
+   (SELECT row_to_json(m)::text FROM canonical_v4.meta m WHERE singleton) meta,
+   (SELECT row_to_json(r)::text FROM canonical_v4.runtime_state r WHERE singleton) runtime,
+   (SELECT row_to_json(l)::text FROM canonical_v4.catalog_ingest_lane l WHERE singleton) lane,
+   (SELECT coalesce(jsonb_agg(to_jsonb(j) ORDER BY j.ordinal),'[]'::jsonb)::text FROM canonical_v4.ingestion_jobs j) jobs,
+   (SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]'::jsonb)::text FROM canonical_v4.sources s) sources,
+   (SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.source_id),'[]'::jsonb)::text FROM canonical_v4.embeddings e) embeddings,
+   (SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_id),'[]'::jsonb)::text FROM canonical_v4.operation_receipts r) receipts`);}
+ async function importVersionZero(){
+  const sourceId=nextId('source-zero'),operationId='semantic-import-zero',values=axis(0);values[0]=Math.sqrt(.5);values[2]=Math.sqrt(.5);
+  const input={url:'https://semantic.example.org/imported-version-zero',title:'Invented genuine default-zero import',embedding:{modelId:MODEL,values},extractorVersion:'crawler-static-html-prefix/v1'};
+  const operationDigest=digest(input),stamp=sourceStamp(input),policyVersion='ridge1-fixed-reference-radius/v1';
+  const payload={id:sourceId,...input,provenance:'owner-local-page-embedding/v1',operationId,operationDigest,policyVersion,topicIds:[MANUAL_TOPIC]};
+  await owner.transaction(async tx=>{
+   await tx.query("INSERT INTO canonical_v4.id_registry(id,kind) VALUES($1,'sources')",[sourceId]);
+   // Deliberately OMIT write_version: this exercises canonical import DEFAULT0,
+   // never a decrement or an invented canonical refresh operation.
+   await tx.query(`INSERT INTO canonical_v4.sources(id,ordinal,payload,url,title,provenance,extractor_version,policy_version,operation_id,has_embedding)
+    VALUES($1,nextval('canonical_v4.source_ordinal_sequence'),$2,$3,$4,'owner-local-page-embedding/v1',$5,$6,$7,true)`,[sourceId,JSON.stringify(payload),input.url,input.title,input.extractorVersion,policyVersion,operationId]);
+   await tx.query('INSERT INTO canonical_v4.embeddings(source_id,payload,model_id,dimensions,values_double) VALUES($1,$2,$3,384,$4::double precision[])',[sourceId,JSON.stringify(input.embedding),MODEL,wire(values)]);
+   await tx.query('INSERT INTO canonical_v4.operation_receipts(source_id,operation_id,operation_digest) VALUES($1,$2,$3)',[sourceId,operationId,operationDigest]);
+   await tx.query('INSERT INTO canonical_v4.runtime_source_stamps(source_id,stamp,postable) VALUES($1,$2,true)',[sourceId,stamp]);
+   await tx.query('INSERT INTO canonical_v4.topic_memberships(source_id,topic_id,ordinal) VALUES($1,$2,0)',[sourceId,MANUAL_TOPIC]);
+   await tx.query(`INSERT INTO canonical_v4.source_links(source_id,topic_id,ordinal,payload,method) VALUES($1,$2,nextval('canonical_v4.source_link_ordinal_sequence'),$3,'manual-confirmed')`,
+    [sourceId,MANUAL_TOPIC,JSON.stringify({sourceId,topicId:MANUAL_TOPIC,method:'manual-confirmed'})]);
+  });
+  assert.equal((await sourceState(owner,sourceId)).write_version,'0');return {sourceId,values};
  }
  async function activate(hash){const head=await scalar(owner,'SELECT revision::text FROM canonical_v4.semantic_installation WHERE singleton');return ownerSemantic.activateMatcher({matcherIdentityHash:hash,expectedRevision:Number(head.revision)});}
  async function queued(label,{url=`https://semantic.example.org/article-${label}`,title='Invented public article'}={}){
@@ -123,14 +158,18 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    ownerSemantic=semantic(owner);workerSemantic=semantic(worker);appIngest=repo(app);workerIngest=repo(worker);
    ownerFeeds=createCanonicalV4SemanticDiscussionRepository({database:owner});appFeeds=createCanonicalV4SemanticDiscussionRepository({database:app});
    appRuntime=createCanonicalV4RuntimeRepository({database:app,nextId,now});appLifecycle=createCanonicalV4LifecycleRepository({database:app,nextId,now});
+   reads=createCanonicalV4ReadFacade({database:app});service=createPostgresCanonicalService({reads,runtime:appRuntime,semanticDiscussions:true});
+   workerSources=createCanonicalV4SemanticSourceRepository({database:worker});ownerSources=createCanonicalV4SemanticSourceRepository({database:owner});
    await t.test(GROUPS[0].children[0],async()=>{
     const c=await counts(owner);assert.equal(c.sources,0);assert.equal(c.inputs,0);assert.equal(c.observations,0);
     assert.deepEqual(await scalar(owner,'SELECT revision::text,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton'),{revision:'0',matcher_hash:null});
     assert.equal(Number((await scalar(owner,`SELECT count(*) n FROM information_schema.tables WHERE table_schema='canonical_v4'
      AND table_name IN('semantic_matchers','semantic_nodes','semantic_installation','semantic_inputs','semantic_observations',
-       'semantic_root_snapshots','semantic_root_edges','semantic_owner_policy')`)).n),8);
+       'semantic_root_snapshots','semantic_root_edges','semantic_owner_policy','semantic_material_state')`)).n),9);
     defaultOwnerPolicy=await appFeeds.ownerPolicy();assert.deepEqual(defaultOwnerPolicy,{revision:0,defaultMaxDepth:1,overrides:[]});
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots')).n),0);
+    const semanticStamp=await reads.semanticStamp();assert.equal(semanticStamp.generation,fixture.generation);assert.match(semanticStamp.revision,/^[a-f0-9]{64}$/u);
+    assert.deepEqual(await scalar(worker,'SELECT * FROM canonical_v4.semantic_read_revision()'),semanticStamp);
     assert.equal((await scalar(owner,'SELECT id FROM canonical_v4.discussions WHERE id=$1 AND topic_id=$2',[MANUAL_DISCUSSION,MANUAL_TOPIC])).id,MANUAL_DISCUSSION);
    });
    await t.test(GROUPS[0].children[1],async()=>{
@@ -147,12 +186,20 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(app,'UPDATE canonical_v4.semantic_owner_policy SET revision=revision');
     await denied(app,'UPDATE canonical_v4.semantic_root_snapshots SET root_ordinal=root_ordinal');
     assert.deepEqual((await feed()).references,[]);assert.equal((await appFeeds.ownerPolicy()).revision,0);
+    await denied(app,'SELECT * FROM canonical_v4.semantic_read_source_candidates($1,$2,$3,$4)',[fixture.generation,hash1,null,50]);
+    await denied(app,'SELECT * FROM canonical_v4.semantic_reclassify_stored_sources($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
+    await denied(app,'SELECT * FROM canonical_v4.semantic_adopt_legacy_roots($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
+    await denied(app,'UPDATE canonical_v4.semantic_material_state SET revision=revision');
    });
    await t.test(GROUPS[0].children[3],async()=>{
     await denied(submitter,REGISTER,[identity1]);await denied(submitter,ACTIVATE,[hash1,0]);await denied(submitter,APPLY,Array(14).fill(null));
     await denied(submitter,'SELECT canonical_v4.semantic_set_owner_policy($1,$2,$3::jsonb)',[0,1,'[]']);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_feed($1,$2,$3,$4)',[fixture.generation,'games',null,10]);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_owner_policy()');
+    await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_revision()');
+    await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_source_candidates($1,$2,$3,$4)',[fixture.generation,hash1,null,50]);
+    await denied(submitter,'SELECT * FROM canonical_v4.semantic_reclassify_stored_sources($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
+    await denied(submitter,'SELECT * FROM canonical_v4.semantic_adopt_legacy_roots($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
    });
    await t.test(GROUPS[0].children[4],async()=>{
     await denied(worker,LEGACY,Array(11).fill(null));await denied(worker,REGISTER,[identity1]);await denied(worker,ACTIVATE,[hash1,0]);
@@ -161,6 +208,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(worker,'SELECT canonical_v4.semantic_set_owner_policy($1,$2,$3::jsonb)',[0,1,'[]']);
     await denied(worker,'DELETE FROM canonical_v4.semantic_root_edges');await denied(worker,'UPDATE canonical_v4.semantic_owner_policy SET revision=revision');
     await denied(worker,'SELECT * FROM canonical_v4.semantic_read_feed($1,$2,$3,$4)',[fixture.generation,'games',null,10]);
+    await denied(worker,'SELECT * FROM canonical_v4.semantic_adopt_legacy_roots($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
+    await denied(worker,'UPDATE canonical_v4.semantic_material_state SET revision=revision');
    });
    await t.test(GROUPS[0].children[5],async()=>{
     await assert.rejects(ownerSemantic.registerMatcher(badMatcher),error=>error.code==='invalid');
@@ -251,6 +300,18 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_edges WHERE root_id=ANY($1::text[])',[[humanRoot,aiRoot]])).n),4);
     for(const node of SUPPORTED_PATH){const refs=(await feed(node)).references;assert.equal(refs.length,2);
      for(const ref of refs){assert.ok([humanRoot,aiRoot].includes(ref.rootId));assert.equal(ref.topicId,s.topic_id);assert.equal(ref.discussionId,s.discussion_id);assert.match(ref.ordinal,/^[0-9]+$/u);}}
+    const first=await reads.semanticFeed({nodeId:'invented-game-branch',limit:1,cursor:null});assert.equal(first.roots.length,1);assert.ok(first.nextCursor);
+    const second=await reads.semanticFeed({nodeId:'invented-game-branch',limit:1,cursor:first.nextCursor});assert.equal(second.roots.length,1);assert.equal(second.nextCursor,null);
+    const cards=[...first.roots,...second.roots];assert.deepEqual(cards.map(c=>c.root.id).sort(),[humanRoot,aiRoot].sort());
+    for(const card of cards){assert.equal(card.topic.id,s.topic_id);assert.equal(card.discussionId,s.discussion_id);assert.equal(card.root.origin.sourceId,A.sourceId);
+     assert.equal(card.root.body,card.root.id===humanRoot?humanRequest.command.body:command.body);}
+    await assert.rejects(reads.semanticThread({nodeId:'nature',rootId:humanRoot,limit:1,cursor:null}),e=>e.code==='not-found');
+    await assert.rejects(reads.semanticThread({nodeId:'games',rootId:'not-a-canonical-root',limit:1,cursor:null}),e=>e.code==='not-found');
+    const config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'invented-semantic-native-handler'};
+    const response=await createRequestHandler({config,service})({method:'POST',url:'/v1/semantic/feed',headers:{host:config.hostHeader,origin:config.origin,
+     authorization:'Bearer '+config.capability,'content-type':'application/json'},body:JSON.stringify({nodeId:'games',limit:1,cursor:null})});
+    assert.equal(response.status,200);const http=JSON.parse(response.body);assert.equal(http.roots.length,1);assert.ok([humanRoot,aiRoot].includes(http.roots[0].root.id));
+    assert.equal(http.roots[0].discussionId,s.discussion_id);assert.equal(http.roots[0].root.origin.sourceId,A.sourceId);
    });
    await t.test(GROUPS[1].children[6],async()=>{
     const before=await counts(owner),version=(await sourceState(owner,A.sourceId)).write_version;
@@ -294,6 +355,18 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const reply=await appRuntime.command({actorId:actor.id,requestId:'semantic-historical-human-reply',expected:await fixture.header(),
      command:{type:'reply',discussionId:originalDestination.discussionId,rootId:humanRoot,replyToId:humanRoot,body:'Reply remains in its original canonical discussion',originSourceId:A.sourceId}});
     const stored=await scalar(owner,'SELECT discussion_id,root_id FROM canonical_v4.contributions WHERE id=$1',[reply.result.contributionId]);assert.equal(stored.discussion_id,originalDestination.discussionId);assert.equal(stored.root_id,humanRoot);
+    const replyIds=[reply.result.contributionId],bodies=new Map([[reply.result.contributionId,'Reply remains in its original canonical discussion']]);
+    for(let i=0;i<2;i++){const body='Additional selected-root reply '+i,r=await appRuntime.command({actorId:actor.id,requestId:'semantic-paged-reply-'+i,expected:await fixture.header(),
+     command:{type:'reply',discussionId:originalDestination.discussionId,rootId:humanRoot,replyToId:humanRoot,body,originSourceId:A.sourceId}});replyIds.push(r.result.contributionId);bodies.set(r.result.contributionId,body);}
+    const edited='Latest edited selected-root reply';await appLifecycle.command(await fixture.header(),{type:'edit',contributionId:replyIds[1],body:edited},actor);bodies.set(replyIds[1],edited);
+    const sibling=await appRuntime.command({actorId:actor.id,requestId:'semantic-other-root-reply',expected:await fixture.header(),
+     command:{type:'reply',discussionId:originalDestination.discussionId,rootId:aiRoot,replyToId:aiRoot,body:'Other root must not enter selected thread',originSourceId:A.sourceId}});
+    const paged=[];let cursor=null;
+    for(let page=0;page<4;page++){const result=await reads.semanticThread({nodeId:'invented-game-branch',rootId:humanRoot,limit:1,cursor});
+     assert.equal(result.discussionId,originalDestination.discussionId);assert.equal(result.topic.id,originalDestination.topicId);assert.equal(result.root.id,humanRoot);
+     assert.ok(result.root.replies.length<=1);paged.push(...result.root.replies);cursor=result.nextCursor;if(cursor===null)break;}
+    assert.equal(cursor,null);assert.deepEqual(paged.map(r=>r.id).sort(),replyIds.sort());assert.equal(paged.some(r=>r.id===sibling.result.contributionId),false);
+    for(const r of paged){assert.equal(r.rootId,humanRoot);assert.equal(r.body,bodies.get(r.id));assert.equal(r.origin.sourceId,A.sourceId);}
     const refs=(await feed('invented-game-branch')).references;assert.equal(refs.length,3);
     assert.equal(refs.find(r=>r.rootId===manualRoot).discussionId,MANUAL_DISCUSSION);assert.equal(refs.find(r=>r.rootId===humanRoot).discussionId,originalDestination.discussionId);
    });
@@ -315,38 +388,90 @@ export async function runSemanticAssertions(test,{acquireFixture}){
      assert.equal(waiting,true,'owner CAS actually waits for the worker-held CURRENT share');
      assert.equal((await appIngest.status({operationId:work.claim.operationId,operationDigest:work.claim.operationDigest})).state,'leased','unrelated app MVCC status remains readable before commit');
      assert.equal((await feed('invented-game-branch')).references.length,3,'public semantic feed remains MVCC-readable while head activation waits');
+     assert.equal((await reads.semanticFeed({nodeId:'invented-game-branch',limit:50,cursor:null})).roots.length,3,'actual hydrated application feed also completes before owner activation');
     }finally{
      release.resolve();const results=await Promise.allSettled([held,...(control?[control]:[])]);await owner.exec('SET lock_timeout=DEFAULT');
      for(const result of results)if(result.status==='rejected')throw result.reason;
      A=results[0].value;activation=results[1]?.value;
     }
     assert.equal(activation.matcherIdentityHash,hash2);assert.equal((await appIngest.status({operationId:work.claim.operationId,operationDigest:work.claim.operationDigest})).state,'complete');
+    // CURRENT is now model2. The Source still has only model1 observations:
+    // this ordinary root must remain unclassified until explicit owner adoption.
+    const legacy=await humanPost('retained-current-context',{topicId:MANUAL_TOPIC});legacyRoot=legacy.result.contributionId;
+    assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots WHERE root_id=$1',[legacyRoot])).n),0);
+    const absent=await service.semanticFeed({nodeId:'invented-game-branch',limit:50,cursor:null});assert.equal(absent.roots.some(c=>c.root.id===legacyRoot),false);
+    const scope={generation:fixture.generation,matcherIdentityHash:hash2};
+    const candidates=await workerSources.candidates({...scope,afterOrdinal:null,limit:50}),candidate=candidates.candidates.find(c=>c.sourceId===A.sourceId);
+    assert.ok(candidate);assert.equal(candidate.reuse.matcherIdentityHash,hash1);assert.deepEqual(candidate.reuse.titleValues,axis(0));
+    const prepared=await storedPreparation.prepare(candidate);assert.ok(prepared);assert.equal(storedEncoderCalls,0);assert.deepEqual(prepared.supportedPath,SUPPORTED_PATH);
+    const unchanged=await canonicalState(),beforeStamp=await reads.semanticStamp();
+    for(const changed of [{generation:'different-semantic-generation'},{matcherIdentityHash:hash1}]){
+     await assert.rejects(workerSources.reclassify({...scope,items:[{...prepared,...changed}]}),TypeError);
+     await assert.rejects(worker.query('SELECT * FROM canonical_v4.semantic_reclassify_stored_sources($1,$2,$3::jsonb)',
+      [scope.generation,hash2,JSON.stringify([{...prepared,...changed,titleValues:wire(prepared.titleValues)}])]),sqlCode('P1233'));
+    }
+    await assert.rejects(workerSources.reclassify({...scope,items:[{...prepared,sourceVersion:String(BigInt(prepared.sourceVersion)+1n)}]}),e=>e.code==='conflict');
+    assert.deepEqual(await canonicalState(),unchanged);assert.deepEqual(await reads.semanticStamp(),beforeStamp);
+    assert.deepEqual(await workerSources.reclassify({...scope,items:[prepared]}),[{sourceId:A.sourceId,sourceVersion:prepared.sourceVersion,status:'recorded'}]);
+    assert.deepEqual(await canonicalState(),unchanged,'background reclassification changes no Source, receipt, queue, lane or canonical revision');
+    const recordedStamp=await reads.semanticStamp();assert.notEqual(recordedStamp.revision,beforeStamp.revision);
+    assert.deepEqual(await workerSources.reclassify({...scope,items:[prepared]}),[{sourceId:A.sourceId,sourceVersion:prepared.sourceVersion,status:'reused'}]);
+    assert.deepEqual(await reads.semanticStamp(),recordedStamp);
+    const root=await scalar(owner,'SELECT write_version::text,discussion_id FROM canonical_v4.contributions WHERE id=$1',[legacyRoot]);
+    const {titleValues,supportedPath,semanticEligible,...base}=prepared;
+    const adopt={...base,rootId:legacyRoot,rootVersion:root.write_version,topicId:MANUAL_TOPIC,discussionId:root.discussion_id};
+    await assert.rejects(ownerSources.adoptLegacyRoots({...scope,items:[{...adopt,rootVersion:String(BigInt(root.write_version)+1n)}]}),e=>e.code==='conflict');
+    assert.deepEqual(await ownerSources.adoptLegacyRoots({...scope,items:[adopt]}),[{rootId:legacyRoot,status:'adopted'}]);
+    const snapshot=await scalar(owner,'SELECT context_basis,source_version::text,matcher_hash,supported_path,topic_id,discussion_id FROM canonical_v4.semantic_root_snapshots WHERE root_id=$1',[legacyRoot]);
+    assert.deepEqual(snapshot,{context_basis:'legacy-current-source-context',source_version:prepared.sourceVersion,matcher_hash:hash2,supported_path:SUPPORTED_PATH,topic_id:MANUAL_TOPIC,discussion_id:MANUAL_DISCUSSION});
+    const adoptedStamp=await reads.semanticStamp();assert.notEqual(adoptedStamp.revision,recordedStamp.revision);
+    assert.deepEqual(await ownerSources.adoptLegacyRoots({...scope,items:[adopt]}),[{rootId:legacyRoot,status:'existing'}]);
+    assert.deepEqual(await reads.semanticStamp(),adoptedStamp);assert.deepEqual(await canonicalState(),unchanged);
+    const refreshed=await service.semanticFeed({nodeId:'invented-game-branch',limit:50,cursor:null});
+    assert.ok(refreshed.roots.some(c=>c.root.id===legacyRoot&&c.discussionId===MANUAL_DISCUSSION),'same canonical revision cannot reuse the pre-adoption absent feed');
+    assert.deepEqual((await rootSnapshots()),originalSnapshots,'background model2 work cannot rewrite existing model1 historical snapshots');
+
+    const imported=await importVersionZero(),zeroBefore=await canonicalState();
+    const zeroCandidate=(await workerSources.candidates({...scope,afterOrdinal:null,limit:50})).candidates.find(c=>c.sourceId===imported.sourceId);
+    assert.ok(zeroCandidate);assert.equal(zeroCandidate.sourceVersion,'0');assert.equal(zeroCandidate.reuse,null);assert.deepEqual(zeroCandidate.embedding.values,imported.values);
+    const zero=await storedPreparation.prepare(zeroCandidate);assert.ok(zero);assert.equal(zero.sourceVersion,'0');assert.equal(storedEncoderCalls,1);
+    assert.deepEqual(await workerSources.reclassify({...scope,items:[zero]}),[{sourceId:imported.sourceId,sourceVersion:'0',status:'recorded'}]);
+    assert.deepEqual(await canonicalState(),zeroBefore);assert.equal((await sourceState(owner,imported.sourceId)).write_version,'0');
+    const zeroStored=await scalar(owner,`SELECT o.source_version::text,i.body_values FROM canonical_v4.semantic_observations o
+     JOIN canonical_v4.semantic_inputs i USING(source_id,operation_digest,matcher_hash) WHERE o.source_id=$1`,[imported.sourceId]);
+    assert.equal(zeroStored.source_version,'0');assert.deepEqual(zeroStored.body_values,imported.values);
+    const remaining=await workerSources.candidates({...scope,afterOrdinal:null,limit:50});
+    assert.equal(remaining.candidates.some(c=>[A.sourceId,imported.sourceId].includes(c.sourceId)),false,'current classified versions leave the missing-observation worklist');
    });
    await t.test(GROUPS[2].children[4],async()=>{
     const destination=await sourceState(owner,A.sourceId);
     await appLifecycle.command(await fixture.header(),{type:'withdraw',contributionId:aiRoot},actor);
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_edges WHERE root_id=$1',[aiRoot])).n),0);
     const visible=(await feed('invented-game-branch')).references;assert.equal(visible.some(r=>r.rootId===aiRoot),false);
-    assert.deepEqual(visible.map(r=>r.rootId).sort(),[humanRoot,manualRoot].sort());
+    assert.deepEqual(visible.map(r=>r.rootId).sort(),[humanRoot,manualRoot,legacyRoot].sort());
+    assert.equal((await reads.semanticFeed({nodeId:'invented-game-branch',limit:50,cursor:null})).roots.some(c=>c.root.id===aiRoot),false);
+    await assert.rejects(reads.semanticThread({nodeId:'games',rootId:aiRoot,limit:1,cursor:null}),e=>e.code==='not-found');
     const rollback=new Error('controlled visibility rollback');
     await assert.rejects(owner.transaction(async tx=>{
      await tx.query(`UPDATE canonical_v4.contributions SET visibility='local-private',
       payload=jsonb_set(payload::jsonb,'{visibility}','"local-private"'::jsonb)::text WHERE id=$1`,[humanRoot]);
      assert.equal(Number((await scalar(tx,'SELECT count(*) n FROM canonical_v4.semantic_root_edges WHERE root_id=$1',[humanRoot])).n),0);
      const hidden=await createCanonicalV4SemanticDiscussionRepository({database:tx}).feedReferences({generation:fixture.generation,nodeId:'invented-game-branch',beforeOrdinal:null,limit:100});
-     assert.deepEqual(hidden.references.map(r=>r.rootId),[manualRoot]);throw rollback;
+     assert.deepEqual(hidden.references.map(r=>r.rootId).sort(),[manualRoot,legacyRoot].sort());throw rollback;
     }),error=>error===rollback);
-    assert.deepEqual((await feed('invented-game-branch')).references.map(r=>r.rootId).sort(),[humanRoot,manualRoot].sort());
+    assert.deepEqual((await feed('invented-game-branch')).references.map(r=>r.rootId).sort(),[humanRoot,manualRoot,legacyRoot].sort());
     await appIngest.lifecycle(await fixture.header(),{type:'forget-source',sourceId:A.sourceId});
     const erased=await scalar(owner,`SELECT (SELECT count(*) FROM canonical_v4.sources WHERE id=$1)::integer sources,
      (SELECT count(*) FROM canonical_v4.semantic_inputs WHERE source_id=$1)::integer inputs,
      (SELECT count(*) FROM canonical_v4.semantic_observations WHERE source_id=$1)::integer observations`,[A.sourceId]);assert.deepEqual(erased,{sources:0,inputs:0,observations:0});
     assert.equal((await scalar(owner,'SELECT id FROM canonical_v4.discussions WHERE id=$1',[destination.discussion_id])).id,MANUAL_DISCUSSION);
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots WHERE source_id=$1',[A.sourceId])).n),0);
-    assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_edges WHERE root_id=ANY($1::text[])',[[humanRoot,aiRoot,manualRoot]])).n),0);
+    assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_edges WHERE root_id=ANY($1::text[])',[[humanRoot,aiRoot,manualRoot,legacyRoot]])).n),0);
     assert.deepEqual((await feed('invented-game-branch')).references,[]);
-    const retained=(await owner.query('SELECT id,discussion_id FROM canonical_v4.contributions WHERE id=ANY($1::text[]) ORDER BY id',[[humanRoot,aiRoot,manualRoot]])).rows;
-    assert.equal(retained.length,3);for(const row of retained)assert.equal(row.discussion_id,row.id===manualRoot?MANUAL_DISCUSSION:originalDestination.discussionId);
+    assert.deepEqual((await service.semanticFeed({nodeId:'invented-game-branch',limit:50,cursor:null})).roots,[]);
+    await assert.rejects(reads.semanticThread({nodeId:'games',rootId:humanRoot,limit:1,cursor:null}),e=>e.code==='not-found');
+    const retained=(await owner.query('SELECT id,discussion_id FROM canonical_v4.contributions WHERE id=ANY($1::text[]) ORDER BY id',[[humanRoot,aiRoot,manualRoot,legacyRoot]])).rows;
+    assert.equal(retained.length,4);for(const row of retained)assert.equal(row.discussion_id,[manualRoot,legacyRoot].includes(row.id)?MANUAL_DISCUSSION:originalDestination.discussionId);
    });
    await t.test(GROUPS[2].children[5],async()=>{
     const firstName=fixture.databaseName;await closeA();
@@ -355,13 +480,14 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const db=fixtureB.database;assert.equal(Number((await scalar(db,'SELECT count(*) n FROM canonical_v4.semantic_matchers')).n),0);
     assert.deepEqual(await createCanonicalV4SemanticDiscussionRepository({database:db}).ownerPolicy(),{revision:0,defaultMaxDepth:1,overrides:[]});
     assert.equal(Number((await scalar(db,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots')).n),0);
+    assert.equal((await scalar(db,'SELECT revision::text FROM canonical_v4.semantic_material_state WHERE singleton')).revision,'0');
     assert.deepEqual(await scalar(db,'SELECT revision::text,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton'),{revision:'0',matcher_hash:null});
     await denied(workerB,REGISTER,[identity1]);await assert.rejects(semantic(workerB).apply(initial.claim,{representedValues:axis(0),preparation:initial.prepared}),error=>error.code==='conflict');
     const c=await counts(db);assert.equal(c.sources,0);assert.equal(c.inputs,0);assert.equal(c.observations,0);
    });
   });
  }finally{
-  await preparation.close();
+  await preparation.close();await storedPreparation.close();
   try{await closeA();}finally{try{if(workerB)await workerB.close();}finally{if(fixtureB)await fixtureB.close();}}
  }
 }

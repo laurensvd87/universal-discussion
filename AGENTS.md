@@ -8,6 +8,23 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct storedSource+realapplication reads SOURCE Root+Trustaccepted:
+01229092B9af5affa...574aa, SourceRepo/preparation exacttyped/payload/binary64/
+receipt/stamp/titleinclusive digest; generation+matcher+version boundresults;
+same-encoder retainedtitle reuse/no per-userE5. Explicitowner legacy-current-source-
+context adoption onlyretainedmatchinganchors; derivedSourceversion0 allowed,
+no fakecanonicalwrites/queue/watermark. Backgroundepoch ONLYlast, noforeground
+epochlock; protectedsemanticStamp gen/head/policy/epoch fences staleinflightabsence.
+CanonicalreadFacade boundedlatest-root/thread DTOs sameRR snapshot, lossless
+keysets unaffectedbycrawlerrevision, originalreplyIDs; service/HTTP opt-infalse,
+pair/session/deliveryguards. Root36guardedNodePASS189ms+18PythonPASS278ms;
+static01213SQL/7PLPASS. Expandedactual25 SOURCEready/notexecuted yet.
+Newcatalog363806B04aadada3c044c360aa8be5577d70b07f165e74f3d477d5aa3058197c2fa5d9c,
+2381/274015543B/43normal/88closure auth+endpinsPASS, independentfinalbindingpending.
+2337oldrows unchanged; ordinaryproductionread-facade intentionally evolved;
+frozenexperimental/native-v2 bytes and priorrun snapshots unchanged/Git6dad saved.
+No live migration/activation; crawler4060 originalstart preserved. GoalACTIVE.
+
 CURRENT27Oct ordinary010+011 actual6dadf6fd/session76811 CLOSEDexit0/PASS,
 run-946fd2d98a6812cc78ffc6d7a623a95618e2ee56de4b5e32. Expanded25ledger proves
 human+generatedroot snapshots/replay, ancestor+leafrefs, SQLownerpolicy->actual

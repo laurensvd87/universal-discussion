@@ -1,5 +1,15 @@
 # Project status
 
+The next production slice is source-reviewed: verified stored-data classification
+and explicit legacy-root adoption, plus bounded canonical feed/thread reads through
+the service and guarded HTTP routes. Stored input is reconstructed and checked
+against its exact operation digest and binary vector mirrors; retained title vectors
+can be reused without encoding. Imported version zero needs no invented refresh.
+Background work advances a separate semantic revision, so later reads cannot join
+an older absence while the canonical revision stays unchanged. Routes default off
+until startup installs the feature. Root36 focused JavaScript and18 driver checks
+pass; the expanded real PostgreSQL run for this slice is still pending.
+
 ## Latest: hierarchy feeds and owner grouping pass real PostgreSQL checks
 
 Source6dadf6fd/session76811 completed the expanded25-point isolated native suite.

@@ -114,13 +114,16 @@ function chatTitle(root, topic) {
  */
 export function createPostgresCanonicalService({ reads, urlSelectionReads = reads, runtime, ingestion = null, lifecycle = null,
   model = Object.freeze({ id: "hand-authored-demo-vectors/1", status: "fixture-only" }),
-  resolveAccountActor = null, readAccountActors = () => [], accountCursorSecret } = {}) {
+  resolveAccountActor = null, readAccountActors = () => [], accountCursorSecret, semanticDiscussions = false } = {}) {
   if (!reads || typeof reads.version !== "function" || typeof reads.catalogContext !== "function" ||
       typeof reads.catalogPage !== "function" || typeof reads.discussionPage !== "function" ||
       typeof reads.exactSource !== "function" || !runtime || typeof runtime.command !== "function" ||
       typeof readAccountActors !== "function" || !urlSelectionReads ||
       typeof urlSelectionReads.urlSelection !== "function")
     throw new TypeError("Invalid PostgreSQL canonical service dependencies");
+  if (typeof semanticDiscussions !== "boolean" || semanticDiscussions &&
+      (typeof reads.semanticFeed !== "function" || typeof reads.semanticThread !== "function" || typeof reads.semanticStamp !== "function"))
+    throw new TypeError("Invalid PostgreSQL semantic discussion dependencies");
   const cursorKey = accountCursorKey(accountCursorSecret);
   const publicFlights = createPostgresPublicReadFlights();
   const urlFlights = createPostgresPublicReadFlights({ maxTasks: 8 });
@@ -371,8 +374,14 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     // A caller arriving after a mutation must never join an older snapshot.
     // The small revision query also keeps the coalescing key independent of
     // accounts, credentials, and caller-provided version claims.
-    const expected = method === "urlSelection" && typeof urlSelectionReads.version === "function"
+    let expected = method === "urlSelection" && typeof urlSelectionReads.version === "function"
       ? await urlSelectionReads.version() : await reads.version();
+    if (semanticDiscussions && ["semanticFeed", "semanticThread"].includes(method)) {
+      const stamp = await reads.semanticStamp();
+      if (stamp.generation !== expected.generation || typeof stamp.revision !== "string" || !/^[a-f0-9]{64}$/u.test(stamp.revision))
+        fail("unavailable", "Semantic read unavailable");
+      expected = { ...expected, semanticRevision: stamp.revision };
+    }
     const flights = method === "urlSelection" ? urlFlights :
       ["enrichment", "related"].includes(method) ? optionalFlights : publicFlights;
     return flights(method, { input, expected }, admitted => performPublicRead(method, admitted.input), guards);
@@ -397,6 +406,8 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
     if (method === "related" && typeof reads.relatedSources === "function") return reads.relatedSources(input.sourceId, input.limit);
     if (method === "enrichment") return enrichment(input);
     if (method === "discover" && typeof reads.discover === "function") return reads.discover(input);
+    if (semanticDiscussions && method === "semanticFeed") return reads.semanticFeed(input);
+    if (semanticDiscussions && method === "semanticThread") return reads.semanticThread(input);
     fail("unavailable", "Read unavailable");
   }
 
@@ -478,6 +489,11 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
 
   const service = {
     coherentSnapshotReads: true,
+    // Startup enables this only after the semantic schema/model are installed.
+    ...(semanticDiscussions ? {
+      semanticFeed: input => readPublic("semanticFeed", input),
+      semanticThread: input => readPublic("semanticThread", input),
+    } : {}),
     ...(typeof reads.discover === "function" ? {
       discover: Object.freeze({ search: (input) => reads.discover(input) }),
     } : {}),

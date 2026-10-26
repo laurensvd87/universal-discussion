@@ -1,39 +1,39 @@
 [
   {
-    "name": "semantic installation, owner policy, topology stability and actual role boundaries",
+    "name": "semantic installation, owner policy, topology stability and stored-material role boundaries",
     "children": [
-      "semantic schemas start with an inert head, empty root snapshots and default owner policy",
+      "semantic schemas start with an inert head, empty root snapshots, revision stamp and default owner policy",
       "actual numeric owner registration is inert, byte-bound and idempotent",
-      "app reads policy and feed references but cannot register, activate, set policy or mutate semantic records",
-      "crawler submitter cannot register, activate, set policy, read feeds or apply semantic writes",
-      "worker cannot call legacy apply, register models, set policy, read feeds or mutate semantic tables",
+      "app reads policy and feeds but cannot register, activate, reclassify, adopt or mutate semantic records",
+      "crawler submitter cannot register, activate, read semantic material or apply semantic writes",
+      "worker cannot call legacy apply, register models, set policy, adopt roots, read feeds or mutate semantic tables",
       "cross-model node ancestry is stable while distinct models with the same ancestry register",
       "repeatable-read and serializable owner registration explicitly reject without mutation",
       "owner activation and depth policy use real compare-and-swap and actual grouping with stale and invalid-rule refusal"
     ]
   },
   {
-    "name": "operation-bound apply, atomic canonical rollback and human-AI semantic root feeds",
+    "name": "operation-bound apply, atomic canonical rollback and human-AI application semantic feeds",
     "children": [
       "actual app enqueue and worker lease retain the exact title-inclusive canonical material",
       "stale installed matcher rejects before any legacy canonical mutation",
       "registered topology rejects a numerically prepared non-ancestor path",
       "actual worker SQL rejects an invalid title vector without canonical mutation",
       "post-legacy semantic insertion failure rolls back Source, receipt, numeric input and job completion",
-      "successful apply binds exact paired input and human-AI roots snapshot child ancestry and original destinations without replay duplication",
+      "successful apply binds paired input and human-AI child snapshots with original destinations, application feed paging and real HTTP projection",
       "completed operation status and exact enqueue replay do not duplicate semantic or canonical writes",
       "excluded challenge context remains canonically isolated and its real root receives no semantic snapshot"
     ]
   },
   {
-    "name": "renewal, immutable root destinations, bounded head contention, withdrawal and database isolation",
+    "name": "renewal, canonical threads, bounded head contention, stored-source adoption, erasure and isolation",
     "children": [
       "identical renewal deduplicates numeric input and records a new Source version without rewriting root snapshots",
       "title-only change creates new paired input while unpinned original roots retain their historical semantic snapshots",
-      "manual destination persists for a new root while old roots and historical replies keep original canonical IDs",
-      "actual worker head share blocks owner activation while app MVCC status and semantic feed reads complete",
+      "manual destination persists while original root replies page with current bodies and original canonical IDs",
+      "worker head share permits app reads, then unchanged Source reclassification and explicit legacy adoption refresh semantic reads including genuine version zero",
       "actual withdrawal and controlled visibility changes remove feed edges; Source forget clears derived context but retains canonical roots and discussions",
-      "second fresh database resets owner policy and cannot reuse registry, head, root snapshots or worker authority"
+      "second fresh database resets owner policy and material revision without reusing registry, head, snapshots or worker authority"
     ]
   }
 ]
