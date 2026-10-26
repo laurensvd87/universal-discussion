@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { AccountRepository } from "../src/accounts/account-repository.js";
 import { AccountService } from "../src/accounts/account-service.js";
 import { createAccountLifecycle } from "../src/accounts/account-lifecycle.js";
+import { createPrivateDiscussionService } from "../src/private/private-service.js";
 import { createMemoryDemoService } from "../src/application/create-demo-service.js";
 import { createRequestHandler } from "../src/http/request-handler.js";
 import { validateStartupConfig } from "../src/http/startup-config.js";
@@ -32,6 +33,10 @@ const legacyId = service.discussion("harbor-s2").roots[0].id;
 const ai = { status: () => ({ connected: true, planEnabled: true, pending: false, account: { clientId: "synthetic-panel-client", label: "Synthetic QA" } }),
   models: async () => ({ models: [{ slug: "synthetic-model", displayName: "Synthetic model" }] }), diagnostics: () => ({ events: [] }), resumable: () => ({ job: null }),
   cancelAccount() {}, connect() { throw new Error("Unexpected OAuth launch"); }, create() { throw new Error("Unexpected provider inference"); } };
+// The production account export includes private data even when it is empty.
+// Exercise that real lifecycle route with a separate in-memory store.
+const privateDiscussions = createPrivateDiscussionService({ databasePath: ":memory:", ai,
+  publicService: service, canGenerate: () => false });
 const capability = "synthetic-panel-pairing-capability-only";
 const browser = launchChromiumPipe({ executable: process.env.CHROME_PATH ?? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", profileDirectory: path.join(profileRoot, "profile") });
 let sessionId, handle, origin, popupSession = null; const failures = [], errors = [], screenshots = [], calls = [], targets = [];
@@ -68,8 +73,8 @@ browser.on("Fetch.requestPaused", ({ requestId, request }, incoming) => {
 try {
   const loaded = await browser.send("Extensions.loadUnpacked", { path: qaExtensionRoot }); origin = `chrome-extension://${loaded.id}`;
   const config = validateStartupConfig({ host: "127.0.0.1", port: 4174, origin, capability });
-  handle = createRequestHandler({ service, config, accounts, accountWrites: true, ai,
-    accountLifecycle: createAccountLifecycle({ accounts, service, ai }) });
+  handle = createRequestHandler({ service, config, accounts, accountWrites: true, ai, privateDiscussions,
+    accountLifecycle: createAccountLifecycle({ accounts, service, ai, privateDiscussions }) });
   const target = await browser.send("Target.createTarget", { url: "about:blank" });
   sessionId = (await browser.send("Target.attachToTarget", { targetId: target.targetId, flatten: true })).sessionId;
   await browser.send("Page.enable", {}, sessionId); await browser.send("Runtime.enable", {}, sessionId);
@@ -157,6 +162,8 @@ try {
   assert.equal(existsSync(exportFilename), true);
   const exported = JSON.parse(readFileSync(exportFilename, "utf8"));
   assert.equal(exported.account.username, "qa_reader"); assert.equal(exported.posts.length, 2);
+  assert.deepEqual(exported.privateConversations, []);
+  assert.deepEqual(exported.privateMessages, []);
   assert.equal(Object.hasOwn(exported, "session"), false); assert.equal(Object.hasOwn(exported, "accessToken"), false);
   await waitFor("document.querySelector('.account-sheet').getAttribute('aria-busy')==='false'");
   await evaluate("document.querySelector('.account-rights .account-danger').click()");
@@ -191,7 +198,7 @@ try {
   console.log(JSON.stringify({ failures, errors, calls, targets, surface: await evaluate("({error:document.querySelector('.account-error')?.textContent,busy:document.querySelector('.account-sheet')?.getAttribute('aria-busy'),profileButton:document.querySelector('.account-profile-button')?.textContent})").catch(() => null) }));
   throw error;
 } finally {
-  await browser.close(); repository.close();
+  await browser.close(); privateDiscussions.close(); repository.close();
   const resolved = path.resolve(profileRoot); assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
   assert.equal(path.basename(resolved).startsWith("murmingle-account-panel-"), true); rmSync(resolved, { recursive: true, force: true, maxRetries: 4, retryDelay: 150 });
 }
