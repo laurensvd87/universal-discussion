@@ -12,6 +12,14 @@ Still no live installation, model startup/worker wiring, public feed DTO/route/U
 verifiedlegacyadoption or manyuserload proof. Next implement actual read/controller/
 browser composition and currentSource reclassification/adoption without recrawling
 unchanged material. Preserve discussions/privacy/crawler and keep goal active.
+Concrete next protocol is at the front of HIERARCHICAL_TOPIC_ASSIGNMENT_PLAN.md:
+reconstruct verifiedtitle-inclusive current material, worker Source-version CAS
+without fake ingestion, extend operation-observation uniqueness with Sourceversion,
+and explicit honest legacy-current-context adoption only for matching retained
+source anchors. SourceStamp excludes title; never invent original-title evidence.
+Unanchored/topic-pinned roots stay canonical. Existing011 snapshots are immutable;
+future model views need a separate append-only relation, while owner depth cuts
+can immediately select any already-supported stored ancestor.
 
 Latest actual: f87a9e03/session8435 CLOSEDexit0, new25 semantic SQL ledger PASS.
 Run run-d2c254ca2fc202d34bce2dd731175725e24ef8c277dad909, parenta6e720b7...22724/

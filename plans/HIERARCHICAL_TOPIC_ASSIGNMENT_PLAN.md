@@ -8,6 +8,49 @@ withdraw/erase and app feed reads during real head contention. Independent audit
 are not installed live. Product reads/routes/browser, old-data reclassification/
 adoption, startup/worker, owner UI and representative concurrency/UI remain open.
 
+## Next integration: existing data and foreground reads
+
+Use the maintained production modules and existing owned native runner. Preserve
+both successful run snapshots; do not create another experimental controller tree.
+
+1. Add a bounded background read of current learned Sources with their exact
+   embedding mirrors, operation receipts, write versions and postability stamps.
+   Reconstruct the title-inclusive material in its original field order and require
+   its digest to equal both receipt and Source payload. Classify verified stored
+   material without recrawling. Reuse retained paired vectors where the encoder
+   identity agrees; otherwise encode only the verified stored title once.
+2. Add a worker-only reclassification RPC. Lock installed head before receipt and
+   Source; revalidate generation/version/material and append input/observation
+   atomically. Do not invent an ingestion operation, queue claim, Source mutation
+   or catalog watermark. Extend010's operation-observation uniqueness with Source
+   version: manual correction can advance that version while retaining its current
+   operation ID. The existing primary key already supports these distinct versions.
+3. Add explicit bounded legacy-root adoption with a recorded
+   `legacy-current-source-context` basis. Require an unchanged visible root,
+   original canonical destination, exact Source origin/retained source anchor and
+   recomputed matching anchor stamp, plus a qualifying current observation. That
+   stamp excludes title: this adopts verified current context and must never claim
+   the root's original captured title. Unanchored/topic-pinned or changed material
+   remains unclassified and canonically readable. Lock receipt/Source, destinations
+   and roots in canonical order; any CURRENT lock must precede those domain locks.
+4. Implement bounded canonical root-card/thread reads over feed references, with
+   one MVCC snapshot and current visibility checks. Every result carries original
+   Topic/Discussion/root IDs. Add the real controller/routes and browser composition;
+   Search Topics remains independent of the current page. Keyset cursors bind
+   generation, owner-policy revision, node and limit rather than unrelated crawler
+   catalog revisions, so background ingestion does not continually reset pagination.
+5. Wire one shared installed title encoder and the accepted matcher into startup
+   and ingestion; persist the real registered model, execute background preparation
+   once per verified Source/material/model, and serve stored paths to every user.
+   Owner controls select supported prefixes; full paths remain stored. Validate
+   existing discussions, actual page flows and simultaneous users/crawler before
+   live migration/activation and the approved orderly crawler restart.
+6. Keep model changes distinct from owner cuts. Current root snapshots remain
+   immutable historical context. A future model view of those retained paired
+   vectors needs an append-only model-keyed root-classification relation; neither
+   silent replacement of011 snapshots nor fabricated historical Source writes is
+   allowed. Owner cuts over already-supported deeper paths need no re-embedding.
+
 Production steps1/2 below now have actual isolated native SQL evidence (f87a9e03,
 session8435): owner registry/CAS, canonical+semantic atomic apply, roles, rollback,
 renewal/title/version retention, manual destinations, bounded head contention and
