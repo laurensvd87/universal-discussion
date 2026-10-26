@@ -2,6 +2,23 @@
 
 ## Current continuation: native SQL passed, real quality next
 
+The first fresh public diagnostic now completed: source457401ce/session73152 exit0,
+26/32 captured and26/26 correct roots, six parser refusals retained. All16 roots
+are represented. Independent saved audit bead3660...f9465 is authenticated/FULLread;
+all numeric results reproduce. Body E5 median1059ms/title20ms; matching all three
+methods5.25ms median/9.94ms p95. Realref control accepted only5; synthetic detail
+produced no deeper paths. This is curated English root-only evidence, not child
+or representative web acceptance. Preserve inputs/results under
+data/hierarchy-public-quality-20261026; no rerun or candidate retuning occurred.
+
+An authenticated live API probe loaded three stored URL selections in14–81ms
+while the crawler ran; no response content was retained. API listener4174 is
+confirmed;50986 was a stale remembered port. Browser rendering/post readiness is
+still unmeasured. Next implement partial-label local cut fitting and obtain genuine
+child references/CAL. Existing shared linear training cannot treat root-only gold
+as child negatives. The successful root model stays fixed; do not fabricate GTA
+or koala support from generic game/animal examples.
+
 Source506bdff5 passed the complete25-point native hierarchy fixture on real
 PostgreSQL (session97295 exit0). Independent audit31a36266...43d06f is authenticated
 and fully read: all2,351 catalog inputs/14 Git blobs, unchanged assertion bodies,

@@ -8,6 +8,26 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST26Oct realpublic diagnostic source457401ce/session73152 CLOSEDexit0.
+32EnglishWikipedia/root-onlycases:26scored/26correctroots;6document-invalid
+retained/all16rootscovered. Realrefcontrol5correct+21abstain; syntheticdetail
+ZEROdeeperpaths. Root FULLread/authenticated independent audit bead3660...f9465
+data/hierarchy-public-quality-audit-20261026.json; actualnumericrecompute/all32
+casejoins/6artifact+10listedSOURCE/Gitjoins PASS, NOTfulltransitiveclosure.
+inputs97eb983a...b8341/result2081042c...73a85 indata/hierarchy-public-quality-
+20261026. NOcapture/modelrerun/adoption, allsavedoutputimmutable. Smallcurated
+English/root-onlydiagnostic NOTrepresentative/childquality/productionauthority.
+ActualbodyE5median1059ms/title20ms/all3matching5.25ms(p95~9.94);init1537ms.
+Whole177s includesnetwork/pacing NOTUIlatency. Localruntime8shorttitles init987ms/
+warm~10ms/RSS~0.9GB sample NOTperuser/peak/productionRAMrequirement.
+AuthenticatedAPI storedURLselection3reads14–81ms whilecrawleradvances; noresponse
+contentretained. ActualAPIlistener4174; older50986refused/notappoutageproof.
+19guardedSOURCEtestsPASS98.7391ms. Ordinary partial-label localcalibration SOURCE
+inprogress: existinglineartrainers falselynegateunknownchildren; needrealchild
+TRAIN/CAL, GTA/koala currently0. Nochildacceptance/liveactivation. Gitbacklogresolved.
+Crawler4060 advancing2454+, originalservicespreserved. GoalACTIVE; childquality/
+concurrency/restrictedroles/UI/genuineissuer/liveintegration stillUNFINISHED.
+
 LATEST26Oct maintained nativeSQL SUCCESS source506bdff5/session97295 CLOSEDexit0.
 All25 literal ledgerpoints PASS (3outer/22child, not25 independentqualitysamples).
 Root authenticated/FULLread independent audit31a36266...43d06f at

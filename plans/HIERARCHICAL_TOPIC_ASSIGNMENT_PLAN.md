@@ -1,5 +1,15 @@
 # Hierarchical topic assignment and discussion plan
 
+26 October matching evidence: source457401ce/session73152 completed a32-page
+English public diagnostic:26 captured/26 correct roots, six parser refusals
+retained, all16 roots covered. Independent numeric audit bead3660...f9465 passes.
+The root gate is promising; synthetic details produced no deeper paths and remain
+unaccepted. Real child references and partial-label calibration are now the next
+implementation step. The existing root-only labels never imply child exclusion
+or STOP. Body E5 median~1.06s and numerical comparison~5.25ms are model-stage
+measurements. Three live saved-URL API reads took14–81ms under the crawler; UI
+rendering/post readiness and full concurrent hierarchy activation remain open.
+
 ## Current implementation boundary: native SQL passed on 26 October
 
 The maintained fixture now passes all25 literal ledger points on real PostgreSQL

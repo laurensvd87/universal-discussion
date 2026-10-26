@@ -1,5 +1,21 @@
 # E5 matching across broad and specific topics
 
+26 October real comparison: fixed paired root heads accepted26/26 successfully
+captured public Wikipedia pages correctly; six of32 predeclared pages failed the
+static parser and remain counted. All16 roots were covered. Independent numeric
+audit bead3660...f9465 reproduces saved results. Real-reference matching alone
+accepted only5/26; the synthetic local-detail control refined none. Body encoding
+median1059ms/title20ms; all three matching methods together5.25ms. These are small
+English root-only diagnostics, not child or representative web acceptance.
+
+Next: partial-label real local references, with explicit known prefixes, STOP and
+subtree exclusions. A root-only label leaves its children unknown. Existing linear
+training wrongly makes all nonancestors negative and cannot be used unchanged.
+The fixed successful root gate remains independent; unsupported branches remain
+coarse. Genuine GTA/koala examples and independent child calibration are missing.
+Keep source457401ce and data/hierarchy-public-quality-20261026 evidence immutable
+through Git and saved files. No live matcher activation follows this comparison.
+
 26 October current: real native PostgreSQL now passes all25 literal hierarchy
 ledger points (source506bdff5/session97295). Independent success audit31a36266...
 43d06f authenticates all2,351 inputs, unchanged assertions and clean owned cleanup.

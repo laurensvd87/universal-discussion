@@ -2,6 +2,32 @@
 
 ## Current checkpoint on 26 October, after the native SQL pass
 
+The first maintained real-page comparison is now complete (source457401ce,
+session73152 exit0). Of32 predeclared English Wikipedia subjects,26 were captured
+and all26 received the declared correct root; six parser refusals remain counted.
+Every one of16 roots has at least one captured example. The real-reference-only
+control accepted5/26, while the synthetic-detail control produced no deeper paths.
+This favors the fixed paired linear root classifier for this small diagnostic;
+it does not establish representative web quality or child specificity. Independent
+saved audit bead3660...f9465 reproduced every numeric outcome and timing from the
+retained vectors. Result2081042c...73a85 and inputs97eb983a...b8341 remain in
+apps/local-service/data/hierarchy-public-quality-20261026/; no fitting, retuning,
+ingestion or live activation occurred.
+
+Actual medians: body E5 encoding1059ms, title20ms, all three numerical methods
+together5.25ms (p95~9.94ms). Model initialization took1537ms. The177s whole run
+includes network and deliberate request spacing; it is not UI latency. A separate
+authenticated live API check under the crawler returned three stored URL selections
+in14–81ms, with response content discarded. This is API evidence, not rendering
+or time-until-post-enabled evidence. The live API listener is4174, verified from
+its original process; the older remembered50986 port was refused.
+
+Next is real child-reference learning with partial labels. The existing linear
+trainer treats every nonancestor as negative, so root-only labels cannot safely
+train children. A bounded ordinary partial-label local calibration helper is in
+progress; genuine GTA/koala examples and child calibration are still missing.
+The old synthetic detail control will not be presented as a working hierarchy.
+
 The maintained hierarchy fixture passed all25 literal ledger points on real
 PostgreSQL17.11, using source506bdff5 and catalog0199e54a...de1bf. Session97295
 closed exit0. Root inspected the independent success audit31a36266...43d06f:
@@ -16,7 +42,7 @@ This proves isolated serialized synthetic canonical SQL behavior: hierarchy,
 discussion preservation, owner projection, history, rollback and erasure. It does
 not prove real-page quality, concurrent sessions, restricted roles, UI latency or
 live activation. The whole fixture took15.66s; that is not per-page latency.
-The next work is real E5 quality comparison, followed by concurrency/latency and
+The remaining work is real child quality, concurrency/roles, UI latency and
 product integration. The crawler advanced throughout; original service starts
 were preserved. Git is committed and pushed; the overall goal remains active.
 
