@@ -1,0 +1,21 @@
+{
+  "schema": "current-producer-controls-freeze/v1",
+  "sourceHashes": {
+    "run.mjs": "b5ee525050477216210480777e5fccef369cc3cf207190e3d6f716ec9c3c028a",
+    "policy.js": "ff2295b99cb4df9cee0c6be2277820a37f47327cbb3b9c12665b5fccfe1f51aa",
+    "supervise.py": "c47e630a8d811807a6b97a11c2695e9e063066ace40d52247e7ba98380d62196",
+    "run.test.mjs": "667d0dad7a5b45a3dd52aa5ee42a83842aa3b53cf84690478263b143a89c373f",
+    "policy.test.mjs": "42a1012415b8cf2d3119c7215daf648ce93bca54d95f2ba44cad8b06af9a7aed",
+    "protocol.json": "fd225a6b77f70e76109887fe17a7668197f1a6d332c254cf5499ed0f216c954a",
+    "README.md": "71905ad3ded0ddba93ac826bf9e6458cb0fb8f5afc3e3efe34fe1134587b8261",
+    "page-content-reader.js": "c7946a7e19adb3fd9c14b2304101dbd3bf8b7c92fd1ab7c3ba679104b55e428f",
+    "page-content-policy.js": "c0ac60a80f0661d99aadc3b76aeb7b4fe1f28b8032e8271ef9ef8124baad073e",
+    "public-fetch.js": "37c4619d61f015cbf3be00a0e5b748f313bafc3103e33bb0a825e79546d8bf71",
+    "robots.js": "6e29a2b0e2e55d9bafcf6eb6f9ca401fd8b067e9675c3208867cd99d159dc0e2",
+    "static-capture.js": "592a0c739de05ffa3fdd139b62dbe23b95fad4b4735faeca6c5bd278c3654b96",
+    "robots-deny-space-repair.js": "8b44edb35842f79899dff32505f4668e1f61978d4a2a5728257f834bd2ec85c2"
+  },
+  "protocolSha256": "fd225a6b77f70e76109887fe17a7668197f1a6d332c254cf5499ed0f216c954a",
+  "controlsHash": "10a9b05551af56ad84172031c57893179269aef8d17b8dcdb56e309ddbb2659e",
+  "freezeHash": "3cbcb3f42cfcdbd79d6bee6f32d72c5ad6cad11fd838e8b9e52abdf1f69a1027"
+}

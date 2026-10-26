@@ -1,0 +1,27 @@
+{
+  "schema": "current-producer-controls-protocol/v1",
+  "purpose": "Single prospective compatibility prerequisite using consumed TRAIN articles; no final32 or scoring",
+  "controls": [
+    { "id": "control-en-tetris", "language": "en", "url": "https://en.wikipedia.org/wiki/Tetris" },
+    { "id": "control-de-schach", "language": "de", "url": "https://de.wikipedia.org/wiki/Schach" },
+    { "id": "control-nl-go", "language": "nl", "url": "https://nl.wikipedia.org/wiki/Go_(bordspel)" },
+    { "id": "control-fr-octopoda", "language": "fr", "url": "https://fr.wikipedia.org/wiki/Octopoda" }
+  ],
+  "modes": ["static-controls", "browser-controls"],
+  "static": { "wallSeconds": 360, "supervisorActiveSeconds": 350, "nodeActiveSeconds": 345, "originPolicyBudgetSeconds": 240, "maxPolicyRequests": 8, "maxPageRequests": 4, "requestTimeoutSeconds": 15, "minimumRightsTransportEligible": 2, "extractor": "crawler-static-html-prefix/v1", "preprocessing": "none-no-pruning-no-Wikipedia-lead" },
+  "browser": { "wallSeconds": 180, "supervisorActiveSeconds": 170, "nodeActiveSeconds": 165, "completeOriginPolicyBudgetSeconds": 60, "maxPolicyRequests": 8, "policyRequestTimeoutSeconds": 5, "navigationObservationSecondsPerArticle": 20, "latestDclSeconds": 18, "snapshotAfterDclSeconds": 2, "maxNavigationObservationSeconds": 80, "maxStartupOverheadCloseAndSourceChecksSeconds": 35, "ownJobFinalDrainSeconds": 5, "minimumCollected": 2, "snapshotsPerArticle": 1, "maxPausedRequests": 4096, "maxCdpPendingRequests": 128, "maxCdpMessageBytes": 4194304, "maxCdpRpcSeconds": 10 },
+  "network": { "literalOrigins": ["https://en.wikipedia.org", "https://de.wikipedia.org", "https://nl.wikipedia.org", "https://fr.wikipedia.org"], "additionalScriptHosts": [], "methods": ["GET", "HEAD"], "resourceTypes": ["Document", "Script", "Stylesheet", "XHR", "Fetch", "Other"], "credentialsRemoved": ["Cookie", "Authorization", "Proxy-Authorization"], "documentUrls": "exact four control URLs only", "minimumOriginSpacingMs": 2000, "knownRobotsRepair": "only immutable exact NL raw+decoded+line fingerprint from ADR137", "chromeDnsPinned": false, "completeOsEgressIsolation": false, "observedPrivateResponseAddress": "fatal" },
+  "resources": { "rssMiB": 1536, "privateMiB": 1536, "jobCommitMiB": 1536, "hostPhysicalReserveMiB": 1024, "hostCommitReserveMiB": 1024, "cFreeReserveMiB": 768, "dFreeReserveMiB": 512, "maxJobPids": 128, "pollMs": 50, "nodeHeapMiB": 256, "logsAndResultBytes": 262144, "resultBytes": 196608, "prefixUtf16": 160 },
+  "freezeSchema": "current-producer-controls-freeze/v1",
+  "freezeFields": ["schema", "sourceHashes", "protocolSha256", "controlsHash", "freezeHash"],
+  "freezeHashRule": "SHA256(JSON.stringify(ordered freeze object without freezeHash)); sourceHashes order matches exported SOURCE_FILES",
+  "priorEligibility": "Browser requires exact static result SHA plus successful cleaned-up static supervisor receipt; both bind unchanged complete source map and freeze bytes. Browser refreshes policies independently.",
+  "unavailableReasons": ["origin-policy-timeout", "origin-policy-http-refused", "origin-policy-malformed", "origin-policy-budget", "origin-robots-denied", "origin-tdm-reserved", "article-timeout", "article-http-refused", "article-redirect-refused", "article-transport-capacity", "page-header-restricted", "page-header-malformed", "static-policy-parse-unavailable", "static-insufficient-text", "static-rights-ineligible", "fresh-origin-ineligible", "document-response-refused", "document-dom-restricted", "document-dom-capacity", "document-identity-unavailable", "reader-unsupported"],
+  "fatalReasons": ["invalid-contract", "absolute-job-deadline", "aborted", "unhandled-transport", "source-integrity", "response-integrity", "request-capacity", "callback-failed", "protocol-failed", "setup-deadline", "navigation-transport-failure", "unsettled-callbacks"],
+  "validNoisyInput": "Collected bounded reader output remains collected; no manual topic/quality exclusion",
+  "retention": "Only metadata, hashes, lengths and <=160 UTF16 prefixes; no full HTML/body, response headers, cookies, addresses, vectors or arbitrary error strings",
+  "noAutomaticRetry": true,
+  "experimental": true,
+  "productionValidated": false,
+  "assignmentAuthority": false
+}

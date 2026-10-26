@@ -1,0 +1,159 @@
+{
+  "schema": "current-producer-final-protocol/v1",
+  "purpose": "Prospective fixed32 two-view current-producer transfer; no model or quality filtering",
+  "browserProducerScope": "restricted-single-document-dom-reader/v1",
+  "ordinaryDynamicBrowserProducerValidated": false,
+  "batches": [
+    [
+      "producer-transfer-001",
+      "producer-transfer-002",
+      "producer-transfer-003",
+      "producer-transfer-004"
+    ],
+    [
+      "producer-transfer-005",
+      "producer-transfer-006",
+      "producer-transfer-007",
+      "producer-transfer-008"
+    ],
+    [
+      "producer-transfer-009",
+      "producer-transfer-010",
+      "producer-transfer-011",
+      "producer-transfer-012"
+    ],
+    [
+      "producer-transfer-013",
+      "producer-transfer-014",
+      "producer-transfer-015",
+      "producer-transfer-016"
+    ],
+    [
+      "producer-transfer-017",
+      "producer-transfer-018",
+      "producer-transfer-019",
+      "producer-transfer-020"
+    ],
+    [
+      "producer-transfer-021",
+      "producer-transfer-022",
+      "producer-transfer-023",
+      "producer-transfer-024"
+    ],
+    [
+      "producer-transfer-025",
+      "producer-transfer-026",
+      "producer-transfer-027",
+      "producer-transfer-028"
+    ],
+    [
+      "producer-transfer-029",
+      "producer-transfer-030",
+      "producer-transfer-031",
+      "producer-transfer-032"
+    ]
+  ],
+  "modes": [
+    "static-batch",
+    "browser-batch"
+  ],
+  "static": {
+    "batches": 8,
+    "rowsPerBatch": 4,
+    "wallSeconds": 360,
+    "wholePhaseMaximumSeconds": 2880,
+    "supervisorActiveSeconds": 350,
+    "nodeActiveSeconds": 345,
+    "originPolicyBudgetSeconds": 240,
+    "maxPolicyRequestsPerBatch": 8,
+    "maxPolicyRequestsOverall": 64,
+    "maxPageRequestsPerBatch": 4,
+    "maxPageRequestsOverall": 32,
+    "requestTimeoutSeconds": 15,
+    "pageSpacingBudgetSeconds": 60,
+    "extractor": "crawler-static-html-prefix/v1",
+    "preprocessing": "none-no-pruning-no-Wikipedia-lead"
+  },
+  "browser": {
+    "batches": 8,
+    "rowsPerBatch": 4,
+    "wallSeconds": 180,
+    "supervisorActiveSeconds": 170,
+    "nodeActiveSeconds": 165,
+    "completeOriginPolicyBudgetSeconds": 60,
+    "policyRequestTimeoutSeconds": 5,
+    "maxPolicyRequestsPerBatch": 8,
+    "navigationObservationSecondsPerArticle": 20,
+    "latestDclSeconds": 18,
+    "snapshotAfterDclSeconds": 2,
+    "maxNavigationObservationSeconds": 80,
+    "maxStartupOverheadCloseAndSourceChecksSeconds": 35,
+    "ownJobFinalDrainSeconds": 5,
+    "snapshotsPerArticle": 1,
+    "maxPausedRequests": 4096,
+    "maxCdpPendingRequests": 128,
+    "maxCdpMessageBytes": 4194304,
+    "maxCdpRpcSeconds": 10
+  },
+  "network": {
+    "literalOrigins": "exact batch article origins from pinned candidate bytes only; no extra script hosts",
+    "methods": [
+      "GET",
+      "HEAD"
+    ],
+    "resourceTypes": [
+      "Document"
+    ],
+    "credentialsRemoved": [
+      "Cookie",
+      "Authorization",
+      "Proxy-Authorization"
+    ],
+    "documents": "exact CURRENT document URL within own four batch URLs; no redirect rescue; every external subresource blocked",
+    "minimumOriginSpacingMs": 2000,
+    "knownRobotsRepair": "only immutable exact NL snapshot",
+    "chromeDnsPinned": false,
+    "completeOsEgressIsolation": false,
+    "observedPrivateResponseAddress": "fatal"
+  },
+  "resources": {
+    "rssMiB": 1536,
+    "privateMiB": 1536,
+    "jobCommitMiB": 1536,
+    "hostPhysicalReserveMiB": 1024,
+    "hostCommitReserveMiB": 1024,
+    "cFreeReserveMiB": 768,
+    "dFreeReserveMiB": 512,
+    "maxJobPids": 128,
+    "pollMs": 50,
+    "nodeHeapMiB": 256,
+    "resultBytes": 65536,
+    "logsBytes": 65536,
+    "packetBytes": 131072,
+    "totalBytes": 262144,
+    "prefixUtf16": 160
+  },
+  "freezeSchema": "current-producer-final-freeze/v1",
+  "freezeFields": [
+    "schema",
+    "sourceHashes",
+    "protocolSha256",
+    "candidateSha256",
+    "labelSealSha256",
+    "selectionReceiptSha256",
+    "targetProfiles",
+    "freezeHash"
+  ],
+  "freezeHashRule": "SHA256(JSON.stringify(ordered freeze without freezeHash)); sourceHashes exact exported SOURCE_FILES insertion order",
+  "ordering": "all eight static batches complete before browser01; each batch verifies all prior same-phase receipts; no automatic invocation or replay",
+  "fitterProof": "Fixed fitter freeze and successful fit-current supervisor are extra source pins outside producer-profile recipe; exact receipt/file/selfhash/protocol/source/cleanup/result SHA links required",
+  "mainDocumentAdmission": "After guard setup validate initial root about:blank frame once. Each article admits exactly one matching GET/HEAD Document in that known frame with valid Fetch/network IDs; reserve synchronously before continuation. Block same-URL subframes/reloads/duplicates/late requests; bind own response by admitted network/frame/URL and record Fetch request/response IDs separately.",
+  "denominator": 32,
+  "pairedArticleGroups": 32,
+  "retention": "checked-policy title<=200/body<=4096 in exclusive <=128KiB packet; keep until ROOT verifies encoding/source checks; no HTML/automatic delete or blanket licence assertion",
+  "validNoisyInput": "all valid bounded noisy reader input remains evaluable and wrong roots count; no post-score quality exclusion",
+  "experimental": true,
+  "productionValidated": false,
+  "assignmentAuthority": false,
+  "noAutomaticRetry": true
+}

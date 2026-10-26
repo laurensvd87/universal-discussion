@@ -1,0 +1,67 @@
+{
+  "schema": "current-producer-final-freeze/v1",
+  "sourceHashes": {
+    "spikes/topic-resolution/harness/current-producer-final-v1/run.mjs": "cbeee7110f48bf35685ebff65e398ab36012b7cc8a6c2f72fb4ed77a3950f68f",
+    "spikes/topic-resolution/harness/current-producer-final-v1/policy.js": "93896f014de6dd5baf997d6e15686995659c45845a82e10fd351e6bbeead9ebe",
+    "spikes/topic-resolution/harness/current-producer-final-v1/manifest.js": "e5d232f2f78402b9db4b4fecac34976bb36c50aa7fd1e698eecba84a82229da3",
+    "spikes/topic-resolution/harness/current-producer-final-v1/supervise.py": "bafcb6972c46c182613c8a035dc0dd821f1054cab67ac7d13f3b8fcae1e4bb0f",
+    "spikes/topic-resolution/harness/current-producer-final-v1/run.test.mjs": "85ff967b63eae2196b4ae40256e3a3b308b9cc59bbcc3b7bd381ec569078b187",
+    "spikes/topic-resolution/harness/current-producer-final-v1/policy.test.mjs": "0163963571def4ff7e200afcbfb2589cabc0cfb9aecd2ead96d9ed9824722c13",
+    "spikes/topic-resolution/harness/current-producer-final-v1/manifest.test.mjs": "38954ecb1627a870f2432f3df556fca2b7d7d3e5f5f1e87088fa4524a6dcb9b4",
+    "spikes/topic-resolution/harness/current-producer-final-v1/protocol.json": "80ba0d4598d7bbc3782a30a4c7a3f1782c3b27ad2531a38cc5a8cbfcf2931340",
+    "spikes/topic-resolution/harness/current-producer-final-v1/README.md": "e5f7019aedbeb85b9b7e4fd073de9701c9bebb3fee7c446c698a575efce309e0",
+    "spikes/topic-resolution/browser/chromium/page-content-reader.js": "c7946a7e19adb3fd9c14b2304101dbd3bf8b7c92fd1ab7c3ba679104b55e428f",
+    "spikes/topic-resolution/browser/core/page-content-policy.js": "c0ac60a80f0661d99aadc3b76aeb7b4fe1f28b8032e8271ef9ef8124baad073e",
+    "apps/local-service/src/crawler/public-fetch.js": "37c4619d61f015cbf3be00a0e5b748f313bafc3103e33bb0a825e79546d8bf71",
+    "apps/local-service/src/crawler/robots.js": "6e29a2b0e2e55d9bafcf6eb6f9ca401fd8b067e9675c3208867cd99d159dc0e2",
+    "apps/local-service/src/crawler/static-capture.js": "592a0c739de05ffa3fdd139b62dbe23b95fad4b4735faeca6c5bd278c3654b96",
+    "apps/local-service/experiments/topic-encoder/hierarchical-public-capture-v2/robots-deny-space-repair.js": "8b44edb35842f79899dff32505f4668e1f61978d4a2a5728257f834bd2ec85c2",
+    "apps/local-service/experiments/topic-encoder/hierarchical-e5-current-producer-transfer-v1/producer-profiles.js": "3e971c7293e2c9eeef63ab343c4536fe7482314309ec544e67d7cc85a98c583b",
+    "apps/local-service/experiments/topic-encoder/hierarchical-e5-current-producer-transfer-v1/producer-profiles.test.js": "51bc40f61cceb5ae519e4d1e2eed2e68bd315a488f8005f097e76dcbf4423e19",
+    "apps/local-service/experiments/topic-encoder/hierarchical-e5-paired-v1/taxonomy.js": "fb02fe8c556d1e5e356510e15d9110f5e069b02ecd5ecca427dfa7b22110f2dc",
+    "decisions/ADR-143-current-producer-transfer-gate.md": "93c8add9000ffd5fabe8647538d7f298c3bdf853133173374d1a951451bad661",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/run.mjs": "b5ee525050477216210480777e5fccef369cc3cf207190e3d6f716ec9c3c028a",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/policy.js": "ff2295b99cb4df9cee0c6be2277820a37f47327cbb3b9c12665b5fccfe1f51aa",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/supervise.py": "c47e630a8d811807a6b97a11c2695e9e063066ace40d52247e7ba98380d62196",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/run.test.mjs": "667d0dad7a5b45a3dd52aa5ee42a83842aa3b53cf84690478263b143a89c373f",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/policy.test.mjs": "42a1012415b8cf2d3119c7215daf648ce93bca54d95f2ba44cad8b06af9a7aed",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/protocol.json": "fd225a6b77f70e76109887fe17a7668197f1a6d332c254cf5499ed0f216c954a",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/README.md": "71905ad3ded0ddba93ac826bf9e6458cb0fb8f5afc3e3efe34fe1134587b8261",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/freeze.json": "962a3248668c734123269b68254e9c359c126e808b549c19cc3f946a2f89f14b",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/output-static/result.json": "4a3fedd0b07a1b964176ac00a8631d5ad23e06615a54608b6c58ceb1b88e01ab",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/output-static/supervisor.json": "31a0f28d5e57b1a9c5cd1dbc405a2b51d51e89137c668f0fcea75380ac4fc644",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/output-browser/result.json": "3c2dcfe4d400e28d25510c6ad436adb86960668acd99fcc1249eb0d562b857f7",
+    "spikes/topic-resolution/harness/current-producer-controls-v1/output-browser/supervisor.json": "d322943e79fe8f9a11e5da41dbddf9e48fc97b09415750ec28bc10b5327a5a7f",
+    "apps/local-service/data/hierarchy-current-producer-transfer-candidates-adr143.json": "d6843c87347a111277c04baf65062cf246ccd75fc883631d8c69e31563288052",
+    "apps/local-service/data/hierarchy-current-producer-transfer-label-seal-adr143.json": "a138f586f3590bf4b3c3158a2902d4187967f40de38703a981eae72335db8101",
+    "apps/local-service/experiments/topic-encoder/hierarchical-e5-current-producer-transfer-v1/output/selection-receipt.json": "88b87fc555c4e456bfb1a7ab23c93fcffa75de8d51b453df0f861324e3a0ae4f",
+    "apps/local-service/experiments/topic-encoder/hierarchical-e5-current-producer-transfer-v1/freeze.json": "ddee567ad132299dc130f01da77d77bae3fd18a7ad7c222a276de1384ef9c894",
+    "apps/local-service/experiments/topic-encoder/hierarchical-e5-current-producer-transfer-v1/output/supervisor.json": "c5b1073a5cf9c71412e0d43488ecae008474b39276c5a43c67bec8efd7ee766e"
+  },
+  "protocolSha256": "80ba0d4598d7bbc3782a30a4c7a3f1782c3b27ad2531a38cc5a8cbfcf2931340",
+  "candidateSha256": "d6843c87347a111277c04baf65062cf246ccd75fc883631d8c69e31563288052",
+  "labelSealSha256": "a138f586f3590bf4b3c3158a2902d4187967f40de38703a981eae72335db8101",
+  "selectionReceiptSha256": "88b87fc555c4e456bfb1a7ab23c93fcffa75de8d51b453df0f861324e3a0ae4f",
+  "targetProfiles": [
+    {
+      "schema": "root-rank-target-producer-profile/v1",
+      "producerId": "current-static",
+      "inputConstructionHash": "d78c1138bdda8257fe09c294d5d0043b2b0484a857cb2603765ee220cf6d0d07",
+      "extractorVersions": [
+        "crawler-static-html-prefix/v1"
+      ],
+      "producerProfileHash": "1fc02f79c53fff22f82e222fbae55177245cd55639733b1ecbbcacdc4dabf6f8"
+    },
+    {
+      "schema": "root-rank-target-producer-profile/v1",
+      "producerId": "browser-current",
+      "inputConstructionHash": "08d6910e71239300fc37c12873b4e931075b668d985fe60df5fb18d78abd746f",
+      "extractorVersions": [
+        "article-container-prefix/v1",
+        "main-text-prefix/v1"
+      ],
+      "producerProfileHash": "c86a163e4c698e08a9eb8eefc3fad74306a6f12656e0d3ad2a002e12a9cbc7b9"
+    }
+  ],
+  "freezeHash": "9fa2d77bddb474197c2dd6689f6ae3d179c0440dea5363bdb0af4b1139b77199"
+}
