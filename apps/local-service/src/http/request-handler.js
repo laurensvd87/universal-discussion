@@ -9,6 +9,8 @@ import { inspectPageNavigationUrl } from "../../../../spikes/topic-resolution/br
 
 export const MAX_BODY_BYTES = 65_536;
 const ALLOWED_PREFLIGHT_HEADERS = new Set(["authorization", "content-type", "x-demo-actor"]);
+const ACCOUNT_SESSION_READS = new Set(["/v1/account/me", "/v1/account/data", "/v1/account/private-data",
+  "/v1/account/public-chats/list", "/v1/account/public-chats/read"]);
 
 export function createRequestHandler({ service, config, ai = null, pairingVerifier = null, accounts = null,
   accountWrites = false, accountLifecycle = null, privateDiscussions = null, topicSpaces = null }) {
@@ -30,19 +32,37 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
       if (normalized.method === "OPTIONS") return preflight(normalized, config, accounts !== null, accountWrites);
       corsOrigin = requireOrigin(normalized.headers, config.origin);
       requireCapability(normalized.headers.authorization, config.capability, pairingVerifier);
+      function requireDeliveryAuthority() {
+        if (transportContext?.signal?.aborted || transportContext?.isCurrent && !transportContext.isCurrent() ||
+            transportContext?.signal?.aborted) fail("unavailable", "Request unavailable");
+        requireCapability(normalized.headers.authorization, config.capability, pairingVerifier);
+        if (transportContext?.signal?.aborted) fail("unavailable", "Request unavailable");
+      }
       if (accounts !== null && normalized.url.pathname.startsWith("/v1/account/")) {
         // Account credential handling requires the configured browser Origin;
         // privileged browser GET omissions use strict POST read equivalents.
         if (normalized.headers.origin !== config.origin) fail("origin", "Request unavailable");
+        requireDeliveryAuthority();
+        const currentAccountId = () => {
+          const accountId = accounts.me(normalized.headers["x-account-session"])?.id;
+          if (typeof accountId !== "string" || !accountId.length) fail("forbidden", "Account unavailable");
+          return accountId;
+        };
+        // Account reads also work before username selection. Do not replace
+        // this with named-posting principal authority or block renewal/logout.
+        const expectedAccountId = ACCOUNT_SESSION_READS.has(normalized.url.pathname) ? currentAccountId() : null;
         const response = await (accountLifecycle && ["/v1/account/data", "/v1/account/delete", "/v1/account/private-data",
           "/v1/account/public-chats/list", "/v1/account/public-chats/read"].includes(normalized.url.pathname)
           ? accountLifecycle.route(normalized) : routeAccountRequest(normalized, accounts));
+        requireDeliveryAuthority();
+        if (expectedAccountId !== null && currentAccountId() !== expectedAccountId) fail("forbidden", "Account unavailable");
         return jsonResponse(response.status, response.value, corsOrigin);
       }
       if (normalized.url.pathname.startsWith("/v1/private/")) {
         if (!accountWrites || !accounts || !privateDiscussions) fail("not-found", "Object unavailable");
         if (normalized.headers.origin !== config.origin || Object.hasOwn(normalized.headers, "x-demo-actor")) fail("origin", "Request unavailable");
         if (normalized.method !== "POST") fail("method", "Method unavailable");
+        requireDeliveryAuthority();
         const principal = accounts.resolvePrincipal(normalized.headers["x-account-session"]);
         const input = parseJsonBody(normalized);
         const action = normalized.url.pathname.slice("/v1/private/".length);
@@ -51,6 +71,10 @@ export function createRequestHandler({ service, config, ai = null, pairingVerifi
         // Generation is separately provider-bound inside the service at dispatch
         // and completion. An unavailable grant must not discard an accepted reply.
         const value = await privateDiscussions[methods[action]](principal, input);
+        // Delivery revocation does not undo an already accepted mutation.
+        requireDeliveryAuthority();
+        if (accounts.resolvePrincipal(normalized.headers["x-account-session"]).id !== principal.id)
+          fail("forbidden", "Account unavailable");
         return jsonResponse(200, value, corsOrigin);
       }
       const response = await route(normalized, service, ai, pairingVerifier !== null, accountWrites ? accounts : null,
