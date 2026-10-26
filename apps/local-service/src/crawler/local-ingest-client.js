@@ -15,6 +15,18 @@ const INGEST_TIMEOUT_MS = 30_000;
 const INGEST_ERROR_CODES = new Set(["request-capacity", "request-too-large", "invalid-response", "invalid-request",
   "unauthorized", "forbidden", "conflict", "capacity", "unavailable", "ambiguous",
   "response-timeout", "service-error", "service-unavailable"]);
+const INGEST_DETAIL_CODES = new Set(["enqueue-cancelled", "enqueue-failed", "renewal-rejected", "renewal-error", "status-missing",
+  "status-read-failed", "timeout-pending", "timeout-leased",
+  ...["failed", "cancelled"].flatMap(state => ["authority-expired", "authority-revoked", "lease-exhausted",
+    "source-changed", "representation-failed", "worker-failed", "lifecycle-forgotten", "lifecycle-changed", "unknown"]
+    .map(code => `status-${state}:${code}`))]);
+
+export function fixedIngestDetail(error) {
+  try {
+    const detail = error instanceof CrawlerApiError ? Object.getOwnPropertyDescriptor(error, "detail")?.value : undefined;
+    return INGEST_DETAIL_CODES.has(detail) ? detail : null;
+  } catch { return null; }
+}
 
 export function fixedIngestError(error) {
   // Never forward remote/error text, arbitrary codes, or caller-controlled objects.
@@ -26,12 +38,13 @@ export function fixedIngestError(error) {
 }
 
 export class CrawlerApiError extends Error {
-  constructor(code) { super(code); this.name = "CrawlerApiError"; this.code = code; }
+  constructor(code, detail = null) { super(code); this.name = "CrawlerApiError"; this.code = code;
+    if (INGEST_DETAIL_CODES.has(detail)) this.detail = detail; }
 }
 
-export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl = http.request } = {}) {
+export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl = http.request, useSourceUrlPages = false } = {}) {
   if (typeof token !== "string" || !TOKEN.test(token) || !Number.isInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 60_000 ||
-      typeof requestImpl !== "function") throw new TypeError("Invalid local crawler authentication");
+      typeof requestImpl !== "function" || typeof useSourceUrlPages !== "boolean") throw new TypeError("Invalid local crawler authentication");
 
   function request(method, apiPath, value, requestTimeoutMs = timeoutMs, signal) {
     if (signal !== undefined && !(signal instanceof AbortSignal)) throw new TypeError("Invalid crawler cancellation");
@@ -107,26 +120,45 @@ export function createLocalIngestClient({ token, timeoutMs = 10_000, requestImpl
     return value.version;
   }
 
-  async function knownSourceUrls({ signal } = {}) {
+  async function knownSourceUrls({ signal, onProgress } = {}) {
+    if (onProgress !== undefined && typeof onProgress !== "function") throw new TypeError("Invalid crawler progress observer");
     const urls = [];
     const seenCursors = new Set();
     let cursor = null, expected = null, pages = 0;
     do {
-      const value = await request("POST", "/v1/catalog/page", { kind: "sources", limit: 100, cursor }, timeoutMs, signal);
-      if (!plain(value, ["catalog", "nextCursor"]) || !value.catalog || !isVersion(value.catalog.version) || !Array.isArray(value.catalog.sources) ||
-          value.catalog.sources.length > 100 || typeof value.nextCursor !== "string" && value.nextCursor !== null ||
+      const value = await request("POST", useSourceUrlPages ? "/v1/catalog/source-urls" : "/v1/catalog/page",
+        useSourceUrlPages ? { limit: 100, cursor } : { kind: "sources", limit: 100, cursor }, timeoutMs, signal);
+      const validEnvelope = useSourceUrlPages ? plain(value, ["version", "urls", "nextCursor"])
+        : plain(value, ["catalog", "nextCursor"]) && value.catalog;
+      const currentVersion = useSourceUrlPages ? value?.version : value?.catalog?.version;
+      const sources = useSourceUrlPages ? value?.urls : value?.catalog?.sources;
+      if (!validEnvelope || !isVersion(currentVersion) || !Array.isArray(sources) ||
+          sources.length > 100 || typeof value.nextCursor !== "string" && value.nextCursor !== null ||
           typeof value.nextCursor === "string" && (!CURSOR.test(value.nextCursor) || seenCursors.has(value.nextCursor)) ||
           ++pages > MAX_CATALOG_PAGES) throw new CrawlerApiError("invalid-response");
-      expected ??= value.catalog.version;
-      if (expected.generation !== value.catalog.version.generation || expected.revision !== value.catalog.version.revision)
+      // The opaque server cursor already binds the exact catalog version. An
+      // unrelated discussion write may advance the global revision between
+      // pages without changing that catalog; keep the latest monotone version.
+      if (expected !== null && (expected.generation !== currentVersion.generation ||
+          currentVersion.revision < expected.revision))
         throw new CrawlerApiError("conflict");
-      for (const source of value.catalog.sources) {
-        if (!source || typeof source.url !== "string" || source.url.length > 2_048) throw new CrawlerApiError("invalid-response");
-        urls.push(source.url);
+      expected = currentVersion;
+      for (const source of sources) {
+        const url = useSourceUrlPages ? source : source?.url;
+        if (typeof url !== "string" || !url.length || url.length > 2_048) throw new CrawlerApiError("invalid-response");
+        if (useSourceUrlPages) {
+          let parsed;
+          try { parsed = new URL(url); } catch { throw new CrawlerApiError("invalid-response"); }
+          if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password || /[\p{Cc}\p{Cf}]/u.test(url))
+            throw new CrawlerApiError("invalid-response");
+        }
+        urls.push(url);
         if (urls.length > MAX_CATALOG_SOURCES) throw new CrawlerApiError("capacity");
       }
       if (value.nextCursor !== null) seenCursors.add(value.nextCursor);
       cursor = value.nextCursor;
+      try { Promise.resolve(onProgress?.(Object.freeze({ event: "catalog-page", pages, sources: urls.length }))).catch(() => {}); }
+      catch { /* Diagnostics never alter catalog or replay authority. */ }
     } while (cursor !== null);
     return { version: expected ?? await version({ signal }), urls };
   }

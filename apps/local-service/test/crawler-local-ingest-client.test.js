@@ -111,12 +111,23 @@ test("known canonical Sources are read through stable bounded catalogue pages", 
   assert.equal(fixture.calls.every(call => call.options.headers["content-length"] === String(call.body.length)), true);
 });
 
-test("catalogue paging rejects version drift and malformed Source projections", async () => {
+test("catalogue paging accepts monotone unrelated writes, rejects generation/revision rollback and malformed Source projections", async () => {
   const drift = responseFixture([
     { value: { catalog: { version: VERSION, sources: [] }, nextCursor: "next" } },
     { value: { catalog: { version: { ...VERSION, revision: 11 }, sources: [] }, nextCursor: null } },
   ]);
-  await assert.rejects(createLocalIngestClient({ token: TOKEN, requestImpl: drift.requestImpl }).knownSourceUrls(), rejectsCode("conflict"));
+  const progress = [];
+  assert.deepEqual(await createLocalIngestClient({ token: TOKEN, requestImpl: drift.requestImpl }).knownSourceUrls({
+    onProgress: value => progress.push(value),
+  }), { version: { ...VERSION, revision: 11 }, urls: [] });
+  assert.deepEqual(progress, [{ event: 'catalog-page', pages: 1, sources: 0 }, { event: 'catalog-page', pages: 2, sources: 0 }]);
+  for (const version of [{ ...VERSION, revision: 9 }, { ...VERSION, generation: 'other-generation' }]) {
+    const rollback = responseFixture([
+      { value: { catalog: { version: VERSION, sources: [] }, nextCursor: 'next' } },
+      { value: { catalog: { version, sources: [] }, nextCursor: null } },
+    ]);
+    await assert.rejects(createLocalIngestClient({ token: TOKEN, requestImpl: rollback.requestImpl }).knownSourceUrls(), rejectsCode('conflict'));
+  }
 
   for (const source of [null, {}, { url: 123 }, { url: "x".repeat(2_049) }]) {
     const malformed = responseFixture([{ value: { catalog: { version: VERSION, sources: [source] }, nextCursor: null } }]);
@@ -139,6 +150,44 @@ test("catalogue paging rejects malformed and repeated signed cursors", async () 
   await assert.rejects(createLocalIngestClient({ token: TOKEN, requestImpl: repeated.requestImpl }).knownSourceUrls(),
     rejectsCode("invalid-response"));
   assert.deepEqual(repeated.calls.map(call => body(call).cursor), [null, "signed_cursor"]);
+});
+
+test('catalogue changes still obey the server cursor conflict and never resume from an invented position', async () => {
+  const fixture = responseFixture([
+    { value: { catalog: { version: VERSION, sources: [{ url: 'https://news.alpha.org/one' }] }, nextCursor: 'pinned-cursor' } },
+    { status: 409, value: { error: 'conflict' } },
+  ]);
+  await assert.rejects(createLocalIngestClient({ token: TOKEN, requestImpl: fixture.requestImpl }).knownSourceUrls(), rejectsCode('conflict'));
+  assert.equal(fixture.calls.length, 2);
+  assert.deepEqual(fixture.calls.map(call => body(call).cursor), [null, 'pinned-cursor']);
+});
+
+test('trusted PostgreSQL crawler mode reads only strict minimal URL pages without a legacy fallback', async () => {
+  const fixture = responseFixture([
+    { value: { version: VERSION, urls: ['https://news.alpha.org/one'], nextCursor: 'url-cursor' } },
+    { value: { version: { ...VERSION, revision: 11 }, urls: ['https://news.alpha.org/two'], nextCursor: null } },
+  ]);
+  const client = createLocalIngestClient({ token: TOKEN, useSourceUrlPages: true, requestImpl: fixture.requestImpl });
+  assert.deepEqual(await client.knownSourceUrls(), { version: { ...VERSION, revision: 11 },
+    urls: ['https://news.alpha.org/one', 'https://news.alpha.org/two'] });
+  assert.ok(fixture.calls.every(call => call.options.path === '/v1/catalog/source-urls'));
+  assert.deepEqual(fixture.calls.map(call => body(call)), [{ limit: 100, cursor: null }, { limit: 100, cursor: 'url-cursor' }]);
+  for (const value of [
+    { version: VERSION, urls: ['https://news.alpha.org/one'], nextCursor: null, extra: 'not allowed' },
+    { catalog: { version: VERSION, sources: [] }, nextCursor: null },
+    ...['javascript:alert(1)', 'https://name:password@example.org/', 'PRIVATE TEXT', ''].map(url =>
+      ({ version: VERSION, urls: [url], nextCursor: null })),
+  ]) {
+    const bad = responseFixture([{ value }]);
+    await assert.rejects(createLocalIngestClient({ token: TOKEN, useSourceUrlPages: true,
+      requestImpl: bad.requestImpl }).knownSourceUrls(), rejectsCode('invalid-response'));
+    assert.equal(bad.calls.length, 1);
+  }
+  const absent = responseFixture([{ status: 404, value: { error: 'not-found' } }]);
+  await assert.rejects(createLocalIngestClient({ token: TOKEN, useSourceUrlPages: true,
+    requestImpl: absent.requestImpl }).knownSourceUrls(), rejectsCode('unavailable'));
+  assert.equal(absent.calls.length, 1);
+  assert.throws(() => createLocalIngestClient({ token: TOKEN, useSourceUrlPages: 'yes' }), /Invalid local crawler/u);
 });
 
 test("ambiguous ingestion retries the exact operation once without changing its expected version", async () => {

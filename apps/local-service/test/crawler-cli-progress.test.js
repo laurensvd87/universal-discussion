@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { argumentsFrom, createProgressReporter } from "../src/ops/crawl-cli.js";
+import { DatabaseSync } from "node:sqlite";
+import { argumentsFrom, createProgressReporter, classifyCrawlerFatal, runCrawlerCli } from "../src/ops/crawl-cli.js";
 
 test("CLI defaults continue without automatic campaign, host, section, depth or time caps", () => {
   assert.deepEqual(argumentsFrom(["--token-stdin", "--apply"]), {
@@ -47,4 +48,85 @@ test("CLI progress output failure does not throw or keep a closed timer active",
     attemptedThisRun: 25, stagedThisRun: 25, ingestedThisRun: 0 }));
   assert.doesNotThrow(() => heartbeat());
   reporter.close();
+});
+
+test('CLI startup and stop diagnostics retain only bounded counters and fixed allowlisted details', () => {
+  const lines = []; let heartbeat;
+  const reporter = createProgressReporter({ write: value => lines.push(value),
+    schedule(callback) { heartbeat = callback; return 1; }, cancel() {} });
+  const counters = { attemptedThisRun: 0, stagedThisRun: 0, ingestedThisRun: 0 };
+  reporter.onProgress({ ...counters, event: 'catalog-page', phase: 'connecting', catalogPages: 25,
+    catalogSources: 2500, url: 'PRIVATE URL' });
+  heartbeat();
+  assert.match(lines[0], /catalogPages=25 catalogSources=2500/u);
+  reporter.onProgress({ ...counters, event: 'read-retry', phase: 'connecting', retry: 2,
+    delayMs: 4000, readError: 'conflict', error: 'PRIVATE ERROR' });
+  reporter.onProgress({ ...counters, event: 'ingest-failed', phase: 'applying', ingestError: 'unavailable',
+    ingestDetail: 'status-cancelled:authority-expired' });
+  reporter.onProgress({ ...counters, event: 'ingest-failed', phase: 'applying', ingestError: 'unavailable',
+    ingestDetail: 'PRIVATE SUBJECT' });
+  assert.ok(lines.includes('Crawler read retry: conflict attempt=2 delayMs=4000\n'));
+  assert.ok(lines.includes('Crawler ingest detail: status-cancelled:authority-expired\n'));
+  assert.equal(lines.join('').includes('PRIVATE'), false);
+  reporter.close();
+});
+
+test("fatal classification distinguishes SQLite memory errors without retaining raw error material",()=>{
+  const error=Object.assign(new Error("PRIVATE_URL PRIVATE_TOKEN PRIVATE_SQL"),{code:"ERR_SQLITE_ERROR",errcode:7,
+    errstr:"PRIVATE_DATABASE_PATH",cause:{message:"PRIVATE_CAUSE"}});
+  assert.deepEqual(classifyCrawlerFatal(error),{name:"Error",code:"ERR_SQLITE_ERROR",sqliteCode:7,sqlitePrimary:"SQLITE_NOMEM"});
+  assert.deepEqual(classifyCrawlerFatal({name:"PRIVATE_NAME",code:"PRIVATE_CODE",errcode:7}),{name:"unknown",code:"unknown"});
+  assert.equal(JSON.stringify(classifyCrawlerFatal(error)).includes("PRIVATE"),false);
+  assert.deepEqual(classifyCrawlerFatal(Object.assign(new TypeError("SECRET"),{code:"ERR_INVALID_ARG_TYPE"})),{name:"TypeError",code:"ERR_INVALID_ARG_TYPE"});
+  assert.deepEqual(classifyCrawlerFatal({name:"Error",code:"ERR_SQLITE_ERROR",errcode:517}),{name:"Error",code:"ERR_SQLITE_ERROR",sqliteCode:517,sqlitePrimary:"SQLITE_BUSY"});
+});
+
+test("native SQLite extended errors expose their fixed class without database error text",()=>{
+  const db=new DatabaseSync(":memory:");
+  try{
+    db.exec("CREATE TABLE private_example (id INTEGER PRIMARY KEY); INSERT INTO private_example VALUES (1)");
+    assert.throws(()=>db.exec("INSERT INTO private_example VALUES (1)"),error=>{
+      const value=classifyCrawlerFatal(error);assert.equal(value.code,"ERR_SQLITE_ERROR");assert.equal(value.sqlitePrimary,"SQLITE_CONSTRAINT");
+      assert.equal(value.sqliteCode&255,19);assert.equal(JSON.stringify(value).includes("private_example"),false);return true;
+    });
+  }finally{db.close();}
+});
+
+test("fatal diagnostics never execute getters, inherited hooks, or proxy traps",()=>{
+  let hooks=0;
+  const hostile={};for(const key of ["name","code","errcode","message","stack"])Object.defineProperty(hostile,key,{get(){hooks++;throw new Error("PRIVATE_GETTER");}});
+  assert.deepEqual(classifyCrawlerFatal(hostile),{name:"unknown",code:"unknown"});
+  const prototype={};Object.defineProperty(prototype,"name",{get(){hooks++;return "PRIVATE_INHERITED";}});
+  assert.deepEqual(classifyCrawlerFatal(Object.create(prototype)),{name:"unknown",code:"unknown"});
+  const proxy=new Proxy({},new Proxy({},{get(){hooks++;throw new Error("PRIVATE_PROXY");}}));
+  assert.deepEqual(classifyCrawlerFatal(proxy),{name:"unknown",code:"unknown"});
+  const revoked=Proxy.revocable({},{});revoked.revoke();assert.deepEqual(classifyCrawlerFatal(revoked.proxy),{name:"unknown",code:"unknown"});
+  assert.equal(hooks,0);
+  for(const value of [null,undefined,1,"PRIVATE",Symbol("PRIVATE")])assert.deepEqual(classifyCrawlerFatal(value),{name:"unknown",code:"unknown"});
+});
+
+test("CLI fatal handler also refuses inspection hooks while preserving cleanup and exit status",async()=>{
+  const priorExit=process.exitCode,lines=[];let hooks=0,closed=0;
+  const hostile=new Proxy({},{get(){hooks++;throw new Error("PRIVATE_PROXY");},getOwnPropertyDescriptor(){hooks++;throw new Error("PRIVATE_DESCRIPTOR");},getPrototypeOf(){hooks++;throw new Error("PRIVATE_PROTOTYPE");}});
+  try{
+    await runCrawlerCli({args:["--token-stdin"],tokenReader:async()=>"PRIVATE_TOKEN",write:()=>{},errorWrite:value=>lines.push(value),
+      clientFactory:()=>({knownSourceUrls:async()=>{},ingest:async()=>{},close:()=>{closed++;}}),embedderFactory:()=>{throw hostile;}});
+    assert.equal(hooks,0);assert.equal(closed,1);assert.equal(process.exitCode,1);
+    const diagnostic=JSON.parse(lines[1].slice("Crawler fatal: ".length));assert.equal(diagnostic.name,"unknown");assert.equal(diagnostic.code,"unknown");
+    assert.equal(lines.join("").includes("PRIVATE"),false);
+  }finally{process.exitCode=priorExit;}
+});
+
+test("CLI fatal output preserves generic stop line and adds only safe class and phase; resources close",async()=>{
+  const priorExit=process.exitCode,lines=[],closed=[];
+  try{
+    await runCrawlerCli({args:["--token-stdin"],tokenReader:async()=>"PRIVATE_TOKEN",write:()=>{},errorWrite:value=>lines.push(value),
+      clientFactory:()=>({knownSourceUrls:async()=>{throw Object.assign(new Error("PRIVATE_URL"),{code:"ERR_SQLITE_ERROR",errcode:7});},ingest:async()=>{},close:()=>closed.push("client")}),
+      embedderFactory:()=>({embed:async()=>{},close:()=>closed.push("embedder")}),
+      stateFactory:()=>Object.fromEntries(["enqueue","markExisting","next","claimRedirect","stage","terminal","listStaged","listIngestedVectors","markIngested","duplicateFor","bindGeneration","getPolicy","setPolicy","lastRequestAt","noteRequest","counts","attemptedCount","selectionCounts","close"].map(name=>[name,()=>{if(name==="close")closed.push("state");}]))});
+    assert.equal(lines[0],"Crawler stopped: crawler-failed\n");
+    const diagnostic=JSON.parse(lines[1].slice("Crawler fatal: ".length));
+    assert.equal(diagnostic.sqlitePrimary,"SQLITE_NOMEM");assert.equal(diagnostic.progress.phase,"connecting");assert.equal(diagnostic.progress.attemptedThisRun,0);
+    assert.equal(lines.join("").includes("PRIVATE"),false);assert.deepEqual(closed,["state","embedder","client"]);assert.equal(process.exitCode,1);
+  }finally{process.exitCode=priorExit;}
 });

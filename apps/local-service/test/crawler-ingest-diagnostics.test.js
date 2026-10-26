@@ -9,7 +9,7 @@ import test from "node:test";
 import { createCrawlState } from "../src/crawler/crawl-state.js";
 import { runCrawler } from "../src/crawler/crawl-runner.js";
 import { representationDigest } from "../src/crawler/diversity.js";
-import { CrawlerApiError, createLocalIngestClient, fixedIngestError } from "../src/crawler/local-ingest-client.js";
+import { CrawlerApiError, createLocalIngestClient, fixedIngestError, fixedIngestDetail } from "../src/crawler/local-ingest-client.js";
 import { createProgressReporter } from "../src/ops/crawl-cli.js";
 
 const TOKEN = "A".repeat(43);
@@ -56,6 +56,11 @@ test("fixed ingest diagnostics never forward arbitrary errors, fields, getters o
   for (const code of ["capacity", "conflict", "unauthorized", "forbidden", "ambiguous", "invalid-response", "unavailable",
     "invalid-request", "request-capacity", "request-too-large"])
     assert.equal(fixedIngestError(new CrawlerApiError(code)), code);
+  assert.equal(fixedIngestDetail(new CrawlerApiError('unavailable', 'status-cancelled:authority-expired')),
+    'status-cancelled:authority-expired');
+  for (const error of [{ detail: 'status-missing' }, new CrawlerApiError('unavailable', 'PRIVATE_SUBJECT'),
+    Object.defineProperty(new CrawlerApiError('unavailable'), 'detail', { get() { throw new Error(TOKEN); } })])
+    assert.equal(fixedIngestDetail(error), null);
 });
 
 for (const event of ["aborted", "close", "request-close"]) {

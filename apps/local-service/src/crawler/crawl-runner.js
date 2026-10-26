@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { BUILT_IN_SOURCE_ID, BUILT_IN_SOURCE_MANIFEST, isBuiltInSourceUrl } from "./built-in-sources.js";
 import { representationDigest, selectDiverseCandidates, simhash64 } from "./diversity.js";
 import { PublicFetchError } from "./public-fetch.js";
-import { fixedIngestError } from "./local-ingest-client.js";
+import { CrawlerApiError, fixedIngestError, fixedIngestDetail } from "./local-ingest-client.js";
 import {
   evaluateRobots,
   matchTdmRep,
@@ -125,12 +125,13 @@ function safePageUrl(raw, base, bucket, builtIn) {
   } catch { return null; }
 }
 
-function summary({ apply, reason, ingestError, attemptedThisRun, stagedThisRun, ingestedThisRun, state }) {
+function summary({ apply, reason, ingestError, ingestDetail, attemptedThisRun, stagedThisRun, ingestedThisRun, state }) {
   return Object.freeze({
     campaign: BUILT_IN_SOURCE_ID,
     mode: apply ? "apply" : "preview",
     reason,
     ...(reason === "ingest-unavailable" ? { ingestError } : {}),
+    ...(ingestDetail ? { ingestDetail } : {}),
     attemptedThisRun,
     stagedThisRun,
     ingestedThisRun,
@@ -173,14 +174,15 @@ export async function runCrawler({
   let attemptedThisRun = 0, stagedThisRun = 0, ingestedThisRun = 0, reason = "frontier-empty";
   let canonical;
   let ingestError;
+  let ingestDetail;
   let stagedAtCheckpoint = 0;
 
-  function progress(event, phase) {
+  function progress(event, phase, details = {}) {
     if (!onProgress) return;
     try {
       // Fixed codes and aggregate counters only; observer failure cannot change crawl authority.
       const result = onProgress(Object.freeze({ event, phase, attemptedThisRun, stagedThisRun, ingestedThisRun,
-        ...(event === "ingest-failed" ? { ingestError } : {}) }));
+        ...(event === "ingest-failed" ? { ingestError, ...(ingestDetail ? { ingestDetail } : {}) } : {}), ...details }));
       Promise.resolve(result).catch(() => {});
     } catch {}
   }
@@ -433,6 +435,7 @@ export async function runCrawler({
         if (signal?.aborted || error?.code === "aborted") { reason = "aborted"; return; }
         reason = "ingest-unavailable";
         ingestError = fixedIngestError(error);
+        ingestDetail = fixedIngestDetail(error);
         progress("ingest-failed", "applying");
         return;
       }
@@ -441,7 +444,15 @@ export async function runCrawler({
   }
 
   progress("phase", "connecting");
-  try { canonical = await client.knownSourceUrls({ signal }); }
+  try { canonical = await client.knownSourceUrls({ signal, onProgress(value) {
+    if (value?.event === "catalog-page" && Number.isSafeInteger(value.pages) && value.pages >= 0 &&
+        Number.isSafeInteger(value.sources) && value.sources >= 0)
+      progress("catalog-page", "connecting", { catalogPages: value.pages, catalogSources: value.sources });
+    if (value?.event === "read-retry" && Number.isSafeInteger(value.retry) && value.retry > 0 &&
+        Number.isSafeInteger(value.delayMs) && value.delayMs > 0)
+      progress("read-retry", "connecting", { retry: value.retry, delayMs: value.delayMs,
+        readError: fixedIngestError(value.code === undefined ? null : new CrawlerApiError(value.code)) });
+  } }); }
   catch (error) {
     if (!signal?.aborted && error?.code !== "aborted") throw error;
     reason = "aborted";
@@ -488,5 +499,5 @@ export async function runCrawler({
     }
   }
   progress("complete", "complete");
-  return summary({ apply, reason, ingestError, attemptedThisRun, stagedThisRun, ingestedThisRun, state });
+  return summary({ apply, reason, ingestError, ingestDetail, attemptedThisRun, stagedThisRun, ingestedThisRun, state });
 }
