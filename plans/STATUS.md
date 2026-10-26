@@ -1,55 +1,42 @@
 # Project status
 
-## Git consolidation checkpoint on 26 October
+## Current checkpoint on 26 October
 
-The accumulated source is now recorded separately from generated local artifacts.
-Commit `86d428dd` preserves1,743 historical research files byte-for-byte;
-`1cb7547b` checkpoints432 previously untracked integration and decision files;
-`2c796408` records106 unfinished application, configuration and test edits.
-These are historical or WIP checkpoints, not release or matching-quality claims.
-Browser profiles, captures, model-vector outputs and downloaded tooling remain
-on disk and are excluded from Git. No source or application data was deleted.
+The Git backlog is committed and pushed: historical research is archived in
+86d428dd, remaining integration sources in1cb7547b and unfinished application
+edits in2c796408. Generated profiles, captures, vectors and downloaded tooling
+remain local and ignored. These checkpoints are not releases.
 
-The read-flight source fix in `1e0d27d1` removes canceled subscribers instead of
-retaining a promise callback per reader. Independent source review accepted it;
-23 focused/discovery tests pass. This code has not been deployed to the running
-service. Commit `4f454466` also closes the asynchronous account/export/private
-delivery gap in source: exact identity, pairing, session and transport are checked
-after awaited work. Independent source review accepted it;103 focused account/
-trust tests and99 additional provider/deadline regressions pass. It is not deployed.
+The latest real native check (normal source8f934974) stopped early with generic
+execution-failure and zero completed canonical assertions. Independent audit
+verified emergency parent Job retirement, handles, EOFs and all2,348 input pins;
+there is no child lifecycle/smart-stop result and the actual cause is unknown.
+Its outputs, catalog snapshot and exact Git source bytes remain preserved.
 
-The existing second native PostgreSQL fixture now separates PID-file ownership
-from SQL startup identity;81 guarded Node and92 pure Python tests pass. Independent
-source review accepted it, and the fixed catalog binds2,338 inputs. Final binding
-passed, followed by one isolated actual run (session31144, exit1): startup and
-scratch database creation succeeded, but checks failed with SQLSTATE42601. The
-pure case passed; no canonical child assertion completed. The exact failed SQL
-statement was not retained. Scratch cleanup and the child server's owned smart
-stop are recorded separately from normal parent Job retirement. Independent
-saved-failure audit18aaf642...cf7bf passed all2,338 end-pins; it is not SQL acceptance.
-All consumed v2 inputs, catalog and output are immutable. No retry or new variant.
-The first native attempt remains a closed bootstrap failure. Semantic quality is
-still unmeasured.
+The earlier nativev2 check reached startup/scratch creation but failed42601.
+Offline parsing identified two invalid IF/CASE delimiters. The normal bounded
+schema loader repairs exactly four bytes without editing the frozen SQL. All
+54 schema and2 boundary PL/pgSQL blocks now parse, but this is not SQL execution.
+The maintained private initializer consumes the repair; all25 original assertion
+bodies remain unchanged.
+
+The normal runner now creates fresh internal per-run directories with immutable
+catalog/marker files and a permanent claim bound to the original NodePID. It
+retains finite native failure codes without retrying operations. Independent
+source review accepted it;19 guarded Node and12 pure Python tests pass. A real
+filesystem-only Python/Node marker, claim, cache and replay check also passes.
+The current358679-byte catalog894a5c24...49a35 binds2,350 inputs. Final binding,
+fresh resources and a separate actual decision precede another native check.
+All2,338 frozen predecessor inputs remain unchanged.
 
 The crawler and application services retain their original process starts.
-Offline syntax diagnosis found invalid unparenthesized CASE expressions inside
-two PL/pgSQL IF guards, in install_attestation and issue_command. A minimal
-IF/CASE example reproduces the error; adding parentheses fixes it. The new normal
-hierarchy-schema-source.js applies exactly those two changes to hash-pinned source
-without editing the historical schema. Four guarded tests pass. Its actual output
-passes135 outer SQL statements and54 PL/pgSQL blocks; the unchanged boundary
-passes5 statements and2 blocks with pglast7.21/PostgreSQL17.7 grammar. This is
-syntax evidence, not successful PostgreSQL installation or canonical assertions.
-The maintained private initializer now explicitly consumes the loader. Its normal
-repository/context/assertion suite preserves all25 original SQL assertion bodies.
-The normal cluster/entry and279-line driver reuse reviewed controllers and native
-retirement while binding fresh paths. Independent source review accepted the
-composition;9 guarded Node and6 pure Python tests pass. The fixed358353-byte catalog
-a21320cb...7cab0 binds2,348 inputs, including all2,338 frozen predecessor inputs.
-Final binding, fresh resources and a separate actual decision still precede native
-execution. Real hierarchy/page/discussion and semantic-quality evidence remain open;
-frozen v2 will not be rerun.
-Clean Git is a recovery checkpoint, not completion of hierarchical matching.
+Read-flight1e0d27d1 and post-await account/private delivery4f454466 are reviewed
+source fixes, not deployed changes. Actual canonical SQL, multi-session/role
+checks, real E5 quality, owner controls, UI integration and live activation remain
+unfinished. The next useful milestone is the complete25-case native database
+pass, followed by real matching and crawler-load latency evidence.
+
+Earlier dated checkpoints below are historical where superseded.
 
 ## Latest continuation: 26 October
 

@@ -1,16 +1,18 @@
 # E5 matching across broad and specific topics
 
-26 October current: source is committed and pushed; generated data remains local.
-Native SQL validation reached startup but failed42601. Offline parsing found two
-invalid IF/CASE delimiters; the normal hash-pinned schema materializer corrects
-only those four bytes and passes the complete schema/boundary grammar check.
-The maintained private initializer now consumes it explicitly; the normal native
-composition preserves all25 assertions and original guards (9 Node/6 Python pass,
-independent source review accepted; final2,348-input binding and actual decision
-pending). This repairs a concrete SQL source blocker, not E5 quality: native
-assertions, real semantic evaluation and
-product activation remain open. No consumed fixture will be rerun or edited, and
-no new full experiment variant is needed for the next explicit integration step.
+26 October current: the latest normal native check failed early with an
+unretained generic exception before canonical assertion results. Earlier42601
+source errors are repaired by a bounded four-byte SQL materializer consumed by
+the normal initializer. All25 original assertion bodies remain unchanged.
+
+The maintained runner now has independently reviewed per-run storage, permanent
+child claims and finite native diagnostics. Normal fixes use ordinary Git with
+immutable per-run evidence.19 Node/12 Python and real filesystem-only checks pass;
+the current2,350-input catalog still needs final binding and an actual decision.
+No new E5 quality, canonical SQL success or live assignment acceptance follows.
+The crawler remains running; the Git backlog is committed and pushed.
+
+Earlier dated checkpoints below are historical where superseded.
 
 24 October product integration: ADR219 is implemented and independently SOURCE
 accepted as an unregistered reusable facade over actual190/196/207. It loads

@@ -33,7 +33,14 @@ hierarchy-schema-source.js without changing old SQL. Normal hierarchy-repository
 private context, exact25-assertion suite, cluster/entry/279-line driver now compose
 explicitly; independent source review accepted,9 Node/6 purePython PASS. Fixed
 catalog358353B a21320cb...7cab0/2348inputs/273547782B includes unchanged old2338.
-Final binding/fresh resources/separateONEdecision precede actual normal execution;
+Firstnormal actual8f934974 closed early genericexecution-failure, canonicalpoints0;
+parent emergency retirement/emptyJob/handles/EOF/endpins PASS; childresultabsent.
+Independentauditd78ab3...846b PASS; actualcauseUNKNOWN. Immutablefirstmap stored in
+data/hierarchy-native-first-actual-catalog-20261026.json; source rawGit8f934974.
+Normal per-run storage/claim/finite-error composition now independently accepted,
+19Node/12Python PASS plus realfilesystem-only Python/Nodewire+replay PASS. Current
+catalog358679B894a5c24...49a35/2350inputs273579513B; original2338 unchanged.
+Final binding/fresh resources/separateONEdecision precede next normal actual;
 no frozen v2 retry or live activation. Nativev1
 session23991 remains closed failed at bootstrap,SQL0; all2338/map/output immutable.
 Actual hierarchy quality, canonical SQL/native concurrency and live product

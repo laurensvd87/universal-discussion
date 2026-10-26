@@ -2,19 +2,22 @@
 
 ## Current implementation boundary on 26 October
 
-The Git backlog is committed and pushed. The second isolated native PostgreSQL
-run passed startup, then failed checks with42601 before canonical child assertions
-completed. Its inputs and output are immutable; owned server cleanup is verified.
-Offline parsing identifies two invalid IF/CASE delimiters in the frozen schema.
-The normal hierarchy-schema-source.js now repairs exactly four bytes, with pinned
-input/output hashes and bounded raw reads. Four guarded tests and parsing of all
-54 corrected schema PL/pgSQL blocks pass. The normal private initializer now
-consumes it explicitly; all25 original assertion bodies remain unchanged. The
-normal cluster/entry/driver composition reuses frozen controllers, with fresh
-paths and unchanged resource/retirement guards. Independent source review and
-9 Node/6 Python tests pass. Final binding of the2,348-input catalog and a separate
-actual decision remain required; no SQL or matching-quality acceptance follows.
-Existing discussions and crawler remain unchanged.
+The latest normal native run failed early before canonical assertions. Its
+independent audit verifies parent emergency retirement and2,348 end-pins; the
+actual exception/cause remains unknown. Original outputs, catalog snapshots and
+raw source commits are preserved, as are all frozen nativev1/v2 files.
+
+The normal initializer explicitly consumes the bounded schema loader that repairs
+two IF/CASE delimiters (four bytes). All54 corrected schema PL/pgSQL blocks parse;
+all25 original SQL assertion bodies remain unchanged. The maintained runner now
+uses fresh internal per-run paths, an immutable catalog snapshot and a permanent
+claim bound to the original NodePID. Finite native error codes survive.
+
+Independent source review,19 Node/12 Python and real filesystem-only cross-language
+checks pass. The current2,350-input catalog still requires final binding, fresh
+resources and a separate actual decision. No native SQL or matching-quality
+acceptance is claimed. Existing discussions and the crawler remain unchanged;
+actual database, semantic, owner-control, UI and live-activation goals stay open.
 
 Earlier dated implementation boundaries below are historical where superseded.
 

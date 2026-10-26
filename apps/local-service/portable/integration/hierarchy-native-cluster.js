@@ -3,16 +3,16 @@
 // Opt-in owned-process fixture. Imports/default evaluation perform no actions.
 import {spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
-import {lstat,realpath,mkdir,mkdtemp,writeFile,readFile,statfs,open,link} from 'node:fs/promises';
+import {lstat,realpath,mkdir,mkdtemp,readdir,writeFile,readFile,statfs,open,link} from 'node:fs/promises';
 import {freemem} from 'node:os';
 import {createServer} from 'node:net';
 import {createRequire} from 'node:module';
 import {types} from 'node:util';
 import path from 'node:path';
 import {establishFixedClient} from './native-hierarchy-postgres-v2/client.js';
+import {readOwnedRunBinding} from './hierarchy-native-run.js';
 
 export const FIXED=Object.freeze({host:'127.0.0.1',port:55433,
-  parent:'D:\\GITProjekts\\universal-discussion-bootstrap\\apps\\local-service\\portable\\data\\hierarchy-native-check',
   bin:'D:\\PostgreSQL\\17\\bin',powershell:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
   database:'murmingle_hierarchy_fixture_20261026_a',databaseA:'murmingle_hierarchy_fixture_20261026_a',databaseB:'murmingle_hierarchy_fixture_20261026_b',marker:'native-hierarchy-postgres/maintained',
   startupMs:120000,callbackMs:195000,stopMs:20000,reportMs:25000,totalMs:360000,clients:8});
@@ -28,6 +28,13 @@ const FIELDS=['applicationName','database','lockTimeoutMs','role','statementTime
 const errors=new WeakSet();
 function failure(code){const error=Object.assign(new Error('Owned PostgreSQL fixture refused or failed'),{code});errors.add(error);return error;}
 const samePath=(a,b)=>typeof a==='string'&&typeof b==='string'&&path.win32.resolve(a).toLowerCase()===path.win32.resolve(b).toLowerCase();
+const OWNED_RUN_ROOT='D:\\GITProjekts\\universal-discussion-bootstrap\\apps\\local-service\\portable\\data\\hierarchy-native-runs';
+function validOwnedParent(value){
+  if(typeof value!=='string')return false;
+  const prefix=OWNED_RUN_ROOT+'\\run-',suffix='\\cluster';
+  return value.startsWith(prefix)&&value.endsWith(suffix)&&/^[0-9a-f]{48}$/u.test(value.slice(prefix.length,-suffix.length))&&
+    value===path.win32.normalize(value);
+}
 const safeCode=error=>errors.has(error)?error.code:'OWNED_CLUSTER_FAILED';
 const SERVER_SQL=`SELECT current_database() AS database,session_user AS role,pg_catalog.host(pg_catalog.inet_server_addr()) AS address,
   inet_server_port() AS port,current_setting('server_version_num') AS version,
@@ -61,8 +68,8 @@ export function checkedScopedRequest(request){
     typeof value.applicationName!=='string'||!/^murmingle-native-hierarchy(?:-[a-z0-9-]{1,32})?$/u.test(value.applicationName)||
     value.statementTimeoutMs!==5000||value.lockTimeoutMs!==3000)throw failure('OWNED_REQUEST');return Object.freeze(value);
 }
-export function verifyScopedOwnership({runDirectory,dataDirectory,marker,pid,expectedStart=null,markerText,pidText}){
-  if(!samePath(path.win32.dirname(runDirectory),FIXED.parent)||!/^nhpg-[a-zA-Z0-9]+$/u.test(path.win32.basename(runDirectory))||
+export function verifyScopedOwnership({ownedParent,runDirectory,dataDirectory,marker,pid,expectedStart=null,markerText,pidText}){
+  if(!validOwnedParent(ownedParent)||!samePath(path.win32.dirname(runDirectory),ownedParent)||!/^nhpg-[a-zA-Z0-9]+$/u.test(path.win32.basename(runDirectory))||
     !samePath(dataDirectory,path.win32.join(runDirectory,'pgdata')))throw failure('OWNERSHIP_PATH');
   if(typeof markerText!=='string'||typeof pidText!=='string'||Buffer.byteLength(markerText)>4096||Buffer.byteLength(pidText)>4096)throw failure('OWNERSHIP_SIZE');
   let stored;try{stored=JSON.parse(markerText);}catch{throw failure('OWNERSHIP_MARKER');}
@@ -77,7 +84,8 @@ export function verifyScopedOwnership({runDirectory,dataDirectory,marker,pid,exp
  */
 export function createOwnedScopedPostgres(deps){
   const required=['now','setTimeout','clearTimeout','randomBytes','resources','binaries','prepare','noReparse','offlineAbsent','utility','freePort','spawnServer','ownership','createClient','persist'];
-  if(!deps||required.some(name=>typeof deps[name]!=='function'))throw failure('OWNED_DEPENDENCIES');
+  if(!deps||required.some(name=>typeof deps[name]!=='function')||!validOwnedParent(deps.ownedParent))throw failure('OWNED_DEPENDENCIES');
+  const ownedParent=deps.ownedParent;
   return async function run(runChecks){
     const started=deps.now();if(!Number.isFinite(started)||started<0)throw failure('OWNED_CLOCK');let last=started;
     const startup=started+FIXED.startupMs,overall=started+FIXED.totalMs;
@@ -148,7 +156,7 @@ export function createOwnedScopedPostgres(deps){
       const nonceBytes=deps.randomBytes(24);if(!(nonceBytes instanceof Uint8Array)||nonceBytes.length!==24)throw failure('OWNED_RANDOM');
       const nonce=Buffer.from(nonceBytes).toString('hex');nonceBytes.fill(0);
       const directories=await step(()=>deps.prepare(nonce,startup),startup);({runDirectory,dataDirectory,marker}=directories);
-      verifyScopedOwnership({runDirectory,dataDirectory,marker,pid:1,markerText:JSON.stringify(marker),pidText:`1\n${dataDirectory}\n1\n55433\n`});
+      verifyScopedOwnership({ownedParent,runDirectory,dataDirectory,marker,pid:1,markerText:JSON.stringify(marker),pidText:`1\n${dataDirectory}\n1\n55433\n`});
       report.runDirectory=runDirectory;report.cleanup.directoryRetained=true;
       for(const role of ROLES){const bytes=deps.randomBytes(32);if(!(bytes instanceof Uint8Array)||bytes.length!==32)throw failure('OWNED_RANDOM');
         const password=Buffer.from(bytes).toString('base64url');bytes.fill(0);if(!/^[A-Za-z0-9_-]{43}$/u.test(password)||[...passwords.values()].includes(password))throw failure('OWNED_RANDOM');passwords.set(role,password);}
@@ -183,7 +191,7 @@ export function createOwnedScopedPostgres(deps){
       // PID-file MyStartTime and SQL PgStartTime belong to different startup
       // phases. Physical ownership authorizes cleanup only, never SQL handoff.
       try{
-        const pidStart=await step(()=>deps.ownership({runDirectory,dataDirectory,marker,pid:server.pid,expectedStart:null},startup),startup);
+        const pidStart=await step(()=>deps.ownership({ownedParent,runDirectory,dataDirectory,marker,pid:server.pid,expectedStart:null},startup),startup);
         if(!Number.isSafeInteger(pidStart)||pidStart<1)throw failure('OWNERSHIP_PID');
         proof={pid:server.pid,pidStart};report.startup.pidStart=pidStart;
       }catch(error){if(!bootstrapSucceeded&&hasReadinessFailure)throw lastReadinessFailure;throw error;}
@@ -207,7 +215,7 @@ export function createOwnedScopedPostgres(deps){
       report.cleanup.clientsClosed=clients.every(c=>c.closed);report.cleanup.physicalSettled=physical.size===0&&callbackSettled&&!unknownAcquisition;
       if(server&&!server.hasExited()){
         if(proof&&report.cleanup.clientsClosed&&report.cleanup.physicalSettled){
-          try{await step(()=>deps.ownership({runDirectory,dataDirectory,marker,pid:proof.pid,expectedStart:proof.pidStart},closeDeadline),closeDeadline);
+          try{await step(()=>deps.ownership({ownedParent,runDirectory,dataDirectory,marker,pid:proof.pid,expectedStart:proof.pidStart},closeDeadline),closeDeadline);
             await step(()=>deps.utility(native.pgCtl,['-D',dataDirectory,'stop','-m','smart','-w','-t','15'],{deadline:closeDeadline}),closeDeadline);
             await bounded(server.exit,closeDeadline);report.cleanup.stopped=server.hasExited();report.cleanup.childExited=server.hasExited();
             stopVerified=report.cleanup.stopped;report.cleanup.reason=stopVerified?'verified-own-server-smart-stopped':'own-server-still-running';
@@ -256,7 +264,8 @@ function ancestors(filename){const result=[];let cursor=path.win32.resolve(filen
 /** Actual filesystem orchestration with trusted injected filesystem and clock.
  * Every continuation rechecks its original deadline before mutation or launch.
  */
-export function createFileOps({fs,utility,now}){
+export function createFileOps({fs,utility,now,ownedParent}){
+  if(!validOwnedParent(ownedParent))throw failure('OWNED_PARENT');
   const check=deadlineCheck(now);
   async function noReparse(paths,deadline){check(deadline);const names=[...new Set(paths.flatMap(ancestors))];if(names.length>128)throw failure('OWNED_PATH_CAPACITY');
     for(const name of names){check(deadline);const info=await fs.lstat(name);check(deadline);if(info.isSymbolicLink())throw failure('REPARSE_TARGET');
@@ -268,10 +277,14 @@ export function createFileOps({fs,utility,now}){
   async function binaries(deadline){check(deadline);const files=['postgres.exe','initdb.exe','pg_ctl.exe'].map(name=>path.win32.join(FIXED.bin,name));
     for(const file of [...files,FIXED.powershell]){check(deadline);const info=await fs.lstat(file);check(deadline);if(!info.isFile())throw failure('BINARY_NOT_REGULAR');}
     await noReparse([...files,FIXED.powershell],deadline);check(deadline);return {postgres:files[0],initdb:files[1],pgCtl:files[2]};}
-  async function prepare(nonce,deadline){check(deadline);const dataParent=path.win32.dirname(FIXED.parent);await noReparse([path.win32.dirname(dataParent)],deadline);check(deadline);
-    for(const name of [dataParent,FIXED.parent]){check(deadline);try{await fs.mkdir(name);}catch(error){if(error.code!=='EEXIST')throw error;}check(deadline);
-      const info=await fs.lstat(name);check(deadline);if(!info.isDirectory())throw failure('OWNED_PARENT');await noReparse([name],deadline);check(deadline);}
-    check(deadline);const runDirectory=await fs.mkdtemp(path.win32.join(FIXED.parent,'nhpg-'));check(deadline);
+  async function prepare(nonce,deadline){check(deadline);await noReparse([path.win32.dirname(ownedParent)],deadline);check(deadline);
+    // An attempt owns exactly one fresh cluster parent; existing directories,
+    // including empty ones left by a failed attempt, are never adopted.
+    await fs.mkdir(ownedParent);check(deadline);
+    const info=await fs.lstat(ownedParent);check(deadline);if(!info.isDirectory())throw failure('OWNED_PARENT');
+    await noReparse([ownedParent],deadline);check(deadline);
+    if((await fs.readdir(ownedParent)).length!==0)throw failure('OWNED_PARENT');check(deadline);
+    const runDirectory=await fs.mkdtemp(path.win32.join(ownedParent,'nhpg-'));check(deadline);
     const dataDirectory=path.win32.join(runDirectory,'pgdata'),marker={schema:FIXED.marker,nonce,runDirectory};
     await publishOwnership(runDirectory,marker,deadline);check(deadline);
     await noReparse([runDirectory,path.win32.join(runDirectory,'ownership.pending'),path.win32.join(runDirectory,'ownership.json')],deadline);check(deadline);return {runDirectory,dataDirectory,marker};}
@@ -287,7 +300,7 @@ export function createFileOps({fs,utility,now}){
   async function offlineAbsent(directory,deadline){check(deadline);try{await fs.lstat(path.win32.join(directory,'postmaster.pid'));check(deadline);throw failure('UNEXPECTED_POSTMASTER');}
     catch(error){check(deadline);if(error.code!=='ENOENT')throw error;}}
   async function ownership(scope,deadline){check(deadline);const markerText=await ordinaryText(path.win32.join(scope.runDirectory,'ownership.json'),deadline);check(deadline);
-    const pidText=await ordinaryText(path.win32.join(scope.dataDirectory,'postmaster.pid'),deadline);check(deadline);return verifyScopedOwnership({...scope,markerText,pidText});}
+    const pidText=await ordinaryText(path.win32.join(scope.dataDirectory,'postmaster.pid'),deadline);check(deadline);return verifyScopedOwnership({...scope,ownedParent,markerText,pidText});}
   async function persist(runDirectory,marker,report,deadline){check(deadline);const data=JSON.stringify(report);if(Buffer.byteLength(data)>262144)throw failure('OWNED_REPORT_CAPACITY');
     const saved=JSON.parse(await ordinaryText(path.win32.join(runDirectory,'ownership.json'),deadline));check(deadline);
     if(saved.schema!==marker.schema||saved.nonce!==marker.nonce||saved.runDirectory!==runDirectory)throw failure('OWNERSHIP_MARKER');
@@ -295,10 +308,11 @@ export function createFileOps({fs,utility,now}){
   return Object.freeze({noReparse,binaries,prepare,publishOwnership,offlineAbsent,ownership,persist});
 }
 async function realDependencies(){
+  const binding=await readOwnedRunBinding();
   const require=createRequire(new URL('../package.json',import.meta.url)),{Client}=require('pg');
   const launchers=createNativeUtility({spawn,now:()=>performance.now(),setTimeout,clearTimeout,environment});
-  const files=createFileOps({fs:{lstat,realpath,mkdir,mkdtemp,writeFile,readFile,open,link},utility:launchers.utility,now:()=>performance.now()});
-  return {platform:process.platform,now:()=>performance.now(),setTimeout,clearTimeout,randomBytes,
+  const files=createFileOps({fs:{lstat,realpath,mkdir,mkdtemp,readdir,writeFile,readFile,open,link},utility:launchers.utility,now:()=>performance.now(),ownedParent:binding.clusterParent});
+  return {platform:process.platform,ownedParent:binding.clusterParent,now:()=>performance.now(),setTimeout,clearTimeout,randomBytes,
     async resources(){const[c,d]=await Promise.all([statfs('C:\\',{bigint:true}),statfs('D:\\',{bigint:true})]),mib=1024**2;
       if(c.bavail*c.bsize<BigInt(2048*mib)||d.bavail*d.bsize<BigInt(4096*mib)||freemem()<1024*mib)throw failure('RESOURCE_PREFLIGHT');return {cFreeMiB:Number(c.bavail*c.bsize/BigInt(mib)),dFreeMiB:Number(d.bavail*d.bsize/BigInt(mib)),physicalFreeMiB:Math.floor(freemem()/mib)};},
     ...files,...launchers,async freePort(){const server=createServer();try{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen({host:'127.0.0.1',port:55433,exclusive:true},resolve);});
@@ -307,7 +321,13 @@ async function realDependencies(){
 }
 
 /** Root invokes ONLY after its exact supervisor handshake and source/binary gate. */
-export async function runWithOwnedScopedPostgres(runChecks){return createOwnedScopedPostgres(await realDependencies())(runChecks);}
+let actualRunUsed=false;
+export async function runWithOwnedScopedPostgres(runChecks){
+  if(arguments.length!==1||typeof runChecks!=='function')throw failure('OWNED_REQUEST');
+  if(actualRunUsed)throw failure('OWNED_RUN_ONESHOT');
+  actualRunUsed=true;
+  return createOwnedScopedPostgres(await realDependencies())(runChecks);
+}
 
 
 

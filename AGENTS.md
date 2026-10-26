@@ -37,10 +37,18 @@ PASS; actual loader output parses135SQL+54PLpgSQL and unchanged boundary5+2.
 Normal initializer/private context now explicitly consume the repair; all25 old
 assertion bodies preserved. New normal cluster/entry/279-line driver reuse frozen
 controllers, session/ledger and native retirement; fresh parent/output only.
-Source independently accepted;9 guardedNode/6 purePython PASS. Catalog358353B
-a21320cb...7cab0 binds2348/273547782B, including all original2338 unchanged.
-Final binding/fresh resources/separate ONE actual decision still pending. No SQL
-execution or activation from this source checkpoint; never rerun frozen v2.
+First normal actual8f934974 CLOSEDexit1 early execution-failure; no canonical
+assertions, no childresult. Parent owned-emergency/emptyJob/handles/2EOF/endpins
+PASS; independent savedauditd78ab3d7...846b, actualcauseUNKNOWN. Oldnormalcatalog
+a21320cb...7cab0 retained data/hierarchy-native-first-actual-catalog-20261026.json;
+all normal raw source retained in pushedGit8f934974, output neverreused/deleted.
+Normal code now evolves through Git with fresh internal run-48hex directories,
+immutable per-run map/marker and permanent one-use childclaim/exactNodePID.
+Finite native/error categories retained without retry; all25 assertions unchanged.
+Per-run SOURCE independently accepted;19 guardedNode/12 purePython PASS; real
+filesystem-only Python/Node claim/cache/replay joins PASS, not nativeSQL.
+Current catalog358679B894a5c24...49a35 binds2350/273579513B; original2338 unchanged.
+Final binding/fresh resources/separate ONE actual decision pending; no activation.
 Real hierarchy quality and product integration remain open. Clean Git is not completion.
 
 LATEST26Oct nativePGv1 ONEactual23991 CLOSEDexit1/bootstrapOWNED_SERVER_START/

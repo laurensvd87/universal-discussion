@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { acquireNativeFixture } from '../integration/hierarchy-native-context.js';
-import { FIXED, verifyScopedOwnership } from '../integration/hierarchy-native-cluster.js';
+import { FIXED, verifyScopedOwnership, runWithOwnedScopedPostgres } from '../integration/hierarchy-native-cluster.js';
 import { runHierarchyNativeCheck } from '../integration/hierarchy-native-check.js';
 import { createInputVersionFixtureDatabase, describeHierarchyFixtureFailure } from '../canonical-v4/hierarchy-repository.js';
 import { runAssertions } from './hierarchy-native-assertions.js';
@@ -14,6 +14,12 @@ test('maintained factory and check refuse external selectors without starting Po
   await assert.rejects(acquireNativeFixture(), { code: 'NATIVE_NO_OWNED_SCOPE' });
   await assert.rejects(acquireNativeFixture({}), { code: 'NATIVE_NO_OWNED_SCOPE' });
   await assert.rejects(runHierarchyNativeCheck({}), /no selectors/);
+});
+
+test('actual cluster entry rejects invalid callback and extra selectors before consuming its attempt', async () => {
+  for (const args of [[], [null], [{}], [false], [0], [''], [undefined], [() => {}, {}]]) {
+    await assert.rejects(runWithOwnedScopedPostgres(...args), { code: 'OWNED_REQUEST' });
+  }
 });
 
 test('maintained original first assertion runs purely and the next database case is explicitly intercepted', async () => {
@@ -47,16 +53,19 @@ test('maintained cluster preserves the portable pg dependency anchor after reloc
   assert.equal(createRequire(actual).resolve('pg'), createRequire(predecessor).resolve('pg'));
 });
 
-test('maintained ownership accepts only its new parent, marker and exact pidStart', () => {
-  const runDirectory = FIXED.parent + '\\nhpg-Invented1';
+test('maintained ownership joins its exact bound run parent, marker and pidStart', () => {
+  const ownedParent = 'D:\\GITProjekts\\universal-discussion-bootstrap\\apps\\local-service\\portable\\data\\hierarchy-native-runs\\run-' + 'a'.repeat(48) + '\\cluster';
+  const runDirectory = ownedParent + '\\nhpg-Invented1';
   const dataDirectory = runDirectory + '\\pgdata';
   const marker = { schema: FIXED.marker, nonce: 'a'.repeat(48), runDirectory };
-  const request = { runDirectory, dataDirectory, marker, pid: 123,
+  const request = { ownedParent, runDirectory, dataDirectory, marker, pid: 123,
     markerText: JSON.stringify(marker), pidText: ['123', dataDirectory, '1700000000', '55433'].join('\n') };
   assert.equal(verifyScopedOwnership(request), 1700000000);
   assert.throws(() => verifyScopedOwnership({ ...request, expectedStart: 1700000001 }), { code: 'OWNERSHIP_PID' });
   assert.throws(() => verifyScopedOwnership({ ...request, markerText: JSON.stringify({ ...marker, schema: 'native-hierarchy-postgres/v2' }) }), { code: 'OWNERSHIP_MARKER' });
-  assert.throws(() => verifyScopedOwnership({ ...request, runDirectory: runDirectory.replace('hierarchy-native-check', 'native-hierarchy-postgres-v2') }), { code: 'OWNERSHIP_PATH' });
+  assert.throws(() => verifyScopedOwnership({ ...request, ownedParent: ownedParent.replace('run-' + 'a'.repeat(48), 'run-' + 'b'.repeat(48)) }), { code: 'OWNERSHIP_PATH' });
+  assert.throws(() => verifyScopedOwnership({ ...request, ownedParent: undefined }), { code: 'OWNERSHIP_PATH' });
+  assert.equal(Object.hasOwn(FIXED, 'parent'), false);
 });
 
 test('diagnostics cannot expose arbitrary error content or invoke error hooks', () => {
