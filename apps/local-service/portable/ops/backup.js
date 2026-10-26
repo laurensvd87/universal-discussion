@@ -14,7 +14,7 @@ const file = await open(`${cwd}/backups/${name}`, 'wx', 0o600);
 // Arguments contain only commands and file paths. Credentials stay inside the
 // private DB container and are never printed by this wrapper.
 const child = spawn('docker', ['compose', 'exec', '-T', 'db', '/bin/sh', '-c',
-  'PGPASSWORD="$(cat /run/udl-db-secrets/owner_db_password)" exec pg_dump --host=127.0.0.1 --username=udl_owner --dbname=udl_synthetic --format=custom --no-owner'],
+  'PGPASSWORD="$(cat /run/murmingle-db-secrets/owner_db_password)" exec pg_dump --host=127.0.0.1 --username=murmingle_owner --dbname=murmingle_synthetic --format=custom --no-owner'],
 { cwd, stdio: ['ignore', 'pipe', 'pipe'], shell: false });
 child.stderr.resume();
 const completion = new Promise((resolve, reject) => {

@@ -23,7 +23,7 @@ const code = expected => error => error.code === expected;
 const id = (prefix, index) => `${prefix}-${String(index).padStart(5,"0")}`;
 
 function directory(t) {
-  const value=mkdtempSync(path.join(tmpdir(),"udl-service-scale-"));
+  const value=mkdtempSync(path.join(tmpdir(),"murmingle-service-scale-"));
   const closers=[];
   t.after(() => {for(const close of closers) close();rmSync(value,{recursive:true,force:true});});
   return {value,closers};

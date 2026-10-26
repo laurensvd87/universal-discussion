@@ -47,7 +47,7 @@ test("pinned model list remains bounded and excludes mutable revisions", () => {
   assert.equal(modelAssets.filter((asset) => asset.file.endsWith(".onnx")).length, 1);
 });
 test("local byte integrity verifies SHA256 and Git blob framing", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "udl-asset-integrity-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "murmingle-asset-integrity-"));
   try {
     const filename = path.join(root, "asset");
     const bytes = Buffer.from("synthetic");
@@ -62,7 +62,7 @@ test("local byte integrity verifies SHA256 and Git blob framing", async () => {
 });
 
 async function withRoot(action) {
-  const root = await mkdtemp(path.join(os.tmpdir(), "udl-acquire-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "murmingle-acquire-"));
   try { return await action(root); }
   finally { await rm(root, { recursive: true, force: true }); }
 }
@@ -87,7 +87,7 @@ test("exclusive acquisition lock rejects concurrency and releases on success or 
 }));
 
 test("safe paths reject traversal, linked cache roots and linked parents before existing-file reads", async () => withRoot(async root => {
-  const outside = await mkdtemp(path.join(os.tmpdir(), "udl-acquire-outside-"));
+  const outside = await mkdtemp(path.join(os.tmpdir(), "murmingle-acquire-outside-"));
   try {
     await writeFile(path.join(outside, "asset"), syntheticBytes);
     await symlink(outside, path.join(root, "linked"), process.platform === "win32" ? "junction" : "dir");

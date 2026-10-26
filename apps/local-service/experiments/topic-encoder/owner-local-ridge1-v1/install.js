@@ -18,8 +18,8 @@ import { makeRidgeTopicAdapter, readRidgeTopicAdapter, RIDGE_PARAMETER_SHA256,
 import { LOCAL_RIDGE_ADAPTER_PATH } from '../../../src/application/owner-topic-configuration.js';
 
 const ROOT = fileURLToPath(new URL('../../../../../', import.meta.url));
-const PRIVATE_DIRECTORY = path.join(os.tmpdir(), 'udl-globesumm-research-20261008');
-const TEACHER_DIRECTORY = path.join(os.tmpdir(), 'udl-paraphrase-research-20261010');
+const PRIVATE_DIRECTORY = path.join(os.tmpdir(), 'murmingle-globesumm-research-20261008');
+const TEACHER_DIRECTORY = path.join(os.tmpdir(), 'murmingle-paraphrase-research-20261010');
 const CORPUS = path.join(PRIVATE_DIRECTORY, 'news_only.json');
 const FREEZE = new URL('../ridge1-practical-evaluation-v1/freeze.json', import.meta.url);
 const FREEZE_SHA = '2bef154d291cc8c77ddca5ad22974840a9affed53766559458110c7a5a863945';

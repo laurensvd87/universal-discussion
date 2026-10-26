@@ -62,7 +62,7 @@ export async function runListingCitationDiagnostic(args, { fetchImpl = fetch, pr
     const store = createChatGPTRegistrationStore(dataDir);
     const refreshStore = createProtectedRefreshStore({ hostId: store.hostId });
     if (!refreshStore) throw new Error("Protected connection unavailable");
-    connection = createChatGPTConnection({ hostId: store.hostId, agentName: "Universal Discussion Layer",
+    connection = createChatGPTConnection({ hostId: store.hostId, agentName: "Murmingle",
       readRegistration: store.readRegistration, writeRegistration: store.writeRegistration,
       fetchImpl: provider.fetch, refreshStore });
     if (!await connection.restore() || !connection.status().planEnabled)

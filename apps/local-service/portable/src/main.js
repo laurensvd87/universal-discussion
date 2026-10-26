@@ -6,7 +6,7 @@ import { runWorker } from './worker.js';
 export async function runRole(role, { env = process.env, dependencies, signal = new AbortController().signal, logger = () => {} } = {}) {
   if (!['api', 'worker', 'migrate', 'seed-fixture'].includes(role)) throw new Error('portable-role-invalid');
   const config = await loadConfig(env, { ...dependencies?.configOptions, role });
-  if (['migrate', 'seed-fixture'].includes(role) !== (config.database.user === 'udl_owner')) throw new Error('portable-database-role-invalid');
+  if (['migrate', 'seed-fixture'].includes(role) !== (config.database.user === 'murmingle_owner')) throw new Error('portable-database-role-invalid');
   const adapters = dependencies ?? await defaultDependencies();
   const database = await adapters.createDatabase(config.database);
   let server;

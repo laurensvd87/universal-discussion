@@ -37,7 +37,7 @@ function seed() {
 }
 function fixture(t, { legacy = false, file = false } = {}) {
   const initial = seed(); let directory, databasePath = ":memory:";
-  if (file) { directory = mkdtempSync(join(tmpdir(), "udl-my-chats-trust-")); databasePath = join(directory, "canonical.sqlite"); }
+  if (file) { directory = mkdtempSync(join(tmpdir(), "murmingle-my-chats-trust-")); databasePath = join(directory, "canonical.sqlite"); }
   const raw = legacy ? createMemoryRepository(initial) : createNormalizedSqliteRepository(databasePath, initial);
   const repository = legacy ? raw : { ...raw, load() { assert.fail("My chats must not load whole canonical state"); } };
   const chats = createAccountPublicChats({ repository, authorLabel: () => "Synthetic human" });

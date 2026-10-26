@@ -15,7 +15,7 @@ import { ingestionScopes } from "../src/application/ingestion-plan.js";
 import { operationDigestFor, routeSourceThreads } from "../src/domain/source-threads.js";
 
 function location(t) {
-  const directory = mkdtempSync(path.join(tmpdir(), "udl-ingestion-worker-"));
+  const directory = mkdtempSync(path.join(tmpdir(), "murmingle-ingestion-worker-"));
   const closers = [];
   t.after(async () => { for (const close of closers) await close(); rmSync(directory, { recursive: true, force: true }); });
   return { databasePath: path.join(directory, "canonical.sqlite"), closers };

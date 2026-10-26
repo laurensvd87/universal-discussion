@@ -7,7 +7,7 @@ import { openDormantLocalApplication } from "../src/startup.js";
 import { deterministicDependencies } from "./helpers.js";
 
 function fixture(t) {
-  const directory = mkdtempSync(join(tmpdir(), "udl-community-http-"));
+  const directory = mkdtempSync(join(tmpdir(), "murmingle-community-http-"));
   const origin = `chrome-extension://${"b".repeat(32)}`;
   let identity = { issuer: "https://auth.openai.com", clientId: "fixture", subject: "alice" };
   const app = openDormantLocalApplication({ config: { host: "127.0.0.1", port: 4174, origin, capability: "fixture-community-pairing-token-long-enough" },

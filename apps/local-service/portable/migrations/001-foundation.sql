@@ -66,12 +66,12 @@ CREATE TABLE jobs (
 CREATE INDEX jobs_claimable ON jobs(state, id) WHERE state IN ('pending','leased');
 DO $permissions$
 BEGIN
-  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='udl_app') THEN
-    GRANT SELECT ON portable_migrations, principals, topics, sources TO udl_app;
-    GRANT SELECT, UPDATE ON discussions TO udl_app;
-    GRANT SELECT, INSERT, UPDATE ON contributions TO udl_app;
-    GRANT SELECT, INSERT, DELETE ON contribution_revisions TO udl_app;
-    GRANT SELECT, INSERT ON command_receipts TO udl_app;
-    GRANT SELECT, INSERT, UPDATE ON jobs TO udl_app;
+  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='murmingle_app') THEN
+    GRANT SELECT ON portable_migrations, principals, topics, sources TO murmingle_app;
+    GRANT SELECT, UPDATE ON discussions TO murmingle_app;
+    GRANT SELECT, INSERT, UPDATE ON contributions TO murmingle_app;
+    GRANT SELECT, INSERT, DELETE ON contribution_revisions TO murmingle_app;
+    GRANT SELECT, INSERT ON command_receipts TO murmingle_app;
+    GRANT SELECT, INSERT, UPDATE ON jobs TO murmingle_app;
   END IF;
 END $permissions$;

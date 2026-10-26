@@ -24,7 +24,7 @@ function input(service, name, angle = 0, changes = {}) {
     title: `Synthetic ${name}`, embedding: { modelId: BROWSER_MODEL_ID, values }, extractorVersion: EXTRACTOR_VERSION, ...changes };
 }
 function temporaryPath(t) {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-anchor-test-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-anchor-test-"));
   t.after(() => { assert.ok(directory.startsWith(os.tmpdir())); rmSync(directory, { recursive: true, force: true }); });
   return path.join(directory, "demo.sqlite");
 }

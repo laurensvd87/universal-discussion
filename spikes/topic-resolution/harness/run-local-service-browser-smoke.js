@@ -21,7 +21,7 @@ const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, mil
 function removeOwnedTemp(directory) {
   const target = path.resolve(directory);
   assert.equal(path.dirname(target), path.resolve(os.tmpdir()));
-  assert.ok(path.basename(target).startsWith("udl-browser-smoke-"));
+  assert.ok(path.basename(target).startsWith("murmingle-browser-smoke-"));
   rmSync(target, { recursive: true, force: true });
 }
 
@@ -33,7 +33,7 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
   if (!path.isAbsolute(executable) || !existsSync(executable) || !statSync(executable).isFile()) {
     throw new Error("Supply an absolute path to an installed Chrome executable");
   }
-  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-browser-smoke-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-browser-smoke-"));
   const databasePath = path.join(directory, "demo.sqlite");
   const pairingPath = path.join(directory, "pairing.json");
   const profileDirectory = path.join(directory, "chrome-profile");
@@ -462,11 +462,11 @@ export async function runLocalServiceBrowserSmoke(executable = DEFAULT_CHROME, {
     assert.ok(await evaluate(`${THREAD}.textContent.includes('Synthetic shared reserved-domain browser root')`));
     await evaluate("window.scrollTo(0, 0)");
     const screenshot = await browser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, popupSession);
-    userModeScreenshot = path.join(os.tmpdir(), `udl-user-mode-${randomUUID()}.png`);
+    userModeScreenshot = path.join(os.tmpdir(), `murmingle-user-mode-${randomUUID()}.png`);
     writeFileSync(userModeScreenshot, Buffer.from(screenshot.data, "base64"), { flag: "wx" });
     await evaluate("document.querySelector('#insight-workspace').scrollIntoView({ block: 'center' })");
     const footerScreenshot = await browser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, popupSession);
-    userModeFooterScreenshot = path.join(os.tmpdir(), `udl-user-mode-footer-${randomUUID()}.png`);
+    userModeFooterScreenshot = path.join(os.tmpdir(), `murmingle-user-mode-footer-${randomUUID()}.png`);
     writeFileSync(userModeFooterScreenshot, Buffer.from(footerScreenshot.data, "base64"), { flag: "wx" });
     await click("#ui-mode-developer");
     await waitExpression("document.body.dataset.uiMode==='developer'", "restore Developer Mode for keyboard verification");

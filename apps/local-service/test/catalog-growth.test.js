@@ -15,7 +15,7 @@ import { validateCatalogGrowthHistory } from "../src/metrics/catalog-growth.js";
 
 const START = Date.parse("2026-10-12T12:00:00.000Z");
 function directory(t) {
-  const dir = mkdtempSync(path.join(tmpdir(), "udl-catalog-growth-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "murmingle-catalog-growth-"));
   t.after(() => rmSync(dir, { recursive: true, force: true })); return dir;
 }
 function fixture() {

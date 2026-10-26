@@ -25,12 +25,12 @@ test('database transaction rolls back every mutation on exception', async (t) =>
 
 test('runtime role can authenticate and command but cannot seed or rewrite migration receipts', async (t) => {
   const database = await createPGliteDatabase(); t.after(() => database.close());
-  await database.exec('CREATE ROLE udl_app');
+  await database.exec('CREATE ROLE murmingle_app');
   await migrate(database);
   const repository = createPortableRepository({ database });
   const tokens = { alex: randomBytes(32).toString('base64url'), blair: randomBytes(32).toString('base64url') };
   const ids = await seedFixture(repository, { tokens });
-  await database.exec('SET ROLE udl_app');
+  await database.exec('SET ROLE murmingle_app');
   const principal = await repository.authenticate(tokens.alex);
   const response = await repository.command({ principal, requestId: 'role-check', kind: 'create-root', payload: { discussionId: ids.discussion, sourceId: ids.source, body: 'Role permitted write', expectedVersion: 0 } });
   assert.equal(response.version, 1);

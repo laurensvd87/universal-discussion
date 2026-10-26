@@ -10,14 +10,14 @@ const origin = "https://192.168.240.1"; // Synthetic address: never contacted.
 const key = "synthetic-browser-key-not-a-credential";
 const sentinel = "SYNTHETIC_RAW_DATA_MUST_NOT_ESCAPE";
 const uuid = n => `20000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const profile = mkdtempSync(path.join(os.tmpdir(), "udl-unifi-audit-qa-"));
+const profile = mkdtempSync(path.join(os.tmpdir(), "murmingle-unifi-audit-qa-"));
 const downloads = path.join(profile, "downloads"); mkdirSync(downloads);
 const partialDownloads = path.join(profile, "partial-downloads"); mkdirSync(partialDownloads);
-const artifactDirectory = path.join(os.tmpdir(), "udl-unifi-audit-review"); mkdirSync(artifactDirectory, { recursive: true });
+const artifactDirectory = path.join(os.tmpdir(), "murmingle-unifi-audit-review"); mkdirSync(artifactDirectory, { recursive: true });
 const script = readFileSync(fileURLToPath(new URL("../export-browser.js", import.meta.url)), "utf8");
 const browser = launchChromiumPipe({ executable: process.env.CHROME_PATH ?? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", profileDirectory: profile });
 const errors = [], calls = [], completed = [], startupMessages = [];
-const readyMessage = "[UDL UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.";
+const readyMessage = "[Murmingle UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.";
 let session, scenario = "success";
 const page = rows => ({ data: rows, offset: 0, limit: 200, count: rows.length, totalCount: rows.length });
 const duplicateId = "abcdefab-0000-4000-8000-000000000020";
@@ -115,7 +115,7 @@ try {
   for (let n = 0; !completed.length && n < 100; n++) await new Promise(resolve => setTimeout(resolve, 30));
   assert.equal(completed.length, 1);
   const files = readdirSync(downloads); assert.equal(files.length, 1);
-  assert.match(files[0], /^udl-unifi-audit-\d{4}-\d{2}-\d{2}\.json$/);
+  assert.match(files[0], /^murmingle-unifi-audit-\d{4}-\d{2}-\d{2}\.json$/);
   const serialized = readFileSync(path.join(downloads, files[0]), "utf8"), output = JSON.parse(serialized);
   for (const value of [key, sentinel, uuid(1), uuid(2), "synthetic-cookie"]) assert.ok(!serialized.includes(value));
   assert.equal(output.collectionStatus, "COMPLETE"); assert.equal(output.auditStatus, "INCOMPLETE");
@@ -177,6 +177,6 @@ try {
 } finally {
   await browser.close();
   const absolute = path.resolve(profile), taskParent = path.resolve(os.tmpdir()) + path.sep;
-  if (!absolute.startsWith(taskParent) || !path.basename(absolute).startsWith("udl-unifi-audit-qa-")) throw new Error("Refuse unexpected QA cleanup target");
+  if (!absolute.startsWith(taskParent) || !path.basename(absolute).startsWith("murmingle-unifi-audit-qa-")) throw new Error("Refuse unexpected QA cleanup target");
   rmSync(absolute, { recursive: true, force: true }); // Only this run's verified generated profile and synthetic download.
 }

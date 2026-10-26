@@ -166,7 +166,7 @@ function Probe([uri]$uri) {
   $client = [System.Net.Http.HttpClient]::new($handler)
   $client.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
   $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $uri)
-  [void]$request.Headers.UserAgent.ParseAdd('UDL-Research/0.1')
+  [void]$request.Headers.UserAgent.ParseAdd('Murmingle-Research/0.1')
   $cancel = [System.Threading.CancellationTokenSource]::new(15000)
   $response = $null; $stream = $null; $memory = $null
   try {

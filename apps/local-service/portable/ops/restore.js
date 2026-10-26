@@ -19,7 +19,7 @@ const wait = (child) => new Promise((resolve, reject) => {
 });
 // This command cannot name the active database/service. Refuse a previously
 // restored or migrated target; never DROP databases or reset named volumes.
-const check = compose(['/bin/sh', '-c', 'PGPASSWORD="$(cat /run/udl-db-secrets/admin_db_password)" exec psql --host=127.0.0.1 --username=udl_admin --dbname=udl_synthetic_restore --tuples-only --no-align --command="SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN (\'pg_catalog\', \'information_schema\') AND n.nspname NOT LIKE \'pg_toast%\' AND c.relkind IN (\'r\', \'p\');"'], ['ignore', 'pipe', 'pipe']);
+const check = compose(['/bin/sh', '-c', 'PGPASSWORD="$(cat /run/murmingle-db-secrets/admin_db_password)" exec psql --host=127.0.0.1 --username=murmingle_admin --dbname=murmingle_synthetic_restore --tuples-only --no-align --command="SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN (\'pg_catalog\', \'information_schema\') AND n.nspname NOT LIKE \'pg_toast%\' AND c.relkind IN (\'r\', \'p\');"'], ['ignore', 'pipe', 'pipe']);
 let count = '';
 check.stdout.on('data', (data) => { count += data; });
 check.stderr.resume();
@@ -28,7 +28,7 @@ if (count.trim() !== '0') throw new Error('Restore target is not fresh; create a
 const file = await open(path, 'r');
 // vector is preinstalled by the DB administrator. The application owner cannot
 // restore the extension's COMMENT; omit SQL comments, not discussion content.
-const child = compose(['/bin/sh', '-c', 'PGPASSWORD="$(cat /run/udl-db-secrets/admin_db_password)" exec pg_restore --host=127.0.0.1 --username=udl_admin --dbname=udl_synthetic_restore --role=udl_owner --no-owner --no-comments --exit-on-error --single-transaction'], ['pipe', 'ignore', 'pipe']);
+const child = compose(['/bin/sh', '-c', 'PGPASSWORD="$(cat /run/murmingle-db-secrets/admin_db_password)" exec pg_restore --host=127.0.0.1 --username=murmingle_admin --dbname=murmingle_synthetic_restore --role=murmingle_owner --no-owner --no-comments --exit-on-error --single-transaction'], ['pipe', 'ignore', 'pipe']);
 child.stderr.resume();
 const results = await Promise.allSettled([wait(child), pipeline(file.createReadStream(), child.stdin)]);
 for (const result of results) if (result.status === 'rejected') throw result.reason;

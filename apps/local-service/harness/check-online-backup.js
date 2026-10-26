@@ -20,7 +20,7 @@ function health() {
     request.on("timeout", () => request.destroy()); request.on("error", reject); request.end();
   });
 }
-const root = mkdtempSync(path.join(tmpdir(), "udl-online-backup-check-"));
+const root = mkdtempSync(path.join(tmpdir(), "murmingle-online-backup-check-"));
 const dataDir = path.join(root, "data"); mkdirSync(dataDir);
 let monitor, checks = 0, failures = 0;
 try {
@@ -51,6 +51,6 @@ try {
 } finally {
   clearInterval(monitor);
   assert.equal(path.dirname(path.resolve(root)), path.resolve(tmpdir()));
-  assert.ok(path.basename(root).startsWith("udl-online-backup-check-"));
+  assert.ok(path.basename(root).startsWith("murmingle-online-backup-check-"));
   rmSync(root, { recursive: true, force: true });
 }

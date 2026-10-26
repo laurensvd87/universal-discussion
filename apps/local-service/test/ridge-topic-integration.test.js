@@ -44,7 +44,7 @@ test('Ridge adapter copies coefficients, validates manifest and rejects unsafe d
 });
 
 test('installed Ridge absence and corruption disable learned view; Legacy E5 is explicit', () => {
-  const directory = mkdtempSync(path.join(os.tmpdir(), 'udl-ridge-topic-test-'));
+  const directory = mkdtempSync(path.join(os.tmpdir(), 'murmingle-ridge-topic-test-'));
   const ridgePath = path.join(directory, 'ridge.json'), adapterPath = path.join(directory, 'diagonal.json');
   try {
     writeFileSync(adapterPath, JSON.stringify(diagonal));

@@ -39,7 +39,7 @@ function harness(configuration) {
 }
 
 test('Trust: default installed selection remains diagonal; explicit BODY research distinguishes missing from corruption', () => {
-  const directory = mkdtempSync(path.join(os.tmpdir(), 'udl-fictional-body-composition-'));
+  const directory = mkdtempSync(path.join(os.tmpdir(), 'murmingle-fictional-body-composition-'));
   const adapterPath = path.join(directory, 'diagonal.json'), bodyPath = path.join(directory, 'body.json');
   const read = () => readInstalledOwnerTopicConfiguration({ bodyPath, adapterPath, useLegacyE5: true, useBodyMetric: true });
   const defaultRead = () => readInstalledOwnerTopicConfiguration({ bodyPath, adapterPath, useLegacyE5: true });

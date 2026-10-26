@@ -20,7 +20,7 @@ function capture(service, receipt, angle = 0) {
     embedding: { modelId: BROWSER_MODEL_ID, values }, extractorVersion: EXTRACTOR_VERSION });
 }
 function fixture(t) {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-inline-trust-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-inline-trust-"));
   const databasePath = path.join(directory, "state.sqlite");
   const dependencies = deterministicDependencies();
   const app = createSqliteDemoService({ databasePath, ...dependencies });

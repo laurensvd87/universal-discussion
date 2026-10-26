@@ -18,10 +18,10 @@ import { createPracticalTopicPlanner, checkedUnit, PRACTICAL_POLICY } from './pl
 import { aggregatePartition, policyDifference, exposure, practicalSuccess } from './core.js';
 
 const ROOT = fileURLToPath(new URL('../../../../../', import.meta.url));
-const PRIVATE_DIRECTORY = path.join(os.tmpdir(), 'udl-globesumm-research-20261008');
+const PRIVATE_DIRECTORY = path.join(os.tmpdir(), 'murmingle-globesumm-research-20261008');
 const INPUT = path.join(PRIVATE_DIRECTORY, 'news_only.json');
 const CORPUS_SHA = '8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d';
-const TEACHER_DIRECTORY = path.join(os.tmpdir(), 'udl-paraphrase-research-20261010');
+const TEACHER_DIRECTORY = path.join(os.tmpdir(), 'murmingle-paraphrase-research-20261010');
 const V7 = '../independent-topic-challenge-v7/records.jsonl';
 const V7_SHA = '2f1c0b30313f79f8ee662ec216c447945f1b9fdf2a257835d757080e40618abb';
 const CLOSED_HASH = '8951b0aef42b90260080d81997225b9aa12d959f04e81d9c7563ca766a33a3b8';

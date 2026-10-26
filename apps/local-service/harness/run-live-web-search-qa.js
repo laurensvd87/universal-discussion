@@ -196,7 +196,7 @@ export async function runLiveWebSearchQa(args, { fetchImpl = fetch, print = cons
     const refreshStore = createProtectedRefreshStore({ hostId: store.hostId });
     if (!refreshStore) fail("Protected Windows ChatGPT connection unavailable");
     const provider = oneResponseFetch(fetchImpl);
-    connection = createChatGPTConnection({ hostId: store.hostId, agentName: "Universal Discussion Layer",
+    connection = createChatGPTConnection({ hostId: store.hostId, agentName: "Murmingle",
       readRegistration: store.readRegistration, writeRegistration: store.writeRegistration,
       fetchImpl: provider.fetch, refreshStore });
     if (!await connection.restore() || !connection.status().planEnabled) fail("Connected ChatGPT plan unavailable");

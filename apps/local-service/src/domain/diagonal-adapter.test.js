@@ -36,7 +36,7 @@ test('transform normalizes and leaves browser E5 vector untouched', () => {
 });
 
 test('loader rejects changed and oversized local files', async () => {
-  const folder = await mkdtemp(path.join(os.tmpdir(), 'udl-adapter-test-'));
+  const folder = await mkdtemp(path.join(os.tmpdir(), 'murmingle-adapter-test-'));
   try {
     const filename = path.join(folder, 'adapter.json');
     const manifest = makeDiagonalAdapter(parameters(), { triplets: 200 });
@@ -48,7 +48,7 @@ test('loader rejects changed and oversized local files', async () => {
     await assert.rejects(loadDiagonalAdapter(filename), TypeError);
   } finally {
     assert.equal(path.dirname(path.resolve(folder)), path.resolve(os.tmpdir()));
-    assert.ok(path.basename(folder).startsWith('udl-adapter-test-'));
+    assert.ok(path.basename(folder).startsWith('murmingle-adapter-test-'));
     await rm(folder, { recursive: true, force: true });
   }
 });

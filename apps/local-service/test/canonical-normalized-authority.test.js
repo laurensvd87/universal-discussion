@@ -19,7 +19,7 @@ import { deterministicDependencies } from "./helpers.js";
 const TOPIC="reserved-domain-demo",SOURCE="extra-source-119",URL="https://example.org/normalized-authority-119";
 
 test("normalized accounts, public off-page target proof and private one-shot replies compose without whole reads", async t => {
-  const dir=mkdtempSync(path.join(tmpdir(),"udl-normalized-authority-"));
+  const dir=mkdtempSync(path.join(tmpdir(),"murmingle-normalized-authority-"));
   const deps=deterministicDependencies();
   const seed=createDemoState({generation:deps.nextId("generation"),createdAt:deps.now(),sources:SYNTHETIC_SOURCES,topicSeeds:SYNTHETIC_TOPIC_SEEDS});
   for(let i=0;i<120;i++) {

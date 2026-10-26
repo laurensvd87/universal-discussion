@@ -15,13 +15,13 @@ import { launchChromiumPipe } from "../../../spikes/topic-resolution/harness/chr
 // Real production native side panel, anonymous CDP pipes, fresh profile, in-memory stores.
 // All network is intercepted; no listener, mail, OAuth, model or owner data.
 const extensionRoot = fileURLToPath(new URL("../../../spikes/topic-resolution/browser/", import.meta.url));
-const profileRoot = mkdtempSync(path.join(os.tmpdir(), "udl-account-panel-"));
+const profileRoot = mkdtempSync(path.join(os.tmpdir(), "murmingle-account-panel-"));
 const qaExtensionRoot = path.join(profileRoot, "extension"); cpSync(extensionRoot, qaExtensionRoot, { recursive: true });
 const qaManifestPath = path.join(qaExtensionRoot, "manifest.json");
 const qaManifest = JSON.parse(readFileSync(qaManifestPath, "utf8"));
 // Snapshot the production extension for reproducible isolated loading.
 writeFileSync(qaManifestPath, JSON.stringify(qaManifest));
-const artifacts = path.join(os.tmpdir(), "udl-account-panel-review"); mkdirSync(artifacts, { recursive: true });
+const artifacts = path.join(os.tmpdir(), "murmingle-account-panel-review"); mkdirSync(artifacts, { recursive: true });
 const repository = new AccountRepository();
 const accounts = new AccountService({ repository, hmacKey: randomBytes(32), mailSink: null, fixtureOnly: false,
   chatgptIdentity: () => ({ issuer: "https://auth.openai.com", clientId: "synthetic-panel-client", subject: "synthetic-panel-subject" }) });
@@ -193,5 +193,5 @@ try {
 } finally {
   await browser.close(); repository.close();
   const resolved = path.resolve(profileRoot); assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
-  assert.equal(path.basename(resolved).startsWith("udl-account-panel-"), true); rmSync(resolved, { recursive: true, force: true, maxRetries: 4, retryDelay: 150 });
+  assert.equal(path.basename(resolved).startsWith("murmingle-account-panel-"), true); rmSync(resolved, { recursive: true, force: true, maxRetries: 4, retryDelay: 150 });
 }

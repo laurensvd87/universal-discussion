@@ -126,7 +126,7 @@ test('BODY current-vector validation rejects wrong input and centered degeneracy
 });
 
 test('BODY loader validates bounded regular JSON, rejects corrupt/oversized/empty/directory/symlink paths', async t => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-fictional-body-metric-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'murmingle-fictional-body-metric-'));
   const files = [];
   const fixture = async (name, content) => {
     const filename = path.join(directory, name); files.push(filename); await writeFile(filename, content); return filename;

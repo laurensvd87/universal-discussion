@@ -14,7 +14,7 @@ import { embedDocuments } from '../e5-infer.js';
 import { covarianceFit, cosine, makeMetric, sha, selectDevelopment, selectFreshRethink, transformMetric } from './core.js';
 
 const HERE=path.dirname(fileURLToPath(import.meta.url)), ROOT=path.resolve(HERE,'../../../../..');
-const PRIVATE=path.join(os.tmpdir(),'udl-globesumm-research-20261008','news_only.json');
+const PRIVATE=path.join(os.tmpdir(),'murmingle-globesumm-research-20261008','news_only.json');
 const CORPUS_SHA='8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d';
 const MODEL_SHA='f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193';
 const NAMES=['centered','global-shrink-50','global-shrink-90','within-shrink-50','within-shrink-90'];

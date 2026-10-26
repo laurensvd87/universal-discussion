@@ -46,7 +46,7 @@ test('Trust: withdrawn contributions cannot be resurrected or given new ancestry
 test('Trust: owner-role restore skips comments on the administrator-owned vector extension', async t => {
   const database = await createPGliteDatabase();
   t.after(() => database.close());
-  await database.exec('CREATE ROLE udl_owner; CREATE EXTENSION vector; SET ROLE udl_owner');
+  await database.exec('CREATE ROLE murmingle_owner; CREATE EXTENSION vector; SET ROLE murmingle_owner');
   await assert.rejects(database.query('COMMENT ON EXTENSION vector IS NULL'), { code: '42501' });
   const restore = await readFile(new URL('../ops/restore.js', import.meta.url), 'utf8');
   assert.match(restore, /pg_restore[^\n]*--no-comments/);

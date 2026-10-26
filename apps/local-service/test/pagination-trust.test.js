@@ -57,7 +57,7 @@ test("Trust: recent cursor is signed complete routing metadata, not a transferab
 });
 
 test("Trust: recent and legacy list reads preserve synthetic database bytes/schema and never activate provider work", t => {
-  const directory = mkdtempSync(join(tmpdir(), "udl-page-trust-")), filename = join(directory, "private.sqlite");
+  const directory = mkdtempSync(join(tmpdir(), "murmingle-page-trust-")), filename = join(directory, "private.sqlite");
   const f = fixture(t, filename);
   try {
     for (let i = 0; i < 44; i++) f.create(`Private needle ${i}`);

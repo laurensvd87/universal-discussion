@@ -22,7 +22,7 @@ async function main() {
   if (process.argv.includes('--freeze') === measuring) throw new Error('MODE');
   const expected = process.argv[process.argv.indexOf('--freeze-hash') + 1];
   if (measuring && (!process.argv.includes('--freeze-hash') || !/^[a-f0-9]{64}$/u.test(expected ?? ''))) throw new Error('FREEZE');
-  const filename = path.join(os.tmpdir(), 'udl-globesumm-research-20261008', 'news_only.json');
+  const filename = path.join(os.tmpdir(), 'murmingle-globesumm-research-20261008', 'news_only.json');
   const info = await lstat(filename);
   if (!info.isFile() || info.isSymbolicLink() || info.size !== 14_972_999) throw new Error('FILE');
   const bytes = await readFile(filename);

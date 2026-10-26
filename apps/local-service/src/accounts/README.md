@@ -107,8 +107,8 @@ Chrome harnesses use disposable profiles/anonymous CDP pipes, intercepted fixed
 local HTTP requests through the actual in-process handler and synthetic SQLite/
 provider adapters. They open no listener, touch no owner profile/data and make
 no real mail or provider request. Native-panel screenshots are written to
-`%TEMP%\udl-account-panel-review`; fixture screenshots to
-`%TEMP%\udl-account-design-review`. Disposable profiles are removed.
+`%TEMP%\murmingle-account-panel-review`; fixture screenshots to
+`%TEMP%\murmingle-account-design-review`. Disposable profiles are removed.
 
 Manual visual-only fixture:
 `chrome-extension://<extension-id>/fixtures/accounts-preview.html`, reserved

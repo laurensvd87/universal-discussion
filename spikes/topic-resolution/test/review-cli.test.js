@@ -23,7 +23,7 @@ function sink(isTTY = false) {
 }
 
 async function temporaryWorkspace(t) {
-  const temporaryRoot = await mkdtemp(path.join(tmpdir(), "udl-review-cli-"));
+  const temporaryRoot = await mkdtemp(path.join(tmpdir(), "murmingle-review-cli-"));
   t.after(async () => {
     await rm(temporaryRoot, { recursive: true, force: true });
   });

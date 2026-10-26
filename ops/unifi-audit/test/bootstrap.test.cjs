@@ -163,8 +163,8 @@ test('unavailable console or a throwing logger does not create startup rejection
 test('operator messages are immutable exact content-free strings', () => {
   assert.equal(Object.isFrozen(messages), true);
   assert.deepEqual(messages, {
-    ready: '[UDL UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.',
-    noDocument: '[UDL UniFi export] No usable page document. Select top in the Console context selector, wait for the page to load, and run the script again.',
-    failed: '[UDL UniFi export] Dialog startup failed. Select top in the Console context selector, wait for the page to load, and run the script again.'
+    ready: '[Murmingle UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.',
+    noDocument: '[Murmingle UniFi export] No usable page document. Select top in the Console context selector, wait for the page to load, and run the script again.',
+    failed: '[Murmingle UniFi export] Dialog startup failed. Select top in the Console context selector, wait for the page to load, and run the script again.'
   });
 });

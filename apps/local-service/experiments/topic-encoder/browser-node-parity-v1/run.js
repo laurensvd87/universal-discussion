@@ -32,7 +32,7 @@ function metrics(browser, node) {
 
 export async function runParity(executable = chromeExecutable) {
   assert.ok(path.isAbsolute(executable) && (await lstat(executable)).isFile(), 'Installed Chrome executable required');
-  const temporary = await mkdtemp(path.join(os.tmpdir(), 'udl-e5-parity-'));
+  const temporary = await mkdtemp(path.join(os.tmpdir(), 'murmingle-e5-parity-'));
   const targets = new Map(), tasks = new Set(), errors = [];
   let browser, timer, extensionId, closing = false;
   let externalRequests = 0, packagedRequests = 0, blockedExternalRequests = 0;
@@ -145,7 +145,7 @@ export async function runParity(executable = chromeExecutable) {
     await browser?.close();
     await Promise.allSettled([...tasks]);
     assert.equal(path.dirname(path.resolve(temporary)), path.resolve(os.tmpdir()));
-    assert.ok(path.basename(temporary).startsWith('udl-e5-parity-'));
+    assert.ok(path.basename(temporary).startsWith('murmingle-e5-parity-'));
     await rm(temporary, { recursive: true, force: true });
   }
 }

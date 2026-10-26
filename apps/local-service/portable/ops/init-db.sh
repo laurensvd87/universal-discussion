@@ -7,17 +7,17 @@ SET log_statement = 'none';
 SET log_error_verbosity = 'terse';
 DO $roles$
 BEGIN
-  EXECUTE format('CREATE ROLE udl_owner LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD %L', trim(pg_read_file('/run/udl-db-secrets/owner_db_password')));
-  EXECUTE format('CREATE ROLE udl_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD %L', trim(pg_read_file('/run/udl-db-secrets/app_db_password')));
+  EXECUTE format('CREATE ROLE murmingle_owner LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD %L', trim(pg_read_file('/run/murmingle-db-secrets/owner_db_password')));
+  EXECUTE format('CREATE ROLE murmingle_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD %L', trim(pg_read_file('/run/murmingle-db-secrets/app_db_password')));
   EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC', current_database());
-  EXECUTE format('GRANT CONNECT ON DATABASE %I TO udl_owner, udl_app', current_database());
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO murmingle_owner, murmingle_app', current_database());
 EXCEPTION WHEN OTHERS THEN
   RAISE EXCEPTION 'Synthetic role provisioning failed';
 END
 $roles$;
 CREATE EXTENSION IF NOT EXISTS vector;
-ALTER SCHEMA public OWNER TO udl_owner;
+ALTER SCHEMA public OWNER TO murmingle_owner;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-GRANT USAGE ON SCHEMA public TO udl_app;
+GRANT USAGE ON SCHEMA public TO murmingle_app;
 -- Migration grants only the specific table operations required by the runtime.
 SQL

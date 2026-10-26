@@ -19,7 +19,7 @@ function fixture() {
     topicSeeds: [{ id: "topic-one", title: "One", kind: "general" }, { id: "topic-two", title: "Two", kind: "general" }] });
 }
 function databasePath(t) {
-  const directory = mkdtempSync(path.join(tmpdir(), "udl-normalized-"));
+  const directory = mkdtempSync(path.join(tmpdir(), "murmingle-normalized-"));
   t.after(() => { assert.ok(directory.startsWith(tmpdir())); rmSync(directory, { recursive: true, force: true }); });
   return path.join(directory, "canonical.sqlite");
 }

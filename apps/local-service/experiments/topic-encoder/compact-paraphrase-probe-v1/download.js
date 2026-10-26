@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile, lstat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-export const MODEL_DIRECTORY = path.join(os.tmpdir(), 'udl-paraphrase-research-20261010');
+export const MODEL_DIRECTORY = path.join(os.tmpdir(), 'murmingle-paraphrase-research-20261010');
 export const MODEL_REVISION = 'e8f8c211226b894fcb81acc59f3b34ba3efd5f42';
 export const MODEL_SHA256 = '783fea82d71a58179b830a4dbd2d58447e640609e98eedf9ffa12622d375a672';
 const files = [

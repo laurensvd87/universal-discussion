@@ -25,7 +25,7 @@ export async function runChromeCapture({ executable, url, fixtureHtml, fixtureRe
   } else pilotUrl(url);
   if (typeof executable !== 'string' || !path.isAbsolute(executable) || !(await lstat(executable)).isFile())
     throw new TypeError('Absolute installed Chrome executable required');
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-r5-pilot-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'murmingle-r5-pilot-'));
   let browser;
   try {
     browser = fixture && !usePilotPipeForFixture
@@ -33,7 +33,7 @@ export async function runChromeCapture({ executable, url, fixtureHtml, fixtureRe
       : launchPilotPipe({ executable, profileDirectory: path.join(directory, 'profile') });
   } catch (error) {
     if (path.dirname(path.resolve(directory)) !== path.resolve(os.tmpdir()) ||
-        !path.basename(directory).startsWith('udl-r5-pilot-')) throw new Error('Temporary profile cleanup target invalid');
+        !path.basename(directory).startsWith('murmingle-r5-pilot-')) throw new Error('Temporary profile cleanup target invalid');
     await rm(directory, { recursive: true, force: true });
     throw error;
   }
@@ -150,7 +150,7 @@ export async function runChromeCapture({ executable, url, fixtureHtml, fixtureRe
     finally {
       await Promise.allSettled([...tasks]);
       if (path.dirname(path.resolve(directory)) !== path.resolve(os.tmpdir()) ||
-          !path.basename(directory).startsWith('udl-r5-pilot-')) throw new Error('Temporary profile cleanup target invalid');
+          !path.basename(directory).startsWith('murmingle-r5-pilot-')) throw new Error('Temporary profile cleanup target invalid');
       await rm(directory, { recursive: true, force: true });
     }
   }

@@ -13,10 +13,10 @@ import { loadDiagonalAdapter } from '../../../src/domain/diagonal-adapter.js';
 import { POLICY, pairedStatistics, fitRidge, transfer, center, alignment, calibrateRepresentation, assess, chooseUseful } from './core.js';
 
 const ROOT = fileURLToPath(new URL('../../../../../', import.meta.url));
-const PRIVATE_DIRECTORY = path.join(os.tmpdir(), 'udl-globesumm-research-20261008');
+const PRIVATE_DIRECTORY = path.join(os.tmpdir(), 'murmingle-globesumm-research-20261008');
 const INPUT = path.join(PRIVATE_DIRECTORY, 'news_only.json');
 const CORPUS_SHA = '8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d';
-const TEACHER_DIRECTORY = path.join(os.tmpdir(), 'udl-paraphrase-research-20261010');
+const TEACHER_DIRECTORY = path.join(os.tmpdir(), 'murmingle-paraphrase-research-20261010');
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const stage = (name, values = {}) => process.stdout.write(`${JSON.stringify({ stage: name, ...values })}\n`);
 const files = Object.freeze({

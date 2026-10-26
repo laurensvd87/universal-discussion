@@ -14,7 +14,7 @@ import { pairs, calibrate, evaluate } from './core.js';
 
 const sha = data => createHash('sha256').update(data).digest('hex');
 const corpusSha = '8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d';
-const filename = path.join(os.tmpdir(), 'udl-globesumm-research-20261008', 'news_only.json');
+const filename = path.join(os.tmpdir(), 'murmingle-globesumm-research-20261008', 'news_only.json');
 async function embed(rows, method) {
   const vectors = new Map();
   for (let offset = 0; offset < rows.length; offset += 64) {

@@ -44,7 +44,7 @@ test('Trust: generic synthetic artifact is accepted, but it cannot impersonate t
 });
 
 test('Trust: absent, malformed and synthetic installed Ridge fail closed despite an available legacy path', () => {
-  const directory = mkdtempSync(path.join(os.tmpdir(), 'udl-ridge-trust-'));
+  const directory = mkdtempSync(path.join(os.tmpdir(), 'murmingle-ridge-trust-'));
   const ridgePath = path.join(directory, 'ridge.json');
   const adapterPath = path.join(directory, 'legacy.json');
   const empty = { alternateAdapter: null, alternateBodyMetric: null, alternateRidgeAdapter: null };

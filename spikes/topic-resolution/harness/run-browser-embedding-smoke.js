@@ -17,7 +17,7 @@ const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, millise
 // third-party site is contacted. Results contain aggregate checks, never vectors.
 export async function runBrowserEmbeddingSmoke(executable = DEFAULT_CHROME) {
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-embedding-smoke-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'murmingle-embedding-smoke-'));
   const targets = new Map();
   const tasks = new Set();
   const errors = [];
@@ -204,7 +204,7 @@ export async function runBrowserEmbeddingSmoke(executable = DEFAULT_CHROME) {
     await browser?.close();
     await Promise.allSettled([...tasks]);
     assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
-    assert.ok(path.basename(directory).startsWith('udl-embedding-smoke-'));
+    assert.ok(path.basename(directory).startsWith('murmingle-embedding-smoke-'));
     await rm(directory, { recursive: true, force: true });
   }
 }

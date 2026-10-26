@@ -15,8 +15,8 @@ const stage = process.argv[2] ?? "after";
 assert.ok(["before", "after"].includes(stage));
 const executable = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const extensionRoot = fileURLToPath(new URL("../browser/", import.meta.url));
-const profileRoot = mkdtempSync(path.join(os.tmpdir(), "udl-popup-visual-"));
-const outputRoot = path.join(os.tmpdir(), "udl-popup-design-review");
+const profileRoot = mkdtempSync(path.join(os.tmpdir(), "murmingle-popup-visual-"));
+const outputRoot = path.join(os.tmpdir(), "murmingle-popup-design-review");
 mkdirSync(outputRoot, { recursive: true });
 let browser;
 async function evaluate(expression, sessionId) {
@@ -1390,6 +1390,6 @@ try {
   await browser?.close();
   const target = path.resolve(profileRoot);
   assert.equal(path.dirname(target), path.resolve(os.tmpdir()));
-  assert.ok(path.basename(target).startsWith("udl-popup-visual-"));
+  assert.ok(path.basename(target).startsWith("murmingle-popup-visual-"));
   rmSync(target, { recursive: true, force: true });
 }

@@ -47,7 +47,7 @@ export async function runLiveVoiceQa(args, { fetchImpl = fetch, print = console.
     const refreshStore = createProtectedRefreshStore({ hostId: store.hostId });
     if (!refreshStore) throw new Error("Protected sign-in unavailable");
     const provider = boundedVoiceFetch(fetchImpl);
-    connection = createChatGPTConnection({ hostId: store.hostId, agentName: "Universal Discussion Layer",
+    connection = createChatGPTConnection({ hostId: store.hostId, agentName: "Murmingle",
       readRegistration: store.readRegistration, writeRegistration: store.writeRegistration,
       fetchImpl: provider.fetch, refreshStore });
     if (!await connection.restore() || !connection.status().planEnabled) throw new Error("Connected plan unavailable");

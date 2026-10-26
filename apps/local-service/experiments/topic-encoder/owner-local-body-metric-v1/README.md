@@ -5,7 +5,7 @@ This inert installer and strict artifact loader prepare the frozen
 import and do not activate a planner or change canonical E5 coordinates.
 Lead and independent Trust review precede execution/integration.
 
-The fixed private input is OS TEMP `udl-globesumm-research-20261008/news_only.json`
+The fixed private input is OS TEMP `murmingle-globesumm-research-20261008/news_only.json`
 (14,972,999 bytes, pinned SHA-256). The unchanged frozen helpers reconstruct
 the same 475 fitting reports, embed only normalized BODY-prefix input with
 packaged pinned E5 assets, then fit mean and regularized within-event covariance

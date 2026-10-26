@@ -13,7 +13,7 @@ import { SYNTHETIC_SOURCES, SYNTHETIC_TOPIC_SEEDS } from "../src/adapters/fixtur
 import { deterministicDependencies } from "./helpers.js";
 
 function directory(t) {
-  const dir = mkdtempSync(path.join(tmpdir(),"udl-discovery-"));
+  const dir = mkdtempSync(path.join(tmpdir(),"murmingle-discovery-"));
   t.discoveryClosers = [];
   t.after(() => { for (const close of t.discoveryClosers) close(); rmSync(dir,{recursive:true,force:true}); });
   return dir;

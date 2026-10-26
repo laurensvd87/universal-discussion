@@ -39,7 +39,7 @@ test("two reserved-domain bridge sources share one discussion through explicit c
 });
 
 test("reopening pre-bridge database preserves stored catalog until explicit reset", () => {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-bridge-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-bridge-"));
   const databasePath = path.join(directory, "demo.sqlite");
   let application;
   try {
@@ -54,7 +54,7 @@ test("reopening pre-bridge database preserves stored catalog until explicit rese
   } finally {
     application?.close();
     assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
-    assert.ok(path.basename(directory).startsWith("udl-bridge-"));
+    assert.ok(path.basename(directory).startsWith("murmingle-bridge-"));
     rmSync(directory, { recursive: true, force: true });
   }
 });

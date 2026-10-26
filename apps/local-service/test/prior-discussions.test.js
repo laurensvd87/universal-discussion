@@ -54,7 +54,7 @@ test("view rejects unlinked IDs and orders bounded Topic groups by latest matchi
 });
 
 test("pinned old Source roots remain discoverable across SQLite restart; other roots stay excluded", async (t) => {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "udl-prior-discussions-"));
+  const directory = mkdtempSync(path.join(os.tmpdir(), "murmingle-prior-discussions-"));
   t.after(() => { assert.ok(directory.startsWith(os.tmpdir())); rmSync(directory, { recursive: true, force: true }); });
   const databasePath = path.join(directory, "demo.sqlite");
   let app = createSqliteDemoService({ databasePath, ...deterministicDependencies() });

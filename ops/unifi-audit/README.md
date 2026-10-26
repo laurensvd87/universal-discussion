@@ -22,13 +22,13 @@ settings or activate the portable backend.
 3. Return to the local UDR tab, open DevTools with **Ctrl+Shift+J**, select
    **top** in the Console's JavaScript context selector, paste the script into
    **Console**, and execute it. A dialog titled **Export UniFi firewall settings**
-   opens, with a fixed **[UDL UniFi export] Dialog ready** message in Console.
+   opens, with a fixed **[Murmingle UniFi export] Dialog ready** message in Console.
    Only run the repository script you inspected; do not paste third-party scripts
    into a signed-in router session.
    Chrome may initially block console pasting with its self-XSS warning.
 4. Enter the temporary API key into the tool's password field and start the
    export. If several sites exist, select the numbered site. The file
-   **`udl-unifi-audit-YYYY-MM-DD.json`** downloads through Chrome. Review it,
+   **`murmingle-unifi-audit-YYYY-MM-DD.json`** downloads through Chrome. Review it,
    then upload only that file here. Close the export dialog and revoke the
    temporary key under Integrations when finished.
 
@@ -54,7 +54,7 @@ the UDR tab to discard previous attempts, wait for it to load, and select **top*
 in Console before running the script. Enable the **Info** log level to see the
 ready message. If DevTools is paused at a breakpoint, resume it first.
 
-Exporter startup messages have the fixed prefix **[UDL UniFi export]**. A missing
+Exporter startup messages have the fixed prefix **[Murmingle UniFi export]**. A missing
 page document or a failed dialog startup gives a fixed hint, without echoing an
 exception, URL, key or API response. Messages such as `Missing queryFn` and
 `Unchecked runtime.lastError` are not exporter diagnostics. Report only the
@@ -156,7 +156,7 @@ node ops/unifi-audit/integration/chrome-check.mjs
 
 Chrome must already be installed. `CHROME_PATH` may select its executable; the
 test uses a fresh profile, not the owner's profile. The review screenshot is
-retained under `%TEMP%\udl-unifi-audit-review` and contains synthetic UI only.
+retained under `%TEMP%\murmingle-unifi-audit-review` and contains synthetic UI only.
 
 ## Official references
 

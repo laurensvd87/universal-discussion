@@ -14,8 +14,8 @@ import { launchChromiumPipe } from "../../../spikes/topic-resolution/harness/chr
 // Fresh disposable Chrome + CDP request interception + isolated in-memory SQLite.
 // No server listener, real email, owner profile/data, OAuth or provider request.
 const extensionRoot = fileURLToPath(new URL("../../../spikes/topic-resolution/browser/", import.meta.url));
-const profileRoot = mkdtempSync(path.join(os.tmpdir(), "udl-account-preview-"));
-const artifacts = path.join(os.tmpdir(), "udl-account-design-review");
+const profileRoot = mkdtempSync(path.join(os.tmpdir(), "murmingle-account-preview-"));
+const artifacts = path.join(os.tmpdir(), "murmingle-account-design-review");
 mkdirSync(artifacts, { recursive: true });
 const repository = new AccountRepository();
 const mail = [];
@@ -149,6 +149,6 @@ try {
   // Only the exact disposable directory returned by mkdtemp above.
   const resolved = path.resolve(profileRoot);
   assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
-  assert.equal(path.basename(resolved).startsWith("udl-account-preview-"), true);
+  assert.equal(path.basename(resolved).startsWith("murmingle-account-preview-"), true);
   rmSync(resolved, { recursive: true, force: true, maxRetries: 4, retryDelay: 150 });
 }

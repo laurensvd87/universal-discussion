@@ -20,7 +20,7 @@ async function main() {
     !['--freeze', '--development', '--freeze-hash'].includes(arg) && args[i - 1] !== '--freeze-hash')) throw new Error('MODE');
   const expected = args[args.indexOf('--freeze-hash') + 1];
   if (development && (!args.includes('--freeze-hash') || !/^[a-f0-9]{64}$/u.test(expected ?? ''))) throw new Error('FREEZE');
-  const filename = path.join(os.tmpdir(), 'udl-globesumm-research-20261008', 'news_only.json');
+  const filename = path.join(os.tmpdir(), 'murmingle-globesumm-research-20261008', 'news_only.json');
   const info = await lstat(filename);
   if (!info.isFile() || info.isSymbolicLink() || info.size !== 14_972_999) throw new Error('FILE');
   const bytes = await readFile(filename);

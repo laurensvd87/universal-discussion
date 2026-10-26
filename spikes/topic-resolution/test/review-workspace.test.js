@@ -41,7 +41,7 @@ function workspaceError(code) {
 }
 
 async function temporaryWorkspace(t) {
-  const temporaryRoot = await mkdtemp(path.join(tmpdir(), "udl-review-"));
+  const temporaryRoot = await mkdtemp(path.join(tmpdir(), "murmingle-review-"));
   t.after(async () => {
     await rm(temporaryRoot, { recursive: true, force: true });
   });

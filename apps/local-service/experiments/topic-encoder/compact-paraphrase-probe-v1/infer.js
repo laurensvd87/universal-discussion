@@ -5,7 +5,7 @@ import path from 'node:path';
 import { poolHidden, MODEL_SHA256, TOKENIZER_SHA256 } from '../../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js';
 import { runPooledArticle } from '../e5-infer.js';
 
-const directory = path.join(os.tmpdir(), 'udl-paraphrase-research-20261010');
+const directory = path.join(os.tmpdir(), 'murmingle-paraphrase-research-20261010');
 const hash = '783fea82d71a58179b830a4dbd2d58447e640609e98eedf9ffa12622d375a672';
 export async function embedParaphrase(rows) {
   return embedModel(rows, { directory, hash, prefix: '', maxTokens: 128,

@@ -16,7 +16,7 @@ import { MODEL_SHA256, TOKENIZER_SHA256 } from '../../../../../spikes/topic-reso
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../../../../..');
-const PRIVATE_DIRECTORY = path.join(os.tmpdir(), 'udl-globesumm-research-20261008');
+const PRIVATE_DIRECTORY = path.join(os.tmpdir(), 'murmingle-globesumm-research-20261008');
 const PRIVATE_INPUT = path.join(PRIVATE_DIRECTORY, 'news_only.json');
 const CORPUS_BYTES = 14_972_999;
 const OUTPUT = path.join(ROOT, 'apps/local-service/data/body-topic-metric-v1.json');

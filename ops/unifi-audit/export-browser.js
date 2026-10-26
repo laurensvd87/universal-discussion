@@ -16,9 +16,9 @@
   "use strict";
   const VERSION = "10.6.106";
   const BOOTSTRAP_MESSAGES = Object.freeze({
-    ready: "[UDL UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.",
-    noDocument: "[UDL UniFi export] No usable page document. Select top in the Console context selector, wait for the page to load, and run the script again.",
-    failed: "[UDL UniFi export] Dialog startup failed. Select top in the Console context selector, wait for the page to load, and run the script again."
+    ready: "[Murmingle UniFi export] Dialog ready. Enter the temporary key in the password field, not the Console.",
+    noDocument: "[Murmingle UniFi export] No usable page document. Select top in the Console context selector, wait for the page to load, and run the script again.",
+    failed: "[Murmingle UniFi export] Dialog startup failed. Select top in the Console context selector, wait for the page to load, and run the script again."
   });
   async function bootstrap(env, start = run) {
     function report(message) {
@@ -597,7 +597,7 @@
           const blob = new env.Blob([JSON.stringify(output, null, 2)], { type: "application/json" });
           const url = env.URL.createObjectURL(blob), link = doc.createElement("a");
           try {
-            link.href = url; link.download = `udl-unifi-audit-${new Date().toISOString().slice(0, 10)}.json`;
+            link.href = url; link.download = `murmingle-unifi-audit-${new Date().toISOString().slice(0, 10)}.json`;
             doc.body.append(link); link.click();
           } finally { link.remove(); env.setTimeout(() => env.URL.revokeObjectURL(url), 1000); }
           status.textContent = output.collectionStatus === "COMPLETE"

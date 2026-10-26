@@ -12,7 +12,7 @@ import { parseCorpus, selectEventDisjoint } from '../real-event-eval/core.js';
 import { embedDocuments } from '../e5-infer.js';
 
 const SYNTHETIC = fileURLToPath(new URL('../multilingual-holdout-v6/holdout.jsonl', import.meta.url));
-const PRIVATE = path.join(os.tmpdir(), 'udl-globesumm-research-20261008', 'news_only.json');
+const PRIVATE = path.join(os.tmpdir(), 'murmingle-globesumm-research-20261008', 'news_only.json');
 const ADAPTER = fileURLToPath(new URL('../../../data/diagonal-adapter-v1.json', import.meta.url));
 const SYNTHETIC_SHA = '032eaa490d0ae6b9067ec479be4a80b563229606f83ce0f43a1bc9efd4098aeb';
 const PRIVATE_SHA = '8c296a8d1b0f344ad477c2541acbf010f220d1695f63ebce35700bf5c4cf392d';

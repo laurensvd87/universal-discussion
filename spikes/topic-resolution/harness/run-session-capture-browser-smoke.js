@@ -20,7 +20,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 // acquisition: reaching the unpaired gate demonstrates eligible session routing.
 export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME) {
   if (!path.isAbsolute(executable) || !(await lstat(executable)).isFile()) throw new Error('Installed absolute Chrome executable required');
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'udl-session-smoke-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'murmingle-session-smoke-'));
   const targets = new Map(), tasks = new Set(), errors = [], checks = [], gaps = [];
   let browser, extensionId, pageSession, popupSession, popupTarget, deadline, closing = false;
   let documents = 0, blockedRequests = 0, runtimeExceptions = 0, embeddingRequests = 0;
@@ -402,7 +402,7 @@ export async function runSessionCaptureBrowserSmoke(executable = DEFAULT_CHROME)
     try { await browser?.close(); } finally {
       await Promise.allSettled([...tasks]);
       assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
-      assert.ok(path.basename(directory).startsWith('udl-session-smoke-'));
+      assert.ok(path.basename(directory).startsWith('murmingle-session-smoke-'));
       await rm(directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     }
   }

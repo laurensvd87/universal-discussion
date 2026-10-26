@@ -129,7 +129,7 @@ test("Trust: filtered private cursors fence owner/query/limit/mutation while for
 });
 
 test("Trust: reopening the same private store rejects old filtered cursors but preserves legacy plain-ID paging", t => {
-  const directory = mkdtempSync(join(tmpdir(), "udl-private-search-trust-"));
+  const directory = mkdtempSync(join(tmpdir(), "murmingle-private-search-trust-"));
   const filename = join(directory, "private.sqlite");
   const first = privateFixture(t, filename); let second;
   try {
