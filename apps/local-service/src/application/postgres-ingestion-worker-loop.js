@@ -85,7 +85,9 @@ export function startPostgresIngestionWorkerLoop({ repository, referenceMatcher,
       markBusy();
       let representedValues, prepared;
       try {
-        representedValues = referenceMatcher.represent(claim.input);
+        // Installed encoders must be initialized before claiming. Await bounded
+        // per-claim preparation, then retain the same abort/SQL lease fences.
+        representedValues = await referenceMatcher.represent(claim.input);
         prepared = clock();
       } catch (error) {
         prepared = clock();

@@ -1,6 +1,32 @@
 # Project status
 
-## Current checkpoint on 26 October: real child tests and collection repair
+## Current checkpoint on 26 October: conservative real GTA result and ingestion preparation
+
+The separate GTA test completed with the frozen classifier (source5f902f53,
+session96132): all six pages retain Games, two of three actual GTA games refine to
+games/video-games/gta, and none of three other games refines falsely. Chinatown
+Wars stays at Games below the unchanged threshold. Matching median0.92ms/p95
+3.41ms; body encoding median553ms/title13ms. The35.9s full run includes acquisition
+and spacing, not UI latency. Resultd611ab51...4d93f and independent audit3f50506a...
+567d8 are retained in data/hierarchy-gta-detail-evaluation-20261026. This is a
+promising small curated English result, with incomplete specificity and no claim
+of representative precision. GTA TEST is now consumed; no threshold retuning.
+
+The preceding repaired fit captured15/16, with all four GTA training positives;
+one pacing-unavailable negative remains counted. CAL accepted4/4 positives and0/4
+negatives. Fit9ae931e1...feb5 and independent audit4bd3c3f5...1de7f4 reproduce exactly.
+The initial disabled fit remains immutable. The metadata parser repair therefore
+has actual collection evidence beyond its guarded tests.
+
+Worker integration can use the existing durable title/body payload; no browser
+title-vector field is necessary. New bounded preparation validates that exact
+material, encodes its title locally, reuses cached numeric work and uses the
+title-inclusive operation digest for freshness. The worker now awaits preparation
+while preserving abort/SQL fences. Root21 guarded tests pass; the new component
+is not connected to canonical storage or startup. Its actual installed-model check
+is next. SourceStamp alone is insufficient because it excludes title.
+
+## Earlier checkpoint: real child tests and collection repair
 
 The reusable rooted matcher is committed and pushed as c89d5f33. It accepts only
 details under the independently accepted root, chooses the deepest supported path,
@@ -23,8 +49,8 @@ discards unused data metadata while preserving policy/visibility checks, attribu
 count and interpreted-surface/global limits. Root and independent peer each pass26
 guarded tests; the fresh repair run is next. Old outputs remain immutable.
 
-Product integration remains substantial: same-observation title vectors must cross
-the current body-only ingestion contract; canonical assignments, existing discussion
+Product integration remains substantial: operation-bound paired classifications must
+be stored under the current ingestion fences; canonical assignments, existing discussion
 IDs, ancestor feeds and owner controls must be joined. Concurrent database/role and
 real foreground UI checks remain open. The live services have not switched.
 

@@ -95,3 +95,49 @@ test('long elapsed measurements are explicitly capped rather than unbounded or n
   await worker.whenIdle(); await worker.close();
   assert.deepEqual(events, [{ outcome: 'completed', claimMs: 1, prepareMs: 1, applyMs: 86_400_000, totalMs: 86_400_000, capped: 1 }]);
 });
+
+test('asynchronous preparation settles before apply, and closing while it waits prevents any apply', async () => {
+  for (const stop of [false, true]) {
+    let begin, release, claims = 0, applied = 0;
+    const started = new Promise(resolve => { begin = resolve; });
+    const gate = new Promise(resolve => { release = resolve; });
+    const worker = startPostgresIngestionWorkerLoop({
+      repository: {
+        async claim() { return ++claims === 1 ? selected : null; },
+        async apply(claim, value) { assert.equal(claim, selected); assert.deepEqual(value, { representedValues: [1, 0] }); applied++; return result; },
+        async failClaim() { assert.fail('preparation did not fail'); },
+      },
+      referenceMatcher: { async represent() { begin(); await gate; return [1, 0]; } },
+    });
+    await started;
+    assert.equal(applied, 0);
+    const closing = stop ? worker.close() : null;
+    release();
+    if (stop) await closing;
+    else { await worker.whenIdle(); await worker.close(); }
+    assert.equal(applied, stop ? 0 : 1);
+    assert.equal(claims, stop ? 1 : 2);
+  }
+});
+
+test('rejected asynchronous preparation preserves deterministic failure versus reclaimable uncertainty', async () => {
+  for (const deterministic of [false, true]) {
+    let failed = 0, notify;
+    const observed = new Promise(resolve => { notify = resolve; });
+    const worker = startPostgresIngestionWorkerLoop({
+      repository: {
+        async claim() { return selected; },
+        async apply() { assert.fail('rejected preparation cannot apply'); },
+        async failClaim() { failed++; return true; },
+      },
+      referenceMatcher: { async represent() {
+        await Promise.resolve();
+        throw deterministic ? new TypeError('invalid prepared input') : new Error('local encoder unavailable');
+      } }, onProgress: notify,
+    });
+    const event = await observed;
+    await worker.close();
+    assert.equal(event.outcome, deterministic ? 'representation-failed' : 'representation-uncertain');
+    assert.equal(failed, deterministic ? 1 : 0);
+  }
+});

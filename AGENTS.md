@@ -8,7 +8,25 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
-CURRENT26Oct maintained matcher c89d5f33 committed/pushed. Root+independent SOURCE
+CURRENT26Oct GTA conservative heldout result: source5f902f53/session96132 CLOSED0,
+6of6Gamescorrect/2of3positiveGTA refinements/0of3negative refinements. Chinatown
+Wars staysGames below frozen.316823 cut; no retune. Resultd611ab51...4d93f;
+Root authenticated/FULLread independent audit3f50506a...567d8. SmallcuratedEnglish
+franchise case, NOTrepresentative precision/independentVideoGameshead/liveauthority.
+GTA TEST6 nowCONSUMED; no repeat as unseen. Repairedfit36565 CLOSED0/eligibleTRUE,
+TRAIN4positive3negative/CAL4positive4negative4accept0false;15of16scored, RedDead
+pace-unavailable retained/notreplaced. Fit9ae931e1...feb5/artifact0233a7b6...b54ea,
+audit4bd3c3f5...1de7f4 authenticated/FULLread. Allsavedoutputs immutable.
+New ordinary ingestion preparation source+tests implemented/reviewed: validated
+durable claim already binds title/body/model/extractor together, so worker-side
+shared local title encoding avoids browserwirechange. Use title-inclusive
+operationDigest for classifier sourceVersion; sourceStamp EXCLUDES title.32numeric
+cached/8distinctpending (NOTwaiterbound), serialencoder/coalescing/failednotcached/
+closeblocks latepublish; no canonical/nativeauthority. Worker nowawaits preparation
+with originalabort/SQLlease fences. Root21guardedPASS259.3ms; actual installed-model
+component check stillpending. Notinstalled/wired torepository/startup.
+
+Maintained matcher c89d5f33 committed/pushed. Root+independent SOURCE
 review accepted root-gated binary details, declared full paths, deepest supported
 path/LCA conflicts, compiled caches; six numeric tests, NOTlive integration.
 Recipe real-reference fit could not qualify. Binary CAL qualified3positive/4negative,
@@ -23,9 +41,10 @@ GTAIII918043B originalresponse928fe5d4...7afd fails originalparser592a0c73...4b9
 at16KiB attribute surface; data-mw value81392chars, otherattrs short. Normal parser
 repair scans/discards unused data-* metadata;128attrs/16KiB interpreted surfaces/
 global2MiB/token/depth/content caps preserved. Root26guarded testsPASS163.5ms;
-independent final parser SOURCE accepted/26PASS157.3ms; NOrepaired actualfit yet. New output path
+independent final parser SOURCE accepted/26PASS157.3ms. Repaired fit above supersedes
+the prior disabled run; fresh output path
 hierarchy-gta-detail-fit-parser-repair-20261026 preserves old run. No new study tree.
-Actual app still body-only ingestion; paired observation contract, native issuer,
+Actual app still body-only wire input; server-side paired classification/storage, native issuer,
 canonical destination integration/ancestor feeds, owner cuts, concurrency/roles,
 UI posting readiness/livecutover remain OPEN. Saved URL readiness currently waits
 matcher Ready; do not weaken document/account/privacy gates to bypass this.

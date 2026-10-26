@@ -1,6 +1,15 @@
 # E5 matching across broad and specific topics
 
-Current26 October: c89d5f33 implements cached root-gated binary membership heads
+Current26 October: frozen GTA head has actual separate TEST evidence:6/6Games,
+2/3GTA refinements,0/3false refinements; ChinatownWars staysGames. No retuning.
+Resultd611ab51...4d93f/independent audit3f50506a...567d8; small English franchise
+diagnostic, not population precision. TEST now consumed. Metadata repair recovered
+training positives; repairedfit15/16available, CAL4true/0false. New operation-bound
+preparation can encode each durable claim title locally and cache numeric results,
+avoiding a browser-wire change. Classifier freshness uses title-inclusive digest;
+canonical storage/routing and live integration remain open. See current STATUS.
+
+Earlier26 October: c89d5f33 implements cached root-gated binary membership heads
 over declared full paths. Ancestor nominations are pruned; sibling conflicts use
 their common ancestor, never incomparable head-score argmax. No live activation.
 Real recipe local references failed calibration; binary membership passed CAL but

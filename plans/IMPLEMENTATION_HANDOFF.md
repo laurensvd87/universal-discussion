@@ -1,6 +1,25 @@
 # Implementation handoff: local-service discussion MVP
 
-## Current continuation: rooted composition implemented; real detail still unaccepted
+## Current continuation: GTA heldout conservative result; server preparation bridge next
+
+Source5f902f53/session96132 completed GTA TEST exactly once:6/6Games,2/3GTA
+refinements,0/3false refinements; ChinatownWars remainsGames. Resultd611ab51...4d93f,
+independent audit3f50506a...567d8 authenticated/FULLread. Repaired fit36565 qualifies
+with4+/3-TRAIN and4+/4-CAL (4true/0falseaccept),15/16available; RedDead remains
+pace-unavailable. Fit9ae931e1...feb5/audit4bd3c3f5...1de7f4. Both directories immutable;
+GTA TEST now consumed, no cut/model retuning. Recipe branch still unaccepted.
+
+The durable claim binds canonical title/body embedding/extractor in exact material
+and operationDigest. Encode claim.input.title server-side with one shared installed
+E5 instance; no browser-wire change is required for new operation-bound numeric
+pairing. Historical arbitrary Source title/body rows still need provenance checks.
+Use operationDigest for sourceVersion, never title-excluding sourceStamp. New
+hierarchy-ingestion-preparation.js/test source is implemented/reviewed with bounded
+numeric cache and serialized encoding; worker nowawaits representation and keeps
+abort/SQL fences. Root21guarded tests pass. Actual local-model component test next;
+no repository/startup/canonical integration or live deployment yet.
+
+## Earlier continuation: rooted composition implemented; real detail still unaccepted
 
 Rooted matcher c89d5f33 is committed/pushed and source-reviewed. Root gates all
 binary heads; exact declared ancestors, deepest accepted path and sibling LCA are
@@ -17,7 +36,7 @@ III. Normal parser repair/tests are source-accepted; Root26PASS163.5ms, independ
 with identical subjects/labels/policy. No repaired fit has run yet. Do not adopt or
 overwrite the disabled artifact. No new versioned study/controller tree is needed.
 
-Read-only product inspection confirms paired vectors are absent from current ingest,
+Read-only product inspection confirms paired classifications are absent from current ingest,
 canonical apply still chooses Ridge references, and discovery has no semantic
 ancestor feed. Existing owner controls use similarity-space IDs, requiring explicit
 semantic mapping. Current saved-URL reads stay read-only until matcher Ready; any

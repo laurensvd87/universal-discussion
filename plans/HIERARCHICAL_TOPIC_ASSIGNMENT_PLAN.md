@@ -1,6 +1,15 @@
 # Hierarchical topic assignment and discussion plan
 
-Current26 October: numeric rooted composition is implemented (c89d5f33), including
+Current26 October: actual frozen GTA TEST now gives6/6correctGames,2/3correctGTA
+refinements and0/3false refinements. ChinatownWars staysGames; no retuning or live
+activation. The diagnostic supports conservative specificity on this small corpus;
+it does not independently validate the intermediate Video-games node or whole web.
+New ingestion preparation binds title-inclusive durable operation material and can
+derive title embeddings on the worker, avoiding a browser payload change. Actual
+canonical storage/routing, ancestor feeds, owner cuts and concurrent UI use remain
+required; presentation-only grouping does not complete this plan. See current STATUS.
+
+Earlier26 October: numeric rooted composition is implemented (c89d5f33), including
 exact declared ancestry, root gating, deepest accepted path and sibling LCA. Real
 detail is still unaccepted: Recipe TEST has one false refinement; GTA fitting lost
 all training positives to parser refusals, and its held-out cohort remains unused.
