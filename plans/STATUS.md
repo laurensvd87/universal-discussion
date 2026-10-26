@@ -1,6 +1,26 @@
 # Project status
 
-## Current checkpoint on 26 October
+## Current checkpoint on 26 October, after the native SQL pass
+
+The maintained hierarchy fixture passed all25 literal ledger points on real
+PostgreSQL17.11, using source506bdff5 and catalog0199e54a...de1bf. Session97295
+closed exit0. Root inspected the independent success audit31a36266...43d06f:
+all2,351 input pins and14 committed source/map blobs join; assertion bodies remain
+unchanged. Both scratch databases were closed and dropped, PostgreSQL was stopped
+by its verified owner, and the parent retired normally without emergency cleanup.
+The retained run is portable/data/hierarchy-native-runs/
+run-7a3f9b70462efb2c48511731dcf505d1aac9285b7597fec5. The audit is
+apps/local-service/data/hierarchy-native-material-actual-success-audit-20261026.json.
+
+This proves isolated serialized synthetic canonical SQL behavior: hierarchy,
+discussion preservation, owner projection, history, rollback and erasure. It does
+not prove real-page quality, concurrent sessions, restricted roles, UI latency or
+live activation. The whole fixture took15.66s; that is not per-page latency.
+The next work is real E5 quality comparison, followed by concurrency/latency and
+product integration. The crawler advanced throughout; original service starts
+were preserved. Git is committed and pushed; the overall goal remains active.
+
+## Earlier 26 October checkpoint (historical)
 
 The Git backlog is committed and pushed: historical research is archived in
 86d428dd, remaining integration sources in1cb7547b and unfinished application

@@ -1,6 +1,20 @@
 # Hierarchical topic assignment and discussion plan
 
-## Current implementation boundary on 26 October
+## Current implementation boundary: native SQL passed on 26 October
+
+The maintained fixture now passes all25 literal ledger points on real PostgreSQL
+(source506bdff5/session97295). The independently audited result31a36266...43d06f
+joins all2,351 inputs and unchanged assertion bodies; both scratch databases drop,
+the child verifies owned smart-stop, and the parent retires normally. Evidence
+remains immutable in run7a3f9b70462efb2c48511731dcf505d1aac9285b7597fec5.
+
+Hierarchy, discussion preservation, owner projection and rollback now have actual
+serialized synthetic SQL evidence. Real-page semantic quality, concurrent sessions,
+restricted roles, genuine issuance, UI latency and live activation still need
+validation/integration. The crawler and original services were preserved.
+Next compare actual E5 matching approaches on public labeled pages.
+
+## Earlier implementation boundary on 26 October (historical)
 
 The latest normal native run reached its first canonical child after schema/setup
 but failed42702. Its independent audit verifies parent normal retirement, child

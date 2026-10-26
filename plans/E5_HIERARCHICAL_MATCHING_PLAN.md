@@ -1,6 +1,15 @@
 # E5 matching across broad and specific topics
 
-26 October current: the latest normal native check reached its first canonical
+26 October current: real native PostgreSQL now passes all25 literal hierarchy
+ledger points (source506bdff5/session97295). Independent success audit31a36266...
+43d06f authenticates all2,351 inputs, unchanged assertions and clean owned cleanup.
+This proves serialized synthetic canonical SQL, not E5 quality or UI speed.
+Real-page comparison using existing installed assets is next; concurrency, roles,
+owner controls, genuine issuer and live application integration remain open.
+The crawler kept advancing. Exact evidence is retained in the current STATUS and
+apps/local-service/data/hierarchy-native-material-actual-success-audit-20261026.json.
+
+Earlier26 October checkpoint (historical): the normal native check reached its first canonical
 child after schema/setup, then failed42702. Parent normal retirement and child
 owned smart-stop are recorded; no child completed. The latest diagnostic points
 to issue_command/line39/position297; offline source mapping identifies its local

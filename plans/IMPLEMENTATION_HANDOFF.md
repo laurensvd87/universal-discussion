@@ -1,6 +1,23 @@
 # Implementation handoff: local-service discussion MVP
 
-## Current continuation after Git consolidation
+## Current continuation: native SQL passed, real quality next
+
+Source506bdff5 passed the complete25-point native hierarchy fixture on real
+PostgreSQL (session97295 exit0). Independent audit31a36266...43d06f is authenticated
+and fully read: all2,351 catalog inputs/14 Git blobs, unchanged assertion bodies,
+normal parent retirement, owned child smart-stop and both scratch database drops
+pass. Run7a3f9b70462efb2c48511731dcf505d1aac9285b7597fec5 and catalog0199e54a...de1bf
+remain immutable. The receipt is data/hierarchy-native-material-actual-success-
+audit-20261026.json under apps/local-service.
+
+This is isolated serialized synthetic SQL evidence. Real E5 quality, concurrent
+sessions/restricted roles, UI latency, genuine issuer and live product integration
+remain open. Keep false validation flags false. Do not rerun historical studies;
+ordinary maintained modules may evolve through reviewed Git with fresh retained
+run evidence. Use existing installed E5 assets and public labeled data to compare
+distinct matching approaches next. Crawler4060 and original services were preserved.
+
+## Earlier continuation after Git consolidation (historical)
 
 Owner asked to stop accumulating uncommitted work. Existing source is now saved
 in explicit archival/WIP commits:86d428dd(1743 historical files),1cb7547b(432 new

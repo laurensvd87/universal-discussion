@@ -8,7 +8,24 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
-LATEST26Oct Git consolidation supersedes the earlier operational handoff below.
+LATEST26Oct maintained nativeSQL SUCCESS source506bdff5/session97295 CLOSEDexit0.
+All25 literal ledgerpoints PASS (3outer/22child, not25 independentqualitysamples).
+Root authenticated/FULLread independent audit31a36266...43d06f at
+data/hierarchy-native-material-actual-success-audit-20261026.json. Catalog0199e54a...
+de1bf/2351inputs273603521B and14 rawGitblobs PASS; old assertions unchanged.
+Run portable/data/hierarchy-native-runs/run-7a3f9b70462efb2c48511731dcf505d1aac9285b7597fec5
+retains immutable output/snapshot/claim. Parentverifiednormal/emergencyFALSE;
+childownsmartstop+settledTRUE; bothscratchDBs plainDROP/adminclosed/pending0.
+SyntheticserializedcanonicalSQL ONLY: concurrency/restrictedroles/realE5quality/
+UIlatency/liveactivation UNFINISHED. Wholefixture15.66s isNOTperpage latency.
+Crawler4060 advanced2318+/stderr0, original API/worker/dashboard starts preserved.
+Normal sources evolve through reviewedGit; historicalconsumedinputs/output stay
+immutable. Gitbacklog resolved; userRefresh cleared staleVSCode10k. GoalACTIVE.
+Next realpage quality comparison, then concurrentapp/crawler latency/integration.
+
+Earlier operational notes below are historical where superseded.
+
+Historical26Oct Git consolidation superseded the earlier operational handoff below.
 Owner priority: finish the Git backlog before further hierarchy experiments.
 Historical1743 source files archived byte-exact in86d428dd;432 previously untracked
 integration/decision sources saved as explicit WIP in1cb7547b;106 functional/config/
