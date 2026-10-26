@@ -1,5 +1,21 @@
 # Product-first roadmap
 
+2026-10-19 hierarchy matching milestone: first offline implementation/measured
+screen complete; release gate FAIL, not canonical activation. See
+[ADR131](../decisions/ADR-131-hierarchical-e5-reference-matcher-and-quality-gate.md)
+and [measured experiment](../apps/local-service/experiments/topic-encoder/hierarchical-e5-v1/README.md).
+Next establish a predeclared method, fresh independent labels/holdout and calibration
+before persistence/backfill/cutover.53focused tests include separate v2 geometric
+root-ambiguity correction; no claim v2 passed the frozen v1 E5 test.
+
+Original front-of-plan hierarchy milestone: establish
+[E5 matching at broad and specific topic depths](E5_HIERARCHICAL_MATCHING_PLAN.md)
+before implementing the [hierarchy cutover](HIERARCHICAL_TOPIC_ASSIGNMENT_PLAN.md).
+Evaluate existing-vector separability, multiple topic exemplars, parent stopping,
+unknown-topic rejection and independently calibrated depth decisions. These are
+designs; the offline step above supersedes their original plan-only status, not
+their quality, data, migration or canonical authority gates.
+
 Updated: 2026-10-11. Governing decisions: ADR-014/015/016. Browser extension first;
 readable web conversations next, then Android and iOS, sharing Topic/discussion
 contracts (owner-confirmed sequencing on 2026-09-29). Core model:

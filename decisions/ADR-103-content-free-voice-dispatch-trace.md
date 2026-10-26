@@ -29,7 +29,7 @@ name, credentials, response text or input hashes. Records do not reach the
 provider or alter its request. There is no extra inference, request or retry.
 
 The normal owner-local CLI composes the diagnostic into a fixed temporary file:
-`%TEMP%/universal-discussion-insight-trace/voice-request-trace.log`.
+`%TEMP%/murmingle-insight-trace/voice-request-trace.log`.
 The sink accepts only plain, exact enumerable data fields without executing
 getters, reprojects safe scalars and keeps only whole validated recent lines
 within 64 KiB. It rejects redirected/linked/nonregular unsafe paths and discards

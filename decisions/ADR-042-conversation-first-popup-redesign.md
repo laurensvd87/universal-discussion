@@ -10,7 +10,7 @@ form. Astra High designed a coherent warm editorial system after inspecting the
 existing synthetic Chrome screens: ivory page, ink text and controls, restrained
 mustard accents, and readable human/robot conversation bubbles. The owner's
 interest in mustard and popping bubbles was a preference, not a fixed layout
-mandate. Existing Universal Discussion branding remains.
+mandate. Existing Murmingle branding remains.
 
 The reading hierarchy is compact connection/Settings, Topic heading, a
 directly available composer, any private Insight, then the thread. The owner

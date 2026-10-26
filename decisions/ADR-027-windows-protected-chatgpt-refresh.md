@@ -11,7 +11,7 @@ the service restarts; this decision does not make pairing durable.
 
 On Windows, the service stores one rotating refresh token plus the binding
 client ID and account subject in a CurrentUser DPAPI-encrypted file under
-`LOCALAPPDATA/UniversalDiscussionLayer`. Its filename is scoped by a digest of
+`LOCALAPPDATA/Murmingle`. Its filename is scoped by a digest of
 the installation's stable opaque host ID. A fixed PowerShell helper receives
 the record on stdin; neither token nor file path is a command argument or log.
 The write uses a temporary encrypted file and replacement; a failed secure
@@ -19,6 +19,11 @@ write falls back to RAM-only for that sign-in. If secure storage is unavailable
 or the OS is not Windows, the earlier RAM-only behavior remains. A user or
 malware with access to the same signed-in Windows account can potentially
 recover the protected credential; DPAPI is not a multi-user security boundary.
+
+The repository-wide naming update on 2026-10-12 preserves an existing protected
+record: the first successful read copies it from the opaque pre-name location,
+verifies the copy, and only then removes the prior file. New writes use only the
+`Murmingle` directory, and disconnect clears both locations.
 
 After the fixed loopback listener owns its port, service startup reads the
 credential, checks its client/subject binding against the existing non-secret

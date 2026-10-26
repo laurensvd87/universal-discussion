@@ -26,16 +26,22 @@ canonical for future website/onboarding use.
 
 The canonical reusable language is recorded in
 [`docs/BRAND_LANGUAGE.md`](../docs/BRAND_LANGUAGE.md). The technical invariant
-remains `Content -> Semantic Topic -> Discussion`; package names and historical
-records may retain Universal Discussion terminology where changing them would
-provide no user-facing benefit.
+remains `Content -> Semantic Topic -> Discussion`.
+
+On 2026-10-12 the owner extended the rename to every in-project identifier and
+historical reference. Package scopes, operational paths, test/runtime prefixes,
+the crawler identity, and the provider-facing agent-name hint now use Murmingle.
+New persistent artifacts use Murmingle identifiers; opaque compatibility reads
+preserve existing pairing, protected-login, and encrypted-backup state without
+keeping the retired name as readable source text.
 
 ## Boundaries
 
-This is a presentation and product-language decision. It does not change Topic,
-Source or Discussion identity, matching, permissions, storage, accounts,
-provider identity, network behavior or publication authority. The existing
-provider-facing agent identity is not renamed by this change.
+This remains a naming decision. The 2026-10-12 owner extension supersedes only
+the earlier limit on renaming project-owned identifiers, including the
+provider-facing agent-name hint. It does not change Topic, Source or Discussion
+identity, matching, permissions, storage semantics, account authority, provider
+access, network behavior or publication authority.
 
 The owner has not represented that the trademark is cleared or that the `.com`
 domain has been purchased. Those remain separate commercial/legal actions.

@@ -74,7 +74,7 @@ id -u
 id -g
 ```
 
-Set `UDL_RUNTIME_UID` and `UDL_RUNTIME_GID` in `.env` to those nonzero operator
+Set `MURMINGLE_RUNTIME_UID` and `MURMINGLE_RUNTIME_GID` in `.env` to those nonzero operator
 IDs, then:
 
 ```bash
@@ -161,11 +161,11 @@ node ops/restore.js rehearsal-1.dump
 The backup uses a consistent custom-format logical dump. It refuses to overwrite
 an existing filename. A failed dump can leave a reserved incomplete file; do
 not restore it. The restore script hard-codes `restore-db` and
-`udl_synthetic_restore`, refuses a target containing application tables and uses
+`murmingle_synthetic_restore`, refuses a target containing application tables and uses
 one transaction. It never drops the active database or resets volumes. Partial
 failure preserves the pre-existing fresh target; inspect it before retrying.
 
-The database administrator preinstalls pgvector. Restore runs as `udl_owner`
+The database administrator preinstalls pgvector. Restore runs as `murmingle_owner`
 with `--no-owner --no-comments`, preserving records and grants without trying
 to alter the administrator-owned extension comment. This omits **SQL object
 comments**, not discussion messages.

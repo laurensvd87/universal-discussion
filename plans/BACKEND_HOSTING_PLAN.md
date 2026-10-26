@@ -1,8 +1,27 @@
 # Portable backend and hosting plan
 
-Updated: 2026-10-12.
-Status: future architecture proposal, not deployment or data-migration approval.
-Decision record: [ADR-092](../decisions/ADR-092-portable-self-hosted-backend-plan.md).
+Updated: 2026-10-13.
+Status: PostgreSQL is the selected canonical target; implementation remains
+offline and grants no deployment or owner-data migration approval.
+Decision records: [ADR-092](../decisions/ADR-092-portable-self-hosted-backend-plan.md)
+and [ADR-114](../decisions/ADR-114-postgresql-canonical-concurrency-target.md).
+
+Current PostgreSQL checkpoint: the isolated
+[`canonical-v4`](../apps/local-service/portable/canonical-v4/README.md) path now
+has a checksummed lossless normalized-v2 empty-target importer, coherent bounded
+read facade and EXECUTE-only human root/reply command boundary. Independently
+reviewed migration 004 is an offline durable admission/lease/fairness,
+canonical-request validation and exhaustive exact-double Ridge matcher
+foundation with separated app/crawler/worker roles. Portable tests pass 83/83;
+004 hashes to
+`728CE42C013BE5DD8DF41CB259E08900E1C9B4213AECBACDA9B378DC5B38932F`.
+The canonical ingestion apply command is intentionally absent. This code is not loaded by the API, worker, startup,
+Compose or live service. Native PostgreSQL permissions/concurrency/recovery/load,
+HTTP and identity integration, Source-scoped admission witnesses, complete
+ingestion/lifecycle apply, dashboard,
+account/private storage, backup/restore and cutover acceptance remain open.
+The checked SQLite service, owner stores and active crawler remain untouched;
+no restart, deployment, remote listener or PostgreSQL owner-data import follows.
 
 Local canonical checkpoint: [ADR-098](../decisions/ADR-098-normalized-canonical-storage-and-ranked-discovery.md)
 implements normalized SQLite and scoped/versioned read/write integration in the
@@ -10,19 +29,21 @@ current local application. Aggregate JSON/post ceilings are removed in that
 adapter; the approved lossless owner-local conversion is complete under
 [ADR-099](../decisions/ADR-099-online-encrypted-canonical-backup-and-cutover.md). This
 preserves current exact vectors, Topics, posts and ownership, and is not a second
-portable identity or a PostgreSQL migration. Global ingest/regroup and full-thread
-UI paths still need scale work. H1's hosted PostgreSQL/matching/import/identity/
-client integration and operations acceptance remain open; no deployment follows.
+portable identity or the ADR-114 PostgreSQL migration. Global ingest/regroup and
+full-thread UI paths still need scale work. H1's offline synthetic import
+foundation exists; native owner import, HTTP/matching/identity/client integration
+and operations acceptance remain open. No deployment follows.
 
 Implementation checkpoint: the owner now approves repository preparation under
 [ADR-093](../decisions/ADR-093-private-portable-backend-rehearsal.md). The
 [synthetic portable package](../apps/local-service/portable/README.md) implements
 normalized storage, private API/worker and packaging parts of H1/H2, not their
 complete acceptance. H0's bounded Trust review passes. Native image/SQL/permission/
-restore evidence, imports/identity continuity, current matching and real-client
-integration remain open. Docker/WSL are absent on Windows; the intended private
-rehearsal host is now the existing Ubuntu 26.04 LTS VLAN computer. No UDR, remote,
-deployment, owner-data, mail or provider operation has occurred.
+restore evidence, owner import/identity continuity, full ingestion apply and
+real-client integration remain open. Docker/WSL are absent on Windows; the
+intended private rehearsal host is now the existing Ubuntu 26.04 LTS VLAN
+computer. No UDR, remote, deployment, owner-data, mail or provider operation has
+occurred.
 
 Latest owner direction: compare low-cost cloud hosting to skip the home-hosting
 step, especially Cloudflare versus AWS. The rented pilot recommendation below

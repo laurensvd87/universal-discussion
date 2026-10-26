@@ -1,9 +1,75 @@
 # Local service
 
+## Hierarchical assignment reference (2026-10-19, ADR131)
+
+The offline exact E5 exemplar matcher, development fitter and grouped evaluator
+are implemented. A new frozen144-text synthetic experiment is measured; specific
+leaf precision11/12 and insufficient independent support FAIL the release gate.
+Separate single-pathv2 rejects cross-root ambiguity in geometric tests; it has no
+new E5 accuracy claim.53focused checks pass. This code is not wired into startup,
+canonical ingestion or the client. No migration/assignment/post/provider change.
+See [experiment and read-only verification commands](experiments/topic-encoder/hierarchical-e5-v1/README.md).
+Existing live topic assignment and historical discussion routes remain unchanged.
+
+## Shared Related preparation (2026-10-19, ADR-127)
+
+Related's RAM catalog is shared per backend read facade/process, not per user or
+website. Restart and its original fixed five-minute lifetime trigger a full rebuild
+on the next lookup. Changed rows/chunks otherwise repair incrementally. Browser
+capture/local model startup and new-page ingestion are separate costs.
+
+The active backend prepares private normalized vector tokens once and releases raw
+512-row batches early, preserving full validation, exact arithmetic and freshness.
+Same-MVCC baseline10.35s/candidate6.86s with identical DTOs. Live cold6.60s, warm
+0.91–0.97s; saved51–75ms. No reload, migration, TTL/threshold/authority change or
+provider request. See [ADR-127](../../decisions/ADR-127-single-preparation-related-vectors.md).
+This supersedes ADR-126's earlier cold8–14s measurements below, not its safeguards.
+
+## Concurrent owner-local runtime (2026-10-18, ADR-126)
+
+Checked PostgreSQL schema9 is active; API, dashboard and continuous crawler use
+the same canonical database. Exact Related reuse preserves0.88/one-best0.80 and
+all current context proofs; core saved discussions and local draft readiness do
+not wait for optional Related work. Fresh crawler admission no longer waits on
+the heavy lane or convoys behind another request's Source/runtime locks. Exact
+replay, eight-job bounds and lifecycle fences remain. Cold exhaustive preparation
+can still take8–14seconds; warm Related roughly1second, saved feed48–159ms in final
+local measurements. This is not a hosted/unlimited-write scale claim.
+
+Reload client0.13.71 for preview/Back/focus fixes. Actual native Chrome three-site
+QA and two bounded public language exchanges pass; the two test conversations
+remain saved. ChatGPT connection/pairing are preserved; app sign-in may renew.
+UMAP/HDBSCAN were measured for matching only and not adopted because irrelevant
+merges worsened. Owner appointment is explicitly deferred for a possible later
+dashboard admin login; no account was autoappointed or policy file created.
+See [ADR-126](../../decisions/ADR-126-exact-related-cache-and-independent-ingestion-admission.md)
+and top STATUS/HANDOFF for exact activation, proofs and resource limits.
+
+## Owner-controlled topic discovery (2026-10-18, ADR-125)
+
+Client0.13.70 adds **Explore topics** above the existing Discover library. It uses
+a background-built hierarchy of populated public threads and the installed pinned
+Ridge1 transform. Owner defaults and per-topic overrides choose five broad-to-
+specific cuts; optional base labels and every policy change require explicit Save.
+There are no personal overrides or automatic popularity splits. Existing messages,
+canonical destinations, private chats, AI/write proofs and dashboard container counts
+are unchanged; this does not replace the old page-matching/Related scan.
+
+Owner management requires an explicitly selected existing named account. Owner
+appointment is currently deliberately deferred, not awaiting a guessed username.
+The operator-only bootstrap is `node src/ops/topic-space-owner-cli.js --account-database
+ABSOLUTE/accounts.sqlite --policy-file ABSOLUTE/topic-space-policy.json --account-id
+RAW_ACCOUNT_ID --confirm-owner`. It never creates/migrates accounts or autoappoints
+the first account. Normal startup never creates this policy file. Until configured,
+public grouping reads work with the broad default and no management controls.
+See [ADR-125](../../decisions/ADR-125-owner-controlled-semantic-topic-spaces.md)
+for exact bounds and verification. Its historical reconnect caveat is superseded
+by the owner's subsequent reconnect and ADR-126's preserved connected runtime.
+
 ## Content-free writing-voice diagnostics (2026-10-12, ADR-103)
 
 Normal owner-local startup enables a small voice-dispatch log at
-`%TEMP%/universal-discussion-insight-trace/voice-request-trace.log` and prints that
+`%TEMP%/murmingle-insight-trace/voice-request-trace.log` and prints that
 path. Each public generation dispatch records only fixed voice, SHA-256 of the
 actual serialized request's instruction string, a local epoch timestamp and the
 schema identifier. No page/comment/input hash, URL, model, account, token or answer
@@ -115,6 +181,8 @@ New paired read routes:
 | --- | --- |
 | `GET /v1/version` | `{version}` without a catalog download |
 | `POST /v1/catalog/context` | `{sourceId,topicId}` (nullable), exact selected public metadata |
+| `POST /v1/catalog/selection` | `{sourceId,topicId}`, one coherent catalog/discussion snapshot |
+| `POST /v1/catalog/url-selection` | `{url}`, exact learned Source plus catalog/discussion from one read-only snapshot; URL must already be persistence-sanitized |
 | `POST /v1/catalog/page` | `{kind:"sources"\|"topics",limit,cursor}`, `{catalog,nextCursor}` |
 | `POST /v1/discussions/page` | `{topicId,limit,cursor}`, versioned flat `items`/`nextCursor` |
 

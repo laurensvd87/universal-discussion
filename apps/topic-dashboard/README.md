@@ -47,7 +47,7 @@ the pages-axis view connects samples in time order, including backward movement.
 The chart measures whether growth slows; it cannot promise a Topic plateau.
 
 The generated file is
-`%LOCALAPPDATA%\Temp\universal-discussion-dashboard\dashboard.html` on a
+`%LOCALAPPDATA%\Temp\murmingle-dashboard\dashboard.html` on a
 typical Windows installation; the command prints the exact path. A sibling
 `snapshot.js` holds the latest view and, when available, its experimental
 grouping preview. Both are overwritten on the next run,

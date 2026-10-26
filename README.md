@@ -11,9 +11,34 @@ web conversations, then Android and iOS; public hosting is not yet approved.
 See [the brand-language guide](docs/BRAND_LANGUAGE.md) for reusable product and
 future website copy.
 
+All tracked project identifiers now use **Murmingle**, including package scopes,
+diagnostic paths and portable rehearsal configuration. Existing pairing,
+protected-login and seven-day encrypted-backup state remains readable through
+bounded pre-name compatibility during a later normal service use. This source
+rename does not rename the checkout directory or the external Git repository.
+
 ## Current state
 
-Extension **0.13.60** presents the Chrome extension simply as **Murmingle**. Its
+Extension **0.13.71** and the checked owner-local **PostgreSQL schema9** runtime
+are active. API, crawler and dashboard share the canonical database. Discover
+groups populated public discussions with owner-wide/per-topic specificity support;
+actual admin appointment is deliberately deferred. Exact Related reuse and
+independent ingestion admission keep optional matching apart from saved discussions
+and local drafts. Latest saved reads51–75ms, warm Related roughly1s; cold exhaustive
+Related measured6.6s after the backend-only
+[single-preparation optimization](decisions/ADR-127-single-preparation-related-vectors.md).
+The cache is shared by users/pages in each backend process, but expires after five
+minutes and can rebuild again; cold is not a once-per-installation cost.
+Actual three-site Chrome QA and two public language exchanges
+passed. The continuous crawler is advancing; ChatGPT connection and pairing remain.
+Reload the extension for the latest client. UMAP/HDBSCAN were tested for matching,
+not visualization, and were not adopted because irrelevant merges worsened.
+See [ADR-126](decisions/ADR-126-exact-related-cache-and-independent-ingestion-admission.md)
+and [current status](plans/STATUS.md) for measured limits and activation details.
+This is not hosted/unlimited-write readiness. Older SQLite recovery commands are
+historical and must not be used to restore the current PostgreSQL database.
+
+The extension presents itself simply as **Murmingle**. Its
 approved **Shared space** logo uses two opposing speech shapes with an open
 shared center, across the header and Chrome icons. The compact header omits the
 name and tagline; connection text appears only as a red exception when the local
@@ -44,9 +69,9 @@ Selected voices now choose the kind of contribution, not just a summary's tone.
 Funny can post just a joke; Sarcastic an ironic take; Clever an unusual connection.
 Short one-liners need no added analysis. Clearly nonliteral jokes are allowed,
 while real facts and sources still need support. Replies address the question
-through the selected voice. This latest backend-only refinement is tested but
-awaits a safe restart once the separate backend update is checked; no extension
-reload is needed. Live quality with the latest tasks is not yet retested.
+through the selected voice. This backend-only refinement has been activated by
+subsequent checked restarts; no separate extension reload is needed for prompts.
+Live quality across all voice/task combinations is not established.
 
 Authenticated model-list responses now have thirty seconds total instead of
 being cut off locally at five; incoming and other request limits stay unchanged.
@@ -59,14 +84,14 @@ activate its matching correction. See [ADR-104](decisions/ADR-104-authenticated-
 Empty discussions now offer related-page links from the existing backend library.
 Discover with an empty search box shows pages related to the current page; typing
 searches the full public library, not just those recommendations.
-The backend adds
+The earlier backend added
 normalized canonical SQLite storage and Discover ranking by best textual match,
 then visible replies when relevance ties. Scoped reads/posts no longer load or
 rewrite the entire canonical snapshot; byte-bounded catalog/discussion pages are
 available. The normalized adapter has no 8 MiB aggregate or 1,000-post ceiling.
 The standalone dashboard supports both storage formats without changing data.
 
-**Backend storage is active:** the approved encrypted recovery point and lossless
+**Historical SQLite cutover (superseded by PostgreSQL):** the approved encrypted recovery point and lossless
 conversion/restart are complete. IDs, saved records, pairing and protected ChatGPT
 login are preserved. Routine `npm run backup:canonical` stays online; seven-day
 expiry is maintained at startup/hourly. It excludes accounts/private chats and
@@ -77,8 +102,9 @@ See [ADR-099](decisions/ADR-099-online-encrypted-canonical-backup-and-cutover.md
 An explicit owner-local PowerShell crawler can now stage a broad public Source
 campaign and, with `-Apply`, submit diversity-selected pages through the normal
 canonical API. It needs no supplied origin list: the fixed campaign spans sixteen
-subjects on four exact Wikipedia language origins and defaults to 5,000 page
-attempts. Its separate SQLite ledger prevents repeat visits and resumes after a
+subjects on four exact Wikipedia language origins. The current crawler defaults
+to continuous operation without automatic page/depth/time caps; explicit operator
+limits and public crawl policy remain. Its separate SQLite ledger prevents repeat visits and resumes after a
 reboot when the same command is run again. Preview still performs real public
 requests but never changes canonical Topics. See the
 [crawler operator guide](apps/local-service/ops/CRAWLER.md) and

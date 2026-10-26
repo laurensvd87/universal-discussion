@@ -1,5 +1,3437 @@
 # Project status
 
+## Git consolidation checkpoint on 26 October
+
+The accumulated source is now recorded separately from generated local artifacts.
+Commit `86d428dd` preserves1,743 historical research files byte-for-byte;
+`1cb7547b` checkpoints432 previously untracked integration and decision files;
+`2c796408` records106 unfinished application, configuration and test edits.
+These are historical or WIP checkpoints, not release or matching-quality claims.
+Browser profiles, captures, model-vector outputs and downloaded tooling remain
+on disk and are excluded from Git. No source or application data was deleted.
+
+The read-flight source fix in `1e0d27d1` removes canceled subscribers instead of
+retaining a promise callback per reader. Independent source review accepted it;
+23 focused/discovery tests pass. This code has not been deployed to the running
+service. A separate known privacy gate remains: asynchronous account/export
+responses need pairing, session and transport checks after awaited work.
+
+The existing second native PostgreSQL fixture now separates PID-file ownership
+from SQL startup identity;34 guarded simulated lifecycle tests pass. It still
+requires full source review, authenticated inputs and a separate actual decision.
+There is no new native run or measured semantic-quality result. The first native
+attempt remains a closed bootstrap failure with zero completed SQL assertions.
+
+The crawler and application services retain their original process starts.
+The next implementation priority is the known account delivery gap, followed by
+validation of the existing fixture and the real hierarchy/page/discussion flow.
+Clean Git is a recovery checkpoint, not completion of hierarchical matching.
+
+## Latest continuation: 26 October
+
+The first isolated native PostgreSQL run closed with a bootstrap identity failure
+before any canonical SQL assertion completed. Root and independent saved-evidence
+audits passed all2,338 input end-pins. The parent verified complete Job retirement;
+the child did not verify PostgreSQL smart stop. Neither is being reported as SQL
+success. Its inputs, catalog and output are immutable.
+
+A fresh v2 source correction is in progress under ADR222. PostgreSQL assigns the
+PID-file and SQL startup timestamps in different phases; the fixture must not
+assume they are nearly equal. The correction keeps exact ownership and SQL
+incarnation checks separate, with unchanged assertions and resource limits.
+No second actual run is authorized yet. Crawler4060 is advancing; application,
+dashboard and worker retain their original process starts. The overall hierarchy
+goal is active, with SQL, quality and live product integration still unfinished.
+
+## Previous source checkpoint (historical)
+
+The isolated native PostgreSQL fixture is implemented in two new namespaces.
+Its complete source runs pass92 Python and76 guarded64MiB Node tests, with no
+failures or skips. These are simulated control tests and read-only input checks,
+not the25 actual SQL assertions. The copied assertions and canonical SQL remain
+unchanged. Independent review corrected cleanup, reentry, original-epoch,
+bounded-marker and finite-output issues. Final source/pin acceptance is pending.
+
+A read/hash-only census covers2,338 inputs totaling273,416,694 bytes, including
+all1,777 PostgreSQL installation files and seven fixed runtime pins. No new
+actual catalog, output, cluster directory or execution decision exists yet.
+After final source review, the authenticated catalog and fresh resources must
+be reviewed before a separate one-shot native execution. The application and
+crawler have not been switched to experimental code; crawler4060 has advanced
+354 ingestions. ADR221 and `native-hierarchy-postgres-v1-*20261026.json` receipts
+describe the fixed endpoint, transaction and cleanup boundaries.
+
+The separately reviewed1GiB fixture attempt also stopped at the strict historical
+Job-peak guard:1,344,065,536 bytes observed against1,073,741,824 configured. The
+initial no-database test passed; no SQL point completed. Both pipe EOFs, an empty
+owned Job, handle closure and all544 end-pins were verified after owned emergency
+cleanup. The process observed81 stderr bytes during failure cleanup but retained
+none; their content is unknown. Root and independent saved-failure audits agree.
+All three bounded-runner versions and their consumed inputs/maps/outputs are now
+immutable. We will not continue the budget ladder. Next is a protected isolated
+native PostgreSQL fixture with the exact canonical SQL assertions, same-connection
+transactions and unchanged host reserves, under a new source review before any
+separate actual decision. Historical ADR175 success is not evidence for ADR220.
+The crawler4060 is advancing166 ingestions; live service starts remain unchanged.
+See `native-hierarchy-fixture-bounded-v3-root-actual-audit-20261026.json` under
+`apps/local-service/data/`. Earlier next-step and pending-audit notes are historical.
+
+The first actual bounded fixture run failed at Windows ESM startup; its raw guard
+path was invalid as an import URL. A separately reviewed fresh wrapper namespace
+corrected only that representation. All81 successor pure tests and the independent
+544-entry catalog review passed. The second actual run passed the first no-database
+test, then its resource guard refused a reported historical Job peak of580,931,584
+bytes against the configured512MiB threshold. It terminated only the owned test
+process and verified both EOFs, complete empty Job, all handle closure and end-pins.
+No canonical SQL assertion or matching-quality result passed. Both attempts and
+all consumed inputs/maps/outputs are immutable; no automatic retry or cap increase.
+The peak/readback discrepancy and allocation cause are not established by the
+retained data. Independent saved-failure audit and a separately reviewed next test
+design are in progress. See the two `native-hierarchy-fixture-bounded-*-root-actual-audit-20261026.json`
+receipts under `apps/local-service/data/`.
+
+The crawler had stopped itself during the interruption. Exact read-only checks
+reconciled its saved entries without discarding progress. After a later timed-out
+run, five entries were independently checked by the unchanged bounded audit pattern:
+four unissued and one completed, no live jobs. The ordinary sealed crawler resumed
+as PID4060 at11:23:39Z and has advanced92 ingestions with empty stderr. Application,
+worker and dashboard retain their original process starts. These are runtime
+maintenance steps, not activation of the new hierarchy matcher.
+
+Earlier source-only checkpoints below are historical where superseded here.
+
+The bounded database-fixture controller now has Root and independent Trust SOURCE
+checkpoint acceptance. All59 pure fake tests pass:25 controller,20 Windows boundary
+and14 TAP parser tests. Deadline, pipe, failure-preservation and cleanup findings
+are corrected. The fixed512MiB Job design retains original host reserves and
+PGlite defaults. Complete catalog authentication, the bounded output publisher
+and fixed executable runner remain unfinished; no actual Job or SQL execution
+is authorized by this checkpoint. Evidence is in
+`apps/local-service/data/native-hierarchy-fixture-bounded-controller-review-20261024.json`.
+
+The owner subsequently completed the StorSvc restart. Read-only verification shows
+the service running with new PID17048 and2.75MB private memory, down from3.14GB.
+At18:21:23Z available system commit was4.63GB and free physical RAM10.28GB.
+This supports StorSvc as a major contributor to recent commit pressure; its
+internal cause and earlier C-drive growth remain unproven. No automated restart,
+settings change or force-stop was performed.
+
+The complete seven-file hierarchy implementation now has Root, Semantic and
+independent Trust SOURCE acceptance. It includes canonical persistence, immutable
+historical topic bindings, ancestor feeds, owner-wide depth controls and protected
+queue handoffs. Earlier source-review findings are corrected. All84 guarded pure
+reports pass at64MiB; these comprise19 ingress and65 predecessor reports, not real
+page-quality cases. The added conflict and STOP persistence cases are database
+test source only. No SQL parser, database fixture or native database test has run.
+
+Larger database validation still needs fresh memory checks and a separate
+execution decision. The crawler has advanced418 ingestions with empty stderr;
+its PID13176 and the live service starts are unchanged. Real quality, native authority, existing-catalog
+adoption, admin/API/UI integration and live cutover remain open. The current SOURCE
+decision is `native-canonical-hierarchy-adr220-root-source-review-20261024.json`
+under `apps/local-service/data/`; it does not authorize a database or live phase.
+Earlier WIP checkpoints below are historical where superseded.
+
+The new ingress has a reviewed two-file SOURCE checkpoint: Root and independent
+Trust each pass all19 tests with a64MiB heap. It uses the actual preparation,
+grouping and mapping chain through the publication facade. An explicitly retried
+request can continue an existing unqueued issuance once, without reclassification,
+new IDs or a renewed deadline. Lost responses after enqueue reconcile the original
+operation. Nested receipt fields and malformed issued hashes now fail closed.
+These controlled service-port tests do not prove SQL transactions or real quality.
+
+The other five hierarchy files remain under implementation and review. Source
+inspection found reverse lock ordering around enqueue, erasure and expiry; the SQL
+owner is correcting it together with completion authority checks and the owner
+policy barrier. No database test or live activation is authorized by this checkpoint.
+At17:40:50Z crawler13176 had ingested218 pages since resume with empty stderr; the
+API, worker and dashboard retained their original starts. The approved StorSvc
+restart is still unconfirmed after the cancelled elevation; the manual response
+is pending. See the ADR220 ingress Root and independent receipts in
+`apps/local-service/data/`. Older checkpoints below are historical where superseded.
+
+ADR220's full canonical hierarchy design is accepted by Root, Platform, Semantic
+and Trust, with a separate seven-file SOURCE grant. Implementation is underway
+in a new isolated namespace: actual canonical Source/root writes, immutable
+historical semantic bindings and indexed ancestor feeds, not a shadow mirror.
+The five predecessor files were copied with verified namespace-only inverses;
+the originals remain unchanged. Native owns the new SQL; Platform owns repository,
+test source and ingress. No implementation acceptance or SQL execution follows yet.
+
+Pure ingress tests are limited to64MiB. At17:05:47Z the actual free commit reserve
+was1.216GB, too close to the unchanged1GiB floor to start larger database tests.
+A narrowly scoped StorSvc restart was approved, but Windows cancelled the UAC
+launch; no elevated helper or result exists and the original service process
+remains. No restart is confirmed and no automatic retry/bypass or settings change
+was made. The owner was asked to run the single restart command manually if no
+dialog appeared. At17:30:26Z free commit was1.956GB; later readings do not identify
+the old failing guard counter. Crawler13176 continues advancing and the
+live API, worker and dashboard retain their original starts. Quality, true native
+authority, canonical execution and UI remain unfinished.
+
+The reusable native publication facade under ADR219 is implemented and has full
+Root, Semantic and independent Trust SOURCE acceptance. Root's combined run passes
+all65 reports at64MiB; independent Trust passes all29 new reports. It owns one
+compiled context and calls the actual preparation, grouping and mapping components
+for each observation, keeping semantic specificity separate from owner grouping.
+Tests prove full143-node topology, all15 outside-detail roots, depth8,32 outstanding
+jobs with release/reuse, exact identity and privacy checks, and request isolation.
+Its three files are held. The real registry stays empty; it cannot enqueue or
+activate assignments. Source-fixture warm preparation measured about1.43ms median,
+not capture/E5/UI latency or real semantic quality. Root checked all243 existing
+code/package pins unchanged. See the ADR219 Root and independent review receipts
+under `apps/local-service/data/`.
+
+Crawler14812 exited on a renewal error after76 ingestions. A new read-only
+reconciliation proved one of19 retained stages already complete and18 unissued,
+with no live jobs or stage changes. One unchanged sealed resume13176 started at
+16:49:35Z and has advanced57+ ingestions. No reset, discard, manual database
+correction, seal change or service restart was used for recovery. The live
+API, worker and dashboard retain their original starts. Earlier checkpoints below
+are historical where superseded.
+
+ADR218's one actual metadata PREPARE closed with exit1: the resource-reserve
+guard failed before finish publication. The new first-site evidence identifies
+phase-guard/headroom, but not which physical-memory/commit/C/D counter or value.
+The process used emergency owned-Job termination with successful cleanup; this
+is not normal preparation. No freeze, result, finish control, model or quality
+result exists. Root and independent saved-failure audits pass; all consumed
+source/map/package/output bytes remain immutable, with no retry/adoption.
+
+Read-only host checks found a Windows storage-service process reserving about
+3GB private memory, plus a VS Code process about3.7GB. Neither is a proven cause
+of the failed guard. No Windows service, app, paging-file or update setting has
+been changed. Targeted host action needs separate owner direction. Crawler14812
+continues (70+ new ingestions, empty stderr); live service starts are unchanged.
+The relocation is complete. The topic-quality and product goals remain open.
+
+ADR218 whole SOURCE and its narrow readiness transition are independently
+accepted. The corrected25-entry sweep has622 passes, no failures and two expected
+offline skips; separate Python suites pass100/54. The post-readiness sweep passes
+128 reports. A new reviewed source map is awaiting final independent pin audit;
+there is still no actual preparation, semantic result, selected artifact or TEST.
+Readiness is not phase permission. All candidate CODE/map are held unchanged.
+
+Crawler7788 self-exited after604 ingestions on a leased-operation response
+timeout. A read-only reconciliation verified all21 retained stages: one already
+complete,20 never submitted and no live jobs. One unchanged ordinary resume14812
+started16:15:44Z and is advancing. No reset, stage discard, seal, HBA or service
+change was made. The API, worker and dashboard retain their original starts.
+Earlier checkpoints below are historical where superseded.
+
+ADR218's repair design is now fully accepted and has a separate SOURCE-only
+implementation grant. The fresh v21 study remains CLOSED: no map, output or
+actual phase has been created. Root's driver tests pass all39 reports; independent
+review accepts the held15 metadata files and all63 focused reports pass. These
+tests use invented capabilities, not an actual successful preparation or measured
+topic quality. The parent/IO/transport implementation and causal tests are still
+being finished; whole-source review and final readiness remain required.
+
+The storage relocation is complete, with all five C: junctions pointing at their
+verified D: destinations. The old stopped-safely snapshot is superseded. No
+pagefile setting changed. Crawler and live services remain untouched. Actual
+hierarchy quality, canonical publication/ingestion, owner controls and rendered
+UI acceptance remain open. Earlier checkpoints below are historical where
+superseded.
+
+The ADR216 metadata PREPARE has closed with exit1. Its supervisor records emergency
+owned-Job termination and successful cleanup, but not normal exit or endchecks.
+The child published a freeze, result and finish request; there is no finish ACK
+or completion. Those files are not an accepted preparation and cannot be adopted.
+The exact exception is not retained. Root and independent seven-pair/control/pin
+audits pass. Source diagnosis identified a possible final-link/publication-proof
+scheduling gap, not an actual-cause proof. ADR217's independently accepted design
+has now passed full Root and independent review:9 Node reports and15 Python tests
+pass in each independent run. The four-file offline harness is held. It shows
+that the unchanged parent can ACK while a separately tested Node publication
+original exceeds its earlier deadline, and can ACK with a late final-read frame
+still queued. These are invented SOURCE schedules, not physical IPC or the actual
+failure's cause. No production repair or new study is admitted by these results.
+ADR218 proposes the private publication/control repair and bounded first-site
+failure evidence. Native and inventory design reviews accept it; independent
+Trust review is pending. No source copy or implementation is granted yet.
+All consumed source/map/package/output bytes remain immutable; no retry, actual
+42-stage recomputation,96 cohort, model or TEST follows. Live services and crawler
+remain unchanged. The source-pass counts below do not imply semantic quality.
+
+ADR216 integrates the accepted collector into a complete fresh study. All25
+literal test entries pass:602 reports,600 passes, no failures and two expected
+offline Python skips; the actual exported Python tests separately pass84/54.
+Independent capture, driver/execute, inventory, source and closure reviews pass.
+These are SOURCE checks, not browser captures or semantic-quality measurements.
+
+The actual driver now uses the funded private emitter without a legacy fallback;
+the starter emits no extra generic suffix. The three-file readiness transition
+has an exact inverse and preserves every simulated entry case. All94 post-change
+reports pass. Independent final-pin audit passed before the separately admitted
+metadata PREPARE described above. Its failure leaves all128 CODE, the map and
+partial output immutable; no model run or later phase is admitted. See ADR216 and
+`apps/local-service/data/native-specificity-study-adr216-source-readiness-20261024.json`.
+
+Crawler7788 continues unchanged with325 new ingestions and empty stderr at the
+07:42Z check. API19868, worker36616 and dashboard6644 retain their original starts.
+Storage relocation is complete. Hierarchy quality, canonical publication and
+ingestion, owner controls, ancestor feeds and rendered UI acceptance remain open.
+
+Earlier checkpoints below are historical where superseded.
+
+ADR215 now has an accepted source design and an independently accepted narrow
+journey cancellation component. All42 journey tests pass, including the36 old
+tests and byte-exact reversal to the old source. A separate closed-domain proof
+bounds general output at746 bytes. The complete isolated collector experiment is
+now independently accepted: all171 tests pass in Native, Root and Trust runs,
+including all19 former failures. Five reports explicitly check reference source;
+the other166 use source/invented capabilities, not actual browser executions.
+Logical allocation and lifecycle review passed; this is not a V8 heap proof.
+
+Crawler7444 self-exited after7974 ingestions on timeout-leased. A read-only
+reconciliation found its one staged job COMPLETE, with a receipt and Source,
+and no live jobs. No local stage was discarded or canonical row changed. One
+normal unchanged sealed resume7788 started at06:26:37Z; its startup catalog scan
+finished and it has attempted101 and ingested78 new pages with empty stderr.
+Preserve it and the original API/worker/dashboard starts.
+
+Next is the actual driver/execute composition in a separately reviewed successor:
+connect the accepted private emitter and prevent an unfunded generic stderr
+suffix. Only read-only integration feasibility is delegated so far. No new full
+study copy, source catalog, actual phase or model execution is admitted yet.
+
+See `decisions/ADR-215-capture-diagnostic-lifetimes.md` and
+`apps/local-service/data/native-capture-diagnostic-adr215-root-progress-20261024.json`.
+Actual hierarchy quality, persistence, owner controls and rendered UI remain open.
+The storage relocation is complete; no further storage action was needed.
+
+ADR214's first capacity experiment has exposed a concrete failure: the existing
+required journey-reply witness reaches32510 logical bytes before its diagnostic
+allocation. Adding8192 exceeds32768; even4096 at that same point cannot fit.
+The required non-null assertion remains intact. A genuine allocation/lifetime
+change is needed before collector acceptance, not a smaller reservation constant.
+Native is completing scaffold parity and the saved source-measurement evidence.
+
+Separately, the proposed single-envelope byte oracle passes7848 comparisons
+with the old driver and independent source review. That proves byte equality,
+not memory ownership or complete integration. The user's storage-status question
+is resolved: the current relocation status is complete, all five C: junctions
+point to D:, and no new migration or cleanup was needed.
+
+Earlier checkpoints below are historical where superseded.
+
+ADR214's isolated integration experiment is now implemented in part. Root's
+driver boundary passes31 guarded reports and independent checkpoint review;
+its legacy emission body and original behavioral assertions are preserved.
+The private branch preserves the exact original error and adds no fallback
+allocation after transport denial. It exports no actual runner or CLI.
+
+Native is implementing the candidate collector and accounting path. Root's
+independent owner differential trace passes595 observations/570 transitions
+across ten scenarios, with precisely the declared8-byte surcharge over the
+frozen owner. Full collector compatibility and the combined32768-byte bound
+are still open; the8192-byte diagnostic reservation may not be used to silence
+previously non-null fixtures. The eventual actual driver/execute composition
+must also prevent an unfunded generic stderr suffix.
+
+These are SOURCE results, not a completed hierarchy study or live change.
+At05:39Z the crawler was running at7875 run ingestions and all four original
+process starts were unchanged. Original resource floors passed. The full
+hierarchy-quality, canonical persistence, owner-control and rendered-UI goal
+remains active and unfinished.
+
+Earlier checkpoints below are historical where superseded.
+
+The standalone ADR213 diagnostic prototype is implemented and independently
+source-reviewed. Both final literal suites pass44 reports (26 unchanged frozen
+driver reports plus18 new), and two separate90,000-sequence state-machine
+oracles pass. The review fixed a genuine strict-JavaScript lifetime error:
+claims now only pack context and return; a later consuming selection constructs
+the view. No memory ceiling was raised or arbitrary thrown-object heap bound
+claimed.
+
+This is not yet a collector fix or semantic result. The frozen collector still
+rejects the new terminal diagnostic variant. Its integration needs a separate
+source design proving actual article/helper token provenance, first-error order
+and allocation overlap before any actual phase. The ADR212 test remains closed
+with failure, with no completed encoding, fit or selection. No live services,
+database or crawler changed; the crawler advanced to7725 run ingestions with
+all four original process starts intact. The goal remains active and unfinished.
+
+Earlier checkpoints below are historical where superseded.
+
+The ADR21296-page attempt has closed with exit1 after three acknowledged batch
+drains and the fourth batch start. Its first diagnostic is
+`capture:terminal-frame-navigation` during article retirement; `page.close` is
+the last observed RPC, not proven cause. The exact event and frame were not
+retained. Cleanup passed without emergency termination, but successful final
+endchecks, a full cohort, encoding, fitting and selection were not reached.
+
+Root's saved18-pair/current-source audit and the independent failure review both
+pass. This attempt will not be retried or adopted. All consumed source and
+output stay immutable. The next work is read-only diagnosis of terminal-event
+handling and a bounded standalone diagnostic design, not a relaxed collection
+gate or another actual attempt. Semantic
+quality and product integration remain open; live services/crawler are unchanged.
+
+Earlier checkpoints below are historical where superseded.
+
+The one ADR21296-page TRAIN/CAL attempt is running in session32975 after its
+separate Root decision and official exact-command tool approval. Monitor that
+existing attempt only; do not retry or reuse its output. The independent saved
+PREPARE audit and Root's exact42-stage recomputation passed before admission.
+Original resource floors passed at04:41Z; the supervisor retains all unchanged
+caps. No successful capture cohort, model fit, selection or quality is claimed
+yet. TEST remains separately gated. Live application services and crawler are
+unchanged; canonical integration, owner controls and UI work remain open.
+
+Earlier checkpoints below are historical where superseded.
+
+The single ADR212 metadata PREPARE attempt has completed normally (session69206,
+exit0, empty owned Job, successful endchecks/cleanup and no emergency termination).
+Root verifies nine saved publication pairs and their joins; the independent
+stored-evidence audit is pending. All consumed source, map, package and output
+bytes are now immutable; this attempt must not be repeated or adopted.
+
+After that independent audit, Root must rederive all42 actual stage maps from
+the five fixed metadata inputs authenticated through the CODE catalog. Only then
+may a separate decision and exact official tool approval authorize96 real
+TRAIN/CAL pages. No browser collection or model inference has started, and real
+hierarchy quality plus product integration remain unfinished. The crawler was
+observed advancing to7573 run ingestions with its original process start.
+
+Earlier checkpoints below are historical where superseded.
+
+ADR212's storage implementation now passes independent source review and all
+unchanged capture assertions. Both complete25-entry source runs, before and
+after the readiness marker, pass561 reports with two expected skips; separate
+actual Python suites pass84 and54 checks. The capture entry itself passes148/148.
+No limit or diagnostic assertion was waived.
+
+The fresh canonical source map has128 CODE files and is undergoing independent
+final authentication. Root's actual JavaScript list/map/code validators pass;
+native physical proof is still required. No actual output or phase has started.
+Only after the final audit and fresh resource checks may a separate decision
+authorize one supervised metadata preparation. Real semantic quality and the
+canonical/owner-control/UI integration remain unfinished.
+
+Earlier checkpoints below are historical where superseded.
+
+The complete ADR212 phase-lifetime amendment is now source-reviewed by all four
+reviewers. Its bounded implementation is in progress; the last completed capture
+result below predates this change. The report API, failure identity, diagnostic
+reader sites, native proofs and32KiB aggregate limit remain unchanged.
+
+The change requires a real allocation optimization: indexed scalar accounting
+must replace temporary keys/entries arrays while preserving every original
+charge. This closes a steady-view scratch gap found during review. The resulting
+3652-byte full report plus320 accounting scratch fits4096; the full construction
+bound6956 fits7168. Failed/unavailable reports retain8192, taking precedence even
+during notification. The smaller charges require proven reference release and
+the existing notification order, not merely different returned numbers.
+
+All unchanged witness/positive tests, accounting parity across private row shapes
+and lifecycle states, allocation boundaries and the full25-entry source gate are
+still required. No actual study or activation follows this design acceptance.
+At04:03Z the crawler process retained its original start and had advanced to7425
+run ingestions. Services were unchanged and all original resource floors passed
+that read-only observation. Evidence:
+`apps/local-service/data/native-specificity-study-adr212-phase-lifetime-review-20261024.json`.
+
+Earlier checkpoints below are historical where superseded.
+
+ADR212's complete source design is accepted; its bounded implementation remains
+in progress in the existing unconsumed v19 namespace. The 17-file source catalog
+bundle passes independent review and all 79 tests across its six entries at
+96MiB. The driver documentation and readiness fixture change are also reviewed;
+the driver implementation is unchanged.
+
+The first complete capture smoke run at the original 256MiB ceiling passes
+144 of 146 reports. The previously failing terminal503 case now passes, but two
+unchanged first-error witness checks fail: allocating a full diagnostic report
+would require 33,526 or 32,953 logical bytes against the unchanged 32,768-byte
+limit. The original failure is preserved; the diagnostic witness is absent.
+A smaller diagnostic representation is under read-only feasibility review.
+No assertion or limit has been weakened, and this is not whole-source readiness.
+The final run, including the new aggregate-boundary test, passes 145 of 147
+reports with those same two failures (20.801s at256MiB). Root separately passes
+all34 shared-journey tests (804ms at96MiB). Independent review found that one
+purported offset-view fixture was actually a wrong-length array; a test-only
+correction and explicit subclass/nominal-fake checks are authorized, without
+changing production behavior or the memory envelope.
+
+No v19 actual map, output, phase, runtime or crawler change is authorized by
+these source checks. Semantic quality remains unmeasured and product integration
+is unfinished. The user's “stopped safely” report has no identified target;
+clarification is pending and no restart was performed. Evidence:
+`apps/local-service/data/native-specificity-study-adr212-source-checkpoint-20261024.json`.
+
+Earlier checkpoints below are historical where superseded.
+
+ADR211 checkpoint is independently reviewed, with no additional source defect
+found in the authorized changes. It is not accepted as whole-source readiness.
+The complete capture
+test entry runs under the unchanged original256MiB ceiling:146 reports,145 pass,
+one unchanged terminal503 failure at32,902 logical bytes. Earlier96MiB attempts
+ran out of heap and are incomplete, not passing gates; no assertions were dropped.
+All other original and new lifetime/codec tests pass in the completed run.
+The independent complete-file run confirms145 passes and the same sole failure
+(31.968s at256MiB); all held file and frozen baseline CODE pins remain unchanged.
+
+The proposed owner-roster-based8192-byte discount is rejected: the historical
+owner already had that base reservation before it had any roster. A more grounded
+candidate is losslessly compacting the journey's known first-report payload,
+with the same frozen report lazily materialized on first access. This has
+feasibility review only; no design or implementation grant. Full report values,
+including events4097, first-snapshot timing, stable reader identity and all
+overlap/first-error/native obligations must be preserved. Matching quality is
+still unmeasured. All243 frozen baseline files are unchanged; the crawler remains
+advancing at7,265 run ingestions with original service starts. No live change.
+
+The genuine helper-object release is now implemented, but not fully accepted.
+The unchanged terminal503 test progresses to its second denial reservation and
+still reaches32,902 bytes,134 above the unchanged limit. No fixture or cap is
+weakened. The next read-only feasibility check concerns the owner's full raw
+case-row roster: only three fields are used, so a genuinely smaller immutable
+representation may remove unnecessary retained data. No such change is yet
+designed or authorized. Native continues causal/boundary tests; measured matching
+quality and live integration remain open. The owner/driver implementation and
+tests, parent and inventory stay held; the narrow driver README correction is
+independently accepted. No fresh native phase or service restart.
+
+The post-retirement Map release now passes six of seven changed positive test
+reports, including all four ordinary refusals and the skip-await original-work
+barriers. One unchanged terminal-descendant refusal still reaches33,081 bytes
+at the first page. Its exact first failure is capacity, not the later fake close
+timeout. A concrete extra reference to an already released navigation helper was
+found in the callback constructor. A complete independently accepted amendment
+now permits dropping all actual helper references after genuine component
+release, retaining irreversible8-byte ledger tombstones. Never-created slots
+still reserve their maxima; physical proofs and the32KiB limit do not change.
+Implementation and the complete unchanged fixture are still pending; predicted
+savings are not a passing result. No native v19 phase or live activation starts
+from this source grant. Receipt: helper-lifetime-review-20261024.json.
+
+Independent Root codec checks pass972 mixed tristate/counter cases with exact
+report JSON/hash parity and conservative bounds. This is metadata validation,
+not measured hierarchical matching quality, which remains open.
+
+ADR211 owner-record compaction is implemented and independently accepted:26
+driver tests pass and103 external differential protocol outcomes agree with the
+authenticated baseline. The45-cell report codec is implemented but not yet
+accepted. The remaining second-page refusal reaches32,775 logical bytes, seven
+over the unchanged32KiB limit. A complete proposed amendment releases only the
+obsolete Maps of physically retired pages, retaining two charged null slots and
+all IDs, callbacks, terminal/PW records and late-event refusals. Its complete
+SOURCE design is independently accepted; bounded implementation is in progress,
+not yet accepted. No native
+v19 preparation/capture/model run or live activation has started. Topic quality
+is still unmeasured and product integration remains open.
+
+The owner reports an unspecified “stopped safely” state. Clarification is pending;
+no service or crawler is being restarted. At the read-only check, the four known
+service/crawler processes retain their original starts, and the crawler log has
+advanced to7,157 ingestions in this run.
+
+The first refusal now completes normal physical retirement before publishing its
+unavailable row, and the unchanged four-local-image test passes. A second-page
+refusal still exceeds the logical32KiB registry limit (33,905 bytes). No cap,
+charge or positive fixture has been weakened. The next source design will examine
+lossless packing of retired reports and removal of dead owner-record fields only
+after existing physical proofs; all historical IDs, late-event refusals and final
+report/hash bytes must stay identical. This compaction has feasibility review,
+not an implementation grant. Full capture acceptance remains open.
+
+Ten additional held support suites pass122 reports with two expected offline
+AST skips; direct84/54 AST runs already pass. The active goal is progressing, not
+complete. No actual v19 preparation/capture/model phase or live change has started.
+
+ADR211's simulated four-page collection now works with the actual navigation
+helper wiring. The broader checks exposed an avoidable reservation failure on
+otherwise valid refusal and terminal paths: a constant four-slot pool remained
+charged after references could be revoked, while intentional journey abort adds
+its unchanged8KiB report reservation. Root and all three reviewers accepted a
+source amendment: reserve every maximum before launch, charge genuine bound
+helpers dynamically, and revoke only a drained, zero-debt unavailable helper
+before abort allocation. Its released status blocks all later main events/reads;
+it never substitutes for the existing physical retirement proofs. The32KiB cap,
+original operations, deadlines and unchanged positive fixtures remain mandatory.
+
+Native's capture amendment and full causal checks are in progress. Parent source
+and84 direct AST checks are accepted; Root additionally passes54 guardian checks.
+Driver transport passes23 checks against a stable WIP projector, including96
+valid diagnostic tuples and hostile/falsy negatives. None of this is a completed
+native cohort or semantic-quality result. Whole-source review and all actual
+phase gates remain open; there is no live activation, map or output in v19.
+
+ADR211's full integration design is accepted by Root, Native, Inventory and Trust.
+Sixty authenticated namespace-only copies create study-v19 with entry CLOSED and
+no map or output. All128 frozen v18 CODE pins match. The new collector integrates
+the accepted exact-URL typed/public navigation accounting without new facts or
+read rights, reserves all four helper slots before launch, and seals collected
+results before onRow. A separate private publication flag prevents synchronous
+late callbacks from selecting an unavailable replacement. Normal accounting
+retirement precedes actual read revocation under the original live deadline.
+
+Inventory's17 files are held after79 guarded tests. Root's37-file slice is held
+for source review; its unchanged IO path passes25 guarded tests and its new
+closed diagnostic transport checks await Native's projector. Native's six capture/
+parent files are in implementation. Whole-source tests, independent review, pins
+and readiness precede any separate metadata preparation or actual96-case attempt.
+There is no semantic-quality result or live change; the full product goal remains
+active. All consumed studies and accepted standalone modules remain immutable.
+
+ADR210's standalone implementation now passes complete Root and independent Trust
+source review. All27 guarded tests pass, plus88 independent contract checks and
+the separately reproduced swallowed-error/release regression. Four release/reentry
+findings were corrected before acceptance. The three files are held; all frozen
+243 study/package inputs remain unchanged. The local ADR records the ownership,
+ordering, failure and resource boundaries used by the implementation.
+
+This is not yet full-browser integration or measured matching quality. Next is
+a separately reviewed fresh-study integration using the exact local function,
+owned typed/public subscriptions, all-four upfront retention pool, readiness and
+read/final fences, and explicit known-child routing. No successor copy or actual
+attempt is authorized yet. The running crawler has advanced to6,903 ingestions;
+its start and all three service starts remain unchanged.
+
+ADR210's complete source design is accepted by Root, Native and Trust. Three new
+standalone files are in implementation for bounded main-navigation accounting.
+They preserve one authoritative typed document commit and treat exact-URL
+same-document observations only as noncontributing event accounting. Unmatched
+notifications block reads; fresh facts, native rights, original deadlines and
+32KiB aggregate remain unchanged. Full source review and later fresh-study
+integration are still required. Nothing has been activated or rerun.
+
+ADR209's96-case run closed exit1 after three completed batch drains and the fourth
+start. Root and independent saved-failure audits pass18 control pairs,11,595 JSON
+bytes and all243 unchanged input endpins. The exact refusal is a repeated public
+main-frame navigation while navigating; its cause is not yet proved. Cleanup
+passed without emergency termination. No final cohort, E5, fit, result or selection
+completed. All v18 bytes remain immutable; there is no retry or output adoption.
+Installed Playwright forwards both new- and same-document navigations through
+this public event. A prospective fix must distinguish/account their typed CDP
+counterparts without granting new facts or accepting unmatched notifications.
+Design review precedes any new source. Live services and crawler are unchanged.
+
+The independent saved ADR209 preparation audit passed. Root separately authorized
+one96-case TRAIN/CAL run and obtained official tool approval for its exact command.
+That supervised run is now active as session29500 in fresh v18/output/train-cal.
+Monitor the existing session only: no retry, replacement or output adoption.
+All consumed files are immutable. Actual hierarchy quality is pending, not passed;
+TEST still needs successful selection, independent audit and a separate decision.
+The live application, database, services and crawler are unchanged.
+
+ADR209 metadata preparation completed normally (session66655, exit0). Saved
+controls report empty owned Job, successful final checks and cleanup, no emergency
+termination and empty stderr. Root authenticates all243 input endpins and has
+recomputed all42 seven-file stage maps from the actual fixed metadata. The
+independent saved-evidence audit is pending before a separate96-case decision.
+Original Python numeric wire bytes were checked in Python rather than rewritten
+through JavaScript. No public capture, encoding, fit or TEST has started.
+
+Final ADR209 readiness is independently accepted, including all243 source/package
+endpins and the exact three-change inverse. Root separately authorized one
+default-context supervised metadata preparation. It is running as session66655
+in fresh v18/output/prepare-r3; monitor that session only. All consumed source,
+map and output bytes are now immutable. A saved independent preparation audit
+and actual stage rederivation must pass before a separate96-case decision and
+official tool approval. No public capture or model inference has started yet.
+
+ADR209's complete implementation now passes Root, Trust and Inventory source
+review. All25 literal test entries yield525 reports:523 pass, no failures and
+two expected offline AST skips; direct Python runs pass84 parent and54 guardian
+tests. Closure and all source hashes match independently;1,284 historical files
+remain unchanged. Three readiness-only edits are now applied. Exact inverse and
+final pins still precede a separate metadata preparation decision; no actual v18
+capture, E5 fit or quality result exists yet. The original crawler and all three
+live services keep their process starts; crawler ingestions advanced to6,750.
+The full hierarchy/product integration goal remains active and unfinished.
+
+ADR209's complete source design now passes Root, Native, Inventory and Trust
+review. Sixty authenticated namespace-only copies create fresh study-v18 with
+entry CLOSED and no map/output. Inventory's seventeen-file slice is held; Native's
+seven owner/capture/parent files are in implementation. Root's driver/IO checks
+pass46/46, including the new closed owner-witness DTO and unchanged output caps.
+Whole-source review, closure, pins and readiness still precede any separately
+authorized preparation or actual96-case run. All existing evidence and live
+processes remain unchanged.
+
+Three new source components now pass complete Root and independent Trust review:
+ADR206 exact navigation observation17/17, ADR207 canonical hierarchy mapper15/15,
+and ADR208 falsy callback transport15/15, all under64MiB capability-denied tests.
+The preparation/grouping regressions also pass21/21. The mapper preserves full
+semantic membership separately from the owner's discussion prefix and verifies
+exact field/vector/PG-wire commitments without retaining raw input or granting
+writes. Its invented-job map median is0.2041ms/p950.2904ms, not UI or real capture
+latency. Registry publication, authenticated hierarchy ingestion and feeds remain
+unfinished; no live routing or database changes occurred.
+
+ADR209's complete fresh-v18 study design is under final independent review. It
+joins the accepted owner/observer functions into one local nominal class, records
+the exact first navigation refusal, and fixes a separately reproduced falsy inner
+commit join. All original quality, privacy, cleanup and resource gates remain.
+No copy or actual phase is authorized yet. All243 frozen ADR205 source/package
+endpins recheck unchanged; the running crawler continues advancing.
+
+The next work is source-only: ADR206's exact navigation observation design is
+accepted by Root, Native and Trust, with three new files in implementation. It
+preserves navigation decisions and binds a finite predicate to the original
+error, charging512 logical bytes inside the original32KiB ceiling. Separately,
+ADR207's pure canonical hierarchy mapper is under design review, retaining full
+semantic membership independently of owner-selected grouping. The Source URL
+must not be confused with its potentially different tracked document URL.
+Neither slice changes live routing, database, crawler or quality-study gates.
+
+ADR205's96-case attempt closed exit1 after three completed batch drains and the
+fourth start. Root verifies18 canonical control pairs/11590 JSON bytes and443-byte
+bounded stderr; all243 source/package endpins remain unchanged. The first retained
+error is article-owner/article-navigation, but its exact condition is not recorded;
+Fetch.failRequest is only the last observed RPC, not its cause. Cleanup passes
+without emergency; no final cohort/result/selection/E5/fit/TEST was reached.
+Root and independent stored-failure audits pass (accepted in the ADR205
+train-cal-failure-audit receipt dated20261024). Do not rerun/adopt consumed output
+or edit frozen source. Source-only diagnosis is identifying a finite exact-error
+observation; no navigation exception or new actual phase has been authorized.
+
+ADR205's preparation now passes Root and independent saved-evidence audit.
+The separately authorized96-case TRAIN/CAL has started through the official
+tool-approved execution path in existing session30484. READY/startup ACK and the
+first batch start are present; no drain or quality result is claimed yet. Monitor
+that existing run only; no duplicate, retry, adoption or frozen-source edits.
+Successful actual selection plus independent audit, a separate decision and
+tool approval are still required before TEST. No live hierarchy/database/service
+or crawler changes follow from the experiment.
+
+ADR205's one preparation closes exit0 with normal cleanup and final checks.
+Root verifies nine canonical pairs/74874 JSON bytes, empty stderr/temp and all243
+unchanged source/package endpins. Pure recomputation reproduces the actual panel,
+manifest, producer recipe and all42 seven-file stage maps, without model or web
+actions. Independent saved preparation audit remains pending before a separate
+96-case TRAIN/CAL decision and official tool approval. All consumed sources,
+maps and output remain immutable; hierarchy quality is still unmeasured.
+
+ADR205's final readiness audit passes. A separately recorded decision authorizes
+one default-context supervised metadata preparation; it is running in existing
+session33765 at fresh v17 prepare-r3. Monitor that session only: no retry/adoption
+or source edits. All128 CODE/115 package files, map and consumed output are frozen.
+This phase checks source/package/metadata/fixed assets and stage identities, not
+public pages, embedding inference, fit or TEST. Independent saved preparation
+audit and actual stage rederivation precede any separate96-run decision and tool
+approval. The original hierarchy quality and live integration remain unfinished.
+
+ADR205's whole implementation passes source review. Root's25 literal test entries
+report513 passed/2 expected skips; direct Python checks pass84 parent and54 guardian
+cases. Independent checks reproduce the relevant source and native-AST guards.
+Capture and semantic code remain namespace-only copies; parent changes implement
+the reviewed21-root accounting. Three readiness edits reverse exactly to accepted
+source, leaving125 other CODE files unchanged. The canonical19991-byte map is
+FILE9f2a1a7d5bfdca1771091053435bde3ef9efe090f05d7b829c9e09f58178782c.
+Final independent readiness audit is pending before a separate default-context
+supervised metadata preparation. No actual v17 public/model run is authorized yet.
+
+ADR204's saved successful blank test now passes Root and independent audit.
+ADR205's full restated source design is accepted; its60 authenticated owned files
+have been copied into fresh study-v17 with the actual entry CLOSED. Parent resource
+accounting is being updated for21 roots, preserving capture/model/cohort behavior,
+browser sandbox and all caps. Catalog closure remains128 CODE/142 base/243 complete
+with25 literal test entries. No actual v17 preparation, public/model run or TEST
+is yet authorized; complete source tests and independent review come first.
+
+ADR204's explicitly tool-approved blank startup closes exit0. Root's saved audit
+passes11 canonical hardlink pairs/18971 JSON bytes and all166 unchanged input
+endpins. The browser completed both strict censuses and both closes; originals,
+callbacks, Node and owned Job cleaned up normally. Final checks pass, no emergency,
+stderr empty and temp empty. Independent saved audit is pending. This establishes
+one working blank startup under that approved invocation, not the policy behind
+ADR203's EPERM, equality of inherited host conditions or semantic quality. The
+next study design is being inventoried read-only; no public/model run is granted.
+Consumed diagnostic source, maps and output are immutable.
+
+ADR204's separately authorized default-context metadata preparation closes exit0.
+Root validates two canonical hardlink pairs/24088 JSON bytes and all166 unchanged
+input endpins. No Node, Job or browser started; parent CPU was1750ms. Independent
+saved preparation audit is pending before any separate startup decision or tool
+permission request. Consumed source, map and preparation output are immutable.
+
+ADR204's implementation passes Root, Native, Trust and Inventory source review.
+The runner, observer, Chrome sandbox/options and physical ownership remain
+unchanged; only the new namespace/readiness references and twentieth workspace
+root differ. Root's145 guarded checks and34 direct Python checks pass after
+readiness. The canonical23303-byte map is FILEe5df7d6d06d798d61db2dcf67846ad17ca65fad285bc1cffcc5c65bc5d9d29b7,
+binding50 CODE/166 inputs. Four readiness edits reverse exactly to accepted
+source;46 other CODE files are unchanged. Final independent readiness audit
+precedes a separate default-context metadata preparation. Browser invocation
+still needs saved-evidence review, a separate decision and official tool approval.
+No new actual mode or permission request has occurred.
+
+ADR203's one blank startup test closed exit1. It now retains a concrete process
+start error: spawn-error-observed/EPERM, with EPERM also on the exact public
+launch rejection. Root and independent saved-evidence audits pass all14 canonical
+hardlink pairs/22945 JSON bytes, control milestones and165 input endpins. The
+child exited normally0 after a complete failed protocol; cleanup passes without
+emergency, while the diagnostic correctly remains failed/endchecks false. This
+does not identify the policy responsible for EPERM. ADR204 proposes one fresh
+blank test through the tool's explicit execution approval, with no Chrome sandbox,
+Windows configuration, environment or resource-limit change. No new actual phase
+or semantic study is authorized. Crawler and live services remain untouched.
+
+ADR203's startup-only diagnostic now passes whole-source review. Root's145
+guarded JavaScript checks and34 actual Python checks pass; independent review
+reproduces both. Review found and fixed late rejection evidence after final release
+and the fresh output root's initial-only absence rule. The authenticated closure
+contains49 CODE/165 inputs,923592 CODE bytes; all1197 historical input files remain
+unchanged. The canonical23177-byte map is FILE2c379a26e3bdbf856f4183aa8857e62d6a6d1c1f5bb08971e3ef571f7bbba817.
+The four readiness-only changes reverse exactly to reviewed source;45 other CODE
+files remain unchanged. Final independent readiness audit passes. The separately
+authorized metadata preparation closes exit0: two canonical hardlink pairs,23962
+JSON bytes, all165 input endpins unchanged, no Node/Job/browser started. Root's
+saved-evidence audit passes; independent saved preparation audit remains pending
+before a separate startup decision. One blank profile,19 workspace roots and all
+original budgets remain. No browser or semantic study has run from this component.
+Hierarchy quality and live integration remain unfinished; crawler7444
+and all three services retain their original starts.
+
+ADR20233222's saved failure now passes Root and Trust audit: six canonical pairs,
+541-byte stderr, first-start chain and all243 source/package endpins unchanged.
+Its exact retained rejection is context.launch; the underlying reason is unknown.
+Playwright creates its artifact directory before profile preparation/executable
+checks/spawn, and its no-PID error wrapping can discard structured errno. The
+empty profile/retained artifact metadata cannot identify the failed substep or
+prove a permissions cause. Source-only investigation continues without new code,
+native probes or a successor execution grant. All v16 evidence remains immutable;
+no semantic-quality result or preclose-fix exercise is claimed. Storage relocation
+is complete and live services/crawler remain unchanged.
+
+ADR202 TRAIN/CAL33222 closed exit1 before any capture: the first context.launch
+promise rejected. Its new exact operation witness attributes that call, but the
+underlying cause remains unclassified. No batch drain, cohort, result, selection,
+E5, fit or TEST occurred, so the preclose correction was not exercised. Saved
+cleanup passes without emergency termination; endchecks do not pass. One ordinary
+Playwright artifact directory remains in temp, with the first profile empty by
+metadata enumeration. This is not an empty-temp success claim. All v16 source,
+maps, freezes and failure output remain immutable, with no retry/adoption.
+Root's saved failure audit passes six hardlink pairs/4155 JSON bytes plus541-byte
+stderr and243 source endpins; independent audit is pending. Source-only launch
+and environment diagnosis is underway. Earlier33222 RUNNING notes are historical.
+Live services/crawler remain unchanged; semantic quality and integration are open.
+
+ADR202 PREPARE4199 passes Root and Trust's saved audit. Root also rederived all
+42 seven-file stage maps from actual pinned metadata/CODE. A separate ONE96
+TRAIN/CAL decision is recorded; session33222 is RUNNING in fresh v16 train-cal
+output. Monitor only that invocation, with no duplicate/retry/adoption. All128
+CODE/115 package/map/freeze/output remain immutable. A successful actual selection
+plus independent saved audit and separate decision still precede72 TEST. There
+are no provider/post/canonical/DB/live-service/crawler changes. Quality and product
+integration remain open; the crawler and services keep their original starts.
+
+ADR202's ONE PREPARE session4199 closed exit0 with empty stderr. Root's saved
+audit passes all nine canonical hardlink pairs/74875 JSON bytes and243 source
+endpins; saved normal exit, empty Job, endchecks and cleanup pass without emergency
+termination. Root separately rederived actual panel/manifest/recipe and all42
+seven-file stage maps from pinned metadata/CODE only. The independent stored
+normal-preparation audit remains pending before any separate96-case decision.
+Freeze FILE3091ef57e8cc2dcfb6d073931c01532a9fc5bd11c716c65201f9713606cec46e.
+All consumed source/map/output stay immutable; earlier4199 RUNNING notes are
+historical. Matching quality and product integration remain open.
+
+ADR202 final source, readiness reversal and pins pass independent review. The
+separate ONE metadata PREPARE decision is recorded; session4199 is RUNNING in
+fresh v16 output/prepare-r3. Monitor that invocation only: no retry, duplicate or
+adoption. All consumed128 CODE/115 package files, map, ADR202 and output are now
+immutable. A normal independently audited saved preparation must precede any
+separate96-case TRAIN/CAL decision. Preparation grants no browser/model/TEST/live
+action. Whole guard515 reports/513 passes/two expected skips plus direct83/54
+Python passes; Root and Trust post-marker82 pass each. Matching quality and live
+hierarchy integration remain unfinished; the crawler/services keep running.
+
+ADR202's full corrected source design passes Root/Native/Trust review. Fresh v16
+contains the authenticated exact60-file namespace copy, with the entry CLOSED
+and no map/output. Its preclose original-operation barrier uses only the original
+article lease and preserves failure cleanup; exact first-operation diagnostics
+stay within existing output/retained limits. The Native six-file slice is in
+progress; Inventory17 is held after63+19 guarded passes. Root driver/IO44 checks
+pass. Whole source review/tests/closure/pins/readiness remain pending before any
+separate actual phase. All consumed v1-v15 inputs/output remain immutable.
+
+ADR20191903's saved failure audit now passes Root and Trust, superseding the
+pending note below. Exact failed browser operation/cause remain unknown. Quality
+is unmeasured and live hierarchy integration unfinished. ADR191 storage relocation
+is complete; all four live service/crawler processes retain their original starts.
+
+ADR201 TRAIN/CAL session91903 is CLOSED exit1 after one completed batch drain
+and a second start. Saved failure is client-operation during article retirement;
+the exact rejected browser call and underlying cause were not retained. LastRPC
+Fetch.failRequest is observational only. Cleanup passes without emergency
+termination; normal endchecks fail, and no cohort/result/selection/E5/fit/TEST is
+produced. Ten hardlink pairs/6551 bytes plus411-byte stderr are pinned in the
+failure receipt; independent audit is pending. All consumed v15 inputs/maps/
+output are immutable, with no retry/adoption. A source-only closure-ordering and
+exact-operation diagnostic review is underway. Earlier RUNNING notes are
+historical; live services/crawler stay, quality and integration remain unfinished.
+
+ADR201 preparation session91121 closed exit0 and passed Root/Trust saved audit:
+nine canonical hardlink pairs/74870 JSON bytes, empty stderr, normal empty Job,
+endchecks and cleanup without emergency termination. Root also rederived the
+actual panel/manifest/producer recipe and all42 seven-file stage maps from pinned
+metadata/CODE only. A separate ONE96 TRAIN/CAL decision is recorded; that actual
+run is now session91903 in fresh v15 train-cal output. Monitor only that run;
+never retry/adopt/edit consumed inputs. TEST still needs successful selection,
+independent saved audit and a separate decision. Quality and live integration
+remain open. The crawler and all live services keep their original processes.
+
+ADR201's whole source, readiness reversal and final pins independently pass.
+The separate ONE metadata preparation is now RUNNING as session91121 in fresh
+v15 output/prepare-r3. Monitor only that invocation; never repeat or adopt it.
+All consumed128 CODE/115 package inputs, map, ADR201 and output are immutable.
+An independently audited normal preparation must precede any96-case decision.
+No public capture, inference, TEST or live change is authorized by preparation.
+Final whole guard:498 reports/496 pass/two expected skips; actual Python83/54
+pass. Root and Trust post-marker79 checks each pass. Quality remains unmeasured.
+
+ADR201 is implemented in a fresh v15 SOURCE workspace with the actual entry
+CLOSED and no output/map. Its narrow image bookkeeping uses only the actual
+private admitted main-response loader; it cannot supply navigation facts, reads
+or matching authority. A bounded exact-first-error witness identifies any still
+unknown network event without saving URLs/content. Catalog/semantic files keep
+128 CODE/142 base/243 CODE-package keys and the unchanged fixed panel/model/cuts.
+Inventory's focused63+19 reports pass. Root's driver/IO41 reports pass and the
+independent static review passes. Native capture/parent regression work and whole
+source/closure review are still in progress. An actual83-test Python run caught
+one stale32-vs34 report-reservation expectation after adding the17th root; it is
+being corrected without raising a runtime cap. No actual successor permission.
+The application and crawler remain on their original processes and database.
+
+ADR200 TRAIN/CAL session2999 is CLOSED exit1 after two acknowledged batch drains
+and a third batch start. Root and Trust independently audit the saved failure:
+14 canonical hardlink pairs/9098 JSON bytes,397-byte stderr, all243 CODE/package
+endpins unchanged. Cleanup passes without emergency termination; normal endchecks
+do not pass. Article navigation rejects an unknown network response; its URL
+scheme, resource type and frame relation were not retained. Last RPC is not proof
+of cause. No cohort/result/selection/E5/fit/TEST exists. All consumed source/maps/
+outputs remain immutable, with no retry/adoption. A source mismatch between broad
+Network events and HTTP(S)-only Fetch interception is under investigation for a
+bounded safe successor. Quality and integration remain unfinished. Earlier RUNNING
+notes below are historical. Crawler and live services remain untouched.
+
+ADR200 preparation and independent saved audit pass. Root also rederived the
+actual panel, manifest, producer recipe and all42 seven-file stage maps from
+only pinned metadata and CODE, with no model/artifact/public action. After a
+separate recorded ONE96 TRAIN/CAL decision, the actual run started as existing
+session2999 in fresh v14 output/train-cal. Monitor only that invocation; never
+duplicate, retry, adopt or edit consumed source. TEST requires successful actual
+selection, an independent saved audit and its own later decision. Quality is
+pending; live hierarchy integration remains unfinished. Crawler/services stay.
+
+ADR200 final source/readiness/pins pass Root and independent Trust review. Its
+separate ONE actual preparation (session45462) closed exit0 with empty stderr.
+Root verifies nine canonical hardlink pairs/74871 final JSON bytes,243 input
+endpins and42 stage maps. Saved normal exit, empty Job, cleanup and endchecks
+all pass without emergency termination. Independent saved-preparation audit
+must precede a separate96-case decision. All consumed v14 source/map/output is
+now immutable; no edit, retry or adoption. Semantic quality and live hierarchy
+integration remain unmeasured/unfinished. Crawler and services are preserved.
+
+ADR200's initial complete guarded sweep passes25 entries/480 reports (478 pass,
+two expected offline-child skips), with actual Python82 parent/54 guardian
+passes. Root and Trust nevertheless found a source gap: the initial missing-root
+exception also applied during active/final resource accounting. The owner is
+restricting it to an explicit trusted pre-creation grant; active/final accounting
+must require the root. Full review/tests repeat afterward. The entry remains
+CLOSED, with no v14 map/output or actual-phase permission. No live change.
+
+ADR200's source-only design is accepted. Root copied only the authenticated60
+owned v13 source files into fresh v14; the actual entry is CLOSED and no map or
+output exists. The implementation adds the private exact-first-error197 witness
+to the existing collector and ports original-process/physical-cleanup safeguards.
+Topic, navigation and numerical rules remain unchanged. Root's IO/driver slice
+passes40 guarded checks; independent review and the remaining two slices are
+pending. Expected closure is128 CODE/142 catalog/243 complete sources. The sole
+static IO-cardinality adjustment is148 inclusive/149 refused; runtime budgets
+stay fixed. Full source/pins review precedes every separate actual-phase decision.
+
+ADR199's one actual startup diagnostic now succeeds: three healthy blank
+profiles, normal exit0, cleanup and endchecks passed, no emergency termination.
+Root and independent Trust verify19 hardlink pairs, eight prepared/committed
+milestone joins,37865 final JSON bytes, empty stderr and all164 endpins. All
+consumed v2 source/map/output remains immutable. The compatibility correction
+works in this run; it does not explain the earlier third extension-batch fault.
+The next source-only design targets that exact witness before further semantic
+study. Actual semantic quality and full live hierarchy integration remain open.
+
+ADR199 complete source, readiness and all164 final input pins pass independent
+review. Root and Trust each pass127 guarded and31 actual Python checks. The
+separately authorized metadata preparation closed exit0 in1.754582s, starting
+no Node or Job. Root verifies two canonical hardlink pairs,23861 final JSON
+bytes, all164 endpins and empty temp. Independent saved-evidence audit must
+precede a separate startup decision. All consumed v2 source/map/output is now
+immutable; no retry or adoption. Crawler and live services remain unchanged.
+Semantic quality and full hierarchical product integration remain unfinished.
+
+ADR198's one startup-only attempt has closed exit1 before READY: one committed
+bootstrap FS_BEFORE exchange, no browser profile, baseline, witness or result.
+Root and independent Trust saved-failure audits pass two hardlink pairs2008B,
+28B stderr and all163 endpins. Cleanup passed without emergency termination.
+The failed invocation did not retain its exact predicate. Separate real read-only
+probes reproduce a Node24.19 compatibility defect: FileHandle.read returns a
+null-prototype record that the frozen reader's Object.prototype-only validator
+rejects. No startup retry or old-output adoption occurred.
+
+ADR199's complete source-only design is now accepted by Root/Trust/inventory/
+implementation owner. The owner is implementing only six fresh v2 files with
+the dedicated native-read-result correction, a real fixed-source read test and
+finite progress-only stderr labels. Global protocol validation stays strict.
+Fifteen fixed output roots share the original resource ceilings. The new literal
+closure keeps ADR198 and adds ADR199 (expected48 CODE/164 inputs). New source
+starts CLOSED; no v2 map, preparation or startup permission is granted. The
+full topic-matching and live-integration goal remains unfinished.
+
+ADR198 complete source and final pins now pass Root, independent Trust and
+inventory review. Post-readiness tests pass124 guarded Node checks and31 actual
+Python checks. Independent external-map audit verifies all163 inputs (47 CODE,
+115 maintained package files and one fixed baseline). Root's separate ONE
+metadata-only preparation has CLOSED exit0 with no console output in1.8989032s.
+The freeze and supervisor each have an exact final/pending hardlink pair; Root's
+stored-evidence audit and all163 end hashes pass. Temp is empty. Preparation
+started no Node/Job; parent CPU is1532ms. Independent saved-evidence audit is
+pending before any separate startup decision. All consumed source/map/output
+is immutable: no edit, retry or output adoption. Evidence/readiness/decision
+receipts use owned-startup-diagnostic-adr198 prefixes under data (24 October).
+Crawler7444 has5675 ingestions; all four original process starts are preserved.
+No actual startup or semantic-quality claim, and no live matcher activation.
+
+ADR198 implementation-review checkpoint (23 October, 21:41Z resource sample):
+all six files now exist, still WIP/entry CLOSED with no map/output or actual
+permission. Independent inventory accounts for47 CODE, one fixed baseline and
+115 maintained package files (163 total);58 relative imports/zero query aliases.
+Root reran immutable197/pipe/coordinator:100 PASS, zero failures/skips,64MiB.
+Actual embedded Python parent checks:15 PASS. The new runner's then-current
+13-test snapshot had12 PASS and one late-callback release failure; this is not
+a final gate and changed source requires a complete rerun. Root additionally
+reproduced a falsy transport-error retry (two writes, expected one); the owner
+is implementing permanent-poison, physical-original and deadline fixes, bounded
+source reads, native publication joins and actual wire/parent regression tests.
+Final held source, independent review and final pins remain prerequisites.
+Root's six pure actual-method regression checks now pass for the transport
+poison and post-open handle-cleanup fixes; the exact mutable runner snapshot
+and narrow assertions are recorded in data/owned-startup-diagnostic-adr198-
+pure-regression-checkpoint-20261023.json. This is not whole-source acceptance.
+The expanded runner snapshot subsequently passes22 guarded tests (84.5083ms).
+Its actual Python suite has22 reports/21 passes/one pre-inspection cleanup
+fixture failure: the fake process exits between two polls before termination.
+The owner is correcting that fixture while adding publication/authentication
+negatives. Direct Python/guarded Node no-argument checks exit0; invalid-argument
+checks exit1 with fixed refusals; no diagnostic output directory was created.
+Crawler7444 advances5568 ingestions; API19868/worker36616/dashboard6644 retain
+their original starts. Physical/commit/disk floors passed the21:41Z sample;
+fresh checks remain mandatory. Semantic quality/live integration are unfinished.
+
+ADR198's complete startup-only diagnostic design is independently accepted.
+The six-file implementation is in progress with the entry CLOSED; no actual
+preparation/startup permission or output exists. Metadata-only preparation will
+use no Node/Job and must pass independent saved audit before a separate owned
+startup run. The latter permits at most three fresh profiles, stops on first
+fault, and performs no extension load, public navigation, native read or model
+work. Full implementation review, literal closure, guarded/Python tests and
+final pins/reserves are still required. Goal remains active and unfinished.
+
+The targeted startup diagnostic policy is implemented and independently accepted
+under ADR197:72 guarded passes, no failures/skips, unchanged original rejection
+rules and subsequent behavior. It records only finite first-error labels. The
+fresh startup-only runner, owned-process parent and actual permission are next;
+no new browser run has started. ADR195 remains closed, with allv1-v13 immutable.
+Crawler and services continue unchanged. Semantic quality and live integration
+are still unfinished.
+
+ADR195 TRAIN/CAL89765 is closed unsuccessfully in the third startup. Its first
+two batches have normal drain ACKs; the third fails target-discovery/startup
+infrastructure-identity. Exact event/role/subpredicate is unknown, and lastRPC
+Target.setDiscoverTargets is observational. Root and independent saved audits
+pass14 hardlink pairs9095B/stderr373B; cleanup passes without emergency, while
+endchecks fail. No final capture drain, result, selection, E5 or fit was reached.
+All consumedv1-v13 remain immutable; no retry or partial-output adoption. Next
+is a bounded startup-only diagnostic with finite first-error-bound predicate
+labels and unchanged admission rules. Real semantic quality and full application
+integration remain unfinished. Earlier RUNNING notes below are historical.
+
+ADR195 source and final pins pass independent review. All24 guarded test entries
+produce393 passing reports, zero failures and two expected skips; actual pure
+Python suites pass71/54 and final focused checks pass67. Root recorded the
+separate ONE metadata PREPARE decision; session22187 closes exit0/stderr0. Root's
+saved nine-pair audit and independent audit pass, with normal exit/empty Job/
+cleanup/endchecks and no emergency. Separate Root ONE96 TRAIN/CAL decision is
+recorded; actual session89765 is RUNNING. Monitor only this existing invocation.
+No retry or adoption.
+All consumedv1-v13 source/maps/output
+are immutable. Independent saved preparation audit must precede a separate96
+TRAIN/CAL decision; actual matching quality remains unmeasured. ADR196's pure
+owner grouping passes21 source tests but is not integrated or activated. The
+crawler and all live services remain unchanged. Full canonical/crawler/client/
+owner-control integration and actual UI/latency validation are still required.
+
+**ADR194 TRAIN/CAL95073 is closed unsuccessfully; owned cleanup passes.**
+
+The failure is article-retirement/late-frame-attach; last observed RPC
+Fetch.failRequest is not causal proof. The outer callback guard rejected
+current !== article OR retiring OR retired before parsing the event. The failed
+disjunct, frame, parent and shape are unknown. Root and independent stored
+failure audits accept six canonical hardlink pairs4159B/stderr361B; cleanup
+passes without emergency, endchecks fail. No drain/result/selection/E5/fit/TEST.
+All consumed v1-v12 remain immutable. Root and independent reviews accept ADR195's
+coherent terminal CDP/PW descendant-event design, including deny-only child
+Documents and original physical settlement. Next is fresh v13 source implementation
+with the entry closed; no v13 files, map, output or actual phase exists yet.
+The earlier RUNNING description below is historical.
+
+Root, independent Trust and inventory accept the fresh v12 source and final
+pins. All24 literal entries pass384/386 reports with zero failures and two
+expected offline-child skips; separate actual pure Python suites pass71/54.
+Final124 CODE2059269B/list0fe6fc032a54024f05f80bcbda917b4010fb3f22992e075e103dd7833635b78c;
+map19378B FILEdf10efb9aad7757088253daebf254cb9ef1217959653304cf6fddd8d2ed52590.
+ONE PREPARE77828 closes exit0/stderr0; Root and independent saved audit accept
+nine hardlink pairs74265B, normal empty Job, cleanup and endchecks without
+emergency termination. Freeze67363B FILE
+0b0e66cbb942bffe1002ec52084d15b15ef569f365ca5c280c69f43d89833b25.
+Separate Root ONE96 TRAIN/CAL decision was consumed; session95073 is closed exit1.
+Monitor only that existing invocation, never duplicate/retry/adopt. All consumed
+v1-v12 CODE/maps/output remain immutable. No TEST until successful actual
+selection, independent saved audit and separate decision. No live activation.
+Current resources at20:31Z: physical12.15GB, commit5.56GB, C15.01GB/D15.78GB.
+Original limits remain unchanged. Crawler7444 advances5200; service starts stay.
+Quality and canonical/crawler/client/owner-controls integration remain unfinished.
+
+**ADR193 TRAIN/CAL is closed unsuccessfully; owned cleanup passes.**
+
+Session77579 closed exit1 during article retirement with finite `late-lifecycle`
+failure; last observed RPC is `page.close`, not proof of the causal operation.
+The exact failed lifecycle subpredicate is unknown. Root and independent saved
+failure audits pass: six final/pending pairs4159B, stderr351B. Cleanup passes
+without emergency termination; normal endchecks do not pass. No batch drain,
+result, selection, E5, fit or TEST evidence exists. Consumed v1-v11 source/maps/
+output remain immutable. Prior RUNNING notes below are historical. Receipt:
+`apps/local-service/data/native-specificity-study-adr193-train-cal-failure-20261023.json`.
+The successor remains source-only; no new actual phase or live activation is
+authorized by this note. Storage relocation is complete; all five folders are
+on D, app services retain their starts and crawler7444 advances5136 ingestions.
+
+Root and independent Trust accept the active retirement-denial design. Sixty
+owned files are copied to freshv11 without maps/output; consumedv1-v10 remains
+immutable. Root's parent/catalog/protocol slice passes independent review:
+eleven fixed workspaces under original caps,124 CODE/138 catalog with only the
+unexecuted192 document replaced by193, unchanged14 non-CODE pins/29 producer
+keys. Guarded focused checks pass30 with one expected child skip; separate
+actual pure Python tests pass71 supervisor/54 guardian. The owned capture/test/
+README slice passes Root/Trust sensitive review. All24 literal entries pass
+sequentially under96MiB:380 reports/378 pass/zero fail/two expected skips; separate
+AST71/54 and post-readiness67 checks pass. Both independent final-pin reviews
+accept124 CODE/2043301B, map19377B FILE
+321f9d090321edea5839214c179c50006e292be9fa04f77e96b547c34d759cd9;
+list09cc1894b8168c1bf8be1ff6597104379615382ba846860786c95b285c0db9c1.
+ONE metadata PREPARE4396 closes exit0/stderr0; normal empty Job, cleanup and
+endchecks pass without emergency termination. Root and independent saved audit
+accept nine hardlink pairs/74262B and freeze67362B FILE
+8b7d55d74e65e28227cbbf1ba1e994575b0b2e9e1573b4697bbfff2d1f0676b6.
+Root separately records ONE96-case TRAIN/CAL decision after fresh124 pins and
+reserves; actual session77579 is RUNNING. Monitor only this session without
+retry/adoption or consumedv1-v11 edits. Successful actual selection plus saved
+independent audit and a separate decision must precede TEST. No provider,
+canonical or live runtime change. Quality remains unmeasured. App/crawler remain
+unchanged; hierarchy quality and canonical/crawler/client integration are unfinished.
+
+**ADR192 TRAIN/CAL closes at retirement; active deny-only handling is next.**
+
+ONE session50477 is CLOSED exit1 at article-retirement/late-unknown-fetch;
+last observed RPC page.close, witnesses null. Saved evidence proves an unseen
+NetworkID while retiring, not its frame/stage/type or exact close timing. Root
+and independent failure audits pass: six4156B hardlink pairs, stderr355B SHA
+0f9e659b6fb4190f50786944d403cfd9207a996421322b7810033c2d410979e6;
+cleanupTRUE/emergencyFALSE/endchecksFALSE/no drain/result/E5/fit/selection.
+All consumedv1-v10 CODE/maps/output remain immutable. Root and both independent
+reviewers converge on a fresh source-only active retirement-denial ledger: only
+validated request-stage pauses from the current closing article's known frame,
+one tracked failRequest original, no continuation/admission/read; every original
+must fulfill before full physical retirement/drain. Passive disappearance is not
+denial proof. No successor actual phase is authorized. Older RUNNING references
+below describe the already-closed attempt. Quality/product integration remain open.
+
+The freshv10 source accepts the exact Chromium .Inspector error variant only
+for already owned blocked IDs, and isolates strictly validated known live-child
+lifecycle events from main-navigation facts. Root and independent Trust accept
+the full implementation; inventory review accounts for every dependency and
+preserves allv1-v9 CODE/maps and both probes. The24 literal tests run sequentially
+with96MiB heaps:373 reports/371 pass/zero fail/two expected child skips; separate
+actual pure Python checks pass71/54. Post-readiness focused checks pass67/67.
+These are source checks, not matching quality. Final map19378B FILE
+4dcc8e0f0d789a18c4746b3832dd0b0b5aca7dd0592d6dfe2b9320bf74a46dfb;
+list6d896e746c41aeeff0c9f3a21fc444b719ba7498f5957937298d7a855eb4a0fc;
+124 CODE/2019826B. Independent final-byte review passes, including unchanged old
+inventories. With physical12.14GB/commit6.62GB/C15.02GB/D15.84GB at19:48Z, Root
+records ONE metadata PREPARE decision. Session2542 closes exit0/stderr0, normal
+empty Job/cleanup/endchecks pass without emergency termination. Root and independent
+saved audits pass: nine pairs/74263B; freeze67363B FILE
+82b08c5114708cde0235f5b890ddbc0423b377c65a77a9260b8c04efc79f976b.
+A separate ONE96-case TRAIN/CAL decision was recorded; session50477 subsequently
+closed as described above. No retry/adoption or consumed source
+edits. Allv1-v10 consumedCODE/maps/output are immutable. TEST remains denied
+until successful actual selection plus independent audit and separate decision.
+The live app and crawler7444 remain unchanged;
+latest crawler4954 advances. Quality, canonical/crawler/client integration and
+owner controls remain unfinished.
+
+**ADR189 preparation passes; TRAIN/CAL closes at a blocked-request callback.**
+
+The ONE TRAIN/CAL session41545 is CLOSED exit1 at first browser capture:
+blocked-failure-contradiction, article-navigation, last observed Fetch.continueRequest;
+journey/timer witnesses are null. The actual alternative error spelling was not
+retained. Root and independent saved-failure audits pass: six4157B hardlink pairs,
+stderr377B, cleanupTRUE/emergencyFALSE/endchecksFALSE; no drain/result/selection,
+E5 or fit evidence. All consumedv1-v9 source/maps/output remain immutable.
+Chromium source independently demonstrates a concrete compatibility gap: renderer
+DevTools blocks may add the exact .Inspector suffix absent from the joined fake.
+A source-reviewed fresh successor is under design, with no actual retry grant.
+Quality and canonical/crawler/client integration remain unfinished. Earlier
+RUNNING references below describe the already-closed invocation.
+
+Storage recovery cleared the C: blocker. Fresh resources at19:33Z show12.45GB
+physical and7.18GB commit free, C15.03GB/D15.85GB; original floors remain intact.
+Root and independent Trust reauthenticate all124 CODE pins. ONE metadata PREPARE
+session33993 closes exit0/stderr0, normal empty Job, cleanup and endchecks pass,
+without emergency termination. Root and independent saved-byte audits accept all
+nine hardlink pairs/74203 final JSON bytes; freeze67303B FILE
+be3f9b542fceba6277d9a23dc95c9ce3a1caa2f40c735ed0512b3076c56da457
+binds239 sources and42 stage maps. Separate Root ONE96-case TRAIN/CAL decision
+is recorded; actual session41545 subsequently closed as described above. No
+no duplicate, retry, output adoption or consumed source edits. Allv1-v9 consumed
+source/maps/output are immutable. No TEST until successful actual selection,
+independent saved audit and separate decision. Semantic quality is still unmeasured;
+canonical/crawler/client integration and owner controls remain unfinished. Live
+API19868/worker36616/dashboard6644/crawler7444 are preserved. Decision and audit:
+apps/local-service/data/native-specificity-study-adr189-{preparation-decision,preparation-audit,train-cal-decision}-20261023.json.
+
+**Development storage relocation (ADR191) is complete, including recovery.**
+
+Three package caches moved with exact content/metadata/DACL checks and original
+path junctions:578 files/249,148,809 logical bytes; verified C: copies removed,
+recoverable as complete D: copies. Codex sessions and VS Code extensions are also
+active on D: through their original-path junctions. The offline helper copied
+successfully but stopped while removing read-only C: originals. New reviewed
+recovery passes7 synthetic checks; actual read-only verification matches all19757
+remaining files. Actual cleanup removes those19757 exact duplicates/1017752548B,
+retains zero, and final status is complete/Offline with5 on-D paths/no backups.
+The temporary Windows task is removed. C: has15.03GB free at completion; this
+does not establish the cause of all earlier free-space changes. Original9+4
+source checks remain valid. No credential/config/state-database, paging-file,
+Windows Update, application-service or crawler change; starts remain unchanged
+and crawler4849 advances. The system-drive blocker is cleared, but the matching
+goal remains unfinished: fresh resource/pin checks and a separate actual phase
+decision are still required; no v9 attempt follows from storage recovery.
+
+**Source work passes; the real matching study needs free system-drive space.**
+
+ADR189's complete source and final pins pass independent review. All24 literal
+test entries run sequentially with a96MiB heap:366 passes, zero failures and two
+expected skips across368 reports (shared fixture checks repeat). Separate pure
+Python checks pass71 supervisor and54 guardian tests; post-release checks pass53.
+The fresh v9 output is absent and no actual phase decision is recorded. At09:02Z,
+C: has179,986,432 bytes free, below the unchanged2GiB floor. D: has20.2GB free;
+commit reserve is1.90GB at that sample but has fluctuated below1GiB. Do not retry
+consumed output or relax guards. No crawler/service, paging-file, Windows setting,
+credential, personal-file or session-history changes were made. Update downloads
+total only6.16MB; the complete recent C: growth cause is not established.
+
+ADR190's new pure preparation component is implemented and accepted by Root and
+independent Trust; its eight guarded tests pass under64MiB. It recomputes exact
+observed text bindings and delegates numerical classification, with norm-only
+queue compatibility and no registry mapping or write authority. It is unregistered
+and inactive. Semantic quality, authenticated ingestion, canonical adoption,
+ancestor feeds, owner controls and actual UI validation remain unfinished.
+Crawler7444 advances1575; all live process start times are preserved.
+
+**ADR188 preparation stopped at a resource guard before Node started.**
+
+ADR188's full suite passes357 tests with zero failures; separate pure AST checks
+pass71 supervisor and54 guardian tests. Independent source and final-pin reviews
+accept the correction. Its one metadata preparation closes before Node starts
+with supervisor/headroom. Root and independent saved audits pass; cleanup succeeds
+without emergency termination, but endchecks do not pass. The failed reserve
+counter was not retained. No public collection or model work occurred. Later
+disk readings are sufficient; Windows commit reserve is narrow. ADR189's accepted
+design preserves all source/output and adds only a fresh fixed namespace for a
+separately gated attempt with unchanged adapter, guards and limits. Source work
+has passed focused checks and independent source review; the full suite and final
+release/pin gates remain held. Later Windows measurements show roughly0.56–1.21GB
+free commit reserve; independent caller and system counters agree. Current adequate
+reserves must precede a separate one-attempt decision. No retry loop, settings
+change or application/crawler stop is permitted. A separate pure, inactive
+application preparation boundary is being designed to join native numerical
+decisions to eventual scoped ingestion without inventing database authority.
+
+**ADR187 closed at navigation validation before matching evaluation.**
+
+The full suite passes352 tests with no failures; two expected offline-child
+checks pass separately as71 supervisor and54 guardian AST tests. Independent
+review accepts transport/admission separation, physical closure before refused
+rows, exact timer attribution and the unchanged security/resource limits.
+Metadata preparation closes normally as session27106; independent saved audit
+accepts all nine receipt pairs,239 source keys and42 stage maps. Root separately
+records one96-case TRAIN/CAL attempt, now closed with exit1 as session17851.
+Root and independent saved-byte audits accept the failure receipts: the first
+commit fails public-journey/descriptor after response and both continuations.
+Cleanup passes without emergency termination; endchecks do not pass. No drain,
+E5, fit or selection exists. A reproducible protocol mismatch passes raw
+{frame,type} to a journey expecting exactly {frame}; the failed raw event was not
+retained. ADR188's accepted source design adds a strict Navigation-only adapter
+and realistic typed fake events in fresh v8 sources. Implementation is underway;
+entry readiness stays closed. Consumed source/map/output stays immutable; no
+actual v8 run or TEST is authorized. Hierarchical quality and product integration
+remain unfinished. Crawler7444 advances1327; live services retain start times.
+
+**ADR186 closes at a browser timeout; a response-order defect is identified.**
+
+The full124-file source suite passes344 tests with zero failures and two expected
+offline-child skips; the corresponding71 supervisor and54 guardian AST checks
+pass separately. Independent review accepts the narrow pre-fresh quarantine,
+unchanged seven fresh facts and original resource caps. One metadata-only
+PREPARE closes successfully as session24374, with all nine receipt pairs and239
+source keys accepted by independent saved-output audit. Root separately records
+the one96-case TRAIN/CAL attempt, closed unsuccessfully as session53293 before
+any batch drain or E5. Independent saved-failure audit passes; cleanup succeeds
+without emergency termination, while source endchecks do not complete. The exact
+timed operation is unknown. A separate source investigation identifies a cyclic
+response-order dependency in the upstream browser pipeline; it is not yet the
+proved cause of that timeout. ADR187's accepted source design separates transport
+resume from independent security admission, adds timer-owned finite diagnostics,
+and strengthens the causal fake test. Its fresh v7 implementation is underway;
+all consumed v1-v6 source/map/output stays immutable. TEST remains gated by a
+successful actual selection, independent audit and separate decision.
+The live application and crawler remain unchanged.
+
+**ADR185 identifies the first browser failure; preparation and saved audits pass.**
+
+Its sole TRAIN/CAL attempt closes before a completed batch or E5. The exact
+witness is a lifecycle networkAlmostIdle event from the initial blank loader
+after dispatch, with only request-continuation settlement recorded and no fresh
+document facts. Cleanup passes without emergency termination; source endchecks
+do not complete. The saved failure passes independent audit, and all consumed
+v5 source and outputs are immutable. ADR186's source design is accepted and
+implementation is underway: quarantine only before any fresh loader fact or
+candidate; other blank-loader checks remain strict. Source review and actual
+gates remain separate. The
+crawler and live services are preserved; hierarchy quality is not yet measured.
+
+**ADR184 reached browser capture, then stopped on blank-loader validation.**
+
+The attempt closed unsuccessfully before any completed batch, E5, fit or
+selection. Its206605 process-list observations were complete; the retained
+failure is now in public-navigation validation. The last RPC label does not
+identify which of four loader checks fired. Independent audit accepts the
+saved failure; cleanup passed without emergency termination, while source
+endchecks did not complete. Evidence:
+`apps/local-service/data/native-specificity-study-adr184-train-cal-failure-20261023.json`.
+
+ADR185's accepted source design adds only an error-bound, privacy-minimal
+callback witness in a fresh v5 namespace. Navigation predicates and the shared
+journey remain unchanged. Source implementation and tests precede final review
+and any new separately authorized attempt. All consumed source and outputs
+remain immutable. The crawler and live application remain untouched; hierarchy
+quality and production integration are still unfinished.
+
+**ADR184 actual preparation passed; its independent saved-output audit is pending.**
+
+The isolated preparation closed normally with empty owned Job, successful
+source/asset endchecks and cleanup, no emergency termination and empty stderr.
+Its freeze binds235 source keys and all42 stage maps. Root verifies all nine
+pending/final pairs and actual JS freeze/startup validators. Independent audit
+must still precede the separate TRAIN/CAL decision. All120 CODE files,115
+package files, map and outputs are now immutable; no public capture or model
+evaluation has run. The live services retain their starts and the crawler
+continues advancing.
+
+**The detached Windows diagnostic passed; the hierarchy-study successor is under review.**
+
+ADR183 completed64 fixed Python children and1174 process-list queries in17.6s,
+with strict membership checks, verified limits and normal cleanup. Independent
+audit accepts the retained64 rows and source validation; it does not replay the
+discarded rows or identify historical unknown processes. Evidence:
+`apps/local-service/data/native-job-list-adr183-actual-audit-20261023.json`.
+
+ADR184's new source implements bounded complete-only enumeration, detached Node
+creation and correct publication of the legitimate no-reference outcome. The
+full literal-CODE test collection has312 passes, zero failures and two expected
+offline skips; separate pure Python suites pass71 supervisor and54 guardian
+tests. The final supervisor presence-check repair is under independent review.
+Release readiness, final pins and a separate preparation decision remain ahead
+of actual TRAIN/CAL. The original model, panel and quality gates remain fixed.
+No new matching-quality result or live matcher change; the crawler continues.
+
+**ADR182 stopped on additional Job members; a detached-only successor is being implemented.**
+
+The suspended sample contained exactly eight known children. After resumption,
+the complete process list contained15 identifiers, including unknown members,
+so the experiment failed. Normal cleanup, final empty Job, closed handles and
+source endchecks passed without emergency termination. Independent saved-output
+audit passed; the result does not identify the extra processes or reproduce the
+earlier count mismatch. All consumed source and output remain unchanged. Receipt:
+`apps/local-service/data/native-job-list-adr182-actual-audit-20261023.json`.
+
+ADR183 tests a narrower console-creation hypothesis with DETACHED_PROCESS in a
+new Python-only namespace. It preserves strict membership checks and adds
+configured-limit readback and separate accounting observations. Root and Trust
+accept the design; source tests, final pins and independent review still precede
+any separately authorized attempt. The crawler continues advancing and the live
+API, worker and dashboard retain their starts.
+
+A separate read-only semantic review found that the frozen driver unconditionally
+takes a selection even after the runner reports no usable TRAIN references. The
+next unfrozen study must preserve that honest completed96-row/no-selection result
+and keep TEST denied. No frozen study code is changed, and no matching-quality
+result or live activation follows from these source reviews.
+
+**ADR181 localizes the study failure to Windows Job process-list validation.**
+
+TRAIN/CAL session40663 closed unsuccessfully before the first completed batch,
+E5 evaluation or calibration. The new diagnostic records `job-pid-capacity` from
+the owned Job enumeration. That refusal covers oversized counts or unequal
+required/returned counts; the failed values were not retained. Successful peak14
+does not prove which condition failed. Cleanup passed after emergency owned-Job
+termination, stderr is empty, and live services retain their start times.
+Independent audit accepts the saved failure:
+`apps/local-service/data/native-specificity-study-adr181-train-cal-failure-20261023.json`.
+
+The next step is a separately reviewed, bounded synthetic process-churn experiment
+using only a new owned Job and count metadata, without public pages or models.
+Incomplete process lists must not establish memory accounting or process absence.
+All frozen v1/v2/v3 source and outputs remain unchanged. The crawler continues;
+there is no new matching-quality result or live matcher activation.
+
+**ADR181 preparation and independent audit passed; TRAIN/CAL is running.**
+
+Preparation exited normally with empty owned Job, successful cleanup/endchecks
+and no emergency termination. Independent audit verifies all nine saved record
+pairs, startup/result/finish links, final234-source freeze and unchanged v1/v2
+source. Evidence:
+`apps/local-service/data/native-specificity-study-adr181-preparation-audit-20261023.json`.
+
+Root separately authorized one fixed96-case/24-batch TRAIN/CAL attempt and started
+session40663. Local E5 may initialize only after every capture and final drain;
+TEST requires independent review of the actual successful selection and another
+decision. All consumed source is immutable. The crawler and live application
+remain untouched; matching quality has not yet been measured.
+
+**ADR181 final pins passed; one isolated preparation is running.**
+
+Independent review verifies all119 final CODE files, the canonical map and exact
+preservation of both earlier frozen source inventories. Root recorded the one
+PREPARE decision in
+`apps/local-service/data/native-specificity-study-adr181-source-review-20261023.json`
+and started session19567. All consumed study source is now immutable. The saved
+preparation result must pass independent audit before any separate TRAIN/CAL
+decision. No public capture, model evaluation or live application change follows
+from preparation. The crawler remains running.
+
+**ADR181 source tests and independent review pass; final preparation pins are under review.**
+
+The successor has289 passing guarded tests, zero failures and two expected
+offline skips. Separate pure Python suites pass59 parent and54 guardian tests.
+Independent review accepts the finite failed-only resource observations,
+three-workspace accounting and minimum query-rights correction. The original
+v1/v2 sources remain byte-identical. Final119-file pins and the reviewed source
+readiness marker are ready for independent verification before one isolated
+PREPARE decision. There is no new capture, model result or live matcher change.
+The crawler continues advancing; the API, worker and dashboard retain their
+original starts.
+
+**ADR180 TRAIN/CAL failed in resource supervision; ADR181 adds precise diagnostics.**
+
+The first successor study ended after batch START with `guardian:resources`,
+empty stderr and successful cleanup after emergency owned-Job termination. No
+drain, E5, calibration or TEST occurred. Independent review verifies the saved
+failure. A bounded metadata-only check of both closed outputs passes; it does
+not reproduce the transient failure. Evidence:
+`apps/local-service/data/native-specificity-study-adr180-train-cal-failure-20261023.json`.
+
+ADR181 keeps all frozen source and outputs intact in a new v3 namespace. It adds
+finite failure observations around resource collection and validation without
+raising limits or skipping unverifiable processes. Microsoft-documented minimum
+query rights replace an unnecessary memory-read request in the owned collector
+([GetProcessMemoryInfo](https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-getprocessmemoryinfo));
+whether that resolves the actual failure is unproven. Full source review and
+fresh preparation are required before another study decision. The running
+crawler, API, worker and dashboard remain unchanged.
+
+**ADR180 preparation and independent audit passed; actual TRAIN/CAL is running.**
+
+Preparation exited normally with successful source/asset endchecks, empty owned
+Job and cleanup, without emergency termination. Independent review verifies all
+nine saved record pairs and both current and frozen-v1 source maps. Evidence:
+`apps/local-service/data/native-specificity-study-adr180-preparation-audit-20261023.json`.
+
+Root separately authorized and started the fixed96-case/24-batch successor study
+(session92381). Its existing local E5 encoder may run only after complete capture
+and final drain. No retry, output adoption or TEST is automatic. The actual
+selection must pass independent review before a separate TEST decision. The
+crawler and live app remain untouched; matching quality is not measured yet.
+
+**ADR180 source and final pins accepted; isolated preparation is running.**
+
+The final suite reports289 passes, zero failures and two expected offline skips
+(291 reports). Parent and guardian each pass50 separate pure Python tests.
+Independent review confirms the repaired callback paths, final118-file map and
+readiness binding, and unchanged frozen v1 sources. The literal secret scan is
+clean. Evidence: `apps/local-service/data/native-specificity-study-adr180-source-review-20261023.json`.
+
+Root started one isolated successor PREPARE invocation (session66309). Its
+consumed source is now immutable. Preparation checks source, package and local
+assets without public capture or encoder calls. Audit its actual saved result
+before any separate TRAIN/CAL decision. The crawler and live application continue
+unchanged; matching quality is still unmeasured.
+
+**ADR180 source review: the first full suite passes; a parallel browser callback needs repair.**
+
+The successor suite reports287 passes, zero failures and two expected offline
+skips. The separate pure Python parent and guardian suites each pass50 tests.
+Independent review accepts the bounded driver diagnostic and combined workspace
+limits, including ancestor checks around each metadata walk.
+
+Review also found that Playwright child-frame navigation still reaches the
+main-frame-only owner, bypassing the intended restricted-rendering handling.
+The joined tests had covered only the parallel CDP callbacks. A bounded,
+restriction-only Playwright frame graph and joined regressions are now being
+implemented under ADR180. The full source gate stays held; no successor map,
+preparation or actual study has started. Frozen v1 remains unchanged, and the
+crawler continues (328 new run ingestions observed).
+
+**23 October: the first TRAIN/CAL attempt failed; the preserved successor is source-only.**
+
+The process exited1 after its first batch START acknowledgement. Cleanup passed
+without emergency termination. The retained generic `owner-failure` does not
+identify the failed operation or case. No successful batch drain, E5 evaluation,
+calibration or TEST occurred. Independent review confirms the saved failure
+bindings; see `apps/local-service/data/native-specificity-study-adr179-train-cal-attempt1-failure-20261023.json`.
+
+ADR180 adds finite failure diagnostics in a new v2 namespace, preserving every
+frozen v1 file at its original path. It keeps the same panel, model, thresholds
+and assessment, and counts old plus new output against the existing caps. Source
+implementation and review precede any new preparation or full study decision.
+The live application and crawler remain unchanged.
+
+**23 October: preparation audit passed; the actual TRAIN/CAL study is running.**
+
+Root authorized and started one fixed96-case/24-batch native collection and local
+E5 calibration run at about06:40local (session50287, `output/train-cal`). It is
+not a matching-quality result yet. The117 CODE and115 package files remain frozen.
+There is no automatic retry or TEST run. Independent review of the actual saved
+selection and its bindings must precede any separate TEST decision.
+
+Preparation audit and phase decision are recorded in
+`apps/local-service/data/native-specificity-study-adr179-prepare-r3-independent-audit-20261023.json`
+and `apps/local-service/data/native-specificity-study-adr179-train-cal-decision-20261023.json`.
+No provider call, owner-profile access, post, canonical write or service change
+is authorized by this study. Crawler7444 continues (194 new run ingestions);
+API19868, worker36616 and dashboard6644 retain their start times.
+
+**Latest: real PREPARE3 passed; the source is frozen, quality testing comes next.**
+
+The actual isolated process exited normally with an empty owned Job, successful
+endchecks/cleanup, no emergency termination and stderr0. The prepared freeze
+contains232 CODE/package identities and all42 stage maps (24 TRAIN/CAL,18 TEST).
+The parent processed1426 proof exchanges; peak child RSS was about163MiB and
+owned CPU7.828s. These are preparation results, not model or matching measurements.
+
+Freeze FILE hash is `fbe43054579ef4a1184658acaeeede5b7558bbc55fad30c69631350b51c714ca`.
+All117 CODE files and115 package files are now immutable, including source ADRs
+and READMEs. The independent stored-evidence audit must pass before a separate
+TRAIN/CAL decision. No public capture, inference or TEST ran during preparation.
+Evidence: `apps/local-service/data/native-specificity-study-adr179-prepare-attempt3-evidence-20261023.json`.
+Earlier failures, maps and output remain intact. Crawler7444 has166 new run
+ingestions; API, worker and dashboard start times are unchanged.
+
+**Latest: PREPARE2 reached the real handshake, then failed its proof channel; cleanup passed.**
+
+The retained supervisor and linked READY/ACK records show `proof-channel`,
+emergency own-Job termination and successful cleanup, with stderr0 and no
+result/freeze/finish/completion. An independent source check proves that the IO
+package walker requests directory proofs while the parent admits only package
+files. The actual failed request path was not retained.
+
+The reviewed recovery derives directory authority only from the authenticated115
+file keys and adds a joined fake-IO/actual-parent regression. A new fixed
+`prepare-r3` namespace and third map preserve all earlier output and maps. No
+third invocation is authorized yet; fresh tests, review, pins and reserves must
+precede a separate decision. Evidence:
+`apps/local-service/data/native-specificity-study-adr179-prepare-attempt2-evidence-20261023.json`.
+Crawler7444 continues;99 new run ingestions are observed. Quality remains unmeasured.
+
+**Latest: the first preparation attempt was refused before its output directory was created.**
+
+The one23 October PREPARE invocation exited1 in0.469s with a generic parent
+refusal. No prepared freeze or matching-quality evidence was produced. An
+independent bounded audit confirms that the unchanged, correctly pinned package
+baseline contains compact JSON plus one final LF; the fixed baseline parser
+deterministically rejects that LF before package walking/child launch. The actual
+generic outcome did not retain its exception predicate, so this is a reproduced
+source/input failure, not an observed traceback.
+
+The minimal fix is limited to that already authenticated baseline input. Its
+original bytes and the first reviewed map remain unchanged. A new fixed r2 map,
+fresh review/pins and a separate one-attempt decision are required; there is no
+automatic retry, TRAIN/CAL, TEST or live matcher activation. Evidence:
+`apps/local-service/data/native-specificity-study-adr179-prepare-attempt1-evidence-20261023.json`.
+Crawler7444 continues, with65 new run ingestions observed.
+
+**23 October: execution source integration passes review; real quality is still unmeasured.**
+
+The complete isolated suite has272 passes, zero failures and two expected offline
+subprocess skips (274 reports,32.480s). The exact exported pure Python guardian
+and parent suites separately pass50 and43 checks. Independent review accepts the
+connected driver, filesystem/pipe adapters, TEST admission and pacing after three
+cross-component repairs: asset reads now wait for final cohort drain, closed
+batches conservatively stamp origin contact time, and Python no longer treats its
+numeric JSON rendering as JavaScript identity.
+
+The final literal inventory has117 CODE files and131 base entries, with232 source
+keys including the115 maintained-package files. Fixed data pins are unchanged;
+the literal CODE secret scan has no findings and six scanner self-tests pass.
+Root recorded one conditional PREPARE-only decision. Its actual execution and
+independent evidence audit precede any TRAIN/CAL decision; no capture, model, TEST
+or live hierarchy activation follows from source tests or the readiness literal.
+Evidence: `apps/local-service/data/native-specificity-study-adr179-execution-source-review-20261023.json`.
+
+Crawler28468 ended normally with `frontier-empty`; no agent stopped it. Read-only
+checks found721983 queued rows, no staged/attempted rows and no other crawler.
+The original sealed operator resumed saved state once as7444 on23 October;
+41 new run ingestions and stderr0 are observed. API19868, worker36616 and
+dashboard6644 retain their start times. No HBA edit, service restart or state reset.
+
+**Earlier checkpoint, superseded by the details above.**
+
+**Latest checkpoint: hierarchical study integration tests pass; actual matching quality is still unmeasured.**
+
+The later execution-only checkpoint delta independently passes22 tests (Root139ms,
+review133ms). It allows only healthy, physically idle pre-publication hash heads
+and refuses a stale head if the final guard starts work. Its separate receipt
+supersedes the execution pins in the earlier integration review. Parent bootstrap
+and Node-owned output now have distinct fresh directories; no workspace adoption
+or private state bypass is planned. Actual startup/channel/CLI wiring is pending.
+
+The accepted source components now pass215 guarded checks with no failures and
+one expected subprocess skip (216 reports,29.042s). The identical pure Python
+guardian suite passes48 separately. Focused independent reviews pass: source
+ledger18, cohort/run50, execution wire20, protocol8 and guardian48. The new
+private batch-hash accessor closes the real parent-ACK ordering gap without
+advancing the cohort; explicit stage ACKs precede fitting/assessment/checks.
+Code-list FILE authentication precedes path parsing, and bounded owned-pipe
+proofs keep physical originals charged. Parent and Node clocks/identities remain
+separate. The18-file literal secret scan has no findings.
+
+The actual filesystem adapter and native supervisor are being implemented;
+the Node CLI/whole-source closure and real process wiring are unfinished.
+The literal catalog is still a105-CODE/119-entry draft, not a source freeze.
+No actual preparation, artifact/asset read, public capture, E5 or provider call
+followed these component tests. The next gate is complete IO/native integration,
+then the fixed168-case study and independent TRAIN/CAL audit before held-out TEST.
+Canonical/crawler integration, owner controls and actual UI checks remain open.
+Evidence: `apps/local-service/data/native-specificity-study-adr179-integration-review-20261021.json`.
+
+Crawler28468 reached2478 run ingestions with stderr0; API19868, worker36616 and
+dashboard6644 retain their start times. C:5497MiB/D:19675MiB free at the latest
+check. No live runtime, HBA or data change. Goal remains active and unfinished.
+
+**Earlier checkpoint, superseded by the details above.**
+
+**Latest checkpoint: the full168-case metadata preflight passes; hierarchy quality is still unmeasured.**
+
+ADR177's second actual metadata-only check passes in65.0657ms, with all168 rows,
+48 TRAIN/48 CAL/72 TEST,73 publisher families and166 supported/two unverified
+labels retained. All nine source/input pins are unchanged. Root and Trust accept
+the source and independently reconcile the saved pins/counts; Trust did not
+recompute the omitted full projection identity. The first failed check is
+preserved; its strict goldScope schema incompatibility was corrected without
+changing existing metadata. No label seal, native collection or E5 call occurred.
+Evidence: `apps/local-service/data/native-specificity-panel-adr177-actual-preflight-20261021.json`.
+
+ADR177/178 have48 guarded tests passing, including all5040 public-navigation fact
+orders and Promise-assimilation/refused-registration regressions. The fixed
+components plus ADR179's protocol and exact-bit TRAIN-reference codec pass66
+combined guarded tests. ADR179 is accepted for source implementation, not actual
+collection. Its manifest/cohort implementation independently passes36 tests;
+post-guard deadlines and asynchronous-operation handling were tightened in review.
+The ten-file public collector is source accepted after those repairs and safe
+synchronous row-callback handling, with28 guarded tests passing. The pure stage
+constructor adds8 passing checks. Producer/profile/artifact-reuse/TRAIN-reference
+construction is source accepted with18 test reports (17 substantive checks),
+including exact independent bit joins and zero-reference refusal. The full phase
+composition is source accepted with17 tests (15 phase/two shared profile checks):
+invented96 capture/192 field calls/one unchanged CAL fit, then audited-selection
+admission and full72 TEST assessment, with unknowns retained. Actual process/IO
+wiring remains unfinished. The pure guardian is now source accepted with47
+invented Python checks plus two guarded Node checks (one expected child skip).
+It preserves actual identity encoding, first-observed drain/model deadlines,
+pending-original accounting and final publication fences. The literal source
+catalog is a draft; the inert source-ledger contract is being implemented.
+No actual browser/model
+attempt is authorized or reported. Quality, canonical integration,
+owner controls, crawler-producer validation and actual UI remain unfinished.
+
+Crawler28468 reached2203 run ingestions with stderr0. API19868, worker36616 and
+dashboard6644 retain their start times. Live runtime/HBA/data remain unchanged.
+
+**Earlier checkpoint, superseded by the details above.**
+
+**Latest checkpoint: all46 isolated native PostgreSQL cases pass. Hierarchical matching is not live.**
+
+ADR175's one actual run passed all46 declared cases in24.687s. Admission,
+update and an unrelated reply committed while actual legacy apply stayed held;
+that combined case took276.89ms. Slot-snapshot contention, both clear-update
+orders, commit protocols, expiry, stale epochs, replay and retirement checks
+also passed. All eight clients closed, the exact scratch database was dropped,
+and the owned server/Job exited normally without emergency termination. Root
+and Trust independently audited the saved success and all133-source/nine-binary
+endchecks. Frozen source and output are immutable; no rerun or live activation.
+Evidence: `apps/local-service/data/scoped-native-adr175-evidence-20261020.json`.
+
+The next critical path is real producer/hierarchy-quality validation on the
+168 prepared metadata cases, with the two unverified labels and conditional
+formats visible in the full denominators. No public capture, model, provider or
+live database/HBA action occurred in this checkpoint. Crawler28468 reached1628
+run ingestions; API19868, worker36616 and dashboard6644 retain their starts.
+
+ADR176's final two metadata-only opens are consumed; both labels remain
+unverified. The independent outcome audit passes with all four prior metadata
+files unchanged. All168 rows stay in the study; any future assigned-but-unassessed
+case fails the zero-wrong gate. No native/model phase or label seal has started.
+Next is a bounded metadata preflight and a complete public-producer study
+protocol, reusing existing numerical components rather than another classifier.
+
+**Earlier checkpoint, superseded by the details above.**
+
+19 native PostgreSQL cases passed before the fixture repair.
+
+ADR174's one isolated run passed admission, update and unrelated reply commits
+while actual legacy apply was held, watermark contention, the native slot race
+and14 declared lifecycle orderings. Case20 failed with P2302 because its fixture
+reused an admission operation ID for different update material;26 cases did not
+execute. All eight clients closed, the exact scratch database was dropped and
+the owned server/Job exited normally. Root and Trust audited the saved failure;
+its132 sources and output are immutable. Evidence:
+`apps/local-service/data/scoped-native-adr174-evidence-20261020.json`.
+
+ADR175 uses the existing distinct base/change fixture construction without
+changing SQL policy or the46-case ledger. Root and Trust accept the source;
+122 guarded Node tests and112 Python AST checks pass. Exact inventories, frozen
+audits and a separate native decision remain required. No live HBA change,
+provider call or runtime overlay occurred. Crawler28468 reached1603 run
+ingestions with stderr0; API19868, worker36616 and dashboard6644 retain starts.
+
+**Earlier checkpoint, superseded by the details above.**
+
+All four local article cases pass in actual Chrome.
+
+ADR172's one owned browser diagnostic passed in5.64s, with normal process cleanup,
+no emergency termination and exact217-source endchecks. Text/title hashes,
+fallback extraction, denied body access and changed-document refusal all pass.
+Root and independent stored-success audits agree. The run is closed immutable;
+this is native reader compatibility, not public collection or semantic quality.
+Evidence: `apps/local-service/data/native-article-retirement-adr172-evidence-20261020.json`.
+
+ADR173's one actual PostgreSQL diagnostic started a fresh owned17.11 server and
+smart-stopped it normally, with all clients/physical work/Job processes closed.
+It failed the first maintenance handoff before any of46 SQL cases. Both actual
+failure audits and all131 source/nine binary endchecks pass. Its source/freeze/
+output are closed immutable. Evidence:
+`apps/local-service/data/scoped-native-adr173-evidence-20261020.json`.
+
+The connector contains a proven inet-to-text format defect: that projection
+includes a network mask while the check requires a plain address. The exact
+failed predicate was not retained, so it is not attributed as the sole actual
+cause. ADR174's new successor uses host(inet) with unchanged strict identity
+checks and finite first-refusal evidence. Its source gate remains closed during
+implementation/review;90 guarded driver/controller tests and112 source-only
+Python checks pass so far. No new freeze or actual successor run.
+
+The owner-approved live HBA change was not used: Windows in-place publication
+was rejected before mutation, and the isolated test needs no live credentials.
+Crawler28468 advanced to1496 run ingestions with stderr0; API19868, worker36616
+and dashboard6644 retain start times. No runtime overlay or provider call.
+
+**Earlier checkpoint, superseded by the details above.**
+
+The first real Chrome article reached native text read and hash validation.
+
+ADR170's ONE actual owned run passed the first article's five navigation facts,
+native tab/document lookup, rights snapshots, text read and fixture hash checks.
+Actual close, transport drain, exact target retirement and census completed;
+the subsequent explicit detach operation failed with client-operation status.
+The underlying error is unknown. Normal owned cleanup and all217 endchecks
+passed; both stored-failure audits agree. Source/freeze/output are now closed
+immutable, no retry. Evidence:
+`apps/local-service/data/native-article-blank-replay-adr170-evidence-20261020.json`.
+ADR172's source-only successor removes that redundant post-retirement command,
+preserving strict late callbacks and every target-absence/drain check; root and
+Trust design accepted, implementation delegated. No new preparation/native run.
+
+ADR167's no-cancel control integration is root+Trust source accepted with78/78
+guarded tests, including10 actual-facade/root-cleanup invented-socket tests.
+All establishment/setup/query and original-callback promises share the original
+cleanup deadline. No PID-based SQL cancellation is issued, and server timeouts
+are not mistaken for socket settlement. The repeated126-file/1256069B inventory
+is stable, not frozen. Full fixture/case source review and actual native proof
+remain open; SOURCE_STATUS stays closed.
+
+The owner approved the exact temporary HBA rule and byte-exact restoration.
+Read-only protected administrator metadata reconfirmed the active original hash;
+no HBA change or reload occurred. ADR171's reviewed source-only design requires
+a held Windows file lease, authenticated recovery and distinct file/active-policy
+restoration evidence. Its pure implementation is in progress; actual window,
+lease proof and guardian review remain gated.
+
+Crawler28468 advanced to1168 run ingestions with stderr0; API19868, worker36616
+and dashboard6644 retain start times. No matcher overlay or provider call.
+
+**Earlier checkpoint, superseded by the details above.**
+
+ADR167 now uses one private source-capture epoch and separate WORK/cleanup/DROP
+capabilities. Initial establishment counts against eight slots; ordinary case
+SQL cannot occupy the reserved maintenance controller. The actual query facade
+and root cleanup pass eight invented-socket integration tests, including exact
+owned-backend cancellation predicates, physical/original settlement, rollback
+before restoration and unknown timed-out DROP. The combined76 tests pass without
+database/provider access. Repeated126-file/1253663B source inventories agree;
+this is not a frozen or accepted native source gate. Independent integration
+review is pending, SOURCE_STATUS remains hard-closed, and temporary HBA approval
+is still pending. No database, role, HBA or service change occurred.
+
+ADR169's ONE actual browser attempt failed at lifecycle-name validation while
+enabling events, before navigation or any native text read. Normal owned cleanup
+and all217 source endchecks pass; root and independent failure audits agree.
+The raw name and blank-loader equality are unknown. Its source/freeze/output
+are closed immutable. Compact evidence is
+`apps/local-service/data/native-article-journey-adr169-evidence-20261020.json`.
+ADR170's narrow initial-blank replay correction is implemented source-only and
+independently reviewed:41 tests pass plus one expected guarded Python-child
+skip; the actual parsed Python AST passes separately. Root's complete source
+review is not finished. No preparation, freeze or native attempt occurred.
+
+Crawler28468 remains live and advanced to1078 run ingestions. API19868,
+worker36616 and dashboard6644 retain start times. No matcher overlay, reset,
+second crawler or provider inference was used.
+
+**Earlier checkpoint, superseded by the details above.**
+
+ADR168 passed independent source review (26 guarded tests plus the separately
+executed actual Python AST), one preparation and both actual209-source freeze
+audits. Its ONE actual DEV then failed after3.141s: first-article navigation and
+DCL completed, but verifyNavigation rejected before native-tab/rights/read.
+The exact failed comparison was not retained; cross-session event ordering is
+only a hypothesis. All209 endchecks and both stored-failure audits pass; normal
+owned-process cleanup succeeded, emergencyFALSE, CPU4.828125s. Source and output
+are CLOSED/immutable/no retry. ADR169's five-fact navigation rendezvous is design
+accepted for source-only implementation: command reply, commit, Document response,
+loader-bound DCL and actual fulfill settlement must agree within the original
+lease. Its217-source successor is being implemented; no preparation or run yet. See
+`apps/local-service/data/native-article-reader-adr168-evidence-20261020.json`.
+
+ADR163's corrected versioned-input/stable-discussion prototype passes22 guarded
+fresh-memory tests in both root and independent review. An extra replay probe
+found and fixed recreation after Source erasure: retired operation identities now
+reject replay without retaining URLs or content. This is isolated source evidence,
+not native PostgreSQL concurrency or production activation. Its global idle-lane
+dependency still blocks crawler-safe update activation.
+
+ADR166's ONE actual owned blank-browser diagnostic passes: both block/allow
+variants loaded the extension and completed native API/begin/end checks. The
+whole guardian took8.422s; normal owned-process drain succeeded, emergencyFALSE,
+stderr0, exact204 source endchecks and both independent stored audits pass.
+Actual-anchor identity, the two exact browser_ui popup targets and census ID sets
+are verified in this diagnostic. All source/output is CLOSED and immutable.
+This is not public-page capture, rights, E5 or semantic-quality evidence. Receipt:
+`apps/local-service/data/exact-browser-infrastructure-adr166-evidence-20261020.json`.
+ADR164 remains its earlier failed diagnostic; never replay it or retroattribute
+its observed endpoints to162's unknown raw values.
+
+ADR159 metadata is complete in count, unsealed:168 candidates
+(48 TRAIN/48 CAL/72 TEST),73 publisher families and five languages. Independent
+primary review accepts166 scoped labels; two selected TEST pages remain inaccessible
+to the review tool, not proved native failures. Conditional challenge formats and
+incomplete older-panel exclusion evidence remain explicit. No capture, E5, fit or
+score occurred. All original cases and availability denominators remain fixed.
+
+ADR165's isolated scoped queue/canonical implementation is root+Trust source
+accepted, with41/41 guarded fresh-memory tests passing independently. The final
+review corrected parameter bounds, pre-fence actor validation and a slot snapshot
+race. Fresh-statement behavior requires READ COMMITTED; legacy lifecycle consumers
+touching scoped bindings also require the explicit literal-COMMIT envelope.
+The implementation removes the new-policy idle-lane path in this fixture;
+native behavior is not yet proved. ADR167 proposes the actual PostgreSQL scratch
+proof, including a held real legacy apply, serving logins and protocols.
+Root's12 earlier deadline probes and the nested-trigger red/green remain design
+evidence. See data/scoped-ingestion-adr165-review-20261020.json. Native role,
+protocol and concurrency proofs, real root/child/STOP/outside quality, owner
+controls, crawler/consumer dispatch and end-to-end UI validation remain open.
+
+ADR167's new native diagnostic is incomplete and hard-closed before connecting.
+Its32 local helper tests and a124-file code/SQL inventory check pass, not native
+SQL or concurrency. Configured HBA rejects the proposed unused test name; the old
+permitted test name is occupied and untouched. A separate narrow temporary-rule
+approval is pending; no HBA or database change occurred. The thin-driver
+failed-connect cleanup and measured-barrier refusal fixes are root+Trust source
+accepted, with invented clients only. The measured2s interval includes acquisition
+through verified release; it is not hard cancellation. The sampled monotonic
+watchdog/private cleanup-lane design is accepted for source implementation, not
+implemented. Real socket/session settlement and true concurrent schedules remain
+open. The native entrypoint stays hard-closed.
+
+An ordinary read-only product fix is root+Trust source accepted: Search Topics
+now keeps the selected thread's exact root/discussion IDs through popup composition,
+fresh canonical validation, initial pagination and focus. Both35-test guarded
+runs and a110-test guarded adjacent client run pass, including real two-panel
+composition and preserved global query/offset, owner drafts and Back focus.
+No current-page write or AI authority changed. Native
+rendering/reload are not yet checked; the extension version is unchanged. Receipt:
+`apps/local-service/data/search-topics-exact-root-review-20261020.json`.
+
+Crawler4368 exited on its own at3033 run ingestions. Read-only reconciliation
+found one exact completed receipt, three never-queued stages and zero live jobs.
+The original sealed operator resumed once as28468 at2026-10-20T17:31:26.866Z,
+without reset or matcher overlay; latest direct observation is905 run ingestions
+and continuing fetching. API19868/worker36616/dashboard6644 retain start times.
+
+**Earlier checkpoint (superseded by the details above).**
+
+**Chrome starts; the extension-startup diagnostic still fails before extension loading.**
+
+ADR161's one actual blank-browser run reached Chrome, blank-page setup, network
+denials and CDP discovery, then closed with exit1 after4.891s. All203 source
+endchecks and owned-process cleanup passed; emergency termination was required,
+so this is failed evidence. The exact callback code/target type was discarded.
+Root and Trust audited the retained failure. ADR162 proposes bounded callback
+and first-fault observation without changing the original rejection rules; its
+design is under independent review. Do not repeat either closed160/161 run.
+Evidence: `apps/local-service/data/normalized-extension-startup-adr161-evidence-20261020.json`.
+
+ADR160's earlier run failed before browser launch. Read-only localization found a
+Windows slash-normalization defect in its fixed executable-path comparison;161
+corrected that defect and demonstrably passed this stage. ADR158's Node bootstrap
+remains a closed actual pass, not a semantic-quality result.
+
+ADR159 metadata curation is paused at its bounded review point:94 unsealed
+candidates,39 TRAIN/29 CAL/26 TEST, five languages and35 publisher families.
+The168-group panel is short74;60 queries/224 primary operations were used, with
+16 reads unused. Labels require independent acceptance. No native collection,
+E5, fitting or scoring occurred. Keep the two metadata files unchanged pending
+review; do not silently shrink the study or treat partial quotas as ready.
+
+Real producer root/child/STOP/sibling/outside quality, scan-free canonical
+admission and source updates, immutable discussion bindings, owner controls,
+crawler dispatch and UI integration remain unfinished. API/worker/dashboard and
+crawler4368 were not restarted. Direct process inspection confirms4368 is live
+with its10:20:07 start time; its latest inspected log shows3003 run ingestions.
+
+**Earlier ADR158 checkpoint (superseded for160/161 and candidate counts).**
+
+The minimal composed guardian passed source review, one metadata preparation,
+both actual13-source freeze audits and its ONE actual Node-only run: exit0,
+0.282s, exact READY/ACK/completion, normal owned-Job cleanup, no emergency
+termination. Root and independent Trust stored-evidence audits pass; all13 source
+bytes and closed output remain immutable. This removes the tested Node/optional
+exact-system-console bootstrap obstacle, not browser or semantic-quality gates.
+Receipt and scoped evidence:
+`apps/local-service/data/composed-owned-bootstrap-adr158-evidence-20261020.json`.
+
+ADR159's bounded public metadata curation is in progress, unsealed: the latest
+inspected increment has47 candidate pages,19 TRAIN/20 CAL/8 TEST, five languages
+and26 publisher families. Structural checks find no cross-split publisher family,
+duplicate article/group/ID or invalid local-forest gold path. These are agent-
+authored candidate labels, not independently accepted gold or model results.
+Parent STOP/confounder/locked TEST quotas remain short. No capture/E5/fit occurred.
+
+ADR160 is independently accepted for source-only implementation: reuse the exact
+old two-variant blank-browser coordinator under the tested immutable baseline,
+with physical/callback drain and fresh identity-bound ACKs before continuation.
+It isolates block-versus-allow extension-worker compatibility without using public
+articles. No preparation or browser run is authorized by source acceptance.
+Actual current-producer root/child/STOP/sibling/outside quality, scan-free canonical
+admission/updates, stable discussion bindings, owner controls and UI remain open.
+The running app/crawler are unchanged; the latest inspected crawler log advanced
+to2769 run ingestions with all four process start times retained.
+
+**Local-detail calibration implemented and reviewed; real hierarchy quality still unfinished.**
+
+ADR152's complete-path/prefix/outside assessor passes11 tests in root and
+independent review, plus a209-case invented matrix. ADR154's independent native
+root followed by same-root local-detail composition passes12 geometric tests in
+both reviews. Neither result establishes actual child/OOD model quality.
+
+ADR153's one metadata-only Node diagnostic identified the additional same-Job
+process: its opened-handle image hash matches the fixed system conhost path.
+The original Node-only predicate still failed; normal execution did not complete,
+and emergency owned-Job cleanup passed. All201 source bytes remain immutable.
+This does not establish the earlier ADR151 process identity or helper ancestry.
+Compact evidence: `apps/local-service/data/native-bootstrap-process-adr153-closed-failure-20261020.json`.
+
+ADR155 passed both source reviews (5 guarded tests, expected subprocess skip
+covered by the identical separate Python suite), one preparation and both208-file
+byte audits. Its one actual Node-only run exited1 after.328s with `census-failed`,
+before READY/ACK/completion. Emergency owned-Job cleanup and all source endchecks
+passed. The underlying finite census subcode was discarded; the exact cause is
+unknown. All208 sources and output are closed and immutable; no repeat. Receipt
+FILEc811efdc9eed03c6975f05d94f91053050480e295cc663f92a7889d0b286cd01;
+compact root/Trust failure audit:
+`apps/local-service/data/native-console-baseline-adr155-closed-failure-20261020.json`.
+
+ADR156's fresh native-input local-detail CAL fitter is implemented and independently
+reviewed:11 guarded tests per reviewer; the joint152/154/156 run passes34 with no
+skips. It selects fixed-grid local rules using conservative independent groups,
+keeps partial truth/STOP/availability distinct and uses the actual unchanged
+decoder for final CAL auditing. The96-view/512-reference/16-root-head synthetic
+maximum reaches38,928,384 coordinate products. Gold is only approved roots plus
+the local forest, not full63-node truth; CAL resubstitution is not quality proof.
+Exact evidence: `apps/local-service/data/native-local-detail-calibration-review-20261020.json`.
+
+ADR157's bounded growing owned-Job census is also implemented/reviewed; root and
+Trust each pass the guarded test and the separate identical pure Python suite.
+Its final delta rejects false/zero closes and preserves primary error codes when
+cleanup fails too. It addresses a verified source limitation (new members appearing
+during a snapshot), not an established explanation for ADR155. The library is not
+integrated into an actual guardian. Neither component authorizes actual collection,
+fitting or another native run. A prospective fresh
+48TRAIN/48CAL/72TEST specificity panel is outlined at the front of the E5 plan;
+general root OOD remains untested and must not be manufactured from other roots.
+
+Full actual-producer root/child/STOP/sibling/outside validation, scan-free
+canonical admission, owner-wide hierarchy controls and UI integration remain
+unfinished. Direct read-only runtime status was available at revision34355,
+33513 learned Sources/96 contributions; seal a1d301bc remains unchanged.
+API19868/worker36616/dashboard6644/crawler4368 retain their start times;
+latest crawler observation2646 run ingestions. The initial sandbox-only status
+failure was resolved through the existing permitted Windows-DPAPI bridge; it was
+not evidence of a PostgreSQL outage. Exact runtime evidence:
+`apps/local-service/data/hierarchy-continuation-runtime-check-20261020.json`.
+
+**ADR151 startup diagnostic stopped before staging; hierarchy remains unfinished.**
+
+Root and Trust independently passed16 guarded source checks plus the same pure
+Python AST suite (one expected guarded subprocess skip). Review fixed two guardian
+copy errors and strengthened actual native-module/end-acknowledgment checks before
+the single preparation. The195-file freeze passed both actual byte audits:
+FILE0d470f5315e9c7cd9fe910ccae91ffad67119a5e356d5c21f7bd62bebf9ac021,
+semantic a0d9abbc1998de1e60186e6dbbff94eb61b2c54f10adb1d7c43c08ecd918939d.
+
+The one actual diagnostic exited1 after0.422s: the guardian detected two own-Job
+processes before the first variant marker. It terminated only its own Job and
+confirmed cleanup. Both logs are empty; staging, both variants, barrier and result
+are absent. Thus the explicit Playwright import/Chrome launch was not reached;
+the second process identity was not retained and must not be guessed. All195
+source/package hashes and old freeze rechecks match. No content/model/quality or
+compatibility result exists. This attempt and all its sources are closed; no retry.
+Compact root/Trust evidence: `apps/local-service/data/native-extension-startup-adr151-closed-failure-20261020.json`.
+
+ADR152's complete-path/prefix/outside assessor is implemented and independently
+reviewed:11 guarded tests per reviewer plus a separate209-case invented matrix
+pass. It separates exact child, safe ancestor, wrong sibling, overspecific parent
+STOP and outside false acceptance, with availability and independent-group counts.
+It establishes reporting arithmetic, not actual model quality. Compact review is
+`apps/local-service/data/complete-hierarchy-path-assessment-review-20261020.json`.
+ADR154's native-root/local-exemplar composition is implemented with12 invented
+geometric tests passing in root and independent full source review.
+No actual artifact, model execution or activation follows. Browser
+bootstrap needs actual bounded same-Job process identity evidence before changing
+the unverified Node-only assumption. Crawler4368 reached2212 run ingestions;
+API19868/worker36616/dashboard6644 and crawler start times are preserved.
+
+**ADR150 actual native-root test failed before its first capture; closed.**
+
+The complete driver and guardian pass124 guarded tests, with one expected Python
+spawn skip whose identical pure AST suite passes separately. Root and independent
+review verified the actual preparation:187 source/package files,11 fixed artifact
+files,23-key native recipe and unchanged original model/cuts. Freeze FILE
+770eb68ef044dadbb6ef0f2edf2c927b643480e7d06cbf496319b1cab9d457ec;
+reuse FILE1b78bfdae5cbac64ebedcf7e1b69f5fff6ef59233d6099a992de970385a8e8a4.
+
+The one actual supervised attempt exited1 after20.953s. Only dns0/capture0 were
+logged, followed by the finite phase-failed diagnostic. No result or drain files
+exist; frozen control flow did not reach E5 or classification. Normal owned-tree
+cleanup passed without emergency termination. All187 source hashes,11 artifact
+hashes and six staged CODE files pass both saved-evidence audits. Peak sampled
+RSS744132608/private435863552 bytes,12 processes, owned14229825 bytes/284 entries.
+Supervisor FILE056262d71d49371c11bf518b349a24e0bdb7c5c18ae9dbe0088d4be3c0a8c0ac.
+All sources, preparation and output are immutable; no repeat or partial quality
+result. The exact failed operation remains unknown, not an established model,
+extension, foreground or policy fault. Compact records are
+`data/native-root-preparation-review-20261020.json` and
+`data/native-root-adr150-closed-failure-20261020.json` under apps/local-service.
+
+ADR151 is accepted for source-only implementation of a targeted startup
+diagnostic: two fixed block/allow Service Worker variants, blank anchor only,
+no public navigation/DNS/content/model, controlled operation names and finite
+error classes, genuine original-Node-only drain before variant2. It is not a
+cohort retry or matching-quality result. The full hierarchy/child/OOD/live goal
+remains active and unfinished. This turn made concrete progress through the
+complete driver, actual preparation and actual failed attempt with verified
+cleanup. Crawler4368 reached2104 run ingestions; all four live start times remain
+unchanged. C:4.58GB/D:20.95GB free at the last read; Windows Update untouched.
+
+**ADR150 native input to fixed root classifier components implemented and reviewed.**
+
+The new native adapter5, transient RAM ledger2, numeric wrapper3 and joined
+contract1 pass43 guarded synthetic tests in root and independent review. A
+separate MV3 worker statically imports the unchanged production reader and URL
+policy; no dynamic service-worker import or application background is used.
+Actual document-ID targeting, three foreground/permission observations, ordered
+one-use cases and metadata-only policy skips are explicit. Skips make no reader
+or foreground call. The phase ledger requires all32 accounted before up to64
+encodings, actual browser drain before model initialization, encoder close and
+asset/source endchecks before assessment. Review found and fixed reentrant
+admission, rejected-async-callback hygiene and initialization cancellation races.
+
+The new native wrapper retains the unchanged paired/head/rank arithmetic and
+numeric cuts. Canonical preparation binds raw/effective title, full native
+witness and separate same-document rights-evidence hash before vectors exist;
+final decisions omit raw URLs/text/vectors. Its11 differential geometric tests
+prove numerical compatibility, not topic accuracy. The6 joined tests prove the
+component interfaces with invented content/rights/vectors, not real capture.
+See ADR150 and `apps/local-service/data/native-root-transfer-component-review-20261020.json`.
+
+No new native collection, E5 call, artifact read, receipt, source freeze or live
+activation occurred. The real driver, resource/network envelope, same-document
+rights binding, staging/source closure and supervisor still require implementation
+and review before the complete32-page assessment. The selected model/cuts, full32
+gate and whole hierarchy/child/OOD/crawler/UI goal remain unchanged. This turn
+made progress through the actual ADR149 Chrome proof below and these implemented
+components; the goal remains active and unfinished. Crawler4368 reached1657 run
+ingestions; all4 live start times remain unchanged. Source scan1264 app files and
+11 exact new component files found zero secrets; six app patterns self-tested.
+
+**ADR149 real Chrome scheduling and cleanup DEV passed.**
+
+The single frozen run completed in 2.625 seconds. Chrome genuinely aborted all
+1000 invented resource requests with serial denial and zero pending callbacks.
+Under the controlled full adapter quota, one completed native abort was held at
+adapter completion alongside125 injected barriers. All142 waiting callers were
+rejected, while126 physical operations stayed occupied. Both reserved closes
+actually ran once and completed; final physical, queue and registry counts were
+zero. Normal owned-Job drain required no emergency termination. Root and
+independent strict saved-evidence audits pass all127 source/package pins.
+
+Freeze FILE908ed69a9b1e42ed6fb0de7ac0d0862ffb5fe8964cf368701cb442085e1091bb;
+result FILE1a440a4dfbcbf1247302e37084e090db580de6f9d4d67d7c1b8cdfbe10d9a91a;
+supervisor FILEd9e3ecee1b7723f5bd847245fc7555539a9455aef9406049daa8d132e980d114.
+Peak RSS783568896/private581869568 bytes,10 processes, owned6853880 bytes/192
+entries, empty stderr. All127 sources, ADR149 and evidence are immutable. This
+proves the invented scheduling/cleanup case, not semantic quality or repair of
+the closed ADR148 capture. Compact evidence is
+`apps/local-service/data/playwright-route-burst-dev-evidence-20261020.json`.
+
+Next is a prospective quality test using the actual native browser reader and
+same-document attestation, without pairing, accounts, AI or canonical writes.
+Production foreground/site-consent policy is distinct from crawler robots/TDM;
+the collection/retention contract and ordinary-page fidelity need review before
+implementation. Earlier restricted browser captures are not substitutes for
+normal dynamic input. Existing selected model/cuts and closed studies remain
+unchanged. Crawler4368 continues at1512 run ingestions; API19868, worker36616
+and dashboard6644 retain their start times. Goal remains active and unfinished.
+Previous status-only goal turn: no progress; this turn made concrete progress
+through the actual Chrome run and independent evidence audit.
+
+**ADR148 capture CLOSED at browser05; no encoding or scoring.**
+
+Four supervised batches completed and pass root/independent metadata and packet-
+byte audits:16 accounted,8 captured,8 unavailable. Batch05 failed with the exact
+bounded diagnostic `request-capacity / request-deny / coordinator-capacity`.
+Its Node/Chrome tree remained until the170s active guardian required emergency
+own-Job termination. Supervisor FILEee9e993eacd923fb83ce384f1021cc0cef1f2737edb7d62af44288d2ebea7bea;
+stderr141B/d9d03bff4cd911c18659ed1d091ff0f2e424816f4790444a67f257cf651c9818.
+Owned cleanup/source173 rechecks pass, but emergency termination is explicitly
+failure. No batch05 result/input packet, no06–08 directories, no partial quality
+assessment, retry, E5 or classifier call. All frozen sources and inputs remain
+unchanged; the evaluator's all-eight gate blocks access to captured packet text.
+
+Review confirms a cleanup-starvation code path:128 unresolved ordinary RPCs can
+prevent even context/browser close from being invoked. That is consistent with
+the lingering tree, not a proven trace of its exact close-call state. A separate
+injected-only route coordinator now passes8 root/independent synthetic tests,
+including200/1000 denial bursts and held operations with reserved cleanup within
+the same128 total. No real browser repair is yet proven. Saved closed-run audit:
+`apps/local-service/data/hierarchy-adr148-closed-observation-audit-20261020.json`.
+Evaluator13 is source-complete/unfrozen/unexecuted (29 guarded tests plus one
+expected subprocess skip; Python checks separately pass), not execution-approved.
+Live API/worker/dashboard start times remain unchanged. Crawler4368 continues,
+1284 run ingestions/empty stderr. Goal remains active and unfinished.
+
+ADR149 is accepted for source-only implementation: controlled real-Chrome DEV
+with invented .invalid image resources, no public article visits. Normal1000
+actual aborts must drain; a separate controlled case holds adapter completion
+after a successful native abort plus125 injected ordinary operations, then checks
+real owned teardown using reserved cleanup. Unexpected failures always fail;
+this is not126 hung native commands. New diagnostic5 is in development, without
+freeze or execution. Full source review precedes any actual run. Source secret
+scan1261 files/zero findings/six self-tested patterns. This goal turn made
+progress through actual failure localization and a tested scheduling primitive;
+it did not establish new topic quality or activate hierarchy.
+
+**ADR148 pre-capture preparation (historical checkpoint).**
+
+Root and independent review pass the collector's30 guarded tests (29 pass,
+one expected offline child-spawn skip); the exact Python helper checks pass
+separately. Pacing refusals now remain per article, prior supervisors require
+complete resource/hash evidence, and the handshake-order assertion is non-vacuous.
+Actual artifact-only compilation reproduces the unchanged selected model/cuts
+under the new browser profile. Receipt FILE00f24f7348351026b7c7837da9445a8a9d465a0387d9bbfdfc21c0efaf4b136f;
+collector freeze FILE99f2af55c0dd3f4484745b7993120f4760ed1fba8b0c27ed00837dd75642dfd9,
+semantic0a1336a34ad340b3fe156318ace2fc3d04fffddf7a44ab2719d633dd50df9f37.
+Independent actual-byte audit passes all173 pins. Those sources, ADR148 and the
+receipt are now immutable. No new capture, encoding or classification yet.
+
+Previous goal turn: progress. The actual native performance run and maintained
+browser DEV run completed and passed independent stored-evidence audits. The
+next quality study is a new browser-only assessment of the same32 sealed article
+labels with unchanged model/cuts, not a continuation of ADR145 or a substitute
+for the full crawler/browser/child/OOD/UI goal. Its full32 acceptance gate stays
+24 accepted/zero wrong/at least one per root.
+
+The new artifact-reuse helper2 and browser-only descriptive methods2 pass15
+strict guarded synthetic tests in root and independent review. The helper carries
+the original static profile unchanged as explicitly unexercised; only the new
+browser input construction is rebound. The methods have no static prediction
+argument, preserve unavailable rows and cannot authenticate inputs or outputs.
+Evaluator orchestration is still being implemented and is not frozen or executed.
+The current runtime remains unchanged; crawler4368 advanced to1165 run ingestions
+with empty stderr. See ADR148 and the front of the hierarchy plans.
+
+**ADR145 capture CLOSED incomplete: browser05 protocol failure; no scoring.**
+
+All8 static batches completed:23 captured/9 unavailable of32, independently
+audited with source62/resource/cleanup/prior-byte-chain checks. Browser01-04
+completed:7 captured/9 unavailable of16. Browser05 stopped after9.5s on case17,
+`block-request / Fetch.failRequest`, null code, transport-or-validation-failure.
+Result FILE4358e7ec76658489b46fcf5f079cfcfaf97476fc30724f06e06b6236fce49634;
+supervisor FILEd27b9c0a14985a0321f6fb56cb2e7339ffbb3aa19b2ad9464e37ceec82227e81.
+Child exit1, own tree drained, sources rechecked, stderr empty. This identifies
+the failed protocol call, not its underlying cause. No retries, browser06-08,
+encoding, classification, partial quality result or cutover follow. Keep all
+frozen sources/results unchanged; evaluator-v2 stays unfrozen/unexecuted.
+Neither producer could meet24 accepted anyway under the unchanged static
+eligibility prerequisite (upper bound23). The capture failure does not establish
+that the classifier itself is wrong or right.
+
+New owner-only fast prepared-evidence queue prototype passes13 synthetic tests
+in root and independent review;
+review found a concrete legacy UPDATE/growth-lock inversion, now source-fixed
+with INSERT-only growth and immutable UPDATE reservation guards. The actual
+installed-trigger fault probe checks UPDATE avoids growth, INSERT reaches it,
+and reservation mutations fail explicitly. No native concurrency or production
+activation claim. A separate pure dual-representation root/detail adapter passes8
+geometric tests in both reviews: root abstention skips detail; only same-root
+confident detail refines it. Child quality and producer transfer stay unvalidated.
+Independent browser01-05 stored-byte/failure audit also passes, without opening
+packet text. Live runtime unchanged; crawler4368 reached623 run ingestions with
+empty stderr and retained start time. Goal remains unfinished. Source secret
+scan:1239 files,zero findings,six self-tested patterns.
+
+The compact closed-run evidence is saved in
+`apps/local-service/data/hierarchy-adr145-closed-observation-audit-20261020.json`:
+all13 observed batches, exact file links, complete source recheck and empty fatal
+packet proof, with no packet-text parsing or model/quality result. The capture
+failure's pending-command explanation remains only a hypothesis.
+
+The new injected-only bounded-CDP transport passes15 root/independent pure tests
+after fixing cumulative copy bounds, reply-session correlation and typed-byte
+hooks. It retains finite local failure categories and bounded denial scheduling.
+It deliberately lacks notification/coordinator integration: no real Chrome test,
+new capture, producer profile or demonstrated repair of the closed failure.
+
+A separate synthetic Ridge cost screen completed once in fresh in-memory
+PGlite. Full validation with numerical finite checks preserved ordered score bits
+and all22 error differentials. Sparse medians improved26.355→19.107ms at64
+references,125.776→82.033ms at256,608.313→384.955ms at1024 (1.38–1.58×).
+The faster unchecked mock missed corruption and is not an activation candidate.
+Stored-evidence independent audit passes. See ADR146 and saved evidence
+`apps/local-service/data/ridge-validation-cost-screen-20261020.json`, fileSHA
+8dec7e81b80c6057069f8d21c64bc52ca06b84468508f72d6780841f7a383f50.
+The reviewed native harness then completed ONE owned PostgreSQL17.11 run:
+22 error differentials and all12 sparse/dense comparisons match exactly,
+including threshold-neighbor, signed-zero and all-score bit checks. Median ratios
+range1.38–1.76×; dense1024/dense-query370.806→225.148ms. Own smart stop and empty
+Job confirmed, no emergency termination; CPU44.969s/wall31.656s/RSS332MB/private187MB.
+FreezeFILE58005f3cbbbaffcde2a16d4cd04451098a4e6e5d7f77d00a6218ae0b75064fb5;
+resultFILEb1ff1ec24ba5a14697fe8f5ca0ee0fbbdc1083778ffd338fabf5476e42b028e4;
+supervisorFILE4f674209131fe6e51e67fc2e8e7d1aa9667fd08c208ef800f7244dc93b4a6dc0.
+All112 sources/6 installed binary pins and ADR146 are now immutable. Stored
+actual-evidence independent audit passes: hashes, all72 samples/12 median ratios,
+22 differentials, clone SQL and lifecycle/resource chain match. Complete SQL
+result arrays were not retained; score equality is the frozen runtime assertion
+plus bound digests, not an independent SQL recomputation. Saved compact metadata:
+`apps/local-service/data/ridge-finite-native-evidence-20261020.json`.
+No production SQL change, native concurrency or endpoint improvement is proven.
+
+ADR147's exact playwright-core1.64.1 dependency is installed in a separate
+experimental directory, with scripts/browser download disabled and application
+manifests unchanged. The four-consumed-TRAIN-control compatibility harness passed
+root/independent source review;10 guarded tests pass/one expected subprocess
+skip, whose exact Python helper tests pass separately. Three pre-freeze fixes:
+truthful empty-Job success, bounded own profile metadata and ephemeral cleanup
+race handling. Sources135 (including whole115-file package) are now frozen;
+freezeFILE65e77d4c383a3c38741a89578dd167219a9526bd88865ba5721dac21f493bd89.
+ONE explicit supervised DEV run completed4/4 captures:8 policy requests/25.538s,
+navigation11.607s, supervisor40.406s, RSS752766976/private459362304 bytes;
+own Job empty/no emergency/135 source pins rechecked/stderr0. ResultFILE
+aea911a701904cb0475cef9e9fa18886dcd699d43358f1f306bb9edbfc0c012a;
+supervisorFILE1f4cd8c7e72cebb79e8783880475a10ecacc93ade475226790885d586550488e.
+Stored actual-byte independent audit passes, including all135 source/package
+pins, four distinct document incarnations and report/resource/cleanup links.
+Stderr is empty; stdout is a134-byte bounded completion summary. Compact metadata:
+`apps/local-service/data/playwright-dev-evidence-20261020.json`.
+All frozen sources/ADR147 are immutable; no retry. Fresh per-article contexts and
+a new Request/frame witness replace no old capture. Only hashes/lengths retained.
+No E5, classification, quality result or runtime activation follows from this work.
+Latest read-only process check retains API19868/worker36616/dashboard6644 and
+crawler4368 start times; crawler has reached962 run ingestions, stderr empty.
+Final combined pure checks:44 pass/one known guard skip; that exact Python helper
+test passed separately. Main-source secret scan1249files/0findings/six self-tested
+patterns; supplementary15 Python/mjs/docs/config sources also have0findings.
+This goal turn is progress: actual native and maintained-browser diagnostics
+completed and were independently audited. The hierarchy goal remains active;
+child/OOD quality, new producer transfer and production integration are unfinished.
+
+## Historical checkpoints (superseded where contradicted above)
+
+**ADR145 source preparation complete; live matching is unchanged.**
+
+The new collector's three browser ordering/masking defects are fixed before
+freezing; root and independent review pass all69 synthetic tests. Evaluator-v2
+passes20 synthetic tests in both reviews and remains unfrozen until all16 new
+capture batches complete. No capture or encoding has started yet.
+The original selected model, fusion and cuts are unchanged. A separate bounded,
+read-only artifact binding compiled the old artifacts against the new producer
+identities (no E5, predictions or refitting):65 checked files/1,156,155 bytes,
+RSS108,351,488 bytes. The new artifact-reuse receipt is written separately;
+collector freeze semantic7bcafa1c4f7f48ea93ce265881519411937bad4ba29f3cafd513adbc5f60f088
+pins62 sources. Independent actual-byte audit is pending before static01.
+Receipt FILEfef8db221f3a61c2c1059509731aa1564d24a1164c1d34689d6edc8e493fad8c.
+All new observations must be complete; the earlier failed study stays closed.
+Crawler4368 remains running (528 run ingestions, empty stderr); API/worker/
+dashboard unchanged. Windows Update's November24 pause is accepted as the owner's
+choice; no further update-setting or cache actions are planned.
+
+The older preparation notes below are historical where superseded here.
+
+**ADR143 final capture stopped; no partial quality result or activation.**
+
+Static batch07 stopped after15.719s with fatal `unhandled-transport`. The first
+six batches account for24 pages (18 captured,6 unavailable); they will not be
+scored as a successful subset. Batch08, all browser captures and final encoding/
+classification have not run. Sources/results remain closed and immutable.
+The result's fatal row025 is the first pending ledger row, not proof its ECB
+origin failed: policy collection precedes row progress and could stop early. Request stage,
+typed code and cause were not retained, so the particular failure is unknown.
+Next work is a separately reviewed prospective transport/availability contract,
+with unchanged rights/security limits, no URL replacements or model/cut retuning.
+The fast canonical admission prototype now passes16 guarded, in-memory PGlite
+tests, including actual canonical insertion without Ridge, atomic root binding,
+signed zero, legacy human/generated bypass rejection and origin erasure. It is
+opt-in experimental code only; independent review passes after fixing cross-policy
+operation-ID reservation, SQL-null publication and derived-FK deletion blocking.
+Confirmed canonical Topic deletion/clear remove only their expected derived
+records; feed tokens advance once and rollback probes preserve the prior data.
+No migration or
+service/worker/client activation. The unused evaluator's19 synthetic checks pass;
+its all16 completion gate correctly prevents using the incomplete capture study.
+
+[ADR145](../decisions/ADR-145-typed-transport-and-fixed-artifact-reobservation.md)
+now fixes a separately reviewed, code-only reobservation plan: same32 URLs/labels,
+entirely new observations, unchanged fitted artifacts/cuts, no prefix reuse or
+replacement, explicit typed external-unavailable versus security/unknown-fatal.
+New collector/reuse helpers are being implemented; no new receipt/freeze/capture.
+The two pure artifact-reuse helpers pass7 root/independent tests. The full13-file
+collector passes60 synthetic tests but independent review found two browser
+ordering/masking bugs; fixes and callback interleaving regressions are required
+before any execution. New evaluator-v2 code is also underway, not ready to run.
+Read-only live status is available at revision32193/31351 learned Sources;
+crawler has an active lease, zero pending jobs and continues. This is not a
+connection-liveness or semantic quality proof. API/worker/dashboard stay unchanged.
+The actual dashboard snapshot bridge advanced31418→31422 learned pages between
+two read-only observations and had a fresh timestamp. Its large graph is paused
+by the existing capacity rule; this is data-refresh evidence, not owner-tab QA.
+
+**ADR143 fit complete; three final static batches complete; no activation.**
+
+The frozen single three-fit comparison reused127 TRAIN/48 CAL, no new E5 calls.
+Selected .75body/.25title:42 correct accepted/48 (raw47); alternatives .5:36/raw44,
+.25:32/raw45. These are optimization results, not independent quality. Root and
+independent stored audits match all sources, cohort/group hashes, saved CAL cuts,
+artifact bytes and owned-Job cleanup (.485s/RSS143675392/private98807808B).
+Fitter freeze semantic ae48e23659c998ea29e6cfb42cc31872be29877e2e29e1499d77f712f3905d21;
+FILEddee567ad132299dc130f01da77d77bae3fd18a7ad7c222a276de1384ef9c894.
+All fitter sources and eleven target construction dependencies are now immutable.
+
+Final collector source freeze semantic9fa2d77bddb474197c2dd6689f6ae3d179c0440dea5363bdb0af4b1139b77199;
+FILEae2ff97a4d2c8cbc312e6b36dd86de02c92ecf1200bc4b5443c2418bff05d2d1.
+First three fixed static batches completed:8 captured/4 unavailable, all12 accounted.
+Root metadata/byte/source/resource/prior-chain checks pass; independent01 audit
+passes and02–03 audit requested. Static04 is running;05–08/browser have not run.
+No scoring, E5 or case replacement. Final browser
+scope is restricted single-document DOM only, not normal dynamic-page validation.
+Runtime remains unchanged; keep crawler4368 (observed212 run ingestions) running.
+
+**Current continuation: compatibility passed; production matching is unchanged.**
+
+Latest:32 final article labels are sealed after the successful DEV proof, with
+no final inputs or scores read (FILEa138f586f3590bf4b3c3158a2902d4187967f40de38703a981eae72335db8101).
+Fitter/collector code remains under construction and unexecuted. Crawler4368 has
+resumed new fetching and passed37 ingestions; leave it running. Actual crawler-role
+probe: statement_timeout1min/lock_timeout5s (not the owner role's5s SQL timeout).
+The new crawler-only recovery package is sealed and its read-only file preflight
+passes (manifestFILEdc3141ad47a84eb63e320ebaf278a93355959338de8a5a11d350a4d01f24a6c1),
+but NOT started/activated. The existing runtime and current crawler stay unchanged.
+See [ADR144](../decisions/ADR-144-bounded-crawler-late-renewal-receipt-recovery.md).
+
+The single frozen four-control test collected all four pages with both the actual
+current static extractor and the pinned browser reader. Root and independent
+review verified source/result/receipt links, response/loader/DOM witnesses,
+resource limits and own-process cleanup. Static26.844s/browser36.219s. Three of
+four body hashes differ between producers: input transfer needs explicit testing.
+This is compatibility evidence, not semantic quality. DEV sources/results are
+closed and must not be replayed. New root-only fitter and eight-by-four final
+collectors are code work only; the32 proposed final labels are still unsealed.
+
+Crawler40344 also self-exited, after22 ingestions, on timeout-leased. An exact audit
+found one definite authority-revoked cancellation without receipt or Source and12
+never-queued stages. Only that unsuccessful local stage was marked failed through
+the checked terminal API; the other12 are byte-identical. No canonical data or
+accepted progress was removed/replayed. One normal old-operator resume4368 started
+10:20:07 Berlin; startup scan pending. Keep it running. The21-test reviewed
+late-renewal recovery is source-only, not installed. A separate checked diagnostic
+overlay is being prepared without changing current authority/timeouts or services.
+
+**Crawler self-exit audited and resumed; recovery improvement under review.**
+
+Crawler43012 exited on service-unavailable/renewal-error after221 additional
+ingestions. No agent stopped it. The exact11 staged-operation audit found one
+complete with receipt and matching Source URL, ten never queued; no live queue.
+One normal saved-state resume40344 started09:55:27, with fresh ADR143-resume logs.
+Startup scan is pending, not yet proof of new fetching. Existing API, worker and
+dashboard starts remain unchanged. Do not start a duplicate or increase authority.
+The thrown renewal cause is not retained: lane contention is plausible, not proven.
+A narrow post-revoke receipt read and sanitized diagnostic overlay are proposed,
+not activated; no timeout change is being used as a purported fix.
+
+**Next: current-producer transfer design, not another live cutover.**
+
+[ADR143](../decisions/ADR-143-current-producer-transfer-gate.md) proposes a new
+current-static-only optimization and32 fresh paired static/browser articles.
+Producer identities stay distinct; no relabelling the Wikipedia-lead winner as
+browser-compatible. Root and independent design/metadata reviews accept32 proposed
+articles (29 non-Wikipedia hosts, five languages), with rights/transport unverified.
+Labels remain unsealed until the required DEV instrumentation proof. New DEV-only
+collector implementation is underway; no new model/capture phase has run.
+ADR142 remains closed.
+
+**ADR142 complete: promising broad classification, not a live hierarchy release.**
+
+The frozen prospective32 test assigned29 pages to the correct root, made no wrong
+accepted assignment and left3 unresolved. Ungated ranking was32/32, but is not used
+as a fallback. Among4 precisely annotated anchors, guarded hierarchy reached GTA
+exactly and stopped safely broader on the other3;28 terminal paths remain unscored.
+The predeclared small root feasibility gate passes. It does not prove98% precision,
+unknown-topic rejection, general child quality or browser-input transfer.
+
+Final result FILE SHA256:
+58256dfca3f6f03c4873beada0b1022c4b092dc81ea6e49c505ee3dd4ad6b54a.
+Root and independent stored verifier pass87 files; all phase receipts, source
+pins, actual127-row cohort, encoding and full32 accounting match. Classification
+median0.8423ms/p954.2251ms excludes capture, E5, compilation, queue, DB and client.
+All experiment sources/results/ADR142 are closed; no retuning or replay. Runtime
+still uses ADR128, with crawler43012 advancing. Remaining work: supported live-input
+generalization, child/unknown evidence and reviewed scan-free canonical integration.
+
+**ADR142 six fits/selection complete; prospective final32 capture running.**
+Allsix127-row candidates share eligiblecohort; selectedprose-lead.75body/.25title,
+CAL47accepted/47correct/raw47of48 (optimization ONLY). ReceiptFILEsha
+cc102ff8a5cc5a21b45a5e6af80c467ab235b1b042649bccac0a2241386ef33a;
+selectionFILE47b8ba340f9e3bb504db8a32710061f5ca759337c73f594b5f1dee196e0c0364.
+Encoding237calls/150.829s withinRSS1,054,642,176/private1,085,038,592B;
+fit1.187s/RSS199,155,712/private155,897,856B. BothJobdrain/sourcechecks true.
+Onefinal32capture running84791 underpersistedselection, no finalquality outcome.
+No postselection retune/replacement/replay or liveactivation.
+
+**ADR142 collection/eligibility passed; local encoding running.**
+80accounted:79captured/1typedcapacityrefusal(train039)/90requests/no missingviews.
+CaptureFILE26cc0b6d135c16104d2ff80d459bea9ae4095ce8d51a83dd9c1bc7f53af843df;
+127.094s/RSS248,827,904/private207,233,024B/cleanup+sourcechecks true.
+Persistedeligibility FILEef73b44936579c39ec054031f79864abb9f15c9dfce86eca0450d724341dd6cd;
+127TRAIN(history7/others8;EN26/DE26/NL26/FR24/ES25), eligibletrue/minimapreserved.
+Cohort10ceb9ae3fa11819cf4c432b3fe5f97650e83b38ce66895145e48ede3ac38c30.
+One localencode-expansion running62768, no fit/selection/final32yet. No livechanges.
+
+**ADR142 frozen; one fresh80 TRAIN collection running.**
+Root+Trust reviewed;97guardedpurechecksPASS(48new+49foundation). Semanticfreeze
+ee742344cdfd96d77f70764ffbe7c33d71b3404fa86d7f4646003389262d4c83;
+FILEsha326f9af63747b99e59527ea41a6ca998fbafe717dab6d0bfa853a09d575ad3df.
+73allowlistedsource/reusedpins verified; ownJobfreeze .485s/RSS108,863,488/
+private67,469,312B/drain+sourcechecks true. Allnewcode/README/protocol/ADR142 now
+immutable. One supervised80casecapture started/session59283, no outcome yet.
+No newE5/training/selection/final32 or activation. Do not replay or spliceold38.
+
+**Crawler resumed safely after its own timeout exit; new fetching verified.**
+Old26616self-exited after4982runingested/timeout-leased, not agent-stopped. Readonly
+PGstatusrevision31530/30,744learnedSources/no live queue; exact8staged operation
+audit proves1complete withreceipt+matchingURL and7notyetqueued. Startedone normal
+saved-state crawler43012 at08:58:42Berlin, noreset/secondinstance/uncertainreplay.
+Newadr142-resume stdout/stderr logs retained. Startupscan completed; observed
+25newattempts/25staged/13ingested, stderr0. Keep43012running;
+API19868/worker36616/dashboard6644/schema9/ADR128seal preserved. Timeout latency
+cause not yet benchmarked; no claim connection counts measured (statusunverifiable).
+
+**Encoding diagnostic complete: new response exceeds unchanged2MiB output guard.**
+FixedfailedTRAINURL fresh200gzip/398,494compressedbytes/fullSHA8af40e760bdb34044e48dad400d5e7dbffa8a091a7c86ff81254d7002e697ccd;
+typedcontent-encoding/causeERR_BUFFER_TOO_LARGE. ResultFILE56b72d0adb92630f9fcd3da21255a061cac9e47ad9cb4504a81dec24f9f245b8.
+Truststored auditPASS;10.437s/RSS85,057,536/private38,985,728/cleanuprechecks true.
+Originalfailedresponsebyteidentity/cause stillunproven, notunsupportedgzip/br.
+All4diagnosticfiles/resultsclosedimmutable. ADR142 prospective capacity-aware
+experiment keeps all208metadata/same6methods, freshwhole80attempt ledger; only
+typedPAGEcapacityrefusalsunavailable, allothererrorsstop. Eligibility beforeE5,
+atleast112TRAIN+6/root/samesubset6models; actualimbalance reported. New32after
+selection, refusalsunresolved/all32denominator. No capincrease/replacement/38splice.
+NEWv5collector/wrapper andcapacity-real-root-v1 drivers CODEONLYinfinalreview.
+Root91guardedpuretests passed before final deadline/audit regressions; independent
+review requires exact saved-ledger/result linkage and fixed packet reads beforefreeze.
+no new collection/encoding/training/selection/final outcome or live activation.
+
+**ADR141 TRAIN capture closed38/80; no new encoding or training.**
+86.469s, failed train039/frWikipedia/Guerre_froide atpage/public-fetch-content-encoding.
+ResultFILEsha d6fde88533e56e1edc4c7d01d3558e82b270c2fbb2b7163a39a7c95c62285539.
+OwnJobcleanup/sourcechecks true, RSS230,875,136/private198,406,144B, stderr0.
+Preserve prefix and every frozen source/receipt; DO NOT repeat23320 or encode38.
+This error covers both unsupported headers and decoder errors; actual cause was
+not retained and is NOT yet diagnosed. A synthetic local zlib overflow reproduces
+ERR_BUFFER_TOO_LARGE at2MiB+2 under the existing2MiB+1 output guard; that proves
+a possible path, not this HTTP response's cause. A separate fixed-training-URL
+metadata-only diagnostic is being implemented/reviewed; no fallback/cap increase.
+New32final remains unopened by experiment; liveAPI/crawler unchanged/4940ingested.
+
+**ADR141 frozen; one new80 TRAIN capture is running.**
+Root+Trust29newpurechecks pass; v4library13 and existingfoundation49 also pass.
+Freeze352d424e7d395d3b129716d768152ff5401c2d50c0317f5307cd4a3be4f1906a;
+freezeFILEsha dacfe425c11ea6991e07a841dc3c497698ac12f4e7ac19de48c06fe2c36696d3.
+OwnJobfreeze .375s/RSS104,558,592B, cleanup/sourcechecks true. Readonly preflight
+74fixed allowlisted input hashes all match. All11experimentfiles, capture code,
+protocol/README/ADR141 now IMMUTABLE. No repeated phase or oldfinal replay.
+One supervised training-expansion collection started; no outcome or new model
+quality yet. It must complete80/bothviews before encoding. New32final stays sealed
+until persisted selection; TESTencodes only selectedbody+title(max64calls).
+No runtime/crawler/database/provider/post changes; crawler4927ingested/advancing.
+
+**Public input v2 diagnostic complete; ADR141 prospective expansion ready for review.**
+One isolated four-page browser run succeeds38.516s, resultSHA97a879224e29423795ed8fa0ab90897c27b1ae9918e97790d79449babe4367a3.
+All3YouTube pages lack a region at DCL, collect at+2/+8s with matching video IDs;
+recipe collects throughout. First2video bodies change between samples. No wrong
+identity observed; no historical cause, owner-profile fidelity or quality claim.
+Trust stored-only audit passes hashes/receipts/arithmetic; own tree cleanup and
+source rechecks true, RSS1,309,073,408/private943,722,496B within1536MiB. No model,
+canonical writes, owner browser or live process touched. Allv2sources/results closed.
+New112metadata reviewed and separately sealed:80TRAIN+32prospective final, labels
+before computation. Candidate bytes remain proposed/immutable4c74ade...aeca;
+seal dc4e1a222ea62ca36b5a8eff6ff2af047f7c133af83157ddf8c75a75cc8c8faf
+approves only this offline label set, not owner taxonomy/runtime authority.
+ADR141 declares six input constructions, whole old48TRAIN/48CAL reuse, sealed
+new32final after selection only. Newcapture/model code review and freeze still
+required. V4library root+Trust13synthetic tests pass;49existing focused adapter/
+head/consensus/candidate tests pass. No new actual capture/model phase yet.
+Crawler26616 advances4890ingested; hierarchy goal remains unfinished.
+
+**ADR140 completed: discrimination29/32, reliable-cut coverage still12/32.**
+Frozen root affine heads rank29of32consumed pages correctly, but a CAL-only
+pooled cut accepts12/32(allcorrect). CAL43/48raw and32/48acceptedcorrect; still
+not a workable live matcher. RawC27/32/local18/32are diagnostics, not fair equivalent
+comparisons. ResultFILEsha d06a5bf9096cf1686ed051d0273b79ea0869f9c49923f21c70cc8a9b6cc2b2ea;
+Trust verifies88source/input hashes and saved arithmetic without scoring replay.
+Actual stored wrong-case prefixes have maintenance/infobox text ahead of content;
+this supports investigating construction, not post-test promotion of another view.
+New80training+32prospective final article labels are being curated before scoring.
+One isolated public-browser probe failed in setup/no useful snapshots. A separate
+blank-browser diagnostic identifies ServiceWorker.stopAllWorkers/-32000; cleanup
+and source checks pass. New v2 adds domain instrumentation before stopping workers
+and failure-stage observability, code-only pending review. No public retry yet.
+Live runtime/crawler remain unchanged; no hierarchy or new authority activated.
+
+**ADR139: grouped exemplars implemented/tested, developmental screen not useful.**
+32pure tests and independent review pass, but reused real32 yields only5assigned/
+4correct roots with real-only exemplars; augmented10assigned/9correct roots.
+Both have0exact child anchors,2broader/2unresolved. All128real rows were previously
+consumed: no fresh validation, no activation. Screen completes1.246s/RSS202,375,168B;
+resultFILEsha1861b8e417b4652e6994189a7d5a2d9a327744c60f03c47c8d0be35f04820ec2.
+Sources/results closed. Separate reviewed subject alias cues are NOT yet combined
+with semantic classification; exact titles are not semantic/canonical authority.
+Next code-only ADR140diagnostic tests shared root-rank calibration versus sparse
+independent cuts; no new result yet. A new public-browser input probe is code-only
+under development, no browser launched. Live runtime/crawler unchanged/advancing.
+
+**ADR138 final: all real128 phases complete; quality insufficient, not activated.**
+The fresh96TRAIN/CAL and32held-out inputs all captured successfully. CAL-only
+selection tied36/48correct assignments in each view, selecting current-static as
+declared. Locked32: root-only/consensus13assigned, all13roots correct,19unresolved;
+the four specificity anchors give consensus1exact/1broader/1wrongSibling/1unresolved.
+FixedCbaseline19correct roots/32, but one wrong sibling. No retune/replay; allV3
+sources/receipts closed. ResultSHA0280c5397f417b0582a0f6040bd8c516575595214f143b79539df304e8ecdf29.
+Stored-only verifier passes72hashchecks/67files/3assessments; this is linkage and
+arithmetic, not new inference or independent gold validation. Classifierp95.411ms
+excludes capture/encoding/compile/queue/DB, and does not solve live page latency.
+New opt-in root-detail candidate wrapper11purechecksPASS/reviewpending; no routes.
+Crawler26616advances4552ingested and other live processes retain start times.
+Next work must improve real semantic evidence/coverage and actual integration;
+the user goal remains unfinished. Earlier running-phase notes are historical.
+
+**ADR138 execution: full96 TRAIN/CAL capture succeeds; local encoding running.**
+V3freeze6892118af0326115f1bc40d19db30956b319157efde7991e6128d9823b4fb92a,
+39offlinechecks/independentreview. Freshcapture96/96complete143.266s with unchanged
+guards and no oldprefixreuse. SHA6659f34a3e800bc447eb5331500c647194d1fe71164e8c7ca2b08a28d1418955.
+One supervisedencode-traincal started; no modelselection/finalTEST/resultquality
+yet. No livehierarchy/canonical/providerchanges; crawler4510ingested/advancing.
+
+**2026-10-20 ADR138: same-response metadata-cap fix proven, V3 review underway.**
+Semantics exactsameHTMLSHA70e7f9...fe03: soleoversizefielddata-mw93,546chars on
+span; removingquotedtransportmetadata leavesordinaryattributes/policy/text intact,
+unchangedstatic4096+lead2269 pass. DiagnosticSHAcf35a87a86dc75468fc07b4e91f2a47286e1982fff7869d4052416881322e76f;
+13prunerchecksroot/Trustpass, no productionchanges. NewV3collector13testsrootpass;
+prospectivenewmodelV3runner/verifierreview underway, nofreeze/fetch/modelphaseyet.
+Gold/methodunchanged,newSourceinputhashbindsoriginal+decodedHTML+prunereceipt.
+No reuse88oldinputs/nooldtestreplay. Fullhierarchyliveimplementation stillunfinished.
+
+**2026-10-20 latest: ADR137 capture CLOSED88/96, no real model/test run.**
+Exact88prefix/48TRAIN+40CAL retained; Semantics HTTP200 then staticattribute
+section16KiBcap refused. Freshdiagnosticproved static-capture.js31, no rawHTML
+retained. Inputquality:88leadavailable,13leadopenings absentfromcurrentprefix,
+not an accuracy proof. New metadata-only pruner underreview; no cap increase,
+V3collection or frozen edits yet. PreservepartialSHA4dc58622de3ad86897252e287718ebc899402613d9ef051eddf8f872fe3278eb,
+do not drop8/fit40CAL/splice/replay. StoredTrustauditpasses all18NLrepairs and
+allclosedD/V1/V2sourcehashes. Owner confirmed24Novpause; longersecuritydelay
+explained, settingleftunchanged. Crawler26616advances4425ingested/runtimeunchanged.
+
+**2026-10-20 ADR137: separately reviewed collector repair; fresh capture running.**
+Exact NLrobots known-DENYspace repair retains all253rules/33groups and default
+strict guards. Root29fixturechecks and independentTrust29pass; offline exact
+rawUTF8-BOM snapshot proof matches both pins and encoded denial remains blocked.
+No production/frozen-v1/D source changes. New real-root-v2 freeze
+f3542413ee2c0ed76cfd929ae7a2c30c1879721b89d56a3398c2658b662fcb22,
+fresh supervised96TRAIN/CAL collection running under ADR137paths; no old2splice,
+real model fit, final TEST or quality claim. Owner reported7daypause, but readonly
+UX expiry shows24November/35days; correction-to27October question pending.
+No registry changes/resume/update scan/reboot made. Cfree2.77GB, crawler advancing.
+Future graceful crawler consumer restart authorized only at reviewed cutover.
+
+**2026-10-20 continuation: disk reserve restored; new hierarchy comparison run.**
+Owner authorized seven-day update pause after servicing, and one future graceful
+crawler saved-state consumer restart only when reviewed cutover is ready. No
+crawler restart now. Exact repeat1Downloadcachecleanup completed04:42:41Z with
+18children removed,2,252,054,528B reclaimed,Cfree2,787,069,952B and no errors;
+previous service states restored. Only regenerable downloads removed. Windows
+has a pending restart; none triggered. Agent sandbox desktop cannot operate
+owner's Settings UI; supported7daypause still awaits owner, no registryhack made.
+Seven hardened shadow integration checks pass. Observed347 experiment ran all
+phases once, freeze46a96411d0a43194c7be6526c5b57f5007f5b04f64d2c7987f789b33fdd93c02.
+New142test:83assigned81safe,24/24leafcorrect,8/20exactdepth3,2outsidewrong;
+unchanged fixed baseline101assigned96safe,12/13leafcorrect,0/20exactdepth3.
+Observed whole-classifierp95.2111ms excludes encoding/compile/queue/DB; allquality
+gates not satisfied, no release. Encoding694calls/supervised31.031s,peakRSS1.159GB.
+Real128 protocol froze before capture; traincal partial2/96 at NLrobots parsing,
+not model quality. No real fit/selection/test was opened. Preserve partial bytes
+SHA7f0c35200a65c72b123c47ff8d5674ef6b7503133b630b713ef2bb9916a938d1.
+Separate4page diagnostic also failed, retained/no automatic replay. Concrete
+robots parser diagnosis underway without policy bypass or changing frozen files.
+Crawler26616 advances4340ingested; runtime/schema/seal unchanged. Goal incomplete.
+
+**Goal blocked audit3 (2026-10-19): Windows consent and disk reserves.**
+Three consecutive goal turns verified the same blocker. Launcher23123 still
+waits in RunAs, consent12796 is live; no repeat cleanup result. Cfree209,031,168B
+is below model/capture reserve. Existing code/review complete, model/evaluation/
+canonical/UI implementation still incomplete. Goal BLOCKED, not complete; owner
+must confirm the Windows administrator prompt for the already-approved cache-only
+cleanup. No duplicate launch, security bypass, reserve weakening or new deletion.
+Crawler26616 is alive and advances1313ingested; runtime unchanged. Resume only
+after external state changes and fresh resource checks, with all closed evidence
+preserved and the full original hierarchy goal intact.
+
+**2026-10-19 21:55Z — implementation prepared; external disk/UAC blocker.**
+ADR136 real-root challenger, bounded public capture, root/detail consensus and
+stored-evidence verifier are implemented and reviewed. Primary-read metadata
+TRAIN48/CAL48/TEST32 is pinned; only four test anchors have terminal specificity
+labels. Root's combined capture10/assessor10/manifest1/consensus11/verifier8 suite
+passes40/40. No new model phase or public capture ran, no quality/performance/UI
+claim follows; revised seven-test shadow integration still awaits safe rerun.
+The separate observed347 experiment must complete before this challenger freezes.
+C:209,866,752B free at21:53Z prevents supervised large runs. First approved cleanup
+reclaimed5,361,537,024B; update downloads subsequently refilled. Exact cache-only
+repeat helper is ready but RunAs launcher23123 waits for Windows UAC consent12796
+in session1. No helper/result exists yet, no second deletion/service/settings or
+seven-day update pause performed. Owner must confirm the Windows admin prompt;
+do not bypass privilege or relax reserves. Live crawler26616 advances1290->1297
+ingested/stderr0; API19868/worker36616/dashboard6644/schema9/ADR128seal unchanged.
+Goal remains active/incomplete; fast admission, consumer transition, canonical
+bridge and actual app/UI/load validation remain required after quality evidence.
+
+**2026-10-19 resource-safe continuation (ADR135), still active/notlive.**
+New observed347corpus ready after finite pre-score novelty corrections; no freeze
+or encoder/cal/test phases. Initial5shadow composition checks passed; revised
+publication derives modeltree itself and rootbinding atomically fences allmodel
+hashes;2added regressionchecks await safe PGlite rerun. Ownercutnever replaces
+deepestsemanticmembership, routesunchanged. New wrapper9/assessor9/preflight2
+lightchecks pass. Fixed4public-page capture supervisor refused beforeclaim/child
+because C: <768MiB; no fetch/model. At21:17Z, UpdateDownloadcache7,775,722,338logicalB,
+TiWorker/TrustedInstalleractive/Cfree220,774,400B; servicinglaterendedbutspace low.
+No servicingstop/paging/config/cleanupchange. Optional7-daypause-after-servicing
+and repeatapprovedcachecleanup questionpending; no guardweakening. Continuecode/
+lightchecks and independentlyverified real-root TRAIN48/CAL48curation withdisjoint
+entities; newroot+frozendetail challenger puremoduleunderway, noqualityclaim/run.
+Runtimefourprocessstarttimes/schema/sealunchanged, crawler1040ingested/advancing.
+
+**2026-10-19 actual C transfer exposes remaining quality gap; work continues.**
+FrozenC on same120 consumedDEV Sources, no public tuning: clear72 has32assigned,
+25rootcompatible/7disagree/40unresolved (44.44%coverage,78.125%assigned-clear root
+compatibility); ambiguous4/12 and insufficient5/36 assigned remain UNSCORED.
+No full-body/specificity/representative accuracy follows. ResultSHA
+1c35956b38b2c6dbbff82180bfe2f15ed69d103e951b8afa76394c05c68454c4;
+sourcehashes/supervisor/arithmetic independently checked.120titleencodes;inner
+4.5006s/supervised31.953s, classifierp951.0447ms afterembedding. No canonicalwrite,
+provider/post/crawler action. Observed-cut calibrator12freshanalytic tests pass
+root+Trust; optimization precision1 is NOTindependentprecision evidence. New
+205cal/142lockedtest authored separately; no newmodelrun yet. Input-quality
+diagnostic for4 independentlycurated publicarticles is being prepared; those
+four becomeDEV diagnostics, notheldout qualityevidence. Crawler26616advances
+to976ingested, allfourliveprocessstarttimes unchanged.115newscopedchecks, notfullUI.
+
+**2026-10-19 broad paired C screen completed, goal remains active.**
+Freeze7bf0ee5450ed3cf9768f08c678589767fa7277542a88aa8652f7bd6324ab91fb
+(23sources) is CLOSED, no retune/replay. Fresh457pairedfive-languagecases,9configs
+DEVselected.75body/.01; separate193cal,locked67:55assigned54safe,29broaderfallback,
+onewrongroot,20/20nonrootincluding14internal+6leaves safe. Depth3exact0/10: specificity
+stillinsufficient. Classifierp95.3934ms excludingencoding/compile/queue/DB. Allphase
+resourceguards passed;914encodes38.062s/RSS1.17GB/private1.19GB,9fits.875s/73.1Mwork.
+Storedbytepublic/local23hash verification passes.103newscopedanalytic/fixturechecks
+sofar; notfullbackend/UI. Freshobserved-thresholdpolicy/new347cal+testcases underway,
+reuseonlyfrozenCmodel, neverclosedcal/test. Actualsame120DEVcatalogtransferpending.
+Curated32publicWikiavailability read-only found3existingexactSources/29absent, no
+vectors/scoring/fetches; partitionstillproposal. Policycompatibility investigation
+found currentcrawlercannotdecodefuturepolicy andANYingesterrorhaltsitsapplyrun;
+doNOTactivatenewcanonicalpolicywhile26616unchanged orlieaboutRidgepolicy. Worker/
+client/schema transition needsreview; code-only/read-onlyprogresscontinues. Alllive
+processes/seal/schema9 unchanged, crawler~940ingested/advancing, no providerwrites.
+
+**2026-10-19 active continuation (ADR133/134): actual comparative runs complete.**
+Paired descriptor DEVpilot120sources/72clearlabels:best51/72rootcompatible;
+.25body/.02margin25clearcompatible+3unscored, not100%precision. Exactscorerp95.446ms
+afterembedding. V1wireANY rejected beforeencoding; separateV2numberedIN passed,
+all evidence/hashbytes retained. CompactlocalNLIq8 challenger actually prepared
+and run1920pairs:declared3/72,hybrid12/72; posthocE-only4/72. NOTadopted. Semantic
+controlsidentity/negation5/5pass,topicparaphrases0/3; cause notfullyproven.
+LocalNLIpairp95~22ms, all16rootp95~330ms excludingqueue/DB/init; fastbutnotaccurate.
+Newexplicitpairedlinearheads+policy26analytic checks, ownerwide/topic-specific
+nonpromotingdepthprojection9checks and adaptedassessor8 pass. Fresh457rowbroad
+paired syntheticcohort and runner being authored; no modeltraining/freeze yet.
+Independent32freshWikipediaarticles curatedblind forfuturebound-inputchecks,
+partitiononlyproposal; notrepresentative98%proof. Total94newscopedanalytic checks
+sofar, notfullbackend/UIverification. Crawler26616advancing~790ingested; original
+runtimeunchanged. No livehierarchy, provider/canonicalwrite orgoalcompletion.
+
+**2026-10-19 continued active hierarchy work (ADR133): development, not live.**
+Owner explicitly approved known pairing-recovery token in RAM for the health test;
+100 authenticated health reads all200/126.7192ms total/p9585.1117ms. Token not
+printed/copied/changed; health is NOT matching performance. Prior permission-needed
+notes below are historical. New weighted title/body adapter, bounded descriptor
+scorer and deepest-unique-path policy implemented; blind partial metadata annotation
+and broad development pilot pending. Candidate taxonomy63nodes/16roots,126 authored
+descriptions; actual fixed120-row development inventory is predominantly Wikipedia
+DE/EN/FR/ES, so narrow synthetic results cannot establish catalog coverage.
+No old-cohort retune/replay, live hierarchy/authority change or provider call.
+Keep crawler26616 running; latest terminal627ingested and advancing; API19868,
+worker36616/dashboard6644 start times and ADR128seal unchanged. Read ADR133 for
+protocol/privacy/resource bounds. Goal remains active, integration not complete.
+
+**2026-10-19 continued hierarchy solution (ADR132): offline candidate implemented.**
+New384synthetic four-way split, compact regularized frozen384D E5 heads, development-only
+selection(raw/.01), independent calibration and locked96:90assigned/89safe,
+36/36leafcorrect but59/60non-root safe (one internal-node specificity error).
+Classifierp95.2984ms excludes encoding/compile/queue/DB; leaf95%lower.9036 and
+broaderror95%upper.0385/support/representative-web gates prevent release. No retune
+or final-test replay. Freeze2218edc138e512cf827a0ccdfd971e58ca213f860795be027832fe3c2aed4d7e;
+stored-byte verifier public13/local15 passes without classification.38newalgorithm/
+fixture tests +6verifier tests pass. Real3browserbodyvector diagnostic includes a
+wrong YouTube root; missing/noisy capture is unproven, no title repair claimed.
+First titleprobe exit0/resource-safe but stdoutunobserved; originalmarkerpreserved.
+Explicit V2 repeat over same3publictitles observed Kapsalon for all3 title inputs;
+unchanged B hashes, boundedpersisted metadata, no newindependent quality evidence.
+New non-promoting body/title restriction returns only a body-path prefix/common
+ancestor or abstains;10fresh geometric tests pass, no accuracy/calibration claim.
+Isolatednative proof PASSED on a separate owned PG17.11 process: reader19.55ms
+while exactwriterblocked; release/Source/binding/feed/tree/revocation checks pass.
+Ownpostmaster34496/port55248 smart-stopped; PIDgone/PIDfilegone confirmed. No existing
+cluster/testDB/HBA access in that mode; generated D: run retained/ignored.
+Unregistered shadow schema implements immutable roots/originalroutes, exact prepared
+Sourceinput/incarnation/revision/node fencing, perSourceproof erasure and scoped
+parent-feed cursors.14storage +5classifierintegration +2native-default/diagnostic
+checks pass; no canonical
+bridge/migration/backfill/UI/runtime activation. Trust accepts candidate mechanics,
+not production quality. ReservednativeDB exists; NEVER reuse/drop it or expandHBA.
+Read ADR132/linear-v1README for bounds. ADR131 remains closed. Keep26616 running.
+Final scoped verification:109guarded domain/fixture/verifier/default checks plus
+14storage and5classifier-storage integration checks =128pass/0fail. Independent
+Trust accepts candidate/guard/native-isolation/report scope. Secret scan935files/
+0findings, scoped tracked whitespace clean. No full backend/client/UI or live
+hierarchy quality/read-latency claim; actual integration and representative quality
+remain unfinished. Next method must use fresh paired-input evidence/calibration,
+not retune either closed cohort or treat the three diagnostic pages as a holdout.
+
+**2026-10-19 approved disk cleanup completed:** only regenerable Windows Update
+Download cache children removed after safe servicing/path/reparse/longpath checks;
+originallyrunning BITS+wuauserv restored, no errors. Actual freegain5,361,537,024B,
+freeafter5,868,142,592B; latestfree5,850,558,464B. Recent prior ~800MB loss explained
+by automaticpagefile2692->3476MiB, notnewupdatedownloads. No pagefile settings,
+Installer/personal/project/credential files changed. Those downloads can be refetched.
+Crawler26616 remained running; finalstatus revision26978/complete23283/contributions96,
+zero crawlerpending/leased/failed at snapshot, then terminal465ingested/newfetches.
+Runtime seal unchanged and verified, API19868/worker36616/dashboard6644 start times
+unchanged. FinalCfree5,824,008,192bytes. No active hierarchy or service restart.
+Optional100unauthenticatedhealthreads all401 as expected, NOT a successful app-read
+load proof. Authenticatedwave was denied by auto-review because it would read the
+known pairing-recovery credential; no token read or alternate credential path tried.
+Need explicit owner permission for that optional credential-backed check, not for
+the completed native synthetic proof. Status still deliberately connectionsunverifiable.
+
+**2026-10-19 hierarchy matching implementation (ADR131): OFFLINE; quality gate FAIL.**
+Exact multi-exemplar E5 reference, development fitter/grouped assessor and new144-text
+synthetic experiment are implemented. Prototype/development/calibration/test splits
+are disjoint; rawE5 selected on development only, never a live fallback. Locked36:
+32assigned/31safe,11safe broader fallbacks,11/12leafcorrect,95%Wilson .6461-.9851;
+specific precision/support/lower-bound release checks FAIL. p95classifier .8921ms
+for11nodes excludes embedding/compile/queue/DB, not whole-page readiness. Preserve
+freeze b9765d72fd3a3f1ce6f87b03d29a3a012bdb0240ecae08a8bbadd1fb18336ff5;
+no retune/replay. Independent review found cross-root ambiguity in v1; separately
+versioned single-pathv2 rejects tied root evidence, fresh axis tests only, no E5
+quality claim.53focused checks pass; stored public/local byte verifier requires no
+inference or final-test reclassification. See experiment README/ADR131 for bounds.
+Final independent review accepted; secret scan898files/0findings, public11/local13
+hashes verified and scoped whitespace clean. No full backend/live UI claim.
+No migration, live assignment, parent-feed/UI, provider/post or owner-admin change.
+Phases2-6 remain gated, not complete. A fresh method/holdout and adequate independent
+labels are required before calibration/quality and actual cutover can be accepted.
+
+**2026-10-19 crawler continuity:** prior43664 had already exited with auxiliary
+frontier SQLite_NOMEM/code7 before the local E5 run; no agent stopped it, cause
+not proven to be disk-full or PG locking. Unchanged saved-state operator resumed
+as26616 at20:42:52 Europe/Berlin; no reset/rebase/policy change/second crawler.
+Durable complete22818->22883/revision26503->26568; terminal65ingested/newfetches.
+Final verified seal unchanged; revision26593/crawler complete22908/terminal90ingested,
+newfetches/stderr0/contributions96 unchanged. No pending/leased/failed crawler jobs.
+Keep26616 running. ADR128 schema9/seal a1d301bc315ed497832b9aba60ecfeb79aa1b28f43678b91e6f1155c3f09909d,
+API19868/worker36616/dashboard6644 and their start times remain; no hierarchy code
+activated. Status connections remain explicitly unverifiable, not zero. C: space
+investigation was read-only; no files cleaned or settings/credentials changed.
+
+**2026-10-19 front-of-plan E5 matching design PLAN ONLY:** added
+[E5_HIERARCHICAL_MATCHING_PLAN.md](E5_HIERARCHICAL_MATCHING_PLAN.md), linked first
+in hierarchy plan and top ROADMAP. Existing384D query-prefix body vector, multiple
+exemplars, broad union/child discrimination, explicit parent-stop/outside outcomes,
+optional frozen-feature heads, independent calibration, unknown-child/input-limit
+tests. PinnedRidge is384→384, not reduction; no global cosine→confidence mapping.
+No encoding/training/inference, runtime/database/crawler or activation change.
+
+**2026-10-19 hierarchical assignment PLAN ONLY:** owner requests an implementation
+plan for discussion hierarchy and deepest confident topic. Saved
+[HIERARCHICAL_TOPIC_ASSIGNMENT_PLAN.md](HIERARCHICAL_TOPIC_ASSIGNMENT_PLAN.md).
+Explicit taxonomy plus calibrated child acceptance/ancestor fallback, stable thread
+routes, parent feeds, incremental PG decisions, shadow backfill and gated final
+replacement of the exhaustive canonical scan. Owner breadth is presentation, never
+a forced confidence override; admin appointment remains deferred. No implementation,
+migration, inference, provider/post, service or crawler action under this plan request.
+
+**2026-10-19 no related-page suggestions in Discussion (ADR130, client0.13.74).**
+Removed empty-feed page-suggestion DOM/projection/cards/pagination; no fallback in
+empty/deleted/alternate/loading states. Existing conversations, source/citation links,
+developer matching diagnostics and backend/AI context are unchanged. Global Search
+Topics remains independent of browser page. Focused123pass; final full restricted
+client1616/1616pass; disposable packaged Chrome community/topic layouts pass,
+secret scan258files/0findings and scoped whitespace check clean. No backend/crawler
+restart, database/post/provider action. Reload0.13.74.
+
+**2026-10-19 Search Topics simplification (ADR129, client0.13.73): implemented.**
+Discover has one global semantic Topic search, always sourceId:null. No Explore
+related pages/duplicate library search in this tab; Discussion suggestions unchanged.
+Browser page changes preserve query/results/pagination/pending reads and global
+read-only previews. Account/session/disconnect/disposal and write/AI fences remain.
+Canonical reader mounts preview-only; Back restores query and exact trigger focus.
+Full restricted client1618/1618pass; disposable packaged Chrome full community/topic
+checks pass, including320/360/420layouts/oneinput/nooverflow. Secret scan258files/0findings,
+scoped whitespace check clean. No backend restart,
+provider/post/database/crawler action. Reload extension0.13.73; see ADR129.
+
+**2026-10-19 ADR128 runtime overlay ACTIVE; final client QA/pagination still open.**
+Actual current checked seal is a1d301bc315ed497832b9aba60ecfeb79aa1b28f43678b91e6f1155c3f09909d,
+1367files/15387727bytes, schema9 unchanged. API19868 and replacement timed worker36616
+are running; dashboard6644 and crawler43664 retained. Oldworker22884 was retired
+only after ready replacement/exact process+socket proofs/idle lane/zero leased jobs;
+maintenance barrier2107ms. Do not stop crawler or activate the whole dirty tree.
+Seven reviewed snapshot files plus operator only; code backup runtime-backup-adr128-20261019.
+32Mi Node Related cap and early streaming budget guard, numeric monotonic worker
+phase timing and owner-local `postgres-runtime-operator.mjs status` are active.
+Status deliberately reports connections unverifiable when owner role cannot see
+other roles' statistics; no grants or fictional zero counts. Dashboard full HTML
+regenerated; reopen/reload for snapshot health and timeout recovery presentation.
+Client0.13.72 model-buffer/digest/focus candidate needs final actual native QA;
+current worktree also contains unfinished scope-pagination UI changes. Do not
+claim that pagination fix active or fully tested. No new provider/post/account grant.
+Backend1257pass/7skip, portable147pass plus cache13, client1615pass before scope UI,
+dashboard44pass; final restricted-statistics7pass. Live saved49–90ms, coldRelated6751ms,
+warm730–857ms;100readsall200/p95566ms, contextual98ms. Migration hashes001–009 match,
+posts33human/41AI unchanged, protected login/connected state preserved. Worker actual
+apply~4.0–4.3s initially (not old terminal_at timestamp lifetime); crawler advancing.
+The WIP/ADR127 pointers below are historical, superseded by this precise runtime.
+
+**2026-10-19 proactive quality pass IN PROGRESS; continue, do not activate dirty
+worktree.** Owner explicitly asks continued proactive implementation/UI tests
+while absent. Current runtime remains ADR127 API26168/worker22884/dashboard6644/
+crawler43664, seal730d918dc54690db6b2ab294dd1fa933e97242774ef63604b8e8e95da1f4d878.
+Keep crawler running, preserve data/identity/admin deferral and consumed AI QA grant.
+Candidate-only slices: two keyboard focus fixes (Settings Back/My chats preview);
+same-document one-observation RAM digest avoids redundant E5 after fresh proof;
+manifest-bounded stream buffer avoids retaining+concatenating whole model; Node
+Related unit cap32Mi (not browser caps), max-guard synthetic proofs; truthful
+monotonic worker phase durations (historical SQL terminal_at excludes apply cost);
+dashboard persistent snapshot health/bridge timeout recovery/capacity explanation.
+Independent digest/reader review passes. Near32Mi old+fresh full views retained:
+66510x384D RSS758MiB/heap534;20270x1536D RSS869/heap534; max131072x1D RSS400/heap319,
+all watchdog/heap768 proofs pass, no owner data/model/provider use. Root integrates,
+reviews, runs regression, then checked-overlay activation; these are NOT active
+yet. No new SQL migration or owner admin/account appointment planned. Worker
+activation must prestart new ready worker, then one short idle-lane maintenance
+barrier (activeNULL/zero leased), stop exact old PID and immediately rollback to
+release; never terminate an accepted apply or hold across startup/tool roundtrips.
+
+**2026-10-19 cold Related acceleration ACTIVE (ADR-127, backend-only).** Cache is
+shared per backend facade/process, NOT per user/website. First use/restart and the
+original non-sliding five-minute baseline can trigger a full rebuild; idle time
+does not run a timer. Ordinary changed rows/chunks repair incrementally; messages
+alone do not require new vectors. Separate browser extraction/model startup/new-
+page ingestion is not this catalog preparation. No TTL/scope/threshold relaxation.
+
+Core-owned opaque Source tokens retain one private normalized copy; catalog tokens
+are minted during existing512-vector batches after all original mirror checks.
+No raw vectors retained until whole-build completion or repeated query/chunk
+normalization. All-row evidence, Node proxy/shape checks, exact arithmetic, global
+order/fallback/manual/dedup, count/chunk/cumulative caps and current authority stay.
+Independent review passes. Restrictedclient1604/1604, portable144/144, cache12/12
+sequential and core/index28/18 pass; secret scans clean. Same-MVCC full DTO equality
+true: baseline10347ms/candidate6856ms (~34% faster). Separate cold profile9654->6203ms,
+end-of-build process RSS805->372MiB (not guaranteed peak bounds).
+
+Only reviewed3file overlay; schema9/migration001–009 hashes/data unchanged. Active
+checked runtime seal730d918dc54690db6b2ab294dd1fa933e97242774ef63604b8e8e95da1f4d878,
+1366files/15370365bytes; API26168. Worker22884/dashboard6644/crawler43664 retain start
+times; keep crawler running. Code-only backup data/runtime-backup-adr127-20261019.
+Live cold HTTP6602ms; warm907–967ms, errors null; saved51–75ms;100readwave all200/
+p95458ms, Kapsalon1group/6threads/89ms. Dashboard23059Sources/fresh32s; crawler3924
+newingests this uninterrupted run, advancing. Pairing/ChatGPT connection preserved,
+no AI request/post/capture/account bootstrap. Client0.13.71 unchanged/no reload for
+this backend change. Owner admin appointment still deliberately deferred.
+
+**2026-10-18 completed owner-local activation (ADR-126, client0.13.71).**
+Active checked runtime is schema9, service39996, seal
+390ed9abc27d2db9033d691a4063581b82e4862263e17e227b22cf5c29c13b34
+(1366files/15368354bytes). Worker22884/dashboard6644 retain start times;
+crawler43664 is advancing with fixed completion/renewal race, minimal URL startup
+and content-free fatal diagnostics. Do not stop it. Reviewed function-only007–009
+are applied; never edit their hashes, restore schema6/8 binaries/data or activate
+the whole dirty worktree. Previous code/manifest, not owner data, is retained in
+data/runtime-backup-adr126-schema9-20261018. Normal start remains the local operator.
+
+Each function-only cutover verified unchanged heap tuples across18data tables.
+009 native forced replay race proves no admission advisory lock while legacy lane
+waits; unrelated admission succeeds5ms. Source/stamp/runtime contention rejects
+in4–8ms without a job; eight-job/exact-operation/erasure fences pass. 007 result
+bits/order remain exact, but later scan11.2s under load means no fixed3s promise.
+Exact Related index is ACTIVE: fresh all-row dependency proof, unchanged0.88/
+one-best0.80 rules and original authority, one heavy-build admission. Latest saved
+feed48–159ms, warm enrichment913–1122ms, cold13515ms (earlier8079ms). Cold remains
+expensive and optional; it must not gate the local draft/core feed. Final100readwave
+all200/p95657ms; Kapsalon1group/6threads/142ms. Final single-profile native Chrome
+video9.59s/recipe5.04s/MDN4.82s Ready,57HTTPall200; preview263ms/Backexactfocus,
+local draft focus preserved. Cooking capture confirmed. Earlier third-page MDN
+transient did not recur; its historical cause remains unproven, not claimed fixed.
+Dashboard sampled19359pages/fresh25s, counts continue to grow. Backend bounded-file
+run1243pass/7skip/0fail plus final hostile CLI9/9; client1602/1602; portable141/141
+plus individually sequential cache12/12. Final migration/exact/ingestion regression
+23/23, independent review/native concurrency proofs pass. Both secret scans clean.
+Two actual public language QA exchanges PASSED (German@AI5.71s/Dutchsparkle6.20s),
+two human+two AI posts retained; bounded agent grant consumed. No old-job replay.
+
+Owner explicitly DEFERRED account-owner appointment in favor of possible future
+dashboard admin; never bootstrap @Laurens or another account. Policy file absent.
+User reconnected ChatGPT; protected current record is valid/matches registration,
+and subsequent restarts preserve connected state. This supersedes ADR125's pending
+owner/AI-disconnected instructions below. Frozen84-text UMAP/HDBSCAN nonvisual
+experiment completed; irrelevant merges worsened, so no production adoption.
+All temporary native-test databases were dropped; original HBA exact SHA
+aec15425b33033973c99f3e97670437238744f03cde204d544d3835654ee5781 restored/reloaded.
+Pairing SHA7629C271C5C604A25B275A779C534A7EA9A9D5839DAC79F18D4062B879818092
+is unchanged; final33human/41AIposts/40roots. Separate account/private stores were
+not migrated. PostgreSQL max_connections100 is simultaneous database sockets, not
+users; configured application pool ceiling42, only1–2observed clients at the sample.
+Do not increase blindly to treat lock/CPU bottlenecks or claim hosted readiness.
+
+**2026-10-18 owner-controlled topic discovery ACTIVE; owner setup pending
+(ADR-125, client0.13.70).** Discover adds fast grouped public discussions with
+owner-wide default/per-base specificity and optional labels, no personal override.
+Existing pinned Ridge1; five conservative cuts; worker-built bounded public-root
+index and fresh canonical cards. No provider call, private indexing, canonical
+migration/regroup or dashboard metric rewrite. Old exhaustive matching/Related and
+empty canonical Topic allocation remain; no automatic popularity split or scale claim.
+
+Final fullbackend1231pass/7skip/0fail, restrictedclient1599pass; portable121pass
+plus final changed-read/ADR124 regression24pass. Independent review and isolated
+Chrome guest/owner Save/focus/logout/360/420px checks pass. Actual38roots->22broad
+groups; Kapsalon1group/4threads/82ms.100mixedreads all200/478ms/p95450ms.
+Canonical19750/19002Sources/11792containers/31human+39AIposts and pairing exact.
+Seal5fa117da49ee1864ae43ca9429633c16dc695f8ff5726ecbd64df08375e82f31,
+1361files/15305997bytes; service36252. Worker22884/dashboard6644 start times
+preserved. Crawler already absent, none stopped/started. Backup previous code/
+manifest in runtime-backup-adr125-20261018, not an owner-data snapshot/restore.
+
+Owner controls are verified synthetically but no actual owner is appointed:
+await explicit existing-account confirmation, then use the deliberate readonly-
+account bootstrap CLI; no first-account/username/pairing shortcut. Policy file
+absent/revision0/canManagefalse for guests. Reload extension0.13.70 for new UI.
+**After restart AI is disconnected** (was connected before). Public registration
+exists but neither known protected-refresh path exists; absence cause/timing is
+unproven. No manual credential mutation/restore or extra provider request was
+performed. Owner must reconnect ChatGPT; app account may need normal renewal.
+This activation does NOT preserve active AI sign-in. See ADR-125 for limits.
+
+**2026-10-15 AI Related-context repair ACTIVE (ADR-124, backend only).** Owner
+reports @ai/no answer and generic research failure. Read-only same-MVCC repro on
+latest accepted human mention's Source: client2Related/server0/missing2, causing
+exact context rejection before provider. Insight bundle now hydrates actual
+Related metadata with existing canonical mirrors/fixed-reference closure/caps;
+no equality relaxation/fallback/retry. False path unchanged, language policy
+retained. New regression fails old code at identical revision; fixed public
+followup/exclusion/forgery/corruption cases pass. Portable114/backendfocused39/
+finalextended2/independentreview16 pass. No live inference/post/replay.
+Active native same-snapshot equality true2/2/missing0, alternate enabled.
+Seal2a34c2fdb96a2c65bec3fa59f9fa1b28cb24d3c841ffd1fc3e3f5b3437a676c2,
+1356files/15250068bytes; service9608, crawler30932/worker22884/dashboard6644 retain
+start times. Pairing/provider sign-in preserved, savedread143ms/100reads200in594ms,
+crawler13439complete+currentlease/rev17092, stderr0. Close/reopen panel; appsession
+may renew. No new provider grant. Historical generic failures not all diagnosed.
+
+**2026-10-15 question-language replies ACTIVE (ADR-123, backend only).** Replies
+including public @AI/sparkle and private questions follow the selected question's
+language, regardless of configured reply language. Standalone Insights keep the
+configured language/English default; ambiguous requests fall back to that setting.
+No classifier/additional provider call or context/authority change. All48 prompt
+branches checked:24opening byte-identical,24reply language prefix only. Full
+backend1184pass/5skip/0fail, independent review/focused33 pass; no live inference.
+Only reviewed prompt file overlaid; seal57efaa0bb79d51dc061fc97fb88ddd90d324a608b7c6863be5310616721074fc,
+1356files/15249700bytes. Service31680; crawler30932/worker22884/dashboard6644 start
+times preserved. Pairing/provider sign-in retained, saved discussion91ms,
+100reads all200/518ms, crawler13277complete+currentlease/rev16925, stderr0.
+No client reload for this change; app session may need renewal after restart.
+
+**2026-10-15 responsive exhaustive reads ACTIVE; early local drafts0.13.69
+implemented; one explicitly authorized @AI test PASSED (ADR-122).** Reload
+extension0.13.69 for local root typing while saved-page matching is pending,
+with send/reply/edit/Insight/@AI still gated on verified Ready. Navigation,
+replacement documents and accounts detach; real Related activity shows loading.
+
+Profile identified decimal-vector parsing and blocking JS, not DB locks:
+8,502ms lookup/3,108ms maxeventloopdelay. Lossless array_send/base64 text transport
+in512batches,128-item cooperative preparation and parser-owned frozen vectors
+retain exhaustive validation, exact arithmetic/thresholds and cumulative bounds.
+No prefilter/resultcache/schema change. Separate2task optional bulkhead leaves
+core32/URL8 admissions independent. Native same-snapshot DTO equality passes;
+7,030->3,732ms, candidate loopdelay54ms. Final overlapping read wave30/30HTTP200:
+core median37ms/p95159ms/max210ms, Related3,809ms; later saved read42ms. Optional
+lookup remains multi-second; no hosted/many-heavy-writer/million-page claim.
+
+Backend1,180pass/5skip, restrictedclient1,582/1,582, portable110/110 plus final
+canonical14/14, pure26/codec6/publicread45 and isolated Chrome layouts pass.
+Independent integrity review passes. One real native-popup/current-page test
+saved the human @AI request and its generated reply (1,772chars/one citation).
+Accepted human1/providerstart1/share1, exact parent/operator persisted; posts kept.
+No additional inference retry. Earlier failure not reproduced, historical cause
+unknown. This single test intent is consumed; owner profile untouched.
+
+Final seal f5737e1ce190543df554c06a195a60b5103a4781474a6056767f40cee31e5886,
+1,356files/15,248,587bytes; service28164, worker22884/dashboard6644 unchanged.
+Pairing/old posts preserved, provider connected, locks0/stderr0. Crawler30008
+was no longer present on final checks; no crawler stop/start was issued. Frontier
+has334,352queued/7staged, lastcompletion10:13:22.524Z,12,988canonical jobs complete.
+Owner subsequently confirms they did not stop it. Resumed one crawler30932 at
+12:46:35 via the unchanged sealed operator and original saved state; no reset,
+rebase or forced uncertain replay. Retained stdout/stderr logs now capture fixed
+stop reasons. Startup catalog reconciliation took about4minutes, six staged jobs
+completed and new fetching resumed. Activecrawler30core reads allHTTP200,
+median31/p95176/max270ms, Related4239ms;100readwave all200/463ms, locks0. No matching
+Windows Application crash/resource-exhaustion event found; old exit cause remains
+unknown. Earlier final latency samples still lacked an active crawler. Read ADR-122.
+Subsequent new-page checkpoint:26attempts/25staged; durable crawler completed
+12,988->12,997 with one current lease, revision16,641. Dashboard regenerated at
+10:52:18.018Z with15,909learnedSources. Crawler30932 remains active; no duplicate.
+
+**2026-10-15 Discover missing-metadata correction ACTIVE (ADR-121, backend only).**
+Owner screenshot reproduced: PostgreSQL Related hits existed, but their exact
+canonical Sources were absent from the scoped enrichment catalog. Real browser
+readEnrichment rejected the entire response. The server now hydrates explicit
+related/prior/alternate metadata and existing fixed-reference/membership closure
+in the same read-only snapshot, preserving strict client proofs and500/byte
+bounds. Optional hydration failures retain the base discussion with fixed errors.
+No threshold, membership, write/provider authority or client change.
+
+Full portable104/104, canonical read12/12, focused client139/139; independent
+review passes. Real synthetic cross-Topic service -> client parser -> projector
+tests strong/single lower-floor hits, missing/corrupt optional metadata and
+exact500success/501capacity. Live exact-video HTTP -> actual client -> projector
+now yields9pages including the Kapsalon recipe,13catalogSources/zero missing,
+both includeAlternate modes,~8s/revision16,453. Owner actual-profile rendering
+is not claimed; close/reopen the side panel, no extension reload for this fix.
+
+Seal14edc1576243fe8d0c94785ebf0ef297b1492dba7a3f488e3e206929b5e4b15f,
+1,355files/15,229,361bytes, service29924. Crawler30008/worker22884/dashboard6644
+retain start times, crawler12,819complete.100reads all200/513ms, savedthread48ms;
+locks/deadlocks/idletransactions0, pairing unchanged, stderr0, preflight passes.
+Only reviewed read-facade overlaid; old code/manifest backed up. No inference,
+post/capture/migration/crawler interruption; existing optional latency remains.
+
+**2026-10-15 Related 0.88 / single best >=0.80 ACTIVE (ADR-120).** Owner-approved
+normal learned Related threshold remains0.88. Only when ordinary results are
+empty return exactly one best candidate>=0.80; otherwise no weaker result.
+Identical Related naming/DTO/method, no fallback label. Manual-confirmed priority,
+full exhaustive validation, source exclusions and Topic membership remain intact.
+No extension update/reload for this server change (earlier0.13.68 still applies).
+
+Live catalog growth also exceeded the old8-Mi-unit prepared-ranker guard:
+15,602 compatible Sources /8,537,832units. Prepared relational snapshots now have
+a bounded16-Mi-unit budget; direct input retains8, all other bounds/validation
+remain. Pure19/19, learned18/18 and PostgreSQL11/11 pass. Actual authenticated
+extension enrichment returned one ordinary Related DTO at cosine0.86820369396936
+with zero0.88hits: HTTP200/8,229ms/revision16,349. Kapsalon remains ordinarily
+Related, ranks1/2. Exhaustive lookup remains costly (~8-9s at this catalog); raw
+five-second routes are unchanged, authenticated projection retains30s.
+
+Final seal36145d2b316bb1cbcda283d5702944fffd747eb5db11cfe5f89c2d7ff7ddd725,
+1,355files/15,227,108bytes; HTTPservice43852. Crawler30008/worker22884/dashboard6644
+start times unchanged. Crawler completed12,694 jobs at revision16,324 and later;
+pairing unchanged and all lock audits zero. Read wave100/100 HTTP200/496ms;
+saved YouTube discussion coherent with root+reply, AI status connected. No
+inference, owner post, capture, data migration or crawler interruption.
+Final full backend1,185 total/1,180pass/5skip/0fail; restrictedclient1,576/1,576.
+Final readwave100/100 HTTP200/525ms at revision16,361, crawler12,731completed plus
+one active leased job, same process start times and service stderr0. Diff checks
+and runtime preflight pass. Earlier timing failure passed unchanged on rerun.
+
+
+**2026-10-15 flat replies, deliberate @AI and reserved bot names implemented
+(ADR-119, client0.13.68); crawler-safe reads ACTIVE (ADR-118).** All descendants
+use one horizontal inset and exact `@Username:` parent cues (`@AI:` for generated
+parents, with operator provenance retained). Submitting a public `@AI`/`@ai`
+message publishes the human post first, then requests exactly one reply through
+the existing model/attestation/one-shot share path. Failed writes, edits,
+navigation/account/document changes, quoted/code/link examples and polling do
+not invoke it. Missing setup/failure leaves the message saved and offers the
+explicit sparkle action. Case-insensitive AI/AI_*/_AI* human names are reserved
+on first naming/rename; historical accounts stay readable. Notifications and
+specialist bots remain future work.
+
+The two owner-reported Kapsalon pages ARE related: E5 cosine0.895147813926918
+exceeds0.88; actual retrieval ranks video1st from recipe and recipe2nd from
+video. Their Ridge0.8183460097697829 is below Topic0.8639003810829322, so they
+have no common Topic. Recipe has zero posts; video has two. Empty related Topics
+do not produce a Related discussions card, and source suggestions currently
+show only in an empty feed. No threshold/membership/data change was made.
+
+Extension restricted1,573/1,573, composed real-controller synthetic-model
+root/nested mentions, username regressions and isolated packaged Chrome at
+320/390/480px pass. Seven depths have identical reply bounds. No live provider
+request or owner test post. Reload unpacked extension0.13.68; actual owner-profile
+reload remains pending.
+
+The exact saved-URL route now uses a fully authenticated/validated absolute30s
+projection lease and its own four-connection app-role pool. Public pending reads
+coalesce by copied input plus server canonical revision;32tasks/4,096waiters and
+separate eight-task URL lane are bounded, with per-caller abort/auth delivery.
+No completed-result cache. Crawler read-only startup/version calls now retry
+transient failures with cancellable2/4/8/16s capped backoff; ingestion replay is
+unchanged. Earlier service gaps/load exited the old crawler and two replacements;
+corrected visible PID30008 now survives service restarts and advanced accepted
+crawler jobs12,356->12,370 at revision16,000 and later. Worker22884/dashboard6644
+remain unchanged. PostgreSQL lock audits remain all zero; pairing hash unchanged.
+
+Final checked runtime seal is
+f7206d0bcf65cc3e77c8437d0cfc6ef958ff57245fc0ad25c2f17dacf7871a31
+(1,355files/15,225,994bytes), service43084. Live100-request waves passed100/100
+in691ms and733ms; delayed saved YouTube reads146ms/187ms included its root and
+reply. Backend1,176pass/five skips plus latest focused input-snapshot11/11 pass.
+AI status remains connected/planEnabled/notpending. The server still has100
+connections/three superuser-reserved; component pool maxima now total42.
+Final service43084 check at revision16,049:100/100 reads in586ms, saved thread
+280ms; crawler complete12,419, samePID30008. Dashboard snapshot refreshed at
+10:32:33 local, stderr empty. Latest parser/composed-controller/package checks
+112/112 include multiline quoted examples and contractions.
+Do not stop/reset/rebase the running crawler or claim hosted/unlimited scaling.
+
+**2026-10-14 crawler-safe page-matching recovery implementation notes
+(ADR-118; activated2026-10-15 above).** The repeated "Page matching is temporarily
+busy" state was application retry/presentation behavior, not PostgreSQL locking:
+existing audits show no lock waiter/blocker, deadlock or idle transaction. The
+owner's crawler remains running as the stress test and was not stopped, reset,
+rebased or mutated for this implementation.
+
+One fenced automatic retry flight now covers transient unavailable, conflict and
+capacity results at2/4/8 seconds and a recurring capped16-second interval. Retry
+is allowed only before ingestion dispatch or after a module-private brand proves
+a complete exact canonical HTTP409/413 rejection. Lost, ambiguous or accepted
+writes never replay automatically, including a successful ingestion followed by
+a later local-witness failure. Every attempt renews page/session/permission/
+pairing/document authority and canonical expected version; there is no blind
+server rebase and the500ms status poll remains read-only.
+
+A previously loaded same-page discussion now remains visible but strictly
+read-only while matching checks or errors. Navigation and tab/window/session/
+permission/block-list/document-witness changes, including checking with a null
+`documentId` followed by a different document, still clear it and detach drafts.
+For an initial matcher failure, paired `POST /v1/catalog/url-selection` runs
+after health and before the optional broad chooser catalog, so that broad read
+cannot hide a known page. It reads one exact saved learned Source plus its
+primary discussion from one PostgreSQL `REPEATABLE READ READ ONLY` snapshot.
+Only the already sanitized persistence URL is sent. The fallback stays
+`phase:"loading"` and grants no post/reply/Insight, capture, embedding or
+inference authority; normal matcher Ready is still required for writes.
+
+Initial focused offline suites pass: background adapter113, matcher106, confirmed-
+rejection17, matching Trust2, panel95, canonical-v4 read10, async public-read41,
+local client29 and controller91. These initial pending-activation notes are
+superseded by the2026-10-15 live evidence above and final ADR-118 record.
+
+**2026-10-13 Insight readiness with exhaustive related integrity active
+(ADR-117, client 0.13.66).** Root and per-message AI
+requests no longer wait for optional related-Source similarity: a deliberate
+request pins the context already ready and sends `includeRelatedSources:false`
+when necessary. The server then skips similarity but still rebuilds and exactly
+validates canonical Source/Topic/actor/destination/target/body context. Root
+Insight visibility now depends on the primary discussion, and a reply with no
+configured model opens setup instead of silently ending.
+
+A benchmarked pgvector prefilter was rejected and fully reverted after review:
+filtered-out rows could bypass complete Source/link/receipt/embedding-mirror
+verification. Related retrieval therefore retains exhaustive catalog validation
+and authoritative binary640.88 ranking/order/de-duplication, still approximately
+3-6s. Its656-697ms experimental SQL phase is not installed or an endpoint claim.
+Backend1,149/1,154 with five skips, extension1,551/1,552 with one skip,
+portable102/102, focused browser206, bridge31 and canonical10 pass.
+Isolated packaged Chrome also passed community core-ready/enrichment-pending and
+inline-reply layouts at320/390/480px with no overflow or uncaught errors.
+
+The1,354-file/15,215,725-byte runtime is sealed at
+`946989dbfbf334f10dcc6f74a39117a512bbb493705aa9d655599fbec181c0d8`.
+Service-only activation replaced PID12512 with PID35588 while crawler31900,
+worker22884 and dashboard6644 stayed live. At revision7369 the false path took
+45ms, returned `related:null` and issued zero full-embedding queries; the true
+path took2966ms, returned20 results and issued one full-embedding query. A mixed
+HTTP wave was100/100 HTTP200, zero rejected, in1150ms at revision7359. Worker/
+crawler continued through revision7372. No provider request, owner post, data
+migration or crawler mutation occurred. Reload client0.13.66; appsession may
+renew.
+
+**2026-10-13 crawler-safe optional projections and generated sharing active
+(ADR-116, client 0.13.65).** With crawler31900 retained as the stress test,
+PostgreSQL again showed no lock blocker/deadlock/idle transaction. The three
+intermittent optional-view errors came from an invalid inline-embedding
+assumption, full-catalog alternate expansion and exact-old-revision presentation
+checks; secondary Topics also waited for slow combined enrichment. The normalized
+embedding row is now authoritative, alternate membership is targeted/indexed and
+starts beside enrichment, and validated optional presentation accepts
+same-generation later revisions without gaining write authority.
+
+AI preflight/job context now comes from repeatable-read bundles. A newer
+same-generation watermark is adopted only after exact bounded Source/Topic/
+destination/account/target/body comparison; generated persistence revalidates at
+the current revision and may retry once after a definite internal conflict,
+without another provider request. Authenticated Insight start has an absolute
+30-second lease. The sealed operator marker now requires
+`leaseAuthenticatedModels` and the new `ai.create` transport signature. Exact
+related similarity remains an optional catalog-wide scan measured at 3-6s.
+
+Backend tests pass1,148/1,153 with five skips, extension1,550/1,551 with one
+skip, portable PostgreSQL101/101, focused AI/account71/71, browser135/135,
+backend107/107, canonical9/9, private19/19, bridge30/30 and deadline27/27.
+Restricted preactivation owner-data reads completed selection515ms at revision
+7081, related2934ms/14 results, alternate13ms/two Sources/two discussions,
+enrichment3644ms with no errors and Insight3266ms at revision7082. Service-only
+activation installed the 1,354-file/15,214,709-byte seal
+`05e62d7a6bcaaa9b412ec9d99e772b39b9c9f5b5b7ca91d74639b105faa57359`, changing
+service14812 to12512 while crawler31900, worker22884 and dashboard6644 remained
+live. The crawler advanced from3,530 complete/runtime7085 to3,536/runtime7091.
+Paired post-restart health was200; selection48ms/revision7092/one root,
+alternate17ms/revision7092/two Sources/two roots, enrichment3365ms/no errors, and
+AI status remained connected/planEnabled/notpending without a provider request.
+
+A postactivation mixed read wave returned100/100 HTTP200 with zero rejection
+(80 version,20 catalog) in1,206ms at revision7098. It deliberately filled the
+32-slot API pool: 36 total PostgreSQL sessions were then visible (32 idle
+`ClientRead` API, one dashboard idle, one crawler idle, one worker active and the
+audit session active). The 34 wait events were idle client sockets, not database
+lock waits. PostgreSQL `max_connections=100` with three reserved gives97 ordinary
+slots; configured component maxima total38. Users multiplex over these pools.
+Raising the server limit is possible only with a PostgreSQL restart and resource
+sizing; tune pools/backpressure or add PgBouncer before raising it for scale.
+
+Dashboard PID6644 is also advancing: its atomic `snapshot.js` reached6,451
+total/6,443 learned Sources and4,874 Topics during final verification, and the
+isolated Chrome refresh smoke passed. `dashboard.html` is intentionally a static
+shell; the reported4515 screen was an old tab/DOM from the previous dashboard
+runtime. Reload/reopen it once to join the current three-second snapshot poll.
+
+No provider request, owner post, data migration or crawler mutation occurred.
+Reload extension0.13.65; appsession may renew. This is not hosted/unlimited or
+parallel exact-related-query readiness.
+
+**2026-10-13 live-crawler interactive selection and posting corrected (ADR-115,
+client 0.13.64).** Owner terminal crawler31900 remained running as the stress
+test. PostgreSQL was healthy under load: no lock waiters/blockers, deadlocks or
+idle transactions; earlier 100/100 concurrent reads and 245/245 discussion reads
+were HTTP200. The read outage was two coherent requests being rejected when an
+unrelated crawler commit advanced the global revision between catalog context and
+discussion. `POST /v1/catalog/selection` now returns both from one repeatable-read
+transaction with exact Source/Topic and same-version validation. The posting
+failure was client-side expected+1 validation of valid PostgreSQL appends:
+human `create-root` and `reply` now accept any strictly advancing same-generation
+response, while all other commands remain exact expected+1.
+
+Backend tests pass1,142 with five platform skips, extension1,545/1,545 and
+portable PostgreSQL99/99. Live100 parallel selection requests returned100 HTTP200
+and100 coherent bundles in498ms across revisions5703-5704. A service-only restart
+changed service6596 to14812 while crawler31900, worker22884 and dashboard6644
+remained live; crawler processing subsequently reached revision5708/2,194 complete
+crawler jobs. No live owner post or provider call was used. Active sealed runtime
+root is `ea5d05b6bf96533a518433cf6c85b7ad8fcb7638496eb9c0a7656b66cb3c8069`.
+Reload extension0.13.64; appsession may renew. Generated sharing/edit/withdraw
+retain stricter revision authority. The reported YouTube URL still needs an
+eligible revisit.
+
+**2026-10-13 PostgreSQL dashboard live-history correction active.** The crawler,
+worker and canonical database were already advancing; only the v2 growth store
+remained at its dashboard-start point because PostgreSQL startup deliberately
+disabled the SQLite canonical sampler and the dashboard refresh path only read
+history. The dashboard now owns a read-only 60-second PostgreSQL counts sampler
+against the separate auxiliary `topic-growth-v2.sqlite`. A dashboard-only restart
+left service6596, worker22884 and the owner's terminal crawler31900 untouched.
+Live proof advanced the current snapshot from4665 to4680 and the persisted growth
+tail from4515 to4675/revision5318; a real isolated Chrome render showed4665 and
+the new error log stayed empty. Dashboard tests pass35/35. Its previous dashboard-only runtime root was
+`0256d20cf6ade43d0b4d99aa3c90175681516ec0f9445d041dba773c33ad72d9`;
+dashboard PID6644. Do not run the legacy SQLite `apps/topic-dashboard` npm start.
+
+**2026-10-13 owner canonical PostgreSQL cutover ACTIVE (ADR-114).** The older
+ADR-114 offline/rehearsal notes immediately below are historical and superseded
+for this local runtime. With explicit owner approval, the canonical
+Source/Topic/discussion/receipt store, HTTP service, crawler ingestion worker
+and dashboard reader now use local PostgreSQL 17.11 + pgvector on
+`127.0.0.1:55432`. Accounts, private chats, the crawler frontier and dashboard
+growth history remain deliberately separate auxiliary SQLite stores; they are
+not canonical writer fallbacks. The old canonical `demo.sqlite` is frozen at
+SHA-256 `445F4344482E687F5CB79D0BCDA0D65E19E244124E5DF87452C747FD97C2A59B`
+and must never be reopened by an old canonical writer or automatically restored.
+
+The stopped-writer import was exact at revision 3513 in generation
+`generation-56ba49fb-11fe-41b8-9650-dbd3cdb140d0`. Its encrypted
+DPAPI/AES-GCM PostgreSQL recovery point is
+`postgres-canonical-2026-10-13T13-33-33-964Z-f2a63748-ec79-4a6a-95e7-4b804b37f6fe.murmingle-pgbackup`,
+expires `2026-10-20T13:33:33.964Z`, and passed an independent restore/equality
+drill. It is a cutover recovery point, not a recurring online-consistent backup;
+never restore it over accepted later writes or deletion. Role grants are split
+between app, crawler submitter and worker; credentials remain DPAPI-protected.
+
+The first live crawler restart exposed a binary64 contract bug, not a database
+lock: the crawler preview, queue admission and worker apply normalized the same
+near-unit vector repeatedly, changing exact operation digests. Admission now
+submits one private pre-normalized snapshot, while claim/apply revalidate the
+once-normalized durable bytes without rewriting them. The same correction
+covers interactive browser ingestion. A real-PGlite regression spans crawler
+and interactive adapters, enqueue, claim, apply, receipt and exact stored
+coordinates. One cancelled `authority-expired` no-effect queue row was deleted
+only after a fail-closed proof of its 25 preserved staged rows, idle lane, exact
+old digest defect, and absence of any Source/receipt. No canonical content or
+crawler frontier row was reset.
+
+At the first post-recovery checkpoint the repaired crawler had ingested all 25
+preserved stages, advancing revision 3532 to 3557, and remained in
+`Crawler crawling` state. The durable queue then had 44 complete crawler jobs
+and no failed/cancelled/live residue; catalog and matching versions were both
+44. The matching dashboard refresh reported 2,923 total Sources, 2,915 learned
+Sources, 2,674 active Topics, 2,758
+Topic containers, 345 multi-member Topics and 2,329 singletons. During crawler
+writes, 100 simultaneous authenticated HTTP reads (80 version/20 real catalog)
+all returned 200 in 942 ms at one coherent revision. Pairing is active and the
+protected provider connection is connected/plan-enabled/not pending. Full local
+service tests pass 1,137 with five platform skips; portable PostgreSQL 99/99 and
+dashboard 34/34 pass. The original cutover sealed runtime root was
+`47dc15397409d9cab2412fb8be24608bb1f2b495eed8a1023346b9eb9f44a80e`;
+the active follow-up seal is recorded above.
+The crawler continued fetching/staging/applying beyond this checkpoint.
+
+The exact reported YouTube URL is still absent from the canonical catalog
+(`present:false`, zero memberships); it needs a new eligible browser capture/
+visit and is not automatically invented by the general crawler. PostgreSQL
+removes the SQLite reader/writer lock failure, but the expensive matching apply
+path intentionally remains one bounded serialized lane, catalog paging still
+has an N+1 optimization opportunity, and the compatibility global watermark is
+not a hosted/unlimited/thousands-of-writes claim. Do not infer a new provider
+inference grant, public deployment, or million-page readiness.
+
+**2026-10-13 local native PostgreSQL rehearsal complete (ADR-114; offline only).**
+The owner approved installing the selected database on this Windows host. Native
+PostgreSQL 17.11 now runs as `postgresql-x64-17-murmingle` from
+`D:\PostgreSQL\17`, listens only on `127.0.0.1:55432`, uses SCRAM-SHA-256 and
+has SSL disabled honestly for this loopback-only rehearsal. The official
+repository-pinned pgvector 0.8.2 source was built at commit
+`cab9da72c04353f143bb06b42ab70a403daac64a`; the installed DLL hashes to
+`459A1ABCABD69C8092C3A7DE998A18E2714B6676A7BA4F3BDD111FC610A440A0`.
+Random admin/owner/app/crawler/worker credentials are DPAPI-protected outside
+the repository; no plaintext installer option or log remains.
+
+Fresh synthetic database `murmingle_v4_native_test` owns four checked
+canonical-v4 migrations; migration 004 retains SHA-256
+`728CE42C013BE5DD8DF41CB259E08900E1C9B4213AECBACDA9B378DC5B38932F`.
+The guarded native test proves a read and an independent discussion write both
+complete while another discussion write holds its row lock. Separate real app,
+crawler and worker logins pass their EXECUTE-only grants; app direct DML and
+worker-only claim, plus crawler/worker direct canonical reads, are denied.
+A normal service restart preserves pgvector 0.8.2, all migrations and runtime
+revision 9 with the listener still loopback-only. This does not wire HTTP,
+startup, dashboard, crawler apply, accounts/private stores, backup/restore or
+owner import/cutover. The owner stores were not opened or migrated; the existing
+SQLite service and active crawler were not stopped or mutated. Its listener still
+responds and correctly rejects an unauthenticated health probe.
+
+**2026-10-13 PostgreSQL selected as the canonical concurrency target (ADR-114; offline only).**
+The owner ended further SQLite/WAL bridge work. The isolated
+`portable/canonical-v4` namespace now implements a checksummed, lossless
+normalized-v2 SQLite-to-empty-PostgreSQL importer; a bounded, coherent read
+facade with snapshot and scope-cursor semantics; and an EXECUTE-only database
+boundary for atomic human root/reply appends with exact replay receipts. Direct
+canonical table/sequence DML is revoked from the application role. Migration
+004 is independently reviewed as an offline ingestion foundation: it adds
+separately bounded interactive/crawler admission, durable authority and lease
+witnesses, fair single-lane claiming, exhaustive exact-double Ridge reference
+matching, canonical request-byte validation and EXECUTE-only role separation.
+Full portable offline tests pass 83/83; combined canonical-v4 tests pass 31/31;
+the final 004 SHA-256 is
+`728CE42C013BE5DD8DF41CB259E08900E1C9B4213AECBACDA9B378DC5B38932F`.
+Canonical Source/Topic/membership/receipt apply is intentionally not installed.
+
+This work is not wired into HTTP, startup, the crawler, dashboard, account or
+private stores, backup/restore, deployment, or cutover. The first local native
+role/MVCC lock proof is recorded above; broader deadlock, restore and load
+evidence remain required, as do
+server-derived actors/classes, Source-scoped admission witnesses and the
+complete ingestion apply/lifecycle boundary. The checked SQLite service, owner
+stores and active owner's crawler remain unchanged and must not be interrupted,
+reset, rebased or used for an
+agent import. No restart, deployment, owner-data migration, provider call or
+PostgreSQL activation occurred; do not claim hosted or many-writer readiness.
+
 **2026-10-13 crawler v4 receipt compatibility corrected (ADR-112 follow-up).**
 The crawler's five-field receipt validator rejected valid v4 responses containing
 topicIds after the service could already have accepted ingestion. It now reuses
@@ -256,6 +3688,39 @@ compatibility: pairing verifier domain upgraded only, saved token/origin remain
 valid (verified privately); never publish credentials. Owner reopens panel and
 manually runs sameApplyscript; no extension version change required, appauth may
 renew. Preserve all unrelated naming/Copilot edits; no owner ingestion/inference.
+
+**2026-10-12 owner extension remains Not connected during crawl: diagnosis only.**
+Owner confirms extension0.13.61 loaded. First paired health probe times out at10s;
+later simultaneous health/version probes return200 in8-10ms and protected provider
+status is connected/not pending. Normal listener remains untouched. Read-only
+separate-process replay of current canonical1571Sources/revision2199: empty
+catalogContext82ms, selected learned Source context10993ms. Selected context
+calls synchronous Ridge alternatePlan; cache invalidates on every canonical
+revision and allowed planner CPU10s exceeds ordinary service/client5s. This is
+a confirmed remaining event-loop blocking path, not proof of the owner's exact
+panel request or sole failure cause. ADR-107 load exercised bounded catalog pages,
+not this expensive context route. No owner write/provider call/restart/crawler
+interruption, credential extraction or timeout relaxation. Next scope: isolate
+read/projection planning and keep canonical availability/version/authority fences;
+do not activate/restart while crawler runs. Existing unrelated dirty edits retained.
+
+**2026-10-12 repository-wide Murmingle naming complete:** The owner explicitly
+extends ADR-097 beyond presentation and requests every tracked former full-name
+and three-letter identifier be renamed. Package scopes are `@murmingle`, portable
+configuration uses `MURMINGLE_*` and `murmingle_*`, operational/test paths and
+guards use Murmingle, Topic Atlas and historical docs are updated, and the
+provider-facing agent-name hint is now Murmingle. New pairing verifiers use the
+Murmingle domain and upgrade a successfully authenticated pre-name verifier;
+protected login verifies a copied record before removing its opaque pre-name
+location; new encrypted backups use `MURMNGL1` and `.murmingle-backup` while
+opaque compatibility keeps still-live pre-name backups verifiable/prunable.
+Tracked content/path scans have zero retired full-name or abbreviation matches.
+Offline verification passes: backend916 (911 pass/five platform skips), extension
+restricted1491, dashboard restricted21, portable restricted52 and UniFi
+restricted70; secret scans cover762+241 files with zero findings; diff check is
+clean. No listener restart, crawler action, provider call, owner-data mutation,
+remote repository rename or deployment occurred. The pre-existing independent
+Copilot-instructions reduction remains unowned and uncommitted.
 
 **2026-10-12 concurrent ingestion/continuous crawler active (ADR-107,0.13.61):**
 Owner requests researched implementation of concurrency toward thousands of
@@ -549,7 +4014,7 @@ database mutation/migration/deletion, provider request or crawler interruption.
 Owner approves selected-voice and actual instruction fingerprint diagnostics.
 Public generation logs only schema, fixed voice, SHA-256 of the decoded instruction
 string in the exact serialized POST, and local dispatch epoch time. Normal CLI
-prints the fixed Temp/universal-discussion-insight-trace/voice-request-trace.log
+prints the fixed Temp/murmingle-insight-trace/voice-request-trace.log
 path; the strict sink keeps validated recent lines within 64 KiB, rejects unsafe
 links/getters/proxies and drops malformed prior records without retaining content.
 No page/comment/URL/model/account/token/output or input hash; private suppressDebug
@@ -1107,7 +4572,7 @@ The owner sees page/extension Console errors without the export dialog. Syntheti
 VM reproduction confirms that a page-owned `module.exports` makes the old
 bootstrap silently skip the dialog and overwrite the page module. Browser startup
 now wins without accessing that module; pure Node import remains. Fixed
-`[UDL UniFi export]` messages distinguish ready/missing-document/startup-failure,
+`[Murmingle UniFi export]` messages distinguish ready/missing-document/startup-failure,
 with no raw exception or key logging. Failed startup clears/removes partial UI.
 **49 restricted offline tests pass**, including 12 startup regressions and the
 original 14 Trust checks; independent review has no blockers. Native isolated
@@ -1134,7 +4599,7 @@ unresolved references and global record bounds. Native isolated Chrome:
 **eight intercepted API requests, zero errors**, strict CSP, site selection,
 no-cookie requests, sanitized download, no persistent storage and error/cancel
 cleanup pass; root visually checks the dialog. Synthetic profile/download removed;
-review screenshot in `%TEMP%\udl-unifi-audit-review`. No owner UDR request, API
+review screenshot in `%TEMP%\murmingle-unifi-audit-review`. No owner UDR request, API
 key, SSH login, rule change, OpenClaw shutdown, listener, migration or deployment.
 Owner must run/export/review the JSON. NAT/port forwards, UPnP, ACL/switch/DNS,
 Linux services and live reachability remain separate required checks.
@@ -1216,7 +4681,7 @@ panel reload/RAM restore, own-data local JSON download, delete cancel (no reques
 explicit delete/withdraw/revoke/purge, focus, 390/320px layout/no overflow and
 reduced motion pass. Existing synthetic email fixture: **five requests, zero
 runtime errors**. No real mail/provider request/owner data in either QA. Six
-native screenshots in `%TEMP%\udl-account-panel-review`; root visually checked
+native screenshots in `%TEMP%\murmingle-account-panel-review`; root visually checked
 320px profile. Temporary fixture export/profile removed; screenshots retained.
 
 Chrome omits Origin on privileged GET: capability/me and account-owned resumable
@@ -1290,7 +4755,7 @@ zero findings. Real isolated Chrome QA passes: five intercepted real in-process
 account requests, no listener/provider/real email, zero runtime errors, persisted
 fixture username/preference, logout revocation, preserved draft/no automatic post,
 typing/focus/accessibility/reduced-motion and no 320px overflow. Root reviews
-390/320 screenshots in `%TEMP%\udl-account-design-review` (not Git).
+390/320 screenshots in `%TEMP%\murmingle-account-design-review` (not Git).
 
 Current app remains **0.13.46** with synthetic posting. No reload/restart needed
 for this inert package; owner `demo.sqlite`, pairing and ChatGPT connection are
