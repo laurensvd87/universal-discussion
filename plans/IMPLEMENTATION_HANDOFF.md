@@ -1,5 +1,25 @@
 # Implementation handoff: local-service discussion MVP
 
+Latest actual: f87a9e03/session8435 CLOSEDexit0, new25 semantic SQL ledger PASS.
+Run run-d2c254ca2fc202d34bce2dd731175725e24ef8c277dad909, parenta6e720b7...22724/
+stdout48969fd3...543c/stderr0; child7d2a77a8...a3821. Restrictedroles, actual child
+path, post-legacy rollback, renew/title/manualIDs, observed headlock/appMVCC,
+erase andDBisolation now proved. Normal child smartstop and parent retirement are
+distinct verified proofs. Independent13806B audit1ea50a43...2ce1a authenticated and
+FULLread; all2365input/currentGit/endpin joinsPASS. No live migration/activation.
+Source and outputs at this commit remain reproducible; normal source can evolve
+through reviewed commits without rewriting historical run snapshots/evidence.
+Next unregistered011 root snapshots/indexed ancestor feeds+ownerpolicy is implemented;
+ordinary semantic-topic-grouping projection and semantic-discussion-repository are
+independently source accepted. Final expanded25 source/catalog review pending.
+Root19NodePASS118ms/17PythonPASS287ms/static16SQL+5PLPASS. Newcatalog361997B
+3c440d15a32a0dfbec3ee2dfa6c47870d871154d1f8a0881fbbb78bd4ff623d2,
+2370files/273840676B/32normal/80closure, auth/endpinsPASS. Trigger uses plainMVCC
+head snapshot, NOT Source->head lock (avoids queuedactivationcycle inSOURCE).
+No actual011/UI proof or legacy adoption yet. Goal stays active.
+
+Historical pre-run checkpoint (superseded by the actual result above):
+
 Next execution is the maintained semantic production SQL suite, source-reviewed
 by Root+Trust with its distinct25 ledger and proof/result schemas. Root17 pure
 Python+8 guarded Node pass; exact catalog361149B/2365 inputs SHA60b1b3753c0ed00c1dac2139152868ededec9eb0e458412024f4b5b228bf7c16

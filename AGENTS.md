@@ -8,6 +8,27 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT26Oct production010 ONE actual f87a9e03/session8435 CLOSEDexit0/PASS:
+run-d2c254ca2fc202d34bce2dd731175725e24ef8c277dad909. All NEW25points/3groups,
+restrictedroles/realbinarychildpath/atomicrollback/renew/title/manualIDs/
+head-vs-apply+MVCC/Sourceerase/DBisolation PASS. Parent862B a6e720b7...22724,
+stdout4113B48969fd3...543c/stderr0; child4729B7d2a77a8...a3821. OIDs16384/17291
+dropped, owned35108 smartstopped, parentnormal/emptyJob/handles/EOF/endpinsTRUE,
+emergencyFALSE. Independent savedactualaudit13806B1ea50a43facf559677eee304ec6a706bf9c6e4b19d61e2422c58d705e4f2ce1a
+at data/semantic-hierarchy-native-actual-audit-20261026.json authenticated/FULLread.
+All2365/273795081B currentpins+Gitf87a joinsPASS; NOTquality/manyuserload/UI/live.
+Original4services unchanged/crawler4060 advancing3354/stderr0/55433absent.
+Next normal ownergrouping +discussion feed SQL011/adapter SOURCE implemented,
+unregistered. Root19guardedNodePASS118ms+17PythonPASS287ms; static01116SQL/5PLPASS.
+Expanded native25 ledger explicitly includes human+AIroot snapshots/replay,
+ancestor/leafrefs/ownerDBpolicy-to-grouping/historicalreply/visibility/erase.
+01114949B a2ccf69e...5202 uses plainMVCChead (visible committed matcher at snapshot
+read), NOTdomain->headlock; queuedupdater/source cycle avoided inSOURCE, noactual
+deadlockclaim. Newcatalog361997B3c440d15a32a0dfbec3ee2dfa6c47870d871154d1f8a0881fbbb78bd4ff623d2,
+2370/273840676B/32normal/80closure auth+endpinsPASS. Separateactual011 stillpending.
+GoalACTIVE: actualfeeds,
+verifiedlegacyadoption, realmodelstartup/worker/read/UI/ownercontrols/cutover OPEN.
+
 CURRENT26Oct production semantic SQL suite SOURCE Root+Trustaccepted: NEW exact
 25 ledger/3 groups8+8+6, genuine invented binary child, owner/app/submitter/worker
 roles, rollback-after-legacy, renew/title/manual IDs, observed head lock/MVCC,

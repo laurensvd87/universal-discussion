@@ -49,6 +49,11 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/src/domain/hierarchy-binary-detail.js',
     'apps/local-service/src/domain/hierarchical-e5-observed-head-policy.js',
     'spikes/topic-resolution/browser/core/local-service-contract.js',
+    'apps/local-service/portable/canonical-v4/migrations/011-semantic-discussion-feeds.sql',
+    'apps/local-service/portable/canonical-v4/semantic-discussion-repository.js',
+    'apps/local-service/portable/test/semantic-discussion-repository.test.js',
+    'apps/local-service/src/domain/semantic-topic-grouping.js',
+    'apps/local-service/src/domain/semantic-topic-grouping.test.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),

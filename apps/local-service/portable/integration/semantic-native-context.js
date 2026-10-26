@@ -11,6 +11,7 @@ import {SEMANTIC_CASES,runSemanticAssertions} from '../test/semantic-native-asse
 const fail=code=>Object.assign(new Error('Owned semantic SQL check failed'),{code});
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const SQL_SHA='2a647b0a83bb4e9c09bbd703dc4343788a4dd57dd7f52289f5b842afaeba8355';
+const FEED_SQL_SHA='a2ccf69eb5c17bc4f64a950c053bae49dd82f9f13c913cf7fb5615602f945202';
 const roles=new Map([['postgres','observer'],['murmingle_app','app'],
  ['murmingle_ingest_worker','worker'],['murmingle_crawler_submitter','submitter']]);
 function code(error){const value=error&&Object.getOwnPropertyDescriptor(error,'code');
@@ -32,7 +33,7 @@ function ledger(){
  }};
 }
 
-async function initialize(database,generation,sql){
+async function initialize(database,generation,sql,feedSql){
  await database.exec('ALTER SCHEMA canonical_v4 OWNER TO murmingle_owner');
  await database.exec('SET ROLE murmingle_owner');
  await migrateCanonicalV4(database);
@@ -54,6 +55,7 @@ async function initialize(database,generation,sql){
   // Deliberately unregistered in schema_migrations: production startup remains
   // at9 until the complete hierarchy feature/cutover is validated.
   await tx.exec(sql);
+  await tx.exec(feedSql);
  });
 }
 
@@ -62,6 +64,8 @@ export async function runSemanticNativeProof(){
  if(arguments.length||used)throw fail('SEMANTIC_PROOF_ONESHOT');used=true;
  const raw=await readFile(new URL('../canonical-v4/migrations/010-semantic-hierarchy.sql',import.meta.url));
  if(raw.length!==19578||sha(raw)!==SQL_SHA)throw fail('SEMANTIC_SCHEMA_PIN');
+ const feedRaw=await readFile(new URL('../canonical-v4/migrations/011-semantic-discussion-feeds.sql',import.meta.url));
+ if(feedRaw.length!==14949||sha(feedRaw)!==FEED_SQL_SHA)throw fail('SEMANTIC_FEED_SCHEMA_PIN');
  return runWithOwnedScopedPostgres(async connectFixedRole=>{
   let open=true,primary=null;
   const guard=()=>{if(!open)throw fail('SEMANTIC_SCOPE_RETIRED');};
@@ -102,7 +106,7 @@ export async function runSemanticNativeProof(){
       await database.close();
      })();return closing;
     }};
-   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'));return fixture;
+   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'));return fixture;
   }
   let rows=null,cleanup;
   try{await runSemanticAssertions(checks.test,{acquireFixture});rows=checks.finish();}

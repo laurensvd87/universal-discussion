@@ -1,5 +1,33 @@
 # Project status
 
+## Production persistence passed real PostgreSQL checks on 26 October
+
+Source f87a9e03/session8435 completed the new25-point semantic SQL suite on
+isolated PostgreSQL17.11/vector0.8.2. Actual restricted roles, successful child-path
+persistence, post-legacy rollback, renewals/title changes, manual destinations,
+head-switch contention with independent app MVCC reads, Source erasure and second
+database isolation all pass. Both scratch databases were dropped; the owned server
+smart-stopped and the parent verified normal retirement, empty Job, closed handles
+and all2365 input end pins. Stderr is empty. Independent saved-evidence audit
+1ea50a43...2ce1a is authenticated and fully read. Evidence lives in portable/data/
+hierarchy-native-runs/run-d2c254ca2fc202d34bce2dd731175725e24ef8c277dad909.
+
+This validates production persistence in the isolated fixture. It does not validate
+many-user throughput, real-page quality or live installation. Live services and the
+crawler remain unchanged. Next work adds actual root snapshots/ancestor feed edges
+and owner-wide per-topic grouping, then connects those reads/writes to the product.
+
+The root-feed foundation is now implemented as unregistered production source:
+migration011 captures qualified human/AI roots with full paths and original reply
+destinations, stores indexed ancestor edges, filters current visibility and erases
+derived context on withdrawal/Source forget. Owner-wide default/per-node cuts use
+only supported ancestors. Its adapter preserves bigint keyset positions. Root19
+guarded JavaScript and17 driver checks pass; all16 SQL statements/5 PL bodies parse.
+The expanded real SQL suite is reviewed next, with a distinct new catalog and run;
+none of these feed functions is installed in the live application yet.
+
+## Earlier checkpoints (superseded by the actual result above)
+
 The new production semantic native suite is source-reviewed and ready for its
 separate actual-run decision. It has its own exact25 ledger (3 groups8/8/6), a
 real invented binary child, actual restricted-role/rollback/renewal/manual-ID/

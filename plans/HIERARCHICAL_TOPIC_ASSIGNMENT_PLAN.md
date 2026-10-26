@@ -1,5 +1,14 @@
 # Hierarchical topic assignment and discussion plan
 
+Production steps1/2 below now have actual isolated native SQL evidence (f87a9e03,
+session8435): owner registry/CAS, canonical+semantic atomic apply, roles, rollback,
+renewal/title/version retention, manual destinations, bounded head contention and
+app MVCC reads all pass the distinct25-point suite. This is not live installation,
+population quality or many-user load. Independent audit1ea50a43...2ce1a verifies
+outputs/cleanup/all2365 endpins. Step3/owner-policy foundation is now normal source
+work: root snapshots+indexed ancestor membership and path-only owner grouping.
+Legacy-root adoption and full read/worker/UI integration still need completion.
+
 Current26 October: actual frozen GTA TEST now gives6/6correctGames,2/3correctGTA
 refinements and0/3false refinements. ChinatownWars staysGames; no retuning or live
 activation. The diagnostic supports conservative specificity on this small corpus;
