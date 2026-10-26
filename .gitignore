@@ -1,3 +1,11 @@
 # Private router audit downloads must never enter repository history.
-udl-unifi-audit-*.json
+*-unifi-audit-*.json
 unifi-audit-private/
+
+# Local experiment runs contain generated captures, browser profiles, caches and
+# disposable databases. Preserve them on disk, but never add them to history.
+# Experiment source, protocols and reviewed source maps remain visible to Git.
+/spikes/topic-resolution/harness/**/output/
+/spikes/topic-resolution/harness/**/output-*/
+/apps/local-service/portable/integration/**/output/
+/apps/local-service/portable/integration/**/output-*/
