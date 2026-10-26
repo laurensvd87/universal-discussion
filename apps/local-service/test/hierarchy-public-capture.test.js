@@ -3,6 +3,7 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {createHierarchyPublicCapture} from '../harness/hierarchy-public-capture.js';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
+import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
 import {PublicFetchError} from '../src/crawler/public-fetch.js';
 
 const sha=s=>createHash('sha256').update(s).digest('hex');
@@ -54,6 +55,14 @@ test('robots denial prevents article requests and policy failure stays cached fo
 test('missing404/410 origin documents follow normal crawler absent-policy semantics',async()=>{
  const f=fixture({robots:null,tdm:null});assert.equal((await f.capture.capture(probes[0].id)).status,'available');assert.equal(f.calls.length,3);
  const g=fixture({onRequest(){throw new PublicFetchError('http-status',{status:403});}});assert.equal((await g.capture.capture(probes[0].id)).reason,'policy-unavailable');assert.equal(g.calls.length,1);
+});
+
+test('recipe calibration requests do not fetch predeclared test subjects',async()=>{
+ const f=fixture();
+ for(const probe of RECIPE_CAL_PROBES)assert.equal((await f.capture.capture(probe.id)).status,'available');
+ assert.equal(f.calls.length,6);
+ assert.ok(f.calls.every(call=>!RECIPE_TEST_PROBES.some(probe=>probe.url===call.url)));
+ assert.equal(f.capture.snapshot().attempted,4);
 });
 
 test('TDM origin/header/document and robots directives use actual parsers and normal precedence',async()=>{
