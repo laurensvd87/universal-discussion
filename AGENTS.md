@@ -30,7 +30,13 @@ All consumed v2 inputs/map/output now IMMUTABLE; no retry/adoption/new variant.
 Nativev1actual23991 remains CLOSEDfailed/SQL0; no rerun/adoption. Overall hierarchy
 quality/canonical SQL/native concurrency/admin/UI/live integration still unfinished.
 Crawler4060 and API19868/worker36616/dashboard6644 original starts preserved.
-Next: read-only diagnosis of42601; exact failed SQL statement was not retained.
+Offline diagnosis found two invalid IF/CASE delimiters in install_attestation and
+issue_command. Normal hierarchy-schema-source.js repairs only these four bytes,
+with fixed original/corrected hashes and bounded raw reads. Four guarded tests
+PASS; actual loader output parses135SQL+54PLpgSQL and unchanged boundary5+2.
+Not wired into frozen v2; no SQL execution/activation follows. Exact failed actual
+statement remains unretained. Next: maintained initializer/native test composition
+without a full experiment copy, preserving all25 assertions and original guards.
 Real hierarchy quality and product integration remain open. Clean Git is not completion.
 
 LATEST26Oct nativePGv1 ONEactual23991 CLOSEDexit1/bootstrapOWNED_SERVER_START/

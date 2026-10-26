@@ -1,5 +1,14 @@
 # E5 matching across broad and specific topics
 
+26 October current: source is committed and pushed; generated data remains local.
+Native SQL validation reached startup but failed42601. Offline parsing found two
+invalid IF/CASE delimiters; the normal hash-pinned schema materializer corrects
+only those four bytes and passes the complete schema/boundary grammar check.
+It is not yet consumed by a maintained initializer. This repairs a concrete SQL
+source blocker, not E5 quality: native assertions, real semantic evaluation and
+product activation remain open. No consumed fixture will be rerun or edited, and
+no new full experiment variant is needed for the next explicit integration step.
+
 24 October product integration: ADR219 is implemented and independently SOURCE
 accepted as an unregistered reusable facade over actual190/196/207. It loads
 and compiles one protected candidate per context, then preserves the deepest

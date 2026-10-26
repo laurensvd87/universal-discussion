@@ -1,5 +1,20 @@
 # Hierarchical topic assignment and discussion plan
 
+## Current implementation boundary on 26 October
+
+The Git backlog is committed and pushed. The second isolated native PostgreSQL
+run passed startup, then failed checks with42601 before canonical child assertions
+completed. Its inputs and output are immutable; owned server cleanup is verified.
+Offline parsing identifies two invalid IF/CASE delimiters in the frozen schema.
+The normal hierarchy-schema-source.js now repairs exactly four bytes, with pinned
+input/output hashes and bounded raw reads. Four guarded tests and parsing of all
+54 corrected schema PL/pgSQL blocks pass. No maintained initializer consumes it
+yet; no database or matching-quality acceptance follows. Next is explicit normal
+integration and native validation preserving all25 assertions, without another
+full experiment copy. Existing discussions and crawler remain unchanged.
+
+Earlier dated implementation boundaries below are historical where superseded.
+
 ## Current implementation boundary on 24 October
 
 ADR220's reviewed design now has a separate SOURCE grant for the full-topology

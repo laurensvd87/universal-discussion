@@ -32,8 +32,17 @@ The first native attempt remains a closed bootstrap failure. Semantic quality is
 still unmeasured.
 
 The crawler and application services retain their original process starts.
-The next implementation priority is read-only diagnosis of the SQL syntax error,
-then the real hierarchy/page/discussion flow and semantic-quality measurements.
+Offline syntax diagnosis found invalid unparenthesized CASE expressions inside
+two PL/pgSQL IF guards, in install_attestation and issue_command. A minimal
+IF/CASE example reproduces the error; adding parentheses fixes it. The new normal
+hierarchy-schema-source.js applies exactly those two changes to hash-pinned source
+without editing the historical schema. Four guarded tests pass. Its actual output
+passes135 outer SQL statements and54 PL/pgSQL blocks; the unchanged boundary
+passes5 statements and2 blocks with pglast7.21/PostgreSQL17.7 grammar. This is
+syntax evidence, not successful PostgreSQL installation or canonical assertions.
+The loader is not yet called by a maintained database initializer. That explicit
+integration and native checks precede the real hierarchy/page/discussion flow
+and semantic-quality measurements; frozen v2 will not be rerun.
 Clean Git is a recovery checkpoint, not completion of hierarchical matching.
 
 ## Latest continuation: 26 October
