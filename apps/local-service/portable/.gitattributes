@@ -1,1 +1,6 @@
 * text eol=lf
+# Captured canonical/native rehearsal inputs keep their reviewed FILE bytes.
+canonical-v4/** -text
+integration/native-hierarchy-*/** -text
+integration/scoped-native-isolated-*/** -text
+integration/ridge-finite-native-v1/** -text
