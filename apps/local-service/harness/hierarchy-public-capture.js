@@ -7,6 +7,7 @@ import {captureStaticHtml} from '../src/crawler/static-capture.js';
 import {normalizeCrawlUrl} from '../src/crawler/url-policy.js';
 import {PUBLIC_HIERARCHY_PROBES} from './hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from './hierarchy-recipe-corpus.js';
+import {GTA_TRAIN_PROBES,GTA_CAL_PROBES,GTA_TEST_PROBES} from './hierarchy-gta-corpus.js';
 
 const ORIGIN='https://en.wikipedia.org',MAX_REQUESTS=34,MAX_DURATION=240000,MIN_DELAY=5000;
 const CODES=new Set(['already-attempted','deadline','aborted','clock-invalid','request-limit','robots-denied','policy-unavailable',
@@ -52,9 +53,9 @@ export function createHierarchyPublicCapture({fetchPublic=fetchPublicResource,cl
  const start=clock();if(!Number.isFinite(start)||start<0)throw new TypeError('Invalid fixed public capture clock');
  deadline??=start+MAX_DURATION;
  if(!Number.isFinite(deadline)||deadline<=start||deadline>start+MAX_DURATION||signal!==undefined&&(!signal||typeof signal.aborted!=='boolean'))throw new TypeError('Invalid fixed public capture deadline or signal');
- const approved=[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES];
+ const approved=[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
  const probes=new Map(approved.map(p=>[p.id,p]));
- if(probes.size!==42||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||new URL(p.url).origin!==ORIGIN))throw new TypeError('Invalid fixed probe source');
+ if(probes.size!==64||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||new URL(p.url).origin!==ORIGIN))throw new TypeError('Invalid fixed probe source');
  const attempted=new Set();let chain=Promise.resolve(),policyPromise=null,requests=0,lastRequest=null,lastClock=start,originStopped=false;
  function check(){if(signal?.aborted)fail('aborted');const now=clock();if(!Number.isFinite(now)||now<lastClock)fail('clock-invalid');lastClock=now;if(now>=deadline)fail('deadline');return now;}
  async function request(url,resourceKind,delay=0){

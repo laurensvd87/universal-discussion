@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {createHierarchyPublicCapture} from '../harness/hierarchy-public-capture.js';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
+import {GTA_TRAIN_PROBES,GTA_CAL_PROBES,GTA_TEST_PROBES} from '../harness/hierarchy-gta-corpus.js';
 import {PublicFetchError} from '../src/crawler/public-fetch.js';
 
 const sha=s=>createHash('sha256').update(s).digest('hex');
@@ -63,6 +64,14 @@ test('recipe calibration requests do not fetch predeclared test subjects',async(
  assert.equal(f.calls.length,6);
  assert.ok(f.calls.every(call=>!RECIPE_TEST_PROBES.some(probe=>probe.url===call.url)));
  assert.equal(f.capture.snapshot().attempted,4);
+});
+
+test('GTA fitting subjects stay in the fixed training/calibration list without test requests',async()=>{
+ const f=fixture();
+ for(const probe of [...GTA_TRAIN_PROBES,...GTA_CAL_PROBES])assert.equal((await f.capture.capture(probe.id)).status,'available');
+ assert.equal(f.calls.length,18);
+ assert.ok(f.calls.every(call=>!GTA_TEST_PROBES.some(probe=>probe.url===call.url)));
+ assert.equal(f.capture.snapshot().attempted,16);
 });
 
 test('TDM origin/header/document and robots directives use actual parsers and normal precedence',async()=>{
