@@ -1,0 +1,299 @@
+{
+  "schema": "startup-infrastructure-diagnostic/v1",
+  "profiles": [
+    "profile-01"
+  ],
+  "runtime": {
+    "platform": "win32",
+    "nodeVersion": "v24.19.0"
+  },
+  "limits": {
+    "activeSeconds": 360,
+    "wallSeconds": 420,
+    "cpuSeconds": 60,
+    "bootstrapSeconds": 30,
+    "readySeconds": 15,
+    "profileSeconds": 45,
+    "drainSeconds": 15,
+    "frameBytes": 16384,
+    "wireBytes": 67108864,
+    "processes": 128,
+    "memoryBytes": 1610612736,
+    "studyBytes": 8589934592,
+    "studyEntries": 344064,
+    "currentBytes": 536870912,
+    "currentEntries": 8192,
+    "evidenceBytes": 33554432,
+    "logBytes": 1048576,
+    "resultBytes": 524288,
+    "diagnosticBytes": 320
+  },
+  "shapes": {
+    "sourceMap": [
+      "schema",
+      "sourcePathsFileSha256",
+      "sourceHashes"
+    ],
+    "freeze": [
+      "schema",
+      "sourcePathsFileSha256",
+      "sourceMapFileSha256",
+      "sourceHashes",
+      "protocolSha256",
+      "profiles",
+      "freezeHash"
+    ],
+    "request": [
+      "schema",
+      "sequence",
+      "sourceIdentityHash",
+      "sourcePathsFileSha256",
+      "nodePid",
+      "kind",
+      "priorChainHash",
+      "payload"
+    ],
+    "response": [
+      "schema",
+      "sequence",
+      "kind",
+      "requestHash",
+      "chainHash",
+      "payload"
+    ],
+    "bootstrap": [
+      "schema",
+      "sourceIdentityHash",
+      "sourcePathsFileSha256",
+      "sourceMapHash",
+      "nodePid",
+      "creationFiletime",
+      "deadlineMilliseconds"
+    ],
+    "fault": [
+      "schema",
+      "profileIndex",
+      "stage",
+      "rpc",
+      "code",
+      "witness"
+    ],
+    "profile": [
+      "schema",
+      "profileIndex",
+      "status",
+      "preLoadCensus",
+      "finalCensus",
+      "contextCloseAttempts",
+      "browserCloseAttempts",
+      "contextClosed",
+      "browserClosed",
+      "physicalOperationsDrained",
+      "callbacksDrained",
+      "pending",
+      "firstFault"
+    ],
+    "result": [
+      "schema",
+      "bindings",
+      "status",
+      "profiles",
+      "drainAckHashes",
+      "firstFault",
+      "proofHead"
+    ],
+    "ready": [
+      "bootstrapHash",
+      "creationFiletime",
+      "nodeVersion"
+    ],
+    "profileBegin": [
+      "profileIndex",
+      "previousDrainAckHash"
+    ],
+    "profileDrain": [
+      "profileIndex",
+      "result",
+      "resultHash",
+      "proofHead"
+    ],
+    "faultRequest": [
+      "firstFault",
+      "firstFaultHash"
+    ],
+    "complete": [
+      "result",
+      "resultHash"
+    ],
+    "fsBefore": [
+      "pathKey"
+    ],
+    "fsAfter": [
+      "ticket",
+      "pathKey"
+    ],
+    "bindings": [
+      "sourcePathsFileSha256",
+      "freezeFileSha256",
+      "freezeHash",
+      "sourceMapHash",
+      "nodePid",
+      "creationFiletime",
+      "bootstrapFileSha256",
+      "baselineHash"
+    ],
+    "faultEvidence": [
+      "schema",
+      "bindings",
+      "requestSequence",
+      "requestHash",
+      "firstFaultHash",
+      "firstFault"
+    ],
+    "pending": [
+      "originals",
+      "callbacks",
+      "unsafeOriginal",
+      "unsafeObligations",
+      "coordinator"
+    ],
+    "coordinator": [
+      "failure",
+      "disposed",
+      "events",
+      "cleanupIssued",
+      "backlog",
+      "normalActive",
+      "cleanupActive",
+      "denialActive",
+      "peakNormal",
+      "peakCleanup",
+      "peakAggregate",
+      "peakDenials",
+      "peakBacklog"
+    ],
+    "proofHead": [
+      "sequence",
+      "chainHash"
+    ],
+    "controlMilestone": ["schema", "index", "request", "response", "physicalAckWriteSettled"],
+    "milestoneSummary": ["index", "kind", "sequence", "preparedFileSha256", "committedFileSha256"],
+    "bootstrapRefusal": ["schema", "stage", "code"],
+    "nativeProof": [
+      "pathKey",
+      "ancestorsChecked",
+      "openedIdentityChecked",
+      "attributes",
+      "identity",
+      "atomic"
+    ],
+    "nativeIdentity": [
+      "volumeSerial",
+      "fileIndex",
+      "creationFiletime",
+      "size",
+      "fileType"
+    ],
+    "baseline": [
+      "schema",
+      "node",
+      "console",
+      "baselineHash"
+    ],
+    "baselineIdentity": [
+      "pid",
+      "creationFiletime",
+      "imagePathSha256",
+      "imagePathHashEncoding"
+    ],
+    "supervisor": [
+      "schema",
+      "status",
+      "sourcePathsFileSha256",
+      "freezeFileSha256",
+      "bindings",
+      "baseline",
+      "resultFileSha256",
+      "firstFaultFileSha256",
+      "committedControlHead",
+      "committedControlBytes",
+      "milestones",
+      "proofScope",
+      "nodeStarted",
+      "nodeAssigned",
+      "normalExit",
+      "exitCode",
+      "firstFaultSaved",
+      "firstFault",
+      "protocolComplete",
+      "emergencyOwnJobTermination",
+      "ownCleanupPassed",
+      "endchecksPassed",
+      "peak",
+      "enumeration",
+      "collectorFailure",
+      "authority",
+      "productionValidated"
+    ],
+    "metadataSupervisor": [
+      "schema",
+      "status",
+      "nodeStarted",
+      "jobCreated",
+      "sourcePathsFileSha256",
+      "sourceMapFileSha256",
+      "freezeFileSha256",
+      "freezeHash",
+      "parentCpuMilliseconds",
+      "sourceHashesRechecked"
+    ],
+    "metadataFailure": [
+      "schema",
+      "status",
+      "nodeStarted",
+      "jobCreated",
+      "sourceHashesRechecked"
+    ],
+    "proofAck": [
+      "ticket",
+      "proof"
+    ],
+    "startupAck": [
+      "schema",
+      "baseline"
+    ],
+    "beginAck": [
+      "schema",
+      "profileIndex"
+    ],
+    "drainAck": [
+      "schema",
+      "profileIndex",
+      "resultHash"
+    ],
+    "faultAck": [
+      "schema",
+      "firstFaultHash"
+    ],
+    "exitAck": [
+      "schema",
+      "status",
+      "resultHash"
+    ]
+  },
+  "kinds": [
+    "FS_BEFORE",
+    "FS_AFTER",
+    "READY",
+    "PROFILE_BEGIN",
+    "PROFILE_DRAIN",
+    "FAILED_PROFILE_DRAIN",
+    "STARTUP_FAULT",
+    "COMPLETE",
+    "FAILED_COMPLETE"
+  ],
+  "bootstrapRefusalStages": ["configuration", "held-handshake", "bootstrap-read", "ready", "source-authentication", "package-directories", "runtime-import", "profiles", "pipe-finish"],
+  "sourceAcceptance": "adr204-reviewed-startup/v1"
+}
+
+

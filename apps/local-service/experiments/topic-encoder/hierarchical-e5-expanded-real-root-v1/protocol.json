@@ -1,0 +1,71 @@
+{
+  "schema": "hierarchical-e5-expanded-real-root-experiment/v1",
+  "expectedSplits": {
+    "training": 128,
+    "calibration": 48,
+    "test": 32
+  },
+  "inputViews": [
+    "current-static",
+    "wikipedia-prose-lead"
+  ],
+  "bodyWeights": [
+    0.75,
+    0.5,
+    0.25
+  ],
+  "lambda": 0.1,
+  "candidateOrder": [
+    [
+      "wikipedia-prose-lead",
+      0.5
+    ],
+    [
+      "wikipedia-prose-lead",
+      0.75
+    ],
+    [
+      "wikipedia-prose-lead",
+      0.25
+    ],
+    [
+      "current-static",
+      0.5
+    ],
+    [
+      "current-static",
+      0.75
+    ],
+    [
+      "current-static",
+      0.25
+    ]
+  ],
+  "calibration": {
+    "minimumAcceptedGroups": 20,
+    "maximumErrors": 0,
+    "method": "unchanged-ADR140-observed-score-gap-cuts"
+  },
+  "maximumRootNodes": 16,
+  "maxSearchModels": 6,
+  "maxAggregateTrainingWork": 80000000,
+  "maxAggregateScoringCoordinateProducts": 4000000,
+  "maxCalibrationScoringCoordinateProducts": 2000000,
+  "maxFinalScoringCoordinateProducts": 1000000,
+  "maxAggregateFusionCoordinateVisits": 5000000,
+  "maxAggregateRankWork": 1000000,
+  "inputConstruction": "v4-capture-v1-paired-separate-title-body-E5-no-fallback",
+  "resourceBudget": {
+    "threads": 1,
+    "maxProcessRssMiB": 1536,
+    "maxProcessCommitMiB": 1536,
+    "minHostReserveMiB": 1024,
+    "minCDriveFreeMiB": 768,
+    "minDDriveFreeMiB": 512,
+    "maxWallSeconds": 180
+  },
+  "independentAccuracyEvidence": false,
+  "unknownRootsTested": false,
+  "canonicalWrites": false,
+  "runtimeActivation": false
+}

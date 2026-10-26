@@ -1,0 +1,86 @@
+{
+  "schema": "hierarchical-e5-linear-experiment/v1",
+  "protocol": {
+    "schema": "hierarchical-e5-linear-experiment/v1",
+    "expectedSplits": {
+      "training": 128,
+      "development": 64,
+      "calibration": 96,
+      "test": 96
+    },
+    "maximumRows": 384,
+    "representations": [
+      "pinned-ridge",
+      "raw-e5"
+    ],
+    "lambdas": [
+      0.01,
+      0.1,
+      1,
+      10
+    ],
+    "maximumSearchModels": 8,
+    "maximumAggregateCountedTrainingWork": 128000000,
+    "selection": "development-only-minimum-class-balanced-membership-squared-error-then-prior-order",
+    "calibration": {
+      "split": "calibration",
+      "minimumAcceptedGroups": 3,
+      "targetPrecision": 1
+    },
+    "policyGrid": {
+      "thresholds": [
+        -0.25,
+        0,
+        0.25,
+        0.5,
+        0.75,
+        1,
+        1.25
+      ],
+      "margins": [
+        0,
+        0.05,
+        0.1,
+        0.2,
+        0.4
+      ]
+    },
+    "decisionMode": "single-path-root-contrast",
+    "lockedTest": "selected-model-and-calibrated-policy-only-once-no-post-test-selection-or-retune",
+    "input": "existing-query-prefix-body-contract-no-extra-normalization",
+    "qualityClaim": "synthetic-feasibility-not-representative-web-or-production-guarantee",
+    "minimumUsefulCoverage": 0.6,
+    "minimumSpecificCoverage": 0.3,
+    "budget": {
+      "threads": 1,
+      "maxProcessRssMiB": 1536,
+      "maxProcessCommitMiB": 1536,
+      "minSystemAvailableMiB": 1024,
+      "minCDriveFreeMiB": 768,
+      "maxWallSeconds": 180
+    }
+  },
+  "sourceHashes": {
+    "run.js": "67b6cf8e214d1d8116f100f5352530e470a7ab4a0bcd26844e77942e74b7c5fc",
+    "supervise.py": "a6dc9d021bce2816626832dd1862d01836e05fa2b7bc3600017439950323765f",
+    "assessment.js": "73274ddc77653a990aea67d53784e84202221f13e8756de5193f0bf004970227",
+    "vector-packet.js": "d11410f056009c64e92201213c0e2fbf1dff90a473bcb041b049ceb92ccc9010",
+    "protocol.json": "9404d7cb6347cdfe8beb0bb36a42f05a10750253a290d60d793934be799c061b",
+    "corpus.js": "69d3b75e9ef01e112c0f6be81c3c508f28c6aa817554d8d345936e9a06da982f",
+    "taxonomy.js": "1a362163dc6a100c07433519c7b8f472ebec46c09c58a330a644f9c2825d0411",
+    "../../../src/domain/hierarchical-e5-linear-heads.js": "130cdf541b8d85771886d9ae016ba080c7acf194563235c68673801abdd5a9aa",
+    "../../../src/domain/hierarchical-e5-head-policy.js": "eaeaa1bfc5c4e48d0ce5db756ecbec0fec04ad1c52252b7e93c695e9f424225c",
+    "../../../src/crawler/packaged-e5.js": "22fd2c29364d3a21e704bebad891de1c634aba7cb36d24d4947ae2354b3f32cd",
+    "../../../src/domain/ridge-topic-adapter.js": "1741229f4412f2633ad133ff3f5d6c340a84d709dc6718c39616e48e88258dd4",
+    "../../../data/ridge1-topic-adapter-v1.json": "c25618bc0f897998dced3f2f8ab47ef50d706606e4c21299654c5bc516af7569",
+    "../../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js": "6b26cc2766acdbcba39259d1459e703995c3b5ae5a6fd4a4c78b7a968d0b3920",
+    "../../../../../spikes/topic-resolution/browser/embedding/.assets/manifest.json": "5766e675660a8fbe74842a69b670a84ce5f9eb457b77032337e4a69d6180b984",
+    "../../../../../spikes/topic-resolution/harness/deny-external-capabilities.js": "77dedacd3b468e068e875b95738f1617363302f5f5b8554aad5f93ff9e3c0abd"
+  },
+  "corpusHash": "718078393f5030a2092174c1b660e5dcf5bd003d66d7e9035104a6c38aa37f19",
+  "taxonomyHash": "ce9439f0dc67215911d1822f255f9cb3a833356eb7833f0d45d48af066538166",
+  "modelId": "e5-small-q8-browser-main-prefix-v1",
+  "modelSha256": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+  "rows": 384,
+  "freezeHash": "2218edc138e512cf827a0ccdfd971e58ca213f860795be027832fe3c2aed4d7e"
+}

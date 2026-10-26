@@ -1,0 +1,4324 @@
+{
+  "schema": "hierarchical-e5-experiment/v1",
+  "freezeHash": "b9765d72fd3a3f1ce6f87b03d29a3a012bdb0240ecae08a8bbadd1fb18336ff5",
+  "vectorPacketSha256": "11981580bd366e3264a5c887fb3c2e5b68faa017c2d8aafdf06a369f3d4631ec",
+  "corpus": {
+    "rows": 144,
+    "provenance": "new-independently-authored-short-synthetic",
+    "multilingual": [
+      "en",
+      "de",
+      "nl"
+    ],
+    "realWebQualityClaim": false
+  },
+  "selection": {
+    "representation": "raw-e5",
+    "basedOn": "development-only",
+    "artifactSha256": "1cb9023a8c131b664b22e6c8ac128e9151f762409aefa43e72644d158cce92a4",
+    "postTestRetuning": false
+  },
+  "candidates": [
+    {
+      "representation": "raw-e5",
+      "artifactSha256": "1cb9023a8c131b664b22e6c8ac128e9151f762409aefa43e72644d158cce92a4",
+      "rules": [
+        {
+          "nodeId": "games",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0.01,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "video-games",
+          "enabled": true,
+          "minSimilarity": 0.85,
+          "meanSimilarity": 0.82,
+          "minMargin": 0,
+          "minNegativeMargin": 0.02,
+          "minSupport": 1
+        },
+        {
+          "nodeId": "gta",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0.01,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "red-dead-redemption",
+          "enabled": false,
+          "minSimilarity": 1,
+          "meanSimilarity": 1,
+          "minMargin": 2,
+          "minNegativeMargin": 2,
+          "minSupport": 8
+        },
+        {
+          "nodeId": "minecraft",
+          "enabled": true,
+          "minSimilarity": 0.85,
+          "meanSimilarity": 0.82,
+          "minMargin": 0.01,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "board-games",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "nature",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0.01,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "animals",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0.03,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "koalas",
+          "enabled": true,
+          "minSimilarity": 0.85,
+          "meanSimilarity": 0.82,
+          "minMargin": 0.03,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "dolphins",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0.03,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "plants",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        }
+      ],
+      "fitting": [
+        {
+          "nodeId": "games",
+          "enabled": true,
+          "positiveGroups": 18,
+          "acceptedGroups": 17,
+          "correctGroups": 17,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "video-games",
+          "enabled": true,
+          "positiveGroups": 12,
+          "acceptedGroups": 10,
+          "correctGroups": 10,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "gta",
+          "enabled": true,
+          "positiveGroups": 3,
+          "acceptedGroups": 3,
+          "correctGroups": 3,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "red-dead-redemption",
+          "enabled": false,
+          "positiveGroups": 3,
+          "acceptedGroups": 0,
+          "correctGroups": 0,
+          "observedPrecision": null
+        },
+        {
+          "nodeId": "minecraft",
+          "enabled": true,
+          "positiveGroups": 3,
+          "acceptedGroups": 2,
+          "correctGroups": 2,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "board-games",
+          "enabled": true,
+          "positiveGroups": 3,
+          "acceptedGroups": 2,
+          "correctGroups": 2,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "nature",
+          "enabled": true,
+          "positiveGroups": 15,
+          "acceptedGroups": 15,
+          "correctGroups": 15,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "animals",
+          "enabled": true,
+          "positiveGroups": 9,
+          "acceptedGroups": 7,
+          "correctGroups": 7,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "koalas",
+          "enabled": true,
+          "positiveGroups": 3,
+          "acceptedGroups": 3,
+          "correctGroups": 3,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "dolphins",
+          "enabled": true,
+          "positiveGroups": 3,
+          "acceptedGroups": 2,
+          "correctGroups": 2,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "plants",
+          "enabled": true,
+          "positiveGroups": 3,
+          "acceptedGroups": 2,
+          "correctGroups": 2,
+          "observedPrecision": 1
+        }
+      ],
+      "development": {
+        "split": "development",
+        "artifactSha256": "1cb9023a8c131b664b22e6c8ac128e9151f762409aefa43e72644d158cce92a4",
+        "representation": "raw-e5",
+        "rowCount": 36,
+        "independentGroups": 36,
+        "accepted": 32,
+        "safeAccepted": 32,
+        "acceptedPrecision": 1,
+        "coverage": 0.8888888888888888,
+        "correctDeepestOutcome": 26,
+        "deepestOutcomeAccuracy": 0.7222222222222222,
+        "broadFallback": 9,
+        "wrongBroad": 0,
+        "leafAccepted": 14,
+        "leafPrecision": 1,
+        "acceptedGroups": 32,
+        "safeAcceptedGroups": 32,
+        "leafAcceptedGroups": 14,
+        "leafCorrectGroups": 14,
+        "acceptedGroupPrecision": 1,
+        "leafGroupPrecision": 1,
+        "leafGroupPrecisionInterval95": {
+          "method": "Wilson-two-sided-95",
+          "lower": 0.7846891972623643,
+          "upper": 1,
+          "assumption": "independent-group-decisions-not-web-representativeness"
+        },
+        "byLanguage": [
+          {
+            "value": "en",
+            "rows": 12,
+            "accepted": 11,
+            "safeAccepted": 11,
+            "deepestCorrect": 8,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": "de",
+            "rows": 12,
+            "accepted": 11,
+            "safeAccepted": 11,
+            "deepestCorrect": 10,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": "nl",
+            "rows": 12,
+            "accepted": 10,
+            "safeAccepted": 10,
+            "deepestCorrect": 8,
+            "acceptedPrecision": 1
+          }
+        ],
+        "byGoldDepth": [
+          {
+            "value": 3,
+            "rows": 15,
+            "accepted": 15,
+            "safeAccepted": 15,
+            "deepestCorrect": 10,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": 1,
+            "rows": 6,
+            "accepted": 6,
+            "safeAccepted": 6,
+            "deepestCorrect": 6,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": 2,
+            "rows": 12,
+            "accepted": 11,
+            "safeAccepted": 11,
+            "deepestCorrect": 7,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": 0,
+            "rows": 3,
+            "accepted": 0,
+            "safeAccepted": 0,
+            "deepestCorrect": 3,
+            "acceptedPrecision": null
+          }
+        ],
+        "byGoldBranch": [
+          {
+            "value": "games",
+            "rows": 18,
+            "accepted": 17,
+            "safeAccepted": 17,
+            "deepestCorrect": 12,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": "nature",
+            "rows": 15,
+            "accepted": 15,
+            "safeAccepted": 15,
+            "deepestCorrect": 11,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": "outside",
+            "rows": 3,
+            "accepted": 0,
+            "safeAccepted": 0,
+            "deepestCorrect": 3,
+            "acceptedPrecision": null
+          }
+        ],
+        "gate": {
+          "productionValidated": false,
+          "minimumIndependentLeafDecisions": 150,
+          "enoughIndependentLeafDecisions": false,
+          "observedLeafPrecisionPass": true,
+          "intervalLowerBoundPass": false,
+          "observedBroadErrorPass": true
+        },
+        "timing": {
+          "sampleCount": 36,
+          "medianMs": 0.23269999999999413,
+          "p95Ms": 0.5930999999999926,
+          "maximumMs": 0.7266999999999939,
+          "scope": "classify-with-validation-excluding-compile-embedding-queue-database"
+        },
+        "outcomes": [
+          {
+            "id": "h1-development-01",
+            "groupId": "h1-development-01",
+            "language": "en",
+            "expectedTopicId": "gta",
+            "primaryNodeId": "gta",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "games",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15436
+            }
+          },
+          {
+            "id": "h1-development-02",
+            "groupId": "h1-development-02",
+            "language": "de",
+            "expectedTopicId": "gta",
+            "primaryNodeId": "gta",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "games",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15433
+            }
+          },
+          {
+            "id": "h1-development-03",
+            "groupId": "h1-development-03",
+            "language": "nl",
+            "expectedTopicId": "gta",
+            "primaryNodeId": "gta",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "games",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15426
+            }
+          },
+          {
+            "id": "h1-development-04",
+            "groupId": "h1-development-04",
+            "language": "en",
+            "expectedTopicId": "red-dead-redemption",
+            "primaryNodeId": "video-games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 2,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15425
+            }
+          },
+          {
+            "id": "h1-development-05",
+            "groupId": "h1-development-05",
+            "language": "de",
+            "expectedTopicId": "red-dead-redemption",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-06",
+            "groupId": "h1-development-06",
+            "language": "nl",
+            "expectedTopicId": "red-dead-redemption",
+            "primaryNodeId": "video-games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 2,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15433
+            }
+          },
+          {
+            "id": "h1-development-07",
+            "groupId": "h1-development-07",
+            "language": "en",
+            "expectedTopicId": "minecraft",
+            "primaryNodeId": "minecraft",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "games",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15441
+            }
+          },
+          {
+            "id": "h1-development-08",
+            "groupId": "h1-development-08",
+            "language": "de",
+            "expectedTopicId": "minecraft",
+            "primaryNodeId": "minecraft",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "games",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15436
+            }
+          },
+          {
+            "id": "h1-development-09",
+            "groupId": "h1-development-09",
+            "language": "nl",
+            "expectedTopicId": "minecraft",
+            "primaryNodeId": "video-games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 2,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15436
+            }
+          },
+          {
+            "id": "h1-development-10",
+            "groupId": "h1-development-10",
+            "language": "en",
+            "expectedTopicId": "koalas",
+            "primaryNodeId": "koalas",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15433
+            }
+          },
+          {
+            "id": "h1-development-11",
+            "groupId": "h1-development-11",
+            "language": "de",
+            "expectedTopicId": "koalas",
+            "primaryNodeId": "koalas",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15433
+            }
+          },
+          {
+            "id": "h1-development-12",
+            "groupId": "h1-development-12",
+            "language": "nl",
+            "expectedTopicId": "koalas",
+            "primaryNodeId": "koalas",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15434
+            }
+          },
+          {
+            "id": "h1-development-13",
+            "groupId": "h1-development-13",
+            "language": "en",
+            "expectedTopicId": "dolphins",
+            "primaryNodeId": "animals",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15431
+            }
+          },
+          {
+            "id": "h1-development-14",
+            "groupId": "h1-development-14",
+            "language": "de",
+            "expectedTopicId": "dolphins",
+            "primaryNodeId": "dolphins",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15427
+            }
+          },
+          {
+            "id": "h1-development-15",
+            "groupId": "h1-development-15",
+            "language": "nl",
+            "expectedTopicId": "dolphins",
+            "primaryNodeId": "dolphins",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15434
+            }
+          },
+          {
+            "id": "h1-development-16",
+            "groupId": "h1-development-16",
+            "language": "en",
+            "expectedTopicId": "games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-17",
+            "groupId": "h1-development-17",
+            "language": "de",
+            "expectedTopicId": "games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15436
+            }
+          },
+          {
+            "id": "h1-development-18",
+            "groupId": "h1-development-18",
+            "language": "nl",
+            "expectedTopicId": "games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15433
+            }
+          },
+          {
+            "id": "h1-development-19",
+            "groupId": "h1-development-19",
+            "language": "en",
+            "expectedTopicId": "video-games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15432
+            }
+          },
+          {
+            "id": "h1-development-20",
+            "groupId": "h1-development-20",
+            "language": "de",
+            "expectedTopicId": "video-games",
+            "primaryNodeId": "video-games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15435
+            }
+          },
+          {
+            "id": "h1-development-21",
+            "groupId": "h1-development-21",
+            "language": "nl",
+            "expectedTopicId": "video-games",
+            "primaryNodeId": "video-games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15436
+            }
+          },
+          {
+            "id": "h1-development-22",
+            "groupId": "h1-development-22",
+            "language": "en",
+            "expectedTopicId": "nature",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15429
+            }
+          },
+          {
+            "id": "h1-development-23",
+            "groupId": "h1-development-23",
+            "language": "de",
+            "expectedTopicId": "nature",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15432
+            }
+          },
+          {
+            "id": "h1-development-24",
+            "groupId": "h1-development-24",
+            "language": "nl",
+            "expectedTopicId": "nature",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15442
+            }
+          },
+          {
+            "id": "h1-development-25",
+            "groupId": "h1-development-25",
+            "language": "en",
+            "expectedTopicId": "animals",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15433
+            }
+          },
+          {
+            "id": "h1-development-26",
+            "groupId": "h1-development-26",
+            "language": "de",
+            "expectedTopicId": "animals",
+            "primaryNodeId": "animals",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15431
+            }
+          },
+          {
+            "id": "h1-development-27",
+            "groupId": "h1-development-27",
+            "language": "nl",
+            "expectedTopicId": "animals",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15440
+            }
+          },
+          {
+            "id": "h1-development-28",
+            "groupId": "h1-development-28",
+            "language": "en",
+            "expectedTopicId": "board-games",
+            "primaryNodeId": "board-games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "games",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15437
+            }
+          },
+          {
+            "id": "h1-development-29",
+            "groupId": "h1-development-29",
+            "language": "de",
+            "expectedTopicId": "board-games",
+            "primaryNodeId": "board-games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "games",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15432
+            }
+          },
+          {
+            "id": "h1-development-30",
+            "groupId": "h1-development-30",
+            "language": "nl",
+            "expectedTopicId": "board-games",
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 0,
+            "goldBranch": "games",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15433
+            }
+          },
+          {
+            "id": "h1-development-31",
+            "groupId": "h1-development-31",
+            "language": "en",
+            "expectedTopicId": "plants",
+            "primaryNodeId": "plants",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-32",
+            "groupId": "h1-development-32",
+            "language": "de",
+            "expectedTopicId": "plants",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-33",
+            "groupId": "h1-development-33",
+            "language": "nl",
+            "expectedTopicId": "plants",
+            "primaryNodeId": "plants",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15430
+            }
+          },
+          {
+            "id": "h1-development-34",
+            "groupId": "h1-development-34",
+            "language": "en",
+            "expectedTopicId": null,
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": true,
+            "goldDepth": 0,
+            "predictedDepth": 0,
+            "goldBranch": "outside",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15437
+            }
+          },
+          {
+            "id": "h1-development-35",
+            "groupId": "h1-development-35",
+            "language": "de",
+            "expectedTopicId": null,
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": true,
+            "goldDepth": 0,
+            "predictedDepth": 0,
+            "goldBranch": "outside",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15443
+            }
+          },
+          {
+            "id": "h1-development-36",
+            "groupId": "h1-development-36",
+            "language": "nl",
+            "expectedTopicId": null,
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": true,
+            "goldDepth": 0,
+            "predictedDepth": 0,
+            "goldBranch": "outside",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15435
+            }
+          }
+        ]
+      }
+    },
+    {
+      "representation": "pinned-ridge",
+      "artifactSha256": "b41f9bdd77ee0d450bb307d5713f4eb5631f84daad9a5cbfe2f9254b44e2dc54",
+      "rules": [
+        {
+          "nodeId": "games",
+          "enabled": true,
+          "minSimilarity": 0.75,
+          "meanSimilarity": 0.72,
+          "minMargin": 0.01,
+          "minNegativeMargin": 0.02,
+          "minSupport": 1
+        },
+        {
+          "nodeId": "video-games",
+          "enabled": false,
+          "minSimilarity": 1,
+          "meanSimilarity": 1,
+          "minMargin": 2,
+          "minNegativeMargin": 2,
+          "minSupport": 8
+        },
+        {
+          "nodeId": "gta",
+          "enabled": false,
+          "minSimilarity": 1,
+          "meanSimilarity": 1,
+          "minMargin": 2,
+          "minNegativeMargin": 2,
+          "minSupport": 8
+        },
+        {
+          "nodeId": "red-dead-redemption",
+          "enabled": false,
+          "minSimilarity": 1,
+          "meanSimilarity": 1,
+          "minMargin": 2,
+          "minNegativeMargin": 2,
+          "minSupport": 8
+        },
+        {
+          "nodeId": "minecraft",
+          "enabled": false,
+          "minSimilarity": 1,
+          "meanSimilarity": 1,
+          "minMargin": 2,
+          "minNegativeMargin": 2,
+          "minSupport": 8
+        },
+        {
+          "nodeId": "board-games",
+          "enabled": false,
+          "minSimilarity": 1,
+          "meanSimilarity": 1,
+          "minMargin": 2,
+          "minNegativeMargin": 2,
+          "minSupport": 8
+        },
+        {
+          "nodeId": "nature",
+          "enabled": true,
+          "minSimilarity": 0.75,
+          "meanSimilarity": 0.72,
+          "minMargin": 0.03,
+          "minNegativeMargin": 0.02,
+          "minSupport": 1
+        },
+        {
+          "nodeId": "animals",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0.03,
+          "minNegativeMargin": 0.02,
+          "minSupport": 1
+        },
+        {
+          "nodeId": "koalas",
+          "enabled": true,
+          "minSimilarity": 0.75,
+          "meanSimilarity": 0.72,
+          "minMargin": 0.06,
+          "minNegativeMargin": 0.02,
+          "minSupport": 2
+        },
+        {
+          "nodeId": "dolphins",
+          "enabled": false,
+          "minSimilarity": 1,
+          "meanSimilarity": 1,
+          "minMargin": 2,
+          "minNegativeMargin": 2,
+          "minSupport": 8
+        },
+        {
+          "nodeId": "plants",
+          "enabled": true,
+          "minSimilarity": 0.8,
+          "meanSimilarity": 0.77,
+          "minMargin": 0.06,
+          "minNegativeMargin": 0.02,
+          "minSupport": 1
+        }
+      ],
+      "fitting": [
+        {
+          "nodeId": "games",
+          "enabled": true,
+          "positiveGroups": 18,
+          "acceptedGroups": 12,
+          "correctGroups": 12,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "video-games",
+          "enabled": false,
+          "positiveGroups": 12,
+          "acceptedGroups": 0,
+          "correctGroups": 0,
+          "observedPrecision": null
+        },
+        {
+          "nodeId": "gta",
+          "enabled": false,
+          "positiveGroups": 3,
+          "acceptedGroups": 0,
+          "correctGroups": 0,
+          "observedPrecision": null
+        },
+        {
+          "nodeId": "red-dead-redemption",
+          "enabled": false,
+          "positiveGroups": 3,
+          "acceptedGroups": 0,
+          "correctGroups": 0,
+          "observedPrecision": null
+        },
+        {
+          "nodeId": "minecraft",
+          "enabled": false,
+          "positiveGroups": 3,
+          "acceptedGroups": 0,
+          "correctGroups": 0,
+          "observedPrecision": null
+        },
+        {
+          "nodeId": "board-games",
+          "enabled": false,
+          "positiveGroups": 3,
+          "acceptedGroups": 0,
+          "correctGroups": 0,
+          "observedPrecision": null
+        },
+        {
+          "nodeId": "nature",
+          "enabled": true,
+          "positiveGroups": 15,
+          "acceptedGroups": 15,
+          "correctGroups": 15,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "animals",
+          "enabled": true,
+          "positiveGroups": 9,
+          "acceptedGroups": 7,
+          "correctGroups": 7,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "koalas",
+          "enabled": true,
+          "positiveGroups": 3,
+          "acceptedGroups": 2,
+          "correctGroups": 2,
+          "observedPrecision": 1
+        },
+        {
+          "nodeId": "dolphins",
+          "enabled": false,
+          "positiveGroups": 3,
+          "acceptedGroups": 0,
+          "correctGroups": 0,
+          "observedPrecision": null
+        },
+        {
+          "nodeId": "plants",
+          "enabled": true,
+          "positiveGroups": 3,
+          "acceptedGroups": 2,
+          "correctGroups": 2,
+          "observedPrecision": 1
+        }
+      ],
+      "development": {
+        "split": "development",
+        "artifactSha256": "b41f9bdd77ee0d450bb307d5713f4eb5631f84daad9a5cbfe2f9254b44e2dc54",
+        "representation": "pinned-ridge",
+        "rowCount": 36,
+        "independentGroups": 36,
+        "accepted": 27,
+        "safeAccepted": 27,
+        "acceptedPrecision": 1,
+        "coverage": 0.75,
+        "correctDeepestOutcome": 16,
+        "deepestOutcomeAccuracy": 0.4444444444444444,
+        "broadFallback": 14,
+        "wrongBroad": 0,
+        "leafAccepted": 4,
+        "leafPrecision": 1,
+        "acceptedGroups": 27,
+        "safeAcceptedGroups": 27,
+        "leafAcceptedGroups": 4,
+        "leafCorrectGroups": 4,
+        "acceptedGroupPrecision": 1,
+        "leafGroupPrecision": 1,
+        "leafGroupPrecisionInterval95": {
+          "method": "Wilson-two-sided-95",
+          "lower": 0.5101091635454027,
+          "upper": 1,
+          "assumption": "independent-group-decisions-not-web-representativeness"
+        },
+        "byLanguage": [
+          {
+            "value": "en",
+            "rows": 12,
+            "accepted": 9,
+            "safeAccepted": 9,
+            "deepestCorrect": 5,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": "de",
+            "rows": 12,
+            "accepted": 8,
+            "safeAccepted": 8,
+            "deepestCorrect": 5,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": "nl",
+            "rows": 12,
+            "accepted": 10,
+            "safeAccepted": 10,
+            "deepestCorrect": 6,
+            "acceptedPrecision": 1
+          }
+        ],
+        "byGoldDepth": [
+          {
+            "value": 3,
+            "rows": 15,
+            "accepted": 12,
+            "safeAccepted": 12,
+            "deepestCorrect": 2,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": 1,
+            "rows": 6,
+            "accepted": 6,
+            "safeAccepted": 6,
+            "deepestCorrect": 6,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": 2,
+            "rows": 12,
+            "accepted": 9,
+            "safeAccepted": 9,
+            "deepestCorrect": 5,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": 0,
+            "rows": 3,
+            "accepted": 0,
+            "safeAccepted": 0,
+            "deepestCorrect": 3,
+            "acceptedPrecision": null
+          }
+        ],
+        "byGoldBranch": [
+          {
+            "value": "games",
+            "rows": 18,
+            "accepted": 12,
+            "safeAccepted": 12,
+            "deepestCorrect": 3,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": "nature",
+            "rows": 15,
+            "accepted": 15,
+            "safeAccepted": 15,
+            "deepestCorrect": 10,
+            "acceptedPrecision": 1
+          },
+          {
+            "value": "outside",
+            "rows": 3,
+            "accepted": 0,
+            "safeAccepted": 0,
+            "deepestCorrect": 3,
+            "acceptedPrecision": null
+          }
+        ],
+        "gate": {
+          "productionValidated": false,
+          "minimumIndependentLeafDecisions": 150,
+          "enoughIndependentLeafDecisions": false,
+          "observedLeafPrecisionPass": true,
+          "intervalLowerBoundPass": false,
+          "observedBroadErrorPass": true
+        },
+        "timing": {
+          "sampleCount": 36,
+          "medianMs": 0.308400000000006,
+          "p95Ms": 0.6026999999999987,
+          "maximumMs": 1.0295999999999879,
+          "scope": "classify-with-validation-excluding-compile-embedding-queue-database"
+        },
+        "outcomes": [
+          {
+            "id": "h1-development-01",
+            "groupId": "h1-development-01",
+            "language": "en",
+            "expectedTopicId": "gta",
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 0,
+            "goldBranch": "games",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15443
+            }
+          },
+          {
+            "id": "h1-development-02",
+            "groupId": "h1-development-02",
+            "language": "de",
+            "expectedTopicId": "gta",
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 0,
+            "goldBranch": "games",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-03",
+            "groupId": "h1-development-03",
+            "language": "nl",
+            "expectedTopicId": "gta",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-04",
+            "groupId": "h1-development-04",
+            "language": "en",
+            "expectedTopicId": "red-dead-redemption",
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 0,
+            "goldBranch": "games",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15433
+            }
+          },
+          {
+            "id": "h1-development-05",
+            "groupId": "h1-development-05",
+            "language": "de",
+            "expectedTopicId": "red-dead-redemption",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15442
+            }
+          },
+          {
+            "id": "h1-development-06",
+            "groupId": "h1-development-06",
+            "language": "nl",
+            "expectedTopicId": "red-dead-redemption",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15435
+            }
+          },
+          {
+            "id": "h1-development-07",
+            "groupId": "h1-development-07",
+            "language": "en",
+            "expectedTopicId": "minecraft",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15440
+            }
+          },
+          {
+            "id": "h1-development-08",
+            "groupId": "h1-development-08",
+            "language": "de",
+            "expectedTopicId": "minecraft",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15444
+            }
+          },
+          {
+            "id": "h1-development-09",
+            "groupId": "h1-development-09",
+            "language": "nl",
+            "expectedTopicId": "minecraft",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-10",
+            "groupId": "h1-development-10",
+            "language": "en",
+            "expectedTopicId": "koalas",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15429
+            }
+          },
+          {
+            "id": "h1-development-11",
+            "groupId": "h1-development-11",
+            "language": "de",
+            "expectedTopicId": "koalas",
+            "primaryNodeId": "koalas",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15434
+            }
+          },
+          {
+            "id": "h1-development-12",
+            "groupId": "h1-development-12",
+            "language": "nl",
+            "expectedTopicId": "koalas",
+            "primaryNodeId": "koalas",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 3,
+            "predictedDepth": 3,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15436
+            }
+          },
+          {
+            "id": "h1-development-13",
+            "groupId": "h1-development-13",
+            "language": "en",
+            "expectedTopicId": "dolphins",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15431
+            }
+          },
+          {
+            "id": "h1-development-14",
+            "groupId": "h1-development-14",
+            "language": "de",
+            "expectedTopicId": "dolphins",
+            "primaryNodeId": "animals",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15434
+            }
+          },
+          {
+            "id": "h1-development-15",
+            "groupId": "h1-development-15",
+            "language": "nl",
+            "expectedTopicId": "dolphins",
+            "primaryNodeId": "animals",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 3,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15437
+            }
+          },
+          {
+            "id": "h1-development-16",
+            "groupId": "h1-development-16",
+            "language": "en",
+            "expectedTopicId": "games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15434
+            }
+          },
+          {
+            "id": "h1-development-17",
+            "groupId": "h1-development-17",
+            "language": "de",
+            "expectedTopicId": "games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15432
+            }
+          },
+          {
+            "id": "h1-development-18",
+            "groupId": "h1-development-18",
+            "language": "nl",
+            "expectedTopicId": "games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15437
+            }
+          },
+          {
+            "id": "h1-development-19",
+            "groupId": "h1-development-19",
+            "language": "en",
+            "expectedTopicId": "video-games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15439
+            }
+          },
+          {
+            "id": "h1-development-20",
+            "groupId": "h1-development-20",
+            "language": "de",
+            "expectedTopicId": "video-games",
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 0,
+            "goldBranch": "games",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15440
+            }
+          },
+          {
+            "id": "h1-development-21",
+            "groupId": "h1-development-21",
+            "language": "nl",
+            "expectedTopicId": "video-games",
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 0,
+            "goldBranch": "games",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15428
+            }
+          },
+          {
+            "id": "h1-development-22",
+            "groupId": "h1-development-22",
+            "language": "en",
+            "expectedTopicId": "nature",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15430
+            }
+          },
+          {
+            "id": "h1-development-23",
+            "groupId": "h1-development-23",
+            "language": "de",
+            "expectedTopicId": "nature",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-24",
+            "groupId": "h1-development-24",
+            "language": "nl",
+            "expectedTopicId": "nature",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 1,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15441
+            }
+          },
+          {
+            "id": "h1-development-25",
+            "groupId": "h1-development-25",
+            "language": "en",
+            "expectedTopicId": "animals",
+            "primaryNodeId": "animals",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15444
+            }
+          },
+          {
+            "id": "h1-development-26",
+            "groupId": "h1-development-26",
+            "language": "de",
+            "expectedTopicId": "animals",
+            "primaryNodeId": "animals",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15434
+            }
+          },
+          {
+            "id": "h1-development-27",
+            "groupId": "h1-development-27",
+            "language": "nl",
+            "expectedTopicId": "animals",
+            "primaryNodeId": "animals",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15439
+            }
+          },
+          {
+            "id": "h1-development-28",
+            "groupId": "h1-development-28",
+            "language": "en",
+            "expectedTopicId": "board-games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15440
+            }
+          },
+          {
+            "id": "h1-development-29",
+            "groupId": "h1-development-29",
+            "language": "de",
+            "expectedTopicId": "board-games",
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 0,
+            "goldBranch": "games",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15435
+            }
+          },
+          {
+            "id": "h1-development-30",
+            "groupId": "h1-development-30",
+            "language": "nl",
+            "expectedTopicId": "board-games",
+            "primaryNodeId": "games",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 1,
+            "goldBranch": "games",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15445
+            }
+          },
+          {
+            "id": "h1-development-31",
+            "groupId": "h1-development-31",
+            "language": "en",
+            "expectedTopicId": "plants",
+            "primaryNodeId": "plants",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15437
+            }
+          },
+          {
+            "id": "h1-development-32",
+            "groupId": "h1-development-32",
+            "language": "de",
+            "expectedTopicId": "plants",
+            "primaryNodeId": "nature",
+            "safeAccepted": true,
+            "correctOutcome": false,
+            "goldDepth": 2,
+            "predictedDepth": 1,
+            "goldBranch": "nature",
+            "reason": "supported-parent-stop",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15434
+            }
+          },
+          {
+            "id": "h1-development-33",
+            "groupId": "h1-development-33",
+            "language": "nl",
+            "expectedTopicId": "plants",
+            "primaryNodeId": "plants",
+            "safeAccepted": true,
+            "correctOutcome": true,
+            "goldDepth": 2,
+            "predictedDepth": 2,
+            "goldBranch": "nature",
+            "reason": "supported-specific-node",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15438
+            }
+          },
+          {
+            "id": "h1-development-34",
+            "groupId": "h1-development-34",
+            "language": "en",
+            "expectedTopicId": null,
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": true,
+            "goldDepth": 0,
+            "predictedDepth": 0,
+            "goldBranch": "outside",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15432
+            }
+          },
+          {
+            "id": "h1-development-35",
+            "groupId": "h1-development-35",
+            "language": "de",
+            "expectedTopicId": null,
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": true,
+            "goldDepth": 0,
+            "predictedDepth": 0,
+            "goldBranch": "outside",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15434
+            }
+          },
+          {
+            "id": "h1-development-36",
+            "groupId": "h1-development-36",
+            "language": "nl",
+            "expectedTopicId": null,
+            "primaryNodeId": null,
+            "safeAccepted": false,
+            "correctOutcome": true,
+            "goldDepth": 0,
+            "predictedDepth": 0,
+            "goldBranch": "outside",
+            "reason": "insufficient-evidence",
+            "work": {
+              "dotProducts": 39,
+              "scalarProducts": 14976,
+              "units": 15437
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "calibrationAssessmentOnly": [
+    {
+      "split": "calibration",
+      "artifactSha256": "1cb9023a8c131b664b22e6c8ac128e9151f762409aefa43e72644d158cce92a4",
+      "representation": "raw-e5",
+      "rowCount": 36,
+      "independentGroups": 36,
+      "accepted": 33,
+      "safeAccepted": 29,
+      "acceptedPrecision": 0.8787878787878788,
+      "coverage": 0.9166666666666666,
+      "correctDeepestOutcome": 22,
+      "deepestOutcomeAccuracy": 0.6111111111111112,
+      "broadFallback": 10,
+      "wrongBroad": 1,
+      "leafAccepted": 15,
+      "leafPrecision": 0.8,
+      "acceptedGroups": 33,
+      "safeAcceptedGroups": 29,
+      "leafAcceptedGroups": 15,
+      "leafCorrectGroups": 12,
+      "acceptedGroupPrecision": 0.8787878787878788,
+      "leafGroupPrecision": 0.8,
+      "leafGroupPrecisionInterval95": {
+        "method": "Wilson-two-sided-95",
+        "lower": 0.5481455128483065,
+        "upper": 0.9295245065301844,
+        "assumption": "independent-group-decisions-not-web-representativeness"
+      },
+      "byLanguage": [
+        {
+          "value": "en",
+          "rows": 12,
+          "accepted": 11,
+          "safeAccepted": 9,
+          "deepestCorrect": 8,
+          "acceptedPrecision": 0.8181818181818182
+        },
+        {
+          "value": "de",
+          "rows": 12,
+          "accepted": 11,
+          "safeAccepted": 10,
+          "deepestCorrect": 5,
+          "acceptedPrecision": 0.9090909090909091
+        },
+        {
+          "value": "nl",
+          "rows": 12,
+          "accepted": 11,
+          "safeAccepted": 10,
+          "deepestCorrect": 9,
+          "acceptedPrecision": 0.9090909090909091
+        }
+      ],
+      "byGoldDepth": [
+        {
+          "value": 3,
+          "rows": 15,
+          "accepted": 15,
+          "safeAccepted": 14,
+          "deepestCorrect": 8,
+          "acceptedPrecision": 0.9333333333333333
+        },
+        {
+          "value": 1,
+          "rows": 6,
+          "accepted": 6,
+          "safeAccepted": 4,
+          "deepestCorrect": 4,
+          "acceptedPrecision": 0.6666666666666666
+        },
+        {
+          "value": 2,
+          "rows": 12,
+          "accepted": 12,
+          "safeAccepted": 11,
+          "deepestCorrect": 7,
+          "acceptedPrecision": 0.9166666666666666
+        },
+        {
+          "value": 0,
+          "rows": 3,
+          "accepted": 0,
+          "safeAccepted": 0,
+          "deepestCorrect": 3,
+          "acceptedPrecision": null
+        }
+      ],
+      "byGoldBranch": [
+        {
+          "value": "games",
+          "rows": 18,
+          "accepted": 18,
+          "safeAccepted": 14,
+          "deepestCorrect": 9,
+          "acceptedPrecision": 0.7777777777777778
+        },
+        {
+          "value": "nature",
+          "rows": 15,
+          "accepted": 15,
+          "safeAccepted": 15,
+          "deepestCorrect": 10,
+          "acceptedPrecision": 1
+        },
+        {
+          "value": "outside",
+          "rows": 3,
+          "accepted": 0,
+          "safeAccepted": 0,
+          "deepestCorrect": 3,
+          "acceptedPrecision": null
+        }
+      ],
+      "gate": {
+        "productionValidated": false,
+        "minimumIndependentLeafDecisions": 150,
+        "enoughIndependentLeafDecisions": false,
+        "observedLeafPrecisionPass": false,
+        "intervalLowerBoundPass": false,
+        "observedBroadErrorPass": false
+      },
+      "timing": {
+        "sampleCount": 36,
+        "medianMs": 0.24269999999998504,
+        "p95Ms": 0.5551000000000101,
+        "maximumMs": 1.1020999999999788,
+        "scope": "classify-with-validation-excluding-compile-embedding-queue-database"
+      },
+      "outcomes": [
+        {
+          "id": "h1-calibration-01",
+          "groupId": "h1-calibration-01",
+          "language": "en",
+          "expectedTopicId": "gta",
+          "primaryNodeId": "gta",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-02",
+          "groupId": "h1-calibration-02",
+          "language": "de",
+          "expectedTopicId": "gta",
+          "primaryNodeId": "gta",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15430
+          }
+        },
+        {
+          "id": "h1-calibration-03",
+          "groupId": "h1-calibration-03",
+          "language": "nl",
+          "expectedTopicId": "gta",
+          "primaryNodeId": "gta",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15428
+          }
+        },
+        {
+          "id": "h1-calibration-04",
+          "groupId": "h1-calibration-04",
+          "language": "en",
+          "expectedTopicId": "red-dead-redemption",
+          "primaryNodeId": "gta",
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15433
+          }
+        },
+        {
+          "id": "h1-calibration-05",
+          "groupId": "h1-calibration-05",
+          "language": "de",
+          "expectedTopicId": "red-dead-redemption",
+          "primaryNodeId": "video-games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 2,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15432
+          }
+        },
+        {
+          "id": "h1-calibration-06",
+          "groupId": "h1-calibration-06",
+          "language": "nl",
+          "expectedTopicId": "red-dead-redemption",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15429
+          }
+        },
+        {
+          "id": "h1-calibration-07",
+          "groupId": "h1-calibration-07",
+          "language": "en",
+          "expectedTopicId": "minecraft",
+          "primaryNodeId": "minecraft",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15432
+          }
+        },
+        {
+          "id": "h1-calibration-08",
+          "groupId": "h1-calibration-08",
+          "language": "de",
+          "expectedTopicId": "minecraft",
+          "primaryNodeId": "video-games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 2,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15435
+          }
+        },
+        {
+          "id": "h1-calibration-09",
+          "groupId": "h1-calibration-09",
+          "language": "nl",
+          "expectedTopicId": "minecraft",
+          "primaryNodeId": "minecraft",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15439
+          }
+        },
+        {
+          "id": "h1-calibration-10",
+          "groupId": "h1-calibration-10",
+          "language": "en",
+          "expectedTopicId": "koalas",
+          "primaryNodeId": "koalas",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "nature",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15431
+          }
+        },
+        {
+          "id": "h1-calibration-11",
+          "groupId": "h1-calibration-11",
+          "language": "de",
+          "expectedTopicId": "koalas",
+          "primaryNodeId": "animals",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 2,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15432
+          }
+        },
+        {
+          "id": "h1-calibration-12",
+          "groupId": "h1-calibration-12",
+          "language": "nl",
+          "expectedTopicId": "koalas",
+          "primaryNodeId": "koalas",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "nature",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15431
+          }
+        },
+        {
+          "id": "h1-calibration-13",
+          "groupId": "h1-calibration-13",
+          "language": "en",
+          "expectedTopicId": "dolphins",
+          "primaryNodeId": "dolphins",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "nature",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15434
+          }
+        },
+        {
+          "id": "h1-calibration-14",
+          "groupId": "h1-calibration-14",
+          "language": "de",
+          "expectedTopicId": "dolphins",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15427
+          }
+        },
+        {
+          "id": "h1-calibration-15",
+          "groupId": "h1-calibration-15",
+          "language": "nl",
+          "expectedTopicId": "dolphins",
+          "primaryNodeId": "animals",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 2,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15436
+          }
+        },
+        {
+          "id": "h1-calibration-16",
+          "groupId": "h1-calibration-16",
+          "language": "en",
+          "expectedTopicId": "games",
+          "primaryNodeId": "board-games",
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 1,
+          "predictedDepth": 2,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15435
+          }
+        },
+        {
+          "id": "h1-calibration-17",
+          "groupId": "h1-calibration-17",
+          "language": "de",
+          "expectedTopicId": "games",
+          "primaryNodeId": "board-games",
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 1,
+          "predictedDepth": 2,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15432
+          }
+        },
+        {
+          "id": "h1-calibration-18",
+          "groupId": "h1-calibration-18",
+          "language": "nl",
+          "expectedTopicId": "games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15430
+          }
+        },
+        {
+          "id": "h1-calibration-19",
+          "groupId": "h1-calibration-19",
+          "language": "en",
+          "expectedTopicId": "video-games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15435
+          }
+        },
+        {
+          "id": "h1-calibration-20",
+          "groupId": "h1-calibration-20",
+          "language": "de",
+          "expectedTopicId": "video-games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15428
+          }
+        },
+        {
+          "id": "h1-calibration-21",
+          "groupId": "h1-calibration-21",
+          "language": "nl",
+          "expectedTopicId": "video-games",
+          "primaryNodeId": "video-games",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 2,
+          "predictedDepth": 2,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15429
+          }
+        },
+        {
+          "id": "h1-calibration-22",
+          "groupId": "h1-calibration-22",
+          "language": "en",
+          "expectedTopicId": "nature",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15431
+          }
+        },
+        {
+          "id": "h1-calibration-23",
+          "groupId": "h1-calibration-23",
+          "language": "de",
+          "expectedTopicId": "nature",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15438
+          }
+        },
+        {
+          "id": "h1-calibration-24",
+          "groupId": "h1-calibration-24",
+          "language": "nl",
+          "expectedTopicId": "nature",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15431
+          }
+        },
+        {
+          "id": "h1-calibration-25",
+          "groupId": "h1-calibration-25",
+          "language": "en",
+          "expectedTopicId": "animals",
+          "primaryNodeId": "animals",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 2,
+          "predictedDepth": 2,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15433
+          }
+        },
+        {
+          "id": "h1-calibration-26",
+          "groupId": "h1-calibration-26",
+          "language": "de",
+          "expectedTopicId": "animals",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15431
+          }
+        },
+        {
+          "id": "h1-calibration-27",
+          "groupId": "h1-calibration-27",
+          "language": "nl",
+          "expectedTopicId": "animals",
+          "primaryNodeId": "animals",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 2,
+          "predictedDepth": 2,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15432
+          }
+        },
+        {
+          "id": "h1-calibration-28",
+          "groupId": "h1-calibration-28",
+          "language": "en",
+          "expectedTopicId": "board-games",
+          "primaryNodeId": "board-games",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 2,
+          "predictedDepth": 2,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15432
+          }
+        },
+        {
+          "id": "h1-calibration-29",
+          "groupId": "h1-calibration-29",
+          "language": "de",
+          "expectedTopicId": "board-games",
+          "primaryNodeId": "board-games",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 2,
+          "predictedDepth": 2,
+          "goldBranch": "games",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15439
+          }
+        },
+        {
+          "id": "h1-calibration-30",
+          "groupId": "h1-calibration-30",
+          "language": "nl",
+          "expectedTopicId": "board-games",
+          "primaryNodeId": "animals",
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 2,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15440
+          }
+        },
+        {
+          "id": "h1-calibration-31",
+          "groupId": "h1-calibration-31",
+          "language": "en",
+          "expectedTopicId": "plants",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-32",
+          "groupId": "h1-calibration-32",
+          "language": "de",
+          "expectedTopicId": "plants",
+          "primaryNodeId": "plants",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 2,
+          "predictedDepth": 2,
+          "goldBranch": "nature",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-33",
+          "groupId": "h1-calibration-33",
+          "language": "nl",
+          "expectedTopicId": "plants",
+          "primaryNodeId": "plants",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 2,
+          "predictedDepth": 2,
+          "goldBranch": "nature",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15439
+          }
+        },
+        {
+          "id": "h1-calibration-34",
+          "groupId": "h1-calibration-34",
+          "language": "en",
+          "expectedTopicId": null,
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": true,
+          "goldDepth": 0,
+          "predictedDepth": 0,
+          "goldBranch": "outside",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15433
+          }
+        },
+        {
+          "id": "h1-calibration-35",
+          "groupId": "h1-calibration-35",
+          "language": "de",
+          "expectedTopicId": null,
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": true,
+          "goldDepth": 0,
+          "predictedDepth": 0,
+          "goldBranch": "outside",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15434
+          }
+        },
+        {
+          "id": "h1-calibration-36",
+          "groupId": "h1-calibration-36",
+          "language": "nl",
+          "expectedTopicId": null,
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": true,
+          "goldDepth": 0,
+          "predictedDepth": 0,
+          "goldBranch": "outside",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15433
+          }
+        }
+      ]
+    },
+    {
+      "split": "calibration",
+      "artifactSha256": "b41f9bdd77ee0d450bb307d5713f4eb5631f84daad9a5cbfe2f9254b44e2dc54",
+      "representation": "pinned-ridge",
+      "rowCount": 36,
+      "independentGroups": 36,
+      "accepted": 26,
+      "safeAccepted": 24,
+      "acceptedPrecision": 0.9230769230769231,
+      "coverage": 0.7222222222222222,
+      "correctDeepestOutcome": 9,
+      "deepestOutcomeAccuracy": 0.25,
+      "broadFallback": 18,
+      "wrongBroad": 2,
+      "leafAccepted": 1,
+      "leafPrecision": 1,
+      "acceptedGroups": 26,
+      "safeAcceptedGroups": 24,
+      "leafAcceptedGroups": 1,
+      "leafCorrectGroups": 1,
+      "acceptedGroupPrecision": 0.9230769230769231,
+      "leafGroupPrecision": 1,
+      "leafGroupPrecisionInterval95": {
+        "method": "Wilson-two-sided-95",
+        "lower": 0.20654931437723745,
+        "upper": 1,
+        "assumption": "independent-group-decisions-not-web-representativeness"
+      },
+      "byLanguage": [
+        {
+          "value": "en",
+          "rows": 12,
+          "accepted": 10,
+          "safeAccepted": 10,
+          "deepestCorrect": 3,
+          "acceptedPrecision": 1
+        },
+        {
+          "value": "de",
+          "rows": 12,
+          "accepted": 7,
+          "safeAccepted": 5,
+          "deepestCorrect": 2,
+          "acceptedPrecision": 0.7142857142857143
+        },
+        {
+          "value": "nl",
+          "rows": 12,
+          "accepted": 9,
+          "safeAccepted": 9,
+          "deepestCorrect": 4,
+          "acceptedPrecision": 1
+        }
+      ],
+      "byGoldDepth": [
+        {
+          "value": 3,
+          "rows": 15,
+          "accepted": 10,
+          "safeAccepted": 10,
+          "deepestCorrect": 1,
+          "acceptedPrecision": 1
+        },
+        {
+          "value": 1,
+          "rows": 6,
+          "accepted": 6,
+          "safeAccepted": 5,
+          "deepestCorrect": 5,
+          "acceptedPrecision": 0.8333333333333334
+        },
+        {
+          "value": 2,
+          "rows": 12,
+          "accepted": 10,
+          "safeAccepted": 9,
+          "deepestCorrect": 0,
+          "acceptedPrecision": 0.9
+        },
+        {
+          "value": 0,
+          "rows": 3,
+          "accepted": 0,
+          "safeAccepted": 0,
+          "deepestCorrect": 3,
+          "acceptedPrecision": null
+        }
+      ],
+      "byGoldBranch": [
+        {
+          "value": "games",
+          "rows": 18,
+          "accepted": 13,
+          "safeAccepted": 11,
+          "deepestCorrect": 2,
+          "acceptedPrecision": 0.8461538461538461
+        },
+        {
+          "value": "nature",
+          "rows": 15,
+          "accepted": 13,
+          "safeAccepted": 13,
+          "deepestCorrect": 4,
+          "acceptedPrecision": 1
+        },
+        {
+          "value": "outside",
+          "rows": 3,
+          "accepted": 0,
+          "safeAccepted": 0,
+          "deepestCorrect": 3,
+          "acceptedPrecision": null
+        }
+      ],
+      "gate": {
+        "productionValidated": false,
+        "minimumIndependentLeafDecisions": 150,
+        "enoughIndependentLeafDecisions": false,
+        "observedLeafPrecisionPass": true,
+        "intervalLowerBoundPass": false,
+        "observedBroadErrorPass": false
+      },
+      "timing": {
+        "sampleCount": 36,
+        "medianMs": 0.240099999999984,
+        "p95Ms": 0.4556999999999789,
+        "maximumMs": 0.5837000000000216,
+        "scope": "classify-with-validation-excluding-compile-embedding-queue-database"
+      },
+      "outcomes": [
+        {
+          "id": "h1-calibration-01",
+          "groupId": "h1-calibration-01",
+          "language": "en",
+          "expectedTopicId": "gta",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15427
+          }
+        },
+        {
+          "id": "h1-calibration-02",
+          "groupId": "h1-calibration-02",
+          "language": "de",
+          "expectedTopicId": "gta",
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 0,
+          "goldBranch": "games",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15434
+          }
+        },
+        {
+          "id": "h1-calibration-03",
+          "groupId": "h1-calibration-03",
+          "language": "nl",
+          "expectedTopicId": "gta",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15440
+          }
+        },
+        {
+          "id": "h1-calibration-04",
+          "groupId": "h1-calibration-04",
+          "language": "en",
+          "expectedTopicId": "red-dead-redemption",
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 0,
+          "goldBranch": "games",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15435
+          }
+        },
+        {
+          "id": "h1-calibration-05",
+          "groupId": "h1-calibration-05",
+          "language": "de",
+          "expectedTopicId": "red-dead-redemption",
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 0,
+          "goldBranch": "games",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-06",
+          "groupId": "h1-calibration-06",
+          "language": "nl",
+          "expectedTopicId": "red-dead-redemption",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15435
+          }
+        },
+        {
+          "id": "h1-calibration-07",
+          "groupId": "h1-calibration-07",
+          "language": "en",
+          "expectedTopicId": "minecraft",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15442
+          }
+        },
+        {
+          "id": "h1-calibration-08",
+          "groupId": "h1-calibration-08",
+          "language": "de",
+          "expectedTopicId": "minecraft",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15438
+          }
+        },
+        {
+          "id": "h1-calibration-09",
+          "groupId": "h1-calibration-09",
+          "language": "nl",
+          "expectedTopicId": "minecraft",
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 0,
+          "goldBranch": "games",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15438
+          }
+        },
+        {
+          "id": "h1-calibration-10",
+          "groupId": "h1-calibration-10",
+          "language": "en",
+          "expectedTopicId": "koalas",
+          "primaryNodeId": "animals",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 2,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15440
+          }
+        },
+        {
+          "id": "h1-calibration-11",
+          "groupId": "h1-calibration-11",
+          "language": "de",
+          "expectedTopicId": "koalas",
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 0,
+          "goldBranch": "nature",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15432
+          }
+        },
+        {
+          "id": "h1-calibration-12",
+          "groupId": "h1-calibration-12",
+          "language": "nl",
+          "expectedTopicId": "koalas",
+          "primaryNodeId": "koalas",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 3,
+          "predictedDepth": 3,
+          "goldBranch": "nature",
+          "reason": "supported-specific-node",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-13",
+          "groupId": "h1-calibration-13",
+          "language": "en",
+          "expectedTopicId": "dolphins",
+          "primaryNodeId": "animals",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 2,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15444
+          }
+        },
+        {
+          "id": "h1-calibration-14",
+          "groupId": "h1-calibration-14",
+          "language": "de",
+          "expectedTopicId": "dolphins",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15440
+          }
+        },
+        {
+          "id": "h1-calibration-15",
+          "groupId": "h1-calibration-15",
+          "language": "nl",
+          "expectedTopicId": "dolphins",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 3,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15440
+          }
+        },
+        {
+          "id": "h1-calibration-16",
+          "groupId": "h1-calibration-16",
+          "language": "en",
+          "expectedTopicId": "games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15440
+          }
+        },
+        {
+          "id": "h1-calibration-17",
+          "groupId": "h1-calibration-17",
+          "language": "de",
+          "expectedTopicId": "games",
+          "primaryNodeId": "nature",
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15443
+          }
+        },
+        {
+          "id": "h1-calibration-18",
+          "groupId": "h1-calibration-18",
+          "language": "nl",
+          "expectedTopicId": "games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15440
+          }
+        },
+        {
+          "id": "h1-calibration-19",
+          "groupId": "h1-calibration-19",
+          "language": "en",
+          "expectedTopicId": "video-games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15443
+          }
+        },
+        {
+          "id": "h1-calibration-20",
+          "groupId": "h1-calibration-20",
+          "language": "de",
+          "expectedTopicId": "video-games",
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 0,
+          "goldBranch": "games",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15427
+          }
+        },
+        {
+          "id": "h1-calibration-21",
+          "groupId": "h1-calibration-21",
+          "language": "nl",
+          "expectedTopicId": "video-games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15440
+          }
+        },
+        {
+          "id": "h1-calibration-22",
+          "groupId": "h1-calibration-22",
+          "language": "en",
+          "expectedTopicId": "nature",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15439
+          }
+        },
+        {
+          "id": "h1-calibration-23",
+          "groupId": "h1-calibration-23",
+          "language": "de",
+          "expectedTopicId": "nature",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-24",
+          "groupId": "h1-calibration-24",
+          "language": "nl",
+          "expectedTopicId": "nature",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": true,
+          "goldDepth": 1,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-25",
+          "groupId": "h1-calibration-25",
+          "language": "en",
+          "expectedTopicId": "animals",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15434
+          }
+        },
+        {
+          "id": "h1-calibration-26",
+          "groupId": "h1-calibration-26",
+          "language": "de",
+          "expectedTopicId": "animals",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15431
+          }
+        },
+        {
+          "id": "h1-calibration-27",
+          "groupId": "h1-calibration-27",
+          "language": "nl",
+          "expectedTopicId": "animals",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15436
+          }
+        },
+        {
+          "id": "h1-calibration-28",
+          "groupId": "h1-calibration-28",
+          "language": "en",
+          "expectedTopicId": "board-games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15446
+          }
+        },
+        {
+          "id": "h1-calibration-29",
+          "groupId": "h1-calibration-29",
+          "language": "de",
+          "expectedTopicId": "board-games",
+          "primaryNodeId": "nature",
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-30",
+          "groupId": "h1-calibration-30",
+          "language": "nl",
+          "expectedTopicId": "board-games",
+          "primaryNodeId": "games",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "games",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15437
+          }
+        },
+        {
+          "id": "h1-calibration-31",
+          "groupId": "h1-calibration-31",
+          "language": "en",
+          "expectedTopicId": "plants",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15439
+          }
+        },
+        {
+          "id": "h1-calibration-32",
+          "groupId": "h1-calibration-32",
+          "language": "de",
+          "expectedTopicId": "plants",
+          "primaryNodeId": "nature",
+          "safeAccepted": true,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 1,
+          "goldBranch": "nature",
+          "reason": "supported-parent-stop",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15436
+          }
+        },
+        {
+          "id": "h1-calibration-33",
+          "groupId": "h1-calibration-33",
+          "language": "nl",
+          "expectedTopicId": "plants",
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": false,
+          "goldDepth": 2,
+          "predictedDepth": 0,
+          "goldBranch": "nature",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15441
+          }
+        },
+        {
+          "id": "h1-calibration-34",
+          "groupId": "h1-calibration-34",
+          "language": "en",
+          "expectedTopicId": null,
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": true,
+          "goldDepth": 0,
+          "predictedDepth": 0,
+          "goldBranch": "outside",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15435
+          }
+        },
+        {
+          "id": "h1-calibration-35",
+          "groupId": "h1-calibration-35",
+          "language": "de",
+          "expectedTopicId": null,
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": true,
+          "goldDepth": 0,
+          "predictedDepth": 0,
+          "goldBranch": "outside",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15430
+          }
+        },
+        {
+          "id": "h1-calibration-36",
+          "groupId": "h1-calibration-36",
+          "language": "nl",
+          "expectedTopicId": null,
+          "primaryNodeId": null,
+          "safeAccepted": false,
+          "correctOutcome": true,
+          "goldDepth": 0,
+          "predictedDepth": 0,
+          "goldBranch": "outside",
+          "reason": "insufficient-evidence",
+          "work": {
+            "dotProducts": 39,
+            "scalarProducts": 14976,
+            "units": 15433
+          }
+        }
+      ]
+    }
+  ],
+  "lockedTest": {
+    "split": "test",
+    "artifactSha256": "1cb9023a8c131b664b22e6c8ac128e9151f762409aefa43e72644d158cce92a4",
+    "representation": "raw-e5",
+    "rowCount": 36,
+    "independentGroups": 36,
+    "accepted": 32,
+    "safeAccepted": 31,
+    "acceptedPrecision": 0.96875,
+    "coverage": 0.8888888888888888,
+    "correctDeepestOutcome": 23,
+    "deepestOutcomeAccuracy": 0.6388888888888888,
+    "broadFallback": 11,
+    "wrongBroad": 0,
+    "leafAccepted": 12,
+    "leafPrecision": 0.9166666666666666,
+    "acceptedGroups": 32,
+    "safeAcceptedGroups": 31,
+    "leafAcceptedGroups": 12,
+    "leafCorrectGroups": 11,
+    "acceptedGroupPrecision": 0.96875,
+    "leafGroupPrecision": 0.9166666666666666,
+    "leafGroupPrecisionInterval95": {
+      "method": "Wilson-two-sided-95",
+      "lower": 0.646120088858883,
+      "upper": 0.9851349055950829,
+      "assumption": "independent-group-decisions-not-web-representativeness"
+    },
+    "byLanguage": [
+      {
+        "value": "en",
+        "rows": 12,
+        "accepted": 11,
+        "safeAccepted": 10,
+        "deepestCorrect": 6,
+        "acceptedPrecision": 0.9090909090909091
+      },
+      {
+        "value": "de",
+        "rows": 12,
+        "accepted": 11,
+        "safeAccepted": 11,
+        "deepestCorrect": 9,
+        "acceptedPrecision": 1
+      },
+      {
+        "value": "nl",
+        "rows": 12,
+        "accepted": 10,
+        "safeAccepted": 10,
+        "deepestCorrect": 8,
+        "acceptedPrecision": 1
+      }
+    ],
+    "byGoldDepth": [
+      {
+        "value": 3,
+        "rows": 15,
+        "accepted": 15,
+        "safeAccepted": 15,
+        "deepestCorrect": 7,
+        "acceptedPrecision": 1
+      },
+      {
+        "value": 1,
+        "rows": 6,
+        "accepted": 5,
+        "safeAccepted": 5,
+        "deepestCorrect": 5,
+        "acceptedPrecision": 1
+      },
+      {
+        "value": 2,
+        "rows": 12,
+        "accepted": 12,
+        "safeAccepted": 11,
+        "deepestCorrect": 8,
+        "acceptedPrecision": 0.9166666666666666
+      },
+      {
+        "value": 0,
+        "rows": 3,
+        "accepted": 0,
+        "safeAccepted": 0,
+        "deepestCorrect": 3,
+        "acceptedPrecision": null
+      }
+    ],
+    "byGoldBranch": [
+      {
+        "value": "games",
+        "rows": 18,
+        "accepted": 17,
+        "safeAccepted": 16,
+        "deepestCorrect": 9,
+        "acceptedPrecision": 0.9411764705882353
+      },
+      {
+        "value": "nature",
+        "rows": 15,
+        "accepted": 15,
+        "safeAccepted": 15,
+        "deepestCorrect": 11,
+        "acceptedPrecision": 1
+      },
+      {
+        "value": "outside",
+        "rows": 3,
+        "accepted": 0,
+        "safeAccepted": 0,
+        "deepestCorrect": 3,
+        "acceptedPrecision": null
+      }
+    ],
+    "gate": {
+      "productionValidated": false,
+      "minimumIndependentLeafDecisions": 150,
+      "enoughIndependentLeafDecisions": false,
+      "observedLeafPrecisionPass": false,
+      "intervalLowerBoundPass": false,
+      "observedBroadErrorPass": true
+    },
+    "timing": {
+      "sampleCount": 36,
+      "medianMs": 0.23050000000000637,
+      "p95Ms": 0.8921000000000276,
+      "maximumMs": 0.9781000000000404,
+      "scope": "classify-with-validation-excluding-compile-embedding-queue-database"
+    },
+    "outcomes": [
+      {
+        "id": "h1-test-01",
+        "groupId": "h1-test-01",
+        "language": "en",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 3,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15429
+        }
+      },
+      {
+        "id": "h1-test-02",
+        "groupId": "h1-test-02",
+        "language": "de",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "gta",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 3,
+        "predictedDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15436
+        }
+      },
+      {
+        "id": "h1-test-03",
+        "groupId": "h1-test-03",
+        "language": "nl",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 3,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15433
+        }
+      },
+      {
+        "id": "h1-test-04",
+        "groupId": "h1-test-04",
+        "language": "en",
+        "expectedTopicId": "red-dead-redemption",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 3,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15435
+        }
+      },
+      {
+        "id": "h1-test-05",
+        "groupId": "h1-test-05",
+        "language": "de",
+        "expectedTopicId": "red-dead-redemption",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 3,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15436
+        }
+      },
+      {
+        "id": "h1-test-06",
+        "groupId": "h1-test-06",
+        "language": "nl",
+        "expectedTopicId": "red-dead-redemption",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 3,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15431
+        }
+      },
+      {
+        "id": "h1-test-07",
+        "groupId": "h1-test-07",
+        "language": "en",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 3,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15434
+        }
+      },
+      {
+        "id": "h1-test-08",
+        "groupId": "h1-test-08",
+        "language": "de",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 3,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15429
+        }
+      },
+      {
+        "id": "h1-test-09",
+        "groupId": "h1-test-09",
+        "language": "nl",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "minecraft",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 3,
+        "predictedDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15436
+        }
+      },
+      {
+        "id": "h1-test-10",
+        "groupId": "h1-test-10",
+        "language": "en",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 3,
+        "predictedDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15433
+        }
+      },
+      {
+        "id": "h1-test-11",
+        "groupId": "h1-test-11",
+        "language": "de",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "koalas",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 3,
+        "predictedDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15432
+        }
+      },
+      {
+        "id": "h1-test-12",
+        "groupId": "h1-test-12",
+        "language": "nl",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "koalas",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 3,
+        "predictedDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15432
+        }
+      },
+      {
+        "id": "h1-test-13",
+        "groupId": "h1-test-13",
+        "language": "en",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "dolphins",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 3,
+        "predictedDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15435
+        }
+      },
+      {
+        "id": "h1-test-14",
+        "groupId": "h1-test-14",
+        "language": "de",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "dolphins",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 3,
+        "predictedDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15431
+        }
+      },
+      {
+        "id": "h1-test-15",
+        "groupId": "h1-test-15",
+        "language": "nl",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "dolphins",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 3,
+        "predictedDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15438
+        }
+      },
+      {
+        "id": "h1-test-16",
+        "groupId": "h1-test-16",
+        "language": "en",
+        "expectedTopicId": "games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 1,
+        "predictedDepth": 1,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15437
+        }
+      },
+      {
+        "id": "h1-test-17",
+        "groupId": "h1-test-17",
+        "language": "de",
+        "expectedTopicId": "games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 1,
+        "predictedDepth": 1,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15436
+        }
+      },
+      {
+        "id": "h1-test-18",
+        "groupId": "h1-test-18",
+        "language": "nl",
+        "expectedTopicId": "games",
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "correctOutcome": false,
+        "goldDepth": 1,
+        "predictedDepth": 0,
+        "goldBranch": "games",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15436
+        }
+      },
+      {
+        "id": "h1-test-19",
+        "groupId": "h1-test-19",
+        "language": "en",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "gta",
+        "safeAccepted": false,
+        "correctOutcome": false,
+        "goldDepth": 2,
+        "predictedDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15438
+        }
+      },
+      {
+        "id": "h1-test-20",
+        "groupId": "h1-test-20",
+        "language": "de",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 2,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15435
+        }
+      },
+      {
+        "id": "h1-test-21",
+        "groupId": "h1-test-21",
+        "language": "nl",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 2,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15422
+        }
+      },
+      {
+        "id": "h1-test-22",
+        "groupId": "h1-test-22",
+        "language": "en",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 1,
+        "predictedDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15435
+        }
+      },
+      {
+        "id": "h1-test-23",
+        "groupId": "h1-test-23",
+        "language": "de",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 1,
+        "predictedDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15433
+        }
+      },
+      {
+        "id": "h1-test-24",
+        "groupId": "h1-test-24",
+        "language": "nl",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 1,
+        "predictedDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15435
+        }
+      },
+      {
+        "id": "h1-test-25",
+        "groupId": "h1-test-25",
+        "language": "en",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 2,
+        "predictedDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15432
+        }
+      },
+      {
+        "id": "h1-test-26",
+        "groupId": "h1-test-26",
+        "language": "de",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 2,
+        "predictedDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15430
+        }
+      },
+      {
+        "id": "h1-test-27",
+        "groupId": "h1-test-27",
+        "language": "nl",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 2,
+        "predictedDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15438
+        }
+      },
+      {
+        "id": "h1-test-28",
+        "groupId": "h1-test-28",
+        "language": "en",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "board-games",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 2,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15435
+        }
+      },
+      {
+        "id": "h1-test-29",
+        "groupId": "h1-test-29",
+        "language": "de",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "board-games",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 2,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15434
+        }
+      },
+      {
+        "id": "h1-test-30",
+        "groupId": "h1-test-30",
+        "language": "nl",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "board-games",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 2,
+        "predictedDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15446
+        }
+      },
+      {
+        "id": "h1-test-31",
+        "groupId": "h1-test-31",
+        "language": "en",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 2,
+        "predictedDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15429
+        }
+      },
+      {
+        "id": "h1-test-32",
+        "groupId": "h1-test-32",
+        "language": "de",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "correctOutcome": false,
+        "goldDepth": 2,
+        "predictedDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15435
+        }
+      },
+      {
+        "id": "h1-test-33",
+        "groupId": "h1-test-33",
+        "language": "nl",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "plants",
+        "safeAccepted": true,
+        "correctOutcome": true,
+        "goldDepth": 2,
+        "predictedDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15440
+        }
+      },
+      {
+        "id": "h1-test-34",
+        "groupId": "h1-test-34",
+        "language": "en",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "correctOutcome": true,
+        "goldDepth": 0,
+        "predictedDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15431
+        }
+      },
+      {
+        "id": "h1-test-35",
+        "groupId": "h1-test-35",
+        "language": "de",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "correctOutcome": true,
+        "goldDepth": 0,
+        "predictedDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15430
+        }
+      },
+      {
+        "id": "h1-test-36",
+        "groupId": "h1-test-36",
+        "language": "nl",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "correctOutcome": true,
+        "goldDepth": 0,
+        "predictedDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 39,
+          "scalarProducts": 14976,
+          "units": 15430
+        }
+      }
+    ]
+  },
+  "encoding": {
+    "elapsedMs": 6029.2221
+  },
+  "productionReady": false,
+  "reason": "small-synthetic-feasibility-and-no-production-calibration-or-cutover",
+  "ownerDataRead": false,
+  "providerCalls": 0,
+  "canonicalWrites": 0,
+  "crawlerActions": 0
+}

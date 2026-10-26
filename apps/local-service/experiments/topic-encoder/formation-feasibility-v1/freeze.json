@@ -1,0 +1,21 @@
+{
+  "schema": "formation-feasibility/v1",
+  "sources": {
+    "protocol.json": "332ee270985035e4a087cc4d5cbc2aa5085155a668dafa502fe8418adf09ad1e",
+    "development.js": "29e187f63c81e512f53dd10ae27db120d05daac25fd3418ca9342ae87cbf44dc",
+    "../../../../../spikes/topic-resolution/formation-feasibility-v1/heldout.json": "40350a43b8d4028c4b4cfc90bf54ad463f195f1fd55667d3993c19c5370ab94f",
+    "requirements.txt": "127f8e8cc305d6e39102768bdc3bf046fb9bf7fa46d57612d789a3a39b150ff1",
+    "run.js": "9bb1d9f8c58be58f59b65f74867fc008345c3d4f51953402a5971187bbf95715",
+    "measure.py": "58a52a1b8271478dff5585e005eb09e3f32920497c9287f8d68dcef1364b73e6",
+    "supervise.py": "b158dd77a624c84118800153dace6c56a208eb63e04a7a76d7291fc69051b0fb",
+    "../e5-infer.js": "4292c83b462d8fa1bd109e6b94f575c52d13a9a89717cad64a1f8300a5208a17",
+    "../../../src/domain/ridge-topic-adapter.js": "1741229f4412f2633ad133ff3f5d6c340a84d709dc6718c39616e48e88258dd4",
+    "../../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js": "6b26cc2766acdbcba39259d1459e703995c3b5ae5a6fd4a4c78b7a968d0b3920"
+  },
+  "corpusSha256": "e28515596a7f0ac3b4d9c258cb5ff2f98c2299bffaec4b672e8fb744b74b2002",
+  "rowCount": 84,
+  "development": 36,
+  "independentHoldout": 36,
+  "singletons": 12,
+  "freezeHash": "e853e5f1981d5bc21b00b00963cf6f4c815468839cb98034bceb215d2dc5323c"
+}

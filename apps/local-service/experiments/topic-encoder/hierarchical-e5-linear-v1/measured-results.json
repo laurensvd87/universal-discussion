@@ -1,0 +1,2940 @@
+{
+  "schema": "hierarchical-e5-linear-experiment/v1",
+  "freezeHash": "2218edc138e512cf827a0ccdfd971e58ca213f860795be027832fe3c2aed4d7e",
+  "vectorPacketSha256": "96652b1cc6d50ffb90490519762d65b14ad50154af6f35f3d45c661f4bb0c693",
+  "selectedModelSha256": "e0402dc9bf4bf50282cd0176901993c14d7ee5dd96afb91f755861d20f31f0df",
+  "selectedPolicySha256": "ba0b85af579cbbcf35f21715c4d4275a877cbaf18f8432e94eb9779461b32d0e",
+  "selection": {
+    "representation": "raw-e5",
+    "lambda": 0.01,
+    "basedOn": "development-only",
+    "calibrationSplit": "separate-calibration",
+    "testRetuning": false
+  },
+  "fit": {
+    "schema": "hierarchical-e5-linear-experiment/v1",
+    "freezeHash": "2218edc138e512cf827a0ccdfd971e58ca213f860795be027832fe3c2aed4d7e",
+    "modelSha256": "e0402dc9bf4bf50282cd0176901993c14d7ee5dd96afb91f755861d20f31f0df",
+    "policySha256": "ba0b85af579cbbcf35f21715c4d4275a877cbaf18f8432e94eb9779461b32d0e",
+    "selection": "development-only",
+    "representation": "raw-e5",
+    "lambda": 0.01,
+    "developmentIdHashes": [
+      "00772b12a6a61c7aa58bdd631d477de5a07c60ae76f43e14fe896ec336830092",
+      "0848f87d8a4f0cdafd735196211088097955474a485726d25d241f54ad4a4605",
+      "087f473f2f411a55eaf2f048c73078c7348675a09f2b2d26d3051f3ba622ac93",
+      "0ee20a70f626f8b395157b37e993c5ab3a6fd7467b10ff92fce1104b50af60f3",
+      "10ff367f1aaae76d3be97231125387cb31bfe43db1d97f0353b1e688bac4d8d0",
+      "112bdd52f0571d1363243cc13072346f498248cab6fac81632b4d64f8d5bd604",
+      "1138c150634bc1eeaf5f3e31ddebd6e75ad1eba4ed863e2dbe4a5ae130476a1a",
+      "12d626341ee233e4d178564a5d80e28dba3da098d05cab84d09ad13f5954c3e0",
+      "16531a8e0181639a2ca0af6db4e4cd2d7867144c6b120a9ddbe8f090c5361687",
+      "2493261a1774da1754e83a50ebddc6b5000b0e21ea7a4d091a1ec76bbc105cd4",
+      "26949dfc660e10d29c0ae4cc59da8f0295682c9c1ee9ddaa2c0fba7cef4d8974",
+      "35225fa9ecd6a5ef374552d134fba6a7017b60b2b5f83add5b0e3db9f7f59f5a",
+      "386432a1f187bb823999c4f357fbaebb75ad510645eddb64c193cff3fe54e6bb",
+      "3e631bb6bb28c206101ab1de2ecbbb3f753a0aa492397dac4e88d46a7173a0da",
+      "3f1f55f43e745fcd8615846e4799ff29791cd54665eed660ba15943464dc5df0",
+      "3f7c786fbddf3d479b0e0f8dd690589775cc95fcfa6a505acbb48bc088bb4f9a",
+      "4fcb59e2e002e32d04f658a110a761b542b0ccad642b5b61ae2dbe9c1c261352",
+      "564f7eb02bc3f91d17263cf471b10909d8287213ee97f0aa547b026831fd24a3",
+      "5ac3c160283bb3b3cbace97956246afb5e172453fb0582808dd4a850ec6bd2c1",
+      "620cf0d174b4b5faa0b7803a8e0d91f991d3e0bd5a87510969ff7f048a6c2fe9",
+      "725e4769bdb0274bb221ea4ed8323965132cd566c6b8a428e555e1f64c2ac9c4",
+      "795e7214831597d8ff399489bbd2e6307f4caa52afc1627832c491ac5dde32a9",
+      "7acfa9c0bc72a8fe9823030c303a99dbdd02c974e0710e340c8100bbf6641365",
+      "7e64c9fb59873858a42a6206f60002aeeb55f350829526a9e505bf3e3161ed62",
+      "817b54996532b6ddc70f825aed09c908fe8ab87bfdb56cf512317d648f2966d1",
+      "84834708e074d48a3b01fdff61d9671fd0359f91da8ee38abddc787bb6f72a69",
+      "8920a238a0d55f3f521f319565276950547a5e44a5cfd265aa0f8e0212d4086b",
+      "8ad62be9c294df221b68d6e6e64f5d48636a756db6d9f54bc83c4dfd2b910621",
+      "8c680ec1874671e4564a341ab49b1adef2902936a2b63a4c8586976d41a97e56",
+      "8c6a831eb2c6264bc8313c8b7cd063fbf99ce42e57c9799dd07ccf2fe2f4ed4e",
+      "93718aae767298b983f31b170a109583c9436103df1c3548ce87eafd5765377a",
+      "9509e9fe81f3a1a3adc1eb2fe8898f41123a913a21e20b4eee4ac87464728a32",
+      "954aec6941a126eb2da25f64f3612fdd3800c1a44ef90f53135edf788b3bafb1",
+      "98db62b5a7515b3e77e36742046cb85f7456476ee3a11aeca215e8949abf0c74",
+      "9c345566b210afcab274761d0cf1f03cb88ee9e1d29570d79454770acf6ce6d2",
+      "9cf024372032087aed67084a032b2a8b2a665d83eb89f919bc26a243f4d85570",
+      "a07ec830f41db56dbb843be11377956531165ca37441e14606bee3f4661b40e6",
+      "a57e384fe5702c818028ab5fe13c3be96b091f9405d9950178fe8196bcfaf700",
+      "a5c6f2bebf42f85b7b9317710dc4ee8f8ef769b9eac0816a0d362e541ec229e2",
+      "a8ed0d364820c44328caf465092170effa11a99aae6b07ee45ba7893c1152463",
+      "aa1710a4c1172ad613d709b1389c6e37453f5bb3a3a42643fe45f5fae868d7dc",
+      "b30757221f54464cc20be6831c971b5eb32380532736b0728bf5f6201cd3c247",
+      "b327f920914a9638731a0aa80930895766477a3582c1b052417e10e054b4d5a4",
+      "b55e34f22b7d53cf28f438cc2ca0f94cdb608cd8d92ee137d81f4525e8a68b0f",
+      "b5af792a42ae8955301aa1e4e25244db07b54c115064e9ba6bcd7fc31529ea7a",
+      "ba9f4d85e4684a55d23ac40fb2aeb64a458873d29e5e022281a55120cef1615e",
+      "bb19e758f0c9316c260dd7e133eccce38ead84e0890dc08de817050fe3decbfa",
+      "c3f84c70c02c2b5d5db2530eb5c1e538064088d41c54205b4a6c8a32315a4b18",
+      "cab040a7d887b81f02972a0de1b002aeb65c508f969469a4053b697fb981b904",
+      "cc8c4f1398cced818697e7dd7fd4451ebc27ff27d24930788d1d30d86252a60a",
+      "d15fee6ebbc10406e7cc216813e77fb27938c000f7e4cc57d00d378c0e9a476e",
+      "d4d02cc933a2e47f0a8c723cbd04c27850bc826ac94ee63789d5c7ea28c7c6de",
+      "d7e7e10458e605e84cd85df4f7cd283e782710109e99c5f4c0209d1fd4c501cd",
+      "da7796a29c3fa9a2df2df3d7580b6bfba09b07e7a9fad2e76a7200ceedae14d4",
+      "dadb166ce7b40a077d3a5b1c7a753dc8863e4cb9a5841988ed8aa2aa77f2ca4a",
+      "dc3ba38c4e54a9acaf4979ea67d53f5765876449790f0ccd716b9ead4e84d341",
+      "dd29733f1ca9a7a18411aa73af02cacffef4e27cf09021e74ecfadf7ec042ec6",
+      "dd32f7305f5f9775d836782cb6f433ef7916dde8d0e50f99592253e49e1b92df",
+      "e1a845efa32a00cb995d383020b7e08b2c6328828c8185facfdac56c9cb48b0d",
+      "e2f6a72209dfa90cfc806c181f4cc79322b8d801c713ef6be8c5a4006a238938",
+      "e57cb73306e3ab81734c190a09cff94fa38a0dfb34f5019c552144d4b4927617",
+      "ebd616cb85ca8cc8a003280395fe3aa12ff277be99259b392a8eb6797a1ef91c",
+      "ebeb1effbeffe75ad389c02a804bdc6fcacb81b9c6d97d1c184508be84a301a6",
+      "eef5c727ec34f558e2d55397a5730b14486a84ca9af1559a37a753d38b60b790"
+    ],
+    "developmentGroupHashes": [
+      "00772b12a6a61c7aa58bdd631d477de5a07c60ae76f43e14fe896ec336830092",
+      "0848f87d8a4f0cdafd735196211088097955474a485726d25d241f54ad4a4605",
+      "087f473f2f411a55eaf2f048c73078c7348675a09f2b2d26d3051f3ba622ac93",
+      "0ee20a70f626f8b395157b37e993c5ab3a6fd7467b10ff92fce1104b50af60f3",
+      "10ff367f1aaae76d3be97231125387cb31bfe43db1d97f0353b1e688bac4d8d0",
+      "112bdd52f0571d1363243cc13072346f498248cab6fac81632b4d64f8d5bd604",
+      "1138c150634bc1eeaf5f3e31ddebd6e75ad1eba4ed863e2dbe4a5ae130476a1a",
+      "12d626341ee233e4d178564a5d80e28dba3da098d05cab84d09ad13f5954c3e0",
+      "16531a8e0181639a2ca0af6db4e4cd2d7867144c6b120a9ddbe8f090c5361687",
+      "2493261a1774da1754e83a50ebddc6b5000b0e21ea7a4d091a1ec76bbc105cd4",
+      "26949dfc660e10d29c0ae4cc59da8f0295682c9c1ee9ddaa2c0fba7cef4d8974",
+      "35225fa9ecd6a5ef374552d134fba6a7017b60b2b5f83add5b0e3db9f7f59f5a",
+      "386432a1f187bb823999c4f357fbaebb75ad510645eddb64c193cff3fe54e6bb",
+      "3e631bb6bb28c206101ab1de2ecbbb3f753a0aa492397dac4e88d46a7173a0da",
+      "3f1f55f43e745fcd8615846e4799ff29791cd54665eed660ba15943464dc5df0",
+      "3f7c786fbddf3d479b0e0f8dd690589775cc95fcfa6a505acbb48bc088bb4f9a",
+      "4fcb59e2e002e32d04f658a110a761b542b0ccad642b5b61ae2dbe9c1c261352",
+      "564f7eb02bc3f91d17263cf471b10909d8287213ee97f0aa547b026831fd24a3",
+      "5ac3c160283bb3b3cbace97956246afb5e172453fb0582808dd4a850ec6bd2c1",
+      "620cf0d174b4b5faa0b7803a8e0d91f991d3e0bd5a87510969ff7f048a6c2fe9",
+      "725e4769bdb0274bb221ea4ed8323965132cd566c6b8a428e555e1f64c2ac9c4",
+      "795e7214831597d8ff399489bbd2e6307f4caa52afc1627832c491ac5dde32a9",
+      "7acfa9c0bc72a8fe9823030c303a99dbdd02c974e0710e340c8100bbf6641365",
+      "7e64c9fb59873858a42a6206f60002aeeb55f350829526a9e505bf3e3161ed62",
+      "817b54996532b6ddc70f825aed09c908fe8ab87bfdb56cf512317d648f2966d1",
+      "84834708e074d48a3b01fdff61d9671fd0359f91da8ee38abddc787bb6f72a69",
+      "8920a238a0d55f3f521f319565276950547a5e44a5cfd265aa0f8e0212d4086b",
+      "8ad62be9c294df221b68d6e6e64f5d48636a756db6d9f54bc83c4dfd2b910621",
+      "8c680ec1874671e4564a341ab49b1adef2902936a2b63a4c8586976d41a97e56",
+      "8c6a831eb2c6264bc8313c8b7cd063fbf99ce42e57c9799dd07ccf2fe2f4ed4e",
+      "93718aae767298b983f31b170a109583c9436103df1c3548ce87eafd5765377a",
+      "9509e9fe81f3a1a3adc1eb2fe8898f41123a913a21e20b4eee4ac87464728a32",
+      "954aec6941a126eb2da25f64f3612fdd3800c1a44ef90f53135edf788b3bafb1",
+      "98db62b5a7515b3e77e36742046cb85f7456476ee3a11aeca215e8949abf0c74",
+      "9c345566b210afcab274761d0cf1f03cb88ee9e1d29570d79454770acf6ce6d2",
+      "9cf024372032087aed67084a032b2a8b2a665d83eb89f919bc26a243f4d85570",
+      "a07ec830f41db56dbb843be11377956531165ca37441e14606bee3f4661b40e6",
+      "a57e384fe5702c818028ab5fe13c3be96b091f9405d9950178fe8196bcfaf700",
+      "a5c6f2bebf42f85b7b9317710dc4ee8f8ef769b9eac0816a0d362e541ec229e2",
+      "a8ed0d364820c44328caf465092170effa11a99aae6b07ee45ba7893c1152463",
+      "aa1710a4c1172ad613d709b1389c6e37453f5bb3a3a42643fe45f5fae868d7dc",
+      "b30757221f54464cc20be6831c971b5eb32380532736b0728bf5f6201cd3c247",
+      "b327f920914a9638731a0aa80930895766477a3582c1b052417e10e054b4d5a4",
+      "b55e34f22b7d53cf28f438cc2ca0f94cdb608cd8d92ee137d81f4525e8a68b0f",
+      "b5af792a42ae8955301aa1e4e25244db07b54c115064e9ba6bcd7fc31529ea7a",
+      "ba9f4d85e4684a55d23ac40fb2aeb64a458873d29e5e022281a55120cef1615e",
+      "bb19e758f0c9316c260dd7e133eccce38ead84e0890dc08de817050fe3decbfa",
+      "c3f84c70c02c2b5d5db2530eb5c1e538064088d41c54205b4a6c8a32315a4b18",
+      "cab040a7d887b81f02972a0de1b002aeb65c508f969469a4053b697fb981b904",
+      "cc8c4f1398cced818697e7dd7fd4451ebc27ff27d24930788d1d30d86252a60a",
+      "d15fee6ebbc10406e7cc216813e77fb27938c000f7e4cc57d00d378c0e9a476e",
+      "d4d02cc933a2e47f0a8c723cbd04c27850bc826ac94ee63789d5c7ea28c7c6de",
+      "d7e7e10458e605e84cd85df4f7cd283e782710109e99c5f4c0209d1fd4c501cd",
+      "da7796a29c3fa9a2df2df3d7580b6bfba09b07e7a9fad2e76a7200ceedae14d4",
+      "dadb166ce7b40a077d3a5b1c7a753dc8863e4cb9a5841988ed8aa2aa77f2ca4a",
+      "dc3ba38c4e54a9acaf4979ea67d53f5765876449790f0ccd716b9ead4e84d341",
+      "dd29733f1ca9a7a18411aa73af02cacffef4e27cf09021e74ecfadf7ec042ec6",
+      "dd32f7305f5f9775d836782cb6f433ef7916dde8d0e50f99592253e49e1b92df",
+      "e1a845efa32a00cb995d383020b7e08b2c6328828c8185facfdac56c9cb48b0d",
+      "e2f6a72209dfa90cfc806c181f4cc79322b8d801c713ef6be8c5a4006a238938",
+      "e57cb73306e3ab81734c190a09cff94fa38a0dfb34f5019c552144d4b4927617",
+      "ebd616cb85ca8cc8a003280395fe3aa12ff277be99259b392a8eb6797a1ef91c",
+      "ebeb1effbeffe75ad389c02a804bdc6fcacb81b9c6d97d1c184508be84a301a6",
+      "eef5c727ec34f558e2d55397a5730b14486a84ca9af1559a37a753d38b60b790"
+    ],
+    "candidates": [
+      {
+        "representation": "raw-e5",
+        "lambda": 0.01,
+        "trainingWork": {
+          "units": 4725294,
+          "gramProducts": 3170304,
+          "choleskyProducts": 349504,
+          "solveProducts": 243840,
+          "weightProducts": 737280
+        },
+        "trainingElapsedMs": 26.62669999999997,
+        "development": {
+          "loss": 0.18644357747217674,
+          "byNode": [
+            {
+              "nodeId": "animals",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.1185833049398703
+            },
+            {
+              "nodeId": "board-games",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.2994678996446841
+            },
+            {
+              "nodeId": "cooking",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.06438322817479857
+            },
+            {
+              "nodeId": "dolphins",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.25119668026548597
+            },
+            {
+              "nodeId": "games",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.08824061793043922
+            },
+            {
+              "nodeId": "gta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.4191178201353763
+            },
+            {
+              "nodeId": "kapsalon",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.03193032976334882
+            },
+            {
+              "nodeId": "koalas",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.21601220038933525
+            },
+            {
+              "nodeId": "minecraft",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.28142329162013324
+            },
+            {
+              "nodeId": "nature",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.07843875134311397
+            },
+            {
+              "nodeId": "pasta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.1119972419781235
+            },
+            {
+              "nodeId": "plants",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.25059852858692044
+            },
+            {
+              "nodeId": "tyre-pressure",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.31234784405702065
+            },
+            {
+              "nodeId": "vehicles",
+              "positiveRows": 8,
+              "negativeRows": 56,
+              "loss": 0.07937811848101356
+            },
+            {
+              "nodeId": "video-games",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.19353780477298715
+            }
+          ],
+          "split": "development",
+          "rows": 64,
+          "calibrationUsed": false,
+          "testUsed": false
+        }
+      },
+      {
+        "representation": "raw-e5",
+        "lambda": 0.1,
+        "trainingWork": {
+          "units": 4725294,
+          "gramProducts": 3170304,
+          "choleskyProducts": 349504,
+          "solveProducts": 243840,
+          "weightProducts": 737280
+        },
+        "trainingElapsedMs": 25.856600000000014,
+        "development": {
+          "loss": 0.2778231940461373,
+          "byNode": [
+            {
+              "nodeId": "animals",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.14065277049029165
+            },
+            {
+              "nodeId": "board-games",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.5233665789362396
+            },
+            {
+              "nodeId": "cooking",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.06910119119857658
+            },
+            {
+              "nodeId": "dolphins",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.36693178406798177
+            },
+            {
+              "nodeId": "games",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.09411976971284408
+            },
+            {
+              "nodeId": "gta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.5157217369105864
+            },
+            {
+              "nodeId": "kapsalon",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.10972254952050356
+            },
+            {
+              "nodeId": "koalas",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.38568421016176196
+            },
+            {
+              "nodeId": "minecraft",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.4212603830051652
+            },
+            {
+              "nodeId": "nature",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.08179845502061756
+            },
+            {
+              "nodeId": "pasta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.2727034732228804
+            },
+            {
+              "nodeId": "plants",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.431361594080472
+            },
+            {
+              "nodeId": "tyre-pressure",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.42032923469909045
+            },
+            {
+              "nodeId": "vehicles",
+              "positiveRows": 8,
+              "negativeRows": 56,
+              "loss": 0.11820257222124123
+            },
+            {
+              "nodeId": "video-games",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.21639160744380756
+            }
+          ],
+          "split": "development",
+          "rows": 64,
+          "calibrationUsed": false,
+          "testUsed": false
+        }
+      },
+      {
+        "representation": "pinned-ridge",
+        "lambda": 0.01,
+        "trainingWork": {
+          "units": 4725294,
+          "gramProducts": 3170304,
+          "choleskyProducts": 349504,
+          "solveProducts": 243840,
+          "weightProducts": 737280
+        },
+        "trainingElapsedMs": 55.84989999999999,
+        "development": {
+          "loss": 0.295893488499597,
+          "byNode": [
+            {
+              "nodeId": "animals",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.3174485232242235
+            },
+            {
+              "nodeId": "board-games",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.30011053651974573
+            },
+            {
+              "nodeId": "cooking",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.13689234896651672
+            },
+            {
+              "nodeId": "dolphins",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.4583695775665799
+            },
+            {
+              "nodeId": "games",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.225286191962852
+            },
+            {
+              "nodeId": "gta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.3299449725639465
+            },
+            {
+              "nodeId": "kapsalon",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.06972756848583148
+            },
+            {
+              "nodeId": "koalas",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.4306651693934755
+            },
+            {
+              "nodeId": "minecraft",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.312114652025721
+            },
+            {
+              "nodeId": "nature",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.19335948740911924
+            },
+            {
+              "nodeId": "pasta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.30595983518016945
+            },
+            {
+              "nodeId": "plants",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.5420855806085106
+            },
+            {
+              "nodeId": "tyre-pressure",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.39712449057714294
+            },
+            {
+              "nodeId": "vehicles",
+              "positiveRows": 8,
+              "negativeRows": 56,
+              "loss": 0.14670294627162564
+            },
+            {
+              "nodeId": "video-games",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.2726104467384954
+            }
+          ],
+          "split": "development",
+          "rows": 64,
+          "calibrationUsed": false,
+          "testUsed": false
+        }
+      },
+      {
+        "representation": "pinned-ridge",
+        "lambda": 0.1,
+        "trainingWork": {
+          "units": 4725294,
+          "gramProducts": 3170304,
+          "choleskyProducts": 349504,
+          "solveProducts": 243840,
+          "weightProducts": 737280
+        },
+        "trainingElapsedMs": 52.358900000000006,
+        "development": {
+          "loss": 0.3785995448924688,
+          "byNode": [
+            {
+              "nodeId": "animals",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.27233022841472754
+            },
+            {
+              "nodeId": "board-games",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.6578231754944112
+            },
+            {
+              "nodeId": "cooking",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.14686390003917005
+            },
+            {
+              "nodeId": "dolphins",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.5946473561858708
+            },
+            {
+              "nodeId": "games",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.217510901442181
+            },
+            {
+              "nodeId": "gta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.3399757182176362
+            },
+            {
+              "nodeId": "kapsalon",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.14356598758398917
+            },
+            {
+              "nodeId": "koalas",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.5231465409444463
+            },
+            {
+              "nodeId": "minecraft",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.6326331140106412
+            },
+            {
+              "nodeId": "nature",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.17918557874294705
+            },
+            {
+              "nodeId": "pasta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.39118271221236783
+            },
+            {
+              "nodeId": "plants",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.5508617191042249
+            },
+            {
+              "nodeId": "tyre-pressure",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.5392250292271358
+            },
+            {
+              "nodeId": "vehicles",
+              "positiveRows": 8,
+              "negativeRows": 56,
+              "loss": 0.1808668321475982
+            },
+            {
+              "nodeId": "video-games",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.3091743796196867
+            }
+          ],
+          "split": "development",
+          "rows": 64,
+          "calibrationUsed": false,
+          "testUsed": false
+        }
+      },
+      {
+        "representation": "pinned-ridge",
+        "lambda": 1,
+        "trainingWork": {
+          "units": 4725294,
+          "gramProducts": 3170304,
+          "choleskyProducts": 349504,
+          "solveProducts": 243840,
+          "weightProducts": 737280
+        },
+        "trainingElapsedMs": 26.5831,
+        "development": {
+          "loss": 0.6995895944349104,
+          "byNode": [
+            {
+              "nodeId": "animals",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.48770744661649296
+            },
+            {
+              "nodeId": "board-games",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.2010582869019122
+            },
+            {
+              "nodeId": "cooking",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.2627730177893233
+            },
+            {
+              "nodeId": "dolphins",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.9364863947424814
+            },
+            {
+              "nodeId": "games",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.3130675631732168
+            },
+            {
+              "nodeId": "gta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.7329321664440912
+            },
+            {
+              "nodeId": "kapsalon",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.5090770517841763
+            },
+            {
+              "nodeId": "koalas",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.8830822616813001
+            },
+            {
+              "nodeId": "minecraft",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.1273792249204628
+            },
+            {
+              "nodeId": "nature",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.2544394256758417
+            },
+            {
+              "nodeId": "pasta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.8434693553334007
+            },
+            {
+              "nodeId": "plants",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.1191484305134571
+            },
+            {
+              "nodeId": "tyre-pressure",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.8826492644742296
+            },
+            {
+              "nodeId": "vehicles",
+              "positiveRows": 8,
+              "negativeRows": 56,
+              "loss": 0.41931216286602985
+            },
+            {
+              "nodeId": "video-games",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.52126186360724
+            }
+          ],
+          "split": "development",
+          "rows": 64,
+          "calibrationUsed": false,
+          "testUsed": false
+        }
+      },
+      {
+        "representation": "raw-e5",
+        "lambda": 1,
+        "trainingWork": {
+          "units": 4725294,
+          "gramProducts": 3170304,
+          "choleskyProducts": 349504,
+          "solveProducts": 243840,
+          "weightProducts": 737280
+        },
+        "trainingElapsedMs": 27.775599999999997,
+        "development": {
+          "loss": 0.7835409368811193,
+          "byNode": [
+            {
+              "nodeId": "animals",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.5521929513127962
+            },
+            {
+              "nodeId": "board-games",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.1805290018307768
+            },
+            {
+              "nodeId": "cooking",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.30954182322387336
+            },
+            {
+              "nodeId": "dolphins",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.0056370757072866
+            },
+            {
+              "nodeId": "games",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.30137161485020086
+            },
+            {
+              "nodeId": "gta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.067360274654698
+            },
+            {
+              "nodeId": "kapsalon",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.7050748344844829
+            },
+            {
+              "nodeId": "koalas",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.0636573376376375
+            },
+            {
+              "nodeId": "minecraft",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.051711978269923
+            },
+            {
+              "nodeId": "nature",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.3142243195683744
+            },
+            {
+              "nodeId": "pasta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.9412139579916043
+            },
+            {
+              "nodeId": "plants",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.150336682048024
+            },
+            {
+              "nodeId": "tyre-pressure",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 0.9762987122085844
+            },
+            {
+              "nodeId": "vehicles",
+              "positiveRows": 8,
+              "negativeRows": 56,
+              "loss": 0.542984934994106
+            },
+            {
+              "nodeId": "video-games",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.5909785544344195
+            }
+          ],
+          "split": "development",
+          "rows": 64,
+          "calibrationUsed": false,
+          "testUsed": false
+        }
+      },
+      {
+        "representation": "pinned-ridge",
+        "lambda": 10,
+        "trainingWork": {
+          "units": 4725294,
+          "gramProducts": 3170304,
+          "choleskyProducts": 349504,
+          "solveProducts": 243840,
+          "weightProducts": 737280
+        },
+        "trainingElapsedMs": 45.472699999999975,
+        "development": {
+          "loss": 1.2552033280112371,
+          "byNode": [
+            {
+              "nodeId": "animals",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 1.0007613176562744
+            },
+            {
+              "nodeId": "board-games",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.623568181723639
+            },
+            {
+              "nodeId": "cooking",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 0.8546290862174912
+            },
+            {
+              "nodeId": "dolphins",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.4975327009172092
+            },
+            {
+              "nodeId": "games",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.744957652409694
+            },
+            {
+              "nodeId": "gta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.417669244658413
+            },
+            {
+              "nodeId": "kapsalon",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.2838589762173576
+            },
+            {
+              "nodeId": "koalas",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.4787623765234705
+            },
+            {
+              "nodeId": "minecraft",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.6028586007263066
+            },
+            {
+              "nodeId": "nature",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.6562039917320397
+            },
+            {
+              "nodeId": "pasta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.4849902328695301
+            },
+            {
+              "nodeId": "plants",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.6218732380104401
+            },
+            {
+              "nodeId": "tyre-pressure",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.4479524989916712
+            },
+            {
+              "nodeId": "vehicles",
+              "positiveRows": 8,
+              "negativeRows": 56,
+              "loss": 1.0561124467819762
+            },
+            {
+              "nodeId": "video-games",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 1.056319374733042
+            }
+          ],
+          "split": "development",
+          "rows": 64,
+          "calibrationUsed": false,
+          "testUsed": false
+        }
+      },
+      {
+        "representation": "raw-e5",
+        "lambda": 10,
+        "trainingWork": {
+          "units": 4725294,
+          "gramProducts": 3170304,
+          "choleskyProducts": 349504,
+          "solveProducts": 243840,
+          "weightProducts": 737280
+        },
+        "trainingElapsedMs": 29.708799999999997,
+        "development": {
+          "loss": 1.4148905961699794,
+          "byNode": [
+            {
+              "nodeId": "animals",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 1.2028707047909446
+            },
+            {
+              "nodeId": "board-games",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.6613022036470482
+            },
+            {
+              "nodeId": "cooking",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 1.076388650176727
+            },
+            {
+              "nodeId": "dolphins",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.6276588984781302
+            },
+            {
+              "nodeId": "games",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.9089204869864147
+            },
+            {
+              "nodeId": "gta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.6277987563913545
+            },
+            {
+              "nodeId": "kapsalon",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.525329659519196
+            },
+            {
+              "nodeId": "koalas",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.63824798390289
+            },
+            {
+              "nodeId": "minecraft",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.6343743534801274
+            },
+            {
+              "nodeId": "nature",
+              "positiveRows": 20,
+              "negativeRows": 44,
+              "loss": 0.9216349947958761
+            },
+            {
+              "nodeId": "pasta",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.5967367309738298
+            },
+            {
+              "nodeId": "plants",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.6602954812809476
+            },
+            {
+              "nodeId": "tyre-pressure",
+              "positiveRows": 4,
+              "negativeRows": 60,
+              "loss": 1.6070512867206426
+            },
+            {
+              "nodeId": "vehicles",
+              "positiveRows": 8,
+              "negativeRows": 56,
+              "loss": 1.3319235742892683
+            },
+            {
+              "nodeId": "video-games",
+              "positiveRows": 12,
+              "negativeRows": 52,
+              "loss": 1.2028251771162914
+            }
+          ],
+          "split": "development",
+          "rows": 64,
+          "calibrationUsed": false,
+          "testUsed": false
+        }
+      }
+    ],
+    "aggregateCountedTrainingWork": 37802352,
+    "preflightTrainingWorkUpperBound": 37896432,
+    "calibratedRules": [
+      {
+        "nodeId": "animals",
+        "enabled": true,
+        "minScore": 0.25,
+        "minMargin": 0.4,
+        "acceptedGroups": 16,
+        "correctGroups": 16
+      },
+      {
+        "nodeId": "board-games",
+        "enabled": true,
+        "minScore": 0.25,
+        "minMargin": 0.2,
+        "acceptedGroups": 3,
+        "correctGroups": 3
+      },
+      {
+        "nodeId": "cooking",
+        "enabled": true,
+        "minScore": 0.25,
+        "minMargin": 0.4,
+        "acceptedGroups": 18,
+        "correctGroups": 18
+      },
+      {
+        "nodeId": "dolphins",
+        "enabled": false,
+        "minScore": 1.25,
+        "minMargin": 0.4,
+        "acceptedGroups": 0,
+        "correctGroups": 0
+      },
+      {
+        "nodeId": "games",
+        "enabled": true,
+        "minScore": 0,
+        "minMargin": 0.1,
+        "acceptedGroups": 30,
+        "correctGroups": 30
+      },
+      {
+        "nodeId": "gta",
+        "enabled": true,
+        "minScore": 0,
+        "minMargin": 0.4,
+        "acceptedGroups": 6,
+        "correctGroups": 6
+      },
+      {
+        "nodeId": "kapsalon",
+        "enabled": true,
+        "minScore": 0.25,
+        "minMargin": 0.4,
+        "acceptedGroups": 6,
+        "correctGroups": 6
+      },
+      {
+        "nodeId": "koalas",
+        "enabled": true,
+        "minScore": 0.5,
+        "minMargin": 0.4,
+        "acceptedGroups": 4,
+        "correctGroups": 4
+      },
+      {
+        "nodeId": "minecraft",
+        "enabled": true,
+        "minScore": 0,
+        "minMargin": 0.4,
+        "acceptedGroups": 6,
+        "correctGroups": 6
+      },
+      {
+        "nodeId": "nature",
+        "enabled": true,
+        "minScore": -0.25,
+        "minMargin": 0.4,
+        "acceptedGroups": 30,
+        "correctGroups": 30
+      },
+      {
+        "nodeId": "pasta",
+        "enabled": true,
+        "minScore": 0.25,
+        "minMargin": 0.4,
+        "acceptedGroups": 6,
+        "correctGroups": 6
+      },
+      {
+        "nodeId": "plants",
+        "enabled": true,
+        "minScore": -0.25,
+        "minMargin": 0.05,
+        "acceptedGroups": 5,
+        "correctGroups": 5
+      },
+      {
+        "nodeId": "tyre-pressure",
+        "enabled": true,
+        "minScore": 0,
+        "minMargin": 0.4,
+        "acceptedGroups": 6,
+        "correctGroups": 6
+      },
+      {
+        "nodeId": "vehicles",
+        "enabled": true,
+        "minScore": 0,
+        "minMargin": 0.4,
+        "acceptedGroups": 12,
+        "correctGroups": 12
+      },
+      {
+        "nodeId": "video-games",
+        "enabled": true,
+        "minScore": 0,
+        "minMargin": 0.4,
+        "acceptedGroups": 16,
+        "correctGroups": 16
+      }
+    ],
+    "encoding": {
+      "freezeHash": "2218edc138e512cf827a0ccdfd971e58ca213f860795be027832fe3c2aed4d7e",
+      "vectorPacketSha256": "96652b1cc6d50ffb90490519762d65b14ad50154af6f35f3d45c661f4bb0c693",
+      "rows": 384,
+      "initializationMs": 1556.5511,
+      "encodingAndTransformLoopMs": 14649.853500000001,
+      "coldElapsedMs": 16206.4094
+    },
+    "finalTestOpened": false,
+    "productionReady": false
+  },
+  "test": {
+    "split": "test",
+    "modelArtifactHash": "e0402dc9bf4bf50282cd0176901993c14d7ee5dd96afb91f755861d20f31f0df",
+    "policyHash": "74fb77f511e76450ac2db11e751e68e061db3e232fbedc007d02f2c6b0a3f245",
+    "rowCount": 96,
+    "independentGroups": 96,
+    "accepted": 90,
+    "safeAccepted": 89,
+    "acceptedPrecision": 0.9888888888888889,
+    "coverage": 0.9375,
+    "leafAccepted": 36,
+    "leafCorrect": 36,
+    "leafPrecision": 1,
+    "leafPrecisionInterval95": {
+      "method": "Wilson-two-sided-95",
+      "lower": 0.9035813714055363,
+      "upper": 1,
+      "assumption": "independent-group-outcomes-not-web-representativeness"
+    },
+    "wrongBroad": 0,
+    "observedBroadError": 0,
+    "broadErrorInterval95": {
+      "method": "Wilson-two-sided-95",
+      "lower": 3.469446951953614e-18,
+      "upper": 0.038475587857675686,
+      "assumption": "independent-group-outcomes-not-web-representativeness"
+    },
+    "wrongSameBranch": 1,
+    "overSpecificSameBranch": 1,
+    "wrongSiblingOrCousin": 0,
+    "broadFallback": 18,
+    "correctDeepestOutcome": 77,
+    "deepestOutcomeAccuracy": 0.8020833333333334,
+    "byLanguage": [
+      {
+        "value": "en",
+        "rows": 32,
+        "accepted": 30,
+        "safeAccepted": 30,
+        "deepestCorrect": 28
+      },
+      {
+        "value": "de",
+        "rows": 32,
+        "accepted": 30,
+        "safeAccepted": 29,
+        "deepestCorrect": 24
+      },
+      {
+        "value": "nl",
+        "rows": 32,
+        "accepted": 30,
+        "safeAccepted": 30,
+        "deepestCorrect": 25
+      }
+    ],
+    "byGoldDepth": [
+      {
+        "value": 1,
+        "rows": 24,
+        "accepted": 24,
+        "safeAccepted": 23,
+        "deepestCorrect": 23
+      },
+      {
+        "value": 2,
+        "rows": 42,
+        "accepted": 42,
+        "safeAccepted": 42,
+        "deepestCorrect": 35
+      },
+      {
+        "value": 3,
+        "rows": 24,
+        "accepted": 24,
+        "safeAccepted": 24,
+        "deepestCorrect": 13
+      },
+      {
+        "value": 0,
+        "rows": 6,
+        "accepted": 0,
+        "safeAccepted": 0,
+        "deepestCorrect": 6
+      }
+    ],
+    "byGoldBranch": [
+      {
+        "value": "games",
+        "rows": 30,
+        "accepted": 30,
+        "safeAccepted": 29,
+        "deepestCorrect": 25
+      },
+      {
+        "value": "nature",
+        "rows": 30,
+        "accepted": 30,
+        "safeAccepted": 30,
+        "deepestCorrect": 18
+      },
+      {
+        "value": "cooking",
+        "rows": 18,
+        "accepted": 18,
+        "safeAccepted": 18,
+        "deepestCorrect": 16
+      },
+      {
+        "value": "vehicles",
+        "rows": 12,
+        "accepted": 12,
+        "safeAccepted": 12,
+        "deepestCorrect": 12
+      },
+      {
+        "value": "outside",
+        "rows": 6,
+        "accepted": 0,
+        "safeAccepted": 0,
+        "deepestCorrect": 6
+      }
+    ],
+    "outcomes": [
+      {
+        "id": "h2_test_001",
+        "groupId": "h2_test_001",
+        "language": "en",
+        "expectedTopicId": "games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_002",
+        "groupId": "h2_test_002",
+        "language": "de",
+        "expectedTopicId": "games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_003",
+        "groupId": "h2_test_003",
+        "language": "nl",
+        "expectedTopicId": "games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_004",
+        "groupId": "h2_test_004",
+        "language": "en",
+        "expectedTopicId": "games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_005",
+        "groupId": "h2_test_005",
+        "language": "de",
+        "expectedTopicId": "games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": false,
+        "exactOutcome": false,
+        "goldDepth": 1,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_006",
+        "groupId": "h2_test_006",
+        "language": "nl",
+        "expectedTopicId": "games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_007",
+        "groupId": "h2_test_007",
+        "language": "en",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_008",
+        "groupId": "h2_test_008",
+        "language": "de",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_009",
+        "groupId": "h2_test_009",
+        "language": "nl",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_010",
+        "groupId": "h2_test_010",
+        "language": "en",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_011",
+        "groupId": "h2_test_011",
+        "language": "de",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_012",
+        "groupId": "h2_test_012",
+        "language": "nl",
+        "expectedTopicId": "video-games",
+        "primaryNodeId": "video-games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_013",
+        "groupId": "h2_test_013",
+        "language": "en",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "gta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_014",
+        "groupId": "h2_test_014",
+        "language": "de",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "gta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_015",
+        "groupId": "h2_test_015",
+        "language": "nl",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "gta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_016",
+        "groupId": "h2_test_016",
+        "language": "en",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "gta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_017",
+        "groupId": "h2_test_017",
+        "language": "de",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "gta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_018",
+        "groupId": "h2_test_018",
+        "language": "nl",
+        "expectedTopicId": "gta",
+        "primaryNodeId": "gta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_019",
+        "groupId": "h2_test_019",
+        "language": "en",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "minecraft",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_020",
+        "groupId": "h2_test_020",
+        "language": "de",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "minecraft",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_021",
+        "groupId": "h2_test_021",
+        "language": "nl",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "minecraft",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_022",
+        "groupId": "h2_test_022",
+        "language": "en",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "minecraft",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_023",
+        "groupId": "h2_test_023",
+        "language": "de",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "minecraft",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_024",
+        "groupId": "h2_test_024",
+        "language": "nl",
+        "expectedTopicId": "minecraft",
+        "primaryNodeId": "minecraft",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_025",
+        "groupId": "h2_test_025",
+        "language": "en",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "board-games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_026",
+        "groupId": "h2_test_026",
+        "language": "de",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_027",
+        "groupId": "h2_test_027",
+        "language": "nl",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_028",
+        "groupId": "h2_test_028",
+        "language": "en",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "board-games",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_029",
+        "groupId": "h2_test_029",
+        "language": "de",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_030",
+        "groupId": "h2_test_030",
+        "language": "nl",
+        "expectedTopicId": "board-games",
+        "primaryNodeId": "games",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 2,
+        "goldBranch": "games",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_031",
+        "groupId": "h2_test_031",
+        "language": "en",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_032",
+        "groupId": "h2_test_032",
+        "language": "de",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_033",
+        "groupId": "h2_test_033",
+        "language": "nl",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_034",
+        "groupId": "h2_test_034",
+        "language": "en",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_035",
+        "groupId": "h2_test_035",
+        "language": "de",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_036",
+        "groupId": "h2_test_036",
+        "language": "nl",
+        "expectedTopicId": "nature",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_037",
+        "groupId": "h2_test_037",
+        "language": "en",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_038",
+        "groupId": "h2_test_038",
+        "language": "de",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_039",
+        "groupId": "h2_test_039",
+        "language": "nl",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_040",
+        "groupId": "h2_test_040",
+        "language": "en",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_041",
+        "groupId": "h2_test_041",
+        "language": "de",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_042",
+        "groupId": "h2_test_042",
+        "language": "nl",
+        "expectedTopicId": "animals",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_043",
+        "groupId": "h2_test_043",
+        "language": "en",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_044",
+        "groupId": "h2_test_044",
+        "language": "de",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_045",
+        "groupId": "h2_test_045",
+        "language": "nl",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "koalas",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_046",
+        "groupId": "h2_test_046",
+        "language": "en",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_047",
+        "groupId": "h2_test_047",
+        "language": "de",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_048",
+        "groupId": "h2_test_048",
+        "language": "nl",
+        "expectedTopicId": "koalas",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_049",
+        "groupId": "h2_test_049",
+        "language": "en",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_050",
+        "groupId": "h2_test_050",
+        "language": "de",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_051",
+        "groupId": "h2_test_051",
+        "language": "nl",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_052",
+        "groupId": "h2_test_052",
+        "language": "en",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_053",
+        "groupId": "h2_test_053",
+        "language": "de",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_054",
+        "groupId": "h2_test_054",
+        "language": "nl",
+        "expectedTopicId": "dolphins",
+        "primaryNodeId": "animals",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 3,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_055",
+        "groupId": "h2_test_055",
+        "language": "en",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "plants",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_056",
+        "groupId": "h2_test_056",
+        "language": "de",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "plants",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_057",
+        "groupId": "h2_test_057",
+        "language": "nl",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "nature",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_058",
+        "groupId": "h2_test_058",
+        "language": "en",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "plants",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_059",
+        "groupId": "h2_test_059",
+        "language": "de",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "plants",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_060",
+        "groupId": "h2_test_060",
+        "language": "nl",
+        "expectedTopicId": "plants",
+        "primaryNodeId": "plants",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "nature",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_061",
+        "groupId": "h2_test_061",
+        "language": "en",
+        "expectedTopicId": "cooking",
+        "primaryNodeId": "cooking",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "cooking",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_062",
+        "groupId": "h2_test_062",
+        "language": "de",
+        "expectedTopicId": "cooking",
+        "primaryNodeId": "cooking",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "cooking",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_063",
+        "groupId": "h2_test_063",
+        "language": "nl",
+        "expectedTopicId": "cooking",
+        "primaryNodeId": "cooking",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "cooking",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_064",
+        "groupId": "h2_test_064",
+        "language": "en",
+        "expectedTopicId": "cooking",
+        "primaryNodeId": "cooking",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "cooking",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_065",
+        "groupId": "h2_test_065",
+        "language": "de",
+        "expectedTopicId": "cooking",
+        "primaryNodeId": "cooking",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "cooking",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_066",
+        "groupId": "h2_test_066",
+        "language": "nl",
+        "expectedTopicId": "cooking",
+        "primaryNodeId": "cooking",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "cooking",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_067",
+        "groupId": "h2_test_067",
+        "language": "en",
+        "expectedTopicId": "kapsalon",
+        "primaryNodeId": "kapsalon",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_068",
+        "groupId": "h2_test_068",
+        "language": "de",
+        "expectedTopicId": "kapsalon",
+        "primaryNodeId": "kapsalon",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_069",
+        "groupId": "h2_test_069",
+        "language": "nl",
+        "expectedTopicId": "kapsalon",
+        "primaryNodeId": "kapsalon",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_070",
+        "groupId": "h2_test_070",
+        "language": "en",
+        "expectedTopicId": "kapsalon",
+        "primaryNodeId": "kapsalon",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_071",
+        "groupId": "h2_test_071",
+        "language": "de",
+        "expectedTopicId": "kapsalon",
+        "primaryNodeId": "kapsalon",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_072",
+        "groupId": "h2_test_072",
+        "language": "nl",
+        "expectedTopicId": "kapsalon",
+        "primaryNodeId": "kapsalon",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_073",
+        "groupId": "h2_test_073",
+        "language": "en",
+        "expectedTopicId": "pasta",
+        "primaryNodeId": "pasta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_074",
+        "groupId": "h2_test_074",
+        "language": "de",
+        "expectedTopicId": "pasta",
+        "primaryNodeId": "pasta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_075",
+        "groupId": "h2_test_075",
+        "language": "nl",
+        "expectedTopicId": "pasta",
+        "primaryNodeId": "cooking",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_076",
+        "groupId": "h2_test_076",
+        "language": "en",
+        "expectedTopicId": "pasta",
+        "primaryNodeId": "pasta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_077",
+        "groupId": "h2_test_077",
+        "language": "de",
+        "expectedTopicId": "pasta",
+        "primaryNodeId": "cooking",
+        "safeAccepted": true,
+        "exactOutcome": false,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_078",
+        "groupId": "h2_test_078",
+        "language": "nl",
+        "expectedTopicId": "pasta",
+        "primaryNodeId": "pasta",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "cooking",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_079",
+        "groupId": "h2_test_079",
+        "language": "en",
+        "expectedTopicId": "vehicles",
+        "primaryNodeId": "vehicles",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "vehicles",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_080",
+        "groupId": "h2_test_080",
+        "language": "de",
+        "expectedTopicId": "vehicles",
+        "primaryNodeId": "vehicles",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "vehicles",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_081",
+        "groupId": "h2_test_081",
+        "language": "nl",
+        "expectedTopicId": "vehicles",
+        "primaryNodeId": "vehicles",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "vehicles",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_082",
+        "groupId": "h2_test_082",
+        "language": "en",
+        "expectedTopicId": "vehicles",
+        "primaryNodeId": "vehicles",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "vehicles",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_083",
+        "groupId": "h2_test_083",
+        "language": "de",
+        "expectedTopicId": "vehicles",
+        "primaryNodeId": "vehicles",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "vehicles",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_084",
+        "groupId": "h2_test_084",
+        "language": "nl",
+        "expectedTopicId": "vehicles",
+        "primaryNodeId": "vehicles",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 1,
+        "goldBranch": "vehicles",
+        "reason": "supported-parent-stop",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_085",
+        "groupId": "h2_test_085",
+        "language": "en",
+        "expectedTopicId": "tyre-pressure",
+        "primaryNodeId": "tyre-pressure",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "vehicles",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_086",
+        "groupId": "h2_test_086",
+        "language": "de",
+        "expectedTopicId": "tyre-pressure",
+        "primaryNodeId": "tyre-pressure",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "vehicles",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_087",
+        "groupId": "h2_test_087",
+        "language": "nl",
+        "expectedTopicId": "tyre-pressure",
+        "primaryNodeId": "tyre-pressure",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "vehicles",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_088",
+        "groupId": "h2_test_088",
+        "language": "en",
+        "expectedTopicId": "tyre-pressure",
+        "primaryNodeId": "tyre-pressure",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "vehicles",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_089",
+        "groupId": "h2_test_089",
+        "language": "de",
+        "expectedTopicId": "tyre-pressure",
+        "primaryNodeId": "tyre-pressure",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "vehicles",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_090",
+        "groupId": "h2_test_090",
+        "language": "nl",
+        "expectedTopicId": "tyre-pressure",
+        "primaryNodeId": "tyre-pressure",
+        "safeAccepted": true,
+        "exactOutcome": true,
+        "goldDepth": 2,
+        "goldBranch": "vehicles",
+        "reason": "supported-specific-node",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_091",
+        "groupId": "h2_test_091",
+        "language": "en",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "exactOutcome": true,
+        "goldDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_092",
+        "groupId": "h2_test_092",
+        "language": "de",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "exactOutcome": true,
+        "goldDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_093",
+        "groupId": "h2_test_093",
+        "language": "nl",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "exactOutcome": true,
+        "goldDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_094",
+        "groupId": "h2_test_094",
+        "language": "en",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "exactOutcome": true,
+        "goldDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_095",
+        "groupId": "h2_test_095",
+        "language": "de",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "exactOutcome": true,
+        "goldDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      },
+      {
+        "id": "h2_test_096",
+        "groupId": "h2_test_096",
+        "language": "nl",
+        "expectedTopicId": null,
+        "primaryNodeId": null,
+        "safeAccepted": false,
+        "exactOutcome": true,
+        "goldDepth": 0,
+        "goldBranch": "outside",
+        "reason": "insufficient-evidence",
+        "work": {
+          "dotProducts": 15,
+          "scalarProducts": 5760
+        }
+      }
+    ],
+    "gate": {
+      "productionValidated": false,
+      "representativeWebValidation": false,
+      "minimumUsefulCoveragePass": true,
+      "minimumSpecificCoveragePass": true,
+      "enoughIndependentLeafDecisions": false,
+      "observedLeafPrecisionPass": true,
+      "leafIntervalLowerBoundPass": false,
+      "observedBroadErrorPass": true,
+      "broadIntervalUpperBoundPass": false
+    },
+    "timing": {
+      "medianMs": 0.1418999999999926,
+      "p95Ms": 0.2984000000000151,
+      "maximumMs": 1.2809000000000026,
+      "scope": "whole-path-classifier-with-validation-excluding-compile-embedding-queue-database"
+    }
+  },
+  "byCaseType": [
+    {
+      "caseType": "parent-stop",
+      "rows": 12,
+      "accepted": 12,
+      "safeAccepted": 12,
+      "deepestCorrect": 12
+    },
+    {
+      "caseType": "mixed-children",
+      "rows": 4,
+      "accepted": 4,
+      "safeAccepted": 4,
+      "deepestCorrect": 4
+    },
+    {
+      "caseType": "unknown-child",
+      "rows": 8,
+      "accepted": 8,
+      "safeAccepted": 8,
+      "deepestCorrect": 8
+    },
+    {
+      "caseType": "missing-input",
+      "rows": 10,
+      "accepted": 8,
+      "safeAccepted": 7,
+      "deepestCorrect": 9
+    },
+    {
+      "caseType": "specific",
+      "rows": 48,
+      "accepted": 48,
+      "safeAccepted": 48,
+      "deepestCorrect": 32
+    },
+    {
+      "caseType": "derivative",
+      "rows": 4,
+      "accepted": 4,
+      "safeAccepted": 4,
+      "deepestCorrect": 4
+    },
+    {
+      "caseType": "incidental-mention",
+      "rows": 4,
+      "accepted": 4,
+      "safeAccepted": 4,
+      "deepestCorrect": 2
+    },
+    {
+      "caseType": "tyre-advertising",
+      "rows": 2,
+      "accepted": 2,
+      "safeAccepted": 2,
+      "deepestCorrect": 2
+    },
+    {
+      "caseType": "gta-acronym",
+      "rows": 1,
+      "accepted": 0,
+      "safeAccepted": 0,
+      "deepestCorrect": 1
+    },
+    {
+      "caseType": "outside",
+      "rows": 3,
+      "accepted": 0,
+      "safeAccepted": 0,
+      "deepestCorrect": 3
+    }
+  ],
+  "corpus": {
+    "rows": 384,
+    "provenance": "new-authored-synthetic-feasibility",
+    "realWebQualityClaim": false
+  },
+  "productionReady": false,
+  "ownerDataRead": false,
+  "providerCalls": 0,
+  "canonicalWrites": 0,
+  "crawlerActions": 0
+}

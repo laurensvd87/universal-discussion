@@ -1,0 +1,28 @@
+{
+  "schema":"hierarchical-e5-observed-cutpoint-experiment/v1",
+  "expectedSplits":{"calibration":205,"test":142},
+  "maximumRows":347,
+  "calibration":{"split":"calibration","minimumAcceptedGroups":3,"targetPrecision":1},
+  "selection":"frozen-C-trained-model-only-no-training-no-test-selection",
+  "method":"observed-whole-score-ties-and-sibling-margin-cutpoints-bounded-quadratic-sweep",
+  "baseline":{
+    "freezeHash":"7bf0ee5450ed3cf9768f08c678589767fa7277542a88aa8652f7bd6324ab91fb",
+    "freezeSha256":"95995a04075a9c408f603ca638cafe35c838e5fdcd6380b7de5427b7d2b5e65e",
+    "modelSha256":"105de0a2c6b8df0aa769df8d6688f94b797845c43bc859aad76f5b5908980b72",
+    "policySha256":"4472586e5f05a8f54e09d8c707e97f578dc5d29e9c8569772c6603f309f7c631",
+    "inputDefinitionSha256":"75d443c8186a375b8e68cdefe383e77a31ef746ae3f725d92f84ae9341b46db2"
+  },
+  "input":"separate-query-prefixed-body-and-title-E5-vectors-with-frozen-C-paired-adapter-.75-body-.25-title",
+  "taxonomy":"frozen-63-node-house-taxonomy-v1-not-owner-approved",
+  "scope":"fresh-authored-multilingual-paired-calibration-and-locked-comparison-not-representative-web-validation",
+  "lockedTest":"both-predeclared-observed-policy-and-unchanged-C-baseline-once-on-new142-no-post-test-retune",
+  "minimumUsefulCoverage":0.6,
+  "minimumSpecificCoverage":0.3,
+  "qualityGate":"separate-support-interval-and-representative-web-gates-remain-no-synthetic-only-production-promotion",
+  "maximumCountedCalibrationWork":64000000,
+  "resourceBudget":{"threads":1,"maxProcessRssMiB":1536,"maxProcessCommitMiB":1536,"minHostReserveMiB":1024,"minCDriveFreeMiB":768,"minDDriveFreeMiB":512,"maxWallSeconds":180},
+  "canonicalWrites":false,
+  "providerCalls":false,
+  "pageFetches":false,
+  "runtimeActivation":false
+}

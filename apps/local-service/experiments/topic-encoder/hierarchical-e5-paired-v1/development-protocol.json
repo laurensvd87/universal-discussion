@@ -1,0 +1,33 @@
+{
+  "schema": "hierarchical-e5-paired-development/v1",
+  "status": "development-only-not-final-holdout",
+  "inventorySampleHash": "006e82a99628672a579eb5c1e1f919228854fce64f99f277d1affd21b4af0d7d",
+  "inventoryProtocolHash": "7efec217c216755200f565f062100786a0971b360bf37a37514c5ede50478b6a",
+  "sampleLimit": 120,
+  "bodyWeights": [1, 0.75, 0.5, 0.25, 0],
+  "rootRankers": ["direct-descriptor", "descendant-union"],
+  "descriptorInput": "node.label + '. ' + each of the two independently authored positiveDescriptions",
+  "descriptorPair": "same descriptor vector in both input fields, passed through the declared paired-input adapter",
+  "encoderModelId": "e5-small-q8-browser-main-prefix-v1",
+  "titleInput": "existing retained public title, bounded to 512 UTF-16 units without splitting a surrogate pair",
+  "bodyInput": "existing normalized public Source embedding, binary64 wire and JSON mirror exactly equal",
+  "labels": "blind title/host metadata partial gold sealed before model initialization; unknown names are insufficient, not negatives",
+  "evaluation": "root ranking on explicit metadata roots only; deeper body predictions are not errors merely because the title annotation is partial",
+  "marginBands": [0, 0.01, 0.02, 0.04, 0.06, 0.08],
+  "limits": {
+    "processRssBytes": 1610612736,
+    "processPrivateCommitBytes": 1610612736,
+    "hostReserveBytes": 1073741824,
+    "cDriveReserveBytes": 805306368,
+    "wallSeconds": 180,
+    "resultBytes": 2097152,
+    "logBytes": 65536,
+    "threads": 1
+  },
+  "canonicalWrites": false,
+  "providerCalls": false,
+  "pageFetches": false,
+  "retainedSourceVectors": false,
+  "productionAssignmentAuthority": false,
+  "runtimeActivation": false
+}

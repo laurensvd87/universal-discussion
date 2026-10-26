@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Murmingle isolated native reader study",
+  "version": "1.0.0",
+  "minimum_chrome_version": "116",
+  "incognito": "not_allowed",
+  "permissions": ["scripting", "tabs"],
+  "host_permissions": [
+    "https://www.stardewvalley.net/*", "https://www.factorio.com/*", "https://animals.sandiegozoo.org/*", "https://www.kew.org/*",
+    "https://www.kingarthurbaking.com/*", "https://www.marmiton.org/*", "https://www.nhtsa.gov/*", "https://www.adac.de/*",
+    "https://science.nasa.gov/*", "https://home.cern/*", "https://developer.mozilla.org/*", "https://docs.python.org/*",
+    "https://www.cnil.fr/*", "https://www.supremecourt.gov/*", "https://www.archives.gov/*", "https://www.rijksmuseum.nl/*",
+    "https://www.moma.org/*", "https://www.olympics.com.au/*", "https://www.nps.gov/*", "https://www.nhs.uk/*", "https://www.who.int/*",
+    "https://www.ecb.europa.eu/*", "https://www.sba.gov/*", "https://www.rae.es/*", "https://www.francophonie.org/*",
+    "https://plato.stanford.edu/*", "https://quaker.org.uk/*", "https://www.education.gouv.fr/*", "https://erasmus-plus.ec.europa.eu/*"
+  ],
+  "background": {"service_worker": "worker.js", "type": "module"},
+  "content_security_policy": {"extension_pages": "default-src 'none'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"}
+}

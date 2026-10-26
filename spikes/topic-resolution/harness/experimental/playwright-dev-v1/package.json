@@ -1,0 +1,10 @@
+{
+  "name": "murmingle-playwright-dev-input-probe",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated development-only browser transport; no runtime integration or automatic capture",
+  "dependencies": {
+    "playwright-core": "1.64.1"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schema": "formation-feasibility/v1",
+  "purpose": "Offline topic formation and incoming-page assignment only; no visualization or activation",
+  "maxTexts": 144,
+  "inputs": ["body-prefix-4096", "title-plus-lead-384"],
+  "representations": ["raw-e5", "pinned-ridge1"],
+  "ridgeTitleLeadCaveat": "Ridge was fit on BODY; applying it to title-lead is an out-of-distribution exploratory control",
+  "ridgeParameterSha256": "593a52ba9a5495a49ef00f4dae38770684389632f961b60ec07067fd8784b3e4",
+  "reducers": ["original", "pca10", "umap10"],
+  "pca": {"n_components": 10, "whiten": false, "svd_solver": "full"},
+  "umap": {"n_components": 10, "n_neighbors": 10, "min_dist": 0, "metric": "cosine", "random_state": 17, "transform_seed": 17, "n_jobs": 1, "low_memory": true},
+  "hdbscan": {"min_cluster_size": 3, "min_samples": 2, "metric": "euclidean", "cluster_selection_method": "eom", "prediction_data": true, "core_dist_n_jobs": 1, "approx_min_span_tree": false},
+  "radiusFloors": {"raw-e5": 0.88, "pinned-ridge1": 0.8639003810829322},
+  "assignmentSeedRule": "All development and development-singleton rows plus first two IDs per independent heldout Topic; predict other heldout rows and heldout singletons",
+  "singletonPredictionIsCorrectOnlyWhenNoise": true,
+  "fitLabelsNeverProvidedToAlgorithms": true,
+  "singleQueryTimingSampleCount": 5,
+  "budget": {"threads": 1, "maxProcessRssMiB": 1536, "maxProcessCommitMiB": 1536, "minSystemAvailableMiB": 512, "maxWallSeconds": 600},
+  "interpretation": "Small synthetic feasibility only. Report all pipelines, including noise, wrong merges and failures. No parameter selection, plots, historical closed-cohort inference, coefficient fitting, recapture, canonical writes or production integration."
+}

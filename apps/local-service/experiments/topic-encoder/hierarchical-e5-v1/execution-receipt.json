@@ -1,0 +1,20 @@
+{
+  "schema": "hierarchical-e5-execution-receipt/v1",
+  "date": "2026-10-19",
+  "freezeHash": "b9765d72fd3a3f1ce6f87b03d29a3a012bdb0240ecae08a8bbadd1fb18336ff5",
+  "reportSha256": "1219bada958935f97853d75bc1bf231b9c4c5742ab6bc2d6402bd233494fd1bf",
+  "vectorPacketSha256": "11981580bd366e3264a5c887fb3c2e5b68faa017c2d8aafdf06a369f3d4631ec",
+  "selectedArtifactSha256": "1cb9023a8c131b664b22e6c8ac128e9151f762409aefa43e72644d158cce92a4",
+  "supervisor": {
+    "exitCode": 0,
+    "resourceViolation": false,
+    "sampleIntervalMs": 50,
+    "sampledPeakChildRssBytes": 1059213312,
+    "sampledPeakChildPrivateCommitBytes": 1229041664,
+    "absolutePeakGuarantee": false
+  },
+  "encodingLoopElapsedMs": 6029.2221,
+  "encodingTimingScope": "document-encoding-and-ridge-transforms-after-model-initialization-not-cold-start",
+  "productionReady": false,
+  "note": "Post-run local receipt, not a signed attestation or a new experiment. Original freeze, vectors, candidate and report unchanged."
+}

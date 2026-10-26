@@ -1,0 +1,20 @@
+{
+  "schema": "formation-feasibility-execution/v1",
+  "freezeHash": "e853e5f1981d5bc21b00b00963cf6f4c815468839cb98034bceb215d2dc5323c",
+  "independentHoldoutSha256": "40350a43b8d4028c4b4cfc90bf54ad463f195f1fd55667d3993c19c5370ab94f",
+  "encoderSupervisor": {"exitCode": 0, "peakChildRssBytes": 1066856448, "peakChildCommitBytes": 1068560384},
+  "fittingSupervisor": {"exitCode": 0, "peakChildRssBytes": 336523264, "peakChildCommitBytes": 344965120},
+  "sequentialProcesses": true,
+  "resourceViolation": false,
+  "productionPipelineChanged": false,
+  "interpretationLimits": [
+    "84 short synthetic texts, not a representative web-scale benchmark",
+    "Independent heldout scope excludes cross-scope pairs; overall metrics remain necessary to detect contamination",
+    "Incoming assignment seeds only two examples per new independent Topic while min_cluster_size is three: deliberately sparse-topic stress, not a test of mature clusters",
+    "Zero pure correct assignments in this sparse setup must not be generalized to all HDBSCAN deployments",
+    "Fixed-reference baseline is a first-match partition comparator, not current overlapping canonical membership",
+    "Ridge on title-plus-lead is out of distribution relative to its BODY fit",
+    "First UMAP fit and prediction contain JIT overhead; five single-query samples do not establish production percentiles",
+    "No tuning, old-cohort re-inference, coefficient fitting, plots, provider call, canonical write, or activation"
+  ]
+}

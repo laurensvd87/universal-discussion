@@ -1,0 +1,26 @@
+{
+  "schema": "hierarchical-e5-linear-experiment/v1",
+  "expectedSplits": { "training": 128, "development": 64, "calibration": 96, "test": 96 },
+  "maximumRows": 384,
+  "representations": ["pinned-ridge", "raw-e5"],
+  "lambdas": [0.01, 0.1, 1, 10],
+  "maximumSearchModels": 8,
+  "maximumAggregateCountedTrainingWork": 128000000,
+  "selection": "development-only-minimum-class-balanced-membership-squared-error-then-prior-order",
+  "calibration": { "split": "calibration", "minimumAcceptedGroups": 3, "targetPrecision": 1 },
+  "policyGrid": { "thresholds": [-0.25, 0, 0.25, 0.5, 0.75, 1, 1.25], "margins": [0, 0.05, 0.1, 0.2, 0.4] },
+  "decisionMode": "single-path-root-contrast",
+  "lockedTest": "selected-model-and-calibrated-policy-only-once-no-post-test-selection-or-retune",
+  "input": "existing-query-prefix-body-contract-no-extra-normalization",
+  "qualityClaim": "synthetic-feasibility-not-representative-web-or-production-guarantee",
+  "minimumUsefulCoverage": 0.6,
+  "minimumSpecificCoverage": 0.3,
+  "budget": {
+    "threads": 1,
+    "maxProcessRssMiB": 1536,
+    "maxProcessCommitMiB": 1536,
+    "minSystemAvailableMiB": 1024,
+    "minCDriveFreeMiB": 768,
+    "maxWallSeconds": 180
+  }
+}

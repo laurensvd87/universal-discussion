@@ -1,0 +1,19 @@
+{
+  "schema": "hierarchical-e5-linear-execution-receipt/v1",
+  "date": "2026-10-19",
+  "freezeHash": "2218edc138e512cf827a0ccdfd971e58ca213f860795be027832fe3c2aed4d7e",
+  "reportSha256": "081e695ec8df2e046d6615b71945c7f7c8379639ecaa67f9e6235b7c35f34422",
+  "modelSha256": "e0402dc9bf4bf50282cd0176901993c14d7ee5dd96afb91f755861d20f31f0df",
+  "policySha256": "ba0b85af579cbbcf35f21715c4d4275a877cbaf18f8432e94eb9779461b32d0e",
+  "vectorPacketSha256": "96652b1cc6d50ffb90490519762d65b14ad50154af6f35f3d45c661f4bb0c693",
+  "supervision": {
+    "sampleIntervalMs": 50,
+    "absolutePeakGuarantee": false,
+    "resourceViolation": false,
+    "encode": { "exitCode": 0, "sampledPeakChildRssBytes": 1029402624, "sampledPeakChildPrivateCommitBytes": 1093963776, "elapsedSeconds": 31.31200000003446 },
+    "fit": { "exitCode": 0, "sampledPeakChildRssBytes": 118779904, "sampledPeakChildPrivateCommitBytes": 105988096, "elapsedSeconds": 0.609000000054948 },
+    "test": { "exitCode": 0, "sampledPeakChildRssBytes": 98185216, "sampledPeakChildPrivateCommitBytes": 87080960, "elapsedSeconds": 0.25 }
+  },
+  "productionReady": false,
+  "note": "Post-run local linkage receipt, not a signed attestation. All 15 frozen sources and original results remain unchanged. No final-test reclassification or retuning."
+}

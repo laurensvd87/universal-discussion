@@ -1,0 +1,15 @@
+{
+  "schema": "hierarchy-nli-assets/v1",
+  "revision": "ca5daf3d11b6c4b3143b1f4602a2edfb64c3ad7e",
+  "assets": [
+    {"filename":"model_quantized.onnx","bytes":107415176,"sha256":"55614f3c7da74184742eaa0006b978744437aa91de9ba4913db42f94d7844a8f"},
+    {"filename":"tokenizer.json","bytes":17082832,"sha256":"d0091a328b3441d754e481db5a390d7f3b8dabc6016869fd13ba350d23ddc4cd"},
+    {"filename":"config.json","bytes":989,"sha256":"3ebbbdf3c3803649b49715fd169207c0f42c4250dfea5dd304b1d8b8f745852a"},
+    {"filename":"tokenizer_config.json","bytes":1286,"sha256":"329b7d21f02c6c6c9d358733b03a34a89cd8e4fe36998869a6ab824b98e9bf9d"},
+    {"filename":"special_tokens_map.json","bytes":964,"sha256":"8c785abebea9ae3257b61681b4e6fd8365ceafde980c21970d001e834cf10835"},
+    {"filename":"tokenizers.mjs","bytes":98937,"sha256":"1c4a848f86156201c033d6cd08c4cf81ae1088552acec3367f31ef086edf5af0"},
+    {"filename":"ort.wasm.min.mjs","bytes":50195,"sha256":"1617c813ada08592706d29a9963ab6258864dce4299bd402d2196bd648b63bfe"},
+    {"filename":"ort-wasm-simd-threaded.mjs","bytes":24381,"sha256":"c57ca56328877353a575e51bbca6f18450027d6c9bf2307a2cb2c41363b4de9f"},
+    {"filename":"ort-wasm-simd-threaded.wasm","bytes":14264838,"sha256":"06ba057753da3847e4c24f02d91ab133455b0817c69a44993a9a53a2146df9e3"}
+  ]
+}

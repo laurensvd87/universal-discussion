@@ -1,0 +1,27 @@
+{
+  "schema": "hierarchical-e5-experiment/v1",
+  "maximumRows": 144,
+  "expectedSplits": { "prototype": 36, "development": 36, "calibration": 36, "test": 36 },
+  "representationOrder": ["pinned-ridge", "raw-e5"],
+  "input": "exact-existing-query-body-prefix-contract-no-extra-normalization",
+  "minimumAcceptedDevelopmentGroups": 2,
+  "developmentPrecisionObjective": 1,
+  "ruleGrid": {
+    "minimumSimilarities": [0.75, 0.8, 0.85, 0.9, 0.95],
+    "margins": [0, 0.01, 0.03, 0.06],
+    "negativeMargins": [0, 0.02],
+    "independentSupport": [1, 2],
+    "meanSlack": 0.03
+  },
+  "selection": "development-wrongBroad-ascending-precision-descending-deepestAccuracy-descending-coverage-descending-prior-order",
+  "calibrationSplit": "assessment-only-no-refit",
+  "lockedTest": "selected-representation-only-no-post-test-selection",
+  "qualityClaim": "small-independent-authored-synthetic-feasibility-not-web-accuracy",
+  "budget": {
+    "threads": 1,
+    "maxProcessRssMiB": 1536,
+    "maxProcessCommitMiB": 1536,
+    "minSystemAvailableMiB": 512,
+    "maxWallSeconds": 180
+  }
+}

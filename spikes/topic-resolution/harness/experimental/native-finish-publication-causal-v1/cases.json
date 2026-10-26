@@ -1,0 +1,12 @@
+{
+  "schema": "native-finish-publication-causal-cases/v1",
+  "sourceOnly": true,
+  "physicalCrossLanguageIpc": false,
+  "maximumTraceEvents": 128,
+  "nodeMillisecondsPerPythonSecond": 1000,
+  "exchangeMilliseconds": 15000,
+  "parentEntryMilliseconds": 6000,
+  "validationMilliseconds": 10000,
+  "events": ["pending-open", "pending-write", "pending-close", "pending-verification", "native-before", "final-visible", "native-after", "final-read", "final-close", "final-native-after", "response-write", "response-flush", "service-commit", "publication-settled", "parent-result", "parent-recheck", "finish-ack", "cleanup"],
+  "scenarios": ["visible-after-proof-pending", "visible-final-read-pending", "clock-alone-keeps-original", "settle-after-deadline", "service-before-validation", "late-frame-after-empty", "prepared-not-written", "write-rejected", "write-never-settled", "source-drift", "result-drift", "checkpoint-invalid", "checkpoint-evicted", "binding-invalid", "eof-partial", "extra-frame", "unexpected-exit", "cleanup-secondary", "sampler-guard-masked"]
+}

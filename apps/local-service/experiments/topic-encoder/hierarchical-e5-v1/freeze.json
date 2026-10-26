@@ -1,0 +1,76 @@
+{
+  "schema": "hierarchical-e5-experiment/v1",
+  "sourceHashes": {
+    "run.js": "8ed0a0787cfd4335ddfbbb514d68ac62125e476de1964ae0865239155e0ab6e2",
+    "protocol.json": "f9637a124a880a3bcf15fe9f9287e6ada8e87387d1ae02717c5c3ec11e202987",
+    "supervise.py": "09139945dd819546467087c34de4f4382708423863b4c050d50596cbb2b44fc9",
+    "corpus.js": "df13ae28f1658746d2d2a7cfbe6a30984897db224ab304a520e84df1373aa2cb",
+    "taxonomy.js": "5d4ec50274b9403253d000af35705c8702ce771e5a9d51da6aa4bc0fa1a249cf",
+    "../../../src/domain/hierarchical-e5-matcher.js": "4970742088ea910726568567b7260c4d2af5f516a6011148d42227b3537e44c0",
+    "../../../src/domain/hierarchical-e5-evaluation.js": "cd18958e30f1c7572ac13fb03ce7db5d6640c01f0479e2af3c5d77ffc3144a36",
+    "../../../src/domain/ridge-topic-adapter.js": "1741229f4412f2633ad133ff3f5d6c340a84d709dc6718c39616e48e88258dd4",
+    "../../../src/crawler/packaged-e5.js": "22fd2c29364d3a21e704bebad891de1c634aba7cb36d24d4947ae2354b3f32cd",
+    "../../../data/ridge1-topic-adapter-v1.json": "c25618bc0f897998dced3f2f8ab47ef50d706606e4c21299654c5bc516af7569",
+    "../../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js": "6b26cc2766acdbcba39259d1459e703995c3b5ae5a6fd4a4c78b7a968d0b3920",
+    "../../../../../spikes/topic-resolution/browser/embedding/.assets/manifest.json": "5766e675660a8fbe74842a69b670a84ce5f9eb457b77032337e4a69d6180b984",
+    "../../../../../spikes/topic-resolution/harness/deny-external-capabilities.js": "77dedacd3b468e068e875b95738f1617363302f5f5b8554aad5f93ff9e3c0abd"
+  },
+  "protocol": {
+    "schema": "hierarchical-e5-experiment/v1",
+    "maximumRows": 144,
+    "expectedSplits": {
+      "prototype": 36,
+      "development": 36,
+      "calibration": 36,
+      "test": 36
+    },
+    "representationOrder": [
+      "pinned-ridge",
+      "raw-e5"
+    ],
+    "input": "exact-existing-query-body-prefix-contract-no-extra-normalization",
+    "minimumAcceptedDevelopmentGroups": 2,
+    "developmentPrecisionObjective": 1,
+    "ruleGrid": {
+      "minimumSimilarities": [
+        0.75,
+        0.8,
+        0.85,
+        0.9,
+        0.95
+      ],
+      "margins": [
+        0,
+        0.01,
+        0.03,
+        0.06
+      ],
+      "negativeMargins": [
+        0,
+        0.02
+      ],
+      "independentSupport": [
+        1,
+        2
+      ],
+      "meanSlack": 0.03
+    },
+    "selection": "development-wrongBroad-ascending-precision-descending-deepestAccuracy-descending-coverage-descending-prior-order",
+    "calibrationSplit": "assessment-only-no-refit",
+    "lockedTest": "selected-representation-only-no-post-test-selection",
+    "qualityClaim": "small-independent-authored-synthetic-feasibility-not-web-accuracy",
+    "budget": {
+      "threads": 1,
+      "maxProcessRssMiB": 1536,
+      "maxProcessCommitMiB": 1536,
+      "minSystemAvailableMiB": 512,
+      "maxWallSeconds": 180
+    }
+  },
+  "corpusSha256": "61fa2dafb8e58951ad6ca05c0f88d2dedc6f1368f47e548d5bba324b5e86423d",
+  "taxonomySha256": "9f6ca6b2a73655e058e7064b0e8b47fd004890d1598ecdf6fc1a77a444f2348b",
+  "rowCount": 144,
+  "modelId": "e5-small-q8-browser-main-prefix-v1",
+  "modelSha256": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+  "freezeHash": "b9765d72fd3a3f1ce6f87b03d29a3a012bdb0240ecae08a8bbadd1fb18336ff5"
+}
