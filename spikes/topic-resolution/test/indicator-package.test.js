@@ -11,6 +11,15 @@ const popupHtmlPath = path.join(browserDirectory, "chromium", "popup.html");
 const popupScriptPath = path.join(browserDirectory, "chromium", "popup.js");
 const popupStylePath = path.join(browserDirectory, "chromium", "popup.css");
 
+test("Discover composes one global topic search with preview-only discussion reads",async()=>{
+  const source=await readFile(popupScriptPath,"utf8");
+  assert.match(source,/mountDiscoveryPanel\(document, libraryRoot, \{ client: localClient, messages: EN, previewOnly: true/u);
+  const context=source.slice(source.indexOf("const topicSpaceState ="),source.indexOf("function ownerTopicSpaceRequest"));
+  assert.doesNotMatch(context,/localDiscussion|sourceId|currentUrl|topicId/u);
+  assert.match(context,/actorId/u);assert.match(context,/sessionRevision/u);
+  assert.match(source,/observePage\(\) \{ topicSpacePanel\.observe\(topicSpaceState\(\)\); \}/u);
+});
+
 async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
@@ -73,6 +82,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "chromium/related-pages-panel.js",
     "chromium/sidepanel-context.js",
     "chromium/sidepanel.html",
+    "chromium/topic-space-panel.js",
     "chromium/topic-toolbar-icon.js",
     "chromium/ui-mode.js",
     "core/account-auth-response.js",
@@ -84,6 +94,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/background-matcher.js",
     "core/capture-session.js",
     "core/community-contract.js",
+    "core/discussion-mentions.js",
     "core/discussion-target.js",
     "core/indicator-contract.js",
     "core/indicator-controller.js",
@@ -107,6 +118,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
     "core/related-page-excerpts.js",
     "core/related-page-suggestions.js",
     "core/related-sources.js",
+    "core/topic-space-contract.js",
     "core/topic-toolbar-controller.js",
     "core/topic-view-mode.js",
     "embedding/.gitignore",
@@ -134,7 +146,7 @@ test("unpacked extension inventory and approved loopback-only manifest are exact
   assert.deepEqual(manifest, {
     manifest_version: 3,
     name: "Murmingle",
-    version: "0.13.63",
+    version: "0.13.74",
     description: "Opt-in on-device page matching and shared local Topic discussions.",
     minimum_chrome_version: "116",
     incognito: "not_allowed",

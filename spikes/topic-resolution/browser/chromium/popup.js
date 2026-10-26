@@ -20,7 +20,8 @@ import { createLocalAiClient } from "../core/local-ai-client.js";
 import { createInsightPageReader } from "./insight-page-reader.js";
 import { createInsightPreferenceStorage } from "./insight-preference-storage.js";
 import { mountPrivateConversationPanel } from "./private-conversation-panel.js";
-import { mountDiscoveryPanel } from "./discovery-panel.js";
+import { mountDiscoveryPanel, createTopicSpacePreviewOpener } from "./discovery-panel.js";
+import { mountTopicSpacePanel } from "./topic-space-panel.js";
 import { preparePrivateGeneration } from "../core/private-generation-context.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { mountPopupShell } from "./popup-shell.js";
@@ -408,7 +409,46 @@ privatePanel = mountPrivateConversationPanel(document, document.querySelector("#
     readArticle: insightPageReader.read, attestArticle: insightPageReader.attest,
     readBrowserLanguage: insightPreferenceStorage.readBrowserLanguage }),
 });
-const discoveryPanel = mountDiscoveryPanel(document, document.querySelector("#app-view-discover"), { client: localClient, messages: EN });
+const discoveryRoot = document.querySelector("#app-view-discover");
+const topicSpaceRoot = document.createElement("section"), libraryRoot = document.createElement("section");
+topicSpaceRoot.className = "topic-space-panel"; libraryRoot.className = "topic-space-library";
+discoveryRoot.replaceChildren(topicSpaceRoot, libraryRoot);
+let topicSpaceReturnFocus = null;
+const libraryPanel = mountDiscoveryPanel(document, libraryRoot, { client: localClient, messages: EN, previewOnly: true,
+  onPreviewChange: visible => {
+    topicSpaceRoot.hidden = visible;
+    if (!visible) {
+      const trigger = topicSpaceReturnFocus; topicSpaceReturnFocus = null;
+      queueMicrotask(() => { if (trigger?.isConnected && !discoveryRoot.hidden && !topicSpaceRoot.hidden) trigger.focus(); });
+    }
+  },
+});
+let topicSpaceSessionRevision = 0, topicSpaceSession = null;
+const topicSpaceState = () => ({ actorId: accountPanel?.getActorId() ?? null, sessionRevision: topicSpaceSessionRevision });
+function ownerTopicSpaceRequest(method, value, options = {}) {
+  const actorId = accountPanel?.getActorId(), sessionRevision = topicSpaceSessionRevision;
+  if (!actorId) return Promise.reject(Object.assign(new Error("Sign in required"), { code: "authentication-required" }));
+  const guarded = { ...options, beforeDispatch: () => actorId === accountPanel?.getActorId() && sessionRevision === topicSpaceSessionRevision };
+  return method === "owner" ? localClient.topicSpaceOwner(actorId, guarded) : localClient.updateTopicSpacePolicy(value, actorId, guarded);
+}
+const topicSpacePanel = mountTopicSpacePanel(document, topicSpaceRoot, { messages: EN,
+  client: { topicSpaces: (...args) => localClient.topicSpaces(...args),
+    topicSpaceOwner: options => ownerTopicSpaceRequest("owner", null, options),
+    updateTopicSpacePolicy: (value, options) => ownerTopicSpaceRequest("policy", value, options) },
+  onOpenDiscussion: createTopicSpacePreviewOpener({ preview: libraryPanel,
+    beforeOpen: () => { topicSpaceReturnFocus = document.activeElement; } }),
+});
+const stopTopicSpaceAccount = accountPanel.controller.subscribe(() => {
+  const current = accountPanel.controller.getAccessToken();
+  if (current !== topicSpaceSession) { topicSpaceSession = current; topicSpaceSessionRevision++; }
+  topicSpacePanel.observe(topicSpaceState());
+});
+const discoveryPanel = {
+  setActive(value) { libraryPanel.setActive(value); topicSpacePanel.setActive(value); },
+  observePage() { topicSpacePanel.observe(topicSpaceState()); },
+  observeConnected(value) { libraryPanel.observeConnected(value); topicSpacePanel.setConnection(value); },
+  dispose() { stopTopicSpaceAccount(); topicSpaceSession = null; libraryPanel.dispose(); topicSpacePanel.dispose(); },
+};
 popupShell.bindCommunity({ private: privatePanel, discovery: discoveryPanel });
 const accountMaintenance = setInterval(() => {
   if (accountPanel.getActorId()) void accountPanel.controller.withAppSession(() => true).catch(() => {});
