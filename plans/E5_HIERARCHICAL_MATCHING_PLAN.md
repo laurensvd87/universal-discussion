@@ -16,6 +16,15 @@ coarse. Genuine GTA/koala examples and independent child calibration are missing
 Keep source457401ce and data/hierarchy-public-quality-20261026 evidence immutable
 through Git and saved files. No live matcher activation follows this comparison.
 
+The new ordinary partial-label cut fitter is source-accepted with7 guarded tests;
+real child data fitting and independent child validation remain open. It requires
+two observed TRAIN support groups, three accepting known-positive CAL and three
+known-negative CAL groups, with zero accepted known negatives. Accepted unknowns
+are audited separately, never called correct. Work units are row-cut evaluations,
+not a CPU bound. The owner's two Kapsalon stored-body/new-title numerical probes
+both accept cooking under the fixed root gate; finer Kapsalon membership remains
+unproved and the live application has not switched.
+
 26 October current: real native PostgreSQL now passes all25 literal hierarchy
 ledger points (source506bdff5/session97295). Independent success audit31a36266...
 43d06f authenticates all2,351 inputs, unchanged assertions and clean owned cleanup.

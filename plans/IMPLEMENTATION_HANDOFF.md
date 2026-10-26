@@ -1,6 +1,6 @@
 # Implementation handoff: local-service discussion MVP
 
-## Current continuation: native SQL passed, real quality next
+## Current continuation: native SQL and root diagnostics passed, real children next
 
 The first fresh public diagnostic now completed: source457401ce/session73152 exit0,
 26/32 captured and26/26 correct roots, six parser refusals retained. All16 roots
@@ -18,6 +18,17 @@ still unmeasured. Next implement partial-label local cut fitting and obtain genu
 child references/CAL. Existing shared linear training cannot treat root-only gold
 as child negatives. The successful root model stays fixed; do not fabricate GTA
 or koala support from generic game/animal examples.
+
+The ordinary partial-label local fitter is now source-accepted with7 guarded
+tests; no real child fit or held-out validation has run. Prefixes preserve unknown
+descendants, with explicit STOP/exclusions for negatives. Cuts require2 TRAIN
+groups,3 accepting known-positive CAL and3 known-negative CAL groups/zero errors.
+Unknown acceptance is reported separately; all authority flags remain false.
+The owner's Kapsalon website/video stored-vector regression also accepts both as
+cooking, using the fixed root model and newly encoded stored titles. This is not
+a fresh browser observation or a live fix. Real Chromium panel QA passes after
+sourceff1bcd37 repairs only its missing in-memory private export fixture;45 calls,
+no runtime errors and320px overflow checks. Original services/crawler stay running.
 
 Source506bdff5 passed the complete25-point native hierarchy fixture on real
 PostgreSQL (session97295 exit0). Independent audit31a36266...43d06f is authenticated

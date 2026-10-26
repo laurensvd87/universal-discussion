@@ -1,6 +1,6 @@
 # Project status
 
-## Current checkpoint on 26 October, after the native SQL pass
+## Current checkpoint on 26 October, after real SQL and root diagnostics
 
 The first maintained real-page comparison is now complete (source457401ce,
 session73152 exit0). Of32 predeclared English Wikipedia subjects,26 were captured
@@ -24,9 +24,30 @@ its original process; the older remembered50986 port was refused.
 
 Next is real child-reference learning with partial labels. The existing linear
 trainer treats every nonancestor as negative, so root-only labels cannot safely
-train children. A bounded ordinary partial-label local calibration helper is in
-progress; genuine GTA/koala examples and child calibration are still missing.
+train children. A bounded ordinary partial-label local calibration helper is
+implemented; genuine GTA/koala examples and child calibration are still missing.
 The old synthetic detail control will not be presented as a working hierarchy.
+The new ordinary partial-label fitter is now source-accepted with7 guarded tests:
+unknown descendants stay unknown; branches require two TRAIN support groups,
+three accepting known-positive CAL groups, three known-negative CAL groups and
+zero accepted known negatives. This is development cut fitting, not actual child
+training or held-out child quality. It is not connected to the live matcher.
+
+The owner's original Kapsalon recipe and YouTube examples were also evaluated
+numerically from their stored body vectors plus newly encoded stored titles.
+Both are accepted as cooking by the fixed root model (3.6–8.0ms numerical time).
+Their stored raw-body cosine is0.90114. This is a targeted regression on existing
+observations, not a fresh capture or live fix; exact old relation failure remains
+untraced. Source0c15d9d3/session91896 exit0, result54075e63...2412b in
+data/hierarchy-owner-matching-evaluation-20261026.json.
+
+Real Chromium panel QA initially failed export because the isolated fixture omitted
+the private backend that normal startup supplies. Sourceff1bcd37 adds the real
+in-memory private service. The corrected isolated run passes45 intercepted calls,
+zero runtime errors, account posting/replies/export/logout/deletion, and320px
+overflow checks. Screenshots remain under data/hierarchy-panel-qa-repaired-20261026;
+Root visually inspected the320px posting view. No owner accounts/provider/live
+database were used. This does not test hierarchical matching UI integration.
 
 The maintained hierarchy fixture passed all25 literal ledger points on real
 PostgreSQL17.11, using source506bdff5 and catalog0199e54a...de1bf. Session97295

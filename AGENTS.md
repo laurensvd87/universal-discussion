@@ -23,8 +23,18 @@ warm~10ms/RSS~0.9GB sample NOTperuser/peak/productionRAMrequirement.
 AuthenticatedAPI storedURLselection3reads14–81ms whilecrawleradvances; noresponse
 contentretained. ActualAPIlistener4174; older50986refused/notappoutageproof.
 19guardedSOURCEtestsPASS98.7391ms. Ordinary partial-label localcalibration SOURCE
-inprogress: existinglineartrainers falselynegateunknownchildren; needrealchild
-TRAIN/CAL, GTA/koala currently0. Nochildacceptance/liveactivation. Gitbacklogresolved.
+Root+Trustaccepted/7guardedPASS103.8832ms: prefixdescendantsUNKNOWN/explicitSTOPor
+exclusionnegative/2TRAINsupport/3knownpositive+3knownnegativeCAL/0knownerrors;
+acceptedunknownseparate/notcorrect. Gridunit row-cut evaluations NOTCPU. Noactual
+childfit/quality; genuineGTA/koalaTRAIN/CALmissing. Existinglineartrainers falsely
+negateunknownchildren. Owner2Kapsalonstoredexamples BOTHcooking/3.6–8ms/rootonly,
+rawbodycosine0.901144; source0c15d9d3/session91896 CLOSEDexit0/result54075e63...2412b.
+Historicalbody+newstoredtitleencoding NOTfreshcapture/livefix; no fakeauthority.
+ActualChromeaccountpanel initiallyfixtureprivate-data400; ff1bcd37 addsactual
+inmemoryprivatebackend(normalstartupalreadyhasit); isolatedrerunPASS45calls/
+0runtimeerrors/320pxnooverflow/post/reply/export/logout/delete. Oldfailedartifact
+dirpreserved, newdata/hierarchy-panel-qa-repaired-20261026; Rootvisuallyread320png.
+Noowneraccount/provider/DBaction. Nochildacceptance/liveactivation. Gitbacklogresolved.
 Crawler4060 advancing2454+, originalservicespreserved. GoalACTIVE; childquality/
 concurrency/restrictedroles/UI/genuineissuer/liveintegration stillUNFINISHED.
 
