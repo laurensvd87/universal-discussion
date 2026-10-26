@@ -26,27 +26,42 @@ export function createPostgresPublicReadFlights({ maxTasks = 32, maxWaiters = 40
     let job = pending.get(key);
     if (!job) {
       if (pending.size >= maxTasks) fail("capacity", "Read capacity reached");
-      job = Promise.resolve().then(() => work(admittedInput));
+      job = { subscribers: new Set() };
       pending.set(key, job);
-      const retire = () => { if (pending.get(key) === job) pending.delete(key); };
-      job.then(retire, retire);
+      const settle = (failed, value) => {
+        if (pending.get(key) === job) pending.delete(key);
+        const subscribers = [...job.subscribers];
+        job.subscribers.clear();
+        for (const subscriber of subscribers) subscriber.deliver(failed, value);
+      };
+      // One reaction pair per physical job. Cancelled readers are removable;
+      // they must not accumulate promise reactions on a stalled shared read.
+      Promise.resolve().then(() => work(admittedInput)).then(
+        value => settle(false, value), error => settle(true, error));
     }
     waiters++;
     return new Promise((resolve, reject) => {
       let settled = false;
-      function finish(failed, value) {
-        if (settled) return;
-        settled = true; waiters--; signal?.removeEventListener("abort", abort);
-        if (failed) reject(value); else resolve(value);
+      function retire() {
+        if (settled) return false;
+        settled = true; waiters--; job.subscribers.delete(subscriber);
+        signal?.removeEventListener("abort", abort);
+        return true;
       }
-      function abort() { finish(true, new ServiceError("unavailable", "Read unavailable")); }
+      function abort() { if (retire()) reject(new ServiceError("unavailable", "Read unavailable")); }
+      const subscriber = { deliver(failed, value) {
+        if (!retire()) return;
+        if (!failed) {
+          try { if (signal?.aborted || isCurrent && !isCurrent() || signal?.aborted) {
+            reject(new ServiceError("unavailable", "Read unavailable"));return;
+          } }
+          catch (error) { reject(signal?.aborted ? new ServiceError("unavailable", "Read unavailable") : error);return; }
+        }
+        if (failed) reject(value);else resolve(value);
+      } };
+      job.subscribers.add(subscriber);
       signal?.addEventListener("abort", abort, { once: true });
       if (signal?.aborted) abort();
-      job.then(value => {
-        try { if (signal?.aborted || isCurrent && !isCurrent()) { abort(); return; } }
-        catch (error) { finish(true, error); return; }
-        finish(false, value);
-      }, error => finish(true, error));
     });
   };
 }

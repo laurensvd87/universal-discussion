@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHook } from "node:async_hooks";
+import { getEventListeners } from "node:events";
 import { createPostgresPublicReadFlights } from "../src/application/postgres-public-read-flights.js";
 
 test("a hundred overlapping public reads share work, but a later read obtains fresh state", async () => {
@@ -68,5 +70,55 @@ test("a falsy delivery-fence failure rejects only that waiter and releases its a
     await assert.rejects(guarded, error => Object.is(error, reason));
     assert.equal(await surviving, "public");
     assert.equal(await read("fresh", null, () => "fresh"), "fresh");
+  }
+});
+
+test("cancellation churn retains no per-reader promise reactions on one held physical job", async () => {
+  const read = createPostgresPublicReadFlights({ maxTasks: 1, maxWaiters: 1 });
+  const unresolved = new Set();let observing = false, release, calls = 0;
+  const hook = createHook({ init(id, type) { if (observing && type === "PROMISE") unresolved.add(id); },
+    promiseResolve(id) { unresolved.delete(id); } }).enable();
+  const work = () => { calls++;return new Promise(resolve => { release = resolve; }); };
+  function subscribe(signal) {
+    observing = true;
+    try { return read("held", null, work, { signal }); }
+    finally { observing = false; }
+  }
+  try {
+    const firstSignal = new AbortController(),first = subscribe(firstSignal.signal);
+    const firstRejected = assert.rejects(first, { code: "unavailable" });
+    await Promise.resolve();firstSignal.abort();await firstRejected;
+    const baseline = unresolved.size;
+    for (let index = 0; index < 200; index++) {
+      const controller = new AbortController(),pending = subscribe(controller.signal);
+      const rejected = assert.rejects(pending, { code: "unavailable" });
+      controller.abort();await rejected;
+      assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+    }
+    assert.equal(calls, 1);
+    assert.equal(unresolved.size, baseline, "cancelled readers must not accumulate unresolved job.then reactions");
+    assert.throws(() => read("different", null, () => assert.fail("physical task still admitted")), { code: "capacity" });
+    const surviving = subscribe(undefined);release("fresh public snapshot");
+    assert.equal(await surviving, "fresh public snapshot");
+    assert.equal(unresolved.size, 0);
+    assert.equal(await read("different", null, () => "new job"), "new job");
+  } finally { release?.();hook.disable(); }
+});
+
+test("delivery guard cannot abort its own waiter and then restore successful delivery", async () => {
+  for (const throwsAfterAbort of [false, true]) {
+    const read = createPostgresPublicReadFlights(),controller = new AbortController();
+    let checks = 0, release;
+    const guarded = read("shared", null, () => new Promise(resolve => { release = resolve; }), {
+      signal: controller.signal, isCurrent() {
+        if (++checks === 1) return true;
+        controller.abort();if (throwsAfterAbort) throw false;return true;
+      },
+    });
+    const rejected = assert.rejects(guarded, { code: "unavailable" });
+    const survivor = read("shared", null, () => assert.fail("must reuse original work"));
+    await Promise.resolve();release("public snapshot");
+    await rejected;assert.equal(await survivor, "public snapshot");
+    assert.equal(getEventListeners(controller.signal, "abort").length, 0);
   }
 });
