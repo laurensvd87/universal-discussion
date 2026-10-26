@@ -7,3 +7,36 @@ indexed-body-quality-v1/*.json text eol=lf
 dual-evidence-development-v1/*.json text eol=lf
 teacher-distillation-v1/*.json text eol=lf
 ridge1-practical-evaluation-v1/*.json text eol=lf
+
+# Keep the new historical research snapshots byte-exact under their FILE pins.
+builder-scoped-root-rank-candidate-v1/** -text
+formation-feasibility-v1/** -text
+hierarchical-capture-quality-v1/** -text
+hierarchical-e5-broad-heads-v1/** -text
+hierarchical-e5-browser-root-transfer-v1/** -text
+hierarchical-e5-capacity-real-root-v1/** -text
+hierarchical-e5-complete-path-assessment-v1/** -text
+hierarchical-e5-current-producer-transfer-evaluation-v1/** -text
+hierarchical-e5-current-producer-transfer-evaluation-v2/** -text
+hierarchical-e5-current-producer-transfer-v1/** -text
+hierarchical-e5-expanded-real-root-v1/** -text
+hierarchical-e5-linear-v1/** -text
+hierarchical-e5-local-evidence-dev-v1/** -text
+hierarchical-e5-observed-cuts-v1/** -text
+hierarchical-e5-paired-v1/** -text
+hierarchical-e5-pooled-root-rank-dev-v1/** -text
+hierarchical-e5-real-root-v1/** -text
+hierarchical-e5-real-root-v2/** -text
+hierarchical-e5-real-root-v3/** -text
+hierarchical-e5-v1/** -text
+hierarchical-nli-v1/** -text
+hierarchical-public-capture-v1/** -text
+hierarchical-public-capture-v2/** -text
+hierarchical-public-capture-v3/** -text
+hierarchical-public-capture-v4/** -text
+hierarchical-public-capture-v5/** -text
+html-metadata-prune-v1/** -text
+native-local-detail-calibration-v1/** -text
+native-root-rank-candidate-v1/** -text
+native-specificity-panel-v1/** -text
+public-fetch-encoding-diagnostic-v1/** -text

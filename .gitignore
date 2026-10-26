@@ -9,3 +9,7 @@ unifi-audit-private/
 /spikes/topic-resolution/harness/**/output-*/
 /apps/local-service/portable/integration/**/output/
 /apps/local-service/portable/integration/**/output-*/
+/apps/local-service/experiments/topic-encoder/**/output/
+/apps/local-service/experiments/topic-encoder/**/output-*/
+# Downloaded tooling is reinstallable from its checked-in package/lock files.
+/spikes/topic-resolution/harness/**/node_modules/
