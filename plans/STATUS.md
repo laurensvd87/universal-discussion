@@ -2,6 +2,16 @@
 
 ## Current checkpoint on 26 October: conservative real GTA result and ingestion preparation
 
+The first ordinary production persistence foundation is source-reviewed: migration
+010-semantic-hierarchy.sql and semantic-repository.js. It registers matcher/topology
+inertly, activates a current matcher through owner CAS, and extends existing durable
+apply in one SQL transaction. Paired vectors, decision and Source-version bindings
+commit together; a semantic error must roll back canonical apply. Reused node IDs
+retain ancestry, and registration explicitly rejects stale-snapshot isolation.
+The files remain unregistered and unexecuted. Inert import and static PostgreSQL
+SQL/PLpgSQL parsing pass; native role, rollback and concurrency tests are next.
+No live schema, worker grant, app routing or crawler change occurred.
+
 The separate GTA test completed with the frozen classifier (source5f902f53,
 session96132): all six pages retain Games, two of three actual GTA games refine to
 games/video-games/gta, and none of three other games refines falsely. Chinatown

@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT26Oct production persistence foundation SOURCE Root+Trustaccepted,
+UNREGISTERED/UNEXECUTED: canonical-v4/migrations/010-semantic-hierarchy.sql19578B
+2a647b0a...a8355 +semantic-repository.js9055B551626a3...63b26. Inert owner model
+registration/separate CAS CURRENT, controlgate→head→lane→job, DBmaterial latched
+beforelegacyclear, canonicalapply+semanticwrite sameSQLtx/rollback. No ID/manual
+linkchanges. Rawbody+titlevector retention/dedup, Sourceversion+matcher observations,
+SourceeraseCASCADE. Stablecrossmodel nodeancestry under serializedregistration;
+explicitREADCOMMITTED-only registration closes staleRRsnapshotrace. Worker legacy
+apply EXECUTE revoked ONLYif futuremigrationinstalled; notinstallednow. Root guarded
+inertimportPASS and hashpinnedpglast7.21 static17SQL/5PLPASS, NOTfunctional/role/
+concurrency proof. Data semantic-hierarchy-010-final-syntax-20261026.json. Old25native
+fixture/evidence unchanged/priorproof; newproductionSQLsuite stillneeded. Evolve
+existingnormal ownednativeharness with explicitlynewledger/schema, no newcontroller
+versiontree orfakeold25counts. Root snapshots/ancestorfeeds/ownerprefix controls/
+readUI/qualifiedhistoricaladoption/actualconcurrency/livecutover stillOPEN. GoalACTIVE.
+
 CURRENT26Oct GTA conservative heldout result: source5f902f53/session96132 CLOSED0,
 6of6Gamescorrect/2of3positiveGTA refinements/0of3negative refinements. Chinatown
 Wars staysGames below frozen.316823 cut; no retune. Resultd611ab51...4d93f;

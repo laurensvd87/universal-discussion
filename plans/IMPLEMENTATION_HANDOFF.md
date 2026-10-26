@@ -2,6 +2,19 @@
 
 ## Current continuation: GTA heldout conservative result; server preparation bridge next
 
+Production foundation SOURCE now accepted, not registered/executed: migration010
+SHA2a647b0a...a8355 and semantic-repository.js551626a3...63b26. Owner-only inert
+registration/CAScurrent; stable node ancestry; READCOMMITTED-only registration;
+existing queue/lease/Source fences; one-query physical transaction canonicalapply+
+paired input/decision/version persistence. Body/title inputs retained, model-aware
+observation keys, Source erasure cascades. Worker cannot bypass via legacy apply
+after this migration is eventually installed. Guarded inert import and17SQL/5PL
+static parses pass. Next new native production suite must prove roles/rollback/
+renewals/titlechange/manual links/head-concurrency/erase/isolation. Reuse maintained
+ownednative harness with a distinct actual ledger/schema; preserve old25 assertions
+and evidence, never relabel them as new tests. No actual/source-installation grant
+is implied by this handoff. Root feeds/owner policy/app activation remain open.
+
 Source5f902f53/session96132 completed GTA TEST exactly once:6/6Games,2/3GTA
 refinements,0/3false refinements; ChinatownWars remainsGames. Resultd611ab51...4d93f,
 independent audit3f50506a...567d8 authenticated/FULLread. Repaired fit36565 qualifies
