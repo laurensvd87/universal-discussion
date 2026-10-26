@@ -83,7 +83,11 @@ matching quality, owner controls and live activation remain separate work.
 
 The immutable predecessor source passed92 Python and76 guarded64MiB Node reports.
 Those counts are historical v1 evidence, not a new v2 run or completed SQL checks.
-The v2 source changes require their own complete pure run and independent review.
+The complete v2 Root source run passed92 Python and81 guarded64MiB Node reports,
+without failures or skips. This includes the delayed startup, exact SQL identity,
+safe failure cleanup and25-attempt readiness-exhaustion regressions. Independent
+final source acceptance and authenticated inputs still precede actual execution;
+these are not SQL or matching-quality results.
 Process, client, SQL and timer answers in these source tests are invented;
 filesystem tests use only their own temporary files and read-only source or
 installation metadata. No test executes PostgreSQL, PGlite, SQL, a model or a

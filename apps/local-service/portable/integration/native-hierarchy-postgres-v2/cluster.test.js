@@ -211,6 +211,27 @@ test('bootstrap pause cannot slide originalstartup deadline or admit another att
   await f.advance(120050);assert.equal(attempts,1);assert.equal(result.status,'failed');
 });
 
+test('settled readiness exhaustion keeps exactly25 attempts and can stop only independently proved own PID',async()=>{
+  let attempts=0;
+  const f=fixture({connect(){attempts++;return Promise.reject(false);}});
+  const pending=f.run(()=>assert.fail('failed readiness cannot enable a work connector'));
+  await f.advance(2400);const result=await pending;
+  assert.equal(attempts,25);assert.equal(f.sockets.length,25);assert.ok(f.sockets.every(record=>record.closed));
+  assert.equal(result.status,'failed');assert.equal(result.failure.code,'OWNED_CLUSTER_FAILED');
+  assert.equal(result.cleanup.physicalSettled,true);assert.equal(result.cleanup.reason,'verified-own-server-smart-stopped');
+  assert.deepEqual(result.startup,{pidStart:1000,sqlStart:null});
+});
+
+test('later failed ownership cannot replace the exhausted falsy readiness primary or permit shutdown',async()=>{
+  let attempts=0;
+  const f=fixture({connect(){attempts++;return Promise.reject(false);}});f.deps.ownership=()=>0;
+  const pending=f.run(()=>assert.fail('no SQL handoff'));
+  await f.advance(2400);const result=await pending;
+  assert.equal(attempts,25);assert.equal(result.failure.code,'OWNED_CLUSTER_FAILED','not later OWNERSHIP_PID');
+  assert.equal(result.status,'failed');assert.equal(result.cleanup.stopped,false);assert.equal(f.events.includes('smart-stop'),false);
+  assert.deepEqual(result.startup,{pidStart:null,sqlStart:null});
+});
+
 function realFileFixture(options={}){
   let time=0,launches=0;const events=[],ordinary={isSymbolicLink:()=>false,isFile:()=>true,isDirectory:()=>true,size:100};
   const runDirectory=path.win32.join(fixed.parent,'nhpg2-FILES01'),marker={schema:fixed.marker,nonce:'a'.repeat(48),runDirectory};
