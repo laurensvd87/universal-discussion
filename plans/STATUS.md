@@ -1,5 +1,27 @@
 # Project status
 
+## Latest: readable semantic composer passes actual Chrome checks
+
+The clipped composer and low-contrast topic buttons are fixed in `3eb42c84`.
+Actual Chrome at `5d3f38ad` now passes the same11 behavior cases plus stronger
+internal bounds, visible heading/context/Submit and button contrast checks at
+320/400/520px. Lead and independent review inspected the screenshots: the quote,
+input and Post reply action are readable and contained. There are no runtime
+exceptions; the owned browser exited, its fresh profile was removed and all14
+source/end pins match. The saved result in local data directory
+`semantic-workspace-browser-qa-20261027/attempt-FddUGS/result.json` has SHA256
+`882d022e86da9b6c0b3745c551bf3a402592090b8f5642515618822a8878c958`.
+
+This is actual Chrome with intercepted synthetic service data, not combined
+browser/SQL, provider, native-document or many-user load evidence. The eleven
+cases include original-target human posting, no automatic repost after uncertain
+confirmation, fallback and account/navigation revocation. The prior failed visual
+state remains retained below. Cross-page AI implementation is underway under
+ADR-223; strict client packets are committed, and the UI stays disabled until
+backend/publication checks pass. Production install/backfill/dashboard, combined
+UI/database tests, load/latency checks and live cutover remain open. Live services
+and crawler are preserved; the crawler advanced to4686 in its current run.
+
 ## Latest: Chrome behavior checks pass; visual review found composer clipping
 
 Source `f35f0519` passed 11 checks in an actual isolated Chrome run, including
