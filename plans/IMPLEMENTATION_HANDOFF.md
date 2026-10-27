@@ -1,5 +1,22 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST27Oct ADR224 actualsession53917 CLOSEDexit0/25orderedPASS atc415664e.
+Run10a7429c812c6340238891d97bea7795866b0ecc96d54676/catalog2eeec6a5...559d.
+ScratchB registered9->latepolicyconflict->fullyrolledback9->validoneRCtx installs
+registered16/fixedeead...ed21c/head1/policy1; samePID/health16/legacy9reject,
+originalBempty-before-register/workerdenial/crossDBclaimrefusal unchanged.
+ScratchA raw010..016/original25ledger/2DB/8clients/caps preserved. Not25distinct
+installationcases/nolivebackup/load/UI/provider proof. Parent862 e2a5...cc23 and
+stdout4767 2e13...5945 identicalprioraggregate output; freshcatalog/runmarker/
+childclaim+lifecycle join matters. Child5383 SHA17deb103...3bde91/PG23700 normal
+smartstop/2DBdrop/noemergency/endpins/handles/2EOF. Independentactualaudit ACCEPTED
+e5f5b307ad5c205f3d3f9e663d6ac50fdb9067e08e9d9f6c503d142c8ecd1526 authenticated/
+FULLread. ScratchB fixedacceptednumericassetsloaded; noE5inference/qualityclaim.
+Allsourcepushed/cleantree beforedocs. Next trackedoperator/seal+fixedassetpaths,
+consistentPGbackup/freshrestore rehearsal/backfill/dashboard/combinedUI+provider/
+manyuser+crawlerlatency/livecutover. Live9/originalservicespreserved, crawler4060
+advancing5038/stderr0. GoalACTIVE.
+
 CURRENT27Oct SQL016 c89ca1a2 actualPASS25ordered/3+8+8+6, NOT25qualitycases.
 Runbde501046b11a30b15c35c92366e5b7e4eb5f41333023052; parent e2a5cb9d...cc23/
 stdout2e13a910...5945/child1157538f...f78/stderr0. App-role publication/replay,

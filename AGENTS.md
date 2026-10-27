@@ -8,6 +8,21 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+LATEST27Oct ADR224 actual53917 CLOSEDexit0/25orderedPASS c415664e, run10a7429c...
+54676/catalog2eeec6a5...559d. ScratchB9->stale-policyrollback9->validowneroneRCtx
+registered16/fixedeead...ed21c/head1/policy1; originalempty-before-register,
+workerdenial/crossDBrefusal; samePID/health16/legacy9reject. ScratchAraw16/original
+25ledger/2DB/8clients/caps unchanged. Parent862e2a5...cc23/stdout47672e13...5945
+sameprioraggregatebytes: NEWrunmarker/catalog/childclaim/lifecycle17deb103...
+3bde91 join required. PG23700normalstop/2DBdrop/parentnormal/noemergency/endpins/
+handles/2EOF; not25installationqualitycases/nolivebackup/UI/load/providerproof.
+Independentactualaudit ACCEPTED e5f5b307...ecd1526 authenticated/FULLread.
+ScratchBfixedacceptednumericassetsloaded/noE5inference. Sourcepushed, original
+services/live9/crawler4060 preserved/advances5038/stderr0. Next trackedops/seal+
+assets/consistentPGbackupfreshrestore/backfill/
+adoption/dashboard/combinedUI+provider/manyuser+crawlerlatency/livecutover OPEN.
+GoalACTIVE; older current notes below superseded.
+
 CURRENT27Oct SQL016 c89ca1a2 actualPASS25ordered (NOT25qualitycases), runbde501...
 23052 normalparent/ownsmartstop/2DBdrop/noemergency/stderr0. RealappSQL AIreply/
 replay/staleSource-target-history/held-lockexpiry/RR Source race; providerinvented.

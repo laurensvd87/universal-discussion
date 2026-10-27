@@ -2,9 +2,11 @@
 
 Date: 2026-10-27
 
-Status: Design accepted by Lead, Maintained Hierarchy and Trust with the concrete
-constraints below. Source implementation is authorized; live installation remains
-unfinished.
+Status: Implemented in `f83aa959`. The actual isolated PostgreSQL upgrade and
+rollback rehearsal at `c415664e` passes with the original25 aggregate checks,
+two fresh databases, unchanged client/resource limits and normal cleanup.
+This proves the installer on fresh synthetic data; live backup/restore,
+operator integration and live installation remain unfinished.
 
 ## Decision
 

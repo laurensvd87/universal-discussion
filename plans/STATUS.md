@@ -1,6 +1,6 @@
 # Project status
 
-## Current: SQL and browser AI checks pass; production upgrade rehearsal next
+## Current: schema upgrade rehearsal passes; live integration remains open
 
 The isolated PostgreSQL run at `c89ca1a2` passes all25 ordered aggregate checks,
 including real application-role AI publication, exact replay, stale target and
@@ -20,12 +20,20 @@ SHA256 `06c3f62b03afba56622eba6b63f7ecd08af9ee7423bd985e820ddba8d6d6f002`.
 
 `f83aa959` adds explicit legacy9/hierarchy16 schema profiles and one owner
 transaction for migration, fixed matcher registration, head activation and
-explicit grouping policy. Source review and focused tests pass. Actual upgrade
-and rollback verification in scratchB is next. The live database remains9;
-services have not switched. Production operator/seal, backup/restore rehearsal,
+explicit grouping policy. The actual PostgreSQL rehearsal at `c415664e` now
+passes: a late stale-policy conflict rolls all installation effects back to9,
+then the valid owner transaction registers16 and activates the fixed matcher.
+All original25 aggregate checks pass; both scratch databases were dropped and
+the owned server stopped normally. This is a fresh synthetic database upgrade,
+not a rehearsal of the live data backup. Saved run:
+`portable/data/hierarchy-native-runs/run-10a7429c812c6340238891d97bea7795866b0ecc96d54676`.
+The independent saved-run audit passes (`hierarchy-installation-native-actual-audit-20261027.json`,
+SHA256 `e5f5b307ad5c205f3d3f9e663d6ac50fdb9067e08e9d9f6c503d142c8ecd1526`).
+The live database remains9; services have not switched.
+Production operator/seal, backup/restore rehearsal,
 existing-page processing, dashboard integration, combined UI/provider checks,
 crawler plus many-user load/latency and live cutover remain unfinished.
-The crawler continues advancing (4983 in the latest observed run; stderr0).
+The crawler continues advancing (5038 in the latest observed run; stderr0).
 Fine-topic coverage remains limited to the accepted GTA refinement below16 roots.
 
 Earlier entries below are historical checkpoints.

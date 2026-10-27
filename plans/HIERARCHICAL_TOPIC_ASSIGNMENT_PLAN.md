@@ -6,7 +6,11 @@ publication protocol, including exact replay, stale evidence and expiry races
 and service responses (`1710bee9`), including selected-target AI and new `@AI`
 question handoff. Neither check proves the combined live browser/provider path.
 The explicit schema16 profile and atomic owner installer are committed in
-`f83aa959`; a real registered9-to16 upgrade/rollback rehearsal is next.
+`f83aa959`. A real registered9-to16 upgrade/rollback rehearsal at `c415664e`
+now passes: a stale policy rolls the transaction back to9, then the correct
+owner transaction installs16 and the fixed matcher. Original25 aggregate checks,
+normal owned-server shutdown and both database drops pass. This uses fresh
+synthetic data, not the live backup or combined running application.
 Production installation, existing-page processing, dashboard integration,
 simultaneous user/crawler performance and live cutover remain open. Earlier
 references below to blocked AI or unimplemented schema profiles are historical.
