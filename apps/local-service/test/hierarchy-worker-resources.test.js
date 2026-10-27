@@ -144,3 +144,56 @@ test('invalid database shape rejects before installed assets or encoder startup'
  await assert.rejects(openHierarchyWorkerResourcesForTest({...f.options,database:{}},f.dependencies),TypeError);
  assert.equal(loaded,0);assert.equal(f.state.encoderClosed,0);
 });
+
+test('captured body, live title and stored title share the one actual resource queue without overlapping encoder work',async()=>{
+ const gate=defer(),entered=defer(),texts=[];let active=0,peak=0;
+ const f=setup({embed:async text=>{texts.push(text);active++;peak=Math.max(peak,active);if(texts.length===1){entered.resolve();await gate.promise;}active--;return Object.freeze({modelId:MODEL,values:Object.freeze(axis())});}});
+ const stored=await candidate(),r=await f.open();
+ const body=r.embedCapturedBody('  Invented captured body text preserved exactly.  ');await entered.promise;
+ r.startWorker({onOutcome:o=>f.completed.resolve(o)});const preparation=r.prepareStoredSource(stored);
+ await Promise.resolve();assert.equal(f.state.encodes,1);assert.equal(f.state.claims,1);
+ gate.resolve();const [embedded,prepared]=await Promise.all([body,preparation]);await f.completed.promise;
+ assert.equal(peak,1);assert.equal(f.state.encodes,3);assert.equal(f.state.semantic.length,1);assert.equal(f.state.legacy,0);
+ assert.equal(texts[0],'  Invented captured body text preserved exactly.  ');
+ assert.ok(texts.includes(input().title)&&texts.includes(stored.title));assert.equal(embedded.modelId,MODEL);assert.deepEqual(embedded.values,axis());
+ assert.equal(prepared.operationDigest,stored.receipt.operationDigest);assert.equal(r.descriptor.productionBinding,false);
+ assert.equal(r.encoder,undefined);await r.close();assert.equal(f.state.encoderClosed,1);
+});
+
+test('captured body admission shares the eight preparation slots even for coalesced text and refuses model selectors',async()=>{
+ const gate=defer(),entered=defer(),f=setup({embed:async()=>{entered.resolve();await gate.promise;return {modelId:MODEL,values:axis()};}}),r=await f.open();
+ const stored=await candidate(),pending=Array.from({length:8},()=>r.embedCapturedBody('Same invented body'));
+ const settled=Promise.all(pending);await entered.promise;assert.equal(f.state.encodes,1);
+ await assert.rejects(r.embedCapturedBody('Same invented body'),{code:'unavailable'});
+ await assert.rejects(r.prepareStoredSource(stored),{code:'unavailable'});
+ await assert.rejects(r.embedCapturedBody('Body',{modelId:'caller-model'}),TypeError);
+ gate.resolve();const values=await settled;assert.equal(values.length,8);assert.equal(f.state.encodes,1);
+ assert.ok(values.every(value=>value.modelId===MODEL));await r.close();assert.equal(f.state.encoderClosed,1);
+});
+
+test('body validation uses fixed input bounds without coercion or hooks before encoder admission',async()=>{
+ const f=setup(),r=await f.open();let hooks=0;
+ const proxy=new Proxy({}, {get(){hooks++;throw Error('Do not inspect');},getPrototypeOf(){hooks++;throw Error('Do not inspect');}});
+ for(const text of ['', ' \n ', 'x'.repeat(4097), 'text\u0000', undefined, 1, proxy, {toString(){hooks++;return 'body';}}])
+  await assert.rejects(r.embedCapturedBody(text),TypeError);
+ await assert.rejects(r.embedCapturedBody(),TypeError);assert.equal(hooks,0);assert.equal(f.state.encodes,0);
+ const output=await r.embedCapturedBody('x'.repeat(4096));assert.equal(output.modelId,MODEL);assert.equal(f.state.encodes,1);
+ assert.equal(f.state.claims,0);assert.equal(f.state.semantic.length,0);await r.close();
+});
+
+test('body close observes the original encoder promise, suppresses late results and skips queued work before releasing once',async()=>{
+ const gate=defer(),entered=defer(),f=setup({embed:async()=>{entered.resolve();await gate.promise;return {modelId:MODEL,values:axis()};}}),r=await f.open();
+ const active=r.embedCapturedBody('Active body'),activeRejected=assert.rejects(active,{code:'unavailable'});await entered.promise;
+ const queued=r.embedCapturedBody('Queued body'),queuedRejected=assert.rejects(queued,{code:'unavailable'});let closed=false;
+ const closing=r.close().then(()=>{closed=true;});await Promise.resolve();await Promise.resolve();
+ assert.equal(closed,false);assert.equal(f.state.encoderClosed,0);await assert.rejects(r.embedCapturedBody('Late body'),{code:'unavailable'});
+ gate.resolve();await Promise.all([activeRejected,queuedRejected,closing]);assert.equal(closed,true);assert.equal(f.state.encodes,1);
+ assert.equal(f.state.encoderClosed,1);assert.equal(f.state.semantic.length,0);await r.close();assert.equal(f.state.encoderClosed,1);
+});
+
+test('failed body encoding is not cached and preserves the original failure while permitting an explicit retry',async()=>{
+ let attempts=0;const f=setup({embed:async()=>{if(++attempts===1)throw false;return {modelId:MODEL,values:axis()};}}),r=await f.open();
+ await assert.rejects(r.embedCapturedBody('Retry same invented body'),value=>value===false);
+ const value=await r.embedCapturedBody('Retry same invented body');assert.equal(value.modelId,MODEL);assert.equal(f.state.encodes,2);
+ assert.equal(f.state.claims,0);assert.equal(f.state.legacy,0);await r.close();assert.equal(f.state.encoderClosed,1);
+});

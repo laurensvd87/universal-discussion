@@ -7,6 +7,7 @@ import ctypes
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import stat
 import sys
@@ -31,6 +32,24 @@ PRIVATE_ARCHIVE = BACKUP_ROOT / 'postgres-canonical-2026-10-27T05-31-32-647Z-627
 PRIVATE_INPUTS = (
     (PRIVATE_RECEIPT,6249,'7783f57371f1284c39892bcafae89b22c1976e4136897cecca65d4a6a211933e'),
     (PRIVATE_ARCHIVE,779153511,'e8026bc09c4ad53049d44bb5870cc28928ea0427ebd0d14a647a8bb1128ad831'),
+)
+# Explicit additional execution/data closure, independently locked and hashed.
+# These bytes are NOT hidden in, or charged to, the 320MiB code catalog.
+MODEL_INPUTS = (
+    (REPO/'apps/local-service/data/hierarchy-real-root-capture-adr138.traincal.json',838989,'6659f34a3e800bc447eb5331500c647194d1fe71164e8c7ca2b08a28d1418955'),
+    (REPO/'apps/local-service/experiments/topic-encoder/hierarchical-e5-capacity-real-root-v1/output/training-eligibility.json',27005,'ef73b44936579c39ec054031f79864abb9f15c9dfce86eca0450d724341dd6cd'),
+    (REPO/'apps/local-service/data/hierarchy-real-root-training-gold-adr136.json',39418,'62ff96d3b98d197c4c90ea2db7f5a9adb7615bf8e18fce7f66c3c1681b1f53e8'),
+    (REPO/'apps/local-service/data/ridge1-topic-adapter-v1.json',3129386,'c25618bc0f897998dced3f2f8ab47ef50d706606e4c21299654c5bc516af7569'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/manifest.json',1716,'5766e675660a8fbe74842a69b670a84ce5f9eb457b77032337e4a69d6180b984'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/model.onnx',118308185,'f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/tokenizer.json',17082730,'0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/tokenizer_config.json',443,'a1d6bc8734a6f635dc158508bef000f8e2e5a759c7d92f984b2c86e5ff53425b'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/config.json',658,'cb99455288675345e1a4f411438d5d0adbba5fbd3a67ea4fb03c015433b996c1'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/special_tokens_map.json',167,'d05497f1da52c5e09554c0cd874037a083e1dc1b9cfd48034d1c717f1afc07a7'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/tokenizers.mjs',98937,'1c4a848f86156201c033d6cd08c4cf81ae1088552acec3367f31ef086edf5af0'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/ort.wasm.min.mjs',50195,'1617c813ada08592706d29a9963ab6258864dce4299bd402d2196bd648b63bfe'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/ort-wasm-simd-threaded.mjs',24381,'c57ca56328877353a575e51bbca6f18450027d6c9bf2307a2cb2c41363b4de9f'),
+    (REPO/'spikes/topic-resolution/browser/embedding/.assets/ort-wasm-simd-threaded.wasm',14264838,'06ba057753da3847e4c24f02d91ab133455b0817c69a44993a9a53a2146df9e3'),
 )
 RESTORED_TABLES = ('schema_migrations','meta','id_registry','topics','discussions','sources',
     'embeddings','source_links','topic_memberships','fixed_references','contributions',
@@ -75,6 +94,11 @@ NORMAL_SCOPE_ABSENCES = frozenset([
 MIB = 1048576
 CREATE_FLAGS = 0x8040C
 NORMAL_KEYS = frozenset([
+    OWN+'hierarchy-native-supervisor.py', OWN+'hierarchy_native_supervisor_test.py',
+    OWN+'private-model-rehearsal.js', OWN+'private-model-rehearsal.test.js',
+    OWN+'private-model-training-inputs.js', OWN+'private-model-training-inputs.test.js',
+    'apps/local-service/src/crawler/postgres-ingest-client.js',
+    'apps/local-service/src/crawler/local-ingest-client.js',
     'apps/topic-dashboard/package.json',
     'apps/local-service/portable/canonical-v4/hierarchy-schema-source.js',
     'apps/local-service/portable/canonical-v4/hierarchy-repository.js',
@@ -211,7 +235,7 @@ NORMAL_KEYS = frozenset([
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),
-    'supervisor': (OLD+'supervise.py', '2ccaf30294cd0edc87e126aeb152ca76a100e2cc289f2dc5f652241f33cae334'),
+    'supervisor': (OWN+'hierarchy-native-supervisor.py', '41b7b11c078adc54422d511f768e21ac489da5f0411364e1b0b3a410e4b2b1b8'),
     'windows': (OLD+'windows.py', '890cca5fe58a938ba3b6be960d951d35265a7217cc9a831e31358b1fee79c433'),
     'baseline': ('spikes/topic-resolution/harness/experimental/native-job-list-observation-v2/run.py',
                  '8e0cf0aefd09a80c1c4971fa8515024b47ca47ab8eed28e4065acae02373c940'),
@@ -280,7 +304,7 @@ def diagnostic_controller_type(supervisor, windows, private=False):
                             if key != 'activeProcesses'), 'resource-regression')
             self.last_cpu, self.last_peak, self.last_accounting = cpu, peak, dict(account)
             require(cpu <= 300, 'resource-limit', 'jobCpuSeconds', cpu)
-            require(peak <= 1024*MIB, 'resource-limit', 'historicalPeakJobMemoryBytes', peak)
+            require(peak <= self.job_memory_bytes, 'resource-limit', 'historicalPeakJobMemoryBytes', peak)
             # These are sampled independently of host_sample; neither is a reservation.
             for key, floor in (('physicalFree', 1024*MIB), ('commitFree', 1024*MIB),
                                ('cFree', 2048*MIB), ('dFree', 4096*MIB)):
@@ -536,8 +560,10 @@ def open_locked_read(path):
 
 class PrivateInputs:
     """Fixed encrypted data is held separately from the bounded code catalog."""
-    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic):
+    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic, model=False):
+        inventory.require(type(model) is bool,'private-input-purpose')
         self.i,self.opener,self.clock = inventory,opener,clock
+        self.model = model
         self.files = []
         self.prepared = self.closed = False
         self.verified = False
@@ -582,7 +608,7 @@ class PrivateInputs:
         I = self.i
         I.require(not self.prepared and not self.files and not self.closed,'private-input-state')
         try:
-            for path,size,digest in PRIVATE_INPUTS:
+            for path,size,digest in PRIVATE_INPUTS + (MODEL_INPUTS if self.model else ()):
                 self._time()
                 directory_info(path.parent,I)
                 before = path.lstat()
@@ -703,10 +729,72 @@ class PrivatePhases:
         self.i.require(len(self.closed) == len(self.phases),'private-phase-incomplete')
 
 
+def checked_model_proof(I,value):
+    """Closed additional real-E5 workload evidence, never quality authority."""
+    def shape(item,fields): return type(item) is dict and set(item)==set(fields.split())
+    def bounded(item,low,high): return type(item) is int and low<=item<=high
+    def timing(item): return I.number(item) and item<=300000
+    def identifier(item): return type(item) is str and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._:-]{0,159}',item) is not None
+    def digest(item): return type(item) is str and re.fullmatch(r'[a-f0-9]{64}',item) is not None
+    I.require(shape(value,'schema status failure testComposition elapsedMs completed phases maximumPending installed cleanup scope ownerVerification fixtureIsolation')
+        and value['schema']=='private-model-contention-proof/v1' and value['status']=='passed'
+        and value['failure'] is None and value['testComposition'] is False and timing(value['elapsedMs'])
+        and bounded(value['maximumPending'],1,8),'model-proof-shape')
+    installed,cleanup,scope,owner = value['installed'],value['cleanup'],value['scope'],value['ownerVerification']
+    I.require(shape(installed,'matcherIdentityHash encoderModelId packagedAssetsVerified')
+        and installed['matcherIdentityHash']=='eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c'
+        and installed['encoderModelId']=='e5-small-q8-browser-main-prefix-v1'
+        and installed['packagedAssetsVerified'] is True,'model-proof-identity')
+    I.require(shape(cleanup,'resourcesClosed originalsSettled callerDatabasesClosed')
+        and cleanup['resourcesClosed'] is True and cleanup['originalsSettled'] is True
+        and cleanup['callerDatabasesClosed'] is False,'model-proof-cleanup')
+    positive=('realE5','realQueuedApply','realHttp','sharedEncoder','stagedCrawlerClient')
+    negative=('fullCrawlerDiscovery','storedBackfill','browser','provider','qualityEvaluation','productionValidated','assignmentAuthority')
+    I.require(shape(scope,' '.join(positive+negative)) and all(scope[k] is True for k in positive)
+        and all(scope[k] is False for k in negative),'model-proof-scope')
+    I.require(shape(owner,'operations sources observations') and all(type(n) is int and n==2 for n in owner.values()),'model-proof-owner')
+    isolation=value['fixtureIsolation']
+    I.require(shape(isolation,'retiredHistoricalJobs emptyBeforeModel')
+        and bounded(isolation['retiredHistoricalJobs'],0,16)
+        and isolation['emptyBeforeModel'] is True,'model-proof-isolation')
+    stages=('baseline','encoder-initialization','body-encoding-1','queue-application-1','body-encoding-2','queue-application-2')
+    I.require(type(value['phases']) is list and len(value['phases'])==6,'model-proof-phases')
+    for phase,stage in zip(value['phases'],stages):
+        I.require(shape(phase,'stage elapsedMs pendingWorkProbeCount context topics') and phase['stage']==stage
+            and timing(phase['elapsedMs']) and bounded(phase['pendingWorkProbeCount'],0,8),'model-proof-phase')
+        I.require(stage!='baseline' or phase['pendingWorkProbeCount']==0,'model-proof-phase')
+        for kind in ('context','topics'):
+            summary=phase[kind]
+            I.require(shape(summary,'count p50 p95 max') and bounded(summary['count'],0,3 if stage=='baseline' else 8),'model-proof-summary')
+            I.require(stage!='baseline' or summary['count']==3,'model-proof-summary')
+            if summary['count']==0:
+                I.require(all(summary[k] is None for k in ('p50','p95','max')),'model-proof-summary')
+            else:
+                I.require(all(timing(summary[k]) for k in ('p50','p95','max'))
+                    and summary['p50']<=summary['p95']<=summary['max'],'model-proof-summary')
+    roots={'business','cooking','culture','education','games','geography','health','history','ideas-beliefs','languages','nature','science','society','sports','technology','vehicles'}
+    expected=(('real-train-01','aba50dd9302b5448b0e5b4f14792e681810e6238d45d7b524c772a21c4fd5115'),
+              ('real-train-04','4c89c4fe4490894cd7877790a4d4021c8a1babd5accf91be0212411c7952b3ff'))
+    I.require(type(value['completed']) is list and len(value['completed'])==2,'model-proof-completed')
+    operations,sources=set(),set()
+    for row,(case,input_hash) in zip(value['completed'],expected):
+        I.require(shape(row,'id sourceInputHash operationId operationDigest sourceId sourceVersion topicId supportedPath')
+            and row['id']==case and row['sourceInputHash']==input_hash
+            and all(identifier(row[k]) for k in ('operationId','sourceId','topicId')) and digest(row['operationDigest'])
+            and type(row['sourceVersion']) is str and re.fullmatch(r'0|[1-9][0-9]{0,18}',row['sourceVersion']) is not None,'model-proof-completed')
+        path=row['supportedPath']
+        I.require(type(path) is list and 1<=len(path)<=8 and all(type(n) is str for n in path)
+            and ((len(path)==1 and path[0] in roots) or path==['games','video-games'] or path==['games','video-games','gta']),'model-proof-path')
+        I.require(row['operationId'] not in operations and row['sourceId'] not in sources,'model-proof-completed')
+        operations.add(row['operationId']);sources.add(row['sourceId'])
+
+
 class PrivateHttpProof:
     """Additional mandatory HTTP evidence; never aliases the restore ledger."""
-    def __init__(self,inventory,run):
+    def __init__(self,inventory,run,model=False):
+        inventory.require(type(model) is bool,'http-proof-purpose')
         self.i,self.root,self.digest = inventory,run.output,None
+        self.model = model
         self.identity = None
 
     def _read(self):
@@ -736,7 +824,7 @@ class PrivateHttpProof:
             return type(item) is dict and set(item) == set(fields.split())
         def bounded(item,low,high):
             return type(item) is int and low <= item <= high
-        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade')
+        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade'+(' model' if self.model else ''))
             and value['schema'] == 'private-application-http-proof/v1' and value['status'] == 'passed'
             and value['failure'] is None and type(value['pendingCases']) is int and value['pendingCases'] == 0
             and bounded(value['elapsedMs'],0,300000),'http-proof-shape')
@@ -755,13 +843,17 @@ class PrivateHttpProof:
             and counts['maximumConcurrentHttp'] <= counts['httpRequests']
             and type(counts['fixtureActors']) is int and counts['fixtureActors'] == 2,'http-proof-counts')
         cleanup,scope = value['cleanup'],value['scope']
-        I.require(shape(cleanup,'serverClosed applicationClosed appClientClosed urlClientClosed pendingHttp pendingDatabase')
-            and all(cleanup[key] is True for key in ('serverClosed','applicationClosed','appClientClosed','urlClientClosed'))
+        extra=('workerClientClosed','submitterClientClosed') if self.model else ()
+        I.require(shape(cleanup,'serverClosed applicationClosed appClientClosed urlClientClosed pendingHttp pendingDatabase'+(' workerClientClosed submitterClientClosed' if self.model else ''))
+            and all(cleanup[key] is True for key in ('serverClosed','applicationClosed','appClientClosed','urlClientClosed')+extra)
             and all(type(cleanup[key]) is int and cleanup[key] == 0 for key in ('pendingHttp','pendingDatabase')),'http-proof-cleanup')
         I.require(shape(scope,'realHttp realDatabase browser encoder provider externalLoginVerified productionCapacityValidated testComposition')
             and scope['realHttp'] is True and scope['realDatabase'] is True
-            and all(scope[key] is False for key in ('browser','encoder','provider','externalLoginVerified',
+            and scope['encoder'] is self.model
+            and all(scope[key] is False for key in ('browser','provider','externalLoginVerified',
                 'productionCapacityValidated','testComposition')),'http-proof-scope')
+        if self.model:
+            checked_model_proof(I,value['model'])
         if self.digest is not None:
             I.require(self.digest == digest and self.identity == identity,'http-proof-changed')
         self.digest = digest
@@ -806,6 +898,10 @@ def native_api_type(windows, run):
     require = windows.require
     wintypes = windows.wintypes
     TEMP = run.output / 'temp'
+    model = getattr(run,'model',False)
+    require(type(model) is bool and (not model or (getattr(run,'private',False) is True and getattr(run,'http',False) is True)), 'run-purpose')
+    HEAP = '512' if model else '64'
+    MODEL_ARG = ' --with-model' if model else ''
     # A closed mode chooses between reviewed fixed entries and supplies the one
     # fixed private metadata variable. Removing that explicit prefix restores
     # the frozen suspended-launch AST; default environment bytes stay exact.
@@ -823,7 +919,7 @@ def native_api_type(windows, run):
             startup.startup.show = 0
             startup.startup.stdin, startup.startup.stdout, startup.startup.stderr = stdin, stdout, stderr
             startup.attributes = ctypes.addressof(attributes[0])
-            command = '"' + NODE + '" --max-old-space-size=64 "' + str(REPO / ENTRY) + '"'
+            command = '"' + NODE + '" --max-old-space-size=' + HEAP + ' "' + str(REPO / ENTRY) + '"' + MODEL_ARG
             environment = ENV_PREFIX + ('OMP_NUM_THREADS=1\0PATH=D:\\PostgreSQL\\17\\bin;C:\\Windows\\System32;C:\\Windows\0'
                            'SystemRoot=C:\\Windows\0TEMP=' + str(TEMP) + '\0TMP=' + str(TEMP) +
                            '\0UV_THREADPOOL_SIZE=1\0WINDIR=C:\\Windows\0\0')
@@ -834,7 +930,29 @@ def native_api_type(windows, run):
             require(bool(ok), 'create-process')
             return info.process, info.thread, int(info.pid)
 
-    return NativeAPI
+    if not model:
+        return NativeAPI
+    class ModelAPI(NativeAPI):
+        def set_limits(self, job):
+            limits = self.m.ExtendedLimits()
+            limits.basic.flags, limits.basic.activeLimit, limits.jobMemory = windows.FLAGS, windows.ACTIVE_LIMIT, 2048*MIB
+            require(bool(self.k.SetInformationJobObject(job, 9, ctypes.byref(limits), ctypes.sizeof(limits))), 'job-limit')
+    return ModelAPI
+
+
+def owned_boundary_type(windows, model=False):
+    windows.require(type(model) is bool,'run-purpose')
+    if not model:
+        return windows.OwnedFixtureProcess
+    class ModelBoundary(windows.OwnedFixtureProcess):
+        def _verify_limits(self):
+            row = self.api.read_limits(self.handles['job'])
+            windows.require(type(row) is dict and set(row)=={'bytes','expectedBytes','flags','active','memory'}
+                and all(type(value) is int for value in row.values())
+                and row['bytes']==row['expectedBytes'] and row['flags']==windows.FLAGS
+                and row['active']==windows.ACTIVE_LIMIT and row['memory']==2048*MIB,'limit-readback')
+            self.limits={'flags':windows.FLAGS,'activeProcessLimit':windows.ACTIVE_LIMIT,'jobMemoryBytes':2048*MIB}
+    return ModelBoundary
 
 
 def catalog_type(inventory):
@@ -872,11 +990,12 @@ class OwnedRun:
     Output512KiB and cluster512MiB remain separately bounded. Control metadata
     (one catalog snapshot, marker and permanent child claim) is capped at1MiB.
     """
-    def __init__(self, inventory, private=False, http=False):
-        inventory.require(type(private) is bool and type(http) is bool and (not http or private), 'run-purpose')
+    def __init__(self, inventory, private=False, http=False, model=False):
+        inventory.require(type(private) is bool and type(http) is bool and type(model) is bool and (not http or private) and (not model or (private and http)), 'run-purpose')
         self.i = inventory
         self.private = private
         self.http = http
+        self.model = model
         self.runs_root = PRIVATE_RUNS_ROOT if private else RUNS_ROOT
         self.marker_schema = 'private-hierarchy-native-owned-run' if private else 'hierarchy-native-owned-run'
         self.claim_schema = 'private-hierarchy-native-child-claim' if private else 'hierarchy-native-child-claim'
@@ -1061,21 +1180,21 @@ def cluster_tree_type(supervisor, inventory, run):
     return ClusterTree
 
 
-def execute(external_sha, private=False, http=False):
+def execute(external_sha, private=False, http=False, model=False):
     S = load_pinned('supervisor')
     I = S.I  # Keep the controller's exact refusal type and authenticated helper.
-    I.require(type(private) is bool and type(http) is bool and (not http or private),'run-purpose')
+    I.require(type(private) is bool and type(http) is bool and type(model) is bool and (not http or private) and (not model or (private and http)),'run-purpose')
     I.require(sys.flags.isolated and sys.flags.no_site and sys.flags.dont_write_bytecode, 'python-flags')
     I.require(sys.platform == 'win32' and Path(sys.executable).resolve() == I.RUNTIME_PINS['@python'][0].resolve(), 'python-path')
     I.require(str(REPO).replace(chr(92), '/').casefold() == 'd:/gitprojekts/universal-discussion-bootstrap', 'fixed-repo')
     catalog = catalog_type(I)(external_sha)
-    run = OwnedRun(I,private,http)
+    run = OwnedRun(I,private,http,model)
     publisher = publisher_type(S, I, run)()
     tree = cluster_tree_type(S, I, run)()
     modules, host_native = {'windows':load_pinned('windows')}, []
-    inputs = PrivateInputs(I) if private else None
+    inputs = PrivateInputs(I,model=model) if private else None
     phases = PrivatePhases(I,run,http) if private else None
-    application = PrivateHttpProof(I,run) if http else None
+    application = PrivateHttpProof(I,run,model=model) if http else None
 
     def authenticate():
         catalog.authenticate()
@@ -1108,7 +1227,7 @@ def execute(external_sha, private=False, http=False):
 
     def boundary():
         W, B = modules['windows'], modules['baseline']
-        return W.OwnedFixtureProcess(B, api=native_api_type(W, run)(B))
+        return owned_boundary_type(W,model)(B, api=native_api_type(W, run)(B))
 
     def end_pins():
         catalog.end_pins()
@@ -1131,7 +1250,8 @@ def execute(external_sha, private=False, http=False):
 
     controller = diagnostic_controller_type(S, modules['windows'],private=private)(authenticate=authenticate, end_pins=end_pins,
         host_sample=host, boundary_factory=boundary, validate=validate,
-        clock=time.monotonic, pause=time.sleep, workspace_check=workspace, started_at=STARTED)
+        clock=time.monotonic, pause=time.sleep, workspace_check=workspace, started_at=STARTED,
+        job_memory_bytes=(2048 if model else 1024)*MIB)
     try:
         result = controller.run()
     finally:
@@ -1157,16 +1277,17 @@ def execute(external_sha, private=False, http=False):
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
-    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http')
-    http = private and args[0] == 'private-http'
+    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http','private-model')
+    model = private and args[0] == 'private-model'
+    http = private and args[0] in ('private-http','private-model')
     if private:
         args = args[1:]
     if (type(args) is not list or len(args) != 1 or type(args[0]) is not str
             or len(args[0]) != 64 or any(c not in '0123456789abcdef' for c in args[0])):
-        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http followed by that SHA256.\n')
+        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http/private-model followed by that SHA256.\n')
         return 2
     try:
-        result = execute(args[0],private,http)
+        result = execute(args[0],private,http,True) if model else execute(args[0],private,http)
         sys.stdout.write(json.dumps({'schema':'native-hierarchy-postgres-invocation/v2',
             'accepted':result['accepted']}, sort_keys=True, separators=(',', ':'))+'\n')
         return 0 if result['accepted'] else 1

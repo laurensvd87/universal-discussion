@@ -48,6 +48,8 @@ class MaintainedDriverTest(unittest.TestCase):
         find = lambda tree: next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == 'create_process')
         class DefaultLaunchInverse(ast.NodeTransformer):
             def visit_Assign(self,node):
+                if len(node.targets)==1 and isinstance(node.targets[0],ast.Name) and node.targets[0].id=='command':
+                    node.value=ast.parse("'\"' + NODE + '\" --max-old-space-size=64 \"' + str(REPO / ENTRY) + '\"'",mode='eval').body
                 if (len(node.targets)==1 and isinstance(node.targets[0],ast.Name) and node.targets[0].id=='environment'
                         and isinstance(node.value,ast.BinOp) and isinstance(node.value.op,ast.Add)
                         and isinstance(node.value.left,ast.Name) and node.value.left.id=='ENV_PREFIX'):
@@ -309,7 +311,7 @@ class MaintainedDriverTest(unittest.TestCase):
         normal = D.diagnostic_controller_type(self.S,self.W)
         private = D.diagnostic_controller_type(self.S,self.W,True)
         self.assertIs(normal.job,self.S.Controller.job)
-        old = ast.parse((HERE/'native-hierarchy-postgres-v2/supervise.py').read_bytes())
+        old = ast.parse((HERE/'hierarchy-native-supervisor.py').read_bytes())
         new = ast.parse(source.read_bytes())
         find = lambda tree:next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='job')
         class Inverse(ast.NodeTransformer):
@@ -335,6 +337,7 @@ class MaintainedDriverTest(unittest.TestCase):
         value = object.__new__(cls)
         value.boundary = types.SimpleNamespace(sample=lambda:row)
         value.last_cpu,value.last_peak,value.last_accounting = 0,0,None
+        value.job_memory_bytes = 1024*D.MIB
         return value,row
 
     def test_private_truthful_cpu_samples_and_default_limit_are_separate(self):
@@ -720,7 +723,7 @@ class MaintainedDriverTest(unittest.TestCase):
         I,S = self.I,self.S
         class FakeInputs:
             closed = close_failed = False
-            def __init__(self,*args):pass
+            def __init__(self,*args,**kwargs):pass
             def prepare(self):events.append('input-held')
             def check(self):pass
             def close(self):events.append('close-refused');raise OSError('invented-close')
@@ -921,6 +924,139 @@ class MaintainedDriverTest(unittest.TestCase):
         api.m,api.k = self.B,types.SimpleNamespace(CreateProcessW=launch)
         api.create_process((ctypes.create_string_buffer(16),None),11,12,13)
         self.assertEqual(seen,['"'+D.NODE+'" --max-old-space-size=64 "'+str(D.REPO/D.HTTP_ENTRY)+'"'])
+
+    def test_closed_model_mode_cannot_be_selected_by_path_budget_or_nonprivate_flags(self):
+        seen=[]
+        with patch.object(D,'execute',side_effect=lambda *args:seen.append(args) or {'accepted':True}),contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(D.main(['private-model','a'*64]),0)
+            for args in (['private-model'],['private-model','a'*64,'--heap=512'],['private-model','A'*64],['--model','a'*64]):self.assertEqual(D.main(args),2)
+        self.assertEqual(seen,[('a'*64,True,True,True)])
+        for private,http,model in ((False,False,True),(True,False,True),(True,True,1),(True,True,'true')):
+            with self.assertRaises(self.I.Refusal):D.OwnedRun(self.I,private,http,model)
+        run=D.OwnedRun(self.I,True,True,True)
+        self.assertIs(run.model,True);self.assertIs(run.private,True);self.assertIs(run.http,True)
+        self.assertIs(D.OwnedRun(self.I).model,False)
+
+    def test_model_launch_512_and_true_two_gib_limits_do_not_change_default_api(self):
+        run=types.SimpleNamespace(output=self.owned_paths.output,private=True,http=True,model=True)
+        seen=[]
+        def create(executable,command,ps,ts,inherit,flags,environment,cwd,startup,info):
+            seen.append(command.value);info._obj.process,info._obj.thread,info._obj.pid=11,12,13;return True
+        def limits(job,kind,pointer,size):
+            row=pointer._obj;self.assertEqual((row.basic.flags,row.basic.activeLimit,row.jobMemory),(0x2208,32,2048*D.MIB));return True
+        cls=D.native_api_type(self.W,run);api=object.__new__(cls);api.m=self.B;api.k=types.SimpleNamespace(CreateProcessW=create,SetInformationJobObject=limits)
+        api.create_process((ctypes.create_string_buffer(16),None),11,12,13);api.set_limits(20)
+        self.assertEqual(seen,['"'+D.NODE+'" --max-old-space-size=512 "'+str(D.REPO/D.HTTP_ENTRY)+'" --with-model'])
+        for method in ('read_limits','attributes','members','read','close_handle'):
+            self.assertIs(getattr(cls,method),getattr(self.W._WinAPI,method))
+        default=D.native_api_type(self.W,self.owned_paths);self.assertIs(default.set_limits,self.W._WinAPI.set_limits)
+
+    def test_model_boundary_requires_actual_two_gib_readback_and_retains_all_other_methods(self):
+        cls=D.owned_boundary_type(self.W,True);value=object.__new__(cls);value.handles={'job':20};value.limits=None
+        row={'bytes':144,'expectedBytes':144,'flags':0x2208,'active':32,'memory':2048*D.MIB}
+        value.api=types.SimpleNamespace(read_limits=lambda job:dict(row));value._verify_limits()
+        self.assertEqual(value.limits,{'flags':0x2208,'activeProcessLimit':32,'jobMemoryBytes':2048*D.MIB})
+        for key,bad in (('memory',1024*D.MIB),('memory',float(2048*D.MIB)),('active',1),('flags',0x3a08),('bytes',0)):
+            changed=row[key];row[key]=bad
+            with self.assertRaises(self.W.BoundaryFailure):value._verify_limits()
+            row[key]=changed
+        self.assertIs(D.owned_boundary_type(self.W),self.W.OwnedFixtureProcess)
+        self.assertEqual({name for name,method in vars(cls).items() if callable(method)},{'_verify_limits'})
+
+    def test_model_private_controller_keeps_cpu300_and_truthful_peak_and_admission(self):
+        value,row=self._job_subject(True,300);value.job_memory_bytes=2048*D.MIB;row['committed']=2048*D.MIB;value.job()
+        self.assertEqual(value.last_peak,2048*D.MIB)
+        row['committed']+=1
+        with self.assertRaises(self.I.Refusal):value.job()
+        cls=D.diagnostic_controller_type(self.S,self.W,True)
+        host={'physicalFree':3168*D.MIB,'commitFree':3168*D.MIB,'cFree':2048*D.MIB,'dFree':4096*D.MIB}
+        control=cls(authenticate=lambda:None,end_pins=lambda:None,host_sample=lambda:host,boundary_factory=lambda:None,validate=lambda *a:None,clock=lambda:0,pause=lambda n:None,job_memory_bytes=2048*D.MIB)
+        control.host(startup=True);host['commitFree']-=1
+        with self.assertRaises(self.I.Refusal):control.host(startup=True)
+
+    def test_model_extra_input_closure_has_exact_fixed_training_ridge_manifest_and_executables(self):
+        self.assertEqual(len(D.MODEL_INPUTS),14);self.assertEqual(len({p for p,_,_ in D.MODEL_INPUTS}),14)
+        inputs={p.relative_to(D.REPO).as_posix():(n,h) for p,n,h in D.MODEL_INPUTS}
+        manifest_key='spikes/topic-resolution/browser/embedding/.assets/manifest.json'
+        raw=(D.REPO/manifest_key).read_bytes();self.assertEqual((len(raw),hashlib.sha256(raw).hexdigest()),inputs[manifest_key])
+        for asset in json.loads(raw)['assets']:
+            self.assertEqual(inputs['spikes/topic-resolution/browser/embedding/.assets/'+asset['filename']],(asset['bytes'],asset['sha256']))
+        loader=(HERE/'private-model-training-inputs.js').read_text(encoding='utf8')
+        for name,n,h in re.findall(r"path:'([^']+)',bytes:(\d+),sha256:'([a-f0-9]{64})'",loader):self.assertEqual(inputs[name],(int(n),h))
+        self.assertEqual(sum(p.suffix in ('.mjs','.wasm') for p,_,_ in D.MODEL_INPUTS),4)
+        self.assertTrue(all(p.is_relative_to(D.REPO) for p,_,_ in D.MODEL_INPUTS))
+        with self.assertRaises(self.I.Refusal):D.PrivateInputs(self.I,model=1)
+
+    def test_model_all16_original_input_handles_remain_held_until_authenticated_close(self):
+        def check(run):
+            records=[]
+            for index in range(16):
+                name=run.root/('invented-input-'+str(index));raw=('public-invented-'+str(index)).encode();name.write_bytes(raw);records.append((name,len(raw),hashlib.sha256(raw).hexdigest()))
+            streams=[]
+            def opener(filename):
+                stream=filename.open('rb',buffering=0);streams.append(stream);return stream
+            with patch.object(D,'PRIVATE_INPUTS',tuple(records[:2])),patch.object(D,'MODEL_INPUTS',tuple(records[2:])):
+                guard=D.PrivateInputs(self.I,opener=opener,clock=lambda:D.STARTED+1,model=True)
+                try:
+                    guard.prepare();self.assertEqual(len(streams),16);self.assertTrue(all(not s.closed for s in streams));guard.finish(D.STARTED+20)
+                    self.assertTrue(guard.verified and guard.closed);self.assertTrue(all(s.closed for s in streams))
+                finally:guard.close()
+                bad=list(records[2:]);bad[5]=(bad[5][0],bad[5][1],'0'*64)
+                with patch.object(D,'MODEL_INPUTS',tuple(bad)):
+                    broken=D.PrivateInputs(self.I,opener=opener,clock=lambda:D.STARTED+1,model=True)
+                    with self.assertRaises(self.I.Refusal):broken.prepare()
+                    self.assertTrue(broken.closed);self.assertTrue(all(s.closed for s in streams))
+        self._owned_run_test(check)
+
+    def model_proof(self):
+        expected=(('real-train-01','aba50dd9302b5448b0e5b4f14792e681810e6238d45d7b524c772a21c4fd5115'),('real-train-04','4c89c4fe4490894cd7877790a4d4021c8a1babd5accf91be0212411c7952b3ff'))
+        summary=lambda n:{'count':n,'p50':1,'p95':2,'max':3}
+        return {'schema':'private-model-contention-proof/v1','status':'passed','failure':None,'testComposition':False,'elapsedMs':1000,'maximumPending':3,
+            'completed':[{'id':name,'sourceInputHash':digest,'operationId':'ingest-'+str(i),'operationDigest':'a'*64,'sourceId':'source-'+str(i),'sourceVersion':'0','topicId':'topic-'+str(i),'supportedPath':['games'] if i==0 else ['nature']} for i,(name,digest) in enumerate(expected)],
+            'phases':[{'stage':stage,'elapsedMs':10,'pendingWorkProbeCount':0 if i==0 else 2,'context':summary(3 if i==0 else 2),'topics':summary(3 if i==0 else 2)} for i,stage in enumerate(('baseline','encoder-initialization','body-encoding-1','queue-application-1','body-encoding-2','queue-application-2'))],
+            'installed':{'matcherIdentityHash':'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c','encoderModelId':'e5-small-q8-browser-main-prefix-v1','packagedAssetsVerified':True},
+            'cleanup':{'resourcesClosed':True,'originalsSettled':True,'callerDatabasesClosed':False},
+            'scope':{**dict.fromkeys(('realE5','realQueuedApply','realHttp','sharedEncoder','stagedCrawlerClient'),True),**dict.fromkeys(('fullCrawlerDiscovery','storedBackfill','browser','provider','qualityEvaluation','productionValidated','assignmentAuthority'),False)},
+            'ownerVerification':{'operations':2,'sources':2,'observations':2},
+            'fixtureIsolation':{'retiredHistoricalJobs':0,'emptyBeforeModel':True}}
+
+    def test_model_nested_proof_is_additional_and_cannot_alias_normal_http_evidence(self):
+        def check(run,normal,value,publish):
+            value['model']=self.model_proof();value['scope']['encoder']=True;value['cleanup'].update(workerClientClosed=True,submitterClientClosed=True);publish(value)
+            with self.assertRaises(self.I.Refusal):normal.complete()
+            proof=D.PrivateHttpProof(self.I,run,True);proof.complete();proof.check();self.assertIsNotNone(proof.digest)
+        self._http_proof_test(check)
+
+    def test_model_proof_refuses_false_assets_scope_pending_rows_hashes_and_timing(self):
+        changes=(lambda p:p.update(testComposition=True),lambda p:p.update(maximumPending=9),lambda p:p.update(maximumPending=True),
+            lambda p:p['installed'].update(packagedAssetsVerified=False),lambda p:p['installed'].update(matcherIdentityHash='a'*64),
+            lambda p:p['cleanup'].update(originalsSettled=False),lambda p:p['cleanup'].update(callerDatabasesClosed=True),
+            lambda p:p['scope'].update(qualityEvaluation=True),lambda p:p['scope'].update(realE5=False),
+            lambda p:p['ownerVerification'].update(operations=True),lambda p:p['completed'][0].update(sourceInputHash='a'*64),
+            lambda p:p['completed'][0].update(sourceVersion=0),lambda p:p['completed'][0].update(supportedPath=['nature','gta']),
+            lambda p:p['completed'][1].update(sourceId='source-0'),lambda p:p['phases'].reverse(),
+            lambda p:p['phases'][1]['context'].update(p95=0),lambda p:p.update(elapsedMs=float('inf')))
+        D.checked_model_proof(self.I,self.model_proof())
+        for change in changes:
+            proof=self.model_proof();change(proof)
+            with self.assertRaises(self.I.Refusal):D.checked_model_proof(self.I,proof)
+
+    def test_model_isolation_requires_exact_bounded_copied_queue_retirement_and_empty_state(self):
+        for count in (0,2,16):
+            proof=self.model_proof();proof['fixtureIsolation']['retiredHistoricalJobs']=count
+            D.checked_model_proof(self.I,proof)
+        for isolation in ({'retiredHistoricalJobs':17,'emptyBeforeModel':True},
+                {'retiredHistoricalJobs':-1,'emptyBeforeModel':True},
+                {'retiredHistoricalJobs':True,'emptyBeforeModel':True},
+                {'retiredHistoricalJobs':0.0,'emptyBeforeModel':True},
+                {'retiredHistoricalJobs':0,'emptyBeforeModel':False},
+                {'retiredHistoricalJobs':0,'emptyBeforeModel':1},
+                {'retiredHistoricalJobs':0},
+                {'retiredHistoricalJobs':0,'emptyBeforeModel':True,'arbitraryAuthority':True}):
+            proof=self.model_proof();proof['fixtureIsolation']=isolation
+            with self.assertRaises(self.I.Refusal):D.checked_model_proof(self.I,proof)
+        proof=self.model_proof();del proof['fixtureIsolation']
+        with self.assertRaises(self.I.Refusal):D.checked_model_proof(self.I,proof)
 
 
 if __name__ == '__main__':

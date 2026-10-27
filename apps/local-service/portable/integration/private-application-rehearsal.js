@@ -11,6 +11,8 @@ import {createLoopbackServer} from '../../src/http/loopback-listener.js';
 import {createCanonicalV4SemanticDiscussionRepository} from '../canonical-v4/semantic-discussion-repository.js';
 import {createExclusiveSession} from './native-hierarchy-postgres-v2/session.js';
 import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
+import {runPrivateModelRehearsal} from './private-model-rehearsal.js';
+import {loadPrivateModelTrainingInputs} from './private-model-training-inputs.js';
 
 const fail=code=>Object.assign(new Error('Private application rehearsal failed'),{code});
 const need=(value,code='APPLICATION_ASSERTION')=>{if(!value)throw fail(code);};
@@ -83,11 +85,71 @@ async function publishProof(a,proof){await directories(a.outputDirectory);a.chec
  const s=await lstat(final),p=await lstat(pending);need(s.isFile()&&!s.isSymbolicLink()&&s.dev===p.dev&&s.ino===p.ino&&s.size===bytes.length&&s.nlink===2,'APPLICATION_PROOF_LINK');
  const reader=await open(final,'r');try{const data=Buffer.alloc(bytes.length+1);let used=0;for(;;){const {bytesRead}=await reader.read(data,used,data.length-used,null);used+=bytesRead;if(!bytesRead||used===data.length)break;}const after=await reader.stat();need(used===bytes.length&&data.subarray(0,used).equals(bytes)&&after.dev===s.dev&&after.ino===s.ino&&after.size===s.size&&after.mtimeMs===s.mtimeMs&&after.ctimeMs===s.ctimeMs,'APPLICATION_PROOF_BYTES');}finally{await reader.close();}a.checkDeadline();return {bytes:bytes.length,sha256:sha(bytes)};
 }
-const REAL={prepareStorage,seedAccounts,openApplication:openDormantPostgresApplication,listen,request:requestHttp,publishProof,now:()=>performance.now(),randomBytes,randomUUID};
+const REAL={prepareStorage,seedAccounts,openApplication:openDormantPostgresApplication,listen,request:requestHttp,publishProof,now:()=>performance.now(),randomBytes,randomUUID,
+ model:runPrivateModelRehearsal,readTraining:loadPrivateModelTrainingInputs};
 
-async function run(value,ports,testComposition){const a=context(value);a.checkDeadline();const began=ports.now(),states=PRIVATE_APPLICATION_CASES.map(name=>({name,status:'not-attempted'}));let stage='setup',failed=false,primary;
+async function isolateCopiedQueue(database,check){
+ // This runs only in the authenticated disposable restored fixture, after all
+ // original fingerprints and the sixteen HTTP cases. Retire copied authority
+ // through its existing lifecycle function; never let the general worker
+ // claim historical work or silently treat an expired lease as an empty queue.
+ return database.transaction(async tx=>{
+  check();const lane=await tx.query('SELECT active_operation_id,active_lease_token,active_lease_until FROM canonical_v4.catalog_ingest_lane WHERE singleton FOR UPDATE');check();need(lane.rows.length===1,'APPLICATION_MODEL_QUEUE');
+  const old=await tx.query("SELECT operation_id,operation_digest,authority_token FROM canonical_v4.ingestion_jobs WHERE state IN ('pending','leased') ORDER BY operation_id COLLATE \"C\" LIMIT 17");check();need(old.rows.length<=16,'APPLICATION_MODEL_QUEUE');
+  let retiredHistoricalJobs=0;
+  for(const row of old.rows){
+   const result=await tx.query('SELECT canonical_v4.ingest_revoke_authority($1,$2,$3) AS revoked',[row.operation_id,row.operation_digest,row.authority_token]);check();
+   need(result.rows.length===1&&result.rows[0].revoked===true,'APPLICATION_MODEL_QUEUE');retiredHistoricalJobs++;row.authority_token=null;
+  }
+  const result=await tx.query(`SELECT (SELECT count(*)::integer FROM canonical_v4.ingestion_jobs WHERE state IN ('pending','leased')) AS live_jobs,
+   active_operation_id IS NULL AND active_lease_token IS NULL AND active_lease_until IS NULL AS lane_empty
+   FROM canonical_v4.catalog_ingest_lane WHERE singleton`);check();
+  need(result.rows.length===1&&result.rows[0].live_jobs===0&&result.rows[0].lane_empty===true,'APPLICATION_MODEL_QUEUE');
+  return {retiredHistoricalJobs,emptyBeforeModel:true};
+ });
+}
+
+async function verifyModelOwnerRows(database,model,training,check){
+ need(model?.status==='passed'&&model.completed?.length===2&&training.length===2,'APPLICATION_MODEL');
+ const verified={operations:0,sources:0,observations:0};
+ for(const [index,row]of model.completed.entries()){
+  const input=training[index];need(input.id===row.id&&input.sourceInputHash===row.sourceInputHash,'APPLICATION_MODEL');check();
+  // One owner SELECT observes the exact durable completion, canonical source,
+  // bitwise body wire and registered semantic observation together. No vectors
+  // or discussion bodies leave this query, and no additional connection opens.
+  const result=await database.query(`SELECT
+   (SELECT count(*)::integer FROM canonical_v4.ingestion_jobs j
+    WHERE j.operation_id=$1 AND j.operation_digest=$2 AND j.job_class='crawler' AND j.state='complete'
+     AND j.result_source_id=$3 AND j.request_material IS NULL AND j.authority_token IS NULL AND j.lease_token IS NULL) AS operations,
+   (SELECT count(*)::integer FROM canonical_v4.sources s
+    JOIN canonical_v4.embeddings e ON e.source_id=s.id
+    JOIN canonical_v4.operation_receipts r ON r.source_id=s.id
+    JOIN canonical_v4.source_links l ON l.source_id=s.id
+    JOIN canonical_v4.semantic_inputs i ON i.source_id=s.id AND i.operation_digest=$2 AND i.matcher_hash=$9
+    WHERE s.id=$3 AND s.write_version::text=$4 AND s.operation_id=$1 AND s.url=$5 AND s.title=$6 AND s.extractor_version=$7
+     AND s.provenance='owner-local-page-embedding/v1' AND s.has_embedding AND l.topic_id=$8
+     AND r.operation_id=$1 AND r.operation_digest=$2 AND e.model_id='e5-small-q8-browser-main-prefix-v1' AND e.dimensions=384
+     AND pg_catalog.array_send(e.values_double)=pg_catalog.array_send(i.body_values)
+     AND i.body_wire_hash=encode(sha256(pg_catalog.array_send(e.values_double)),'hex')) AS sources,
+   (SELECT count(*)::integer FROM canonical_v4.semantic_observations o
+    JOIN canonical_v4.semantic_inputs i USING(source_id,operation_digest,matcher_hash)
+    JOIN canonical_v4.semantic_installation installed ON installed.singleton AND installed.matcher_hash=o.matcher_hash
+    JOIN canonical_v4.meta m ON m.singleton AND m.generation=o.generation
+    WHERE o.operation_id=$1 AND o.operation_digest=$2 AND o.source_id=$3 AND o.source_version::text=$4
+     AND o.matcher_hash=$9 AND o.installation_revision=installed.revision AND i.supported_path=$10::text[]
+     AND i.semantic_eligible AND i.title_wire_hash=encode(sha256(pg_catalog.array_send(i.title_values)),'hex')) AS observations`,
+   [row.operationId,row.operationDigest,row.sourceId,row.sourceVersion,input.url,input.title,input.extractorVersion,row.topicId,model.installed.matcherIdentityHash,row.supportedPath]);check();
+  need(result.rows.length===1&&Object.keys(result.rows[0]).length===3,'APPLICATION_MODEL_OWNER');
+  for(const key of Object.keys(verified)){need(result.rows[0][key]===1,'APPLICATION_MODEL_OWNER');verified[key]++;}
+ }
+ return verified;
+}
+
+async function run(value,ports,testComposition,withModel=false){const a=context(value);a.checkDeadline();const began=ports.now(),states=PRIVATE_APPLICATION_CASES.map(name=>({name,status:'not-attempted'}));let stage='setup',failed=false,primary;
  let appDatabase=null,urlDatabase=null,application=null,server=null,appClient=null,urlClient=null;const pendingHttp=new Set();let httpRequests=0,maximumConcurrentHttp=0;
+ let workerClient=null,submitterClient=null,workerDatabase=null,submitterDatabase=null,model=null;
  const cleanup={serverClosed:false,applicationClosed:false,appClientClosed:false,urlClientClosed:false,pendingHttp:0,pendingDatabase:0};
+ if(withModel)Object.assign(cleanup,{workerClientClosed:false,submitterClientClosed:false});
  const key=ports.randomBytes(32),token=ports.randomBytes(32).toString('base64url');need(Buffer.isBuffer(key)&&key.length===32&&token.length>=32,'APPLICATION_RANDOM');
  const cfg={host:'127.0.0.1',port:4174,origin:ORIGIN,capability:token};
  const remember=e=>{if(!failed){failed=true;primary=e;}};
@@ -137,22 +199,48 @@ async function run(value,ports,testComposition){const a=context(value);a.checkDe
   await caseRun('bounded-concurrent-public-reads',async()=>{const rows=await Promise.all(Array.from({length:4},()=>ok('/v1/semantic/topics',{})));need(rows.every(r=>r.policyRevision===rows[0].policyRevision));});
   await caseRun('revoked-session-denied',async()=>{need((await ok('/v1/account/session/logout',{},two.token)).loggedOut===true);need((await call('/v1/account/me',{},two.token)).status===401);});
   await caseRun('provider-unavailable',async()=>{need((await call('/v1/ai/status')).status===404);});
+  if(withModel){
+   stage='model-training-inputs';const training=await ports.readTraining();a.checkDeadline();
+   stage='model-fixture-isolation';const fixtureIsolation=await isolateCopiedQueue(a.ownerDatabase,a.checkDeadline);model={fixtureIsolation};a.checkDeadline();
+   const acquire=async role=>{a.checkDeadline();const client=await a.connectFixedRole(requestRole(role),a.checkDeadline);return client;};
+   stage='model-worker-role';workerClient=await acquire('murmingle_ingest_worker');
+   stage='model-submitter-role';submitterClient=await acquire('murmingle_crawler_submitter');
+   stage='model-role-identity';
+   for(const [client,role]of [[workerClient,'murmingle_ingest_worker'],[submitterClient,'murmingle_crawler_submitter']]){
+    const identity=a.getOwnedIdentity(client);need(identity.database===DATABASE&&identity.role===role&&identity.address==='127.0.0.1'&&identity.port===55433&&identity.started===appIdentity.started,'APPLICATION_MODEL_ROLE');
+   }
+   need(new Set([appClient,urlClient,workerClient,submitterClient]).size===4,'APPLICATION_MODEL_ROLE');
+   workerDatabase=createPrivateSerialDatabase(workerClient,a.checkDeadline);submitterDatabase=createPrivateSerialDatabase(submitterClient,a.checkDeadline);
+   stage='model-contention';
+   const readHttp=(kind,input)=>{const routes={version:'/v1/version',topics:'/v1/semantic/topics',context:'/v1/semantic/context','source-urls':'/v1/catalog/source-urls'};
+    need(Object.hasOwn(routes,kind),'APPLICATION_MODEL_HTTP');return ok(routes[kind],kind==='version'?null:input);};
+   model=await ports.model({workerDatabase,submitterDatabase,readHttp,readCapturedTrainingInputs:async()=>training,foregroundSourceId:sourceId,deadline:a.deadline,checkDeadline:a.checkDeadline});
+   model.fixtureIsolation=fixtureIsolation;a.checkDeadline();
+   stage='model-owner-verification';model.ownerVerification=await verifyModelOwnerRows(a.ownerDatabase,model,training,a.checkDeadline);
+  }
  }catch(e){remember(e);}
  finally{
   const settle=async(work,mark)=>{try{await work();cleanup[mark]=true;}catch(e){remember(e);}};
+  if(withModel){
+   if(workerDatabase)await settle(()=>workerDatabase.close(),'workerClientClosed');else if(workerClient)await settle(()=>workerClient.end(),'workerClientClosed');else cleanup.workerClientClosed=true;
+   if(submitterDatabase)await settle(()=>submitterDatabase.close(),'submitterClientClosed');else if(submitterClient)await settle(()=>submitterClient.end(),'submitterClientClosed');else cleanup.submitterClientClosed=true;
+  }
   if(server)await settle(()=>server.close(),'serverClosed');else cleanup.serverClosed=true;
   await Promise.allSettled([...pendingHttp]);cleanup.pendingHttp=pendingHttp.size;
   if(application)await settle(()=>application.close(),'applicationClosed');else cleanup.applicationClosed=true;
   if(appDatabase)await settle(()=>appDatabase.close(),'appClientClosed');else if(appClient)await settle(()=>appClient.end(),'appClientClosed');else cleanup.appClientClosed=true;
   if(urlDatabase)await settle(()=>urlDatabase.close(),'urlClientClosed');else if(urlClient)await settle(()=>urlClient.end(),'urlClientClosed');else cleanup.urlClientClosed=true;
-  cleanup.pendingDatabase=(appDatabase?.snapshot().pending??0)+(urlDatabase?.snapshot().pending??0)+(appDatabase?.snapshot().admitted??0)+(urlDatabase?.snapshot().admitted??0);key.fill(0);
+  cleanup.pendingDatabase=[appDatabase,urlDatabase,workerDatabase,submitterDatabase].reduce((total,db)=>total+(db?.snapshot().pending??0)+(db?.snapshot().admitted??0),0);key.fill(0);
  }
  need(cleanup.pendingHttp===0&&cleanup.pendingDatabase===0,'APPLICATION_PENDING');
  const proof={schema:'private-application-http-proof/v1',status:failed?'failed':'passed',cases:states,pendingCases:states.filter(x=>x.status!=='passed').length,
   server:{destinationPort:PORT,canonicalHost:HOST,loopbackOnly:true},upgrade:{...a.upgrade},counts:{httpRequests,maximumConcurrentHttp,fixtureActors:2},cleanup,
-  scope:{realHttp:!testComposition,realDatabase:!testComposition,browser:false,encoder:false,provider:false,externalLoginVerified:false,productionCapacityValidated:false,testComposition},
+  scope:{realHttp:!testComposition,realDatabase:!testComposition,browser:false,encoder:withModel&&!testComposition,provider:false,externalLoginVerified:false,productionCapacityValidated:false,testComposition},
+  ...(withModel?{model}:{}),
   failure:failed?{stage,code:'APPLICATION_CASE_OR_CLEANUP_FAILED'}:null,elapsedMs:Math.max(0,Math.round(ports.now()-began))};
  if(failed)void primary;a.checkDeadline();const file=await ports.publishProof(a,proof);a.checkDeadline();return Object.freeze({status:proof.status,proofSha256:file.sha256,proofBytes:file.bytes});
 }
 export async function runPrivateApplicationRehearsal(value){if(arguments.length!==1)throw fail('APPLICATION_CONTEXT');return run(value,REAL,false);}
+export async function runPrivateModelApplicationRehearsal(value){if(arguments.length!==1)throw fail('APPLICATION_CONTEXT');return run(value,REAL,false,true);}
 export async function runPrivateApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&Object.keys(REAL).every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true);}
+export async function runPrivateModelApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&Object.keys(REAL).every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true,true);}

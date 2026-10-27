@@ -1,5 +1,13 @@
 # E5 matching across broad and specific topics
 
+27 October performance rehearsal source is ready: real fixed E5 body/title
+encoding, durable queue worker and foreground HTTP reads in one private restored
+application. It uses retained TRAIN Tetris/Octopoda material and records all
+original-work cleanup plus exact owner SQL joins. A closed2GiB/Node512 budget is
+for this feature test; ordinary SQL fixtures stay1GiB/Node64. This measures
+in-process contention and makes no production throughput or new quality claim.
+The actual combined run and live switch are still pending.
+
 27 October development collection: only2 of11 fixed TRAIN/CAL pages were usable;
 both TRAIN pages failed extraction, so this batch cannot fit a child head.
 Unavailable rows stay in the evidence and CAL stays CAL. A separate two-page,

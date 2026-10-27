@@ -8,7 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
-Current27Oct childTRAINCAL24307exit0/11attempts/2CALavailable9unavailable/20requests/
+Current27Oct REALMODELfeature15SOURCE ACCEPTED: driver2 d12be4dd...cd0d, app5
+1e838b56...fe00, supervisor2f9742121...b487, retainedloader/helper4 26d2cac7...c5d0
+RootFULLread/auth/current15pinsPASS. Root61purePython+79guardedNodePASS; owner
+joinSQLsingleSELECT parsed10params/noDB. Closedprivate-model selectsTRUE2GiBJob/
+Node512/CPU300/originalepochs/floors, default1GiB/64 unchanged. Extra14readonly
+inputpins explicitinclencoderEXECUTABLEmjs/Wasm, outside320MiBcatalog; nohidden
+closure/capraise. ExactretainedpublicTRAIN Tetris/Octopoda/performanceonly, not
+fresh/native/quality. Copiedqueueprep AFTER18FP+16HTTP inoriginalownertransaction:
+laneFIRST/max17/refuse>16/officialexactrevokeTRUE/finalzero+alllaneNULL/commit
+beforeworker; no productionreset. Proofisolationcount+owner2/2/2 mandatory;
+latehelpercutoff retainsisolation/no lateproof. Wholecatalog/Git/actualUNFINISHED.
+Diagnostic16356exit0/2diagnosed/6requests/25285ms/endpinsTRUE: AKF58chars, QLD
+attribute-surface-limit. Newresponsesnotoriginalidentityproof/noadoption;
+independentactualauditpending. Crawleradvancing6704/stderr0/originalservicesheld.
+
+Earlier27Oct childTRAINCAL24307exit0/11attempts/2CALavailable9unavailable/20requests/
 98431ms/endpinsTRUE. AKFTRAIN2 insufficienttext,QLD6documentinvalid, furniture
 policyunavailable; nofit/modelworkloadeligibility. Audit7589Bfa5d5c90...ac8c8
 RootFULLread/auth. PROCEDURALGAP: collectorstarted afterRootGitprebindingfailed

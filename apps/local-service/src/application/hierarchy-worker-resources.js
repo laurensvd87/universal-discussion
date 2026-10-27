@@ -12,6 +12,7 @@ import {createCanonicalV4SemanticSourceRepository} from '../../portable/canonica
 import {startPostgresIngestionWorkerLoop} from './postgres-ingestion-worker-loop.js';
 import {createCanonicalV4SemanticMetadataRepository} from '../../portable/canonical-v4/semantic-metadata-repository.js';
 import {readId,readRecord} from '../domain/validation.js';
+import {inputText} from '../../../../spikes/topic-resolution/browser/embedding/embedding-contract.js';
 
 const LIMIT=8,MODEL='e5-small-q8-browser-main-prefix-v1';
 const unavailable=()=>Object.assign(new Error('Hierarchy worker resources unavailable'),{code:'unavailable'});
@@ -91,6 +92,10 @@ async function openResources(options,dependencies,productionBinding){
   }
   const livePrep=createHierarchyIngestionPreparation({matcher:installed.matcher,embedTitle});
   const storedPrep=createStoredSourceHierarchyPreparation({matcher:installed.matcher,embedTitle});
+  // Captured body text uses the very same serial queue and fixed encoder as
+  // titles. The resource owns its lifetime; callers receive no close/selector
+  // capability, and identical text shares work only while encoding is pending.
+  const bodyPrep=Object.freeze({prepare:embedTitle});
   async function prepare(prep,value){
    if(closed||admitted>=LIMIT)throw unavailable();admitted++;
    const work=prep.prepare(value);preparations.add(work);
@@ -123,6 +128,10 @@ async function openResources(options,dependencies,productionBinding){
    titleEncoder:{modelId:MODEL,sharedSingleFlight:true,maximumPendingPreparations:LIMIT,
     packagedAssetsVerified:productionBinding},nativeObservation:false,productionValidated:false,assignmentAuthority:false});
   return Object.freeze({descriptor,
+   async embedCapturedBody(text){
+    if(arguments.length!==1)invalid();inputText(text);
+    return prepare(bodyPrep,text);
+   },
    health:()=>sqlCall(()=>ingest.health()),
    prepareStoredSource:value=>prepare(storedPrep,value),
    storedSources:Object.freeze({candidates:value=>sqlCall(()=>stored.candidates(value)),reclassify:value=>sqlCall(()=>stored.reclassify(value))}),
