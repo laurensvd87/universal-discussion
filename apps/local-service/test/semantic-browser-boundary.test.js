@@ -6,7 +6,7 @@ import {PassThrough} from 'node:stream';
 import vm from 'node:vm';
 import path from 'node:path';
 import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource,quarantinePausedSemanticTarget,
-  bindContainedSemanticAlias,markSemanticSessionDetached} from '../harness/run-semantic-workspace-browser-smoke.js';
+  bindContainedSemanticAlias,markSemanticSessionDetached,describeSemanticUiFailure} from '../harness/run-semantic-workspace-browser-smoke.js';
 
 // Evaluate the ACTUAL launcher with an in-memory child and pipes. No subprocess,
 // network, native API, profile or filesystem write occurs in these tests.
@@ -128,4 +128,19 @@ test('unexpected original-session detach during alias verification revokes accep
   assert.equal(entry.boundTo,undefined);
   const shutdown=aliasFixture().owner;assert.equal(markSemanticSessionDetached(shutdown,{shutdown:true}),false);assert.equal(shutdown.active,false);assert.equal(shutdown.unexpectedDetach,undefined);
   assert.equal(markSemanticSessionDetached({active:true,ownsNetworkBoundaries:true,aliased:true}),false);
+});
+test('UI diagnostics preserve only closed assertion and evaluation codes',()=>{
+  const overflow=Error('private body must never be retained');Object.defineProperty(overflow,'smokeCode',{value:'horizontal-overflow'});
+  assert.deepEqual(describeSemanticUiFailure(overflow),{code:'horizontal-overflow'});
+  assert.deepEqual(describeSemanticUiFailure(Error('Browser fixture evaluation failed')),{code:'evaluation-failed'});
+  const assertion=Error('private expected and actual values');assertion.code='ERR_ASSERTION';assert.deepEqual(describeSemanticUiFailure(assertion),{code:'assertion-failed'});
+});
+test('UI diagnostic projection discards arbitrary messages, body values and accessor properties',()=>{
+  const custom=Error('https://owner.example/?token=secret');custom.smokeCode='private-body';assert.deepEqual(describeSemanticUiFailure(custom),{code:'ui-step-failed'});
+  const accessor={};for(const key of ['message','code','smokeCode'])Object.defineProperty(accessor,key,{get(){assert.fail('diagnostic accessor invoked');}});
+  assert.deepEqual(describeSemanticUiFailure(accessor),{code:'ui-step-failed'});
+  let hooks=0;const proxy=new Proxy({}, {getOwnPropertyDescriptor(){hooks++;throw Error('Do not invoke');}});
+  assert.deepEqual(describeSemanticUiFailure(proxy),{code:'ui-step-failed'});assert.equal(hooks,0);
+  const revoked=Proxy.revocable({},{});revoked.revoke();assert.deepEqual(describeSemanticUiFailure(revoked.proxy),{code:'ui-step-failed'});
+  for(const value of [null,undefined,'message',1,true])assert.deepEqual(describeSemanticUiFailure(value),{code:'ui-step-failed'});
 });

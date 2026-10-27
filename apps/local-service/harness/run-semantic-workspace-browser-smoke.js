@@ -74,6 +74,20 @@ export function describeSemanticBoundaryFailure(error){
   }
   return {code:'boundary-failure'};
 }
+const UI_ASSERT_CODES=new Set(['composer-heading-mismatch','horizontal-overflow']);
+export function describeSemanticUiFailure(error){
+  if(error===null||typeof error!=='object'||types.isProxy(error))return {code:'ui-step-failed'};
+  let code,nativeCode,message;try{
+    code=Object.getOwnPropertyDescriptor(error,'smokeCode')?.value;
+    nativeCode=Object.getOwnPropertyDescriptor(error,'code')?.value;
+    message=Object.getOwnPropertyDescriptor(error,'message')?.value;
+  }catch{return {code:'ui-step-failed'};}
+  if(UI_ASSERT_CODES.has(code))return {code};
+  if(nativeCode==='ERR_ASSERTION')return {code:'assertion-failed'};
+  const known={'Browser fixture evaluation failed':'evaluation-failed','Browser fixture state timeout':'state-timeout','Browser boundary failed':'boundary-failed'};
+  return {code:typeof message==='string'&&Object.hasOwn(known,message)?known[message]:'ui-step-failed'};
+}
+function checkUi(condition,code){if(condition)return;const error=new Error('Semantic browser assertion failed');Object.defineProperty(error,'smokeCode',{value:code});throw error;}
 
 // Serialized into the isolated extension page only. All document observations,
 // account identity, service state and attestations below are invented fixtures.
@@ -84,10 +98,20 @@ async function bootstrapFixture(){
     import('../core/local-service-client.js'),import('../fixtures/indicator-fixtures.js')]);
   window.semanticQA={providerCalls:0,mount:async()=>{
     const prior=window.semanticQA.current;prior?.workspace.dispose();prior?.controller.dispose();prior?.panel.dispose();
-    document.body.replaceChildren();document.body.dataset.uiMode='user';
-    const title=document.createElement('h1');title.textContent='Synthetic discussion browser QA';
-    const main=document.createElement('main'),discover=document.createElement('section'),semantic=document.createElement('section'),canonical=document.createElement('section');
-    main.append(title,discover,semantic,canonical);document.body.append(main);
+    document.body.replaceChildren();document.body.dataset.uiMode='user';document.body.dataset.uiSurface='sidepanel';document.body.dataset.extensionSurface='sidepanel';
+    // Match production host IDs/classes and nesting without CSS overrides. This
+    // is a synthetic responsive surface, not a native SidePanel binding claim.
+    const main=document.createElement('main'),discoverView=document.createElement('section'),discussionView=document.createElement('section');
+    discoverView.id='app-view-discover';discoverView.className='app-view community-view user-only';discussionView.id='app-view-discussion';discussionView.className='app-view';discussionView.hidden=true;
+    const discover=document.createElement('section'),semantic=document.createElement('section'),canonical=document.createElement('section');
+    semantic.className='semantic-discussion-panel';canonical.id='local-discussion';canonical.className='action-panel';
+    const insightsHost=document.createElement('div');insightsHost.id='app-discussion-insights-host';canonical.append(insightsHost);
+    const nav=document.createElement('nav');nav.id='app-navigation';nav.className='user-only app-navigation';
+    for(const [name,label,hidden] of [['discussion','Discussion',false],['pages','Pages',true],['discover','Discover',false],['private','My chats',false]]){
+      const action=document.createElement('button');action.id='app-tab-'+name;action.type='button';action.textContent=label;action.hidden=hidden;action.setAttribute('aria-controls','app-view-'+name);
+      if(name==='discover')action.setAttribute('aria-current','page');nav.append(action);
+    }
+    discoverView.append(discover);discussionView.append(canonical);main.append(nav,discussionView,discoverView);document.body.append(main);
     let workspace;const current={actor:'demo-alex',tabId:7,url:'https://example.com/',windowId:2,availability:null,navigation:[]};
     const version={generation:'semantic-browser-generation',revision:7},topic={id:'reserved-domain-demo',title:'Foreground Page B topic',kind:'general'};
     const catalog={version,model:{id:'hand-authored-demo-vectors/1',status:'fixture-only'},actors:[{id:'demo-alex',displayName:'Alex',type:'human'},
@@ -109,9 +133,12 @@ async function bootstrapFixture(){
     panel.bind(controller);panel.bindInsight({currentState:()=>({ai:{planEnabled:true,model:'synthetic-never-called',status:'idle'},
       context:{topic,currentSource:catalog.sources[0]}}),createFollowup:async()=>{window.semanticQA.providerCalls++;return false;},
       createInsights:async()=>{window.semanticQA.providerCalls++;return false;}});
+    const feed=document.querySelector('#discussion-feed');feed.insertBefore(semantic,feed.firstChild);
+    const showDiscussion=()=>{discoverView.hidden=true;discussionView.hidden=false;document.querySelector('#app-tab-discover').removeAttribute('aria-current');
+      document.querySelector('#app-tab-discussion').setAttribute('aria-current','page');workspace.setActive(false);};
     workspace=mountSemanticTopicWorkspace(document,{discoverRoot:discover,discussionRoot:semantic,client,controller,discussionPanel:panel,
-      navigate:value=>{current.navigation.push(value);if(value==='discussion')workspace.setActive(false);},onAvailability:value=>{current.availability=value;}});
-    Object.assign(current,{workspace,controller,panel,discover,semantic,canonical});window.semanticQA.current=current;
+      navigate:value=>{current.navigation.push(value);if(value==='discussion')showDiscussion();},onAvailability:value=>{current.availability=value;}});
+    Object.assign(current,{workspace,controller,panel,discover,semantic,canonical,showDiscussion});window.semanticQA.current=current;
     await controller.setTopicViewMode('classic');await controller.open();workspace.observePage(controller.currentState());workspace.setActive(true);workspace.setConnection(true);
     return true;
   }};
@@ -135,7 +162,8 @@ export async function runSemanticWorkspaceBrowserSmoke(){
   const profile=mkdtempSync(path.join(DATA,'semantic-workspace-browser-owned-'));checkedPath(profile);
   const profileResolved=realpathSync(profile),dataResolved=realpathSync(DATA);assert.ok(contained(workspaceRoot(),dataResolved));assert.ok(contained(workspaceRoot(),profileResolved));
   let browser=null,sessionId=null,origin=null,phase='initial',closing=false,timedOut=false,profileRemoved=false;
-  const started=Date.now(),failures=[],exceptions=[],screenshots=[],cases=[],interceptions=[],commands=[],pendingTasks=new Set(),targets=new Map(),held=[];
+  const started=Date.now(),failures=[],exceptions=[],screenshots=[],layoutChecks=[],cases=[],interceptions=[],commands=[],pendingTasks=new Set(),targets=new Map(),held=[];
+  let uiStep='browser-startup',firstUiFailure=null;
   const targetGroups=new Map();
   let remoteResponses=0,retiredInterceptions=0,protocolFailure=false,browserVersion=null,initialBlankAccepted=false,extensionLoadStarted=false,firstBoundaryFailure=null;
   let publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
@@ -207,9 +235,18 @@ export async function runSemanticWorkspaceBrowserSmoke(){
   async function evaluate(expression){const value=await browser.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true},sessionId);
     if(value.exceptionDetails)throw new Error('Browser fixture evaluation failed');return value.result.value;}
   async function waitFor(expression){const limit=Date.now()+9000;while(Date.now()<limit){if(timedOut||protocolFailure)throw new Error('Browser boundary failed');if(await evaluate(expression))return;await pause(40);}throw new Error('Browser fixture state timeout');}
-  async function capture(width){await browser.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false},sessionId);await pause(100);
-    const layout=await evaluate(`({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,overflow:document.documentElement.scrollWidth>innerWidth})`);assert.equal(layout.overflow,false);
-    const result=await browser.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId),name='semantic-'+width+'.png';checkedPath(attempt);writeFileSync(checkedPath(path.join(attempt,name)),Buffer.from(result.data,'base64'),{flag:'wx'});screenshots.push({name,...layout});}
+  async function capture(width){uiStep='layout-'+width;await browser.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false},sessionId);await pause(100);
+    const layout=await evaluate(`(()=>{const ids=['app-view-discussion','local-discussion','discussion-feed','discussion-root-dock','discussion-composer','discussion-body','discussion-reply-context','semantic-context-results'];
+      return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,bodyWidth:document.body.getBoundingClientRect().width,
+        overflow:document.documentElement.scrollWidth>innerWidth,surface:document.body.dataset.uiSurface==='sidepanel'?'sidepanel':document.body.dataset.uiSurface==='popup'?'popup':'other',
+        elements:ids.map(id=>{const node=document.getElementById(id);if(!node)return {id,present:false};const r=node.getBoundingClientRect();return {id,present:true,hidden:node.hidden,
+          left:Math.round(r.left*100)/100,right:Math.round(r.right*100)/100,width:Math.round(r.width*100)/100,scrollWidth:node.scrollWidth,clientWidth:node.clientWidth};}),
+        semanticHostInsideFeed:document.querySelector('.semantic-discussion-panel')?.parentElement?.id==='discussion-feed',
+        composerDocked:document.querySelector('#discussion-composer')?.parentElement?.id==='discussion-root-dock'};})()`);
+    layoutChecks.push(layout);
+    // Preserve the failing image and metrics BEFORE asserting overflow.
+    const result=await browser.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId),name='semantic-'+width+'.png';checkedPath(attempt);writeFileSync(checkedPath(path.join(attempt,name)),Buffer.from(result.data,'base64'),{flag:'wx'});screenshots.push({name,...layout});
+    checkUi(!layout.overflow,'horizontal-overflow');}
   const timer=setTimeout(()=>{timedOut=true;void browser?.close();},120000);
   let outcome='failed';
   try{
@@ -289,47 +326,53 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     extensionLoadStarted=true;const loaded=await browser.send('Extensions.loadUnpacked',{path:EXTENSION});origin='chrome-extension://'+loaded.id;publishOrigin(origin);
     const target=await browser.send('Target.createTarget',{url:'about:blank'}),deadline=Date.now()+9000;
     while(!sessionId&&Date.now()<deadline){sessionId=[...targets.entries()].find(([,entry])=>entry.targetId===target.targetId&&entry.ready)?.[0];if(!sessionId)await pause(25);}
-    assert.ok(sessionId);await browser.send('Page.navigate',{url:origin+'/chromium/popup.html'},sessionId);
+    assert.ok(sessionId);uiStep='packaged-popup-unpaired';await browser.send('Page.navigate',{url:origin+'/chromium/popup.html'},sessionId);
     await waitFor(`document.readyState==='complete'&&Boolean(document.querySelector('#discussion-composer'))`);await pause(300);
     assert.equal(exceptions.length,0);cases.push('actual-packaged-popup-unpaired-no-runtime-exceptions');
-    phase='fixture';await evaluate(`(${bootstrapFixture.toString()})()`);
+    phase='fixture';uiStep='fixture-bootstrap';await evaluate(`(${bootstrapFixture.toString()})()`);
+    uiStep='fixture-ready';
     await waitFor(`window.semanticQA.current.availability==='available'&&Boolean(document.querySelector('#semantic-discover-open-music'))&&Boolean(document.querySelector('#semantic-context-thread-root-a'))`);
-    const topicsBefore=interceptions.filter(item=>item.path==='/v1/semantic/topics').length;
+    uiStep='global-source-independence';const topicsBefore=interceptions.filter(item=>item.path==='/v1/semantic/topics').length;
     await evaluate(`semanticQA.current.controller.selectSource('reserved-example-org')`);await evaluate(`semanticQA.current.controller.selectSource('reserved-example-com')`);await pause(100);
     assert.equal(interceptions.filter(item=>item.path==='/v1/semantic/topics').length,topicsBefore);cases.push('global-directory-independent-of-source-selection');
-    await evaluate(`document.querySelector('#semantic-discover-open-music').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-thread-root-a'))`);
-    await evaluate(`document.querySelector('#semantic-discover-thread-root-a').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-reply-reply-a'))`);
+    uiStep='global-feed';await evaluate(`document.querySelector('#semantic-discover-open-music').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-thread-root-a'))`);
+    uiStep='global-thread';await evaluate(`document.querySelector('#semantic-discover-thread-root-a').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-reply-reply-a'))`);
+    uiStep='flat-replies';
     const flat=await evaluate(`(()=>{const p=document.querySelector('#semantic-discover-results'),replies=p.children[1];return {count:replies.children.length,flat:[...replies.children].every(n=>!n.querySelector('article')),inset:replies.style.marginInlineStart,deleted:replies.children[2].textContent};})()`);
     assert.ok(flat.count>=3);assert.equal(flat.flat,true);assert.equal(flat.inset,'1rem');assert.equal(flat.deleted,'Deleted by user');cases.push('real-dom-flat-replies-minimal-tombstone');
-    await evaluate(`document.querySelector('#semantic-discover-reply-reply-a').click()`);await waitFor(`semanticQA.current.controller.currentState().draft.semantic===true&&Boolean(document.querySelector('#semantic-context-reply-reply-a'))`);
+    uiStep='reply-handoff';await evaluate(`document.querySelector('#semantic-discover-reply-reply-a').click()`);await waitFor(`semanticQA.current.controller.currentState().draft.semantic===true&&Boolean(document.querySelector('#semantic-context-reply-reply-a'))`);
+    uiStep='composer-body';
     await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.value='Browser QA human reply from Page B @AI stays text';body.dispatchEvent(new Event('input',{bubbles:true}));})()`);
-    assert.equal(await evaluate(`document.querySelector('.discussion-new-thread-heading').textContent.includes('Original discussion A')`),true);
     for(const width of [320,400,520])await capture(width);
-    await evaluate(`document.querySelector('#discussion-composer').requestSubmit()`);await waitFor(`semanticQA.current.controller.currentState().draft.body===''&&Boolean(document.querySelector('[data-post-id="accepted-1"]'))`);
+    uiStep='composer-heading';checkUi(await evaluate(`document.querySelector('.discussion-new-thread-heading').textContent.includes('Original discussion A')`),'composer-heading-mismatch');
+    uiStep='human-submit';await evaluate(`document.querySelector('#discussion-composer').requestSubmit()`);await waitFor(`semanticQA.current.controller.currentState().draft.body===''&&Boolean(document.querySelector('[data-post-id="accepted-1"]'))`);
+    uiStep='human-destination';
     assert.equal(commands.length,1);assert.equal(await evaluate(`semanticQA.providerCalls`),0);
     const foreground=await evaluate(`(()=>{const s=semanticQA.current.controller.currentState();return {sourceId:s.sourceId,topicId:s.topicId,rootAInPageB:s.discussion.roots.some(r=>r.id==='root-a')};})()`);
     assert.deepEqual(foreground,{sourceId:'reserved-example-com',topicId:'reserved-domain-demo',rootAInPageB:false});cases.push('human-original-target-null-origin-revision-witness-no-ai');
-    mode.command='ambiguous';await evaluate(`document.querySelector('#semantic-context-reply-reply-a').click()`);await waitFor(`semanticQA.current.controller.currentState().draft.semantic===true`);
+    uiStep='uncertainty-reply';mode.command='ambiguous';await evaluate(`document.querySelector('#semantic-context-reply-reply-a').click()`);await waitFor(`semanticQA.current.controller.currentState().draft.semantic===true`);
+    uiStep='uncertainty-submit';
     await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.value='Synthetic possibly committed reply';body.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#discussion-composer').requestSubmit();})()`);
     await waitFor(`semanticQA.current.controller.currentState().semanticWritePending===true`);assert.equal(commands.length,2);
-    await evaluate(`document.querySelector('#semantic-context-refresh').click()`);await waitFor(`Boolean(document.querySelector('[data-post-id="accepted-2"]'))`);
+    uiStep='uncertainty-refresh';await evaluate(`document.querySelector('#semantic-context-refresh').click()`);await waitFor(`Boolean(document.querySelector('[data-post-id="accepted-2"]'))`);
+    uiStep='uncertainty-ack';
     await evaluate(`(()=>{const check=document.querySelector('#discussion-semantic-checked');check.checked=true;check.dispatchEvent(new Event('change'));document.querySelector('#discussion-semantic-continue').click();})()`);
     await waitFor(`!semanticQA.current.controller.currentState().semanticWritePending&&!semanticQA.current.controller.currentState().needsFreshRead`);assert.equal(commands.length,2);cases.push('uncertainty-checked-acknowledgement-no-repost');mode.command='ok';
-    for(const value of ['legacy','unauthorized']){mode.capability=value;await evaluate(`semanticQA.mount()`);await waitFor(`semanticQA.current.availability===${JSON.stringify(value==='legacy'?'legacy':'error')}`);cases.push('capability-'+value);}
+    for(const value of ['legacy','unauthorized']){uiStep='capability-'+value;mode.capability=value;await evaluate(`semanticQA.mount()`);await waitFor(`semanticQA.current.availability===${JSON.stringify(value==='legacy'?'legacy':'error')}`);cases.push('capability-'+value);}
     mode.capability='available';
-    for(const value of ['pending','error']){mode.context=value;await evaluate(`semanticQA.mount()`);await waitFor(`semanticQA.current.availability==='available'&&Boolean(document.querySelector('#semantic-discover-open-music'))`);await pause(120);
+    for(const value of ['pending','error']){uiStep='context-'+value;mode.context=value;await evaluate(`semanticQA.mount()`);await waitFor(`semanticQA.current.availability==='available'&&Boolean(document.querySelector('#semantic-discover-open-music'))`);await evaluate('semanticQA.current.showDiscussion()');await pause(120);
       assert.equal(await evaluate(`semanticQA.current.semantic.hidden`),value!=='error');assert.equal(await evaluate(`document.querySelector('#discussion-feed .discussion-thread').hidden`),false);cases.push('context-'+value+'-canonical-fallback');}
     mode.context='classified';
-    for(const value of ['navigation','account']){await evaluate(`semanticQA.mount()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-open-music'))`);
+    for(const value of ['navigation','account']){uiStep='stale-'+value;await evaluate(`semanticQA.mount()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-open-music'))`);
       await evaluate(`document.querySelector('#semantic-discover-open-music').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-reply-root-a'))`);mode.holdTarget=true;
       await evaluate(`document.querySelector('#semantic-discover-reply-root-a').click()`);const end=Date.now()+5000;while(!held.length&&Date.now()<end)await pause(25);assert.ok(held.length);
       await evaluate(value==='navigation'?`(()=>{semanticQA.current.tabId=99;semanticQA.current.controller.invalidateContext();})()`:
         `(()=>{semanticQA.current.actor='demo-blair';semanticQA.current.controller.accountChanged();})()`);
       mode.holdTarget=false;while(held.length){const item=held.shift();await abortRequest(item.requestId,item.incoming);}await pause(100);
       assert.equal(await evaluate(`semanticQA.current.navigation.length`),0);assert.equal(commands.length,2);cases.push('stale-'+value+'-handoff-refused');}
-    assert.equal(await evaluate(`semanticQA.providerCalls`),0);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
+    uiStep='final-guards';assert.equal(await evaluate(`semanticQA.providerCalls`),0);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
     outcome='passed';
-  }catch{fail('browser-smoke-incomplete');}
+  }catch(error){firstUiFailure={step:uiStep,...describeSemanticUiFailure(error)};fail('browser-smoke-incomplete');}
   finally{
     clearTimeout(timer);closing=true;publishOrigin(null);let closeReturned=false,ownedProcessExited=false;
     if(browser){try{await browser.close();closeReturned=true;}catch{fail('browser-close-failed');}ownedProcessExited=browser.hasExited===true;}
@@ -352,6 +395,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     if(!allExecutableTargetsContained)fail('target-containment-unverified');
     const result={schema:'semantic-workspace-browser-qa/v1',outcome:failures.length?'failed':outcome,scope:'Synthetic browser composition; no SQL, actual document attestation, provider, quality, load or live posting authority.',
       elapsedMs:Date.now()-started,timedOut,closing,closeReturned,ownedProcessExited,profileRemoved,ownedProfileRetained:!profileRemoved,
+      uiStep,firstUiFailure,layoutChecks,fixtureSurface:'synthetic-sidepanel-production-hosts-no-native-binding',
       attempt:path.relative(REPO,attempt).replaceAll('\\','/'),continuedHttpRequests:0,
       offlineAllTargets:targets.size>0&&[...targets.values()].every(entry=>entry.offlineInstalled&&entry.fetchInstalled&&entry.recursiveAttachInstalled),targets:targets.size,httpResponsesObserved:remoteResponses,browserVersion,
       physicalTargets:targetGroups.size,quarantinedTargets:new Set([...targets.values()].filter(entry=>entry.quarantined).map(entry=>entry.targetId)).size,
