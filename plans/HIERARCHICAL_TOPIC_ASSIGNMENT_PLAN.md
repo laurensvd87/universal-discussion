@@ -1,5 +1,34 @@
 # Hierarchical topic assignment and discussion plan
 
+Current product foundation (27October): `58dbe12f` passed actual PostgreSQL
+metadata integration (session77794/run6a0dd605...). The page-independent topic
+directory and current Source context are read with owner policy in one RR
+snapshot, consumed by actual client parsers. A real owner CAS between reads
+preserves the old snapshot; a later request sees the new cut. Pending, excluded,
+classified abstention, genuine version zero and forgotten Source behavior passed.
+Independent audit `ff04fe87...885f2` verifies all2386 inputs and52 raw Git blobs.
+
+The installed shared encoder (`23f8dbc0`) also passed an actual component check:
+two public TRAIN title vectors reproduce exactly, initialization1479.65ms,
+preparation66.11/21.34ms and cached2.36/1.56ms. This is not UI/quality/load evidence.
+Its fixed package and paced stored-page coordinator (`f1707b04`) are committed.
+
+Immediate performance work: remove the old global Ridge scan still invoked for
+canonical container selection. Implement one ordinary private source-local apply
+helper, preserving all durable admission/lease/receipt/lock/rollback semantics and
+the legacy entry point. New Sources get private containers; updates retain full
+existing memberships and their primary/manual destination. Semantic paths/feeds
+remain the actual shared topic assignment. Use an explicit Source policy name,
+update its readers, preserve index invalidation on material changes, and prove
+no Ridge call with an isolated sentinel. Passing NULL to skip matching would
+change eligibility and is not a valid shortcut. This is a reviewed design only;
+no014 implementation or actual execution yet.
+
+Still required: startup/head readiness and coordinator wiring; the actual browser
+semantic selection/reply flows below; deliberate cross-Source AI job/proof update;
+owner control operation/dashboard counts; real UI/load tests and live cutover.
+Migrations10-13 remain unregistered and live routes remain disabled by default.
+
 Latest client integration: `87a92532` passed the real isolated PostgreSQL suite
 (session69072/runfed2c989...). Actual service responses pass the browser's partial
 feed/thread and exact-target codecs, including original destinations, page-only

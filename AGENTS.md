@@ -8,6 +8,40 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct metadata013 actual58dbe12f/session77794 CLOSEDexit0/25PASS.
+Run6a0dd6057c627fc4f1dfc6fb76eef03113862068a2d20731; parent862Bd53158f1...a4d8/
+stdout4688B421905e6...2e66/stderr0/child5303B007ad2b7...8a2c. ActualappSQL->
+service->client topics/context; exactSourceversion/status; owner broad/specific
+cuts preserve fullsupportedpath; genuine appRR snapshot stayscoherent across
+existingownerconnection CAS; roleboundaries/zeroimport/pending->classified/
+excluded/forget plusprevious feed/target/tombstone/rollback/cleanup allPASS.
+PG5908 verifiedsmartstop/OIDs16384+17408dropped; parentnormal/noemergency/
+emptyJob/handles/EOF/endpins. Independent13444Bauditff04fe87ea410a992538ff59cbd5837cd35a63d0f245b5feec58d473d08885f2
+authenticated/FULLread; all2386/274066540B +52Git58dbe exact. Catalog364651B
+23b24913fe7ef6397a920b803e42a3290c19551913be19eebff1c3104b8664db/48NORMAL.
+Ordinary SOURCE evolves through reviewedGit; consumedrun snapshots/frozeninputs
+unchanged. 10-13 UNREGISTERED/liveuntouched; semantic routes opt-inFALSE/UIunwired.
+
+CURRENT27Oct installedworker23f8dbc0 actual74592 CLOSEDexit0/PASS, fixed2public
+TRAIN diagnosticstoredSourceenvelopes/noSQL/noqueue. RealE5 titlevectors exact0
+diff, GTA+Games paths; init1479.65ms/prep66.11+21.34ms/cache2.36+1.56ms, notUI/
+quality/load. Result3067Ba84c224c...598f6; independent4562Baudit908b7ca8d6c87671287ed1ce29595a401d8bfd93f9a704b2b8cdb4d05533894d
+authenticated/FULLread. Sharedencoder/queue8, fixedmanifestjoin, actualprep->
+semanticapply composition, originalSQLdrain, workerclose tests36PASS. Modelpack
+c6b647c0 and pacedcoordinator f1707b04 pushed; coordinator17purePASS/noactualSQL.
+No startup integration yet. Crawler4060 sameoriginalstart advances3922/stderr0;
+API19868/worker36616/dashboard6644 originalstarts/fixtureport absentbeforetest.
+NEXT critical: semanticapply still delegates oldglobalRidgescan forcanonical
+container. Reviewedordinary014 design ONLY: private source-local helper basedon
+exact005 applybody, semanticwrapper delegates it; retainlegacyentry/grants,
+alllease/witness/receipt/lock/unpin/cacheepoch/rollback logic. NewSource private
+container; existingfullmemberships/manual/primary unchanged. Explicitnewpolicy
+label (client/persisted whitelists), noNULLeligibilityshortcut. Causal scan-sentinel
+and oldroot/multimembership tests needed. NO014implementation/actualgrantyet.
+Then startup/head-readiness/sharedcoordinator, semanticUIindependentPageBbinding,
+crossSourcehuman+AI protocol, ownercontrols/dashboard, load/UI/livecutover OPEN.
+GoalACTIVE; no actualUI/provider/manyuser/liveactivation proof from newSQLrun.
+
 CURRENT27Oct client/target actual87a92532/session69072 CLOSEDexit0/25PASS.
 Runfed2c989f2cbb87a9dbfbb7165bd6df92c33cc50e3520b0a: actual appSQL->service->
 browser parsers for partialfeed/thread/exacttarget, pageactors/originalIDs,

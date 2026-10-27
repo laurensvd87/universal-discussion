@@ -1,5 +1,22 @@
 # Project status
 
+## Latest: installed encoder and persisted topic discovery verified
+
+`58dbe12f` passed the expanded real PostgreSQL suite, including the global topic
+directory, page context, owner cuts and a real concurrent policy-change snapshot
+test. All25 ledger points pass; normal cleanup and all2386 end pins independently
+verify (`ff04fe87...885f2`). These are synthetic SQL fixtures, not UI/load tests.
+
+The installed production encoder factory passed a separate two-TRAIN-example
+component check: startup1.48s, preparation66/21ms and repeat access2.4/1.6ms, exact
+title-vector reproduction. Its shared resources (`23f8dbc0`), fixed numeric package
+(`c6b647c0`) and paced background coordinator (`f1707b04`) are pushed.
+
+The next performance fix is removing the legacy global Ridge scan from semantic
+ingestion while preserving canonical destinations and manual memberships. Startup,
+browser integration, actual concurrency/UI checks and live activation remain open.
+Nothing in these commits applies migrations or changes the running services.
+
 ## Latest: semantic client contracts passed actual PostgreSQL responses
 
 `87a92532` is pushed. The isolated run69072 passed the existing25-point ledger,

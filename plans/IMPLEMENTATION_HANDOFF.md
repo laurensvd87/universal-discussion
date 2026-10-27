@@ -1,5 +1,30 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST27Oct58dbe12f/session77794 CLOSEDexit0/25PASS: native013 publicmetadata/
+owner-cuts/currentSource status+version/client codecs/RR snapshot acrossactualowner
+CAS. Run6a0dd605...20731, parentd53158f1...a4d8/stdout421905e6...2e66/child007ad2b7...8a2c;
+stderr0/ownedPG5908smartstop/OIDs16384+17408dropped/parentnormal/all2386endpins/
+52rawGitPASS. Independent13444Bff04fe87ea410a992538ff59cbd5837cd35a63d0f245b5feec58d473d08885f2
+authenticated/FULLread. Currentcatalog364651B23b24913...64db/48NORMAL. Default
+semantic routes FALSE;10-13 UNREGISTERED. No UI/load/realE5 fromthisSQLfixture.
+
+Installed sharedresources23f8dbc0 actual74592 CLOSEDexit0/PASS over2authenticated
+publicTRAIN envelopes/noSQL: titlevectors exact0diff, GTA/Games, init1479.65ms/
+prep66.11+21.34/cache2.36+1.56. Resulta84c224c...598f6; independent4562B908b7ca8...894d
+authenticated/FULLread;9encoderassetendpins149830534B. Modelpackc6b647c0 and
+coordinatorf1707b04 committed. No actualstartup/coordinator/livewiring yet.
+
+NEXT ordinary014 private source-container applyhelper design reviewed, NOcodeyet:
+old005exactbody/inverseexceptrouting/policy; semanticwrapper delegates newprivate
+helper, legacyentry unchanged. NewSource privatecontainer, updatesretainexactfull
+memberships/primary/manual, oldrootIDs and originalunpin/deadline/witness/receipt/
+lock/index-epoch semantics intact. Newpolicylabel mustbeacceptedbyclient/persisted
+readers; noNULL vector shortcut (changeseligibility). ActualRidge-sentinelcausal+
+multimembership/manual/oldroot/rollback/replaytests beforeactivation. Then startup
+activehead-readiness/sharedworker+coordinator, globalSearchTopics/Discussionsemantic
+UI, PageBbinding/crossSourcehuman+AI protocol, ownercontrols/dashboard/load/live.
+GoalACTIVE; callerpermission standing, no externalblocker. Preservealloldrunoutputs.
+
 LATEST client/target:87a92532/session69072 CLOSEDexit0/25PASS, runfed2c989...20b0a.
 Actual appSQL/service->browser parsers for partial pages/exact targets, original
 destinations, page-only actors, metadata-vs-body cursor revisions and selected-root
