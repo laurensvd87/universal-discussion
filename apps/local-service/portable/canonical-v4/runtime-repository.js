@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { types } from 'node:util';
 import { isAccountActor } from '../../src/accounts/account-principal.js';
 import { ServiceError, fail } from '../../src/domain/errors.js';
 import { frozenClone, readBody, readExpectedVersion, readId, readRecord, readText } from '../../src/domain/validation.js';
@@ -29,9 +30,18 @@ function normalizeOrigin(value) {
   return value === undefined || value === null ? null : readId(value);
 }
 
+function normalizeSemanticTarget(value) {
+  if (types.isProxy(value)) fail('invalid', 'Invalid request');
+  const target = readRecord(value, ['nodeId', 'topicId', 'rootRevision', 'targetRevision']);
+  if (![target.rootRevision, target.targetRevision].every(value => Number.isSafeInteger(value) && value > 0))
+    fail('invalid', 'Invalid request');
+  return Object.freeze({ nodeId: readText(target.nodeId, 160), topicId: readId(target.topicId),
+    rootRevision: target.rootRevision, targetRevision: target.targetRevision });
+}
+
 function normalizeCommand(value) {
   const discriminator = readRecord(value,
-    ['type', 'topicId', 'discussionId', 'rootId', 'replyToId', 'body', 'originSourceId'], ['type']);
+    ['type', 'topicId', 'discussionId', 'rootId', 'replyToId', 'body', 'originSourceId', 'semanticTarget'], ['type']);
   const type = readText(discriminator.type, 64);
   if (type === 'create-root') {
     const command = readRecord(value, ['type', 'topicId', 'body', 'originSourceId'], ['type', 'topicId', 'body']);
@@ -40,11 +50,13 @@ function normalizeCommand(value) {
   }
   if (type === 'reply') {
     const command = readRecord(value,
-      ['type', 'discussionId', 'rootId', 'replyToId', 'body', 'originSourceId'],
+      ['type', 'discussionId', 'rootId', 'replyToId', 'body', 'originSourceId', 'semanticTarget'],
       ['type', 'discussionId', 'rootId', 'replyToId', 'body']);
+    const target = Object.hasOwn(command, 'semanticTarget') ? normalizeSemanticTarget(command.semanticTarget) : null;
+    if (target && command.replyToId === null) fail('invalid', 'Invalid request');
     return Object.freeze({ type, discussionId: readId(command.discussionId), rootId: readId(command.rootId),
       replyToId: command.replyToId === null ? null : readId(command.replyToId), body: readBody(command.body),
-      originSourceId: normalizeOrigin(command.originSourceId) });
+      originSourceId: normalizeOrigin(command.originSourceId), ...(target ? { semanticTarget: target } : {}) });
   }
   fail('forbidden', 'Action unavailable');
 }

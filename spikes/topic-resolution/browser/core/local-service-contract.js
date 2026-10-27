@@ -115,6 +115,12 @@ export function readPairingToken(value) {
   return value;
 }
 export function readCommand(value) {
+  function semanticTarget(value) {
+    const target = record(value, ["nodeId", "topicId", "rootRevision", "targetRevision"]);
+    if (![target.rootRevision, target.targetRevision].every(value => Number.isSafeInteger(value) && value > 0)) invalid();
+    return Object.freeze({ nodeId: text(target.nodeId, 160), topicId: readId(target.topicId),
+      rootRevision: target.rootRevision, targetRevision: target.targetRevision });
+  }
   if (!value || typeof value !== "object") invalid();
   const type = Object.getOwnPropertyDescriptor(value, "type");
   if (!type?.enumerable || !Object.hasOwn(type, "value")) invalid();
@@ -137,9 +143,12 @@ export function readCommand(value) {
         rootId: readId(item.rootId), replyToId: readId(item.replyToId), body: text(item.body, 8000, true),
         operationId: readId(item.operationId), originSourceId: nullableId(item.originSourceId) };
     case "reply":
-      item = record(value, ["type", "discussionId", "rootId", "replyToId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : [])]);
+      item = record(value, ["type", "discussionId", "rootId", "replyToId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : []),
+        ...(Object.hasOwn(value, "semanticTarget") ? ["semanticTarget"] : [])]);
+      if (Object.hasOwn(item, "semanticTarget") && item.replyToId === null) invalid();
       return { type: item.type, discussionId: readId(item.discussionId), rootId: readId(item.rootId), replyToId: nullableId(item.replyToId), body: text(item.body, 8000, true),
-        ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}) };
+        ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}),
+        ...(Object.hasOwn(item, "semanticTarget") ? { semanticTarget: semanticTarget(item.semanticTarget) } : {}) };
     case "edit":
       item = record(value, ["type", "contributionId", "body"]);
       return { type: item.type, contributionId: readId(item.contributionId), body: text(item.body, 8000, true) };
