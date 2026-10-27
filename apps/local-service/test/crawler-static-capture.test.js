@@ -3,11 +3,66 @@ import test from "node:test";
 import {
   CRAWLER_EXTRACTOR_VERSION,
   captureStaticHtml,
+  describeStaticCaptureFailure,
+  diagnoseStaticHtml,
   parseXRobotsTag,
 } from "../src/crawler/static-capture.js";
 
 const PAGE = "https://news.alpha.org/world/story";
 const prose = (label, repetitions = 24) => Array.from({ length: repetitions }, (_, index) => `${label} sentence ${index}.`).join(" ");
+
+test("finite diagnostics reuse extraction without exposing content, URLs, directives or attributes", () => {
+  const text = "Public prose ".repeat(20).trim(), html = `<title>Secret title</title><nav>Secret navigation</nav><script>Secret script</script>
+    <article data-secret="Secret attribute"><div hidden>Secret hidden</div>${text}<a href="/secret-url">Public link</a></article>`;
+  const before = captureStaticHtml(html, PAGE), diagnostic = diagnoseStaticHtml(html, PAGE), after = captureStaticHtml(html, PAGE);
+  assert.deepEqual(after, before);assert.equal(diagnostic.status, "eligible");assert.equal(diagnostic.failure, null);
+  assert.equal(diagnostic.summary.extractedLength, before.text.length);assert.equal(diagnostic.summary.titleLength, before.title.length);
+  assert.equal(diagnostic.summary.preferredSelected, true);assert.equal(diagnostic.summary.skipTags, 1);assert.equal(diagnostic.summary.chromeTags, 1);
+  assert.equal(diagnostic.summary.hiddenTags, 1);assert.equal(diagnostic.summary.preferredTags, 1);
+  assert.ok(diagnostic.summary.skippedTextCharacters > 0 && diagnostic.summary.chromeTextCharacters > 0 && diagnostic.summary.hiddenTextCharacters > 0);
+  assert.ok(Object.isFrozen(diagnostic) && Object.isFrozen(diagnostic.summary));
+  const encoded = JSON.stringify(diagnostic);for (const secret of ["Secret", "news.alpha", "secret-url", "data-secret", "Public prose", "contentHash", "noindex"]) assert.equal(encoded.includes(secret), false);
+  for (const value of Object.values(diagnostic.summary)) assert.ok(typeof value === "boolean" || Number.isSafeInteger(value) && value >= 0 && value <= 64 * 1024 * 1024);
+});
+
+test("short and fallback diagnostics explain retained extraction lengths without changing eligibility", () => {
+  const short = diagnoseStaticHtml("<main>short</main>", PAGE);assert.equal(short.status, "insufficient-text");
+  assert.equal(short.summary.extractedLength, 5);assert.equal(short.summary.preferredBufferLength, 5);assert.equal(short.summary.preferredSelected, false);
+  const html = `<main>short</main><div>${prose("Fallback diagnostic", 20)}</div>`;
+  const result = captureStaticHtml(html, PAGE), diagnostic = diagnoseStaticHtml(html, PAGE);
+  assert.equal(diagnostic.status, "eligible");assert.equal(diagnostic.summary.preferredSelected, false);
+  assert.equal(diagnostic.summary.extractedLength, result.text.length);assert.equal(result.extractorVersion, "crawler-static-html-prefix/v1");
+});
+
+test("each existing parser rejection site records a closed code on its exact TypeError only", () => {
+  const cases = [["document-input", ""], ["document-input", "x".repeat(2 * 1024 * 1024 + 1)],
+    ["unterminated-comment", "<!-- missing"], ["unterminated-tag", '<article title="missing>'],
+    ["attribute-count-limit", `<article ${Array.from({ length: 129 }, (_, i) => `data-${i}=value`).join(" ")}>`],
+    ["attribute-surface-limit", `<meta name="robots" content="${"x".repeat(16_385)}">`],
+    ["stack-depth-limit", "<div>".repeat(257)], ["token-limit", "<br>".repeat(100_001)]];
+  for (const [code, html] of cases) {
+    let original;try { captureStaticHtml(html, PAGE); } catch (error) { original = error; }
+    assert.ok(original instanceof TypeError);assert.equal(original.message, "Invalid crawler document");
+    const failure = describeStaticCaptureFailure(original);assert.equal(failure.code, code);assert.ok(Object.isFrozen(failure) && Object.isFrozen(failure.summary));
+    assert.equal(describeStaticCaptureFailure(original), failure);const diagnostic = diagnoseStaticHtml(html, PAGE);
+    assert.equal(diagnostic.status, "document-invalid");assert.equal(diagnostic.failure, code);assert.deepEqual(diagnostic.summary, failure.summary);
+    original.message = "Forged secret message";original.code = "forged";assert.equal(describeStaticCaptureFailure(original).code, code);
+  }
+});
+
+test("unknown errors, forged properties, getters and proxies cannot acquire diagnostic ownership or invoke hooks", () => {
+  let hooks = 0;const accessor = {};
+  for (const key of ["code", "message", "stack", "name"]) Object.defineProperty(accessor, key, { get() { hooks++;throw Error("Do not inspect"); } });
+  const proxy = new Proxy({}, { get() { hooks++;throw Error("Do not inspect"); }, getPrototypeOf() { hooks++;throw Error("Do not inspect"); } });
+  const revoked = Proxy.revocable({}, {});revoked.revoke();
+  for (const value of [accessor, proxy, revoked.proxy, new TypeError("Invalid crawler document"), { code: "token-limit" }, null, undefined, false, 1, "secret"])
+    assert.equal(describeStaticCaptureFailure(value), null);
+  assert.equal(hooks, 0);
+  // This is the existing hostname-fallback URL error, not a parser-owned reject.
+  let unknown;try { captureStaticHtml("visible", "invalid URL"); } catch (error) { unknown = error; }
+  assert.ok(unknown instanceof TypeError);assert.equal(describeStaticCaptureFailure(unknown), null);
+  assert.throws(() => diagnoseStaticHtml("visible", "invalid URL"), TypeError);
+});
 
 test("static capture prefers substantial article text and ignores executable, hidden, framed and form content", () => {
   const visible = prose("Visible article", 30);

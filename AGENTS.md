@@ -8,7 +8,20 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
-Current27Oct correctedChrome17/17PASS3459ms after1d7bc096PUSHED. All31rawGitpins/
+Current27Oct childTRAINCAL24307exit0/11attempts/2CALavailable9unavailable/20requests/
+98431ms/endpinsTRUE. AKFTRAIN2 insufficienttext,QLD6documentinvalid, furniture
+policyunavailable; nofit/modelworkloadeligibility. Audit7589Bfa5d5c90...ac8c8
+RootFULLread/auth. PROCEDURALGAP: collectorstarted afterRootGitprebindingfailed
+beforedecisionfilewritten; all6reviewedbytesexact, mismatchCRLF/LFonly. Poststart
+86056800...5bb2+independent652840a5...7185 explicit, NOTbackdatedapproval. Original
+13artifactsIMMUTABLE/noautomaticretry/CALsubstitution. Minimaldiagnostic6SOURCE
+accepted21dc0ab4...2feb RootFULLread/auth;41purePASS, unchangedparserpredicates/
+caps/output/version; WeakMapownedfinitecodes/counts only. Separate2URL/6request
+diagnosisnext,noavailabilityadoption. Realmodeltestwilluse2existingretainedTRAIN
+Tetris/Octopoda, NOTnewchildquality; loader/source accepted26d2cac7...c5d0.
+Modelapp/driverfeatureSOURCE stillunderreview/noactual/noactivation. Crawlerkept.
+
+Earlier27Oct correctedChrome17/17PASS3459ms after1d7bc096PUSHED. All31rawGitpins/
 containment/ownedexit/profilecleanupTRUE;3viewportboundsPASS. Independent14784B
 b242d743...57b3 hashverified, scopeSOURCEpins separatelyjoined byRoot. RealUI with
 inventedbackend/model/provider, notrealE5/load/provider/browser-to-DB proof. Child

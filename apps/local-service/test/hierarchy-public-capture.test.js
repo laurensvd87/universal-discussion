@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture} from '../harness/hierarchy-public-capture.js';
+import {createHierarchyPublicCapture,createHierarchyChildTrainCalCapture,createHierarchyChildDiagnosisCapture} from '../harness/hierarchy-public-capture.js';
 import {readFileSync} from 'node:fs';
 import {PUBLIC_HIERARCHY_PROBES as probes} from '../harness/hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from '../harness/hierarchy-recipe-corpus.js';
@@ -27,6 +27,52 @@ function fixture({robots='',tdm=null,page=()=>html(),onRequest}={}){
 
 const childPlan=JSON.parse(readFileSync(new URL('../harness/hierarchy-child-corpus.json',import.meta.url),'utf8'));
 const childRows=childPlan.freshCandidates.filter(r=>r.split!=='test');
+
+test('closed diagnosis reuses two independent policies and emits only bounded parser counters under six requests',async()=>{
+ const f=fixture(),capture=createHierarchyChildDiagnosisCapture(f.options),rows=[];
+ for(const id of ['child-train-01','child-cal-01'])rows.push(await capture.capture(id));
+ assert.equal(f.calls.length,6);assert.equal(f.calls.filter(call=>call.resourceKind==='page').length,2);
+ for(let i=1;i<f.calls.length;i++)assert.ok(f.calls[i].time-f.calls[i-1].time>=5000);
+ assert.equal(capture.snapshot().maxRequests,6);assert.equal(capture.snapshot().deadline,240000);
+ for(const row of rows){assert.deepEqual(Object.keys(row),['id','status','reason','parserDiagnostic']);assert.equal(row.status,'diagnosed');assert.equal(row.reason,'eligible');
+  assert.equal(row.parserDiagnostic.status,'eligible');assert.ok(Object.isFrozen(row)&&Object.isFrozen(row.parserDiagnostic.summary));
+  for(const value of ['Fresh public title','public article','https://','contentHash','headers','extractorVersion'])assert.equal(JSON.stringify(row).includes(value),false);}
+ assert.ok(f.buffers.every(buffer=>buffer.every(n=>n===0)));
+ assert.deepEqual(await capture.capture('child-train-01'),{id:'child-train-01',status:'unavailable',reason:'already-attempted',parserDiagnostic:null});
+ for(const id of ['child-train-02','child-cal-02','child-test-01',probes[0].id,'https://www.qld.gov.au/foreign'])await assert.rejects(capture.capture(id));
+ await assert.rejects(capture.capture('child-cal-01',{}));assert.equal(f.calls.length,6);
+});
+test('diagnosis distinguishes insufficient extraction from finite parser refusal without releasing either document',async()=>{
+ const f=fixture({page:url=>new URL(url).origin==='https://savethekoala.com'?html('','short'):'<article title="missing>'}),capture=createHierarchyChildDiagnosisCapture(f.options);
+ const short=await capture.capture('child-train-01');assert.equal(short.reason,'insufficient-text');assert.equal(short.parserDiagnostic.status,'insufficient-text');
+ const invalid=await capture.capture('child-cal-01');assert.equal(invalid.reason,'document-invalid');assert.equal(invalid.parserDiagnostic.failure,'unterminated-tag');
+ assert.equal(JSON.stringify([short,invalid]).includes('missing'),false);assert.equal(f.calls.length,6);
+});
+test('diagnosis preserves policy precedence and exposes no parser diagnostics when rights are denied',async()=>{
+ const denied=fixture({robots:'User-agent: *\nDisallow: /about-koalas/'}),robots=createHierarchyChildDiagnosisCapture(denied.options);
+ assert.equal((await robots.capture('child-train-01')).reason,'robots-denied');assert.equal(denied.calls.some(call=>call.resourceKind==='page'),false);
+ for(const [head,headers,reason]of [['',{xRobotsTag:['noai']},'header-restricted'],['',{tdmReservation:'1'},'tdm-reserved'],
+  ['<meta name="robots" content="noindex">',{},'document-restricted'],['<meta name="tdm-reservation" content="bad">',{},'tdm-ambiguous']]){
+  const f=fixture({onRequest(url,options,content){if(options.resourceKind==='robots')return content(url,'','robots');if(options.resourceKind==='tdmrep')throw new PublicFetchError('http-status',{status:404});
+   return content(url,reason==='header-restricted'?'<unclosed title="':html(head),'page',headers);}}),capture=createHierarchyChildDiagnosisCapture(f.options);
+  const row=await capture.capture('child-train-01');assert.equal(row.reason,reason);assert.equal(row.status,'unavailable');assert.equal(row.parserDiagnostic,null);
+ }
+});
+test('diagnosis keeps redirect refusal and sticky policy failures while ignoring unknown exception hooks',async()=>{
+ const f=fixture({onRequest(){throw false;}}),capture=createHierarchyChildDiagnosisCapture(f.options);
+ assert.equal((await capture.capture('child-train-01')).reason,'policy-unavailable');assert.equal((await capture.capture('child-train-01')).reason,'already-attempted');assert.equal(f.calls.length,1);
+ let hooks=0;const unknown=new Proxy({}, {get(){hooks++;throw Error('secret');},getPrototypeOf(){hooks++;throw Error('secret');}});
+ const g=fixture({onRequest(url,options,content){if(options.resourceKind==='robots')return content(url,'','robots');if(options.resourceKind==='tdmrep')throw new PublicFetchError('http-status',{status:404});throw unknown;}});
+ assert.equal((await createHierarchyChildDiagnosisCapture(g.options).capture('child-train-01')).reason,'page-unavailable');assert.equal(hooks,0);
+ const h=fixture({page:url=>({kind:'redirect',url,redirectUrl:'https://foreign.example/'})});
+ assert.equal((await createHierarchyChildDiagnosisCapture(h.options).capture('child-train-01')).reason,'redirect-refused');
+});
+test('a deadline after parsing stays an unavailable deadline rather than mislabelling a diagnostic result',async()=>{
+ let pageReturned=false,checks=0;const f=fixture({page:()=>{pageReturned=true;return html();}}),clock=f.options.clock;
+ f.options.clock=()=>pageReturned&&++checks>=2?240000:clock();
+ const row=await createHierarchyChildDiagnosisCapture(f.options).capture('child-train-01');
+ assert.deepEqual(row,{id:'child-train-01',status:'unavailable',reason:'deadline',parserDiagnostic:null});
+});
 test('closed child TRAIN/CAL batch matches exact plan and uses independent five-origin policies under unchanged caps',async()=>{
  const f=fixture(),capture=createHierarchyChildTrainCalCapture(f.options);
  for(const row of childRows){const result=await capture.capture(row.id);assert.equal(result.url,row.url);assert.equal(result.status,'available',row.id);}

@@ -1,5 +1,12 @@
 # E5 matching across broad and specific topics
 
+27 October development collection: only2 of11 fixed TRAIN/CAL pages were usable;
+both TRAIN pages failed extraction, so this batch cannot fit a child head.
+Unavailable rows stay in the evidence and CAL stays CAL. A separate two-page,
+count-only parser diagnosis will identify the current failure stages. The real
+model contention rehearsal instead uses two already retained public TRAIN
+documents; its outcomes will be performance evidence, not new quality evidence.
+
 27 October latest: corrected Chrome check passes all17 UI cases after the
 first-page staging fix. Real SQL/HTTP and synthetic-browser evidence are separate.
 The next child-data batch contains11 fixed TRAIN/CAL URLs across5 exact origins;

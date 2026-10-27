@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {fetchPublicResource,PublicFetchError} from '../src/crawler/public-fetch.js';
 import {parseRobotsTxt,evaluateRobots,tdmRepUrlFor,parseTdmRepJson,matchTdmRep,parseTdmReservation,parseXRobotsDirectives} from '../src/crawler/robots.js';
-import {captureStaticHtml} from '../src/crawler/static-capture.js';
+import {captureStaticHtml,diagnoseStaticHtml} from '../src/crawler/static-capture.js';
 import {normalizeCrawlUrl} from '../src/crawler/url-policy.js';
 import {PUBLIC_HIERARCHY_PROBES} from './hierarchy-public-probes.js';
 import {RECIPE_CAL_PROBES,RECIPE_TEST_PROBES} from './hierarchy-recipe-corpus.js';
@@ -24,9 +24,11 @@ const CHILD_TRAIN_CAL=Object.freeze([
  ['child-cal-08','https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/platypus'],
  ['child-cal-09','https://www.qld.gov.au/environment/plants-animals/animals/discovering-wildlife/possum/lemuroid-ringtail-possum'],
 ].map(([id,url])=>Object.freeze({id,url})));
+const CHILD_DIAGNOSIS=Object.freeze([CHILD_TRAIN_CAL[0],CHILD_TRAIN_CAL[2]]);
 const CODES=new Set(['already-attempted','deadline','aborted','clock-invalid','request-limit','robots-denied','policy-unavailable',
  'page-unavailable','redirect-refused','response-invalid','header-restricted','tdm-ambiguous','tdm-reserved','document-invalid','document-restricted','insufficient-text','pace-unavailable',
  'origin-paused','rate-limited','access-denied','upstream-unavailable','fetch-unavailable']);
+export const HIERARCHY_CHILD_DIAGNOSIS_REASONS=Object.freeze([...CODES,'eligible']);
 const errors=new WeakMap();
 const fail=code=>{const error=new Error('Fixed public capture unavailable');errors.set(error,code);throw error;};
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -64,15 +66,22 @@ function defaultSleep(milliseconds,signal){
  */
 export function createHierarchyPublicCapture(dependencies={}){return createCapture(dependencies,false);}
 export function createHierarchyChildTrainCalCapture(dependencies={}){return createCapture(dependencies,true);}
-function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child){
+export function createHierarchyChildDiagnosisCapture(dependencies={}){return createCapture(dependencies,true,true);}
+function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=defaultSleep,signal,deadline},child,diagnosis=false){
  if(typeof fetchPublic!=='function'||typeof clock!=='function'||typeof sleep!=='function')throw new TypeError('Invalid fixed public capture dependencies');
  const start=clock();if(!Number.isFinite(start)||start<0)throw new TypeError('Invalid fixed public capture clock');
  deadline??=start+MAX_DURATION;
  if(!Number.isFinite(deadline)||deadline<=start||deadline>start+MAX_DURATION||signal!==undefined&&(!signal||typeof signal.aborted!=='boolean'))throw new TypeError('Invalid fixed public capture deadline or signal');
- const approved=child?CHILD_TRAIN_CAL:[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
- const origins=new Set(child?CHILD_TRAIN_CAL.map(p=>new URL(p.url).origin):[ORIGIN]);
+ const approved=child?(diagnosis?CHILD_DIAGNOSIS:CHILD_TRAIN_CAL):[...PUBLIC_HIERARCHY_PROBES,...RECIPE_CAL_PROBES,...RECIPE_TEST_PROBES,...GTA_TRAIN_PROBES,...GTA_CAL_PROBES,...GTA_TEST_PROBES];
+ const origins=new Set(child?approved.map(p=>new URL(p.url).origin):[ORIGIN]);
  const probes=new Map(approved.map(p=>[p.id,p]));
- if(probes.size!==(child?11:64)||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||!origins.has(new URL(p.url).origin)))throw new TypeError('Invalid fixed probe source');
+ if(probes.size!==(child?(diagnosis?2:11):64)||probes.size!==approved.length||[...probes.values()].some(p=>normalizeCrawlUrl(p.url,undefined,[])!==p.url||!origins.has(new URL(p.url).origin)))throw new TypeError('Invalid fixed probe source');
+ const maxRequests=diagnosis?6:MAX_REQUESTS;
+ const unavailableRow=(probe,reason,parserDiagnostic=null)=>{
+  if(!diagnosis)return unavailable(probe,reason);
+  const observed=['document-invalid','insufficient-text'].includes(reason)?parserDiagnostic:null;
+  return Object.freeze({id:probe.id,status:observed?'diagnosed':'unavailable',reason:CODES.has(reason)?reason:'page-unavailable',parserDiagnostic:observed});
+ };
  const attempted=new Set(),policies=new Map(),stoppedOrigins=new Set();let chain=Promise.resolve(),requests=0,lastRequest=null,lastClock=start;
  function check(){if(signal?.aborted)fail('aborted');const now=clock();if(!Number.isFinite(now)||now<lastClock)fail('clock-invalid');lastClock=now;if(now>=deadline)fail('deadline');return now;}
  async function request(url,resourceKind,delay=0){
@@ -80,7 +89,7 @@ function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=def
   let now=check();const earliest=lastRequest===null?now:lastRequest+Math.max(MIN_DELAY,delay),wait=Math.max(0,earliest-now);
   if(now+wait>=deadline)fail('deadline');
   if(wait){try{await sleep(wait,signal);}catch{check();fail('pace-unavailable');}now=check();if(now<earliest)fail('pace-unavailable');}
-  if(deadline-now<1)fail('deadline');if(requests>=MAX_REQUESTS)fail('request-limit');requests++;lastRequest=now;
+  if(deadline-now<1)fail('deadline');if(requests>=maxRequests)fail('request-limit');requests++;lastRequest=now;
   let response;
   try{response=await fetchPublic(url,{resourceKind,signal,timeoutMs:Math.min(15000,Math.floor(deadline-now))});check();return response;}
   catch(error){wipe(response);throw error;}
@@ -104,7 +113,7 @@ function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=def
   return {robots,tdm,robotsSha256:sha(robotsText??''),tdmRepSha256:tdmText===null?null:sha(tdmText)};
  }
  async function collect(probe){
-  let response;const origin=new URL(probe.url).origin;
+  let response,parserDiagnostic=null;const origin=new URL(probe.url).origin;
   try{
    check();if(stoppedOrigins.has(origin))fail('origin-paused');if(!policies.has(origin))policies.set(origin,policy(origin));const originPolicy=await policies.get(origin);check();
    const robots=evaluateRobots(originPolicy.robots,probe.url);if(!robots.allowed)fail('robots-denied');
@@ -117,11 +126,16 @@ function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=def
    let reservation=originPolicy.tdm===null?null:matchTdmRep(originPolicy.tdm,probe.url).reservation;
    // Preserve the normal crawler's document/header/origin TDM precedence.
    if(response.headers.tdmReservation!==null){const header=parseTdmReservation(response.headers.tdmReservation);if(header===null)fail('tdm-ambiguous');reservation=header;}
-   let capture;try{capture=captureStaticHtml(response.text,probe.url);}catch{fail('document-invalid');}
+   let capture;try{capture=captureStaticHtml(response.text,probe.url);}catch{
+    if(diagnosis)try{parserDiagnostic=diagnoseStaticHtml(response.text,probe.url);}catch{/* Unknown parser exceptions expose no metadata. */}
+    fail('document-invalid');
+   }
    if(capture.directives.tdmReservationInvalid)fail('tdm-ambiguous');
    if(capture.directives.tdmReservation!==null)reservation=capture.directives.tdmReservation;
    if(reservation===1)fail('tdm-reserved');if(capture.directives.noindex)fail('document-restricted');
+   if(diagnosis)parserDiagnostic=diagnoseStaticHtml(response.text,probe.url);
    if(!capture.eligible||capture.contentHash===null)fail('insufficient-text');check();
+   if(diagnosis)return Object.freeze({id:probe.id,status:'diagnosed',reason:'eligible',parserDiagnostic});
    const responseSha256=sha(response.body),htmlTextSha256=sha(response.text),titleSha256=sha(capture.title),bodySha256=capture.contentHash;
    const rightsEvidenceHash=digest({robotsSha256:originPolicy.robotsSha256,tdmRepSha256:originPolicy.tdmRepSha256,
     headerPolicySha256:digest({xRobotsTag:response.headers.xRobotsTag,tdmReservation:response.headers.tdmReservation,tdmPolicy:response.headers.tdmPolicy}),
@@ -130,14 +144,14 @@ function createCapture({fetchPublic=fetchPublicResource,clock=Date.now,sleep=def
    check();return Object.freeze({id:probe.id,url:probe.url,status:'available',title:capture.title,text:capture.text,
     extractorVersion:capture.extractorVersion,responseSha256,htmlTextSha256,titleSha256,bodySha256,rightsEvidenceHash,sourceInputHash,
     provenance:'fresh-public-crawler-static-html-paired-observation/v1',nativeObservation:false,productionValidated:false,assignmentAuthority:false});
-  }catch(error){const stopped=originFailure(error);if(stopped)stoppedOrigins.add(origin);return unavailable(probe,code(error)??stopped??'page-unavailable');}
+  }catch(error){const stopped=originFailure(error);if(stopped)stoppedOrigins.add(origin);return unavailableRow(probe,code(error)??stopped??'page-unavailable',parserDiagnostic);}
   finally{wipe(response);}
  }
  function capture(probeId){
   if(arguments.length!==1||typeof probeId!=='string'||!probes.has(probeId))return Promise.reject(new TypeError('Invalid fixed public probe'));
-  const probe=probes.get(probeId);if(attempted.has(probeId))return Promise.resolve(unavailable(probe,'already-attempted'));attempted.add(probeId);
+  const probe=probes.get(probeId);if(attempted.has(probeId))return Promise.resolve(unavailableRow(probe,'already-attempted'));attempted.add(probeId);
   const result=chain.then(()=>collect(probe));chain=result.then(()=>{},()=>{});return result;
  }
- return Object.freeze({capture,snapshot:()=>Object.freeze({attempted:attempted.size,requests,maxRequests:MAX_REQUESTS,deadline,
+ return Object.freeze({capture,snapshot:()=>Object.freeze({attempted:attempted.size,requests,maxRequests,deadline,
   minimumOriginDelayMs:MIN_DELAY,pacing:'local-only-not-coordinated-with-live-crawler',originStopped:stoppedOrigins.size>0,nativeObservation:false,productionValidated:false,assignmentAuthority:false})});
 }
