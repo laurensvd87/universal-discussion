@@ -15,6 +15,7 @@ ops/unifi-audit/*.cjs text eol=lf
 ops/unifi-audit/integration/*.mjs text eol=lf
 ops/unifi-audit/test/*.cjs text eol=lf
 apps/local-service/portable/canonical-v4/migrations/*.sql text eol=lf
+apps/local-service/assets/hierarchy/*.json -text
 
 # Historical harness inputs are pinned by raw FILE hashes. Preserve their exact
 # bytes in Git; do not rewrite them when archiving or checking out old evidence.

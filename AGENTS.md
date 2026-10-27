@@ -8,6 +8,23 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+CURRENT27Oct client/target actual87a92532/session69072 CLOSEDexit0/25PASS.
+Runfed2c989f2cbb87a9dbfbb7165bd6df92c33cc50e3520b0a: actual appSQL->service->
+browser parsers for partialfeed/thread/exacttarget, pageactors/originalIDs,
+metadatawriteversion cursorcontinuation vs bodyrevision invalidation, exactminimal
+selectedreply tombstone. Reviewcaught/fixed deletedDTO actorType/createdAt leak.
+Parent862B0e36ae79...cdcfe/stdout4590B43b78234...7fe3/stderr0/child5206Bed8f4236...1056.
+OwnedPG37616 verifiedsmartstop, OIDs16384/17406dropped, parentnormal/emptyJob/
+allhandles/2EOF/endpinsTRUE/emergencyFALSE. Independent12983Baudita65236e4bf9f4fc8c9d9909fac975075c3ef99e15fed80e4959a423a390cb2bb
+authenticated/FULLread. All2381/274028859B +47rawGit87a blobs exact;7ordinary
+catalogrows evolved, frozeninputs/prior5b084outputs unchanged. No actualUI/load/
+realE5/liveactivation proof. Installed fixed4numericassets +readonlycompileonce
+loader independently SOURCEaccepted/6purePASS; manifest/contract identity only,
+encoderAssetBytesVerifiedFALSE until fixed packaged encoder startup. Worker
+claim-preparation composition WIP, no live activation. Crawler4060 advances3776/
+stderr0/servicesoriginalstarts. NextmetadataSourcecontext/globalSearchTopics,
+worker/coordinator/startup/UI/crossSourceAI/livecutover stillOPEN. GoalACTIVE.
+
 CURRENT27Oct storedSource+application actualbab0c4c1/session79840 CLOSEDexit0/PASS.
 Run5b084d1c54c54821d15aa046df28fd638106c5860a02e2ec; expanded25 literalpoints
 prove app-role feed/thread hydration/latestbody/keysets/originalIDs +fixtureBearer

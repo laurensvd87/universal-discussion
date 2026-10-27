@@ -1,5 +1,17 @@
 # Implementation handoff: local-service discussion MVP
 
+LATEST client/target:87a92532/session69072 CLOSEDexit0/25PASS, runfed2c989...20b0a.
+Actual appSQL/service->browser parsers for partial pages/exact targets, original
+destinations, page-only actors, metadata-vs-body cursor revisions and selected-root
+tombstones. Independent12983Baudit a65236e4bf9f4fc8c9d9909fac975075c3ef99e15fed80e4959a423a390cb2bb
+authenticated/FULLread. Parent0e36ae79...cdcfe/stdout43b78234...7fe3/childed8f4236...1056,
+normalcleanup/2droppedDBs/all2381endpins/Git47PASS. No realE5/UI/load/liveactivation.
+Installed numeric4asset loader source accepted; exact bytes protected by attributes,
+manifest/contract checked, actual encoder startup remains separate. Current worker
+prepareClaim hook + shared installed resources WIP; no productionseal/migration/
+head change. Next Sourcecontext/globalSearchTopics metadata, worker/coordinator,
+UIsemanticselection/crossSourcehuman+AI and realcutover validation. GoalACTIVE.
+
 LATESTactual012+application:bab0c4c1/session79840 CLOSEDexit0/25PASS, run5b084d1c...
 2e2ec. Parent862Bdee0023f...e4bf/stdout4553Bd48e3a07...24a9e/stderr0/child5169B
 31460f77...6a78a. Actual app SQL feed/thread/latestbody/keyset/originalIDs+handler,

@@ -1,5 +1,16 @@
 # Hierarchical topic assignment and discussion plan
 
+Latest client integration: `87a92532` passed the real isolated PostgreSQL suite
+(session69072/runfed2c989...). Actual service responses pass the browser's partial
+feed/thread and exact-target codecs, including original destinations, page-only
+actors, body revision cursor fences and minimal withdrawn reply placeholders.
+Independent audit `a65236e4...cb2bb` confirms normal cleanup and all2381endpins.
+The fixed accepted numeric model package now has a read-only compile-once loader;
+it validates encoder manifest/contract identity, not an encoder session. Runtime
+composition and the UI remain unfinished. The protocol requirements below still
+apply; the first two now have tested transport/backend implementations awaiting
+controller/renderer wiring.
+
 Latestactualbab0c4c1/session79840 now proves012storedSource verification/reclass/
 explicitadoption/freshness/default-zero plus app SQL feed/thread/HTTP-handler
 projections on the isolated invented fixture. Independent audite5723b5a...0263e

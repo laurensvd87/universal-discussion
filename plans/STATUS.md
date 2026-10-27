@@ -1,5 +1,17 @@
 # Project status
 
+## Latest: semantic client contracts passed actual PostgreSQL responses
+
+`87a92532` is pushed. The isolated run69072 passed the existing25-point ledger,
+now exercising actual SQL/service responses through the browser's new partial
+feed/thread and exact-target parsers. A withdrawn-reply DTO mismatch was caught
+in review and fixed; selected threads retain minimal deletion placeholders.
+Crawler metadata changes preserve cursors; a root body edit invalidates them.
+Independent saved audit `a65236e4...cb2bb` verifies normal owned server cleanup,
+all2381inputs and47raw Git blobs. This does not prove browser UI, real E5, load
+or live activation. Fixed numeric assets and their read-only loader are source
+reviewed (6pure tests); shared worker resources are being connected next.
+
 ## Latest: stored-data preparation and application reads passed real PostgreSQL
 
 Sourcebab0c4c1/session79840 passed the expanded25-point isolated native suite.
