@@ -8,12 +8,14 @@ export const SEMANTIC_TOPIC_EN = Object.freeze({
 
 // This panel has no foreground Source binding. All destinations come from the
 // bounded canonical read DTO, including when another page is open in the tab.
-export function mountSemanticTopicPanel(document, root, {client, messages={}, onReply, onSelectionChange}={}) {
+export function mountSemanticTopicPanel(document, root, {client, messages={}, onReply, onSelectionChange,
+  idPrefix='semantic-topic-',contextMode=false,onRefresh}={}) {
+  if(typeof idPrefix!=='string'||!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/u.test(idPrefix))throw new TypeError('Invalid panel prefix');
   const t=key=>messages[key]??SEMANTIC_TOPIC_EN[key];
   let active=false, connected=false, disposed=false, epoch=0, pending=null, busy=false, context='';
-  let directory=null, offset=0, selection=null, page=null, cursor=null, history=[];
+  let directory=null, offset=0, selection=null, page=null, cursor=null, history=[],topicContext=null;
   const listeners=[], dynamic=[];
-  const node=(tag,text='',id='')=>{const n=document.createElement(tag);n.textContent=text;if(id)n.id=id;return n;};
+  const node=(tag,text='',id='')=>{const n=document.createElement(tag);n.textContent=text;if(id)n.id=idPrefix+id.replace(/^semantic-topic-/u,'');return n;};
   const listen=(n,event,fn,list=listeners)=>{n.addEventListener(event,fn);list.push([n,event,fn]);};
   const unlisten=list=>{for(const [n,event,fn] of list)n.removeEventListener(event,fn);list.length=0;};
   const button=(text,id)=>{const n=node('button',text,id);n.type='button';return n;};
@@ -26,13 +28,13 @@ export function mountSemanticTopicPanel(document, root, {client, messages={}, on
   const pager=node('nav');pager.append(previous,next);root.replaceChildren(heading,search,back,refreshButton,status,results,pager,retry);
   function available(){return active&&connected&&!disposed;}
   function filtered(){const query=search.value.trim().toLocaleLowerCase();return (directory?.topics??[]).filter(item=>item.title.toLocaleLowerCase().includes(query));}
-  function controls(){root.setAttribute('aria-busy',String(busy));back.hidden=!selection;search.hidden=Boolean(selection);
-    heading.textContent=selection?(selection.rootId?page?.topic?.title:null)??directory?.topics.find(item=>item.id===selection.nodeId)?.title??selection.nodeId:t('heading');
+  function controls(){root.setAttribute('aria-busy',String(busy));back.hidden=contextMode?!selection?.rootId:!selection;search.hidden=contextMode||Boolean(selection);
+    heading.textContent=selection?(selection.rootId?page?.topic?.title:null)??(topicContext?.id===selection.nodeId?topicContext.title:null)??directory?.topics.find(item=>item.id===selection.nodeId)?.title??selection.nodeId:t('heading');
     refreshButton.disabled=!available();previous.disabled=busy||!available()||(selection?history.length===0:offset===0);
     next.disabled=busy||!available()||(selection?!page?.nextCursor:offset+20>=filtered().length);}
   function invalidate(){epoch++;pending?.abort();pending=null;busy=false;controls();}
   function clear(){unlisten(dynamic);results.replaceChildren();page=null;retry.hidden=true;}
-  function reset(){directory=null;selection=null;offset=0;cursor=null;history=[];clear();controls();}
+  function reset(){directory=null;selection=contextMode&&topicContext?{nodeId:topicContext.id}:null;offset=0;cursor=null;history=[];clear();controls();}
   function changed(){onSelectionChange?.(selection?{...selection}:null);}
   function directoryView(){clear();const items=filtered().slice(offset,offset+20);
     const names=new Map(directory.topics.map(item=>[item.id,item.title]));
@@ -72,6 +74,7 @@ export function mountSemanticTopicPanel(document, root, {client, messages={}, on
     finally{if(valid()){pending=null;busy=false;controls();}}
   }
   function load(){if(!available()){status.textContent=t('connect');controls();return;}
+    if(contextMode&&!selection){clear();status.textContent=t('empty');controls();return;}
     if(!selection){if(directory){directoryView();return;}void request('semanticTopics',{},readSemanticTopics,value=>{directory=value;directoryView();});return;}
     const args={...selection,limit:20,cursor};void request(selection.rootId?'semanticThread':'semanticFeed',args,selection.rootId?readSemanticThread:readSemanticFeed,value=>{page=value;pageView();});}
   function openTopic(nodeId){if(!available()||typeof nodeId!=='string'||!nodeId)return;invalidate();selection={nodeId};cursor=null;history=[];clear();changed();load();}
@@ -81,18 +84,28 @@ export function mountSemanticTopicPanel(document, root, {client, messages={}, on
     if(value.nodeId!==destination.nodeId||value.root.id!==destination.rootId||value.targetId!==destination.targetId||
       value.topic.id!==destination.topicId||value.discussionId!==destination.discussionId)throw new Error('destination-changed');
     pageView();status.textContent='';await onReply?.({nodeId:value.nodeId,rootId:value.root.id,targetId:value.targetId,topicId:value.topic.id,discussionId:value.discussionId});});}
-  function refresh(){if(!available())return;invalidate();reset();changed();load();}
+  function refreshPage(){if(!available())return;invalidate();cursor=null;history=[];clear();load();}
+  async function refresh(){if(!available())return;
+    if(contextMode&&onRefresh){try{await onRefresh();}catch{if(available()){status.textContent=t('error');}}return;}
+    if(contextMode){refreshPage();return;}invalidate();reset();changed();load();}
+  function setTopicContext(card,{preserveThread=false,force=false}={}){if(disposed||!contextMode)return false;
+    // Reuse bounded directory-card syntax validation only; this synthetic header
+    // never enters retained state, transport, or any posting-authority path.
+    let next=null;try{if(card!==null)next=readSemanticTopics({version:{generation:'syntax-only',revision:0},policyRevision:0,topics:[card]}).topics[0];}catch{return false;}
+    if(!force&&JSON.stringify(next)===JSON.stringify(topicContext))return true;topicContext=next;
+    if((next||preserveThread)&&selection?.rootId){controls();return true;}
+    invalidate();selection=next?{nodeId:next.id}:null;cursor=null;history=[];clear();changed();load();return true;}
   listen(search,'input',()=>{if(!available()||selection)return;offset=0;if(directory)directoryView();});
-  listen(back,'click',()=>{if(!available()||!selection)return;invalidate();selection=selection.rootId?{nodeId:selection.nodeId}:null;cursor=null;history=[];clear();changed();load();});
+  listen(back,'click',()=>{if(!available()||!selection)return;invalidate();selection=contextMode?(topicContext?{nodeId:topicContext.id}:null):selection.rootId?{nodeId:selection.nodeId}:null;cursor=null;history=[];clear();changed();load();});
   listen(retry,'click',()=>load());
   listen(refreshButton,'click',refresh);
   listen(previous,'click',()=>{if(!available()||busy)return;if(selection){if(!history.length)return;cursor=history.pop();}else offset=Math.max(0,offset-20);load();});
   listen(next,'click',()=>{if(!available()||busy)return;if(selection){if(!page?.nextCursor)return;history.push(cursor);cursor=page.nextCursor;}else{if(offset+20>=filtered().length)return;offset+=20;}load();});
   status.textContent=t('connect');retry.hidden=true;controls();
-  return {openTopic,openThread,refresh,
+  return {openTopic,openThread,refresh,refreshPage,setTopicContext,
     setActive(value){value=Boolean(value);if(disposed||active===value)return;active=value;invalidate();reset();changed();load();},
     setConnection(value){value=Boolean(value);if(disposed||connected===value)return;connected=value;invalidate();reset();changed();load();},
-    observe(state){if(disposed)return;const value=JSON.stringify([state?.actorId??null,state?.accountId??null,state?.sessionRevision??null,state?.semanticPolicyRevision??null]);if(value===context)return;context=value;invalidate();reset();changed();load();},
+    observe(state){if(disposed)return;const value=JSON.stringify([state?.actorId??null,state?.accountId??null,state?.sessionRevision??null,state?.semanticPolicyRevision??null]);if(value===context)return;context=value;invalidate();if(contextMode)topicContext=null;reset();changed();load();},
     dispose(){if(disposed)return;disposed=true;invalidate();reset();unlisten(listeners);root.replaceChildren();},
   };
 }

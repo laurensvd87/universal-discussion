@@ -23,6 +23,7 @@ import { createInsightPreferenceStorage } from "./insight-preference-storage.js"
 import { mountPrivateConversationPanel } from "./private-conversation-panel.js";
 import { mountDiscoveryPanel, createTopicSpacePreviewOpener } from "./discovery-panel.js";
 import { mountTopicSpacePanel } from "./topic-space-panel.js";
+import { mountSemanticTopicWorkspace } from "./semantic-topic-workspace.js";
 import { preparePrivateGeneration } from "../core/private-generation-context.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { mountPopupShell } from "./popup-shell.js";
@@ -316,7 +317,7 @@ const localDiscussion = createLocalDiscussionController({
         actual.windowId === expected?.windowId;
     } catch { return false; }
   }, attestSavedDocument: createSavedDocumentAttestor({
-    readActiveTab: activeTabReader.read, scriptingApi: globalThis.chrome.scripting,
+    readActiveTab: activeTabReader.read, scriptingApi,
   }) } : {}),
   lookupByNormalizedUrl: lookupIndicatorFixtureByNormalizedUrl,
   readPageResolution: () => matchingPanel.readResolution(),
@@ -415,7 +416,13 @@ privatePanel = mountPrivateConversationPanel(document, document.querySelector("#
 const discoveryRoot = document.querySelector("#app-view-discover");
 const topicSpaceRoot = document.createElement("section"), libraryRoot = document.createElement("section");
 topicSpaceRoot.className = "topic-space-panel"; libraryRoot.className = "topic-space-library";
-discoveryRoot.replaceChildren(topicSpaceRoot, libraryRoot);
+const legacyDiscoverRoot=document.createElement('section'), semanticDiscoverRoot=document.createElement('section');
+const semanticDiscussionRoot=document.createElement('section');semanticDiscussionRoot.className='semantic-discussion-panel';
+const capabilityNotice=document.createElement('section'), capabilityMessage=document.createElement('p'), capabilityRetry=document.createElement('button');
+capabilityMessage.setAttribute('role','status');capabilityRetry.type='button';capabilityRetry.textContent='Try again';
+capabilityNotice.append(capabilityMessage,capabilityRetry);capabilityNotice.hidden=true;legacyDiscoverRoot.hidden=true;
+legacyDiscoverRoot.append(topicSpaceRoot,libraryRoot);discoveryRoot.replaceChildren(capabilityNotice,semanticDiscoverRoot,legacyDiscoverRoot);
+const canonicalFeed=document.querySelector('#discussion-feed');canonicalFeed.insertBefore(semanticDiscussionRoot,canonicalFeed.firstChild);
 let topicSpaceReturnFocus = null;
 const libraryPanel = mountDiscoveryPanel(document, libraryRoot, { client: localClient, messages: EN, previewOnly: true,
   onPreviewChange: visible => {
@@ -441,16 +448,35 @@ const topicSpacePanel = mountTopicSpacePanel(document, topicSpaceRoot, { message
   onOpenDiscussion: createTopicSpacePreviewOpener({ preview: libraryPanel,
     beforeOpen: () => { topicSpaceReturnFocus = document.activeElement; } }),
 });
+let semanticWorkspace=null;
 const stopTopicSpaceAccount = accountPanel.controller.subscribe(() => {
   const current = accountPanel.controller.getAccessToken();
   if (current !== topicSpaceSession) { topicSpaceSession = current; topicSpaceSessionRevision++; }
   topicSpacePanel.observe(topicSpaceState());
+  semanticWorkspace?.observePage({...localDiscussion.currentState(),sessionRevision:topicSpaceSessionRevision});
 });
+let discoveryActive=false,discoveryConnected=false,discoveryDisposed=false,semanticMode='disconnected';
+function updateLegacyDiscovery(){
+  if(discoveryDisposed)return;
+  const legacy=semanticMode==='legacy';legacyDiscoverRoot.hidden=!legacy;
+  libraryPanel.observeConnected(discoveryConnected&&legacy);topicSpacePanel.setConnection(discoveryConnected&&legacy);
+  libraryPanel.setActive(discoveryActive&&legacy);topicSpacePanel.setActive(discoveryActive&&legacy);
+  capabilityNotice.hidden=!discoveryActive||!['loading','error'].includes(semanticMode);
+  capabilityMessage.textContent=semanticMode==='loading'?'Loading topics…':'Topics are unavailable. Try again.';
+  capabilityRetry.hidden=semanticMode!=='error';
+}
+semanticWorkspace=mountSemanticTopicWorkspace(document,{discoverRoot:semanticDiscoverRoot,discussionRoot:semanticDiscussionRoot,
+  client:localClient,controller:localDiscussion,discussionPanel,navigate:popupShell.navigate,
+  onAvailability(value){semanticMode=value;updateLegacyDiscovery();}});
+const retrySemanticDiscovery=()=>{void semanticWorkspace.refresh();};capabilityRetry.addEventListener('click',retrySemanticDiscovery);
 const discoveryPanel = {
-  setActive(value) { libraryPanel.setActive(value); topicSpacePanel.setActive(value); },
-  observePage() { topicSpacePanel.observe(topicSpaceState()); },
-  observeConnected(value) { libraryPanel.observeConnected(value); topicSpacePanel.setConnection(value); },
-  dispose() { stopTopicSpaceAccount(); topicSpaceSession = null; libraryPanel.dispose(); topicSpacePanel.dispose(); },
+  setActive(value) {if(discoveryDisposed)return;discoveryActive=Boolean(value);semanticWorkspace.setActive(value);updateLegacyDiscovery();},
+  observePage(state) {if(discoveryDisposed)return;topicSpacePanel.observe(topicSpaceState());
+    semanticWorkspace.observePage({...state,sessionRevision:topicSpaceSessionRevision});},
+  observeConnected(value) {if(discoveryDisposed)return;discoveryConnected=Boolean(value&&localDiscussion.currentState().serviceConnection==='connected');
+    semanticWorkspace.setConnection(discoveryConnected);updateLegacyDiscovery();},
+  dispose() {if(discoveryDisposed)return;discoveryDisposed=true;stopTopicSpaceAccount();topicSpaceSession=null;
+    capabilityRetry.removeEventListener('click',retrySemanticDiscovery);semanticWorkspace.dispose();libraryPanel.dispose();topicSpacePanel.dispose();},
 };
 popupShell.bindCommunity({ private: privatePanel, discovery: discoveryPanel });
 const accountMaintenance = setInterval(() => {
