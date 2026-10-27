@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import os
+import re
 from pathlib import Path
 import tempfile
 import types
@@ -111,6 +112,39 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertTrue(all((D.REPO/key).is_file() for key in D.NORMAL_KEYS))
         self.assertEqual(D.ENTRY, D.OWN+'semantic-native-check.js')
         self.assertIn(D.SEMANTIC_LEDGER, D.NORMAL_KEYS)
+        self.assertFalse(base & D.NORMAL_KEYS)
+        # Source-only closure: never imports JS, invokes an entrypoint or follows
+        # runtime-selected imports. Every literal relative reference must exist,
+        # and each recursively imported JS file belongs to the fixed catalog.
+        patterns = (
+            r'''(?ms)^\s*(?:import|export)\s+(?:(?!;).)*?\bfrom\s*['"]([^'"]+)['"]''',
+            r'''(?m)^\s*import\s*['"]([^'"]+)['"]''',
+            r'''\bimport\(\s*['"]([^'"]+)['"]\s*\)''',
+        )
+        pending, seen = [D.ENTRY], set()
+        while pending:
+            key = pending.pop()
+            if key in seen:
+                continue
+            seen.add(key)
+            self.assertIn(key, maintained)
+            text = (D.REPO/key).read_text(encoding='utf-8')
+            for pattern in patterns:
+                for name in re.findall(pattern, text):
+                    if not name.startswith('.'):
+                        continue
+                    target = (D.REPO/key).parent.joinpath(name).resolve()
+                    self.assertTrue(target.is_relative_to(D.REPO))
+                    self.assertTrue(target.is_file(), name)
+                    relative = target.relative_to(D.REPO).as_posix()
+                    self.assertIn(relative, maintained)
+                    if target.suffix in ('.js', '.mjs'):
+                        pending.append(relative)
+        self.assertIn('spikes/topic-resolution/browser/core/local-service-client.js', seen)
+        self.assertIn('spikes/topic-resolution/browser/core/local-service-session.js', seen)
+        self.assertIn('spikes/topic-resolution/browser/core/account-auth-response.js', seen)
+        self.assertIn('spikes/topic-resolution/browser/core/community-contract.js', seen)
+        self.assertIn('spikes/topic-resolution/browser/core/topic-space-contract.js', seen)
 
     def test_new_resolution_scopes_cannot_shadow_the_reviewed_entry(self):
         original = D.os.path.lexists

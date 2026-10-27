@@ -77,6 +77,14 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/portable/canonical-v4/migrations/014-semantic-source-containers.sql',
     'apps/local-service/portable/test/semantic-source-container-migration.test.js',
     'apps/local-service/test/semantic-source-container-policy.test.js',
+    'apps/local-service/portable/canonical-v4/migrations/015-semantic-reply-witness.sql',
+    'apps/local-service/portable/test/semantic-reply-witness.test.js',
+    'spikes/topic-resolution/browser/core/local-service-client.js',
+    'spikes/topic-resolution/browser/core/local-service-session.js',
+    'spikes/topic-resolution/browser/core/account-auth-response.js',
+    'spikes/topic-resolution/browser/core/community-contract.js',
+    'spikes/topic-resolution/browser/core/topic-space-contract.js',
+    'spikes/topic-resolution/test/semantic-local-client.test.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),

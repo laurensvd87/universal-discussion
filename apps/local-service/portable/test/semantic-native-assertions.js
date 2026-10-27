@@ -20,6 +20,7 @@ import {createCanonicalV4ReadFacade} from '../canonical-v4/read-facade.js';
 import {createPostgresCanonicalService} from '../../src/application/create-postgres-canonical-service.js';
 import {createRequestHandler} from '../../src/http/request-handler.js';
 import {readSemanticFeed,readSemanticThread,readSemanticTarget,readSemanticTopics,readSemanticContext} from '../../../../spikes/topic-resolution/browser/core/local-service-contract.js';
+import {createLocalServiceClient} from '../../../../spikes/topic-resolution/browser/core/local-service-client.js';
 import {sourceStamp} from '../../src/domain/source-threads.js';
 import {RIDGE_PARAMETER_SHA256} from '../../src/domain/ridge-topic-adapter.js';
 import semanticGroups from './semantic-native-cases.json' with {type:'json'};
@@ -93,6 +94,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  let humanRoot,aiRoot,manualRoot,legacyRoot,originalSnapshots,originalDestination,defaultOwnerPolicy,reads,service,workerSources,ownerSources;
  let storedEncoderCalls=0;
  let ridgeDefinition=null;
+ let erasedWitnessRequest=null;
  const actor=Object.freeze({id:'demo-alex',type:'human',demo:true});
  const nextId=kind=>`semantic-${kind}-${++serial}`,now=()=>new Date().toISOString();
  const preparation=createHierarchyIngestionPreparation({matcher:matcher1,embedTitle:async()=>{encoderCalls++;return {modelId:MODEL,values:axis(0)};}});
@@ -109,6 +111,18 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  }
  const topics=async()=>readSemanticTopics(publicMetadata(await service.semanticTopics({})));
  const context=async sourceId=>readSemanticContext(publicMetadata(await service.semanticContext({sourceId})),{sourceId});
+ const target=async(rootId,targetId=rootId)=>{const request={nodeId:'invented-game-branch',rootId,targetId};return readSemanticTarget(await service.semanticTarget(request),request);};
+ const witnessed=(view,body)=>({type:'reply',discussionId:view.discussionId,rootId:view.root.id,replyToId:view.targetId,body,originSourceId:null,
+  semanticTarget:{nodeId:view.nodeId,topicId:view.topic.id,rootRevision:view.rootRevision,targetRevision:view.targetRevision}});
+ const appendState=database=>scalar(database??owner,`SELECT
+  (SELECT count(*)::integer FROM canonical_v4.id_registry) ids,
+  (SELECT count(*)::integer FROM canonical_v4.contributions) contributions,
+  (SELECT count(*)::integer FROM canonical_v4.revisions) revisions,
+  (SELECT count(*)::integer FROM canonical_v4.command_receipts) receipts,
+  (SELECT revision::text FROM canonical_v4.runtime_state WHERE singleton) revision`);
+ async function rejectWitness(request,expectedCode='conflict'){
+  const before=await appendState();await assert.rejects(appRuntime.command(request),error=>error.code===expectedCode);assert.deepEqual(await appendState(),before);
+ }
  async function humanPost(label,{topicId=A.topicId,sourceId=A.sourceId}={}){
   return appRuntime.command({actorId:actor.id,requestId:'semantic-post-'+label,expected:await fixture.header(),
    command:{type:'create-root',topicId,body:'Invented human SQL root '+label,originSourceId:sourceId}});
@@ -502,6 +516,58 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.deepEqual(withTombstone.root.replies.find(r=>r.id===replyIds[2]),
      {id:replyIds[2],rootId:humanRoot,replyToId:humanRoot,state:'deleted',label:'Deleted by user'});
     assert.equal(withTombstone.root.replies.filter(r=>r.state==='visible').length,2);
+    const rootView=await target(humanRoot),offPageView=await target(humanRoot,exact.targetId);
+    const config={hostHeader:'127.0.0.1:4174',origin:'chrome-extension://'+'a'.repeat(32),capability:'fixture-semantic-reply-capability-token'};
+    const handler=createRequestHandler({config,service});
+    const browserClient=createLocalServiceClient({getToken:()=>config.capability,fetchImpl:async(url,options)=>{
+     assert.equal(url,'http://127.0.0.1:4174/v1/commands');
+     const response=await handler({method:options.method,url:'/v1/commands',headers:{...options.headers,host:config.hostHeader,origin:config.origin},body:options.body});
+     return new Response(response.body,{status:response.status,headers:response.headers});
+    }});
+    const browserReply=await browserClient.command(await fixture.header(),witnessed(rootView,'Witnessed root target through actual client and handler'),actor.id);
+    const browserStored=await scalar(owner,'SELECT discussion_id,root_id,reply_to_id,origin_source_id FROM canonical_v4.contributions WHERE id=$1',[browserReply.result.contributionId]);
+    assert.deepEqual(browserStored,{discussion_id:originalDestination.discussionId,root_id:humanRoot,reply_to_id:humanRoot,origin_source_id:null});
+    const packet={actorId:actor.id,requestId:'semantic-witness-offpage-success',expected:await fixture.header(),command:witnessed(offPageView,'Witnessed off-page reply retains canonical destination')};
+    const offPageReply=await appRuntime.command(packet);
+    assert.deepEqual(await scalar(owner,'SELECT discussion_id,root_id,reply_to_id,origin_source_id FROM canonical_v4.contributions WHERE id=$1',[offPageReply.result.contributionId]),
+     {discussion_id:originalDestination.discussionId,root_id:humanRoot,reply_to_id:exact.targetId,origin_source_id:null});
+    await appLifecycle.command(await fixture.header(),{type:'edit',contributionId:exact.targetId,body:'Edited target after witnessed reply receipt'},actor);
+    await rejectWitness({...packet,requestId:'semantic-witness-stale-target'});
+    const beforeReplay=await appendState();assert.deepEqual(await appRuntime.command(packet),offPageReply);assert.deepEqual(await appendState(),beforeReplay);
+    await rejectWitness({...packet,command:{...packet.command,semanticTarget:{...packet.command.semanticTarget,targetRevision:packet.command.semanticTarget.targetRevision+1}}});
+    const beforeRootEdit=await target(humanRoot,exact.targetId);
+    await appLifecycle.command(await fixture.header(),{type:'edit',contributionId:humanRoot,body:'Edited root after witnessed target read'},actor);
+    await rejectWitness({actorId:actor.id,requestId:'semantic-witness-stale-root',expected:await fixture.header(),command:witnessed(beforeRootEdit,'Stale root body must not append')});
+    const freshView=await target(humanRoot,exact.targetId);
+    const missing=witnessed(freshView,'Absent semantic edge must not append');missing.semanticTarget.nodeId='nature';
+    await rejectWitness({actorId:actor.id,requestId:'semantic-witness-missing-node',expected:await fixture.header(),command:missing});
+    const wrongDestination=witnessed(freshView,'Different canonical topic must not append');wrongDestination.semanticTarget.topicId=MANUAL_TOPIC;
+    await rejectWitness({actorId:actor.id,requestId:'semantic-witness-wrong-topic',expected:await fixture.header(),command:wrongDestination});
+    const withdrawnTarget=witnessed(freshView,'Withdrawn target must not append');withdrawnTarget.replyToId=replyIds[2];withdrawnTarget.semanticTarget.targetRevision=1;
+    await rejectWitness({actorId:actor.id,requestId:'semantic-witness-withdrawn-target',expected:await fixture.header(),command:withdrawnTarget},'invalid');
+
+    // A distinct actor avoids the actor mutex: the app genuinely waits behind
+    // the owner's canonical edit/domain locks, then must see its new root body.
+    const expectedRace=await fixture.header(),raceView=await target(humanRoot,exact.targetId),appPid=Number((await scalar(app,'SELECT pg_backend_pid() pid')).pid);
+    const actorLocks=await scalar(owner,"SELECT hashtextextended('demo-alex',914092006)::text owner_key,hashtextextended('demo-blair',914092006)::text app_key");assert.notEqual(actorLocks.owner_key,actorLocks.app_key);
+    const beforeRace=await appendState(),enteredEdit=deferred(),releaseEdit=deferred();let append=null,raceResults;
+    const heldEdit=owner.transaction(async tx=>{try{
+     await createCanonicalV4LifecycleRepository({database:tx,nextId,now}).command(expectedRace,{type:'edit',contributionId:humanRoot,body:'Concurrent canonical edit invalidates witnessed reply'},actor);
+     enteredEdit.resolve();await releaseEdit.promise;
+    }catch(error){enteredEdit.reject(error);throw error;}});void heldEdit.catch(()=>{});
+    try{
+     await enteredEdit.promise;
+     append=appRuntime.command({actorId:'demo-blair',requestId:'semantic-witness-held-edit-race',expected:expectedRace,command:witnessed(raceView,'Reply cannot race through an edited root')});void append.catch(()=>{});
+     const until=Date.now()+1500;let waiting=false;
+     while(Date.now()<until){if((await scalar(observer,"SELECT coalesce((SELECT wait_event_type='Lock' FROM pg_stat_activity WHERE pid=$1),false) waiting",[appPid])).waiting){waiting=true;break;}await sleep(10);}
+     assert.equal(waiting,true,'actual witnessed app reply waits for the held canonical edit');
+     assert.deepEqual(await appendState(observer),beforeRace,'uncommitted edit and waiting reply remain absent to MVCC readers');
+    }finally{releaseEdit.resolve();raceResults=await Promise.allSettled([heldEdit,...(append?[append]:[])]);}
+    assert.equal(raceResults[0].status,'fulfilled');assert.equal(raceResults[1]?.status,'rejected');assert.equal(raceResults[1].reason.code,'conflict');
+    const afterRace=await appendState();assert.equal(afterRace.contributions,beforeRace.contributions);assert.equal(afterRace.revisions,beforeRace.revisions+1);
+    assert.equal(afterRace.ids,beforeRace.ids);
+    assert.equal(afterRace.receipts,beforeRace.receipts+1);assert.equal(afterRace.revision,String(BigInt(beforeRace.revision)+1n));
+    erasedWitnessRequest={actorId:actor.id,requestId:'semantic-witness-erased-membership',expected:await fixture.header(),command:witnessed(await target(humanRoot,exact.targetId),'Erased semantic membership must not append')};
     const refs=(await feed('invented-game-branch')).references;assert.equal(refs.length,3);
     assert.equal(refs.find(r=>r.rootId===manualRoot).discussionId,MANUAL_DISCUSSION);assert.equal(refs.find(r=>r.rootId===humanRoot).discussionId,originalDestination.discussionId);
    });
@@ -585,7 +651,9 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    });
    await t.test(GROUPS[2].children[4],async()=>{
     const destination=await sourceState(owner,A.sourceId);
+    const withdrawnRootRequest={actorId:actor.id,requestId:'semantic-witness-withdrawn-root',expected:await fixture.header(),command:witnessed(await target(aiRoot),'Withdrawn root must not append')};
     await appLifecycle.command(await fixture.header(),{type:'withdraw',contributionId:aiRoot},actor);
+    await rejectWitness(withdrawnRootRequest,'invalid');
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_edges WHERE root_id=$1',[aiRoot])).n),0);
     const visible=(await feed('invented-game-branch')).references;assert.equal(visible.some(r=>r.rootId===aiRoot),false);
     assert.deepEqual(visible.map(r=>r.rootId).sort(),[humanRoot,manualRoot,legacyRoot].sort());
@@ -602,6 +670,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     }),error=>error===rollback);
     assert.deepEqual((await feed('invented-game-branch')).references.map(r=>r.rootId).sort(),[humanRoot,manualRoot,legacyRoot].sort());
     await appIngest.lifecycle(await fixture.header(),{type:'forget-source',sourceId:A.sourceId});
+    assert.ok(erasedWitnessRequest);await rejectWitness(erasedWitnessRequest);
     await assert.rejects(service.semanticContext({sourceId:A.sourceId}),e=>e.code==='not-found');
     const erased=await scalar(owner,`SELECT (SELECT count(*) FROM canonical_v4.sources WHERE id=$1)::integer sources,
      (SELECT count(*) FROM canonical_v4.semantic_inputs WHERE source_id=$1)::integer inputs,

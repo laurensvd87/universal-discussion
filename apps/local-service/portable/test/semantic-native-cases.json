@@ -30,9 +30,9 @@
     "children": [
       "identical renewal deduplicates numeric input and records a new Source version without rewriting root snapshots",
       "title-only change creates new paired input while unpinned original roots retain their historical semantic snapshots",
-      "legacy provisional multi-memberships and manual routes survive changed renewal while parsed canonical targets retain actors and body-revision cursor fences",
+      "legacy routes survive renewal while witnessed client replies bind canonical targets, reject body edits and race safely with receipt replay",
       "worker head share permits app reads, then pending context becomes classified through unchanged Source reclassification and legacy adoption including genuine version zero",
-      "actual withdrawal and controlled visibility changes remove feed edges; Source forget clears derived context but retains canonical roots and discussions",
+      "withdrawal and Source erasure reject witnessed replies and remove semantic edges while retaining canonical roots and discussions",
       "second fresh database resets owner policy and material revision without reusing registry, head, snapshots or worker authority"
     ]
   }
