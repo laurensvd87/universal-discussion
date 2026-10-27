@@ -2,9 +2,34 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLocalServiceClient} from '../browser/core/local-service-client.js';
 import {readSemanticFeed,readSemanticThread,readSemanticTarget,readSemanticFeedRequest,readSemanticTopicsRequest,readSemanticContextRequest,
- readSemanticTopics,readSemanticContext} from '../browser/core/local-service-contract.js';
+ readSemanticTopics,readSemanticContext,readSemanticPublication,readCommand} from '../browser/core/local-service-contract.js';
 
 const version={generation:'semantic-generation',revision:9},actors=[{id:'demo-alex',displayName:'Alex',type:'human'}];
+const publication=()=>({semanticTarget:{nodeId:'games',topicId:'canonical-topic-a',rootRevision:3,targetRevision:2},
+ evidence:{sourceId:'foreground-b',sourceVersion:'9223372036854775807',operationId:'embed-b',operationDigest:'a'.repeat(64),sourceStamp:'b'.repeat(64)},
+ articleDigest:'c'.repeat(64),rootDigest:'d'.repeat(64),targetDigest:'e'.repeat(64),expiresAt:1793073000000});
+
+test('generated semantic reply witness preserves exact evidence and lossless source version',()=>{
+ const input=publication(),parsed=readSemanticPublication(input);assert.deepEqual(parsed,input);assert.notEqual(parsed,input);
+ assert.notEqual(parsed.evidence,input.evidence);assert.ok(Object.isFrozen(parsed.evidence));assert.ok(Object.isFrozen(parsed.semanticTarget));
+ const command={type:'share-insight-reply',topicId:'canonical-topic-a',discussionId:'discussion-a',rootId:'root-a',replyToId:'reply-a',
+  body:'Generated answer',operationId:'ai-operation',originSourceId:null,semanticPublication:input};
+ assert.deepEqual(readCommand(command),command);assert.equal(readCommand(command).semanticPublication.evidence.sourceVersion,'9223372036854775807');
+ for(const change of [c=>{c.topicId='other-topic';},c=>{c.originSourceId='other-source';},c=>{c.type='share-insight';}]){
+  const bad=structuredClone(command);change(bad);assert.throws(()=>readCommand(bad),TypeError);
+ }
+});
+
+test('generated semantic evidence rejects ambiguous numbers, missing bindings and extra material',()=>{
+ for(const change of [p=>{p.evidence.sourceVersion=1;},p=>{p.evidence.sourceVersion='01';},p=>{p.evidence.sourceVersion='9223372036854775808';},
+  p=>{p.evidence.operationId=null;},p=>{p.evidence.sourceStamp='private text';},p=>{p.rootDigest='D'.repeat(64);},
+  p=>{p.semanticTarget.rootRevision=0;},p=>{p.semanticTarget.targetRevision='2';},p=>{p.expiresAt=0;},p=>{p.expiresAt=Number.MAX_SAFE_INTEGER+1;},
+  p=>{delete p.articleDigest;},p=>{p.evidence.title='unapproved evidence';},p=>{p.extra='unapproved';}]){
+  const bad=publication();change(bad);assert.throws(()=>readSemanticPublication(bad),TypeError);
+ }
+ const accessor=publication();Object.defineProperty(accessor,'articleDigest',{enumerable:true,get(){assert.fail('accessor invoked');}});
+ assert.throws(()=>readSemanticPublication(accessor),TypeError);
+});
 const nodeId='games',topic={id:'canonical-topic-a',title:'Original topic A',kind:'general'},discussionId='canonical-discussion-a';
 const pageRequest={nodeId,limit:2,cursor:null},threadRequest={...pageRequest,rootId:'root-a'};
 const post=(id,rootId=null)=>({id,rootId,replyToId:rootId,state:'visible',authorId:'demo-alex',actorType:'human',body:'Body '+id,

@@ -114,13 +114,24 @@ export function readPairingToken(value) {
   if (typeof value !== "string" || value.length < 32 || value.length > 512 || !/^[A-Za-z0-9._~+/-]+={0,2}$/u.test(value)) invalid();
   return value;
 }
-export function readCommand(value) {
-  function semanticTarget(value) {
+export function readSemanticReplyWitness(value) {
     const target = record(value, ["nodeId", "topicId", "rootRevision", "targetRevision"]);
     if (![target.rootRevision, target.targetRevision].every(value => Number.isSafeInteger(value) && value > 0)) invalid();
     return Object.freeze({ nodeId: text(target.nodeId, 160), topicId: readId(target.topicId),
       rootRevision: target.rootRevision, targetRevision: target.targetRevision });
-  }
+}
+export function readSemanticPublication(value) {
+  const item=record(value,['semanticTarget','evidence','articleDigest','rootDigest','targetDigest','expiresAt']);
+  const evidence=record(item.evidence,['sourceId','sourceVersion','operationId','operationDigest','sourceStamp']);
+  const digest=value=>{if(typeof value!=='string'||!/^[a-f0-9]{64}$/u.test(value))invalid();return value;};
+  if(typeof evidence.sourceVersion!=='string'||!/^(0|[1-9][0-9]{0,18})$/u.test(evidence.sourceVersion)||
+      BigInt(evidence.sourceVersion)>9223372036854775807n||!Number.isSafeInteger(item.expiresAt)||item.expiresAt<=0)invalid();
+  return Object.freeze({semanticTarget:readSemanticReplyWitness(item.semanticTarget),
+    evidence:Object.freeze({sourceId:readId(evidence.sourceId),sourceVersion:evidence.sourceVersion,
+      operationId:readId(evidence.operationId),operationDigest:digest(evidence.operationDigest),sourceStamp:digest(evidence.sourceStamp)}),
+    articleDigest:digest(item.articleDigest),rootDigest:digest(item.rootDigest),targetDigest:digest(item.targetDigest),expiresAt:item.expiresAt});
+}
+export function readCommand(value) {
   if (!value || typeof value !== "object") invalid();
   const type = Object.getOwnPropertyDescriptor(value, "type");
   if (!type?.enumerable || !Object.hasOwn(type, "value")) invalid();
@@ -138,17 +149,21 @@ export function readCommand(value) {
       return { type: item.type, topicId: readId(item.topicId), body: text(item.body, 8000, true),
         operationId: readId(item.operationId), originSourceId: nullableId(item.originSourceId) };
     case "share-insight-reply":
-      item = record(value, ["type", "topicId", "discussionId", "rootId", "replyToId", "body", "operationId", "originSourceId"]);
+      item = record(value, ["type", "topicId", "discussionId", "rootId", "replyToId", "body", "operationId", "originSourceId",
+        ...(Object.hasOwn(value,'semanticPublication')?['semanticPublication']:[])]);
+      const publication=Object.hasOwn(item,'semanticPublication')?readSemanticPublication(item.semanticPublication):null;
+      if(publication&&(publication.semanticTarget.topicId!==item.topicId||item.originSourceId!==null&&item.originSourceId!==publication.evidence.sourceId))invalid();
       return { type: item.type, topicId: readId(item.topicId), discussionId: readId(item.discussionId),
         rootId: readId(item.rootId), replyToId: readId(item.replyToId), body: text(item.body, 8000, true),
-        operationId: readId(item.operationId), originSourceId: nullableId(item.originSourceId) };
+        operationId: readId(item.operationId), originSourceId: nullableId(item.originSourceId),
+        ...(publication?{semanticPublication:publication}:{}) };
     case "reply":
       item = record(value, ["type", "discussionId", "rootId", "replyToId", "body", ...(Object.hasOwn(value, "originSourceId") ? ["originSourceId"] : []),
         ...(Object.hasOwn(value, "semanticTarget") ? ["semanticTarget"] : [])]);
       if (Object.hasOwn(item, "semanticTarget") && item.replyToId === null) invalid();
       return { type: item.type, discussionId: readId(item.discussionId), rootId: readId(item.rootId), replyToId: nullableId(item.replyToId), body: text(item.body, 8000, true),
         ...(Object.hasOwn(item, "originSourceId") ? { originSourceId: nullableId(item.originSourceId) } : {}),
-        ...(Object.hasOwn(item, "semanticTarget") ? { semanticTarget: semanticTarget(item.semanticTarget) } : {}) };
+        ...(Object.hasOwn(item, "semanticTarget") ? { semanticTarget: readSemanticReplyWitness(item.semanticTarget) } : {}) };
     case "edit":
       item = record(value, ["type", "contributionId", "body"]);
       return { type: item.type, contributionId: readId(item.contributionId), body: text(item.body, 8000, true) };

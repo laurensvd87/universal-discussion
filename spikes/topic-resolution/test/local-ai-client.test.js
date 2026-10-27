@@ -7,6 +7,35 @@ function response(path, value) {
 }
 function client(fetchImpl) { return createLocalAiClient({ fetchImpl, getToken: async () => "a".repeat(64) }); }
 
+const semanticPublication=()=>({semanticTarget:{nodeId:'games',topicId:'topic-a',rootRevision:3,targetRevision:2},
+ evidence:{sourceId:'source-b',sourceVersion:'9007199254740993',operationId:'embed-b',operationDigest:'a'.repeat(64),sourceStamp:'b'.repeat(64)},
+ articleDigest:'c'.repeat(64),rootDigest:'d'.repeat(64),targetDigest:'e'.repeat(64),expiresAt:1793073000000});
+
+test('semantic AI follow-up start validates destination witness before transport',async()=>{
+ const calls=[],value=client(async(url,options)=>{calls.push(JSON.parse(options.body));return response(url,{operationId:'op-a',state:'running'});});
+ const base={operationId:'op-a',model:'model-a',context:{topic:{id:'topic-b'}},articleText:'Foreground Page B',allowWebResearch:false,
+  followupQuestionId:'question-a',followupTopicId:'topic-a',semanticTarget:semanticPublication().semanticTarget};
+ await value.start(base,'demo-alex');assert.deepEqual(calls,[base]);
+ for(const change of [v=>{delete v.followupQuestionId;},v=>{delete v.followupTopicId;},v=>{v.semanticTarget.targetRevision='2';},
+  v=>{v.semanticTarget.extra=true;},v=>{v.semanticTarget=undefined;}]){
+  const bad=structuredClone(base);change(bad);await assert.rejects(value.start(bad,'demo-alex'),TypeError);
+ }
+ assert.equal(calls.length,1);
+});
+
+test('semantic result and resumable packet retain the original job witness without numeric loss',async()=>{
+ const publication=semanticPublication(),completed={operationId:'op-a',state:'completed',result:{body:'Answer',model:'model-a',citations:[]},semanticPublication:publication};
+ const result=await client(async(url)=>response(url,completed)).result('op-a','demo-alex');assert.deepEqual(result,completed);
+ assert.ok(Object.isFrozen(result.semanticPublication.evidence));
+ const job={operationId:'op-a',state:'completed',expected:{generation:'generation-a',revision:7},topicId:'topic-b',originSourceId:'source-b',
+  rootId:'root-a',replyToId:'question-a',discussionId:'discussion-a',followupTopicId:'topic-a',semanticPublication:publication};
+ assert.deepEqual(await client(async(url)=>response(url,{job})).resumable('demo-alex'),job);
+ for(const change of [v=>{v.originSourceId='source-a';},v=>{v.replyToId=null;},v=>{v.semanticPublication.semanticTarget.topicId='other-topic';}]){
+  const bad=structuredClone(job);change(bad);await assert.rejects(client(async(url)=>response(url,{job:bad})).resumable('demo-alex'),TypeError);
+ }
+ for(const state of ['running','failed'])await assert.rejects(client(async(url)=>response(url,{...completed,state})).result('op-a','demo-alex'),TypeError);
+});
+
 test("Insight preferences normalize only on start and invalid metadata cannot reach transport", async () => {
   const calls = [];
   const value = client(async (url, options) => {
