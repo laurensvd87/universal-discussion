@@ -10,6 +10,7 @@ import { readDiscovery, readPrivateResponse, readAccountPublicChatsRequest, read
 import { inspectPageNavigationUrl } from "./page-content-policy.js";
 import { parseTopicSpaceQueryRequest, parseTopicSpacesResponse, parseTopicSpaceOwnerResponse,
   parseTopicSpacePolicyRequest } from "./topic-space-contract.js";
+import {readCanonicalHistoryRequest,readCanonicalHistoryPage} from './canonical-history-contract.js';
 
 const BASE = "http://127.0.0.1:4174/v1";
 const MAX_REQUEST_BYTES = 65_536;
@@ -219,7 +220,11 @@ export function createLocalServiceClient({ fetchImpl, getToken, getAccountToken 
       const payload = input(() => parseTopicSpacePolicyRequest(value));
       return request("/topic-spaces/policy", payload, actorId, parseTopicSpaceOwnerResponse, signal, undefined, beforeDispatch);
     },
-    discover: (value, { signal } = {}) => request("/discover/search", value, undefined, readDiscovery, signal),
+    discover: (value, { signal, beforeDispatch } = {}) => request("/discover/search", value, undefined, readDiscovery, signal, undefined, beforeDispatch),
+    async canonicalDiscussionPage(value, {signal,beforeDispatch} = {}) {
+      const body=input(()=>readCanonicalHistoryRequest(value));
+      return request('/discussions/page',body,undefined,response=>readCanonicalHistoryPage(response,body),signal,undefined,beforeDispatch);
+    },
     privateConversation(action, value, actorId, { signal, beforeDispatch } = {}) {
       if (!["create", "list", "read", "send", "generate", "delete"].includes(action) || !isAccountActorId(actorId)) fail("invalid-request");
       return request(`/private/${action}`, value, actorId, readPrivateResponse, signal, undefined, beforeDispatch);

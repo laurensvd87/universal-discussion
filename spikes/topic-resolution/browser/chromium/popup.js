@@ -24,6 +24,7 @@ import { mountPrivateConversationPanel } from "./private-conversation-panel.js";
 import { mountDiscoveryPanel, createTopicSpacePreviewOpener } from "./discovery-panel.js";
 import { mountTopicSpacePanel } from "./topic-space-panel.js";
 import { mountSemanticTopicWorkspace } from "./semantic-topic-workspace.js";
+import { mountChatsWithPublicHistory } from './canonical-history-panel.js';
 import { preparePrivateGeneration } from "../core/private-generation-context.js";
 import { mountPageMatchingPanel } from "./page-matching-panel.js";
 import { mountPopupShell } from "./popup-shell.js";
@@ -393,6 +394,7 @@ accountPanel = mountAccountPanel({ document, mount: document.body,
         // An identical account DTO can accompany a replaced or revoked session.
         // Fence local drafts synchronously before asynchronous reconciliation.
         topicSpaceSessionRevision++;
+        privatePanel?.observe();
         localDiscussion.accountChanged();
         listener();
       }
@@ -409,7 +411,9 @@ accountPanel = mountAccountPanel({ document, mount: document.body,
 document.querySelector(".popup-topbar").insertBefore(accountPanel.elements.button,
   document.querySelector("#app-settings-button"));
 void accountPanel.initialize();
-privatePanel = mountPrivateConversationPanel(document, document.querySelector("#app-view-private"), {
+privatePanel=mountChatsWithPublicHistory(document,document.querySelector('#app-view-private'),{
+ client:localClient,readAccount:()=>({actorId:accountPanel?.getActorId()??null,sessionRevision:topicSpaceSessionRevision}),
+ mountAccountChats:root=>mountPrivateConversationPanel(document,root,{
   client: localClient, readActor: () => accountPanel?.getActorId() ?? null,
   requestSignIn: () => accountPanel.requestSignIn(),
   readPublicState: () => localDiscussion.currentState(), showView: popupShell.navigate,
@@ -421,6 +425,7 @@ privatePanel = mountPrivateConversationPanel(document, document.querySelector("#
     readState: localDiscussion.currentState, readInsight: insightController.currentState,
     readArticle: insightPageReader.read, attestArticle: insightPageReader.attest,
     readBrowserLanguage: insightPreferenceStorage.readBrowserLanguage }),
+ }),
 });
 const discoveryRoot = document.querySelector("#app-view-discover");
 const topicSpaceRoot = document.createElement("section"), libraryRoot = document.createElement("section");
@@ -460,6 +465,7 @@ let semanticWorkspace=null;
 const stopTopicSpaceAccount = accountPanel.controller.subscribe(() => {
   const current = accountPanel.controller.getAccessToken();
   if (current !== topicSpaceSession) { topicSpaceSession = current; topicSpaceSessionRevision++; }
+  privatePanel?.observe();
   topicSpacePanel.observe(topicSpaceState());
   semanticWorkspace?.observePage({...localDiscussion.currentState(),sessionRevision:topicSpaceSessionRevision});
 });
