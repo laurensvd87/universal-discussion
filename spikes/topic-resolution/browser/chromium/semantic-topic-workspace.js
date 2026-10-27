@@ -10,9 +10,13 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   let capability='unknown',availability='disconnected',serviceEpoch=0,epoch=0,contextEpoch=0;
   let capabilityAbort=null,contextAbort=null,intentAbort=new AbortController();
   let contextCard=null,contextLoading=false,contextError=false,contextRequestKey=null,override=null,suppressSelection=false;
+  let savedView=false,historyPending=false,historyError=false,historyFlight=null;
   const status=document.createElement('p');status.id='semantic-workspace-status';status.setAttribute('role','status');
   const retry=document.createElement('button');retry.id='semantic-workspace-retry';retry.type='button';retry.textContent='Try again';retry.hidden=true;
-  const mainRoot=document.createElement('section');discussionRoot.replaceChildren(status,retry,mainRoot);
+  const toggle=document.createElement('button');toggle.id='semantic-workspace-saved-toggle';toggle.type='button';toggle.hidden=true;
+  const historyStatus=document.createElement('p');historyStatus.id='semantic-workspace-history-status';historyStatus.setAttribute('role','status');
+  const historyRetry=document.createElement('button');historyRetry.id='semantic-workspace-history-retry';historyRetry.type='button';historyRetry.textContent='Retry saved threads';historyRetry.hidden=true;
+  const mainRoot=document.createElement('section');discussionRoot.replaceChildren(status,retry,toggle,historyStatus,historyRetry,mainRoot);
   discoverRoot.hidden=discussionRoot.hidden=true;
   function emit(value){if(availability===value)return;availability=value;onAvailability(value);}
   function routing(value){try{const result=controller.setSemanticTopicsAvailable?.(value);Promise.resolve(result).catch(()=>{});}catch{/* Optional display routing. */}}
@@ -24,8 +28,12 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   function panelAccount(){return {actorId:pageState?.actorId??null,accountId:pageState?.accountId??null,
     sessionRevision:pageState?.sessionRevision??pageState?.resolution?.sessionRevision??null};}
   function usable(){return connected&&!disposed&&capability==='available';}
-  function updateMain(){const show=usable()&&Boolean(override||(!contextError&&contextCard));
-    discussionRoot.hidden=!show&&!contextError;mainRoot.hidden=!show;discussionPanel.setSemanticFeedMode(show);
+  function updateMain(){const canToggle=usable()&&Boolean(pageState?.sourceId)&&Boolean(savedView||override||contextCard);
+    const show=usable()&&!savedView&&Boolean(override||(!contextError&&contextCard));
+    discussionRoot.hidden=!show&&!contextError&&!canToggle;mainRoot.hidden=!show;discussionPanel.setSemanticFeedMode(show);
+    toggle.hidden=!canToggle;toggle.textContent=savedView?'Topic discussions':'This page\u2019s saved threads';toggle.setAttribute('aria-pressed',String(savedView));
+    historyStatus.hidden=!savedView;historyStatus.textContent=savedView?(historyPending?'Loading saved threads\u2026':historyError?'Saved threads are unavailable. Try again.':''):'';
+    historyRetry.hidden=!savedView||!historyError;historyRetry.disabled=historyPending;
     status.textContent=contextError?'Topics are unavailable. Try refreshing.':contextLoading?'Loading topics…':'';
     retry.hidden=!contextError||!usable();retry.disabled=contextLoading;
   }
@@ -33,6 +41,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
     main.setConnection(enabled);main.setActive(enabled);discoverRoot.hidden=!enabled||!discoverActive;updateMain();}
   function revoke(){epoch++;intentAbort.abort();intentAbort=new AbortController();contextEpoch++;contextAbort?.abort();contextAbort=null;
     contextRequestKey=null;contextCard=null;contextLoading=false;contextError=false;override=null;
+    savedView=false;historyPending=false;historyError=false;historyFlight=null;
     suppressSelection=true;main.setTopicContext(null,{force:true});suppressSelection=false;updateMain();}
   const panelClient={};
   for(const method of ['semanticTopics','semanticFeed','semanticThread'])panelClient[method]=(...args)=>client[method](...args);
@@ -47,7 +56,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
   };
   async function reply(ids){const ownEpoch=epoch;if(!usable())throw new Error('unavailable');
     const accepted=await controller.selectSemanticTarget(ids);if(!usable()||epoch!==ownEpoch)return;
-    if(!accepted)throw new Error('target-unavailable');override={nodeId:ids.nodeId,rootId:ids.rootId};main.openThread(override);updateMain();
+    if(!accepted)throw new Error('target-unavailable');savedView=false;override={nodeId:ids.nodeId,rootId:ids.rootId};main.openThread(override);updateMain();
     await navigate?.('discussion');if(!usable()||epoch!==ownEpoch)return;
     document.querySelector?.('#discussion-body')?.focus?.({preventScroll:true});
   }
@@ -79,7 +88,24 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
     finally{if(capabilityAbort===abort)capabilityAbort=null;}
   }
   async function retryContext(){const ownEpoch=epoch;if(!usable())return;await loadContext(true);if(usable()&&ownEpoch===epoch)main.refreshPage();}
+  function readSavedThreads(){
+    if(!usable()||!pageState?.sourceId||!savedView)return Promise.resolve();
+    if(historyFlight)return historyFlight;
+    const ownEpoch=epoch,sourceId=pageState.sourceId;
+    const current=()=>usable()&&epoch===ownEpoch&&pageState?.sourceId===sourceId;
+    historyPending=true;historyError=false;updateMain();
+    if(!current())return Promise.resolve();
+    const work=(async()=>{try{
+      const result=await Promise.resolve().then(()=>current()?controller.refreshSavedThreads():false);
+      if(current())historyError=result!==true||Boolean(controller.currentState?.()?.priorDiscussionsError);
+    }catch{if(current())historyError=true;}
+    finally{if(current()){historyPending=false;historyFlight=null;updateMain();}}})();
+    historyFlight=work;return work;
+  }
+  function toggleSaved(){if(!usable()||!pageState?.sourceId)return;savedView=!savedView;updateMain();if(savedView)void readSavedThreads();}
+  function retrySaved(){if(savedView)void readSavedThreads();}
   retry.addEventListener('click',retryContext);
+  toggle.addEventListener('click',toggleSaved);historyRetry.addEventListener('click',retrySaved);
   return {
     setActive(value){if(disposed)return;discoverActive=Boolean(value);activatePanels();},
     setConnection(value){value=Boolean(value);if(disposed||connected===value)return;connected=value;serviceEpoch++;capabilityAbort?.abort();capabilityAbort=null;revoke();
@@ -98,6 +124,7 @@ export function mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoo
     refresh(){if(disposed||!connected)return;const ownEpoch=epoch;if(capability==='available')return loadContext(true).then(()=>{if(usable()&&ownEpoch===epoch)main.refreshPage();});return probe();},
     dispose(){if(disposed)return;disposed=true;connected=false;serviceEpoch++;capabilityAbort?.abort();contextAbort?.abort();intentAbort.abort();
       capabilityAbort=contextAbort=null;override=contextCard=null;discover.dispose();main.dispose();routing(false);discussionPanel.setSemanticFeedMode(false);
-      retry.removeEventListener('click',retryContext);discoverRoot.hidden=discussionRoot.hidden=true;discussionRoot.replaceChildren();emit('disconnected');},
+      retry.removeEventListener('click',retryContext);toggle.removeEventListener('click',toggleSaved);historyRetry.removeEventListener('click',retrySaved);
+      historyFlight=null;discoverRoot.hidden=discussionRoot.hidden=true;discussionRoot.replaceChildren();emit('disconnected');},
   };
 }

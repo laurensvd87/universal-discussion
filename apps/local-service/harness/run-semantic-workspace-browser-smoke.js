@@ -42,6 +42,21 @@ export async function quarantinePausedSemanticTarget(entry,{verifyIdentity}={}){
   // required later before this quarantine can count as retired or QA can pass.
   entry.quarantined=true;entry.stage='quarantined-paused';return true;
 }
+export async function bindContainedSemanticAlias(entry,owner,{ownedOrigin,verifyIdentity}={}){
+  const eligible=()=>owner&&entry.waiting===false&&entry.targetId===owner.targetId&&entry.type===owner.type&&entry.ordinal!==owner.ordinal&&
+    entry.originClass==='extension'&&owner.originClass==='extension'&&owner.active===true&&owner.ready===true&&!owner.aliased&&!owner.firstFailure&&
+    owner.recursiveAttachInstalled&&owner.offlineInstalled&&owner.fetchInstalled&&typeof ownedOrigin==='string'&&/^chrome-extension:\/\/[a-p]{32}$/u.test(ownedOrigin)&&
+    owner.ownedOrigin===ownedOrigin&&entry.targetUrl===owner.targetUrl&&entry.targetUrl.startsWith(ownedOrigin+'/');
+  if(!eligible())throw new Error('Alias precondition refused');entry.stage='alias-identity';
+  if(await verifyIdentity()!==true)throw new Error('Alias identity refused');if(!eligible())throw new Error('Alias precondition refused');
+  // Keep the original active session's Fetch/offline/recursive ownership. The
+  // duplicate is merely an alias and receives no Runtime resume command.
+  entry.aliased=true;entry.boundTo=owner.ordinal;entry.stage='alias-contained';return true;
+}
+export function markSemanticSessionDetached(entry,{shutdown=false}={}){
+  if(!entry)return false;entry.active=false;
+  if(!shutdown&&entry.ownsNetworkBoundaries&&!entry.aliased){entry.unexpectedDetach=true;return true;}return false;
+}
 export function describeSemanticBoundaryFailure(error){
   if(error===null||typeof error!=='object'||types.isProxy(error))return {code:'boundary-failure'};
   let message;try{message=Object.getOwnPropertyDescriptor(error,'message')?.value;}catch{return {code:'boundary-failure'};}
@@ -49,7 +64,7 @@ export function describeSemanticBoundaryFailure(error){
   const known={'Target cap':'target-cap','Unexpected target type':'unexpected-target-type',
     'Executable target already running':'target-already-executing','Unexpected executable target':'unexpected-target-origin',
     'Foreign extension target':'foreign-extension-target','Quarantine precondition refused':'quarantine-precondition',
-    'Quarantine identity refused':'quarantine-identity'};
+    'Quarantine identity refused':'quarantine-identity','Alias precondition refused':'alias-precondition','Alias identity refused':'alias-identity'};
   if(Object.hasOwn(known,message))return {code:known[message]};
   const rejected=/^Chromium protocol rejected ([A-Za-z]+\.[A-Za-z]+) \(code (-?[0-9]{1,10})\)$/u.exec(message);
   if(rejected&&BOUNDARY_METHODS.has(rejected[1])){const numericCode=Number(rejected[2]);if(Number.isInteger(numericCode)&&numericCode>=-2147483648&&numericCode<=2147483647)
@@ -204,12 +219,19 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     browser.on('Runtime.exceptionThrown',(_event,incoming)=>{if(exceptions.length<64)exceptions.push({phase,target:targets.get(incoming)?.type??'unknown'});});
     browser.on('Network.responseReceived',({response})=>{if(/^https?:/u.test(response.url)){remoteResponses++;const headers=Object.fromEntries(Object.entries(response.headers??{}).map(([k,v])=>[k.toLowerCase(),v]));if(headers['x-murmingle-qa-intercepted']!=='1')fail('unintercepted-response');}});
     browser.on('Fetch.requestPaused',(event,incoming)=>{track(intercept(event,incoming).catch(async()=>{fail('interception-failed');await abortRequest(event.requestId,incoming);}));});
+    browser.on('Target.detachedFromTarget',({sessionId:detached})=>{const entry=targets.get(detached);
+      if(markSemanticSessionDetached(entry,{shutdown:closing||protocolFailure||timedOut})){
+        entry.firstFailure??={stage:'session-detached',code:'contained-owner-detached'};
+        firstBoundaryFailure??={ordinal:entry.ordinal,type:entry.type,waiting:entry.waiting,originClass:entry.originClass,...entry.firstFailure};
+        protocolFailure=true;fail('contained-owner-detached');void browser.close();
+      }});
     browser.on('Target.attachedToTarget',({sessionId:attached,targetInfo,waitingForDebugger})=>{
       if(targets.size>=32){protocolFailure=true;fail('target-cap');void browser.close();return;}
       let group=targetGroups.get(targetInfo.targetId);
-      if(!group){group={firstOrdinal:targets.size+1,resumeIssued:false,quarantineStarted:false};targetGroups.set(targetInfo.targetId,group);}
+      if(!group){group={firstOrdinal:targets.size+1,resumeIssued:false,quarantineStarted:false,owner:null};targetGroups.set(targetInfo.targetId,group);}
       const entry={ordinal:targets.size+1,type:ELIGIBLE_TARGETS.has(targetInfo.type)?targetInfo.type:'unexpected',targetId:targetInfo.targetId,
         waiting:waitingForDebugger===true,originClass:targetInfo.url==='about:blank'?'blank':/^chrome-extension:\/\//u.test(targetInfo.url)?'extension':'other',
+        targetUrl:targetInfo.url,active:true,ownedOrigin:null,ownsNetworkBoundaries:false,unexpectedDetach:false,aliased:false,boundTo:null,
         stage:'validate-target-count',ready:false,resumeIssued:false,quarantined:false,duplicateOf:group.firstOrdinal===targets.size+1?null:group.firstOrdinal,firstFailure:null};targets.set(attached,entry);
       entry.setup=track((async()=>{
         if(targets.size>32)throw new Error('Target cap');
@@ -219,7 +241,13 @@ export async function runSemanticWorkspaceBrowserSmoke(){
         const initialBlank=!waitingForDebugger&&!extensionLoadStarted&&!initialBlankAccepted&&targetInfo.type==='page'&&
           targetInfo.url==='about:blank'&&!targetInfo.openerId&&!targetInfo.openerFrameId;
         if(initialBlank)initialBlankAccepted=true;
-        if(!waitingForDebugger&&!initialBlank)throw new Error('Executable target already running');
+        if(!waitingForDebugger&&!initialBlank){const owner=group.owner;if(!owner)throw new Error('Executable target already running');
+          entry.stage='bind-contained-alias';if(!owner.ready&&owner.setup)await owner.setup;
+          await bindContainedSemanticAlias(entry,owner,{ownedOrigin:origin,verifyIdentity:async()=>{
+            const current=await protocol('Target.getTargetInfo',{targetId:entry.targetId});const info=current?.targetInfo;
+            return !closing&&!protocolFailure&&owner.active&&info?.attached===true&&info?.targetId===owner.targetId&&info?.type===targetInfo.type&&info?.url===entry.targetUrl;
+          }});return;
+        }
         entry.stage='validate-origin';
         const extensionUrl=/^chrome-extension:\/\/[a-p]{32}\//u.test(targetInfo.url);
         if(!initialBlank&&!(targetInfo.url==='about:blank'&&['page','iframe'].includes(targetInfo.type))&&
@@ -243,7 +271,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
               verifyIdentity:async()=>{const current=await protocol('Target.getTargetInfo',{targetId:entry.targetId});const info=current?.targetInfo;
                 return !closing&&!group.resumeIssued&&info?.targetId===entry.targetId&&info?.type===targetInfo.type&&info?.url===targetInfo.url&&
                   /^chrome-extension:\/\/[a-p]{32}\//u.test(info.url)&&!info.url.startsWith(ownedOrigin+'/');}});return;
-          }
+          }entry.ownedOrigin=ownedOrigin;entry.ownsNetworkBoundaries=true;group.owner??=entry;
         }
         if(group.quarantineStarted)throw new Error('Foreign extension target');
         entry.stage='runtime-enable';await protocol('Runtime.enable',{},attached);
@@ -315,8 +343,12 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       rmSync(profileResolved,{recursive:true,force:false,maxRetries:3,retryDelay:100});profileRemoved=true;
     }catch{if(ownedProcessExited)fail('owned-profile-cleanup-unverified');}
     let endPins=null;try{endPins=pins();if(JSON.stringify(endPins)!==JSON.stringify(startPins))fail('source-pins-changed');}catch{fail('source-end-pins-unreadable');}
-    const allExecutableTargetsContained=targets.size>0&&[...targets.values()].every(entry=>entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled&&
-      (entry.ready||entry.quarantined&&entry.waiting&&!entry.resumeIssued&&ownedProcessExited));
+    const allExecutableTargetsContained=targets.size>0&&[...targets.values()].every(entry=>{
+      if(entry.unexpectedDetach)return false;
+      if(entry.aliased){const owner=targetGroups.get(entry.targetId)?.owner;return owner?.ordinal===entry.boundTo&&owner.ready&&!owner.firstFailure&&!owner.unexpectedDetach&&
+        (owner.active||ownedProcessExited)&&owner.recursiveAttachInstalled&&owner.offlineInstalled&&owner.fetchInstalled;}
+      return entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled&&
+        (entry.ready||entry.quarantined&&entry.waiting&&!entry.resumeIssued&&ownedProcessExited);});
     if(!allExecutableTargetsContained)fail('target-containment-unverified');
     const result={schema:'semantic-workspace-browser-qa/v1',outcome:failures.length?'failed':outcome,scope:'Synthetic browser composition; no SQL, actual document attestation, provider, quality, load or live posting authority.',
       elapsedMs:Date.now()-started,timedOut,closing,closeReturned,ownedProcessExited,profileRemoved,ownedProfileRetained:!profileRemoved,
@@ -325,11 +357,13 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       physicalTargets:targetGroups.size,quarantinedTargets:new Set([...targets.values()].filter(entry=>entry.quarantined).map(entry=>entry.targetId)).size,
       quarantinedTargetsRetired:ownedProcessExited,quarantineMode:'paused-until-owned-exit',
       quarantineScope:'Foreign extension targets verified debugger-paused after network containment, never resumed; retirement requires the exact owned-browser exit event. No identity or cause attribution.',
+      aliasAttachments:[...targets.values()].filter(entry=>entry.aliased).length,
+      aliasScope:'Duplicate CDP attachments only, bound to the same exact owned physical target and original active contained session. No additional resume; unexpected owner detach fails closed.',
       allExecutableTargetsContained,
       firstBoundaryFailure,targetStates:[...targets.values()].map(entry=>({ordinal:entry.ordinal,type:entry.type,waiting:entry.waiting,originClass:entry.originClass,
         stage:entry.stage,ready:entry.ready,recursiveAttachInstalled:entry.recursiveAttachInstalled===true,offlineInstalled:entry.offlineInstalled===true,
         fetchInstalled:entry.fetchInstalled===true,resumeIssued:entry.resumeIssued,quarantined:entry.quarantined,duplicateOf:entry.duplicateOf,
-        firstFailure:entry.firstFailure})),
+        active:entry.active,aliased:entry.aliased,boundTo:entry.boundTo,unexpectedDetach:entry.unexpectedDetach,firstFailure:entry.firstFailure})),
       interceptions,retiredInterceptions,commands,cases,exceptions,failures,screenshots,sourcePins:startPins,endPins};
     checkedPath(attempt);writeFileSync(checkedPath(path.join(attempt,'result.json')),JSON.stringify(result,null,2)+'\n',{flag:'wx'});
     if(result.outcome!=='passed')throw new Error('Semantic browser QA failed; preserved result.json');

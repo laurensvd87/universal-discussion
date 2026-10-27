@@ -5,7 +5,8 @@ import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import vm from 'node:vm';
 import path from 'node:path';
-import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource,quarantinePausedSemanticTarget} from '../harness/run-semantic-workspace-browser-smoke.js';
+import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource,quarantinePausedSemanticTarget,
+  bindContainedSemanticAlias,markSemanticSessionDetached} from '../harness/run-semantic-workspace-browser-smoke.js';
 
 // Evaluate the ACTUAL launcher with an in-memory child and pipes. No subprocess,
 // network, native API, profile or filesystem write occurs in these tests.
@@ -98,4 +99,33 @@ test('a late resume or boundary loss during identity verification prevents quara
     const pending=quarantinePausedSemanticTarget(entry,{verifyIdentity:()=>gate.promise});Object.assign(entry,patch);gate.resolve(true);
     await assert.rejects(pending,/Quarantine precondition refused/);assert.equal(entry.quarantined,undefined);
   }
+});
+
+const ownedOrigin='chrome-extension://'+'a'.repeat(32),ownedUrl=ownedOrigin+'/chromium/background.js';
+function aliasFixture(){const owner={ordinal:4,type:'service_worker',targetId:'private-synthetic-target',targetUrl:ownedUrl,ownedOrigin,originClass:'extension',
+  active:true,ready:true,aliased:false,firstFailure:null,recursiveAttachInstalled:true,offlineInstalled:true,fetchInstalled:true,ownsNetworkBoundaries:true};
+  return {owner,entry:{ordinal:5,type:owner.type,targetId:owner.targetId,targetUrl:ownedUrl,originClass:'extension',waiting:false,ready:false,resumeIssued:false}};}
+test('an already executing duplicate binds only to its exact active contained owned session without resume',async()=>{
+  const {entry,owner}=aliasFixture();let identities=0;
+  assert.equal(await bindContainedSemanticAlias(entry,owner,{ownedOrigin,verifyIdentity:async()=>{identities++;return true;},resume:()=>assert.fail('alias resumed')}),true);
+  assert.equal(identities,1);assert.equal(entry.boundTo,4);assert.equal(entry.aliased,true);assert.equal(entry.ready,false);assert.equal(entry.resumeIssued,false);
+  assert.equal(entry.offlineInstalled,undefined,'alias does not claim a second independent network owner');assert.equal(owner.active,true);
+});
+test('unknown, detached, foreign, mismatched, failed or partially contained alias owners are refused',async()=>{
+  const changes=[value=>{value.owner=null;},value=>{value.owner.active=false;},value=>{value.owner.ready=false;},
+    value=>{value.owner.ownedOrigin='chrome-extension://'+'b'.repeat(32);},value=>{value.owner.targetUrl=ownedOrigin+'/other.js';},
+    value=>{value.owner.targetId='another-target';},value=>{value.owner.type='page';},value=>{value.owner.firstFailure={code:'failed'};},
+    value=>{value.owner.recursiveAttachInstalled=false;},value=>{value.owner.offlineInstalled=false;},value=>{value.owner.fetchInstalled=false;}];
+  for(const change of changes){const value=aliasFixture();change(value);let calls=0;
+    await assert.rejects(bindContainedSemanticAlias(value.entry,value.owner,{ownedOrigin,verifyIdentity:async()=>{calls++;return true;}}),/Alias precondition refused/);
+    assert.equal(calls,0);assert.equal(value.entry.aliased,undefined);
+  }
+  const {entry,owner}=aliasFixture();await assert.rejects(bindContainedSemanticAlias(entry,owner,{ownedOrigin,verifyIdentity:async()=>false}),/Alias identity refused/);assert.equal(entry.boundTo,undefined);
+});
+test('unexpected original-session detach during alias verification revokes acceptance and is distinguished from shutdown',async()=>{
+  const {entry,owner}=aliasFixture(),gate=deferred();const pending=bindContainedSemanticAlias(entry,owner,{ownedOrigin,verifyIdentity:()=>gate.promise});
+  assert.equal(markSemanticSessionDetached(owner),true);assert.equal(owner.unexpectedDetach,true);gate.resolve(true);await assert.rejects(pending,/Alias precondition refused/);
+  assert.equal(entry.boundTo,undefined);
+  const shutdown=aliasFixture().owner;assert.equal(markSemanticSessionDetached(shutdown,{shutdown:true}),false);assert.equal(shutdown.active,false);assert.equal(shutdown.unexpectedDetach,undefined);
+  assert.equal(markSemanticSessionDetached({active:true,ownsNetworkBoundaries:true,aliased:true}),false);
 });

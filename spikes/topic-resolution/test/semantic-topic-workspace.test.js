@@ -19,7 +19,7 @@ const target=request=>{const value=thread(request.nodeId);delete value.nextCurso
   root:{...value.root,replies:request.targetId==='root-a'?[]:value.root.replies}};};
 const directory=()=>({version,policyRevision:2,topics:[{id:'music',title:'Music',path:['music']},{id:'games',title:'Games',path:['games']}]});
 
-function harness({selectSemanticTarget}={}){
+function harness({selectSemanticTarget,refreshSavedThreads}={}){
   const created=[],calls=[],selections=[],navigation=[],availability=[],modes=[],routing=[];
   const document={createElement(tag){const item={tag,children:[],attributes:{},listeners:new Map(),style:{},hidden:false,textContent:'',value:'',
     append(...items){this.children.push(...items);},replaceChildren(...items){this.children=items;},setAttribute(k,v){this.attributes[k]=v;},
@@ -28,11 +28,14 @@ function harness({selectSemanticTarget}={}){
   const discoverRoot=document.createElement('section'),discussionRoot=document.createElement('section'),composer=document.createElement('textarea'),client={};
   for(const method of ['semanticCapabilities','semanticContext','semanticTopics','semanticFeed','semanticThread','semanticTarget'])client[method]=(args,options)=>{
     const wait=deferred(),call={method,args,options,done:false,resolve(value){call.done=true;wait.resolve(value);},reject(error){call.done=true;wait.reject(error);}};calls.push(call);return wait.promise;};
-  let current=page();const controller={currentState:()=>current,setSemanticTopicsAvailable(value){routing.push(value);},async selectSemanticTarget(ids){selections.push(ids);return selectSemanticTarget?selectSemanticTarget(ids):true;}};
+  const historyReads=[];
+  let current=page();const controller={currentState:()=>current,setSemanticTopicsAvailable(value){routing.push(value);},
+    async refreshSavedThreads(){historyReads.push(current.sourceId);return refreshSavedThreads?refreshSavedThreads():true;},
+    async selectSemanticTarget(ids){selections.push(ids);return selectSemanticTarget?selectSemanticTarget(ids):true;}};
   const workspace=mountSemanticTopicWorkspace(document,{discoverRoot,discussionRoot,client,controller,discussionPanel:{setSemanticFeedMode(value){modes.push(value);}},navigate:value=>navigation.push(value),onAvailability:value=>availability.push(value)});
   const all=node=>[node,...node.children.flatMap(all)],byId=id=>all(discoverRoot).concat(all(discussionRoot)).find(node=>node.id===id);
   const pending=method=>calls.findLast(call=>call.method===method&&!call.done);
-  return {created,calls,selections,navigation,availability,modes,routing,document,discoverRoot,discussionRoot,composer,workspace,client,all,byId,pending,
+  return {created,calls,selections,navigation,availability,modes,routing,historyReads,document,discoverRoot,discussionRoot,composer,workspace,client,all,byId,pending,
     click(id){const item=byId(id);assert.ok(item,id);item.listeners.get('click')?.();},
     observe(value){current=value;workspace.observePage(value);},current:()=>current,
     start(){workspace.observePage(current);workspace.setActive(true);workspace.setConnection(true);},
@@ -41,6 +44,57 @@ function harness({selectSemanticTarget}={}){
     async selectGlobal(){this.click('semantic-discover-open-music');await this.answer('semanticFeed',feed('music'));this.click('semantic-discover-reply-root-a');const call=pending('semanticTarget');await this.answer('semanticTarget',target(call.args));},
   };
 }
+
+test('saved-thread toggle immediately restores canonical view without changing Page B or its draft',async()=>{
+  const gate=deferred(),ui=harness({refreshSavedThreads:()=>gate.promise});await ui.ready();
+  ui.observe({...ui.current(),draft:{mode:'root',body:'Unsent Page B draft',semantic:false}});const before=structuredClone(ui.current());
+  const calls=ui.calls.length,toggle=ui.byId('semantic-workspace-saved-toggle');assert.equal(toggle.hidden,false);
+  assert.equal(toggle.textContent,'This page\u2019s saved threads');ui.click(toggle.id);
+  assert.equal(ui.modes.at(-1),false);assert.equal(ui.discussionRoot.children.at(-1).hidden,true);
+  assert.equal(toggle.textContent,'Topic discussions');assert.notEqual(toggle.disabled,true); // Never disabled by pending history.
+  await turn();assert.deepEqual(ui.historyReads,['source-b']);assert.deepEqual(ui.current(),before);
+  assert.match(ui.byId('semantic-workspace-history-status').textContent,/Loading saved threads/);
+  ui.click(toggle.id);assert.equal(ui.modes.at(-1),true);assert.equal(ui.discussionRoot.children.at(-1).hidden,false);
+  ui.click(toggle.id);await turn();assert.equal(ui.historyReads.length,1);
+  gate.resolve(true);await turn();assert.equal(ui.calls.length,calls);assert.deepEqual(ui.current(),before);
+  assert.equal(ui.byId('semantic-workspace-history-status').textContent,'');ui.workspace.dispose();
+});
+
+test('saved-thread retry is separate from metadata refresh and retains canonical fallback on finite failure',async()=>{
+  let attempts=0;const ui=harness({refreshSavedThreads:()=>{attempts++;if(attempts===1)throw Error('private failure');return true;}});await ui.ready();
+  const contexts=ui.calls.filter(call=>call.method==='semanticContext').length;
+  ui.click('semantic-workspace-saved-toggle');await turn();assert.equal(ui.modes.at(-1),false);
+  assert.equal(ui.byId('semantic-workspace-history-retry').hidden,false);
+  assert.equal(ui.byId('semantic-workspace-history-status').textContent,'Saved threads are unavailable. Try again.');
+  ui.click('semantic-workspace-history-retry');await turn();assert.equal(attempts,2);
+  assert.equal(ui.byId('semantic-workspace-history-retry').hidden,true);
+  assert.equal(ui.calls.filter(call=>call.method==='semanticContext').length,contexts);
+  ui.observe({...ui.current(),catalog:{version:{...version,revision:8}}});
+  assert.equal(ui.byId('semantic-workspace-saved-toggle').hidden,false);assert.equal(ui.modes.at(-1),false);
+  ui.pending('semanticContext').reject(Error('metadata failure'));await turn();
+  assert.equal(ui.byId('semantic-workspace-saved-toggle').hidden,false);assert.equal(ui.modes.at(-1),false);
+  assert.equal(ui.byId('semantic-workspace-history-retry').hidden,true);ui.workspace.dispose();
+});
+
+test('Source, document and actor revocation reset saved view and fence late history completion',async()=>{
+  for(const change of [value=>({...value,sourceId:'source-c'}),value=>({...value,resolution:{...value.resolution,documentId:'new-doc'}}),value=>({...value,actorId:'demo-blair'})]){
+    const gate=deferred(),ui=harness({refreshSavedThreads:()=>gate.promise});await ui.ready();
+    ui.click('semantic-workspace-saved-toggle');await turn();ui.observe(change(ui.current()));
+    assert.equal(ui.byId('semantic-workspace-saved-toggle').hidden,true);
+    gate.reject(Error('old private failure'));await turn();assert.equal(ui.byId('semantic-workspace-history-retry').hidden,true);
+    assert.equal(ui.byId('semantic-workspace-history-status').textContent,'');ui.workspace.dispose();
+  }
+});
+
+test('saved view and Topic discussions preserve explicit Root A and private semantic draft on Page B',async()=>{
+  const ui=harness();await ui.ready();await ui.selectGlobal();await ui.answer('semanticThread',thread('music'));
+  ui.observe({...ui.current(),draft:{mode:'reply',body:'Private selected reply',semantic:true}});const before=structuredClone(ui.current());
+  const threads=ui.calls.filter(call=>call.method==='semanticThread').length,selections=ui.selections.length;
+  ui.click('semantic-workspace-saved-toggle');await turn();assert.equal(ui.modes.at(-1),false);
+  ui.click('semantic-workspace-saved-toggle');assert.equal(ui.modes.at(-1),true);
+  assert.equal(ui.byId('semantic-context-heading').textContent,'Original topic A');assert.deepEqual(ui.current(),before);
+  assert.equal(ui.selections.length,selections);assert.equal(ui.calls.filter(call=>call.method==='semanticThread').length,threads);ui.workspace.dispose();
+});
 
 test('workspace imports inertly and real panels have distinct IDs with global Source-independent requests',async()=>{
   const ui=harness();assert.equal(ui.calls.length,0);await ui.ready();
@@ -110,6 +164,7 @@ test('classification pending, excluded, abstention and optional metadata failure
     const ui=harness();ui.start();await ui.answer('semanticCapabilities',{protocol:'semantic-topics/v1'});await ui.answer('semanticTopics',directory());
     if(value instanceof Error){ui.pending('semanticContext').reject(value);await turn();}else await ui.answer('semanticContext',value);
     assert.equal(ui.discussionRoot.hidden,!(value instanceof Error));assert.equal(ui.modes.at(-1),false);assert.equal(ui.availability.at(-1),'available');assert.equal(ui.discoverRoot.hidden,false);
+    assert.equal(ui.byId('semantic-workspace-saved-toggle').hidden,true); // Already canonical; no duplicate view switch.
     if(value instanceof Error){assert.equal(ui.discussionRoot.children.at(-1).hidden,true);assert.match(ui.byId('semantic-workspace-status').textContent,/unavailable/);
       assert.equal(ui.byId('semantic-workspace-retry').hidden,false);ui.click('semantic-workspace-retry');await ui.answer('semanticContext',context());
       assert.equal(ui.byId('semantic-workspace-retry').hidden,true);assert.equal(ui.modes.at(-1),true);}
