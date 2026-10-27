@@ -14,10 +14,11 @@ export function launchChromiumPipe({ executable, profileDirectory }) {
   let sequence = 0;
   let buffer = Buffer.alloc(0);
   let ended = false;
+  let ownedHasExited = false;
   let closing;
   const input = child.stdio[3];
   const output = child.stdio[4];
-  const exited = new Promise((resolve) => child.once("exit", resolve));
+  const exited = new Promise((resolve) => child.once("exit", (...args) => { ownedHasExited = true; resolve(...args); }));
   function failPending() {
     ended = true;
     for (const item of pending.values()) {
@@ -90,5 +91,5 @@ export function launchChromiumPipe({ executable, profileDirectory }) {
     })();
     return closing;
   }
-  return Object.freeze({ send, on, close });
+  return Object.freeze({ send, on, close, get hasExited() { return ownedHasExited; } });
 }
