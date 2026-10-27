@@ -223,6 +223,35 @@ the current catalog:372559 bytes/2435 files/275023616 bytes, SHA256
 `9a6b7637dcc67f2a9c95066d2be84350555901cd1138e8c3e8cf54da6b85e223`.
 This source acceptance authorizes neither actual retirement nor another restore.
 
+## Full-data attempt: verifier configuration correction
+
+The separately authorized full-data attempt28329 used run
+`run-433e31e7913464156627959abb43de02fa876fc74a08b469`. Authentication and complete
+restore-stream retirement passed; schema9 identities/versions/text-PK collations
+passed the first child check. The function-security check then refused before
+any table fingerprints. PostgreSQL10872 smart-stopped and A16384 was dropped;
+parent normal retirement, empty Job, handles, EOFs and end pins passed. Nine
+closed phase records end at schema-verified107936 callback-relative milliseconds.
+The119834ms lifecycle is a one-off recovery rehearsal, not application latency.
+Root fully read/authenticated independent saved-failure audit SHA256
+`597e79b4d5299b04bcaa51770ace423b9b4d864964467ef0405a2f52efbf612e`.
+
+A separate bounded read-only live pg_catalog observation returned37 functions.
+`ingest_json_number` has both `search_path=pg_catalog` and `extra_float_digits=3`,
+exactly as the fixed004 migration declares. The verifier and its fake fixture
+incorrectly expected only search_path for that function. Saved failed output
+does not identify the exact row, so this observation and source defect remain
+distinct from a retained exact-cause witness.
+
+Narrow SOURCE grant: Maintained updates only the private entry/test to require
+the exact two settings for ingest_json_number, retaining exact configuration for
+every other function and all ownership/definer/PUBLIC/role-grant checks. Add
+positive and missing/wrong-setting regression cases. Optional failure diagnostics
+may name only the existing closed function-name and field enums, never SQL/error
+text or user data. No DDL, production permissions, resource limits, old output,
+or checkpoint grammar changes. Fresh source/catalog review and a separate
+one-attempt decision are required before another full-data rehearsal.
+
 Source grant (2026-10-27): implement only the maintained driver/test and catalog,
 maintained run-binding/cluster and their tests, new private-owner-storage helper
 and test, and new owner-restore-native-check entry and test. Reviews resolved

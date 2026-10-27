@@ -155,8 +155,13 @@ async function verifyDatabase(db,receipt,manifest,checks,check,phase){
      has_function_privilege('murmingle_app',p.oid,'EXECUTE') AS app,has_function_privilege('murmingle_crawler_submitter',p.oid,'EXECUTE') AS submitter,
      has_function_privilege('murmingle_ingest_worker',p.oid,'EXECUTE') AS worker FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='canonical_v4'`)).rows;
     requireThat(functions.length===HELPERS.size+DEFINERS.size&&new Set(functions.map(row=>row.name)).size===functions.length,'RESTORE_FUNCTION_SET');
-    for(const row of functions){requireThat((HELPERS.has(row.name)||DEFINERS.has(row.name))&&row.owner==='murmingle_owner'&&row.definer===DEFINERS.has(row.name)&&
-      isDeepStrictEqual(row.config,row.name==='reject_import_receipt_mutation'?null:['search_path=pg_catalog'])&&row.public_execute===false,'RESTORE_FUNCTION_SECURITY');
+    for(const row of functions){requireThat(HELPERS.has(row.name)||DEFINERS.has(row.name),'RESTORE_FUNCTION_SET');
+     // Only this closed37-name enum may enter finite field diagnostics.
+     const diagnostic='RESTORE_FN_'+row.name.toUpperCase();
+     requireThat(row.owner==='murmingle_owner',diagnostic+'_OWNER');requireThat(row.definer===DEFINERS.has(row.name),diagnostic+'_DEFINER');
+     // 004 explicitly pins JSON rendering in addition to the search path.
+     const config=row.name==='reject_import_receipt_mutation'?null:row.name==='ingest_json_number'?['search_path=pg_catalog','extra_float_digits=3']:['search_path=pg_catalog'];
+     requireThat(isDeepStrictEqual(row.config,config),diagnostic+'_CONFIG');requireThat(row.public_execute===false,diagnostic+'_PUBLIC');
      for(const [role,key]of [['murmingle_app','app'],['murmingle_crawler_submitter','submitter'],['murmingle_ingest_worker','worker']])requireThat(row[key]===EXECUTE[role].has(row.name),'RESTORE_EXECUTE_GRANT');}
     const grants=(await tx.query(`SELECT r.rolname AS role,c.relname AS name,
      has_table_privilege(r.rolname,c.oid,'SELECT') AS readable,

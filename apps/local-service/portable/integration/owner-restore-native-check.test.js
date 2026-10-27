@@ -52,7 +52,8 @@ function fixture({fault=null}={}){
    rolsuper:false,rolcreatedb:false,rolcreaterole:false,rolreplication:false,rolbypassrls:false,rolcanlogin:rolname!=='murmingle_owner'}));
   else if(sql.includes('acldefault(CASE'))rows=[{n:'0'}];
   else if(sql.includes('p.prosecdef'))rows=[...helpers,...definers].map(name=>({name,owner:'murmingle_owner',definer:definers.includes(name),
-   config:name==='reject_import_receipt_mutation'?null:['search_path=pg_catalog'],public_execute:!!fault?.publicFunction,
+   config:name==='reject_import_receipt_mutation'?null:name==='ingest_json_number'?
+    fault&&Object.hasOwn(fault,'jsonNumberConfig')?fault.jsonNumberConfig:['search_path=pg_catalog','extra_float_digits=3']:['search_path=pg_catalog'],public_execute:!!fault?.publicFunction,
    ...Object.fromEntries(Object.entries(privileges).map(([role,allowed])=>[role,allowed.includes(name)]))}));
   else if(sql.includes('has_table_privilege'))rows=['murmingle_app','murmingle_crawler_submitter','murmingle_ingest_worker'].flatMap(role=>tables.map(name=>{
    const allowed=role==='murmingle_app'?!['command_receipts','runtime_source_stamps','ingestion_jobs','catalog_ingest_lane'].includes(name):name==='schema_migrations';
@@ -121,8 +122,16 @@ test('a changed table fingerprint fails its genuine named point and still closes
  assert.ok(f.events.includes('rr-rollback'));assert.ok(f.events.includes('finish-controller'));assert.equal(f.events.at(-1),'close-held-data');
  assert.equal(f.phases.at(-1),'table-discussions-verified');assert.ok(!f.phases.includes('table-sources-verified'));
 });
-for(const [name,fault,expected]of [['PK collation',{collation:true},'RESTORE_PK_COLLATION'],['PUBLIC function execute',{publicFunction:true},'RESTORE_FUNCTION_SECURITY'],['restored DML grant',{writable:true},'RESTORE_TABLE_GRANTS'],['unsafe ordinal sequence',{unsafeSequence:true},'RESTORE_SEQUENCE_REUSE']])
+for(const [name,fault,expected]of [['PK collation',{collation:true},'RESTORE_PK_COLLATION'],['PUBLIC function execute',{publicFunction:true},'RESTORE_FN_REJECT_IMPORT_RECEIPT_MUTATION_PUBLIC'],['restored DML grant',{writable:true},'RESTORE_TABLE_GRANTS'],['unsafe ordinal sequence',{unsafeSequence:true},'RESTORE_SEQUENCE_REUSE']])
  test(name+' cannot pass full-data verification',async()=>{const result=projectOwnerRestoreResult(await fixture({fault}).run());assert.equal(result.accepted,false);assert.equal(result.primary,expected);});
+test('schema9 ingest_json_number accepts exactly migration004 search path and extra_float_digits settings',async()=>{
+ const f=fixture({fault:{jsonNumberConfig:['search_path=pg_catalog','extra_float_digits=3']}});assert.equal(projectOwnerRestoreResult(await f.run()).accepted,true);
+});
+for(const [name,jsonNumberConfig]of [['missing',['search_path=pg_catalog']],['wrong',['search_path=pg_catalog','extra_float_digits=2']]])
+ test('ingest_json_number '+name+' extra_float_digits setting fails with finite function/config diagnostic',async()=>{
+  const result=projectOwnerRestoreResult(await fixture({fault:{jsonNumberConfig}}).run());assert.equal(result.accepted,false);
+  assert.equal(result.primary,'RESTORE_FN_INGEST_JSON_NUMBER_CONFIG');assert.equal(result.proof.cases.at(-1).name,'Restored owner and execute-only role boundaries');
+ });
 test('the original callback deadline blocks restore dispatch and still settles cleanup',async()=>{
  const f=fixture({fault:{beforeRestore:expire=>expire()}}),result=projectOwnerRestoreResult(await f.run());assert.equal(result.primary,'OWNED_DEADLINE');assert.equal(result.accepted,false);
  assert.ok(!f.events.includes('restore-child'));assert.ok(f.events.includes('finish-controller'));assert.ok(f.events.includes('close-held-data'));
