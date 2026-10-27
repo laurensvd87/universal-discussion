@@ -9,6 +9,7 @@ import { formatInsightCitations } from "../../../../spikes/topic-resolution/brow
 import { ServiceError, fail } from "../domain/errors.js";
 import { readId } from "../domain/validation.js";
 import { isAccountPrincipal } from "../accounts/account-principal.js";
+import { types } from "node:util";
 
 const FILE = "chatgpt-registration.json";
 const OPERATION = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
@@ -49,6 +50,17 @@ function operationId(value) {
 }
 function same(left, right) { return JSON.stringify(left) === JSON.stringify(right); }
 function bodyDigest(body) { return createHash("sha256").update(body, "utf8").digest("hex"); }
+function semanticWitness(value) {
+  if (!value || typeof value !== 'object' || types.isProxy(value) || Object.getPrototypeOf(value) !== Object.prototype)
+    fail('invalid', 'Invalid semantic witness');
+  const fields=['nodeId','topicId','rootRevision','targetRevision'], descriptors=Object.getOwnPropertyDescriptors(value);
+  if (Reflect.ownKeys(descriptors).length!==4 || fields.some(key=>!descriptors[key]?.enumerable || !Object.hasOwn(descriptors[key],'value')))
+    fail('invalid', 'Invalid semantic witness');
+  const {nodeId,topicId,rootRevision,targetRevision}=value;
+  if(typeof nodeId!=='string'||!nodeId.length||nodeId.length>160||nodeId.trim()!==nodeId||/[\u0000-\u001f\u007f]/u.test(nodeId)||
+      readId(topicId)!==topicId||![rootRevision,targetRevision].every(n=>Number.isSafeInteger(n)&&n>0))fail('invalid','Invalid semantic witness');
+  return Object.freeze({nodeId,topicId,rootRevision,targetRevision});
+}
 
 /** Non-secret installation mapping only. Access, refresh and ID tokens never reach this file. */
 export function createChatGPTRegistrationStore(dataDir) {
@@ -142,8 +154,9 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
   let callbackGeneration = 0;
   function finish(job) {
     job.finishedAt = now();
+    const retention=job.state === "completed" ? RESULT_TTL_MS : FAILURE_TTL_MS;
     job.expiry = setTimeout(() => { job.result = null; jobs.delete(job.operationId); },
-      job.state === "completed" ? RESULT_TTL_MS : FAILURE_TTL_MS);
+      job.semanticTarget ? Math.min(retention,Math.max(0,job.expiresAt-now())) : retention);
     job.expiry.unref?.();
   }
   function removeJob(job) {
@@ -191,13 +204,22 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     if (typeof includeRelatedSources !== "boolean") fail("invalid", "Invalid request");
     const sourceId = readId(context.currentSource.id), topicId = readId(context.topic.id);
     const includeDiscussion = context.coverage?.discussionIncluded === true;
-    const inspect = ({ catalog, discussion, related, anchor = null, followupDiscussion = undefined }) => {
+    const inspect = ({ catalog, discussion, related, anchor = null, followupDiscussion = undefined, semanticTarget = null }) => {
         if (!sameOrLaterVersion(catalog.version, input.expected) ||
             !same(catalog.version, discussion.version) ||
             (includeRelatedSources && !same(catalog.version, related?.version)) ||
             (!includeRelatedSources && related !== null) ||
             (anchor && !same(catalog.version, anchor.version)) ||
-            (followupDiscussion && !same(catalog.version, followupDiscussion.version))) fail("conflict", "State changed");
+            (followupDiscussion && !same(catalog.version, followupDiscussion.version)) ||
+            (input.semanticTarget && (!semanticTarget || !anchor?.evidence || !same(catalog.version,semanticTarget.version)))) fail("conflict", "State changed");
+        if(input.semanticTarget) {
+          const evidence=exact(anchor.evidence,['sourceId','sourceVersion','operationId','operationDigest','sourceStamp']);
+          if(anchor.sourceId!==sourceId||anchor.topicId!==topicId||evidence.sourceId!==sourceId||
+              typeof evidence.sourceVersion!=='string'||!/^(0|[1-9][0-9]{0,18})$/.test(evidence.sourceVersion)||
+              BigInt(evidence.sourceVersion)>9223372036854775807n||readId(evidence.operationId)!==evidence.operationId||
+              [evidence.operationDigest,evidence.sourceStamp].some(v=>typeof v!=='string'||!/^[a-f0-9]{64}$/.test(v))||
+              evidence.sourceStamp!==anchor.sourceStamp)fail('conflict','Evidence Source changed');
+        }
         const excluded = input.excludedRelatedSourceIds ?? [];
         let rebuilt;
         try {
@@ -221,11 +243,13 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         const catalogUrls = new Map(catalog.sources.map((source) => [source.id, source.url]));
         const excludedWebUrls = excluded.map((id) => catalogUrls.get(id));
         if (excludedWebUrls.some((url) => typeof url !== "string")) fail("invalid", "Invalid request");
-        return { context: rebuilt, excludedWebUrls, version: catalog.version, anchor, followupDiscussion };
+        return { context: rebuilt, excludedWebUrls, version: catalog.version, anchor, followupDiscussion, semanticTarget };
     };
     if (typeof service.insightBundle === "function") return mapResult(service.insightBundle({
       sourceId, topicId, includeDiscussion, includeRelatedSources, destinationTopicId,
+      ...(input.semanticTarget ? {semanticTarget:{...semanticWitness(input.semanticTarget),targetId:readId(input.followupQuestionId)}} : {}),
     }), inspect);
+    if(input.semanticTarget)fail('unavailable','Semantic insight context unavailable');
     const catalogValue = typeof service.catalogContext === "function" ? service.catalogContext({ sourceId, topicId }) : service.catalog();
     return mapResult(catalogValue, catalog => {
       const discussionValue = typeof service.insightDiscussion === "function"
@@ -236,9 +260,12 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     });
   }
   function inspectFollowup(questionId, destinationTopicId, sourceId, currentTopicId, expected,
-    providedDiscussion = undefined) {
+    providedDiscussion = undefined, semanticTarget = null, witness = null) {
     const id = readId(questionId);
-    const discussionValue = providedDiscussion !== undefined ? providedDiscussion :
+    if(witness && (!semanticTarget || semanticTarget.nodeId!==witness.nodeId || semanticTarget.topic.id!==witness.topicId ||
+        semanticTarget.rootRevision!==witness.rootRevision || semanticTarget.targetRevision!==witness.targetRevision ||
+        semanticTarget.targetId!==id))fail('conflict','Semantic reply target changed');
+    const discussionValue = witness ? {...semanticTarget,roots:[semanticTarget.root]} : providedDiscussion !== undefined ? providedDiscussion :
       typeof service.discussionForContribution === "function"
         ? service.discussionForContribution(destinationTopicId, id) : service.discussion(destinationTopicId);
     return mapResult(discussionValue, discussion => {
@@ -249,12 +276,13 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         if (!target) continue;
         if (root.state !== "visible" || target.state !== "visible" ||
             typeof root.body !== "string" || typeof target.body !== "string") fail("forbidden", "Action unavailable");
-        if (destinationTopicId !== currentTopicId && root.origin?.sourceId !== sourceId) {
+        if (!witness && destinationTopicId !== currentTopicId && root.origin?.sourceId !== sourceId) {
           fail("forbidden", "Action unavailable");
         }
         return { parentBody: root.body.slice(0, 2_000), questionBody: target.body.slice(0, 2_000),
           parentDigest: bodyDigest(root.body), questionDigest: bodyDigest(target.body),
-          rootId: root.id, replyToId: target.id, discussionId: discussion.discussionId };
+          rootId: root.id, replyToId: target.id, discussionId: discussion.discussionId,
+          ...(witness?{semanticTarget:witness}:{}) };
       }
       fail("not-found", "Object unavailable");
     });
@@ -264,8 +292,13 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     if (typeof isCurrent !== "function") return false;
     try { return isCurrent(); } catch { return false; }
   }
+  function publicationFor(job) {
+    return Object.freeze({semanticTarget:Object.freeze({...job.semanticTarget}),evidence:Object.freeze({...job.anchor.evidence}),articleDigest:job.articleDigest,
+      rootDigest:job.followup.parentDigest,targetDigest:job.followup.questionDigest,expiresAt:job.expiresAt});
+  }
   function currentJobAuthority(job) {
     if (disposed || callbackPending || jobs.get(job.operationId) !== job) return false;
+    if(job.semanticTarget && now()>=job.expiresAt)return false;
     const status = connection.status();
     if (!status.connected || !status.planEnabled || !same(status.account ?? null, job.account) ||
         !same(connection.accountIdentity?.() ?? null, job.accountIdentity)) return false;
@@ -277,8 +310,9 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
     let bundleValue;
     try {
       bundleValue = typeof service.insightJobBundle === "function" ? service.insightJobBundle({
-        sourceId: job.originSourceId, topicId: job.topicId,
+        sourceId: job.evidenceSourceId ?? job.originSourceId, topicId: job.topicId,
         destinationTopicId: job.replyToId === null ? null : job.destinationTopicId,
+        ...(job.semanticTarget?{semanticTarget:{...job.semanticTarget,targetId:job.replyToId}}:{}),
       }) : mapResult(service.insightAnchor(job.topicId, job.originSourceId), anchor =>
         ({ anchor, followupDiscussion: undefined }));
     }
@@ -286,13 +320,13 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       if (error instanceof ServiceError && ["conflict", "not-found"].includes(error.code)) return null;
       throw error;
     }
-    const validate = ({ anchor, followupDiscussion }) => {
+    const validate = ({ anchor, followupDiscussion, semanticTarget }) => {
       if (!currentJobAuthority(job) || anchor.version.generation !== job.expected.generation ||
           !same({ ...anchor, version: null }, { ...job.anchor, version: null })) return null;
       if (job.replyToId === null) return anchor;
       let followupValue;
       try { followupValue = inspectFollowup(job.replyToId, job.destinationTopicId,
-        job.originSourceId, job.topicId, anchor.version, followupDiscussion); }
+        job.evidenceSourceId ?? job.originSourceId, job.topicId, anchor.version, followupDiscussion, semanticTarget, job.semanticTarget); }
       catch (error) {
         if (error instanceof ServiceError && ["conflict", "not-found", "forbidden"].includes(error.code)) return null;
         throw error;
@@ -357,6 +391,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         ...(Object.hasOwn(value ?? {}, "relatedExcerpts") ? ["relatedExcerpts"] : []),
         ...(Object.hasOwn(value ?? {}, "preferences") ? ["preferences"] : []),
         ...(Object.hasOwn(value ?? {}, "followupQuestionId") ? ["followupQuestionId"] : []),
+        ...(Object.hasOwn(value ?? {}, "semanticTarget") ? ["semanticTarget"] : []),
         ...(Object.hasOwn(value ?? {}, "followupTopicId") ? ["followupTopicId"] : [])]);
       if (Object.hasOwn(value, "followupTopicId") && !Object.hasOwn(value, "followupQuestionId")) {
         fail("invalid", "Invalid request");
@@ -384,13 +419,22 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
       if (!state.connected || !state.planEnabled) fail("unauthorized", "ChatGPT plan permission required");
       const generation = preparationGeneration;
       const hasFollowup = Object.hasOwn(value, "followupQuestionId");
+      const witness=Object.hasOwn(value,'semanticTarget')?semanticWitness(value.semanticTarget):null;
+      if(witness&&!hasFollowup)fail('invalid','Invalid semantic followup');
+      // Snapshot provider primitives before any asynchronous snapshot/dispatch
+      // validation. The transient article is not retained in the job record.
+      const captured=witness?Object.freeze({model:value.model,articleText:value.articleText,allowWebResearch:value.allowWebResearch}):null;
+      if(captured && (typeof captured.model!=='string'||!captured.model.length||captured.model.length>256||
+          typeof captured.articleText!=='string'||!captured.articleText.length||captured.articleText.length>4096||
+          typeof captured.allowWebResearch!=='boolean'))fail('invalid','Invalid semantic provider input');
       const contextTopicId = readId(value.context?.topic?.id);
       const destinationTopicId = Object.hasOwn(value, "followupTopicId")
         ? readId(value.followupTopicId) : contextTopicId;
+      if(witness&&witness.topicId!==destinationTopicId)fail('invalid','Invalid semantic destination');
       if (Object.hasOwn(value, "followupTopicId") && destinationTopicId === contextTopicId)
         fail("invalid", "Invalid request");
       const inspected = inspectContext(value, hasFollowup ? destinationTopicId : null);
-      const prepare = ({ context, excludedWebUrls, version, anchor: bundledAnchor, followupDiscussion }) => {
+      const prepare = ({ context, excludedWebUrls, version, anchor: bundledAnchor, followupDiscussion, semanticTarget }) => {
         if (disposed || generation !== preparationGeneration || seen.has(key) || active || privateActive)
           fail("conflict", "Operation changed");
         if (!requestCurrent()) fail("unavailable", "Request unavailable");
@@ -408,7 +452,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         if (relatedExcerpts.length) fail("invalid", "Invalid request");
         const followupValue = hasFollowup
           ? inspectFollowup(value.followupQuestionId, destinationTopicId,
-            context.currentSource.id, context.topic.id, version, followupDiscussion) : null;
+            context.currentSource.id, context.topic.id, version, followupDiscussion, semanticTarget, witness) : null;
         const anchorValue = bundledAnchor ?? service.insightAnchor(context.topic.id, context.currentSource.id);
         return mapResult(followupValue, followup => mapResult(
           anchorValue, anchor => {
@@ -425,22 +469,35 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
             if (!same(anchor.version, version)) fail("conflict", "State changed");
             const job = { operationId: key, actorId, expected: anchor.version, topicId: context.topic.id,
               destinationTopicId,
-              originSourceId: context.currentSource?.id ?? null,
+              originSourceId: witness && destinationTopicId!==context.topic.id ? null : context.currentSource?.id ?? null,
+              ...(witness?{semanticTarget:witness,evidenceSourceId:context.currentSource.id,articleDigest:bodyDigest(captured.articleText),
+                expiresAt:now()+RESULT_TTL_MS}:{}),
               rootId: followup?.rootId ?? null, replyToId: followup?.replyToId ?? null,
-              discussionId: followup?.discussionId ?? null, anchor, followup,
+              discussionId: followup?.discussionId ?? null, anchor:witness?structuredClone(anchor):anchor, followup,
               account: state.account ? { clientId: state.account.clientId, label: state.account.label } : null,
               accountIdentity: identity,
               state: "running", result: null,
               error: null, detail: null, finishedAt: null };
             seen.add(key); jobs.set(key, job); active = job;
-            void insights.createInsight({ model: value.model, context, articleText: value.articleText,
-              allowWebResearch: value.allowWebResearch, relatedExcerpts,
+            const invoke=()=>insights.createInsight({ model: captured?captured.model:value.model, context, articleText: captured?captured.articleText:value.articleText,
+              allowWebResearch: captured?captured.allowWebResearch:value.allowWebResearch, relatedExcerpts,
               ...(preferences ? { preferences } : {}),
               ...(followup ? { followup: { parentBody: followup.parentBody, questionBody: followup.questionBody },
-                excludedWebUrls } : {}) }).then((result) => {
-              if (job.state === "running" && !disposed) {
+                excludedWebUrls } : {}) });
+            const pending=witness?Promise.resolve().then(()=>currentJobContext(job)).then(checked=>{
+              if(!checked || !currentJobAuthority(job) || !requestCurrent())fail('conflict','State changed');return invoke();
+            }):invoke();
+            void pending.then((result) => {
+              const complete=()=>{if (job.state === "running" && !disposed) {
                 job.state = "completed"; job.result = result; recordInsightOutcome("success"); finish(job);
-              }
+              }};
+              if(!witness){complete();return;}
+              return Promise.resolve().then(()=>currentJobContext(job)).catch(()=>null).then(checked=>{
+                if(!checked || !currentJobAuthority(job)) {
+                  if(job.state==='running'){job.state='failed';job.error='stale-context';finish(job);}return;
+                }
+                complete();
+              });
             }, (error) => {
               if (job.state === "running" && !disposed) { job.state = "failed";
                 job.error = error instanceof ChatGptInsightError && SAFE_ERRORS.has(error.code) ? error.code : "provider-unavailable";
@@ -551,7 +608,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         if (!context && job.error !== "stale-context") {
           cancelJob(job); job.error = "stale-context";
         }
-        if (job.state === "completed") return { operationId: job.operationId, state: job.state, result: job.result };
+        if (job.state === "completed") return { operationId: job.operationId, state: job.state, result: job.result,
+          ...(job.semanticTarget?{semanticPublication:publicationFor(job)}:{}) };
         if (job.state === "failed") return { operationId: job.operationId, state: job.state, error: job.error,
           ...(job.detail ? { detail: job.detail } : {}) };
         return { operationId: job.operationId, state: "running" };
@@ -574,7 +632,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
           return { job: { operationId: job.operationId, state: job.state,
             expected: context.version, topicId: job.topicId, originSourceId: job.originSourceId,
             ...(job.destinationTopicId !== job.topicId ? { followupTopicId: job.destinationTopicId } : {}),
-            rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId } };
+            rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId,
+            ...(job.semanticTarget?{semanticPublication:publicationFor(job)}:{}) } };
         });
       };
       return visit(0);
@@ -594,6 +653,7 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
             !sameOrLaterVersion(context.version, value.expected) ||
             command.topicId !== job.destinationTopicId ||
             command.originSourceId !== job.originSourceId ||
+            (job.semanticTarget ? !same(command.semanticPublication,publicationFor(job)) : Object.hasOwn(command,'semanticPublication')) ||
             (job.replyToId === null ? command.type !== "share-insight" :
               command.type !== "share-insight-reply" ||
               command.rootId !== job.rootId || command.replyToId !== job.replyToId ||
@@ -604,7 +664,8 @@ export function createChatGPTRuntime({ service, dataDir, fetchImpl, refreshStore
         if (command.body !== body) fail("invalid", "Invalid request");
         const proof = Object.freeze({ kind: "generated-insight", operationId: job.operationId,
           actorId, topicId: job.destinationTopicId, originSourceId: job.originSourceId, body,
-          rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId });
+          rootId: job.rootId, replyToId: job.replyToId, discussionId: job.discussionId,
+          ...(job.semanticTarget?{semanticPublication:publicationFor(job)}:{}) });
         const accepted = outcome => {
           clearTimeout(job.expiry); job.result = null; jobs.delete(job.operationId);
           return outcome;

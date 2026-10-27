@@ -16,6 +16,89 @@ import { demoService, deterministicDependencies } from "./helpers.js";
 
 const ORIGIN = `chrome-extension://${"a".repeat(32)}`;
 const TOKEN = "test-capability-value-32-characters";
+
+// Invented authoritative ports exercise the actual job state machine. These
+// bindings are not native/SQL/capture attestations.
+function semanticJobFixture(t,{dispatchGate=null}={}) {
+  const base=demoService(), sourceId='reserved-example-com', topicId='reserved-domain-demo', destination='harbor-s2';
+  const rootId=base.command(base.catalog().version,{type:'create-root',topicId:destination,body:'Root A full body',originSourceId:'harbor-overview'},'demo-alex').result.contributionId;
+  const targetId=base.command(base.catalog().version,{type:'reply',discussionId:base.discussion(destination).discussionId,rootId,replyToId:rootId,body:'Welche Antwort?',originSourceId:null},'demo-alex').result.contributionId;
+  let clock=100000, evidenceVersion='7', targetRevision=1, rootRevision=1, visible=true, account='one';
+  const provider=[], bundles=[];let complete;
+  const pending=new Promise(resolve=>{complete=resolve;});
+  const witness={nodeId:'games',topicId:destination,rootRevision:1,targetRevision:1};
+  function bundle(input) {
+    bundles.push(structuredClone(input));
+    if(!visible)throw Object.assign(Error('unavailable'),{code:'not-found'});
+    const catalog=base.catalog(), discussion=base.discussion(topicId), foreign=base.discussion(destination), root=foreign.roots.find(root=>root.id===rootId);
+    const originalAnchor=base.insightAnchor(topicId,sourceId);
+    const anchor={...originalAnchor,evidence:{sourceId,sourceVersion:evidenceVersion,operationId:'invented-durable-operation',operationDigest:'a'.repeat(64),sourceStamp:originalAnchor.sourceStamp}};
+    return {version:catalog.version,catalog,discussion,related:null,anchor,followupDiscussion:null,
+      semanticTarget:{version:catalog.version,nodeId:witness.nodeId,topic:foreign.topic,discussionId:foreign.discussionId,
+        root:{...root,replies:root.replies.filter(reply=>reply.id===targetId)},targetId,rootRevision,targetRevision}};
+  }
+  const service={...base,insightBundle:bundle,insightJobBundle:input=>dispatchGate?dispatchGate.then(()=>bundle(input)):bundle(input)};
+  const ai=createChatGPTRuntime({service,now:()=>clock,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false,account:{clientId:account,label:'Invented account'}}),dispose(){}},
+    insightsAdapter:{createInsight(request){provider.push(request);return pending;},cancel(){},dispose(){}}});
+  t.after(()=>ai.dispose());
+  const catalog=base.catalog(), context=buildInsightContext({catalog,discussion:base.discussion(topicId),related:null,sourceId,topicId});
+  const input={operationId:'semantic-job',model:'synthetic',context,articleText:'Page B independent evidence',allowWebResearch:false,
+    includeRelatedSources:false,expected:catalog.version,followupQuestionId:targetId,followupTopicId:destination,semanticTarget:witness};
+  return {ai,input,provider,bundles,base,witness,rootId,targetId,
+    complete:()=>complete({body:'Exact generated answer',citations:[],model:'synthetic'}),
+    change(kind){if(kind==='source')evidenceVersion='8';if(kind==='target')targetRevision++;if(kind==='root')rootRevision++;if(kind==='visibility')visible=false;
+      if(kind==='account')account='two';if(kind==='expiry')clock+=1800001;},
+    async settle(){for(let i=0;i<4;i++)await new Promise(resolve=>setImmediate(resolve));},
+    command(publication){return {type:'share-insight-reply',topicId:destination,discussionId:base.discussion(destination).discussionId,
+      rootId,replyToId:targetId,body:'Exact generated answer',operationId:input.operationId,originSourceId:null,semanticPublication:publication};}};
+}
+
+test('semantic job keeps independent Page B evidence, bounded Root A text and exact publication proof',async t=>{
+  const f=semanticJobFixture(t);await f.ai.create(f.input,'demo-alex');await f.settle();
+  assert.equal(f.provider.length,1);assert.equal(f.provider[0].context.currentSource.id,f.input.context.currentSource.id);
+  assert.equal(f.provider[0].articleText,'Page B independent evidence');
+  assert.deepEqual(f.provider[0].followup,{parentBody:'Root A full body',questionBody:'Welche Antwort?'});
+  f.complete();await f.settle();const result=await f.ai.result({operationId:f.input.operationId},'demo-alex');
+  assert.equal(result.state,'completed');const publication=result.semanticPublication;
+  assert.equal(publication.expiresAt,1900000);assert.equal(publication.evidence.sourceVersion,'7');
+  assert.equal(Object.isFrozen(publication.evidence),true);
+  const resumable=await f.ai.resumable('demo-alex');assert.deepEqual(resumable.job.semanticPublication,publication);
+  let proof;await f.ai.share({expected:f.base.catalog().version,command:f.command(publication)},'demo-alex',(value)=>{proof=value;return {accepted:true};});
+  assert.deepEqual(proof.semanticPublication,publication);assert.equal(proof.originSourceId,null);
+  assert.equal(proof.topicId,'harbor-s2');assert.equal(f.provider.length,1);
+});
+
+test('semantic job rejects changed evidence, target, visibility, account and fixed expiry without publication',async t=>{
+  for(const kind of ['source','target','root','visibility','account','expiry']) {
+    const f=semanticJobFixture(t);await f.ai.create(f.input,'demo-alex');await f.settle();f.complete();await f.settle();
+    const result=await f.ai.result({operationId:f.input.operationId},'demo-alex');assert.equal(result.state,'completed');
+    f.change(kind);let writes=0;
+    await assert.rejects(async()=>f.ai.share({expected:f.base.catalog().version,command:f.command(result.semanticPublication)},'demo-alex',()=>{writes++;}),
+      error=>['conflict','not-found'].includes(error.code));
+    assert.equal(writes,0);assert.equal(f.provider.length,1);
+  }
+});
+
+test('semantic completion and dispatch recheck witnesses instead of refreshing them',async t=>{
+  const dispatch=semanticJobFixture(t);dispatch.ai.create(dispatch.input,'demo-alex');dispatch.change('source');await dispatch.settle();
+  assert.equal(dispatch.provider.length,0);
+  const completion=semanticJobFixture(t);await completion.ai.create(completion.input,'demo-alex');await completion.settle();
+  completion.change('target');completion.complete();await completion.settle();
+  const result=await completion.ai.result({operationId:completion.input.operationId},'demo-alex');
+  assert.equal(result.state,'failed');assert.equal(Object.hasOwn(result,'semanticPublication'),false);
+});
+
+test('semantic async dispatch uses the approved primitive snapshot and rejects altered publication material',async t=>{
+  let release;const gate=new Promise(resolve=>{release=resolve;}),f=semanticJobFixture(t,{dispatchGate:gate});
+  f.ai.create(f.input,'demo-alex');f.input.articleText='MUTATED evidence';f.input.model='MUTATED model';f.input.allowWebResearch=true;
+  await f.settle();assert.equal(f.provider.length,0);release();await f.settle();
+  assert.equal(f.provider[0].articleText,'Page B independent evidence');assert.equal(f.provider[0].model,'synthetic');
+  assert.equal(f.provider[0].allowWebResearch,false);f.complete();await f.settle();
+  const result=await f.ai.result({operationId:f.input.operationId},'demo-alex');
+  const tampered=structuredClone(result.semanticPublication);tampered.expiresAt++;let writes=0;
+  await assert.rejects(async()=>f.ai.share({expected:f.base.catalog().version,command:f.command(tampered)},'demo-alex',()=>{writes++;}));
+  assert.equal(writes,0);
+});
 const config = validateStartupConfig({ host: "127.0.0.1", port: 4174, origin: ORIGIN, capability: TOKEN });
 function request(method, url, body, headers = {}) {
   return { method, url, headers: { host: config.hostHeader, authorization: `Bearer ${TOKEN}`,

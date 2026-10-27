@@ -4,7 +4,7 @@ import { setImmediate as yieldReadWork } from 'node:timers/promises';
 import { ServiceError, fail } from '../../src/domain/errors.js';
 import { MAX_RESPONSE_BYTES } from '../../src/domain/discussion-view.js';
 import { BROWSER_MODEL_ID, compatibleExtractor, LEARNED_SOURCE_PROVENANCE, LEARNED_TOPIC_PROVENANCE } from '../../src/domain/learned-sources.js';
-import { sourceStamp } from '../../src/domain/source-threads.js';
+import { sourceStamp, operationDigestFor } from '../../src/domain/source-threads.js';
 import { frozenClone, readBody, readId, readRecord, readText } from '../../src/domain/validation.js';
 import { createRelatedSourcesPreparation, parseRelatedEmbeddingJson } from '../../../../spikes/topic-resolution/browser/core/related-sources.js';
 import { createEmbeddingWireQuery, decodeEmbeddingBase64Array } from './embedding-binary-wire.js';
@@ -483,6 +483,17 @@ function assertComponentVersions(version, values, label) {
   for (const value of values) if (value !== null &&
       (value?.version?.generation !== version.generation || value.version.revision !== version.revision))
     corrupt(`Incoherent canonical ${label}`);
+}
+
+async function insightSemanticTarget(tx, scoped, value, destinationTopicId) {
+  const input = readRecord(value, ['nodeId', 'topicId', 'rootRevision', 'targetRevision', 'targetId']);
+  const targetId = readId(input.targetId), rows = await latestContributionRows(tx, [targetId]);
+  if (rows.length !== 1) fail('not-found', 'Reply target unavailable');
+  const result = await scoped.semanticTarget({ nodeId: input.nodeId, rootId: rows[0].root_id ?? targetId, targetId });
+  if (result.topic.id !== destinationTopicId || result.topic.id !== input.topicId ||
+      result.rootRevision !== input.rootRevision || result.targetRevision !== input.targetRevision)
+    fail('conflict', 'Semantic reply target changed');
+  return result;
 }
 
 async function topicRowsByIds(tx, ids) {
@@ -1008,7 +1019,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
 
     async insightBundle(value) {
       const input = readRecord(value,
-        ['sourceId', 'topicId', 'includeDiscussion', 'includeRelatedSources', 'destinationTopicId'],
+        ['sourceId', 'topicId', 'includeDiscussion', 'includeRelatedSources', 'destinationTopicId', 'semanticTarget'],
         ['sourceId', 'topicId', 'includeDiscussion', 'destinationTopicId']);
       const sourceId = readId(input.sourceId), topicId = readId(input.topicId);
       const destinationTopicId = input.destinationTopicId === null ? null : readId(input.destinationTopicId);
@@ -1027,28 +1038,31 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
         // selected Related links or relaxes their existing authority checks.
         const catalog = includeRelatedSources
           ? await catalogWithOptionalMetadata(tx, base, related, null, null) : base;
-        const anchor = await scoped.insightAnchor(topicId, sourceId);
-        const followupDiscussion = destinationTopicId === null ? null
+        const semanticTarget = input.semanticTarget === undefined ? null : await insightSemanticTarget(tx, scoped, input.semanticTarget, destinationTopicId);
+        const anchor = await scoped.insightAnchor(topicId, sourceId, semanticTarget !== null);
+        const followupDiscussion = semanticTarget !== null ? null : destinationTopicId === null ? null
           : destinationTopicId === topicId && input.includeDiscussion ? discussion
             : await scoped.fullDiscussion(destinationTopicId);
         assertComponentVersions(catalog.version,
-          [discussion, related, anchor, followupDiscussion], 'Insight bundle');
+          [discussion, related, anchor, followupDiscussion, semanticTarget], 'Insight bundle');
         return assertDtoSize({ version: catalog.version, catalog, discussion, related, anchor,
-          followupDiscussion }, 'Insight context');
+          followupDiscussion, ...(semanticTarget === null ? {} : { semanticTarget }) }, 'Insight context');
       });
     },
 
     async insightJobBundle(value) {
-      const input = readRecord(value, ['sourceId', 'topicId', 'destinationTopicId']);
+      const input = readRecord(value, ['sourceId', 'topicId', 'destinationTopicId', 'semanticTarget'], ['sourceId', 'topicId', 'destinationTopicId']);
       const sourceId = readId(input.sourceId), topicId = readId(input.topicId);
       const destinationTopicId = input.destinationTopicId === null ? null : readId(input.destinationTopicId);
       return snapshot(database, async (tx) => {
         const scoped = sameSnapshotFacade(tx, relatedState);
-        const anchor = await scoped.insightAnchor(topicId, sourceId);
-        const followupDiscussion = destinationTopicId === null
+        const semanticTarget = input.semanticTarget === undefined ? null : await insightSemanticTarget(tx, scoped, input.semanticTarget, destinationTopicId);
+        const anchor = await scoped.insightAnchor(topicId, sourceId, semanticTarget !== null);
+        const followupDiscussion = semanticTarget !== null ? null : destinationTopicId === null
           ? null : await scoped.fullDiscussion(destinationTopicId);
-        assertComponentVersions(anchor.version, [followupDiscussion], 'Insight job bundle');
-        return assertDtoSize({ version: anchor.version, anchor, followupDiscussion }, 'Insight context');
+        assertComponentVersions(anchor.version, [followupDiscussion, semanticTarget], 'Insight job bundle');
+        return assertDtoSize({ version: anchor.version, anchor, followupDiscussion,
+          ...(semanticTarget === null ? {} : { semanticTarget }) }, 'Insight context');
       });
     },
 
@@ -1105,7 +1119,7 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
       });
     },
 
-    async insightAnchor(topicId, sourceId) {
+    async insightAnchor(topicId, sourceId, semanticEvidence = false) {
       topicId = readId(topicId); sourceId = readId(sourceId);
       return snapshot(database, async (tx) => {
         const header = await headerIn(tx), rows = await sourceRowsByIds(tx, [sourceId]);
@@ -1116,9 +1130,23 @@ export function createCanonicalV4ReadFacade({ database, [RELATED_STATE]: inherit
         if (topicRows.length !== 1) fail('conflict', 'State changed');
         const topic = (await topicsFromRows(tx, topicRows))[0].value;
         const stampedSource = await sourceWithAuthoritativeEmbedding(tx, source);
+        let evidence;
+        if (semanticEvidence) {
+          const { rows: bindings } = await tx.query('SELECT * FROM canonical_v4.semantic_insight_evidence($1)', [sourceId]);
+          const binding = bindings[0];
+          if (bindings.length !== 1 || binding.postable !== true || binding.stamp !== stampedSource.stamp ||
+              binding.operation_id !== source.value.operationId || binding.operation_digest !== source.value.operationDigest ||
+              binding.operation_digest !== operationDigestFor(stampedSource.value) ||
+              typeof binding.source_version !== 'string' || !/^(0|[1-9][0-9]{0,18})$/.test(binding.source_version) ||
+              BigInt(binding.source_version) > 9223372036854775807n || !/^[a-f0-9]{64}$/.test(binding.operation_digest))
+            fail('conflict', 'Evidence Source changed');
+          evidence = { sourceId, sourceVersion: binding.source_version, operationId: binding.operation_id,
+            operationDigest: binding.operation_digest, sourceStamp: binding.stamp };
+        }
         return assertDtoSize({ version: header.version, topicId, sourceId,
           topicTitle: topic.title, topicKind: topic.kind, sourceTitle: source.value.title,
-          sourceProvenance: source.value.provenance, sourceStamp: stampedSource.stamp }, 'Insight context');
+          sourceProvenance: source.value.provenance, sourceStamp: stampedSource.stamp,
+          ...(evidence ? { evidence } : {}) }, 'Insight context');
       });
     },
 

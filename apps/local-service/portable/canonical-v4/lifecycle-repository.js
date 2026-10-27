@@ -16,6 +16,22 @@ const GENERATED_AUTHOR = 'demo-imported-ai';
 const DEMO_ACTORS = new Set(['demo-alex', 'demo-blair']);
 const GENERATED_TYPES = new Set(['share-insight', 'share-insight-reply']);
 
+function semanticPublication(value) {
+  const input=readRecord(value,['semanticTarget','evidence','articleDigest','rootDigest','targetDigest','expiresAt']);
+  const target=readRecord(input.semanticTarget,['nodeId','topicId','rootRevision','targetRevision']);
+  const evidence=readRecord(input.evidence,['sourceId','sourceVersion','operationId','operationDigest','sourceStamp']);
+  if(![target.rootRevision,target.targetRevision].every(n=>Number.isSafeInteger(n)&&n>0)||
+      !Number.isSafeInteger(input.expiresAt)||input.expiresAt<=0||
+      typeof evidence.sourceVersion!=='string'||!/^(0|[1-9][0-9]{0,18})$/.test(evidence.sourceVersion)||
+      BigInt(evidence.sourceVersion)>9223372036854775807n||
+      [input.articleDigest,input.rootDigest,input.targetDigest,evidence.operationDigest,evidence.sourceStamp].some(v=>typeof v!=='string'||!/^[a-f0-9]{64}$/.test(v)))
+    fail('invalid','Invalid semantic publication');
+  const nodeId=readText(target.nodeId,160);if(nodeId!==target.nodeId)fail('invalid','Invalid semantic publication');
+  return frozenClone({semanticTarget:{nodeId,topicId:readId(target.topicId),rootRevision:target.rootRevision,targetRevision:target.targetRevision},
+    evidence:{sourceId:readId(evidence.sourceId),sourceVersion:evidence.sourceVersion,operationId:readId(evidence.operationId),operationDigest:evidence.operationDigest,sourceStamp:evidence.sourceStamp},
+    articleDigest:input.articleDigest,rootDigest:input.rootDigest,targetDigest:input.targetDigest,expiresAt:input.expiresAt});
+}
+
 function digestText(value) {
   return createHash('sha256').update(value).digest('hex');
 }
@@ -47,7 +63,7 @@ function optionalOrigin(value) {
 function normalizeCommand(value) {
   const discriminator = readRecord(value, [
     'type', 'topicId', 'discussionId', 'rootId', 'replyToId', 'body',
-    'originSourceId', 'operationId', 'contributionId',
+    'originSourceId', 'operationId', 'contributionId', 'semanticPublication',
   ], ['type']);
   const type = readText(discriminator.type, 64);
   if (type === 'edit') {
@@ -67,11 +83,15 @@ function normalizeCommand(value) {
   }
   if (type === 'share-insight-reply') {
     const input = readRecord(value,
-      ['type', 'topicId', 'discussionId', 'rootId', 'replyToId', 'body', 'operationId', 'originSourceId'],
+      ['type', 'topicId', 'discussionId', 'rootId', 'replyToId', 'body', 'operationId', 'originSourceId', 'semanticPublication'],
       ['type', 'topicId', 'discussionId', 'rootId', 'replyToId', 'body', 'operationId']);
+    const publication=Object.hasOwn(input,'semanticPublication')?semanticPublication(input.semanticPublication):null;
+    if(publication && (publication.semanticTarget.topicId!==input.topicId ||
+        input.originSourceId!=null && input.originSourceId!==publication.evidence.sourceId))fail('invalid','Invalid semantic destination');
     return Object.freeze({ type, topicId: readId(input.topicId), discussionId: readId(input.discussionId),
       rootId: readId(input.rootId), replyToId: readId(input.replyToId), body: readBody(input.body),
-      operationId: readId(input.operationId), originSourceId: optionalOrigin(input.originSourceId) });
+      operationId: readId(input.operationId), originSourceId: optionalOrigin(input.originSourceId),
+      ...(publication?{semanticPublication:publication}:{}) });
   }
   fail('forbidden', 'Action unavailable');
 }
@@ -85,8 +105,8 @@ function generatedProofFor(value, actorId, command) {
   try {
     const input = readRecord(value, [
       'kind', 'operationId', 'actorId', 'topicId', 'originSourceId', 'body',
-      'rootId', 'replyToId', 'discussionId',
-    ]);
+      'rootId', 'replyToId', 'discussionId', 'semanticPublication',
+    ], ['kind','operationId','actorId','topicId','originSourceId','body','rootId','replyToId','discussionId']);
     proof = {
       kind: readText(input.kind, 64), operationId: readId(input.operationId),
       actorId: readId(input.actorId), topicId: readId(input.topicId),
@@ -95,6 +115,7 @@ function generatedProofFor(value, actorId, command) {
       rootId: input.rootId === null ? null : readId(input.rootId),
       replyToId: input.replyToId === null ? null : readId(input.replyToId),
       discussionId: input.discussionId === null ? null : readId(input.discussionId),
+      ...(Object.hasOwn(input,'semanticPublication')?{semanticPublication:semanticPublication(input.semanticPublication)}:{}),
     };
   } catch { fail('forbidden', 'Action unavailable'); }
   const expected = command.type === 'share-insight' ? {
@@ -106,6 +127,7 @@ function generatedProofFor(value, actorId, command) {
     topicId: command.topicId, originSourceId: command.originSourceId,
     body: command.body, rootId: command.rootId, replyToId: command.replyToId,
     discussionId: command.discussionId,
+    ...(Object.hasOwn(command,'semanticPublication')?{semanticPublication:command.semanticPublication}:{}),
   };
   if (JSON.stringify(proof) !== JSON.stringify(expected)) fail('forbidden', 'Action unavailable');
   return Object.freeze(proof);

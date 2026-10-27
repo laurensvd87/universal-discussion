@@ -45,6 +45,14 @@ the existing destination/root/target locks, including when origin is null. Reuse
 015's revision/public visibility/historical membership checks. No current-head
 lock, canonical destination rewrite, table DML grant or relaxed legacy branch.
 
+The application role cannot select the protected Source-stamp table. Migration
+016 therefore also provides one narrow `semantic_insight_evidence(sourceId)`
+security-definer read helper for the same snapshot: only lossless Source version,
+operation ID/digest and stamp/postable metadata. Use a bounded canonical ID,
+`pg_catalog` search path, qualified tables, no dynamic SQL/DML/locks, revoke public
+execution and grant only application execution. This is metadata, not issuance;
+publication independently checks the protected rows under its normal locks.
+
 Provider egress keeps ADR-077/124's limits: at most 2,000 characters each from
 the selected question and opener, 4,096 characters from the current B page, and
 the existing approved bounded B-context related links. Full-body digests still

@@ -368,29 +368,32 @@ export function createPostgresCanonicalService({ reads, urlSelectionReads = read
   }
 
   async function insightBundle(value) {
+    if (Object.hasOwn(value ?? {}, 'semanticTarget') && !semanticDiscussions) fail('unavailable', 'Semantic insights unavailable');
     if (typeof reads.insightBundle !== "function") fail("unavailable", "Insight context unavailable");
     const bundle = await reads.insightBundle(value);
     const catalog = catalogDto(bundle.catalog, model, readAccountActors);
     const selectedDiscussion = bundledDiscussion(bundle.discussion);
     const followupDiscussion = bundle.followupDiscussion === null
       ? null : bundledDiscussion(bundle.followupDiscussion);
-    for (const component of [catalog, selectedDiscussion, bundle.related, bundle.anchor, followupDiscussion])
+    for (const component of [catalog, selectedDiscussion, bundle.related, bundle.anchor, followupDiscussion, bundle.semanticTarget ?? null])
       if (component !== null && !sameVersion(bundle.version, component.version))
         fail("unavailable", "Insight context unavailable");
     return dtoSize({ version: bundle.version, catalog, discussion: selectedDiscussion,
-      related: bundle.related, anchor: bundle.anchor, followupDiscussion }, "Insight context");
+      related: bundle.related, anchor: bundle.anchor, followupDiscussion,
+      ...(bundle.semanticTarget ? { semanticTarget: bundle.semanticTarget } : {}) }, "Insight context");
   }
 
   async function insightJobBundle(value) {
+    if (Object.hasOwn(value ?? {}, 'semanticTarget') && !semanticDiscussions) fail('unavailable', 'Semantic insights unavailable');
     if (typeof reads.insightJobBundle !== "function") fail("unavailable", "Insight context unavailable");
     const bundle = await reads.insightJobBundle(value);
     const followupDiscussion = bundle.followupDiscussion === null
       ? null : bundledDiscussion(bundle.followupDiscussion);
-    for (const component of [bundle.anchor, followupDiscussion])
+    for (const component of [bundle.anchor, followupDiscussion, bundle.semanticTarget ?? null])
       if (component !== null && !sameVersion(bundle.version, component.version))
         fail("unavailable", "Insight context unavailable");
     return dtoSize({ version: bundle.version, anchor: bundle.anchor,
-      followupDiscussion }, "Insight context");
+      followupDiscussion, ...(bundle.semanticTarget ? { semanticTarget: bundle.semanticTarget } : {}) }, "Insight context");
   }
 
   async function readPublic(method, input = null, guards = {}) {
