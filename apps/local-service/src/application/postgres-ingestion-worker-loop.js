@@ -18,6 +18,7 @@ function wait(delayMs, signal) {
  * cross-process singleton; this loop owns no canonical table privileges.
  */
 export function startPostgresIngestionWorkerLoop({ repository, referenceMatcher,
+  prepareClaim = null,
   workerId = `local-worker-${randomUUID()}`, leaseSeconds = 30, idleDelayMs = 25,
   nextLeaseToken = () => `lease-${randomUUID()}`, onOutcome = () => {}, onProgress = () => {},
   monotonicNow = () => performance.now() } = {}) {
@@ -25,7 +26,8 @@ export function startPostgresIngestionWorkerLoop({ repository, referenceMatcher,
       typeof repository.failClaim !== "function" || !referenceMatcher || typeof referenceMatcher.represent !== "function" ||
       typeof workerId !== "string" || !workerId || !Number.isInteger(leaseSeconds) || leaseSeconds < 5 || leaseSeconds > 30 ||
       !Number.isInteger(idleDelayMs) || idleDelayMs < 5 || idleDelayMs > 1000 || typeof nextLeaseToken !== "function" ||
-      typeof onOutcome !== "function" || typeof onProgress !== "function" || typeof monotonicNow !== "function")
+      typeof onOutcome !== "function" || typeof onProgress !== "function" || typeof monotonicNow !== "function" ||
+      prepareClaim !== null && typeof prepareClaim !== "function")
     throw new TypeError("Invalid PostgreSQL ingestion worker dependencies");
   const controller = new AbortController();
   let closed = false;
@@ -83,11 +85,12 @@ export function startPostgresIngestionWorkerLoop({ repository, referenceMatcher,
         continue;
       }
       markBusy();
-      let representedValues, prepared;
+      let representedValues, preparation, prepared;
       try {
         // Installed encoders must be initialized before claiming. Await bounded
         // per-claim preparation, then retain the same abort/SQL lease fences.
         representedValues = await referenceMatcher.represent(claim.input);
+        if (!controller.signal.aborted && prepareClaim !== null) preparation = await prepareClaim(claim);
         prepared = clock();
       } catch (error) {
         prepared = clock();
@@ -110,7 +113,8 @@ export function startPostgresIngestionWorkerLoop({ repository, referenceMatcher,
       }
       if (controller.signal.aborted) { progress("aborted", started, claimed, prepared); break; }
       try {
-        const result = await repository.apply(claim, { representedValues });
+        const result = await repository.apply(claim, { representedValues,
+          ...(prepareClaim === null ? {} : { preparation }) });
         progress("completed", started, claimed, prepared, clock());
         onOutcome(Object.freeze({ outcome: "completed", operationId: claim.operationId, version: result.version }));
       } catch (error) {

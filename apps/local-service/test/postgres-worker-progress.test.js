@@ -141,3 +141,36 @@ test('rejected asynchronous preparation preserves deterministic failure versus r
     assert.equal(failed, deterministic ? 1 : 0);
   }
 });
+
+test('semantic preparation receives the exact durable claim and settles before the same atomic apply', async () => {
+  let claims=0,applied=0,release,entered;
+  const gate=new Promise(resolve=>{release=resolve;}),started=new Promise(resolve=>{entered=resolve;});
+  const preparation=Object.freeze({privatePreparedMarker:true});
+  const worker=startPostgresIngestionWorkerLoop({
+    repository:{async claim(){return ++claims===1?selected:null;},
+      async apply(claim,options){assert.equal(claim,selected);assert.deepEqual(options,{representedValues:[1,0],preparation});applied++;return result;},
+      async failClaim(){assert.fail('No rejected material');}},
+    referenceMatcher:{represent:()=>[1,0]},
+    async prepareClaim(claim){assert.equal(claim,selected);entered();await gate;return preparation;},
+  });
+  await started;assert.equal(applied,0);release();await worker.whenIdle();await worker.close();assert.equal(applied,1);
+});
+
+test('shutdown during semantic title encoding prevents apply without terminalizing the durable claim', async () => {
+  let release,entered;
+  const gate=new Promise(resolve=>{release=resolve;}),started=new Promise(resolve=>{entered=resolve;});
+  const worker=startPostgresIngestionWorkerLoop({repository:{async claim(){return selected;},
+    async apply(){assert.fail('Shutdown prevents apply');},async failClaim(){assert.fail('Claim remains reclaimable');}},
+    referenceMatcher:{represent:()=>[1,0]},async prepareClaim(){entered();await gate;return {};}});
+  await started;const closing=worker.close();release();await closing;
+});
+
+test('semantic encoder failure leaves the claim reclaimable and cannot silently fall back to legacy apply', async () => {
+  let notify,failures=0;
+  const observed=new Promise(resolve=>{notify=resolve;});
+  const worker=startPostgresIngestionWorkerLoop({repository:{async claim(){return selected;},
+    async apply(){assert.fail('No legacy fallback');},async failClaim(){failures++;}},
+    referenceMatcher:{represent:()=>[1,0]},async prepareClaim(){throw Object.assign(Error('private encoder error'),{code:'unavailable'});},onProgress:notify});
+  const event=await observed;await worker.close();assert.equal(event.outcome,'representation-uncertain');assert.equal(failures,0);
+  assert.doesNotMatch(JSON.stringify(event),/private|encoder error/u);
+});

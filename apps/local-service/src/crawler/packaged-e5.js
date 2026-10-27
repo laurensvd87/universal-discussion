@@ -15,11 +15,19 @@ async function fixedFile(filename, maximum) {
   return bytes;
 }
 
-export async function createPackagedCrawlerEmbedder({ assetRoot = DEFAULT_ASSET_ROOT } = {}) {
+export async function createPackagedCrawlerEmbedder({ assetRoot = DEFAULT_ASSET_ROOT, expectedManifestSha256 = null } = {}) {
   if (typeof assetRoot !== "string" || !path.isAbsolute(assetRoot)) throw new TypeError("Invalid embedding asset path");
+  if (expectedManifestSha256 !== null && (typeof expectedManifestSha256 !== "string" || !/^[a-f0-9]{64}$/u.test(expectedManifestSha256)))
+    throw new TypeError("Invalid embedding manifest identity");
   const manifestBytes = await fixedFile(path.join(assetRoot, "manifest.json"), 16_384);
   let manifest;
-  try { manifest = readAssetManifest(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes))); }
+  try {
+    // Trusted startup can join this exact manifest to a numeric matcher. Check
+    // before decoding it or using its hashes to load executable runtime assets.
+    if (expectedManifestSha256 !== null && createHash("sha256").update(manifestBytes).digest("hex") !== expectedManifestSha256)
+      throw new Error("Crawler embedding manifest integrity mismatch");
+    manifest = readAssetManifest(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes)));
+  }
   finally { manifestBytes.fill(0); }
   const verified = new Map();
   try {
