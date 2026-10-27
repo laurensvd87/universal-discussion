@@ -1,5 +1,33 @@
 # Implementation handoff: local-service discussion MVP
 
+Current27Oct real-model composition accepted (70183, cf4b6a82 pushed). The actual
+schema9→17 restore preserved all18 legacy table fingerprints and seven ordinal
+sequences before fixture writes; all25 upgrade assertions,35 lifecycle phases,
+16 HTTP cases, two actual E5 queue applications and owner operation/Source/
+semantic-observation joins passed. Both scratch databases dropped, private PG
+smart-stopped, original operations settled; parent normal cleanup/end-pins passed.
+Independent audit data/hierarchy-private-model-actual-audit-20261027.json29356B
+SHA33d753e5263c4495382d87779728852f86b7cba6fca2397fd588218b17b58b2b fully read/authenticated.
+Tiny baseline reads4–6ms; same-process body inference delayed foreground reads
+812–861ms. This supports the separate production worker process; it is not a
+production latency/capacity measurement. Live remains schema9, crawler preserved.
+
+Next maintained Source slices are implemented and under independent review:
+owner-only bounded legacy-root inspection/adoption and per-node owner policy;
+page-independent public canonical history under My chats (manual/unclassified
+threads remain reachable); shared browser containment and actual private browser
+HTTP proxy; closed private-product composition (browser→original16HTTP→E5).
+Root58pure Python/54guarded Node and history49joined guarded tests passed. No
+private-product actual run yet. Chrome executable is fixed/held separately;
+installed DLL/resource tree remains trusted, explicitly not fully pinned. Existing
+17-case browser regression and new actual browser/database composition remain
+required. Default owner depth1; GTA needs an explicit games depth3 override.
+No Koalas head fit or new child quality claim. Legacy97contributions are preserved
+canonically; that does not prove semantic feed adoption. Remaining release work:
+actual owner-adoption fixture, provider test, consistent quiesced local-store
+backup, reviewed candidate reseal, migration in place/orderly crawler restart,
+production worker+crawler/UI latency checks. Goal remains active.
+
 Current27Oct actualcorrected84275 CLOSEDexit0/acceptedTRUE, SOURCEc628PUSHED/
 catalogced9a517...9361. Run446b3ab1615d45d45e522f86a2c6c90c42b78ea4c3e324ca/
 nhpg-DV327b:25upgrade/35phase/16HTTPPASS,18originalreceiptFP/17manifest/version/

@@ -150,6 +150,20 @@ class MaintainedDriverTest(unittest.TestCase):
                     if not name.startswith('.'):
                         continue
                     target = (D.REPO/key).parent.joinpath(name).resolve()
+                    # These exact imports belong to function source serialized
+                    # into the actual extension page, not the Node harness.
+                    browser_imports={
+                        './discussion-panel.js':'chromium/discussion-panel.js',
+                        './semantic-topic-workspace.js':'chromium/semantic-topic-workspace.js',
+                        './semantic-topic-panel.js':'chromium/semantic-topic-panel.js',
+                        '../core/local-discussion-controller.js':'core/local-discussion-controller.js',
+                        '../core/local-service-client.js':'core/local-service-client.js',
+                        '../core/account-client.js':'core/account-client.js',
+                        '../fixtures/indicator-fixtures.js':'fixtures/indicator-fixtures.js',
+                        '../core/insight-controller.js':'core/insight-controller.js',
+                    }
+                    if key=='apps/local-service/harness/run-semantic-workspace-browser-smoke.js' and name in browser_imports:
+                        target=D.REPO/'spikes/topic-resolution/browser'/browser_imports[name]
                     self.assertTrue(target.is_relative_to(D.REPO))
                     self.assertTrue(target.is_file(), name)
                     relative = target.relative_to(D.REPO).as_posix()
@@ -1057,6 +1071,77 @@ class MaintainedDriverTest(unittest.TestCase):
             with self.assertRaises(self.I.Refusal):D.checked_model_proof(self.I,proof)
         proof=self.model_proof();del proof['fixtureIsolation']
         with self.assertRaises(self.I.Refusal):D.checked_model_proof(self.I,proof)
+
+    def browser_proof(self):
+        names=('named-account-and-semantic-directory-search','human-root-in-original-canonical-topic-null-origin',
+            'human-reply-and-stored-read-original-destination','second-account-edit-denied-original-body-retained')
+        return {'ui':{'schema':'private-application-browser-proof/v1','status':'passed','cases':[{'name':name,'status':'passed'} for name in names],
+            'pendingCases':0,'origin':'chrome-extension://'+'b'*32,'canonical':{'topicId':'original-topic','discussionId':'original-discussion','rootId':'root-browser','replyId':'reply-browser'},
+            'requests':20,'maxConcurrentRequests':2,'cleanup':{'browserClosed':True,'ownedRootExited':True,'pendingRequests':0,'pendingTasks':0,'profileRemoved':True},
+            'scope':{**dict.fromkeys(('realBrowser','realHttpProxy'),True),**dict.fromkeys(('sqlVerifiedByThisHelper','nativeCapture','nativeSidePanel','provider','externalIdentity','productionCapacity'),False)},
+            'failure':None,'elapsedMs':100},'ownerVerification':{'roots':1,'replies':1,'manualSnapshots':0},
+            'runtime':{'chromeExecutableSha256':'480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca','installedDllsPinned':False}}
+
+    def test_product_mode_is_closed_and_requires_the_private_model_composition(self):
+        seen=[]
+        with patch.object(D,'execute',side_effect=lambda *args:seen.append(args) or {'accepted':True}),contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(D.main(['private-product','b'*64]),0)
+            for args in (['private-product'],['private-product','b'*64,'--url=x'],['private-product','B'*64],['--with-product','b'*64]):self.assertEqual(D.main(args),2)
+        self.assertEqual(seen,[('b'*64,True,True,True,True)])
+        for values in ((True,True,False,True),(False,True,True,True),(True,True,True,1)):
+            with self.assertRaises(self.I.Refusal):D.OwnedRun(self.I,*values)
+        self.assertIs(D.OwnedRun(self.I,True,True,True,True).product,True)
+        self.assertIs(D.OwnedRun(self.I,True,True,True).product,False)
+
+    def test_product_launch_uses_exact_fixed_flag_and_existing_two_gib_limits(self):
+        run=types.SimpleNamespace(output=self.owned_paths.output,private=True,http=True,model=True,product=True);seen=[]
+        def launch(executable,command,ps,ts,inherit,flags,environment,cwd,startup,info):
+            seen.append(command.value);info._obj.process,info._obj.thread,info._obj.pid=11,12,13;return True
+        api=object.__new__(D.native_api_type(self.W,run));api.m=self.B;api.k=types.SimpleNamespace(CreateProcessW=launch)
+        api.create_process((ctypes.create_string_buffer(16),None),11,12,13)
+        self.assertEqual(seen,['"'+D.NODE+'" --max-old-space-size=512 "'+str(D.REPO/D.HTTP_ENTRY)+'" --with-product'])
+
+    def test_product_input_seventeen_holds_fixed_chrome_executable_without_claiming_its_dll_tree(self):
+        self.assertEqual(D.BROWSER_INPUTS,((Path('C:/Program Files/Google/Chrome/Application/chrome.exe'),4522648,
+            '480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca'),))
+        with self.assertRaises(self.I.Refusal):D.PrivateInputs(self.I,model=False,product=True)
+        with self.assertRaises(self.I.Refusal):D.PrivateInputs(self.I,model=True,product=1)
+        def check(run):
+            records=[];streams=[]
+            for index in range(17):
+                name=run.root/('invented-product-input-'+str(index));raw=('invented-'+str(index)).encode();name.write_bytes(raw);records.append((name,len(raw),hashlib.sha256(raw).hexdigest()))
+            def opener(filename):
+                stream=filename.open('rb',buffering=0);streams.append(stream);return stream
+            with patch.object(D,'PRIVATE_INPUTS',tuple(records[:2])),patch.object(D,'MODEL_INPUTS',tuple(records[2:16])),patch.object(D,'BROWSER_INPUTS',tuple(records[16:])):
+                guard=D.PrivateInputs(self.I,opener=opener,clock=lambda:D.STARTED+1,model=True,product=True)
+                try:
+                    guard.prepare();self.assertEqual(len(streams),17);self.assertTrue(all(not s.closed for s in streams));guard.finish(D.STARTED+20)
+                    self.assertTrue(guard.verified and guard.closed);self.assertTrue(all(s.closed for s in streams))
+                finally:guard.close()
+        self._owned_run_test(check)
+
+    def test_browser_proof_requires_all_four_actual_ui_cases_cleanup_and_original_row_join(self):
+        D.checked_browser_proof(self.I,self.browser_proof())
+        changes=(lambda p:p['ui']['cases'].pop(),lambda p:p['ui']['cases'][2].update(status='not-started'),
+            lambda p:p['ui']['cleanup'].update(pendingRequests=1),lambda p:p['ui']['cleanup'].update(profileRemoved=False),
+            lambda p:p['ui']['cleanup'].update(ownedRootExited=False),lambda p:p['ui']['scope'].update(nativeSidePanel=True),
+            lambda p:p['ui']['scope'].update(sqlVerifiedByThisHelper=True),lambda p:p['ui'].update(origin='https://example.test'),
+            lambda p:p['ui'].update(maxConcurrentRequests=5),lambda p:p['ui'].update(elapsedMs=float('nan')),
+            lambda p:p['ownerVerification'].update(roots=True),lambda p:p['ownerVerification'].update(manualSnapshots=1),
+            lambda p:p['ui']['canonical'].update(replyId='root-browser'),lambda p:p.update(rawCredentials='forbidden'),
+            lambda p:p['runtime'].update(chromeExecutableSha256='a'*64),lambda p:p['runtime'].update(installedDllsPinned=True))
+        for change in changes:
+            value=self.browser_proof();change(value)
+            with self.assertRaises(self.I.Refusal):D.checked_browser_proof(self.I,value)
+
+    def test_browser_evidence_cannot_alias_http_or_model_and_is_mandatory_for_product(self):
+        def check(run,normal,value,publish):
+            value['model']=self.model_proof();value['scope'].update(encoder=True,browser=True)
+            value['cleanup'].update(workerClientClosed=True,submitterClientClosed=True,browserClosed=True);value['browser']=self.browser_proof();publish(value)
+            for proof in (normal,D.PrivateHttpProof(self.I,run,True)):
+                with self.assertRaises(self.I.Refusal):proof.complete()
+            proof=D.PrivateHttpProof(self.I,run,True,True);proof.complete();proof.check();self.assertIsNotNone(proof.digest)
+        self._http_proof_test(check)
 
 
 if __name__ == '__main__':

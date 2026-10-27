@@ -51,6 +51,11 @@ MODEL_INPUTS = (
     (REPO/'spikes/topic-resolution/browser/embedding/.assets/ort-wasm-simd-threaded.mjs',24381,'c57ca56328877353a575e51bbca6f18450027d6c9bf2307a2cb2c41363b4de9f'),
     (REPO/'spikes/topic-resolution/browser/embedding/.assets/ort-wasm-simd-threaded.wasm',14264838,'06ba057753da3847e4c24f02d91ab133455b0817c69a44993a9a53a2146df9e3'),
 )
+# The fixed executable is held through parent end-pins. Its installed DLL and
+# resource tree remains the trusted local Chrome installation, not a cataloged
+# or fully pinned runtime. No claim of complete Chrome binary closure follows.
+BROWSER_INPUTS = ((Path('C:/Program Files/Google/Chrome/Application/chrome.exe'),4522648,
+    '480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca'),)
 RESTORED_TABLES = ('schema_migrations','meta','id_registry','topics','discussions','sources',
     'embeddings','source_links','topic_memberships','fixed_references','contributions',
     'revisions','operation_receipts','import_ledger','runtime_state','command_receipts',
@@ -90,6 +95,10 @@ NORMAL_SCOPE_ABSENCES = frozenset([
     'apps/topic-dashboard/src/data/package.json',
     'apps/topic-dashboard/src/package.json',
     'spikes/topic-resolution/browser/fixtures/package.json',
+    'apps/local-service/harness/package.json',
+    'spikes/topic-resolution/harness/package.json',
+    'spikes/topic-resolution/browser/chromium/package.json',
+    'spikes/topic-resolution/browser/locales/package.json',
 ])
 MIB = 1048576
 CREATE_FLAGS = 0x8040C
@@ -97,6 +106,43 @@ NORMAL_KEYS = frozenset([
     OWN+'hierarchy-native-supervisor.py', OWN+'hierarchy_native_supervisor_test.py',
     OWN+'private-model-rehearsal.js', OWN+'private-model-rehearsal.test.js',
     OWN+'private-model-training-inputs.js', OWN+'private-model-training-inputs.test.js',
+    'apps/local-service/harness/run-semantic-workspace-browser-smoke.js',
+    'apps/local-service/harness/semantic-browser-containment.js',
+    'apps/local-service/test/semantic-browser-boundary.test.js',
+    'apps/local-service/test/semantic-browser-containment.test.js',
+    'spikes/topic-resolution/harness/chromium-pipe.js',
+    'spikes/topic-resolution/browser/manifest.json',
+    'spikes/topic-resolution/browser/chromium/assistant-voice-picker.js',
+    'spikes/topic-resolution/browser/chromium/canonical-history-panel.js',
+    'spikes/topic-resolution/browser/chromium/discussion-panel.js',
+    'spikes/topic-resolution/browser/chromium/popup-shell.js',
+    'spikes/topic-resolution/browser/chromium/popup.css',
+    'spikes/topic-resolution/browser/chromium/popup.html',
+    'spikes/topic-resolution/browser/chromium/popup.js',
+    'spikes/topic-resolution/browser/chromium/semantic-topic-panel.js',
+    'spikes/topic-resolution/browser/chromium/semantic-topic-workspace.js',
+    'spikes/topic-resolution/browser/chromium/ui-mode.js',
+    'spikes/topic-resolution/browser/core/account-client.js',
+    'spikes/topic-resolution/browser/core/canonical-history-contract.js',
+    'spikes/topic-resolution/test/canonical-history-contract.test.js',
+    'spikes/topic-resolution/test/canonical-history-panel.test.js',
+    'spikes/topic-resolution/test/indicator-package.test.js',
+    'apps/local-service/portable/canonical-v4/semantic-owner-maintenance.js',
+    'apps/local-service/portable/test/semantic-owner-maintenance.test.js',
+    'apps/local-service/test/postgres-runtime-operator.test.js',
+    'spikes/topic-resolution/browser/core/active-tab-policy.js',
+    'spikes/topic-resolution/browser/core/discussion-mentions.js',
+    'spikes/topic-resolution/browser/core/discussion-readiness.js',
+    'spikes/topic-resolution/browser/core/discussion-target.js',
+    'spikes/topic-resolution/browser/core/indicator-contract.js',
+    'spikes/topic-resolution/browser/core/insight-controller.js',
+    'spikes/topic-resolution/browser/core/local-ai-client.js',
+    'spikes/topic-resolution/browser/core/local-discussion-controller.js',
+    'spikes/topic-resolution/browser/core/page-resolution-contract.js',
+    'spikes/topic-resolution/browser/core/topic-view-mode.js',
+    'spikes/topic-resolution/browser/fixtures/indicator-fixtures.js',
+    'spikes/topic-resolution/browser/fixtures/local-service-fixture-bridge.js',
+    'spikes/topic-resolution/browser/locales/en.js',
     'apps/local-service/src/crawler/postgres-ingest-client.js',
     'apps/local-service/src/crawler/local-ingest-client.js',
     'apps/topic-dashboard/package.json',
@@ -560,10 +606,11 @@ def open_locked_read(path):
 
 class PrivateInputs:
     """Fixed encrypted data is held separately from the bounded code catalog."""
-    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic, model=False):
-        inventory.require(type(model) is bool,'private-input-purpose')
+    def __init__(self, inventory, opener=open_locked_read, clock=time.monotonic, model=False,product=False):
+        inventory.require(type(model) is bool and type(product) is bool and (not product or model),'private-input-purpose')
         self.i,self.opener,self.clock = inventory,opener,clock
         self.model = model
+        self.product = product
         self.files = []
         self.prepared = self.closed = False
         self.verified = False
@@ -608,7 +655,7 @@ class PrivateInputs:
         I = self.i
         I.require(not self.prepared and not self.files and not self.closed,'private-input-state')
         try:
-            for path,size,digest in PRIVATE_INPUTS + (MODEL_INPUTS if self.model else ()):
+            for path,size,digest in PRIVATE_INPUTS + (MODEL_INPUTS if self.model else ()) + (BROWSER_INPUTS if self.product else ()):
                 self._time()
                 directory_info(path.parent,I)
                 before = path.lstat()
@@ -789,12 +836,50 @@ def checked_model_proof(I,value):
         operations.add(row['operationId']);sources.add(row['sourceId'])
 
 
+def checked_browser_proof(I,value):
+    """Four real UI operations through raw local HTTP; no native/provider claim."""
+    def shape(item,fields):return type(item) is dict and set(item)==set(fields.split())
+    def number(item,low,high):return type(item) in (int,float) and type(item) is not bool and low<=item<=high
+    I.require(shape(value,'ui ownerVerification runtime'),'browser-proof-owner')
+    runtime=value['runtime']
+    I.require(shape(runtime,'chromeExecutableSha256 installedDllsPinned')
+        and runtime['chromeExecutableSha256']=='480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca'
+        and runtime['installedDllsPinned'] is False,'browser-proof-runtime')
+    owner=value['ownerVerification']
+    I.require(shape(owner,'roots replies manualSnapshots') and type(owner['roots']) is int and owner['roots']==1
+        and type(owner['replies']) is int and owner['replies']==1 and type(owner['manualSnapshots']) is int and owner['manualSnapshots']==0,'browser-proof-owner')
+    value=value['ui']
+    names=('named-account-and-semantic-directory-search','human-root-in-original-canonical-topic-null-origin',
+        'human-reply-and-stored-read-original-destination','second-account-edit-denied-original-body-retained')
+    I.require(shape(value,'schema status cases pendingCases origin canonical requests maxConcurrentRequests cleanup scope failure elapsedMs')
+        and value['schema']=='private-application-browser-proof/v1' and value['status']=='passed'
+        and value['cases']==[{'name':name,'status':'passed'} for name in names]
+        and type(value['pendingCases']) is int and value['pendingCases']==0 and value['failure'] is None
+        and type(value['origin']) is str and re.fullmatch(r'chrome-extension://[a-p]{32}',value['origin']) is not None
+        and type(value['requests']) is int and 1<=value['requests']<=64
+        and type(value['maxConcurrentRequests']) is int and 1<=value['maxConcurrentRequests']<=4
+        and value['maxConcurrentRequests']<=value['requests'] and number(value['elapsedMs'],0,300000),'browser-proof-shape')
+    canonical=value['canonical']
+    I.require(shape(canonical,'topicId discussionId rootId replyId')
+        and all(type(x) is str and 0<len(x)<=128 and re.fullmatch(r'[A-Za-z0-9._:-]+',x) is not None for x in canonical.values())
+        and canonical['rootId']!=canonical['replyId'],'browser-proof-canonical')
+    cleanup=value['cleanup']
+    I.require(shape(cleanup,'browserClosed ownedRootExited pendingRequests pendingTasks profileRemoved')
+        and all(cleanup[key] is True for key in ('browserClosed','ownedRootExited','profileRemoved'))
+        and all(type(cleanup[key]) is int and cleanup[key]==0 for key in ('pendingRequests','pendingTasks')),'browser-proof-cleanup')
+    scope=value['scope']
+    I.require(shape(scope,'realBrowser realHttpProxy sqlVerifiedByThisHelper nativeCapture nativeSidePanel provider externalIdentity productionCapacity')
+        and scope['realBrowser'] is True and scope['realHttpProxy'] is True
+        and all(scope[key] is False for key in ('sqlVerifiedByThisHelper','nativeCapture','nativeSidePanel','provider','externalIdentity','productionCapacity')),'browser-proof-scope')
+
+
 class PrivateHttpProof:
     """Additional mandatory HTTP evidence; never aliases the restore ledger."""
-    def __init__(self,inventory,run,model=False):
-        inventory.require(type(model) is bool,'http-proof-purpose')
+    def __init__(self,inventory,run,model=False,product=False):
+        inventory.require(type(model) is bool and type(product) is bool and (not product or model),'http-proof-purpose')
         self.i,self.root,self.digest = inventory,run.output,None
         self.model = model
+        self.product = product
         self.identity = None
 
     def _read(self):
@@ -824,7 +909,7 @@ class PrivateHttpProof:
             return type(item) is dict and set(item) == set(fields.split())
         def bounded(item,low,high):
             return type(item) is int and low <= item <= high
-        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade'+(' model' if self.model else ''))
+        I.require(shape(value,'schema status cases pendingCases server counts cleanup scope failure elapsedMs upgrade'+(' model' if self.model else '')+(' browser' if self.product else ''))
             and value['schema'] == 'private-application-http-proof/v1' and value['status'] == 'passed'
             and value['failure'] is None and type(value['pendingCases']) is int and value['pendingCases'] == 0
             and bounded(value['elapsedMs'],0,300000),'http-proof-shape')
@@ -843,17 +928,20 @@ class PrivateHttpProof:
             and counts['maximumConcurrentHttp'] <= counts['httpRequests']
             and type(counts['fixtureActors']) is int and counts['fixtureActors'] == 2,'http-proof-counts')
         cleanup,scope = value['cleanup'],value['scope']
-        extra=('workerClientClosed','submitterClientClosed') if self.model else ()
-        I.require(shape(cleanup,'serverClosed applicationClosed appClientClosed urlClientClosed pendingHttp pendingDatabase'+(' workerClientClosed submitterClientClosed' if self.model else ''))
+        extra=(('workerClientClosed','submitterClientClosed') if self.model else ())+(('browserClosed',) if self.product else ())
+        I.require(shape(cleanup,'serverClosed applicationClosed appClientClosed urlClientClosed pendingHttp pendingDatabase'+(' workerClientClosed submitterClientClosed' if self.model else '')+(' browserClosed' if self.product else ''))
             and all(cleanup[key] is True for key in ('serverClosed','applicationClosed','appClientClosed','urlClientClosed')+extra)
             and all(type(cleanup[key]) is int and cleanup[key] == 0 for key in ('pendingHttp','pendingDatabase')),'http-proof-cleanup')
         I.require(shape(scope,'realHttp realDatabase browser encoder provider externalLoginVerified productionCapacityValidated testComposition')
             and scope['realHttp'] is True and scope['realDatabase'] is True
             and scope['encoder'] is self.model
-            and all(scope[key] is False for key in ('browser','provider','externalLoginVerified',
+            and scope['browser'] is self.product
+            and all(scope[key] is False for key in ('provider','externalLoginVerified',
                 'productionCapacityValidated','testComposition')),'http-proof-scope')
         if self.model:
             checked_model_proof(I,value['model'])
+        if self.product:
+            checked_browser_proof(I,value['browser'])
         if self.digest is not None:
             I.require(self.digest == digest and self.identity == identity,'http-proof-changed')
         self.digest = digest
@@ -899,9 +987,10 @@ def native_api_type(windows, run):
     wintypes = windows.wintypes
     TEMP = run.output / 'temp'
     model = getattr(run,'model',False)
-    require(type(model) is bool and (not model or (getattr(run,'private',False) is True and getattr(run,'http',False) is True)), 'run-purpose')
+    product = getattr(run,'product',False)
+    require(type(model) is bool and type(product) is bool and (not product or model) and (not model or (getattr(run,'private',False) is True and getattr(run,'http',False) is True)), 'run-purpose')
     HEAP = '512' if model else '64'
-    MODEL_ARG = ' --with-model' if model else ''
+    MODEL_ARG = ' --with-product' if product else ' --with-model' if model else ''
     # A closed mode chooses between reviewed fixed entries and supplies the one
     # fixed private metadata variable. Removing that explicit prefix restores
     # the frozen suspended-launch AST; default environment bytes stay exact.
@@ -990,12 +1079,13 @@ class OwnedRun:
     Output512KiB and cluster512MiB remain separately bounded. Control metadata
     (one catalog snapshot, marker and permanent child claim) is capped at1MiB.
     """
-    def __init__(self, inventory, private=False, http=False, model=False):
-        inventory.require(type(private) is bool and type(http) is bool and type(model) is bool and (not http or private) and (not model or (private and http)), 'run-purpose')
+    def __init__(self, inventory, private=False, http=False, model=False,product=False):
+        inventory.require(type(private) is bool and type(http) is bool and type(model) is bool and type(product) is bool and (not product or model) and (not http or private) and (not model or (private and http)), 'run-purpose')
         self.i = inventory
         self.private = private
         self.http = http
         self.model = model
+        self.product = product
         self.runs_root = PRIVATE_RUNS_ROOT if private else RUNS_ROOT
         self.marker_schema = 'private-hierarchy-native-owned-run' if private else 'hierarchy-native-owned-run'
         self.claim_schema = 'private-hierarchy-native-child-claim' if private else 'hierarchy-native-child-claim'
@@ -1180,21 +1270,21 @@ def cluster_tree_type(supervisor, inventory, run):
     return ClusterTree
 
 
-def execute(external_sha, private=False, http=False, model=False):
+def execute(external_sha, private=False, http=False, model=False,product=False):
     S = load_pinned('supervisor')
     I = S.I  # Keep the controller's exact refusal type and authenticated helper.
-    I.require(type(private) is bool and type(http) is bool and type(model) is bool and (not http or private) and (not model or (private and http)),'run-purpose')
+    I.require(type(private) is bool and type(http) is bool and type(model) is bool and type(product) is bool and (not product or model) and (not http or private) and (not model or (private and http)),'run-purpose')
     I.require(sys.flags.isolated and sys.flags.no_site and sys.flags.dont_write_bytecode, 'python-flags')
     I.require(sys.platform == 'win32' and Path(sys.executable).resolve() == I.RUNTIME_PINS['@python'][0].resolve(), 'python-path')
     I.require(str(REPO).replace(chr(92), '/').casefold() == 'd:/gitprojekts/universal-discussion-bootstrap', 'fixed-repo')
     catalog = catalog_type(I)(external_sha)
-    run = OwnedRun(I,private,http,model)
+    run = OwnedRun(I,private,http,model,product)
     publisher = publisher_type(S, I, run)()
     tree = cluster_tree_type(S, I, run)()
     modules, host_native = {'windows':load_pinned('windows')}, []
-    inputs = PrivateInputs(I,model=model) if private else None
+    inputs = PrivateInputs(I,model=model,product=product) if private else None
     phases = PrivatePhases(I,run,http) if private else None
-    application = PrivateHttpProof(I,run,model=model) if http else None
+    application = PrivateHttpProof(I,run,model=model,product=product) if http else None
 
     def authenticate():
         catalog.authenticate()
@@ -1277,17 +1367,18 @@ def execute(external_sha, private=False, http=False, model=False):
 
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
-    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http','private-model')
-    model = private and args[0] == 'private-model'
-    http = private and args[0] in ('private-http','private-model')
+    private = type(args) is list and len(args) == 2 and args[0] in ('private-restore','private-http','private-model','private-product')
+    product = private and args[0] == 'private-product'
+    model = private and args[0] in ('private-model','private-product')
+    http = private and args[0] in ('private-http','private-model','private-product')
     if private:
         args = args[1:]
     if (type(args) is not list or len(args) != 1 or type(args[0]) is not str
             or len(args[0]) != 64 or any(c not in '0123456789abcdef' for c in args[0])):
-        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http/private-model followed by that SHA256.\n')
+        sys.stderr.write('Expected reviewed catalog SHA256, or private-restore/private-http/private-model/private-product followed by that SHA256.\n')
         return 2
     try:
-        result = execute(args[0],private,http,True) if model else execute(args[0],private,http)
+        result = execute(args[0],private,http,True,True) if product else execute(args[0],private,http,True) if model else execute(args[0],private,http)
         sys.stdout.write(json.dumps({'schema':'native-hierarchy-postgres-invocation/v2',
             'accepted':result['accepted']}, sort_keys=True, separators=(',', ':'))+'\n')
         return 0 if result['accepted'] else 1

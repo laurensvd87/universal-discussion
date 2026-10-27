@@ -8,6 +8,25 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current27Oct REALMODEL actual70183 SUCCESS/exit0, run8c34ad84977a3f5b693e61330784e462561123110889aa66,
+cataloge69df8e8...316b/HEADcf4b6a82 PUSHED. Full25upgrade+35phases+16HTTP+2realE5
+queued completions and owner2/2/2 joins PASS; all18legacyFP/7seq beforewrites.
+Copiedfixturequeue1 officiallyrevoked, NOlivequeuechange. PG30596 ownsmartstop,
+bothscratchDBsdropped/originalssettled/normalparent/noemergency/emptyJob/2EOF/
+handles/endpins PASS. Independent29356Baudit33d753e5263c4495382d87779728852f86b7cba6fca2397fd588218b17b58b2b
+RootFULLread/auth. App5351ms/model4155ms; tinybaseline4-6ms, same-processbody
+foreground812-861ms supports separateworker architecture, NOTproductionlatency.
+No browser/backend/provider/newchildquality/capacity/liveclaim; liveSCHEMA9.
+Allconsumedrun/sourcecatalog/output IMMUTABLE. Currentmaintained Source evolving
+inGit: privatebrowser4 + ownermaintenance4 boundeddelegated; Rootintegrationnext.
+Legacy97contributions canonicallypreserved but automaticsemanticadoptionFALSE;
+need owner-only exactSource/root/currentanchor boundedadoption, manual/stale
+roots remaincanonical. Defaultdepth1; GTAavailableonlywithownerpolicy refinement.
+No personaloverride, noKoalasfit. Private55433/4185absent; originalAPI/worker/
+dashboard/crawler4060preserved/advancing6875/stderr0 atfreshreadonlycheck.
+GoalACTIVE: browser-realbackend, legacyadoption, ownerpolicy, provider, consistent
+localstorebackup, reviewedrelease/livecutover and realcrawler/UIlatency UNFINISHED.
+
 Current27Oct REALMODELfeature15SOURCE ACCEPTED: driver2 d12be4dd...cd0d, app5
 1e838b56...fe00, supervisor2f9742121...b487, retainedloader/helper4 26d2cac7...c5d0
 RootFULLread/auth/current15pinsPASS. Root61purePython+79guardedNodePASS; owner

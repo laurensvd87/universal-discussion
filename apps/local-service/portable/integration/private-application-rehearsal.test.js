@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {EventEmitter} from 'node:events';
-import {createPrivateSerialDatabase,createPrivateHttpRequestForTest,runPrivateApplicationRehearsalForTest,runPrivateModelApplicationRehearsalForTest,privateApplicationStoragePaths,PRIVATE_APPLICATION_CASES} from './private-application-rehearsal.js';
+import {createPrivateSerialDatabase,createPrivateHttpRequestForTest,createPrivateRawHttpRequestForTest,runPrivateApplicationRehearsalForTest,runPrivateModelApplicationRehearsalForTest,runPrivateProductApplicationRehearsalForTest,privateApplicationStoragePaths,PRIVATE_APPLICATION_CASES} from './private-application-rehearsal.js';
 import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
 const sha=b=>createHash('sha256').update(b).digest('hex'),turn=()=>new Promise(r=>setImmediate(r));
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
@@ -25,6 +25,16 @@ test('actual HTTP client fixes destination4185 and waits response original even 
 test('actual HTTP client refuses oversized/private response without exposing body or retaining original socket',async()=>{
  let req,response;const request=createPrivateHttpRequestForTest(()=>{req=new EventEmitter();req.setTimeout=()=>{};req.end=()=>{};req.destroy=()=>req.emit('close');return req;});
  const pending=request({method:'GET',url:'/v1/health',headers:{},body:null});response=new EventEmitter();response.statusCode=200;response.destroy=()=>response.emit('close');req.emit('response',response);response.emit('data',Buffer.alloc(262145,65));await assert.rejects(pending,{code:'APPLICATION_HTTP_BOUND'});
+});
+
+test('raw browser proxy transport retains actual status, headers and bytes including an empty preflight',async()=>{
+ for(const [status,body]of [[204,Buffer.alloc(0)],[403,Buffer.from('{ "error": "Denied" }')]]){
+  let req;const request=createPrivateRawHttpRequestForTest(options=>{assert.equal(options.port,4185);req=new EventEmitter();req.setTimeout=()=>{};req.end=()=>{};return req;});
+  const pending=request({method:status===204?'OPTIONS':'POST',url:'/v1/commands',headers:{host:'127.0.0.1:4174'},body:null});
+  const res=new EventEmitter();res.statusCode=status;res.headers={'access-control-allow-origin':'chrome-extension://'+'b'.repeat(32),'content-type':'application/json'};
+  req.emit('response',res);res.emit('data',body);res.emit('end');req.emit('close');
+  const result=await pending;assert.equal(result.status,status);assert.equal(result.headers,res.headers);assert.ok(result.body.equals(body));assert.equal(Object.hasOwn(result,'value'),false);
+ }
 });
 
 test('actual serial adapter queues bounded work on one connection and closes once after originals',async()=>{
@@ -69,7 +79,7 @@ function fixture({failAt=null,closeFails=false}={}){
    if(url==='/v1/semantic/context')return response(200,{status:'pending',selectedPath:[]});
    if(url==='/v1/account/capabilities')return response(200,{emailCode:false,chatGPTIdentity:false});
    if(url==='/v1/account/email/request')return response(409,{});
-   if(url==='/v1/account/me')return response(200,{username:session===tokens[0]?'RehearsalOne':'RehearsalTwo'});
+   if(url==='/v1/account/me')return response(200,{id:session===tokens[0]?'private-account-one':'private-account-two',username:session===tokens[0]?'RehearsalOne':'RehearsalTwo'});
    if(url==='/v1/account/username'){assert.ok(['AI','ai_bot','_aibot'].includes(input.username));return response(409,{});}
    if(url==='/v1/account/session/logout'){revoked=true;return response(200,{loggedOut:true});}
    if(url==='/v1/ai/status')return response(404,{});
@@ -85,6 +95,43 @@ test('full fake-port orchestration keeps normal app composition and separate fin
  const f=fixture(),result=await runPrivateApplicationRehearsalForTest(f.value,f.ports);assert.equal(result.status,'passed');assert.match(result.proofSha256,/^[a-f0-9]{64}$/);assert.equal(f.proof.cases.length,16);assert.deepEqual(f.proof.cases.map(x=>x.name),PRIVATE_APPLICATION_CASES);assert.ok(f.proof.cases.every(x=>x.status==='passed'));assert.equal(f.proof.pendingCases,0);assert.equal(f.proof.scope.testComposition,true);assert.equal(f.proof.scope.realHttp,false);assert.equal(f.proof.scope.provider,false);assert.equal(f.proof.upgrade.legacyRowsUnchanged,true);assert.equal(f.proof.counts.fixtureActors,2);assert.equal(f.proof.counts.maximumConcurrentHttp,4);
  assert.equal(f.events.filter(x=>x==='url-reader-used').length,1);assert.ok(f.events.indexOf('seed-close')<f.events.indexOf('app-open'));for(const event of ['server-close','app-close','end-1','end-2'])assert.ok(f.events.indexOf(event)<f.events.indexOf('proof'));assert.deepEqual(f.proof.cleanup,{serverClosed:true,applicationClosed:true,appClientClosed:true,urlClientClosed:true,pendingHttp:0,pendingDatabase:0});
  assert.equal(f.events.includes('training-read'),false);assert.equal(f.events.includes('model-run'),false);assert.equal(Object.hasOwn(f.proof,'model'),false);
+});
+
+function productFixture(){
+ const f=fixture(),origin='chrome-extension://'+'b'.repeat(32),ownerQuery=f.value.ownerDatabase.query;let result=null,closing=null,rawRequest;
+ f.value.ownerDatabase.query=async(sql,args)=>{
+  if(sql.includes(' AS manual_snapshots')){f.events.push('browser-owner-join');assert.equal(args.length,7);assert.equal(args[4],'account-private-account-one');
+   assert.match(sql,/c.origin_source_id IS NULL AND c.anchor_source_id IS NULL/u);assert.match(sql,/r.payload::jsonb->>'body'=\$6/u);return {rows:[{roots:1,replies:1,manual_snapshots:0}]};}
+  return ownerQuery(sql,args);
+ };
+ f.ports.requestRaw=async input=>{f.events.push('browser-raw-http');assert.equal(input.headers.Origin,origin);assert.equal(input.headers.Host,'127.0.0.1:4174');return {status:204,headers:{'access-control-allow-origin':origin},body:Buffer.alloc(0)};};
+ f.ports.openBrowser=async options=>{
+  f.events.push('browser-open');assert.equal(f.events.includes('app-open'),false);assert.equal(options.profileDirectory,f.value.clusterDirectory+'\\app\\c-aaaaaaaa');assert.equal(options.outputDirectory,f.value.outputDirectory);rawRequest=options.request;
+  return {origin,async exercise(input){f.events.push('browser-exercise');assert.ok(f.events.includes('listen'));assert.deepEqual(input.actors.map(row=>row.actorId),['account-private-account-one','account-private-account-two']);
+   const response=await rawRequest({method:'OPTIONS',url:'/v1/commands',headers:{Host:'127.0.0.1:4174',Origin:origin,'Access-Control-Request-Method':'POST'},body:null});assert.equal(response.status,204);
+   result={status:'passed',origin,canonical:{topicId:'topic-empty',discussionId:'browser-discussion',rootId:'browser-root',replyId:'browser-reply'},scope:{realBrowser:false}};
+  },close(){if(!closing){f.events.push('browser-close');closing=Promise.resolve(result);}return closing;},get result(){return result;}};
+ };
+ return {...f,get proof(){return f.proof;},get rawRequest(){return rawRequest;}};
+}
+
+test('product composition discovers genuine origin before app startup, closes UI before encoder and joins original stored rows',async()=>{
+ const f=productFixture();assert.equal((await runPrivateProductApplicationRehearsalForTest(f.value,f.ports)).status,'passed');
+ assert.ok(f.events.indexOf('browser-open')<f.events.indexOf('app-open'));assert.ok(f.events.indexOf('browser-exercise')<f.events.indexOf('browser-close'));
+ assert.ok(f.events.indexOf('browser-close')<f.events.indexOf('model-run'));assert.ok(f.events.indexOf('browser-owner-join')<f.events.indexOf('model-run'));
+ assert.deepEqual(f.proof.browser.ownerVerification,{roots:1,replies:1,manualSnapshots:0});assert.equal(f.proof.browser.ui.origin,'chrome-extension://'+'b'.repeat(32));assert.equal(f.proof.cleanup.browserClosed,true);assert.equal(f.proof.scope.browser,false);assert.equal(f.proof.scope.testComposition,true);
+});
+
+test('failed real-row browser binding blocks encoder while retiring original browser and HTTP/database handles',async()=>{
+ const f=productFixture(),query=f.value.ownerDatabase.query;f.value.ownerDatabase.query=async(sql,args)=>sql.includes(' AS manual_snapshots')?{rows:[{roots:0,replies:1,manual_snapshots:0}]}:query(sql,args);
+ assert.equal((await runPrivateProductApplicationRehearsalForTest(f.value,f.ports)).status,'failed');assert.equal(f.proof.failure.stage,'browser-owner-verification');assert.equal(f.events.includes('model-run'),false);assert.equal(f.proof.cleanup.browserClosed,true);assert.ok(f.events.includes('app-close')&&f.events.includes('end-1')&&f.events.includes('end-2'));
+});
+
+test('browser request origin/capability/selector substitutions never dispatch through the actual HTTP port',async()=>{
+ for(const patch of [{url:'https://example.test/v1/health'},{headers:{host:'127.0.0.1:4174',origin:'https://example.test'}},{method:'DELETE'}]){
+  const f=productFixture(),open=f.ports.openBrowser;f.ports.openBrowser=async options=>{const browser=await open(options);return {...browser,async exercise(){await options.request({method:'GET',url:'/v1/health',headers:{host:'127.0.0.1:4174',origin:browser.origin,authorization:'Bearer wrong'},body:null,...patch});}};};
+  assert.equal((await runPrivateProductApplicationRehearsalForTest(f.value,f.ports)).status,'failed');assert.equal(f.proof.failure.stage,'browser-exercise');assert.equal(f.events.includes('browser-raw-http'),false);assert.equal(f.events.includes('model-run'),false);assert.equal(f.proof.cleanup.browserClosed,true);
+ }
 });
 
 test('model composition uses exactly two additional roles and joins both completions on the original owner connection',async()=>{

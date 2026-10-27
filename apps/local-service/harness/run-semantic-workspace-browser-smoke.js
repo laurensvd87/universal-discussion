@@ -5,6 +5,8 @@ import {existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmS
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {launchChromiumPipe} from '../../../spikes/topic-resolution/harness/chromium-pipe.js';
+import {AUTO_ATTACH,installSemanticBrowserContainment,describeSemanticBoundaryFailure,quarantinePausedSemanticTarget,bindContainedSemanticAlias,markSemanticSessionDetached,createPrivateBrowserRequestProxy,createOneShotBrowserExercise} from './semantic-browser-containment.js';
+export {describeSemanticBoundaryFailure,quarantinePausedSemanticTarget,bindContainedSemanticAlias,markSemanticSessionDetached} from './semantic-browser-containment.js';
 
 const CHROME='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const SELF=fileURLToPath(import.meta.url);
@@ -13,12 +15,12 @@ const INTENDED_REPO='D:\\GITProjekts\\universal-discussion-bootstrap';
 const DATA=path.join(REPO,'apps/local-service/data');
 const OUTPUT=path.join(DATA,'semantic-workspace-browser-qa-20261027');
 const EXTENSION=path.join(REPO,'spikes/topic-resolution/browser');
-const PIN_FILES=[SELF,path.join(REPO,'spikes/topic-resolution/harness/chromium-pipe.js'),
+const PIN_FILES=[SELF,fileURLToPath(new URL('./semantic-browser-containment.js',import.meta.url)),path.join(REPO,'spikes/topic-resolution/harness/chromium-pipe.js'),
   ...['manifest.json','chromium/popup.js','chromium/popup.css','chromium/semantic-topic-workspace.js','chromium/semantic-topic-panel.js',
     'chromium/discussion-panel.js','core/local-discussion-controller.js','core/local-service-client.js','core/local-service-contract.js',
     'core/discussion-target.js','core/topic-view-mode.js','core/insight-controller.js','core/local-ai-client.js',
     'core/insight-context.js','core/insight-citations.js','core/insight-preferences.js','core/insight-voices.js',
-    'core/account-auth-response.js','core/page-content-policy.js','core/discussion-readiness.js','core/discussion-mentions.js',
+    'core/account-auth-response.js','core/account-client.js','core/canonical-history-contract.js','chromium/canonical-history-panel.js','core/page-content-policy.js','core/discussion-readiness.js','core/discussion-mentions.js',
     'core/active-tab-policy.js','core/page-resolution-contract.js','core/indicator-contract.js',
     'chromium/assistant-voice-picker.js','chromium/popup-shell.js','fixtures/indicator-fixtures.js','fixtures/local-service-fixture-bridge.js','locales/en.js'].map(file=>path.join(EXTENSION,file))];
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -31,53 +33,6 @@ function checkedPath(target){const root=workspaceRoot(),absolute=path.resolve(ta
   let ancestor=absolute;while(!existsSync(ancestor)){const parent=path.dirname(ancestor);assert.notEqual(parent,ancestor);ancestor=parent;}
   const resolved=realpathSync(ancestor);assert.ok(resolved.toLowerCase()===root.toLowerCase()||contained(root,resolved));
   if(existsSync(absolute))assert.ok(contained(root,realpathSync(absolute)));return absolute;}
-const ELIGIBLE_TARGETS=new Set(['page','iframe','other','service_worker','worker','shared_worker']);
-const AUTO_ATTACH={autoAttach:true,waitForDebuggerOnStart:true,flatten:true,
-  filter:[...ELIGIBLE_TARGETS].map(type=>({type,exclude:false})).concat({exclude:true})};
-const BOUNDARY_METHODS=new Set(['Target.setAutoAttach','Network.enable','Network.emulateNetworkConditions','Fetch.enable',
-  'Runtime.enable','Page.enable','Runtime.runIfWaitingForDebugger','Target.getTargetInfo']);
-export async function quarantinePausedSemanticTarget(entry,{verifyIdentity}={}){
-  const eligible=()=>entry.waiting===true&&entry.originClass==='extension'&&!entry.resumeIssued&&!entry.ready&&
-    entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled;
-  if(!eligible())throw new Error('Quarantine precondition refused');
-  entry.stage='quarantine-identity';if(await verifyIdentity()!==true)throw new Error('Quarantine identity refused');
-  if(!eligible())throw new Error('Quarantine precondition refused');
-  // No Runtime resume or close command is issued. Exact owned-browser exit is
-  // required later before this quarantine can count as retired or QA can pass.
-  entry.quarantined=true;entry.stage='quarantined-paused';return true;
-}
-export async function bindContainedSemanticAlias(entry,owner,{ownedOrigin,verifyIdentity}={}){
-  const eligible=()=>owner&&entry.waiting===false&&entry.targetId===owner.targetId&&entry.type===owner.type&&entry.ordinal!==owner.ordinal&&
-    entry.originClass==='extension'&&owner.originClass==='extension'&&owner.active===true&&owner.ready===true&&!owner.aliased&&!owner.firstFailure&&
-    owner.recursiveAttachInstalled&&owner.offlineInstalled&&owner.fetchInstalled&&typeof ownedOrigin==='string'&&/^chrome-extension:\/\/[a-p]{32}$/u.test(ownedOrigin)&&
-    owner.ownedOrigin===ownedOrigin&&entry.targetUrl===owner.targetUrl&&entry.targetUrl.startsWith(ownedOrigin+'/');
-  if(!eligible())throw new Error('Alias precondition refused');entry.stage='alias-identity';
-  if(await verifyIdentity()!==true)throw new Error('Alias identity refused');if(!eligible())throw new Error('Alias precondition refused');
-  // Keep the original active session's Fetch/offline/recursive ownership. The
-  // duplicate is merely an alias and receives no Runtime resume command.
-  entry.aliased=true;entry.boundTo=owner.ordinal;entry.stage='alias-contained';return true;
-}
-export function markSemanticSessionDetached(entry,{shutdown=false}={}){
-  if(!entry)return false;entry.active=false;
-  if(!shutdown&&entry.ownsNetworkBoundaries&&!entry.aliased){entry.unexpectedDetach=true;return true;}return false;
-}
-export function describeSemanticBoundaryFailure(error){
-  if(error===null||typeof error!=='object'||types.isProxy(error))return {code:'boundary-failure'};
-  let message;try{message=Object.getOwnPropertyDescriptor(error,'message')?.value;}catch{return {code:'boundary-failure'};}
-  if(typeof message!=='string'||message.length>256)return {code:'boundary-failure'};
-  const known={'Target cap':'target-cap','Unexpected target type':'unexpected-target-type',
-    'Executable target already running':'target-already-executing','Unexpected executable target':'unexpected-target-origin',
-    'Foreign extension target':'foreign-extension-target','Quarantine precondition refused':'quarantine-precondition',
-    'Quarantine identity refused':'quarantine-identity','Alias precondition refused':'alias-precondition','Alias identity refused':'alias-identity'};
-  if(Object.hasOwn(known,message))return {code:known[message]};
-  const rejected=/^Chromium protocol rejected ([A-Za-z]+\.[A-Za-z]+) \(code (-?[0-9]{1,10})\)$/u.exec(message);
-  if(rejected&&BOUNDARY_METHODS.has(rejected[1])){const numericCode=Number(rejected[2]);if(Number.isInteger(numericCode)&&numericCode>=-2147483648&&numericCode<=2147483647)
-    return {code:'protocol-rejected',method:rejected[1],numericCode};}
-  for(const [prefix,code] of [['Chromium protocol timeout: ','protocol-timeout'],['Chromium pipe ended during ','pipe-ended'],['Chromium pipe unavailable for ','pipe-unavailable']]){
-    if(message.startsWith(prefix)&&BOUNDARY_METHODS.has(message.slice(prefix.length)))return {code,method:message.slice(prefix.length)};
-  }
-  return {code:'boundary-failure'};
-}
 const UI_ASSERT_CODES=new Set(['composer-heading-mismatch','horizontal-overflow','composer-content-clipped','topic-button-unreadable']);
 export function describeSemanticUiFailure(error){
   if(error===null||typeof error!=='object'||types.isProxy(error))return {code:'ui-step-failed'};
@@ -216,10 +171,152 @@ export function validateSemanticBrowserSmokeSource(){
   new Function(`return (${bootstrapFixture.toString()});`);
   new Function(`return (${createSemanticSmokeAiPort.toString()});`);
   new Function(`return (${createSemanticFirstPageSmokeState.toString()});`);
+  new Function(`return (${bootstrapPrivateApplication.toString()});`);
   assert.equal(path.basename(CHROME),'chrome.exe');assert.ok(OUTPUT.startsWith(path.join(REPO,'apps/local-service/data')));
   assert.equal(AUTO_ATTACH.waitForDebuggerOnStart,true);assert.equal(AUTO_ATTACH.flatten,true);
   assert.ok(AUTO_ATTACH.filter.some(row=>row.type==='shared_worker'&&row.exclude===false));
   return {schema:'semantic-workspace-browser-source-check/v1',browserLaunched:false,fixtureCompiles:true};
+}
+
+export const PRIVATE_BROWSER_ROOT_BODY='Private browser root: actual canonical storage.';
+export const PRIVATE_BROWSER_REPLY_BODY='Private browser reply: original canonical destination.';
+const PRIVATE_BROWSER_CASES=Object.freeze(['named-account-and-semantic-directory-search','human-root-in-original-canonical-topic-null-origin',
+ 'human-reply-and-stored-read-original-destination','second-account-edit-denied-original-body-retained']);
+const PRIVATE_BROWSER_ROOT=path.win32.join(REPO,'apps/local-service/data/canonical-migration-backups/hierarchy-private-restore-runs');
+function privateRecord(value,keys){assert.ok(value&&typeof value==='object'&&!types.isProxy(value)&&Object.getPrototypeOf(value)===Object.prototype);
+ assert.deepEqual(Reflect.ownKeys(value).sort(),[...keys].sort());const out={};for(const key of keys){const d=Object.getOwnPropertyDescriptor(value,key);assert.ok(d?.enumerable&&Object.hasOwn(d,'value'));out[key]=d.value;}return out;}
+export function validatePrivateApplicationBrowserPaths(profileDirectory,outputDirectory){
+ assert.equal(typeof profileDirectory,'string');assert.equal(typeof outputDirectory,'string');const prefix=PRIVATE_BROWSER_ROOT+'\\run-';assert.ok(outputDirectory.startsWith(prefix));
+ const nonce=outputDirectory.slice(prefix.length,-'\\output'.length);assert.match(nonce,/^[a-f0-9]{48}$/u);assert.equal(outputDirectory,prefix+nonce+'\\output');
+ const run=prefix+nonce,remainder=profileDirectory.slice((run+'\\cluster\\').length);
+ assert.ok(profileDirectory.startsWith(run+'\\cluster\\'));assert.match(remainder,new RegExp('^nhpg-[A-Za-z0-9]{6}\\\\app\\\\c-'+nonce.slice(0,8)+'$','u'));
+ assert.equal(path.win32.normalize(profileDirectory),profileDirectory);assert.equal(path.win32.normalize(outputDirectory),outputDirectory);
+ return {profileDirectory,outputDirectory};
+}
+function privateDirectories(directory){for(let name=directory;;name=path.dirname(name)){const stat=lstatSync(name);assert.ok(stat.isDirectory()&&!stat.isSymbolicLink());assert.equal(realpathSync(name),name);if(path.dirname(name)===name)break;}}
+function freezePrivate(value){if(value&&typeof value==='object'){for(const child of Object.values(value))freezePrivate(child);Object.freeze(value);}return value;}
+
+// Invoked only through Runtime.callFunctionOn with private argument values.
+// No credential is interpolated into source, placed in the DOM or returned.
+async function bootstrapPrivateApplication(credentials){
+ window.dispatchEvent(new Event('pagehide'));
+ const [{mountDiscussionPanel},{mountSemanticTopicPanel},{createLocalDiscussionController},{createLocalServiceClient},{createAccountClient}]=await Promise.all([
+  import('./discussion-panel.js'),import('./semantic-topic-panel.js'),import('../core/local-discussion-controller.js'),import('../core/local-service-client.js'),import('../core/account-client.js')]);
+ let actor=credentials.actors[0].actorId;const sessions=new Map(credentials.actors.map(row=>[row.actorId,row.sessionToken])),topicId=credentials.canonicalTopicId;
+ const transport=createLocalServiceClient({fetchImpl:fetch.bind(globalThis),getToken:()=>credentials.capability,getAccountToken:id=>sessions.get(id)??null});
+ const accounts=createAccountClient({fetchImpl:fetch.bind(globalThis),getPairingToken:()=>credentials.capability});
+ for(const row of credentials.actors){const account=await accounts.me(row.sessionToken);if(row.actorId!=='account-'+account.id||account.state!=='active'||!account.username)throw new Error('Private account mismatch');}
+ document.body.replaceChildren();document.body.dataset.uiMode='user';document.body.dataset.uiSurface='sidepanel';
+ const main=document.createElement('main'),directory=document.createElement('section'),canonical=document.createElement('section');canonical.id='local-discussion';canonical.className='action-panel';main.append(directory,canonical);document.body.append(main);
+ const panel=mountDiscussionPanel(document,canonical);
+ // Initial chooser metadata is a genuine bounded response for the already
+ // chosen private Topic. All IDs, actors, bodies and versions remain server DTOs.
+ const client={...transport,catalogContext:(input,options)=>transport.catalogContext(input.sourceId===null&&input.topicId===null?{sourceId:null,topicId}:input,options)};
+ const currentTab=await chrome.tabs.getCurrent();if(!Number.isSafeInteger(currentTab?.id)||!Number.isSafeInteger(currentTab?.windowId))throw new Error('Private browser tab unavailable');
+ const controller=createLocalDiscussionController({client,session:{isPaired:async()=>true},readPostingActor:()=>actor,
+  readActiveTab:async()=>{const tab=await chrome.tabs.get(currentTab.id);return {tabId:tab.id,windowId:tab.windowId,url:location.href};},
+  observeTabLifecycle:(_id,invalidate)=>{const changed=id=>{if(id===currentTab.id)invalidate();};chrome.tabs.onUpdated.addListener(changed);chrome.tabs.onRemoved.addListener(changed);
+   return ()=>{chrome.tabs.onUpdated.removeListener(changed);chrome.tabs.onRemoved.removeListener(changed);};},
+  lookupByNormalizedUrl:async()=>{throw new Error('Private manual context only');},onStateChange:value=>panel.render(value)});
+ controller.setSemanticTopicsAvailable(true);panel.bind(controller);await controller.open();
+ const topics=mountSemanticTopicPanel(document,directory,{client:transport,idPrefix:'private-topics-'});topics.setConnection(true);topics.setActive(true);
+ let rootId=null,replyId=null;
+ return {
+  ready:()=>Boolean(directory.querySelector('button[id^="private-topics-open-"]')),
+  directoryFound:()=>directory.querySelector('#private-topics-search')?.value==='Games'&&Boolean(directory.querySelector('#private-topics-open-games'))&&!directory.querySelector('#private-topics-open-music'),
+  async selectManual(){topics.setActive(false);directory.hidden=true;await controller.selectTopic(topicId);if(controller.currentState().phase!=='ready')throw new Error('Private Topic unavailable');},
+  rootAccepted(body){const value=controller.currentState(),root=value.discussion?.roots.find(row=>row.body===body&&row.authorId===actor);
+   if(!root||root.origin?.sourceId||value.sourceId!==null||value.topicId!==topicId)return false;rootId=root.id;return true;},
+  replyAccepted(body){const value=controller.currentState(),root=value.discussion?.roots.find(row=>row.id===rootId),reply=root?.replies.find(row=>row.body===body&&row.authorId===actor);
+   if(!reply||reply.rootId!==rootId||reply.origin?.sourceId||value.topicId!==topicId)return false;replyId=reply.id;return true;},
+  async stored(rootBody,replyBody){const value=await transport.selection({sourceId:null,topicId}),root=value.discussion.roots.find(row=>row.id===rootId),reply=root?.replies.find(row=>row.id===replyId);
+   if(!root||root.body!==rootBody||!reply||reply.body!==replyBody||reply.rootId!==rootId||root.origin?.sourceId||reply.origin?.sourceId)throw new Error('Private stored read mismatch');
+   return {topicId,discussionId:value.discussion.discussionId,rootId,replyId};},
+  async denySecond(rootBody){actor=credentials.actors[1].actorId;controller.accountChanged();const value=await transport.selection({sourceId:null,topicId});let refused=false;
+   try{await transport.command(value.catalog.version,{type:'edit',contributionId:rootId,body:'Unauthorized browser replacement'},actor);}catch(error){refused=error?.code==='forbidden';}
+   const after=await transport.selection({sourceId:null,topicId});if(!refused||after.discussion.roots.find(row=>row.id===rootId)?.body!==rootBody)throw new Error('Private second-account edit not refused');return true;},
+  dispose(){topics.dispose();controller.dispose();panel.dispose();sessions.clear();credentials=null;},
+ };
+}
+
+/** Trusted private composition; no CLI, arbitrary target, CDP or page selector. */
+export async function openPrivateApplicationBrowser(value){
+ const a=privateRecord(value,['profileDirectory','outputDirectory','deadline','checkDeadline','request']);validatePrivateApplicationBrowserPaths(a.profileDirectory,a.outputDirectory);
+ assert.ok(Number.isFinite(a.deadline)&&typeof a.checkDeadline==='function'&&typeof a.request==='function');assert.equal(process.platform,'win32');
+ privateDirectories(path.dirname(a.profileDirectory));privateDirectories(a.outputDirectory);mkdirSync(a.profileDirectory);privateDirectories(a.profileDirectory);
+ const profileIdentity=realpathSync(a.profileDirectory),started=performance.now(),cutoff=Math.min(a.deadline,started+120000),targets=new Map(),targetGroups=new Map(),pendingTasks=new Set();
+ let browser=null,origin=null,sessionId=null,extensionLoadStarted=false,closing=false,exercising=false,boundaryFailed=false,stage='opening',failure=null,final=null,remote=null,canonical=null,proxy=null;
+ const cases=PRIVATE_BROWSER_CASES.map(name=>({name,status:'not-started'})),forwardedNetwork=new Map();let observedResponses=0,publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
+ const remember=code=>{failure??={stage,code};};
+ const check=()=>{a.checkDeadline();if(closing||boundaryFailed||performance.now()>=cutoff)throw new Error('Private browser unavailable');};
+ const track=promise=>{pendingTasks.add(promise);promise.finally(()=>pendingTasks.delete(promise)).catch(()=>{});return promise;};
+ const protocol=(method,args,session)=>browser.send(method,args,session);
+ const abort=async(id,session)=>{try{await protocol('Fetch.failRequest',{requestId:id,errorReason:'BlockedByClient'},session);}catch{/* Closing remains separately verified. */}};
+ async function wait(fn){const end=Math.min(cutoff,performance.now()+9000);for(;;){check();if(await fn())return;if(performance.now()>=end)throw new Error('Private browser wait expired');await pause(40);}}
+ async function call(fn,args=[]){check();const response=await protocol('Runtime.callFunctionOn',{objectId:remote,functionDeclaration:fn,arguments:args.map(value=>({value})),awaitPromise:true,returnByValue:true},sessionId);check();assert.ok(!response.exceptionDetails);return response.result?.value;}
+ async function click(selector){const point=await call("function(selector){const n=document.querySelector(selector),r=n?.getBoundingClientRect();if(!n||n.disabled||!r||r.width<=0||r.height<=0)throw Error('Control unavailable');return {x:r.left+r.width/2,y:r.top+r.height/2};}",[selector]);
+  await protocol('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1},sessionId);
+  await protocol('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1},sessionId);check();}
+ const control=createOneShotBrowserExercise({perform:async credentials=>{
+  try{check();stage='private-page';exercising=true;await protocol('Page.navigate',{url:origin+'/chromium/popup.html'},sessionId);
+   await protocol('Emulation.setDeviceMetricsOverride',{width:400,height:900,deviceScaleFactor:1,mobile:false},sessionId);
+   await wait(async()=>{const response=await protocol('Runtime.evaluate',{expression:"document.readyState==='complete'&&Boolean(document.querySelector('#discussion-composer'))",returnByValue:true},sessionId);return response.result?.value===true;});
+   const environment=await protocol('Runtime.evaluate',{expression:'globalThis',returnByValue:false},sessionId);assert.ok(environment.result?.objectId);
+   const boot=await protocol('Runtime.callFunctionOn',{objectId:environment.result.objectId,functionDeclaration:bootstrapPrivateApplication.toString(),arguments:[{value:credentials}],awaitPromise:true,returnByValue:false},sessionId);
+   check();assert.ok(!boot.exceptionDetails&&boot.result?.objectId);remote=boot.result.objectId;
+   stage=cases[0].name;cases[0].status='running';await wait(()=>call('function(){return this.ready();}'));
+   await click('#private-topics-search');
+   await protocol('Input.insertText',{text:'Games'},sessionId);await wait(()=>call('function(){return this.directoryFound();}'));cases[0].status='passed';
+   await call('function(){return this.selectManual();}');stage=cases[1].name;cases[1].status='running';
+   await click('#discussion-body');await protocol('Input.insertText',{text:PRIVATE_BROWSER_ROOT_BODY},sessionId);
+   await click('#discussion-submit');await wait(()=>call('function(body){return this.rootAccepted(body);}',[PRIVATE_BROWSER_ROOT_BODY]));cases[1].status='passed';
+   stage=cases[2].name;cases[2].status='running';await click('[data-action=reply]');
+   await click('#discussion-body');await protocol('Input.insertText',{text:PRIVATE_BROWSER_REPLY_BODY},sessionId);
+   await click('#discussion-submit');await wait(()=>call('function(body){return this.replyAccepted(body);}',[PRIVATE_BROWSER_REPLY_BODY]));
+   canonical=await call('function(root,reply){return this.stored(root,reply);}',[PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY]);cases[2].status='passed';
+   stage=cases[3].name;cases[3].status='running';assert.equal(await call('function(body){return this.denySecond(body);}',[PRIVATE_BROWSER_ROOT_BODY]),true);cases[3].status='passed';
+  }catch{const row=cases.find(row=>row.status==='running');if(row)row.status='failed';remember('private-browser-exercise');throw new Error('Private browser exercise unavailable');}
+ },retire:async()=>{
+  publishOrigin(null);let browserClosed=false,ownedRootExited=false,profileRemoved=false;
+  if(remote)try{await protocol('Runtime.callFunctionOn',{objectId:remote,functionDeclaration:'function(){this.dispose();}',returnByValue:true},sessionId);await protocol('Runtime.releaseObject',{objectId:remote},sessionId);}catch{remember('private-browser-close');}
+  await proxy?.close();if(browser)try{await browser.close();browserClosed=true;}catch{remember('private-browser-close');}
+  ownedRootExited=browser?.hasExited===true;await Promise.allSettled([...pendingTasks]);
+  try{a.checkDeadline();assert.ok(performance.now()<cutoff);}catch{remember('private-browser-close');}
+  try{assert.ok(ownedRootExited);validatePrivateApplicationBrowserPaths(a.profileDirectory,a.outputDirectory);privateDirectories(a.profileDirectory);assert.equal(realpathSync(a.profileDirectory),profileIdentity);
+   rmSync(a.profileDirectory,{recursive:true,force:false,maxRetries:3,retryDelay:100});profileRemoved=true;}catch{remember('private-browser-close');}
+  const contained=targets.size>0&&[...targets.values()].every(entry=>{
+   if(entry.unexpectedDetach)return false;
+   if(entry.aliased){const owner=targetGroups.get(entry.targetId)?.owner;return owner?.ordinal===entry.boundTo&&owner.ready&&!owner.firstFailure&&!owner.unexpectedDetach&&
+    (owner.active||ownedRootExited)&&owner.recursiveAttachInstalled&&owner.offlineInstalled&&owner.fetchInstalled;}
+   return entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled&&(entry.ready||entry.quarantined&&entry.waiting&&!entry.resumeIssued&&ownedRootExited);
+  });
+  if(!contained||!ownedRootExited||!observedResponses)remember('private-browser-boundary');const network=proxy?.describe()??{requests:0,maximumPending:0,pending:0};
+  if(cases.some(row=>row.status!=='passed'))remember('private-browser-exercise');
+  final=freezePrivate({schema:'private-application-browser-proof/v1',status:!failure&&cases.every(row=>row.status==='passed')?'passed':'failed',cases:cases.map(row=>({...row})),pendingCases:cases.filter(row=>row.status==='running').length,
+   origin,canonical,requests:network.requests,maxConcurrentRequests:network.maximumPending,cleanup:{browserClosed,ownedRootExited,pendingRequests:network.pending,pendingTasks:pendingTasks.size,profileRemoved},
+   scope:{realBrowser:true,realHttpProxy:true,sqlVerifiedByThisHelper:false,nativeCapture:false,nativeSidePanel:false,provider:false,externalIdentity:false,productionCapacity:false},failure,elapsedMs:Math.round(performance.now()-started)});
+  return final;
+ }});
+ try{check();browser=launchChromiumPipe({executable:CHROME,profileDirectory:a.profileDirectory});
+  installSemanticBrowserContainment({browser,targets,targetGroups,track,protocol,getOrigin:()=>origin,waitOrigin:()=>originKnown,isClosing:()=>closing,
+   isExtensionLoadStarted:()=>extensionLoadStarted,onFailure:()=>{boundaryFailed=true;remember('private-browser-boundary');}});
+  browser.on('Runtime.exceptionThrown',()=>{boundaryFailed=true;remember('private-browser-exercise');});
+  browser.on('Network.responseReceived',({requestId,response},session)=>{if(/^https?:/u.test(response.url)){
+   observedResponses++;if(forwardedNetwork.get(session+'\0'+requestId)!==response.url){boundaryFailed=true;remember('private-browser-transport');}
+  }});
+  browser.on('Fetch.requestPaused',(event,session)=>{track((async()=>{if(!exercising||closing){await abort(event.requestId,session);return;}try{
+    check();const entry=targets.get(session);assert.ok(entry?.active&&entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled);
+    const info=(await protocol('Target.getTargetInfo',{targetId:entry.targetId})).targetInfo;check();assert.ok(info?.attached&&info.url.startsWith(origin+'/'));
+    const response=await proxy.forward({url:event.request.url,method:event.request.method,headers:event.request.headers,postData:event.request.postData});check();
+    assert.equal(typeof event.networkId,'string');assert.ok(event.networkId.length<=128);forwardedNetwork.set(session+'\0'+event.networkId,event.request.url);
+    await protocol('Fetch.fulfillRequest',{requestId:event.requestId,responseCode:response.status,responseHeaders:Object.entries(response.headers).map(([name,value])=>({name,value})),body:response.body.toString('base64')},session);
+   }catch{if(!closing){boundaryFailed=true;remember('private-browser-transport');}await abort(event.requestId,session);}})());});
+  await protocol('Target.setDiscoverTargets',{discover:true});await protocol('Target.setAutoAttach',AUTO_ATTACH);extensionLoadStarted=true;
+  const loaded=await protocol('Extensions.loadUnpacked',{path:EXTENSION});check();assert.match(loaded.id,/^[a-p]{32}$/u);origin='chrome-extension://'+loaded.id;publishOrigin(origin);
+  proxy=createPrivateBrowserRequestProxy({origin,request:a.request,checkDeadline:check,isOpen:()=>exercising&&!closing});
+  const page=await protocol('Target.createTarget',{url:'about:blank'});await wait(async()=>{sessionId=[...targets.entries()].find(([,entry])=>entry.targetId===page.targetId&&entry.ready)?.[0];return Boolean(sessionId);});
+  return Object.freeze({origin,exercise(credentials){try{return control.exercise(credentials);}catch{remember('private-browser-exercise');throw new Error('Private browser exercise unavailable');}},close(){closing=true;return control.close();},get result(){return final;}});
+ }catch{closing=true;remember('private-browser-setup');await control.close();throw new Error('Private browser unavailable');}
 }
 
 export async function runSemanticWorkspaceBrowserSmoke(){
@@ -356,71 +453,9 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     browser.on('Runtime.exceptionThrown',(_event,incoming)=>{if(exceptions.length<64)exceptions.push({phase,target:targets.get(incoming)?.type??'unknown'});});
     browser.on('Network.responseReceived',({response})=>{if(/^https?:/u.test(response.url)){remoteResponses++;const headers=Object.fromEntries(Object.entries(response.headers??{}).map(([k,v])=>[k.toLowerCase(),v]));if(headers['x-murmingle-qa-intercepted']!=='1')fail('unintercepted-response');}});
     browser.on('Fetch.requestPaused',(event,incoming)=>{track(intercept(event,incoming).catch(async()=>{fail('interception-failed');await abortRequest(event.requestId,incoming);}));});
-    browser.on('Target.detachedFromTarget',({sessionId:detached})=>{const entry=targets.get(detached);
-      if(markSemanticSessionDetached(entry,{shutdown:closing||protocolFailure||timedOut})){
-        entry.firstFailure??={stage:'session-detached',code:'contained-owner-detached'};
-        firstBoundaryFailure??={ordinal:entry.ordinal,type:entry.type,waiting:entry.waiting,originClass:entry.originClass,...entry.firstFailure};
-        protocolFailure=true;fail('contained-owner-detached');void browser.close();
-      }});
-    browser.on('Target.attachedToTarget',({sessionId:attached,targetInfo,waitingForDebugger})=>{
-      if(targets.size>=32){protocolFailure=true;fail('target-cap');void browser.close();return;}
-      let group=targetGroups.get(targetInfo.targetId);
-      if(!group){group={firstOrdinal:targets.size+1,resumeIssued:false,quarantineStarted:false,owner:null};targetGroups.set(targetInfo.targetId,group);}
-      const entry={ordinal:targets.size+1,type:ELIGIBLE_TARGETS.has(targetInfo.type)?targetInfo.type:'unexpected',targetId:targetInfo.targetId,
-        waiting:waitingForDebugger===true,originClass:targetInfo.url==='about:blank'?'blank':/^chrome-extension:\/\//u.test(targetInfo.url)?'extension':'other',
-        targetUrl:targetInfo.url,active:true,ownedOrigin:null,ownsNetworkBoundaries:false,unexpectedDetach:false,aliased:false,boundTo:null,
-        stage:'validate-target-count',ready:false,resumeIssued:false,quarantined:false,duplicateOf:group.firstOrdinal===targets.size+1?null:group.firstOrdinal,firstFailure:null};targets.set(attached,entry);
-      entry.setup=track((async()=>{
-        if(targets.size>32)throw new Error('Target cap');
-        entry.stage='validate-target-type';
-        if(!ELIGIBLE_TARGETS.has(targetInfo.type))throw new Error('Unexpected target type');
-        entry.stage='validate-waiting';
-        const initialBlank=!waitingForDebugger&&!extensionLoadStarted&&!initialBlankAccepted&&targetInfo.type==='page'&&
-          targetInfo.url==='about:blank'&&!targetInfo.openerId&&!targetInfo.openerFrameId;
-        if(initialBlank)initialBlankAccepted=true;
-        if(!waitingForDebugger&&!initialBlank){const owner=group.owner;if(!owner)throw new Error('Executable target already running');
-          entry.stage='bind-contained-alias';if(!owner.ready&&owner.setup)await owner.setup;
-          await bindContainedSemanticAlias(entry,owner,{ownedOrigin:origin,verifyIdentity:async()=>{
-            const current=await protocol('Target.getTargetInfo',{targetId:entry.targetId});const info=current?.targetInfo;
-            return !closing&&!protocolFailure&&owner.active&&info?.attached===true&&info?.targetId===owner.targetId&&info?.type===targetInfo.type&&info?.url===entry.targetUrl;
-          }});return;
-        }
-        entry.stage='validate-origin';
-        const extensionUrl=/^chrome-extension:\/\/[a-p]{32}\//u.test(targetInfo.url);
-        if(!initialBlank&&!(targetInfo.url==='about:blank'&&['page','iframe'].includes(targetInfo.type))&&
-          !(extensionUrl&&extensionLoadStarted))throw new Error('Unexpected executable target');
-        // A paused foreign extension may proceed only to containment/quarantine.
-        // It still cannot pass the exact owned-origin execution gate below.
-        // Browser-scope attachment does not cover every descendant. Install the
-        // same paused recursive policy on EACH eligible attached target first.
-        entry.stage='recursive-auto-attach';await protocol('Target.setAutoAttach',AUTO_ATTACH,attached);entry.recursiveAttachInstalled=true;
-        // Install both boundaries before any new extension target executes.
-        entry.stage='network-enable';await protocol('Network.enable',{},attached);
-        entry.stage='network-offline';await protocol('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0},attached);
-        entry.offlineInstalled=true;
-        entry.stage='fetch-enable';await protocol('Fetch.enable',{patterns:[{urlPattern:'http://*',requestStage:'Request'},{urlPattern:'https://*',requestStage:'Request'}]},attached);
-        entry.fetchInstalled=true;
-        // Extension workers can attach before loadUnpacked returns its ID. They
-        // stay paused until that exact owned origin is known and checked.
-        if(extensionUrl){entry.stage='await-owned-origin';const ownedOrigin=origin??await originKnown;if(closing||!ownedOrigin)throw new Error('Foreign extension target');
-          if(!targetInfo.url.startsWith(ownedOrigin+'/')){
-            group.quarantineStarted=true;await quarantinePausedSemanticTarget(entry,{
-              verifyIdentity:async()=>{const current=await protocol('Target.getTargetInfo',{targetId:entry.targetId});const info=current?.targetInfo;
-                return !closing&&!group.resumeIssued&&info?.targetId===entry.targetId&&info?.type===targetInfo.type&&info?.url===targetInfo.url&&
-                  /^chrome-extension:\/\/[a-p]{32}\//u.test(info.url)&&!info.url.startsWith(ownedOrigin+'/');}});return;
-          }entry.ownedOrigin=ownedOrigin;entry.ownsNetworkBoundaries=true;group.owner??=entry;
-        }
-        if(group.quarantineStarted)throw new Error('Foreign extension target');
-        entry.stage='runtime-enable';await protocol('Runtime.enable',{},attached);
-        if(targetInfo.type==='page'){entry.stage='page-enable';await protocol('Page.enable',{},attached);}
-        if(group.quarantineStarted)throw new Error('Foreign extension target');
-        if(waitingForDebugger){entry.stage='resume';entry.resumeIssued=true;group.resumeIssued=true;await protocol('Runtime.runIfWaitingForDebugger',{},attached);}
-        entry.ready=true;entry.stage='ready';
-      })().catch(error=>{
-        entry.firstFailure??={stage:entry.stage,...describeSemanticBoundaryFailure(error)};
-        firstBoundaryFailure??={ordinal:entry.ordinal,type:entry.type,waiting:entry.waiting,originClass:entry.originClass,...entry.firstFailure};
-        protocolFailure=true;fail('target-boundary-installation');void browser.close();}));
-    });
+    installSemanticBrowserContainment({browser,targets,targetGroups,track,protocol,getOrigin:()=>origin,waitOrigin:()=>originKnown,
+      isClosing:()=>closing||timedOut,isExtensionLoadStarted:()=>extensionLoadStarted,
+      onFailure:(code,detail)=>{firstBoundaryFailure??=detail;protocolFailure=true;fail(code);}});
     await browser.send('Target.setDiscoverTargets',{discover:true});
     await browser.send('Target.setAutoAttach',AUTO_ATTACH);
     extensionLoadStarted=true;const loaded=await browser.send('Extensions.loadUnpacked',{path:EXTENSION});origin='chrome-extension://'+loaded.id;publishOrigin(origin);

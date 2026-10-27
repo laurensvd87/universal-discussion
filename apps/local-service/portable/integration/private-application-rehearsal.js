@@ -13,6 +13,7 @@ import {createExclusiveSession} from './native-hierarchy-postgres-v2/session.js'
 import {PRIVATE_RUN_ROOT} from './private-owner-storage.js';
 import {runPrivateModelRehearsal} from './private-model-rehearsal.js';
 import {loadPrivateModelTrainingInputs} from './private-model-training-inputs.js';
+import {openPrivateApplicationBrowser,PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY} from '../../harness/run-semantic-workspace-browser-smoke.js';
 
 const fail=code=>Object.assign(new Error('Private application rehearsal failed'),{code});
 const need=(value,code='APPLICATION_ASSERTION')=>{if(!value)throw fail(code);};
@@ -68,17 +69,18 @@ async function seedAccounts(filename,key){const repository=new AccountRepository
  }catch(e){first=true;primary=e;throw e;}finally{try{repository.close();}catch(e){if(!first)throw e;}if(first)void primary;}}
 async function listen(handle){const server=createLoopbackServer({handle});try{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen({host:'127.0.0.1',port:PORT,exclusive:true,backlog:8},resolve);});need(server.address()?.address==='127.0.0.1'&&server.address()?.port===PORT,'APPLICATION_LISTENER');}
  catch(e){server.close();throw e;}let closing=null;return {close(){if(!closing)closing=new Promise((resolve,reject)=>{server.close(error=>error?reject(error):resolve());server.closeIdleConnections?.();});return closing;}};}
-function createRequestHttp(launch){return function requestHttp({method,url,headers,body}){
+function createRequestHttp(launch,raw=false){return function requestHttp({method,url,headers,body}){
  return new Promise((resolve,reject)=>{let responseValue,failed=false,primary,bytes=0,chunks=[],closed=false,responseSeen=false,responseSettled=false;const req=launch({host:'127.0.0.1',port:PORT,method,path:url,headers,agent:false});
   const remember=e=>{if(!failed){failed=true;primary=e;}};req.on('error',()=>remember(fail('APPLICATION_HTTP')));req.setTimeout(5000,()=>{remember(fail('APPLICATION_HTTP_TIMEOUT'));req.destroy();});
   const finish=()=>{if(!closed||responseSeen&&!responseSettled)return;if(failed)reject(primary);else if(!responseValue)reject(fail('APPLICATION_HTTP'));else resolve(responseValue);};
-  req.on('response',res=>{responseSeen=true;res.on('data',chunk=>{bytes+=chunk.length;if(bytes>262144){remember(fail('APPLICATION_HTTP_BOUND'));res.destroy();req.destroy();}else chunks.push(chunk);});res.on('error',()=>remember(fail('APPLICATION_HTTP')));res.on('end',()=>{try{responseValue={status:res.statusCode,value:JSON.parse(Buffer.concat(chunks).toString('utf8'))};}catch{remember(fail('APPLICATION_HTTP_JSON'));}chunks=[];responseSettled=true;finish();});res.on('close',()=>{if(!responseSettled)remember(fail('APPLICATION_HTTP'));responseSettled=true;chunks=[];finish();});});
+  req.on('response',res=>{responseSeen=true;res.on('data',chunk=>{bytes+=chunk.length;if(bytes>262144){remember(fail('APPLICATION_HTTP_BOUND'));res.destroy();req.destroy();}else chunks.push(chunk);});res.on('error',()=>remember(fail('APPLICATION_HTTP')));res.on('end',()=>{try{const body=Buffer.concat(chunks);responseValue=raw?{status:res.statusCode,headers:res.headers,body}:{status:res.statusCode,value:JSON.parse(body.toString('utf8'))};}catch{remember(fail('APPLICATION_HTTP_JSON'));}chunks=[];responseSettled=true;finish();});res.on('close',()=>{if(!responseSettled)remember(fail('APPLICATION_HTTP'));responseSettled=true;chunks=[];finish();});});
   req.once('close',()=>{closed=true;finish();});
   if(body!==null)req.end(body);else req.end();
  });
 };}
 const requestHttp=createRequestHttp(options=>http.request(options));
 export function createPrivateHttpRequestForTest(launch){need(typeof launch==='function','APPLICATION_TEST_PORTS');return createRequestHttp(launch);}
+export function createPrivateRawHttpRequestForTest(launch){need(typeof launch==='function','APPLICATION_TEST_PORTS');return createRequestHttp(launch,true);}
 async function publishProof(a,proof){await directories(a.outputDirectory);a.checkDeadline();const bytes=Buffer.from(JSON.stringify(proof)+'\n');need(bytes.length<=32768,'APPLICATION_PROOF_BOUND');
  const pending=path.win32.join(a.outputDirectory,'application-proof.pending.json'),final=path.win32.join(a.outputDirectory,'application-proof.json'),fd=await open(pending,'wx');
  try{await fd.writeFile(bytes);await fd.sync();}finally{await fd.close();}a.checkDeadline();await directories(a.outputDirectory);await link(pending,final);a.checkDeadline();
@@ -87,6 +89,7 @@ async function publishProof(a,proof){await directories(a.outputDirectory);a.chec
 }
 const REAL={prepareStorage,seedAccounts,openApplication:openDormantPostgresApplication,listen,request:requestHttp,publishProof,now:()=>performance.now(),randomBytes,randomUUID,
  model:runPrivateModelRehearsal,readTraining:loadPrivateModelTrainingInputs};
+const PRODUCT={openBrowser:openPrivateApplicationBrowser,requestRaw:createRequestHttp(options=>http.request(options),true)};
 
 async function isolateCopiedQueue(database,check){
  // This runs only in the authenticated disposable restored fixture, after all
@@ -145,23 +148,57 @@ async function verifyModelOwnerRows(database,model,training,check){
  return verified;
 }
 
-async function run(value,ports,testComposition,withModel=false){const a=context(value);a.checkDeadline();const began=ports.now(),states=PRIVATE_APPLICATION_CASES.map(name=>({name,status:'not-attempted'}));let stage='setup',failed=false,primary;
+async function verifyBrowserOwnerRows(database,ui,actorId,check){
+ need(ui?.status==='passed'&&ui.canonical,'APPLICATION_BROWSER_OWNER');const {topicId,discussionId,rootId,replyId}=ui.canonical;check();
+ const result=await database.query(`SELECT
+  (SELECT count(*)::integer FROM canonical_v4.contributions c JOIN canonical_v4.discussions d ON d.id=c.discussion_id
+   JOIN canonical_v4.revisions r ON r.contribution_id=c.id AND r.ordinal=0
+   WHERE c.id=$1 AND c.discussion_id=$3 AND d.topic_id=$4 AND c.root_id IS NULL AND c.reply_to_id IS NULL
+    AND c.author_id=$5 AND c.actor_type='human' AND NOT c.withdrawn AND c.visibility='local-public'
+    AND c.origin_source_id IS NULL AND c.anchor_source_id IS NULL AND c.revision_count=1 AND r.payload::jsonb->>'body'=$6) AS roots,
+  (SELECT count(*)::integer FROM canonical_v4.contributions c JOIN canonical_v4.discussions d ON d.id=c.discussion_id
+   JOIN canonical_v4.revisions r ON r.contribution_id=c.id AND r.ordinal=0
+   WHERE c.id=$2 AND c.discussion_id=$3 AND d.topic_id=$4 AND c.root_id=$1 AND c.reply_to_id=$1
+    AND c.author_id=$5 AND c.actor_type='human' AND NOT c.withdrawn AND c.visibility='local-public'
+    AND c.origin_source_id IS NULL AND c.anchor_source_id IS NULL AND c.revision_count=1 AND r.payload::jsonb->>'body'=$7) AS replies,
+  (SELECT count(*)::integer FROM canonical_v4.semantic_root_snapshots WHERE root_id=$1) AS manual_snapshots`,
+ [rootId,replyId,discussionId,topicId,actorId,PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY]);check();
+ need(result.rows.length===1&&Object.keys(result.rows[0]).length===3&&result.rows[0].roots===1&&result.rows[0].replies===1&&result.rows[0].manual_snapshots===0,'APPLICATION_BROWSER_OWNER');
+ return {roots:1,replies:1,manualSnapshots:0};
+}
+
+async function run(value,ports,testComposition,withModel=false,withBrowser=false){const a=context(value);a.checkDeadline();const began=ports.now(),states=PRIVATE_APPLICATION_CASES.map(name=>({name,status:'not-attempted'}));let stage='setup',failed=false,primary;
  let appDatabase=null,urlDatabase=null,application=null,server=null,appClient=null,urlClient=null;const pendingHttp=new Set();let httpRequests=0,maximumConcurrentHttp=0;
  let workerClient=null,submitterClient=null,workerDatabase=null,submitterDatabase=null,model=null;
+ let browserHandle=null,browser=null;
  const cleanup={serverClosed:false,applicationClosed:false,appClientClosed:false,urlClientClosed:false,pendingHttp:0,pendingDatabase:0};
  if(withModel)Object.assign(cleanup,{workerClientClosed:false,submitterClientClosed:false});
+ if(withBrowser)cleanup.browserClosed=false;
  const key=ports.randomBytes(32),token=ports.randomBytes(32).toString('base64url');need(Buffer.isBuffer(key)&&key.length===32&&token.length>=32,'APPLICATION_RANDOM');
  const cfg={host:'127.0.0.1',port:4174,origin:ORIGIN,capability:token};
  const remember=e=>{if(!failed){failed=true;primary=e;}};
- async function call(url,input=null,session=null,patch={}){a.checkDeadline();need(pendingHttp.size<4,'APPLICATION_HTTP_CAPACITY');const headers={host:HOST,origin:ORIGIN,authorization:'Bearer '+token,...(input!==null?{'content-type':'application/json'}:{}),...(session?{'x-account-session':session}:{}),...patch};const body=input===null?null:JSON.stringify(input);need(body===null||Buffer.byteLength(body)<=65536,'APPLICATION_HTTP_BOUND');
+ async function call(url,input=null,session=null,patch={}){a.checkDeadline();need(pendingHttp.size<4,'APPLICATION_HTTP_CAPACITY');const headers={host:HOST,origin:cfg.origin,authorization:'Bearer '+token,...(input!==null?{'content-type':'application/json'}:{}),...(session?{'x-account-session':session}:{}),...patch};const body=input===null?null:JSON.stringify(input);need(body===null||Buffer.byteLength(body)<=65536,'APPLICATION_HTTP_BOUND');
   const original=Promise.resolve().then(()=>ports.request({method:input===null?'GET':'POST',url,headers,body}));pendingHttp.add(original);httpRequests++;maximumConcurrentHttp=Math.max(maximumConcurrentHttp,pendingHttp.size);try{const result=await original;a.checkDeadline();return result;}finally{pendingHttp.delete(original);}}
  async function ok(url,input=null,session=null){const r=await call(url,input,session);need(r.status===200);return r.value;}
  async function version(){return (await ok('/v1/version')).version;}
  async function command(session,command){return ok('/v1/commands',{expected:await version(),command},session);}
  async function caseRun(name,work){stage=name;const state=states.find(x=>x.name===name);try{await work();a.checkDeadline();state.status='passed';}catch(e){state.status='failed';throw e;}}
+ async function browserRequest(input){a.checkDeadline();need(pendingHttp.size<4,'APPLICATION_HTTP_CAPACITY');
+  need(input&&Reflect.ownKeys(input).length===4&&['method','url','headers','body'].every(k=>Object.hasOwn(input,k))&&['GET','POST','OPTIONS'].includes(input.method)&&typeof input.url==='string'&&/^\/v1\/[a-z0-9/?=&%._-]+$/iu.test(input.url)&&input.url.length<=4096,'APPLICATION_BROWSER_REQUEST');
+  const headers=new Map(Object.entries(input.headers??{}).map(([key,value])=>[key.toLowerCase(),value]));
+  need(headers.size===Object.keys(input.headers??{}).length&&headers.get('host')===HOST&&headers.get('origin')===cfg.origin&&(input.method==='OPTIONS'?!headers.has('authorization')&&!headers.has('x-account-session'):headers.get('authorization')==='Bearer '+token)&&(input.body===null||Buffer.isBuffer(input.body))&&(input.body===null||input.body.length<=65536),'APPLICATION_BROWSER_REQUEST');
+  const original=Promise.resolve().then(()=>ports.requestRaw(input));pendingHttp.add(original);httpRequests++;maximumConcurrentHttp=Math.max(maximumConcurrentHttp,pendingHttp.size);
+  try{const result=await original;a.checkDeadline();return result;}finally{pendingHttp.delete(original);}
+ }
+ async function closeBrowser(){if(!browserHandle)return;const ui=await browserHandle.close();browser={ui,ownerVerification:browser?.ownerVerification??null,
+  runtime:{chromeExecutableSha256:'480f275b63d1ea39113cbc8344ac395578acc25b432bd39af5fbc77005179aca',installedDllsPinned:false}};cleanup.browserClosed=true;}
  try{
   stage='setup-storage';const storage=await ports.prepareStorage(a);a.checkDeadline();
   stage='setup-accounts';const actors=await ports.seedAccounts(storage.accountDatabasePath,key);a.checkDeadline();need(Array.isArray(actors)&&actors.length===2&&actors.every(x=>typeof x.token==='string'&&x.token.length===43),'APPLICATION_ACCOUNTS');
+  if(withBrowser){stage='setup-browser';const nonce=a.outputDirectory.slice((PRIVATE_RUN_ROOT+'\\run-').length,-'\\output'.length);
+   browserHandle=await ports.openBrowser({profileDirectory:path.win32.join(a.privateAppDirectory,'c-'+nonce.slice(0,8)),outputDirectory:a.outputDirectory,deadline:a.deadline,checkDeadline:a.checkDeadline,request:browserRequest});
+   need(browserHandle&&/^chrome-extension:\/\/[a-p]{32}$/u.test(browserHandle.origin)&&typeof browserHandle.exercise==='function'&&typeof browserHandle.close==='function','APPLICATION_BROWSER');cfg.origin=browserHandle.origin;a.checkDeadline();
+  }
   stage='setup-app-client';appClient=await a.connectFixedRole(requestRole('murmingle_app'),a.checkDeadline);
   stage='setup-url-client';urlClient=await a.connectFixedRole(requestRole('murmingle_app'),a.checkDeadline);
   stage='setup-role-identity';
@@ -170,6 +207,13 @@ async function run(value,ports,testComposition,withModel=false){const a=context(
   stage='setup-application';application=await ports.openApplication({config:cfg,...storage,nextId:kind=>kind+'-'+ports.randomUUID(),now:()=>new Date().toISOString(),canonicalDatabase:appDatabase,urlSelectionDatabase:urlDatabase,accountsEnabled:true,accountHmacKey:key,hierarchicalTopics:true});a.checkDeadline();
   stage='setup-listener';server=await ports.listen(application.handle);a.checkDeadline();
   const [one,two]=actors;let topicId,sourceId,discussionId,rootId,replyId;
+  if(withBrowser){
+   stage='browser-accounts';const browserActors=[];for(const actor of actors){const account=await ok('/v1/account/me',{},actor.token);need(typeof account.id==='string'&&account.username===actor.username,'APPLICATION_BROWSER_ACCOUNT');browserActors.push({actorId:'account-'+account.id,sessionToken:actor.token});}
+   stage='browser-canonical-topic';const selected=await a.ownerDatabase.query("SELECT id FROM canonical_v4.topics t WHERE NOT EXISTS(SELECT 1 FROM canonical_v4.discussions d JOIN canonical_v4.contributions c ON c.discussion_id=d.id WHERE d.topic_id=t.id) ORDER BY id COLLATE \"C\" LIMIT 1");const canonicalTopicId=selected.rows[0]?.id;need(typeof canonicalTopicId==='string','APPLICATION_BROWSER_TOPIC');
+   stage='browser-exercise';await browserHandle.exercise({actors:browserActors,capability:token,canonicalTopicId});a.checkDeadline();
+   stage='browser-close';await closeBrowser();a.checkDeadline();need(browser?.ui?.status==='passed'&&browser.ui.origin===cfg.origin,'APPLICATION_BROWSER');
+   stage='browser-owner-verification';browser.ownerVerification=await verifyBrowserOwnerRows(a.ownerDatabase,browser.ui,browserActors[0].actorId,a.checkDeadline);
+  }
   await caseRun('hierarchy17-http-health',async()=>{need((await ok('/v1/health')).protocol==='local-service/v1');});
   await caseRun('independent-semantic-directory',async()=>{const r=await ok('/v1/semantic/topics',{});need(Array.isArray(r.topics)&&r.topics.length>=16&&r.policyRevision===1);});
   await caseRun('saved-page-canonical-read',async()=>{
@@ -221,6 +265,7 @@ async function run(value,ports,testComposition,withModel=false){const a=context(
  }catch(e){remember(e);}
  finally{
   const settle=async(work,mark)=>{try{await work();cleanup[mark]=true;}catch(e){remember(e);}};
+  if(withBrowser){if(browserHandle)await settle(closeBrowser,'browserClosed');else cleanup.browserClosed=true;}
   if(withModel){
    if(workerDatabase)await settle(()=>workerDatabase.close(),'workerClientClosed');else if(workerClient)await settle(()=>workerClient.end(),'workerClientClosed');else cleanup.workerClientClosed=true;
    if(submitterDatabase)await settle(()=>submitterDatabase.close(),'submitterClientClosed');else if(submitterClient)await settle(()=>submitterClient.end(),'submitterClientClosed');else cleanup.submitterClientClosed=true;
@@ -235,12 +280,15 @@ async function run(value,ports,testComposition,withModel=false){const a=context(
  need(cleanup.pendingHttp===0&&cleanup.pendingDatabase===0,'APPLICATION_PENDING');
  const proof={schema:'private-application-http-proof/v1',status:failed?'failed':'passed',cases:states,pendingCases:states.filter(x=>x.status!=='passed').length,
   server:{destinationPort:PORT,canonicalHost:HOST,loopbackOnly:true},upgrade:{...a.upgrade},counts:{httpRequests,maximumConcurrentHttp,fixtureActors:2},cleanup,
-  scope:{realHttp:!testComposition,realDatabase:!testComposition,browser:false,encoder:withModel&&!testComposition,provider:false,externalLoginVerified:false,productionCapacityValidated:false,testComposition},
+  scope:{realHttp:!testComposition,realDatabase:!testComposition,browser:withBrowser&&!testComposition,encoder:withModel&&!testComposition,provider:false,externalLoginVerified:false,productionCapacityValidated:false,testComposition},
   ...(withModel?{model}:{}),
+  ...(withBrowser?{browser}:{}),
   failure:failed?{stage,code:'APPLICATION_CASE_OR_CLEANUP_FAILED'}:null,elapsedMs:Math.max(0,Math.round(ports.now()-began))};
  if(failed)void primary;a.checkDeadline();const file=await ports.publishProof(a,proof);a.checkDeadline();return Object.freeze({status:proof.status,proofSha256:file.sha256,proofBytes:file.bytes});
 }
 export async function runPrivateApplicationRehearsal(value){if(arguments.length!==1)throw fail('APPLICATION_CONTEXT');return run(value,REAL,false);}
 export async function runPrivateModelApplicationRehearsal(value){if(arguments.length!==1)throw fail('APPLICATION_CONTEXT');return run(value,REAL,false,true);}
+export async function runPrivateProductApplicationRehearsal(value){if(arguments.length!==1)throw fail('APPLICATION_CONTEXT');return run(value,{...REAL,...PRODUCT},false,true,true);}
 export async function runPrivateApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&Object.keys(REAL).every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true);}
 export async function runPrivateModelApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&Object.keys(REAL).every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true,true);}
+export async function runPrivateProductApplicationRehearsalForTest(value,ports){need(arguments.length===2&&ports&&[...Object.keys(REAL),...Object.keys(PRODUCT)].every(k=>typeof ports[k]==='function'),'APPLICATION_TEST_PORTS');return run(value,ports,true,true,true);}

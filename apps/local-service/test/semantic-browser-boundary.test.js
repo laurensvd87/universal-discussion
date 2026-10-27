@@ -7,7 +7,8 @@ import vm from 'node:vm';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource,quarantinePausedSemanticTarget,
-  bindContainedSemanticAlias,markSemanticSessionDetached,describeSemanticUiFailure,createSemanticSmokeAiPort,createSemanticFirstPageSmokeState} from '../harness/run-semantic-workspace-browser-smoke.js';
+  bindContainedSemanticAlias,markSemanticSessionDetached,describeSemanticUiFailure,createSemanticSmokeAiPort,createSemanticFirstPageSmokeState,
+  validatePrivateApplicationBrowserPaths,openPrivateApplicationBrowser,PRIVATE_BROWSER_ROOT_BODY,PRIVATE_BROWSER_REPLY_BODY} from '../harness/run-semantic-workspace-browser-smoke.js';
 import {createLocalDiscussionController} from '../../../spikes/topic-resolution/browser/core/local-discussion-controller.js';
 
 // Evaluate the ACTUAL launcher with an in-memory child and pipes. No subprocess,
@@ -34,7 +35,7 @@ test('close returning after an unsuccessful owned kill still exposes hasExited f
 const root='D:\\GITProjekts\\universal-discussion-bootstrap',data=path.win32.join(root,'apps/local-service/data');
 function pathFixture({dataReal=data,rootReal=root,extra=[]}={}){
   const runner=readFileSync(new URL('../harness/run-semantic-workspace-browser-smoke.js',import.meta.url),'utf8');
-  const begin=runner.indexOf('function contained('),end=runner.indexOf('const ELIGIBLE_TARGETS=');assert.ok(begin>=0&&end>begin);
+  const begin=runner.indexOf('function contained('),end=runner.indexOf('const UI_ASSERT_CODES=');assert.ok(begin>=0&&end>begin);
   const source=runner.slice(begin,end)+'\nglobalThis.checked=checkedPath;';
   const entries=new Map([[path.win32.resolve(root),rootReal],[path.win32.resolve(data),dataReal],...extra]);
   const context={assert,path:path.win32,REPO:root,INTENDED_REPO:root,existsSync:value=>entries.has(path.win32.resolve(value)),
@@ -75,6 +76,15 @@ test('unknown diagnostic text, URLs, tokens, methods and accessor messages never
 });
 test('runner source-check compiles the browser fixture and stays import-inert',()=>{
   assert.deepEqual(validateSemanticBrowserSmokeSource(),{schema:'semantic-workspace-browser-source-check/v1',browserLaunched:false,fixtureCompiles:true});
+});
+test('private browser paths bind one exact parent run and short fresh profile with no cross-run selectors',async()=>{
+ const root='D:\\GITProjekts\\universal-discussion-bootstrap\\apps\\local-service\\data\\canonical-migration-backups\\hierarchy-private-restore-runs',nonce='a'.repeat(48),run=root+'\\run-'+nonce,
+  profile=run+'\\cluster\\nhpg-aBc123\\app\\c-'+nonce.slice(0,8),output=run+'\\output';
+ assert.deepEqual(validatePrivateApplicationBrowserPaths(profile,output),{profileDirectory:profile,outputDirectory:output});
+ for(const pair of [[profile,root+'\\run-'+'b'.repeat(48)+'\\output'],[profile.replace('c-aaaaaaaa','c-bbbbbbbb'),output],
+  [profile.replace('\\app\\','\\app\\..\\app\\'),output],[profile.replace('D:', 'E:'),output],['\\\\server\\share\\profile',output]])assert.throws(()=>validatePrivateApplicationBrowserPaths(...pair));
+ await assert.rejects(openPrivateApplicationBrowser({profileDirectory:profile,outputDirectory:output,deadline:1,checkDeadline:()=>{},request:()=>{},port:4185}));
+ assert.equal(PRIVATE_BROWSER_ROOT_BODY,'Private browser root: actual canonical storage.');assert.equal(PRIVATE_BROWSER_REPLY_BODY,'Private browser reply: original canonical destination.');
 });
 function firstPageController(){
   const fixture=createSemanticFirstPageSmokeState(),commands=[];

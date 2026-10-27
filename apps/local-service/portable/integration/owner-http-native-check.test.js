@@ -1,7 +1,7 @@
 // No listener, child, database, encoder or provider is invoked.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {main,runOwnerHttpNativeCheck,runOwnerModelNativeCheck} from './owner-http-native-check.js';
+import {main,runOwnerHttpNativeCheck,runOwnerModelNativeCheck,runOwnerProductNativeCheck} from './owner-http-native-check.js';
 import {runOwnerRestoreNativeCheck} from './owner-restore-native-check.js';
 
 test('private HTTP entry is inert and rejects target, callback and CLI selectors before native work',async()=>{
@@ -12,4 +12,6 @@ test('private HTTP entry is inert and rejects target, callback and CLI selectors
  await assert.rejects(runOwnerRestoreNativeCheck('http'),{code:'RESTORE_ONESHOT'});
  await assert.rejects(runOwnerModelNativeCheck({encoder:{}}),{code:'RESTORE_ONESHOT'});
  await assert.rejects(runOwnerModelNativeCheck(()=>{}),{code:'RESTORE_ONESHOT'});
+ assert.equal(await main(['--with-product','extra']),2);
+ await assert.rejects(runOwnerProductNativeCheck({browser:{}}),{code:'RESTORE_ONESHOT'});
 });

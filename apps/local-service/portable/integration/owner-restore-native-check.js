@@ -374,11 +374,11 @@ async function openFixedPhases({epoch,checkDeadline},upgrade=false){
  return createPhaseWriter({fs:{open,link,lstat,realpath},output:path.win32.join(binding.runDirectory,'output'),now:()=>performance.now(),epoch,checkDeadline},upgrade);
 }
 let used=false;
-async function runFixed(application,withModel=false){
+async function runFixed(application,withModel=false,withBrowser=false){
  requireThat(!used,'RESTORE_ONESHOT');used=true;
  const [{runWithPrivateOwnedScopedPostgres},{restorePostgresBackupToOwnedFixture}]=await Promise.all([import('./hierarchy-native-cluster.js'),import('../../src/ops/postgres-backup-operator.js')]);
  const run=buildCheck({lifecycle:runWithPrivateOwnedScopedPostgres,controller:createFixtureController,getOwnedIdentity,manifest:()=>readCanonicalV4MigrationManifest(),readData:readFixedData,
-  openPhases:openFixedPhases,now:()=>performance.now(),restore:restorePostgresBackupToOwnedFixture},INPUTS,application?await fixedApplicationPorts(withModel):null);
+  openPhases:openFixedPhases,now:()=>performance.now(),restore:restorePostgresBackupToOwnedFixture},INPUTS,application?await fixedApplicationPorts(withModel,withBrowser):null);
  return application?projectOwnerUpgradeResult(await run()):projectOwnerRestoreResult(await run());
 }
 async function fixedApplicationDirectories(database,check){
@@ -390,13 +390,14 @@ async function fixedApplicationDirectories(database,check){
  for(const directory of [clusterDirectory,outputDirectory]){const stat=await lstat(directory);check();requireThat(stat.isDirectory()&&!stat.isSymbolicLink()&&await realpath(directory)===directory,'RESTORE_APPLICATION_DIRECTORY');check();}
  return {clusterDirectory,outputDirectory};
 }
-async function fixedApplicationPorts(withModel=false){
- const [{installInstalledHierarchy},{runPrivateApplicationRehearsal,runPrivateModelApplicationRehearsal}]=await Promise.all([import('../canonical-v4/hierarchy-installation.js'),import('./private-application-rehearsal.js')]);
- return Object.freeze({install:installInstalledHierarchy,manifest:()=>readCanonicalV4MigrationManifest('hierarchy17'),directories:fixedApplicationDirectories,application:withModel?runPrivateModelApplicationRehearsal:runPrivateApplicationRehearsal});
+async function fixedApplicationPorts(withModel=false,withBrowser=false){
+ const [{installInstalledHierarchy},{runPrivateApplicationRehearsal,runPrivateModelApplicationRehearsal,runPrivateProductApplicationRehearsal}]=await Promise.all([import('../canonical-v4/hierarchy-installation.js'),import('./private-application-rehearsal.js')]);
+ return Object.freeze({install:installInstalledHierarchy,manifest:()=>readCanonicalV4MigrationManifest('hierarchy17'),directories:fixedApplicationDirectories,application:withBrowser?runPrivateProductApplicationRehearsal:withModel?runPrivateModelApplicationRehearsal:runPrivateApplicationRehearsal});
 }
 export async function runOwnerRestoreNativeCheck(){requireThat(arguments.length===0,'RESTORE_ONESHOT');return runFixed(false);}
 export async function runOwnerHttpNativeCheck(){requireThat(arguments.length===0,'RESTORE_ONESHOT');return runFixed(true);}
 export async function runOwnerModelNativeCheck(){requireThat(arguments.length===0,'RESTORE_ONESHOT');return runFixed(true,true);}
+export async function runOwnerProductNativeCheck(){requireThat(arguments.length===0,'RESTORE_ONESHOT');return runFixed(true,true,true);}
 export async function main(args=process.argv.slice(2)){
  if(!Array.isArray(args)||args.length)return 2;
  try{const result=await runOwnerRestoreNativeCheck();process.stdout.write(JSON.stringify(result)+'\n');return result.accepted?0:1;}
