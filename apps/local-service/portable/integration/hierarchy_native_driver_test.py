@@ -147,6 +147,7 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertIn('spikes/topic-resolution/browser/core/topic-space-contract.js', seen)
         self.assertIn('apps/local-service/portable/canonical-v4/hierarchy-installation.js', seen)
         self.assertIn('apps/local-service/src/application/installed-hierarchy-matcher.js', seen)
+        self.assertIn('apps/topic-dashboard/src/data/postgres-catalog.js', seen)
         # The numeric loader reads these fixed data URLs, which the literal
         # module-reference traversal above cannot discover. No encoder weights
         # or inference runtime are needed by owner matcher registration.

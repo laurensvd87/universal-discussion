@@ -17,6 +17,7 @@ const METADATA_SQL_SHA='cd89f6da5c3813991b627f29c03ac9cb28688cef942812e6af518649
 const CONTAINER_SQL_SHA='af0d480792ed2e55dfc2961356b6e1400e4bb9abbdd90d478492f7b222c06cd7';
 const REPLY_SQL_SHA='d47f34778d0034c7353019665f5ede63b0a3cb2ee45d3bf92b961754404b324a';
 const INSIGHT_REPLY_SQL_SHA='bd872eb65efb8f3012f7c3b45ed69da0d3ef6568a88c58273f5b7402c266fd4f';
+const DASHBOARD_SQL_SHA='0a40ad17b906e95c203d29770bf668ae08d4b1e5a417c076b7cadc2f4b67d677';
 const roles=new Map([['postgres','observer'],['murmingle_app','app'],
  ['murmingle_ingest_worker','worker'],['murmingle_crawler_submitter','submitter']]);
 function code(error){const value=error&&Object.getOwnPropertyDescriptor(error,'code');
@@ -38,7 +39,7 @@ function ledger(){
  }};
 }
 
-async function initialize(database,generation,sql,feedSql,storedSql,metadataSql,containerSql,replySql,insightReplySql,rawHierarchy){
+async function initialize(database,generation,sql,feedSql,storedSql,metadataSql,containerSql,replySql,insightReplySql,dashboardSql,rawHierarchy){
  await database.exec('ALTER SCHEMA canonical_v4 OWNER TO murmingle_owner');
  await database.exec('SET ROLE murmingle_owner');
  await migrateCanonicalV4(database);
@@ -57,7 +58,7 @@ async function initialize(database,generation,sql,feedSql,storedSql,metadataSql,
    [JSON.stringify({id:'discussion-semantic-manual',topicId:'topic-semantic-manual'})]);
   await tx.exec("INSERT INTO canonical_v4.fixed_references(topic_id,payload) VALUES('topic-semantic-manual','null')");
   await initializeCanonicalV4Runtime(tx);
-  // ScratchA preserves the original9+raw010..016 proof. ScratchB starts only
+  // ScratchA preserves the original9+raw010..016 sequence, then appends017. ScratchB starts only
   // registered9, so the ordinary owner installer must perform its real upgrade.
   if(rawHierarchy){
    await tx.exec(sql);
@@ -67,6 +68,7 @@ async function initialize(database,generation,sql,feedSql,storedSql,metadataSql,
    await tx.exec(containerSql);
    await tx.exec(replySql);
    await tx.exec(insightReplySql);
+   await tx.exec(dashboardSql);
   }
  });
 }
@@ -88,6 +90,8 @@ export async function runSemanticNativeProof(){
  if(replyRaw.length!==19551||sha(replyRaw)!==REPLY_SQL_SHA)throw fail('SEMANTIC_REPLY_SCHEMA_PIN');
  const insightReplyRaw=await readFile(new URL('../canonical-v4/migrations/016-semantic-insight-reply.sql',import.meta.url));
  if(insightReplyRaw.length!==35231||sha(insightReplyRaw)!==INSIGHT_REPLY_SQL_SHA)throw fail('SEMANTIC_INSIGHT_REPLY_SCHEMA_PIN');
+ const dashboardRaw=await readFile(new URL('../canonical-v4/migrations/017-semantic-dashboard-counts.sql',import.meta.url));
+ if(dashboardRaw.length!==6859||sha(dashboardRaw)!==DASHBOARD_SQL_SHA)throw fail('SEMANTIC_DASHBOARD_SCHEMA_PIN');
  return runWithOwnedScopedPostgres(async connectFixedRole=>{
   let open=true,primary=null;
   const guard=()=>{if(!open)throw fail('SEMANTIC_SCOPE_RETIRED');};
@@ -128,7 +132,7 @@ export async function runSemanticNativeProof(){
       await database.close();
      })();return closing;
     }};
-   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'),storedRaw.toString('utf8'),metadataRaw.toString('utf8'),containerRaw.toString('utf8'),replyRaw.toString('utf8'),insightReplyRaw.toString('utf8'),index===0);return fixture;
+   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'),storedRaw.toString('utf8'),metadataRaw.toString('utf8'),containerRaw.toString('utf8'),replyRaw.toString('utf8'),insightReplyRaw.toString('utf8'),dashboardRaw.toString('utf8'),index===0);return fixture;
   }
   let rows=null,cleanup;
   try{await runSemanticAssertions(checks.test,{acquireFixture});rows=checks.finish();}

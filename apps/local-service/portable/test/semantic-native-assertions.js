@@ -27,6 +27,7 @@ import semanticGroups from './semantic-native-cases.json' with {type:'json'};
 import {runSemanticInsightNativeAssertions} from './semantic-insight-native-assertions.js';
 import {installInstalledHierarchy} from '../canonical-v4/hierarchy-installation.js';
 import {readCanonicalV4MigrationManifest} from '../canonical-v4/index.js';
+import {createPostgresDashboardSource} from '../../../topic-dashboard/src/data/postgres-catalog.js';
 
 function deepFreeze(value){if(value&&typeof value==='object'){for(const child of Object.values(value))deepFreeze(child);Object.freeze(value);}return value;}
 const GROUPS=deepFreeze(semanticGroups);
@@ -108,6 +109,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  const repo=database=>createCanonicalV4IngestionRepository({database,nextId,now});
  const semantic=database=>createCanonicalV4SemanticRepository({database,nextId,now});
  const feed=(nodeId='games')=>appFeeds.feedReferences({generation:fixture.generation,nodeId,beforeOrdinal:null,limit:100});
+ const dashboard=(database=app)=>scalar(database,'SELECT canonical_v4.semantic_read_dashboard_counts($1) metadata',[fixture.generation]).then(row=>row.metadata);
  const rootSnapshots=()=>owner.query(`SELECT root_id,source_id,source_version::text,matcher_hash,generation,operation_id,operation_digest,supported_path,topic_id,discussion_id,root_ordinal::text
   FROM canonical_v4.semantic_root_snapshots WHERE root_id=ANY($1::text[]) ORDER BY root_id`,[[humanRoot,aiRoot].filter(Boolean)]).then(r=>r.rows);
  function publicMetadata(value){
@@ -224,11 +226,16 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(app,REGISTER,[identity1]);await denied(app,ACTIVATE,[hash1,0]);
     await denied(app,'UPDATE canonical_v4.semantic_installation SET revision=revision');
     await denied(app,'SELECT * FROM canonical_v4.semantic_inputs');
+    await denied(app,'SELECT * FROM canonical_v4.semantic_observations');
     await denied(app,'SELECT canonical_v4.semantic_set_owner_policy($1,$2,$3::jsonb)',[0,1,'[]']);
     await denied(app,'UPDATE canonical_v4.semantic_owner_policy SET revision=revision');
     await denied(app,'UPDATE canonical_v4.semantic_root_snapshots SET root_ordinal=root_ordinal');
     assert.deepEqual((await feed()).references,[]);assert.equal((await appFeeds.ownerPolicy()).revision,0);
     assert.deepEqual((await scalar(app,'SELECT canonical_v4.semantic_read_topic_nodes($1) metadata',[fixture.generation])).metadata.nodes,[]);
+    const emptyDashboard=await dashboard();assert.equal(emptyDashboard.matcherIdentityHash,null);assert.deepEqual(emptyDashboard.paths,[]);
+    assert.ok(Object.values(emptyDashboard.counts).every(value=>value===0));
+    await assert.rejects(app.query('SELECT canonical_v4.semantic_read_dashboard_counts($1)',['different-generation']),sqlCode('P1251'));
+    await assert.rejects(app.query('SELECT canonical_v4.semantic_read_dashboard_counts($1)',[null]),sqlCode('P1253'));
     await assert.rejects(app.query('SELECT canonical_v4.semantic_read_source_context($1,$2)',[fixture.generation,'unknown-semantic-source']),sqlCode('P1242'));
     await denied(app,'SELECT * FROM canonical_v4.semantic_read_source_candidates($1,$2,$3,$4)',[fixture.generation,hash1,null,50]);
     await denied(app,'SELECT * FROM canonical_v4.semantic_reclassify_stored_sources($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
@@ -244,6 +251,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_feed($1,$2,$3,$4)',[fixture.generation,'games',null,10]);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_owner_policy()');
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_revision()');
+    await denied(submitter,'SELECT canonical_v4.semantic_read_dashboard_counts($1)',[fixture.generation]);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_read_source_candidates($1,$2,$3,$4)',[fixture.generation,hash1,null,50]);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_reclassify_stored_sources($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
     await denied(submitter,'SELECT * FROM canonical_v4.semantic_adopt_legacy_roots($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
@@ -260,6 +268,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(worker,'SELECT * FROM canonical_v4.semantic_read_feed($1,$2,$3,$4)',[fixture.generation,'games',null,10]);
     await denied(worker,'SELECT * FROM canonical_v4.semantic_adopt_legacy_roots($1,$2,$3::jsonb)',[fixture.generation,hash1,'[]']);
     await denied(worker,'UPDATE canonical_v4.semantic_material_state SET revision=revision');
+    await denied(worker,'SELECT canonical_v4.semantic_read_dashboard_counts($1)',[fixture.generation]);
     assert.deepEqual((await scalar(worker,'SELECT canonical_v4.semantic_read_topic_nodes($1) metadata',[fixture.generation])).metadata.nodes,[]);
     await denied(worker,'SELECT canonical_v4.semantic_read_source_context($1,$2)',[fixture.generation,'unknown-semantic-source']);
    });
@@ -415,6 +424,10 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     // so subsequent original feed/erasure assertions retain their exact cohort.
     await appLifecycle.command(await fixture.header(),{type:'withdraw',contributionId:peerRoot},actor);
     assert.equal((await feed('invented-game-branch')).references.length,2);
+    const aggregate=await dashboard();assert.equal(aggregate.matcherIdentityHash,hash1);
+    assert.deepEqual(aggregate.counts,{learnedSources:2,preparedSources:2,currentHeadClassifiedSources:2,
+      currentHeadAbstainedSources:0,currentHeadExcludedSources:0,currentHeadPendingSources:0,distinctRoots:2});
+    assert.deepEqual(aggregate.paths,[{path:SUPPORTED_PATH,sources:2}]);
    });
    await t.test(GROUPS[1].children[6],async()=>{
     const before=await counts(owner),version=(await sourceState(owner,A.sourceId)).write_version;
@@ -430,6 +443,9 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.notEqual(excluded.topicId,A.topicId);assert.equal((await sourceState(owner,excluded.sourceId)).method,'learned-provisional');
     const root=await humanPost('excluded',{topicId:excluded.topicId,sourceId:excluded.sourceId});
     assert.equal(Number((await scalar(owner,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots WHERE root_id=$1',[root.result.contributionId])).n),0);
+    const aggregate=await dashboard();assert.equal(aggregate.counts.learnedSources,3);assert.equal(aggregate.counts.preparedSources,3);
+    assert.equal(aggregate.counts.currentHeadExcludedSources,1);assert.equal(aggregate.counts.currentHeadClassifiedSources,2);
+    assert.equal(aggregate.counts.currentHeadAbstainedSources,0);assert.equal(aggregate.counts.currentHeadPendingSources,0);assert.equal(aggregate.counts.distinctRoots,2);
    });
   });
   await test(GROUPS[2].name,async t=>{
@@ -585,6 +601,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal(refs.find(r=>r.rootId===manualRoot).discussionId,MANUAL_DISCUSSION);assert.equal(refs.find(r=>r.rootId===humanRoot).discussionId,originalDestination.discussionId);
    });
    await t.test(GROUPS[2].children[3],async()=>{
+    const beforeHeadDashboard=await dashboard();
     const work=await queued('held-head',{url:initial.input.url,title:'Invented manual title refresh'}),entered=deferred(),release=deferred();
     const ownerPid=Number((await scalar(owner,'SELECT pg_backend_pid() pid')).pid);
     await owner.exec("SET lock_timeout='3000ms'");
@@ -611,6 +628,11 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal(activation.matcherIdentityHash,hash2);assert.equal((await appIngest.status({operationId:work.claim.operationId,operationDigest:work.claim.operationDigest})).state,'complete');
     const pendingContext=await context(A.sourceId);assert.equal(pendingContext.status,'pending');assert.equal(pendingContext.sourceVersion,(await sourceState(owner,A.sourceId)).write_version);
     assert.deepEqual(pendingContext.supportedPath,[]);assert.deepEqual(pendingContext.selectedPath,[]);assert.equal(pendingContext.topic,null);
+    const pendingDashboard=await dashboard();assert.equal(pendingDashboard.matcherIdentityHash,hash2);
+    assert.equal(pendingDashboard.counts.currentHeadPendingSources,pendingDashboard.counts.learnedSources);
+    assert.equal(pendingDashboard.counts.currentHeadClassifiedSources,0);assert.equal(pendingDashboard.counts.currentHeadAbstainedSources,0);
+    assert.equal(pendingDashboard.counts.currentHeadExcludedSources,0);
+    assert.equal(pendingDashboard.counts.distinctRoots,beforeHeadDashboard.counts.distinctRoots,'historical visible roots survive current matcher changes');
     // CURRENT is now model2. The Source still has only model1 observations:
     // this ordinary root must remain unclassified until explicit owner adoption.
     const legacy=await humanPost('retained-current-context',{topicId:MANUAL_TOPIC});legacyRoot=legacy.result.contributionId;
@@ -721,12 +743,12 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const firstName=fixture.databaseName;await closeA();
     fixtureB=await acquireFixture();workerB=await fixtureB.connect('murmingle_ingest_worker');assert.notEqual(fixtureB.databaseName,firstName);
     assert.equal((await fixtureB.header()).generation,fixtureB.generation);
-    const db=fixtureB.database,legacy=await readCanonicalV4MigrationManifest(),hierarchy=await readCanonicalV4MigrationManifest('hierarchy16');
+    const db=fixtureB.database,legacy=await readCanonicalV4MigrationManifest(),hierarchy=await readCanonicalV4MigrationManifest('hierarchy17');
     const registered=()=>db.query('SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version').then(result=>result.rows);
     const expectedRows=manifest=>manifest.map(({version,hash})=>({version,hash}));
     assert.deepEqual(await registered(),expectedRows(legacy));
     assert.equal((await repo(db).health()).schemaVersion,9);
-    await assert.rejects(createCanonicalV4IngestionRepository({database:db,schemaProfile:'hierarchy16'}).health(),e=>e.code==='unavailable');
+    await assert.rejects(createCanonicalV4IngestionRepository({database:db,schemaProfile:'hierarchy17'}).health(),e=>e.code==='unavailable');
     const canonical=()=>scalar(db,`SELECT
       (SELECT count(*)::integer FROM canonical_v4.id_registry) ids,
       (SELECT count(*)::integer FROM canonical_v4.topics) topics,
@@ -744,6 +766,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal((await scalar(db,"SELECT to_regclass('canonical_v4.semantic_matchers')::text name")).name,null);
     assert.equal((await scalar(db,"SELECT to_regprocedure('canonical_v4.semantic_register_matcher(text)')::text name")).name,null);
     assert.equal((await scalar(db,"SELECT to_regprocedure('canonical_v4.semantic_insight_evidence(text)')::text name")).name,null);
+    assert.equal((await scalar(db,"SELECT to_regprocedure('canonical_v4.semantic_read_dashboard_counts(text)')::text name")).name,null);
     let isolationChecks=0,transactions=0;
     const ownerPort={query:(...args)=>db.query(...args),transaction:work=>{
       transactions++;return db.transaction(tx=>work({dialect:'pg',exec:sql=>tx.exec(sql),query:async(sql,args=[])=>{
@@ -764,13 +787,15 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     }};
     const installed=await installInstalledHierarchy({database:ownerPort,expectedHeadRevision:0,expectedPolicyRevision:0,
       policy:{defaultMaxDepth:1,overrides:[]}});
-    assert.equal(transactions,1);assert.equal(isolationChecks,1);assert.equal(installed.schemaVersion,16);
+    assert.equal(transactions,1);assert.equal(isolationChecks,1);assert.equal(installed.schemaVersion,17);
     assert.deepEqual(await registered(),expectedRows(hierarchy));assert.deepEqual(await canonical(),beforeInstall);
-    assert.equal((await createCanonicalV4IngestionRepository({database:workerB,schemaProfile:'hierarchy16'}).health()).schemaVersion,16);
-    assert.equal((await createCanonicalV4LifecycleRepository({database:db,schemaProfile:'hierarchy16'}).health()).schemaVersion,16);
-    assert.equal((await createCanonicalV4RuntimeRepository({database:db,schemaProfile:'hierarchy16'}).health()).schemaVersion,16);
-    for(const factory of [createCanonicalV4IngestionRepository,createCanonicalV4LifecycleRepository,createCanonicalV4RuntimeRepository])
+    assert.equal((await createCanonicalV4IngestionRepository({database:workerB,schemaProfile:'hierarchy17'}).health()).schemaVersion,17);
+    assert.equal((await createCanonicalV4LifecycleRepository({database:db,schemaProfile:'hierarchy17'}).health()).schemaVersion,17);
+    assert.equal((await createCanonicalV4RuntimeRepository({database:db,schemaProfile:'hierarchy17'}).health()).schemaVersion,17);
+    for(const factory of [createCanonicalV4IngestionRepository,createCanonicalV4LifecycleRepository,createCanonicalV4RuntimeRepository]){
       await assert.rejects(factory({database:db}).health(),e=>e.code==='unavailable');
+      await assert.rejects(factory({database:db,schemaProfile:'hierarchy16'}).health(),e=>e.code==='unavailable');
+    }
     assert.notEqual(installed.matcherIdentityHash,hash1);
     assert.equal(installed.matcherIdentityHash,'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c');
     assert.deepEqual(await scalar(db,'SELECT revision::text,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton'),
@@ -778,6 +803,26 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.deepEqual(await createCanonicalV4SemanticDiscussionRepository({database:db}).ownerPolicy(),{revision:1,defaultMaxDepth:1,overrides:[]});
     await denied(workerB,REGISTER,[identity1]);await assert.rejects(semantic(workerB).apply(initial.claim,{representedValues:axis(0),preparation:initial.prepared}),error=>error.code==='conflict');
     const c=await counts(db);assert.equal(c.sources,0);assert.equal(c.inputs,0);assert.equal(c.observations,0);
+    // Actual dashboard composition on the existing ownerB adapter. App-only
+    // helper grants were exercised in A; this is not an app-role pool claim.
+    const dashboardSource=createPostgresDashboardSource({database:db,schemaProfile:'hierarchy17'}),fixedNow=()=>new Date('2026-10-27T00:00:00Z');
+    const summary=await dashboardSource.readHierarchySummary({now:fixedNow}),revision=await dashboardSource.readRevision();
+    assert.deepEqual(summary.legacyContainers,{active:0,total:1,multiMember:0,singleton:0});
+    assert.equal(summary.point.totalSources,0);assert.equal(summary.point.learnedPages,0);
+    assert.deepEqual(summary.semantic.counts,{preparedSources:0,currentHeadClassifiedSources:0,currentHeadAbstainedSources:0,
+      currentHeadExcludedSources:0,currentHeadPendingSources:0,distinctRoots:0,activeNodes:18,configuredDisplayGroups:16,occupiedDisplayGroups:0});
+    const snapshot=await dashboardSource.readSnapshot({now:fixedNow});assert.equal(snapshot.state,null);
+    assert.deepEqual(snapshot, {...summary,state:null});
+    const bFeeds=createCanonicalV4SemanticDiscussionRepository({database:db}),canonicalBeforePolicy=await canonical();
+    const deeper=await bFeeds.setOwnerPolicy({expectedRevision:1,defaultMaxDepth:3,overrides:[]});
+    try{
+     assert.notEqual(await dashboardSource.readRevision(),revision,'semantic policy changes invalidate dashboard refresh without canonical writes');
+     const changed=await dashboardSource.readHierarchySummary({now:fixedNow});assert.equal(changed.semantic.policyRevision,deeper.revision);
+     assert.equal(changed.semantic.counts.configuredDisplayGroups,18);assert.equal(changed.semantic.counts.occupiedDisplayGroups,0);
+     assert.deepEqual(await canonical(),canonicalBeforePolicy);
+    }finally{await bFeeds.setOwnerPolicy({expectedRevision:deeper.revision,defaultMaxDepth:1,overrides:[]});}
+    const restored=await dashboardSource.readHierarchySummary({now:fixedNow});assert.equal(restored.semantic.counts.configuredDisplayGroups,16);
+    assert.notEqual(await dashboardSource.readRevision(),revision);assert.deepEqual(await canonical(),canonicalBeforePolicy);
    });
   });
  }catch(error){hadPrimary=true;primaryError=error;}

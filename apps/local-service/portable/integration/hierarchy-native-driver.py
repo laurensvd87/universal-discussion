@@ -109,6 +109,10 @@ NORMAL_KEYS = frozenset([
     'apps/local-service/assets/hierarchy/input-definition.json',
     'apps/local-service/assets/hierarchy/gta-detail.json',
     'spikes/topic-resolution/browser/embedding/.assets/manifest.json',
+    'apps/local-service/portable/canonical-v4/migrations/017-semantic-dashboard-counts.sql',
+    'apps/local-service/portable/test/semantic-dashboard-counts.test.js',
+    'apps/topic-dashboard/src/data/postgres-catalog.js',
+    'apps/topic-dashboard/test/postgres-catalog.test.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),
