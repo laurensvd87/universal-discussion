@@ -395,6 +395,74 @@ function state(patch = {}) {
       ] }] }, related: { results: [{ title: "<iframe>inert source</iframe>", url: "https://synthetic.example/", relationship: "related" }] },
     draft: { body: "", detached: false, mode: "root", targetId: null }, ...patch };
 }
+function semanticComposerState(patch={}){
+  const current=emptyPageDiscussion(),post=(id,rootId=null)=>({id,rootId,replyToId:rootId,state:'visible',actorType:'human',authorId:'demo-blair',
+    body:'Public text '+id,createdAt:'2026-10-27T12:00:00.000Z',edited:false});
+  return {...current,semanticAiAvailable:false,semanticWritePending:false,
+    semanticSelection:{version:{...current.catalog.version},policyRevision:2,nodeId:'semantic-node',topic:{id:'canonical-a',title:'<Original topic A>',kind:'general'},discussionId:'discussion-a',
+      root:{...post('semantic-root'),replies:[{...post('semantic-target','semantic-root'),replyToId:'off-page-parent'}]},targetId:'semantic-target',rootRevision:3,targetRevision:2,
+      actors:[{id:'demo-blair',displayName:'<Actual Blair>',type:'human'}]},
+    draft:{mode:'reply',semantic:true,targetId:'semantic-target',detached:false,body:'Human reply'},...patch};
+}
+
+test('semantic composer shows canonical Topic A quote and page actors without altering the foreground graph',()=>{
+  const ui=harness();const current=semanticComposerState(),before=structuredClone(current);ui.panel.render(current);
+  assert.equal(ui.byId('discussion-reply-context').hidden,false);assert.equal(ui.created.find(n=>n.className==='discussion-new-thread-heading').textContent,'Reply in <Original topic A>');
+  assert.equal(ui.created.find(n=>n.className==='discussion-reply-author').textContent,'Replying to @<Actual Blair>');
+  assert.equal(ui.created.find(n=>n.className==='discussion-reply-excerpt').textContent,'Public text semantic-target');
+  assert.equal(ui.byId('discussion-submit').disabled,false);assert.equal(ui.byId('discussion-composer').parentElement,ui.byId('discussion-root-dock'));
+  assert.equal(ui.byId('discussion-origin-disclosure').hidden,false);assert.ok(ui.byId('discussion-origin-disclosure').textContent.includes('<Original topic A>'));
+  assert.equal(descendants(ui.byId('discussion-feed')).some(n=>n.attributes['data-post-id']==='semantic-root'),false);assert.deepEqual(current,before);
+  const agent=structuredClone(current);Object.assign(agent.semanticSelection.root.replies[0],{actorType:'agent',authorId:'demo-imported-ai',insight:{kind:'generated',operatorId:'demo-blair'}});
+  ui.panel.render(agent);assert.equal(ui.created.find(n=>n.className==='discussion-reply-author').textContent,'Replying to AI · @<Actual Blair>');
+  assert.equal(descendants(ui.root).some(n=>n.tag==='script'||n.tag==='img'),false);ui.panel.dispose();
+});
+
+test('semantic human composer uses submitDraft and treats @AI as text without invoking the foreground provider',async()=>{
+  for(const loading of [false,true]){let current=semanticComposerState({phase:loading?'loading':'ready',humanPostingReady:loading});current.draft.body='@AI is literal human text here';
+    const calls=[];const ui=harness(undefined,null,null,null,null,{currentState:()=>current,async submitDraft(){calls.push('submit');return true;}});
+    ui.panel.bindInsight({currentState:()=>({context:{topic:{id:current.topicId},currentSource:{id:current.sourceId}},ai:{planEnabled:true,model:'chosen',status:'idle'}}),
+      async createFollowup(){calls.push('followup');},async createInsights(){calls.push('insights');}});ui.panel.render(current);
+    assert.equal(ui.byId('discussion-submit').disabled,false);assert.equal(ui.byId('discussion-ai-insights').disabled,true);
+    assert.equal(ui.byId('discussion-mention-status').textContent,EN.uiSemanticAiUnavailable);
+    ui.byId('discussion-ai-insights').listeners.get('click')();await ui.byId('discussion-composer').listeners.get('submit')({preventDefault(){}});
+    assert.deepEqual(calls,['submit']);assert.equal(current.sourceId,'source-demo');ui.panel.dispose();
+  }
+});
+
+test('semantic submit requires both the selected target and existing human readiness',()=>{
+  const ui=harness();for(const alter of [value=>{value.semanticSelection=null;},value=>{value.draft.targetId='wrong-target';},value=>{value.draft.detached=true;},
+    value=>{value.needsFreshRead=true;},value=>{value.phase='loading';value.humanPostingReady=false;},value=>{value.busy=true;},value=>{value.semanticWritePending=true;}]){
+    const current=semanticComposerState();alter(current);ui.panel.render(current);assert.equal(ui.byId('discussion-submit').disabled,true);
+  }ui.panel.dispose();
+});
+
+test('uncertain semantic writes require checked acknowledgement and fresh read without automatic resubmission',async()=>{
+  let current=semanticComposerState({semanticWritePending:true,needsFreshRead:true});const calls=[];
+  const ui=harness(undefined,null,null,null,null,{currentState:()=>current,
+    acknowledgeSemanticWriteUncertainty(value){calls.push(['ack',value]);current={...current,semanticWritePending:false};return true;},
+    async open(){calls.push('open');ui.panel.render(current);},async submitDraft(){calls.push('submit');}});ui.panel.render(current);
+  const checked=ui.byId('discussion-semantic-checked'),action=ui.byId('discussion-semantic-continue');assert.equal(ui.byId('discussion-semantic-uncertainty').hidden,false);
+  assert.equal(action.disabled,true);await action.listeners.get('click')();assert.deepEqual(calls,[]);
+  checked.checked=true;checked.listeners.get('change')();assert.equal(action.disabled,false);await action.listeners.get('click')();
+  assert.deepEqual(calls,[['ack','ACKNOWLEDGE POSSIBLE SEMANTIC REPLY'],'open']);assert.equal(ui.byId('discussion-semantic-uncertainty').hidden,true);
+  current={...current,semanticWritePending:true};ui.panel.render(current);checked.checked=true;checked.listeners.get('change')();current={...current,actorId:'demo-blair'};ui.panel.render(current);
+  assert.equal(checked.checked,false);assert.equal(action.disabled,true);ui.panel.dispose();assert.equal(checked.listeners.size,0);assert.equal(action.listeners.size,0);
+});
+
+test('semantic feed mode hides only canonical lists and restores them without changing drafts or dispatching',()=>{
+  const ui=harness();const current=emptyPageDiscussion({draft:{mode:'root',body:'Keep Page B draft',targetId:null,detached:false}});ui.panel.render(current);const calls=ui.calls.length;
+  assert.equal(ui.panel.setSemanticFeedMode(true),true);assert.equal(ui.byId('discussion-feed').children.find(n=>n.className==='discussion-thread').hidden,true);
+  assert.equal(ui.byId('discussion-related-conversations').hidden,true);assert.equal(ui.byId('discussion-composer').hidden,false);assert.equal(ui.byId('discussion-body').value,'Keep Page B draft');
+  assert.equal(ui.byId('discussion-composer').parentElement,ui.byId('discussion-root-dock'));assert.equal(ui.panel.setSemanticFeedMode(false),false);
+  assert.equal(ui.byId('discussion-feed').children.find(n=>n.className==='discussion-thread').hidden,false);assert.equal(ui.byId('discussion-body').value,'Keep Page B draft');
+  const reply=emptyPageDiscussion({draft:{mode:'reply',body:'Inline Page B draft',targetId:'page-b-root',detached:false}});
+  reply.discussion.roots=[{id:'page-b-root',rootId:null,replyToId:null,state:'visible',actorType:'human',authorId:'demo-alex',body:'Foreground root',replies:[]}];ui.panel.render(reply);
+  assert.notEqual(ui.byId('discussion-composer').parentElement,ui.byId('discussion-root-dock'));
+  ui.panel.setSemanticFeedMode(true);assert.equal(ui.byId('discussion-composer').parentElement,ui.byId('discussion-root-dock'));assert.equal(ui.byId('discussion-body').value,'Inline Page B draft');
+  ui.panel.setSemanticFeedMode(false);assert.notEqual(ui.byId('discussion-composer').parentElement,ui.byId('discussion-root-dock'));
+  assert.equal(ui.calls.length,calls);ui.panel.dispose();
+});
 function samePageHistory(root, patch = {}) {
   const base = state();
   const version = { generation: 7, revision: 3 };

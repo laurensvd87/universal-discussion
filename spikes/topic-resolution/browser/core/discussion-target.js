@@ -1,5 +1,23 @@
 import { canPostHumanDiscussion } from "./discussion-readiness.js";
+import { readSemanticTarget } from "./local-service-contract.js";
 const sameVersion = (a, b) => Boolean(a && b && a.generation === b.generation && a.revision === b.revision);
+
+// Display only: the controller's separate private binding authorizes delivery.
+// This projection never adds the selected root to the foreground page's graph.
+export function resolveSemanticTarget(state, targetId=state?.draft?.targetId, binding=null) {
+  if(!canPostHumanDiscussion(state) || state.needsFreshRead || state.error || !state.draft?.semantic ||
+    state.draft.mode!=='reply' || state.draft.detached || targetId!==state.draft.targetId || typeof targetId!=='string')return null;
+  let value;
+  try {value=readSemanticTarget(state.semanticSelection);}catch{return null;}
+  if(value.targetId!==targetId || value.version.generation!==state.catalog?.version?.generation)return null;
+  const target=value.targetId===value.root.id?value.root:value.root.replies[0];
+  const projected={nodeId:value.nodeId,topicId:value.topic.id,topic:value.topic,discussionId:value.discussionId,
+    root:value.root,target,actors:value.actors,rootRevision:value.rootRevision,targetRevision:value.targetRevision,semantic:true};
+  if(binding && (['nodeId','topicId','discussionId','rootRevision','targetRevision'].some(key=>binding[key]!==undefined&&binding[key]!==projected[key]) ||
+    binding.rootId!==undefined&&binding.rootId!==value.root.id || binding.targetId!==undefined&&binding.targetId!==target.id ||
+    binding.rootBody!==undefined&&binding.rootBody!==value.root.body || binding.targetBody!==undefined&&binding.targetBody!==target.body))return null;
+  return projected;
+}
 
 // Resolve only a canonical visible chain from the selected discussion or a
 // version-matched earlier same-Source read. Related/alternate projections are
