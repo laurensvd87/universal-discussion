@@ -13,6 +13,8 @@ async function scalar(db,sql,args=[]){const {rows}=await db.query(sql,args);asse
 
 export async function runSemanticInsightNativeAssertions({owner,app,observer,service,appRuntime,appLifecycle,
   actor,header,nextId,now,rootId,rootTopicId,rootDiscussionId,evidenceSourceId,evidenceTopicId,evidenceInput,queued,finish}) {
+  let phase='QUESTION';
+  try {
   const state=()=>scalar(observer,`SELECT
     (SELECT count(*)::integer FROM canonical_v4.id_registry) ids,
     (SELECT count(*)::integer FROM canonical_v4.contributions) contributions,
@@ -47,6 +49,7 @@ export async function runSemanticInsightNativeAssertions({owner,app,observer,ser
   // Verify the actual application grant, while broad protected stamp SELECT
   // remains unavailable. Worker and submitter grants are tested by the caller.
   await assert.rejects(app.query('SELECT * FROM canonical_v4.runtime_source_stamps'),e=>e.code==='42501');
+  phase='EVIDENCE';
   const evidence=await scalar(app,'SELECT * FROM canonical_v4.semantic_insight_evidence($1)',[evidenceSourceId]);
   assert.equal(evidence.postable,true);assert.match(evidence.source_version,/^(0|[1-9][0-9]*)$/u);
   const initialBundle=await bundle();assert.equal(initialBundle.followupDiscussion,null);
@@ -56,6 +59,7 @@ export async function runSemanticInsightNativeAssertions({owner,app,observer,ser
 
   // The real worker commits a queued title renewal between two application
   // reads. Both target and evidence must stay in the original read-only RR.
+  phase='RR';
   const rrWork=await queued('ai-RR-evidence',{url:evidenceInput.url,title:evidenceInput.title+' RR'});
   let rrVerified=false,renewedDuringRead=false;
   const rrReads=createCanonicalV4ReadFacade({database:{query:(...args)=>app.query(...args),
@@ -81,8 +85,11 @@ export async function runSemanticInsightNativeAssertions({owner,app,observer,ser
 
   // The actual job state machine, read facade, service and lifecycle adapter
   // publish through the real app SQL role. Only provider/account ports are fake.
-  const requests=[];let retained=null;
-  const ai=createChatGPTRuntime({service,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false,
+  const requests=[],inflight=new Set();let retained=null;
+  const track=name=>(...args)=>{const pending=Promise.resolve().then(()=>service[name](...args));inflight.add(pending);
+    pending.then(()=>inflight.delete(pending),()=>inflight.delete(pending));return pending;};
+  const aiService={...service,insightBundle:track('insightBundle'),insightJobBundle:track('insightJobBundle')};
+  const ai=createChatGPTRuntime({service:aiService,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false,
     account:{clientId:'invented-native-fixture',label:'Synthetic provider fixture'}}),dispose(){}},
     insightsAdapter:{createInsight(request){requests.push(request);return Promise.resolve({body:'@Alex: Eine erfundene Testantwort.',model:'synthetic-fixture',citations:[]});},cancel(){},dispose(){}}});
   try{
@@ -91,10 +98,17 @@ export async function runSemanticInsightNativeAssertions({owner,app,observer,ser
     const context=buildInsightContext({catalog:parts.catalog,discussion:parts.discussion,related:null,sourceId:evidenceSourceId,
       topicId:evidenceTopicId,includeDiscussion:false,sourceLimit:6});
     const operationId=nextId('native-ai-job');
+    phase='JOB_CREATE';
     await ai.create({operationId,model:'synthetic-fixture',context,articleText:'Invented current Page B extract',allowWebResearch:false,
       expected:parts.version,includeRelatedSources:false,followupQuestionId:questionId,followupTopicId:rootTopicId,semanticTarget:witness(view)},actor.id);
-    let result;const deadline=Date.now()+3000;
-    do{result=await ai.result({operationId},actor.id);if(result.state==='running')await sleep(5);}while(result.state==='running'&&Date.now()<deadline);
+    // The fixture has one exclusive app connection. Background dispatch and
+    // completion checks must settle before another SQL-bearing result read.
+    // Poll only existing in-memory terminal diagnostics while they run.
+    phase='JOB_WAIT';const deadline=Date.now()+3000;
+    const terminal=()=>ai.diagnostics().events.some(event=>event.kind==='insight');
+    while(!terminal()&&Date.now()<deadline)await sleep(5);
+    assert.equal(terminal(),true,'original background job settles within the existing SQL deadline');
+    phase='JOB_RESULT';const result=await ai.result({operationId},actor.id);
     assert.equal(result.state,'completed');assert.equal(requests.length,1);assert.equal(requests[0].context.currentSource.id,evidenceSourceId);
     assert.equal(requests[0].articleText,'Invented current Page B extract');assert.equal(requests[0].followup.questionBody,view.root.replies[0].body);
     assert.equal(requests[0].followup.parentBody,view.root.body.slice(0,2000));
@@ -102,16 +116,17 @@ export async function runSemanticInsightNativeAssertions({owner,app,observer,ser
     assert.deepEqual(resumed.job.semanticPublication,result.semanticPublication);
     const command={type:'share-insight-reply',topicId:rootTopicId,discussionId:rootDiscussionId,rootId,replyToId:questionId,
       body:result.result.body,operationId,originSourceId:null,semanticPublication:result.semanticPublication};
+    phase='JOB_SHARE';
     const posted=await ai.share({expected:await header(),command},actor.id,(generated,current)=>{
       retained={expected:current,command:structuredClone(command),proof:generated};return service.command(current,command,actor.id,generated);
     });
     const stored=await scalar(owner,'SELECT discussion_id,root_id,reply_to_id,origin_source_id,actor_type FROM canonical_v4.contributions WHERE id=$1',[posted.result.contributionId]);
     assert.deepEqual(stored,{discussion_id:rootDiscussionId,root_id:rootId,reply_to_id:questionId,origin_source_id:null,actor_type:'agent'});
     assert.equal(requests.length,1,'result/resume/share never reissue the provider request');
-  }finally{ai.dispose();}
+  }finally{ai.dispose();await Promise.allSettled([...inflight]);}
 
   // A fresh request cannot use stale question/root revisions or an absent edge.
-  const staleTarget=await packet('stale-target');
+  phase='STALE';const staleTarget=await packet('stale-target');
   await appLifecycle.command(await header(),{type:'edit',contributionId:questionId,body:'Edited question after AI witness'},actor);
   await refuse(staleTarget);
   const beforeReplay=await state();await appLifecycle.command(retained.expected,retained.command,actor,retained.proof);
@@ -127,7 +142,7 @@ export async function runSemanticInsightNativeAssertions({owner,app,observer,ser
   const expired=await packet('expired');expired.command.semanticPublication.expiresAt=Date.now()-1;await refuse(expired);
 
   // Verify expiry after an actual watermark lock wait, not just at entry.
-  const late=await packet('expires-behind-watermark');late.command.semanticPublication.expiresAt=Date.now()+900;
+  phase='LATE_EXPIRY';const late=await packet('expires-behind-watermark');late.command.semanticPublication.expiresAt=Date.now()+900;
   const beforeLate=await state(),entered=deferred(),release=deferred(),ownerPid=Number((await scalar(owner,'SELECT pg_backend_pid() pid')).pid);let pending,results;
   const held=owner.transaction(async tx=>{try{await tx.query('SELECT singleton FROM canonical_v4.runtime_state WHERE singleton FOR UPDATE');
     entered.resolve();await release.promise;}catch(error){entered.reject(error);throw error;}});void held.catch(()=>{});
@@ -146,12 +161,12 @@ export async function runSemanticInsightNativeAssertions({owner,app,observer,ser
 
   // Title-only Page B renewal must invalidate evidence even if its embedding
   // and authoritative body-vector stamp are unchanged.
-  const staleEvidence=await packet('title-renewal'),prior=staleEvidence.command.semanticPublication.evidence;
+  phase='TITLE_RENEWAL';const staleEvidence=await packet('title-renewal'),prior=staleEvidence.command.semanticPublication.evidence;
   await finish(await queued('ai-title-renewal',{url:evidenceInput.url,title:evidenceInput.title+' changed'}));
   const renewed=await scalar(app,'SELECT * FROM canonical_v4.semantic_insight_evidence($1)',[evidenceSourceId]);
   assert.equal(renewed.stamp,prior.sourceStamp);assert.notEqual(renewed.operation_digest,prior.operationDigest);
   assert.notEqual(renewed.source_version,prior.sourceVersion);await refuse(staleEvidence);
-  const staleRoot=await packet('stale-root');
+  phase='ROOT_WITHDRAWAL';const staleRoot=await packet('stale-root');
   await appLifecycle.command(await header(),{type:'edit',contributionId:rootId,body:'Edited root after generated witness'},actor);await refuse(staleRoot);
   const withdrawn=await packet('withdrawn-question');
   await appLifecycle.command(await header(),{type:'withdraw',contributionId:questionId},actor);await refuse(withdrawn,['invalid']);
@@ -159,4 +174,5 @@ export async function runSemanticInsightNativeAssertions({owner,app,observer,ser
     command:{type:'reply',discussionId:rootDiscussionId,rootId,replyToId:rootId,body:'Visible question retained across Source erasure',originSourceId:null}})).result.contributionId;
   const erasure=await packet('erased-membership');
   return {...erasure,proof:proof(erasure.command)};
+  }catch(error){throw Object.assign(new Error('Semantic AI native assertion failed',{cause:error}),{code:'SEMANTIC_AI_'+phase});}
 }

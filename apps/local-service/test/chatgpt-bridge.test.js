@@ -13,13 +13,14 @@ import { validateStartupConfig } from "../src/http/startup-config.js";
 import { openDormantLocalApplication } from "../src/startup.js";
 import { buildInsightContext } from "../../../spikes/topic-resolution/browser/core/insight-context.js";
 import { demoService, deterministicDependencies } from "./helpers.js";
+import {createExclusiveSession} from '../portable/integration/native-hierarchy-postgres-v2/session.js';
 
 const ORIGIN = `chrome-extension://${"a".repeat(32)}`;
 const TOKEN = "test-capability-value-32-characters";
 
 // Invented authoritative ports exercise the actual job state machine. These
 // bindings are not native/SQL/capture attestations.
-function semanticJobFixture(t,{dispatchGate=null}={}) {
+function semanticJobFixture(t,{dispatchGate=null,readSession=null}={}) {
   const base=demoService(), sourceId='reserved-example-com', topicId='reserved-domain-demo', destination='harbor-s2';
   const rootId=base.command(base.catalog().version,{type:'create-root',topicId:destination,body:'Root A full body',originSourceId:'harbor-overview'},'demo-alex').result.contributionId;
   const targetId=base.command(base.catalog().version,{type:'reply',discussionId:base.discussion(destination).discussionId,rootId,replyToId:rootId,body:'Welche Antwort?',originSourceId:null},'demo-alex').result.contributionId;
@@ -37,7 +38,8 @@ function semanticJobFixture(t,{dispatchGate=null}={}) {
       semanticTarget:{version:catalog.version,nodeId:witness.nodeId,topic:foreign.topic,discussionId:foreign.discussionId,
         root:{...root,replies:root.replies.filter(reply=>reply.id===targetId)},targetId,rootRevision,targetRevision}};
   }
-  const service={...base,insightBundle:bundle,insightJobBundle:input=>dispatchGate?dispatchGate.then(()=>bundle(input)):bundle(input)};
+  const readBundle=input=>dispatchGate?dispatchGate.then(()=>bundle(input)):bundle(input);
+  const service={...base,insightBundle:bundle,insightJobBundle:input=>readSession?readSession.transaction(()=>readBundle(input)):readBundle(input)};
   const ai=createChatGPTRuntime({service,now:()=>clock,connectionAdapter:{status:()=>({connected:true,planEnabled:true,pending:false,account:{clientId:account,label:'Invented account'}}),dispose(){}},
     insightsAdapter:{createInsight(request){provider.push(request);return pending;},cancel(){},dispose(){}}});
   t.after(()=>ai.dispose());
@@ -98,6 +100,19 @@ test('semantic async dispatch uses the approved primitive snapshot and rejects a
   const tampered=structuredClone(result.semanticPublication);tampered.expiresAt++;let writes=0;
   await assert.rejects(async()=>f.ai.share({expected:f.base.catalog().version,command:f.command(tampered)},'demo-alex',()=>{writes++;}));
   assert.equal(writes,0);
+});
+
+test('owned single-session fixture must settle background AI validation before database result reads',async t=>{
+  const session=createExclusiveSession({query:async sql=>({command:sql}),end:async()=>{}},()=>{});
+  let release;const gate=new Promise(resolve=>{release=resolve;}),f=semanticJobFixture(t,{dispatchGate:gate,readSession:session});
+  await f.ai.create(f.input,'demo-alex');await f.settle();
+  assert.equal(session.snapshot().busy,true);assert.equal(f.provider.length,0);
+  await assert.rejects(f.ai.result({operationId:f.input.operationId},'demo-alex'),e=>e.code==='SESSION_BUSY');
+  await assert.rejects(session.close(),e=>e.code==='SESSION_CLOSE_BUSY');
+  release();await f.settle();f.complete();await f.settle();
+  assert.ok(f.ai.diagnostics().events.some(event=>event.kind==='insight'&&event.outcome==='success'));
+  assert.equal((await f.ai.result({operationId:f.input.operationId},'demo-alex')).state,'completed');
+  assert.equal(session.snapshot().pending,0);assert.equal(session.snapshot().busy,false);await session.close();
 });
 const config = validateStartupConfig({ host: "127.0.0.1", port: 4174, origin: ORIGIN, capability: TOKEN });
 function request(method, url, body, headers = {}) {

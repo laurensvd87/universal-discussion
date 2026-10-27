@@ -98,6 +98,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  let erasedWitnessRequest=null;
  let semanticAiEvidence=null;
  let erasedSemanticInsight=null;
+ let hadPrimary=false,primaryError;
  const actor=Object.freeze({id:'demo-alex',type:'human',demo:true});
  const nextId=kind=>`semantic-${kind}-${++serial}`,now=()=>new Date().toISOString();
  const preparation=createHierarchyIngestionPreparation({matcher:matcher1,embedTitle:async()=>{encoderCalls++;return {modelId:MODEL,values:axis(0)};}});
@@ -727,8 +728,14 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const c=await counts(db);assert.equal(c.sources,0);assert.equal(c.inputs,0);assert.equal(c.observations,0);
    });
   });
- }finally{
-  await preparation.close();await storedPreparation.close();
-  try{await closeA();}finally{try{if(workerB)await workerB.close();}finally{if(fixtureB)await fixtureB.close();}}
+ }catch(error){hadPrimary=true;primaryError=error;}
+ finally{
+  let cleanupFailed=false,cleanupError;
+  for(const close of [()=>preparation.close(),()=>storedPreparation.close(),()=>closeA(),
+    ()=>workerB?.close(),()=>fixtureB?.close()]){
+   try{await close();}catch(error){if(!cleanupFailed){cleanupFailed=true;cleanupError=error;}}
+  }
+  if(hadPrimary)throw primaryError;
+  if(cleanupFailed)throw cleanupError;
  }
 }

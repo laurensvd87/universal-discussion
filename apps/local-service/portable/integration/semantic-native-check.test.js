@@ -21,6 +21,14 @@ test('inert import exposes projection and explicit runner without registering or
  assert.equal(SEMANTIC_CASES.filter(row=>row.depth===1).length,22);assert.equal(new Set(SEMANTIC_CASES.map(row=>row.name)).size,25);
 });
 
+test('original semantic assertion failure survives cleanup errors while every acquired role is closed',async()=>{
+ const primary=Object.assign(new Error('invented first assertion'),{code:'INVENTED_FIRST'}),cleanup=Error('invented cleanup');let closed=0;
+ const db={query:async()=>{throw primary;},exec:async()=>{throw primary;},transaction:async work=>work(db),close:async()=>{closed++;throw cleanup;}};
+ const fixture={database:db,connect:async()=>db,close:async()=>{closed++;throw cleanup;}};
+ await assert.rejects(runSemanticAssertions(async(_name,work)=>work({test:async(_child,fn)=>fn()}),{acquireFixture:async()=>fixture}),e=>e===primary);
+ assert.equal(closed,5,'worker/app/submitter/observer and fixture cleanup are all attempted');
+});
+
 test('invented fixture trains and compiles the actual child before a sentinel stops all SQL acquisition',async()=>{
  const sentinel=new Error('pure fixture setup stop');let callbacks=0,acquisitions=0;
  await assert.rejects(runSemanticAssertions(()=>{callbacks++;throw sentinel;},{acquireFixture:async()=>{acquisitions++;assert.fail('no SQL fixture may be acquired');}}),error=>error===sentinel);
