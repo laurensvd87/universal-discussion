@@ -1,5 +1,27 @@
 # Project status
 
+## Current: full-data migration and real application HTTP checks passed
+
+The corrected private run84275 passed the complete rehearsal: hierarchy17,
+all18 original table fingerprints, original runtime version, sequence safety,
+all35 phases and all16 real HTTP scenarios. The application made42 requests,
+including four overlapping reads, using two private accounts. Posting, replies,
+ownership refusals, edits/withdrawal, saved-URL recovery, independent topic search,
+policy refresh, session revocation and Host/Origin/pairing checks passed. Both
+test databases dropped and PostgreSQL smart-stopped; no pending work remained.
+Independent audit SHA256
+`f5f6215c725bcdc9ed5fe09cf3adb211edfc36c287379dfa3f31fed9ba9f12f4`
+was fully read/authenticated. This accepts bounded SQL/HTTP behaviour, not real
+browser/E5/provider execution, external login or production concurrency capacity.
+
+The first-page draft fix is committed and pushed. Browser QA now has17 cases,
+adding real DOM typing before Source availability, same-document IME/focus
+retention, same-account session replacement and new-document detachment. Its
+source is reviewed and24 guarded tests pass; the actual Chrome run is pending.
+Extension version0.13.75 identifies the draft fix. The live service remains on9;
+real encoder/crawler load, broader fine-topic quality, combined provider/browser
+checks, consistent local-store backup and live cutover are still required.
+
 ## Current: real-data hierarchy migration verified; application setup fix reviewed
 
 The one-pass run78217 installed hierarchy17 and passed all25 upgrade records,

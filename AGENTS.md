@@ -8,6 +8,22 @@ These instructions are the shared contract for Codex and other agents that disco
 
 ## Continuing the current project
 
+Current27Oct actualSQL+HTTP SUCCESS84275 exit0/c62894b1PUSHED/catalogced9a517...
+9361. Run446b3ab1615d45d45e522f86a2c6c90c42b78ea4c3e324ca/nhpg-DV327b: all25
+upgradeledger+35phases+16realHTTPPASS,42requests/max4overlap/2privateactors/1189ms
+appsegment. Data17/ALL18originalFP/version/7seq passbeforewrites. A16384+B264642
+drop/adminclosed/PG15412ownsmartstop/physicalsettled/lifecycle175596ms; parent
+normal/noemergency/emptyJob/handles/2EOF/endpins.20698Bauditf5f6215c725bcdc9ed5fe09cf3adb211edfc36c287379dfa3f31fed9ba9f12f4
+RootFULLread/auth. No browser/E5/provider/externalidentity/load/live claim.
+SQLitepathprobe1734? finite JSONde67179e...884e RootFULLread/auth causallysupports
+short-app/journalNULfix; exactpreviousgenericexceptionnotretained. UI5SOURCE
+accepted/pushed, firstseenlocaltypingonly withnormalpostgates. QA2SOURCE accepted
+2295B58f4d18a...e619 RootFULLread/auth,24guardedPASS/source-check; extends existing
+containedChrome harness13->17cases, newlocaltyping/promotionIME/session/docdetach.
+NoactualChrome yet; fourpendingQA/versionfiles normalizedtoLF beforecommit,
+extensionversion0.13.75/package7PASS. Originalbackup/prior6audits+150artifacts
+preserved. Crawlerstaysrunning; nextfreshchecksmandatory. GoalACTIVE/matcherNOTlive.
+
 Latest27Oct: actualonepass78217 CLOSEDexit1 but ALL25upgradepointsPASS: schema17,
 ALL18DIRECToriginalreceiptFP/version/7seq,31phases lastmigrated-sequences165385ms.
 run65a047162f403f3bdbe78c82886c5a8e8e314f0bb38b3b24/nhpg-JyIyUI; PG37616 own

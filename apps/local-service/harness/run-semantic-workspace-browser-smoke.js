@@ -128,13 +128,30 @@ export function createSemanticSmokeAiPort({readTarget,digest,expiresAt,onStart=(
 }
 
 // Serialized into the isolated extension page only. All document observations,
+// Invented first-page material only. No capture, embedding, backend or native
+// authority is issued by these controls; the actual controller owns readiness.
+export function createSemanticFirstPageSmokeState(){
+  const version={generation:'semantic-browser-generation',revision:7},topic={id:'first-page-topic',title:'First page discussion',kind:'general'};
+  const current={actor:'demo-alex',tabId:7,url:'https://example.com/first-page',windowId:2,sessionRevision:1,availability:null,navigation:[]};
+  const catalog={version,model:{id:'hand-authored-demo-vectors/1',status:'fixture-only'},
+    actors:[{id:'demo-alex',displayName:'Alex',type:'human'},{id:'demo-blair',displayName:'Blair',type:'human'}],topics:[],sources:[]};
+  const discussion={version,topic,discussionId:'first-page-discussion',roots:[]};
+  current.resolution={phase:'processing',reason:'embedding',tabId:7,url:current.url,documentId:'first-page-document-1',sourceId:null,topicId:null,assignment:null,sequence:1,
+    enabled:true,blockedOrigins:[],sessionWindowId:2,currentWindowId:2,sessionRevision:'first-page-capture-1',hostAccess:true,currentOrigin:'https://example.com',
+    currentTabId:7,currentUrl:current.url,contextReason:null};
+  return {current,catalog,topic,discussion,promote(){
+    if(catalog.sources.length)throw new Error('First page already promoted');
+    catalog.topics.push(topic);catalog.sources.push({id:'first-page-source',url:current.url,title:'Invented first public page',provenance:'owner-local-page-embedding/v1',topicId:topic.id});
+    current.resolution={...current.resolution,phase:'ready',reason:null,sourceId:'first-page-source',topicId:topic.id,assignment:'provisional',sequence:2};
+  }};
+}
 // account identity, service state and attestations below are invented fixtures.
-async function bootstrapFixture(createAiPort,fixtureConfig){
+async function bootstrapFixture(createAiPort,createFirstPage,fixtureConfig){
   window.dispatchEvent(new Event('pagehide'));
   const [{mountDiscussionPanel},{mountSemanticTopicWorkspace},{createLocalDiscussionController},{createLocalServiceClient},{lookupIndicatorFixtureByNormalizedUrl},{createInsightController}]=await Promise.all([
     import('./discussion-panel.js'),import('./semantic-topic-workspace.js'),import('../core/local-discussion-controller.js'),
     import('../core/local-service-client.js'),import('../fixtures/indicator-fixtures.js'),import('../core/insight-controller.js')]);
-  window.semanticQA={providerCalls:0,providerStarts:[],mount:async()=>{
+  window.semanticQA={providerCalls:0,providerStarts:[],mount:async(firstPage=false)=>{
     const prior=window.semanticQA.current;prior?.workspace.dispose();prior?.insight.dispose();prior?.controller.dispose();prior?.panel.dispose();
     document.body.replaceChildren();document.body.dataset.uiMode='user';document.body.dataset.uiSurface='sidepanel';document.body.dataset.extensionSurface='sidepanel';
     // Match production host IDs/classes and nesting without CSS overrides. This
@@ -150,13 +167,14 @@ async function bootstrapFixture(createAiPort,fixtureConfig){
       if(name==='discover')action.setAttribute('aria-current','page');nav.append(action);
     }
     discoverView.append(discover);discussionView.append(canonical);main.append(nav,discussionView,discoverView);document.body.append(main);
-    let workspace,insight;const current={actor:'demo-alex',tabId:7,url:'https://example.com/',windowId:2,availability:null,navigation:[]};
-    const version={generation:'semantic-browser-generation',revision:7},topic={id:'reserved-domain-demo',title:'Foreground Page B topic',kind:'general'};
-    const catalog={version,model:{id:'hand-authored-demo-vectors/1',status:'fixture-only'},actors:[{id:'demo-alex',displayName:'Alex',type:'human'},
+    const first=firstPage?createFirstPage():null;
+    let workspace,insight;const current=first?first.current:{actor:'demo-alex',tabId:7,url:'https://example.com/',windowId:2,availability:null,navigation:[]};
+    const version={generation:'semantic-browser-generation',revision:7},topic=first?first.topic:{id:'reserved-domain-demo',title:'Foreground Page B topic',kind:'general'};
+    const catalog=first?first.catalog:{version,model:{id:'hand-authored-demo-vectors/1',status:'fixture-only'},actors:[{id:'demo-alex',displayName:'Alex',type:'human'},
       {id:'demo-blair',displayName:'Blair',type:'human'}],topics:[topic],sources:[
       {id:'reserved-example-com',url:'https://example.com/',title:'Foreground Page B',provenance:'project-created-reserved-domain-bridge/1',topicId:topic.id},
       {id:'reserved-example-org',url:'https://example.org/',title:'Manual fixture C',provenance:'project-created-reserved-domain-bridge/1',topicId:topic.id}]};
-    const discussion={version,topic,discussionId:'foreground-discussion-b',roots:[]};
+    const discussion=first?first.discussion:{version,topic,discussionId:'foreground-discussion-b',roots:[]};
     const transport=createLocalServiceClient({fetchImpl:globalThis.fetch.bind(globalThis),getToken:()=> 'synthetic-semantic-browser-pairing-only'});
     const client={semanticCapabilities:transport.semanticCapabilities,semanticTopics:transport.semanticTopics,semanticContext:transport.semanticContext,
       semanticFeed:transport.semanticFeed,semanticThread:transport.semanticThread,semanticTarget:transport.semanticTarget,command:transport.command,
@@ -164,6 +182,7 @@ async function bootstrapFixture(createAiPort,fixtureConfig){
       related:async()=>({version,model:catalog.model,results:[]}),priorDiscussions:async sourceId=>({version,sourceId,currentTopicId:topic.id,topics:[]})};
     const panel=mountDiscussionPanel(document,canonical);
     const controller=createLocalDiscussionController({client,session:{isPaired:async()=>true},readPostingActor:()=>current.actor,
+      ...(first?{readPageResolution:async()=>current.resolution,readPostingSessionRevision:()=>current.sessionRevision}:{}),
       readActiveTab:async()=>({tabId:current.tabId,url:current.url,windowId:current.windowId}),observeTabLifecycle:()=>()=>{},
       lookupByNormalizedUrl:lookupIndicatorFixtureByNormalizedUrl,
       attestActiveContext:async witness=>witness.tabId===current.tabId&&witness.url===current.url&&witness.windowId===current.windowId,
@@ -184,6 +203,7 @@ async function bootstrapFixture(createAiPort,fixtureConfig){
     workspace=mountSemanticTopicWorkspace(document,{discoverRoot:discover,discussionRoot:semantic,client,controller,discussionPanel:panel,
       navigate:value=>{current.navigation.push(value);if(value==='discussion')showDiscussion();},onAvailability:value=>{current.availability=value;}});
     Object.assign(current,{workspace,controller,panel,insight,discover,semantic,canonical,showDiscussion});window.semanticQA.current=current;
+    if(first)current.promoteFirstPage=async()=>{first.promote();await controller.updatePageResolution(current.resolution);};
     await controller.setTopicViewMode('classic');await controller.open();workspace.observePage(controller.currentState());workspace.setActive(true);workspace.setConnection(true);
     await insight.checkConnection();await insight.loadModels();
     return true;
@@ -195,6 +215,7 @@ export function validateSemanticBrowserSmokeSource(){
   // Compilation and module import are inert: no profile, process, browser or IO.
   new Function(`return (${bootstrapFixture.toString()});`);
   new Function(`return (${createSemanticSmokeAiPort.toString()});`);
+  new Function(`return (${createSemanticFirstPageSmokeState.toString()});`);
   assert.equal(path.basename(CHROME),'chrome.exe');assert.ok(OUTPUT.startsWith(path.join(REPO,'apps/local-service/data')));
   assert.equal(AUTO_ATTACH.waitForDebuggerOnStart,true);assert.equal(AUTO_ATTACH.flatten,true);
   assert.ok(AUTO_ATTACH.filter.some(row=>row.type==='shared_worker'&&row.exclude===false));
@@ -252,7 +273,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       topics:[{id:'games',title:'Games',path:['games']},{id:'music',title:'Music',path:['music']}]});return;}
     if(route==='/v1/semantic/context'){
       if(mode.context==='error'){await fulfill(requestId,incoming,503,{error:'alternate-unavailable'});return;}
-      assert.ok(['reserved-example-com','reserved-example-org'].includes(input.sourceId));const pending=mode.context==='pending';
+      assert.ok(['reserved-example-com','reserved-example-org','first-page-source'].includes(input.sourceId));const pending=mode.context==='pending'||input.sourceId==='first-page-source';
       await fulfill(requestId,incoming,200,{version:version(),policyRevision:2,sourceId:input.sourceId,sourceVersion:'0',status:pending?'pending':'classified',
         supportedPath:pending?[]:['games'],selectedPath:pending?[]:['games'],topic:pending?null:{id:'games',title:'Games',path:['games']}});return;
     }
@@ -408,7 +429,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     assert.ok(sessionId);uiStep='packaged-popup-unpaired';await browser.send('Page.navigate',{url:origin+'/chromium/popup.html'},sessionId);
     await waitFor(`document.readyState==='complete'&&Boolean(document.querySelector('#discussion-composer'))`);await pause(300);
     assert.equal(exceptions.length,0);cases.push('actual-packaged-popup-unpaired-no-runtime-exceptions');
-    phase='fixture';uiStep='fixture-bootstrap';await evaluate(`(${bootstrapFixture.toString()})((${createSemanticSmokeAiPort.toString()}),${JSON.stringify({expiresAt:fixtureExpiresAt})})`);
+    phase='fixture';uiStep='fixture-bootstrap';await evaluate(`(${bootstrapFixture.toString()})((${createSemanticSmokeAiPort.toString()}),(${createSemanticFirstPageSmokeState.toString()}),${JSON.stringify({expiresAt:fixtureExpiresAt})})`);
     uiStep='fixture-ready';
     await waitFor(`window.semanticQA.current.availability==='available'&&Boolean(document.querySelector('#semantic-discover-open-music'))&&Boolean(document.querySelector('#semantic-context-thread-root-a'))`);
     uiStep='global-source-independence';const topicsBefore=interceptions.filter(item=>item.path==='/v1/semantic/topics').length;
@@ -473,7 +494,45 @@ export async function runSemanticWorkspaceBrowserSmoke(){
         `(()=>{semanticQA.current.actor='demo-blair';semanticQA.current.controller.accountChanged();})()`);
       mode.holdTarget=false;while(held.length){const item=held.shift();await abortRequest(item.requestId,item.incoming);}await pause(100);
       assert.equal(await evaluate(`semanticQA.current.navigation.length`),0);assert.equal(commands.length,5);cases.push('stale-'+value+'-handoff-refused');}
-    uiStep='final-guards';assert.equal(await evaluate(`semanticQA.providerCalls`),2);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
+    uiStep='first-page-local-typing';await evaluate(`semanticQA.mount(true)`);await evaluate(`semanticQA.current.showDiscussion()`);
+    await waitFor(`semanticQA.current.controller.currentState().localRootDraftReady===true`);
+    assert.deepEqual(await evaluate(`(()=>{const s=semanticQA.current.controller.currentState(),body=document.querySelector('#discussion-body'),composer=document.querySelector('#discussion-composer');
+      body.focus();return {sourceId:s.sourceId,topicId:s.topicId,rootMode:s.draft.mode,posting:s.humanPostingReady,shown:!composer.hidden&&body.getBoundingClientRect().width>0,
+        enabled:!body.disabled,submit:document.querySelector('#discussion-submit').disabled,ai:document.querySelector('#discussion-ai-insights').disabled,private:document.querySelector('#discussion-private-toggle').disabled};})()`),
+      {sourceId:null,topicId:null,rootMode:'root',posting:false,shown:true,enabled:true,submit:true,ai:true,private:true});
+    await browser.send('Input.insertText',{text:'First page text before invented model completion'},sessionId);
+    await waitFor(`semanticQA.current.controller.currentState().draft.body==='First page text before invented model completion'`);
+    await evaluate(`document.querySelector('#discussion-composer').requestSubmit()`);assert.equal(commands.length,5);assert.equal(await evaluate(`semanticQA.providerCalls`),2);
+    cases.push('first-seen-local-root-draft-no-delivery');
+    uiStep='first-page-canonical-promotion-ime';
+    await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true,data:''}));
+      body.value+=' 未完';body.setSelectionRange(6,11,'backward');semanticQA.firstPageSelection={start:body.selectionStart,end:body.selectionEnd,direction:body.selectionDirection};})()`);
+    await evaluate(`semanticQA.current.promoteFirstPage()`);await waitFor(`semanticQA.current.controller.currentState().phase==='ready'`);
+    assert.deepEqual(await evaluate(`(()=>{const body=document.querySelector('#discussion-body'),s=semanticQA.current.controller.currentState();
+      return {text:body.value,stored:s.draft.body,focused:document.activeElement===body,selection:{start:body.selectionStart,end:body.selectionEnd,direction:body.selectionDirection},
+        sourceId:s.sourceId,topicId:s.topicId,detached:s.draft.detached};})()`),
+      {text:'First page text before invented model completion 未完',stored:'First page text before invented model completion',focused:true,
+        selection:{start:6,end:11,direction:'backward'},sourceId:'first-page-source',topicId:'first-page-topic',detached:false});
+    await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:'未完'}));})()`);
+    await waitFor(`semanticQA.current.controller.currentState().draft.body==='First page text before invented model completion 未完'`);
+    assert.equal(commands.length,5);assert.equal(await evaluate(`semanticQA.providerCalls`),2);cases.push('first-seen-same-document-canonical-promotion-preserves-ime-selection');
+    uiStep='first-page-session-detach';await evaluate(`semanticQA.mount(true)`);await evaluate(`semanticQA.current.showDiscussion()`);
+    await waitFor(`semanticQA.current.controller.currentState().localRootDraftReady===true`);
+    await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.focus();body.value='Keep this same-account session draft';body.dispatchEvent(new Event('input',{bubbles:true}));
+      semanticQA.current.sessionRevision++;semanticQA.current.controller.accountChanged();})()`);
+    await waitFor(`semanticQA.current.controller.currentState().draft.detached===true`);
+    assert.deepEqual(await evaluate(`(()=>{const s=semanticQA.current.controller.currentState();return {actor:semanticQA.current.actor,text:s.draft.body,detached:s.draft.detached,
+      staging:s.localRootDraftReady,submit:document.querySelector('#discussion-submit').disabled};})()`),
+      {actor:'demo-alex',text:'Keep this same-account session draft',detached:true,staging:false,submit:true});
+    await evaluate(`document.querySelector('#discussion-composer').requestSubmit()`);assert.equal(commands.length,5);cases.push('first-seen-same-account-session-change-detaches');
+    uiStep='first-page-document-detach';await evaluate(`semanticQA.mount(true)`);await evaluate(`semanticQA.current.showDiscussion()`);
+    await waitFor(`semanticQA.current.controller.currentState().localRootDraftReady===true`);
+    await evaluate(`(async()=>{const body=document.querySelector('#discussion-body');body.value='Keep the original document draft';body.dispatchEvent(new Event('input',{bubbles:true}));
+      semanticQA.current.resolution={...semanticQA.current.resolution,documentId:'first-page-document-2',sequence:2};await semanticQA.current.controller.updatePageResolution(semanticQA.current.resolution);})()`);
+    assert.deepEqual(await evaluate(`(()=>{const s=semanticQA.current.controller.currentState();return {text:s.draft.body,detached:s.draft.detached,staging:s.localRootDraftReady,
+      submit:document.querySelector('#discussion-submit').disabled};})()`),{text:'Keep the original document draft',detached:true,staging:false,submit:true});
+    await evaluate(`document.querySelector('#discussion-composer').requestSubmit()`);assert.equal(commands.length,5);cases.push('first-seen-replacement-document-detaches');
+    uiStep='final-guards';assert.equal(cases.length,17);assert.equal(await evaluate(`semanticQA.providerCalls`),2);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
     outcome='passed';
   }catch(error){firstUiFailure={step:uiStep,...describeSemanticUiFailure(error)};fail('browser-smoke-incomplete');}
   finally{
@@ -496,7 +555,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       return entry.recursiveAttachInstalled&&entry.offlineInstalled&&entry.fetchInstalled&&
         (entry.ready||entry.quarantined&&entry.waiting&&!entry.resumeIssued&&ownedProcessExited);});
     if(!allExecutableTargetsContained)fail('target-containment-unverified');
-    const result={schema:'semantic-workspace-browser-qa/v1',outcome:failures.length?'failed':outcome,scope:'Synthetic browser composition; no SQL, actual document attestation, provider, quality, load or live posting authority.',
+    const result={schema:'semantic-workspace-browser-qa/v1',outcome:failures.length?'failed':outcome,scope:'Synthetic browser composition; no SQL, E5, cold-start latency, actual document attestation, provider, quality, load or live posting authority.',
       elapsedMs:Date.now()-started,timedOut,closing,closeReturned,ownedProcessExited,profileRemoved,ownedProfileRetained:!profileRemoved,
       uiStep,firstUiFailure,layoutChecks,syntheticAiEvidence,fixtureSurface:'synthetic-sidepanel-production-hosts-no-native-binding',
       attempt:path.relative(REPO,attempt).replaceAll('\\','/'),continuedHttpRequests:0,

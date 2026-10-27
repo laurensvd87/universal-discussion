@@ -7,7 +7,8 @@ import vm from 'node:vm';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource,quarantinePausedSemanticTarget,
-  bindContainedSemanticAlias,markSemanticSessionDetached,describeSemanticUiFailure,createSemanticSmokeAiPort} from '../harness/run-semantic-workspace-browser-smoke.js';
+  bindContainedSemanticAlias,markSemanticSessionDetached,describeSemanticUiFailure,createSemanticSmokeAiPort,createSemanticFirstPageSmokeState} from '../harness/run-semantic-workspace-browser-smoke.js';
+import {createLocalDiscussionController} from '../../../spikes/topic-resolution/browser/core/local-discussion-controller.js';
 
 // Evaluate the ACTUAL launcher with an in-memory child and pipes. No subprocess,
 // network, native API, profile or filesystem write occurs in these tests.
@@ -74,6 +75,39 @@ test('unknown diagnostic text, URLs, tokens, methods and accessor messages never
 });
 test('runner source-check compiles the browser fixture and stays import-inert',()=>{
   assert.deepEqual(validateSemanticBrowserSmokeSource(),{schema:'semantic-workspace-browser-source-check/v1',browserLaunched:false,fixtureCompiles:true});
+});
+function firstPageController(){
+  const fixture=createSemanticFirstPageSmokeState(),commands=[];
+  const controller=createLocalDiscussionController({
+    client:{health:async()=>({}),catalog:async()=>structuredClone(fixture.catalog),discussion:async()=>structuredClone(fixture.discussion),
+      related:async()=>({version:fixture.catalog.version,model:fixture.catalog.model,results:[]}),
+      priorDiscussions:async sourceId=>({version:fixture.catalog.version,sourceId,currentTopicId:fixture.topic.id,topics:[]}),
+      command:async(...args)=>{commands.push(args);assert.fail('No first-page fixture publication expected');}},
+    session:{isPaired:async()=>true},readPostingActor:()=>fixture.current.actor,readPostingSessionRevision:()=>fixture.current.sessionRevision,
+    readPageResolution:async()=>fixture.current.resolution,
+    readActiveTab:async()=>({tabId:fixture.current.tabId,windowId:fixture.current.windowId,url:fixture.current.url}),
+    observeTabLifecycle:()=>()=>{},lookupByNormalizedUrl:async()=>{assert.fail('No URL fixture bridge expected');},
+  });
+  return {fixture,controller,commands};
+}
+test('exact browser first-page fixture stages through the real controller before invented promotion without publishing',async t=>{
+  const qa=firstPageController();t.after(()=>qa.controller.dispose());await qa.controller.open();
+  assert.equal(qa.fixture.catalog.sources.length,0);assert.equal(qa.controller.currentState().sourceId,null);
+  assert.equal(qa.controller.currentState().localRootDraftReady,true);assert.equal(qa.controller.currentState().humanPostingReady,false);
+  qa.controller.setDraft('Invented browser draft before model completion');assert.equal(await qa.controller.submitDraft(),false);assert.deepEqual(qa.commands,[]);
+  const documentId=qa.fixture.current.resolution.documentId;qa.fixture.promote();
+  await qa.controller.updatePageResolution(qa.fixture.current.resolution);const state=qa.controller.currentState();
+  assert.equal(state.phase,'ready');assert.equal(state.sourceId,'first-page-source');assert.equal(state.topicId,'first-page-topic');
+  assert.equal(state.resolution.documentId,documentId);assert.equal(state.draft.detached,false);assert.equal(state.draft.body,'Invented browser draft before model completion');
+  assert.deepEqual(qa.commands,[]);assert.throws(()=>qa.fixture.promote(),/already promoted/);
+});
+test('exact browser fixture session and replacement-document controls detach text with no command or invented authority',async t=>{
+  for(const change of [qa=>{qa.fixture.current.sessionRevision++;qa.controller.accountChanged();},
+    qa=>{qa.fixture.current.resolution={...qa.fixture.current.resolution,documentId:'first-page-document-2',sequence:2};return qa.controller.updatePageResolution(qa.fixture.current.resolution);}]){
+    const qa=firstPageController();t.after(()=>qa.controller.dispose());await qa.controller.open();qa.controller.setDraft('Keep browser first-page draft');await change(qa);
+    const state=qa.controller.currentState();assert.equal(state.draft.body,'Keep browser first-page draft');assert.equal(state.draft.detached,true);
+    assert.equal(state.localRootDraftReady,false);assert.equal(await qa.controller.submitDraft(),false);assert.deepEqual(qa.commands,[]);
+  }
 });
 
 const paused=()=>({waiting:true,originClass:'extension',ready:false,resumeIssued:false,recursiveAttachInstalled:true,offlineInstalled:true,fetchInstalled:true});
