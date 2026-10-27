@@ -16,8 +16,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const localServiceRoot = path.resolve(fileURLToPath(new URL("../../", import.meta.url)));
 const repositoryRoot = path.resolve(localServiceRoot, "..", "..");
 const dataDir = path.join(localServiceRoot, "data");
-const snapshotRoot = path.join(dataDir, "hierarchy-runtime");
-const manifestPath = path.join(dataDir, "postgres-hierarchy-runtime-manifest.json");
+const snapshotRoot = path.join(dataDir, "hierarchy-release-20261027");
+const manifestPath = path.join(dataDir, "postgres-hierarchy-release-20261027-manifest.json");
 const databasePath = path.join(dataDir, "demo.sqlite");
 const pairingPath = path.join(dataDir, "pairing.json");
 const accountDatabasePath = path.join(dataDir, "accounts.sqlite");
@@ -30,7 +30,7 @@ const bodyPath = path.join(dataDir, "body-topic-metric-v1.json");
 const assetRoot = path.join(snapshotRoot, "spikes", "topic-resolution", "browser", "embedding", ".assets");
 
 const SNAPSHOT_SCHEMA = "murmingle-postgresql-runtime-snapshot/v2";
-const SNAPSHOT_LEAF = "hierarchy-runtime";
+const SNAPSHOT_LEAF = "hierarchy-release-20261027";
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_SNAPSHOT_FILES = 5_000;
 const MAX_SNAPSHOT_BYTES = 512 * 1024 * 1024;
@@ -47,6 +47,10 @@ const ROLES = Object.freeze({
 const EXTERNAL_FILES = Object.freeze([
   "apps/local-service/src/ops/postgres-runtime-operator.js",
   "apps/local-service/src/ops/postgres-backup-operator.js",
+  // These import.meta-based data roots must run from their tracked original
+  // locations, never via loadSnapshot. Authentication does not start a backup.
+  "apps/local-service/src/ops/local-state-backup-operator.js",
+  "apps/local-service/src/ops/windows-local-state-read-lease.js",
   "apps/local-service/data/ridge1-topic-adapter-v1.json",
   "apps/local-service/data/diagonal-adapter-v1.json",
   "apps/local-service/data/body-topic-metric-v1.json",
@@ -480,6 +484,7 @@ const OPERATIONS = Object.freeze(["prepare-runtime", "seal-runtime", "preflight"
   "status", "service", "worker", "dashboard", "crawler"]);
 export function describePostgresRuntimePackaging() {
   return Object.freeze({ sourcePrefixes: SOURCE_PREFIXES, sourceFiles: SOURCE_FILES,
+    snapshotLeaf: SNAPSHOT_LEAF, manifestFilename: path.basename(manifestPath), externalFiles: REQUIRED_EXTERNAL_FILES,
     requiredFiles: REQUIRED_SNAPSHOT_FILES, encoderFiles: ASSET_FILES, sourceMarkers: TRACKED_SOURCE_MARKERS,
     maximumFiles: MAX_SNAPSHOT_FILES, maximumBytes: MAX_SNAPSHOT_BYTES, maximumManifestBytes: MAX_MANIFEST_BYTES });
 }
