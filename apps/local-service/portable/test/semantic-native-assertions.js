@@ -25,6 +25,8 @@ import {sourceStamp} from '../../src/domain/source-threads.js';
 import {RIDGE_PARAMETER_SHA256} from '../../src/domain/ridge-topic-adapter.js';
 import semanticGroups from './semantic-native-cases.json' with {type:'json'};
 import {runSemanticInsightNativeAssertions} from './semantic-insight-native-assertions.js';
+import {installInstalledHierarchy} from '../canonical-v4/hierarchy-installation.js';
+import {readCanonicalV4MigrationManifest} from '../canonical-v4/index.js';
 
 function deepFreeze(value){if(value&&typeof value==='object'){for(const child of Object.values(value))deepFreeze(child);Object.freeze(value);}return value;}
 const GROUPS=deepFreeze(semanticGroups);
@@ -719,11 +721,61 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const firstName=fixture.databaseName;await closeA();
     fixtureB=await acquireFixture();workerB=await fixtureB.connect('murmingle_ingest_worker');assert.notEqual(fixtureB.databaseName,firstName);
     assert.equal((await fixtureB.header()).generation,fixtureB.generation);
-    const db=fixtureB.database;assert.equal(Number((await scalar(db,'SELECT count(*) n FROM canonical_v4.semantic_matchers')).n),0);
-    assert.deepEqual(await createCanonicalV4SemanticDiscussionRepository({database:db}).ownerPolicy(),{revision:0,defaultMaxDepth:1,overrides:[]});
-    assert.equal(Number((await scalar(db,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots')).n),0);
-    assert.equal((await scalar(db,'SELECT revision::text FROM canonical_v4.semantic_material_state WHERE singleton')).revision,'0');
-    assert.deepEqual(await scalar(db,'SELECT revision::text,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton'),{revision:'0',matcher_hash:null});
+    const db=fixtureB.database,legacy=await readCanonicalV4MigrationManifest(),hierarchy=await readCanonicalV4MigrationManifest('hierarchy16');
+    const registered=()=>db.query('SELECT version,hash FROM canonical_v4.schema_migrations ORDER BY version').then(result=>result.rows);
+    const expectedRows=manifest=>manifest.map(({version,hash})=>({version,hash}));
+    assert.deepEqual(await registered(),expectedRows(legacy));
+    assert.equal((await repo(db).health()).schemaVersion,9);
+    await assert.rejects(createCanonicalV4IngestionRepository({database:db,schemaProfile:'hierarchy16'}).health(),e=>e.code==='unavailable');
+    const canonical=()=>scalar(db,`SELECT
+      (SELECT count(*)::integer FROM canonical_v4.id_registry) ids,
+      (SELECT count(*)::integer FROM canonical_v4.topics) topics,
+      (SELECT count(*)::integer FROM canonical_v4.discussions) discussions,
+      (SELECT count(*)::integer FROM canonical_v4.sources) sources,
+      (SELECT count(*)::integer FROM canonical_v4.ingestion_jobs) jobs,
+      (SELECT count(*)::integer FROM canonical_v4.operation_receipts) receipts,
+      (SELECT revision::text FROM canonical_v4.runtime_state WHERE singleton) revision`);
+    const beforeInstall=await canonical(),pid=Number((await scalar(db,'SELECT pg_backend_pid() pid')).pid);
+    // Force a real late policy-CAS failure, after migration, registration and
+    // head activation. Every DDL/data effect must roll back to registered9.
+    await assert.rejects(installInstalledHierarchy({database:db,expectedHeadRevision:0,expectedPolicyRevision:1,
+      policy:{defaultMaxDepth:1,overrides:[]}}),e=>e.code==='conflict');
+    assert.deepEqual(await registered(),expectedRows(legacy));assert.deepEqual(await canonical(),beforeInstall);
+    assert.equal((await scalar(db,"SELECT to_regclass('canonical_v4.semantic_matchers')::text name")).name,null);
+    assert.equal((await scalar(db,"SELECT to_regprocedure('canonical_v4.semantic_register_matcher(text)')::text name")).name,null);
+    assert.equal((await scalar(db,"SELECT to_regprocedure('canonical_v4.semantic_insight_evidence(text)')::text name")).name,null);
+    let isolationChecks=0,transactions=0;
+    const ownerPort={query:(...args)=>db.query(...args),transaction:work=>{
+      transactions++;return db.transaction(tx=>work({dialect:'pg',exec:sql=>tx.exec(sql),query:async(sql,args=[])=>{
+        if(sql==='SELECT canonical_v4.semantic_register_matcher($1) AS matcher_hash'){
+          isolationChecks++;assert.equal(isolationChecks,1);
+          assert.deepEqual(await scalar(tx,"SELECT pg_backend_pid() pid,current_setting('transaction_isolation') isolation,current_setting('transaction_read_only') read_only"),
+            {pid,isolation:'read committed',read_only:'off'});
+          // Original owner-side database-isolation assertions, after real DDL
+          // but immediately before forwarding the first real registration.
+          const db=tx;assert.equal(Number((await scalar(db,'SELECT count(*) n FROM canonical_v4.semantic_matchers')).n),0);
+          assert.deepEqual(await createCanonicalV4SemanticDiscussionRepository({database:db}).ownerPolicy(),{revision:0,defaultMaxDepth:1,overrides:[]});
+          assert.equal(Number((await scalar(db,'SELECT count(*) n FROM canonical_v4.semantic_root_snapshots')).n),0);
+          assert.equal((await scalar(db,'SELECT revision::text FROM canonical_v4.semantic_material_state WHERE singleton')).revision,'0');
+          assert.deepEqual(await scalar(db,'SELECT revision::text,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton'),{revision:'0',matcher_hash:null});
+        }
+        return tx.query(sql,args);
+      }}));
+    }};
+    const installed=await installInstalledHierarchy({database:ownerPort,expectedHeadRevision:0,expectedPolicyRevision:0,
+      policy:{defaultMaxDepth:1,overrides:[]}});
+    assert.equal(transactions,1);assert.equal(isolationChecks,1);assert.equal(installed.schemaVersion,16);
+    assert.deepEqual(await registered(),expectedRows(hierarchy));assert.deepEqual(await canonical(),beforeInstall);
+    assert.equal((await createCanonicalV4IngestionRepository({database:workerB,schemaProfile:'hierarchy16'}).health()).schemaVersion,16);
+    assert.equal((await createCanonicalV4LifecycleRepository({database:db,schemaProfile:'hierarchy16'}).health()).schemaVersion,16);
+    assert.equal((await createCanonicalV4RuntimeRepository({database:db,schemaProfile:'hierarchy16'}).health()).schemaVersion,16);
+    for(const factory of [createCanonicalV4IngestionRepository,createCanonicalV4LifecycleRepository,createCanonicalV4RuntimeRepository])
+      await assert.rejects(factory({database:db}).health(),e=>e.code==='unavailable');
+    assert.notEqual(installed.matcherIdentityHash,hash1);
+    assert.equal(installed.matcherIdentityHash,'eead1b2dcd6508ebf3d5c45358c71be95e81363da7c0b8325f7466ce487ed21c');
+    assert.deepEqual(await scalar(db,'SELECT revision::text,matcher_hash FROM canonical_v4.semantic_installation WHERE singleton'),
+      {revision:'1',matcher_hash:installed.matcherIdentityHash});
+    assert.deepEqual(await createCanonicalV4SemanticDiscussionRepository({database:db}).ownerPolicy(),{revision:1,defaultMaxDepth:1,overrides:[]});
     await denied(workerB,REGISTER,[identity1]);await assert.rejects(semantic(workerB).apply(initial.claim,{representedValues:axis(0),preparation:initial.prepared}),error=>error.code==='conflict');
     const c=await counts(db);assert.equal(c.sources,0);assert.equal(c.inputs,0);assert.equal(c.observations,0);
    });

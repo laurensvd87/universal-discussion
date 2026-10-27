@@ -38,7 +38,7 @@ function ledger(){
  }};
 }
 
-async function initialize(database,generation,sql,feedSql,storedSql,metadataSql,containerSql,replySql,insightReplySql){
+async function initialize(database,generation,sql,feedSql,storedSql,metadataSql,containerSql,replySql,insightReplySql,rawHierarchy){
  await database.exec('ALTER SCHEMA canonical_v4 OWNER TO murmingle_owner');
  await database.exec('SET ROLE murmingle_owner');
  await migrateCanonicalV4(database);
@@ -57,15 +57,17 @@ async function initialize(database,generation,sql,feedSql,storedSql,metadataSql,
    [JSON.stringify({id:'discussion-semantic-manual',topicId:'topic-semantic-manual'})]);
   await tx.exec("INSERT INTO canonical_v4.fixed_references(topic_id,payload) VALUES('topic-semantic-manual','null')");
   await initializeCanonicalV4Runtime(tx);
-  // Deliberately unregistered in schema_migrations: production startup remains
-  // at9 until the complete hierarchy feature/cutover is validated.
-  await tx.exec(sql);
-  await tx.exec(feedSql);
-  await tx.exec(storedSql);
-  await tx.exec(metadataSql);
-  await tx.exec(containerSql);
-  await tx.exec(replySql);
-  await tx.exec(insightReplySql);
+  // ScratchA preserves the original9+raw010..016 proof. ScratchB starts only
+  // registered9, so the ordinary owner installer must perform its real upgrade.
+  if(rawHierarchy){
+   await tx.exec(sql);
+   await tx.exec(feedSql);
+   await tx.exec(storedSql);
+   await tx.exec(metadataSql);
+   await tx.exec(containerSql);
+   await tx.exec(replySql);
+   await tx.exec(insightReplySql);
+  }
  });
 }
 
@@ -126,7 +128,7 @@ export async function runSemanticNativeProof(){
       await database.close();
      })();return closing;
     }};
-   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'),storedRaw.toString('utf8'),metadataRaw.toString('utf8'),containerRaw.toString('utf8'),replyRaw.toString('utf8'),insightReplyRaw.toString('utf8'));return fixture;
+   fixtures.push(fixture);await initialize(database,generation,raw.toString('utf8'),feedRaw.toString('utf8'),storedRaw.toString('utf8'),metadataRaw.toString('utf8'),containerRaw.toString('utf8'),replyRaw.toString('utf8'),insightReplyRaw.toString('utf8'),index===0);return fixture;
   }
   let rows=null,cleanup;
   try{await runSemanticAssertions(checks.test,{acquireFixture});rows=checks.finish();}

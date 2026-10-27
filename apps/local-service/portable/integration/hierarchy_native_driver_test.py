@@ -145,6 +145,19 @@ class MaintainedDriverTest(unittest.TestCase):
         self.assertIn('spikes/topic-resolution/browser/core/account-auth-response.js', seen)
         self.assertIn('spikes/topic-resolution/browser/core/community-contract.js', seen)
         self.assertIn('spikes/topic-resolution/browser/core/topic-space-contract.js', seen)
+        self.assertIn('apps/local-service/portable/canonical-v4/hierarchy-installation.js', seen)
+        self.assertIn('apps/local-service/src/application/installed-hierarchy-matcher.js', seen)
+        # The numeric loader reads these fixed data URLs, which the literal
+        # module-reference traversal above cannot discover. No encoder weights
+        # or inference runtime are needed by owner matcher registration.
+        for key in (
+            'apps/local-service/assets/hierarchy/root-model.json',
+            'apps/local-service/assets/hierarchy/root-policy.json',
+            'apps/local-service/assets/hierarchy/input-definition.json',
+            'apps/local-service/assets/hierarchy/gta-detail.json',
+            'spikes/topic-resolution/browser/embedding/.assets/manifest.json',
+        ):
+            self.assertIn(key, maintained)
 
     def test_new_resolution_scopes_cannot_shadow_the_reviewed_entry(self):
         original = D.os.path.lexists
