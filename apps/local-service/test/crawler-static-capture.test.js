@@ -246,8 +246,45 @@ test("metadata still counts towards the attribute cap and interpreted surfaces r
   assert.equal(captureStaticHtml(`<article ${padding} ${attrs}>${prose("Exactly counted", 30)}</article>`, PAGE).eligible, true);
   assert.throws(() => captureStaticHtml(`<article ${padding} ${attrs} hidden>${prose("Over count", 30)}</article>`, PAGE), /Invalid crawler document/u);
   assert.throws(() => captureStaticHtml(`<meta ${padding} name="robots" content="${"x".repeat(16_385)}">`, PAGE), /Invalid crawler document/u);
-  assert.throws(() => captureStaticHtml(`<article ${padding} class="${"x".repeat(9_000)}" style="${"x".repeat(9_000)}">${prose("Over budget", 30)}</article>`, PAGE), /Invalid crawler document/u);
+  assert.throws(() => captureStaticHtml(`<article ${padding} href="${"x".repeat(9_000)}" style="${"x".repeat(9_000)}">${prose("Over budget", 30)}</article>`, PAGE), /Invalid crawler document/u);
   assert.throws(() => captureStaticHtml(`<article data-long="${"x".repeat(20_000)}><meta name='robots' content='none'>`, PAGE), /Invalid crawler document/u);
+});
+
+test("all unused attribute values and huge names scan in place without changing visible output or hashes", () => {
+  const visible = prose("Unchanged interpreted article", 30), baseline = captureStaticHtml(`<title>Same title</title><article>${visible}<a href="/real">Real link</a></article>`, PAGE);
+  for (const name of ["d", "src", "class", "unknown", "UNKNOWN", "q".repeat(100_000)]) {
+    const padding = `${"ignored &amp; > ".repeat(3_000)}<meta name='robots' content='none'><meta name='tdm-reservation' content='1'><a href='/fake'>Fake link</a>`;
+    const captured = captureStaticHtml(`<title>Same title</title><article ${name}="${padding}">${visible}<a ${name}='${"&quot;&gt;".repeat(3_000)}' href="/real">Real link</a></article>`, PAGE);
+    assert.deepEqual(captured, baseline, name.slice(0, 20));
+    const diagnostic = diagnoseStaticHtml(`<article ${name}="${padding}">${visible}</article>`, PAGE);
+    assert.equal(diagnostic.status, "eligible");assert.ok(diagnostic.summary.maximumInterpretedAttributeSurface < 100);
+  }
+});
+
+test("large unused attributes cannot hide late real directives, canonical links or visibility", () => {
+  const padding = "unused > &amp; ".repeat(3_000);
+  for (const name of ["d", "src", "class", "unknown"]) {
+    const html = `<meta ${name}="${padding}" HTTP-EQUIV="X-Robots-Tag" content="notrain, nofollow">
+      <meta ${name}='${padding}' name='tdm-reservation' content='1'>
+      <link ${name}="${padding}" REL="canonical alternate" HREF="/canonical&amp;real">
+      <article>${prose("Visible article", 30)}
+      ${["hidden", 'ARIA-HIDDEN="TRUE"', 'STYLE="display:none"'].map(hidden => `<div ${name}="${padding}" ${hidden}>Must remain hidden<a href="/hidden">secret</a></div>`).join("")}
+      <a ${name}="${padding}" href="/real">Visible link</a></article>`;
+    const captured = captureStaticHtml(html, PAGE);
+    assert.deepEqual(captured.directives, { noindex: true, nofollow: true, tdmReservation: 1, tdmReservationInvalid: false });
+    assert.equal(captured.canonical, "/canonical&real");assert.equal(captured.text.includes("Must remain hidden"), false);
+    assert.deepEqual(captured.links, [{ href: "/canonical&real", text: "alternate" }, { href: "/real", text: "Visible link" }]);
+  }
+});
+
+test("every interpreted attribute retains its surface cap and all unused attributes retain the count and quote guards", () => {
+  for (const name of ["hidden", "aria-hidden", "style", "name", "http-equiv", "content", "rel", "href"]) {
+    assert.throws(() => captureStaticHtml(`<article class="${"x".repeat(20_000)}" ${name}="${"x".repeat(16_385)}">${prose("Bounded", 30)}</article>`, PAGE), error => describeStaticCaptureFailure(error)?.code === "attribute-surface-limit");
+  }
+  const attrs = Array.from({ length: 128 }, (_, i) => `unused${i}="${i === 0 ? "x".repeat(20_000) : "value"}"`).join(" ");
+  assert.equal(captureStaticHtml(`<article ${attrs}>${prose("Exactly counted unused", 30)}</article>`, PAGE).eligible, true);
+  assert.throws(() => captureStaticHtml(`<article ${attrs} d="x">`, PAGE), error => describeStaticCaptureFailure(error)?.code === "attribute-count-limit");
+  assert.throws(() => captureStaticHtml(`<article class="${"x".repeat(20_000)}><meta name='robots' content='none'>`, PAGE), error => describeStaticCaptureFailure(error)?.code === "unterminated-tag");
 });
 
 test("XML feed loc elements become bounded discovery links", () => {

@@ -9,6 +9,9 @@ const SKIP = new Set(["script", "style", "noscript", "template", "svg", "canvas"
 const CHROME = new Set(["nav", "header", "footer", "aside", "form"]);
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 const ENTITY = new Map([["amp", "&"], ["lt", "<"], ["gt", ">"], ["quot", "\""], ["apos", "'"], ["nbsp", " "]]);
+// These are the ONLY attributes consumed below. Names are bounded before
+// slicing; all other values stay in the original input and are never decoded.
+const INTERPRETED_ATTRIBUTES = new Set(["hidden", "aria-hidden", "style", "name", "http-equiv", "content", "rel", "href"]);
 
 // Only exact errors created at the parser's existing rejection sites receive
 // metadata. Neither this registry nor its projection inspects unknown errors.
@@ -66,12 +69,10 @@ function attributes(source, index, end, diagnostic) {
     if (nameEnd === start) { index++; budget(1); continue; }
     diagnostic.maximumAttributeCount = Math.max(diagnostic.maximumAttributeCount, count + 1);
     if (++count > 128) throw new StaticCaptureError("attribute-count-limit", diagnostic);
-    // Unused HTML data metadata is scanned in place, including quoted fake
-    // tags. Never allocate/decode its name or value. All other attribute
-    // surfaces retain the original 16KiB aggregate interpretation budget.
-    const ignored = nameEnd - start >= 5 && source[start].toLowerCase() === "d" &&
-      source[start + 1].toLowerCase() === "a" && source[start + 2].toLowerCase() === "t" &&
-      source[start + 3].toLowerCase() === "a" && source[start + 4] === "-";
+    // Quote-aware scanning still visits every attribute, including fake tags
+    // embedded in unused values. No name longer than aria-hidden is allocated.
+    const name = nameEnd - start <= 11 ? source.slice(start, nameEnd).toLowerCase() : null;
+    const ignored = !INTERPRETED_ATTRIBUTES.has(name);
     while (index < end && /\s/u.test(source[index])) index++;
     let valueStart = index, valueEnd = index;
     if (source[index] === "=") {
@@ -86,7 +87,6 @@ function attributes(source, index, end, diagnostic) {
     }
     if (!ignored) {
       budget(index - start);
-      const name = source.slice(start, nameEnd).toLowerCase();
       if (!Object.hasOwn(result, name)) result[name] = decodeEntities(source.slice(valueStart, valueEnd));
     }
   }
