@@ -16,7 +16,11 @@ const EXTENSION=path.join(REPO,'spikes/topic-resolution/browser');
 const PIN_FILES=[SELF,path.join(REPO,'spikes/topic-resolution/harness/chromium-pipe.js'),
   ...['manifest.json','chromium/popup.js','chromium/popup.css','chromium/semantic-topic-workspace.js','chromium/semantic-topic-panel.js',
     'chromium/discussion-panel.js','core/local-discussion-controller.js','core/local-service-client.js','core/local-service-contract.js',
-    'core/discussion-target.js','core/topic-view-mode.js','locales/en.js'].map(file=>path.join(EXTENSION,file))];
+    'core/discussion-target.js','core/topic-view-mode.js','core/insight-controller.js','core/local-ai-client.js',
+    'core/insight-context.js','core/insight-citations.js','core/insight-preferences.js','core/insight-voices.js',
+    'core/account-auth-response.js','core/page-content-policy.js','core/discussion-readiness.js','core/discussion-mentions.js',
+    'core/active-tab-policy.js','core/page-resolution-contract.js','core/indicator-contract.js',
+    'chromium/assistant-voice-picker.js','chromium/popup-shell.js','fixtures/indicator-fixtures.js','fixtures/local-service-fixture-bridge.js','locales/en.js'].map(file=>path.join(EXTENSION,file))];
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function pins(){return PIN_FILES.map(file=>{const bytes=readFileSync(file);return {path:path.relative(REPO,file).replaceAll('\\','/'),bytes:bytes.length,sha256:hash(bytes)};});}
@@ -89,15 +93,49 @@ export function describeSemanticUiFailure(error){
 }
 function checkUi(condition,code){if(condition)return;const error=new Error('Semantic browser assertion failed');Object.defineProperty(error,'smokeCode',{value:code});throw error;}
 
+// One invented local job only; this port never contacts a provider or service.
+// Serialized unchanged into the synthetic page and exercised by pure tests.
+export function createSemanticSmokeAiPort({readTarget,digest,expiresAt,onStart=()=>{}}) {
+  let job=null,starting=false;
+  const articleText='Synthetic foreground Page B article; no native capture authority.';
+  return Object.freeze({articleText,
+    status:async()=>({connected:true,planEnabled:true,pending:false,account:{clientId:'synthetic-ai-owner',label:'Invented QA account'}}),
+    models:async()=>[{slug:'synthetic-model',displayName:'Invented QA model'}],
+    async start(request,_actor,{beforeDispatch,signal}={}) {
+      if(job||starting||signal?.aborted)throw new Error('Synthetic job unavailable');starting=true;
+      try {
+        if(typeof beforeDispatch!=='function'||!await beforeDispatch()||signal?.aborted)throw new Error('Synthetic dispatch refused');
+        if(request.context?.currentSource?.id!=='reserved-example-com'||request.context.topic.id!=='reserved-domain-demo'||
+          request.articleText!==articleText||request.context.discussion.length||!request.semanticTarget)throw new Error('Synthetic evidence refused');
+        const target=await readTarget({nodeId:request.semanticTarget.nodeId,topicId:request.semanticTarget.topicId,
+          discussionId:'discussion-a',rootId:'root-a',targetId:request.followupQuestionId});
+        if(!target||target.rootRevision!==request.semanticTarget.rootRevision||target.targetRevision!==request.semanticTarget.targetRevision)throw new Error('Synthetic target refused');
+        const question=target.targetId===target.root.id?target.root:target.root.replies[0];
+        const publication={semanticTarget:{...request.semanticTarget},evidence:{sourceId:'reserved-example-com',sourceVersion:'0',operationId:'synthetic-page-b-operation',
+          operationDigest:await digest('invented-page-b-operation'),sourceStamp:await digest('invented-page-b-stamp')},
+          articleDigest:await digest(articleText),rootDigest:await digest(target.root.body),targetDigest:await digest(question.body),expiresAt};
+        if(signal?.aborted||!await beforeDispatch())throw new Error('Synthetic dispatch refused');
+        job={operationId:request.operationId,publication};onStart({targetId:request.followupQuestionId,semanticTarget:{...request.semanticTarget}});
+        return {operationId:job.operationId,state:'running'};
+      }finally{starting=false;}
+    },
+    async result(operationId){if(job?.operationId!==operationId)throw new Error('Synthetic job missing');
+      return {operationId,state:'completed',result:{body:'Invented semantic AI reply to the exact public question.',model:'synthetic-model',citations:[]},semanticPublication:structuredClone(job.publication)};},
+    resumable:async()=>null,
+    async cancel(operationId){if(job?.operationId===operationId)job=null;return true;},
+    release(operationId){if(job?.operationId===operationId)job=null;}
+  });
+}
+
 // Serialized into the isolated extension page only. All document observations,
 // account identity, service state and attestations below are invented fixtures.
-async function bootstrapFixture(){
+async function bootstrapFixture(createAiPort,fixtureConfig){
   window.dispatchEvent(new Event('pagehide'));
-  const [{mountDiscussionPanel},{mountSemanticTopicWorkspace},{createLocalDiscussionController},{createLocalServiceClient},{lookupIndicatorFixtureByNormalizedUrl}]=await Promise.all([
+  const [{mountDiscussionPanel},{mountSemanticTopicWorkspace},{createLocalDiscussionController},{createLocalServiceClient},{lookupIndicatorFixtureByNormalizedUrl},{createInsightController}]=await Promise.all([
     import('./discussion-panel.js'),import('./semantic-topic-workspace.js'),import('../core/local-discussion-controller.js'),
-    import('../core/local-service-client.js'),import('../fixtures/indicator-fixtures.js')]);
-  window.semanticQA={providerCalls:0,mount:async()=>{
-    const prior=window.semanticQA.current;prior?.workspace.dispose();prior?.controller.dispose();prior?.panel.dispose();
+    import('../core/local-service-client.js'),import('../fixtures/indicator-fixtures.js'),import('../core/insight-controller.js')]);
+  window.semanticQA={providerCalls:0,providerStarts:[],mount:async()=>{
+    const prior=window.semanticQA.current;prior?.workspace.dispose();prior?.insight.dispose();prior?.controller.dispose();prior?.panel.dispose();
     document.body.replaceChildren();document.body.dataset.uiMode='user';document.body.dataset.uiSurface='sidepanel';document.body.dataset.extensionSurface='sidepanel';
     // Match production host IDs/classes and nesting without CSS overrides. This
     // is a synthetic responsive surface, not a native SidePanel binding claim.
@@ -112,7 +150,7 @@ async function bootstrapFixture(){
       if(name==='discover')action.setAttribute('aria-current','page');nav.append(action);
     }
     discoverView.append(discover);discussionView.append(canonical);main.append(nav,discussionView,discoverView);document.body.append(main);
-    let workspace;const current={actor:'demo-alex',tabId:7,url:'https://example.com/',windowId:2,availability:null,navigation:[]};
+    let workspace,insight;const current={actor:'demo-alex',tabId:7,url:'https://example.com/',windowId:2,availability:null,navigation:[]};
     const version={generation:'semantic-browser-generation',revision:7},topic={id:'reserved-domain-demo',title:'Foreground Page B topic',kind:'general'};
     const catalog={version,model:{id:'hand-authored-demo-vectors/1',status:'fixture-only'},actors:[{id:'demo-alex',displayName:'Alex',type:'human'},
       {id:'demo-blair',displayName:'Blair',type:'human'}],topics:[topic],sources:[
@@ -129,17 +167,25 @@ async function bootstrapFixture(){
       readActiveTab:async()=>({tabId:current.tabId,url:current.url,windowId:current.windowId}),observeTabLifecycle:()=>()=>{},
       lookupByNormalizedUrl:lookupIndicatorFixtureByNormalizedUrl,
       attestActiveContext:async witness=>witness.tabId===current.tabId&&witness.url===current.url&&witness.windowId===current.windowId,
-      onStateChange:state=>{panel.render(state);workspace?.observePage(state);}});
-    panel.bind(controller);panel.bindInsight({currentState:()=>({ai:{planEnabled:true,model:'synthetic-never-called',status:'idle'},
-      context:{topic,currentSource:catalog.sources[0]}}),createFollowup:async()=>{window.semanticQA.providerCalls++;return false;},
-      createInsights:async()=>{window.semanticQA.providerCalls++;return false;}});
+      onStateChange:state=>{panel.render(state);insight?.observe(state);workspace?.observePage(state);}});
+    const digest=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
+    const aiClient=createAiPort({readTarget:controller.readSemanticFollowupTarget,digest,expiresAt:fixtureConfig.expiresAt,
+      onStart:value=>{if(window.semanticQA.providerCalls>=2)throw new Error('Synthetic start cap');window.semanticQA.providerCalls++;window.semanticQA.providerStarts.push(value);}});
+    insight=createInsightController({aiClient,shareOnCompletion:true,randomId:()=> 'synthetic-ai-'+(window.semanticQA.providerCalls+1),
+      readSemanticFollowupTarget:controller.readSemanticFollowupTarget,
+      readArticle:async()=>({url:'https://example.com/',documentId:'invented-document-b',text:aiClient.articleText}),
+      attestArticle:async snapshot=>snapshot.sourceId==='reserved-example-com'&&current.actor===snapshot.actorId&&current.tabId===7&&current.url==='https://example.com/',
+      shareInsight:async review=>{const accepted=await controller.shareInsight(review);if(accepted)aiClient.release(review.operationId);return accepted;},
+      onStateChange:state=>panel.renderInsightState(state)});
+    panel.bind(controller);panel.bindInsight(insight);
     const feed=document.querySelector('#discussion-feed');feed.insertBefore(semantic,feed.firstChild);
     const showDiscussion=()=>{discoverView.hidden=true;discussionView.hidden=false;document.querySelector('#app-tab-discover').removeAttribute('aria-current');
       document.querySelector('#app-tab-discussion').setAttribute('aria-current','page');workspace.setActive(false);};
     workspace=mountSemanticTopicWorkspace(document,{discoverRoot:discover,discussionRoot:semantic,client,controller,discussionPanel:panel,
       navigate:value=>{current.navigation.push(value);if(value==='discussion')showDiscussion();},onAvailability:value=>{current.availability=value;}});
-    Object.assign(current,{workspace,controller,panel,discover,semantic,canonical,showDiscussion});window.semanticQA.current=current;
+    Object.assign(current,{workspace,controller,panel,insight,discover,semantic,canonical,showDiscussion});window.semanticQA.current=current;
     await controller.setTopicViewMode('classic');await controller.open();workspace.observePage(controller.currentState());workspace.setActive(true);workspace.setConnection(true);
+    await insight.checkConnection();await insight.loadModels();
     return true;
   }};
   await window.semanticQA.mount();return true;
@@ -148,6 +194,7 @@ async function bootstrapFixture(){
 export function validateSemanticBrowserSmokeSource(){
   // Compilation and module import are inert: no profile, process, browser or IO.
   new Function(`return (${bootstrapFixture.toString()});`);
+  new Function(`return (${createSemanticSmokeAiPort.toString()});`);
   assert.equal(path.basename(CHROME),'chrome.exe');assert.ok(OUTPUT.startsWith(path.join(REPO,'apps/local-service/data')));
   assert.equal(AUTO_ATTACH.waitForDebuggerOnStart,true);assert.equal(AUTO_ATTACH.flatten,true);
   assert.ok(AUTO_ATTACH.filter.some(row=>row.type==='shared_worker'&&row.exclude===false));
@@ -163,11 +210,12 @@ export async function runSemanticWorkspaceBrowserSmoke(){
   const profileResolved=realpathSync(profile),dataResolved=realpathSync(DATA);assert.ok(contained(workspaceRoot(),dataResolved));assert.ok(contained(workspaceRoot(),profileResolved));
   let browser=null,sessionId=null,origin=null,phase='initial',closing=false,timedOut=false,profileRemoved=false;
   const started=Date.now(),failures=[],exceptions=[],screenshots=[],layoutChecks=[],cases=[],interceptions=[],commands=[],pendingTasks=new Set(),targets=new Map(),held=[];
-  let uiStep='browser-startup',firstUiFailure=null;
+  let uiStep='browser-startup',firstUiFailure=null,syntheticAiEvidence=null;
   const targetGroups=new Map();
   let remoteResponses=0,retiredInterceptions=0,protocolFailure=false,browserVersion=null,initialBlankAccepted=false,extensionLoadStarted=false,firstBoundaryFailure=null;
   let publishOrigin;const originKnown=new Promise(resolve=>{publishOrigin=resolve;});
-  const mode={capability:'available',context:'classified',holdTarget:false,command:'ok'};
+  const fixtureExpiresAt=Date.now()+120000;
+  const mode={capability:'available',context:'classified',holdTarget:false,command:'ok',aiQuestion:null};
   const state={revision:7,replies:[]};
   const version=()=>({generation:'semantic-browser-generation',revision:state.revision});
   const actors=[{id:'demo-alex',displayName:'Alex',type:'human'},{id:'demo-blair',displayName:'Blair',type:'human'}];
@@ -224,9 +272,23 @@ export async function runSemanticWorkspaceBrowserSmoke(){
         actors:actors.filter(actor=>needed.has(actor.id))});return;
     }
     if(route==='/v1/commands'){
-      const command=input.command;assert.equal(command.type,'reply');assert.equal(command.discussionId,'discussion-a');assert.equal(command.rootId,'root-a');assert.equal(command.replyToId,'reply-a');
-      assert.equal(command.originSourceId,null);assert.deepEqual(command.semanticTarget,{nodeId:'music',topicId:'canonical-a',rootRevision:3,targetRevision:2});
-      commands.push(structuredClone(input));state.revision++;state.replies.push(post('accepted-'+commands.length,'root-a','demo-alex',command.body));
+      const command=input.command;assert.equal(command.discussionId,'discussion-a');assert.equal(command.rootId,'root-a');
+      assert.equal(command.originSourceId,null);
+      if(command.type==='reply'){
+        assert.equal(command.replyToId,'reply-a');assert.deepEqual(command.semanticTarget,{nodeId:'music',topicId:'canonical-a',rootRevision:3,targetRevision:2});
+      }else{
+        assert.equal(command.type,'share-insight-reply');assert.equal(command.topicId,'canonical-a');assert.equal(command.replyToId,mode.aiQuestion);
+        assert.equal(command.body,'Invented semantic AI reply to the exact public question.');
+        const target=root().replies.find(reply=>reply.id===command.replyToId);assert.ok(target);
+        assert.deepEqual(command.semanticPublication,{semanticTarget:{nodeId:'music',topicId:'canonical-a',rootRevision:3,targetRevision:command.replyToId==='reply-a'?2:1},
+          evidence:{sourceId:'reserved-example-com',sourceVersion:'0',operationId:'synthetic-page-b-operation',
+            operationDigest:hash('invented-page-b-operation'),sourceStamp:hash('invented-page-b-stamp')},
+          articleDigest:hash('Synthetic foreground Page B article; no native capture authority.'),rootDigest:hash(root().body),targetDigest:hash(target.body),expiresAt:fixtureExpiresAt});
+      }
+      commands.push(structuredClone(input));state.revision++;
+      const accepted=post('accepted-'+commands.length,'root-a',command.type==='reply'?'demo-alex':'demo-imported-ai',command.body);
+      if(command.type==='share-insight-reply'){accepted.actorType='agent';accepted.insight={kind:'generated',operatorId:'demo-alex'};}
+      accepted.replyToId=command.replyToId;state.replies.push(accepted);
       if(mode.command==='ambiguous'){await abortRequest(requestId,incoming);return;}
       await fulfill(requestId,incoming,200,{version:version(),result:{contributionId:'accepted-'+commands.length}});return;
     }
@@ -236,7 +298,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     if(value.exceptionDetails)throw new Error('Browser fixture evaluation failed');return value.result.value;}
   async function waitFor(expression){const limit=Date.now()+9000;while(Date.now()<limit){if(timedOut||protocolFailure)throw new Error('Browser boundary failed');if(await evaluate(expression))return;await pause(40);}throw new Error('Browser fixture state timeout');}
   async function capture(width){uiStep='layout-'+width;await browser.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false},sessionId);await pause(100);
-    const layout=await evaluate(`(()=>{const ids=['app-view-discussion','local-discussion','discussion-feed','discussion-root-dock','discussion-composer','discussion-body','discussion-reply-context','discussion-submit','discussion-mention-status','discussion-origin-disclosure','semantic-context-results'];
+    const layout=await evaluate(`(()=>{const ids=['app-view-discussion','local-discussion','discussion-feed','discussion-root-dock','discussion-composer','discussion-body','discussion-reply-context','discussion-submit','discussion-mention-status','discussion-origin-disclosure','discussion-ai-insights','semantic-context-results'];
       const luminance=color=>{const rgb=color.match(/[0-9.]+/g)?.map(Number);if(!rgb||rgb.length<3||rgb.length>3&&rgb[3]!==1)return null;
         const linear=rgb.slice(0,3).map(value=>{const v=value/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;});return .2126*linear[0]+.7152*linear[1]+.0722*linear[2];};
       return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,bodyWidth:document.body.getBoundingClientRect().width,
@@ -247,7 +309,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
         semanticHostInsideFeed:document.querySelector('.semantic-discussion-panel')?.parentElement?.id==='discussion-feed',
         composerDocked:document.querySelector('#discussion-composer')?.parentElement?.id==='discussion-root-dock',
         replyHeadingVisible:(()=>{const n=document.querySelector('.discussion-new-thread-heading');if(!n)return false;const r=n.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(n).visibility==='visible';})(),
-        buttonContrast:['semantic-workspace-saved-toggle','semantic-context-back','semantic-context-refresh'].map(id=>{const node=document.getElementById(id);
+        buttonContrast:['semantic-workspace-saved-toggle','semantic-context-back','semantic-context-refresh','discussion-ai-insights'].map(id=>{const node=document.getElementById(id);
           if(!node)return {id,present:false};const style=getComputedStyle(node),r=node.getBoundingClientRect(),fg=luminance(style.color),bg=luminance(style.backgroundColor);
           return {id,present:true,visible:r.width>0&&r.height>0&&style.visibility==='visible',disabled:node.disabled,
             ratio:fg===null||bg===null?null:(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05)};})};})()`);
@@ -262,6 +324,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       ['discussion-body','discussion-reply-context','discussion-submit','discussion-mention-status','discussion-origin-disclosure'].every(id=>{
         const item=byId[id];return item.hidden||item.visible&&item.left>=composer.left&&item.right<=composer.right;
       }),'composer-content-clipped');
+    checkUi(byId['discussion-ai-insights'].visible&&byId['discussion-ai-insights'].left>=composer.left&&byId['discussion-ai-insights'].right<=composer.right,'composer-content-clipped');
     checkUi(layout.buttonContrast.every(item=>item.present&&item.visible&&!item.disabled&&item.ratio>=4.5),'topic-button-unreadable');}
   const timer=setTimeout(()=>{timedOut=true;void browser?.close();},120000);
   let outcome='failed';
@@ -345,7 +408,7 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     assert.ok(sessionId);uiStep='packaged-popup-unpaired';await browser.send('Page.navigate',{url:origin+'/chromium/popup.html'},sessionId);
     await waitFor(`document.readyState==='complete'&&Boolean(document.querySelector('#discussion-composer'))`);await pause(300);
     assert.equal(exceptions.length,0);cases.push('actual-packaged-popup-unpaired-no-runtime-exceptions');
-    phase='fixture';uiStep='fixture-bootstrap';await evaluate(`(${bootstrapFixture.toString()})()`);
+    phase='fixture';uiStep='fixture-bootstrap';await evaluate(`(${bootstrapFixture.toString()})((${createSemanticSmokeAiPort.toString()}),${JSON.stringify({expiresAt:fixtureExpiresAt})})`);
     uiStep='fixture-ready';
     await waitFor(`window.semanticQA.current.availability==='available'&&Boolean(document.querySelector('#semantic-discover-open-music'))&&Boolean(document.querySelector('#semantic-context-thread-root-a'))`);
     uiStep='global-source-independence';const topicsBefore=interceptions.filter(item=>item.path==='/v1/semantic/topics').length;
@@ -355,10 +418,10 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     uiStep='global-thread';await evaluate(`document.querySelector('#semantic-discover-thread-root-a').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-reply-reply-a'))`);
     uiStep='flat-replies';
     const flat=await evaluate(`(()=>{const p=document.querySelector('#semantic-discover-results'),replies=p.children[1];return {count:replies.children.length,flat:[...replies.children].every(n=>!n.querySelector('article')),inset:replies.style.marginInlineStart,deleted:replies.children[2].textContent};})()`);
-    assert.ok(flat.count>=3);assert.equal(flat.flat,true);assert.equal(flat.inset,'1rem');assert.equal(flat.deleted,'Deleted by user');cases.push('real-dom-flat-replies-minimal-tombstone');
+    assert.ok(flat.count>=3);assert.equal(flat.flat,true);assert.equal(flat.inset,'1rem');assert.equal(flat.deleted,'Deleted by user');cases.push('real-dom-flat-replies-minimal-tombstone');assert.equal(await evaluate(`semanticQA.providerCalls`),0);
     uiStep='reply-handoff';await evaluate(`document.querySelector('#semantic-discover-reply-reply-a').click()`);await waitFor(`semanticQA.current.controller.currentState().draft.semantic===true&&Boolean(document.querySelector('#semantic-context-reply-reply-a'))`);
     uiStep='composer-body';
-    await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.value='Browser QA human reply from Page B @AI stays text';body.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.value='Browser QA plain human reply from Page B';body.dispatchEvent(new Event('input',{bubbles:true}));})()`);
     for(const width of [320,400,520])await capture(width);
     uiStep='composer-heading';checkUi(await evaluate(`document.querySelector('.discussion-new-thread-heading').textContent.includes('Original discussion A')`),'composer-heading-mismatch');
     uiStep='human-submit';await evaluate(`document.querySelector('#discussion-composer').requestSubmit()`);await waitFor(`semanticQA.current.controller.currentState().draft.body===''&&Boolean(document.querySelector('[data-post-id="accepted-1"]'))`);
@@ -374,6 +437,30 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     uiStep='uncertainty-ack';
     await evaluate(`(()=>{const check=document.querySelector('#discussion-semantic-checked');check.checked=true;check.dispatchEvent(new Event('change'));document.querySelector('#discussion-semantic-continue').click();})()`);
     await waitFor(`!semanticQA.current.controller.currentState().semanticWritePending&&!semanticQA.current.controller.currentState().needsFreshRead`);assert.equal(commands.length,2);cases.push('uncertainty-checked-acknowledgement-no-repost');mode.command='ok';
+    uiStep='semantic-ai-button-mount';await evaluate(`semanticQA.mount()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-open-music'))`);
+    await evaluate(`document.querySelector('#semantic-discover-open-music').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-thread-root-a'))`);
+    await evaluate(`document.querySelector('#semantic-discover-thread-root-a').click()`);await waitFor(`Boolean(document.querySelector('#semantic-discover-reply-reply-a'))`);
+    await evaluate(`document.querySelector('#semantic-discover-reply-reply-a').click()`);await waitFor(`semanticQA.current.controller.currentState().draft.semantic===true`);
+    uiStep='semantic-ai-button';mode.aiQuestion='reply-a';
+    await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.value='Keep this unsent human draft private';body.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#discussion-ai-insights').click();})()`);
+    await waitFor(`semanticQA.providerCalls===1&&semanticQA.current.insight.currentState().status==='shared'`);
+    assert.equal(commands.length,3);assert.equal(commands[2].command.type,'share-insight-reply');assert.equal(commands[2].command.replyToId,'reply-a');
+    assert.equal(await evaluate(`semanticQA.current.controller.currentState().draft.body`),'Keep this unsent human draft private');
+    assert.equal(JSON.stringify(commands[2]).includes('Keep this unsent human draft private'),false);
+    syntheticAiEvidence=await evaluate(`({starts:semanticQA.providerCalls,targetIds:semanticQA.providerStarts.map(item=>item.targetId)})`);
+    assert.deepEqual(syntheticAiEvidence,{starts:1,targetIds:['reply-a']});
+    assert.equal(await evaluate(`semanticQA.current.controller.currentState().discussion.roots.some(root=>root.id==='root-a')`),false);
+    cases.push('released-selected-ai-button-exact-target-preserves-unsent-human-draft');
+    uiStep='semantic-ai-mention';mode.aiQuestion='accepted-4';
+    await evaluate(`(()=>{const body=document.querySelector('#discussion-body');body.value='New accepted human question @AI';body.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#discussion-composer').requestSubmit();})()`);
+    await waitFor(`semanticQA.providerCalls===2&&semanticQA.current.insight.currentState().status==='shared'`);
+    assert.equal(commands.length,5);assert.equal(commands[3].command.type,'reply');assert.equal(commands[4].command.type,'share-insight-reply');
+    assert.equal(commands[4].command.replyToId,'accepted-4');assert.equal(commands[4].command.rootId,'root-a');assert.equal(commands[4].command.originSourceId,null);
+    syntheticAiEvidence=await evaluate(`({starts:semanticQA.providerCalls,targetIds:semanticQA.providerStarts.map(item=>item.targetId)})`);
+    assert.deepEqual(syntheticAiEvidence,{starts:2,targetIds:['reply-a','accepted-4']});
+    assert.deepEqual(await evaluate(`(()=>{const s=semanticQA.current.controller.currentState();return {sourceId:s.sourceId,topicId:s.topicId,rootAInPageB:s.discussion.roots.some(root=>root.id==='root-a')};})()`),
+      {sourceId:'reserved-example-com',topicId:'reserved-domain-demo',rootAInPageB:false});
+    cases.push('released-human-ai-mention-new-accepted-question-one-generated-same-thread-reply');
     for(const value of ['legacy','unauthorized']){uiStep='capability-'+value;mode.capability=value;await evaluate(`semanticQA.mount()`);await waitFor(`semanticQA.current.availability===${JSON.stringify(value==='legacy'?'legacy':'error')}`);cases.push('capability-'+value);}
     mode.capability='available';
     for(const value of ['pending','error']){uiStep='context-'+value;mode.context=value;await evaluate(`semanticQA.mount()`);await waitFor(`semanticQA.current.availability==='available'&&Boolean(document.querySelector('#semantic-discover-open-music'))`);await evaluate('semanticQA.current.showDiscussion()');await pause(120);
@@ -385,8 +472,8 @@ export async function runSemanticWorkspaceBrowserSmoke(){
       await evaluate(value==='navigation'?`(()=>{semanticQA.current.tabId=99;semanticQA.current.controller.invalidateContext();})()`:
         `(()=>{semanticQA.current.actor='demo-blair';semanticQA.current.controller.accountChanged();})()`);
       mode.holdTarget=false;while(held.length){const item=held.shift();await abortRequest(item.requestId,item.incoming);}await pause(100);
-      assert.equal(await evaluate(`semanticQA.current.navigation.length`),0);assert.equal(commands.length,2);cases.push('stale-'+value+'-handoff-refused');}
-    uiStep='final-guards';assert.equal(await evaluate(`semanticQA.providerCalls`),0);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
+      assert.equal(await evaluate(`semanticQA.current.navigation.length`),0);assert.equal(commands.length,5);cases.push('stale-'+value+'-handoff-refused');}
+    uiStep='final-guards';assert.equal(await evaluate(`semanticQA.providerCalls`),2);assert.equal(exceptions.length,0);assert.deepEqual(failures,[]);assert.equal(protocolFailure,false);assert.deepEqual(pins(),startPins);
     outcome='passed';
   }catch(error){firstUiFailure={step:uiStep,...describeSemanticUiFailure(error)};fail('browser-smoke-incomplete');}
   finally{
@@ -411,9 +498,9 @@ export async function runSemanticWorkspaceBrowserSmoke(){
     if(!allExecutableTargetsContained)fail('target-containment-unverified');
     const result={schema:'semantic-workspace-browser-qa/v1',outcome:failures.length?'failed':outcome,scope:'Synthetic browser composition; no SQL, actual document attestation, provider, quality, load or live posting authority.',
       elapsedMs:Date.now()-started,timedOut,closing,closeReturned,ownedProcessExited,profileRemoved,ownedProfileRetained:!profileRemoved,
-      uiStep,firstUiFailure,layoutChecks,fixtureSurface:'synthetic-sidepanel-production-hosts-no-native-binding',
+      uiStep,firstUiFailure,layoutChecks,syntheticAiEvidence,fixtureSurface:'synthetic-sidepanel-production-hosts-no-native-binding',
       attempt:path.relative(REPO,attempt).replaceAll('\\','/'),continuedHttpRequests:0,
-      offlineAllTargets:targets.size>0&&[...targets.values()].every(entry=>entry.offlineInstalled&&entry.fetchInstalled&&entry.recursiveAttachInstalled),targets:targets.size,httpResponsesObserved:remoteResponses,browserVersion,
+      offlineAllTargets:targets.size>0&&[...targets.values()].every(entry=>entry.offlineInstalled&&entry.fetchInstalled&&entry.recursiveAttachInstalled),targets:targets.size,httpResponsesObserved:remoteResponses,browserVersion,syntheticAiPublications:commands.filter(item=>item.command.type==='share-insight-reply').length,
       physicalTargets:targetGroups.size,quarantinedTargets:new Set([...targets.values()].filter(entry=>entry.quarantined).map(entry=>entry.targetId)).size,
       quarantinedTargetsRetired:ownedProcessExited,quarantineMode:'paused-until-owned-exit',
       quarantineScope:'Foreign extension targets verified debugger-paused after network containment, never resumed; retirement requires the exact owned-browser exit event. No identity or cause attribution.',

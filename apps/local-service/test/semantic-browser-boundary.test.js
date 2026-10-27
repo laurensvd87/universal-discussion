@@ -5,8 +5,9 @@ import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import vm from 'node:vm';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {describeSemanticBoundaryFailure,validateSemanticBrowserSmokeSource,quarantinePausedSemanticTarget,
-  bindContainedSemanticAlias,markSemanticSessionDetached,describeSemanticUiFailure} from '../harness/run-semantic-workspace-browser-smoke.js';
+  bindContainedSemanticAlias,markSemanticSessionDetached,describeSemanticUiFailure,createSemanticSmokeAiPort} from '../harness/run-semantic-workspace-browser-smoke.js';
 
 // Evaluate the ACTUAL launcher with an in-memory child and pipes. No subprocess,
 // network, native API, profile or filesystem write occurs in these tests.
@@ -143,4 +144,45 @@ test('UI diagnostic projection discards arbitrary messages, body values and acce
   assert.deepEqual(describeSemanticUiFailure(proxy),{code:'ui-step-failed'});assert.equal(hooks,0);
   const revoked=Proxy.revocable({},{});revoked.revoke();assert.deepEqual(describeSemanticUiFailure(revoked.proxy),{code:'ui-step-failed'});
   for(const value of [null,undefined,'message',1,true])assert.deepEqual(describeSemanticUiFailure(value),{code:'ui-step-failed'});
+});
+function inventedAiFixture(){
+ const starts=[],reads=[],digest=async value=>createHash('sha256').update(value).digest('hex');let guards=0;
+ const port=createSemanticSmokeAiPort({expiresAt:4102444800000,digest,onStart:value=>starts.push(value),
+  readTarget:async value=>{reads.push(value);return {rootRevision:3,targetRevision:2,targetId:'reply-a',root:{id:'root-a',body:'Original opener',replies:[{id:'reply-a',body:'Public selected question'}]}};}});
+ const request={operationId:'synthetic-op',followupQuestionId:'reply-a',semanticTarget:{nodeId:'music',topicId:'canonical-a',rootRevision:3,targetRevision:2},
+  articleText:port.articleText,context:{topic:{id:'reserved-domain-demo'},currentSource:{id:'reserved-example-com'},discussion:[]}};
+ return {port,request,starts,reads,digest,options:{beforeDispatch:async()=>{guards++;return true;}},guards:()=>guards};
+}
+
+test('invented smoke AI port awaits dispatch guards and retains one exact publication with real digests',async()=>{
+ const qa=inventedAiFixture();assert.equal(qa.starts.length,0);assert.equal(await qa.port.resumable(),null);
+ await qa.port.start(qa.request,'demo-alex',qa.options);assert.equal(qa.guards(),2);
+ assert.deepEqual(qa.reads,[{nodeId:'music',topicId:'canonical-a',discussionId:'discussion-a',rootId:'root-a',targetId:'reply-a'}]);
+ const completed=await qa.port.result('synthetic-op');assert.equal(completed.state,'completed');
+ assert.deepEqual(completed.semanticPublication,{semanticTarget:qa.request.semanticTarget,
+  evidence:{sourceId:'reserved-example-com',sourceVersion:'0',operationId:'synthetic-page-b-operation',
+   operationDigest:await qa.digest('invented-page-b-operation'),sourceStamp:await qa.digest('invented-page-b-stamp')},
+  articleDigest:await qa.digest(qa.port.articleText),rootDigest:await qa.digest('Original opener'),targetDigest:await qa.digest('Public selected question'),expiresAt:4102444800000});
+ await assert.rejects(qa.port.start({...qa.request,operationId:'second-op'},'demo-alex',qa.options),/Synthetic job unavailable/);
+ assert.equal(qa.starts.length,1);qa.port.release('other-operation');assert.equal((await qa.port.result('synthetic-op')).state,'completed');
+ qa.port.release('synthetic-op');await assert.rejects(qa.port.result('synthetic-op'),/Synthetic job missing/);
+ assert.equal(qa.starts.length,1);
+});
+
+test('invented smoke AI port refuses aborted or credential-revoked starts before any target or provider work',async()=>{
+ for(const aborted of [false,true]){const qa=inventedAiFixture(),abort=new AbortController();if(aborted)abort.abort();
+  await assert.rejects(qa.port.start(qa.request,'demo-alex',{signal:abort.signal,beforeDispatch:async()=>false}));
+  assert.deepEqual(qa.reads,[]);assert.deepEqual(qa.starts,[]);assert.equal(await qa.port.resumable(),null);
+ }
+ const qa=inventedAiFixture(),gate=deferred();const first=qa.port.start(qa.request,'demo-alex',{beforeDispatch:()=>gate.promise});
+ await assert.rejects(qa.port.start(qa.request,'demo-alex',qa.options),/Synthetic job unavailable/);gate.resolve(false);await assert.rejects(first,/Synthetic dispatch refused/);
+ assert.deepEqual(qa.starts,[]);
+});
+
+test('invented smoke AI port cannot rebase a changed revision or include a foreground discussion',async()=>{
+ for(const change of [request=>{request.semanticTarget.targetRevision=99;},request=>{request.context.discussion=[{body:'Unsent text must never be included'}];},
+  request=>{request.context.currentSource.id='source-a';}]){
+  const qa=inventedAiFixture();change(qa.request);await assert.rejects(qa.port.start(qa.request,'demo-alex',qa.options));
+  assert.deepEqual(qa.starts,[]);await assert.rejects(qa.port.result('synthetic-op'),/Synthetic job missing/);
+ }
 });
