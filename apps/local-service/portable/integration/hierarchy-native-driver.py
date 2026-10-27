@@ -26,6 +26,7 @@ MAP_KEY = OWN + 'hierarchy-native-reviewed-sources.json'
 NORMAL_SCOPE_ABSENCES = frozenset([
     'apps/local-service/src/http/package.json',
     'apps/local-service/test/package.json',
+    'apps/local-service/src/ai/package.json',
 ])
 MIB = 1048576
 CREATE_FLAGS = 0x8040C
@@ -85,6 +86,21 @@ NORMAL_KEYS = frozenset([
     'spikes/topic-resolution/browser/core/community-contract.js',
     'spikes/topic-resolution/browser/core/topic-space-contract.js',
     'spikes/topic-resolution/test/semantic-local-client.test.js',
+    'apps/local-service/portable/test/semantic-insight-native-assertions.js',
+    'apps/local-service/portable/canonical-v4/migrations/016-semantic-insight-reply.sql',
+    'apps/local-service/portable/test/semantic-insight-reply.test.js',
+    'apps/local-service/src/ai/chatgpt-connection.js',
+    'apps/local-service/src/ai/chatgpt-insights.js',
+    'apps/local-service/src/ai/chatgpt-runtime.js',
+    'apps/local-service/src/ai/insight-prompts.js',
+    'apps/local-service/src/ai/reply-research-policy.js',
+    'spikes/topic-resolution/browser/core/insight-citations.js',
+    'spikes/topic-resolution/browser/core/insight-context.js',
+    'spikes/topic-resolution/browser/core/insight-preferences.js',
+    'spikes/topic-resolution/browser/core/insight-voices.js',
+    'apps/local-service/test/chatgpt-bridge.test.js',
+    'apps/local-service/test/cited-reply-roundtrip.test.js',
+    'apps/local-service/test/insight-response-language.test.js',
 ])
 PINS = {
     'inventory': (OLD+'inventory.py', '3dfc2dcdb0c09a46d6215b5cf0781829f27a70f03c8106e6bb70db18bf28f385'),

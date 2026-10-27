@@ -24,6 +24,7 @@ import {createLocalServiceClient} from '../../../../spikes/topic-resolution/brow
 import {sourceStamp} from '../../src/domain/source-threads.js';
 import {RIDGE_PARAMETER_SHA256} from '../../src/domain/ridge-topic-adapter.js';
 import semanticGroups from './semantic-native-cases.json' with {type:'json'};
+import {runSemanticInsightNativeAssertions} from './semantic-insight-native-assertions.js';
 
 function deepFreeze(value){if(value&&typeof value==='object'){for(const child of Object.values(value))deepFreeze(child);Object.freeze(value);}return value;}
 const GROUPS=deepFreeze(semanticGroups);
@@ -95,6 +96,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
  let storedEncoderCalls=0;
  let ridgeDefinition=null;
  let erasedWitnessRequest=null;
+ let semanticAiEvidence=null;
+ let erasedSemanticInsight=null;
  const actor=Object.freeze({id:'demo-alex',type:'human',demo:true});
  const nextId=kind=>`semantic-${kind}-${++serial}`,now=()=>new Date().toISOString();
  const preparation=createHierarchyIngestionPreparation({matcher:matcher1,embedTitle:async()=>{encoderCalls++;return {modelId:MODEL,values:axis(0)};}});
@@ -190,7 +193,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
    ownerSemantic=semantic(owner);workerSemantic=semantic(worker);appIngest=repo(app);workerIngest=repo(worker);
    ownerFeeds=createCanonicalV4SemanticDiscussionRepository({database:owner});appFeeds=createCanonicalV4SemanticDiscussionRepository({database:app});
    appRuntime=createCanonicalV4RuntimeRepository({database:app,nextId,now});appLifecycle=createCanonicalV4LifecycleRepository({database:app,nextId,now});
-   reads=createCanonicalV4ReadFacade({database:app});service=createPostgresCanonicalService({reads,runtime:appRuntime,semanticDiscussions:true});
+   reads=createCanonicalV4ReadFacade({database:app});service=createPostgresCanonicalService({reads,runtime:appRuntime,lifecycle:appLifecycle,semanticDiscussions:true});
    workerSources=createCanonicalV4SemanticSourceRepository({database:worker});ownerSources=createCanonicalV4SemanticSourceRepository({database:owner});
    await t.test(GROUPS[0].children[0],async()=>{
     const c=await counts(owner);assert.equal(c.sources,0);assert.equal(c.inputs,0);assert.equal(c.observations,0);
@@ -230,6 +233,8 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     await denied(app,'UPDATE canonical_v4.semantic_material_state SET revision=revision');
    });
    await t.test(GROUPS[0].children[3],async()=>{
+    await denied(worker,'SELECT * FROM canonical_v4.semantic_insight_evidence($1)',['unknown-semantic-source']);
+    await denied(submitter,'SELECT * FROM canonical_v4.semantic_insight_evidence($1)',['unknown-semantic-source']);
     await denied(submitter,PRIVATE_CONTAINER,Array(11).fill(null));
     await denied(submitter,REGISTER,[identity1]);await denied(submitter,ACTIVATE,[hash1,0]);await denied(submitter,APPLY,Array(14).fill(null));
     await denied(submitter,'SELECT canonical_v4.semantic_set_owner_policy($1,$2,$3::jsonb)',[0,1,'[]']);
@@ -395,6 +400,7 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     assert.equal(response.status,200);const http=JSON.parse(response.body);assert.equal(http.roots.length,1);assert.ok([humanRoot,aiRoot].includes(http.roots[0].root.id));
     assert.equal(http.roots[0].discussionId,s.discussion_id);assert.equal(http.roots[0].root.origin.sourceId,A.sourceId);
     const peerWork=await queued('same-vector-distinct-page',{title:initial.input.title}),peer=await finish(peerWork),peerState=await sourceState(owner,peer.sourceId);
+    semanticAiEvidence={receipt:peer,input:peerWork.input};
     assert.notEqual(peer.topicId,A.topicId);assert.notEqual(peerState.discussion_id,s.discussion_id);
     assert.equal((await scalar(owner,'SELECT policy_version FROM canonical_v4.sources WHERE id=$1',[peer.sourceId])).policy_version,'hierarchy-source-container/v1');
     assert.deepEqual((await context(peer.sourceId)).supportedPath,SUPPORTED_PATH);
@@ -567,6 +573,10 @@ export async function runSemanticAssertions(test,{acquireFixture}){
     const afterRace=await appendState();assert.equal(afterRace.contributions,beforeRace.contributions);assert.equal(afterRace.revisions,beforeRace.revisions+1);
     assert.equal(afterRace.ids,beforeRace.ids);
     assert.equal(afterRace.receipts,beforeRace.receipts+1);assert.equal(afterRace.revision,String(BigInt(beforeRace.revision)+1n));
+    erasedSemanticInsight=await runSemanticInsightNativeAssertions({owner,app,observer,service,appRuntime,appLifecycle,actor,header:()=>fixture.header(),nextId,now,
+      rootId:humanRoot,rootTopicId:originalDestination.topicId,rootDiscussionId:originalDestination.discussionId,
+      evidenceSourceId:semanticAiEvidence.receipt.sourceId,evidenceTopicId:semanticAiEvidence.receipt.topicId,
+      evidenceInput:semanticAiEvidence.input,queued,finish});
     erasedWitnessRequest={actorId:actor.id,requestId:'semantic-witness-erased-membership',expected:await fixture.header(),command:witnessed(await target(humanRoot,exact.targetId),'Erased semantic membership must not append')};
     const refs=(await feed('invented-game-branch')).references;assert.equal(refs.length,3);
     assert.equal(refs.find(r=>r.rootId===manualRoot).discussionId,MANUAL_DISCUSSION);assert.equal(refs.find(r=>r.rootId===humanRoot).discussionId,originalDestination.discussionId);
@@ -669,7 +679,27 @@ export async function runSemanticAssertions(test,{acquireFixture}){
      assert.deepEqual(hidden.references.map(r=>r.rootId).sort(),[manualRoot,legacyRoot].sort());throw rollback;
     }),error=>error===rollback);
     assert.deepEqual((await feed('invented-game-branch')).references.map(r=>r.rootId).sort(),[humanRoot,manualRoot,legacyRoot].sort());
+    assert.ok(erasedSemanticInsight);
+    const liveAiTarget=await target(humanRoot,erasedSemanticInsight.command.replyToId);
+    assert.equal(liveAiTarget.rootRevision,erasedSemanticInsight.command.semanticPublication.semanticTarget.rootRevision);
+    assert.equal(liveAiTarget.targetRevision,erasedSemanticInsight.command.semanticPublication.semanticTarget.targetRevision);
     await appIngest.lifecycle(await fixture.header(),{type:'forget-source',sourceId:A.sourceId});
+    const pendingPublication=erasedSemanticInsight.command.semanticPublication;
+    const retainedAiRows=(await owner.query(`SELECT c.id,c.revision_count,c.visibility,c.withdrawn,
+      encode(sha256(convert_to(r.payload::jsonb->>'body','UTF8')),'hex') body_digest
+      FROM canonical_v4.contributions c JOIN canonical_v4.revisions r ON r.contribution_id=c.id AND r.ordinal=c.revision_count-1
+      WHERE c.id=ANY($1::text[]) ORDER BY c.id`,[[humanRoot,erasedSemanticInsight.command.replyToId]])).rows;
+    assert.equal(retainedAiRows.length,2);
+    for(const row of retainedAiRows){const isRoot=row.id===humanRoot;
+      assert.equal(row.visibility,'local-public');assert.equal(row.withdrawn,false);
+      assert.equal(Number(row.revision_count),isRoot?pendingPublication.semanticTarget.rootRevision:pendingPublication.semanticTarget.targetRevision);
+      assert.equal(row.body_digest,isRoot?pendingPublication.rootDigest:pendingPublication.targetDigest);
+    }
+    const retainedEvidence=await scalar(app,'SELECT * FROM canonical_v4.semantic_insight_evidence($1)',[pendingPublication.evidence.sourceId]);
+    assert.equal(retainedEvidence.source_version,pendingPublication.evidence.sourceVersion);assert.equal(retainedEvidence.operation_digest,pendingPublication.evidence.operationDigest);
+    const beforeErasedAi=await appendState();
+    await assert.rejects(appLifecycle.command(await fixture.header(),erasedSemanticInsight.command,actor,erasedSemanticInsight.proof),e=>e.code==='conflict');
+    assert.deepEqual(await appendState(),beforeErasedAi,'erased historical membership prevents pending AI publication');
     assert.ok(erasedWitnessRequest);await rejectWitness(erasedWitnessRequest);
     await assert.rejects(service.semanticContext({sourceId:A.sourceId}),e=>e.code==='not-found');
     const erased=await scalar(owner,`SELECT (SELECT count(*) FROM canonical_v4.sources WHERE id=$1)::integer sources,
