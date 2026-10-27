@@ -1,0 +1,55 @@
+{
+  "schema": "browser-e5-assets/v1",
+  "modelId": "e5-small-q8-browser-main-prefix-v1",
+  "extractorVersion": "main-text-prefix/v1",
+  "revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+  "tokenizerVersion": "0.2.0",
+  "ortVersion": "1.31.0-dev.20260914-8d85527a0",
+  "assets": [
+    {
+      "filename": "model.onnx",
+      "bytes": 118308185,
+      "sha256": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193"
+    },
+    {
+      "filename": "tokenizer.json",
+      "bytes": 17082730,
+      "sha256": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39"
+    },
+    {
+      "filename": "tokenizer_config.json",
+      "bytes": 443,
+      "sha256": "a1d6bc8734a6f635dc158508bef000f8e2e5a759c7d92f984b2c86e5ff53425b"
+    },
+    {
+      "filename": "config.json",
+      "bytes": 658,
+      "sha256": "cb99455288675345e1a4f411438d5d0adbba5fbd3a67ea4fb03c015433b996c1"
+    },
+    {
+      "filename": "special_tokens_map.json",
+      "bytes": 167,
+      "sha256": "d05497f1da52c5e09554c0cd874037a083e1dc1b9cfd48034d1c717f1afc07a7"
+    },
+    {
+      "filename": "tokenizers.mjs",
+      "bytes": 98937,
+      "sha256": "1c4a848f86156201c033d6cd08c4cf81ae1088552acec3367f31ef086edf5af0"
+    },
+    {
+      "filename": "ort.wasm.min.mjs",
+      "bytes": 50195,
+      "sha256": "1617c813ada08592706d29a9963ab6258864dce4299bd402d2196bd648b63bfe"
+    },
+    {
+      "filename": "ort-wasm-simd-threaded.mjs",
+      "bytes": 24381,
+      "sha256": "c57ca56328877353a575e51bbca6f18450027d6c9bf2307a2cb2c41363b4de9f"
+    },
+    {
+      "filename": "ort-wasm-simd-threaded.wasm",
+      "bytes": 14264838,
+      "sha256": "06ba057753da3847e4c24f02d91ab133455b0817c69a44993a9a53a2146df9e3"
+    }
+  ]
+}
